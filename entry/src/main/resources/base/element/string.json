@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "HarmonyOS \u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3\u4e3b\u5165\u53e3"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3"
     }
   ]
 }

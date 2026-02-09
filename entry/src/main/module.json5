@@ -10,6 +10,29 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.MANAGE_NET_FIREWALL"
+      },
+      {
+        "name": "ohos.permission.GET_NET_FIREWALL"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_NETWORK"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_USB"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_GET_DEVICE_INFO"
+      }
+    ],
     "abilities": [
       {
         "name": "EntryAbility",
@@ -43,7 +66,7 @@
             "name": "ohos.extension.backup",
             "resource": "$profile:backup_config"
           }
-        ],
+        ]
       }
     ]
   }
