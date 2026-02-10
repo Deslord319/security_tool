@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全管理中心 - HarmonyOS</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 标题栏 -->
+        <div class="title-bar">
+            <div class="title-left">
+                <div class="app-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <button class="back-btn" onclick="goBack()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="title-text">安全管理中心</span>
+            </div>
+            <div class="title-right">
+                <button class="title-btn"><i class="fas fa-bars"></i></button>
+                <button class="title-btn"><i class="fas fa-minus"></i></button>
+                <button class="title-btn close-btn"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 侧边导航栏 -->
+            <nav class="sidebar">
+                <div class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>总览</span>
+                </div>
+                <div class="nav-item" data-page="firewall">
+                    <i class="fas fa-fire"></i>
+                    <span>防火墙</span>
+                </div>
+                <div class="nav-item" data-page="log-manage">
+                    <i class="fas fa-file-alt"></i>
+                    <span>日志管理</span>
+                </div>
+                <div class="nav-item" data-page="peripheral-manage">
+                    <i class="fas fa-usb"></i>
+                    <span>外设管理</span>
+                </div>
+                <div class="nav-item" data-page="identity">
+                    <i class="fas fa-user-shield"></i>
+                    <span>身份鉴别</span>
+                </div>
+                <div class="nav-item" data-page="tool-settings">
+                    <i class="fas fa-cog"></i>
+                    <span>工具设置</span>
+                </div>
+            </nav>
+
+            <div class="content-area">
+
+                <!-- ==================== 总览页面 ==================== -->
+                <div id="dashboard" class="page active">
+                    <div class="page-header">
+                        <h2 class="page-title">安全总览</h2>
+                        <p class="page-subtitle">HarmonyOS 安全管理中心 — 企业级设备安全管控平台</p>
+                    </div>
+                    <div class="dashboard-stats">
+                        <div class="stat-card stat-blue">
+                            <div class="stat-icon"><i class="fas fa-fire"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-firewall">已关闭</span>
+                                <span class="stat-label">防火墙状态</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-green">
+                            <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-logs">128</span>
+                                <span class="stat-label">今日审计事件</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-purple">
+                            <div class="stat-icon"><i class="fas fa-usb"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-devices">3</span>
+                                <span class="stat-label">已连接外设</span>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-orange">
+                            <div class="stat-icon"><i class="fas fa-user-shield"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-auth">正常</span>
+                                <span class="stat-label">身份策略状态</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tools-section">
+                        <h3 class="section-title">快捷功能</h3>
+                        <div class="tools-grid">
+                            <div class="tool-card" onclick="showPage('firewall')">
+                                <div class="tool-icon fire-icon"><i class="fas fa-fire"></i></div>
+                                <span class="tool-name">防火墙管理</span>
+                            </div>
+                            <div class="tool-card" onclick="showPage('log-manage')">
+                                <div class="tool-icon log-icon"><i class="fas fa-file-alt"></i></div>
+                                <span class="tool-name">日志管理</span>
+                            </div>
+                            <div class="tool-card" onclick="showPage('peripheral-manage')">
+                                <div class="tool-icon device-icon"><i class="fas fa-usb"></i></div>
+                                <span class="tool-name">外设管理</span>
+                            </div>
+                            <div class="tool-card" onclick="showPage('identity')">
+                                <div class="tool-icon identity-icon"><i class="fas fa-user-shield"></i></div>
+                                <span class="tool-name">身份鉴别</span>
+                            </div>
+                            <div class="tool-card" onclick="showPage('firewall-rules')">
+                                <div class="tool-icon rule-icon"><i class="fas fa-list-alt"></i></div>
+                                <span class="tool-name">防火墙规则</span>
+                            </div>
+                            <div class="tool-card" onclick="showPage('tool-settings')">
+                                <div class="tool-icon setting-icon"><i class="fas fa-cog"></i></div>
+                                <span class="tool-name">工具设置</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 防火墙页面 ==================== -->
+                <div id="firewall" class="page">
+                    <div class="page-header-row">
+                        <h2 class="page-title">防火墙</h2>
+                        <label class="switch">
+                            <input type="checkbox" id="firewall-switch" onchange="toggleFirewall()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <p class="page-desc">通过 netFirewall API 管控网络入站/出站流量，支持 IP、域名、DNS 三种规则类型。</p>
+
+                    <div class="firewall-section">
+                        <h3 class="config-title">规则类型</h3>
+                        <div class="firewall-list">
+                            <div class="firewall-item" onclick="showPage('firewall-rules')">
+                                <i class="fas fa-network-wired"></i>
+                                <div class="firewall-item-info">
+                                    <span class="firewall-item-name">IP 规则</span>
+                                    <span class="firewall-item-desc">基于 IP 地址和端口的访问控制</span>
+                                </div>
+                                <span class="badge">3</span>
+                                <i class="fas fa-chevron-right arrow"></i>
+                            </div>
+                            <div class="firewall-item" onclick="showPage('firewall-rules')">
+                                <i class="fas fa-globe"></i>
+                                <div class="firewall-item-info">
+                                    <span class="firewall-item-name">域名规则</span>
+                                    <span class="firewall-item-desc">基于域名的访问控制</span>
+                                </div>
+                                <span class="badge">1</span>
+                                <i class="fas fa-chevron-right arrow"></i>
+                            </div>
+                            <div class="firewall-item" onclick="showPage('firewall-rules')">
+                                <i class="fas fa-server"></i>
+                                <div class="firewall-item-info">
+                                    <span class="firewall-item-name">DNS 规则</span>
+                                    <span class="firewall-item-desc">基于 DNS 的访问控制</span>
+                                </div>
+                                <span class="badge">0</span>
+                                <i class="fas fa-chevron-right arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="firewall-section">
+                        <h3 class="config-title">流量方向</h3>
+                        <div class="direction-cards">
+                            <div class="direction-card">
+                                <div class="direction-icon inbound"><i class="fas fa-arrow-down"></i></div>
+                                <div class="direction-info">
+                                    <span class="direction-name">入站规则 (RULE_IN)</span>
+                                    <span class="direction-count">2 条规则</span>
+                                </div>
+                            </div>
+                            <div class="direction-card">
+                                <div class="direction-icon outbound"><i class="fas fa-arrow-up"></i></div>
+                                <div class="direction-info">
+                                    <span class="direction-name">出站规则 (RULE_OUT)</span>
+                                    <span class="direction-count">2 条规则</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 防火墙规则列表页面 ==================== -->
+                <div id="firewall-rules" class="page">
+                    <div class="page-header-row">
+                        <h2 class="page-title">防火墙规则</h2>
+                        <button class="primary-btn" onclick="showModal('add-rule-modal')"><i class="fas fa-plus"></i> 添加规则</button>
+                    </div>
+                    <div class="tab-container">
+                        <div class="tab-header">
+                            <button class="tab-btn active" data-tab="all-rules">全部规则</button>
+                            <button class="tab-btn" data-tab="ip-rules">IP 规则</button>
+                            <button class="tab-btn" data-tab="domain-rules">域名规则</button>
+                            <button class="tab-btn" data-tab="dns-rules">DNS 规则</button>
+                        </div>
+                        <div class="tab-content">
+                            <div id="all-rules" class="tab-panel active">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>规则名称</th>
+                                            <th>类型</th>
+                                            <th>方向</th>
+                                            <th>协议</th>
+                                            <th>地址/域名</th>
+                                            <th>端口</th>
+                                            <th>策略</th>
+                                            <th>状态</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>阻止外部SSH</td>
+                                            <td><span class="tag tag-blue">IP</span></td>
+                                            <td>入站</td>
+                                            <td>TCP</td>
+                                            <td>0.0.0.0/0</td>
+                                            <td>22</td>
+                                            <td><span class="tag tag-red">拒绝</span></td>
+                                            <td><label class="switch small"><input type="checkbox" checked><span class="slider"></span></label></td>
+                                            <td>
+                                                <button class="icon-btn" title="编辑"><i class="fas fa-edit"></i></button>
+                                                <button class="icon-btn" title="删除"><i class="fas fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>允许HTTPS出站</td>
+                                            <td><span class="tag tag-blue">IP</span></td>
+                                            <td>出站</td>
+                                            <td>TCP</td>
+                                            <td>0.0.0.0/0</td>
+                                            <td>443</td>
+                                            <td><span class="tag tag-green">允许</span></td>
+                                            <td><label class="switch small"><input type="checkbox" checked><span class="slider"></span></label></td>
+                                            <td>
+                                                <button class="icon-btn" title="编辑"><i class="fas fa-edit"></i></button>
+                                                <button class="icon-btn" title="删除"><i class="fas fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>阻止恶意域名</td>
+                                            <td><span class="tag tag-purple">域名</span></td>
+                                            <td>出站</td>
+                                            <td>ALL</td>
+                                            <td>*.malware.com</td>
+                                            <td>-</td>
+                                            <td><span class="tag tag-red">拒绝</span></td>
+                                            <td><label class="switch small"><input type="checkbox" checked><span class="slider"></span></label></td>
+                                            <td>
+                                                <button class="icon-btn" title="编辑"><i class="fas fa-edit"></i></button>
+                                                <button class="icon-btn" title="删除"><i class="fas fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>允许内网通信</td>
+                                            <td><span class="tag tag-blue">IP</span></td>
+                                            <td>入站</td>
+                                            <td>ALL</td>
+                                            <td>192.168.0.0/16</td>
+                                            <td>全部</td>
+                                            <td><span class="tag tag-green">允许</span></td>
+                                            <td><label class="switch small"><input type="checkbox" checked><span class="slider"></span></label></td>
+                                            <td>
+                                                <button class="icon-btn" title="编辑"><i class="fas fa-edit"></i></button>
+                                                <button class="icon-btn" title="删除"><i class="fas fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="ip-rules" class="tab-panel">
+                                <p class="empty-hint">切换到"全部规则"查看所有IP规则</p>
+                            </div>
+                            <div id="domain-rules" class="tab-panel">
+                                <p class="empty-hint">切换到"全部规则"查看所有域名规则</p>
+                            </div>
+                            <div id="dns-rules" class="tab-panel">
+                                <p class="empty-hint">暂无 DNS 规则</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 日志管理页面 ==================== -->
+                <div id="log-manage" class="page">
+                    <div class="page-header-row">
+                        <h2 class="page-title">日志管理</h2>
+                        <div class="header-actions">
+                            <button class="secondary-btn" onclick="refreshLogs()"><i class="fas fa-sync-alt"></i> 刷新</button>
+                            <button class="secondary-btn" onclick="exportLogs()"><i class="fas fa-download"></i> 导出</button>
+                            <button class="secondary-btn danger-btn" onclick="clearLogs()"><i class="fas fa-trash"></i> 清除</button>
+                        </div>
+                    </div>
+                    <p class="page-desc">基于 SecurityAudit API 订阅和展示安全审计事件，支持多维度筛选。</p>
+
+                    <!-- 筛选区域 -->
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <label>事件类型</label>
+                            <div class="select-wrapper">
+                                <select id="log-type-filter">
+                                    <option value="all">全部事件</option>
+                                    <option value="file">文件操作</option>
+                                    <option value="network">网络连接</option>
+                                    <option value="app">应用事件</option>
+                                    <option value="account">账户认证</option>
+                                    <option value="usb">USB 访问</option>
+                                    <option value="permission">权限变更</option>
+                                    <option value="process">进程事件</option>
+                                    <option value="printer">打印机</option>
+                                    <option value="camera">摄像头</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>时间范围</label>
+                            <div class="date-range">
+                                <input type="date" class="config-input date-input" value="2026-02-09">
+                                <span>至</span>
+                                <input type="date" class="config-input date-input" value="2026-02-09">
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>关键词</label>
+                            <div class="search-box compact">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="进程名/文件路径/PID...">
+                            </div>
+                        </div>
+                        <button class="primary-btn compact-btn" onclick="filterLogs()"><i class="fas fa-filter"></i> 筛选</button>
+                    </div>
+
+                    <!-- 日志表格 -->
+                    <table class="data-table log-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>事件类型</th>
+                                <th>事件详情</th>
+                                <th>进程</th>
+                                <th>结果</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-table-body">
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:32:15</td>
+                                <td><span class="tag tag-blue">文件操作</span></td>
+                                <td>文件创建: /data/app/documents/report.docx</td>
+                                <td>com.huawei.docs (PID: 1234)</td>
+                                <td><span class="tag tag-green">正常</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:30:08</td>
+                                <td><span class="tag tag-orange">USB 访问</span></td>
+                                <td>USB存储设备接入: SanDisk Ultra (VID:0781 PID:5583)</td>
+                                <td>系统服务</td>
+                                <td><span class="tag tag-red">拦截</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:28:42</td>
+                                <td><span class="tag tag-purple">网络连接</span></td>
+                                <td>出站连接: 10.0.0.5:443 → api.huawei.com:443</td>
+                                <td>com.huawei.appgallery (PID: 2345)</td>
+                                <td><span class="tag tag-green">正常</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:25:10</td>
+                                <td><span class="tag tag-cyan">账户认证</span></td>
+                                <td>用户登录认证: user01 (PIN码认证)</td>
+                                <td>系统服务</td>
+                                <td><span class="tag tag-green">成功</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:20:33</td>
+                                <td><span class="tag tag-yellow">应用事件</span></td>
+                                <td>应用安装: com.example.testapp v1.2.0</td>
+                                <td>系统服务</td>
+                                <td><span class="tag tag-red">拦截</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:18:05</td>
+                                <td><span class="tag tag-gray">权限变更</span></td>
+                                <td>应用权限授予: com.huawei.camera → ohos.permission.CAMERA</td>
+                                <td>系统服务</td>
+                                <td><span class="tag tag-green">正常</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:15:22</td>
+                                <td><span class="tag tag-blue">文件操作</span></td>
+                                <td>文件删除: /data/app/temp/cache_001.tmp</td>
+                                <td>com.huawei.cleaner (PID: 3456)</td>
+                                <td><span class="tag tag-green">正常</span></td>
+                            </tr>
+                            <tr>
+                                <td class="time-cell">2026-02-09 14:10:18</td>
+                                <td><span class="tag tag-purple">网络连接</span></td>
+                                <td>DNS查询: www.example.com → 93.184.216.34</td>
+                                <td>com.huawei.browser (PID: 4567)</td>
+                                <td><span class="tag tag-green">正常</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="table-footer">
+                        <span class="footer-note">共 128 条审计事件</span>
+                        <div class="pagination">
+                            <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
+                            <span class="page-info">1 / 16</span>
+                            <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- 日志存储管理 -->
+                    <div class="config-section" style="margin-top: 24px;">
+                        <h3 class="config-title">日志存储管理</h3>
+                        <div class="config-card">
+                            <div class="config-row">
+                                <span class="config-label">日志保留天数</span>
+                                <div class="select-wrapper">
+                                    <select>
+                                        <option>30 天</option>
+                                        <option>60 天</option>
+                                        <option>90 天</option>
+                                        <option>180 天</option>
+                                        <option>365 天</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">存储空间上限</span>
+                                <div class="storage-info">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 35%"></div>
+                                    </div>
+                                    <span class="storage-text">350 MB / 1 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 外设管理页面 ==================== -->
+                <div id="peripheral-manage" class="page">
+                    <div class="page-header-row">
+                        <h2 class="page-title">外设管理</h2>
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="搜索设备">
+                        </div>
+                    </div>
+                    <p class="page-desc">通过 MDM Kit 管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略。</p>
+
+                    <div class="tab-container">
+                        <div class="tab-header">
+                            <button class="tab-btn active" data-tab="device-records-tab">设备连接记录</button>
+                            <button class="tab-btn" data-tab="interface-control-tab">接口管控</button>
+                            <button class="tab-btn" data-tab="device-control-tab">设备管控</button>
+                            <button class="tab-btn" data-tab="device-blackwhite-tab">黑白名单</button>
+                        </div>
+                        <div class="tab-content">
+                            <!-- 设备连接记录 -->
+                            <div id="device-records-tab" class="tab-panel active">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>设备名称</th>
+                                            <th>设备类型</th>
+                                            <th>设备标识</th>
+                                            <th>连接时间</th>
+                                            <th>策略</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>ShineOptics FHD Camera</td>
+                                            <td>USB 摄像头</td>
+                                            <td>VID:2B7E PID:B5A2</td>
+                                            <td>2026-02-09 16:01:19</td>
+                                            <td><span class="tag tag-green">允许</span></td>
+                                            <td><button class="icon-btn"><i class="fas fa-file-alt"></i></button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>SanDisk Ultra USB 3.0</td>
+                                            <td>USB 存储设备</td>
+                                            <td>VID:0781 PID:5583</td>
+                                            <td>2026-02-09 14:30:08</td>
+                                            <td><span class="tag tag-red">拒绝</span></td>
+                                            <td><button class="icon-btn"><i class="fas fa-file-alt"></i></button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>HP LaserJet Pro M404</td>
+                                            <td>USB 打印机</td>
+                                            <td>VID:03F0 PID:0C17</td>
+                                            <td>2026-02-09 10:15:42</td>
+                                            <td><span class="tag tag-green">允许</span></td>
+                                            <td><button class="icon-btn"><i class="fas fa-file-alt"></i></button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Logitech MX Keys</td>
+                                            <td>蓝牙键盘</td>
+                                            <td>MAC: AA:BB:CC:DD:EE:01</td>
+                                            <td>2026-02-09 09:00:05</td>
+                                            <td><span class="tag tag-green">允许</span></td>
+                                            <td><button class="icon-btn"><i class="fas fa-file-alt"></i></button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="table-footer">
+                                    <span class="footer-note">列表仅显示30天数据，如需查看更多记录，请导出</span>
+                                    <a href="#" class="link-btn">导出全部记录</a>
+                                </div>
+                            </div>
+
+                            <!-- 接口管控 -->
+                            <div id="interface-control-tab" class="tab-panel">
+                                <div class="interface-list">
+                                    <div class="interface-item">
+                                        <div class="interface-info">
+                                            <span class="interface-name">USB 接口</span>
+                                            <span class="interface-desc">全局禁用 USB 后，所有 USB 管控策略将不生效。系统仅允许键盘鼠标接入。</span>
+                                        </div>
+                                        <div class="select-wrapper">
+                                            <select>
+                                                <option>按策略生效</option>
+                                                <option>全局禁用</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+                                    <div class="interface-item">
+                                        <div class="interface-info">
+                                            <span class="interface-name">USB 存储设备</span>
+                                            <span class="interface-desc">控制 USB 存储设备的访问策略：禁止访问 / 只读 / 读写。</span>
+                                        </div>
+                                        <div class="select-wrapper">
+                                            <select>
+                                                <option>只读</option>
+                                                <option>读写</option>
+                                                <option>禁止访问</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+                                    <div class="interface-item">
+                                        <div class="interface-info">
+                                            <span class="interface-name">蓝牙</span>
+                                            <span class="interface-desc">全局禁用/启用蓝牙功能。</span>
+                                        </div>
+                                        <div class="select-wrapper">
+                                            <select>
+                                                <option>启用</option>
+                                                <option>禁用</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+                                    <div class="interface-item">
+                                        <div class="interface-info">
+                                            <span class="interface-name">Wi-Fi</span>
+                                            <span class="interface-desc">全局禁用/启用 Wi-Fi 功能。</span>
+                                        </div>
+                                        <div class="select-wrapper">
+                                            <select>
+                                                <option>启用</option>
+                                                <option>禁用</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+                                    <div class="interface-item">
+                                        <div class="interface-info">
+                                            <span class="interface-name">HDC (调试接口)</span>
+                                            <span class="interface-desc">全局禁用/启用 HDC 调试接口。</span>
+                                        </div>
+                                        <div class="select-wrapper">
+                                            <select>
+                                                <option>禁用</option>
+                                                <option>启用</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="api-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>接口: restrictions.setDisallowedPolicy(admin, feature, disallow) — @ohos.enterprise.restrictions</span>
+                                </div>
+                            </div>
+
+                            <!-- 设备管控 -->
+                            <div id="device-control-tab" class="tab-panel">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>设备名称</th>
+                                            <th>设备类型</th>
+                                            <th>设备标识</th>
+                                            <th>最近连接时间</th>
+                                            <th>管控策略</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>ShineOptics FHD Camera</td>
+                                            <td>USB 摄像头</td>
+                                            <td>VID:2B7E PID:B5A2</td>
+                                            <td>2026-02-09 16:01:19</td>
+                                            <td>
+                                                <div class="select-wrapper small">
+                                                    <select><option>允许</option><option>禁用</option><option>未配置</option></select>
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </div>
+                                            </td>
+                                            <td><button class="icon-btn"><i class="fas fa-file-alt"></i></button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>SanDisk Ultra USB 3.0</td>
+                                            <td>USB 存储设备</td>
+                                            <td>VID:0781 PID:5583</td>
+                                            <td>2026-02-09 14:30:08</td>
+                                            <td>
+                                                <div class="select-wrapper small">
+                                                    <select><option>禁用</option><option>允许</option><option>未配置</option></select>
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </div>
+                                            </td>
+                                            <td><button class="icon-btn"><i class="fas fa-file-alt"></i></button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="table-footer">
+                                    <a href="#" class="link-btn">下载设备管控模板</a>
+                                    <a href="#" class="link-btn">导入设备管控清单</a>
+                                </div>
+                            </div>
+
+                            <!-- 黑白名单 -->
+                            <div id="device-blackwhite-tab" class="tab-panel">
+                                <div class="bw-section">
+                                    <div class="bw-header">
+                                        <h4>USB 设备白名单 (按设备ID)</h4>
+                                        <button class="primary-btn compact-btn" onclick="showModal('add-whitelist-modal')"><i class="fas fa-plus"></i> 添加</button>
+                                    </div>
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Vendor ID</th>
+                                                <th>Product ID</th>
+                                                <th>备注</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>0x2B7E</td>
+                                                <td>0xB5A2</td>
+                                                <td>ShineOptics 摄像头</td>
+                                                <td><button class="icon-btn"><i class="fas fa-trash"></i></button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>0x03F0</td>
+                                                <td>0x0C17</td>
+                                                <td>HP 打印机</td>
+                                                <td><button class="icon-btn"><i class="fas fa-trash"></i></button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="bw-section">
+                                    <div class="bw-header">
+                                        <h4>USB 设备黑名单 (按设备类型)</h4>
+                                        <button class="primary-btn compact-btn"><i class="fas fa-plus"></i> 添加</button>
+                                    </div>
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Base Class</th>
+                                                <th>Sub Class</th>
+                                                <th>Protocol</th>
+                                                <th>描述</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>0x08</td>
+                                                <td>0x06</td>
+                                                <td>0x50</td>
+                                                <td>USB 大容量存储设备</td>
+                                                <td><button class="icon-btn"><i class="fas fa-trash"></i></button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="bw-section">
+                                    <div class="bw-header">
+                                        <h4>蓝牙设备白名单 (按MAC地址)</h4>
+                                        <button class="primary-btn compact-btn"><i class="fas fa-plus"></i> 添加</button>
+                                    </div>
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>MAC 地址</th>
+                                                <th>备注</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>AA:BB:CC:DD:EE:01</td>
+                                                <td>Logitech MX Keys</td>
+                                                <td><button class="icon-btn"><i class="fas fa-trash"></i></button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="api-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>接口: usbManager.addAllowedUsbDevices / addDisallowedUsbDevices / bluetoothManager.addAllowedBluetoothDevices — @kit.MDMKit</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 身份鉴别页面 ==================== -->
+                <div id="identity" class="page">
+                    <div class="page-header">
+                        <h2 class="page-title">身份鉴别</h2>
+                        <p class="page-subtitle">配置账户口令策略和认证方式，保障系统访问安全。</p>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 class="config-title">口令复杂度策略</h3>
+                        <div class="config-card">
+                            <div class="config-row">
+                                <span class="config-label">最小密码长度</span>
+                                <div class="select-wrapper">
+                                    <select id="min-pwd-length">
+                                        <option>6 位</option>
+                                        <option selected>8 位</option>
+                                        <option>10 位</option>
+                                        <option>12 位</option>
+                                        <option>16 位</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">要求包含大写字母</span>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">要求包含小写字母</span>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">要求包含数字</span>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">要求包含特殊字符</span>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="api-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>接口: securityManager.setPasswordPolicy(admin, policy) — @ohos.enterprise.securityManager</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 class="config-title">口令有效期配置</h3>
+                        <div class="config-card">
+                            <div class="config-row">
+                                <span class="config-label">密码最长使用天数</span>
+                                <div class="select-wrapper">
+                                    <select>
+                                        <option>30 天</option>
+                                        <option>60 天</option>
+                                        <option selected>90 天</option>
+                                        <option>180 天</option>
+                                        <option>不限制</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">密码过期前提醒天数</span>
+                                <div class="select-wrapper">
+                                    <select>
+                                        <option>3 天</option>
+                                        <option selected>7 天</option>
+                                        <option>14 天</option>
+                                        <option>30 天</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">历史密码重复限制</span>
+                                <div class="select-wrapper">
+                                    <select>
+                                        <option>不限制</option>
+                                        <option>最近 3 次</option>
+                                        <option selected>最近 5 次</option>
+                                        <option>最近 10 次</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="api-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>接口: accountManager.setDomainAccountPolicy(admin, policy) — @ohos.enterprise.accountManager</span>
+                        </div>
+                    </div>
+
+                    <div class="page-footer">
+                        <button class="secondary-btn">重置默认</button>
+                        <button class="primary-btn" onclick="saveIdentityConfig()">保存配置</button>
+                    </div>
+                </div>
+
+                <!-- ==================== 工具设置页面 ==================== -->
+                <div id="tool-settings" class="page">
+                    <div class="page-header">
+                        <h2 class="page-title">工具设置</h2>
+                        <p class="page-subtitle">配置安全管理工具的启动校验和密码管理。</p>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 class="config-title">启动校验</h3>
+                        <div class="config-card">
+                            <div class="config-row">
+                                <div class="config-label-group">
+                                    <span class="config-label">启动时密码校验</span>
+                                    <span class="config-sublabel">打开工具时需要验证身份</span>
+                                </div>
+                                <label class="switch"><input type="checkbox" checked id="startup-auth"><span class="slider"></span></label>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">认证方式</span>
+                                <div class="select-wrapper">
+                                    <select>
+                                        <option>PIN 码</option>
+                                        <option>指纹</option>
+                                        <option>人脸识别</option>
+                                        <option>PIN + 指纹</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="api-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>接口: userAuth.getUserAuthInstance(authParam, widgetParam) — @ohos.userIAM.userAuth</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 class="config-title">工具密码管理</h3>
+                        <div class="config-card">
+                            <div class="config-row">
+                                <span class="config-label">当前密码</span>
+                                <div class="password-input inline">
+                                    <input type="password" id="current-pwd" placeholder="输入当前密码" value="••••••••">
+                                    <button class="toggle-password" onclick="togglePwdVisibility('current-pwd', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">新密码</span>
+                                <div class="password-input inline">
+                                    <input type="password" id="new-pwd" placeholder="输入新密码">
+                                    <button class="toggle-password" onclick="togglePwdVisibility('new-pwd', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">确认新密码</span>
+                                <div class="password-input inline">
+                                    <input type="password" id="confirm-pwd" placeholder="再次输入新密码">
+                                    <button class="toggle-password" onclick="togglePwdVisibility('confirm-pwd', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="api-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>接口: asset.add / asset.query / asset.update — @ohos.security.asset (Asset Store Kit)</span>
+                        </div>
+                    </div>
+
+                    <div class="page-footer">
+                        <button class="secondary-btn">取消</button>
+                        <button class="primary-btn" onclick="saveToolSettings()">保存设置</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 弹窗 ==================== -->
+    <!-- 防火墙认证弹窗 -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('auth-modal')"><i class="fas fa-times"></i></button>
+            <div class="modal-icon warning">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3 class="modal-title">开启防火墙需要认证</h3>
+            <div class="modal-form">
+                <div class="select-wrapper full">
+                    <select>
+                        <option>user</option>
+                        <option>admin</option>
+                    </select>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="password-input">
+                    <input type="password" id="auth-password" placeholder="请输入密码">
+                    <button class="toggle-password" onclick="togglePwdVisibility('auth-password', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" onclick="closeModal('auth-modal')">取 消</button>
+                <button class="primary-btn" onclick="confirmAuth()">确 定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加防火墙规则弹窗 -->
+    <div id="add-rule-modal" class="modal">
+        <div class="modal-content modal-wide">
+            <button class="modal-close" onclick="closeModal('add-rule-modal')"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title" style="text-align:left;">添加防火墙规则</h3>
+            <div class="modal-form">
+                <div class="form-row">
+                    <label>规则名称</label>
+                    <input type="text" class="config-input full" placeholder="输入规则名称">
+                </div>
+                <div class="form-row">
+                    <label>规则类型</label>
+                    <div class="select-wrapper full">
+                        <select>
+                            <option>IP 规则 (RULE_IP)</option>
+                            <option>域名规则 (RULE_DOMAIN)</option>
+                            <option>DNS 规则 (RULE_DNS)</option>
+                        </select>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>方向</label>
+                    <div class="select-wrapper full">
+                        <select>
+                            <option>入站 (RULE_IN)</option>
+                            <option>出站 (RULE_OUT)</option>
+                        </select>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>协议</label>
+                    <div class="select-wrapper full">
+                        <select>
+                            <option>TCP</option>
+                            <option>UDP</option>
+                            <option>ICMP</option>
+                            <option>ALL</option>
+                        </select>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>远程地址/域名</label>
+                    <input type="text" class="config-input full" placeholder="例: 192.168.1.0/24 或 *.example.com">
+                </div>
+                <div class="form-row">
+                    <label>远程端口</label>
+                    <input type="text" class="config-input full" placeholder="例: 80, 443 或 8000-9000">
+                </div>
+                <div class="form-row">
+                    <label>策略</label>
+                    <div class="select-wrapper full">
+                        <select>
+                            <option>允许 (RULE_ALLOW)</option>
+                            <option>拒绝 (RULE_DENY)</option>
+                        </select>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" onclick="closeModal('add-rule-modal')">取 消</button>
+                <button class="primary-btn" onclick="addFirewallRule()">添 加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加白名单弹窗 -->
+    <div id="add-whitelist-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('add-whitelist-modal')"><i class="fas fa-times"></i></button>
+            <h3 class="modal-title" style="text-align:left;">添加 USB 设备白名单</h3>
+            <div class="modal-form">
+                <div class="form-row">
+                    <label>Vendor ID</label>
+                    <input type="text" class="config-input full" placeholder="例: 0x2B7E">
+                </div>
+                <div class="form-row">
+                    <label>Product ID</label>
+                    <input type="text" class="config-input full" placeholder="例: 0xB5A2">
+                </div>
+                <div class="form-row">
+                    <label>备注</label>
+                    <input type="text" class="config-input full" placeholder="设备备注信息">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" onclick="closeModal('add-whitelist-modal')">取 消</button>
+                <button class="primary-btn">添 加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-text">操作成功</span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
