@@ -118,3 +118,109 @@ export function getActionLabel(action: RuleAction): string {
       return '未知'
   }
 }
+
+// ==================== 外设管理模块 ====================
+
+// 外设类型
+export enum PeripheralType {
+  USB_STORAGE = 'usb_storage',
+  USB_CAMERA = 'usb_camera',
+  USB_PRINTER = 'usb_printer',
+  USB_OTHER = 'usb_other',
+  BLUETOOTH = 'bluetooth'
+}
+
+// 接口管控 feature
+export enum InterfaceFeature {
+  USB = 'usb',
+  BLUETOOTH = 'bluetooth',
+  WIFI = 'wifi',
+  HDC = 'hdc'
+}
+
+// USB 存储访问策略
+export enum UsbStoragePolicy {
+  READ_WRITE = 0,
+  READ_ONLY = 1,
+  DISABLED = 2
+}
+
+// 设备连接记录
+export interface DeviceRecord {
+  deviceName: string
+  deviceType: PeripheralType
+  deviceId: string
+  connectTime: string
+  policy: string
+}
+
+// 设备管控记录（支持策略下拉选择）
+export interface DeviceControlRecord {
+  deviceName: string
+  deviceType: PeripheralType
+  deviceId: string
+  connectTime: string
+  policyIndex: number  // 0=允许, 1=禁用, 2=未配置
+}
+
+// USB 白名单项（UI 展示用，含备注）
+export interface UsbWhitelistItem {
+  vendorId: number
+  productId: number
+  remark: string
+}
+
+// USB 类型黑名单项（UI 展示用，含描述）
+export interface UsbBlacklistItem {
+  baseClass: number
+  subClass: number
+  protocol: number
+  description: string
+}
+
+// 蓝牙白名单项（UI 展示用，含备注）
+export interface BluetoothWhitelistItem {
+  deviceId: string
+  remark: string
+}
+
+// 接口管控配置项
+export interface InterfaceControlConfig {
+  feature: string
+  label: string
+  description: string
+  options: string[]
+  selectedIndex: number
+}
+
+// 获取外设类型标签
+export function getPeripheralTypeLabel(type: PeripheralType): string {
+  switch (type) {
+    case PeripheralType.USB_STORAGE:
+      return 'USB 存储设备'
+    case PeripheralType.USB_CAMERA:
+      return 'USB 摄像头'
+    case PeripheralType.USB_PRINTER:
+      return 'USB 打印机'
+    case PeripheralType.USB_OTHER:
+      return 'USB 其他'
+    case PeripheralType.BLUETOOTH:
+      return '蓝牙设备'
+    default:
+      return '未知'
+  }
+}
+
+// 获取 USB 存储策略标签
+export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
+  switch (policy) {
+    case UsbStoragePolicy.READ_WRITE:
+      return '读写'
+    case UsbStoragePolicy.READ_ONLY:
+      return '只读'
+    case UsbStoragePolicy.DISABLED:
+      return '禁止访问'
+    default:
+      return '未知'
+  }
+}

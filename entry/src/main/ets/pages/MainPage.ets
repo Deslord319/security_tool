@@ -2,6 +2,7 @@ import { SideBar } from '../components/SideBar'
 import { DashboardPage } from '../views/DashboardPage'
 import { FirewallPage } from '../views/FirewallPage'
 import { FirewallRulesPage } from '../views/FirewallRulesPage'
+import { PeripheralPage } from '../views/PeripheralPage'
 import { PlaceholderPage } from '../views/PlaceholderPage'
 import { Routes } from '../constants/AppConstants'
 import { AppColors } from '../constants/AppConstants'
@@ -60,7 +61,7 @@ struct MainPage {
         } else if (this.currentPage === Routes.LOG_MANAGE) {
           PlaceholderPage({ title: '日志管理' })
         } else if (this.currentPage === Routes.PERIPHERAL_MANAGE) {
-          PlaceholderPage({ title: '外设管理' })
+          PeripheralPage()
         } else if (this.currentPage === Routes.IDENTITY) {
           PlaceholderPage({ title: '身份鉴别' })
         } else if (this.currentPage === Routes.TOOL_SETTINGS) {
