@@ -171,6 +171,7 @@ export struct FirewallPage {
       .padding(AppStyles.PADDING_LG)
       .width('100%')
     }
+    .align(Alignment.Top)
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)

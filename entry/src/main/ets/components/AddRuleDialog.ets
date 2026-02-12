@@ -59,37 +59,49 @@ export struct AddRuleDialog {
   }
 
   build() {
-    Column({ space: 20 }) {
-      // 标题
-      Text('添加防火墙规则')
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .opacity(AppColors.TEXT_PRIMARY_OPACITY)
-        .width('100%')
+    Column({ space: 16 }) {
+      // 标题 + 关闭按钮
+      Row() {
+        Text('添加防火墙规则')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .layoutWeight(1)
+        Text('\u00D7')
+          .fontSize(20)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+          .onClick(() => {
+            this.controller.close()
+          })
+      }
+      .width('100%')
 
       // 规则名称
       Column({ space: 6 }) {
         Text('规则名称')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '输入规则名称' })
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.ruleName = value })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
       // 规则类型
-      Row() {
+      Column({ space: 6 }) {
         Text('规则类型')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .layoutWeight(1)
         Select([
           { value: 'IP 规则' },
           { value: '域名规则' },
@@ -99,17 +111,22 @@ export struct AddRuleDialog {
           .value('IP 规则')
           .fontColor(AppColors.TEXT_PRIMARY)
           .font({ size: AppStyles.FONT_SIZE_BODY })
+          .width('100%')
+          .height(40)
+          .backgroundColor(AppColors.BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
           .onSelect((index: number) => { this.ruleType = index + 1 })
       }
       .width('100%')
+      .alignItems(HorizontalAlign.Start)
 
       // 方向
-      Row() {
+      Column({ space: 6 }) {
         Text('方向')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .layoutWeight(1)
         Select([
           { value: '入站' },
           { value: '出站' }
@@ -118,18 +135,23 @@ export struct AddRuleDialog {
           .value('入站')
           .fontColor(AppColors.TEXT_PRIMARY)
           .font({ size: AppStyles.FONT_SIZE_BODY })
+          .width('100%')
+          .height(40)
+          .backgroundColor(AppColors.BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
           .onSelect((index: number) => { this.ruleDirection = index + 1 })
       }
       .width('100%')
+      .alignItems(HorizontalAlign.Start)
 
       // 协议（仅 IP 规则显示）
       if (this.ruleType === 1) {
-        Row() {
+        Column({ space: 6 }) {
           Text('协议')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.TEXT_PRIMARY)
             .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-            .layoutWeight(1)
           Select([
             { value: 'TCP' },
             { value: 'UDP' },
@@ -139,18 +161,24 @@ export struct AddRuleDialog {
             .value('TCP')
             .fontColor(AppColors.TEXT_PRIMARY)
             .font({ size: AppStyles.FONT_SIZE_BODY })
+            .width('100%')
+            .height(40)
+            .backgroundColor(AppColors.BG_PAGE)
+            .borderRadius(AppStyles.RADIUS_MD)
             .onSelect((index: number) => {
               let protocols: number[] = [6, 17, 1]
               this.protocol = protocols[index]
             })
         }
         .width('100%')
+        .alignItems(HorizontalAlign.Start)
       }
 
       // 远程地址
       Column({ space: 6 }) {
         Text(this.ruleType === 2 ? '域名' : this.ruleType === 3 ? 'DNS 服务器' : '远程地址')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({
@@ -160,6 +188,7 @@ export struct AddRuleDialog {
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.remoteAddress = value })
       }
       .width('100%')
@@ -169,13 +198,15 @@ export struct AddRuleDialog {
       if (this.ruleType === 1) {
         Column({ space: 6 }) {
           Text('远程端口')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.TEXT_PRIMARY)
             .opacity(AppColors.TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 443' })
             .height(40)
             .backgroundColor(AppColors.BG_PAGE)
             .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
             .type(InputType.Number)
             .onChange((value: string) => { this.remotePort = value })
         }
@@ -184,12 +215,12 @@ export struct AddRuleDialog {
       }
 
       // 策略
-      Row() {
+      Column({ space: 6 }) {
         Text('策略')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .layoutWeight(1)
         Select([
           { value: '允许' },
           { value: '拒绝' }
@@ -198,18 +229,24 @@ export struct AddRuleDialog {
           .value('允许')
           .fontColor(AppColors.TEXT_PRIMARY)
           .font({ size: AppStyles.FONT_SIZE_BODY })
+          .width('100%')
+          .height(40)
+          .backgroundColor(AppColors.BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
           .onSelect((index: number) => { this.action = index })
       }
       .width('100%')
+      .alignItems(HorizontalAlign.Start)
 
       // 按钮区域
-      Row({ space: 12 }) {
+      Row({ space: 16 }) {
         Button('取消')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(Color.White)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
@@ -232,8 +269,9 @@ export struct AddRuleDialog {
       }
       .width('100%')
     }
-    .padding(24)
-    .width('100%')
+    .padding(32)
+    .constraintSize({ maxWidth: 600 })
+    .width('90%')
     .backgroundColor(AppColors.BG_CARD)
     .borderRadius(AppStyles.RADIUS_XL)
   }

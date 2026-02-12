@@ -34,6 +34,9 @@
       },
       {
         "name": "ohos.permission.ENTERPRISE_MANAGE_WIFI"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_ADMIN_MANAGE"
       }
     ],
     "abilities": [
@@ -70,6 +73,12 @@
             "resource": "$profile:backup_config"
           }
         ]
+      },
+      {
+        "name": "EnterpriseAdminAbility",
+        "srcEntry": "./ets/enterpriseadminability/EnterpriseAdminAbility.ets",
+        "type": "enterpriseAdmin",
+        "exported": true
       }
     ]
   }

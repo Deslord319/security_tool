@@ -26,24 +26,37 @@ export struct AddWhitelistDialog {
   }
 
   build() {
-    Column({ space: 20 }) {
-      Text(this.mode === 'usb' ? '添加 USB 设备白名单' : '添加蓝牙设备白名单')
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .opacity(AppColors.TEXT_PRIMARY_OPACITY)
-        .width('100%')
+    Column({ space: 16 }) {
+      // 标题 + 关闭按钮
+      Row() {
+        Text(this.mode === 'usb' ? '添加 USB 设备白名单' : '添加蓝牙设备白名单')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .layoutWeight(1)
+        Text('\u00D7')
+          .fontSize(20)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+          .onClick(() => {
+            this.controller.close()
+          })
+      }
+      .width('100%')
 
       if (this.mode === 'usb') {
         Column({ space: 6 }) {
           Text('Vendor ID')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.TEXT_PRIMARY)
             .opacity(AppColors.TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 0x2B7E' })
             .height(40)
             .backgroundColor(AppColors.BG_PAGE)
             .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
             .onChange((value: string) => { this.vendorIdText = value })
         }
         .width('100%')
@@ -51,13 +64,15 @@ export struct AddWhitelistDialog {
 
         Column({ space: 6 }) {
           Text('Product ID')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.TEXT_PRIMARY)
             .opacity(AppColors.TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 0xB5A2' })
             .height(40)
             .backgroundColor(AppColors.BG_PAGE)
             .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
             .onChange((value: string) => { this.productIdText = value })
         }
         .width('100%')
@@ -65,13 +80,15 @@ export struct AddWhitelistDialog {
       } else {
         Column({ space: 6 }) {
           Text('MAC 地址')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.TEXT_PRIMARY)
             .opacity(AppColors.TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: AA:BB:CC:DD:EE:01' })
             .height(40)
             .backgroundColor(AppColors.BG_PAGE)
             .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
             .onChange((value: string) => { this.macAddress = value })
         }
         .width('100%')
@@ -80,25 +97,28 @@ export struct AddWhitelistDialog {
 
       Column({ space: 6 }) {
         Text('备注')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '设备备注信息' })
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.remark = value })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      Row({ space: 12 }) {
+      Row({ space: 16 }) {
         Button('取消')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(Color.White)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
@@ -129,8 +149,9 @@ export struct AddWhitelistDialog {
       }
       .width('100%')
     }
-    .padding(24)
-    .width('100%')
+    .padding(32)
+    .constraintSize({ maxWidth: 600 })
+    .width('90%')
     .backgroundColor(AppColors.BG_CARD)
     .borderRadius(AppStyles.RADIUS_XL)
   }

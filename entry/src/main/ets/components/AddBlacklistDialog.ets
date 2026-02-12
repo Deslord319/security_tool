@@ -19,23 +19,36 @@ export struct AddBlacklistDialog {
   }
 
   build() {
-    Column({ space: 20 }) {
-      Text('添加 USB 设备类型黑名单')
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .opacity(AppColors.TEXT_PRIMARY_OPACITY)
-        .width('100%')
+    Column({ space: 16 }) {
+      // 标题 + 关闭按钮
+      Row() {
+        Text('添加 USB 设备类型黑名单')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .layoutWeight(1)
+        Text('\u00D7')
+          .fontSize(20)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+          .onClick(() => {
+            this.controller.close()
+          })
+      }
+      .width('100%')
 
       Column({ space: 6 }) {
         Text('Base Class')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x08' })
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.baseClassText = value })
       }
       .width('100%')
@@ -43,13 +56,15 @@ export struct AddBlacklistDialog {
 
       Column({ space: 6 }) {
         Text('Sub Class')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x06' })
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.subClassText = value })
       }
       .width('100%')
@@ -57,13 +72,15 @@ export struct AddBlacklistDialog {
 
       Column({ space: 6 }) {
         Text('Protocol')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x50' })
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.protocolText = value })
       }
       .width('100%')
@@ -71,25 +88,28 @@ export struct AddBlacklistDialog {
 
       Column({ space: 6 }) {
         Text('描述')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: USB 大容量存储设备' })
           .height(40)
           .backgroundColor(AppColors.BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.description = value })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      Row({ space: 12 }) {
+      Row({ space: 16 }) {
         Button('取消')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.TEXT_PRIMARY)
           .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(Color.White)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
@@ -114,8 +134,9 @@ export struct AddBlacklistDialog {
       }
       .width('100%')
     }
-    .padding(24)
-    .width('100%')
+    .padding(32)
+    .constraintSize({ maxWidth: 600 })
+    .width('90%')
     .backgroundColor(AppColors.BG_CARD)
     .borderRadius(AppStyles.RADIUS_XL)
   }

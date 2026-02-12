@@ -9,7 +9,7 @@ export struct DashboardPage {
 
   build() {
     Scroll() {
-      Column({ space: 24 }) {
+      Column({ space: 20 }) {
         // 页面标题
         Column({ space: 4 }) {
           Text('安全总览')
@@ -140,9 +140,10 @@ export struct DashboardPage {
         }
         .width('100%')
       }
-      .padding(AppStyles.PADDING_LG)
+      .padding({ left: 32, right: 32, top: 16, bottom: 24 })
       .width('100%')
     }
+    .align(Alignment.Top)
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
