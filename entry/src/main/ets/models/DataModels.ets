@@ -225,6 +225,67 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   }
 }
 
+// ==================== 设备 ID 解析工具函数 ====================
+
+// USB 设备 ID 解析结果
+export interface ParsedUsbId {
+  vendorId: number
+  productId: number
+}
+
+// 解析 "VID:2B7E PID:B5A2" → ParsedUsbId
+export function parseUsbDeviceId(deviceId: string): ParsedUsbId | null {
+  let match = deviceId.match(/VID:([0-9A-Fa-f]+)\s+PID:([0-9A-Fa-f]+)/)
+  if (!match) {
+    return null
+  }
+  let result: ParsedUsbId = {
+    vendorId: parseInt(match[1], 16),
+    productId: parseInt(match[2], 16)
+  }
+  return result
+}
+
+// 解析 "MAC: AA:BB:CC:DD:EE:01" → "AA:BB:CC:DD:EE:01"
+export function parseBluetoothMac(deviceId: string): string | null {
+  let match = deviceId.match(/MAC:\s*([0-9A-Fa-f:]+)/)
+  return match ? match[1] : null
+}
+
+// 格式化 { vendorId, productId } → "VID:2B7E PID:B5A2"
+export function formatUsbDeviceId(vendorId: number, productId: number): string {
+  return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
+}
+
+// PeripheralType → USB Base Class 映射（禁用时加入黑名单用）
+// USB_STORAGE → 0x08, USB_CAMERA → 0x0E, USB_PRINTER → 0x07
+export function inferUsbBaseClass(type: PeripheralType): number {
+  switch (type) {
+    case PeripheralType.USB_STORAGE:
+      return 0x08
+    case PeripheralType.USB_CAMERA:
+      return 0x0E
+    case PeripheralType.USB_PRINTER:
+      return 0x07
+    default:
+      return 0
+  }
+}
+
+// USB Base Class → PeripheralType 反查
+export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralType {
+  switch (baseClass) {
+    case 0x08:
+      return PeripheralType.USB_STORAGE
+    case 0x0E:
+      return PeripheralType.USB_CAMERA
+    case 0x07:
+      return PeripheralType.USB_PRINTER
+    default:
+      return PeripheralType.USB_OTHER
+  }
+}
+
 // ==================== 身份鉴别模块 ====================
 
 // 口令复杂度 UI 配置（用于 View 层状态管理）

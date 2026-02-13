@@ -12,3 +12,10 @@
 /.appanalyzer
 oh-package-lock.json5
 /.qoder
+
+# Temporary files
+.bin/
+nul
+temp_*.txt
+*.png
+!security-app/*.png

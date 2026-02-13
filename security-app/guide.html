@@ -408,6 +408,8 @@
             .features-grid { grid-template-columns: 1fr; }
             .scenario-item { flex-direction: column; }
             .value-grid { grid-template-columns: repeat(2, 1fr); }
+            .analysis-grid { grid-template-columns: 1fr !important; }
+            .arch-grid { grid-template-columns: 1fr !important; }
         }
     </style>
 </head>
@@ -437,28 +439,78 @@
             </div>
         </div>
         
-        <!-- 项目价值 -->
+        <!-- 项目优缺点分析 -->
         <div class="section">
             <h2 class="section-title">
-                <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
-                项目价值
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                项目优缺点分析
             </h2>
-            <div class="value-grid">
-                <div class="value-item">
-                    <div class="value-number">6</div>
-                    <div class="value-label">核心安全功能模块</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <!-- 优点 -->
+                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 16px; padding: 28px;">
+                    <h3 style="font-size: 18px; font-weight: 600; color: #4ade80; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="#4ade80"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        核心优势
+                    </h3>
+                    <ul style="color: #94a3b8; font-size: 14px; line-height: 2.2; padding-left: 18px;">
+                        <li><strong style="color: #e2e8f0;">深度系统集成</strong> — 基于 HarmonyOS 原生 API（netFirewall、MDM Kit、userAuth），非跨平台方案，性能和兼容性更优</li>
+                        <li><strong style="color: #e2e8f0;">功能覆盖全面</strong> — 防火墙、外设、日志、身份、总览、设置六大模块，形成完整的企业安全管理闭环</li>
+                        <li><strong style="color: #e2e8f0;">企业级定位清晰</strong> — 专为 IT 管理员设计，解决数据泄露、合规审计等企业刚需痛点</li>
+                        <li><strong style="color: #e2e8f0;">零信任安全架构</strong> — 细粒度访问控制，符合现代企业安全理念和等保合规要求</li>
+                        <li><strong style="color: #e2e8f0;">UX 原型先行</strong> — 完整的 Web 交互原型，确保开发有据可依，体验一致</li>
+                    </ul>
                 </div>
-                <div class="value-item">
-                    <div class="value-number">3</div>
-                    <div class="value-label">防火墙规则类型</div>
+                <!-- 缺点/待改进 -->
+                <div style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 16px; padding: 28px;">
+                    <h3 style="font-size: 18px; font-weight: 600; color: #fbbf24; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="#fbbf24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                        待改进项
+                    </h3>
+                    <ul style="color: #94a3b8; font-size: 14px; line-height: 2.2; padding-left: 18px;">
+                        <li><strong style="color: #e2e8f0;">开发进度有限</strong> — 7个功能模块目前完成3个（Dashboard、Firewall、Rules），整体进度约30%</li>
+                        <li><strong style="color: #e2e8f0;">依赖企业权限</strong> — 需要特殊签名和企业级权限，普通开发者难以直接测试验证</li>
+                        <li><strong style="color: #e2e8f0;">设备覆盖单一</strong> — 目前仅支持 2in1 设备类型，尚未适配手机、平板等终端</li>
+                        <li><strong style="color: #e2e8f0;">文档待完善</strong> — API 使用示例和最佳实践文档仍在建设中</li>
+                    </ul>
                 </div>
-                <div class="value-item">
-                    <div class="value-number">4+</div>
-                    <div class="value-label">外设接口管控</div>
+            </div>
+        </div>
+        
+        <!-- 架构分析 -->
+        <div class="section">
+            <h2 class="section-title">
+                <svg viewBox="0 0 24 24"><path d="M22 9V7h-2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2v-2h-2V9h2zm-4 10H4V5h14v14zM6 13h5v4H6zm6-6h4v3h-4zM6 7h5v5H6zm6 4h4v6h-4z"/></svg>
+                架构分析
+            </h2>
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(71, 85, 105, 0.4); border-radius: 16px; padding: 32px;">
+                <div style="margin-bottom: 24px;">
+                    <h4 style="font-size: 16px; font-weight: 600; color: #60a5fa; margin-bottom: 12px;">当前架构状态</h4>
+                    <p style="font-size: 14px; color: #94a3b8; line-height: 1.8;">
+                        项目采用分层架构设计：Entry（入口层）→ Pages（页面层）→ Components（组件层）→ Services（服务层）→ Data Models（数据层）→ System APIs（系统接口层）。各层职责清晰，耦合度低。
+                    </p>
                 </div>
-                <div class="value-item">
-                    <div class="value-number">100%</div>
-                    <div class="value-label">HarmonyOS 原生体验</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 20px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #4ade80; margin-bottom: 8px;">无冗余</div>
+                        <div style="font-size: 13px; color: #94a3b8; line-height: 1.7;">
+                            <strong>防火墙模块</strong><br>
+                            FirewallPage（开关/类型）与 FirewallRulesPage（规则CRUD）职责分明，拆分合理
+                        </div>
+                    </div>
+                    <div style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 20px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #4ade80; margin-bottom: 8px;">结构简洁</div>
+                        <div style="font-size: 13px; color: #94a3b8; line-height: 1.7;">
+                            <strong>占位设计</strong><br>
+                            4个待开发页面使用统一 PlaceholderPage 组件，避免重复代码
+                        </div>
+                    </div>
+                    <div style="background: rgba(59, 130, 246, 0.1); border-radius: 12px; padding: 20px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #60a5fa; margin-bottom: 8px;">待扩展</div>
+                        <div style="font-size: 13px; color: #94a3b8; line-height: 1.7;">
+                            <strong>服务层</strong><br>
+                            目前仅有 FirewallService，后续需扩展 DeviceService、LogService 等
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

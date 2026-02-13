@@ -46,6 +46,15 @@ export default class EntryAbility extends UIAbility {
       ThemeManager.getInstance().reapplyTheme();
       hilog.info(DOMAIN, 'testTag', '[DIAG] loadContent done, AppStorage_theme=%{public}s',
         AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
+
+      // 隐藏系统标题栏（装饰栏），保留三键区和拖拽能力
+      windowStage.getMainWindow().then((mainWindow: window.Window) => {
+        mainWindow.setWindowDecorVisible(false);
+        mainWindow.setWindowDecorHeight(56);
+        hilog.info(DOMAIN, 'testTag', 'Window decor hidden, height set to 56');
+      }).catch((decErr: Error) => {
+        hilog.error(DOMAIN, 'testTag', 'Failed to configure window decor: %{public}s', JSON.stringify(decErr));
+      });
     });
   }
 

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>去除标题栏方案设计 - HarmonyOS 安全管理中心</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-page: #F5F5F5;
+            --bg-card: #FFFFFF;
+            --bg-code: #1E1E2E;
+            --text-primary: rgba(0, 0, 0, 0.9);
+            --text-secondary: rgba(0, 0, 0, 0.6);
+            --text-tertiary: rgba(0, 0, 0, 0.4);
+            --border-color: rgba(0, 0, 0, 0.1);
+            --accent-blue: #0A84FF;
+            --accent-green: #34C759;
+            --accent-orange: #FF9500;
+            --accent-red: #FF3B30;
+            --accent-purple: #5856D6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-page);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        h1 { font-size: 32px; font-weight: 600; margin-bottom: 8px; }
+        .subtitle { font-size: 16px; color: var(--text-secondary); margin-bottom: 40px; }
+
+        h2 {
+            font-size: 22px; font-weight: 600;
+            margin: 40px 0 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-blue);
+            display: flex; align-items: center; gap: 10px;
+        }
+        h2 i { color: var(--accent-blue); font-size: 20px; }
+
+        h3 {
+            font-size: 17px; font-weight: 600;
+            margin: 24px 0 12px; color: var(--text-primary);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            font-size: 16px; font-weight: 600;
+            margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: 500;
+        }
+        .badge-blue { background: rgba(10,132,255,0.1); color: var(--accent-blue); }
+        .badge-green { background: rgba(52,199,89,0.1); color: var(--accent-green); }
+        .badge-orange { background: rgba(255,149,0,0.1); color: var(--accent-orange); }
+        .badge-red { background: rgba(255,59,48,0.1); color: var(--accent-red); }
+        .badge-purple { background: rgba(88,86,214,0.1); color: var(--accent-purple); }
+
+        pre {
+            background: var(--bg-code);
+            color: #CDD6F4;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.7;
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            margin: 12px 0;
+        }
+
+        .kw { color: #CBA6F7; }
+        .fn { color: #89B4FA; }
+        .str { color: #A6E3A1; }
+        .cm { color: #6C7086; font-style: italic; }
+        .num { color: #FAB387; }
+        .type { color: #89DCEB; }
+        .prop { color: #F5C2E7; }
+        .bool { color: #FAB387; }
+        .param { color: #F9E2AF; }
+
+        .info-box {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin: 16px 0;
+            display: flex; gap: 12px; align-items: flex-start;
+        }
+        .info-box i { margin-top: 2px; flex-shrink: 0; }
+        .info-box.warning { background: rgba(255,149,0,0.08); border-left: 3px solid var(--accent-orange); }
+        .info-box.warning i { color: var(--accent-orange); }
+        .info-box.info { background: rgba(10,132,255,0.06); border-left: 3px solid var(--accent-blue); }
+        .info-box.info i { color: var(--accent-blue); }
+        .info-box.success { background: rgba(52,199,89,0.06); border-left: 3px solid var(--accent-green); }
+        .info-box.success i { color: var(--accent-green); }
+        .info-box.danger { background: rgba(255,59,48,0.06); border-left: 3px solid var(--accent-red); }
+        .info-box.danger i { color: var(--accent-red); }
+
+        table {
+            width: 100%; border-collapse: collapse;
+            margin: 12px 0; font-size: 14px;
+        }
+        th {
+            text-align: left; padding: 10px 16px;
+            background: rgba(10,132,255,0.06);
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600; color: var(--accent-blue);
+        }
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        tr:last-child td { border-bottom: none; }
+
+        .file-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 4px;
+            font-size: 12px; font-family: monospace;
+            background: rgba(88,86,214,0.1); color: var(--accent-purple);
+        }
+
+        .step-list { list-style: none; counter-reset: step; }
+        .step-list li {
+            counter-increment: step;
+            padding: 12px 0 12px 48px;
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .step-list li:last-child { border-bottom: none; }
+        .step-list li::before {
+            content: counter(step);
+            position: absolute; left: 0; top: 12px;
+            width: 32px; height: 32px;
+            background: var(--accent-blue); color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600;
+        }
+        .step-title { font-weight: 600; margin-bottom: 4px; }
+
+        .diagram {
+            background: #FAFAFA;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 24px;
+            margin: 16px 0;
+            text-align: center;
+        }
+        .diagram-row {
+            display: flex; justify-content: center; gap: 16px;
+            margin: 8px 0; align-items: center;
+        }
+        .diagram-box {
+            padding: 10px 20px; border-radius: 8px;
+            font-size: 13px; font-weight: 500;
+            min-width: 120px; text-align: center;
+        }
+        .diagram-box.system { background: #FFE5E5; color: #C62828; border: 1px solid #FFCDD2; }
+        .diagram-box.custom { background: #E3F2FD; color: #1565C0; border: 1px solid #BBDEFB; }
+        .diagram-box.content { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
+        .diagram-box.removed { background: #F5F5F5; color: #999; border: 1px dashed #DDD; text-decoration: line-through; }
+        .diagram-arrow { color: var(--text-tertiary); font-size: 20px; }
+
+        .compare-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            margin: 16px 0;
+        }
+        .compare-item {
+            padding: 20px; border-radius: 10px; border: 1px solid var(--border-color);
+        }
+        .compare-item.before { background: #FFF8F0; border-color: rgba(255,149,0,0.3); }
+        .compare-item.after { background: #F0FFF4; border-color: rgba(52,199,89,0.3); }
+        .compare-label {
+            font-size: 12px; font-weight: 600; text-transform: uppercase;
+            margin-bottom: 12px; letter-spacing: 1px;
+        }
+        .compare-item.before .compare-label { color: var(--accent-orange); }
+        .compare-item.after .compare-label { color: var(--accent-green); }
+
+        .api-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 20px; margin: 16px 0;
+        }
+        .api-name {
+            font-family: monospace; font-size: 15px; font-weight: 600;
+            color: var(--accent-blue); margin-bottom: 8px;
+        }
+        .api-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; }
+        .api-params { font-size: 13px; }
+        .api-params dt { font-family: monospace; color: var(--accent-purple); font-weight: 600; margin-top: 8px; }
+        .api-params dd { margin-left: 16px; color: var(--text-secondary); }
+
+        .mockup {
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 16px 0;
+            background: #FFF;
+        }
+        .mockup-titlebar {
+            height: 38px;
+            background: #F0F0F0;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 8px;
+        }
+        .mockup-titlebar .dots {
+            display: flex; gap: 6px;
+        }
+        .mockup-titlebar .dot {
+            width: 12px; height: 12px; border-radius: 50%;
+        }
+        .mockup-titlebar .dot.close { background: #FF5F57; }
+        .mockup-titlebar .dot.minimize { background: #FFBD2E; }
+        .mockup-titlebar .dot.maximize { background: #28CA42; }
+        .mockup-titlebar .app-title {
+            font-size: 12px; color: #666; flex: 1; text-align: center;
+        }
+        .mockup-body {
+            display: flex;
+            height: 260px;
+        }
+        .mockup-sidebar {
+            width: 160px;
+            background: #FAFAFA;
+            border-right: 1px solid var(--border-color);
+            padding: 12px 8px;
+        }
+        .mockup-sidebar .nav-item {
+            padding: 6px 10px;
+            font-size: 11px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            color: #666;
+            cursor: default;
+        }
+        .mockup-sidebar .nav-item.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .mockup-content {
+            flex: 1; padding: 12px 16px;
+        }
+        .mockup-content-header {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 12px;
+        }
+        .mockup-content-title {
+            font-size: 16px; font-weight: 600; color: #333;
+        }
+        .mockup-menu-btn {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; color: #999; cursor: default;
+        }
+        .mockup-placeholder {
+            background: #F5F5F5;
+            border-radius: 8px;
+            height: 60px;
+            margin-bottom: 8px;
+        }
+
+        .mockup-custom-drag {
+            height: 38px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 4px;
+        }
+        .mockup-custom-drag .three-btn {
+            display: flex; gap: 0;
+        }
+        .mockup-custom-drag .btn {
+            width: 36px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; color: #666;
+            background: rgba(0,0,0,0.04);
+            border: none; cursor: default;
+        }
+        .mockup-custom-drag .btn:first-child { border-radius: 4px 0 0 4px; }
+        .mockup-custom-drag .btn:last-child { border-radius: 0 4px 4px 0; background: rgba(255,59,48,0.1); color: #FF3B30; }
+
+        .risk-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+            margin: 12px 0;
+        }
+        .risk-item {
+            padding: 16px; border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+        .risk-item .risk-label {
+            font-size: 12px; font-weight: 600; text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .risk-item.high .risk-label { color: var(--accent-red); }
+        .risk-item.medium .risk-label { color: var(--accent-orange); }
+        .risk-item.low .risk-label { color: var(--accent-green); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <h1><i class="fas fa-window-maximize" style="color:var(--accent-blue)"></i> 去除标题栏方案设计</h1>
+        <p class="subtitle">HarmonyOS 安全管理中心 - 窗口沉浸式优化 | 2in1 设备适配</p>
+
+        <!-- ============================================ -->
+        <!-- 1. 需求概述 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-clipboard-list"></i> 1. 需求概述</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bullseye" style="color:var(--accent-blue)"></i>
+                目标
+            </div>
+            <table>
+                <tr>
+                    <th style="width:60px">#</th>
+                    <th>需求</th>
+                    <th>说明</th>
+                    <th style="width:80px">优先级</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td><strong>去除系统标题栏</strong></td>
+                    <td>隐藏系统默认的窗口装饰栏（包含应用图标、应用名称），使应用内容延伸到标题栏区域，获得更大的可用空间</td>
+                    <td><span class="badge badge-red">P0</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>保留顶部拖拽能力</strong></td>
+                    <td>隐藏标题栏后，2in1 设备的窗口仍可通过顶部区域拖动。保留系统三键区（最小化/最大化/关闭），确保用户可以正常操作窗口</td>
+                    <td><span class="badge badge-red">P0</span></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 2. 现状分析 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-search-plus"></i> 2. 现状分析</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-window-restore" style="color:var(--accent-orange)"></i>
+                当前窗口结构
+            </div>
+
+            <h3>当前 UI 层次（自上而下）</h3>
+
+            <div class="diagram">
+                <div class="diagram-row">
+                    <div class="diagram-box system">系统标题栏（装饰栏）<br><small>应用图标 + 名称 + 三键区</small></div>
+                </div>
+                <div class="diagram-arrow">&#8595;</div>
+                <div class="diagram-row">
+                    <div class="diagram-box custom" style="min-width:120px">SideBar<br><small>Logo + 导航 (200px)</small></div>
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+                        <div class="diagram-box custom">应用标题栏<br><small>页面标题 + 三点菜单 (56px)</small></div>
+                        <div class="diagram-box content">页面内容区<br><small>Dashboard / Firewall / ...</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>现有代码位置</h3>
+            <table>
+                <tr>
+                    <th>文件</th>
+                    <th>职责</th>
+                    <th>关键代码</th>
+                </tr>
+                <tr>
+                    <td><span class="file-tag">EntryAbility.ets</span></td>
+                    <td>窗口创建与生命周期</td>
+                    <td>onWindowStageCreate 中 loadContent，<strong>未做任何窗口装饰栏设置</strong></td>
+                </tr>
+                <tr>
+                    <td><span class="file-tag">MainPage.ets</span></td>
+                    <td>主页面布局</td>
+                    <td>Stack > Row(SideBar + Column(标题栏Row + 内容))，标题栏 height=56</td>
+                </tr>
+                <tr>
+                    <td><span class="file-tag">SideBar.ets</span></td>
+                    <td>侧边栏组件</td>
+                    <td>Logo 区域 height=56，与标题栏对齐</td>
+                </tr>
+            </table>
+
+            <div class="info-box warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>当前问题：</strong>系统标题栏占据约 38px 高度，导致应用顶部出现与应用风格不一致的装饰栏（包含默认的应用图标和名称），浪费了宝贵的垂直空间。
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-images" style="color:var(--accent-purple)"></i>
+                修改前后对比
+            </div>
+
+            <div class="compare-grid">
+                <div class="compare-item before">
+                    <div class="compare-label">Before - 修改前</div>
+                    <div class="mockup">
+                        <div class="mockup-titlebar">
+                            <div class="dots">
+                                <div class="dot close"></div>
+                                <div class="dot minimize"></div>
+                                <div class="dot maximize"></div>
+                            </div>
+                            <div class="app-title">安全管理中心</div>
+                        </div>
+                        <div class="mockup-body">
+                            <div class="mockup-sidebar">
+                                <div style="display:flex;align-items:center;gap:4px;padding:6px 10px;margin-bottom:8px">
+                                    <div style="width:18px;height:18px;background:var(--accent-blue);border-radius:4px;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:bold">S</div>
+                                    <span style="font-size:11px;font-weight:600">安全管理中心</span>
+                                </div>
+                                <div class="nav-item active">总览</div>
+                                <div class="nav-item">防火墙</div>
+                                <div class="nav-item">日志管理</div>
+                            </div>
+                            <div class="mockup-content">
+                                <div class="mockup-content-header">
+                                    <div class="mockup-content-title">安全总览</div>
+                                    <div class="mockup-menu-btn">&#8942;</div>
+                                </div>
+                                <div class="mockup-placeholder"></div>
+                                <div class="mockup-placeholder"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size:12px;color:var(--accent-orange);margin-top:8px;text-align:center">
+                        <i class="fas fa-arrow-up"></i> 系统标题栏占据额外 ~38px 高度
+                    </p>
+                </div>
+
+                <div class="compare-item after">
+                    <div class="compare-label">After - 修改后</div>
+                    <div class="mockup">
+                        <div class="mockup-body" style="border-radius: 10px 10px 0 0;">
+                            <div class="mockup-sidebar" style="border-radius: 10px 0 0 0;">
+                                <div style="display:flex;align-items:center;gap:4px;padding:6px 10px;margin-bottom:8px">
+                                    <div style="width:18px;height:18px;background:var(--accent-blue);border-radius:4px;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:bold">S</div>
+                                    <span style="font-size:11px;font-weight:600">安全管理中心</span>
+                                </div>
+                                <div class="nav-item active">总览</div>
+                                <div class="nav-item">防火墙</div>
+                                <div class="nav-item">日志管理</div>
+                            </div>
+                            <div class="mockup-content" style="position:relative">
+                                <div class="mockup-custom-drag">
+                                    <div class="three-btn">
+                                        <div class="btn">&#x2500;</div>
+                                        <div class="btn">&#x25A1;</div>
+                                        <div class="btn">&times;</div>
+                                    </div>
+                                </div>
+                                <div class="mockup-content-header" style="border-top:none">
+                                    <div class="mockup-content-title">安全总览</div>
+                                    <div class="mockup-menu-btn">&#8942;</div>
+                                </div>
+                                <div class="mockup-placeholder"></div>
+                                <div class="mockup-placeholder"></div>
+                                <div class="mockup-placeholder" style="height:40px"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size:12px;color:var(--accent-green);margin-top:8px;text-align:center">
+                        <i class="fas fa-check"></i> 标题栏隐藏，内容延伸，三键区保留
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 3. 核心 API 参考 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-book"></i> 3. 核心 API 参考</h2>
+
+        <div class="api-card">
+            <div class="api-name">window.Window.setWindowDecorVisible(isVisible: boolean): Promise&lt;void&gt;</div>
+            <div class="api-desc">设置窗口标题栏（装饰栏）是否可见。仅对存在标题栏和三键区的窗口形态生效（2in1 / 平板自由窗口模式）。</div>
+            <dl class="api-params">
+                <dt>isVisible: boolean</dt>
+                <dd><code>true</code> - 显示标题栏（默认）；<code>false</code> - 隐藏标题栏（应用图标+名称不可见，但三键区仍然保留）</dd>
+            </dl>
+            <div class="info-box info" style="margin-top:12px">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>关键行为：</strong>调用 <code>setWindowDecorVisible(false)</code> 后，系统标题栏的应用图标和名称被隐藏，
+                    应用页面内容向上拓展至原标题栏区域。但 <strong>三键区（最小化/最大化/关闭按钮）仍然保留</strong>，
+                    悬浮在应用内容上方。同时 <strong>窗口拖拽功能保持不变</strong>，用户仍可通过顶部区域拖动窗口。
+                </div>
+            </div>
+            <div style="margin-top:8px">
+                <span class="badge badge-blue">API 11+</span>
+                <span class="badge badge-purple">2in1 / Tablet</span>
+            </div>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">window.Window.setWindowDecorHeight(height: number): void</div>
+            <div class="api-desc">设置窗口标题栏（装饰栏）的高度，仅支持 2in1 设备或平板设备的自由多窗模式。通常与 <code>setWindowDecorVisible(false)</code> 配合使用，控制三键区的高度。</div>
+            <dl class="api-params">
+                <dt>height: number</dt>
+                <dd>标题栏高度（单位 vp）。设置后三键区将使用此高度。推荐值：<code>0</code>（完全隐藏装饰栏区域）或自定义值如 <code>48</code> / <code>56</code>（匹配应用内标题栏高度）</dd>
+            </dl>
+            <div style="margin-top:8px">
+                <span class="badge badge-blue">API 11+</span>
+                <span class="badge badge-purple">2in1 / Tablet</span>
+            </div>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">window.Window.setTitleAndDockHoverShown(isTitleHoverShown: boolean, isDockHoverShown: boolean): Promise&lt;void&gt;</div>
+            <div class="api-desc">设置主窗口进入全屏沉浸式时，鼠标 Hover 到热区上方是否显示标题栏和 Dock 栏。</div>
+            <dl class="api-params">
+                <dt>isTitleHoverShown: boolean</dt>
+                <dd><code>true</code> - Hover 热区时显示标题栏；<code>false</code> - 不显示</dd>
+                <dt>isDockHoverShown: boolean</dt>
+                <dd><code>true</code> - Hover 热区时显示 Dock；<code>false</code> - 不显示</dd>
+            </dl>
+            <div style="margin-top:8px">
+                <span class="badge badge-blue">API 14+</span>
+                <span class="badge badge-orange">仅全屏沉浸式</span>
+            </div>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">window.Window.setWindowLayoutFullScreen(isLayoutFullScreen: boolean): Promise&lt;void&gt;</div>
+            <div class="api-desc">设置窗口是否以全屏布局模式显示，即应用页面是否延伸到状态栏和导航栏区域。</div>
+            <dl class="api-params">
+                <dt>isLayoutFullScreen: boolean</dt>
+                <dd><code>true</code> - 全屏布局；<code>false</code> - 非全屏布局（默认）</dd>
+            </dl>
+            <div class="info-box warning" style="margin-top:12px">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>注意：</strong>本需求场景为 2in1 自由窗口模式，<strong>不需要</strong>使用 setWindowLayoutFullScreen。
+                    该 API 主要用于手机/平板的沉浸式状态栏场景。2in1 设备应使用 <code>setWindowDecorVisible</code> + <code>setWindowDecorHeight</code> 组合。
+                </div>
+            </div>
+            <div style="margin-top:8px">
+                <span class="badge badge-blue">API 9+</span>
+                <span class="badge badge-green">所有设备</span>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 4. 方案设计 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-drafting-compass"></i> 4. 方案设计</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-layer-group" style="color:var(--accent-blue)"></i>
+                推荐方案：setWindowDecorVisible(false) + setWindowDecorHeight
+                <span class="badge badge-green">推荐</span>
+            </div>
+
+            <p style="margin-bottom:16px;color:var(--text-secondary)">
+                通过隐藏系统装饰栏的应用图标和名称，保留三键区（最小化/最大化/关闭），并设置装饰栏高度与应用内标题栏对齐，
+                实现无缝融合效果。系统自动保留顶部拖拽热区，无需额外处理拖拽逻辑。
+            </p>
+
+            <h3>修改后的 UI 层次</h3>
+            <div class="diagram">
+                <div class="diagram-row">
+                    <div class="diagram-box removed">系统标题栏（已隐藏）</div>
+                    <span style="font-size:12px;color:var(--accent-red)">setWindowDecorVisible(false)</span>
+                </div>
+                <div class="diagram-arrow">&#8595;</div>
+                <div class="diagram-row">
+                    <div class="diagram-box custom" style="min-width:120px">SideBar<br><small>Logo + 导航</small></div>
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+                        <div class="diagram-box custom" style="position:relative">
+                            应用标题栏（页面标题 + 菜单）
+                            <br><small>height=56, 顶部右侧覆盖三键区</small>
+                            <div style="position:absolute;top:4px;right:4px;">
+                                <span class="badge badge-blue" style="font-size:10px">三键区悬浮</span>
+                            </div>
+                        </div>
+                        <div class="diagram-box content">页面内容区<br><small>可用高度增加 ~38px</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>实施步骤</h3>
+            <ol class="step-list">
+                <li>
+                    <div class="step-title">修改 EntryAbility.ets - 隐藏系统装饰栏</div>
+                    <div style="color:var(--text-secondary);font-size:14px">
+                        在 <code>onWindowStageCreate</code> 中获取窗口实例，调用 <code>setWindowDecorVisible(false)</code> 隐藏标题栏，
+                        调用 <code>setWindowDecorHeight(56)</code> 设置三键区高度与应用内标题栏对齐。
+                    </div>
+                </li>
+                <li>
+                    <div class="step-title">调整 MainPage.ets - 适配标题栏布局</div>
+                    <div style="color:var(--text-secondary);font-size:14px">
+                        内容区标题栏右侧需为三键区预留空间（约 120px），避免三点菜单按钮与系统三键区重叠。
+                    </div>
+                </li>
+                <li>
+                    <div class="step-title">调整 SideBar.ets - Logo 区域适配</div>
+                    <div style="color:var(--text-secondary);font-size:14px">
+                        SideBar 顶部 Logo 区域可能需要微调上边距，确保在没有系统标题栏时视觉间距合理。
+                    </div>
+                </li>
+                <li>
+                    <div class="step-title">编译、签名、安装、验证</div>
+                    <div style="color:var(--text-secondary);font-size:14px">
+                        在 2in1 设备上验证：标题栏已隐藏、三键区正常工作、窗口可拖拽、自由窗口可缩放。
+                    </div>
+                </li>
+            </ol>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 5. 核心代码变更 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-code"></i> 5. 核心代码变更</h2>
+
+        <!-- 5.1 EntryAbility -->
+        <div class="card">
+            <div class="card-header">
+                <span class="file-tag">EntryAbility.ets</span>
+                <span class="badge badge-red">核心修改</span>
+            </div>
+
+            <h3>onWindowStageCreate 修改</h3>
+<pre><span class="kw">import</span> { window } <span class="kw">from</span> <span class="str">'@kit.ArkUI'</span>;
+<span class="kw">import</span> { hilog } <span class="kw">from</span> <span class="str">'@kit.PerformanceAnalysisKit'</span>;
+
+<span class="cm">// 在 onWindowStageCreate 中添加窗口装饰栏设置</span>
+<span class="fn">onWindowStageCreate</span>(windowStage: <span class="type">window.WindowStage</span>): <span class="kw">void</span> {
+  <span class="cm">// 获取主窗口实例</span>
+  <span class="kw">let</span> mainWindow: <span class="type">window.Window</span> = windowStage.<span class="fn">getMainWindowSync</span>();
+
+  <span class="cm">// 1. 隐藏系统标题栏（应用图标+名称），保留三键区</span>
+  <span class="kw">try</span> {
+    mainWindow.<span class="fn">setWindowDecorVisible</span>(<span class="bool">false</span>);
+    hilog.<span class="fn">info</span>(DOMAIN, <span class="str">'testTag'</span>, <span class="str">'Window decor hidden successfully'</span>);
+  } <span class="kw">catch</span> (err) {
+    hilog.<span class="fn">error</span>(DOMAIN, <span class="str">'testTag'</span>,
+      <span class="str">'Failed to hide window decor: %{public}s'</span>, JSON.<span class="fn">stringify</span>(err));
+  }
+
+  <span class="cm">// 2. 设置装饰栏高度，与应用内标题栏高度对齐</span>
+  <span class="kw">try</span> {
+    mainWindow.<span class="fn">setWindowDecorHeight</span>(<span class="num">56</span>);
+    hilog.<span class="fn">info</span>(DOMAIN, <span class="str">'testTag'</span>, <span class="str">'Window decor height set to 56'</span>);
+  } <span class="kw">catch</span> (err) {
+    hilog.<span class="fn">error</span>(DOMAIN, <span class="str">'testTag'</span>,
+      <span class="str">'Failed to set decor height: %{public}s'</span>, JSON.<span class="fn">stringify</span>(err));
+  }
+
+  <span class="cm">// 3. 加载页面（原有逻辑不变）</span>
+  windowStage.<span class="fn">loadContent</span>(<span class="str">'pages/MainPage'</span>, (err) =&gt; {
+    <span class="kw">if</span> (err.code) {
+      hilog.<span class="fn">error</span>(DOMAIN, <span class="str">'testTag'</span>,
+        <span class="str">'Failed to load content: %{public}s'</span>, JSON.<span class="fn">stringify</span>(err));
+      <span class="kw">return</span>;
+    }
+    ThemeManager.<span class="fn">getInstance</span>().<span class="fn">reapplyTheme</span>();
+  });
+}</pre>
+
+            <div class="info-box info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>关键点：</strong>
+                    <ul style="margin-top:6px;padding-left:16px;font-size:13px">
+                        <li><code>getMainWindowSync()</code> 同步获取主窗口，无需 await</li>
+                        <li><code>setWindowDecorVisible(false)</code> 隐藏图标和名称，三键区自动保留</li>
+                        <li><code>setWindowDecorHeight(56)</code> 让三键区高度与应用内标题栏（56vp）对齐</li>
+                        <li>系统自动处理窗口拖拽热区，<strong>无需手动实现拖拽逻辑</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5.2 MainPage -->
+        <div class="card">
+            <div class="card-header">
+                <span class="file-tag">MainPage.ets</span>
+                <span class="badge badge-orange">布局调整</span>
+            </div>
+
+            <h3>标题栏右侧预留三键区空间</h3>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:12px">
+                隐藏系统标题栏后，三键区悬浮在应用内容右上角。应用内标题栏的右侧需为三键区预留空间，
+                防止三点菜单按钮被遮挡。
+            </p>
+
+<pre><span class="cm">// 顶部标题栏 - 修改右侧 padding 为三键区预留空间</span>
+<span class="fn">Row</span>() {
+  <span class="fn">Text</span>(<span class="kw">this</span>.<span class="fn">getPageTitle</span>())
+    .<span class="fn">fontSize</span>(AppStyles.<span class="prop">FONT_SIZE_TITLE</span>)
+    .<span class="fn">fontWeight</span>(FontWeight.<span class="prop">Medium</span>)
+    .<span class="fn">fontColor</span>(AppColors.<span class="fn">getColors</span>(<span class="kw">this</span>.<span class="prop">currentTheme</span>).<span class="prop">TEXT_PRIMARY</span>)
+
+  <span class="fn">Blank</span>()
+
+  <span class="cm">// 三点菜单按钮</span>
+  <span class="fn">Button</span>() {
+    <span class="fn">Text</span>(<span class="str">'&#x22EE;'</span>)
+      .<span class="fn">fontSize</span>(<span class="num">20</span>)
+      .<span class="fn">fontWeight</span>(FontWeight.<span class="prop">Bold</span>)
+      .<span class="fn">fontColor</span>(AppColors.<span class="fn">getColors</span>(<span class="kw">this</span>.<span class="prop">currentTheme</span>).<span class="prop">TEXT_PRIMARY</span>)
+  }
+  .<span class="fn">onClick</span>(() =&gt; { <span class="kw">this</span>.<span class="prop">showMenu</span> = !<span class="kw">this</span>.<span class="prop">showMenu</span> })
+}
+.<span class="fn">width</span>(<span class="str">'100%'</span>)
+.<span class="fn">height</span>(<span class="num">56</span>)
+.<span class="fn">padding</span>({
+  <span class="prop">left</span>: AppStyles.<span class="prop">PADDING_LG</span>,
+  <span class="prop">right</span>: <span class="num">140</span>  <span class="cm">// 原为 PADDING_LG(24)，增加到 140 为三键区预留空间</span>
+})</pre>
+
+            <div class="info-box warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>三键区宽度参考：</strong>2in1 设备三键区宽度约为 <strong>100-120px</strong>（含最小化、最大化、关闭三个按钮）。
+                    建议右侧 padding 设置为 <strong>~140vp</strong>（三键区宽度 + 三点菜单按钮宽度 + 间距），实际数值可在设备上微调。
+                </div>
+            </div>
+        </div>
+
+        <!-- 5.3 下拉菜单位置 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="file-tag">MainPage.ets</span>
+                <span class="badge badge-blue">菜单位置</span>
+            </div>
+
+            <h3>下拉菜单定位调整</h3>
+<pre><span class="cm">// 下拉菜单 - 右侧 margin 需加大，避免与三键区重叠</span>
+<span class="kw">if</span> (<span class="kw">this</span>.<span class="prop">showMenu</span>) {
+  <span class="fn">Column</span>() {
+    <span class="fn">ThemeMenuPopup</span>({
+      <span class="prop">showMenu</span>: <span class="kw">$showMenu</span>,
+      <span class="prop">onNavigate</span>: (route: <span class="type">string</span>) =&gt; {
+        <span class="kw">this</span>.<span class="prop">currentPage</span> = route
+      }
+    })
+  }
+  .<span class="fn">margin</span>({
+    <span class="prop">top</span>: <span class="num">56</span>,
+    <span class="prop">right</span>: <span class="num">140</span>  <span class="cm">// 与标题栏右侧 padding 对齐</span>
+  })
+}</pre>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 6. 风险评估 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-shield-alt"></i> 6. 风险评估</h2>
+
+        <div class="card">
+            <div class="risk-grid">
+                <div class="risk-item low">
+                    <div class="risk-label"><i class="fas fa-check-circle"></i> 低风险</div>
+                    <strong>窗口拖拽</strong>
+                    <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                        <code>setWindowDecorVisible(false)</code> 隐藏标题栏后，系统自动保留顶部拖拽热区。
+                        无需手动实现拖拽逻辑。<strong>这是系统级行为，不会丢失。</strong>
+                    </p>
+                </div>
+                <div class="risk-item low">
+                    <div class="risk-label"><i class="fas fa-check-circle"></i> 低风险</div>
+                    <strong>三键区功能</strong>
+                    <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                        三键区（最小化/最大化/关闭）在隐藏标题栏后自动悬浮在内容上方，功能不受影响。
+                    </p>
+                </div>
+                <div class="risk-item medium">
+                    <div class="risk-label"><i class="fas fa-exclamation-circle"></i> 中风险</div>
+                    <strong>三键区遮挡</strong>
+                    <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                        三键区悬浮在内容上方，可能遮挡右上角的 UI 元素。需确保标题栏右侧为三键区预留足够空间。
+                    </p>
+                </div>
+                <div class="risk-item medium">
+                    <div class="risk-label"><i class="fas fa-exclamation-circle"></i> 中风险</div>
+                    <strong>API 版本兼容</strong>
+                    <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                        <code>setWindowDecorVisible</code> 和 <code>setWindowDecorHeight</code> 需要 API 11+。
+                        需用 try-catch 包裹，确保低版本设备优雅降级。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 7. 变更文件汇总 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-file-code"></i> 7. 变更文件汇总</h2>
+
+        <div class="card">
+            <table>
+                <tr>
+                    <th>文件</th>
+                    <th>变更类型</th>
+                    <th>变更内容</th>
+                </tr>
+                <tr>
+                    <td><span class="file-tag">EntryAbility.ets</span></td>
+                    <td><span class="badge badge-red">核心修改</span></td>
+                    <td>onWindowStageCreate 中添加 setWindowDecorVisible(false) + setWindowDecorHeight(56)</td>
+                </tr>
+                <tr>
+                    <td><span class="file-tag">MainPage.ets</span></td>
+                    <td><span class="badge badge-orange">布局调整</span></td>
+                    <td>标题栏 Row 右侧 padding 增加到 ~140vp；下拉菜单 margin.right 同步调整</td>
+                </tr>
+                <tr>
+                    <td><span class="file-tag">SideBar.ets</span></td>
+                    <td><span class="badge badge-blue">可选微调</span></td>
+                    <td>Logo 区域顶部 padding 微调（如需要）</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- 8. 验证清单 -->
+        <!-- ============================================ -->
+        <h2><i class="fas fa-clipboard-check"></i> 8. 验证清单</h2>
+
+        <div class="card">
+            <table>
+                <tr>
+                    <th style="width:40px"></th>
+                    <th>验证项</th>
+                    <th>预期结果</th>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>系统标题栏是否隐藏</td>
+                    <td>应用图标和名称不可见，应用内容延伸至顶部</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>三键区是否正常显示</td>
+                    <td>最小化、最大化、关闭按钮在右上角正常显示并可点击</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>窗口拖拽是否正常</td>
+                    <td>长按顶部区域可拖动窗口位置</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>窗口缩放是否正常</td>
+                    <td>拖动窗口边缘可改变窗口大小</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>三点菜单是否被遮挡</td>
+                    <td>菜单按钮不与三键区重叠，可正常点击</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>下拉菜单位置是否正确</td>
+                    <td>下拉菜单出现在三点按钮下方，不与三键区重叠</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>深色模式下显示是否正常</td>
+                    <td>三键区与应用深色背景协调，无视觉冲突</td>
+                </tr>
+                <tr>
+                    <td style="text-align:center"><i class="far fa-square" style="color:var(--text-tertiary)"></i></td>
+                    <td>窗口最大化/恢复后是否正常</td>
+                    <td>最大化后内容正常铺满，恢复后布局不错乱</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center;padding:40px 0 20px;color:var(--text-tertiary);font-size:13px">
+            SecurityTool - 去除标题栏方案设计 v1.0 | 2026-02-13
+        </div>
+    </div>
+</body>
+</html>

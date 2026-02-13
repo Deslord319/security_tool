@@ -3,7 +3,7 @@ import { PeripheralService } from '../services/PeripheralService'
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
-import { DeviceRecord, DeviceControlRecord, PeripheralType, getPeripheralTypeLabel } from '../models/DataModels'
+import { DeviceRecord, DeviceControlRecord, PeripheralType, getPeripheralTypeLabel, ParsedUsbId, parseUsbDeviceId, parseBluetoothMac, formatUsbDeviceId, inferUsbBaseClass, inferPeripheralTypeFromBaseClass } from '../models/DataModels'
 import { usbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
@@ -137,25 +137,86 @@ export struct PeripheralPage {
       }
     ]
 
-    // 模拟设备管控记录（已纳管设备子集）
-    this.deviceControlRecords = [
-      {
-        deviceName: 'ShineOptics FHD Camera',
-        deviceType: PeripheralType.USB_CAMERA,
-        deviceId: 'VID:2B7E PID:B5A2',
-        connectTime: '2026-02-09 16:01:19',
-        policyIndex: 0
-      },
-      {
-        deviceName: 'SanDisk Ultra USB 3.0',
-        deviceType: PeripheralType.USB_STORAGE,
-        deviceId: 'VID:0781 PID:5583',
-        connectTime: '2026-02-09 14:30:08',
-        policyIndex: 1
-      }
-    ]
+    // 从 MDM API 加载设备管控记录
+    this.loadDeviceControlData()
 
     this.isLoading = false
+  }
+
+  // ========== 设备管控数据加载 ==========
+
+  // 常见设备 VID/PID → 名称映射
+  private static USB_DEVICE_NAMES: Map<string, string> = new Map([
+    ['2B7E_B5A2', 'ShineOptics FHD Camera'],
+    ['0781_5583', 'SanDisk Ultra USB 3.0'],
+    ['03F0_0C17', 'HP LaserJet Pro M404'],
+    ['046D_C52B', 'Logitech Unifying Receiver'],
+    ['8087_0026', 'Intel Wireless Bluetooth'],
+    ['0BDA_8153', 'Realtek USB Ethernet'],
+  ])
+
+  private static BT_DEVICE_NAMES: Map<string, string> = new Map([
+    ['AA:BB:CC:DD:EE:01', 'Logitech MX Keys'],
+  ])
+
+  inferUsbDeviceName(vendorId: number, productId: number): string {
+    let key = `${vendorId.toString(16).toUpperCase().padStart(4, '0')}_${productId.toString(16).toUpperCase().padStart(4, '0')}`
+    let name = PeripheralPage.USB_DEVICE_NAMES.get(key)
+    if (name) {
+      return name
+    }
+    return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
+  }
+
+  inferBluetoothDeviceName(mac: string): string {
+    let name = PeripheralPage.BT_DEVICE_NAMES.get(mac)
+    if (name) {
+      return name
+    }
+    return `蓝牙设备 (${mac})`
+  }
+
+  loadDeviceControlData() {
+    let records: DeviceControlRecord[] = []
+
+    // 1. 从 USB 白名单加载（策略=允许）
+    let usbWhitelist = PeripheralService.getUsbWhitelist()
+    for (let device of usbWhitelist) {
+      records.push({
+        deviceName: this.inferUsbDeviceName(device.vendorId, device.productId),
+        deviceType: PeripheralType.USB_OTHER,
+        deviceId: formatUsbDeviceId(device.vendorId, device.productId),
+        connectTime: '--',
+        policyIndex: 0
+      })
+    }
+
+    // 2. 尝试从 USB 黑名单推断设备类型并更新已有记录
+    let usbBlacklist = PeripheralService.getUsbBlacklist()
+    for (let deviceType of usbBlacklist) {
+      let peripheralType = inferPeripheralTypeFromBaseClass(deviceType.baseClass)
+      // 更新匹配设备的类型
+      for (let i = 0; i < records.length; i++) {
+        if (records[i].deviceType === PeripheralType.USB_OTHER) {
+          // 暂保持 USB_OTHER，后续可扩展
+        }
+      }
+    }
+
+    // 3. 从蓝牙白名单加载（策略=允许）
+    let btWhitelist = PeripheralService.getBluetoothWhitelist()
+    for (let mac of btWhitelist) {
+      records.push({
+        deviceName: this.inferBluetoothDeviceName(mac),
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceId: `MAC: ${mac}`,
+        connectTime: '--',
+        policyIndex: 0
+      })
+    }
+
+    this.deviceControlRecords = records
+    hilog.info(0x0002, TAG, `loadDeviceControlData: ${records.length} devices loaded`)
   }
 
   // ========== 接口管控操作 ==========
@@ -302,20 +363,74 @@ export struct PeripheralPage {
   // ========== 设备管控操作 ==========
 
   handleDeviceControlPolicyChange(recordIndex: number, policyIndex: number) {
-    let updated: DeviceControlRecord[] = [...this.deviceControlRecords]
-    updated[recordIndex] = {
-      deviceName: updated[recordIndex].deviceName,
-      deviceType: updated[recordIndex].deviceType,
-      deviceId: updated[recordIndex].deviceId,
-      connectTime: updated[recordIndex].connectTime,
-      policyIndex: policyIndex
+    let record = this.deviceControlRecords[recordIndex]
+    let success = false
+    let policyLabels: string[] = ['允许', '禁用', '未配置']
+
+    if (record.deviceType === PeripheralType.BLUETOOTH) {
+      // 蓝牙设备策略变更
+      let mac = parseBluetoothMac(record.deviceId)
+      if (!mac) {
+        hilog.error(0x0002, TAG, `parseBluetoothMac failed: ${record.deviceId}`)
+        return
+      }
+      if (policyIndex === 0) {
+        success = PeripheralService.addBluetoothWhitelist([mac])
+      } else {
+        success = PeripheralService.removeBluetoothWhitelist([mac])
+      }
+    } else {
+      // USB 设备策略变更
+      let parsed = parseUsbDeviceId(record.deviceId)
+      if (!parsed) {
+        hilog.error(0x0002, TAG, `parseUsbDeviceId failed: ${record.deviceId}`)
+        return
+      }
+      let device: usbManager.UsbDeviceId = {
+        vendorId: parsed.vendorId,
+        productId: parsed.productId
+      }
+      if (policyIndex === 0) {
+        // 允许：加入白名单
+        success = PeripheralService.addUsbWhitelist([device])
+      } else if (policyIndex === 1) {
+        // 禁用：从白名单移除 + 按类型加入黑名单
+        PeripheralService.removeUsbWhitelist([device])
+        let baseClass = inferUsbBaseClass(record.deviceType)
+        if (baseClass > 0) {
+          let deviceType: usbManager.UsbDeviceType = {
+            baseClass: baseClass,
+            subClass: 0,
+            protocol: 0,
+            descriptor: usbManager.Descriptor.INTERFACE
+          }
+          PeripheralService.addUsbBlacklist([deviceType])
+        }
+        success = true
+      } else {
+        // 未配置：从白名单移除
+        success = PeripheralService.removeUsbWhitelist([device])
+      }
     }
-    this.deviceControlRecords = updated
-    let policyLabels = ['允许', '禁用', '未配置']
-    try {
-      promptAction.showToast({ message: `${updated[recordIndex].deviceName} 策略已更新为「${policyLabels[policyIndex]}」` })
-    } catch (e) {
-      hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+
+    if (success) {
+      // 重新从 MDM API 加载设备列表
+      this.loadDeviceControlData()
+      // 同步刷新黑白名单 tab 数据
+      this.usbWhitelist = PeripheralService.getUsbWhitelist()
+      this.usbBlacklist = PeripheralService.getUsbBlacklist()
+      this.btWhitelist = PeripheralService.getBluetoothWhitelist()
+      try {
+        promptAction.showToast({ message: `${record.deviceName} 策略已更新为「${policyLabels[policyIndex]}」` })
+      } catch (e) {
+        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+      }
+    } else {
+      try {
+        promptAction.showToast({ message: '策略更新失败，请检查权限' })
+      } catch (e) {
+        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+      }
     }
   }
 
@@ -565,7 +680,7 @@ export struct PeripheralPage {
     Column() {
       if (this.deviceControlRecords.length === 0) {
         Column({ space: 12 }) {
-          Text('暂无已知设备')
+          Text('暂无已纳管设备，请在「黑白名单」中添加设备')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

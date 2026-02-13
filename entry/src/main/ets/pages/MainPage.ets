@@ -77,7 +77,7 @@ struct MainPage {
           }
           .width('100%')
           .height(56)
-          .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
+          .padding({ left: AppStyles.PADDING_LG, right: 140 })
           .alignItems(VerticalAlign.Center)
 
           // 页面内容
@@ -145,7 +145,7 @@ struct MainPage {
             }
           })
         }
-        .margin({ top: 56, right: AppStyles.PADDING_LG })
+        .margin({ top: 56, right: 140 })
       }
     }
     .width('100%')
