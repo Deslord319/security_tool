@@ -1,4 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @Component
 export struct InterfaceControlItem {
@@ -6,6 +8,7 @@ export struct InterfaceControlItem {
   @Prop description: string = ''
   @Prop options: string[] = []
   @Prop selectedIndex: number = 0
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onSelect: (index: number) => void = () => {}
 
   build() {
@@ -14,12 +17,12 @@ export struct InterfaceControlItem {
         Text(this.label)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         Text(this.description)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
@@ -38,6 +41,6 @@ export struct InterfaceControlItem {
     }
     .width('100%')
     .padding({ left: 20, right: 20, top: 16, bottom: 16 })
-    .backgroundColor(AppColors.BG_CARD)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
   }
 }

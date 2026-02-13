@@ -1,4 +1,4 @@
-/* HarmonyOS 安全管理中心样式 - 浅色模式 */
+/* HarmonyOS 安全管理中心样式 - 支持深色/浅色模式 */
 /* 遵循HarmonyOS设计规范颜色指南 */
 
 :root {
@@ -35,6 +35,58 @@
     /* 阴影 */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== 深色模式 ==================== */
+[data-theme="dark"] {
+    /* HarmonyOS 品牌色与语义色 - 深色模式调亮 */
+    --brand-color: #409CFF;
+    --brand-color-light: #64B5F6;
+    --confirm-color: #30D158;
+    --warning-color: #FFD60A;
+    --alert-color: #FF453A;
+    
+    /* 文本色 - 深色模式 */
+    --font-primary: rgba(255, 255, 255, 0.9);
+    --font-secondary: rgba(255, 255, 255, 0.6);
+    --font-tertiary: rgba(255, 255, 255, 0.4);
+    --font-fourth: rgba(255, 255, 255, 0.2);
+    --font-emphasize: #409CFF;
+    
+    /* 背景色 - 深色模式 (HarmonyOS规范) */
+    --bg-primary: #1C1C1E;
+    --bg-secondary: #121212;
+    --bg-tertiary: #2C2C2E;
+    --bg-component: #3A3A3C;
+    --bg-hover: #3A3A3C;
+    
+    /* 边框与分割线 - 深色模式 */
+    --border-color: rgba(255, 255, 255, 0.1);
+    
+    /* 阴影 - 深色模式 */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* 深色模式下的标签颜色调整 */
+[data-theme="dark"] .tag-blue { background-color: rgba(10, 132, 255, 0.2); color: #64B5F6; }
+[data-theme="dark"] .tag-green { background-color: rgba(52, 199, 89, 0.2); color: #4ADE80; }
+[data-theme="dark"] .tag-red { background-color: rgba(255, 59, 48, 0.2); color: #FF6B6B; }
+[data-theme="dark"] .tag-orange { background-color: rgba(255, 149, 0, 0.2); color: #FFAA33; }
+[data-theme="dark"] .tag-purple { background-color: rgba(175, 82, 222, 0.2); color: #C084FC; }
+[data-theme="dark"] .tag-yellow { background-color: rgba(255, 214, 10, 0.2); color: #FCD34D; }
+[data-theme="dark"] .tag-cyan { background-color: rgba(0, 199, 190, 0.2); color: #22D3D3; }
+[data-theme="dark"] .tag-gray { background-color: rgba(142, 142, 147, 0.2); color: #9CA3AF; }
+
+/* 深色模式下的API提示 */
+[data-theme="dark"] .api-hint {
+    background-color: rgba(10, 132, 255, 0.1);
+}
+
+/* 深色模式下的表单元素 */
+[data-theme="dark"] input,
+[data-theme="dark"] select {
+    color-scheme: dark;
 }
 
 * {
@@ -1347,4 +1399,129 @@ input:checked + .slider:before {
     .header-actions {
         flex-wrap: wrap;
     }
+}
+
+/* ==================== 主题选择器组件 ==================== */
+/* 下拉菜单 */
+.menu-dropdown {
+    position: relative;
+}
+
+.menu-trigger {
+    width: 32px;
+    height: 32px;
+}
+
+.menu-popup {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    min-width: 200px;
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.menu-popup.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    color: var(--font-primary);
+    font-size: 14px;
+}
+
+.menu-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.menu-item i {
+    width: 20px;
+    text-align: center;
+    color: var(--font-secondary);
+    font-size: 16px;
+}
+
+.menu-item span {
+    flex: 1;
+}
+
+.menu-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 4px 0;
+}
+
+/* 菜单内的开关指示器 */
+.menu-switch {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background-color: var(--bg-tertiary);
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+.menu-switch::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: white;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.menu-switch.active {
+    background-color: var(--brand-color);
+}
+
+.menu-switch.active::after {
+    transform: translateX(16px);
+}
+
+/* 菜单分组标签 */
+.menu-group-label {
+    padding: 8px 16px 4px;
+    font-size: 11px;
+    color: var(--font-tertiary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 选中勾选标记 */
+.menu-check {
+    font-size: 12px;
+    color: var(--brand-color);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.menu-check.visible {
+    opacity: 1;
+}
+
+/* 深色模式下菜单样式 */
+[data-theme="dark"] .menu-popup {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }

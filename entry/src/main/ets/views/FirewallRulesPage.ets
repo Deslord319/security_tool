@@ -4,6 +4,8 @@ import { AddRuleDialog } from '../components/AddRuleDialog'
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 const TAG = 'FirewallRulesPage'
 
@@ -13,6 +15,7 @@ export struct FirewallRulesPage {
   @State currentTab: number = 0
   @State isLoading: boolean = false
   onBack: () => void = () => {}
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
@@ -84,26 +87,26 @@ export struct FirewallRulesPage {
   getRuleTypeBgColor(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return AppColors.TAG_BLUE_BG
+        return AppColors.getColors(this.currentTheme).TAG_BLUE_BG
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return AppColors.TAG_PURPLE_BG
+        return AppColors.getColors(this.currentTheme).TAG_PURPLE_BG
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return AppColors.TAG_GREEN_BG
+        return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
       default:
-        return AppColors.TAG_GRAY_BG
+        return AppColors.getColors(this.currentTheme).TAG_GRAY_BG
     }
   }
 
   getRuleTypeTextColor(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return AppColors.TAG_BLUE_TEXT
+        return AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return AppColors.TAG_PURPLE_TEXT
+        return AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return AppColors.TAG_GREEN_TEXT
+        return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
       default:
-        return AppColors.TAG_GRAY_TEXT
+        return AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
     }
   }
 
@@ -116,11 +119,11 @@ export struct FirewallRulesPage {
   }
 
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? AppColors.TAG_GREEN_BG : AppColors.TAG_RED_BG
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG : AppColors.getColors(this.currentTheme).TAG_RED_BG
   }
 
   getActionTextColor(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? AppColors.TAG_GREEN_TEXT : AppColors.TAG_RED_TEXT
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
   }
 
   getRuleAddress(rule: netFirewall.NetFirewallRule): string {
@@ -166,8 +169,8 @@ export struct FirewallRulesPage {
     Text(title)
       .fontSize(AppStyles.FONT_SIZE_BODY)
       .fontWeight(this.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
-      .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.TEXT_PRIMARY)
-      .opacity(this.currentTab === index ? 1 : AppColors.TEXT_SECONDARY_OPACITY)
+      .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
   }
 
@@ -185,8 +188,8 @@ export struct FirewallRulesPage {
           Text('防火墙规则')
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         }
         .layoutWeight(1)
 
@@ -230,7 +233,7 @@ export struct FirewallRulesPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.BG_PAGE)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   @Builder
@@ -240,8 +243,8 @@ export struct FirewallRulesPage {
         Column({ space: 12 }) {
           Text('暂无规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .width('100%')
         .height('100%')
@@ -250,26 +253,26 @@ export struct FirewallRulesPage {
       } else {
         // 表头
         Row() {
-          Text('规则名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('方向').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('协议').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('地址').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('端口').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('规则名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('方向').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('协议').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('地址').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('端口').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor(AppColors.BG_PAGE)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
         .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
 
         // 数据列表
@@ -279,8 +282,8 @@ export struct FirewallRulesPage {
               Row() {
                 Text(rule.name ?? '-')
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
                   .layoutWeight(2)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -295,28 +298,28 @@ export struct FirewallRulesPage {
 
                 Text(this.getDirectionLabel(rule.direction))
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(1)
 
                 Text(this.getProtocolLabel(rule))
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(1)
 
                 Text(this.getRuleAddress(rule))
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
                   .layoutWeight(2)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
 
                 Text(this.getRulePort(rule))
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(1)
 
                 Text(this.getActionLabel(rule.action))
@@ -339,13 +342,13 @@ export struct FirewallRulesPage {
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-              .backgroundColor(AppColors.BG_CARD)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
             }
           })
         }
         .width('100%')
         .layoutWeight(1)
-        .divider({ strokeWidth: 1, color: AppColors.BORDER, startMargin: 0, endMargin: 0 })
+        .divider({ strokeWidth: 1, color: AppColors.getColors(this.currentTheme).BORDER, startMargin: 0, endMargin: 0 })
       }
     }
     .width('100%')

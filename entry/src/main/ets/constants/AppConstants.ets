@@ -1,5 +1,12 @@
+import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
+
 // 颜色常量
 export class AppColors {
+  // 获取当前主题颜色集合
+  static getColors(theme: ThemeMode): ThemeColorSet {
+    return getThemeColors(theme)
+  }
+
   // 品牌色
   static readonly BRAND_PRIMARY: string = '#0A84FF'
   static readonly BRAND_LIGHT: string = '#5EA1FF'

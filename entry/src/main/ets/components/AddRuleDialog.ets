@@ -1,5 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @CustomDialog
 export struct AddRuleDialog {
@@ -13,6 +15,7 @@ export struct AddRuleDialog {
   @State remoteAddress: string = ''
   @State remotePort: string = ''
   @State action: number = 0 // 0=ALLOW, 1=DENY
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   buildRule(): netFirewall.NetFirewallRule {
     let rule: netFirewall.NetFirewallRule = {
@@ -65,13 +68,13 @@ export struct AddRuleDialog {
         Text('添加防火墙规则')
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .layoutWeight(1)
         Text('\u00D7')
           .fontSize(20)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           .onClick(() => {
             this.controller.close()
           })
@@ -83,13 +86,13 @@ export struct AddRuleDialog {
         Text('规则名称')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '输入规则名称' })
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.ruleName = value })
       }
       .width('100%')
@@ -100,8 +103,8 @@ export struct AddRuleDialog {
         Text('规则类型')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
           { value: 'IP 规则' },
           { value: '域名规则' },
@@ -109,11 +112,11 @@ export struct AddRuleDialog {
         ])
           .selected(0)
           .value('IP 规则')
-          .fontColor(AppColors.TEXT_PRIMARY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
           .onSelect((index: number) => { this.ruleType = index + 1 })
       }
@@ -125,19 +128,19 @@ export struct AddRuleDialog {
         Text('方向')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
           { value: '入站' },
           { value: '出站' }
         ])
           .selected(0)
           .value('入站')
-          .fontColor(AppColors.TEXT_PRIMARY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
           .onSelect((index: number) => { this.ruleDirection = index + 1 })
       }
@@ -150,8 +153,8 @@ export struct AddRuleDialog {
           Text('协议')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           Select([
             { value: 'TCP' },
             { value: 'UDP' },
@@ -159,11 +162,11 @@ export struct AddRuleDialog {
           ])
             .selected(0)
             .value('TCP')
-            .fontColor(AppColors.TEXT_PRIMARY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .font({ size: AppStyles.FONT_SIZE_BODY })
             .width('100%')
             .height(40)
-            .backgroundColor(AppColors.BG_PAGE)
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
             .borderRadius(AppStyles.RADIUS_MD)
             .onSelect((index: number) => {
               let protocols: number[] = [6, 17, 1]
@@ -179,16 +182,16 @@ export struct AddRuleDialog {
         Text(this.ruleType === 2 ? '域名' : this.ruleType === 3 ? 'DNS 服务器' : '远程地址')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({
           placeholder: this.ruleType === 2 ? '例: *.example.com' :
             this.ruleType === 3 ? '例: 8.8.8.8' : '例: 0.0.0.0/0'
         })
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.remoteAddress = value })
       }
       .width('100%')
@@ -200,13 +203,13 @@ export struct AddRuleDialog {
           Text('远程端口')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 443' })
             .height(40)
-            .backgroundColor(AppColors.BG_PAGE)
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
             .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+            .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
             .type(InputType.Number)
             .onChange((value: string) => { this.remotePort = value })
         }
@@ -219,19 +222,19 @@ export struct AddRuleDialog {
         Text('策略')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
           { value: '允许' },
           { value: '拒绝' }
         ])
           .selected(0)
           .value('允许')
-          .fontColor(AppColors.TEXT_PRIMARY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
           .onSelect((index: number) => { this.action = index })
       }
@@ -242,11 +245,11 @@ export struct AddRuleDialog {
       Row({ space: 16 }) {
         Button('取消')
           .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .backgroundColor(Color.White)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
@@ -272,7 +275,7 @@ export struct AddRuleDialog {
     .padding(32)
     .constraintSize({ maxWidth: 600 })
     .width('90%')
-    .backgroundColor(AppColors.BG_CARD)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_XL)
   }
 }

@@ -4,6 +4,8 @@ import { DirectionCard } from '../components/DirectionCard'
 import { FirewallService } from '../services/FirewallService'
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 const TAG = 'FirewallPage'
 
@@ -17,6 +19,7 @@ export struct FirewallPage {
   @State inCount: number = 0
   @State outCount: number = 0
   @State isLoading: boolean = false
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
   onNavigateToRules: (filterType?: number) => void = () => {}
 
@@ -63,12 +66,12 @@ export struct FirewallPage {
             Text('防火墙')
               .fontSize(AppStyles.FONT_SIZE_TITLE)
               .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
             Text('通过 netFirewall API 管控网络入站/出站流量，支持 IP、域名、DNS 三种规则类型')
               .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
@@ -88,8 +91,8 @@ export struct FirewallPage {
           Text('规则类型')
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
             .margin({ bottom: 12 })
 
           Column() {
@@ -103,8 +106,8 @@ export struct FirewallPage {
             })
 
             Divider()
-              .color(AppColors.BORDER)
-              .opacity(AppColors.BORDER_OPACITY)
+              .color(AppColors.getColors(this.currentTheme).BORDER)
+              .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
               .margin({ left: 68 })
 
             RuleTypeItem({
@@ -117,8 +120,8 @@ export struct FirewallPage {
             })
 
             Divider()
-              .color(AppColors.BORDER)
-              .opacity(AppColors.BORDER_OPACITY)
+              .color(AppColors.getColors(this.currentTheme).BORDER)
+              .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
               .margin({ left: 68 })
 
             RuleTypeItem({
@@ -141,8 +144,8 @@ export struct FirewallPage {
           Text('流量方向')
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
           Row({ space: 16 }) {
             DirectionCard({
@@ -175,6 +178,6 @@ export struct FirewallPage {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
-    .backgroundColor(AppColors.BG_PAGE)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 }

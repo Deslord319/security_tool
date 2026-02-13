@@ -24,7 +24,9 @@
             "ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH",
             "ohos.permission.ENTERPRISE_GET_DEVICE_INFO",
             "ohos.permission.ENTERPRISE_MANAGE_WIFI",
-            "ohos.permission.ENTERPRISE_ADMIN_MANAGE"
+            "ohos.permission.ENTERPRISE_ADMIN_MANAGE",
+            "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
+            "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"
         ]
     },
     "permissions": {
@@ -37,7 +39,9 @@
             "ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH",
             "ohos.permission.ENTERPRISE_GET_DEVICE_INFO",
             "ohos.permission.ENTERPRISE_MANAGE_WIFI",
-            "ohos.permission.ENTERPRISE_ADMIN_MANAGE"
+            "ohos.permission.ENTERPRISE_ADMIN_MANAGE",
+            "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
+            "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"
         ]
     },
     "debug-info": {

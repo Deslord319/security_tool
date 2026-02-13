@@ -1,5 +1,81 @@
 // HarmonyOS 安全管理中心交互脚本
 
+// ==================== 主题管理 ====================
+const ThemeManager = {
+    // 选项: 'system' | 'light' | 'dark'
+    option: 'system',
+    // 当前实际生效的主题
+    currentTheme: 'light',
+
+    init() {
+        const saved = localStorage.getItem('themeOption') || 'system';
+        this.option = saved;
+        this.applyCurrentTheme();
+        this.updateMenuUI();
+
+        // 监听系统主题变化
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (this.option === 'system') {
+                    this.applyCurrentTheme();
+                    this.updateMenuUI();
+                }
+            });
+        }
+    },
+
+    getSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    },
+
+    setOption(option) {
+        this.option = option;
+        localStorage.setItem('themeOption', option);
+        this.applyCurrentTheme();
+        this.updateMenuUI();
+    },
+
+    applyCurrentTheme() {
+        if (this.option === 'system') {
+            this.currentTheme = this.getSystemTheme();
+        } else {
+            this.currentTheme = this.option;
+        }
+        document.documentElement.setAttribute('data-theme', this.currentTheme);
+    },
+
+    updateMenuUI() {
+        // 更新勾选标记
+        ['system', 'light', 'dark'].forEach(opt => {
+            const check = document.getElementById('check-' + opt);
+            if (check) {
+                check.classList.toggle('visible', this.option === opt);
+            }
+        });
+    }
+};
+
+// 菜单控制
+function toggleMenu() {
+    const popup = document.getElementById('menu-popup');
+    popup.classList.toggle('show');
+}
+
+function closeMenu() {
+    const popup = document.getElementById('menu-popup');
+    popup.classList.remove('show');
+}
+
+// 设置主题选项
+function setThemeOption(option) {
+    ThemeManager.setOption(option);
+    const labels = { system: '跟随系统', light: '浅色模式', dark: '深色模式' };
+    showToast('已切换到' + labels[option]);
+}
+
 // 页面导航历史
 let pageHistory = ['dashboard'];
 
@@ -176,6 +252,9 @@ function saveToolSettings() {
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化主题管理
+    ThemeManager.init();
+    
     // 侧边栏导航点击
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -223,6 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.modal.active').forEach(modal => {
                 modal.classList.remove('active');
             });
+            closeMenu();
+        }
+    });
+
+    // 点击页面其他地方关闭菜单
+    document.addEventListener('click', (e) => {
+        const menuDropdown = document.querySelector('.menu-dropdown');
+        if (menuDropdown && !menuDropdown.contains(e.target)) {
+            closeMenu();
         }
     });
 });

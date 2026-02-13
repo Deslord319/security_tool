@@ -7,11 +7,14 @@ import { DeviceRecord, DeviceControlRecord, PeripheralType, getPeripheralTypeLab
 import { usbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 const TAG = 'PeripheralPage'
 
 @Component
 export struct PeripheralPage {
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State currentTab: number = 0
   @State isLoading: boolean = false
 
@@ -323,8 +326,8 @@ export struct PeripheralPage {
     Text(title)
       .fontSize(AppStyles.FONT_SIZE_BODY)
       .fontWeight(this.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
-      .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.TEXT_PRIMARY)
-      .opacity(this.currentTab === index ? 1 : AppColors.TEXT_SECONDARY_OPACITY)
+      .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
   }
 
@@ -342,12 +345,12 @@ export struct PeripheralPage {
           Text('外设管理')
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           Text('通过 MDM Kit 管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
@@ -382,7 +385,7 @@ export struct PeripheralPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.BG_PAGE)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   // ==================== Tab 1: 设备连接记录 ====================
@@ -393,8 +396,8 @@ export struct PeripheralPage {
         Column({ space: 12 }) {
           Text('暂无设备连接记录')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .width('100%')
         .height('100%')
@@ -403,20 +406,20 @@ export struct PeripheralPage {
       } else {
         // 表头
         Row() {
-          Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
-          Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
+          Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
+          Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor(AppColors.BG_PAGE)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
         .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
 
         // 数据列表
@@ -426,51 +429,51 @@ export struct PeripheralPage {
               Row() {
                 Text(record.deviceName)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
                   .layoutWeight(2)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
 
                 Text(getPeripheralTypeLabel(record.deviceType))
                   .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.TAG_PURPLE_TEXT)
-                  .backgroundColor(AppColors.TAG_PURPLE_BG)
+                  .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
                   .borderRadius(4)
                   .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                   .layoutWeight(1.5)
 
                 Text(record.deviceId)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(2)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
 
                 Text(record.connectTime)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(2)
 
                 Text(record.policy)
                   .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(record.policy === '允许' ? AppColors.TAG_GREEN_TEXT : AppColors.TAG_RED_TEXT)
-                  .backgroundColor(record.policy === '允许' ? AppColors.TAG_GREEN_BG : AppColors.TAG_RED_BG)
+                  .fontColor(record.policy === '允许' ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+                  .backgroundColor(record.policy === '允许' ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG : AppColors.getColors(this.currentTheme).TAG_RED_BG)
                   .borderRadius(4)
                   .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                   .layoutWeight(1)
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-              .backgroundColor(AppColors.BG_CARD)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
             }
           })
         }
         .width('100%')
         .layoutWeight(1)
-        .divider({ strokeWidth: 1, color: AppColors.BORDER, startMargin: 0, endMargin: 0 })
+        .divider({ strokeWidth: 1, color: AppColors.getColors(this.currentTheme).BORDER, startMargin: 0, endMargin: 0 })
       }
     }
     .width('100%')
@@ -494,7 +497,7 @@ export struct PeripheralPage {
             }
           })
 
-          Divider().color(AppColors.BORDER).opacity(AppColors.BORDER_OPACITY)
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
           InterfaceControlItem({
             label: 'USB 存储设备',
@@ -506,7 +509,7 @@ export struct PeripheralPage {
             }
           })
 
-          Divider().color(AppColors.BORDER).opacity(AppColors.BORDER_OPACITY)
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
 
           InterfaceControlItem({
@@ -519,7 +522,7 @@ export struct PeripheralPage {
             }
           })
 
-          Divider().color(AppColors.BORDER).opacity(AppColors.BORDER_OPACITY)
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
           InterfaceControlItem({
             label: 'Wi-Fi',
@@ -531,7 +534,7 @@ export struct PeripheralPage {
             }
           })
 
-          Divider().color(AppColors.BORDER).opacity(AppColors.BORDER_OPACITY)
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
           InterfaceControlItem({
             label: 'HDC (调试接口)',
@@ -564,8 +567,8 @@ export struct PeripheralPage {
         Column({ space: 12 }) {
           Text('暂无已知设备')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .width('100%')
         .height('100%')
@@ -574,22 +577,22 @@ export struct PeripheralPage {
       } else {
         // 表头
         Row() {
-          Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
-          Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('最近连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('管控策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
-          Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(0.8)
+          Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
+          Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('最近连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
+          Text('管控策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
+          Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(0.8)
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor(AppColors.BG_PAGE)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
         .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
 
         List() {
@@ -598,32 +601,32 @@ export struct PeripheralPage {
               Row() {
                 Text(record.deviceName)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
                   .layoutWeight(2)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
 
                 Text(getPeripheralTypeLabel(record.deviceType))
                   .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.TAG_PURPLE_TEXT)
-                  .backgroundColor(AppColors.TAG_PURPLE_BG)
+                  .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
                   .borderRadius(4)
                   .padding({ left: 6, right: 6, top: 2, bottom: 2 })
                   .layoutWeight(1.5)
 
                 Text(record.deviceId)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(2)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
 
                 Text(record.connectTime)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
                   .layoutWeight(2)
 
                 // 管控策略下拉选择框
@@ -631,7 +634,7 @@ export struct PeripheralPage {
                   .selected(record.policyIndex)
                   .value(this.deviceControlPolicyOptions[record.policyIndex].value as string)
                   .font({ size: AppStyles.FONT_SIZE_CAPTION })
-                  .fontColor(AppColors.TEXT_PRIMARY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
                   .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
                   .layoutWeight(1.5)
@@ -655,16 +658,16 @@ export struct PeripheralPage {
               }
               .width('100%')
               .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-              .backgroundColor(AppColors.BG_CARD)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
             }
           })
         }
         .width('100%')
         .layoutWeight(1)
-        .divider({ strokeWidth: 1, color: AppColors.BORDER, startMargin: 0, endMargin: 0 })
+        .divider({ strokeWidth: 1, color: AppColors.getColors(this.currentTheme).BORDER, startMargin: 0, endMargin: 0 })
 
         // 底部操作栏
-        Divider().color(AppColors.BORDER).opacity(AppColors.BORDER_OPACITY)
+        Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
         Row() {
           Text('下载设备管控模板')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -689,7 +692,7 @@ export struct PeripheralPage {
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor(AppColors.BG_CARD)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .justifyContent(FlexAlign.SpaceBetween)
       }
     }
@@ -709,8 +712,8 @@ export struct PeripheralPage {
             Text('USB 设备白名单 (按设备ID)')
               .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
               .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
               .layoutWeight(1)
             Button('+ 添加')
               .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -726,27 +729,27 @@ export struct PeripheralPage {
 
           // 表头
           Row() {
-            Text('Vendor ID').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-            Text('Product ID').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-            Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('Vendor ID').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('Product ID').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbWhitelist.length === 0) {
             Text('暂无白名单设备')
               .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
               .padding(24)
               .width('100%')
               .textAlign(TextAlign.Center)
-              .backgroundColor(AppColors.BG_CARD)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
           } else {
             Column() {
@@ -754,11 +757,11 @@ export struct PeripheralPage {
                 Row() {
                   Text(this.formatHex(device.vendorId))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_PRIMARY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                     .layoutWeight(1)
                   Text(this.formatHex(device.productId))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_PRIMARY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                     .layoutWeight(1)
                   Text('删除')
                     .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -770,7 +773,7 @@ export struct PeripheralPage {
                 }
                 .width('100%')
                 .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                .backgroundColor(AppColors.BG_CARD)
+                .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               })
             }
             .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
@@ -786,8 +789,8 @@ export struct PeripheralPage {
             Text('USB 设备黑名单 (按设备类型)')
               .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
               .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
               .layoutWeight(1)
             Button('+ 添加')
               .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -802,29 +805,29 @@ export struct PeripheralPage {
           .width('100%')
 
           Row() {
-            Text('Base Class').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-            Text('Sub Class').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-            Text('Protocol').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-            Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('Base Class').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('Sub Class').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('Protocol').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbBlacklist.length === 0) {
             Text('暂无黑名单设备类型')
               .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
               .padding(24)
               .width('100%')
               .textAlign(TextAlign.Center)
-              .backgroundColor(AppColors.BG_CARD)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
           } else {
             Column() {
@@ -832,15 +835,15 @@ export struct PeripheralPage {
                 Row() {
                   Text(this.formatHex(dt.baseClass))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_PRIMARY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                     .layoutWeight(1)
                   Text(this.formatHex(dt.subClass))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_PRIMARY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                     .layoutWeight(1)
                   Text(this.formatHex(dt.protocol))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_PRIMARY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                     .layoutWeight(1)
                   Text('删除')
                     .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -852,7 +855,7 @@ export struct PeripheralPage {
                 }
                 .width('100%')
                 .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                .backgroundColor(AppColors.BG_CARD)
+                .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               })
             }
             .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
@@ -868,8 +871,8 @@ export struct PeripheralPage {
             Text('蓝牙设备白名单 (按MAC地址)')
               .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
               .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
               .layoutWeight(1)
             Button('+ 添加')
               .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -884,25 +887,25 @@ export struct PeripheralPage {
           .width('100%')
 
           Row() {
-            Text('MAC 地址').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
-            Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('MAC 地址').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
+            Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.btWhitelist.length === 0) {
             Text('暂无蓝牙白名单设备')
               .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.TEXT_PRIMARY)
-              .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
               .padding(24)
               .width('100%')
               .textAlign(TextAlign.Center)
-              .backgroundColor(AppColors.BG_CARD)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
           } else {
             Column() {
@@ -910,7 +913,7 @@ export struct PeripheralPage {
                 Row() {
                   Text(mac)
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_PRIMARY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                     .layoutWeight(1)
                   Text('删除')
                     .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -922,7 +925,7 @@ export struct PeripheralPage {
                 }
                 .width('100%')
                 .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-                .backgroundColor(AppColors.BG_CARD)
+                .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               })
             }
             .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })

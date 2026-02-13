@@ -1,4 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @Component
 export struct ToolCard {
@@ -6,6 +8,7 @@ export struct ToolCard {
   @Prop iconText: string = ''
   @Prop gradientStart: string = '#0A84FF'
   @Prop gradientEnd: string = '#00C6FF'
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onPress: () => void = () => {}
 
   build() {
@@ -32,18 +35,18 @@ export struct ToolCard {
 
       Text(this.label)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         .maxLines(1)
     }
     .width('100%')
     .padding({ top: 20, bottom: 20, left: 16, right: 16 })
-    .backgroundColor(AppColors.BG_CARD)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .alignItems(HorizontalAlign.Center)
     .shadow({
       radius: 4,
-      color: 'rgba(0,0,0,0.06)',
+      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)',
       offsetX: 0,
       offsetY: 2
     })

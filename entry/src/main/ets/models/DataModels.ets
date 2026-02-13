@@ -224,3 +224,33 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
       return '未知'
   }
 }
+
+// ==================== 身份鉴别模块 ====================
+
+// 口令复杂度 UI 配置（用于 View 层状态管理）
+export interface PasswordComplexityConfig {
+  minLength: number           // 最小密码长度: 6/8/10/12/16
+  requireUppercase: boolean   // 要求大写字母
+  requireLowercase: boolean   // 要求小写字母
+  requireDigit: boolean       // 要求数字
+  requireSpecialChar: boolean // 要求特殊字符
+}
+
+// 口令有效期 UI 配置
+export interface DomainPolicyConfig {
+  passwordMaxAgeDays: number        // 密码最长使用天数: 30/60/90/180/-1(不限)
+  expirationNotifyDays: number      // 过期前提醒天数: 3/7/14/30
+  authTokenValidityMinutes: number  // 认证Token有效期(分钟): 5/15/30/60/-1(永久)
+}
+
+// 最小密码长度选项
+export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
+
+// 密码有效期选项 (天, -1 = 不限制)
+export const PASSWORD_MAX_AGE_OPTIONS: number[] = [30, 60, 90, 180, -1]
+
+// 过期提醒天数选项
+export const EXPIRY_NOTIFY_OPTIONS: number[] = [3, 7, 14, 30]
+
+// 认证Token有效期选项 (分钟, -1 = 永久)
+export const AUTH_TOKEN_VALIDITY_OPTIONS: number[] = [5, 15, 30, 60, -1]

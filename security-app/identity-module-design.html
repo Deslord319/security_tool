@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>身份鉴别模块 - 架构设计与开发流程</title>
+    <style>
+        :root {
+            --brand-color: #0A84FF;
+            --brand-light: #E3F2FD;
+            --confirm-color: #34C759;
+            --warning-color: #FF9500;
+            --alert-color: #FF3B30;
+            --purple: #5856D6;
+            --orange: #FF9500;
+            --teal: #30B0C7;
+            --font-primary: rgba(0,0,0,0.9);
+            --font-secondary: rgba(0,0,0,0.6);
+            --font-tertiary: rgba(0,0,0,0.4);
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F5;
+            --border-color: rgba(0,0,0,0.1);
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: "HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+            background: var(--bg-secondary);
+            color: var(--font-primary);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 32px 60px;
+        }
+
+        /* Header */
+        .doc-header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 48px 32px;
+            background: linear-gradient(135deg, #FF9500 0%, #FF3B30 100%);
+            border-radius: var(--radius-lg);
+            color: white;
+        }
+        .doc-header h1 { font-size: 32px; font-weight: 600; margin-bottom: 8px; }
+        .doc-header .subtitle { font-size: 16px; opacity: 0.85; }
+        .doc-header .meta { margin-top: 16px; font-size: 13px; opacity: 0.7; }
+
+        /* TOC */
+        .toc {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 24px 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+        }
+        .toc h3 { font-size: 16px; margin-bottom: 12px; color: var(--font-primary); }
+        .toc ol { padding-left: 20px; }
+        .toc li { margin-bottom: 6px; }
+        .toc a { color: var(--brand-color); text-decoration: none; font-size: 14px; }
+        .toc a:hover { text-decoration: underline; }
+
+        /* Section */
+        .section {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .section h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--orange);
+        }
+        .section h3 {
+            font-size: 17px;
+            font-weight: 500;
+            color: var(--font-primary);
+            margin: 24px 0 12px;
+        }
+        .section h4 {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--orange);
+            margin: 16px 0 8px;
+        }
+        p { margin-bottom: 12px; color: var(--font-secondary); }
+        strong { color: var(--font-primary); }
+
+        /* Code */
+        code {
+            background: #F0F0F0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 13px;
+            color: #C62828;
+        }
+        pre {
+            background: #1E1E1E;
+            color: #D4D4D4;
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 12px 0 16px;
+        }
+        pre .kw { color: #569CD6; }
+        pre .str { color: #CE9178; }
+        pre .cm { color: #6A9955; }
+        pre .fn { color: #DCDCAA; }
+        pre .tp { color: #4EC9B0; }
+        pre .num { color: #B5CEA8; }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 16px;
+            font-size: 13px;
+        }
+        th {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--font-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--font-primary);
+        }
+        tbody tr:hover { background: #FAFAFA; }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tag-blue { background: #E3F2FD; color: #1565C0; }
+        .tag-green { background: #E8F5E9; color: #2E7D32; }
+        .tag-purple { background: #F3E5F5; color: #6A1B9A; }
+        .tag-orange { background: #FFF3E0; color: #E65100; }
+        .tag-red { background: #FFEBEE; color: #C62828; }
+        .tag-teal { background: #E0F7FA; color: #00695C; }
+
+        /* API Card */
+        .api-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin: 12px 0;
+            border-left: 4px solid var(--orange);
+            background: #FFFCF5;
+        }
+        .api-card .api-name {
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--orange);
+            margin-bottom: 6px;
+        }
+        .api-card .api-desc { font-size: 13px; color: var(--font-secondary); margin-bottom: 8px; }
+        .api-card .api-link {
+            font-size: 12px;
+            color: var(--brand-color);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .api-card .api-link:hover { text-decoration: underline; }
+        .api-card .api-params {
+            font-size: 12px;
+            color: var(--font-tertiary);
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            margin-top: 4px;
+        }
+        .api-card .api-permission {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 11px;
+            padding: 1px 8px;
+            border-radius: 4px;
+            background: #FFEBEE;
+            color: #C62828;
+        }
+        .api-card .api-version {
+            display: inline-block;
+            margin-top: 6px;
+            margin-left: 6px;
+            font-size: 11px;
+            padding: 1px 8px;
+            border-radius: 4px;
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+
+        /* File tree */
+        .file-tree {
+            background: #1E1E1E;
+            color: #D4D4D4;
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            margin: 12px 0 16px;
+        }
+        .file-tree .folder { color: #DCDCAA; }
+        .file-tree .file { color: #9CDCFE; }
+        .file-tree .new { color: #4EC9B0; font-weight: bold; }
+        .file-tree .existing { color: #6A9955; }
+        .file-tree .comment { color: #6A9955; }
+
+        /* Info box */
+        .info-box {
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            margin: 16px 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .info-box.tip { background: #E3F2FD; border-left: 4px solid var(--brand-color); }
+        .info-box.warn { background: #FFF3E0; border-left: 4px solid var(--warning-color); }
+        .info-box.danger { background: #FFEBEE; border-left: 4px solid var(--alert-color); }
+        .info-box .icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+        .info-box.tip .icon { color: var(--brand-color); }
+        .info-box.warn .icon { color: var(--warning-color); }
+        .info-box.danger .icon { color: var(--alert-color); }
+        .info-box .text { font-size: 13px; color: var(--font-secondary); }
+
+        /* Architecture diagram */
+        .arch-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .arch-layer {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+        .arch-label {
+            width: 100px;
+            min-width: 100px;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+        }
+        .arch-boxes {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .arch-box {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+        .arch-box .box-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 4px;
+        }
+        .arch-box .box-desc {
+            font-size: 11px;
+            color: var(--font-tertiary);
+        }
+
+        /* Flow steps */
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 20px 0;
+        }
+        .flow-step {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 16px 0;
+        }
+        .flow-step:not(:last-child) { border-bottom: 1px dashed var(--border-color); }
+        .step-num {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            background: var(--orange);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .step-content { flex: 1; }
+        .step-content .step-title { font-size: 15px; font-weight: 500; color: var(--font-primary); margin-bottom: 4px; }
+        .step-content .step-desc { font-size: 13px; color: var(--font-secondary); }
+        .step-content .step-files { font-size: 12px; color: var(--brand-color); margin-top: 4px; font-family: monospace; }
+
+        /* Comparison */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .compare-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+        }
+        .compare-card h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .compare-card ul { padding-left: 16px; font-size: 13px; color: var(--font-secondary); }
+        .compare-card li { margin-bottom: 4px; }
+
+        /* Data structure */
+        .ds-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0 16px;
+            font-size: 13px;
+        }
+        .ds-table th {
+            background: #FFF8E1;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--font-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .ds-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--font-primary);
+        }
+        .ds-table code {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ==================== Header ==================== -->
+    <div class="doc-header">
+        <h1>身份鉴别模块</h1>
+        <div class="subtitle">架构设计与开发流程分析文档</div>
+        <div class="meta">SecurityTool (HarmonyOS) &nbsp;|&nbsp; 基于防火墙 + 外设管理模块架构 &nbsp;|&nbsp; @kit.MDMKit securityManager + accountManager</div>
+    </div>
+
+    <!-- ==================== TOC ==================== -->
+    <div class="toc">
+        <h3>目录</h3>
+        <ol>
+            <li><a href="#sec1">需求分析（来自 UI 原型与需求清单）</a></li>
+            <li><a href="#sec2">模块架构总览</a></li>
+            <li><a href="#sec3">文件结构与已有模块对照</a></li>
+            <li><a href="#sec4">数据模型设计</a></li>
+            <li><a href="#sec5">Service 层设计</a></li>
+            <li><a href="#sec6">API 参考与文档链接</a></li>
+            <li><a href="#sec7">View 层设计（2 个功能区）</a></li>
+            <li><a href="#sec8">MainPage 集成</a></li>
+            <li><a href="#sec9">权限配置（需新增）</a></li>
+            <li><a href="#sec10">开发流程（步骤）</a></li>
+            <li><a href="#sec11">与外设管理模块的架构差异</a></li>
+        </ol>
+    </div>
+
+    <!-- ==================== 1. 需求分析 ==================== -->
+    <div class="section" id="sec1">
+        <h2>1. 需求分析（来自 UI 原型与需求清单）</h2>
+        <p>根据 <code>security-app/index.html</code> 中身份鉴别页面的 UI 原型以及信创工具需求清单，该模块包含 <strong>2 个功能区</strong>：</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>功能区</th>
+                    <th>功能说明</th>
+                    <th>核心操作</th>
+                    <th>主要 API 来源</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag tag-orange">口令复杂度策略</span></td>
+                    <td>设置设备口令的最小长度、字符类型要求（大写/小写/数字/特殊字符），通过正则表达式实现复杂度约束</td>
+                    <td>配置 + 保存</td>
+                    <td><code>securityManager.setPasswordPolicy</code><br><code>securityManager.getPasswordPolicy</code></td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-teal">口令有效期配置</span></td>
+                    <td>配置域账号密码最长使用天数、过期前提醒天数、认证Token有效期</td>
+                    <td>配置 + 保存</td>
+                    <td><code>accountManager.setDomainAccountPolicy</code><br><code>accountManager.getDomainAccountPolicy</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>UI 原型功能清单</h3>
+        <table>
+            <thead>
+                <tr><th>配置项</th><th>控件类型</th><th>可选值</th><th>映射到 API 字段</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>最小密码长度</td>
+                    <td>Select 下拉</td>
+                    <td>6 / 8 / 10 / 12 / 16 位</td>
+                    <td rowspan="5"><code>PasswordPolicy.complexityRegex</code><br>(组合生成正则表达式)</td>
+                </tr>
+                <tr>
+                    <td>要求包含大写字母</td>
+                    <td>Toggle 开关</td>
+                    <td>开/关</td>
+                </tr>
+                <tr>
+                    <td>要求包含小写字母</td>
+                    <td>Toggle 开关</td>
+                    <td>开/关</td>
+                </tr>
+                <tr>
+                    <td>要求包含数字</td>
+                    <td>Toggle 开关</td>
+                    <td>开/关</td>
+                </tr>
+                <tr>
+                    <td>要求包含特殊字符</td>
+                    <td>Toggle 开关</td>
+                    <td>开/关</td>
+                </tr>
+                <tr>
+                    <td>密码最长使用天数</td>
+                    <td>Select 下拉</td>
+                    <td>30 / 60 / 90 / 180 天 / 不限制</td>
+                    <td><code>DomainAccountPolicy.passwordValidityPeriod</code></td>
+                </tr>
+                <tr>
+                    <td>密码过期前提醒天数</td>
+                    <td>Select 下拉</td>
+                    <td>3 / 7 / 14 / 30 天</td>
+                    <td><code>DomainAccountPolicy.passwordExpirationNotification</code></td>
+                </tr>
+                <tr>
+                    <td>认证Token有效期</td>
+                    <td>Select 下拉</td>
+                    <td>5min / 15min / 30min / 1h / 永久</td>
+                    <td><code>DomainAccountPolicy.authenticationValidityPeriod</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box tip">
+            <div class="icon">i</div>
+            <div class="text"><strong>关键设计点：</strong>UI 原型将口令复杂度拆分为 5 个独立配置项（长度、大写、小写、数字、特殊字符），但 <code>PasswordPolicy</code> API 只接收一个 <code>complexityRegex</code> 正则字符串。因此 Service 层需要一个<strong>正则生成器</strong>函数，根据用户选择的配置项动态拼装正则表达式。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. 模块架构 ==================== -->
+    <div class="section" id="sec2">
+        <h2>2. 模块架构总览</h2>
+        <p>参照防火墙/外设管理模块的三层架构（Service &rarr; View &rarr; Component），身份鉴别模块的分层如下：</p>
+
+        <div class="arch-diagram">
+            <!-- MainPage -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#8E8E93;">入口</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">MainPage.ets</div>
+                        <div class="box-desc">路由切换、Routes.IDENTITY 分支挂载 IdentityPage</div>
+                    </div>
+                </div>
+            </div>
+            <!-- View -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#FF9500;">View 层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">IdentityPage.ets</div>
+                        <div class="box-desc">身份鉴别配置页<br>口令复杂度 + 口令有效期<br>两段式纵向布局</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Component -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#FF3B30;">组件层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">ConfigRowItem.ets (可选)</div>
+                        <div class="box-desc">通用配置行组件<br>(标签 + Select/Toggle)</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Service -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#0A84FF;">Service 层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">IdentityService.ets</div>
+                        <div class="box-desc">封装 securityManager + accountManager API<br>正则生成器 + try-catch + hilog</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Model -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#34C759;">数据层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">DataModels.ets (扩展)</div>
+                        <div class="box-desc">PasswordComplexityConfig 接口<br>DomainPolicyConfig 接口<br>辅助映射函数</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box tip">
+            <div class="icon">i</div>
+            <div class="text"><strong>架构特点：</strong>身份鉴别模块相较外设管理模块更轻量&mdash;&mdash;无 Tab 切换、无弹窗、无列表 CRUD，本质是一个<strong>表单配置页</strong>。因此不需要拆分多个组件文件，View 层直接使用 @Builder 和 @State 管理即可。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 3. 文件结构 ==================== -->
+    <div class="section" id="sec3">
+        <h2>3. 文件结构与已有模块对照</h2>
+
+        <div class="file-tree">
+entry/src/main/ets/
+<span class="folder">  services/</span>
+    <span class="existing">FirewallService.ets</span>          <span class="comment">  # [已有] 防火墙 Service</span>
+    <span class="existing">PeripheralService.ets</span>        <span class="comment">  # [已有] 外设管理 Service</span>
+    <span class="new">IdentityService.ets</span>          <span class="comment">  # [新增] 身份鉴别 Service</span>
+<span class="folder">  models/</span>
+    <span class="existing">DataModels.ets</span>               <span class="comment">  # [修改] 追加身份鉴别相关接口定义</span>
+<span class="folder">  views/</span>
+    <span class="existing">FirewallPage.ets</span>             <span class="comment">  # [已有] 防火墙页</span>
+    <span class="existing">PeripheralPage.ets</span>           <span class="comment">  # [已有] 外设管理页</span>
+    <span class="existing">PlaceholderPage.ets</span>          <span class="comment">  # [已有] 占位页（身份鉴别当前使用此页）</span>
+    <span class="new">IdentityPage.ets</span>             <span class="comment">  # [新增] 身份鉴别配置页</span>
+<span class="folder">  pages/</span>
+    <span class="existing">MainPage.ets</span>                 <span class="comment">  # [修改] 集成 IdentityPage，替换 PlaceholderPage</span>
+        </div>
+
+        <h3>三个模块的映射关系</h3>
+        <div class="compare-grid">
+            <div class="compare-card">
+                <h4 style="color:#0A84FF;">防火墙模块</h4>
+                <ul>
+                    <li><code>FirewallService.ets</code></li>
+                    <li><code>FirewallPage.ets</code></li>
+                    <li><code>FirewallRulesPage.ets</code></li>
+                    <li><code>AddRuleDialog.ets</code></li>
+                    <li>API: <code>netFirewall</code></li>
+                </ul>
+            </div>
+            <div class="compare-card">
+                <h4 style="color:#5856D6;">外设管理模块</h4>
+                <ul>
+                    <li><code>PeripheralService.ets</code></li>
+                    <li><code>PeripheralPage.ets</code> (4 Tab)</li>
+                    <li><code>AddWhitelistDialog.ets</code></li>
+                    <li><code>AddBlacklistDialog.ets</code></li>
+                    <li>API: <code>restrictions</code> + <code>MDMKit</code></li>
+                </ul>
+            </div>
+            <div class="compare-card">
+                <h4 style="color:#FF9500;">身份鉴别模块</h4>
+                <ul>
+                    <li><code>IdentityService.ets</code></li>
+                    <li><code>IdentityPage.ets</code> (表单)</li>
+                    <li>无弹窗组件</li>
+                    <li>&nbsp;</li>
+                    <li>API: <code>securityManager</code> + <code>accountManager</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 4. 数据模型 ==================== -->
+    <div class="section" id="sec4">
+        <h2>4. 数据模型设计</h2>
+        <p>在 <code>models/DataModels.ets</code> 中追加以下类型定义：</p>
+
+        <h3>4.1 口令复杂度 UI 配置模型</h3>
+<pre><span class="cm">// ==================== 身份鉴别模块 ====================</span>
+
+<span class="cm">// 口令复杂度 UI 配置（用于 View 层状态管理）</span>
+<span class="kw">export interface</span> <span class="tp">PasswordComplexityConfig</span> {
+  minLength: <span class="tp">number</span>           <span class="cm">// 最小密码长度: 6/8/10/12/16</span>
+  requireUppercase: <span class="tp">boolean</span>   <span class="cm">// 要求大写字母</span>
+  requireLowercase: <span class="tp">boolean</span>   <span class="cm">// 要求小写字母</span>
+  requireDigit: <span class="tp">boolean</span>       <span class="cm">// 要求数字</span>
+  requireSpecialChar: <span class="tp">boolean</span> <span class="cm">// 要求特殊字符</span>
+}</pre>
+
+        <h3>4.2 口令有效期 UI 配置模型</h3>
+<pre><span class="cm">// 口令有效期 UI 配置</span>
+<span class="kw">export interface</span> <span class="tp">DomainPolicyConfig</span> {
+  passwordMaxAgeDays: <span class="tp">number</span>      <span class="cm">// 密码最长使用天数: 30/60/90/180/-1(不限)</span>
+  expirationNotifyDays: <span class="tp">number</span>   <span class="cm">// 过期前提醒天数: 3/7/14/30</span>
+  authTokenValidityMinutes: <span class="tp">number</span> <span class="cm">// 认证Token有效期(分钟): 5/15/30/60/-1(永久)</span>
+}</pre>
+
+        <h3>4.3 默认配置常量</h3>
+<pre><span class="cm">// 默认口令复杂度配置</span>
+<span class="kw">export const</span> DEFAULT_PASSWORD_COMPLEXITY: <span class="tp">PasswordComplexityConfig</span> = {
+  minLength: <span class="num">8</span>,
+  requireUppercase: <span class="kw">true</span>,
+  requireLowercase: <span class="kw">true</span>,
+  requireDigit: <span class="kw">true</span>,
+  requireSpecialChar: <span class="kw">true</span>
+}
+
+<span class="cm">// 默认域账号策略配置</span>
+<span class="kw">export const</span> DEFAULT_DOMAIN_POLICY: <span class="tp">DomainPolicyConfig</span> = {
+  passwordMaxAgeDays: <span class="num">90</span>,
+  expirationNotifyDays: <span class="num">7</span>,
+  authTokenValidityMinutes: <span class="num">-1</span>  <span class="cm">// -1 表示永久</span>
+}
+
+<span class="cm">// 最小密码长度选项</span>
+<span class="kw">export const</span> PASSWORD_LENGTH_OPTIONS: <span class="tp">number</span>[] = [<span class="num">6</span>, <span class="num">8</span>, <span class="num">10</span>, <span class="num">12</span>, <span class="num">16</span>]
+
+<span class="cm">// 密码有效期选项 (天, -1 = 不限制)</span>
+<span class="kw">export const</span> PASSWORD_MAX_AGE_OPTIONS: <span class="tp">number</span>[] = [<span class="num">30</span>, <span class="num">60</span>, <span class="num">90</span>, <span class="num">180</span>, <span class="num">-1</span>]
+
+<span class="cm">// 过期提醒天数选项</span>
+<span class="kw">export const</span> EXPIRY_NOTIFY_OPTIONS: <span class="tp">number</span>[] = [<span class="num">3</span>, <span class="num">7</span>, <span class="num">14</span>, <span class="num">30</span>]
+
+<span class="cm">// 认证Token有效期选项 (分钟, -1 = 永久)</span>
+<span class="kw">export const</span> AUTH_TOKEN_VALIDITY_OPTIONS: <span class="tp">number</span>[] = [<span class="num">5</span>, <span class="num">15</span>, <span class="num">30</span>, <span class="num">60</span>, <span class="num">-1</span>]</pre>
+    </div>
+
+    <!-- ==================== 5. Service 层 ==================== -->
+    <div class="section" id="sec5">
+        <h2>5. Service 层设计</h2>
+        <p>参照 <code>FirewallService.ets</code> / <code>PeripheralService.ets</code> 的静态类 + try-catch + hilog 模式，<code>IdentityService.ets</code> 需要封装 <strong>两组 API</strong> 以及一个核心的<strong>正则生成器</strong>。</p>
+
+        <h3>5.1 正则生成器（核心逻辑）</h3>
+<pre><span class="cm">/**
+ * 根据 UI 配置项动态生成密码复杂度正则表达式
+ * 示例输出: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[a-zA-Z\d!@#$%^&*]{8,}$
+ */</span>
+<span class="kw">static</span> <span class="fn">buildComplexityRegex</span>(config: <span class="tp">PasswordComplexityConfig</span>): <span class="tp">string</span> {
+  <span class="kw">let</span> lookaheads: <span class="tp">string</span>[] = []
+  <span class="kw">let</span> charSet = <span class="str">''</span>
+
+  <span class="kw">if</span> (config.requireLowercase) {
+    lookaheads.push(<span class="str">'(?=.*[a-z])'</span>)
+    charSet += <span class="str">'a-z'</span>
+  }
+  <span class="kw">if</span> (config.requireUppercase) {
+    lookaheads.push(<span class="str">'(?=.*[A-Z])'</span>)
+    charSet += <span class="str">'A-Z'</span>
+  }
+  <span class="kw">if</span> (config.requireDigit) {
+    lookaheads.push(<span class="str">'(?=.*\\d)'</span>)
+    charSet += <span class="str">'\\d'</span>
+  }
+  <span class="kw">if</span> (config.requireSpecialChar) {
+    lookaheads.push(<span class="str">'(?=.*[!@#$%^&*])'</span>)
+    charSet += <span class="str">'!@#$%^&*'</span>
+  }
+
+  <span class="cm">// 如果没有任何要求，匹配任意字符</span>
+  <span class="kw">if</span> (charSet === <span class="str">''</span>) charSet = <span class="str">'.'</span>
+  <span class="kw">else</span> charSet = <span class="str">`[${charSet}]`</span>
+
+  <span class="kw">return</span> <span class="str">`^${lookaheads.join('')}${charSet}{${config.minLength},}$`</span>
+}</pre>
+
+        <h3>5.2 口令策略 (securityManager)</h3>
+<pre><span class="kw">import</span> { securityManager } <span class="kw">from</span> <span class="str">'@kit.MDMKit'</span>
+<span class="kw">import</span> { accountManager } <span class="kw">from</span> <span class="str">'@kit.MDMKit'</span>
+<span class="kw">import</span> { hilog } <span class="kw">from</span> <span class="str">'@kit.PerformanceAnalysisKit'</span>
+<span class="kw">import</span> { Want } <span class="kw">from</span> <span class="str">'@kit.AbilityKit'</span>
+<span class="kw">import</span> { osAccount } <span class="kw">from</span> <span class="str">'@kit.BasicServicesKit'</span>
+
+<span class="kw">const</span> TAG = <span class="str">'IdentityService'</span>
+<span class="kw">const</span> DOMAIN = <span class="num">0x0003</span>
+
+<span class="kw">const</span> ADMIN_WANT: <span class="tp">Want</span> = {
+  bundleName: <span class="str">'com.example.securitytool'</span>,
+  abilityName: <span class="str">'EnterpriseAdminAbility'</span>
+}
+
+<span class="kw">export class</span> <span class="tp">IdentityService</span> {
+
+  <span class="cm">// ========== 口令策略 (securityManager) ==========</span>
+
+  <span class="cm">// 设置口令策略</span>
+  <span class="kw">static</span> <span class="fn">setPasswordPolicy</span>(config: <span class="tp">PasswordComplexityConfig</span>): <span class="tp">boolean</span> {
+    <span class="kw">try</span> {
+      <span class="kw">let</span> regex = IdentityService.<span class="fn">buildComplexityRegex</span>(config)
+      <span class="kw">let</span> description = IdentityService.<span class="fn">buildDescription</span>(config)
+      <span class="kw">let</span> policy: securityManager.<span class="tp">PasswordPolicy</span> = {
+        complexityRegex: regex,
+        validityPeriod: <span class="num">0</span>,   <span class="cm">// 有效期由 DomainAccountPolicy 单独管理</span>
+        additionalDescription: description
+      }
+      securityManager.<span class="fn">setPasswordPolicy</span>(ADMIN_WANT, policy)
+      hilog.<span class="fn">info</span>(DOMAIN, TAG, <span class="str">`setPasswordPolicy: regex=${regex}`</span>)
+      <span class="kw">return true</span>
+    } <span class="kw">catch</span> (err) {
+      hilog.<span class="fn">error</span>(DOMAIN, TAG, <span class="str">`setPasswordPolicy failed: ${JSON.stringify(err)}`</span>)
+      <span class="kw">return false</span>
+    }
+  }
+
+  <span class="cm">// 获取口令策略</span>
+  <span class="kw">static</span> <span class="fn">getPasswordPolicy</span>(): securityManager.<span class="tp">PasswordPolicy</span> | <span class="kw">null</span> {
+    <span class="kw">try</span> {
+      <span class="kw">return</span> securityManager.<span class="fn">getPasswordPolicy</span>(ADMIN_WANT)
+    } <span class="kw">catch</span> (err) {
+      hilog.<span class="fn">error</span>(DOMAIN, TAG, <span class="str">`getPasswordPolicy failed: ${JSON.stringify(err)}`</span>)
+      <span class="kw">return null</span>
+    }
+  }</pre>
+
+        <h3>5.3 域账号策略 (accountManager)</h3>
+<pre>  <span class="cm">// ========== 域账号策略 (accountManager) ==========</span>
+
+  <span class="cm">// 设置域账号策略（全局）</span>
+  <span class="kw">static</span> <span class="fn">setDomainAccountPolicy</span>(config: <span class="tp">DomainPolicyConfig</span>): <span class="tp">boolean</span> {
+    <span class="kw">try</span> {
+      <span class="kw">let</span> policy: accountManager.<span class="tp">DomainAccountPolicy</span> = {
+        authenticationValidityPeriod:
+          config.authTokenValidityMinutes === <span class="num">-1</span> ? <span class="num">-1</span> : config.authTokenValidityMinutes * <span class="num">60</span>,
+        passwordValidityPeriod:
+          config.passwordMaxAgeDays === <span class="num">-1</span> ? <span class="num">-1</span> : config.passwordMaxAgeDays * <span class="num">86400</span>,
+        passwordExpirationNotification:
+          config.expirationNotifyDays * <span class="num">86400</span>
+      }
+      <span class="cm">// 全局策略: domainAccountInfo 内部属性均为空</span>
+      <span class="kw">let</span> emptyInfo: osAccount.<span class="tp">DomainAccountInfo</span> = {
+        domain: <span class="str">''</span>,
+        accountName: <span class="str">''</span>,
+        serverConfigId: <span class="str">''</span>
+      }
+      accountManager.<span class="fn">setDomainAccountPolicy</span>(ADMIN_WANT, emptyInfo, policy)
+      hilog.<span class="fn">info</span>(DOMAIN, TAG, <span class="str">`setDomainAccountPolicy success`</span>)
+      <span class="kw">return true</span>
+    } <span class="kw">catch</span> (err) {
+      hilog.<span class="fn">error</span>(DOMAIN, TAG, <span class="str">`setDomainAccountPolicy failed: ${JSON.stringify(err)}`</span>)
+      <span class="kw">return false</span>
+    }
+  }
+
+  <span class="cm">// 获取域账号策略（全局）</span>
+  <span class="kw">static</span> <span class="fn">getDomainAccountPolicy</span>(): accountManager.<span class="tp">DomainAccountPolicy</span> | <span class="kw">null</span> {
+    <span class="kw">try</span> {
+      <span class="kw">let</span> emptyInfo: osAccount.<span class="tp">DomainAccountInfo</span> = {
+        domain: <span class="str">''</span>, accountName: <span class="str">''</span>, serverConfigId: <span class="str">''</span>
+      }
+      <span class="kw">return</span> accountManager.<span class="fn">getDomainAccountPolicy</span>(ADMIN_WANT, emptyInfo)
+    } <span class="kw">catch</span> (err) {
+      hilog.<span class="fn">error</span>(DOMAIN, TAG, <span class="str">`getDomainAccountPolicy failed: ${JSON.stringify(err)}`</span>)
+      <span class="kw">return null</span>
+    }
+  }
+}</pre>
+    </div>
+
+    <!-- ==================== 6. API 参考 ==================== -->
+    <div class="section" id="sec6">
+        <h2>6. API 参考与文档链接</h2>
+
+        <h3>6.1 @kit.MDMKit / securityManager（口令策略）</h3>
+
+        <div class="api-card">
+            <div class="api-name">securityManager.setPasswordPolicy(admin, policy)</div>
+            <div class="api-desc">设置设备口令策略。通过 <code>PasswordPolicy</code> 配置口令复杂度正则、有效期和描述。</div>
+            <div class="api-params">admin: Want, policy: PasswordPolicy &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_SECURITY</div>
+            <div class="api-version">API 12+</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-securitymanager#securitymanagersetpasswordpolicy" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-securitymanager#securitymanagersetpasswordpolicy</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">securityManager.getPasswordPolicy(admin)</div>
+            <div class="api-desc">获取设备口令策略。返回当前配置的 <code>PasswordPolicy</code> 对象。</div>
+            <div class="api-params">admin: Want &rarr; PasswordPolicy</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_SECURITY</div>
+            <div class="api-version">API 12+</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-securitymanager#securitymanagergetpasswordpolicy" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-securitymanager#securitymanagergetpasswordpolicy</a>
+        </div>
+
+        <h4>PasswordPolicy 数据结构</h4>
+        <table class="ds-table">
+            <thead><tr><th>字段</th><th>类型</th><th>可选</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>complexityRegex</code></td><td>string</td><td>是</td><td>口令复杂度正则表达式，用户修改密码时系统会校验</td></tr>
+                <tr><td><code>validityPeriod</code></td><td>number</td><td>是</td><td>密码有效期，单位：毫秒</td></tr>
+                <tr><td><code>additionalDescription</code></td><td>string</td><td>是</td><td>口令策略的描述文本，展示给终端用户</td></tr>
+            </tbody>
+        </table>
+
+        <h3>6.2 @kit.MDMKit / accountManager（域账号策略）</h3>
+
+        <div class="api-card">
+            <div class="api-name">accountManager.setDomainAccountPolicy(admin, domainAccountInfo, policy)</div>
+            <div class="api-desc">设置域账号策略。支持全局策略（domainAccountInfo 为空）和指定域账号策略。仅在 PC/2in1 设备上可用。</div>
+            <div class="api-params">admin: Want, domainAccountInfo: DomainAccountInfo, policy: DomainAccountPolicy &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY</div>
+            <div class="api-version">API 19+</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-accountmanager#accountmanagersetdomainaccountpolicy19" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-accountmanager#accountmanagersetdomainaccountpolicy19</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">accountManager.getDomainAccountPolicy(admin, domainAccountInfo)</div>
+            <div class="api-desc">获取域账号策略。返回当前配置的 <code>DomainAccountPolicy</code> 对象。仅在 PC/2in1 设备上可用。</div>
+            <div class="api-params">admin: Want, domainAccountInfo: DomainAccountInfo &rarr; DomainAccountPolicy</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY</div>
+            <div class="api-version">API 19+</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-accountmanager#accountmanagergetdomainaccountpolicy19" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-accountmanager#accountmanagergetdomainaccountpolicy19</a>
+        </div>
+
+        <h4>DomainAccountPolicy 数据结构</h4>
+        <table class="ds-table">
+            <thead><tr><th>字段</th><th>类型</th><th>可选</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>authenticationValidityPeriod</code></td><td>number</td><td>是</td><td>域账号认证 Token 有效期，单位：秒。[-1, 2147483647]。默认 -1 表示永久有效；0 表示立即失效。</td></tr>
+                <tr><td><code>passwordValidityPeriod</code></td><td>number</td><td>是</td><td>域账号密码有效期，单位：秒。[-1, 2147483647]。默认 -1 表示永久有效。起始时间为设备侧最后一次修改密码时间。</td></tr>
+                <tr><td><code>passwordExpirationNotification</code></td><td>number</td><td>是</td><td>密码过期前提示时间，单位：秒。[0, 2147483647]。默认 0 表示不提示。需与 passwordValidityPeriod 配合使用。</td></tr>
+            </tbody>
+        </table>
+
+        <h3>6.3 辅助 API 参考</h3>
+
+        <div class="api-card">
+            <div class="api-name">accountManager.disallowOsAccountAddition(admin, disallow, accountId?)</div>
+            <div class="api-desc">禁止/允许用户添加账号。可辅助身份鉴别场景下的账户锁定策略。</div>
+            <div class="api-params">admin: Want, disallow: boolean, accountId?: number &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY</div>
+            <div class="api-version">API 12+</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-accountmanager#accountmanagerdisallowosaccountaddition" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-accountmanager#accountmanagerdisallowosaccountaddition</a>
+        </div>
+
+        <div class="info-box warn">
+            <div class="icon">!</div>
+            <div class="text"><strong>设备限制：</strong><code>setDomainAccountPolicy</code> / <code>getDomainAccountPolicy</code> 仅在 <strong>PC/2in1</strong> 设备上可调用。在其他设备上调用会返回 <strong>801</strong> 错误码（Capability not supported）。本项目目标设备为 2in1，符合此要求。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 7. View 层设计 ==================== -->
+    <div class="section" id="sec7">
+        <h2>7. View 层设计（2 个功能区）</h2>
+        <p><code>IdentityPage.ets</code> 采用纵向 <code>Scroll</code> 布局，包含两个配置区块，底部有"重置默认"和"保存配置"按钮。</p>
+
+        <h3>7.1 整体结构</h3>
+<pre><span class="kw">@Component</span>
+<span class="kw">export struct</span> <span class="tp">IdentityPage</span> {
+  <span class="kw">@StorageLink</span>(STORAGE_KEY_THEME) currentTheme: <span class="tp">ThemeMode</span> = ThemeMode.LIGHT
+
+  <span class="cm">// ========== 口令复杂度状态 ==========</span>
+  <span class="kw">@State</span> minLengthIndex: <span class="tp">number</span> = <span class="num">1</span>        <span class="cm">// 默认 8 位（PASSWORD_LENGTH_OPTIONS[1]）</span>
+  <span class="kw">@State</span> requireUppercase: <span class="tp">boolean</span> = <span class="kw">true</span>
+  <span class="kw">@State</span> requireLowercase: <span class="tp">boolean</span> = <span class="kw">true</span>
+  <span class="kw">@State</span> requireDigit: <span class="tp">boolean</span> = <span class="kw">true</span>
+  <span class="kw">@State</span> requireSpecialChar: <span class="tp">boolean</span> = <span class="kw">true</span>
+
+  <span class="cm">// ========== 口令有效期状态 ==========</span>
+  <span class="kw">@State</span> maxAgeIndex: <span class="tp">number</span> = <span class="num">2</span>          <span class="cm">// 默认 90 天</span>
+  <span class="kw">@State</span> notifyDaysIndex: <span class="tp">number</span> = <span class="num">1</span>      <span class="cm">// 默认 7 天</span>
+  <span class="kw">@State</span> authValidityIndex: <span class="tp">number</span> = <span class="num">4</span>    <span class="cm">// 默认永久</span>
+
+  <span class="fn">aboutToAppear</span>() { <span class="kw">this</span>.<span class="fn">loadCurrentPolicy</span>() }
+
+  <span class="fn">build</span>() {
+    Column() {
+      <span class="cm">// 页面标题</span>
+      Column({ space: <span class="num">4</span> }) {
+        Text(<span class="str">'身份鉴别'</span>)
+        Text(<span class="str">'配置账户口令策略和认证方式，保障系统访问安全。'</span>)
+      }
+
+      Scroll() {
+        Column({ space: <span class="num">24</span> }) {
+          <span class="cm">// 功能区 1: 口令复杂度</span>
+          <span class="kw">this</span>.<span class="fn">passwordComplexityBuilder</span>()
+
+          <span class="cm">// 功能区 2: 口令有效期</span>
+          <span class="kw">this</span>.<span class="fn">passwordValidityBuilder</span>()
+        }
+      }
+
+      <span class="cm">// 底部按钮栏</span>
+      Row() {
+        Button(<span class="str">'重置默认'</span>).onClick(() =&gt; <span class="kw">this</span>.<span class="fn">resetToDefault</span>())
+        Button(<span class="str">'保存配置'</span>).onClick(() =&gt; <span class="kw">this</span>.<span class="fn">saveConfig</span>())
+      }
+    }
+  }
+}</pre>
+
+        <h3>7.2 功能区 1: 口令复杂度 (@Builder passwordComplexityBuilder)</h3>
+        <table>
+            <thead><tr><th>配置行</th><th>控件</th><th>绑定 @State</th><th>保存时映射</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>最小密码长度</td>
+                    <td>Select (6/8/10/12/16位)</td>
+                    <td><code>minLengthIndex</code></td>
+                    <td><code>PASSWORD_LENGTH_OPTIONS[index]</code></td>
+                </tr>
+                <tr>
+                    <td>要求包含大写字母</td>
+                    <td>Toggle</td>
+                    <td><code>requireUppercase</code></td>
+                    <td rowspan="4">拼入<code>complexityRegex</code></td>
+                </tr>
+                <tr>
+                    <td>要求包含小写字母</td>
+                    <td>Toggle</td>
+                    <td><code>requireLowercase</code></td>
+                </tr>
+                <tr>
+                    <td>要求包含数字</td>
+                    <td>Toggle</td>
+                    <td><code>requireDigit</code></td>
+                </tr>
+                <tr>
+                    <td>要求包含特殊字符</td>
+                    <td>Toggle</td>
+                    <td><code>requireSpecialChar</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>7.3 功能区 2: 口令有效期 (@Builder passwordValidityBuilder)</h3>
+        <table>
+            <thead><tr><th>配置行</th><th>控件</th><th>绑定 @State</th><th>保存时转换</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>密码最长使用天数</td>
+                    <td>Select (30/60/90/180/不限)</td>
+                    <td><code>maxAgeIndex</code></td>
+                    <td>天数 &times; 86400 &rarr; 秒</td>
+                </tr>
+                <tr>
+                    <td>密码过期前提醒天数</td>
+                    <td>Select (3/7/14/30天)</td>
+                    <td><code>notifyDaysIndex</code></td>
+                    <td>天数 &times; 86400 &rarr; 秒</td>
+                </tr>
+                <tr>
+                    <td>认证Token有效期</td>
+                    <td>Select (5/15/30/60min/永久)</td>
+                    <td><code>authValidityIndex</code></td>
+                    <td>分钟 &times; 60 &rarr; 秒 (-1为永久)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>7.4 按钮逻辑</h3>
+<pre><span class="cm">// 保存配置</span>
+<span class="fn">saveConfig</span>() {
+  <span class="cm">// 1. 收集口令复杂度配置，调用 IdentityService.setPasswordPolicy</span>
+  <span class="kw">let</span> complexityConfig: <span class="tp">PasswordComplexityConfig</span> = {
+    minLength: PASSWORD_LENGTH_OPTIONS[<span class="kw">this</span>.minLengthIndex],
+    requireUppercase: <span class="kw">this</span>.requireUppercase,
+    requireLowercase: <span class="kw">this</span>.requireLowercase,
+    requireDigit: <span class="kw">this</span>.requireDigit,
+    requireSpecialChar: <span class="kw">this</span>.requireSpecialChar
+  }
+  <span class="kw">let</span> pwdSuccess = IdentityService.<span class="fn">setPasswordPolicy</span>(complexityConfig)
+
+  <span class="cm">// 2. 收集域账号策略配置，调用 IdentityService.setDomainAccountPolicy</span>
+  <span class="kw">let</span> domainConfig: <span class="tp">DomainPolicyConfig</span> = {
+    passwordMaxAgeDays: PASSWORD_MAX_AGE_OPTIONS[<span class="kw">this</span>.maxAgeIndex],
+    expirationNotifyDays: EXPIRY_NOTIFY_OPTIONS[<span class="kw">this</span>.notifyDaysIndex],
+    authTokenValidityMinutes: AUTH_TOKEN_VALIDITY_OPTIONS[<span class="kw">this</span>.authValidityIndex]
+  }
+  <span class="kw">let</span> domainSuccess = IdentityService.<span class="fn">setDomainAccountPolicy</span>(domainConfig)
+
+  <span class="cm">// 3. Toast 反馈</span>
+  <span class="kw">if</span> (pwdSuccess && domainSuccess) {
+    promptAction.<span class="fn">showToast</span>({ message: <span class="str">'身份鉴别配置已保存'</span> })
+  } <span class="kw">else</span> {
+    promptAction.<span class="fn">showToast</span>({ message: <span class="str">'保存失败，请检查权限'</span> })
+  }
+}
+
+<span class="cm">// 重置默认</span>
+<span class="fn">resetToDefault</span>() {
+  <span class="kw">this</span>.minLengthIndex = <span class="num">1</span>      <span class="cm">// 8 位</span>
+  <span class="kw">this</span>.requireUppercase = <span class="kw">true</span>
+  <span class="kw">this</span>.requireLowercase = <span class="kw">true</span>
+  <span class="kw">this</span>.requireDigit = <span class="kw">true</span>
+  <span class="kw">this</span>.requireSpecialChar = <span class="kw">true</span>
+  <span class="kw">this</span>.maxAgeIndex = <span class="num">2</span>         <span class="cm">// 90 天</span>
+  <span class="kw">this</span>.notifyDaysIndex = <span class="num">1</span>     <span class="cm">// 7 天</span>
+  <span class="kw">this</span>.authValidityIndex = <span class="num">4</span>   <span class="cm">// 永久</span>
+}</pre>
+    </div>
+
+    <!-- ==================== 8. MainPage 集成 ==================== -->
+    <div class="section" id="sec8">
+        <h2>8. MainPage 集成</h2>
+        <p>在 <code>MainPage.ets</code> 中将 <code>PlaceholderPage({ title: '身份鉴别' })</code> 替换为新的 <code>IdentityPage</code>：</p>
+<pre><span class="cm">// MainPage.ets 变更</span>
+<span class="kw">import</span> { IdentityPage } <span class="kw">from</span> <span class="str">'../views/IdentityPage'</span>
+
+<span class="cm">// 在 build() 的 if/else if 分支中：</span>
+} <span class="kw">else if</span> (<span class="kw">this</span>.currentPage === Routes.IDENTITY) {
+  <span class="cm">// 旧: PlaceholderPage({ title: '身份鉴别' })</span>
+  <span class="tp">IdentityPage</span>()    <span class="cm">// 新: 直接挂载，模块自治</span>
+}</pre>
+
+        <div class="info-box tip">
+            <div class="icon">i</div>
+            <div class="text"><strong>与外设管理模块一致：</strong>身份鉴别模块同样采用自治模式，不需要通过 MainPage 透传 @State/@Prop。所有状态在 IdentityPage 内部通过 @State 管理，通过 IdentityService 与系统 API 交互。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 9. 权限配置 ==================== -->
+    <div class="section" id="sec9">
+        <h2>9. 权限配置（需新增）</h2>
+        <p>身份鉴别模块依赖以下权限，其中 <strong>2 个权限需要新增</strong>：</p>
+
+        <table>
+            <thead><tr><th>权限</th><th>用途</th><th>当前状态</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_MANAGE_SECURITY</code></td>
+                    <td>setPasswordPolicy / getPasswordPolicy 口令策略管理</td>
+                    <td><span class="tag tag-red">需新增</span></td>
+                </tr>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY</code></td>
+                    <td>setDomainAccountPolicy / getDomainAccountPolicy 域账号策略</td>
+                    <td><span class="tag tag-red">需新增</span></td>
+                </tr>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_ADMIN_MANAGE</code></td>
+                    <td>企业管理员能力激活（前置依赖）</td>
+                    <td><span class="tag tag-green">已声明</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box danger">
+            <div class="icon">!</div>
+            <div class="text"><strong>重要：需同步修改三处配置！</strong>
+                <br>1. <code>entry/src/main/module.json5</code> &rarr; <code>requestPermissions</code> 中添加两个权限
+                <br>2. <code>hapsigner/UnsgnedDebugProfileTemplate.json</code> &rarr; <code>acls.allowed-acls</code> 中添加
+                <br>3. <code>hapsigner/UnsgnedDebugProfileTemplate.json</code> &rarr; <code>permissions.restricted-permissions</code> 中添加
+                <br><strong>修改签名模板后，必须重新执行 p7b 生成（步骤2）+ HAP 签名（步骤3）。</strong>
+            </div>
+        </div>
+
+        <h3>module.json5 新增内容</h3>
+<pre><span class="cm">// entry/src/main/module.json5 → requestPermissions 数组中追加:</span>
+{
+  <span class="str">"name"</span>: <span class="str">"ohos.permission.ENTERPRISE_MANAGE_SECURITY"</span>
+},
+{
+  <span class="str">"name"</span>: <span class="str">"ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"</span>
+}</pre>
+
+        <h3>签名模板新增内容</h3>
+<pre><span class="cm">// hapsigner/UnsgnedDebugProfileTemplate.json → acls.allowed-acls 追加:</span>
+<span class="str">"ohos.permission.ENTERPRISE_MANAGE_SECURITY"</span>,
+<span class="str">"ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"</span>
+
+<span class="cm">// → permissions.restricted-permissions 追加:</span>
+<span class="str">"ohos.permission.ENTERPRISE_MANAGE_SECURITY"</span>,
+<span class="str">"ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"</span></pre>
+    </div>
+
+    <!-- ==================== 10. 开发流程 ==================== -->
+    <div class="section" id="sec10">
+        <h2>10. 开发流程（步骤）</h2>
+
+        <div class="flow-steps">
+            <div class="flow-step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <div class="step-title">新增权限声明</div>
+                    <div class="step-desc">在 <code>module.json5</code> 和 <code>UnsgnedDebugProfileTemplate.json</code> 中新增 <code>ENTERPRISE_MANAGE_SECURITY</code> 和 <code>ENTERPRISE_SET_ACCOUNT_POLICY</code> 两个权限。然后重新生成 p7b 签名描述文件。</div>
+                    <div class="step-files">module.json5, UnsgnedDebugProfileTemplate.json, hapsigner/1-debug-p7b.bat</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <div class="step-title">扩展数据模型</div>
+                    <div class="step-desc">在 <code>DataModels.ets</code> 中追加 <code>PasswordComplexityConfig</code>、<code>DomainPolicyConfig</code> 接口定义和默认常量。</div>
+                    <div class="step-files">models/DataModels.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <div class="step-title">实现 Service 层</div>
+                    <div class="step-desc">创建 <code>IdentityService.ets</code>，实现正则生成器 <code>buildComplexityRegex()</code>、口令策略的 set/get 以及域账号策略的 set/get。遵循已有模块的静态类 + try-catch + hilog 模式。</div>
+                    <div class="step-files">services/IdentityService.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <div class="step-title">实现 IdentityPage View</div>
+                    <div class="step-desc">创建 <code>IdentityPage.ets</code>，实现两个 @Builder 功能区（口令复杂度 + 口令有效期），底部按钮栏（重置默认 + 保存配置）。在 <code>aboutToAppear()</code> 中通过 Service 加载当前配置。</div>
+                    <div class="step-files">views/IdentityPage.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">5</div>
+                <div class="step-content">
+                    <div class="step-title">MainPage 集成</div>
+                    <div class="step-desc">在 <code>MainPage.ets</code> 中 import <code>IdentityPage</code>，将 <code>Routes.IDENTITY</code> 分支的 <code>PlaceholderPage</code> 替换为 <code>IdentityPage()</code>。</div>
+                    <div class="step-files">pages/MainPage.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">6</div>
+                <div class="step-content">
+                    <div class="step-title">构建、签名、安装验证</div>
+                    <div class="step-desc">
+                        执行构建 &rarr; 拷贝 HAP 到 hapsigner &rarr; 签名 &rarr; 安装到设备。验证：
+                        <br>a) 口令复杂度配置能正常保存和读取
+                        <br>b) 域账号策略配置能正常保存和读取
+                        <br>c) 重置默认功能正常
+                        <br>d) 权限不足时的友好错误提示
+                    </div>
+                    <div class="step-files">hapsigner/signApp.hap</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 11. 与外设管理模块的差异 ==================== -->
+    <div class="section" id="sec11">
+        <h2>11. 与外设管理模块的架构差异</h2>
+
+        <table>
+            <thead><tr><th>维度</th><th>外设管理模块</th><th>身份鉴别模块</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>页面结构</strong></td>
+                    <td>4 个 Tab（Tabs 组件）</td>
+                    <td>单页纵向滚动（Scroll + Column）</td>
+                </tr>
+                <tr>
+                    <td><strong>交互模式</strong></td>
+                    <td>列表 CRUD（增删查）+ 表格 + 弹窗</td>
+                    <td>表单配置（Select + Toggle）+ 保存按钮</td>
+                </tr>
+                <tr>
+                    <td><strong>弹窗组件</strong></td>
+                    <td>AddWhitelistDialog、AddBlacklistDialog</td>
+                    <td>无弹窗</td>
+                </tr>
+                <tr>
+                    <td><strong>API 调用模式</strong></td>
+                    <td>即时生效（切换即调用 API）</td>
+                    <td>批量保存（点击"保存配置"统一调用）</td>
+                </tr>
+                <tr>
+                    <td><strong>数据特点</strong></td>
+                    <td>列表数据（动态增删）</td>
+                    <td>配置数据（固定字段、静态表单）</td>
+                </tr>
+                <tr>
+                    <td><strong>新增权限</strong></td>
+                    <td>无需新增</td>
+                    <td>需新增 2 个权限 + 重签</td>
+                </tr>
+                <tr>
+                    <td><strong>核心难点</strong></td>
+                    <td>MDMKit 多组 API 联动</td>
+                    <td>正则表达式生成器、单位换算（天/分钟&rarr;秒）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box warn">
+            <div class="icon">!</div>
+            <div class="text"><strong>API 注意事项：</strong>
+                <br>1. <code>securityManager.setPasswordPolicy</code> 和 <code>accountManager.setDomainAccountPolicy</code> 均为企业级 API，需设备处于 MDM 管理模式。
+                <br>2. <code>DomainAccountPolicy</code> 中的 <code>passwordValidityPeriod</code> 设置后，用户须在设备侧修改一次域账号密码，否则配置不生效。
+                <br>3. <code>PasswordPolicy.complexityRegex</code> 仅在用户修改密码时校验，不会影响已有密码。
+                <br>4. 普通测试设备上 API 调用可能返回 9200001/9200002 权限错误，建议 Service 层做友好提示。
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

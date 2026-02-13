@@ -1,4 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @CustomDialog
 export struct AddBlacklistDialog {
@@ -9,6 +11,7 @@ export struct AddBlacklistDialog {
   @State subClassText: string = ''
   @State protocolText: string = ''
   @State description: string = ''
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   parseHex(text: string): number {
     let trimmed = text.trim()
@@ -25,13 +28,13 @@ export struct AddBlacklistDialog {
         Text('添加 USB 设备类型黑名单')
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .layoutWeight(1)
         Text('\u00D7')
           .fontSize(20)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           .onClick(() => {
             this.controller.close()
           })
@@ -42,13 +45,13 @@ export struct AddBlacklistDialog {
         Text('Base Class')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x08' })
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.baseClassText = value })
       }
       .width('100%')
@@ -58,13 +61,13 @@ export struct AddBlacklistDialog {
         Text('Sub Class')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x06' })
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.subClassText = value })
       }
       .width('100%')
@@ -74,13 +77,13 @@ export struct AddBlacklistDialog {
         Text('Protocol')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x50' })
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.protocolText = value })
       }
       .width('100%')
@@ -90,13 +93,13 @@ export struct AddBlacklistDialog {
         Text('描述')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: USB 大容量存储设备' })
           .height(40)
-          .backgroundColor(AppColors.BG_PAGE)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .onChange((value: string) => { this.description = value })
       }
       .width('100%')
@@ -105,11 +108,11 @@ export struct AddBlacklistDialog {
       Row({ space: 16 }) {
         Button('取消')
           .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_SECONDARY_OPACITY)
-          .backgroundColor(Color.White)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
@@ -137,7 +140,7 @@ export struct AddBlacklistDialog {
     .padding(32)
     .constraintSize({ maxWidth: 600 })
     .width('90%')
-    .backgroundColor(AppColors.BG_CARD)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_XL)
   }
 }

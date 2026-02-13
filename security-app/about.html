@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HarmonyShield - 企业级安全管理中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+        }
+        
+        .container {
+            max-width: 800px;
+            text-align: center;
+        }
+        
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 18px;
+            margin-bottom: 24px;
+            box-shadow: 0 16px 32px rgba(59, 130, 246, 0.3);
+        }
+        
+        .logo svg {
+            width: 42px;
+            height: 42px;
+            fill: white;
+        }
+        
+        .title {
+            font-size: 42px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 40px;
+        }
+        
+        .intro-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: left;
+            margin-bottom: 32px;
+        }
+        
+        .intro-text {
+            font-size: 16px;
+            color: #cbd5e1;
+            line-height: 2;
+            text-align: justify;
+        }
+        
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .tech-tag {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #60a5fa;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            color: #64748b;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+            </svg>
+        </div>
+        <h1 class="title">HarmonyShield</h1>
+        <p class="subtitle">HarmonyOS 企业级安全管理中心</p>
+        
+        <div class="intro-card">
+            <p class="intro-text">
+                HarmonyShield 是一款基于 HarmonyOS/OpenHarmony 平台的企业级安全管理应用，专为企业 IT 管理员设计。应用提供防火墙管理、外设管控、审计日志、身份认证、安全总览及策略配置六大核心功能，支持 IP/域名/DNS 防火墙规则配置、USB/蓝牙/Wi-Fi 等外设接口的黑白名单管理、口令复杂度与有效期策略设置，以及实时安全事件监控与日志导出。产品深度集成 MDM Kit 与 netFirewall API，采用零信任安全架构，提供细粒度的访问控制能力和原生 HarmonyOS 体验。适用于企业 IT 管理、政府公共部门、医疗金融机构及工业制造等对安全有严格要求的场景，有效解决数据泄露、未授权设备接入、网络安全威胁、合规审计及弱身份认证等企业安全痛点，全面保障组织设备符合安全策略，守护敏感数据安全。
+            </p>
+        </div>
+        
+        <div class="tech-tags">
+            <span class="tech-tag">HarmonyOS</span>
+            <span class="tech-tag">ArkTS</span>
+            <span class="tech-tag">netFirewall</span>
+            <span class="tech-tag">MDM Kit</span>
+            <span class="tech-tag">SecurityAudit</span>
+            <span class="tech-tag">userAuth</span>
+        </div>
+        
+        <p class="footer">© 2026 HarmonyShield. All Rights Reserved.</p>
+    </div>
+</body>
+</html>

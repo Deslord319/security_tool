@@ -1,9 +1,12 @@
 import { AppColors, AppStyles, NavItem, NAV_ITEMS } from '../constants/AppConstants'
+import { ThemeMode } from '../theme/ThemeColors'
+import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @Component
 export struct SideBar {
   @Prop selectedId: string = 'dashboard'
   onItemSelect: (id: string) => void = () => {}
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
     Column() {
@@ -21,8 +24,8 @@ export struct SideBar {
         Text('安全管理中心')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
       }
       .width('100%')
       .height(56)
@@ -31,8 +34,8 @@ export struct SideBar {
       .alignItems(VerticalAlign.Center)
 
       Divider()
-        .color(AppColors.BORDER)
-        .opacity(AppColors.BORDER_OPACITY)
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       // 导航列表
       List({ space: 4 }) {
@@ -48,11 +51,12 @@ export struct SideBar {
                 .width(28)
                 .height(28)
                 .borderRadius(6)
-                .backgroundColor(this.selectedId === item.id ? 'rgba(255,255,255,0.2)' : 'rgba(10,132,255,0.1)')
+                .backgroundColor(this.selectedId === item.id ? 'rgba(255,255,255,0.2)' :
+                  (this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.2)' : 'rgba(10,132,255,0.1)'))
               Text(item.label)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(this.selectedId === item.id ? Color.White : AppColors.TEXT_PRIMARY)
-                .opacity(this.selectedId === item.id ? 1 : AppColors.TEXT_SECONDARY_OPACITY)
+                .fontColor(this.selectedId === item.id ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(this.selectedId === item.id ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             }
             .width('100%')
             .height(44)
@@ -68,9 +72,36 @@ export struct SideBar {
       .width('100%')
       .layoutWeight(1)
       .padding({ left: 8, right: 8, top: 8 })
+
+      // 底部主题切换按钮
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row({ space: 12 }) {
+        Text(this.currentTheme === ThemeMode.DARK ? '浅' : '深')
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.currentTheme === ThemeMode.DARK ? '#FFD60A' : '#5856D6')
+          .textAlign(TextAlign.Center)
+          .width(28)
+          .height(28)
+          .borderRadius(6)
+          .backgroundColor(this.currentTheme === ThemeMode.DARK ? 'rgba(255,214,10,0.15)' : 'rgba(88,86,214,0.1)')
+        Text(this.currentTheme === ThemeMode.DARK ? '浅色模式' : '深色模式')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      }
+      .width('100%')
+      .height(48)
+      .padding({ left: 20, right: 20 })
+      .onClick(() => {
+        ThemeManager.getInstance().toggleTheme()
+      })
     }
     .width(AppStyles.SIDEBAR_WIDTH)
     .height('100%')
-    .backgroundColor(AppColors.BG_CARD)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
   }
 }

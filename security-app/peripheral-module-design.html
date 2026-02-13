@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外设管理模块 - 架构设计与开发流程</title>
+    <style>
+        :root {
+            --brand-color: #0A84FF;
+            --brand-light: #E3F2FD;
+            --confirm-color: #34C759;
+            --warning-color: #FF9500;
+            --alert-color: #FF3B30;
+            --purple: #5856D6;
+            --font-primary: rgba(0,0,0,0.9);
+            --font-secondary: rgba(0,0,0,0.6);
+            --font-tertiary: rgba(0,0,0,0.4);
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F5;
+            --border-color: rgba(0,0,0,0.1);
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: "HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+            background: var(--bg-secondary);
+            color: var(--font-primary);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 32px 60px;
+        }
+
+        /* Header */
+        .doc-header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 48px 32px;
+            background: linear-gradient(135deg, #5856D6 0%, #AF52DE 100%);
+            border-radius: var(--radius-lg);
+            color: white;
+        }
+        .doc-header h1 { font-size: 32px; font-weight: 600; margin-bottom: 8px; }
+        .doc-header .subtitle { font-size: 16px; opacity: 0.85; }
+        .doc-header .meta { margin-top: 16px; font-size: 13px; opacity: 0.7; }
+
+        /* TOC */
+        .toc {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 24px 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+        }
+        .toc h3 { font-size: 16px; margin-bottom: 12px; color: var(--font-primary); }
+        .toc ol { padding-left: 20px; }
+        .toc li { margin-bottom: 6px; }
+        .toc a { color: var(--brand-color); text-decoration: none; font-size: 14px; }
+        .toc a:hover { text-decoration: underline; }
+
+        /* Section */
+        .section {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .section h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--brand-color);
+        }
+        .section h3 {
+            font-size: 17px;
+            font-weight: 500;
+            color: var(--font-primary);
+            margin: 24px 0 12px;
+        }
+        .section h4 {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--purple);
+            margin: 16px 0 8px;
+        }
+        p { margin-bottom: 12px; color: var(--font-secondary); }
+        strong { color: var(--font-primary); }
+
+        /* Code */
+        code {
+            background: #F0F0F0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 13px;
+            color: #C62828;
+        }
+        pre {
+            background: #1E1E1E;
+            color: #D4D4D4;
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 12px 0 16px;
+        }
+        pre .kw { color: #569CD6; }
+        pre .str { color: #CE9178; }
+        pre .cm { color: #6A9955; }
+        pre .fn { color: #DCDCAA; }
+        pre .tp { color: #4EC9B0; }
+        pre .num { color: #B5CEA8; }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 16px;
+            font-size: 13px;
+        }
+        th {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--font-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--font-primary);
+        }
+        tbody tr:hover { background: #FAFAFA; }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tag-blue { background: #E3F2FD; color: #1565C0; }
+        .tag-green { background: #E8F5E9; color: #2E7D32; }
+        .tag-purple { background: #F3E5F5; color: #6A1B9A; }
+        .tag-orange { background: #FFF3E0; color: #E65100; }
+        .tag-red { background: #FFEBEE; color: #C62828; }
+
+        /* API Card */
+        .api-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin: 12px 0;
+            border-left: 4px solid var(--brand-color);
+            background: #FAFCFF;
+        }
+        .api-card .api-name {
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--brand-color);
+            margin-bottom: 6px;
+        }
+        .api-card .api-desc { font-size: 13px; color: var(--font-secondary); margin-bottom: 8px; }
+        .api-card .api-link {
+            font-size: 12px;
+            color: var(--brand-color);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .api-card .api-link:hover { text-decoration: underline; }
+        .api-card .api-params {
+            font-size: 12px;
+            color: var(--font-tertiary);
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            margin-top: 4px;
+        }
+        .api-card .api-permission {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 11px;
+            padding: 1px 8px;
+            border-radius: 4px;
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        /* File tree */
+        .file-tree {
+            background: #1E1E1E;
+            color: #D4D4D4;
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            font-family: "SF Mono","Menlo","Consolas",monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            margin: 12px 0 16px;
+        }
+        .file-tree .folder { color: #DCDCAA; }
+        .file-tree .file { color: #9CDCFE; }
+        .file-tree .new { color: #4EC9B0; font-weight: bold; }
+        .file-tree .existing { color: #6A9955; }
+        .file-tree .comment { color: #6A9955; }
+
+        /* Info box */
+        .info-box {
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            margin: 16px 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .info-box.tip { background: #E3F2FD; border-left: 4px solid var(--brand-color); }
+        .info-box.warn { background: #FFF3E0; border-left: 4px solid var(--warning-color); }
+        .info-box.danger { background: #FFEBEE; border-left: 4px solid var(--alert-color); }
+        .info-box .icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+        .info-box.tip .icon { color: var(--brand-color); }
+        .info-box.warn .icon { color: var(--warning-color); }
+        .info-box.danger .icon { color: var(--alert-color); }
+        .info-box .text { font-size: 13px; color: var(--font-secondary); }
+
+        /* Architecture diagram (CSS-based) */
+        .arch-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .arch-layer {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+        .arch-label {
+            width: 100px;
+            min-width: 100px;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+        }
+        .arch-boxes {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .arch-box {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+        .arch-box .box-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 4px;
+        }
+        .arch-box .box-desc {
+            font-size: 11px;
+            color: var(--font-tertiary);
+        }
+
+        /* Flow steps */
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 20px 0;
+        }
+        .flow-step {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 16px 0;
+        }
+        .flow-step:not(:last-child) { border-bottom: 1px dashed var(--border-color); }
+        .step-num {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            background: var(--brand-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .step-content { flex: 1; }
+        .step-content .step-title { font-size: 15px; font-weight: 500; color: var(--font-primary); margin-bottom: 4px; }
+        .step-content .step-desc { font-size: 13px; color: var(--font-secondary); }
+        .step-content .step-files { font-size: 12px; color: var(--brand-color); margin-top: 4px; font-family: monospace; }
+
+        /* Comparison table */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .compare-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+        }
+        .compare-card h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .compare-card ul { padding-left: 16px; font-size: 13px; color: var(--font-secondary); }
+        .compare-card li { margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ==================== Header ==================== -->
+    <div class="doc-header">
+        <h1>外设管理模块</h1>
+        <div class="subtitle">架构设计与开发流程分析文档</div>
+        <div class="meta">SecurityTool (HarmonyOS) &nbsp;|&nbsp; 基于防火墙模块架构 &nbsp;|&nbsp; @kit.MDMKit + @ohos.enterprise.restrictions</div>
+    </div>
+
+    <!-- ==================== TOC ==================== -->
+    <div class="toc">
+        <h3>目录</h3>
+        <ol>
+            <li><a href="#sec1">需求分析（来自 UI 原型）</a></li>
+            <li><a href="#sec2">模块架构总览</a></li>
+            <li><a href="#sec3">文件结构与防火墙模块对照</a></li>
+            <li><a href="#sec4">数据模型设计</a></li>
+            <li><a href="#sec5">Service 层设计</a></li>
+            <li><a href="#sec6">API 参考与文档链接</a></li>
+            <li><a href="#sec7">View 层设计（4 个 Tab 页）</a></li>
+            <li><a href="#sec8">组件设计（弹窗 + 列表项）</a></li>
+            <li><a href="#sec9">MainPage 集成</a></li>
+            <li><a href="#sec10">权限配置</a></li>
+            <li><a href="#sec11">开发流程（步骤）</a></li>
+        </ol>
+    </div>
+
+    <!-- ==================== 1. 需求分析 ==================== -->
+    <div class="section" id="sec1">
+        <h2>1. 需求分析（来自 UI 原型）</h2>
+        <p>根据 <code>security-app/index.html</code> 中外设管理页面的 UI 原型，该模块包含 <strong>4 个功能 Tab</strong>：</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tab</th>
+                    <th>功能</th>
+                    <th>核心操作</th>
+                    <th>主要 API 来源</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag tag-blue">设备连接记录</span></td>
+                    <td>展示 USB/蓝牙设备的历史连接记录</td>
+                    <td>查看、导出</td>
+                    <td>本地数据存储</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-purple">接口管控</span></td>
+                    <td>全局禁用/启用 USB、蓝牙、Wi-Fi、HDC 接口</td>
+                    <td>开关切换</td>
+                    <td><code>@ohos.enterprise.restrictions</code></td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-orange">设备管控</span></td>
+                    <td>针对已知设备设置单独的允许/禁用策略</td>
+                    <td>策略变更</td>
+                    <td><code>@kit.MDMKit</code> usbManager</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-green">黑白名单</span></td>
+                    <td>USB 设备白名单(VID/PID)、USB 类型黑名单、蓝牙白名单(MAC)</td>
+                    <td>增删查</td>
+                    <td><code>@kit.MDMKit</code> usbManager + bluetoothManager</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ==================== 2. 模块架构 ==================== -->
+    <div class="section" id="sec2">
+        <h2>2. 模块架构总览</h2>
+        <p>参照防火墙模块的三层架构（Service &rarr; View &rarr; Component），外设管理模块的分层如下：</p>
+
+        <div class="arch-diagram">
+            <!-- MainPage -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#8E8E93;">入口</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">MainPage.ets</div>
+                        <div class="box-desc">路由切换、@State 共享状态管理、回调 props 分发</div>
+                    </div>
+                </div>
+            </div>
+            <!-- View -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#5856D6;">View 层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">PeripheralPage.ets</div>
+                        <div class="box-desc">外设管理概览页<br>含 4 个 Tab 切换</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Component -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#AF52DE;">组件层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">InterfaceControlItem.ets</div>
+                        <div class="box-desc">接口管控列表项<br>(名称+描述+开关/选择)</div>
+                    </div>
+                    <div class="arch-box">
+                        <div class="box-title">AddWhitelistDialog.ets</div>
+                        <div class="box-desc">添加白名单弹窗<br>(USB/蓝牙两种表单)</div>
+                    </div>
+                    <div class="arch-box">
+                        <div class="box-title">AddBlacklistDialog.ets</div>
+                        <div class="box-desc">添加黑名单弹窗<br>(按 USB 设备类型)</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Service -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#0A84FF;">Service 层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">PeripheralService.ets</div>
+                        <div class="box-desc">封装 restrictions / usbManager / bluetoothManager API<br>try-catch + hilog 日志</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Model -->
+            <div class="arch-layer">
+                <div class="arch-label" style="background:#34C759;">数据层</div>
+                <div class="arch-boxes">
+                    <div class="arch-box">
+                        <div class="box-title">DataModels.ets (扩展)</div>
+                        <div class="box-desc">PeripheralType、InterfaceFeature、UsbPolicy 枚举<br>DeviceRecord、WhitelistItem 接口</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3. 文件结构 ==================== -->
+    <div class="section" id="sec3">
+        <h2>3. 文件结构与防火墙模块对照</h2>
+
+        <div class="file-tree">
+entry/src/main/ets/
+<span class="folder">  services/</span>
+    <span class="existing">FirewallService.ets</span>          <span class="comment">  # [已有] 防火墙 Service</span>
+    <span class="new">PeripheralService.ets</span>        <span class="comment">  # [新增] 外设管理 Service</span>
+<span class="folder">  models/</span>
+    <span class="existing">DataModels.ets</span>               <span class="comment">  # [修改] 追加外设相关枚举和接口</span>
+<span class="folder">  views/</span>
+    <span class="existing">FirewallPage.ets</span>             <span class="comment">  # [已有] 防火墙概览页 (参照对象)</span>
+    <span class="existing">FirewallRulesPage.ets</span>        <span class="comment">  # [已有] 防火墙规则页 (参照对象)</span>
+    <span class="new">PeripheralPage.ets</span>           <span class="comment">  # [新增] 外设管理页 (含 4 Tab)</span>
+<span class="folder">  components/</span>
+    <span class="existing">AddRuleDialog.ets</span>            <span class="comment">  # [已有] 添加防火墙规则弹窗 (参照对象)</span>
+    <span class="new">InterfaceControlItem.ets</span>     <span class="comment">  # [新增] 接口管控列表项组件</span>
+    <span class="new">AddWhitelistDialog.ets</span>       <span class="comment">  # [新增] 添加白名单弹窗</span>
+    <span class="new">AddBlacklistDialog.ets</span>       <span class="comment">  # [新增] 添加黑名单弹窗</span>
+<span class="folder">  pages/</span>
+    <span class="existing">MainPage.ets</span>                 <span class="comment">  # [修改] 集成 PeripheralPage</span>
+        </div>
+
+        <h3>与防火墙模块的映射关系</h3>
+        <div class="compare-grid">
+            <div class="compare-card">
+                <h4 style="color:#0A84FF;">防火墙模块</h4>
+                <ul>
+                    <li><code>FirewallService.ets</code> &mdash; netFirewall API</li>
+                    <li><code>FirewallPage.ets</code> &mdash; 概览 + 开关 + 分类卡片</li>
+                    <li><code>FirewallRulesPage.ets</code> &mdash; Tabs + 表格 CRUD</li>
+                    <li><code>AddRuleDialog.ets</code> &mdash; 表单弹窗</li>
+                    <li><code>RuleTypeItem.ets</code> &mdash; 列表项组件</li>
+                </ul>
+            </div>
+            <div class="compare-card">
+                <h4 style="color:#5856D6;">外设管理模块</h4>
+                <ul>
+                    <li><code>PeripheralService.ets</code> &mdash; restrictions + MDMKit API</li>
+                    <li><code>PeripheralPage.ets</code> &mdash; 4 Tab 页整合 (设备记录/接口/设备/黑白名单)</li>
+                    <li>Tab 内直接使用 @Builder 构建各子页</li>
+                    <li><code>AddWhitelistDialog.ets</code> / <code>AddBlacklistDialog.ets</code></li>
+                    <li><code>InterfaceControlItem.ets</code> &mdash; 接口管控列表项</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-box tip">
+            <div class="icon">i</div>
+            <div class="text"><strong>设计决策：</strong>防火墙模块拆分为两个 View（FirewallPage + FirewallRulesPage），外设管理模块因为 4 个 Tab 属于同一页面上下文，建议合并为<strong>单个 PeripheralPage.ets</strong>，内部用 <code>Tabs</code> + <code>@Builder</code> 分拆，更符合 UI 原型的交互模式。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 4. 数据模型 ==================== -->
+    <div class="section" id="sec4">
+        <h2>4. 数据模型设计</h2>
+        <p>在 <code>models/DataModels.ets</code> 中追加以下类型定义：</p>
+
+        <h3>4.1 枚举类型</h3>
+<pre><span class="cm">// 外设类型</span>
+<span class="kw">export enum</span> <span class="tp">PeripheralType</span> {
+  USB_STORAGE = <span class="str">'usb_storage'</span>,
+  USB_CAMERA = <span class="str">'usb_camera'</span>,
+  USB_PRINTER = <span class="str">'usb_printer'</span>,
+  USB_OTHER = <span class="str">'usb_other'</span>,
+  BLUETOOTH = <span class="str">'bluetooth'</span>
+}
+
+<span class="cm">// 接口管控 feature (对应 restrictions API 的 feature 参数)</span>
+<span class="kw">export enum</span> <span class="tp">InterfaceFeature</span> {
+  USB = <span class="str">'usb'</span>,
+  BLUETOOTH = <span class="str">'bluetooth'</span>,
+  WIFI = <span class="str">'wifi'</span>,
+  HDC = <span class="str">'hdc'</span>
+}
+
+<span class="cm">// USB 存储访问策略</span>
+<span class="kw">export enum</span> <span class="tp">UsbStoragePolicy</span> {
+  READ_WRITE = <span class="num">0</span>,
+  READ_ONLY = <span class="num">1</span>,
+  DISABLED = <span class="num">2</span>
+}</pre>
+
+        <h3>4.2 接口定义</h3>
+<pre><span class="cm">// 设备连接记录 (本地展示用)</span>
+<span class="kw">export interface</span> <span class="tp">DeviceRecord</span> {
+  deviceName: <span class="tp">string</span>
+  deviceType: <span class="tp">PeripheralType</span>
+  deviceId: <span class="tp">string</span>       <span class="cm">// "VID:xxxx PID:xxxx" 或 "MAC: xx:xx:..."</span>
+  connectTime: <span class="tp">string</span>
+  policy: <span class="str">'allow'</span> | <span class="str">'deny'</span>
+}
+
+<span class="cm">// USB 白名单项 (对应 MDMKit UsbDeviceId)</span>
+<span class="kw">export interface</span> <span class="tp">UsbWhitelistItem</span> {
+  vendorId: <span class="tp">number</span>
+  productId: <span class="tp">number</span>
+  remark: <span class="tp">string</span>
+}
+
+<span class="cm">// USB 类型黑名单项 (对应 MDMKit UsbDeviceType)</span>
+<span class="kw">export interface</span> <span class="tp">UsbBlacklistItem</span> {
+  baseClass: <span class="tp">number</span>
+  subClass: <span class="tp">number</span>
+  protocol: <span class="tp">number</span>
+  description: <span class="tp">string</span>
+}
+
+<span class="cm">// 蓝牙白名单项</span>
+<span class="kw">export interface</span> <span class="tp">BluetoothWhitelistItem</span> {
+  deviceId: <span class="tp">string</span>     <span class="cm">// MAC 地址</span>
+  remark: <span class="tp">string</span>
+}
+
+<span class="cm">// 接口管控状态</span>
+<span class="kw">export interface</span> <span class="tp">InterfaceStatus</span> {
+  feature: <span class="tp">InterfaceFeature</span>
+  label: <span class="tp">string</span>
+  description: <span class="tp">string</span>
+  disabled: <span class="tp">boolean</span>
+}</pre>
+
+        <h3>4.3 辅助函数</h3>
+<pre><span class="kw">export function</span> <span class="fn">getPeripheralTypeLabel</span>(type: <span class="tp">PeripheralType</span>): <span class="tp">string</span> {
+  <span class="kw">switch</span> (type) {
+    <span class="kw">case</span> PeripheralType.USB_STORAGE: <span class="kw">return</span> <span class="str">'USB 存储设备'</span>
+    <span class="kw">case</span> PeripheralType.USB_CAMERA:  <span class="kw">return</span> <span class="str">'USB 摄像头'</span>
+    <span class="kw">case</span> PeripheralType.USB_PRINTER: <span class="kw">return</span> <span class="str">'USB 打印机'</span>
+    <span class="kw">case</span> PeripheralType.USB_OTHER:   <span class="kw">return</span> <span class="str">'USB 其他'</span>
+    <span class="kw">case</span> PeripheralType.BLUETOOTH:   <span class="kw">return</span> <span class="str">'蓝牙设备'</span>
+    <span class="kw">default</span>: <span class="kw">return</span> <span class="str">'未知'</span>
+  }
+}
+
+<span class="kw">export function</span> <span class="fn">getUsbStoragePolicyLabel</span>(policy: <span class="tp">UsbStoragePolicy</span>): <span class="tp">string</span> {
+  <span class="kw">switch</span> (policy) {
+    <span class="kw">case</span> UsbStoragePolicy.READ_WRITE: <span class="kw">return</span> <span class="str">'读写'</span>
+    <span class="kw">case</span> UsbStoragePolicy.READ_ONLY:  <span class="kw">return</span> <span class="str">'只读'</span>
+    <span class="kw">case</span> UsbStoragePolicy.DISABLED:   <span class="kw">return</span> <span class="str">'禁止访问'</span>
+    <span class="kw">default</span>: <span class="kw">return</span> <span class="str">'未知'</span>
+  }
+}</pre>
+    </div>
+
+    <!-- ==================== 5. Service 层 ==================== -->
+    <div class="section" id="sec5">
+        <h2>5. Service 层设计</h2>
+        <p>参照 <code>FirewallService.ets</code> 的静态类 + async + try-catch + hilog 模式，<code>PeripheralService.ets</code> 需要封装 <strong>三组 API</strong>：</p>
+
+        <h3>5.1 接口管控 (restrictions)</h3>
+<pre><span class="kw">import</span> { restrictions } <span class="kw">from</span> <span class="str">'@ohos.enterprise.restrictions'</span>
+<span class="kw">import</span> { hilog } <span class="kw">from</span> <span class="str">'@kit.PerformanceAnalysisKit'</span>
+
+<span class="kw">const</span> TAG = <span class="str">'PeripheralService'</span>
+<span class="kw">const</span> DOMAIN = <span class="num">0x0002</span>
+
+<span class="kw">export class</span> <span class="tp">PeripheralService</span> {
+
+  <span class="cm">// ========== 接口管控 (restrictions) ==========</span>
+
+  <span class="cm">// 设置接口禁用策略</span>
+  <span class="kw">static async</span> <span class="fn">setInterfaceDisabled</span>(feature: <span class="tp">string</span>, disallow: <span class="tp">boolean</span>): Promise&lt;<span class="tp">boolean</span>&gt; {
+    <span class="kw">try</span> {
+      restrictions.<span class="fn">setDisallowedPolicy</span>(<span class="kw">null</span>, feature, disallow)
+      hilog.<span class="fn">info</span>(DOMAIN, TAG, <span class="str">`setInterfaceDisabled: ${feature} = ${disallow}`</span>)
+      <span class="kw">return true</span>
+    } <span class="kw">catch</span> (err) {
+      hilog.<span class="fn">error</span>(DOMAIN, TAG, <span class="str">`setInterfaceDisabled failed: ${JSON.stringify(err)}`</span>)
+      <span class="kw">return false</span>
+    }
+  }
+
+  <span class="cm">// 获取接口禁用状态</span>
+  <span class="kw">static</span> <span class="fn">getInterfaceDisabled</span>(feature: <span class="tp">string</span>): <span class="tp">boolean</span> {
+    <span class="kw">try</span> {
+      <span class="kw">return</span> restrictions.<span class="fn">getDisallowedPolicy</span>(<span class="kw">null</span>, feature)
+    } <span class="kw">catch</span> (err) {
+      hilog.<span class="fn">error</span>(DOMAIN, TAG, <span class="str">`getInterfaceDisabled failed: ${JSON.stringify(err)}`</span>)
+      <span class="kw">return false</span>
+    }
+  }
+  ...</pre>
+
+        <h3>5.2 USB 设备管控 (usbManager)</h3>
+<pre>  <span class="kw">import</span> { usbManager } <span class="kw">from</span> <span class="str">'@kit.MDMKit'</span>
+
+  <span class="cm">// ========== USB 白名单 (按 VID/PID) ==========</span>
+
+  <span class="kw">static async</span> <span class="fn">addUsbWhitelist</span>(devices: UsbDeviceId[]): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">removeUsbWhitelist</span>(devices: UsbDeviceId[]): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">getUsbWhitelist</span>(): Promise&lt;UsbDeviceId[]&gt; { ... }
+
+  <span class="cm">// ========== USB 黑名单 (按设备类型) ==========</span>
+
+  <span class="kw">static async</span> <span class="fn">addUsbBlacklist</span>(types: UsbDeviceType[]): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">removeUsbBlacklist</span>(types: UsbDeviceType[]): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">getUsbBlacklist</span>(): Promise&lt;UsbDeviceType[]&gt; { ... }
+
+  <span class="cm">// ========== USB 存储策略 ==========</span>
+
+  <span class="kw">static async</span> <span class="fn">setUsbStoragePolicy</span>(policy: <span class="tp">number</span>): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">getUsbStoragePolicy</span>(): Promise&lt;<span class="tp">number</span>&gt; { ... }</pre>
+
+        <h3>5.3 蓝牙设备管控 (bluetoothManager)</h3>
+<pre>  <span class="kw">import</span> { bluetoothManager } <span class="kw">from</span> <span class="str">'@kit.MDMKit'</span>
+
+  <span class="cm">// ========== 蓝牙白名单 (按 MAC 地址) ==========</span>
+
+  <span class="kw">static async</span> <span class="fn">addBluetoothWhitelist</span>(deviceIds: <span class="tp">string</span>[]): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">removeBluetoothWhitelist</span>(deviceIds: <span class="tp">string</span>[]): Promise&lt;<span class="tp">boolean</span>&gt; { ... }
+  <span class="kw">static async</span> <span class="fn">getBluetoothWhitelist</span>(): Promise&lt;<span class="tp">string</span>[]&gt; { ... }
+}</pre>
+    </div>
+
+    <!-- ==================== 6. API 参考 ==================== -->
+    <div class="section" id="sec6">
+        <h2>6. API 参考与文档链接</h2>
+
+        <h3>6.1 @ohos.enterprise.restrictions (接口管控)</h3>
+
+        <div class="api-card">
+            <div class="api-name">restrictions.setDisallowedPolicy(admin, feature, disallow)</div>
+            <div class="api-desc">设置设备某项功能的禁用策略。feature 参数可选值：<code>"usb"</code>、<code>"bluetooth"</code>、<code>"wifi"</code>、<code>"hdc"</code> 等。disallow 为 true 时禁用该功能。</div>
+            <div class="api-params">admin: Want | null, feature: string, disallow: boolean &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-restrictions#restrictionssetdisallowedpolicy" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-restrictions#restrictionssetdisallowedpolicy</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">restrictions.getDisallowedPolicy(admin, feature)</div>
+            <div class="api-desc">获取设备某项功能的禁用状态。返回 true 表示已禁用。</div>
+            <div class="api-params">admin: Want | null, feature: string &rarr; boolean</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-restrictions#restrictionsgetdisallowedpolicy" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-restrictions#restrictionsgetdisallowedpolicy</a>
+        </div>
+
+        <h3>6.2 @kit.MDMKit / usbManager (USB 设备管控)</h3>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.addAllowedUsbDevices(admin, usbDeviceIds)</div>
+            <div class="api-desc">添加 USB 设备白名单。通过 vendorId + productId 标识设备。白名单中的设备即使在全局禁用 USB 时也能使用。</div>
+            <div class="api-params">admin: Want, usbDeviceIds: Array&lt;UsbDeviceId&gt; &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanageraddallowedusbdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanageraddallowedusbdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.removeAllowedUsbDevices(admin, usbDeviceIds)</div>
+            <div class="api-desc">从 USB 设备白名单中移除指定设备。</div>
+            <div class="api-params">admin: Want, usbDeviceIds: Array&lt;UsbDeviceId&gt; &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagerremoveallowedusbdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagerremoveallowedusbdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.getAllowedUsbDevices(admin)</div>
+            <div class="api-desc">获取当前 USB 设备白名单列表。</div>
+            <div class="api-params">admin: Want &rarr; Array&lt;UsbDeviceId&gt;</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagergetallowedusbdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagergetallowedusbdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.setUsbStorageDeviceAccessPolicy(admin, usbPolicy)</div>
+            <div class="api-desc">设置 USB 存储设备的访问策略。usbPolicy: 0=读写, 1=只读, 2=禁止访问。</div>
+            <div class="api-params">admin: Want, usbPolicy: UsbPolicy &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagersetusbstoragedeviceaccesspolicy" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagersetusbstoragedeviceaccesspolicy</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.getUsbStorageDeviceAccessPolicy(admin)</div>
+            <div class="api-desc">获取 USB 存储设备当前的访问策略。</div>
+            <div class="api-params">admin: Want &rarr; UsbPolicy</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagergetusbstoragedeviceaccesspolicy" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagergetusbstoragedeviceaccesspolicy</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.addDisallowedUsbDevices(admin, usbDeviceTypes)</div>
+            <div class="api-desc">添加 USB 设备类型黑名单。通过 baseClass + subClass + protocol 标识设备类型（如 0x08/0x06/0x50 = 大容量存储设备）。</div>
+            <div class="api-params">admin: Want, usbDeviceTypes: Array&lt;UsbDeviceType&gt; &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanageradddisallowedusbdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanageradddisallowedusbdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.removeDisallowedUsbDevices(admin, usbDeviceTypes)</div>
+            <div class="api-desc">从 USB 设备类型黑名单中移除。</div>
+            <div class="api-params">admin: Want, usbDeviceTypes: Array&lt;UsbDeviceType&gt; &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagerremovedisallowedusbdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagerremovedisallowedusbdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">usbManager.getDisallowedUsbDevices(admin)</div>
+            <div class="api-desc">获取当前 USB 设备类型黑名单列表。</div>
+            <div class="api-params">admin: Want &rarr; Array&lt;UsbDeviceType&gt;</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_USB</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagergetdisallowedusbdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-usbmanager#usbmanagergetdisallowedusbdevices</a>
+        </div>
+
+        <h3>6.3 @kit.MDMKit / bluetoothManager (蓝牙设备管控)</h3>
+
+        <div class="api-card">
+            <div class="api-name">bluetoothManager.addAllowedBluetoothDevices(admin, deviceIds)</div>
+            <div class="api-desc">添加蓝牙设备白名单。通过 MAC 地址标识设备。</div>
+            <div class="api-params">admin: Want, deviceIds: Array&lt;string&gt; &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-bluetoothmanager#bluetoothmanageraddallowedbluetoothdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-bluetoothmanager#bluetoothmanageraddallowedbluetoothdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">bluetoothManager.removeAllowedBluetoothDevices(admin, deviceIds)</div>
+            <div class="api-desc">从蓝牙设备白名单中移除。</div>
+            <div class="api-params">admin: Want, deviceIds: Array&lt;string&gt; &rarr; void</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-bluetoothmanager#bluetoothmanagerremoveallowedbluetoothdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-bluetoothmanager#bluetoothmanagerremoveallowedbluetoothdevices</a>
+        </div>
+
+        <div class="api-card">
+            <div class="api-name">bluetoothManager.getAllowedBluetoothDevices(admin)</div>
+            <div class="api-desc">获取当前蓝牙设备白名单列表。</div>
+            <div class="api-params">admin: Want &rarr; Array&lt;string&gt;</div>
+            <div class="api-permission">ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH</div>
+            <br>
+            <a class="api-link" href="https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-bluetoothmanager#bluetoothmanagergetallowedbluetoothdevices" target="_blank">https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-enterprise-bluetoothmanager#bluetoothmanagergetallowedbluetoothdevices</a>
+        </div>
+
+        <h3>6.4 API 数据结构速查</h3>
+        <table>
+            <thead>
+                <tr><th>结构体</th><th>字段</th><th>来源</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>UsbDeviceId</code></td>
+                    <td><code>vendorId: number, productId: number</code></td>
+                    <td>@kit.MDMKit usbManager</td>
+                </tr>
+                <tr>
+                    <td><code>UsbDeviceType</code></td>
+                    <td><code>baseClass: number, subClass: number, protocol: number, isDeviceType: boolean</code></td>
+                    <td>@kit.MDMKit usbManager</td>
+                </tr>
+                <tr>
+                    <td><code>UsbPolicy</code></td>
+                    <td><code>READ_WRITE = 0, READ_ONLY = 1, DISABLED = 2</code></td>
+                    <td>@kit.MDMKit usbManager</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ==================== 7. View 层设计 ==================== -->
+    <div class="section" id="sec7">
+        <h2>7. View 层设计（4 个 Tab 页）</h2>
+        <p><code>PeripheralPage.ets</code> 内部通过 <code>Tabs</code> 组件切换 4 个子页面，每个 Tab 用 <code>@Builder</code> 构建。</p>
+
+        <h3>7.1 整体结构</h3>
+<pre><span class="kw">@Component</span>
+<span class="kw">export struct</span> <span class="tp">PeripheralPage</span> {
+  <span class="kw">@State</span> currentTab: <span class="tp">number</span> = <span class="num">0</span>
+  <span class="kw">@State</span> isLoading: <span class="tp">boolean</span> = <span class="kw">false</span>
+
+  <span class="cm">// 接口管控状态</span>
+  <span class="kw">@State</span> usbDisabled: <span class="tp">boolean</span> = <span class="kw">false</span>
+  <span class="kw">@State</span> btDisabled: <span class="tp">boolean</span> = <span class="kw">false</span>
+  <span class="kw">@State</span> wifiDisabled: <span class="tp">boolean</span> = <span class="kw">false</span>
+  <span class="kw">@State</span> hdcDisabled: <span class="tp">boolean</span> = <span class="kw">false</span>
+  <span class="kw">@State</span> usbStoragePolicy: <span class="tp">number</span> = <span class="num">0</span>
+
+  <span class="cm">// 黑白名单数据</span>
+  <span class="kw">@State</span> usbWhitelist: UsbDeviceId[] = []
+  <span class="kw">@State</span> usbBlacklist: UsbDeviceType[] = []
+  <span class="kw">@State</span> btWhitelist: <span class="tp">string</span>[] = []
+
+  <span class="fn">aboutToAppear</span>() { <span class="kw">this</span>.<span class="fn">loadAllData</span>() }
+
+  <span class="fn">build</span>() {
+    Column() {
+      <span class="cm">// 页面头部: 标题 + 搜索框</span>
+      Row() { ... }
+
+      <span class="cm">// Tab 切换</span>
+      Tabs({ barPosition: BarPosition.Start }) {
+        TabContent() { <span class="kw">this</span>.<span class="fn">deviceRecordsBuilder</span>() }
+          .tabBar(<span class="kw">this</span>.<span class="fn">tabBuilder</span>(<span class="str">'设备连接记录'</span>, <span class="num">0</span>))
+        TabContent() { <span class="kw">this</span>.<span class="fn">interfaceControlBuilder</span>() }
+          .tabBar(<span class="kw">this</span>.<span class="fn">tabBuilder</span>(<span class="str">'接口管控'</span>, <span class="num">1</span>))
+        TabContent() { <span class="kw">this</span>.<span class="fn">deviceControlBuilder</span>() }
+          .tabBar(<span class="kw">this</span>.<span class="fn">tabBuilder</span>(<span class="str">'设备管控'</span>, <span class="num">2</span>))
+        TabContent() { <span class="kw">this</span>.<span class="fn">blackWhiteListBuilder</span>() }
+          .tabBar(<span class="kw">this</span>.<span class="fn">tabBuilder</span>(<span class="str">'黑白名单'</span>, <span class="num">3</span>))
+      }
+    }
+  }
+}</pre>
+
+        <h3>7.2 Tab 功能说明</h3>
+
+        <h4>Tab 1: 设备连接记录 (@Builder deviceRecordsBuilder)</h4>
+        <p>对应 UI 原型中的设备连接表格。使用 <code>List + ForEach</code> 展示设备记录。</p>
+        <table>
+            <thead><tr><th>列</th><th>数据源</th></tr></thead>
+            <tbody>
+                <tr><td>设备名称</td><td>deviceName</td></tr>
+                <tr><td>设备类型</td><td>getPeripheralTypeLabel(deviceType)</td></tr>
+                <tr><td>设备标识</td><td>deviceId (VID:PID 或 MAC)</td></tr>
+                <tr><td>连接时间</td><td>connectTime</td></tr>
+                <tr><td>策略</td><td>allow/deny Tag 标签</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Tab 2: 接口管控 (@Builder interfaceControlBuilder)</h4>
+        <p>对应 UI 原型中的接口开关列表。使用 <code>InterfaceControlItem</code> 组件渲染每一行。</p>
+        <table>
+            <thead><tr><th>接口</th><th>API feature</th><th>控件类型</th><th>对应 API</th></tr></thead>
+            <tbody>
+                <tr><td>USB 接口</td><td><code>"usb"</code></td><td>Select (按策略生效/全局禁用)</td><td>restrictions.setDisallowedPolicy</td></tr>
+                <tr><td>USB 存储设备</td><td>-</td><td>Select (只读/读写/禁止)</td><td>usbManager.setUsbStorageDeviceAccessPolicy</td></tr>
+                <tr><td>蓝牙</td><td><code>"bluetooth"</code></td><td>Select (启用/禁用)</td><td>restrictions.setDisallowedPolicy</td></tr>
+                <tr><td>Wi-Fi</td><td><code>"wifi"</code></td><td>Select (启用/禁用)</td><td>restrictions.setDisallowedPolicy</td></tr>
+                <tr><td>HDC</td><td><code>"hdc"</code></td><td>Select (禁用/启用)</td><td>restrictions.setDisallowedPolicy</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Tab 3: 设备管控 (@Builder deviceControlBuilder)</h4>
+        <p>对应 UI 原型中的已知设备策略管理表格。展示已连接过的 USB 设备，允许为每个设备单独配置策略。</p>
+
+        <h4>Tab 4: 黑白名单 (@Builder blackWhiteListBuilder)</h4>
+        <p>对应 UI 原型中的三段式黑白名单。包含三个子区域：</p>
+        <table>
+            <thead><tr><th>子区域</th><th>标识字段</th><th>增删 API</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>USB 白名单 (按设备 ID)</td>
+                    <td>vendorId + productId</td>
+                    <td>usbManager.addAllowedUsbDevices / removeAllowedUsbDevices</td>
+                </tr>
+                <tr>
+                    <td>USB 黑名单 (按设备类型)</td>
+                    <td>baseClass + subClass + protocol</td>
+                    <td>usbManager.addDisallowedUsbDevices / removeDisallowedUsbDevices</td>
+                </tr>
+                <tr>
+                    <td>蓝牙白名单 (按 MAC)</td>
+                    <td>MAC 地址</td>
+                    <td>bluetoothManager.addAllowedBluetoothDevices / removeAllowedBluetoothDevices</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ==================== 8. 组件设计 ==================== -->
+    <div class="section" id="sec8">
+        <h2>8. 组件设计（弹窗 + 列表项）</h2>
+
+        <h3>8.1 InterfaceControlItem.ets</h3>
+        <p>参照 <code>RuleTypeItem.ets</code> 的 @Prop 输入 + 回调模式：</p>
+<pre><span class="kw">@Component</span>
+<span class="kw">export struct</span> <span class="tp">InterfaceControlItem</span> {
+  <span class="kw">@Prop</span> label: <span class="tp">string</span> = <span class="str">''</span>
+  <span class="kw">@Prop</span> description: <span class="tp">string</span> = <span class="str">''</span>
+  <span class="kw">@Prop</span> options: <span class="tp">string</span>[] = []      <span class="cm">// ['启用', '禁用'] 或 ['读写', '只读', '禁止访问']</span>
+  <span class="kw">@Prop</span> selectedIndex: <span class="tp">number</span> = <span class="num">0</span>
+  onSelect: (index: <span class="tp">number</span>) =&gt; <span class="tp">void</span> = () =&gt; {}
+
+  <span class="fn">build</span>() {
+    Row() {
+      Column() {
+        Text(<span class="kw">this</span>.label)        <span class="cm">// 接口名称</span>
+        Text(<span class="kw">this</span>.description)  <span class="cm">// 接口描述</span>
+      }
+      Select(<span class="kw">this</span>.options)       <span class="cm">// 下拉选择</span>
+    }
+  }
+}</pre>
+
+        <h3>8.2 AddWhitelistDialog.ets</h3>
+        <p>参照 <code>AddRuleDialog.ets</code> 的 @CustomDialog 模式。支持两种模式：USB（VID + PID + 备注）和蓝牙（MAC + 备注）。</p>
+<pre><span class="kw">@CustomDialog</span>
+<span class="kw">export struct</span> <span class="tp">AddWhitelistDialog</span> {
+  controller: CustomDialogController
+  <span class="kw">@Prop</span> mode: <span class="str">'usb'</span> | <span class="str">'bluetooth'</span> = <span class="str">'usb'</span>
+
+  <span class="cm">// USB 模式字段</span>
+  <span class="kw">@State</span> vendorId: <span class="tp">string</span> = <span class="str">''</span>
+  <span class="kw">@State</span> productId: <span class="tp">string</span> = <span class="str">''</span>
+
+  <span class="cm">// 蓝牙模式字段</span>
+  <span class="kw">@State</span> macAddress: <span class="tp">string</span> = <span class="str">''</span>
+
+  <span class="cm">// 公共</span>
+  <span class="kw">@State</span> remark: <span class="tp">string</span> = <span class="str">''</span>
+  onConfirm: (...) =&gt; <span class="tp">void</span> = () =&gt; {}
+
+  <span class="fn">build</span>() {
+    Column() {
+      Text(mode === <span class="str">'usb'</span> ? <span class="str">'添加 USB 设备白名单'</span> : <span class="str">'添加蓝牙设备白名单'</span>)
+      <span class="kw">if</span> (<span class="kw">this</span>.mode === <span class="str">'usb'</span>) {
+        TextInput({ placeholder: <span class="str">'Vendor ID (例: 0x2B7E)'</span> })
+        TextInput({ placeholder: <span class="str">'Product ID (例: 0xB5A2)'</span> })
+      } <span class="kw">else</span> {
+        TextInput({ placeholder: <span class="str">'MAC 地址 (例: AA:BB:CC:DD:EE:01)'</span> })
+      }
+      TextInput({ placeholder: <span class="str">'备注'</span> })
+      <span class="cm">// 取消 + 添加 按钮</span>
+    }
+  }
+}</pre>
+
+        <h3>8.3 AddBlacklistDialog.ets</h3>
+        <p>USB 设备类型黑名单添加弹窗，字段为 Base Class + Sub Class + Protocol + 描述。</p>
+    </div>
+
+    <!-- ==================== 9. MainPage 集成 ==================== -->
+    <div class="section" id="sec9">
+        <h2>9. MainPage 集成</h2>
+        <p>在 <code>MainPage.ets</code> 中将 <code>PlaceholderPage({ title: '外设管理' })</code> 替换为新的 <code>PeripheralPage</code>：</p>
+<pre><span class="cm">// MainPage.ets 变更</span>
+<span class="kw">import</span> { PeripheralPage } <span class="kw">from</span> <span class="str">'../views/PeripheralPage'</span>
+
+<span class="cm">// 在 build() 的 if/else if 分支中：</span>
+} <span class="kw">else if</span> (<span class="kw">this</span>.currentPage === Routes.PERIPHERAL_MANAGE) {
+  <span class="cm">// 旧: PlaceholderPage({ title: '外设管理' })</span>
+  <span class="tp">PeripheralPage</span>()    <span class="cm">// 新: 直接挂载，无需额外 @Prop（模块自治）</span>
+}</pre>
+
+        <div class="info-box tip">
+            <div class="icon">i</div>
+            <div class="text"><strong>与防火墙模块的区别：</strong>防火墙模块的 <code>firewallEnabled</code> 需要在 Dashboard 中展示，因此通过 @State/@Prop 链从 MainPage 透传。外设管理模块的状态不需要跨页面共享，因此 <code>PeripheralPage</code> 可以完全自治，内部通过 Service 层直接读写状态。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 10. 权限配置 ==================== -->
+    <div class="section" id="sec10">
+        <h2>10. 权限配置</h2>
+        <p>外设管理模块依赖以下权限，这些权限已在 <code>module.json5</code> 和 <code>UnsgnedDebugProfileTemplate.json</code> 中声明：</p>
+
+        <table>
+            <thead><tr><th>权限</th><th>用途</th><th>当前状态</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_MANAGE_USB</code></td>
+                    <td>USB 设备白名单/黑名单 CRUD、存储策略</td>
+                    <td><span class="tag tag-green">已声明</span></td>
+                </tr>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS</code></td>
+                    <td>USB/蓝牙/Wi-Fi/HDC 接口全局禁用/启用</td>
+                    <td><span class="tag tag-green">已声明</span></td>
+                </tr>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH</code></td>
+                    <td>蓝牙设备白名单 CRUD</td>
+                    <td><span class="tag tag-green">已声明</span></td>
+                </tr>
+                <tr>
+                    <td><code>ohos.permission.ENTERPRISE_MANAGE_NETWORK</code></td>
+                    <td>(Wi-Fi 管控可能需要)</td>
+                    <td><span class="tag tag-green">已声明</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box warn">
+            <div class="icon">!</div>
+            <div class="text"><strong>无需额外配置：</strong>外设管理所需的全部权限已在项目初始化时声明（见 AGENTS.md 权限列表），不需要修改 <code>module.json5</code> 或重新生成 p7b 签名描述文件。</div>
+        </div>
+    </div>
+
+    <!-- ==================== 11. 开发流程 ==================== -->
+    <div class="section" id="sec11">
+        <h2>11. 开发流程（步骤）</h2>
+
+        <div class="flow-steps">
+            <div class="flow-step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <div class="step-title">扩展数据模型</div>
+                    <div class="step-desc">在 <code>DataModels.ets</code> 中追加外设相关的枚举（PeripheralType、InterfaceFeature、UsbStoragePolicy）、接口（DeviceRecord、UsbWhitelistItem 等）和辅助函数。</div>
+                    <div class="step-files">models/DataModels.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <div class="step-title">实现 Service 层</div>
+                    <div class="step-desc">创建 <code>PeripheralService.ets</code>，封装三组 API：restrictions（接口管控）、usbManager（USB 白名单/黑名单/存储策略）、bluetoothManager（蓝牙白名单）。遵循 FirewallService 的静态类 + try-catch + hilog 模式。</div>
+                    <div class="step-files">services/PeripheralService.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <div class="step-title">实现组件层</div>
+                    <div class="step-desc">创建 <code>InterfaceControlItem.ets</code>（接口管控列表项）、<code>AddWhitelistDialog.ets</code>（USB/蓝牙白名单添加弹窗）、<code>AddBlacklistDialog.ets</code>（USB 类型黑名单添加弹窗）。</div>
+                    <div class="step-files">components/InterfaceControlItem.ets, AddWhitelistDialog.ets, AddBlacklistDialog.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <div class="step-title">实现 PeripheralPage View</div>
+                    <div class="step-desc">创建 <code>PeripheralPage.ets</code>，包含 4 个 Tab 的 @Builder 构建器。在 <code>aboutToAppear()</code> 中通过 Service 加载所有初始数据。每个 Tab 内调用对应的 Service 方法实现交互。</div>
+                    <div class="step-files">views/PeripheralPage.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">5</div>
+                <div class="step-content">
+                    <div class="step-title">MainPage 集成</div>
+                    <div class="step-desc">在 <code>MainPage.ets</code> 中 import <code>PeripheralPage</code>，将 <code>Routes.PERIPHERAL_MANAGE</code> 分支的 <code>PlaceholderPage</code> 替换为 <code>PeripheralPage()</code>。</div>
+                    <div class="step-files">pages/MainPage.ets</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-num">6</div>
+                <div class="step-content">
+                    <div class="step-title">构建、签名、安装验证</div>
+                    <div class="step-desc">执行 <code>hvigorw assembleHap</code> 构建，拷贝到 hapsigner 签名，<code>hdc install</code> 安装到设备，验证 4 个 Tab 页的功能和 API 调用是否正常。</div>
+                    <div class="step-files">hapsigner/signApp.hap</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box danger">
+            <div class="icon">!</div>
+            <div class="text"><strong>注意：</strong>restrictions API（接口管控）和 MDMKit API（设备黑白名单）均为企业级 API，需要设备处于 MDM 管理模式下才能正常调用。在普通设备上测试时，API 调用可能会返回权限错误，这属于预期行为。建议在 Service 层的 catch 块中对此做友好提示处理。</div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

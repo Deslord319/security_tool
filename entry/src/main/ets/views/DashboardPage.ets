@@ -1,11 +1,14 @@
 import { AppColors, AppStyles, Routes } from '../constants/AppConstants'
 import { StatCard } from '../components/StatCard'
 import { ToolCard } from '../components/ToolCard'
+import { ThemeMode } from '../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @Component
 export struct DashboardPage {
   @Prop firewallEnabled: boolean = false
   onNavigate: (route: string) => void = () => {}
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
     Scroll() {
@@ -15,12 +18,12 @@ export struct DashboardPage {
           Text('安全总览')
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           Text('HarmonyOS 安全管理中心 — 企业级设备安全管控平台')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .opacity(AppColors.TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -73,8 +76,8 @@ export struct DashboardPage {
         Text('快捷功能')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .opacity(AppColors.TEXT_PRIMARY_OPACITY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
         // 快捷功能卡片 - 6个，3列2行
         GridRow({ columns: 3, gutter: 16 }) {
@@ -147,6 +150,6 @@ export struct DashboardPage {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
-    .backgroundColor(AppColors.BG_PAGE)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 }

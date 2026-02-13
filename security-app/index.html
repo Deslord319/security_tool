@@ -21,7 +21,42 @@
                 <span class="title-text">安全管理中心</span>
             </div>
             <div class="title-right">
-                <button class="title-btn"><i class="fas fa-bars"></i></button>
+                <div class="menu-dropdown">
+                    <button class="title-btn menu-trigger" onclick="toggleMenu()">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="menu-popup" id="menu-popup">
+                        <div class="menu-group-label">显示模式</div>
+                        <div class="menu-item" data-theme-option="system" onclick="setThemeOption('system')">
+                            <i class="fas fa-desktop"></i>
+                            <span>跟随系统</span>
+                            <i class="fas fa-check menu-check" id="check-system"></i>
+                        </div>
+                        <div class="menu-item" data-theme-option="light" onclick="setThemeOption('light')">
+                            <i class="fas fa-sun"></i>
+                            <span>浅色模式</span>
+                            <i class="fas fa-check menu-check" id="check-light"></i>
+                        </div>
+                        <div class="menu-item" data-theme-option="dark" onclick="setThemeOption('dark')">
+                            <i class="fas fa-moon"></i>
+                            <span>深色模式</span>
+                            <i class="fas fa-check menu-check" id="check-dark"></i>
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" onclick="showPage('tool-settings'); closeMenu();">
+                            <i class="fas fa-cog"></i>
+                            <span>设置</span>
+                        </div>
+                        <div class="menu-item">
+                            <i class="fas fa-question-circle"></i>
+                            <span>帮助和反馈</span>
+                        </div>
+                        <div class="menu-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>关于</span>
+                        </div>
+                    </div>
+                </div>
                 <button class="title-btn"><i class="fas fa-minus"></i></button>
                 <button class="title-btn close-btn"><i class="fas fa-times"></i></button>
             </div>
