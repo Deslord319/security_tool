@@ -6,6 +6,32 @@
 
 ## 版本记录
 
+### v11 - 2026-02-25
+
+**功能更新：**
+- 新增工具设置页面（ToolSettingsPage）：启动认证开关、认证方式选择、密码修改
+- 新增 AuthService 服务：封装 userAuth 和 Asset Store Kit 认证逻辑
+- 新增 SecureStorageService 服务：敏感数据安全存储
+- 主题系统扩展：新增 Teal 色系标签配色（深色/浅色模式）
+- 数据模型扩展：新增工具设置相关枚举、接口和常量
+- README 重构：加入项目介绍、工具包位置、项目优势和快速入门指南
+- 添加应用截图到 docs/images/
+
+**文件变更：**
+- `views/ToolSettingsPage.ets`: 新增工具设置页面
+- `services/AuthService.ets`: 新增认证服务
+- `services/SecureStorageService.ets`: 新增安全存储服务
+- `pages/MainPage.ets`: 路由集成 ToolSettingsPage 替换 PlaceholderPage
+- `models/DataModels.ets`: 新增 AuthMethod 枚举、ToolSettingsConfig 接口等
+- `theme/ThemeColors.ets`: 新增 TAG_TEAL_BG/TAG_TEAL_TEXT 颜色
+- `README.md`: 重写项目文档
+
+**踩坑记录：**
+- 工具设置页面需要同时依赖 userAuth 和 Asset Store Kit，注意两者的权限声明不能遗漏
+- ThemeColorSet 接口新增字段后，深色和浅色两套配置必须同步更新，否则编译报错
+
+---
+
 ### v10 - 2026-02-13
 
 **功能更新：**
@@ -200,4 +226,4 @@ v10: feat: 隐藏系统标题栏并重构外设管理模块
 
 ---
 
-*最后更新：2026-02-13*
+*最后更新：2026-02-25*

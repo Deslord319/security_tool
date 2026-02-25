@@ -48,6 +48,8 @@ export interface ThemeColorSet {
   TAG_ORANGE_TEXT: string
   TAG_GRAY_BG: string
   TAG_GRAY_TEXT: string
+  TAG_TEAL_BG: string
+  TAG_TEAL_TEXT: string
 }
 
 // 浅色主题颜色
@@ -80,7 +82,9 @@ export const LightThemeColors: ThemeColorSet = {
   TAG_ORANGE_BG: '#FFF3E0',
   TAG_ORANGE_TEXT: '#E65100',
   TAG_GRAY_BG: '#ECEFF1',
-  TAG_GRAY_TEXT: '#546E7A'
+  TAG_GRAY_TEXT: '#546E7A',
+  TAG_TEAL_BG: '#E0F2F1',
+  TAG_TEAL_TEXT: '#00695C'
 }
 
 // 深色主题颜色
@@ -113,7 +117,9 @@ export const DarkThemeColors: ThemeColorSet = {
   TAG_ORANGE_BG: '#3D2D1F',
   TAG_ORANGE_TEXT: '#FFB74D',
   TAG_GRAY_BG: '#2D2D2D',
-  TAG_GRAY_TEXT: '#B0BEC5'
+  TAG_GRAY_TEXT: '#B0BEC5',
+  TAG_TEAL_BG: '#1B3D3D',
+  TAG_TEAL_TEXT: '#80CBC4'
 }
 
 // 获取主题颜色

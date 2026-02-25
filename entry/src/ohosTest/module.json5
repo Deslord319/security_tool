@@ -2,10 +2,24 @@
   "module": {
     "name": "entry_test",
     "type": "feature",
+    "description": "$string:entry_test_desc",
     "deviceTypes": [
       "2in1"
     ],
     "deliveryWithInstall": true,
-    "installationFree": false
+    "installationFree": false,
+    "pages": "$profile:test_pages",
+    "abilities": [
+      {
+        "name": "TestAbility",
+        "srcEntry": "./ets/testability/TestAbility.ets",
+        "description": "$string:test_ability_desc",
+        "icon": "$media:startIcon",
+        "label": "$string:test_ability_label",
+        "exported": true,
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background"
+      }
+    ]
   }
 }

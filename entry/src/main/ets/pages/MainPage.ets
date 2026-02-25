@@ -5,6 +5,7 @@ import { FirewallPage } from '../views/FirewallPage'
 import { FirewallRulesPage } from '../views/FirewallRulesPage'
 import { PeripheralPage } from '../views/PeripheralPage'
 import { IdentityPage } from '../views/IdentityPage'
+import { ToolSettingsPage } from '../views/ToolSettingsPage'
 import { PlaceholderPage } from '../views/PlaceholderPage'
 import { Routes, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -112,7 +113,7 @@ struct MainPage {
             } else if (this.currentPage === Routes.IDENTITY) {
               IdentityPage()
             } else if (this.currentPage === Routes.TOOL_SETTINGS) {
-              PlaceholderPage({ title: '工具设置' })
+              ToolSettingsPage()
             }
           }
           .layoutWeight(1)

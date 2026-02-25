@@ -315,3 +315,53 @@ export const EXPIRY_NOTIFY_OPTIONS: number[] = [3, 7, 14, 30]
 
 // 认证Token有效期选项 (分钟, -1 = 永久)
 export const AUTH_TOKEN_VALIDITY_OPTIONS: number[] = [5, 15, 30, 60, -1]
+
+// ==================== 工具设置模块 ====================
+
+// 认证方式枚举（对应 userAuth.UserAuthType）
+export enum AuthMethod {
+  PIN = 1,          // PIN 码认证
+  FACE = 2,         // 人脸识别
+  FINGERPRINT = 4,  // 指纹认证
+  PIN_FINGERPRINT = 5 // PIN + 指纹组合
+}
+
+// 工具设置 UI 配置
+export interface ToolSettingsConfig {
+  startupAuthEnabled: boolean   // 启动时是否需要认证
+  authMethod: AuthMethod        // 认证方式
+}
+
+// 密码变更请求
+export interface PasswordChangeRequest {
+  currentPassword: string       // 当前密码
+  newPassword: string           // 新密码
+  confirmPassword: string       // 确认新密码
+}
+
+// 默认工具设置配置
+export const DEFAULT_TOOL_SETTINGS: ToolSettingsConfig = {
+  startupAuthEnabled: true,
+  authMethod: AuthMethod.PIN
+}
+
+// 认证方式选项接口
+export interface AuthMethodOption {
+  label: string
+  value: AuthMethod
+}
+
+// 认证方式选项
+export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
+  { label: 'PIN 码', value: AuthMethod.PIN } as AuthMethodOption,
+  { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
+  { label: '人脸识别', value: AuthMethod.FACE } as AuthMethodOption,
+  { label: 'PIN + 指纹', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
+]
+
+// Asset Store 键名常量
+export const ASSET_KEY_TOOL_PASSWORD = 'tool_password'
+
+// Preferences 键名常量
+export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
+export const PREF_KEY_AUTH_METHOD = 'auth_method'
