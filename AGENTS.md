@@ -119,6 +119,10 @@ ohos.permission.ENTERPRISE_MANAGE_USB
 ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS
 ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH
 ohos.permission.ENTERPRISE_GET_DEVICE_INFO
+ohos.permission.ENTERPRISE_MANAGE_WIFI
+ohos.permission.ENTERPRISE_ADMIN_MANAGE
+ohos.permission.ENTERPRISE_MANAGE_SECURITY
+ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY
 ```
 
 新增权限时，需要同时在 `module.json5` 的 `requestPermissions` 和 `UnsgnedDebugProfileTemplate.json` 的 `acls.allowed-acls` + `permissions.restricted-permissions` 中添加。
@@ -131,9 +135,9 @@ ohos.permission.ENTERPRISE_GET_DEVICE_INFO
 | `firewall` | FirewallPage | 防火墙管理 |
 | `firewall-rules` | FirewallRulesPage | 防火墙规则详情 |
 | `log-manage` | PlaceholderPage | 日志管理（待开发） |
-| `peripheral-manage` | PlaceholderPage | 外设管理（待开发） |
-| `identity` | PlaceholderPage | 身份鉴别（待开发） |
-| `tool-settings` | PlaceholderPage | 工具设置（待开发） |
+| `peripheral-manage` | PeripheralPage | 外设管理（已完成） |
+| `identity` | IdentityPage | 身份鉴别（已完成） |
+| `tool-settings` | ToolSettingsPage | 工具设置（已完成） |
 
 ## 常见问题
 
