@@ -6,6 +6,36 @@
 
 ## 版本记录
 
+### v14 - 2026-02-26
+
+**功能更新：**
+- 新增日志管理模块（LogManagePage）：日志查询、筛选、导出、存储配置
+- 新增 LogAuditService 服务：安全事件审计日志记录
+- 新增 LogStorageService 服务：日志存储和生命周期管理
+- 新增帮助与反馈页面（HelpFeedbackPage）：使用指南、常见问题
+- DataModels 扩展：日志相关枚举、接口、常量（LogEntry、LogEventType、LogFilter 等）
+- ThemeMenuPopup 组件优化：弹窗样式和交互改进
+- ThemeManager 增强：主题切换逻辑优化
+- 新增日志管理测试用例（仪表测试 + 单元测试）
+- 新增 ENTERPRISE_SUBSCRIBE_MANAGED_EVENT 权限
+
+**文件变更：**
+- `views/LogManagePage.ets`: 新增日志管理页面
+- `views/HelpFeedbackPage.ets`: 新增帮助与反馈页面
+- `services/LogAuditService.ets`: 新增审计日志服务
+- `services/LogStorageService.ets`: 新增日志存储服务
+- `pages/MainPage.ets`: 路由集成新页面
+- `models/DataModels.ets`: 新增日志相关模型（+192 行）
+- `components/ThemeMenuPopup.ets`: 样式优化
+- `theme/ThemeManager.ets`: 主题切换增强
+- `module.json5`: 新增权限声明
+
+**踩坑记录：**
+- 日志查询筛选时需要注意时间范围的边界处理，建议使用 Date 对象而非时间戳字符串
+- 日志导出功能需要 WRITE_MEDIA 权限，导出路径需要使用应用沙箱目录
+
+---
+
 ### v13 - 2026-02-26
 
 **功能更新：**

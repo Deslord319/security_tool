@@ -6,6 +6,8 @@ import { FirewallRulesPage } from '../views/FirewallRulesPage'
 import { PeripheralPage } from '../views/PeripheralPage'
 import { IdentityPage } from '../views/IdentityPage'
 import { ToolSettingsPage } from '../views/ToolSettingsPage'
+import { HelpFeedbackPage } from '../views/HelpFeedbackPage'
+import { LogManagePage } from '../views/LogManagePage'
 import { PlaceholderPage } from '../views/PlaceholderPage'
 import { Routes, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -80,6 +82,7 @@ struct MainPage {
           .height(56)
           .padding({ left: AppStyles.PADDING_LG, right: 140 })
           .alignItems(VerticalAlign.Center)
+          .backgroundColor(this.currentTheme === ThemeMode.DARK ? '#2C2C2E' : Color.Transparent)
 
           // 页面内容
           Column() {
@@ -107,13 +110,15 @@ struct MainPage {
                 }
               })
             } else if (this.currentPage === Routes.LOG_MANAGE) {
-              PlaceholderPage({ title: '日志管理' })
+              LogManagePage()
             } else if (this.currentPage === Routes.PERIPHERAL_MANAGE) {
               PeripheralPage()
             } else if (this.currentPage === Routes.IDENTITY) {
               IdentityPage()
             } else if (this.currentPage === Routes.TOOL_SETTINGS) {
               ToolSettingsPage()
+            } else if (this.currentPage === Routes.HELP_FEEDBACK) {
+              HelpFeedbackPage()
             }
           }
           .layoutWeight(1)
@@ -169,6 +174,8 @@ struct MainPage {
         return '身份鉴别'
       case Routes.TOOL_SETTINGS:
         return '工具设置'
+      case Routes.HELP_FEEDBACK:
+        return '帮助与反馈'
       default:
         return '安全管理中心'
     }

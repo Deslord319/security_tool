@@ -5,6 +5,8 @@ import firewallComponentTest from './firewall/component.test'
 import firewallFlowTest from './firewall/flow.test'
 import peripheralSnapshotTest from './peripheral/snapshot.test'
 import multiPageNavigationTest from './navigation/multi-page.test'
+import logManageComponentTest from './log-manage/component.test'
+import logManageFlowTest from './log-manage/flow.test'
 
 export default function testsuite() {
   // 通用基础测试
@@ -20,6 +22,10 @@ export default function testsuite() {
 
   // 外设模块
   peripheralSnapshotTest()
+
+  // 日志管理模块
+  logManageComponentTest()
+  logManageFlowTest()
 
   // 跨模块导航测试
   multiPageNavigationTest()

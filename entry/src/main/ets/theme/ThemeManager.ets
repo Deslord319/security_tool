@@ -181,11 +181,17 @@ export class ThemeManager {
     await this.savePreferences(mode, ThemePreference.MANUAL)
   }
 
-  // 切换主题（在当前主题和另一主题间切换）
+  // 切换主题（在当前主题和另一主题间切换），同步更新 Option
   async toggleTheme(): Promise<void> {
-    const current = AppStorage.get<ThemeMode>(STORAGE_KEY_THEME)
+    const current = AppStorage.get<ThemeMode>(STORAGE_KEY_THEME) || ThemeMode.LIGHT
     const newTheme = current === ThemeMode.DARK ? ThemeMode.LIGHT : ThemeMode.DARK
-    await this.setTheme(newTheme)
+    const newOption = newTheme === ThemeMode.DARK ? ThemeOption.DARK : ThemeOption.LIGHT
+
+    AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, newTheme)
+    AppStorage.setOrCreate<ThemePreference>(STORAGE_KEY_PREFERENCE, ThemePreference.MANUAL)
+    AppStorage.setOrCreate<ThemeOption>(STORAGE_KEY_OPTION, newOption)
+
+    await this.saveOption(newOption)
   }
 
   // 设置用户偏好

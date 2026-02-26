@@ -716,23 +716,23 @@
                     <tbody>
                         <tr>
                             <td><strong>安全审计事件显示</strong></td>
-                            <td>通过 SecurityAudit C API 订阅各类安全事件：FILE、NETWORK_CONN、APP、ACCOUNT、USB_ACCESS_INTERCEPTED、PERMISSION、PROCESS 等</td>
-                            <td><code>HMS_SecurityAudit_NewClient</code><br><code>HMS_SecurityAudit_Subscribe</code></td>
+                            <td>通过 securityAudit ArkTS API 订阅各类安全事件，监听 auditEventOccur 事件</td>
+                            <td><code>securityAudit.on('auditEventOccur', ...)</code><br><code>securityAudit.off('auditEventOccur', ...)</code></td>
                         </tr>
                         <tr>
                             <td><strong>日志筛选</strong></td>
-                            <td>按事件类型、文件路径、进程 UID/PID/名称等维度添加过滤条件</td>
-                            <td><code>HMS_SecurityAudit_AddFilter</code></td>
+                            <td>通过 AuditEventInfo 指定要订阅的 eventId，应用层实现关键词/时间过滤</td>
+                            <td><code>AuditEventInfo { eventId }</code></td>
                         </tr>
                         <tr>
                             <td><strong>时间段筛选</strong></td>
-                            <td>通过 SecurityAudit_Event 结构体中的时间戳字段过滤特定时间段日志</td>
-                            <td><code>SecurityAudit_Event</code> 结构体</td>
+                            <td>通过 AuditEvent 中的 timestamp 字段（YYYYMMDDHHMMSS 格式）过滤日志</td>
+                            <td><code>AuditEvent.timestamp</code></td>
                         </tr>
                         <tr>
                             <td><strong>日志清除</strong></td>
-                            <td>取消订阅已订阅事件，删除通知客户端，重置过滤条件</td>
-                            <td><code>HMS_SecurityAudit_Unsubscribe</code><br><code>HMS_SecurityAudit_DeleteClient</code></td>
+                            <td>取消订阅事件，清除本地存储的日志文件</td>
+                            <td><code>securityAudit.off(...)</code><br><code>@ohos.file.fs</code></td>
                         </tr>
                         <tr>
                             <td><strong>存储管理</strong></td>
@@ -766,14 +766,34 @@
             <section id="challenges" class="section">
                 <h2 class="section-title">3. 技术挑战</h2>
                 
-                <div class="warning-box info-box">
+                <div class="info-box">
                     <div class="info-box-title">
-                        <span>&#9888;</span> C API 调用挑战
+                        <span>&#9989;</span> ArkTS API 可用
                     </div>
                     <div class="info-box-content">
-                        SecurityAudit 是 <strong>C API</strong> (security_audit.h)，非 ArkTS API。需要通过 <strong>NAPI</strong> 封装或使用 <strong>Native 模块</strong>调用。
+                        HarmonyOS 提供了 <strong>ArkTS API</strong>，可直接在 ArkTS 中使用，无需 NAPI 封装。
                         <br><br>
-                        系统能力: <code>SystemCapability.Security.SecurityAudit</code>
+                        <strong>模块导入</strong>: <code>import { securityAudit } from '@kit.DeviceSecurityKit'</code>
+                        <br>
+                        <strong>系统能力</strong>: <code>SystemCapability.Security.SecurityAudit</code>
+                        <br>
+                        <strong>所需权限</strong>: <code>ohos.permission.QUERY_AUDIT_EVENT</code>
+                    </div>
+                </div>
+
+                <div class="warning-box info-box">
+                    <div class="info-box-title">
+                        <span>&#9888;</span> C API vs ArkTS API
+                    </div>
+                    <div class="info-box-content">
+                        HarmonyOS 同时提供了 C API (security_audit.h) 和 ArkTS API (@kit.DeviceSecurityKit)。
+                        <br><br>
+                        <strong>推荐使用 ArkTS API</strong>，因为：
+                        <ul>
+                            <li>无需 NAPI 封装，开发效率高</li>
+                            <li>类型安全，IDE 支持完善</li>
+                            <li>与现有 ArkTS 代码无缝集成</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -787,9 +807,14 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>C API 调用</strong></td>
-                            <td>ArkTS 无法直接调用 C 函数</td>
-                            <td>NAPI 封装 / Native 模块</td>
+                            <td><strong>API 选择</strong></td>
+                            <td>C API 需要 NAPI 封装，ArkTS API 可直接使用</td>
+                            <td><strong>推荐 ArkTS API</strong> (@kit.DeviceSecurityKit)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>权限申请</strong></td>
+                            <td>需要申请 <code>ohos.permission.QUERY_AUDIT_EVENT</code></td>
+                            <td>在 module.json5 和签名模板中配置</td>
                         </tr>
                         <tr>
                             <td><strong>实时事件订阅</strong></td>
@@ -845,17 +870,10 @@
                     </div>
                     <div class="arch-arrow">&#8595;</div>
                     <div class="arch-layer">
-                        <div class="arch-layer-title">Native Layer <span class="tag tag-orange" style="font-size: 10px; margin-left: 8px;">可选</span></div>
-                        <div class="arch-layer-content">
-                            <code>SecurityAuditWrapper</code> - NAPI 封装 C API
-                        </div>
-                    </div>
-                    <div class="arch-arrow">&#8595;</div>
-                    <div class="arch-layer">
                         <div class="arch-layer-title">System APIs</div>
                         <div class="arch-layer-content">
                             <ul>
-                                <li><code>security_audit.h</code> (Device Security Kit)</li>
+                                <li><code>@kit.DeviceSecurityKit</code> (securityAudit)</li>
                                 <li><code>@ohos.file.fs</code> (文件系统)</li>
                                 <li><code>@kit.ArkData</code> (Preferences)</li>
                             </ul>
@@ -1131,18 +1149,17 @@ sequenceDiagram
     participant User
     participant Page as LogManagePage
     participant Service as LogAuditService
-    participant Native as SecurityAudit API
+    participant API as securityAudit API
     
     User->>Page: 打开日志管理页面
     Page->>Service: initialize()
-    Service->>Native: HMS_SecurityAudit_NewClient()
-    Native-->>Service: client handle
+    Service->>API: 准备 AuditEventInfo
     
-    Page->>Service: subscribe([FILE, NETWORK_CONN, ...])
-    Service->>Native: HMS_SecurityAudit_Subscribe()
+    Page->>Service: subscribe([eventId1, eventId2, ...])
+    Service->>API: securityAudit.on('auditEventOccur', auditEventInfo, callback)
     
     loop 事件监听
-        Native-->>Service: 事件回调 (SecurityAudit_Event)
+        API-->>Service: callback(AuditEvent)
         Service->>Service: 转换为 LogEntry
         Service-->>Page: onEvent(logEntry)
         Page->>Page: 更新日志列表 UI
@@ -1150,7 +1167,7 @@ sequenceDiagram
     
     User->>Page: 离开页面
     Page->>Service: destroy()
-    Service->>Native: HMS_SecurityAudit_DeleteClient()
+    Service->>API: securityAudit.off('auditEventOccur', auditEventInfo)
                 </div>
 
                 <h3 class="subsection-title">日志筛选流程</h3>
@@ -1378,7 +1395,7 @@ export struct LogManagePage {
                     <div class="info-box-title">Mock 策略</div>
                     <div class="info-box-content">
                         <ul>
-                            <li><strong>MockSecurityAudit</strong>: 模拟 SecurityAudit C API 调用</li>
+                            <li><strong>MockSecurityAudit</strong>: 模拟 <code>securityAudit.on/off</code> 方法</li>
                             <li><strong>MockFileSystem</strong>: 模拟 @ohos.file.fs 文件操作</li>
                             <li><strong>MockPreferences</strong>: 模拟 Preferences 存储</li>
                         </ul>
@@ -1603,10 +1620,11 @@ export struct LogManagePage {
                     </div>
                     
                     <div class="timeline-item">
-                        <div class="timeline-title">阶段 4: Native 集成（如需要）</div>
+                        <div class="timeline-title">阶段 4: 权限配置与集成</div>
                         <ul class="timeline-content">
-                            <li>实现 NAPI 封装 SecurityAudit C API</li>
-                            <li>替换 Mock 为真实 API 调用</li>
+                            <li>在 module.json5 添加 <code>ohos.permission.QUERY_AUDIT_EVENT</code></li>
+                            <li>更新签名模板 acls.allowed-acls</li>
+                            <li>重新生成 p7b 签名描述文件</li>
                         </ul>
                     </div>
                     
@@ -1643,29 +1661,14 @@ export struct LogManagePage {
                     </thead>
                     <tbody>
                         <tr>
-                            <td><code>HMS_SecurityAudit_NewClient</code></td>
-                            <td>security_audit.h</td>
-                            <td>创建审计客户端</td>
-                        </tr>
-                        <tr>
-                            <td><code>HMS_SecurityAudit_Subscribe</code></td>
-                            <td>security_audit.h</td>
+                            <td><code>securityAudit.on('auditEventOccur', ...)</code></td>
+                            <td>@kit.DeviceSecurityKit</td>
                             <td>订阅审计事件</td>
                         </tr>
                         <tr>
-                            <td><code>HMS_SecurityAudit_AddFilter</code></td>
-                            <td>security_audit.h</td>
-                            <td>添加筛选条件</td>
-                        </tr>
-                        <tr>
-                            <td><code>HMS_SecurityAudit_Unsubscribe</code></td>
-                            <td>security_audit.h</td>
+                            <td><code>securityAudit.off('auditEventOccur', ...)</code></td>
+                            <td>@kit.DeviceSecurityKit</td>
                             <td>取消订阅</td>
-                        </tr>
-                        <tr>
-                            <td><code>HMS_SecurityAudit_DeleteClient</code></td>
-                            <td>security_audit.h</td>
-                            <td>销毁客户端</td>
                         </tr>
                         <tr>
                             <td><code>fs.open/write/close/unlink</code></td>
@@ -1690,12 +1693,18 @@ export struct LogManagePage {
                         <span>&#9888;</span> 权限要求
                     </div>
                     <div class="info-box-content">
-                        使用 SecurityAudit API 需要系统能力：<code>SystemCapability.Security.SecurityAudit</code>
-                        <br><br>
-                        可能需要的权限（待确认）：
+                        <strong>必须申请的权限：</strong>
                         <ul>
-                            <li><code>ohos.permission.SECURITY_AUDIT</code></li>
+                            <li><code>ohos.permission.QUERY_AUDIT_EVENT</code> - 查询审计事件</li>
                         </ul>
+                        <br>
+                        <strong>配置位置：</strong>
+                        <ol>
+                            <li><code>entry/src/main/module.json5</code> 的 <code>requestPermissions</code></li>
+                            <li><code>hapsigner/UnsgnedDebugProfileTemplate.json</code> 的 <code>acls.allowed-acls</code></li>
+                        </ol>
+                        <br>
+                        <strong>系统能力：</strong> <code>SystemCapability.Security.SecurityAudit</code>
                     </div>
                 </div>
             </section>

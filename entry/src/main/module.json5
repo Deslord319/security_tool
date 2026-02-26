@@ -46,6 +46,9 @@
       },
       {
         "name": "ohos.permission.ACCESS_BIOMETRIC"
+      },
+      {
+        "name": "ohos.permission.QUERY_AUDIT_EVENT"
       }
     ],
     "abilities": [

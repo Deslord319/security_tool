@@ -368,3 +368,195 @@ export const PREF_KEY_AUTH_METHOD = 'auth_method'
 
 // Preferences Store 名称常量
 export const PREF_STORE_NAME_TOOL = 'tool_settings'
+
+// ==================== 日志管理模块 ====================
+
+// 安全审计事件类型（对应 securityAudit.AuditEventType）
+export enum LogEventType {
+  FILE = 0,              // 文件操作（含审批流）
+  NETWORK_CONN = 1,      // 网络连接
+  NETWORK_TRAFFIC = 2,   // 网络流量
+  APP = 3,               // 应用安装/卸载/启动
+  ACCOUNT = 4,           // 账户操作（登录/登出/锁定）
+  USB_ACCESS = 5,        // USB 外设访问
+  PERMISSION = 6,        // 权限变更
+  PROCESS = 7,           // 进程创建/终止
+  PRINTER = 8,           // 打印机操作
+  CAMERA = 9,            // 摄像头使用
+  CERT = 10,             // 证书导入/删除
+  EDM = 11,              // EDM 策略变更
+  DNS = 12               // DNS 查询
+}
+
+// 审计事件操作结果
+export enum LogEventResult {
+  SUCCESS = 0,    // 操作成功
+  BLOCKED = 1,    // 被策略阻止
+  FAILED = 2      // 操作失败
+}
+
+// 日志条目 - 对应系统 securityAudit.AuditEvent 结构的 UI 展示模型
+export interface LogEntry {
+  id: string                  // 唯一标识（内部生成）
+  timestamp: number           // 时间戳（毫秒）
+  eventType: LogEventType     // 事件类型
+  detail: string              // 事件详情（content 字段解析后）
+  processName?: string        // 进程名称
+  pid?: number                // 进程 ID
+  uid?: number                // 用户 ID
+  filePath?: string           // 文件路径（FILE 类型）
+  remoteAddr?: string         // 远程地址（NETWORK 类型）
+  result: LogEventResult      // 操作结果
+}
+
+// 日志过滤条件
+export interface LogFilter {
+  eventTypes?: LogEventType[] // 事件类型过滤（空数组=全部）
+  results?: LogEventResult[]  // 结果过滤（空数组=全部）
+  keyword?: string            // 关键字搜索（detail/processName）
+  startTime?: number          // 开始时间（毫秒）
+  endTime?: number            // 结束时间（毫秒）
+}
+
+// 日志存储配置
+export interface LogStorageConfig {
+  maxLocalEntries: number     // 本地最大条数
+  retentionDays: number       // 保留天数
+  autoExportEnabled: boolean  // 自动导出开关
+  exportPath?: string         // 导出路径
+}
+
+// 日志统计信息（用于 Dashboard 展示）
+export interface LogStatistics {
+  totalCount: number          // 总条数
+  todayCount: number          // 今日条数
+  blockedCount: number        // 阻止事件数
+  byType: Map<LogEventType, number>  // 按类型统计
+}
+
+// 日志导出格式
+export enum LogExportFormat {
+  JSON = 'json',
+  CSV = 'csv',
+  TXT = 'txt'
+}
+
+// 事件类型选项（UI 展示用）
+export interface LogEventTypeOption {
+  label: string
+  value: LogEventType
+  icon?: Resource
+}
+
+// 默认日志存储配置
+export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
+  maxLocalEntries: 10000,
+  retentionDays: 30,
+  autoExportEnabled: false
+}
+
+// 日志保留天数选项
+export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 60, 90]
+
+// 本地最大条数选项
+export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000, 10000, 50000]
+
+// Preferences 键名常量（日志模块）
+export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
+export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
+export const PREF_KEY_LOG_AUTO_EXPORT = 'log_auto_export'
+export const PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
+
+// Preferences Store 名称常量（日志模块）
+export const PREF_STORE_NAME_LOG = 'log_settings'
+
+// 获取事件类型标签
+export function getLogEventTypeLabel(type: LogEventType): string {
+  switch (type) {
+    case LogEventType.FILE:
+      return '文件操作'
+    case LogEventType.NETWORK_CONN:
+      return '网络连接'
+    case LogEventType.NETWORK_TRAFFIC:
+      return '网络流量'
+    case LogEventType.APP:
+      return '应用管理'
+    case LogEventType.ACCOUNT:
+      return '账户操作'
+    case LogEventType.USB_ACCESS:
+      return 'USB 访问'
+    case LogEventType.PERMISSION:
+      return '权限变更'
+    case LogEventType.PROCESS:
+      return '进程管理'
+    case LogEventType.PRINTER:
+      return '打印机'
+    case LogEventType.CAMERA:
+      return '摄像头'
+    case LogEventType.CERT:
+      return '证书管理'
+    case LogEventType.EDM:
+      return 'EDM 策略'
+    case LogEventType.DNS:
+      return 'DNS 查询'
+    default:
+      return '未知'
+  }
+}
+
+// 获取事件结果标签
+export function getLogEventResultLabel(result: LogEventResult): string {
+  switch (result) {
+    case LogEventResult.SUCCESS:
+      return '成功'
+    case LogEventResult.BLOCKED:
+      return '已阻止'
+    case LogEventResult.FAILED:
+      return '失败'
+    default:
+      return '未知'
+  }
+}
+
+// 获取事件结果颜色（用于 UI 展示）
+export function getLogEventResultColor(result: LogEventResult): string {
+  switch (result) {
+    case LogEventResult.SUCCESS:
+      return '#4CAF50'  // 绿色
+    case LogEventResult.BLOCKED:
+      return '#FF9800'  // 橙色
+    case LogEventResult.FAILED:
+      return '#F44336'  // 红色
+    default:
+      return '#9E9E9E'  // 灰色
+  }
+}
+
+// 事件类型选项列表（用于筛选器）
+export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
+  { label: '文件操作', value: LogEventType.FILE },
+  { label: '网络连接', value: LogEventType.NETWORK_CONN },
+  { label: '网络流量', value: LogEventType.NETWORK_TRAFFIC },
+  { label: '应用管理', value: LogEventType.APP },
+  { label: '账户操作', value: LogEventType.ACCOUNT },
+  { label: 'USB 访问', value: LogEventType.USB_ACCESS },
+  { label: '权限变更', value: LogEventType.PERMISSION },
+  { label: '进程管理', value: LogEventType.PROCESS },
+  { label: '打印机', value: LogEventType.PRINTER },
+  { label: '摄像头', value: LogEventType.CAMERA },
+  { label: '证书管理', value: LogEventType.CERT },
+  { label: 'EDM 策略', value: LogEventType.EDM },
+  { label: 'DNS 查询', value: LogEventType.DNS }
+]
+
+// 格式化时间戳为可读字符串
+export function formatLogTimestamp(timestamp: number): string {
+  let date = new Date(timestamp)
+  let pad = (n: number): string => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+// 生成日志条目唯一 ID
+export function generateLogEntryId(): string {
+  return `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+}

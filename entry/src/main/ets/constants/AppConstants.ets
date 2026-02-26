@@ -77,6 +77,14 @@ export class Routes {
   static readonly PERIPHERAL_MANAGE: string = 'peripheral-manage'
   static readonly IDENTITY: string = 'identity'
   static readonly TOOL_SETTINGS: string = 'tool-settings'
+  static readonly HELP_FEEDBACK: string = 'help-feedback'
+}
+
+// 应用信息常量
+export class AppInfo {
+  static readonly APP_NAME: string = '安全管理中心'
+  static readonly APP_VERSION: string = '1.0.0'
+  static readonly BUNDLE_NAME: string = 'com.example.securitytool'
 }
 
 // 导航项
