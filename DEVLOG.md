@@ -6,6 +6,37 @@
 
 ## 版本记录
 
+### v13 - 2026-02-26
+
+**功能更新：**
+- 启动认证功能：EntryAbility 集成启动校验，支持 PIN/指纹/人脸认证拦截
+- AuthService 增强：新增 `checkAuthMethodAvailability` 可用性检查、`getAuthMethodLabel` 标签获取
+- 认证流程优化：challenge 生成改为 8 字节随机数，错误日志改用 BusinessError 类型
+- ToolSettingsPage 保存逻辑重构：增加变更检测、认证可用性前置检查、密码验证前置
+- 重置默认增加确认弹窗、测试认证增加可用性前置检查
+- 新增 `ACCESS_BIOMETRIC` 权限用于生物认证
+- 提取 `PREF_STORE_NAME_TOOL` 常量，消除 Preferences store name 硬编码
+- 新增测试框架：仪表测试（ohosTest）和单元测试（test）目录结构
+- 新增签名测试包 signTestApp.hap
+- 新增文档：测试架构、测试设计、测试实施、测试报告、日志管理架构
+
+**文件变更：**
+- `entryability/EntryAbility.ets`: 新增启动认证检查和认证执行逻辑
+- `services/AuthService.ets`: 新增可用性检查、标签获取、challenge 优化
+- `views/ToolSettingsPage.ets`: 保存逻辑重构、变更检测、确认弹窗
+- `models/DataModels.ets`: 新增 `PREF_STORE_NAME_TOOL` 常量
+- `module.json5`: 新增 `ACCESS_BIOMETRIC` 权限
+- `hapsigner/UnsgnedDebugProfileTemplate.json`: 签名模板新增权限
+- 测试目录：新增 common/dashboard/firewall/navigation/peripheral 测试模块
+
+**踩坑记录：**
+- userAuth challenge 必须至少 8 字节，传入 `new Uint8Array([0])` 会导致认证失败
+- `widgetParam.navigationButtonText` 属性在某些设备上不支持，移除后认证弹窗更稳定
+- Preferences store name 硬编码在多处使用会导致 EntryAbility 和 ToolSettingsPage 读写不同 store，必须提取为常量
+- 认证结果 `result.result` 的值 12500000 对应 `UserAuthResultCode.SUCCESS`，不要直接用 0 判断
+
+---
+
 ### v11 - 2026-02-25
 
 **功能更新：**
@@ -226,4 +257,4 @@ v10: feat: 隐藏系统标题栏并重构外设管理模块
 
 ---
 
-*最后更新：2026-02-25*
+*最后更新：2026-02-26*

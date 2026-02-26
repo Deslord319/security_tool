@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurityTool 自动化测试设计方案</title>
+    <style>
+        :root {
+            --primary: #0A84FF;
+            --primary-dark: #0066CC;
+            --secondary: #00C6FF;
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            --bg-dark: #1C1C1E;
+            --bg-card: #2C2C2E;
+            --bg-hover: #3A3A3C;
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255,255,255,0.6);
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Architecture Diagram */
+        .architecture {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .arch-layer {
+            background: var(--bg-hover);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            transition: transform 0.2s;
+        }
+
+        .arch-layer:hover {
+            transform: translateX(8px);
+        }
+
+        .arch-layer.e2e { border-color: var(--danger); }
+        .arch-layer.component { border-color: var(--warning); }
+        .arch-layer.service { border-color: var(--success); }
+        .arch-layer.unit { border-color: var(--primary); }
+
+        .arch-layer-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .arch-layer-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .layer-tag {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            border: 1px solid var(--border);
+        }
+
+        .code-block .keyword { color: #FF7AB2; }
+        .code-block .string { color: #FF8170; }
+        .code-block .function { color: #78C2B3; }
+        .code-block .comment { color: #6C7986; }
+        .code-block .number { color: #D0BF69; }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-hover);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        /* Priority Tags */
+        .priority {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .priority.p0 { background: var(--danger); }
+        .priority.p1 { background: var(--warning); }
+        .priority.p2 { background: var(--success); }
+        .priority.p3 { background: var(--primary); }
+
+        /* Directory Tree */
+        .tree {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 24px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            border: 1px solid var(--border);
+        }
+
+        .tree-folder { color: var(--secondary); }
+        .tree-file { color: var(--text-secondary); }
+        .tree-comment { color: #6C7986; font-style: italic; }
+
+        /* Comparison Table */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .compare-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .compare-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .compare-card.kuitest {
+            border-top: 4px solid var(--warning);
+        }
+
+        .compare-card.ours {
+            border-top: 4px solid var(--success);
+        }
+
+        .compare-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compare-list {
+            list-style: none;
+        }
+
+        .compare-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .compare-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Strategy Cards */
+        .strategy-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .strategy-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--secondary);
+        }
+
+        .strategy-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .strategy-effect {
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            background: rgba(52, 199, 89, 0.1);
+            border-radius: 8px;
+            color: var(--success);
+        }
+
+        /* Flow Chart */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 24px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .flow-step {
+            background: var(--bg-hover);
+            padding: 16px 24px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .flow-step-num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .flow-step-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* Reference Block */
+        .reference {
+            background: linear-gradient(135deg, rgba(10, 132, 255, 0.1), rgba(0, 198, 255, 0.1));
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .reference-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .reference-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Highlight */
+        .highlight {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>SecurityTool 自动化测试设计方案</h1>
+        <p>借鉴 KuiTest 设计理念，构建分层测试架构</p>
+        <div class="badge">HarmonyOS / ArkTS</div>
+    </header>
+
+    <div class="container">
+        <!-- Reference -->
+        <div class="reference">
+            <div class="reference-title">设计参考</div>
+            <div class="reference-text">
+                本方案借鉴美团 KuiTest 的核心设计理念 —— <strong>"无规则设计"</strong> + <strong>"AI 理解 UI 交互常识"</strong>，
+                针对 HarmonyOS/ArkTS 企业应用特点，设计出适合 SecurityTool 项目的分层测试架构。
+            </div>
+        </div>
+
+        <!-- Section 1: Core Philosophy -->
+        <section class="section">
+            <h2 class="section-title">核心设计理念</h2>
+            
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #FF3B30, #FF6B6B);">
+                            <span>!</span>
+                        </div>
+                        <div>
+                            <div class="card-title">传统测试痛点</div>
+                            <div class="card-subtitle">KuiTest 要解决的问题</div>
+                        </div>
+                    </div>
+                    <ul style="color: var(--text-secondary); padding-left: 20px;">
+                        <li>规则维护成本高</li>
+                        <li>UI 修改导致测试用例失效</li>
+                        <li>测试覆盖率低</li>
+                        <li>人工编写脚本难以适应快速迭代</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #34C759, #7ED321);">
+                            <span>*</span>
+                        </div>
+                        <div>
+                            <div class="card-title">KuiTest 核心思路</div>
+                            <div class="card-subtitle">无规则 + AI 理解</div>
+                        </div>
+                    </div>
+                    <ul style="color: var(--text-secondary); padding-left: 20px;">
+                        <li>组件功能识别：识别可交互组件的功能</li>
+                        <li>交互响应验证：对比预期与实际结果</li>
+                        <li>大模型泛化：无需针对特定应用适配</li>
+                        <li>像素对比 + 语义理解</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Architecture -->
+        <section class="section">
+            <h2 class="section-title">分层测试架构</h2>
+            
+            <div class="architecture">
+                <div class="arch-layer e2e">
+                    <div class="arch-layer-title">
+                        <span class="layer-tag" style="background: var(--danger);">E2E</span>
+                        E2E 测试 (UI 遍历 + 快照)
+                    </div>
+                    <div class="arch-layer-desc">基于 AI 的交互验证 / 截图对比 / 页面快照回归</div>
+                </div>
+
+                <div class="arch-layer component">
+                    <div class="arch-layer-title">
+                        <span class="layer-tag" style="background: var(--warning);">Component</span>
+                        组件测试
+                    </div>
+                    <div class="arch-layer-desc">StatCard / SideBar / Dialog 等组件的渲染与交互</div>
+                </div>
+
+                <div class="arch-layer service">
+                    <div class="arch-layer-title">
+                        <span class="layer-tag" style="background: var(--success);">Service</span>
+                        服务层测试
+                    </div>
+                    <div class="arch-layer-desc">FirewallService / PeripheralService / IdentityService</div>
+                </div>
+
+                <div class="arch-layer unit">
+                    <div class="arch-layer-title">
+                        <span class="layer-tag" style="background: var(--primary);">Unit</span>
+                        单元测试 (Model + Utils)
+                    </div>
+                    <div class="arch-layer-desc">DataModels / 解析函数 / 格式化函数 / 业务逻辑</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Unit Tests -->
+        <section class="section">
+            <h2 class="section-title">单元测试层</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                        <span>U</span>
+                    </div>
+                    <div>
+                        <div class="card-title">纯函数与数据模型测试</div>
+                        <div class="card-subtitle">不依赖 UI，快速执行</div>
+                    </div>
+                </div>
+                
+                <div class="table-wrapper" style="margin-top: 16px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>模块</th>
+                                <th>测试内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>DataModels.ets</code></td>
+                                <td>parseUsbDeviceId(), formatUsbDeviceId(), getRuleTypeLabel() 等</td>
+                            </tr>
+                            <tr>
+                                <td><code>FirewallService</code></td>
+                                <td>countByType(), countByDirection() 等纯逻辑方法</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block" style="margin-top: 20px;">
+<span class="keyword">describe</span>(<span class="string">'DataModels'</span>, () => {
+  <span class="keyword">it</span>(<span class="string">'parseUsbDeviceId should parse valid format'</span>, () => {
+    <span class="keyword">let</span> result = <span class="function">parseUsbDeviceId</span>(<span class="string">'VID:2B7E PID:B5A2'</span>)
+    <span class="function">expect</span>(result?.vendorId).<span class="function">assertEqual</span>(<span class="number">0x2B7E</span>)
+    <span class="function">expect</span>(result?.productId).<span class="function">assertEqual</span>(<span class="number">0xB5A2</span>)
+  })
+  
+  <span class="keyword">it</span>(<span class="string">'parseUsbDeviceId should return null for invalid'</span>, () => {
+    <span class="keyword">let</span> result = <span class="function">parseUsbDeviceId</span>(<span class="string">'invalid'</span>)
+    <span class="function">expect</span>(result).<span class="function">assertNull</span>()
+  })
+})
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Service Tests -->
+        <section class="section">
+            <h2 class="section-title">服务层测试</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: linear-gradient(135deg, var(--success), #7ED321);">
+                        <span>S</span>
+                    </div>
+                    <div>
+                        <div class="card-title">业务逻辑测试 + Mock 系统 API</div>
+                        <div class="card-subtitle">测试不依赖真实设备/权限</div>
+                    </div>
+                </div>
+
+                <div class="code-block" style="margin-top: 20px;">
+<span class="comment">// services/__mocks__/MockFirewallService.ets</span>
+<span class="keyword">export class</span> <span class="function">MockFirewallService</span> {
+  <span class="keyword">private static</span> mockRules: NetFirewallRule[] = []
+  
+  <span class="keyword">static async</span> <span class="function">getAllRules</span>(): Promise&lt;NetFirewallRule[]&gt; {
+    <span class="keyword">return</span> <span class="keyword">this</span>.mockRules
+  }
+  
+  <span class="keyword">static</span> <span class="function">setMockData</span>(rules: NetFirewallRule[]) {
+    <span class="keyword">this</span>.mockRules = rules
+  }
+}
+                </div>
+
+                <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+                    <div class="strategy-effect">可模拟边界条件</div>
+                    <div class="strategy-effect">不依赖真实设备</div>
+                    <div class="strategy-effect">快速执行</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Component Tests -->
+        <section class="section">
+            <h2 class="section-title">组件测试层</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: linear-gradient(135deg, var(--warning), #FFD60A);">
+                        <span>C</span>
+                    </div>
+                    <div>
+                        <div class="card-title">组件快照测试 (Snapshot)</div>
+                        <div class="card-subtitle">验证组件渲染和交互，减少 UI 修改影响</div>
+                    </div>
+                </div>
+
+                <div class="code-block" style="margin-top: 20px;">
+<span class="comment">// __tests__/components/StatCard.test.ets</span>
+<span class="keyword">describe</span>(<span class="string">'StatCard'</span>, () => {
+  <span class="keyword">it</span>(<span class="string">'should render with correct props'</span>, () => {
+    <span class="keyword">let</span> snapshot = <span class="function">renderComponent</span>(StatCard, {
+      label: <span class="string">'活跃规则'</span>,
+      value: <span class="string">'12'</span>,
+      gradientStart: <span class="string">'#0A84FF'</span>,
+      gradientEnd: <span class="string">'#00C6FF'</span>
+    })
+    <span class="function">expect</span>(snapshot).<span class="function">toMatchSnapshot</span>(<span class="string">'StatCard-basic'</span>)
+  })
+  
+  <span class="keyword">it</span>(<span class="string">'should apply dark theme styles'</span>, () => {
+    <span class="function">setTheme</span>(ThemeMode.DARK)
+    <span class="keyword">let</span> snapshot = <span class="function">renderComponent</span>(StatCard, { ... })
+    <span class="function">expect</span>(snapshot).<span class="function">toMatchSnapshot</span>(<span class="string">'StatCard-dark-theme'</span>)
+  })
+})
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: E2E Tests -->
+        <section class="section">
+            <h2 class="section-title">E2E 测试层（借鉴 KuiTest 核心）</h2>
+            
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #FF3B30, #FF6B6B);">
+                            <span>1</span>
+                        </div>
+                        <div>
+                            <div class="card-title">页面快照回归测试</div>
+                            <div class="card-subtitle">截图对比，检测 UI 破坏性变更</div>
+                        </div>
+                    </div>
+                    <div class="code-block" style="margin-top: 16px; font-size: 0.8rem;">
+<span class="keyword">const</span> PAGES = [
+  { route: <span class="string">'dashboard'</span>, name: <span class="string">'DashboardPage'</span> },
+  { route: <span class="string">'firewall'</span>, name: <span class="string">'FirewallPage'</span> },
+  { route: <span class="string">'peripheral-manage'</span>, name: <span class="string">'PeripheralPage'</span> }
+]
+
+<span class="keyword">for</span> (<span class="keyword">let</span> page <span class="keyword">of</span> PAGES) {
+  <span class="keyword">let</span> screenshot = <span class="keyword">await</span> <span class="function">takeScreenshot</span>()
+  <span class="keyword">let</span> diff = <span class="function">compareWithBaseline</span>(screenshot)
+  <span class="function">expect</span>(diff.mismatch).<span class="function">toBeLessThan</span>(<span class="number">0.1</span>)
+}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #FF9500, #FFD60A);">
+                            <span>2</span>
+                        </div>
+                        <div>
+                            <div class="card-title">交互流程验证</div>
+                            <div class="card-subtitle">定义关键用户流程，自动验证</div>
+                        </div>
+                    </div>
+                    <div class="code-block" style="margin-top: 16px; font-size: 0.8rem;">
+<span class="comment">// 添加 IP 规则流程</span>
+<span class="keyword">await</span> <span class="function">navigateTo</span>(<span class="string">'firewall'</span>)
+<span class="keyword">await</span> <span class="function">tap</span>({ text: <span class="string">'IP 规则'</span> })
+<span class="keyword">await</span> <span class="function">tap</span>({ id: <span class="string">'add-rule-btn'</span> })
+<span class="keyword">await</span> <span class="function">input</span>({ id: <span class="string">'rule-name'</span> }, <span class="string">'Test'</span>)
+<span class="keyword">await</span> <span class="function">tap</span>({ text: <span class="string">'确定'</span> })
+<span class="keyword">await</span> <span class="function">waitFor</span>({ text: <span class="string">'Test Rule'</span> })
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #5856D6, #AF52DE);">
+                        <span>3</span>
+                    </div>
+                    <div>
+                        <div class="card-title">组件功能识别表（借鉴 KuiTest）</div>
+                        <div class="card-subtitle">为关键组件定义"预期行为"，测试时自动验证</div>
+                    </div>
+                </div>
+                <div class="code-block" style="margin-top: 16px;">
+<span class="comment">// e2e/expectations/ComponentExpectations.ts</span>
+<span class="keyword">export const</span> COMPONENT_EXPECTATIONS: Map&lt;<span class="keyword">string</span>, Expectation[]&gt; = {
+  <span class="string">'toggle-firewall'</span>: [
+    { action: <span class="string">'tap'</span>, expect: <span class="string">'state_change'</span>, from: <span class="string">'off'</span>, to: <span class="string">'on'</span> },
+    { action: <span class="string">'tap'</span>, expect: <span class="string">'api_call'</span>, method: <span class="string">'setFirewallEnabled'</span> }
+  ],
+  <span class="string">'add-rule-btn'</span>: [
+    { action: <span class="string">'tap'</span>, expect: <span class="string">'dialog_open'</span>, dialogId: <span class="string">'AddRuleDialog'</span> }
+  ],
+  <span class="string">'sidebar-item'</span>: [
+    { action: <span class="string">'tap'</span>, expect: <span class="string">'navigation'</span>, toPage: <span class="string">'{dynamic}'</span> }
+  ]
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 7: Strategies -->
+        <section class="section">
+            <h2 class="section-title">减少 UI 修改影响的策略</h2>
+            
+            <div class="grid">
+                <div class="strategy-card">
+                    <div class="strategy-title">语义化选择器</div>
+                    <div class="strategy-desc">使用 testId 而非 CSS 选择器定位元素</div>
+                    <div class="strategy-effect">布局变化不影响测试</div>
+                </div>
+
+                <div class="strategy-card">
+                    <div class="strategy-title">快照容差</div>
+                    <div class="strategy-desc">像素对比允许小范围差异 (0.1%)</div>
+                    <div class="strategy-effect">字体/间距微调不触发失败</div>
+                </div>
+
+                <div class="strategy-card">
+                    <div class="strategy-title">分层隔离</div>
+                    <div class="strategy-desc">单元测试不依赖 UI，服务测试 Mock API</div>
+                    <div class="strategy-effect">80% 测试不受 UI 影响</div>
+                </div>
+
+                <div class="strategy-card">
+                    <div class="strategy-title">变更检测</div>
+                    <div class="strategy-desc">快照 diff 时高亮变更区域，人工确认</div>
+                    <div class="strategy-effect">快速定位问题</div>
+                </div>
+
+                <div class="strategy-card">
+                    <div class="strategy-title">组件契约</div>
+                    <div class="strategy-desc">定义组件 Props 接口，测试输入输出</div>
+                    <div class="strategy-effect">内部重构不破坏测试</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 8: Directory Structure -->
+        <section class="section">
+            <h2 class="section-title">建议的目录结构</h2>
+            
+            <div class="tree">
+<span class="tree-folder">entry/src/</span>
+├── <span class="tree-folder">main/ets/</span>                    <span class="tree-comment"># 生产代码</span>
+│   ├── <span class="tree-folder">components/</span>
+│   ├── <span class="tree-folder">services/</span>
+│   ├── <span class="tree-folder">models/</span>
+│   └── <span class="tree-folder">views/</span>
+│
+├── <span class="tree-folder">test/</span>                        <span class="tree-comment"># 本地单元测试 (无需设备)</span>
+│   ├── <span class="tree-folder">models/</span>
+│   │   └── <span class="tree-file">DataModels.test.ets</span>
+│   ├── <span class="tree-folder">services/</span>
+│   │   └── <span class="tree-file">FirewallService.test.ets</span>
+│   ├── <span class="tree-folder">__mocks__/</span>               <span class="tree-comment"># Mock 服务</span>
+│   │   └── <span class="tree-file">MockNetFirewall.ets</span>
+│   └── <span class="tree-folder">__snapshots__/</span>           <span class="tree-comment"># 组件快照基线</span>
+│
+├── <span class="tree-folder">ohosTest/ets/test/</span>           <span class="tree-comment"># 设备测试 (需真机/模拟器)</span>
+│   ├── <span class="tree-folder">components/</span>
+│   │   └── <span class="tree-file">StatCard.test.ets</span>
+│   ├── <span class="tree-folder">e2e/</span>
+│   │   ├── <span class="tree-file">PageSnapshot.test.ets</span>
+│   │   └── <span class="tree-folder">flows/</span>
+│   │       ├── <span class="tree-file">FirewallFlow.test.ets</span>
+│   │       └── <span class="tree-file">PeripheralFlow.test.ets</span>
+│   └── <span class="tree-folder">baselines/</span>               <span class="tree-comment"># 截图基线</span>
+│       ├── <span class="tree-file">DashboardPage.baseline.png</span>
+│       └── <span class="tree-file">FirewallPage.baseline.png</span>
+            </div>
+        </section>
+
+        <!-- Section 9: Priority -->
+        <section class="section">
+            <h2 class="section-title">实施优先级建议</h2>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>优先级</th>
+                            <th>阶段</th>
+                            <th>内容</th>
+                            <th>收益</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="priority p0">P0</span></td>
+                            <td>立即</td>
+                            <td>DataModels.ets 工具函数单元测试</td>
+                            <td>覆盖解析/格式化逻辑</td>
+                        </tr>
+                        <tr>
+                            <td><span class="priority p1">P1</span></td>
+                            <td>短期</td>
+                            <td>Service Mock + 服务层测试</td>
+                            <td>业务逻辑覆盖</td>
+                        </tr>
+                        <tr>
+                            <td><span class="priority p2">P2</span></td>
+                            <td>中期</td>
+                            <td>页面截图快照回归</td>
+                            <td>检测 UI 破坏性变更</td>
+                        </tr>
+                        <tr>
+                            <td><span class="priority p3">P3</span></td>
+                            <td>长期</td>
+                            <td>E2E 关键流程自动化</td>
+                            <td>端到端质量保障</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 10: Comparison -->
+        <section class="section">
+            <h2 class="section-title">与 KuiTest 的关键差异</h2>
+            
+            <div class="compare-grid">
+                <div class="compare-card kuitest">
+                    <div class="compare-title">
+                        <span style="font-size: 1.2rem;">&#x1F916;</span>
+                        KuiTest (大模型方案)
+                    </div>
+                    <ul class="compare-list">
+                        <li>大模型推理组件功能</li>
+                        <li>无规则，AI 自动判断交互正确性</li>
+                        <li>计算成本高（需 GPU 资源）</li>
+                        <li>适合大规模 App 遍历测试</li>
+                        <li>泛化能力强，跨应用复用</li>
+                    </ul>
+                </div>
+
+                <div class="compare-card ours">
+                    <div class="compare-title">
+                        <span style="font-size: 1.2rem;">&#x2705;</span>
+                        SecurityTool 方案
+                    </div>
+                    <ul class="compare-list">
+                        <li>人工定义组件预期行为表</li>
+                        <li>规则驱动 + 快照对比</li>
+                        <li>轻量级，可本地运行</li>
+                        <li>适合功能明确的企业应用</li>
+                        <li>维护成本可控</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Test Flow -->
+        <section class="section">
+            <h2 class="section-title">测试执行流程</h2>
+            
+            <div class="flow-container">
+                <div class="flow-step">
+                    <div class="flow-step-num">1</div>
+                    <div class="flow-step-text">代码提交</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">2</div>
+                    <div class="flow-step-text">单元测试</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">3</div>
+                    <div class="flow-step-text">服务层测试</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">4</div>
+                    <div class="flow-step-text">组件快照</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">5</div>
+                    <div class="flow-step-text">E2E 验证</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">6</div>
+                    <div class="flow-step-text">发布</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>SecurityTool 自动化测试设计方案</p>
+        <p style="margin-top: 8px; opacity: 0.6;">HarmonyOS / ArkTS | 2026</p>
+    </footer>
+</body>
+</html>

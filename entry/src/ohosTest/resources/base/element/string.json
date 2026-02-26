@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "entry_test_desc",
+      "value": "SecurityTool Test Module"
+    },
+    {
+      "name": "test_ability_desc",
+      "value": "Test Ability for SecurityTool"
+    },
+    {
+      "name": "test_ability_label",
+      "value": "TestAbility"
+    }
+  ]
+}

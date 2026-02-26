@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecurityTool 自动化测试报告</title>
+<style>
+  :root {
+    --blue: #0A84FF;
+    --green: #34C759;
+    --orange: #FF9500;
+    --red: #FF3B30;
+    --purple: #5856D6;
+    --gray: #8E8E93;
+    --bg: #F5F5F7;
+    --card: #FFFFFF;
+    --text: #1D1D1F;
+    --text2: #6E6E73;
+    --border: #E5E5EA;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  .header { background: linear-gradient(135deg, #1D1D1F 0%, #2C2C2E 100%); color: white; padding: 48px 0; }
+  .header-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+  .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  .header p { font-size: 16px; opacity: 0.7; }
+  .header-stats { display: flex; gap: 32px; margin-top: 28px; }
+  .header-stat { text-align: center; }
+  .header-stat .num { font-size: 36px; font-weight: 700; }
+  .header-stat .label { font-size: 13px; opacity: 0.6; margin-top: 2px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .section-title .icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: 700; }
+
+  .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+  .card + .card { margin-top: 16px; }
+
+  /* 四层金字塔 */
+  .pyramid { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 24px 0; }
+  .pyramid-layer { display: flex; align-items: center; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; padding: 14px 0; text-align: center; position: relative; }
+  .pyramid-layer .layer-label { position: absolute; left: -90px; color: var(--text2); font-size: 12px; width: 80px; text-align: right; }
+  .pyramid-layer .layer-pct { position: absolute; right: -70px; font-size: 13px; font-weight: 700; }
+  .p-l4 { width: 200px; background: linear-gradient(90deg, #FF3B30, #FF6B6B); justify-content: center; }
+  .p-l4 .layer-pct { color: #FF3B30; }
+  .p-l3 { width: 320px; background: linear-gradient(90deg, #FF9500, #FFCC00); justify-content: center; }
+  .p-l3 .layer-pct { color: #FF9500; }
+  .p-l2 { width: 460px; background: linear-gradient(90deg, #5856D6, #AF52DE); justify-content: center; }
+  .p-l2 .layer-pct { color: #5856D6; }
+  .p-l1 { width: 600px; background: linear-gradient(90deg, #0A84FF, #00C6FF); justify-content: center; }
+  .p-l1 .layer-pct { color: #0A84FF; }
+
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 600; font-size: 13px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; border-bottom: 2px solid var(--border); }
+  td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; color: var(--purple); }
+
+  /* 标签 */
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .tag-pass { background: #E8F5E9; color: #2E7D32; }
+  .tag-pending { background: #FFF3E0; color: #E65100; }
+  .tag-blue { background: #E3F2FD; color: #1565C0; }
+  .tag-purple { background: #F3E5F5; color: #6A1B9A; }
+  .tag-red { background: #FFEBEE; color: #C62828; }
+  .tag-gray { background: #ECEFF1; color: #546E7A; }
+
+  /* 进度条 */
+  .progress-bar { height: 8px; background: #E5E5EA; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+
+  /* 模块覆盖网格 */
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .module-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+  .module-card h4 { font-size: 15px; margin-bottom: 8px; }
+  .module-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 12px; }
+  .module-layers { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* 优化项 */
+  .opt-list { list-style: none; }
+  .opt-list li { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start; }
+  .opt-list li:last-child { border-bottom: none; }
+  .opt-priority { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+  .opt-priority.high { background: var(--red); }
+  .opt-priority.med { background: var(--orange); }
+  .opt-priority.low { background: var(--blue); }
+  .opt-content h5 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .opt-content p { font-size: 13px; color: var(--text2); }
+
+  /* 文件树 */
+  .file-tree { font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; line-height: 2; color: var(--text2); }
+  .file-tree .dir { color: var(--blue); font-weight: 600; }
+  .file-tree .file { color: var(--text); }
+  .file-tree .count { color: var(--gray); font-size: 12px; }
+
+  /* 命令卡片 */
+  .cmd-card { background: #1D1D1F; border-radius: 10px; padding: 16px 20px; margin-top: 12px; }
+  .cmd-card code { color: #34C759; font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; }
+  .cmd-card .comment { color: #6E6E73; }
+
+  /* 双列 */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+  .summary-box { padding: 16px 20px; border-radius: 10px; border-left: 4px solid; }
+  .summary-box.blue { border-color: var(--blue); background: #F0F7FF; }
+  .summary-box.green { border-color: var(--green); background: #F0FFF4; }
+  .summary-box.orange { border-color: var(--orange); background: #FFFBF0; }
+  .summary-box.purple { border-color: var(--purple); background: #F8F0FF; }
+</style>
+</head>
+<body>
+
+<!-- 头部 -->
+<div class="header">
+  <div class="header-inner">
+    <h1>SecurityTool 自动化测试报告</h1>
+    <p>HarmonyOS 安全管理中心 — 四层测试金字塔架构</p>
+    <div class="header-stats">
+      <div class="header-stat">
+        <div class="num" style="color:#34C759">24</div>
+        <div class="label">设备测试用例</div>
+      </div>
+      <div class="header-stat">
+        <div class="num" style="color:#34C759">24</div>
+        <div class="label">通过</div>
+      </div>
+      <div class="header-stat">
+        <div class="num" style="color:#FF3B30">0</div>
+        <div class="label">失败</div>
+      </div>
+      <div class="header-stat">
+        <div class="num" style="color:#0A84FF">~75</div>
+        <div class="label">总用例数 (含本地)</div>
+      </div>
+      <div class="header-stat">
+        <div class="num" style="color:#FFCC00">10.3s</div>
+        <div class="label">设备测试耗时</div>
+      </div>
+      <div class="header-stat">
+        <div class="num" style="color:#AF52DE">100%</div>
+        <div class="label">DataModels 覆盖率</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- 1. 架构总览 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:var(--blue)">架</div>
+    四层测试金字塔架构
+  </div>
+
+  <div class="card">
+    <p style="color:var(--text2); font-size:14px; margin-bottom:20px;">
+      参考 KuiTest 四层测试架构论文，SecurityTool 采用金字塔分层策略：越底层的测试数量越多、速度越快、成本越低；越顶层的测试越贴近用户、覆盖越完整、但执行越慢。
+    </p>
+
+    <div class="pyramid">
+      <div class="pyramid-layer p-l4">
+        <span class="layer-label">Layer 4</span>
+        E2E 测试
+        <span class="layer-pct">10%</span>
+      </div>
+      <div class="pyramid-layer p-l3">
+        <span class="layer-label">Layer 3</span>
+        组件测试
+        <span class="layer-pct">10%</span>
+      </div>
+      <div class="pyramid-layer p-l2">
+        <span class="layer-label">Layer 2</span>
+        服务层测试
+        <span class="layer-pct">30%</span>
+      </div>
+      <div class="pyramid-layer p-l1">
+        <span class="layer-label">Layer 1</span>
+        单元测试
+        <span class="layer-pct">50%</span>
+      </div>
+    </div>
+
+    <table style="margin-top:24px;">
+      <thead>
+        <tr>
+          <th>层级</th>
+          <th>名称</th>
+          <th>运行环境</th>
+          <th>技术栈</th>
+          <th>解决的问题</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-blue">L1</span></td>
+          <td><strong>单元测试</strong></td>
+          <td>本地主机 (JVM)</td>
+          <td class="mono">@ohos/hypium</td>
+          <td>验证纯函数逻辑正确性：枚举映射、数据解析、格式化</td>
+          <td><span class="tag tag-pass">通过</span></td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-purple">L2</span></td>
+          <td><strong>服务层测试</strong></td>
+          <td>本地主机 (JVM)</td>
+          <td class="mono">@ohos/hypium + Mock</td>
+          <td>验证业务逻辑：API 调用、数据流转、异常处理</td>
+          <td><span class="tag tag-pass">通过</span></td>
+        </tr>
+        <tr>
+          <td><span class="tag" style="background:#FFF3E0;color:#E65100;">L3</span></td>
+          <td><strong>组件测试</strong></td>
+          <td>真机设备</td>
+          <td class="mono">Driver + ON</td>
+          <td>验证 UI 组件渲染：文本存在性、布局完整性</td>
+          <td><span class="tag tag-pass">通过</span></td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">L4</span></td>
+          <td><strong>E2E 测试</strong></td>
+          <td>真机设备</td>
+          <td class="mono">Driver + ON + click</td>
+          <td>验证端到端流程：页面导航、用户交互、多页面切换</td>
+          <td><span class="tag tag-pass">通过</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 2. 文件结构 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:var(--purple)">文</div>
+    测试文件结构
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h4 style="font-size:15px; margin-bottom:12px;">本地测试 (Layer 1-2)</h4>
+      <div class="file-tree">
+        <div><span class="dir">entry/src/test/</span></div>
+        <div>&nbsp;&nbsp;├─ <span class="file">List.test.ets</span> <span class="count">入口聚合</span></div>
+        <div>&nbsp;&nbsp;├─ <span class="dir">models/</span></div>
+        <div>&nbsp;&nbsp;│&nbsp;&nbsp;└─ <span class="file">DataModels.test.ets</span> <span class="count">45+ 用例</span></div>
+        <div>&nbsp;&nbsp;├─ <span class="dir">services/</span></div>
+        <div>&nbsp;&nbsp;│&nbsp;&nbsp;└─ <span class="file">FirewallService.test.ets</span> <span class="count">30+ 用例</span></div>
+        <div>&nbsp;&nbsp;└─ <span class="dir">__mocks__/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="file">MockNetFirewall.ets</span> <span class="count">Mock 框架</span></div>
+      </div>
+      <div class="cmd-card" style="margin-top:16px;">
+        <code><span class="comment"># 运行命令</span><br>hvigorw test --no-daemon</code>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="font-size:15px; margin-bottom:12px;">设备测试 (Layer 3-4)</h4>
+      <div class="file-tree">
+        <div><span class="dir">entry/src/ohosTest/</span></div>
+        <div>&nbsp;&nbsp;├─ <span class="file">module.json5</span> <span class="count">模块配置</span></div>
+        <div>&nbsp;&nbsp;├─ <span class="dir">ets/testrunner/</span></div>
+        <div>&nbsp;&nbsp;│&nbsp;&nbsp;├─ <span class="file">OpenHarmonyTestRunner.ets</span></div>
+        <div>&nbsp;&nbsp;│&nbsp;&nbsp;└─ <span class="dir">pages/Index.ets</span></div>
+        <div>&nbsp;&nbsp;├─ <span class="dir">ets/testability/</span></div>
+        <div>&nbsp;&nbsp;│&nbsp;&nbsp;└─ <span class="file">TestAbility.ets</span></div>
+        <div>&nbsp;&nbsp;└─ <span class="dir">ets/test/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="file">List.test.ets</span> <span class="count">入口聚合</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="file">Ability.test.ets</span> <span class="count">1 用例</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="dir">components/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;└─ <span class="file">StatCard.test.ets</span> <span class="count">11 用例</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="dir">e2e/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="file">PageSnapshot.test.ets</span> <span class="count">6 用例</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="dir">flows/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="file">FirewallFlow.test.ets</span> <span class="count">6 用例</span></div>
+      </div>
+      <div class="cmd-card" style="margin-top:16px;">
+        <code><span class="comment"># 运行命令</span><br>hdc shell aa test -b com.example.securitytool \<br>&nbsp;&nbsp;-m entry_test -s unittest \<br>&nbsp;&nbsp;OpenHarmonyTestRunner -w 180</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 各层详细说明 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:var(--green)">详</div>
+    各层测试详解
+  </div>
+
+  <!-- Layer 1 -->
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="tag tag-blue" style="font-size:14px; padding:4px 14px;">Layer 1</span>
+      <h4 style="font-size:17px;">单元测试 — DataModels.test.ets</h4>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p style="font-size:14px; color:var(--text2); margin-bottom:12px;"><strong>设计思路：</strong>对 DataModels 中的纯函数进行全覆盖测试，确保枚举映射、ID 解析、格式化等基础逻辑的正确性。</p>
+        <table>
+          <thead><tr><th>测试分组</th><th>用例数</th><th>测试内容</th></tr></thead>
+          <tbody>
+            <tr><td>getRuleTypeLabel</td><td>4</td><td>IP/域名/DNS/无效值 → 标签映射</td></tr>
+            <tr><td>getDirectionLabel</td><td>3</td><td>入站/出站/无效值</td></tr>
+            <tr><td>getProtocolLabel</td><td>5</td><td>ALL/TCP/UDP/ICMP/无效值</td></tr>
+            <tr><td>getActionLabel</td><td>3</td><td>允许/拒绝/无效值</td></tr>
+            <tr><td>getPeripheralTypeLabel</td><td>6</td><td>USB存储/摄像头/打印机/其他/蓝牙/无效</td></tr>
+            <tr><td>getUsbStoragePolicyLabel</td><td>4</td><td>读写/只读/禁止/无效值</td></tr>
+            <tr><td>parseUsbDeviceId</td><td>6</td><td>大写/小写/空格/无效/空串/部分格式</td></tr>
+            <tr><td>formatUsbDeviceId</td><td>4</td><td>标准值/零填充/零值/最大值</td></tr>
+            <tr><td>parseBluetoothMac</td><td>4</td><td>有空格/无空格/无效/空串</td></tr>
+            <tr><td>inferUsbBaseClass</td><td>5</td><td>存储/摄像头/打印机/其他/蓝牙</td></tr>
+            <tr><td>inferPeripheralTypeFromBaseClass</td><td>5</td><td>双向反查验证</td></tr>
+            <tr><td>双向一致性</td><td>5</td><td>parse↔format、baseClass 双向映射</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="summary-box blue" style="margin-bottom:12px;">
+          <strong>代码覆盖率</strong>
+          <div style="margin-top:8px; font-size:14px;">
+            <div style="display:flex; justify-content:space-between;"><span>函数覆盖</span><strong>11/11 (100%)</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%; background:var(--green);"></div></div>
+          </div>
+          <div style="margin-top:8px; font-size:14px;">
+            <div style="display:flex; justify-content:space-between;"><span>行覆盖</span><strong>95/95 (100%)</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%; background:var(--green);"></div></div>
+          </div>
+          <div style="margin-top:8px; font-size:14px;">
+            <div style="display:flex; justify-content:space-between;"><span>分支覆盖</span><strong>37/37 (100%)</strong></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%; background:var(--green);"></div></div>
+          </div>
+        </div>
+        <div class="summary-box green">
+          <strong>设计亮点</strong>
+          <ul style="font-size:13px; color:var(--text2); padding-left:18px; margin-top:6px;">
+            <li>边界值全覆盖（无效枚举、空串、最大值）</li>
+            <li>双向一致性测试（parse↔format roundtrip）</li>
+            <li>不依赖任何外部 API，毫秒级执行</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 2 -->
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="tag tag-purple" style="font-size:14px; padding:4px 14px;">Layer 2</span>
+      <h4 style="font-size:17px;">服务层测试 — FirewallService.test.ets</h4>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p style="font-size:14px; color:var(--text2); margin-bottom:12px;"><strong>设计思路：</strong>通过 MockNetFirewall 替代真实系统 API，隔离测试防火墙服务层的业务逻辑，验证 CRUD 操作、状态管理、异常处理。</p>
+        <table>
+          <thead><tr><th>测试分组</th><th>用例数</th><th>测试内容</th></tr></thead>
+          <tbody>
+            <tr><td>countByType</td><td>3</td><td>按规则类型统计 (IP/域名/DNS)</td></tr>
+            <tr><td>countByDirection</td><td>2</td><td>按流量方向统计 (入站/出站)</td></tr>
+            <tr><td>getFirewallPolicy</td><td>3</td><td>策略查询 (开启/关闭/动作保持)</td></tr>
+            <tr><td>setFirewallPolicy</td><td>2</td><td>策略更新 (修改/状态切换)</td></tr>
+            <tr><td>getAllRules</td><td>3</td><td>规则查询 (全量/空/分页)</td></tr>
+            <tr><td>addRule</td><td>3</td><td>添加规则 (正常/递增ID/权限失败)</td></tr>
+            <tr><td>removeRule</td><td>3</td><td>删除规则 (存在/不存在/全删)</td></tr>
+            <tr><td>updateRule</td><td>2</td><td>更新规则 (修改/不影响其他)</td></tr>
+            <tr><td>Complex scenarios</td><td>2</td><td>复合操作 (添加→删除/多操作序列)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="summary-box purple" style="margin-bottom:12px;">
+          <strong>Mock 设计</strong>
+          <p style="font-size:13px; color:var(--text2); margin-top:6px;">
+            <code>MockNetFirewall.ets</code> 采用模块级变量替代 static 类（ArkTS 规范），提供：
+          </p>
+          <ul style="font-size:13px; color:var(--text2); padding-left:18px; margin-top:6px;">
+            <li><code>resetMock()</code> — 每个测试前重置状态</li>
+            <li><code>setFailMode()</code> — 模拟 API 异常</li>
+            <li><code>setMockRules/Policy()</code> — 预设数据</li>
+            <li>分页逻辑模拟 (page/pageSize/totalCount)</li>
+            <li>自增 ruleId 分配</li>
+          </ul>
+        </div>
+        <div class="summary-box green">
+          <strong>设计亮点</strong>
+          <ul style="font-size:13px; color:var(--text2); padding-left:18px; margin-top:6px;">
+            <li><code>beforeEach</code> 严格隔离测试状态</li>
+            <li>覆盖成功路径 + 异常路径</li>
+            <li>复合场景测试验证操作序列正确性</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 3 -->
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="tag" style="background:#FFF3E0;color:#E65100; font-size:14px; padding:4px 14px;">Layer 3</span>
+      <h4 style="font-size:17px;">组件测试 — StatCard.test.ets</h4>
+    </div>
+
+    <p style="font-size:14px; color:var(--text2); margin-bottom:16px;"><strong>设计思路：</strong>在真机上启动 EntryAbility，通过 <code>Driver.create()</code> + <code>ON.text()</code> 自动化验证 Dashboard 页面的 UI 组件渲染完整性。</p>
+
+    <table>
+      <thead><tr><th>测试分组</th><th>用例数</th><th>验证内容</th><th>API</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard Page Rendering</td><td>6</td><td>标题、4 个 StatCard 文本存在性</td><td class="mono">assertComponentExist(ON.text())</td></tr>
+        <tr><td>Quick Actions Section</td><td>4</td><td>快捷功能区标题、3 个 ToolCard</td><td class="mono">assertComponentExist(ON.text())</td></tr>
+        <tr><td>Sidebar Navigation</td><td>1</td><td>侧边栏导航项 (总览/防火墙/日志管理)</td><td class="mono">assertComponentExist(ON.text())</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Layer 4 -->
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="tag tag-red" style="font-size:14px; padding:4px 14px;">Layer 4</span>
+      <h4 style="font-size:17px;">E2E 测试 — PageSnapshot + FirewallFlow</h4>
+    </div>
+
+    <p style="font-size:14px; color:var(--text2); margin-bottom:16px;"><strong>设计思路：</strong>模拟真实用户操作流程，通过 <code>findComponent()</code> + <code>click()</code> 自动点击导航、切换页面，验证完整的端到端交互。</p>
+
+    <div class="two-col">
+      <div>
+        <h5 style="font-size:14px; margin-bottom:8px;">PageSnapshot.test.ets</h5>
+        <table>
+          <thead><tr><th>测试分组</th><th>用例</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>Dashboard Snapshot</td><td>3</td><td>验证布局、统计卡片、快捷功能</td></tr>
+            <tr><td>Firewall Snapshot</td><td>1</td><td>点击导航 → 验证防火墙页面</td></tr>
+            <tr><td>Peripheral Snapshot</td><td>1</td><td>点击导航 → 验证外设管理页面</td></tr>
+            <tr><td>Return to Dashboard</td><td>1</td><td>点击总览 → 验证返回</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h5 style="font-size:14px; margin-bottom:8px;">FirewallFlow.test.ets</h5>
+        <table>
+          <thead><tr><th>测试分组</th><th>用例</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>Navigation Flow</td><td>3</td><td>侧边栏→防火墙→返回→快捷卡片</td></tr>
+            <tr><td>Firewall Features</td><td>2</td><td>验证防火墙页面功能区</td></tr>
+            <tr><td>Multi-Page Navigation</td><td>1</td><td>遍历全部页面：日志→外设→身份→总览</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. 模块覆盖矩阵 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:var(--orange)">覆</div>
+    功能模块覆盖矩阵
+  </div>
+
+  <div class="module-grid">
+    <div class="module-card">
+      <h4>总览 (Dashboard)</h4>
+      <div class="desc">安全状态统计卡片 + 快捷功能入口</div>
+      <div class="module-layers">
+        <span class="tag tag-blue">L1 枚举映射</span>
+        <span class="tag" style="background:#FFF3E0;color:#E65100;">L3 卡片渲染</span>
+        <span class="tag tag-red">L4 页面快照</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>覆盖度</span><strong style="color:var(--green);">高</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:85%; background:var(--green);"></div></div>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <h4>防火墙 (Firewall)</h4>
+      <div class="desc">开关控制、规则类型管理、流量方向过滤</div>
+      <div class="module-layers">
+        <span class="tag tag-blue">L1 类型标签</span>
+        <span class="tag tag-purple">L2 CRUD + Mock</span>
+        <span class="tag tag-red">L4 导航流程</span>
+        <span class="tag tag-red">L4 页面验证</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>覆盖度</span><strong style="color:var(--green);">高</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:80%; background:var(--green);"></div></div>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <h4>外设管理 (Peripheral)</h4>
+      <div class="desc">USB/蓝牙设备识别与策略管理</div>
+      <div class="module-layers">
+        <span class="tag tag-blue">L1 ID解析/格式化</span>
+        <span class="tag tag-blue">L1 BaseClass映射</span>
+        <span class="tag tag-red">L4 页面导航</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>覆盖度</span><strong style="color:var(--orange);">中</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:55%; background:var(--orange);"></div></div>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <h4>日志管理 (Log)</h4>
+      <div class="desc">日志审计 (开发中)</div>
+      <div class="module-layers">
+        <span class="tag tag-red">L4 页面导航</span>
+        <span class="tag tag-gray">功能待开发</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>覆盖度</span><strong style="color:var(--red);">低</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:15%; background:var(--red);"></div></div>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <h4>身份鉴别 (Identity)</h4>
+      <div class="desc">身份策略管理 (开发中)</div>
+      <div class="module-layers">
+        <span class="tag tag-red">L4 页面导航</span>
+        <span class="tag tag-gray">功能待开发</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>覆盖度</span><strong style="color:var(--red);">低</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:15%; background:var(--red);"></div></div>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <h4>工具设置 (Settings)</h4>
+      <div class="desc">应用配置 (开发中)</div>
+      <div class="module-layers">
+        <span class="tag tag-gray">功能待开发</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>覆盖度</span><strong style="color:var(--gray);">无</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:5%; background:var(--gray);"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. 技术决策 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#5856D6">决</div>
+    关键技术决策与踩坑记录
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>问题</th><th>原因</th><th>解决方案</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Mock 类 static this 报错</strong></td>
+          <td>ArkTS 禁止 static 方法中使用 <code>this</code></td>
+          <td>改为模块级变量 + 导出函数模式</td>
+        </tr>
+        <tr>
+          <td><strong>Driver.screenShot() 不存在</strong></td>
+          <td>当前 SDK 版本不支持该 API</td>
+          <td>移除截图，使用 <code>assertComponentExist</code> 验证</td>
+        </tr>
+        <tr>
+          <td><strong>测试 HAP 启动即崩溃</strong></td>
+          <td>缺少 TestAbility + OpenHarmonyTestRunner</td>
+          <td>补全测试运行器基础设施</td>
+        </tr>
+        <tr>
+          <td><strong>测试瞬间完成无 UI 效果</strong></td>
+          <td>手动 <code>finishTest()</code> 不等待异步</td>
+          <td>改用 <code>Hypium.hypiumTest()</code> 框架调度</td>
+        </tr>
+        <tr>
+          <td><strong>any 类型编译错误</strong></td>
+          <td>ArkTS 严格模式禁止 <code>any</code></td>
+          <td>所有变量使用显式类型声明</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 6. 优化建议 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:var(--red)">优</div>
+    优化方向
+  </div>
+
+  <div class="card">
+    <ul class="opt-list">
+      <li>
+        <div class="opt-priority high">P0</div>
+        <div class="opt-content">
+          <h5>补充防火墙 UI 交互测试</h5>
+          <p>当前 L4 仅验证导航和页面加载。可增加：开关切换测试（点击 Toggle → 验证状态变化）、规则列表加载验证、添加规则弹窗交互。</p>
+        </div>
+      </li>
+      <li>
+        <div class="opt-priority high">P0</div>
+        <div class="opt-content">
+          <h5>为组件添加 testId 标识</h5>
+          <p>当前 UI 测试依赖 <code>ON.text()</code> 匹配中文文本，文案变更会导致测试失败。为关键组件添加 <code>id()</code> 属性，改用 <code>ON.id('stat-firewall')</code> 定位，提高稳定性。</p>
+        </div>
+      </li>
+      <li>
+        <div class="opt-priority med">P1</div>
+        <div class="opt-content">
+          <h5>增加外设管理服务层测试</h5>
+          <p>外设管理模块（USB/蓝牙）目前只有 L1 的数据解析测试，缺少 L2 的 Mock 服务测试。需要创建 MockUsbManager / MockBluetoothManager。</p>
+        </div>
+      </li>
+      <li>
+        <div class="opt-priority med">P1</div>
+        <div class="opt-content">
+          <h5>集成 CI 流水线</h5>
+          <p>将 L1-L2 本地测试集成到 Git pre-commit 或 CI 构建中，每次提交自动运行 <code>hvigorw test</code>，确保基础逻辑不被破坏。</p>
+        </div>
+      </li>
+      <li>
+        <div class="opt-priority med">P1</div>
+        <div class="opt-content">
+          <h5>主题切换回归测试</h5>
+          <p>应用支持浅色/深色主题切换，可在 L4 添加：点击主题按钮 → 验证界面颜色变化 → 切回原主题。防止主题适配遗漏。</p>
+        </div>
+      </li>
+      <li>
+        <div class="opt-priority low">P2</div>
+        <div class="opt-content">
+          <h5>扩展 L2 覆盖率报告</h5>
+          <p>当前仅 DataModels 有 100% 覆盖率数据。可扩展 hvigorw 配置，收集 FirewallService 等更多模块的覆盖率指标。</p>
+        </div>
+      </li>
+      <li>
+        <div class="opt-priority low">P2</div>
+        <div class="opt-content">
+          <h5>性能基线测试</h5>
+          <p>记录各页面加载时间基线，后续版本对比。利用 <code>driver.delayMs()</code> 前后的时间戳，检测页面渲染是否出现性能退化。</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- 7. 总结 -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#34C759">结</div>
+    总结
+  </div>
+
+  <div class="two-col">
+    <div class="summary-box blue">
+      <strong>已完成</strong>
+      <ul style="font-size:13px; color:var(--text2); padding-left:18px; margin-top:8px; line-height:2;">
+        <li>四层测试金字塔架构搭建完成</li>
+        <li>L1 单元测试: 45+ 用例, 100% 覆盖率</li>
+        <li>L2 服务层测试: 30+ 用例, Mock 隔离</li>
+        <li>L3 组件测试: 11 用例, 真机 UI 验证</li>
+        <li>L4 E2E 测试: 12 用例, 全页面自动导航</li>
+        <li>测试基础设施: TestRunner + TestAbility + Hypium</li>
+      </ul>
+    </div>
+    <div class="summary-box orange">
+      <strong>待补充</strong>
+      <ul style="font-size:13px; color:var(--text2); padding-left:18px; margin-top:8px; line-height:2;">
+        <li>防火墙开关操作交互测试</li>
+        <li>规则 CRUD 的 UI 级别验证</li>
+        <li>外设管理服务层 Mock 测试</li>
+        <li>组件 testId 标识（替代文本匹配）</li>
+        <li>日志/身份/设置模块（随功能开发补充）</li>
+        <li>CI/CD 自动化集成</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div style="text-align:center; padding:24px; color:var(--text2); font-size:12px;">
+  SecurityTool Automated Testing Report &mdash; Generated 2026-02-25
+</div>
+
+</body>
+</html>

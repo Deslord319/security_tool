@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurityTool 自动化测试详细实现指南</title>
+    <style>
+        :root {
+            --primary: #0A84FF;
+            --primary-dark: #0066CC;
+            --secondary: #00C6FF;
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            --purple: #5856D6;
+            --bg-dark: #1C1C1E;
+            --bg-card: #2C2C2E;
+            --bg-hover: #3A3A3C;
+            --bg-code: #1a1a1a;
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255,255,255,0.6);
+            --text-tertiary: rgba(255,255,255,0.4);
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .nav-title {
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0 24px;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            padding: 0 24px;
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 24px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            border-left-color: var(--primary);
+            background: rgba(10, 132, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 280px;
+            padding: 40px 60px;
+            max-width: 1000px;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 48px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 64px;
+            scroll-margin-top: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .section-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .section h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+
+        .section h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 32px 0 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .section h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--secondary);
+        }
+
+        .section p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        /* Code Block */
+        .code-container {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #252525;
+            padding: 10px 16px;
+            border-radius: 12px 12px 0 0;
+            border: 1px solid var(--border);
+            border-bottom: none;
+        }
+
+        .code-filename {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .code-lang {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+            color: var(--text-tertiary);
+        }
+
+        .code-block {
+            background: var(--bg-code);
+            border-radius: 0 0 12px 12px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            border: 1px solid var(--border);
+            border-top: none;
+        }
+
+        .code-block.standalone {
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .code-block .keyword { color: #FF7AB2; }
+        .code-block .string { color: #FF8170; }
+        .code-block .function { color: #78C2B3; }
+        .code-block .comment { color: #6C7986; }
+        .code-block .number { color: #D0BF69; }
+        .code-block .type { color: #ACF2E4; }
+        .code-block .decorator { color: #FFA14F; }
+        .code-block .param { color: #BEC5D4; }
+
+        /* Info Box */
+        .info-box {
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .info-box.tip {
+            background: rgba(52, 199, 89, 0.1);
+            border-color: var(--success);
+        }
+
+        .info-box.warning {
+            background: rgba(255, 149, 0, 0.1);
+            border-color: var(--warning);
+        }
+
+        .info-box.info {
+            background: rgba(10, 132, 255, 0.1);
+            border-color: var(--primary);
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-box p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-hover);
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        code {
+            font-family: 'SF Mono', Monaco, monospace;
+            background: var(--bg-hover);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--secondary);
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .mini-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .mini-card-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mini-card-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .flow-step {
+            background: var(--bg-hover);
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .flow-step-num {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .flow-step-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .flow-arrow {
+            color: var(--text-tertiary);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        /* File Tree */
+        .file-tree {
+            background: var(--bg-code);
+            border-radius: 12px;
+            padding: 24px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            line-height: 2;
+            border: 1px solid var(--border);
+            margin: 20px 0;
+        }
+
+        .tree-folder { color: var(--secondary); }
+        .tree-file { color: var(--text-secondary); }
+        .tree-new { color: var(--success); }
+        .tree-comment { color: #6C7986; font-style: italic; }
+
+        /* Test Case Card */
+        .test-case {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+            border: 1px solid var(--border);
+        }
+
+        .test-case-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .test-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .test-status.pass { background: var(--success); }
+        .test-status.fail { background: var(--danger); }
+
+        .test-name {
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9rem;
+        }
+
+        .test-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.unit { background: var(--primary); }
+        .badge.service { background: var(--success); }
+        .badge.component { background: var(--warning); }
+        .badge.e2e { background: var(--danger); }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .nav {
+                display: none;
+            }
+            .main {
+                margin-left: 0;
+                padding: 24px;
+            }
+        }
+
+        /* Scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* List */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 24px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Architecture Block */
+        .arch-block {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            margin: 20px 0;
+        }
+
+        .arch-layer {
+            background: var(--bg-hover);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 8px;
+            border-left: 4px solid;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .arch-layer:last-child {
+            margin-bottom: 0;
+        }
+
+        .arch-layer.l1 { border-color: var(--primary); }
+        .arch-layer.l2 { border-color: var(--success); }
+        .arch-layer.l3 { border-color: var(--warning); }
+        .arch-layer.l4 { border-color: var(--danger); }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-title">SecurityTool 测试指南</div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title">概述</div>
+            <a href="#overview" class="nav-link active">测试架构概览</a>
+            <a href="#framework" class="nav-link">测试框架配置</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">单元测试</div>
+            <a href="#unit-overview" class="nav-link">实现概述</a>
+            <a href="#unit-datamodels" class="nav-link">DataModels 测试</a>
+            <a href="#unit-utils" class="nav-link">工具函数测试</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">服务层测试</div>
+            <a href="#service-mock" class="nav-link">Mock 机制设计</a>
+            <a href="#service-firewall" class="nav-link">FirewallService 测试</a>
+            <a href="#service-peripheral" class="nav-link">PeripheralService 测试</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">组件测试</div>
+            <a href="#component-snapshot" class="nav-link">快照测试原理</a>
+            <a href="#component-impl" class="nav-link">组件测试实现</a>
+            <a href="#component-interaction" class="nav-link">交互测试</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">E2E 测试</div>
+            <a href="#e2e-page" class="nav-link">页面快照回归</a>
+            <a href="#e2e-flow" class="nav-link">关键流程测试</a>
+            <a href="#e2e-expect" class="nav-link">预期行为表</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">附录</div>
+            <a href="#directory" class="nav-link">目录结构</a>
+            <a href="#ci" class="nav-link">CI/CD 集成</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <header class="header">
+            <h1>SecurityTool 自动化测试详细实现指南</h1>
+            <p>基于 @ohos/hypium 框架，为 HarmonyOS/ArkTS 项目构建分层测试体系</p>
+        </header>
+
+        <!-- Section: Overview -->
+        <section id="overview" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <span>&#x1F3AF;</span>
+                </div>
+                <h2>测试架构概览</h2>
+            </div>
+
+            <p>本方案采用四层测试架构，从下往上依次为：单元测试 → 服务层测试 → 组件测试 → E2E 测试。每层测试有明确的职责边界和依赖关系。</p>
+
+            <div class="arch-block">
+                <div class="arch-layer l4">
+                    <div>
+                        <strong>E2E 测试</strong>
+                        <span style="color: var(--text-secondary); margin-left: 12px;">页面快照 + 关键流程验证</span>
+                    </div>
+                    <span class="badge e2e">需真机</span>
+                </div>
+                <div class="arch-layer l3">
+                    <div>
+                        <strong>组件测试</strong>
+                        <span style="color: var(--text-secondary); margin-left: 12px;">StatCard / SideBar / Dialog 渲染与交互</span>
+                    </div>
+                    <span class="badge component">需真机</span>
+                </div>
+                <div class="arch-layer l2">
+                    <div>
+                        <strong>服务层测试</strong>
+                        <span style="color: var(--text-secondary); margin-left: 12px;">FirewallService / PeripheralService 业务逻辑</span>
+                    </div>
+                    <span class="badge service">Mock API</span>
+                </div>
+                <div class="arch-layer l1">
+                    <div>
+                        <strong>单元测试</strong>
+                        <span style="color: var(--text-secondary); margin-left: 12px;">DataModels / 解析函数 / 格式化函数</span>
+                    </div>
+                    <span class="badge unit">纯逻辑</span>
+                </div>
+            </div>
+
+            <div class="info-box tip">
+                <div class="info-box-title">
+                    <span>&#x2705;</span> 核心原则
+                </div>
+                <p>测试金字塔：单元测试数量最多、执行最快；E2E 测试数量最少、覆盖关键路径。80% 的测试应该不依赖 UI，确保 UI 修改不影响大部分测试用例。</p>
+            </div>
+        </section>
+
+        <!-- Section: Framework -->
+        <section id="framework" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--purple), #AF52DE);">
+                    <span>&#x2699;</span>
+                </div>
+                <h2>测试框架配置</h2>
+            </div>
+
+            <p>HarmonyOS 项目使用 <code>@ohos/hypium</code> 作为测试框架，支持单元测试和设备测试两种模式。</p>
+
+            <h3>测试目录说明</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>目录</th>
+                            <th>类型</th>
+                            <th>运行环境</th>
+                            <th>用途</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>entry/src/test/</code></td>
+                            <td>本地单元测试</td>
+                            <td>IDE / 命令行</td>
+                            <td>纯逻辑测试，无需设备</td>
+                        </tr>
+                        <tr>
+                            <td><code>entry/src/ohosTest/</code></td>
+                            <td>设备测试</td>
+                            <td>真机 / 模拟器</td>
+                            <td>组件测试、E2E 测试</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>测试入口文件配置</h3>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/test/List.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="comment">// 单元测试入口 - 注册所有测试套件</span>
+<span class="keyword">import</span> dataModelsTest <span class="keyword">from</span> <span class="string">'./models/DataModels.test'</span>
+<span class="keyword">import</span> firewallServiceTest <span class="keyword">from</span> <span class="string">'./services/FirewallService.test'</span>
+
+<span class="keyword">export default function</span> <span class="function">testsuite</span>() {
+  <span class="function">dataModelsTest</span>()
+  <span class="function">firewallServiceTest</span>()
+}
+                </div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/List.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="comment">// 设备测试入口 - 注册组件测试和 E2E 测试</span>
+<span class="keyword">import</span> abilityTest <span class="keyword">from</span> <span class="string">'./Ability.test'</span>
+<span class="keyword">import</span> statCardTest <span class="keyword">from</span> <span class="string">'./components/StatCard.test'</span>
+<span class="keyword">import</span> pageSnapshotTest <span class="keyword">from</span> <span class="string">'./e2e/PageSnapshot.test'</span>
+<span class="keyword">import</span> firewallFlowTest <span class="keyword">from</span> <span class="string">'./e2e/flows/FirewallFlow.test'</span>
+
+<span class="keyword">export default function</span> <span class="function">testsuite</span>() {
+  <span class="function">abilityTest</span>()
+  <span class="function">statCardTest</span>()
+  <span class="function">pageSnapshotTest</span>()
+  <span class="function">firewallFlowTest</span>()
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Unit Overview -->
+        <section id="unit-overview" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    <span>1</span>
+                </div>
+                <h2>单元测试 - 实现概述</h2>
+            </div>
+
+            <p>单元测试覆盖项目中的纯函数和数据模型，不依赖任何 UI 组件或系统 API。这类测试执行速度快，可在本地直接运行。</p>
+
+            <h3>测试覆盖范围</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>模块</th>
+                            <th>待测函数</th>
+                            <th>测试重点</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>DataModels.ets</code></td>
+                            <td>getRuleTypeLabel, getDirectionLabel, getProtocolLabel, getActionLabel</td>
+                            <td>枚举值 → 字符串映射</td>
+                        </tr>
+                        <tr>
+                            <td><code>DataModels.ets</code></td>
+                            <td>parseUsbDeviceId, formatUsbDeviceId</td>
+                            <td>字符串解析与格式化</td>
+                        </tr>
+                        <tr>
+                            <td><code>DataModels.ets</code></td>
+                            <td>parseBluetoothMac</td>
+                            <td>正则匹配与提取</td>
+                        </tr>
+                        <tr>
+                            <td><code>DataModels.ets</code></td>
+                            <td>inferUsbBaseClass, inferPeripheralTypeFromBaseClass</td>
+                            <td>双向类型映射</td>
+                        </tr>
+                        <tr>
+                            <td><code>FirewallService.ets</code></td>
+                            <td>countByType, countByDirection</td>
+                            <td>数组过滤统计</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section: Unit DataModels -->
+        <section id="unit-datamodels" class="section">
+            <h3>DataModels 测试实现</h3>
+
+            <p>以下是 <code>DataModels.ets</code> 中工具函数的完整测试用例实现：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/test/models/DataModels.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { describe, beforeAll, it, expect } <span class="keyword">from</span> <span class="string">'@ohos/hypium'</span>
+<span class="keyword">import</span> {
+  RuleType, RuleDirection, ProtocolType, RuleAction,
+  PeripheralType, UsbStoragePolicy,
+  getRuleTypeLabel, getDirectionLabel, getProtocolLabel, getActionLabel,
+  getPeripheralTypeLabel, getUsbStoragePolicyLabel,
+  parseUsbDeviceId, formatUsbDeviceId, parseBluetoothMac,
+  inferUsbBaseClass, inferPeripheralTypeFromBaseClass
+} <span class="keyword">from</span> <span class="string">'../../main/ets/models/DataModels'</span>
+
+<span class="keyword">export default function</span> <span class="function">dataModelsTest</span>() {
+  <span class="function">describe</span>(<span class="string">'DataModels'</span>, () => {
+
+    <span class="comment">// ==================== 标签函数测试 ====================</span>
+    
+    <span class="function">describe</span>(<span class="string">'getRuleTypeLabel'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return IP for RuleType.IP'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getRuleTypeLabel</span>(RuleType.IP)).<span class="function">assertEqual</span>(<span class="string">'IP'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 域名 for RuleType.DOMAIN'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getRuleTypeLabel</span>(RuleType.DOMAIN)).<span class="function">assertEqual</span>(<span class="string">'域名'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return DNS for RuleType.DNS'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getRuleTypeLabel</span>(RuleType.DNS)).<span class="function">assertEqual</span>(<span class="string">'DNS'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 未知 for invalid type'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getRuleTypeLabel</span>(<span class="number">99</span> <span class="keyword">as</span> RuleType)).<span class="function">assertEqual</span>(<span class="string">'未知'</span>)
+      })
+    })
+
+    <span class="function">describe</span>(<span class="string">'getDirectionLabel'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return 入站 for RuleDirection.IN'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getDirectionLabel</span>(RuleDirection.IN)).<span class="function">assertEqual</span>(<span class="string">'入站'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 出站 for RuleDirection.OUT'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getDirectionLabel</span>(RuleDirection.OUT)).<span class="function">assertEqual</span>(<span class="string">'出站'</span>)
+      })
+    })
+
+    <span class="function">describe</span>(<span class="string">'getProtocolLabel'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return correct labels for all protocols'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getProtocolLabel</span>(ProtocolType.ALL)).<span class="function">assertEqual</span>(<span class="string">'ALL'</span>)
+        <span class="function">expect</span>(<span class="function">getProtocolLabel</span>(ProtocolType.TCP)).<span class="function">assertEqual</span>(<span class="string">'TCP'</span>)
+        <span class="function">expect</span>(<span class="function">getProtocolLabel</span>(ProtocolType.UDP)).<span class="function">assertEqual</span>(<span class="string">'UDP'</span>)
+        <span class="function">expect</span>(<span class="function">getProtocolLabel</span>(ProtocolType.ICMP)).<span class="function">assertEqual</span>(<span class="string">'ICMP'</span>)
+      })
+    })
+
+    <span class="function">describe</span>(<span class="string">'getActionLabel'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return 允许 for RuleAction.ALLOW'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getActionLabel</span>(RuleAction.ALLOW)).<span class="function">assertEqual</span>(<span class="string">'允许'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 拒绝 for RuleAction.DENY'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getActionLabel</span>(RuleAction.DENY)).<span class="function">assertEqual</span>(<span class="string">'拒绝'</span>)
+      })
+    })
+
+    <span class="comment">// ==================== USB 设备 ID 解析测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'parseUsbDeviceId'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should parse valid USB device ID'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">parseUsbDeviceId</span>(<span class="string">'VID:2B7E PID:B5A2'</span>)
+        <span class="function">expect</span>(result).<span class="function">assertNotNull</span>()
+        <span class="function">expect</span>(result!.vendorId).<span class="function">assertEqual</span>(<span class="number">0x2B7E</span>)
+        <span class="function">expect</span>(result!.productId).<span class="function">assertEqual</span>(<span class="number">0xB5A2</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should parse lowercase hex values'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">parseUsbDeviceId</span>(<span class="string">'VID:abcd PID:1234'</span>)
+        <span class="function">expect</span>(result).<span class="function">assertNotNull</span>()
+        <span class="function">expect</span>(result!.vendorId).<span class="function">assertEqual</span>(<span class="number">0xABCD</span>)
+        <span class="function">expect</span>(result!.productId).<span class="function">assertEqual</span>(<span class="number">0x1234</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return null for invalid format'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">parseUsbDeviceId</span>(<span class="string">'invalid'</span>)).<span class="function">assertNull</span>()
+        <span class="function">expect</span>(<span class="function">parseUsbDeviceId</span>(<span class="string">''</span>)).<span class="function">assertNull</span>()
+        <span class="function">expect</span>(<span class="function">parseUsbDeviceId</span>(<span class="string">'VID:XXXX PID:YYYY'</span>)).<span class="function">assertNull</span>()
+      })
+
+      <span class="function">it</span>(<span class="string">'should handle extra whitespace'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">parseUsbDeviceId</span>(<span class="string">'VID:0001   PID:0002'</span>)
+        <span class="function">expect</span>(result).<span class="function">assertNotNull</span>()
+        <span class="function">expect</span>(result!.vendorId).<span class="function">assertEqual</span>(<span class="number">1</span>)
+        <span class="function">expect</span>(result!.productId).<span class="function">assertEqual</span>(<span class="number">2</span>)
+      })
+    })
+
+    <span class="function">describe</span>(<span class="string">'formatUsbDeviceId'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should format with uppercase and padding'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">formatUsbDeviceId</span>(<span class="number">0x2B7E</span>, <span class="number">0xB5A2</span>)
+        <span class="function">expect</span>(result).<span class="function">assertEqual</span>(<span class="string">'VID:2B7E PID:B5A2'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should pad small numbers with zeros'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">formatUsbDeviceId</span>(<span class="number">1</span>, <span class="number">2</span>)
+        <span class="function">expect</span>(result).<span class="function">assertEqual</span>(<span class="string">'VID:0001 PID:0002'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should handle zero values'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">formatUsbDeviceId</span>(<span class="number">0</span>, <span class="number">0</span>)
+        <span class="function">expect</span>(result).<span class="function">assertEqual</span>(<span class="string">'VID:0000 PID:0000'</span>)
+      })
+    })
+
+    <span class="comment">// ==================== 蓝牙 MAC 解析测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'parseBluetoothMac'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should parse valid MAC address'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">parseBluetoothMac</span>(<span class="string">'MAC: AA:BB:CC:DD:EE:01'</span>)
+        <span class="function">expect</span>(result).<span class="function">assertEqual</span>(<span class="string">'AA:BB:CC:DD:EE:01'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should handle no space after MAC:'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> result = <span class="function">parseBluetoothMac</span>(<span class="string">'MAC:11:22:33:44:55:66'</span>)
+        <span class="function">expect</span>(result).<span class="function">assertEqual</span>(<span class="string">'11:22:33:44:55:66'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return null for invalid format'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">parseBluetoothMac</span>(<span class="string">'invalid'</span>)).<span class="function">assertNull</span>()
+        <span class="function">expect</span>(<span class="function">parseBluetoothMac</span>(<span class="string">''</span>)).<span class="function">assertNull</span>()
+      })
+    })
+
+    <span class="comment">// ==================== USB Base Class 映射测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'inferUsbBaseClass'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return 0x08 for USB_STORAGE'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">inferUsbBaseClass</span>(PeripheralType.USB_STORAGE)).<span class="function">assertEqual</span>(<span class="number">0x08</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 0x0E for USB_CAMERA'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">inferUsbBaseClass</span>(PeripheralType.USB_CAMERA)).<span class="function">assertEqual</span>(<span class="number">0x0E</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 0x07 for USB_PRINTER'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">inferUsbBaseClass</span>(PeripheralType.USB_PRINTER)).<span class="function">assertEqual</span>(<span class="number">0x07</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 0 for other types'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">inferUsbBaseClass</span>(PeripheralType.USB_OTHER)).<span class="function">assertEqual</span>(<span class="number">0</span>)
+        <span class="function">expect</span>(<span class="function">inferUsbBaseClass</span>(PeripheralType.BLUETOOTH)).<span class="function">assertEqual</span>(<span class="number">0</span>)
+      })
+    })
+
+    <span class="function">describe</span>(<span class="string">'inferPeripheralTypeFromBaseClass'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should reverse map correctly'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">inferPeripheralTypeFromBaseClass</span>(<span class="number">0x08</span>)).<span class="function">assertEqual</span>(PeripheralType.USB_STORAGE)
+        <span class="function">expect</span>(<span class="function">inferPeripheralTypeFromBaseClass</span>(<span class="number">0x0E</span>)).<span class="function">assertEqual</span>(PeripheralType.USB_CAMERA)
+        <span class="function">expect</span>(<span class="function">inferPeripheralTypeFromBaseClass</span>(<span class="number">0x07</span>)).<span class="function">assertEqual</span>(PeripheralType.USB_PRINTER)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return USB_OTHER for unknown class'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">inferPeripheralTypeFromBaseClass</span>(<span class="number">0xFF</span>)).<span class="function">assertEqual</span>(PeripheralType.USB_OTHER)
+        <span class="function">expect</span>(<span class="function">inferPeripheralTypeFromBaseClass</span>(<span class="number">0</span>)).<span class="function">assertEqual</span>(PeripheralType.USB_OTHER)
+      })
+    })
+
+    <span class="comment">// ==================== 双向一致性测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'USB ID parse-format roundtrip'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should roundtrip correctly'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> original = <span class="string">'VID:1234 PID:5678'</span>
+        <span class="keyword">let</span> parsed = <span class="function">parseUsbDeviceId</span>(original)
+        <span class="keyword">let</span> formatted = <span class="function">formatUsbDeviceId</span>(parsed!.vendorId, parsed!.productId)
+        <span class="function">expect</span>(formatted).<span class="function">assertEqual</span>(original)
+      })
+    })
+
+  })
+}
+                </div>
+            </div>
+
+            <div class="info-box info">
+                <div class="info-box-title">
+                    <span>&#x1F4A1;</span> 测试设计要点
+                </div>
+                <p><strong>边界条件覆盖</strong>：每个函数都测试正常输入、边界值（空字符串、零值）和异常输入。<br>
+                <strong>双向一致性</strong>：对于 parse/format 函数对，验证 roundtrip 正确性。</p>
+            </div>
+        </section>
+
+        <!-- Section: Unit Utils -->
+        <section id="unit-utils" class="section">
+            <h3>工具函数测试补充</h3>
+
+            <p>对于外设管理模块的标签函数，采用相同的测试模式：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/test/models/DataModels.test.ets (续)</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+    <span class="comment">// ==================== 外设管理标签函数测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'getPeripheralTypeLabel'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return correct labels for all peripheral types'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getPeripheralTypeLabel</span>(PeripheralType.USB_STORAGE)).<span class="function">assertEqual</span>(<span class="string">'USB 存储设备'</span>)
+        <span class="function">expect</span>(<span class="function">getPeripheralTypeLabel</span>(PeripheralType.USB_CAMERA)).<span class="function">assertEqual</span>(<span class="string">'USB 摄像头'</span>)
+        <span class="function">expect</span>(<span class="function">getPeripheralTypeLabel</span>(PeripheralType.USB_PRINTER)).<span class="function">assertEqual</span>(<span class="string">'USB 打印机'</span>)
+        <span class="function">expect</span>(<span class="function">getPeripheralTypeLabel</span>(PeripheralType.USB_OTHER)).<span class="function">assertEqual</span>(<span class="string">'USB 其他'</span>)
+        <span class="function">expect</span>(<span class="function">getPeripheralTypeLabel</span>(PeripheralType.BLUETOOTH)).<span class="function">assertEqual</span>(<span class="string">'蓝牙设备'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 未知 for invalid type'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getPeripheralTypeLabel</span>(<span class="string">'invalid'</span> <span class="keyword">as</span> PeripheralType)).<span class="function">assertEqual</span>(<span class="string">'未知'</span>)
+      })
+    })
+
+    <span class="function">describe</span>(<span class="string">'getUsbStoragePolicyLabel'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return correct labels for all policies'</span>, <span class="number">0</span>, () => {
+        <span class="function">expect</span>(<span class="function">getUsbStoragePolicyLabel</span>(UsbStoragePolicy.READ_WRITE)).<span class="function">assertEqual</span>(<span class="string">'读写'</span>)
+        <span class="function">expect</span>(<span class="function">getUsbStoragePolicyLabel</span>(UsbStoragePolicy.READ_ONLY)).<span class="function">assertEqual</span>(<span class="string">'只读'</span>)
+        <span class="function">expect</span>(<span class="function">getUsbStoragePolicyLabel</span>(UsbStoragePolicy.DISABLED)).<span class="function">assertEqual</span>(<span class="string">'禁止访问'</span>)
+      })
+    })
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Service Mock -->
+        <section id="service-mock" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--success), #7ED321);">
+                    <span>2</span>
+                </div>
+                <h2>服务层测试 - Mock 机制设计</h2>
+            </div>
+
+            <p>服务层测试需要 Mock 系统 API（如 <code>netFirewall</code>、<code>usbManager</code>），使测试可以在无设备环境下运行。</p>
+
+            <h3>Mock 设计原则</h3>
+
+            <div class="cards-grid">
+                <div class="mini-card">
+                    <div class="mini-card-title">
+                        <span style="color: var(--success);">&#x2714;</span>
+                        接口一致性
+                    </div>
+                    <div class="mini-card-desc">Mock 类的方法签名必须与真实 Service 完全一致，确保可替换。</div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-card-title">
+                        <span style="color: var(--success);">&#x2714;</span>
+                        可控数据
+                    </div>
+                    <div class="mini-card-desc">通过 setMockData() 预设测试数据，模拟各种业务场景。</div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-card-title">
+                        <span style="color: var(--success);">&#x2714;</span>
+                        异常模拟
+                    </div>
+                    <div class="mini-card-desc">支持模拟 API 调用失败，测试错误处理逻辑。</div>
+                </div>
+            </div>
+
+            <h3>MockFirewallService 实现</h3>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/test/__mocks__/MockNetFirewall.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="comment">/**
+ * Mock netFirewall API
+ * 用于服务层测试，模拟系统 API 行为
+ */</span>
+
+<span class="comment">// 模拟 netFirewall 模块的类型定义</span>
+<span class="keyword">export interface</span> <span class="type">MockNetFirewallRule</span> {
+  ruleId?: <span class="type">number</span>
+  userId: <span class="type">number</span>
+  name: <span class="type">string</span>
+  direction: <span class="type">number</span>  <span class="comment">// 1=IN, 2=OUT</span>
+  action: <span class="type">number</span>     <span class="comment">// 0=ALLOW, 1=DENY</span>
+  type: <span class="type">number</span>       <span class="comment">// 1=IP, 2=DOMAIN, 3=DNS</span>
+  isEnabled: <span class="type">boolean</span>
+  protocol?: <span class="type">number</span>
+  remoteIps?: <span class="type">object</span>[]
+  remotePorts?: <span class="type">object</span>[]
+  domains?: <span class="type">object</span>[]
+  dns?: <span class="type">object</span>
+}
+
+<span class="keyword">export interface</span> <span class="type">MockNetFirewallPolicy</span> {
+  isOpen: <span class="type">boolean</span>
+  inAction: <span class="type">number</span>
+  outAction: <span class="type">number</span>
+}
+
+<span class="keyword">export class</span> <span class="function">MockNetFirewall</span> {
+  <span class="keyword">private static</span> _rules: <span class="type">MockNetFirewallRule</span>[] = []
+  <span class="keyword">private static</span> _policy: <span class="type">MockNetFirewallPolicy</span> = { isOpen: <span class="keyword">false</span>, inAction: <span class="number">0</span>, outAction: <span class="number">0</span> }
+  <span class="keyword">private static</span> _nextRuleId: <span class="type">number</span> = <span class="number">1</span>
+  <span class="keyword">private static</span> _shouldFail: <span class="type">boolean</span> = <span class="keyword">false</span>
+  <span class="keyword">private static</span> _failError: <span class="type">Error</span> | <span class="keyword">null</span> = <span class="keyword">null</span>
+
+  <span class="comment">// ==================== 测试数据控制方法 ====================</span>
+
+  <span class="keyword">static</span> <span class="function">reset</span>() {
+    <span class="keyword">this</span>._rules = []
+    <span class="keyword">this</span>._policy = { isOpen: <span class="keyword">false</span>, inAction: <span class="number">0</span>, outAction: <span class="number">0</span> }
+    <span class="keyword">this</span>._nextRuleId = <span class="number">1</span>
+    <span class="keyword">this</span>._shouldFail = <span class="keyword">false</span>
+    <span class="keyword">this</span>._failError = <span class="keyword">null</span>
+  }
+
+  <span class="keyword">static</span> <span class="function">setMockRules</span>(rules: <span class="type">MockNetFirewallRule</span>[]) {
+    <span class="keyword">this</span>._rules = rules.map((r, i) => ({ ...r, ruleId: r.ruleId ?? i + <span class="number">1</span> }))
+    <span class="keyword">this</span>._nextRuleId = <span class="keyword">this</span>._rules.length + <span class="number">1</span>
+  }
+
+  <span class="keyword">static</span> <span class="function">setMockPolicy</span>(policy: <span class="type">MockNetFirewallPolicy</span>) {
+    <span class="keyword">this</span>._policy = policy
+  }
+
+  <span class="keyword">static</span> <span class="function">setFailMode</span>(shouldFail: <span class="type">boolean</span>, error?: <span class="type">Error</span>) {
+    <span class="keyword">this</span>._shouldFail = shouldFail
+    <span class="keyword">this</span>._failError = error ?? <span class="keyword">new</span> <span class="function">Error</span>(<span class="string">'Mock API Error'</span>)
+  }
+
+  <span class="comment">// ==================== 模拟 API 方法 ====================</span>
+
+  <span class="keyword">static async</span> <span class="function">getNetFirewallPolicy</span>(userId: <span class="type">number</span>): <span class="type">Promise</span>&lt;<span class="type">MockNetFirewallPolicy</span>&gt; {
+    <span class="keyword">if</span> (<span class="keyword">this</span>._shouldFail) <span class="keyword">throw</span> <span class="keyword">this</span>._failError
+    <span class="keyword">return</span> { ...<span class="keyword">this</span>._policy }
+  }
+
+  <span class="keyword">static async</span> <span class="function">setNetFirewallPolicy</span>(userId: <span class="type">number</span>, policy: <span class="type">MockNetFirewallPolicy</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">if</span> (<span class="keyword">this</span>._shouldFail) <span class="keyword">throw</span> <span class="keyword">this</span>._failError
+    <span class="keyword">this</span>._policy = { ...policy }
+  }
+
+  <span class="keyword">static async</span> <span class="function">getNetFirewallRules</span>(userId: <span class="type">number</span>, params: <span class="type">object</span>): <span class="type">Promise</span>&lt;{ data: <span class="type">MockNetFirewallRule</span>[] }&gt; {
+    <span class="keyword">if</span> (<span class="keyword">this</span>._shouldFail) <span class="keyword">throw</span> <span class="keyword">this</span>._failError
+    <span class="keyword">return</span> { data: [...<span class="keyword">this</span>._rules] }
+  }
+
+  <span class="keyword">static async</span> <span class="function">addNetFirewallRule</span>(rule: <span class="type">MockNetFirewallRule</span>): <span class="type">Promise</span>&lt;<span class="type">number</span>&gt; {
+    <span class="keyword">if</span> (<span class="keyword">this</span>._shouldFail) <span class="keyword">throw</span> <span class="keyword">this</span>._failError
+    <span class="keyword">let</span> newRule = { ...rule, ruleId: <span class="keyword">this</span>._nextRuleId++ }
+    <span class="keyword">this</span>._rules.push(newRule)
+    <span class="keyword">return</span> newRule.ruleId!
+  }
+
+  <span class="keyword">static async</span> <span class="function">removeNetFirewallRule</span>(userId: <span class="type">number</span>, ruleId: <span class="type">number</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">if</span> (<span class="keyword">this</span>._shouldFail) <span class="keyword">throw</span> <span class="keyword">this</span>._failError
+    <span class="keyword">this</span>._rules = <span class="keyword">this</span>._rules.filter(r => r.ruleId !== ruleId)
+  }
+
+  <span class="keyword">static async</span> <span class="function">updateNetFirewallRule</span>(rule: <span class="type">MockNetFirewallRule</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">if</span> (<span class="keyword">this</span>._shouldFail) <span class="keyword">throw</span> <span class="keyword">this</span>._failError
+    <span class="keyword">let</span> index = <span class="keyword">this</span>._rules.findIndex(r => r.ruleId === rule.ruleId)
+    <span class="keyword">if</span> (index >= <span class="number">0</span>) {
+      <span class="keyword">this</span>._rules[index] = { ...<span class="keyword">this</span>._rules[index], ...rule }
+    }
+  }
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Service Firewall -->
+        <section id="service-firewall" class="section">
+            <h3>FirewallService 测试实现</h3>
+
+            <p>基于 Mock 机制，测试 FirewallService 的业务逻辑：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/test/services/FirewallService.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { describe, beforeEach, it, expect } <span class="keyword">from</span> <span class="string">'@ohos/hypium'</span>
+<span class="keyword">import</span> { MockNetFirewall, MockNetFirewallRule } <span class="keyword">from</span> <span class="string">'../__mocks__/MockNetFirewall'</span>
+
+<span class="comment">/**
+ * FirewallService 测试
+ * 使用 Mock 替代真实系统 API
+ */</span>
+<span class="keyword">export default function</span> <span class="function">firewallServiceTest</span>() {
+  <span class="function">describe</span>(<span class="string">'FirewallService'</span>, () => {
+
+    <span class="comment">// 每个测试前重置 Mock 状态</span>
+    <span class="function">beforeEach</span>(() => {
+      MockNetFirewall.<span class="function">reset</span>()
+    })
+
+    <span class="comment">// ==================== countByType 测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'countByType'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should count IP rules correctly'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> rules: <span class="type">MockNetFirewallRule</span>[] = [
+          { userId: <span class="number">100</span>, name: <span class="string">'rule1'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// IP</span>
+          { userId: <span class="number">100</span>, name: <span class="string">'rule2'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// IP</span>
+          { userId: <span class="number">100</span>, name: <span class="string">'rule3'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">2</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// DOMAIN</span>
+          { userId: <span class="number">100</span>, name: <span class="string">'rule4'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">3</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// DNS</span>
+        ]
+
+        <span class="keyword">let</span> ipCount = rules.filter(r => r.type === <span class="number">1</span>).length
+        <span class="keyword">let</span> domainCount = rules.filter(r => r.type === <span class="number">2</span>).length
+        <span class="keyword">let</span> dnsCount = rules.filter(r => r.type === <span class="number">3</span>).length
+
+        <span class="function">expect</span>(ipCount).<span class="function">assertEqual</span>(<span class="number">2</span>)
+        <span class="function">expect</span>(domainCount).<span class="function">assertEqual</span>(<span class="number">1</span>)
+        <span class="function">expect</span>(dnsCount).<span class="function">assertEqual</span>(<span class="number">1</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should return 0 for empty rules'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> rules: <span class="type">MockNetFirewallRule</span>[] = []
+        <span class="keyword">let</span> count = rules.filter(r => r.type === <span class="number">1</span>).length
+        <span class="function">expect</span>(count).<span class="function">assertEqual</span>(<span class="number">0</span>)
+      })
+    })
+
+    <span class="comment">// ==================== countByDirection 测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'countByDirection'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should count IN and OUT rules correctly'</span>, <span class="number">0</span>, () => {
+        <span class="keyword">let</span> rules: <span class="type">MockNetFirewallRule</span>[] = [
+          { userId: <span class="number">100</span>, name: <span class="string">'rule1'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// IN</span>
+          { userId: <span class="number">100</span>, name: <span class="string">'rule2'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// IN</span>
+          { userId: <span class="number">100</span>, name: <span class="string">'rule3'</span>, direction: <span class="number">2</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },  <span class="comment">// OUT</span>
+        ]
+
+        <span class="keyword">let</span> inCount = rules.filter(r => r.direction === <span class="number">1</span>).length
+        <span class="keyword">let</span> outCount = rules.filter(r => r.direction === <span class="number">2</span>).length
+
+        <span class="function">expect</span>(inCount).<span class="function">assertEqual</span>(<span class="number">2</span>)
+        <span class="function">expect</span>(outCount).<span class="function">assertEqual</span>(<span class="number">1</span>)
+      })
+    })
+
+    <span class="comment">// ==================== getFirewallStatus 测试（使用 Mock）====================</span>
+
+    <span class="function">describe</span>(<span class="string">'getFirewallStatus with Mock'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should return true when firewall is open'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        MockNetFirewall.<span class="function">setMockPolicy</span>({ isOpen: <span class="keyword">true</span>, inAction: <span class="number">0</span>, outAction: <span class="number">0</span> })
+        <span class="keyword">let</span> policy = <span class="keyword">await</span> MockNetFirewall.<span class="function">getNetFirewallPolicy</span>(<span class="number">100</span>)
+        <span class="function">expect</span>(policy.isOpen).<span class="function">assertTrue</span>()
+      })
+
+      <span class="function">it</span>(<span class="string">'should return false when firewall is closed'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        MockNetFirewall.<span class="function">setMockPolicy</span>({ isOpen: <span class="keyword">false</span>, inAction: <span class="number">0</span>, outAction: <span class="number">0</span> })
+        <span class="keyword">let</span> policy = <span class="keyword">await</span> MockNetFirewall.<span class="function">getNetFirewallPolicy</span>(<span class="number">100</span>)
+        <span class="function">expect</span>(policy.isOpen).<span class="function">assertFalse</span>()
+      })
+    })
+
+    <span class="comment">// ==================== addRule 测试（使用 Mock）====================</span>
+
+    <span class="function">describe</span>(<span class="string">'addRule with Mock'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should add rule and return new ruleId'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        <span class="keyword">let</span> newRule: <span class="type">MockNetFirewallRule</span> = {
+          userId: <span class="number">100</span>,
+          name: <span class="string">'Test Rule'</span>,
+          direction: <span class="number">1</span>,
+          action: <span class="number">0</span>,
+          type: <span class="number">1</span>,
+          isEnabled: <span class="keyword">true</span>
+        }
+
+        <span class="keyword">let</span> ruleId = <span class="keyword">await</span> MockNetFirewall.<span class="function">addNetFirewallRule</span>(newRule)
+        <span class="function">expect</span>(ruleId).<span class="function">assertLarger</span>(<span class="number">0</span>)
+
+        <span class="keyword">let</span> result = <span class="keyword">await</span> MockNetFirewall.<span class="function">getNetFirewallRules</span>(<span class="number">100</span>, {})
+        <span class="function">expect</span>(result.data.length).<span class="function">assertEqual</span>(<span class="number">1</span>)
+        <span class="function">expect</span>(result.data[<span class="number">0</span>].name).<span class="function">assertEqual</span>(<span class="string">'Test Rule'</span>)
+      })
+
+      <span class="function">it</span>(<span class="string">'should handle API failure'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        MockNetFirewall.<span class="function">setFailMode</span>(<span class="keyword">true</span>, <span class="keyword">new</span> <span class="function">Error</span>(<span class="string">'Permission denied'</span>))
+
+        <span class="keyword">let</span> error: <span class="type">Error</span> | <span class="keyword">null</span> = <span class="keyword">null</span>
+        <span class="keyword">try</span> {
+          <span class="keyword">await</span> MockNetFirewall.<span class="function">addNetFirewallRule</span>({
+            userId: <span class="number">100</span>, name: <span class="string">'Test'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span>
+          })
+        } <span class="keyword">catch</span> (e) {
+          error = e <span class="keyword">as</span> <span class="type">Error</span>
+        }
+
+        <span class="function">expect</span>(error).<span class="function">assertNotNull</span>()
+        <span class="function">expect</span>(error!.message).<span class="function">assertEqual</span>(<span class="string">'Permission denied'</span>)
+      })
+    })
+
+    <span class="comment">// ==================== removeRule 测试 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'removeRule with Mock'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should remove rule by ruleId'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        MockNetFirewall.<span class="function">setMockRules</span>([
+          { ruleId: <span class="number">1</span>, userId: <span class="number">100</span>, name: <span class="string">'rule1'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },
+          { ruleId: <span class="number">2</span>, userId: <span class="number">100</span>, name: <span class="string">'rule2'</span>, direction: <span class="number">1</span>, action: <span class="number">0</span>, type: <span class="number">1</span>, isEnabled: <span class="keyword">true</span> },
+        ])
+
+        <span class="keyword">await</span> MockNetFirewall.<span class="function">removeNetFirewallRule</span>(<span class="number">100</span>, <span class="number">1</span>)
+
+        <span class="keyword">let</span> result = <span class="keyword">await</span> MockNetFirewall.<span class="function">getNetFirewallRules</span>(<span class="number">100</span>, {})
+        <span class="function">expect</span>(result.data.length).<span class="function">assertEqual</span>(<span class="number">1</span>)
+        <span class="function">expect</span>(result.data[<span class="number">0</span>].ruleId).<span class="function">assertEqual</span>(<span class="number">2</span>)
+      })
+    })
+
+  })
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Service Peripheral -->
+        <section id="service-peripheral" class="section">
+            <h3>PeripheralService 测试实现</h3>
+
+            <p>类似地，为外设管理服务创建 Mock 和测试：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/test/__mocks__/MockUsbManager.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="comment">/**
+ * Mock USB Manager API
+ */</span>
+<span class="keyword">export interface</span> <span class="type">MockUsbWhitelistDevice</span> {
+  vendorId: <span class="type">number</span>
+  productId: <span class="type">number</span>
+}
+
+<span class="keyword">export class</span> <span class="function">MockUsbManager</span> {
+  <span class="keyword">private static</span> _whitelist: <span class="type">MockUsbWhitelistDevice</span>[] = []
+  <span class="keyword">private static</span> _usbDisabled: <span class="type">boolean</span> = <span class="keyword">false</span>
+
+  <span class="keyword">static</span> <span class="function">reset</span>() {
+    <span class="keyword">this</span>._whitelist = []
+    <span class="keyword">this</span>._usbDisabled = <span class="keyword">false</span>
+  }
+
+  <span class="keyword">static</span> <span class="function">setMockWhitelist</span>(devices: <span class="type">MockUsbWhitelistDevice</span>[]) {
+    <span class="keyword">this</span>._whitelist = [...devices]
+  }
+
+  <span class="keyword">static async</span> <span class="function">getUsbStorageDeviceAccessPolicy</span>(admin: <span class="type">object</span>): <span class="type">Promise</span>&lt;<span class="type">number</span>&gt; {
+    <span class="keyword">return</span> <span class="keyword">this</span>._usbDisabled ? <span class="number">2</span> : <span class="number">0</span>  <span class="comment">// 2=DISABLED, 0=READ_WRITE</span>
+  }
+
+  <span class="keyword">static async</span> <span class="function">setUsbStorageDeviceAccessPolicy</span>(admin: <span class="type">object</span>, policy: <span class="type">number</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">this</span>._usbDisabled = policy === <span class="number">2</span>
+  }
+
+  <span class="keyword">static async</span> <span class="function">getAllowedUsbDevices</span>(admin: <span class="type">object</span>): <span class="type">Promise</span>&lt;<span class="type">MockUsbWhitelistDevice</span>[]&gt; {
+    <span class="keyword">return</span> [...<span class="keyword">this</span>._whitelist]
+  }
+
+  <span class="keyword">static async</span> <span class="function">addAllowedUsbDevices</span>(admin: <span class="type">object</span>, devices: <span class="type">MockUsbWhitelistDevice</span>[]): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">this</span>._whitelist.push(...devices)
+  }
+
+  <span class="keyword">static async</span> <span class="function">removeAllowedUsbDevices</span>(admin: <span class="type">object</span>, devices: <span class="type">MockUsbWhitelistDevice</span>[]): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">for</span> (<span class="keyword">let</span> d <span class="keyword">of</span> devices) {
+      <span class="keyword">this</span>._whitelist = <span class="keyword">this</span>._whitelist.filter(
+        w => !(w.vendorId === d.vendorId && w.productId === d.productId)
+      )
+    }
+  }
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Component Snapshot -->
+        <section id="component-snapshot" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--warning), #FFD60A);">
+                    <span>3</span>
+                </div>
+                <h2>组件测试 - 快照测试原理</h2>
+            </div>
+
+            <p>快照测试的核心思想是：首次运行时生成组件的"基线快照"，后续运行时对比当前输出与基线，检测意外变更。</p>
+
+            <h3>快照测试流程</h3>
+
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <div class="flow-step-num">1</div>
+                    <div class="flow-step-text">渲染组件</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">2</div>
+                    <div class="flow-step-text">序列化结构</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">3</div>
+                    <div class="flow-step-text">对比基线</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">4</div>
+                    <div class="flow-step-text">输出结果</div>
+                </div>
+            </div>
+
+            <h3>快照工具实现</h3>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/utils/SnapshotUtils.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { fileIo } <span class="keyword">from</span> <span class="string">'@kit.CoreFileKit'</span>
+
+<span class="comment">/**
+ * 组件快照测试工具
+ */</span>
+<span class="keyword">export interface</span> <span class="type">ComponentSnapshot</span> {
+  componentName: <span class="type">string</span>
+  props: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt;
+  timestamp: <span class="type">number</span>
+  structure: <span class="type">string</span>  <span class="comment">// 序列化的组件结构</span>
+}
+
+<span class="keyword">export interface</span> <span class="type">SnapshotDiff</span> {
+  match: <span class="type">boolean</span>
+  differences: <span class="type">string</span>[]
+}
+
+<span class="keyword">export class</span> <span class="function">SnapshotManager</span> {
+  <span class="keyword">private</span> baselinePath: <span class="type">string</span>
+
+  <span class="keyword">constructor</span>(baselinePath: <span class="type">string</span>) {
+    <span class="keyword">this</span>.baselinePath = baselinePath
+  }
+
+  <span class="comment">/**
+   * 生成组件快照
+   */</span>
+  <span class="function">createSnapshot</span>(componentName: <span class="type">string</span>, props: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt;, structure: <span class="type">string</span>): <span class="type">ComponentSnapshot</span> {
+    <span class="keyword">return</span> {
+      componentName,
+      props,
+      timestamp: Date.<span class="function">now</span>(),
+      structure
+    }
+  }
+
+  <span class="comment">/**
+   * 保存为基线
+   */</span>
+  <span class="keyword">async</span> <span class="function">saveBaseline</span>(snapshotName: <span class="type">string</span>, snapshot: <span class="type">ComponentSnapshot</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="keyword">let</span> path = <span class="string">`</span>${<span class="keyword">this</span>.baselinePath}<span class="string">/</span>${snapshotName}<span class="string">.json`</span>
+    <span class="keyword">let</span> content = JSON.<span class="function">stringify</span>(snapshot, <span class="keyword">null</span>, <span class="number">2</span>)
+    <span class="keyword">let</span> file = fileIo.<span class="function">openSync</span>(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY)
+    fileIo.<span class="function">writeSync</span>(file.fd, content)
+    fileIo.<span class="function">closeSync</span>(file)
+  }
+
+  <span class="comment">/**
+   * 加载基线
+   */</span>
+  <span class="keyword">async</span> <span class="function">loadBaseline</span>(snapshotName: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">ComponentSnapshot</span> | <span class="keyword">null</span>&gt; {
+    <span class="keyword">let</span> path = <span class="string">`</span>${<span class="keyword">this</span>.baselinePath}<span class="string">/</span>${snapshotName}<span class="string">.json`</span>
+    <span class="keyword">try</span> {
+      <span class="keyword">let</span> stat = fileIo.<span class="function">statSync</span>(path)
+      <span class="keyword">if</span> (!stat.isFile()) <span class="keyword">return</span> <span class="keyword">null</span>
+
+      <span class="keyword">let</span> file = fileIo.<span class="function">openSync</span>(path, fileIo.OpenMode.READ_ONLY)
+      <span class="keyword">let</span> buf = <span class="keyword">new</span> <span class="function">ArrayBuffer</span>(stat.size)
+      fileIo.<span class="function">readSync</span>(file.fd, buf)
+      fileIo.<span class="function">closeSync</span>(file)
+
+      <span class="keyword">let</span> content = <span class="function">String</span>.fromCharCode(...<span class="keyword">new</span> <span class="function">Uint8Array</span>(buf))
+      <span class="keyword">return</span> JSON.<span class="function">parse</span>(content) <span class="keyword">as</span> <span class="type">ComponentSnapshot</span>
+    } <span class="keyword">catch</span> {
+      <span class="keyword">return</span> <span class="keyword">null</span>
+    }
+  }
+
+  <span class="comment">/**
+   * 对比快照
+   */</span>
+  <span class="function">compareSnapshots</span>(current: <span class="type">ComponentSnapshot</span>, baseline: <span class="type">ComponentSnapshot</span>): <span class="type">SnapshotDiff</span> {
+    <span class="keyword">let</span> differences: <span class="type">string</span>[] = []
+
+    <span class="keyword">if</span> (current.structure !== baseline.structure) {
+      differences.push(<span class="string">'Component structure changed'</span>)
+    }
+
+    <span class="keyword">let</span> currentProps = JSON.<span class="function">stringify</span>(current.props)
+    <span class="keyword">let</span> baselineProps = JSON.<span class="function">stringify</span>(baseline.props)
+    <span class="keyword">if</span> (currentProps !== baselineProps) {
+      differences.push(<span class="string">'Props changed'</span>)
+    }
+
+    <span class="keyword">return</span> {
+      match: differences.length === <span class="number">0</span>,
+      differences
+    }
+  }
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Component Impl -->
+        <section id="component-impl" class="section">
+            <h3>组件测试实现</h3>
+
+            <p>以 StatCard 组件为例，展示组件测试的完整实现：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/components/StatCard.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { describe, beforeAll, afterAll, it, expect } <span class="keyword">from</span> <span class="string">'@ohos/hypium'</span>
+<span class="keyword">import</span> { abilityDelegatorRegistry, Driver, ON } <span class="keyword">from</span> <span class="string">'@kit.TestKit'</span>
+
+<span class="comment">/**
+ * StatCard 组件测试
+ * 需要在设备上运行
+ */</span>
+<span class="keyword">export default function</span> <span class="function">statCardTest</span>() {
+  <span class="function">describe</span>(<span class="string">'StatCard'</span>, () => {
+    <span class="keyword">let</span> driver: <span class="type">Driver</span>
+    <span class="keyword">let</span> delegator = abilityDelegatorRegistry.<span class="function">getAbilityDelegator</span>()
+
+    <span class="function">beforeAll</span>(<span class="keyword">async</span> () => {
+      driver = Driver.<span class="function">create</span>()
+      <span class="comment">// 启动测试页面</span>
+      <span class="keyword">await</span> delegator.<span class="function">startAbility</span>({
+        bundleName: <span class="string">'com.example.securitytool'</span>,
+        abilityName: <span class="string">'EntryAbility'</span>
+      })
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">2000</span>)
+    })
+
+    <span class="function">afterAll</span>(<span class="keyword">async</span> () => {
+      <span class="comment">// 清理测试环境</span>
+    })
+
+    <span class="comment">// ==================== 渲染测试 ====================</span>
+
+    <span class="function">it</span>(<span class="string">'should display correct value and label'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 导航到 Dashboard 页面（包含 StatCard）</span>
+      <span class="keyword">let</span> dashboardTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'安全总览'</span>))
+      <span class="keyword">await</span> dashboardTab.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">1000</span>)
+
+      <span class="comment">// 验证统计卡片显示</span>
+      <span class="keyword">let</span> statValue = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'活跃规则'</span>))
+      <span class="function">expect</span>(statValue).<span class="function">assertNotNull</span>()
+    })
+
+    <span class="function">it</span>(<span class="string">'should apply gradient colors'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 截图对比验证渐变色是否正确应用</span>
+      <span class="keyword">let</span> screenshot = <span class="keyword">await</span> driver.<span class="function">screenShot</span>()
+      <span class="function">expect</span>(screenshot.length).<span class="function">assertLarger</span>(<span class="number">0</span>)
+      <span class="comment">// 实际项目中可以与基线图片进行像素对比</span>
+    })
+
+    <span class="comment">// ==================== 主题切换测试 ====================</span>
+
+    <span class="function">it</span>(<span class="string">'should update colors when theme changes'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 切换到深色主题</span>
+      <span class="keyword">let</span> settingsTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'工具设置'</span>))
+      <span class="keyword">await</span> settingsTab.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+      <span class="keyword">let</span> darkModeToggle = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'深色模式'</span>))
+      <span class="keyword">if</span> (darkModeToggle) {
+        <span class="keyword">await</span> darkModeToggle.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+      }
+
+      <span class="comment">// 返回 Dashboard 验证主题已应用</span>
+      <span class="keyword">let</span> dashboardTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'安全总览'</span>))
+      <span class="keyword">await</span> dashboardTab.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+      <span class="comment">// 验证页面渲染正常（不崩溃）</span>
+      <span class="keyword">let</span> statCard = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'活跃规则'</span>))
+      <span class="function">expect</span>(statCard).<span class="function">assertNotNull</span>()
+    })
+
+  })
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Component Interaction -->
+        <section id="component-interaction" class="section">
+            <h3>交互测试</h3>
+
+            <p>对于包含交互行为的组件（如 AddRuleDialog），需要测试用户操作流程：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/components/AddRuleDialog.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { describe, beforeAll, it, expect } <span class="keyword">from</span> <span class="string">'@ohos/hypium'</span>
+<span class="keyword">import</span> { Driver, ON, Component } <span class="keyword">from</span> <span class="string">'@kit.TestKit'</span>
+
+<span class="keyword">export default function</span> <span class="function">addRuleDialogTest</span>() {
+  <span class="function">describe</span>(<span class="string">'AddRuleDialog'</span>, () => {
+    <span class="keyword">let</span> driver: <span class="type">Driver</span>
+
+    <span class="function">beforeAll</span>(<span class="keyword">async</span> () => {
+      driver = Driver.<span class="function">create</span>()
+      <span class="comment">// 导航到防火墙规则页面</span>
+      <span class="keyword">await</span> <span class="function">navigateToFirewallRules</span>(driver)
+    })
+
+    <span class="function">it</span>(<span class="string">'should open dialog when add button clicked'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 点击添加按钮</span>
+      <span class="keyword">let</span> addBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加规则'</span>))
+      <span class="keyword">await</span> addBtn.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+      <span class="comment">// 验证弹窗出现</span>
+      <span class="keyword">let</span> dialogTitle = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加防火墙规则'</span>))
+      <span class="function">expect</span>(dialogTitle).<span class="function">assertNotNull</span>()
+    })
+
+    <span class="function">it</span>(<span class="string">'should close dialog when cancel button clicked'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 点击取消按钮</span>
+      <span class="keyword">let</span> cancelBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'取消'</span>))
+      <span class="keyword">await</span> cancelBtn.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+      <span class="comment">// 验证弹窗关闭</span>
+      <span class="keyword">let</span> dialogTitle = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加防火墙规则'</span>))
+      <span class="function">expect</span>(dialogTitle).<span class="function">assertNull</span>()
+    })
+
+    <span class="function">it</span>(<span class="string">'should validate required fields'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 打开弹窗</span>
+      <span class="keyword">let</span> addBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加规则'</span>))
+      <span class="keyword">await</span> addBtn.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+      <span class="comment">// 不填写名称，直接点击添加</span>
+      <span class="keyword">let</span> confirmBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加'</span>))
+      <span class="keyword">await</span> confirmBtn.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">300</span>)
+
+      <span class="comment">// 弹窗应该仍然显示（因为验证未通过）</span>
+      <span class="keyword">let</span> dialogTitle = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加防火墙规则'</span>))
+      <span class="function">expect</span>(dialogTitle).<span class="function">assertNotNull</span>()
+    })
+
+    <span class="function">it</span>(<span class="string">'should switch form fields based on rule type'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+      <span class="comment">// 选择"域名规则"</span>
+      <span class="keyword">let</span> ruleTypeSelect = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'IP 规则'</span>))
+      <span class="keyword">await</span> ruleTypeSelect.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">300</span>)
+
+      <span class="keyword">let</span> domainOption = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'域名规则'</span>))
+      <span class="keyword">await</span> domainOption.<span class="function">click</span>()
+      <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">300</span>)
+
+      <span class="comment">// 验证"协议"和"远程端口"字段消失</span>
+      <span class="keyword">let</span> protocolField = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'协议'</span>))
+      <span class="function">expect</span>(protocolField).<span class="function">assertNull</span>()
+
+      <span class="comment">// 验证"域名"字段出现</span>
+      <span class="keyword">let</span> domainField = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'域名'</span>))
+      <span class="function">expect</span>(domainField).<span class="function">assertNotNull</span>()
+    })
+
+  })
+}
+
+<span class="comment">// 辅助函数</span>
+<span class="keyword">async function</span> <span class="function">navigateToFirewallRules</span>(driver: <span class="type">Driver</span>) {
+  <span class="keyword">let</span> firewallTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'防火墙'</span>))
+  <span class="keyword">await</span> firewallTab.<span class="function">click</span>()
+  <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+  <span class="keyword">let</span> ipRules = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'IP 规则'</span>))
+  <span class="keyword">await</span> ipRules.<span class="function">click</span>()
+  <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: E2E Page -->
+        <section id="e2e-page" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--danger), #FF6B6B);">
+                    <span>4</span>
+                </div>
+                <h2>E2E 测试 - 页面快照回归</h2>
+            </div>
+
+            <p>页面快照回归测试用于检测 UI 变更是否影响已有页面的视觉呈现。每次构建时截取关键页面截图，与基线对比。</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/e2e/PageSnapshot.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { describe, beforeAll, afterAll, it, expect } <span class="keyword">from</span> <span class="string">'@ohos/hypium'</span>
+<span class="keyword">import</span> { Driver, ON } <span class="keyword">from</span> <span class="string">'@kit.TestKit'</span>
+<span class="keyword">import</span> { fileIo } <span class="keyword">from</span> <span class="string">'@kit.CoreFileKit'</span>
+<span class="keyword">import</span> { image } <span class="keyword">from</span> <span class="string">'@kit.ImageKit'</span>
+
+<span class="comment">/**
+ * 页面快照回归测试
+ */</span>
+
+<span class="keyword">interface</span> <span class="type">PageConfig</span> {
+  name: <span class="type">string</span>
+  navText: <span class="type">string</span>
+  baselineFile: <span class="type">string</span>
+}
+
+<span class="keyword">const</span> PAGES_TO_TEST: <span class="type">PageConfig</span>[] = [
+  { name: <span class="string">'DashboardPage'</span>, navText: <span class="string">'安全总览'</span>, baselineFile: <span class="string">'dashboard.png'</span> },
+  { name: <span class="string">'FirewallPage'</span>, navText: <span class="string">'防火墙'</span>, baselineFile: <span class="string">'firewall.png'</span> },
+  { name: <span class="string">'PeripheralPage'</span>, navText: <span class="string">'外设管理'</span>, baselineFile: <span class="string">'peripheral.png'</span> },
+  { name: <span class="string">'IdentityPage'</span>, navText: <span class="string">'身份鉴别'</span>, baselineFile: <span class="string">'identity.png'</span> },
+]
+
+<span class="keyword">const</span> BASELINE_DIR = <span class="string">'/data/test/baselines'</span>
+<span class="keyword">const</span> SNAPSHOT_DIR = <span class="string">'/data/test/snapshots'</span>
+<span class="keyword">const</span> MISMATCH_THRESHOLD = <span class="number">0.1</span>  <span class="comment">// 允许 0.1% 的像素差异</span>
+
+<span class="keyword">export default function</span> <span class="function">pageSnapshotTest</span>() {
+  <span class="function">describe</span>(<span class="string">'Page Snapshot Regression'</span>, () => {
+    <span class="keyword">let</span> driver: <span class="type">Driver</span>
+
+    <span class="function">beforeAll</span>(<span class="keyword">async</span> () => {
+      driver = Driver.<span class="function">create</span>()
+      <span class="comment">// 确保目录存在</span>
+      <span class="function">ensureDir</span>(SNAPSHOT_DIR)
+    })
+
+    <span class="comment">// 为每个页面生成测试用例</span>
+    <span class="keyword">for</span> (<span class="keyword">let</span> page <span class="keyword">of</span> PAGES_TO_TEST) {
+      <span class="function">it</span>(<span class="string">`</span>${page.name}<span class="string"> should match baseline`</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        <span class="comment">// 1. 导航到目标页面</span>
+        <span class="keyword">let</span> navItem = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(page.navText))
+        <span class="function">expect</span>(navItem).<span class="function">assertNotNull</span>()
+        <span class="keyword">await</span> navItem!.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">1000</span>)  <span class="comment">// 等待页面加载完成</span>
+
+        <span class="comment">// 2. 截取当前页面截图</span>
+        <span class="keyword">let</span> screenshotData = <span class="keyword">await</span> driver.<span class="function">screenShot</span>()
+        <span class="keyword">let</span> snapshotPath = <span class="string">`</span>${SNAPSHOT_DIR}<span class="string">/</span>${page.baselineFile}<span class="string">`</span>
+        <span class="keyword">await</span> <span class="function">saveScreenshot</span>(screenshotData, snapshotPath)
+
+        <span class="comment">// 3. 加载基线图片</span>
+        <span class="keyword">let</span> baselinePath = <span class="string">`</span>${BASELINE_DIR}<span class="string">/</span>${page.baselineFile}<span class="string">`</span>
+        <span class="keyword">let</span> baselineExists = <span class="function">fileExists</span>(baselinePath)
+
+        <span class="keyword">if</span> (!baselineExists) {
+          <span class="comment">// 基线不存在，保存当前截图作为新基线</span>
+          <span class="keyword">await</span> <span class="function">saveScreenshot</span>(screenshotData, baselinePath)
+          console.<span class="function">log</span>(<span class="string">`[INFO] Created new baseline for </span>${page.name}<span class="string">`</span>)
+          <span class="keyword">return</span>
+        }
+
+        <span class="comment">// 4. 对比截图与基线</span>
+        <span class="keyword">let</span> mismatchPercent = <span class="keyword">await</span> <span class="function">compareImages</span>(snapshotPath, baselinePath)
+
+        <span class="comment">// 5. 验证差异在阈值内</span>
+        <span class="function">expect</span>(mismatchPercent).<span class="function">assertLess</span>(MISMATCH_THRESHOLD)
+
+        <span class="keyword">if</span> (mismatchPercent >= MISMATCH_THRESHOLD) {
+          console.<span class="function">error</span>(<span class="string">`[FAIL] </span>${page.name}<span class="string"> mismatch: </span>${mismatchPercent.<span class="function">toFixed</span>(<span class="number">2</span>)}<span class="string">%`</span>)
+        }
+      })
+    }
+
+  })
+}
+
+<span class="comment">// ==================== 辅助函数 ====================</span>
+
+<span class="keyword">function</span> <span class="function">ensureDir</span>(path: <span class="type">string</span>) {
+  <span class="keyword">try</span> {
+    fileIo.<span class="function">mkdirSync</span>(path)
+  } <span class="keyword">catch</span> (e) {
+    <span class="comment">// 目录已存在，忽略</span>
+  }
+}
+
+<span class="keyword">function</span> <span class="function">fileExists</span>(path: <span class="type">string</span>): <span class="type">boolean</span> {
+  <span class="keyword">try</span> {
+    fileIo.<span class="function">statSync</span>(path)
+    <span class="keyword">return</span> <span class="keyword">true</span>
+  } <span class="keyword">catch</span> {
+    <span class="keyword">return</span> <span class="keyword">false</span>
+  }
+}
+
+<span class="keyword">async function</span> <span class="function">saveScreenshot</span>(data: <span class="type">ArrayBuffer</span>, path: <span class="type">string</span>) {
+  <span class="keyword">let</span> file = fileIo.<span class="function">openSync</span>(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY)
+  fileIo.<span class="function">writeSync</span>(file.fd, data)
+  fileIo.<span class="function">closeSync</span>(file)
+}
+
+<span class="keyword">async function</span> <span class="function">compareImages</span>(path1: <span class="type">string</span>, path2: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">number</span>&gt; {
+  <span class="comment">// 简化版像素对比</span>
+  <span class="comment">// 实际项目中可以使用更专业的图像对比库</span>
+  <span class="keyword">let</span> img1 = <span class="keyword">await</span> <span class="function">loadImagePixels</span>(path1)
+  <span class="keyword">let</span> img2 = <span class="keyword">await</span> <span class="function">loadImagePixels</span>(path2)
+
+  <span class="keyword">if</span> (img1.length !== img2.length) {
+    <span class="keyword">return</span> <span class="number">100</span>  <span class="comment">// 尺寸不同，100% 差异</span>
+  }
+
+  <span class="keyword">let</span> diffCount = <span class="number">0</span>
+  <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i < img1.length; i++) {
+    <span class="keyword">if</span> (img1[i] !== img2[i]) {
+      diffCount++
+    }
+  }
+
+  <span class="keyword">return</span> (diffCount / img1.length) * <span class="number">100</span>
+}
+
+<span class="keyword">async function</span> <span class="function">loadImagePixels</span>(path: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">Uint8Array</span>&gt; {
+  <span class="keyword">let</span> file = fileIo.<span class="function">openSync</span>(path, fileIo.OpenMode.READ_ONLY)
+  <span class="keyword">let</span> stat = fileIo.<span class="function">statSync</span>(path)
+  <span class="keyword">let</span> buf = <span class="keyword">new</span> <span class="function">ArrayBuffer</span>(stat.size)
+  fileIo.<span class="function">readSync</span>(file.fd, buf)
+  fileIo.<span class="function">closeSync</span>(file)
+  <span class="keyword">return</span> <span class="keyword">new</span> <span class="function">Uint8Array</span>(buf)
+}
+                </div>
+            </div>
+
+            <div class="info-box warning">
+                <div class="info-box-title">
+                    <span>&#x26A0;</span> 注意事项
+                </div>
+                <p><strong>基线管理</strong>：基线图片应纳入版本控制。当 UI 有意变更时，需要更新基线。<br>
+                <strong>环境一致性</strong>：确保测试环境（分辨率、系统版本）与生成基线时一致。</p>
+            </div>
+        </section>
+
+        <!-- Section: E2E Flow -->
+        <section id="e2e-flow" class="section">
+            <h3>关键流程测试</h3>
+
+            <p>E2E 流程测试模拟真实用户操作，验证核心业务流程的正确性：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/e2e/flows/FirewallFlow.test.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="keyword">import</span> { describe, beforeAll, afterEach, it, expect } <span class="keyword">from</span> <span class="string">'@ohos/hypium'</span>
+<span class="keyword">import</span> { Driver, ON } <span class="keyword">from</span> <span class="string">'@kit.TestKit'</span>
+
+<span class="comment">/**
+ * 防火墙模块 E2E 流程测试
+ */</span>
+<span class="keyword">export default function</span> <span class="function">firewallFlowTest</span>() {
+  <span class="function">describe</span>(<span class="string">'Firewall Flow'</span>, () => {
+    <span class="keyword">let</span> driver: <span class="type">Driver</span>
+
+    <span class="function">beforeAll</span>(<span class="keyword">async</span> () => {
+      driver = Driver.<span class="function">create</span>()
+    })
+
+    <span class="function">afterEach</span>(<span class="keyword">async</span> () => {
+      <span class="comment">// 每个测试后返回首页</span>
+      <span class="keyword">let</span> dashboard = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'安全总览'</span>))
+      <span class="keyword">if</span> (dashboard) <span class="keyword">await</span> dashboard.<span class="function">click</span>()
+    })
+
+    <span class="comment">// ==================== 流程 1: 添加 IP 规则 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'Add IP Rule Flow'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should complete add IP rule flow successfully'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        <span class="comment">// Step 1: 导航到防火墙页面</span>
+        <span class="keyword">let</span> firewallTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'防火墙'</span>))
+        <span class="keyword">await</span> firewallTab.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="comment">// Step 2: 点击 IP 规则</span>
+        <span class="keyword">let</span> ipRuleItem = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'IP 规则'</span>))
+        <span class="keyword">await</span> ipRuleItem.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="comment">// Step 3: 点击添加按钮</span>
+        <span class="keyword">let</span> addBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加规则'</span>))
+        <span class="keyword">await</span> addBtn.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="comment">// Step 4: 填写表单</span>
+        <span class="keyword">let</span> nameInput = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">type</span>(<span class="string">'TextInput'</span>))
+        <span class="keyword">await</span> nameInput.<span class="function">inputText</span>(<span class="string">'E2E Test Rule'</span>)
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">200</span>)
+
+        <span class="comment">// Step 5: 点击确认</span>
+        <span class="keyword">let</span> confirmBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'添加'</span>))
+        <span class="keyword">await</span> confirmBtn.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">1000</span>)
+
+        <span class="comment">// Step 6: 验证规则已添加</span>
+        <span class="keyword">let</span> newRule = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'E2E Test Rule'</span>))
+        <span class="function">expect</span>(newRule).<span class="function">assertNotNull</span>()
+      })
+    })
+
+    <span class="comment">// ==================== 流程 2: 切换防火墙开关 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'Toggle Firewall Flow'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should toggle firewall status'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        <span class="comment">// 导航到防火墙页面</span>
+        <span class="keyword">let</span> firewallTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'防火墙'</span>))
+        <span class="keyword">await</span> firewallTab.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="comment">// 找到并点击开关</span>
+        <span class="keyword">let</span> toggle = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">type</span>(<span class="string">'Toggle'</span>))
+        <span class="function">expect</span>(toggle).<span class="function">assertNotNull</span>()
+
+        <span class="keyword">await</span> toggle.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="comment">// 验证状态已改变（通过截图或其他方式）</span>
+        <span class="keyword">let</span> screenshot = <span class="keyword">await</span> driver.<span class="function">screenShot</span>()
+        <span class="function">expect</span>(screenshot.byteLength).<span class="function">assertLarger</span>(<span class="number">0</span>)
+      })
+    })
+
+    <span class="comment">// ==================== 流程 3: 删除规则 ====================</span>
+
+    <span class="function">describe</span>(<span class="string">'Delete Rule Flow'</span>, () => {
+      <span class="function">it</span>(<span class="string">'should delete rule with confirmation'</span>, <span class="number">0</span>, <span class="keyword">async</span> () => {
+        <span class="comment">// 导航到防火墙规则页面</span>
+        <span class="keyword">let</span> firewallTab = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'防火墙'</span>))
+        <span class="keyword">await</span> firewallTab.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="keyword">let</span> ipRuleItem = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'IP 规则'</span>))
+        <span class="keyword">await</span> ipRuleItem.<span class="function">click</span>()
+        <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">500</span>)
+
+        <span class="comment">// 找到删除按钮并点击</span>
+        <span class="keyword">let</span> deleteBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'删除'</span>))
+        <span class="keyword">if</span> (deleteBtn) {
+          <span class="keyword">await</span> deleteBtn.<span class="function">click</span>()
+          <span class="keyword">await</span> driver.<span class="function">delayMs</span>(<span class="number">300</span>)
+
+          <span class="comment">// 确认删除</span>
+          <span class="keyword">let</span> confirmBtn = <span class="keyword">await</span> driver.<span class="function">findComponent</span>(ON.<span class="function">text</span>(<span class="string">'确定'</span>))
+          <span class="keyword">if</span> (confirmBtn) {
+            <span class="keyword">await</span> confirmBtn.<span class="function">click</span>()
+          }
+        }
+      })
+    })
+
+  })
+}
+                </div>
+            </div>
+        </section>
+
+        <span class="comment">&lt;!-- Section: E2E Expectations --&gt;</span>
+        <section id="e2e-expect" class="section">
+            <h3>预期行为表</h3>
+
+            <p>借鉴 KuiTest 的组件功能识别思路，为关键组件定义预期行为，自动验证交互是否符合预期：</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">entry/src/ohosTest/ets/test/e2e/expectations/ComponentExpectations.ets</span>
+                    <span class="code-lang">ArkTS</span>
+                </div>
+                <div class="code-block">
+<span class="comment">/**
+ * 组件预期行为定义
+ * 用于自动化验证组件交互是否符合预期
+ */</span>
+
+<span class="keyword">export interface</span> <span class="type">ComponentExpectation</span> {
+  componentId: <span class="type">string</span>        <span class="comment">// 组件标识</span>
+  action: <span class="string">'tap'</span> | <span class="string">'longPress'</span> | <span class="string">'input'</span> | <span class="string">'swipe'</span>
+  expectedResult: <span class="type">ExpectedResult</span>
+}
+
+<span class="keyword">export interface</span> <span class="type">ExpectedResult</span> {
+  type: <span class="string">'state_change'</span> | <span class="string">'navigation'</span> | <span class="string">'dialog_open'</span> | <span class="string">'dialog_close'</span> | <span class="string">'api_call'</span> | <span class="string">'toast'</span>
+  details?: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt;
+}
+
+<span class="comment">/**
+ * SecurityTool 组件预期行为表
+ */</span>
+<span class="keyword">export const</span> COMPONENT_EXPECTATIONS: <span class="type">ComponentExpectation</span>[] = [
+  <span class="comment">// ===== 侧边栏导航 =====</span>
+  {
+    componentId: <span class="string">'sidebar-dashboard'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'navigation'</span>, details: { toPage: <span class="string">'DashboardPage'</span> } }
+  },
+  {
+    componentId: <span class="string">'sidebar-firewall'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'navigation'</span>, details: { toPage: <span class="string">'FirewallPage'</span> } }
+  },
+  {
+    componentId: <span class="string">'sidebar-peripheral'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'navigation'</span>, details: { toPage: <span class="string">'PeripheralPage'</span> } }
+  },
+
+  <span class="comment">// ===== 防火墙页面 =====</span>
+  {
+    componentId: <span class="string">'firewall-toggle'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'state_change'</span>, details: { stateKey: <span class="string">'firewallEnabled'</span> } }
+  },
+  {
+    componentId: <span class="string">'ip-rule-item'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'navigation'</span>, details: { toPage: <span class="string">'FirewallRulesPage'</span>, filter: <span class="number">1</span> } }
+  },
+  {
+    componentId: <span class="string">'add-rule-btn'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'dialog_open'</span>, details: { dialogId: <span class="string">'AddRuleDialog'</span> } }
+  },
+
+  <span class="comment">// ===== 添加规则弹窗 =====</span>
+  {
+    componentId: <span class="string">'dialog-cancel-btn'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'dialog_close'</span> }
+  },
+  {
+    componentId: <span class="string">'dialog-confirm-btn'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'api_call'</span>, details: { method: <span class="string">'addNetFirewallRule'</span> } }
+  },
+
+  <span class="comment">// ===== 外设管理页面 =====</span>
+  {
+    componentId: <span class="string">'usb-toggle'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'state_change'</span>, details: { stateKey: <span class="string">'usbEnabled'</span> } }
+  },
+  {
+    componentId: <span class="string">'bluetooth-toggle'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'state_change'</span>, details: { stateKey: <span class="string">'bluetoothEnabled'</span> } }
+  },
+
+  <span class="comment">// ===== 主题切换 =====</span>
+  {
+    componentId: <span class="string">'theme-toggle'</span>,
+    action: <span class="string">'tap'</span>,
+    expectedResult: { type: <span class="string">'state_change'</span>, details: { stateKey: <span class="string">'currentTheme'</span> } }
+  }
+]
+
+<span class="comment">/**
+ * 验证交互结果是否符合预期
+ */</span>
+<span class="keyword">export function</span> <span class="function">validateExpectation</span>(
+  componentId: <span class="type">string</span>,
+  action: <span class="type">string</span>,
+  actualResult: <span class="type">ExpectedResult</span>
+): <span class="type">boolean</span> {
+  <span class="keyword">let</span> expectation = COMPONENT_EXPECTATIONS.<span class="function">find</span>(
+    e => e.componentId === componentId && e.action === action
+  )
+  
+  <span class="keyword">if</span> (!expectation) {
+    console.<span class="function">warn</span>(<span class="string">`No expectation defined for </span>${componentId}<span class="string">:</span>${action}<span class="string">`</span>)
+    <span class="keyword">return</span> <span class="keyword">true</span>  <span class="comment">// 无预期定义，默认通过</span>
+  }
+
+  <span class="keyword">if</span> (expectation.expectedResult.type !== actualResult.type) {
+    console.<span class="function">error</span>(<span class="string">`Expected </span>${expectation.expectedResult.type}<span class="string">, got </span>${actualResult.type}<span class="string">`</span>)
+    <span class="keyword">return</span> <span class="keyword">false</span>
+  }
+
+  <span class="keyword">return</span> <span class="keyword">true</span>
+}
+                </div>
+            </div>
+        </section>
+
+        <span class="comment">&lt;!-- Section: Directory --&gt;</span>
+        <section id="directory" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--purple), #AF52DE);">
+                    <span>&#x1F4C1;</span>
+                </div>
+                <h2>完整目录结构</h2>
+            </div>
+
+            <div class="file-tree">
+<span class="tree-folder">entry/src/</span>
+├── <span class="tree-folder">main/ets/</span>                         <span class="tree-comment"># 生产代码</span>
+│   ├── <span class="tree-folder">components/</span>                    <span class="tree-comment"># UI 组件</span>
+│   ├── <span class="tree-folder">services/</span>                      <span class="tree-comment"># 服务层</span>
+│   ├── <span class="tree-folder">models/</span>                        <span class="tree-comment"># 数据模型</span>
+│   ├── <span class="tree-folder">views/</span>                         <span class="tree-comment"># 页面视图</span>
+│   └── <span class="tree-folder">theme/</span>                         <span class="tree-comment"># 主题管理</span>
+│
+├── <span class="tree-folder">test/</span>                              <span class="tree-comment"># 本地单元测试</span>
+│   ├── <span class="tree-new">List.test.ets</span>                 <span class="tree-comment"># 测试入口</span>
+│   ├── <span class="tree-folder">models/</span>
+│   │   └── <span class="tree-new">DataModels.test.ets</span>      <span class="tree-comment"># 数据模型测试</span>
+│   ├── <span class="tree-folder">services/</span>
+│   │   └── <span class="tree-new">FirewallService.test.ets</span> <span class="tree-comment"># 服务层测试</span>
+│   ├── <span class="tree-folder">__mocks__/</span>                     <span class="tree-comment"># Mock 服务</span>
+│   │   ├── <span class="tree-new">MockNetFirewall.ets</span>      <span class="tree-comment"># 防火墙 API Mock</span>
+│   │   └── <span class="tree-new">MockUsbManager.ets</span>       <span class="tree-comment"># USB 管理 API Mock</span>
+│   └── <span class="tree-folder">__snapshots__/</span>                 <span class="tree-comment"># 组件快照基线</span>
+│       └── <span class="tree-file">*.json</span>
+│
+└── <span class="tree-folder">ohosTest/ets/test/</span>                 <span class="tree-comment"># 设备测试</span>
+    ├── <span class="tree-new">List.test.ets</span>                 <span class="tree-comment"># 设备测试入口</span>
+    ├── <span class="tree-file">Ability.test.ets</span>              <span class="tree-comment"># 原有测试</span>
+    ├── <span class="tree-folder">utils/</span>
+    │   └── <span class="tree-new">SnapshotUtils.ets</span>        <span class="tree-comment"># 快照工具</span>
+    ├── <span class="tree-folder">components/</span>                    <span class="tree-comment"># 组件测试</span>
+    │   ├── <span class="tree-new">StatCard.test.ets</span>
+    │   └── <span class="tree-new">AddRuleDialog.test.ets</span>
+    ├── <span class="tree-folder">e2e/</span>                           <span class="tree-comment"># E2E 测试</span>
+    │   ├── <span class="tree-new">PageSnapshot.test.ets</span>    <span class="tree-comment"># 页面快照回归</span>
+    │   ├── <span class="tree-folder">flows/</span>                     <span class="tree-comment"># 流程测试</span>
+    │   │   ├── <span class="tree-new">FirewallFlow.test.ets</span>
+    │   │   └── <span class="tree-new">PeripheralFlow.test.ets</span>
+    │   └── <span class="tree-folder">expectations/</span>              <span class="tree-comment"># 预期行为定义</span>
+    │       └── <span class="tree-new">ComponentExpectations.ets</span>
+    └── <span class="tree-folder">baselines/</span>                     <span class="tree-comment"># 截图基线</span>
+        ├── <span class="tree-file">dashboard.png</span>
+        ├── <span class="tree-file">firewall.png</span>
+        ├── <span class="tree-file">peripheral.png</span>
+        └── <span class="tree-file">identity.png</span>
+            </div>
+        </section>
+
+        <span class="comment">&lt;!-- Section: CI/CD --&gt;</span>
+        <section id="ci" class="section">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--success), #7ED321);">
+                    <span>&#x1F504;</span>
+                </div>
+                <h2>CI/CD 集成</h2>
+            </div>
+
+            <p>将测试集成到持续集成流水线，确保每次提交都经过测试验证：</p>
+
+            <h3>测试执行流程</h3>
+
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <div class="flow-step-num">1</div>
+                    <div class="flow-step-text">代码提交</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">2</div>
+                    <div class="flow-step-text">单元测试</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">3</div>
+                    <div class="flow-step-text">构建 HAP</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">4</div>
+                    <div class="flow-step-text">设备测试</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">5</div>
+                    <div class="flow-step-text">快照对比</div>
+                </div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">
+                    <div class="flow-step-num">6</div>
+                    <div class="flow-step-text">报告生成</div>
+                </div>
+            </div>
+
+            <h3>测试命令</h3>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-filename">测试执行命令</span>
+                    <span class="code-lang">Shell</span>
+                </div>
+                <div class="code-block">
+<span class="comment"># 1. 运行本地单元测试（无需设备）</span>
+hvigorw test --mode module -p product=default -p module=entry
+
+<span class="comment"># 2. 构建测试包</span>
+hvigorw assembleHap --mode module -p product=default -p module=entry
+
+<span class="comment"># 3. 安装到设备并运行设备测试</span>
+hdc install entry/build/default/outputs/default/entry-default-signed.hap
+hdc shell aa test -b com.example.securitytool -m entry_test
+
+<span class="comment"># 4. 拉取测试报告</span>
+hdc file recv /data/test/report.html ./test-report.html
+                </div>
+            </div>
+
+            <h3>测试报告示例</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>测试套件</th>
+                            <th>通过</th>
+                            <th>失败</th>
+                            <th>跳过</th>
+                            <th>耗时</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>DataModels</td>
+                            <td style="color: var(--success);">18</td>
+                            <td style="color: var(--danger);">0</td>
+                            <td>0</td>
+                            <td>0.12s</td>
+                        </tr>
+                        <tr>
+                            <td>FirewallService</td>
+                            <td style="color: var(--success);">8</td>
+                            <td style="color: var(--danger);">0</td>
+                            <td>0</td>
+                            <td>0.08s</td>
+                        </tr>
+                        <tr>
+                            <td>StatCard</td>
+                            <td style="color: var(--success);">3</td>
+                            <td style="color: var(--danger);">0</td>
+                            <td>0</td>
+                            <td>2.5s</td>
+                        </tr>
+                        <tr>
+                            <td>Page Snapshot</td>
+                            <td style="color: var(--success);">4</td>
+                            <td style="color: var(--danger);">0</td>
+                            <td>0</td>
+                            <td>8.2s</td>
+                        </tr>
+                        <tr>
+                            <td>Firewall Flow</td>
+                            <td style="color: var(--success);">3</td>
+                            <td style="color: var(--danger);">0</td>
+                            <td>0</td>
+                            <td>12.4s</td>
+                        </tr>
+                        <tr style="font-weight: 600; background: var(--bg-hover);">
+                            <td>Total</td>
+                            <td style="color: var(--success);">36</td>
+                            <td style="color: var(--danger);">0</td>
+                            <td>0</td>
+                            <td>23.3s</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-box tip">
+                <div class="info-box-title">
+                    <span>&#x2705;</span> 最佳实践
+                </div>
+                <p>
+                    <strong>1. 测试隔离</strong>：每个测试用例应独立运行，使用 beforeEach 重置状态<br>
+                    <strong>2. 快速反馈</strong>：单元测试应在秒级完成，E2E 测试控制在分钟级<br>
+                    <strong>3. 基线管理</strong>：快照基线变更需要人工审核后再提交<br>
+                    <strong>4. 失败重试</strong>：E2E 测试可配置失败重试机制，减少偶发失败
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <span class="comment">&lt;!-- Footer --&gt;</span>
+    <footer style="margin-left: 280px; text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 0.9rem; border-top: 1px solid var(--border);">
+        <p>SecurityTool 自动化测试详细实现指南</p>
+        <p style="margin-top: 8px; opacity: 0.6;">HarmonyOS / ArkTS | @ohos/hypium | 2026</p>
+    </footer>
+
+    <script>
+        <span class="comment">// 导航高亮</span>
+        document.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

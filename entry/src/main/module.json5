@@ -43,6 +43,9 @@
       },
       {
         "name": "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"
+      },
+      {
+        "name": "ohos.permission.ACCESS_BIOMETRIC"
       }
     ],
     "abilities": [

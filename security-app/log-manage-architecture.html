@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志管理模块 - 架构设计与测试策略</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <style>
+        /* ==================== 主题变量 ==================== */
+        :root {
+            --brand-color: #0A84FF;
+            --brand-color-light: #5EA1FF;
+            --confirm-color: #34C759;
+            --warning-color: #FF9500;
+            --alert-color: #FF3B30;
+            
+            --font-primary: rgba(0, 0, 0, 0.9);
+            --font-secondary: rgba(0, 0, 0, 0.6);
+            --font-tertiary: rgba(0, 0, 0, 0.4);
+            
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F5;
+            --bg-tertiary: #EBEBEB;
+            --bg-component: #F0F0F0;
+            --bg-hover: #E5E5E5;
+            --bg-code: #2d2d2d;
+            
+            --border-color: rgba(0, 0, 0, 0.1);
+            
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            
+            --sidebar-width: 260px;
+        }
+
+        /* ==================== 深色模式 ==================== */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --brand-color: #409CFF;
+                --brand-color-light: #64B5F6;
+                --confirm-color: #30D158;
+                --warning-color: #FFD60A;
+                --alert-color: #FF453A;
+                
+                --font-primary: rgba(255, 255, 255, 0.9);
+                --font-secondary: rgba(255, 255, 255, 0.6);
+                --font-tertiary: rgba(255, 255, 255, 0.4);
+                
+                --bg-primary: #1C1C1E;
+                --bg-secondary: #121212;
+                --bg-tertiary: #2C2C2E;
+                --bg-component: #3A3A3C;
+                --bg-hover: #3A3A3C;
+                
+                --border-color: rgba(255, 255, 255, 0.1);
+                
+                --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+                --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+            }
+        }
+
+        /* ==================== 基础样式 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-secondary);
+            color: var(--font-primary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ==================== 布局 ==================== */
+        .doc-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏目录 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 24px 16px;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 8px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: var(--font-tertiary);
+            margin-bottom: 24px;
+        }
+
+        .nav-section {
+            margin-bottom: 16px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--font-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding-left: 12px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 8px 12px;
+            color: var(--font-secondary);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: var(--bg-hover);
+            color: var(--font-primary);
+        }
+
+        .nav-link.active {
+            background-color: rgba(10, 132, 255, 0.1);
+            color: var(--brand-color);
+            font-weight: 500;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 32px 48px;
+            max-width: 1000px;
+        }
+
+        /* ==================== 标题样式 ==================== */
+        .doc-header {
+            margin-bottom: 48px;
+        }
+
+        .doc-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--font-primary);
+            margin-bottom: 8px;
+        }
+
+        .doc-desc {
+            font-size: 16px;
+            color: var(--font-secondary);
+            margin-bottom: 16px;
+        }
+
+        .doc-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--font-tertiary);
+        }
+
+        .doc-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 章节标题 */
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--brand-color);
+        }
+
+        .subsection-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin: 24px 0 12px 0;
+        }
+
+        .subsubsection-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--font-secondary);
+            margin: 16px 0 8px 0;
+        }
+
+        /* ==================== 卡片 ==================== */
+        .card {
+            background-color: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 12px;
+        }
+
+        /* ==================== 表格 ==================== */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin: 16px 0;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background-color: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--font-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tr:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .data-table code {
+            background-color: var(--bg-component);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ==================== 标签 ==================== */
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .tag-blue { background-color: rgba(10, 132, 255, 0.15); color: #0A84FF; }
+        .tag-green { background-color: rgba(52, 199, 89, 0.15); color: #34C759; }
+        .tag-red { background-color: rgba(255, 59, 48, 0.15); color: #FF3B30; }
+        .tag-orange { background-color: rgba(255, 149, 0, 0.15); color: #FF9500; }
+        .tag-purple { background-color: rgba(175, 82, 222, 0.15); color: #AF52DE; }
+        .tag-yellow { background-color: rgba(255, 214, 10, 0.15); color: #C7A600; }
+        .tag-cyan { background-color: rgba(0, 199, 190, 0.15); color: #00C7BE; }
+        .tag-gray { background-color: rgba(142, 142, 147, 0.15); color: #8E8E93; }
+
+        @media (prefers-color-scheme: dark) {
+            .tag-blue { background-color: rgba(10, 132, 255, 0.2); color: #64B5F6; }
+            .tag-green { background-color: rgba(52, 199, 89, 0.2); color: #4ADE80; }
+            .tag-red { background-color: rgba(255, 59, 48, 0.2); color: #FF6B6B; }
+            .tag-orange { background-color: rgba(255, 149, 0, 0.2); color: #FFAA33; }
+            .tag-purple { background-color: rgba(175, 82, 222, 0.2); color: #C084FC; }
+            .tag-yellow { background-color: rgba(255, 214, 10, 0.2); color: #FCD34D; }
+            .tag-cyan { background-color: rgba(0, 199, 190, 0.2); color: #22D3D3; }
+            .tag-gray { background-color: rgba(142, 142, 147, 0.2); color: #9CA3AF; }
+        }
+
+        /* ==================== 代码块 ==================== */
+        pre[class*="language-"] {
+            border-radius: var(--radius-md);
+            margin: 16px 0;
+            font-size: 13px;
+        }
+
+        code[class*="language-"] {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        .code-block {
+            background-color: var(--bg-code);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            color: #f8f8f2;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* ==================== 架构图 ==================== */
+        .architecture-diagram {
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-component));
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin: 24px 0;
+        }
+
+        .arch-layer {
+            background-color: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 24px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .arch-layer:last-child {
+            margin-bottom: 0;
+        }
+
+        .arch-layer-title {
+            font-weight: 600;
+            color: var(--brand-color);
+            margin-bottom: 8px;
+        }
+
+        .arch-layer-content {
+            font-size: 13px;
+            color: var(--font-secondary);
+        }
+
+        .arch-layer-content ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .arch-layer-content li {
+            background-color: var(--bg-component);
+            padding: 4px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+        }
+
+        .arch-arrow {
+            text-align: center;
+            color: var(--font-tertiary);
+            font-size: 20px;
+            margin: 8px 0;
+        }
+
+        /* ==================== 测试金字塔 ==================== */
+        .pyramid-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px;
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-component));
+            border-radius: var(--radius-lg);
+            margin: 24px 0;
+        }
+
+        .pyramid-layer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .pyramid-layer:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .pyramid-l4 { width: 180px; height: 50px; background: linear-gradient(135deg, #FF3B30, #FF6B6B); }
+        .pyramid-l3 { width: 260px; height: 50px; background: linear-gradient(135deg, #FF9500, #FFAA33); }
+        .pyramid-l2 { width: 340px; height: 50px; background: linear-gradient(135deg, #34C759, #4ADE80); }
+        .pyramid-l1 { width: 420px; height: 50px; background: linear-gradient(135deg, #0A84FF, #64B5F6); }
+
+        .pyramid-legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pyramid-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--font-secondary);
+        }
+
+        .pyramid-legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* ==================== 流程图 ==================== */
+        .mermaid {
+            background-color: var(--bg-primary);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin: 16px 0;
+            border: 1px solid var(--border-color);
+        }
+
+        /* ==================== 时间线 ==================== */
+        .timeline {
+            position: relative;
+            padding-left: 32px;
+            margin: 24px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--brand-color), var(--confirm-color));
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -28px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--brand-color);
+            border-radius: 50%;
+            border: 2px solid var(--bg-primary);
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            color: var(--font-primary);
+            margin-bottom: 8px;
+        }
+
+        .timeline-content {
+            font-size: 13px;
+            color: var(--font-secondary);
+            padding-left: 16px;
+        }
+
+        .timeline-content li {
+            margin-bottom: 4px;
+        }
+
+        /* ==================== 提示框 ==================== */
+        .info-box {
+            background-color: rgba(10, 132, 255, 0.1);
+            border-left: 4px solid var(--brand-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            color: var(--brand-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-box-content {
+            font-size: 13px;
+            color: var(--font-secondary);
+        }
+
+        .warning-box {
+            background-color: rgba(255, 149, 0, 0.1);
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .warning-box .info-box-title {
+            color: var(--warning-color);
+        }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 24px;
+            }
+        }
+
+        /* ==================== UI 组件树 ==================== */
+        .component-tree {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 13px;
+            background-color: var(--bg-component);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin: 16px 0;
+            line-height: 1.8;
+        }
+
+        .component-tree .node {
+            color: var(--brand-color);
+        }
+
+        .component-tree .comment {
+            color: var(--font-tertiary);
+        }
+
+        /* ==================== 折叠面板 ==================== */
+        .collapsible {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .collapsible-content {
+            padding: 0 16px 16px 16px;
+            display: none;
+        }
+
+        .collapsible.open .collapsible-content {
+            display: block;
+        }
+
+        .collapsible-icon {
+            transition: transform 0.2s;
+        }
+
+        .collapsible.open .collapsible-icon {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="doc-container">
+        <!-- 侧边栏目录 -->
+        <nav class="sidebar">
+            <div class="sidebar-title">日志管理模块</div>
+            <div class="sidebar-subtitle">架构设计与测试策略</div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">概述</div>
+                <a href="#overview" class="nav-link active">模块概述</a>
+                <a href="#requirements" class="nav-link">需求分析</a>
+                <a href="#challenges" class="nav-link">技术挑战</a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">架构设计</div>
+                <a href="#architecture" class="nav-link">分层架构</a>
+                <a href="#data-models" class="nav-link">数据模型</a>
+                <a href="#service-api" class="nav-link">Service API</a>
+                <a href="#data-flow" class="nav-link">数据流设计</a>
+                <a href="#view-design" class="nav-link">View 层设计</a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">测试策略</div>
+                <a href="#test-pyramid" class="nav-link">四层金字塔</a>
+                <a href="#test-l1" class="nav-link">L1 单元测试</a>
+                <a href="#test-l2" class="nav-link">L2 服务层测试</a>
+                <a href="#test-l3" class="nav-link">L3 组件测试</a>
+                <a href="#test-l4" class="nav-link">L4 E2E 测试</a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">开发</div>
+                <a href="#dev-timeline" class="nav-link">开发流程</a>
+                <a href="#api-deps" class="nav-link">API 依赖</a>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 文档头部 -->
+            <header class="doc-header">
+                <h1 class="doc-title">日志管理模块</h1>
+                <p class="doc-desc">基于 SecurityAudit API 的安全审计事件订阅、展示、筛选与导出功能架构设计</p>
+                <div class="doc-meta">
+                    <span>HarmonyOS SecurityTool</span>
+                    <span>|</span>
+                    <span>版本 1.0</span>
+                    <span>|</span>
+                    <span>2026-02-26</span>
+                </div>
+            </header>
+
+            <!-- 1. 模块概述 -->
+            <section id="overview" class="section">
+                <h2 class="section-title">1. 模块概述</h2>
+                
+                <div class="card">
+                    <h3 class="card-title">功能定位</h3>
+                    <p>日志管理模块是 SecurityTool 应用的<strong>安全审计中心</strong>，为企业 IT 管理员提供设备安全事件的实时监控、历史查询和审计追溯能力。</p>
+                </div>
+                
+                <h3 class="subsection-title">核心业务场景</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>场景</th>
+                            <th>描述</th>
+                            <th>用户价值</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag tag-blue">实时监控</span></td>
+                            <td>订阅安全审计事件，实时展示文件操作、网络连接、USB 访问等日志</td>
+                            <td>及时发现安全威胁</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-purple">多维筛选</span></td>
+                            <td>按事件类型、时间范围、进程名/PID、关键词过滤日志</td>
+                            <td>快速定位问题</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-green">日志导出</span></td>
+                            <td>将筛选后的日志导出为文件，支持离线审计</td>
+                            <td>合规审计留痕</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-orange">存储管理</span></td>
+                            <td>配置日志保留天数和存储空间上限，自动清理过期日志</td>
+                            <td>控制存储成本</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 2. 需求分析 -->
+            <section id="requirements" class="section">
+                <h2 class="section-title">2. 需求分析</h2>
+                
+                <div class="info-box">
+                    <div class="info-box-title">
+                        <span>&#128196;</span> 需求来源
+                    </div>
+                    <div class="info-box-content">
+                        以下需求摘自《信创工具需求清单_修正版》，针对 HarmonyOS 平台进行了适配修正。
+                    </div>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>功能</th>
+                            <th>详细描述</th>
+                            <th>API 来源</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>安全审计事件显示</strong></td>
+                            <td>通过 SecurityAudit C API 订阅各类安全事件：FILE、NETWORK_CONN、APP、ACCOUNT、USB_ACCESS_INTERCEPTED、PERMISSION、PROCESS 等</td>
+                            <td><code>HMS_SecurityAudit_NewClient</code><br><code>HMS_SecurityAudit_Subscribe</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>日志筛选</strong></td>
+                            <td>按事件类型、文件路径、进程 UID/PID/名称等维度添加过滤条件</td>
+                            <td><code>HMS_SecurityAudit_AddFilter</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>时间段筛选</strong></td>
+                            <td>通过 SecurityAudit_Event 结构体中的时间戳字段过滤特定时间段日志</td>
+                            <td><code>SecurityAudit_Event</code> 结构体</td>
+                        </tr>
+                        <tr>
+                            <td><strong>日志清除</strong></td>
+                            <td>取消订阅已订阅事件，删除通知客户端，重置过滤条件</td>
+                            <td><code>HMS_SecurityAudit_Unsubscribe</code><br><code>HMS_SecurityAudit_DeleteClient</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>存储管理</strong></td>
+                            <td>配置日志保留天数（30/60/90/180/365天）、存储空间上限，自动清理过期日志</td>
+                            <td>应用层实现 + <code>@ohos.file.fs</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="subsection-title">支持的事件类型</h3>
+                <div class="card">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <span class="tag tag-blue">FILE - 文件操作</span>
+                        <span class="tag tag-purple">NETWORK_CONN - 网络连接</span>
+                        <span class="tag tag-purple">NETWORK_TRAFFIC - 网络流量</span>
+                        <span class="tag tag-yellow">APP - 应用事件</span>
+                        <span class="tag tag-cyan">ACCOUNT - 账户认证</span>
+                        <span class="tag tag-orange">USB_ACCESS_INTERCEPTED - USB 访问</span>
+                        <span class="tag tag-gray">PERMISSION - 权限变更</span>
+                        <span class="tag tag-green">PROCESS - 进程事件</span>
+                        <span class="tag tag-blue">PRINTER - 打印机</span>
+                        <span class="tag tag-red">CAMERA - 摄像头</span>
+                        <span class="tag tag-cyan">CERT - 证书</span>
+                        <span class="tag tag-gray">EDM - 企业设备管理</span>
+                        <span class="tag tag-purple">DNS - DNS 查询</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 技术挑战 -->
+            <section id="challenges" class="section">
+                <h2 class="section-title">3. 技术挑战</h2>
+                
+                <div class="warning-box info-box">
+                    <div class="info-box-title">
+                        <span>&#9888;</span> C API 调用挑战
+                    </div>
+                    <div class="info-box-content">
+                        SecurityAudit 是 <strong>C API</strong> (security_audit.h)，非 ArkTS API。需要通过 <strong>NAPI</strong> 封装或使用 <strong>Native 模块</strong>调用。
+                        <br><br>
+                        系统能力: <code>SystemCapability.Security.SecurityAudit</code>
+                    </div>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>挑战</th>
+                            <th>描述</th>
+                            <th>解决方案</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>C API 调用</strong></td>
+                            <td>ArkTS 无法直接调用 C 函数</td>
+                            <td>NAPI 封装 / Native 模块</td>
+                        </tr>
+                        <tr>
+                            <td><strong>实时事件订阅</strong></td>
+                            <td>需要实现事件监听回调机制，处理异步事件流</td>
+                            <td>EventEmitter 模式 + 状态管理</td>
+                        </tr>
+                        <tr>
+                            <td><strong>大数据量展示</strong></td>
+                            <td>日志数据量可能很大，影响渲染性能</td>
+                            <td>分页 / 虚拟滚动 / LazyForEach</td>
+                        </tr>
+                        <tr>
+                            <td><strong>本地存储管理</strong></td>
+                            <td>需要管理日志文件生命周期</td>
+                            <td>定时清理任务 + 文件系统 API</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 4. 分层架构 -->
+            <section id="architecture" class="section">
+                <h2 class="section-title">4. 分层架构设计</h2>
+                
+                <div class="architecture-diagram">
+                    <div class="arch-layer">
+                        <div class="arch-layer-title">View Layer</div>
+                        <div class="arch-layer-content">
+                            <code>LogManagePage.ets</code> - 日志列表展示、筛选条件 UI、存储管理配置
+                        </div>
+                    </div>
+                    <div class="arch-arrow">&#8595;</div>
+                    <div class="arch-layer">
+                        <div class="arch-layer-title">Service Layer</div>
+                        <div class="arch-layer-content">
+                            <ul>
+                                <li><code>LogAuditService.ets</code> - 日志订阅服务</li>
+                                <li><code>LogStorageService.ets</code> - 存储管理服务</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">&#8595;</div>
+                    <div class="arch-layer">
+                        <div class="arch-layer-title">Model Layer</div>
+                        <div class="arch-layer-content">
+                            <ul>
+                                <li><code>LogEventType</code> 枚举</li>
+                                <li><code>LogEntry</code> 接口</li>
+                                <li><code>LogFilter</code> 接口</li>
+                                <li><code>LogStorageConfig</code> 接口</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="arch-arrow">&#8595;</div>
+                    <div class="arch-layer">
+                        <div class="arch-layer-title">Native Layer <span class="tag tag-orange" style="font-size: 10px; margin-left: 8px;">可选</span></div>
+                        <div class="arch-layer-content">
+                            <code>SecurityAuditWrapper</code> - NAPI 封装 C API
+                        </div>
+                    </div>
+                    <div class="arch-arrow">&#8595;</div>
+                    <div class="arch-layer">
+                        <div class="arch-layer-title">System APIs</div>
+                        <div class="arch-layer-content">
+                            <ul>
+                                <li><code>security_audit.h</code> (Device Security Kit)</li>
+                                <li><code>@ohos.file.fs</code> (文件系统)</li>
+                                <li><code>@kit.ArkData</code> (Preferences)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">文件清单</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>文件</th>
+                            <th>职责</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>views/LogManagePage.ets</code></td>
+                            <td>页面视图 + 交互逻辑</td>
+                            <td><span class="tag tag-orange">待开发</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>services/LogAuditService.ets</code></td>
+                            <td>日志订阅、筛选、导出</td>
+                            <td><span class="tag tag-orange">待开发</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>services/LogStorageService.ets</code></td>
+                            <td>存储配置、清理策略</td>
+                            <td><span class="tag tag-orange">待开发</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>models/DataModels.ets</code></td>
+                            <td>数据模型定义（日志相关部分）</td>
+                            <td><span class="tag tag-orange">待扩展</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>views/PlaceholderPage.ets</code></td>
+                            <td>当前占位页面</td>
+                            <td><span class="tag tag-gray">待替换</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 5. 数据模型设计 -->
+            <section id="data-models" class="section">
+                <h2 class="section-title">5. 数据模型设计</h2>
+                
+                <h3 class="subsection-title">日志事件类型枚举</h3>
+                <pre><code class="language-typescript">// 日志事件类型枚举
+export enum LogEventType {
+  FILE = 'FILE',                           // 文件操作
+  NETWORK_CONN = 'NETWORK_CONN',           // 网络连接
+  NETWORK_TRAFFIC = 'NETWORK_TRAFFIC',     // 网络流量
+  APP = 'APP',                             // 应用事件
+  ACCOUNT = 'ACCOUNT',                     // 账户认证
+  USB_ACCESS = 'USB_ACCESS_INTERCEPTED',   // USB 访问拦截
+  PERMISSION = 'PERMISSION',               // 权限变更
+  PROCESS = 'PROCESS',                     // 进程事件
+  PRINTER = 'PRINTER',                     // 打印机
+  CAMERA = 'CAMERA',                       // 摄像头
+  CERT = 'CERT',                           // 证书
+  EDM = 'EDM',                             // 企业设备管理
+  DNS = 'DNS'                              // DNS 查询
+}
+
+// 事件类型选项（用于 UI 下拉框）
+export const LOG_EVENT_TYPE_OPTIONS = [
+  { label: '全部事件', value: 'all' },
+  { label: '文件操作', value: LogEventType.FILE },
+  { label: '网络连接', value: LogEventType.NETWORK_CONN },
+  { label: '应用事件', value: LogEventType.APP },
+  { label: '账户认证', value: LogEventType.ACCOUNT },
+  { label: 'USB 访问', value: LogEventType.USB_ACCESS },
+  { label: '权限变更', value: LogEventType.PERMISSION },
+  { label: '进程事件', value: LogEventType.PROCESS },
+  { label: '打印机', value: LogEventType.PRINTER },
+  { label: '摄像头', value: LogEventType.CAMERA }
+]</code></pre>
+
+                <h3 class="subsection-title">日志条目接口</h3>
+                <pre><code class="language-typescript">// 日志条目接口
+export interface LogEntry {
+  id: string                    // 唯一标识
+  timestamp: number             // 时间戳 (毫秒)
+  eventType: LogEventType       // 事件类型
+  detail: string                // 事件详情
+  processName: string           // 进程名称
+  pid: number                   // 进程 ID
+  uid?: number                  // 用户 ID
+  filePath?: string             // 文件路径（文件操作事件）
+  remoteAddr?: string           // 远程地址（网络事件）
+  result: LogEventResult        // 事件结果
+}
+
+// 事件结果枚举
+export enum LogEventResult {
+  SUCCESS = 'success',          // 成功/正常
+  BLOCKED = 'blocked',          // 拦截
+  FAILED = 'failed'             // 失败
+}</code></pre>
+
+                <h3 class="subsection-title">筛选条件接口</h3>
+                <pre><code class="language-typescript">// 筛选条件接口
+export interface LogFilter {
+  eventTypes?: LogEventType[]   // 事件类型（多选）
+  startTime?: number            // 开始时间戳
+  endTime?: number              // 结束时间戳
+  keyword?: string              // 关键词（进程名/文件路径/PID）
+  processName?: string          // 进程名称
+  pid?: number                  // 进程 ID
+}
+
+// 分页请求参数
+export interface LogPageRequest {
+  filter: LogFilter
+  page: number                  // 页码（从 1 开始）
+  pageSize: number              // 每页条数
+}
+
+// 分页响应
+export interface LogPageResponse {
+  items: LogEntry[]             // 日志列表
+  total: number                 // 总条数
+  page: number                  // 当前页码
+  pageSize: number              // 每页条数
+}</code></pre>
+
+                <h3 class="subsection-title">存储配置接口</h3>
+                <pre><code class="language-typescript">// 存储配置接口
+export interface LogStorageConfig {
+  retentionDays: number         // 保留天数
+  maxStorageSize: number        // 最大存储空间 (MB)
+  currentUsage: number          // 当前使用量 (MB)
+}
+
+// 保留天数选项
+export const LOG_RETENTION_OPTIONS = [
+  { label: '30 天', value: 30 },
+  { label: '60 天', value: 60 },
+  { label: '90 天', value: 90 },
+  { label: '180 天', value: 180 },
+  { label: '365 天', value: 365 }
+]
+
+// 默认存储配置
+export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
+  retentionDays: 30,
+  maxStorageSize: 1024,         // 1 GB
+  currentUsage: 0
+}
+
+// 存储键名常量
+export const PREF_STORE_NAME_LOG = 'log_settings'
+export const PREF_KEY_RETENTION_DAYS = 'retention_days'
+export const PREF_KEY_MAX_STORAGE = 'max_storage_size'</code></pre>
+            </section>
+
+            <!-- 6. Service API 设计 -->
+            <section id="service-api" class="section">
+                <h2 class="section-title">6. Service 层 API 设计</h2>
+                
+                <h3 class="subsection-title">LogAuditService</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>方法</th>
+                            <th>参数</th>
+                            <th>返回值</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>initialize()</code></td>
+                            <td>-</td>
+                            <td><code>Promise&lt;boolean&gt;</code></td>
+                            <td>初始化审计客户端</td>
+                        </tr>
+                        <tr>
+                            <td><code>subscribe()</code></td>
+                            <td><code>eventTypes: LogEventType[]</code></td>
+                            <td><code>Promise&lt;boolean&gt;</code></td>
+                            <td>订阅指定事件类型</td>
+                        </tr>
+                        <tr>
+                            <td><code>unsubscribe()</code></td>
+                            <td><code>eventTypes: LogEventType[]</code></td>
+                            <td><code>Promise&lt;boolean&gt;</code></td>
+                            <td>取消订阅</td>
+                        </tr>
+                        <tr>
+                            <td><code>getLogs()</code></td>
+                            <td><code>request: LogPageRequest</code></td>
+                            <td><code>Promise&lt;LogPageResponse&gt;</code></td>
+                            <td>获取日志列表（分页）</td>
+                        </tr>
+                        <tr>
+                            <td><code>exportLogs()</code></td>
+                            <td><code>filter: LogFilter, format: string</code></td>
+                            <td><code>Promise&lt;string&gt;</code></td>
+                            <td>导出日志文件，返回文件路径</td>
+                        </tr>
+                        <tr>
+                            <td><code>onEvent()</code></td>
+                            <td><code>callback: (entry: LogEntry) => void</code></td>
+                            <td><code>void</code></td>
+                            <td>注册事件回调</td>
+                        </tr>
+                        <tr>
+                            <td><code>destroy()</code></td>
+                            <td>-</td>
+                            <td><code>void</code></td>
+                            <td>销毁客户端，释放资源</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="subsection-title">LogStorageService</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>方法</th>
+                            <th>参数</th>
+                            <th>返回值</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>getConfig()</code></td>
+                            <td>-</td>
+                            <td><code>Promise&lt;LogStorageConfig&gt;</code></td>
+                            <td>获取存储配置</td>
+                        </tr>
+                        <tr>
+                            <td><code>setRetentionDays()</code></td>
+                            <td><code>days: number</code></td>
+                            <td><code>Promise&lt;boolean&gt;</code></td>
+                            <td>设置保留天数</td>
+                        </tr>
+                        <tr>
+                            <td><code>getUsage()</code></td>
+                            <td>-</td>
+                            <td><code>{ used: number, total: number }</code></td>
+                            <td>获取存储使用情况</td>
+                        </tr>
+                        <tr>
+                            <td><code>clearLogs()</code></td>
+                            <td><code>before?: Date</code></td>
+                            <td><code>Promise&lt;boolean&gt;</code></td>
+                            <td>清除日志（可选：指定日期之前）</td>
+                        </tr>
+                        <tr>
+                            <td><code>cleanupExpired()</code></td>
+                            <td>-</td>
+                            <td><code>Promise&lt;number&gt;</code></td>
+                            <td>清理过期日志，返回清理数量</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 7. 数据流设计 -->
+            <section id="data-flow" class="section">
+                <h2 class="section-title">7. 数据流设计</h2>
+                
+                <h3 class="subsection-title">日志订阅流程</h3>
+                <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant Page as LogManagePage
+    participant Service as LogAuditService
+    participant Native as SecurityAudit API
+    
+    User->>Page: 打开日志管理页面
+    Page->>Service: initialize()
+    Service->>Native: HMS_SecurityAudit_NewClient()
+    Native-->>Service: client handle
+    
+    Page->>Service: subscribe([FILE, NETWORK_CONN, ...])
+    Service->>Native: HMS_SecurityAudit_Subscribe()
+    
+    loop 事件监听
+        Native-->>Service: 事件回调 (SecurityAudit_Event)
+        Service->>Service: 转换为 LogEntry
+        Service-->>Page: onEvent(logEntry)
+        Page->>Page: 更新日志列表 UI
+    end
+    
+    User->>Page: 离开页面
+    Page->>Service: destroy()
+    Service->>Native: HMS_SecurityAudit_DeleteClient()
+                </div>
+
+                <h3 class="subsection-title">日志筛选流程</h3>
+                <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant Page as LogManagePage
+    participant Service as LogAuditService
+    
+    User->>Page: 设置筛选条件
+    Note over Page: eventType: FILE<br/>startTime: 2026-02-01<br/>keyword: "docs"
+    
+    User->>Page: 点击"筛选"
+    Page->>Service: getLogs(filter, page=1, pageSize=20)
+    Service->>Service: 应用筛选条件
+    Service-->>Page: LogPageResponse
+    Page->>Page: 更新列表 + 分页
+    
+    User->>Page: 点击"下一页"
+    Page->>Service: getLogs(filter, page=2, pageSize=20)
+    Service-->>Page: LogPageResponse
+    Page->>Page: 更新列表
+                </div>
+
+                <h3 class="subsection-title">日志导出流程</h3>
+                <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant Page as LogManagePage
+    participant Audit as LogAuditService
+    participant Storage as LogStorageService
+    participant FS as @ohos.file.fs
+    
+    User->>Page: 设置筛选条件
+    User->>Page: 点击"导出"
+    
+    Page->>Audit: getLogs(filter, all)
+    Audit-->>Page: 所有匹配日志
+    
+    Page->>Audit: exportLogs(filter, 'csv')
+    Audit->>FS: fs.open(filePath, CREATE)
+    Audit->>FS: fs.write(logData)
+    Audit->>FS: fs.close()
+    Audit-->>Page: filePath
+    
+    Page->>User: Toast "导出成功: {filePath}"
+                </div>
+            </section>
+
+            <!-- 8. View 层设计 -->
+            <section id="view-design" class="section">
+                <h2 class="section-title">8. View 层设计</h2>
+                
+                <h3 class="subsection-title">组件状态管理</h3>
+                <pre><code class="language-typescript">@Component
+export struct LogManagePage {
+  // 日志列表状态
+  @State logs: LogEntry[] = []
+  @State total: number = 0
+  @State currentPage: number = 1
+  @State pageSize: number = 20
+  @State isLoading: boolean = false
+  
+  // 筛选条件状态
+  @State selectedEventType: string = 'all'
+  @State startDate: string = ''
+  @State endDate: string = ''
+  @State keyword: string = ''
+  
+  // 存储管理状态
+  @State storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
+  
+  // 主题
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  
+  // 生命周期
+  aboutToAppear() {
+    this.initService()
+    this.loadLogs()
+    this.loadStorageConfig()
+  }
+  
+  aboutToDisappear() {
+    LogAuditService.destroy()
+  }
+}</code></pre>
+
+                <h3 class="subsection-title">UI 组件层次</h3>
+                <div class="component-tree">
+<span class="node">Column</span> (页面容器)
+├── <span class="node">Row</span> (页面标题 + 操作按钮)
+│   ├── <span class="node">Text</span>: "日志管理"
+│   ├── <span class="node">Button</span>: "刷新" <span class="comment">// refreshLogs()</span>
+│   ├── <span class="node">Button</span>: "导出" <span class="comment">// exportLogs()</span>
+│   └── <span class="node">Button</span>: "清除" <span class="comment">// clearLogs()</span>
+│
+├── <span class="node">Row</span> (筛选栏)
+│   ├── <span class="node">Select</span>: 事件类型 <span class="comment">// @State selectedEventType</span>
+│   ├── <span class="node">DatePicker</span>: 开始日期 <span class="comment">// @State startDate</span>
+│   ├── <span class="node">DatePicker</span>: 结束日期 <span class="comment">// @State endDate</span>
+│   ├── <span class="node">TextInput</span>: 关键词 <span class="comment">// @State keyword</span>
+│   └── <span class="node">Button</span>: "筛选" <span class="comment">// filterLogs()</span>
+│
+├── <span class="node">List</span> (日志列表)
+│   └── <span class="node">ForEach</span> → LogEntryItem
+│       ├── <span class="node">Text</span>: 时间 <span class="comment">// formatTimestamp()</span>
+│       ├── <span class="node">Tag</span>: 事件类型 <span class="comment">// getEventTypeTag()</span>
+│       ├── <span class="node">Text</span>: 事件详情
+│       ├── <span class="node">Text</span>: 进程 (PID)
+│       └── <span class="node">Tag</span>: 结果 <span class="comment">// 正常/拦截/失败</span>
+│
+├── <span class="node">Row</span> (分页)
+│   ├── <span class="node">Text</span>: "共 {total} 条"
+│   ├── <span class="node">Button</span>: "上一页"
+│   ├── <span class="node">Text</span>: "{currentPage} / {totalPages}"
+│   └── <span class="node">Button</span>: "下一页"
+│
+└── <span class="node">Column</span> (存储管理卡片)
+    ├── <span class="node">Row</span>: 标题 "日志存储管理"
+    ├── <span class="node">Row</span>: 保留天数
+    │   └── <span class="node">Select</span>: LOG_RETENTION_OPTIONS
+    └── <span class="node">Row</span>: 存储空间
+        ├── <span class="node">Progress</span>: 使用率
+        └── <span class="node">Text</span>: "{used} MB / {total} MB"
+                </div>
+            </section>
+
+            <!-- 9. 测试金字塔 -->
+            <section id="test-pyramid" class="section">
+                <h2 class="section-title">9. 测试设计 - 四层金字塔</h2>
+                
+                <div class="pyramid-container">
+                    <div class="pyramid-layer pyramid-l4">L4 E2E (~10)</div>
+                    <div class="pyramid-layer pyramid-l3">L3 组件测试 (~15)</div>
+                    <div class="pyramid-layer pyramid-l2">L2 服务层测试 (~25)</div>
+                    <div class="pyramid-layer pyramid-l1">L1 单元测试 (~20)</div>
+                    
+                    <div class="pyramid-legend">
+                        <div class="pyramid-legend-item">
+                            <div class="pyramid-legend-dot" style="background: #0A84FF;"></div>
+                            <span>L1: 纯函数/数据模型</span>
+                        </div>
+                        <div class="pyramid-legend-item">
+                            <div class="pyramid-legend-dot" style="background: #34C759;"></div>
+                            <span>L2: 服务层 + Mock</span>
+                        </div>
+                        <div class="pyramid-legend-item">
+                            <div class="pyramid-legend-dot" style="background: #FF9500;"></div>
+                            <span>L3: UI 组件 (真机)</span>
+                        </div>
+                        <div class="pyramid-legend-item">
+                            <div class="pyramid-legend-dot" style="background: #FF3B30;"></div>
+                            <span>L4: 完整流程 (真机)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 10. L1 单元测试 -->
+            <section id="test-l1" class="section">
+                <h2 class="section-title">10. L1 单元测试</h2>
+                
+                <div class="info-box">
+                    <div class="info-box-title">测试目录</div>
+                    <div class="info-box-content">
+                        <code>entry/src/test/log-manage/</code>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">测试文件</h3>
+                <ul>
+                    <li><code>models.test.ets</code> - 数据模型测试</li>
+                    <li><code>utils.test.ets</code> - 工具函数测试</li>
+                </ul>
+
+                <h3 class="subsection-title">用例设计</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>用例</th>
+                            <th>描述</th>
+                            <th>预期结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>LogEventType 枚举完整性</td>
+                            <td>验证枚举包含所有事件类型</td>
+                            <td>13 种事件类型</td>
+                        </tr>
+                        <tr>
+                            <td>LOG_EVENT_TYPE_OPTIONS</td>
+                            <td>验证选项数组</td>
+                            <td>length >= 10</td>
+                        </tr>
+                        <tr>
+                            <td>DEFAULT_LOG_STORAGE_CONFIG</td>
+                            <td>验证默认存储配置</td>
+                            <td>retentionDays=30, maxStorageSize=1024</td>
+                        </tr>
+                        <tr>
+                            <td>formatTimestamp()</td>
+                            <td>时间戳格式化函数</td>
+                            <td>"2026-02-26 14:30:00"</td>
+                        </tr>
+                        <tr>
+                            <td>getEventTypeLabel()</td>
+                            <td>事件类型标签转换</td>
+                            <td>FILE → "文件操作"</td>
+                        </tr>
+                        <tr>
+                            <td>getResultColor()</td>
+                            <td>结果颜色映射</td>
+                            <td>SUCCESS → green, BLOCKED → red</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 11. L2 服务层测试 -->
+            <section id="test-l2" class="section">
+                <h2 class="section-title">11. L2 服务层测试</h2>
+                
+                <div class="info-box">
+                    <div class="info-box-title">Mock 策略</div>
+                    <div class="info-box-content">
+                        <ul>
+                            <li><strong>MockSecurityAudit</strong>: 模拟 SecurityAudit C API 调用</li>
+                            <li><strong>MockFileSystem</strong>: 模拟 @ohos.file.fs 文件操作</li>
+                            <li><strong>MockPreferences</strong>: 模拟 Preferences 存储</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">测试文件</h3>
+                <ul>
+                    <li><code>audit-service.test.ets</code> - 日志审计服务测试</li>
+                    <li><code>storage-service.test.ets</code> - 存储管理服务测试</li>
+                </ul>
+
+                <h3 class="subsection-title">用例设计</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>模块</th>
+                            <th>用例</th>
+                            <th>Mock 配置</th>
+                            <th>预期结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="4">LogAuditService</td>
+                            <td>initialize() 成功</td>
+                            <td>NewClient 返回 handle</td>
+                            <td>返回 true</td>
+                        </tr>
+                        <tr>
+                            <td>subscribe() 成功</td>
+                            <td>Subscribe 不抛异常</td>
+                            <td>返回 true</td>
+                        </tr>
+                        <tr>
+                            <td>getLogs() 筛选</td>
+                            <td>返回模拟日志数据</td>
+                            <td>按 filter 过滤后的结果</td>
+                        </tr>
+                        <tr>
+                            <td>exportLogs() 成功</td>
+                            <td>fs.write 成功</td>
+                            <td>返回文件路径</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="3">LogStorageService</td>
+                            <td>getConfig()</td>
+                            <td>Preferences 返回配置</td>
+                            <td>LogStorageConfig 对象</td>
+                        </tr>
+                        <tr>
+                            <td>setRetentionDays()</td>
+                            <td>Preferences.put 成功</td>
+                            <td>返回 true</td>
+                        </tr>
+                        <tr>
+                            <td>cleanupExpired()</td>
+                            <td>fs.unlink 成功</td>
+                            <td>返回清理数量</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 12. L3 组件测试 -->
+            <section id="test-l3" class="section">
+                <h2 class="section-title">12. L3 组件测试</h2>
+                
+                <div class="info-box">
+                    <div class="info-box-title">测试目录</div>
+                    <div class="info-box-content">
+                        <code>entry/src/ohosTest/ets/test/log-manage/</code>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">测试文件</h3>
+                <ul>
+                    <li><code>component.test.ets</code> - 组件渲染测试</li>
+                    <li><code>interaction.test.ets</code> - 交互行为测试</li>
+                    <li><code>snapshot.test.ets</code> - 快照回归测试</li>
+                </ul>
+
+                <h3 class="subsection-title">用例设计</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>用例</th>
+                            <th>操作</th>
+                            <th>断言</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>页面标题渲染</td>
+                            <td>导航到日志管理</td>
+                            <td><code>ON.text('日志管理')</code> 存在</td>
+                        </tr>
+                        <tr>
+                            <td>筛选栏渲染</td>
+                            <td>页面加载</td>
+                            <td>Select、DatePicker、TextInput 存在</td>
+                        </tr>
+                        <tr>
+                            <td>事件类型 Select</td>
+                            <td>选择"文件操作"</td>
+                            <td>selectedEventType === 'FILE'</td>
+                        </tr>
+                        <tr>
+                            <td>关键词输入</td>
+                            <td>输入 "docs"</td>
+                            <td>keyword === 'docs'</td>
+                        </tr>
+                        <tr>
+                            <td>日志列表渲染</td>
+                            <td>加载日志数据</td>
+                            <td>List 包含 LogEntryItem</td>
+                        </tr>
+                        <tr>
+                            <td>分页按钮</td>
+                            <td>点击"下一页"</td>
+                            <td>currentPage 增加</td>
+                        </tr>
+                        <tr>
+                            <td>存储管理卡片</td>
+                            <td>页面加载</td>
+                            <td>保留天数 Select、Progress 存在</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 13. L4 E2E 测试 -->
+            <section id="test-l4" class="section">
+                <h2 class="section-title">13. L4 E2E 流程测试</h2>
+                
+                <div class="info-box">
+                    <div class="info-box-title">测试文件</div>
+                    <div class="info-box-content">
+                        <code>entry/src/ohosTest/ets/test/log-manage/flow.test.ets</code>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">流程 1: 日志筛选流程</h3>
+                <div class="card">
+                    <ol>
+                        <li>侧边栏点击"日志管理"</li>
+                        <li>选择事件类型："文件操作"</li>
+                        <li>设置时间范围：最近 7 天</li>
+                        <li>输入关键词："docs"</li>
+                        <li>点击"筛选"按钮</li>
+                        <li>验证日志列表只显示匹配项</li>
+                        <li>验证分页显示正确的总数</li>
+                    </ol>
+                </div>
+
+                <h3 class="subsection-title">流程 2: 日志导出流程</h3>
+                <div class="card">
+                    <ol>
+                        <li>设置筛选条件</li>
+                        <li>点击"导出"按钮</li>
+                        <li>验证导出确认弹窗</li>
+                        <li>确认导出</li>
+                        <li>验证 Toast 显示"导出成功"</li>
+                        <li>验证文件存在</li>
+                    </ol>
+                </div>
+
+                <h3 class="subsection-title">流程 3: 日志清除流程</h3>
+                <div class="card">
+                    <ol>
+                        <li>点击"清除"按钮</li>
+                        <li>验证确认弹窗显示</li>
+                        <li>确认清除</li>
+                        <li>验证日志列表清空</li>
+                        <li>验证 Toast 显示"清除成功"</li>
+                    </ol>
+                </div>
+
+                <h3 class="subsection-title">流程 4: 存储配置流程</h3>
+                <div class="card">
+                    <ol>
+                        <li>滚动到存储管理卡片</li>
+                        <li>修改保留天数：30 → 90</li>
+                        <li>验证配置保存成功</li>
+                        <li>重新打开页面</li>
+                        <li>验证保留天数为 90</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- 14. 开发流程 -->
+            <section id="dev-timeline" class="section">
+                <h2 class="section-title">14. 开发流程时间线</h2>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-title">阶段 1: 数据模型设计</div>
+                        <ul class="timeline-content">
+                            <li>定义 LogEventType 枚举</li>
+                            <li>定义 LogEntry、LogFilter、LogStorageConfig 接口</li>
+                            <li>定义常量（PREF_KEY_*, DEFAULT_*）</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-title">阶段 2: Service 层开发 + L2 测试</div>
+                        <ul class="timeline-content">
+                            <li>实现 LogAuditService（Mock 模式先行）</li>
+                            <li>实现 LogStorageService</li>
+                            <li>编写 L2 服务层测试</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-title">阶段 3: View 层开发 + L1/L3 测试</div>
+                        <ul class="timeline-content">
+                            <li>实现 LogManagePage 布局</li>
+                            <li>实现筛选栏、日志列表、分页组件</li>
+                            <li>编写 L1 单元测试</li>
+                            <li>编写 L3 组件测试</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-title">阶段 4: Native 集成（如需要）</div>
+                        <ul class="timeline-content">
+                            <li>实现 NAPI 封装 SecurityAudit C API</li>
+                            <li>替换 Mock 为真实 API 调用</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-title">阶段 5: 集成测试 + L4 E2E</div>
+                        <ul class="timeline-content">
+                            <li>编写完整流程测试</li>
+                            <li>验证筛选、导出、清除、存储配置流程</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-title">阶段 6: 发布准备</div>
+                        <ul class="timeline-content">
+                            <li>全量测试运行</li>
+                            <li>代码审查</li>
+                            <li>文档更新</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 15. API 依赖 -->
+            <section id="api-deps" class="section">
+                <h2 class="section-title">15. API 依赖清单</h2>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>API</th>
+                            <th>来源</th>
+                            <th>用途</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>HMS_SecurityAudit_NewClient</code></td>
+                            <td>security_audit.h</td>
+                            <td>创建审计客户端</td>
+                        </tr>
+                        <tr>
+                            <td><code>HMS_SecurityAudit_Subscribe</code></td>
+                            <td>security_audit.h</td>
+                            <td>订阅审计事件</td>
+                        </tr>
+                        <tr>
+                            <td><code>HMS_SecurityAudit_AddFilter</code></td>
+                            <td>security_audit.h</td>
+                            <td>添加筛选条件</td>
+                        </tr>
+                        <tr>
+                            <td><code>HMS_SecurityAudit_Unsubscribe</code></td>
+                            <td>security_audit.h</td>
+                            <td>取消订阅</td>
+                        </tr>
+                        <tr>
+                            <td><code>HMS_SecurityAudit_DeleteClient</code></td>
+                            <td>security_audit.h</td>
+                            <td>销毁客户端</td>
+                        </tr>
+                        <tr>
+                            <td><code>fs.open/write/close/unlink</code></td>
+                            <td>@ohos.file.fs</td>
+                            <td>日志文件操作</td>
+                        </tr>
+                        <tr>
+                            <td><code>preferences.getPreferences</code></td>
+                            <td>@kit.ArkData</td>
+                            <td>存储配置持久化</td>
+                        </tr>
+                        <tr>
+                            <td><code>promptAction.showToast</code></td>
+                            <td>@kit.ArkUI</td>
+                            <td>显示提示信息</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="warning-box info-box" style="margin-top: 24px;">
+                    <div class="info-box-title">
+                        <span>&#9888;</span> 权限要求
+                    </div>
+                    <div class="info-box-content">
+                        使用 SecurityAudit API 需要系统能力：<code>SystemCapability.Security.SecurityAudit</code>
+                        <br><br>
+                        可能需要的权限（待确认）：
+                        <ul>
+                            <li><code>ohos.permission.SECURITY_AUDIT</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // 初始化 Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default'
+        });
+
+        // 目录导航高亮
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.section');
+
+        function updateActiveNav() {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveNav);
+
+        // 折叠面板
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.parentElement.classList.toggle('open');
+            });
+        });
+    </script>
+</body>
+</html>

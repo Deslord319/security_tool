@@ -7,7 +7,8 @@ import {
   AUTH_METHOD_OPTIONS,
   PREF_KEY_STARTUP_AUTH,
   PREF_KEY_AUTH_METHOD,
-  DEFAULT_TOOL_SETTINGS
+  DEFAULT_TOOL_SETTINGS,
+  PREF_STORE_NAME_TOOL
 } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
@@ -15,7 +16,6 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 const TAG = 'ToolSettingsPage'
-const PREF_STORE_NAME = 'tool_settings'
 
 @Component
 export struct ToolSettingsPage {
@@ -24,6 +24,10 @@ export struct ToolSettingsPage {
   // ========== 启动校验状态 ==========
   @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   @State authMethodIndex: number = 0  // 默认 PIN 码
+
+  // ========== 初始值（用于判断是否有变更）==========
+  private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
+  private initialAuthMethodIndex: number = 0
 
   // ========== 密码管理状态 ==========
   @State currentPassword: string = ''
@@ -51,7 +55,7 @@ export struct ToolSettingsPage {
   // 加载设置
   async loadSettings() {
     try {
-      let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME)
+      let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
 
       // 加载启动校验开关
       let startupAuth = await prefs.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
@@ -64,6 +68,10 @@ export struct ToolSettingsPage {
       if (idx >= 0) {
         this.authMethodIndex = idx
       }
+
+      // 保存初始值（用于判断是否有变更）
+      this.initialStartupAuthEnabled = this.startupAuthEnabled
+      this.initialAuthMethodIndex = this.authMethodIndex
 
       hilog.info(0x0004, TAG, `Settings loaded: startupAuth=${this.startupAuthEnabled}, authMethod=${methodValue}`)
     } catch (err) {
@@ -88,15 +96,76 @@ export struct ToolSettingsPage {
   // 保存设置
   async saveSettings() {
     try {
-      // 1. 保存启动校验配置到 Preferences
-      let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME)
-      await prefs.put(PREF_KEY_STARTUP_AUTH, this.startupAuthEnabled)
-      await prefs.put(PREF_KEY_AUTH_METHOD, AUTH_METHOD_OPTIONS[this.authMethodIndex].value)
-      await prefs.flush()
-      hilog.info(0x0004, TAG, 'Startup auth settings saved')
+      // 1. 如果启用了启动校验，检查认证方式是否可用
+      if (this.startupAuthEnabled) {
+        let authMethod = AUTH_METHOD_OPTIONS[this.authMethodIndex].value
+        let checkResult = AuthService.checkAuthMethodAvailability(authMethod)
+        if (!checkResult.available) {
+          AlertDialog.show({
+            title: '认证方式不可用',
+            message: `${checkResult.message}\n\n保存后下次启动可能无法进入工具，是否继续？`,
+            primaryButton: {
+              value: '继续保存',
+              action: async () => {
+                await this.doSaveSettings()
+              }
+            },
+            secondaryButton: {
+              value: '取消',
+              action: () => {}
+            }
+          })
+          return
+        }
+      }
 
-      // 2. 如果有密码变更，验证并保存
-      if (this.newPassword.length > 0) {
+      await this.doSaveSettings()
+    } catch (err) {
+      hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
+      promptAction.showToast({ message: '保存失败' })
+    }
+  }
+
+  // 实际执行保存
+  private async doSaveSettings() {
+    try {
+      // 检查是否有实际变更
+      let hasAuthConfigChanged = this.startupAuthEnabled !== this.initialStartupAuthEnabled ||
+        this.authMethodIndex !== this.initialAuthMethodIndex
+      let hasPasswordChange = this.newPassword.length > 0
+
+      // ========== 1. 优先验证密码字段（如果用户填写了当前密码）==========
+      // 如果已有密码且用户输入了当前密码，无论是否有其他变更，都先验证
+      if (this.hasExistingPassword && this.currentPassword.length > 0) {
+        let verified = await SecureStorageService.verifyPassword(this.currentPassword)
+        if (!verified) {
+          promptAction.showToast({ message: '当前密码错误' })
+          return
+        }
+        hilog.info(0x0004, TAG, 'Current password verified')
+      }
+
+      // ========== 2. 检查是否有变更 ==========
+      if (!hasAuthConfigChanged && !hasPasswordChange) {
+        promptAction.showToast({ message: '没有需要保存的更改' })
+        return
+      }
+
+      // ========== 3. 保存启动校验配置 ==========
+      if (hasAuthConfigChanged) {
+        let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
+        await prefs.put(PREF_KEY_STARTUP_AUTH, this.startupAuthEnabled)
+        await prefs.put(PREF_KEY_AUTH_METHOD, AUTH_METHOD_OPTIONS[this.authMethodIndex].value)
+        await prefs.flush()
+        hilog.info(0x0004, TAG, 'Startup auth settings saved')
+
+        // 更新初始值
+        this.initialStartupAuthEnabled = this.startupAuthEnabled
+        this.initialAuthMethodIndex = this.authMethodIndex
+      }
+
+      // ========== 4. 保存密码变更 ==========
+      if (hasPasswordChange) {
         // 验证新密码和确认密码一致
         if (this.newPassword !== this.confirmPassword) {
           promptAction.showToast({ message: '两次输入的密码不一致' })
@@ -109,17 +178,10 @@ export struct ToolSettingsPage {
           return
         }
 
-        // 如果已有密码，先验证当前密码
-        if (this.hasExistingPassword) {
-          if (this.currentPassword.length === 0) {
-            promptAction.showToast({ message: '请输入当前密码' })
-            return
-          }
-          let verified = await SecureStorageService.verifyPassword(this.currentPassword)
-          if (!verified) {
-            promptAction.showToast({ message: '当前密码错误' })
-            return
-          }
+        // 如果已有密码，需要先验证当前密码（若前面未验证）
+        if (this.hasExistingPassword && this.currentPassword.length === 0) {
+          promptAction.showToast({ message: '请输入当前密码' })
+          return
         }
 
         // 保存新密码
@@ -145,25 +207,54 @@ export struct ToolSettingsPage {
 
   // 重置默认
   resetToDefault() {
-    this.startupAuthEnabled = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-    this.authMethodIndex = AUTH_METHOD_OPTIONS.findIndex((opt) => opt.value === DEFAULT_TOOL_SETTINGS.authMethod)
-    if (this.authMethodIndex < 0) {
-      this.authMethodIndex = 0
-    }
-    this.currentPassword = ''
-    this.newPassword = ''
-    this.confirmPassword = ''
-    promptAction.showToast({ message: '已重置为默认配置' })
+    AlertDialog.show({
+      title: '确认重置',
+      message: '将恢复为默认配置：\n\n- 启用启动校验\n- 使用 PIN 码认证\n\n重置后需点击"保存设置"才会持久化。',
+      primaryButton: {
+        value: '确认',
+        action: () => {
+          this.startupAuthEnabled = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
+          this.authMethodIndex = AUTH_METHOD_OPTIONS.findIndex((opt) => opt.value === DEFAULT_TOOL_SETTINGS.authMethod)
+          if (this.authMethodIndex < 0) {
+            this.authMethodIndex = 0
+          }
+          this.currentPassword = ''
+          this.newPassword = ''
+          this.confirmPassword = ''
+          promptAction.showToast({ message: '已重置，请点击"保存设置"以生效' })
+        }
+      },
+      secondaryButton: {
+        value: '取消',
+        action: () => {}
+      }
+    })
   }
 
   // 测试认证
   async testAuth() {
     let authMethod = AUTH_METHOD_OPTIONS[this.authMethodIndex].value
+
+    // 先检查可用性
+    let checkResult = AuthService.checkAuthMethodAvailability(authMethod)
+    if (!checkResult.available) {
+      AlertDialog.show({
+        title: '认证方式不可用',
+        message: checkResult.message,
+        confirm: {
+          value: '知道了',
+          action: () => {}
+        }
+      })
+      return
+    }
+
+    // 执行认证
     let success = await AuthService.authenticate(authMethod)
     if (success) {
       promptAction.showToast({ message: '认证成功' })
     } else {
-      promptAction.showToast({ message: '认证失败或已取消' })
+      promptAction.showToast({ message: '认证已取消' })
     }
   }
 

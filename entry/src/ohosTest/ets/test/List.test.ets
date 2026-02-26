@@ -1,18 +1,26 @@
-import abilityTest from './Ability.test'
-import statCardTest from './components/StatCard.test'
-import pageSnapshotTest from './e2e/PageSnapshot.test'
-import firewallFlowTest from './e2e/flows/FirewallFlow.test'
+import abilityTest from './common/Ability.test'
+import dashboardComponentTest from './dashboard/component.test'
+import dashboardSnapshotTest from './dashboard/snapshot.test'
+import firewallComponentTest from './firewall/component.test'
+import firewallFlowTest from './firewall/flow.test'
+import peripheralSnapshotTest from './peripheral/snapshot.test'
+import multiPageNavigationTest from './navigation/multi-page.test'
 
 export default function testsuite() {
-  // 原有 Ability 测试
+  // 通用基础测试
   abilityTest()
 
-  // 组件测试
-  statCardTest()
+  // Dashboard 模块
+  dashboardComponentTest()
+  dashboardSnapshotTest()
 
-  // E2E 测试 - 页面快照回归
-  pageSnapshotTest()
-
-  // E2E 测试 - 防火墙流程
+  // 防火墙模块
+  firewallComponentTest()
   firewallFlowTest()
+
+  // 外设模块
+  peripheralSnapshotTest()
+
+  // 跨模块导航测试
+  multiPageNavigationTest()
 }

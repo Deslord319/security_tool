@@ -1,14 +1,16 @@
-import localUnitTest from './LocalUnit.test'
-import dataModelsTest from './models/DataModels.test'
-import firewallServiceTest from './services/FirewallService.test'
+import localUnitTest from './common/LocalUnit.test'
+import firewallModelsTest from './firewall/models.test'
+import firewallServiceTest from './firewall/service.test'
+import peripheralModelsTest from './peripheral/models.test'
 
 export default function testsuite() {
-  // 原有测试
+  // 通用基础测试
   localUnitTest()
 
-  // 单元测试 - 数据模型
-  dataModelsTest()
-
-  // 服务层测试 - 防火墙服务
+  // 防火墙模块
+  firewallModelsTest()
   firewallServiceTest()
+
+  // 外设模块
+  peripheralModelsTest()
 }

@@ -365,3 +365,6 @@ export const ASSET_KEY_TOOL_PASSWORD = 'tool_password'
 // Preferences 键名常量
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
+
+// Preferences Store 名称常量
+export const PREF_STORE_NAME_TOOL = 'tool_settings'
