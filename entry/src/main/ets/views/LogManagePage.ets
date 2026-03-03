@@ -8,6 +8,7 @@ import {
   LogFilter,
   LogStatistics,
   LogStorageConfig,
+  LogSubscriptionConfig,
   LogExportFormat,
   LogEventTypeOption,
   LOG_EVENT_TYPE_OPTIONS,
@@ -55,6 +56,21 @@ export struct LogManagePage {
   @State showSettings: boolean = false
   @State isLoading: boolean = false
 
+  // 高频审计事件缓冲与节流
+  private pendingEntries: LogEntry[] = []
+  private flushTimerId: number = -1
+  private refreshTimerId: number = -1
+  private isFlushingEntries: boolean = false
+  private readonly BATCH_FLUSH_INTERVAL_MS: number = 500
+  private readonly REFRESH_INTERVAL_MS: number = 300
+  private readonly MAX_PENDING_ENTRIES: number = 1200
+  private readonly INTERNAL_LOG_PATH_KEYWORDS: string[] = [
+    'preferences/log_settings',
+    'preferences/theme_preferences',
+    'files/hiappevent/',
+    'databases/appevent.db'
+  ]
+
   // 事件类型过滤选项
   private eventTypeFilterOptions: SelectOption[] = [{ value: '全部类型' } as SelectOption]
   private resultFilterOptions: SelectOption[] = [
@@ -76,6 +92,15 @@ export struct LogManagePage {
   aboutToDisappear() {
     // 取消审计订阅
     LogAuditService.unsubscribe()
+    if (this.flushTimerId >= 0) {
+      clearTimeout(this.flushTimerId)
+      this.flushTimerId = -1
+    }
+    if (this.refreshTimerId >= 0) {
+      clearTimeout(this.refreshTimerId)
+      this.refreshTimerId = -1
+    }
+    this.pendingEntries = []
   }
 
   async initServices() {
@@ -100,7 +125,7 @@ export struct LogManagePage {
       this.refreshData()
 
       // 订阅审计事件
-      this.startSubscription()
+      await this.startSubscription()
 
       hilog.info(0x0006, TAG, 'Services initialized')
     } catch (err) {
@@ -110,12 +135,115 @@ export struct LogManagePage {
   }
 
   // 启动审计事件订阅
-  startSubscription() {
-    let success = LogAuditService.subscribe(async (entry: LogEntry) => {
-      await LogStorageService.addEntry(entry)
-      this.refreshData()
-    })
+  async startSubscription() {
+    let subscribeConfig: LogSubscriptionConfig = await LogStorageService.loadSubscriptionConfig()
+    let eventTypes = subscribeConfig.subscribeAll ? undefined : subscribeConfig.subscribedTypes
+
+    let success = LogAuditService.subscribe((entry: LogEntry) => {
+      this.handleIncomingEntry(entry)
+    }, eventTypes)
     this.isSubscribed = success
+    let failedEventIds = LogAuditService.getLastSubscribeFailedEventIds()
+    if (success && failedEventIds.length > 0) {
+      hilog.warn(0x0006, TAG, `Partial subscribe success, failed eventIds: ${failedEventIds.join(',')}`)
+      promptAction.showToast({
+        message: `已订阅 ${eventTypes ? eventTypes.length : LOG_EVENT_TYPE_OPTIONS.length} 类，部分事件不支持`
+      })
+      return
+    }
+
+    if (!success) {
+      let code = LogAuditService.getLastSubscribeErrorCode()
+      if (code === 201) {
+        promptAction.showToast({ message: '审计订阅失败：权限不足（201）' })
+      } else if (code === 401) {
+        promptAction.showToast({ message: '审计订阅失败：订阅参数异常（401）' })
+      } else if (code !== undefined) {
+        promptAction.showToast({ message: `审计订阅失败：错误码 ${code}` })
+      } else {
+        promptAction.showToast({ message: '审计订阅失败，请检查系统日志' })
+      }
+    }
+  }
+
+  // 处理审计回调（过滤内部事件 + 批量落盘）
+  handleIncomingEntry(entry: LogEntry) {
+    if (this.shouldIgnoreInternalEntry(entry)) {
+      return
+    }
+
+    this.pendingEntries.push(entry)
+    if (this.pendingEntries.length > this.MAX_PENDING_ENTRIES) {
+      let dropped = this.pendingEntries.length - this.MAX_PENDING_ENTRIES
+      this.pendingEntries.splice(0, dropped)
+      hilog.warn(0x0006, TAG, `Dropped ${dropped} queued log entries due to burst traffic`)
+    }
+
+    this.scheduleFlushPendingEntries()
+  }
+
+  // 过滤本应用内部持久化产生的 FILE 审计，避免写日志触发自激循环
+  shouldIgnoreInternalEntry(entry: LogEntry): boolean {
+    if (entry.eventType !== LogEventType.FILE) {
+      return false
+    }
+
+    let process = (entry.processName || '').toLowerCase()
+    let content = `${entry.filePath || ''} ${entry.detail || ''}`.toLowerCase()
+    let fromSelfProcess = process.includes('com.example.securitytool')
+
+    for (let keyword of this.INTERNAL_LOG_PATH_KEYWORDS) {
+      if (content.includes(keyword)) {
+        return true
+      }
+    }
+
+    return fromSelfProcess && content.includes('com.example.securitytool')
+  }
+
+  // 安排批量落盘
+  scheduleFlushPendingEntries() {
+    if (this.flushTimerId >= 0) {
+      return
+    }
+
+    this.flushTimerId = setTimeout(() => {
+      this.flushTimerId = -1
+      this.flushPendingEntries()
+    }, this.BATCH_FLUSH_INTERVAL_MS)
+  }
+
+  // 执行批量落盘，降低主线程与 I/O 压力
+  async flushPendingEntries() {
+    if (this.isFlushingEntries || this.pendingEntries.length === 0) {
+      return
+    }
+
+    this.isFlushingEntries = true
+    let batch = this.pendingEntries.slice(0, this.pendingEntries.length)
+    this.pendingEntries = []
+
+    let saved = await LogStorageService.addEntries(batch)
+    if (saved) {
+      this.scheduleRefreshData()
+    }
+
+    this.isFlushingEntries = false
+    if (this.pendingEntries.length > 0) {
+      this.scheduleFlushPendingEntries()
+    }
+  }
+
+  // 节流刷新列表，避免每条事件重绘
+  scheduleRefreshData() {
+    if (this.refreshTimerId >= 0) {
+      return
+    }
+
+    this.refreshTimerId = setTimeout(() => {
+      this.refreshTimerId = -1
+      this.refreshData()
+    }, this.REFRESH_INTERVAL_MS)
   }
 
   // 刷新数据
@@ -218,7 +346,7 @@ export struct LogManagePage {
         Row({ space: 6 }) {
           Circle({ width: 8, height: 8 })
             .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
-          Text(this.isSubscribed ? '实时监听中' : '未连接')
+          Text(this.isSubscribed ? '已订阅' : '订阅失败')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -715,7 +843,7 @@ export struct LogManagePage {
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
 
-            Text(this.isSubscribed ? '已授权' : '未授权')
+            Text(this.isSubscribed ? '已订阅' : '订阅失败')
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontColor(this.isSubscribed ?
                 AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT :

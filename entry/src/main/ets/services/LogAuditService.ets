@@ -4,6 +4,7 @@ import {
   LogEntry,
   LogEventType,
   LogEventResult,
+  ALL_LOG_EVENT_TYPES,
   generateLogEntryId
 } from '../models/DataModels'
 
@@ -18,9 +19,52 @@ export class LogAuditService {
 
   private static isSubscribed: boolean = false
   private static callback: LogEntryCallback | null = null
+  private static subscribedCallbacks: Map<number, (event: securityAudit.AuditEvent) => void> = new Map()
+  private static lastSubscribeErrorCode: number | undefined = undefined
+  private static lastSubscribeFailedEventIds: number[] = []
+
+  // 需求清单事件类型 -> 官方 NotifyEvent 映射
+  private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
+    [
+      LogEventType.FILE,
+      [
+        securityAudit.NotifyEvent.FILE,
+        securityAudit.NotifyEvent.FILE_INTERCEPTED,
+        securityAudit.NotifyEvent.KIA_CREATE,
+        securityAudit.NotifyEvent.KIA_READ,
+        securityAudit.NotifyEvent.KIA_VARIANT,
+        securityAudit.NotifyEvent.KIA_INTERCEPT
+      ]
+    ],
+    [LogEventType.NETWORK_CONN, [securityAudit.NotifyEvent.NETWORK_CONN]],
+    [LogEventType.NETWORK_TRAFFIC, [securityAudit.NotifyEvent.NETWORK_TRAFFIC]],
+    [
+      LogEventType.APP,
+      [
+        securityAudit.NotifyEvent.APP,
+        securityAudit.NotifyEvent.APP_INSTALL_INTERCEPTED,
+        securityAudit.NotifyEvent.APP_UNINSTALL_INTERCEPTED,
+        securityAudit.NotifyEvent.APP_UPDATE_INTERCEPTED,
+        securityAudit.NotifyEvent.APP_RECOVER_INTERCEPTED,
+        securityAudit.NotifyEvent.APP_START_INTERCEPTED
+      ]
+    ],
+    [LogEventType.ACCOUNT, [securityAudit.NotifyEvent.ACCOUNT]],
+    [LogEventType.USB_ACCESS, [securityAudit.NotifyEvent.USB_ACCESS_INTERCEPTED]],
+    [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]],
+    [LogEventType.PROCESS, [securityAudit.NotifyEvent.PROCESS]],
+    [LogEventType.PRINTER, [securityAudit.NotifyEvent.PRINTER]],
+    [LogEventType.CAMERA, [securityAudit.NotifyEvent.CAMERA]],
+    [LogEventType.CERT, [securityAudit.NotifyEvent.CERT]],
+    [LogEventType.EDM, [securityAudit.NotifyEvent.EDM]],
+    [LogEventType.DNS, [securityAudit.NotifyEvent.DNS]]
+  ])
+
+  // 官方事件 ID -> 业务事件类型映射
+  private static readonly EVENT_TYPE_BY_ID: Map<number, LogEventType> = LogAuditService.buildEventTypeById()
 
   // 订阅安全审计事件
-  static subscribe(onLogEntry: LogEntryCallback): boolean {
+  static subscribe(onLogEntry: LogEntryCallback, eventTypes?: LogEventType[]): boolean {
     if (LogAuditService.isSubscribed) {
       hilog.warn(DOMAIN, TAG, 'Already subscribed to audit events')
       return true
@@ -28,23 +72,73 @@ export class LogAuditService {
 
     try {
       LogAuditService.callback = onLogEntry
+      LogAuditService.lastSubscribeErrorCode = undefined
+      LogAuditService.lastSubscribeFailedEventIds = []
+      let eventIds = LogAuditService.mapTypesToIds(eventTypes)
 
-      // 订阅所有审计事件（eventId=0 表示全部）
-      let auditInfo: securityAudit.AuditEventInfo = { eventId: 0 }
+      if (eventIds.length === 0) {
+        LogAuditService.lastSubscribeErrorCode = 401
+        hilog.error(DOMAIN, TAG, 'subscribe failed: empty eventIds')
+        LogAuditService.callback = null
+        return false
+      }
 
-      securityAudit.on('auditEventOccur', auditInfo, (event: securityAudit.AuditEvent) => {
-        hilog.debug(DOMAIN, TAG, `Received audit event: ${event.eventId}`)
-        let entry = LogAuditService.parseAuditEvent(event)
-        if (LogAuditService.callback) {
-          LogAuditService.callback(entry)
+      for (let eventId of eventIds) {
+        let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
+        let eventCallback = (event: securityAudit.AuditEvent) => {
+          let entry = LogAuditService.parseAuditEvent(event)
+          if (LogAuditService.callback) {
+            LogAuditService.callback(entry)
+          }
         }
-      })
 
-      LogAuditService.isSubscribed = true
-      hilog.info(DOMAIN, TAG, 'Subscribed to security audit events')
+        try {
+          securityAudit.on('auditEventOccur', auditInfo, eventCallback)
+          LogAuditService.subscribedCallbacks.set(eventId, eventCallback)
+          hilog.info(DOMAIN, TAG, `Subscribed eventId: ${eventId}`)
+        } catch (err) {
+          if (LogAuditService.lastSubscribeErrorCode === undefined) {
+            LogAuditService.lastSubscribeErrorCode = LogAuditService.extractErrorCode(err as Object)
+          }
+          LogAuditService.lastSubscribeFailedEventIds.push(eventId)
+          hilog.error(
+            DOMAIN,
+            TAG,
+            `Subscribe eventId ${eventId} failed: ${JSON.stringify(err)}`
+          )
+        }
+      }
+
+      LogAuditService.isSubscribed = LogAuditService.subscribedCallbacks.size > 0
+      if (!LogAuditService.isSubscribed) {
+        hilog.error(
+          DOMAIN,
+          TAG,
+          `Failed to subscribe any audit event, failed eventIds: ${LogAuditService.lastSubscribeFailedEventIds.join(',')}`
+        )
+        LogAuditService.callback = null
+        return false
+      }
+
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `Subscribed audit events success=${LogAuditService.subscribedCallbacks.size}, failed=${LogAuditService.lastSubscribeFailedEventIds.length}`
+      )
+      if (LogAuditService.lastSubscribeFailedEventIds.length > 0) {
+        hilog.warn(
+          DOMAIN,
+          TAG,
+          `Some audit events are unsupported or rejected: ${LogAuditService.lastSubscribeFailedEventIds.join(',')}`
+        )
+      }
       return true
     } catch (err) {
+      LogAuditService.lastSubscribeErrorCode = LogAuditService.extractErrorCode(err as Object)
       hilog.error(DOMAIN, TAG, `subscribe failed: ${JSON.stringify(err)}`)
+      LogAuditService.unsubscribeInternal()
+      LogAuditService.callback = null
+      LogAuditService.isSubscribed = false
       return false
     }
   }
@@ -56,12 +150,14 @@ export class LogAuditService {
     }
 
     try {
-      let auditInfo: securityAudit.AuditEventInfo = { eventId: 0 }
-      securityAudit.off('auditEventOccur', auditInfo)
-      LogAuditService.isSubscribed = false
+      let ok = LogAuditService.unsubscribeInternal()
       LogAuditService.callback = null
-      hilog.info(DOMAIN, TAG, 'Unsubscribed from security audit events')
-      return true
+      LogAuditService.lastSubscribeErrorCode = undefined
+      LogAuditService.lastSubscribeFailedEventIds = []
+      if (ok) {
+        hilog.info(DOMAIN, TAG, 'Unsubscribed from security audit events')
+      }
+      return ok
     } catch (err) {
       hilog.error(DOMAIN, TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
       return false
@@ -71,6 +167,16 @@ export class LogAuditService {
   // 获取订阅状态
   static getSubscriptionStatus(): boolean {
     return LogAuditService.isSubscribed
+  }
+
+  // 获取最近一次订阅失败错误码（如 201 权限失败，401 参数错误）
+  static getLastSubscribeErrorCode(): number | undefined {
+    return LogAuditService.lastSubscribeErrorCode
+  }
+
+  // 获取最近一次订阅失败的事件 ID 列表
+  static getLastSubscribeFailedEventIds(): number[] {
+    return [...LogAuditService.lastSubscribeFailedEventIds]
   }
 
   // 解析系统 AuditEvent 为内部 LogEntry 格式
@@ -109,36 +215,12 @@ export class LogAuditService {
 
   // 将系统 eventId 映射到内部 LogEventType
   private static mapEventType(eventId: number): LogEventType {
-    // 系统事件 ID 范围映射（基于 HarmonyOS 安全审计 API 文档）
-    // 实际映射需要根据官方文档调整
-    if (eventId >= 1000 && eventId < 2000) {
-      return LogEventType.FILE
-    } else if (eventId >= 2000 && eventId < 3000) {
-      return LogEventType.NETWORK_CONN
-    } else if (eventId >= 3000 && eventId < 4000) {
-      return LogEventType.NETWORK_TRAFFIC
-    } else if (eventId >= 4000 && eventId < 5000) {
-      return LogEventType.APP
-    } else if (eventId >= 5000 && eventId < 6000) {
-      return LogEventType.ACCOUNT
-    } else if (eventId >= 6000 && eventId < 7000) {
-      return LogEventType.USB_ACCESS
-    } else if (eventId >= 7000 && eventId < 8000) {
-      return LogEventType.PERMISSION
-    } else if (eventId >= 8000 && eventId < 9000) {
-      return LogEventType.PROCESS
-    } else if (eventId >= 9000 && eventId < 10000) {
-      return LogEventType.PRINTER
-    } else if (eventId >= 10000 && eventId < 11000) {
-      return LogEventType.CAMERA
-    } else if (eventId >= 11000 && eventId < 12000) {
-      return LogEventType.CERT
-    } else if (eventId >= 12000 && eventId < 13000) {
-      return LogEventType.EDM
-    } else if (eventId >= 13000 && eventId < 14000) {
-      return LogEventType.DNS
+    let mapped = LogAuditService.EVENT_TYPE_BY_ID.get(eventId)
+    if (mapped !== undefined) {
+      return mapped
     }
-    return LogEventType.FILE // 默认
+    hilog.warn(DOMAIN, TAG, `Unknown audit eventId: ${eventId}, fallback to FILE`)
+    return LogEventType.FILE
   }
 
   // 解析事件内容字符串
@@ -158,9 +240,11 @@ export class LogAuditService {
 
       // 根据事件类型解析特定字段
       if (eventType === LogEventType.FILE) {
-        result.filePath = json['filePath'] as string
+        result.filePath = (json['filePath'] as string) ||
+          (json['path'] as string) ||
+          (json['targetPath'] as string)
       } else if (eventType === LogEventType.NETWORK_CONN || eventType === LogEventType.NETWORK_TRAFFIC) {
-        result.remoteAddr = json['remoteAddress'] as string
+        result.remoteAddr = (json['remoteAddress'] as string) || (json['remoteAddr'] as string)
       }
 
       // 解析结果状态
@@ -172,10 +256,71 @@ export class LogAuditService {
       }
     } catch {
       // 非 JSON 格式，保持原始内容
-      hilog.debug(DOMAIN, TAG, 'Event content is not JSON format')
     }
 
     return result
+  }
+
+  // 类型映射到事件 ID 列表
+  private static mapTypesToIds(eventTypes?: LogEventType[]): number[] {
+    let types = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
+    let ids: number[] = []
+
+    for (let type of types) {
+      let mappedIds = LogAuditService.EVENT_IDS_BY_TYPE.get(type)
+      if (!mappedIds) {
+        continue
+      }
+      for (let eventId of mappedIds) {
+        if (!ids.includes(eventId)) {
+          ids.push(eventId)
+        }
+      }
+    }
+    return ids
+  }
+
+  // 构建反向映射表
+  private static buildEventTypeById(): Map<number, LogEventType> {
+    let mapping: Map<number, LogEventType> = new Map()
+    LogAuditService.EVENT_IDS_BY_TYPE.forEach((ids: number[], type: LogEventType) => {
+      for (let eventId of ids) {
+        mapping.set(eventId, type)
+      }
+    })
+    return mapping
+  }
+
+  // 提取业务错误码
+  private static extractErrorCode(err: Object): number | undefined {
+    let codeValue = (err as Record<string, Object>)['code']
+    if (typeof codeValue === 'number') {
+      return codeValue
+    }
+    if (typeof codeValue === 'string') {
+      let parsed = Number(codeValue)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+    return undefined
+  }
+
+  // 内部取消订阅（按 eventId + callback 精确解绑）
+  private static unsubscribeInternal(): boolean {
+    let ok = true
+    LogAuditService.subscribedCallbacks.forEach(
+      (eventCallback: (event: securityAudit.AuditEvent) => void, eventId: number) => {
+      try {
+        let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
+        securityAudit.off('auditEventOccur', auditInfo, eventCallback)
+      } catch (err) {
+        ok = false
+        hilog.error(DOMAIN, TAG, `off eventId ${eventId} failed: ${JSON.stringify(err)}`)
+      }
+    })
+
+    LogAuditService.subscribedCallbacks.clear()
+    LogAuditService.isSubscribed = false
+    return ok
   }
 }
 

@@ -426,6 +426,12 @@ export interface LogStorageConfig {
   exportPath?: string         // 导出路径
 }
 
+// 日志订阅配置
+export interface LogSubscriptionConfig {
+  subscribeAll: boolean         // 是否订阅全部事件类型
+  subscribedTypes: LogEventType[] // 订阅的事件类型列表
+}
+
 // 日志统计信息（用于 Dashboard 展示）
 export interface LogStatistics {
   totalCount: number          // 总条数
@@ -455,6 +461,29 @@ export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   autoExportEnabled: false
 }
 
+// 全部审计类型（需求清单 13 类）
+export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
+  LogEventType.FILE,
+  LogEventType.NETWORK_CONN,
+  LogEventType.NETWORK_TRAFFIC,
+  LogEventType.APP,
+  LogEventType.ACCOUNT,
+  LogEventType.USB_ACCESS,
+  LogEventType.PERMISSION,
+  LogEventType.PROCESS,
+  LogEventType.PRINTER,
+  LogEventType.CAMERA,
+  LogEventType.CERT,
+  LogEventType.EDM,
+  LogEventType.DNS
+]
+
+// 默认订阅配置（默认订阅全部 13 类）
+export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
+  subscribeAll: true,
+  subscribedTypes: ALL_LOG_EVENT_TYPES
+}
+
 // 日志保留天数选项
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 60, 90]
 
@@ -466,6 +495,8 @@ export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
 export const PREF_KEY_LOG_AUTO_EXPORT = 'log_auto_export'
 export const PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
+export const PREF_KEY_LOG_SUBSCRIBE_ALL = 'log_subscribe_all'
+export const PREF_KEY_LOG_SUBSCRIBED_TYPES = 'log_subscribed_types'
 
 // Preferences Store 名称常量（日志模块）
 export const PREF_STORE_NAME_LOG = 'log_settings'
