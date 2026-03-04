@@ -5,7 +5,7 @@
 ## 项目概述
 
 - **项目名称**：SecurityTool（HarmonyOS 安全管理中心）
-- **包名**：`com.example.securitytool`（不含下划线）
+- **包名**：`com.huawei.securitytool`（不含下划线）
 - **入口页面**：`pages/MainPage`（非 pages/Index）
 - **目标设备**：2in1
 - **语言**：ArkTS (ETS)
@@ -89,6 +89,12 @@ java -jar hap-sign-tool.jar sign-app \
 hdc install hapsigner/signApp.hap
 ```
 
+#### 步骤 5：激活企业管理员（MDM 功能必需）
+
+```bash
+hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility -t super
+```
+
 ## 关键一致性规则
 
 以下三个位置的包名和权限必须保持一致，修改任一处时必须同步其余两处：
@@ -144,4 +150,5 @@ ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY
 1. **页面空白**：检查 `EntryAbility.ets` 中 `windowStage.loadContent` 的参数是否为 `'pages/MainPage'`。
 2. **安装失败（签名错误）**：确认 `UnsgnedDebugProfileTemplate.json` 中 `bundle-name` 与 `app.json5` 中 `bundleName` 一致，并重新执行 p7b 生成 + 签名。
 3. **权限不足**：确认权限同时声明在 `module.json5` 和签名模板的 `acls` + `permissions` 中。
-4. **构建路径错误**：MCP `build_app` 工具路径参数注意大小写，使用 `D:\lxl\ho_demo\SecurityTool`。
+4. **MDM 操作失败（错误码 9200001）**：表示应用未激活为企业管理员，执行 `edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility -t super` 后重试。
+5. **构建路径错误**：MCP `build_app` 工具路径参数注意大小写，使用 `D:\lxl\ho_demo\SecurityTool`。

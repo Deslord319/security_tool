@@ -13,6 +13,9 @@ import { Routes, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { common } from '@kit.AbilityKit'
+import { LogStorageService } from '../services/LogStorageService'
+import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 
 @Entry
 @Component
@@ -21,10 +24,60 @@ struct MainPage {
   @State @Watch('onFirewallStatusChange') firewallEnabled: boolean = false
   @State showMenu: boolean = false
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  private runtimeInitialized: boolean = false
+  private runtimeInitInProgress: boolean = false
 
   aboutToAppear(): void {
     hilog.info(0x0000, 'testTag', '[DIAG] MainPage aboutToAppear, currentTheme=%{public}s, AppStorage=%{public}s',
       this.currentTheme, AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined')
+    this.ensureRuntimeServices()
+  }
+
+  onPageShow(): void {
+    this.ensureRuntimeServices()
+  }
+
+  private async ensureRuntimeServices(): Promise<void> {
+    if (!this.runtimeInitialized) {
+      await this.initRuntimeServices()
+    }
+
+    let status = LogRuntimeCollectorService.getStatus()
+    if (!status.running) {
+      let collectorStarted = await LogRuntimeCollectorService.start()
+      if (!collectorStarted) {
+        hilog.warn(0x0000, 'testTag', '[DIAG] LogRuntimeCollectorService restart failed')
+      }
+    }
+  }
+
+  private async initRuntimeServices(): Promise<void> {
+    if (this.runtimeInitialized || this.runtimeInitInProgress) {
+      return
+    }
+    this.runtimeInitInProgress = true
+
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      let storageOk = await LogStorageService.init(context)
+      if (!storageOk) {
+        hilog.error(0x0000, 'testTag', '[DIAG] LogStorageService init failed')
+        return
+      }
+
+      let collectorInited = await LogRuntimeCollectorService.init(context)
+      if (!collectorInited) {
+        hilog.error(0x0000, 'testTag', '[DIAG] LogRuntimeCollectorService init failed')
+        return
+      }
+
+      this.runtimeInitialized = true
+    } catch (err) {
+      this.runtimeInitialized = false
+      hilog.error(0x0000, 'testTag', `[DIAG] initRuntimeServices failed: ${JSON.stringify(err)}`)
+    } finally {
+      this.runtimeInitInProgress = false
+    }
   }
 
   onFirewallStatusChange() {

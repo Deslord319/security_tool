@@ -1,6 +1,6 @@
-/**
- * 日志管理模块 - 组件 UI 测试 (L3)
- * 测试日志管理页面的渲染、导航、交互行为
+﻿/**
+ * 鏃ュ織绠＄悊妯″潡 - 缁勪欢 UI 娴嬭瘯 (L3)
+ * 娴嬭瘯鏃ュ織绠＄悊椤甸潰鐨勬覆鏌撱€佸鑸€佷氦浜掕涓?
  */
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
@@ -8,7 +8,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const TAG = 'LogManageComponentTest'
 const DOMAIN = 0x0000
-const BUNDLE_NAME = 'com.example.securitytool'
+const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
 function sleep(ms: number): Promise<void> {
@@ -39,13 +39,13 @@ export default function logManageComponentTest() {
       hilog.info(DOMAIN, TAG, 'LogManage component tests completed')
     })
 
-    // ==================== 导航到日志管理页面 ====================
+    // ==================== 瀵艰埅鍒版棩蹇楃鐞嗛〉闈?====================
 
     describe('Navigate to LogManage', () => {
 
       it('should navigate to log manage page via sidebar', 0, async () => {
-        // 点击侧边栏「日志管理」
-        let navItem = await driver.findComponent(ON.text('日志管理'))
+        // 鐐瑰嚮渚ц竟鏍忋€屾棩蹇楃鐞嗐€?
+        let navItem = await driver.findComponent(ON.text('鏃ュ織绠＄悊'))
         expect(navItem !== null).assertTrue()
         await navItem.click()
         await driver.delayMs(1000)
@@ -54,66 +54,65 @@ export default function logManageComponentTest() {
       })
     })
 
-    // ==================== 页面头部渲染测试 ====================
+    // ==================== 椤甸潰澶撮儴娓叉煋娴嬭瘯 ====================
 
     describe('LogManage Page Header', () => {
 
       it('should display page title', 0, async () => {
-        await driver.assertComponentExist(ON.text('日志管理'))
+        await driver.assertComponentExist(ON.text('鏃ュ織绠＄悊'))
         hilog.info(DOMAIN, TAG, 'Page title verified')
       })
 
       it('should display page description', 0, async () => {
-        await driver.assertComponentExist(ON.text('监控和审计系统安全事件日志'))
+        await driver.assertComponentExist(ON.text('鐩戞帶鍜屽璁＄郴缁熷畨鍏ㄤ簨浠舵棩蹇?))
         hilog.info(DOMAIN, TAG, 'Page description verified')
       })
 
       it('should display subscription status indicator', 0, async () => {
-        // 订阅状态文字应存在（实时监听中 or 未连接）
-        let connected = await driver.findComponent(ON.text('实时监听中'))
-        let disconnected = await driver.findComponent(ON.text('未连接'))
+        // 璁㈤槄鐘舵€佹枃瀛楀簲瀛樺湪锛堝凡璁㈤槄 or 璁㈤槄澶辫触锛?        let connected = await driver.findComponent(ON.text('宸茶闃?))
+        let disconnected = await driver.findComponent(ON.text('璁㈤槄澶辫触'))
         expect(connected !== null || disconnected !== null).assertTrue()
         hilog.info(DOMAIN, TAG, 'Subscription status indicator verified')
       })
 
       it('should display storage settings button', 0, async () => {
-        await driver.assertComponentExist(ON.text('存储设置'))
+        await driver.assertComponentExist(ON.text('瀛樺偍璁剧疆'))
         hilog.info(DOMAIN, TAG, 'Storage settings button verified')
       })
     })
 
-    // ==================== 统计卡片测试 ====================
+    // ==================== 缁熻鍗＄墖娴嬭瘯 ====================
 
     describe('Statistics Bar', () => {
 
       it('should display total count label', 0, async () => {
-        await driver.assertComponentExist(ON.text('总计'))
+        await driver.assertComponentExist(ON.text('鎬昏'))
         hilog.info(DOMAIN, TAG, 'Total count label verified')
       })
 
       it('should display today count label', 0, async () => {
-        await driver.assertComponentExist(ON.text('今日'))
+        await driver.assertComponentExist(ON.text('浠婃棩'))
         hilog.info(DOMAIN, TAG, 'Today count label verified')
       })
 
       it('should display blocked count label', 0, async () => {
-        await driver.assertComponentExist(ON.text('已阻止'))
+        await driver.assertComponentExist(ON.text('宸查樆姝?))
         hilog.info(DOMAIN, TAG, 'Blocked count label verified')
       })
 
       it('should display current display count label', 0, async () => {
-        await driver.assertComponentExist(ON.text('当前显示'))
+        await driver.assertComponentExist(ON.text('褰撳墠鏄剧ず'))
         hilog.info(DOMAIN, TAG, 'Current display count label verified')
       })
     })
 
-    // ==================== 空状态测试 ====================
+    // ==================== 绌虹姸鎬佹祴璇?====================
 
     describe('Empty State', () => {
 
       it('should show empty state message when no logs', 0, async () => {
-        let emptyMsg = await driver.findComponent(ON.text('暂无日志记录'))
-        // 可能有日志也可能没有，两种情况都合理
+        let emptyMsg = await driver.findComponent(ON.text('鏆傛棤鏃ュ織璁板綍'))
+        // 鍙兘鏈夋棩蹇椾篃鍙兘娌℃湁锛屼袱绉嶆儏鍐甸兘鍚堢悊
         if (emptyMsg !== null) {
           hilog.info(DOMAIN, TAG, 'Empty state message shown (no logs)')
         } else {
@@ -122,86 +121,93 @@ export default function logManageComponentTest() {
       })
     })
 
-    // ==================== 底部工具栏测试 ====================
+    // ==================== 搴曢儴宸ュ叿鏍忔祴璇?====================
 
     describe('Bottom Toolbar', () => {
 
       it('should display export JSON button', 0, async () => {
-        await driver.assertComponentExist(ON.text('导出 JSON'))
+        await driver.assertComponentExist(ON.text('瀵煎嚭 JSON'))
         hilog.info(DOMAIN, TAG, 'Export JSON button verified')
       })
 
       it('should display export CSV button', 0, async () => {
-        await driver.assertComponentExist(ON.text('导出 CSV'))
+        await driver.assertComponentExist(ON.text('瀵煎嚭 CSV'))
         hilog.info(DOMAIN, TAG, 'Export CSV button verified')
       })
 
       it('should display export TXT button', 0, async () => {
-        await driver.assertComponentExist(ON.text('导出 TXT'))
+        await driver.assertComponentExist(ON.text('瀵煎嚭 TXT'))
         hilog.info(DOMAIN, TAG, 'Export TXT button verified')
       })
 
       it('should display clear logs button', 0, async () => {
-        await driver.assertComponentExist(ON.text('清空日志'))
+        await driver.assertComponentExist(ON.text('娓呯┖鏃ュ織'))
         hilog.info(DOMAIN, TAG, 'Clear logs button verified')
       })
     })
 
-    // ==================== 存储设置视图切换测试 ====================
+    // ==================== 瀛樺偍璁剧疆瑙嗗浘鍒囨崲娴嬭瘯 ====================
 
     describe('Storage Settings View', () => {
 
       it('should switch to storage settings view', 0, async () => {
-        let settingsBtn = await driver.findComponent(ON.text('存储设置'))
+        let settingsBtn = await driver.findComponent(ON.text('瀛樺偍璁剧疆'))
         expect(settingsBtn !== null).assertTrue()
         await settingsBtn.click()
         await driver.delayMs(500)
 
-        // 应显示存储配置标题
-        await driver.assertComponentExist(ON.text('日志存储配置'))
+        // 搴旀樉绀哄瓨鍌ㄩ厤缃爣棰?
+        await driver.assertComponentExist(ON.text('鏃ュ織瀛樺偍閰嶇疆'))
         hilog.info(DOMAIN, TAG, 'Switched to storage settings view')
       })
 
       it('should display max entries setting', 0, async () => {
-        await driver.assertComponentExist(ON.text('最大存储条数'))
+        await driver.assertComponentExist(ON.text('鏈€澶у瓨鍌ㄦ潯鏁?))
         hilog.info(DOMAIN, TAG, 'Max entries setting verified')
       })
 
       it('should display retention days setting', 0, async () => {
-        await driver.assertComponentExist(ON.text('日志保留天数'))
+        await driver.assertComponentExist(ON.text('鏃ュ織淇濈暀澶╂暟'))
         hilog.info(DOMAIN, TAG, 'Retention days setting verified')
       })
 
       it('should display auto export toggle', 0, async () => {
-        await driver.assertComponentExist(ON.text('自动导出'))
+        await driver.assertComponentExist(ON.text('鑷姩瀵煎嚭'))
         hilog.info(DOMAIN, TAG, 'Auto export toggle verified')
       })
 
+      it('should display export path settings', 0, async () => {
+        await driver.assertComponentExist(ON.text('瀵煎嚭淇濆瓨浣嶇疆'))
+        await driver.assertComponentExist(ON.text('閫夋嫨浣嶇疆'))
+        await driver.assertComponentExist(ON.text('鎭㈠榛樿鐩綍'))
+        hilog.info(DOMAIN, TAG, 'Export path settings verified')
+      })
+
       it('should display permission info section', 0, async () => {
-        await driver.assertComponentExist(ON.text('权限信息'))
+        await driver.assertComponentExist(ON.text('鏉冮檺淇℃伅'))
         await driver.assertComponentExist(ON.text('ohos.permission.QUERY_AUDIT_EVENT'))
         hilog.info(DOMAIN, TAG, 'Permission info section verified')
       })
 
       it('should display save and reset buttons', 0, async () => {
-        await driver.assertComponentExist(ON.text('保存设置'))
-        await driver.assertComponentExist(ON.text('恢复默认'))
+        await driver.assertComponentExist(ON.text('淇濆瓨璁剧疆'))
+        await driver.assertComponentExist(ON.text('鎭㈠榛樿'))
         hilog.info(DOMAIN, TAG, 'Save and reset buttons verified')
       })
 
       it('should switch back to log list view', 0, async () => {
-        let backBtn = await driver.findComponent(ON.text('返回日志'))
+        let backBtn = await driver.findComponent(ON.text('杩斿洖鏃ュ織'))
         expect(backBtn !== null).assertTrue()
         await backBtn.click()
         await driver.delayMs(500)
 
-        // 应显示统计标签
-        await driver.assertComponentExist(ON.text('总计'))
+        // 搴旀樉绀虹粺璁℃爣绛?
+        await driver.assertComponentExist(ON.text('鎬昏'))
         hilog.info(DOMAIN, TAG, 'Switched back to log list view')
       })
     })
 
-    // ==================== 过滤工具栏交互测试 ====================
+    // ==================== 杩囨护宸ュ叿鏍忎氦浜掓祴璇?====================
 
     describe('Filter Toolbar', () => {
 
@@ -212,10 +218,11 @@ export default function logManageComponentTest() {
       })
 
       it('should display refresh button', 0, async () => {
-        await driver.assertComponentExist(ON.text('刷新'))
+        await driver.assertComponentExist(ON.text('鍒锋柊'))
         hilog.info(DOMAIN, TAG, 'Refresh button verified')
       })
     })
 
   })
 }
+

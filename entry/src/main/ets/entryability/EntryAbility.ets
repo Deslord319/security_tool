@@ -4,7 +4,7 @@ import { window, promptAction } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
 import { AuthService } from '../services/AuthService';
-import { AuthMethod, PREF_KEY_STARTUP_AUTH, PREF_KEY_AUTH_METHOD, PREF_STORE_NAME_TOOL } from '../models/DataModels';
+import { AuthMethod, PREF_KEY_STARTUP_AUTH, PREF_KEY_AUTH_METHOD, PREF_STORE_NAME_TOOL, DEFAULT_TOOL_SETTINGS } from '../models/DataModels';
 
 const DOMAIN = 0x0000;
 
@@ -47,8 +47,19 @@ export default class EntryAbility extends UIAbility {
   private async checkStartupAuth(windowStage: window.WindowStage): Promise<void> {
     try {
       let prefs = await preferences.getPreferences(this.context, PREF_STORE_NAME_TOOL);
-      let startupAuthEnabled = await prefs.get(PREF_KEY_STARTUP_AUTH, false) as boolean;
-      let authMethodValue = await prefs.get(PREF_KEY_AUTH_METHOD, AuthMethod.PIN) as number;
+      let startupAuthEnabled = await prefs.get(
+        PREF_KEY_STARTUP_AUTH,
+        DEFAULT_TOOL_SETTINGS.startupAuthEnabled
+      ) as boolean
+      let authMethodValue = await prefs.get(
+        PREF_KEY_AUTH_METHOD,
+        DEFAULT_TOOL_SETTINGS.authMethod
+      ) as number
+
+      // 统一持久化当前生效配置，避免运行默认与设置页默认长期分叉。
+      await prefs.put(PREF_KEY_STARTUP_AUTH, startupAuthEnabled)
+      await prefs.put(PREF_KEY_AUTH_METHOD, authMethodValue)
+      await prefs.flush()
 
       hilog.info(DOMAIN, 'testTag', `Startup auth config: enabled=${startupAuthEnabled}, method=${authMethodValue}`);
 

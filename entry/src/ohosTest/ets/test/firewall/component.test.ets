@@ -1,6 +1,6 @@
-/**
- * 防火墙模块 - 组件快照测试
- * 验证防火墙页面的基本渲染
+﻿/**
+ * 闃茬伀澧欐ā鍧?- 缁勪欢蹇収娴嬭瘯
+ * 楠岃瘉闃茬伀澧欓〉闈㈢殑鍩烘湰娓叉煋
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
@@ -8,7 +8,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const TAG = 'FirewallComponentTest'
 const DOMAIN = 0x0000
-const BUNDLE_NAME = 'com.example.securitytool'
+const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
 export default function firewallComponentTest() {
@@ -31,8 +31,8 @@ export default function firewallComponentTest() {
     })
 
     afterAll(async () => {
-      // 返回总览页面，避免影响后续测试
-      const dashboardNav = await driver.findComponent(ON.text('总览'))
+      // 杩斿洖鎬昏椤甸潰锛岄伩鍏嶅奖鍝嶅悗缁祴璇?
+      const dashboardNav = await driver.findComponent(ON.text('鎬昏'))
       if (dashboardNav) {
         await dashboardNav.click()
         await driver.delayMs(500)
@@ -44,14 +44,14 @@ export default function firewallComponentTest() {
       it('should render firewall page correctly', 0, async () => {
         hilog.info(DOMAIN, TAG, 'Navigating to firewall page...')
 
-        // 导航到防火墙页面
-        const firewallNav = await driver.findComponent(ON.text('防火墙'))
+        // 瀵艰埅鍒伴槻鐏椤甸潰
+        const firewallNav = await driver.findComponent(ON.text('闃茬伀澧?))
         expect(firewallNav !== null).assertTrue()
         await firewallNav.click()
         await driver.delayMs(500)
 
-        // 验证页面标题
-        await driver.assertComponentExist(ON.text('防火墙'))
+        // 楠岃瘉椤甸潰鏍囬
+        await driver.assertComponentExist(ON.text('闃茬伀澧?))
         hilog.info(DOMAIN, TAG, 'Firewall page rendered correctly')
       })
     })
@@ -62,3 +62,4 @@ export default function firewallComponentTest() {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+

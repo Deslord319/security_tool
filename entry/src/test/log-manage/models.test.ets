@@ -7,6 +7,7 @@ import {
   LogEventType,
   LogEventResult,
   LogExportFormat,
+  LogExportResult,
   getLogEventTypeLabel,
   getLogEventResultLabel,
   getLogEventResultColor,
@@ -191,8 +192,8 @@ export default function logManageModelsTest() {
 
     describe('DEFAULT_LOG_STORAGE_CONFIG', () => {
 
-      it('should have maxLocalEntries = 10000', 0, () => {
-        expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(10000)
+      it('should have maxLocalEntries = 5000', 0, () => {
+        expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(5000)
       })
 
       it('should have retentionDays = 30', 0, () => {
@@ -219,6 +220,28 @@ export default function logManageModelsTest() {
         for (let i = 1; i < LOG_MAX_ENTRIES_OPTIONS.length; i++) {
           expect(LOG_MAX_ENTRIES_OPTIONS[i] > LOG_MAX_ENTRIES_OPTIONS[i - 1]).assertTrue()
         }
+      })
+
+      it('LOG_MAX_ENTRIES_OPTIONS should not exceed in-memory cap', 0, () => {
+        expect(LOG_MAX_ENTRIES_OPTIONS[LOG_MAX_ENTRIES_OPTIONS.length - 1]).assertEqual(5000)
+      })
+    })
+
+    describe('LogExportResult model', () => {
+      it('should support success export result fields', 0, () => {
+        let result: LogExportResult = {
+          success: true,
+          count: 12,
+          format: LogExportFormat.JSON,
+          timestamp: 1700000000000,
+          trigger: 'manual',
+          fileName: 'security_log_20260101_120000_12.json',
+          fullPath: '/data/storage/el2/base/files/log_exports/security_log_20260101_120000_12.json',
+          directory: '/data/storage/el2/base/files/log_exports',
+          sizeBytes: 1024
+        }
+        expect(result.success).assertTrue()
+        expect(result.fileName!.endsWith('.json')).assertTrue()
       })
     })
 

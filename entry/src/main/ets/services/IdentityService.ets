@@ -3,14 +3,16 @@ import { accountManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { Want } from '@kit.AbilityKit'
 import { osAccount } from '@kit.BasicServicesKit'
-import { PasswordComplexityConfig } from '../models/DataModels'
+import { OperationResult, PasswordComplexityConfig } from '../models/DataModels'
+import { AppInfo } from '../constants/AppConstants'
+import { EnterpriseAdminService } from './EnterpriseAdminService'
 
 const TAG = 'IdentityService'
 const DOMAIN = 0x0003
 
 // 企业管理员 Want 对象
 const ADMIN_WANT: Want = {
-  bundleName: 'com.example.securitytool',
+  bundleName: AppInfo.BUNDLE_NAME,
   abilityName: 'EnterpriseAdminAbility'
 }
 
@@ -76,8 +78,7 @@ export class IdentityService {
 
   // ========== 口令策略 (securityManager) ==========
 
-  // 设置口令策略
-  static setPasswordPolicy(config: PasswordComplexityConfig): boolean {
+  static setPasswordPolicyWithResult(config: PasswordComplexityConfig): OperationResult<void> {
     try {
       let regex = IdentityService.buildComplexityRegex(config)
       let description = IdentityService.buildDescription(config)
@@ -88,30 +89,41 @@ export class IdentityService {
       }
       securityManager.setPasswordPolicy(ADMIN_WANT, policy)
       hilog.info(DOMAIN, TAG, `setPasswordPolicy success, regex=${regex}`)
-      return true
+      return { success: true } as OperationResult<void>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return false
+      return IdentityService.buildFailureResult<void>('设置口令策略', err as Object)
+    }
+  }
+
+  // 设置口令策略
+  static setPasswordPolicy(config: PasswordComplexityConfig): boolean {
+    return IdentityService.setPasswordPolicyWithResult(config).success
+  }
+
+  static getPasswordPolicyWithResult(): OperationResult<securityManager.PasswordPolicy | null> {
+    try {
+      let result = securityManager.getPasswordPolicy(ADMIN_WANT)
+      hilog.info(DOMAIN, TAG, `getPasswordPolicy: ${JSON.stringify(result)}`)
+      return {
+        success: true,
+        data: result
+      } as OperationResult<securityManager.PasswordPolicy | null>
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
+      return IdentityService.buildFailureResult<securityManager.PasswordPolicy | null>('读取口令策略', err as Object, null)
     }
   }
 
   // 获取口令策略
   static getPasswordPolicy(): securityManager.PasswordPolicy | null {
-    try {
-      let result = securityManager.getPasswordPolicy(ADMIN_WANT)
-      hilog.info(DOMAIN, TAG, `getPasswordPolicy: ${JSON.stringify(result)}`)
-      return result
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return null
-    }
+    return IdentityService.getPasswordPolicyWithResult().data ?? null
   }
 
   // ========== 域账号策略 (accountManager) ==========
 
-  // 设置域账号策略（全局）
-  static setDomainAccountPolicy(passwordMaxAgeDays: number, expirationNotifyDays: number,
-    authTokenValidityMinutes: number): boolean {
+  static setDomainAccountPolicyWithResult(passwordMaxAgeDays: number, expirationNotifyDays: number,
+    authTokenValidityMinutes: number): OperationResult<void> {
     try {
       let policy: accountManager.DomainAccountPolicy = {
         authenticationValidityPeriod:
@@ -121,7 +133,6 @@ export class IdentityService {
         passwordExpirationNotification:
           expirationNotifyDays * 86400
       }
-      // 全局策略: domainAccountInfo 内部属性均为空
       let emptyInfo: osAccount.DomainAccountInfo = {
         domain: '',
         accountName: '',
@@ -129,15 +140,24 @@ export class IdentityService {
       }
       accountManager.setDomainAccountPolicy(ADMIN_WANT, emptyInfo, policy)
       hilog.info(DOMAIN, TAG, `setDomainAccountPolicy success: ${JSON.stringify(policy)}`)
-      return true
+      return { success: true } as OperationResult<void>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `setDomainAccountPolicy failed: ${JSON.stringify(err)}`)
-      return false
+      return IdentityService.buildFailureResult<void>('设置域账号策略', err as Object)
     }
   }
 
-  // 获取域账号策略（全局）
-  static getDomainAccountPolicy(): accountManager.DomainAccountPolicy | null {
+  // 设置域账号策略（全局）
+  static setDomainAccountPolicy(passwordMaxAgeDays: number, expirationNotifyDays: number,
+    authTokenValidityMinutes: number): boolean {
+    return IdentityService.setDomainAccountPolicyWithResult(
+      passwordMaxAgeDays,
+      expirationNotifyDays,
+      authTokenValidityMinutes
+    ).success
+  }
+
+  static getDomainAccountPolicyWithResult(): OperationResult<accountManager.DomainAccountPolicy | null> {
     try {
       let emptyInfo: osAccount.DomainAccountInfo = {
         domain: '',
@@ -146,10 +166,37 @@ export class IdentityService {
       }
       let result = accountManager.getDomainAccountPolicy(ADMIN_WANT, emptyInfo)
       hilog.info(DOMAIN, TAG, `getDomainAccountPolicy: ${JSON.stringify(result)}`)
-      return result
+      return {
+        success: true,
+        data: result
+      } as OperationResult<accountManager.DomainAccountPolicy | null>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `getDomainAccountPolicy failed: ${JSON.stringify(err)}`)
-      return null
+      return IdentityService.buildFailureResult<accountManager.DomainAccountPolicy | null>('读取域账号策略', err as Object, null)
     }
+  }
+
+  // 获取域账号策略（全局）
+  static getDomainAccountPolicy(): accountManager.DomainAccountPolicy | null {
+    return IdentityService.getDomainAccountPolicyWithResult().data ?? null
+  }
+
+  private static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
+    let code = EnterpriseAdminService.extractErrorCode(err)
+    let isAdminMissing = EnterpriseAdminService.isAdminMissingError(err)
+    let message = isAdminMissing ?
+      '企业管理员未激活，无法执行身份策略操作。' :
+      `${action}失败`
+    let suggestion = isAdminMissing ?
+      `请先在设备执行：${EnterpriseAdminService.buildEnableCommand()}` :
+      '请检查权限声明、签名模板和设备策略状态后重试。'
+    return {
+      success: false,
+      data: fallbackData,
+      errorCode: code,
+      errorMessage: message,
+      isAdminMissing: isAdminMissing,
+      suggestion: suggestion
+    } as OperationResult<T>
   }
 }

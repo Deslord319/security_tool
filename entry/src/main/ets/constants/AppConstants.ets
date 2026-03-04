@@ -84,7 +84,7 @@ export class Routes {
 export class AppInfo {
   static readonly APP_NAME: string = '安全管理中心'
   static readonly APP_VERSION: string = '1.0.0'
-  static readonly BUNDLE_NAME: string = 'com.example.securitytool'
+  static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
 }
 
 // 导航项

@@ -1,6 +1,6 @@
-/**
- * 外设模块 - 页面快照测试
- * 验证外设管理页面的基本渲染
+﻿/**
+ * 澶栬妯″潡 - 椤甸潰蹇収娴嬭瘯
+ * 楠岃瘉澶栬绠＄悊椤甸潰鐨勫熀鏈覆鏌?
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
@@ -8,7 +8,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const TAG = 'PeripheralSnapshotTest'
 const DOMAIN = 0x0000
-const BUNDLE_NAME = 'com.example.securitytool'
+const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
 export default function peripheralSnapshotTest() {
@@ -31,8 +31,8 @@ export default function peripheralSnapshotTest() {
     })
 
     afterAll(async () => {
-      // 返回总览页面，避免影响后续测试
-      const dashboardNav = await driver.findComponent(ON.text('总览'))
+      // 杩斿洖鎬昏椤甸潰锛岄伩鍏嶅奖鍝嶅悗缁祴璇?
+      const dashboardNav = await driver.findComponent(ON.text('鎬昏'))
       if (dashboardNav) {
         await dashboardNav.click()
         await driver.delayMs(500)
@@ -44,13 +44,13 @@ export default function peripheralSnapshotTest() {
       it('should render peripheral page correctly', 0, async () => {
         hilog.info(DOMAIN, TAG, 'Navigating to peripheral page...')
 
-        // 导航到外设管理页面
-        const peripheralNav = await driver.findComponent(ON.text('外设管理'))
+        // 瀵艰埅鍒板璁剧鐞嗛〉闈?
+        const peripheralNav = await driver.findComponent(ON.text('澶栬绠＄悊'))
         expect(peripheralNav !== null).assertTrue()
         await peripheralNav.click()
         await driver.delayMs(500)
 
-        // 验证页面加载
+        // 楠岃瘉椤甸潰鍔犺浇
         hilog.info(DOMAIN, TAG, 'Peripheral page rendered correctly')
       })
     })
@@ -61,3 +61,4 @@ export default function peripheralSnapshotTest() {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+

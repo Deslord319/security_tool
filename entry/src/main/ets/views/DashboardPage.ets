@@ -1,14 +1,75 @@
 import { AppColors, AppStyles, Routes } from '../constants/AppConstants'
 import { StatCard } from '../components/StatCard'
 import { ToolCard } from '../components/ToolCard'
+import { LogStorageService } from '../services/LogStorageService'
+import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
+import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+
+const TAG = 'DashboardPage'
 
 @Component
 export struct DashboardPage {
   @Prop firewallEnabled: boolean = false
   onNavigate: (route: string) => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State todayAuditCount: number = 0
+  @State blockedAuditCount: number = 0
+  @State totalLogCount: number = 0
+  @State adminActivated: boolean = false
+  @State collectorRunning: boolean = false
+  @State logSubscribed: boolean = false
+  private refreshTimerId: number = -1
+  private readonly REFRESH_INTERVAL_MS: number = 3000
+
+  aboutToAppear(): void {
+    this.refreshLogStats()
+    this.refreshHealthStatus()
+    this.startRefreshTimer()
+  }
+
+  onPageShow(): void {
+    this.refreshLogStats()
+    this.refreshHealthStatus()
+  }
+
+  aboutToDisappear(): void {
+    if (this.refreshTimerId >= 0) {
+      clearInterval(this.refreshTimerId)
+      this.refreshTimerId = -1
+    }
+  }
+
+  startRefreshTimer(): void {
+    if (this.refreshTimerId >= 0) {
+      return
+    }
+    this.refreshTimerId = setInterval(() => {
+      this.refreshLogStats()
+      this.refreshHealthStatus()
+    }, this.REFRESH_INTERVAL_MS)
+  }
+
+  async refreshLogStats(): Promise<void> {
+    try {
+      let stats = LogStorageService.getStatistics()
+      this.todayAuditCount = stats.todayCount
+      this.blockedAuditCount = stats.blockedCount
+      this.totalLogCount = stats.totalCount
+    } catch (err) {
+      hilog.error(0x0000, TAG, `refreshLogStats failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  refreshHealthStatus(): void {
+    let adminState = EnterpriseAdminService.probeActivation()
+    this.adminActivated = adminState.activated
+    let runtimeStatus = LogRuntimeCollectorService.getStatus()
+    this.collectorRunning = runtimeStatus.running
+    this.logSubscribed = runtimeStatus.subscribed
+  }
 
   build() {
     Scroll() {
@@ -28,6 +89,13 @@ export struct DashboardPage {
         .width('100%')
         .alignItems(HorizontalAlign.Start)
 
+        Row({ space: 10 }) {
+          this.healthTag('管理员', this.adminActivated ? '已激活' : '未激活', this.adminActivated)
+          this.healthTag('采集器', this.collectorRunning ? '运行中' : '未运行', this.collectorRunning)
+          this.healthTag('日志订阅', this.logSubscribed ? '正常' : '异常', this.logSubscribed)
+        }
+        .width('100%')
+
         // 统计卡片区域 - 4列网格
         GridRow({ columns: 4, gutter: 16 }) {
           GridCol() {
@@ -43,7 +111,7 @@ export struct DashboardPage {
           GridCol() {
             StatCard({
               label: '今日审计事件',
-              value: '—',
+              value: this.todayAuditCount.toString(),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
               iconText: '日'
@@ -52,8 +120,8 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '已连接外设',
-              value: '—',
+              label: '已阻断事件',
+              value: this.blockedAuditCount.toString(),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
               iconText: '外'
@@ -62,8 +130,8 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '身份策略状态',
-              value: '—',
+              label: '日志总量',
+              value: this.totalLogCount.toString(),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
               iconText: '身'
@@ -151,5 +219,18 @@ export struct DashboardPage {
     .height('100%')
     .scrollBar(BarState.Auto)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+  }
+
+  @Builder
+  healthTag(label: string, value: string, ok: boolean) {
+    Row({ space: 6 }) {
+      Circle({ width: 6, height: 6 }).fill(ok ? AppColors.SUCCESS : AppColors.WARNING)
+      Text(`${label} ${value}`)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(ok ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+    }
+    .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+    .backgroundColor(ok ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG : AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+    .borderRadius(AppStyles.RADIUS_SM)
   }
 }

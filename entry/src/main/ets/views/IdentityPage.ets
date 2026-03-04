@@ -2,6 +2,8 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { IdentityService } from '../services/IdentityService'
 import { accountManager } from '@kit.MDMKit'
 import {
+  AdminActivationState,
+  OperationResult,
   PasswordComplexityConfig,
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_MAX_AGE_OPTIONS,
@@ -12,12 +14,18 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 
 const TAG = 'IdentityPage'
 
 @Component
 export struct IdentityPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State adminState: AdminActivationState = {
+    activated: false,
+    enableCommand: EnterpriseAdminService.buildEnableCommand(),
+    adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
+  }
 
   // ========== 口令复杂度状态 ==========
   @State minLengthIndex: number = 1        // 默认 8 位 (PASSWORD_LENGTH_OPTIONS[1])
@@ -47,25 +55,72 @@ export struct IdentityPage {
     }))
 
   aboutToAppear() {
+    this.refreshAdminActivationState()
     this.loadCurrentPolicy()
     this.updatePreviewRegex()
   }
 
+  private refreshAdminActivationState(): void {
+    this.adminState = EnterpriseAdminService.probeActivation()
+  }
+
+  private ensureAdminReady(action: string): boolean {
+    this.refreshAdminActivationState()
+    if (this.adminState.activated) {
+      return true
+    }
+    this.showAdminRequiredDialog(action)
+    return false
+  }
+
+  private showAdminRequiredDialog(action: string): void {
+    let codeText = this.adminState.errorCode !== undefined ? `错误码: ${this.adminState.errorCode}\n` : ''
+    let reasonText = this.adminState.errorMessage || '企业管理员未激活'
+    AlertDialog.show({
+      title: '企业管理员未激活',
+      message:
+        `${action}需要企业管理员能力。\n` +
+        `${codeText}` +
+        `原因: ${reasonText}\n` +
+        `请在设备执行以下命令后重试：\n${this.adminState.enableCommand}`,
+      primaryButton: { value: '我知道了', action: () => {} }
+    })
+  }
+
+  private showFailureDialog<T>(action: string, result: OperationResult<T>): void {
+    if (result.isAdminMissing) {
+      this.showAdminRequiredDialog(action)
+      return
+    }
+    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
+    let reasonText = result.errorMessage || `${action}失败`
+    let suggestionText = result.suggestion || '请检查权限声明、签名模板和设备策略状态后重试。'
+    AlertDialog.show({
+      title: `${action}失败`,
+      message: `${codeText}原因: ${reasonText}\n建议: ${suggestionText}`,
+      primaryButton: { value: '关闭', action: () => {} }
+    })
+  }
+
   // 加载当前策略
   loadCurrentPolicy() {
+    if (!this.adminState.activated) {
+      return
+    }
+
     // 尝试从系统读取口令策略
-    let pwdPolicy = IdentityService.getPasswordPolicy()
-    if (pwdPolicy !== null && pwdPolicy.complexityRegex) {
-      hilog.info(0x0003, TAG, `Loaded password policy: ${pwdPolicy.complexityRegex}`)
+    let pwdPolicyResult = IdentityService.getPasswordPolicyWithResult()
+    if (pwdPolicyResult.success && pwdPolicyResult.data && pwdPolicyResult.data.complexityRegex) {
+      hilog.info(0x0003, TAG, `Loaded password policy: ${pwdPolicyResult.data.complexityRegex}`)
       // 从正则反解析配置（best-effort）
-      this.parseRegexToConfig(pwdPolicy.complexityRegex)
+      this.parseRegexToConfig(pwdPolicyResult.data.complexityRegex)
     }
 
     // 尝试从系统读取域账号策略
-    let domainPolicy = IdentityService.getDomainAccountPolicy()
-    if (domainPolicy !== null) {
-      hilog.info(0x0003, TAG, `Loaded domain policy: ${JSON.stringify(domainPolicy)}`)
-      this.parseDomainPolicy(domainPolicy)
+    let domainResult = IdentityService.getDomainAccountPolicyWithResult()
+    if (domainResult.success && domainResult.data !== undefined && domainResult.data !== null) {
+      hilog.info(0x0003, TAG, `Loaded domain policy: ${JSON.stringify(domainResult.data)}`)
+      this.parseDomainPolicy(domainResult.data)
     }
   }
 
@@ -142,6 +197,10 @@ export struct IdentityPage {
 
   // 保存配置
   saveConfig() {
+    if (!this.ensureAdminReady('保存身份鉴别配置')) {
+      return
+    }
+
     // 1. 保存口令复杂度策略
     let complexityConfig: PasswordComplexityConfig = {
       minLength: PASSWORD_LENGTH_OPTIONS[this.minLengthIndex],
@@ -150,29 +209,26 @@ export struct IdentityPage {
       requireDigit: this.requireDigit,
       requireSpecialChar: this.requireSpecialChar
     }
-    let pwdSuccess = IdentityService.setPasswordPolicy(complexityConfig)
+    let pwdResult = IdentityService.setPasswordPolicyWithResult(complexityConfig)
 
     // 2. 保存域账号策略
-    let domainSuccess = IdentityService.setDomainAccountPolicy(
+    let domainResult = IdentityService.setDomainAccountPolicyWithResult(
       PASSWORD_MAX_AGE_OPTIONS[this.maxAgeIndex],
       EXPIRY_NOTIFY_OPTIONS[this.notifyDaysIndex],
       AUTH_TOKEN_VALIDITY_OPTIONS[this.authValidityIndex]
     )
 
-    // 3. Toast 反馈
-    try {
-      if (pwdSuccess && domainSuccess) {
-        promptAction.showToast({ message: '身份鉴别配置已保存' })
-      } else if (pwdSuccess) {
-        promptAction.showToast({ message: '口令策略已保存，域账号策略保存失败' })
-      } else if (domainSuccess) {
-        promptAction.showToast({ message: '域账号策略已保存，口令策略保存失败' })
-      } else {
-        promptAction.showToast({ message: '保存失败，请检查权限和设备管理员状态' })
-      }
-    } catch (e) {
-      hilog.error(0x0003, TAG, `showToast failed: ${JSON.stringify(e)}`)
+    if (pwdResult.success && domainResult.success) {
+      promptAction.showToast({ message: '身份鉴别配置已保存' })
+      return
     }
+
+    if (!pwdResult.success) {
+      this.showFailureDialog('设置口令策略', pwdResult)
+      return
+    }
+
+    this.showFailureDialog('设置域账号策略', domainResult)
   }
 
   // 重置默认
@@ -217,6 +273,36 @@ export struct IdentityPage {
         right: AppStyles.PADDING_LG,
         top: AppStyles.PADDING_LG
       })
+
+      if (!this.adminState.activated) {
+        Column({ space: 8 }) {
+          Text('企业管理员未激活，身份策略配置已进入只读模式')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+          Text(`请执行：${this.adminState.enableCommand}`)
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Button('查看修复命令')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+            .height(30)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .onClick(() => {
+              this.showAdminRequiredDialog('身份策略配置')
+            })
+        }
+        .width('100%')
+        .margin({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .alignItems(HorizontalAlign.Start)
+      }
 
       // 主内容区
       Scroll() {

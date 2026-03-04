@@ -3,20 +3,47 @@ import { PeripheralService } from '../services/PeripheralService'
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
-import { DeviceRecord, DeviceControlRecord, PeripheralType, getPeripheralTypeLabel, ParsedUsbId, parseUsbDeviceId, parseBluetoothMac, formatUsbDeviceId, inferUsbBaseClass, inferPeripheralTypeFromBaseClass } from '../models/DataModels'
+import {
+  AdminActivationState,
+  DeviceRecord,
+  DeviceControlRecord,
+  OperationResult,
+  PeripheralType,
+  getPeripheralTypeLabel,
+  ParsedUsbId,
+  parseUsbDeviceId,
+  parseBluetoothMac,
+  formatUsbDeviceId,
+  inferUsbBaseClass,
+  inferPeripheralTypeFromBaseClass
+} from '../models/DataModels'
 import { usbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 
 const TAG = 'PeripheralPage'
+type PeripheralResultData =
+  boolean |
+  number |
+  string |
+  usbManager.UsbPolicy |
+  usbManager.UsbDeviceId[] |
+  usbManager.UsbDeviceType[] |
+  void
 
 @Component
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State currentTab: number = 0
   @State isLoading: boolean = false
+  @State adminState: AdminActivationState = {
+    activated: false,
+    enableCommand: EnterpriseAdminService.buildEnableCommand(),
+    adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
+  }
 
   // 接口管控状态
   @State usbDisabled: boolean = false
@@ -78,32 +105,92 @@ export struct PeripheralPage {
   })
 
   aboutToAppear() {
+    this.refreshAdminActivationState()
     this.loadAllData()
+  }
+
+  private refreshAdminActivationState(): void {
+    this.adminState = EnterpriseAdminService.probeActivation()
+  }
+
+  private ensureAdminReady(action: string): boolean {
+    this.refreshAdminActivationState()
+    if (this.adminState.activated) {
+      return true
+    }
+    this.showAdminRequiredDialog(action)
+    return false
+  }
+
+  private showAdminRequiredDialog(action: string): void {
+    let codeText = this.adminState.errorCode !== undefined ? `错误码: ${this.adminState.errorCode}\n` : ''
+    let reasonText = this.adminState.errorMessage || '企业管理员未激活'
+    AlertDialog.show({
+      title: '企业管理员未激活',
+      message:
+        `${action}需要企业管理员能力。\n` +
+        `${codeText}` +
+        `原因: ${reasonText}\n` +
+        `请在设备执行以下命令后重试：\n${this.adminState.enableCommand}`,
+      primaryButton: { value: '我知道了', action: () => {} }
+    })
+  }
+
+  private showOperationFailure(action: string, result: OperationResult<PeripheralResultData>): void {
+    if (result.isAdminMissing) {
+      this.showAdminRequiredDialog(action)
+      return
+    }
+    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
+    let reasonText = result.errorMessage || `${action}失败`
+    let suggestionText = result.suggestion || '请检查权限声明、签名模板和设备策略状态后重试。'
+    AlertDialog.show({
+      title: `${action}失败`,
+      message: `${codeText}原因: ${reasonText}\n建议: ${suggestionText}`,
+      primaryButton: { value: '关闭', action: () => {} }
+    })
   }
 
   loadAllData() {
     this.isLoading = true
+    this.refreshAdminActivationState()
 
-    // 加载接口管控状态
-    this.usbDisabled = PeripheralService.getInterfaceDisabled('usb')
-    this.btDisabled = PeripheralService.getInterfaceDisabled('bluetooth')
-    this.wifiDisabled = PeripheralService.getInterfaceDisabled('wifi')
-    this.hdcDisabled = PeripheralService.getInterfaceDisabled('hdc')
+    if (this.adminState.activated) {
+      // 加载接口管控状态
+      let usbState = PeripheralService.getInterfaceDisabledWithResult('usb')
+      let btState = PeripheralService.getInterfaceDisabledWithResult('bluetooth')
+      let wifiState = PeripheralService.getInterfaceDisabledWithResult('wifi')
+      let hdcState = PeripheralService.getInterfaceDisabledWithResult('hdc')
+      this.usbDisabled = usbState.data ?? false
+      this.btDisabled = btState.data ?? false
+      this.wifiDisabled = wifiState.data ?? false
+      this.hdcDisabled = hdcState.data ?? false
 
-    // 加载 USB 存储策略
-    let policy = PeripheralService.getUsbStoragePolicy()
-    if (policy === usbManager.UsbPolicy.READ_ONLY) {
-      this.usbStoragePolicyIndex = 0
-    } else if (policy === usbManager.UsbPolicy.READ_WRITE) {
-      this.usbStoragePolicyIndex = 1
+      // 加载 USB 存储策略
+      let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
+      let policy = policyResult.data ?? usbManager.UsbPolicy.READ_WRITE
+      if (policy === usbManager.UsbPolicy.READ_ONLY) {
+        this.usbStoragePolicyIndex = 0
+      } else if (policy === usbManager.UsbPolicy.READ_WRITE) {
+        this.usbStoragePolicyIndex = 1
+      } else {
+        this.usbStoragePolicyIndex = 2
+      }
+
+      // 加载黑白名单
+      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
     } else {
-      this.usbStoragePolicyIndex = 2
+      this.usbDisabled = false
+      this.btDisabled = false
+      this.wifiDisabled = false
+      this.hdcDisabled = false
+      this.usbStoragePolicyIndex = 1
+      this.usbWhitelist = []
+      this.usbBlacklist = []
+      this.btWhitelist = []
     }
-
-    // 加载黑白名单
-    this.usbWhitelist = PeripheralService.getUsbWhitelist()
-    this.usbBlacklist = PeripheralService.getUsbBlacklist()
-    this.btWhitelist = PeripheralService.getBluetoothWhitelist()
 
     // 模拟设备连接记录
     this.deviceRecords = [
@@ -138,7 +225,11 @@ export struct PeripheralPage {
     ]
 
     // 从 MDM API 加载设备管控记录
-    this.loadDeviceControlData()
+    if (this.adminState.activated) {
+      this.loadDeviceControlData()
+    } else {
+      this.deviceControlRecords = []
+    }
 
     this.isLoading = false
   }
@@ -180,7 +271,7 @@ export struct PeripheralPage {
     let records: DeviceControlRecord[] = []
 
     // 1. 从 USB 白名单加载（策略=允许）
-    let usbWhitelist = PeripheralService.getUsbWhitelist()
+    let usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
     for (let device of usbWhitelist) {
       records.push({
         deviceName: this.inferUsbDeviceName(device.vendorId, device.productId),
@@ -192,7 +283,7 @@ export struct PeripheralPage {
     }
 
     // 2. 尝试从 USB 黑名单推断设备类型并更新已有记录
-    let usbBlacklist = PeripheralService.getUsbBlacklist()
+    let usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
     for (let deviceType of usbBlacklist) {
       let peripheralType = inferPeripheralTypeFromBaseClass(deviceType.baseClass)
       // 更新匹配设备的类型
@@ -204,7 +295,7 @@ export struct PeripheralPage {
     }
 
     // 3. 从蓝牙白名单加载（策略=允许）
-    let btWhitelist = PeripheralService.getBluetoothWhitelist()
+    let btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
     for (let mac of btWhitelist) {
       records.push({
         deviceName: this.inferBluetoothDeviceName(mac),
@@ -222,8 +313,12 @@ export struct PeripheralPage {
   // ========== 接口管控操作 ==========
 
   handleInterfaceToggle(feature: string, disallow: boolean) {
-    let success = PeripheralService.setInterfaceDisabled(feature, disallow)
-    if (success) {
+    if (!this.ensureAdminReady('接口管控')) {
+      return
+    }
+
+    let result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
+    if (result.success) {
       if (feature === 'usb') this.usbDisabled = disallow
       else if (feature === 'bluetooth') this.btDisabled = disallow
       else if (feature === 'wifi') this.wifiDisabled = disallow
@@ -234,137 +329,154 @@ export struct PeripheralPage {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      try {
-        promptAction.showToast({ message: '操作失败，请检查权限' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      this.showOperationFailure('接口管控', result)
     }
   }
 
   handleUsbStoragePolicyChange(index: number) {
+    if (!this.ensureAdminReady('设置 USB 存储策略')) {
+      return
+    }
     let policyMap: usbManager.UsbPolicy[] = [
       usbManager.UsbPolicy.READ_ONLY,
       usbManager.UsbPolicy.READ_WRITE,
       usbManager.UsbPolicy.DISABLED
     ]
-    let success = PeripheralService.setUsbStoragePolicy(policyMap[index])
-    if (success) {
+    let result = PeripheralService.setUsbStoragePolicyWithResult(policyMap[index])
+    if (result.success) {
       this.usbStoragePolicyIndex = index
       try {
         promptAction.showToast({ message: 'USB 存储策略已更新' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
+      return
     }
+    this.showOperationFailure('设置 USB 存储策略', result)
   }
 
   // ========== 白名单操作 ==========
 
   handleAddUsbWhitelist(vendorId: number, productId: number) {
+    if (!this.ensureAdminReady('添加 USB 白名单')) {
+      return
+    }
     let device: usbManager.UsbDeviceId = { vendorId: vendorId, productId: productId }
-    let success = PeripheralService.addUsbWhitelist([device])
-    if (success) {
-      this.usbWhitelist = PeripheralService.getUsbWhitelist()
+    let result = PeripheralService.addUsbWhitelistWithResult([device])
+    if (result.success) {
+      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       try {
         promptAction.showToast({ message: 'USB 白名单已添加' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      try {
-        promptAction.showToast({ message: '添加失败，请检查权限' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      this.showOperationFailure('添加 USB 白名单', result)
     }
   }
 
   handleRemoveUsbWhitelist(device: usbManager.UsbDeviceId) {
-    let success = PeripheralService.removeUsbWhitelist([device])
-    if (success) {
-      this.usbWhitelist = PeripheralService.getUsbWhitelist()
+    if (!this.ensureAdminReady('移除 USB 白名单')) {
+      return
+    }
+    let result = PeripheralService.removeUsbWhitelistWithResult([device])
+    if (result.success) {
+      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       try {
         promptAction.showToast({ message: '已从白名单移除' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
+      return
     }
+    this.showOperationFailure('移除 USB 白名单', result)
   }
 
   handleAddBluetoothWhitelist(mac: string) {
-    let success = PeripheralService.addBluetoothWhitelist([mac])
-    if (success) {
-      this.btWhitelist = PeripheralService.getBluetoothWhitelist()
+    if (!this.ensureAdminReady('添加蓝牙白名单')) {
+      return
+    }
+    let result = PeripheralService.addBluetoothWhitelistWithResult([mac])
+    if (result.success) {
+      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       try {
         promptAction.showToast({ message: '蓝牙白名单已添加' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      try {
-        promptAction.showToast({ message: '添加失败，请检查权限' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      this.showOperationFailure('添加蓝牙白名单', result)
     }
   }
 
   handleRemoveBluetoothWhitelist(mac: string) {
-    let success = PeripheralService.removeBluetoothWhitelist([mac])
-    if (success) {
-      this.btWhitelist = PeripheralService.getBluetoothWhitelist()
+    if (!this.ensureAdminReady('移除蓝牙白名单')) {
+      return
+    }
+    let result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
+    if (result.success) {
+      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       try {
         promptAction.showToast({ message: '已从蓝牙白名单移除' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
+      return
     }
+    this.showOperationFailure('移除蓝牙白名单', result)
   }
 
   // ========== 黑名单操作 ==========
 
   handleAddUsbBlacklist(baseClass: number, subClass: number, protocol: number) {
+    if (!this.ensureAdminReady('添加 USB 黑名单')) {
+      return
+    }
     let deviceType: usbManager.UsbDeviceType = {
       baseClass: baseClass,
       subClass: subClass,
       protocol: protocol,
       descriptor: usbManager.Descriptor.INTERFACE
     }
-    let success = PeripheralService.addUsbBlacklist([deviceType])
-    if (success) {
-      this.usbBlacklist = PeripheralService.getUsbBlacklist()
+    let result = PeripheralService.addUsbBlacklistWithResult([deviceType])
+    if (result.success) {
+      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       try {
         promptAction.showToast({ message: 'USB 黑名单已添加' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      try {
-        promptAction.showToast({ message: '添加失败，请检查权限' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      this.showOperationFailure('添加 USB 黑名单', result)
     }
   }
 
   handleRemoveUsbBlacklist(deviceType: usbManager.UsbDeviceType) {
-    let success = PeripheralService.removeUsbBlacklist([deviceType])
-    if (success) {
-      this.usbBlacklist = PeripheralService.getUsbBlacklist()
+    if (!this.ensureAdminReady('移除 USB 黑名单')) {
+      return
+    }
+    let result = PeripheralService.removeUsbBlacklistWithResult([deviceType])
+    if (result.success) {
+      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       try {
         promptAction.showToast({ message: '已从黑名单移除' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
+      return
     }
+    this.showOperationFailure('移除 USB 黑名单', result)
   }
 
   // ========== 设备管控操作 ==========
 
   handleDeviceControlPolicyChange(recordIndex: number, policyIndex: number) {
+    if (!this.ensureAdminReady('更新设备管控策略')) {
+      return
+    }
     let record = this.deviceControlRecords[recordIndex]
     let success = false
+    let failedResult: OperationResult<PeripheralResultData> | undefined = undefined
     let policyLabels: string[] = ['允许', '禁用', '未配置']
 
     if (record.deviceType === PeripheralType.BLUETOOTH) {
@@ -375,9 +487,17 @@ export struct PeripheralPage {
         return
       }
       if (policyIndex === 0) {
-        success = PeripheralService.addBluetoothWhitelist([mac])
+        let result = PeripheralService.addBluetoothWhitelistWithResult([mac])
+        success = result.success
+        if (!result.success) {
+          failedResult = result
+        }
       } else {
-        success = PeripheralService.removeBluetoothWhitelist([mac])
+        let result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
+        success = result.success
+        if (!result.success) {
+          failedResult = result
+        }
       }
     } else {
       // USB 设备策略变更
@@ -392,10 +512,17 @@ export struct PeripheralPage {
       }
       if (policyIndex === 0) {
         // 允许：加入白名单
-        success = PeripheralService.addUsbWhitelist([device])
+        let result = PeripheralService.addUsbWhitelistWithResult([device])
+        success = result.success
+        if (!result.success) {
+          failedResult = result
+        }
       } else if (policyIndex === 1) {
         // 禁用：从白名单移除 + 按类型加入黑名单
-        PeripheralService.removeUsbWhitelist([device])
+        let removeResult = PeripheralService.removeUsbWhitelistWithResult([device])
+        if (!removeResult.success) {
+          failedResult = removeResult
+        }
         let baseClass = inferUsbBaseClass(record.deviceType)
         if (baseClass > 0) {
           let deviceType: usbManager.UsbDeviceType = {
@@ -404,12 +531,19 @@ export struct PeripheralPage {
             protocol: 0,
             descriptor: usbManager.Descriptor.INTERFACE
           }
-          PeripheralService.addUsbBlacklist([deviceType])
+          let addBlackResult = PeripheralService.addUsbBlacklistWithResult([deviceType])
+          if (!addBlackResult.success) {
+            failedResult = addBlackResult
+          }
         }
-        success = true
+        success = failedResult === undefined
       } else {
         // 未配置：从白名单移除
-        success = PeripheralService.removeUsbWhitelist([device])
+        let result = PeripheralService.removeUsbWhitelistWithResult([device])
+        success = result.success
+        if (!result.success) {
+          failedResult = result
+        }
       }
     }
 
@@ -417,20 +551,19 @@ export struct PeripheralPage {
       // 重新从 MDM API 加载设备列表
       this.loadDeviceControlData()
       // 同步刷新黑白名单 tab 数据
-      this.usbWhitelist = PeripheralService.getUsbWhitelist()
-      this.usbBlacklist = PeripheralService.getUsbBlacklist()
-      this.btWhitelist = PeripheralService.getBluetoothWhitelist()
+      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       try {
         promptAction.showToast({ message: `${record.deviceName} 策略已更新为「${policyLabels[policyIndex]}」` })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      try {
-        promptAction.showToast({ message: '策略更新失败，请检查权限' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      this.showOperationFailure('更新设备管控策略', failedResult || {
+        success: false,
+        errorMessage: '策略更新失败'
+      } as OperationResult<PeripheralResultData>)
     }
   }
 
@@ -472,6 +605,36 @@ export struct PeripheralPage {
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
+
+      if (!this.adminState.activated) {
+        Column({ space: 8 }) {
+          Text('企业管理员未激活，外设策略已进入只读模式')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+          Text(`请执行：${this.adminState.enableCommand}`)
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Button('查看修复命令')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+            .height(30)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .onClick(() => {
+              this.showAdminRequiredDialog('外设策略操作')
+            })
+        }
+        .width('100%')
+        .margin({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .alignItems(HorizontalAlign.Start)
+      }
 
       // Tab 切换
       Tabs({ barPosition: BarPosition.Start }) {

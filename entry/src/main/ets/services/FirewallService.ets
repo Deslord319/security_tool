@@ -6,12 +6,50 @@ const DOMAIN = 0x0001
 const DEFAULT_USER_ID = 100
 
 export class FirewallService {
+  private static lastErrorCode: number | undefined = undefined
+  private static lastErrorMessage: string = ''
+
+  static clearLastError(): void {
+    FirewallService.lastErrorCode = undefined
+    FirewallService.lastErrorMessage = ''
+  }
+
+  static getLastErrorText(): string {
+    if (FirewallService.lastErrorMessage.length === 0) {
+      return ''
+    }
+    if (FirewallService.lastErrorCode !== undefined) {
+      return `${FirewallService.lastErrorMessage}（错误码 ${FirewallService.lastErrorCode}）`
+    }
+    return FirewallService.lastErrorMessage
+  }
+
+  private static recordError(action: string, err: Object): void {
+    let code = FirewallService.extractErrorCode(err)
+    FirewallService.lastErrorCode = code
+    FirewallService.lastErrorMessage = `${action}失败`
+  }
+
+  private static extractErrorCode(err: Object): number | undefined {
+    let codeValue = (err as Record<string, Object>)['code']
+    if (typeof codeValue === 'number') {
+      return codeValue
+    }
+    if (typeof codeValue === 'string') {
+      let parsed = Number(codeValue)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+    return undefined
+  }
+
   // 获取防火墙策略（含开关状态）
   static async getFirewallPolicy(): Promise<netFirewall.NetFirewallPolicy | null> {
+    FirewallService.clearLastError()
     try {
       let policy = await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
       return policy
     } catch (err) {
+      FirewallService.recordError('读取防火墙策略', err as Object)
       hilog.error(DOMAIN, TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
       return null
     }
@@ -25,6 +63,7 @@ export class FirewallService {
 
   // 启用/禁用防火墙
   static async setFirewallEnabled(enabled: boolean): Promise<boolean> {
+    FirewallService.clearLastError()
     try {
       let policy: netFirewall.NetFirewallPolicy = {
         isOpen: enabled,
@@ -35,6 +74,7 @@ export class FirewallService {
       hilog.info(DOMAIN, TAG, `setFirewallEnabled: ${enabled}`)
       return true
     } catch (err) {
+      FirewallService.recordError('设置防火墙状态', err as Object)
       hilog.error(DOMAIN, TAG, `setFirewallEnabled failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -42,6 +82,7 @@ export class FirewallService {
 
   // 获取所有防火墙规则（分页获取全部）
   static async getAllRules(): Promise<netFirewall.NetFirewallRule[]> {
+    FirewallService.clearLastError()
     try {
       let requestParam: netFirewall.RequestParam = {
         page: 1,
@@ -52,6 +93,7 @@ export class FirewallService {
       let result = await netFirewall.getNetFirewallRules(DEFAULT_USER_ID, requestParam)
       return result.data ?? []
     } catch (err) {
+      FirewallService.recordError('读取防火墙规则', err as Object)
       hilog.error(DOMAIN, TAG, `getAllRules failed: ${JSON.stringify(err)}`)
       return []
     }
@@ -59,11 +101,13 @@ export class FirewallService {
 
   // 添加防火墙规则
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
+    FirewallService.clearLastError()
     try {
       let ruleId = await netFirewall.addNetFirewallRule(rule)
       hilog.info(DOMAIN, TAG, `addRule success, ruleId: ${ruleId}`)
       return ruleId
     } catch (err) {
+      FirewallService.recordError('新增防火墙规则', err as Object)
       hilog.error(DOMAIN, TAG, `addRule failed: ${JSON.stringify(err)}`)
       return -1
     }
@@ -71,11 +115,13 @@ export class FirewallService {
 
   // 删除防火墙规则
   static async removeRule(ruleId: number): Promise<boolean> {
+    FirewallService.clearLastError()
     try {
       await netFirewall.removeNetFirewallRule(DEFAULT_USER_ID, ruleId)
       hilog.info(DOMAIN, TAG, `removeRule success, ruleId: ${ruleId}`)
       return true
     } catch (err) {
+      FirewallService.recordError('删除防火墙规则', err as Object)
       hilog.error(DOMAIN, TAG, `removeRule failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -83,11 +129,13 @@ export class FirewallService {
 
   // 更新防火墙规则
   static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
+    FirewallService.clearLastError()
     try {
       await netFirewall.updateNetFirewallRule(rule)
       hilog.info(DOMAIN, TAG, `updateRule success`)
       return true
     } catch (err) {
+      FirewallService.recordError('更新防火墙规则', err as Object)
       hilog.error(DOMAIN, TAG, `updateRule failed: ${JSON.stringify(err)}`)
       return false
     }

@@ -4,6 +4,7 @@ import { DirectionCard } from '../components/DirectionCard'
 import { FirewallService } from '../services/FirewallService'
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -19,6 +20,7 @@ export struct FirewallPage {
   @State inCount: number = 0
   @State outCount: number = 0
   @State isLoading: boolean = false
+  @State serviceErrorText: string = ''
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
   onNavigateToRules: (filterType?: number) => void = () => {}
@@ -29,15 +31,28 @@ export struct FirewallPage {
 
   async loadData() {
     this.isLoading = true
+    this.serviceErrorText = ''
     try {
       let status = await FirewallService.getFirewallStatus()
+      let statusError = FirewallService.getLastErrorText()
+      if (statusError.length > 0) {
+        this.serviceErrorText = statusError
+      }
       if (status !== this.firewallEnabled) {
         this.onFirewallToggle(status)
       }
       this.rules = await FirewallService.getAllRules()
+      let rulesError = FirewallService.getLastErrorText()
+      if (rulesError.length > 0) {
+        this.serviceErrorText = rulesError
+      }
       this.updateCounts()
     } catch (err) {
       hilog.error(0x0001, TAG, `loadData failed: ${JSON.stringify(err)}`)
+      this.serviceErrorText = '读取防火墙数据失败'
+    }
+    if (this.serviceErrorText.length > 0) {
+      promptAction.showToast({ message: `防火墙服务异常：${this.serviceErrorText}` })
     }
     this.isLoading = false
   }
@@ -54,7 +69,12 @@ export struct FirewallPage {
     let success = await FirewallService.setFirewallEnabled(isOn)
     if (success) {
       this.onFirewallToggle(isOn)
+      this.serviceErrorText = ''
+      return
     }
+    let error = FirewallService.getLastErrorText()
+    this.serviceErrorText = error.length > 0 ? error : '设置防火墙状态失败'
+    promptAction.showToast({ message: `防火墙操作失败：${this.serviceErrorText}` })
   }
 
   build() {
@@ -85,6 +105,22 @@ export struct FirewallPage {
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
+
+        if (this.serviceErrorText.length > 0) {
+          Row({ space: 8 }) {
+            Text('⚠')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.WARNING)
+            Text(`防火墙服务异常：${this.serviceErrorText}`)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+          .borderRadius(AppStyles.RADIUS_MD)
+        }
 
         // 规则类型区域
         Column({ space: 0 }) {

@@ -1,6 +1,7 @@
 import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
+import { fileIo } from '@kit.CoreFileKit'
 import {
   LogEntry,
   LogFilter,
@@ -10,6 +11,8 @@ import {
   LogEventType,
   LogEventResult,
   LogExportFormat,
+  LogExportResult,
+  LogExportTrigger,
   DEFAULT_LOG_STORAGE_CONFIG,
   DEFAULT_SUBSCRIPTION_CONFIG,
   ALL_LOG_EVENT_TYPES,
@@ -37,6 +40,9 @@ const MAX_DETAIL_LENGTH = 1024
 const MAX_PROCESS_NAME_LENGTH = 128
 const MAX_FILE_PATH_LENGTH = 512
 const MAX_REMOTE_ADDR_LENGTH = 256
+const MAX_RAW_EVENT_NAME_LENGTH = 128
+const MAX_RAW_OUTCOME_LENGTH = 64
+const DEFAULT_EXPORT_DIR_NAME = 'log_exports'
 
 // 日志存储服务 - 负责日志的持久化、查询、过滤、导出
 export class LogStorageService {
@@ -45,9 +51,29 @@ export class LogStorageService {
   private static logEntries: LogEntry[] = []
   private static storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
   private static lastPersistTruncateWarnAt: number = 0
+  private static isInitialized: boolean = false
+  private static initializedContextDir: string = ''
+  private static initPromise: Promise<boolean> | null = null
 
   // 初始化（需要 UIAbilityContext 用于 Preferences）
   static async init(context: common.UIAbilityContext): Promise<boolean> {
+    LogStorageService.context = context
+    let contextDir = context.filesDir || ''
+    if (LogStorageService.isInitialized && LogStorageService.initializedContextDir === contextDir) {
+      return true
+    }
+
+    if (LogStorageService.initPromise) {
+      return LogStorageService.initPromise
+    }
+
+    LogStorageService.initPromise = LogStorageService.doInit(context, contextDir)
+    let result = await LogStorageService.initPromise
+    LogStorageService.initPromise = null
+    return result
+  }
+
+  private static async doInit(context: common.UIAbilityContext, contextDir: string): Promise<boolean> {
     try {
       LogStorageService.context = context
 
@@ -56,11 +82,18 @@ export class LogStorageService {
       // 从持久化存储加载日志
       await LogStorageService.loadEntries()
       // 清理过期日志
-      LogStorageService.cleanExpiredEntries()
+      let cleaned = LogStorageService.cleanExpiredEntries()
+      if (cleaned > 0) {
+        await LogStorageService.saveEntries()
+      }
 
+      LogStorageService.isInitialized = true
+      LogStorageService.initializedContextDir = contextDir
       hilog.info(DOMAIN, TAG, `Initialized with ${LogStorageService.logEntries.length} entries`)
       return true
     } catch (err) {
+      LogStorageService.isInitialized = false
+      LogStorageService.initializedContextDir = ''
       hilog.error(DOMAIN, TAG, `init failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -86,7 +119,29 @@ export class LogStorageService {
 
       // 超出最大条数时删除旧条目
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
-      if (LogStorageService.logEntries.length > maxEntries) {
+      let overflowCount = LogStorageService.logEntries.length - maxEntries
+      if (overflowCount > 0 && LogStorageService.storageConfig.autoExportEnabled) {
+        let exportResult = await LogStorageService.exportToFile(
+          LogStorageService.logEntries,
+          LogExportFormat.JSON,
+          'auto'
+        )
+        if (exportResult.success) {
+          hilog.info(
+            DOMAIN,
+            TAG,
+            `Auto export success: ${exportResult.fileName} -> ${exportResult.directory}`
+          )
+        } else {
+          hilog.warn(
+            DOMAIN,
+            TAG,
+            `Auto export failed before truncate: ${exportResult.errorMessage ?? 'unknown error'}`
+          )
+        }
+      }
+
+      if (overflowCount > 0) {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(
           0, maxEntries
         )
@@ -103,7 +158,17 @@ export class LogStorageService {
   // 根据过滤条件查询日志
   static queryEntries(filter?: LogFilter): LogEntry[] {
     if (!filter) {
-      return LogStorageService.logEntries
+      return LogStorageService.logEntries.slice(0, LogStorageService.logEntries.length)
+    }
+
+    if (
+      filter.startTime !== undefined &&
+      Number.isFinite(filter.startTime) &&
+      filter.endTime !== undefined &&
+      Number.isFinite(filter.endTime) &&
+      filter.startTime > filter.endTime
+    ) {
+      return []
     }
 
     return LogStorageService.logEntries.filter((entry: LogEntry) => {
@@ -122,10 +187,18 @@ export class LogStorageService {
       }
 
       // 时间范围过滤
-      if (filter.startTime && entry.timestamp < filter.startTime) {
+      if (
+        filter.startTime !== undefined &&
+        Number.isFinite(filter.startTime) &&
+        entry.timestamp < filter.startTime
+      ) {
         return false
       }
-      if (filter.endTime && entry.timestamp > filter.endTime) {
+      if (
+        filter.endTime !== undefined &&
+        Number.isFinite(filter.endTime) &&
+        entry.timestamp > filter.endTime
+      ) {
         return false
       }
 
@@ -148,7 +221,6 @@ export class LogStorageService {
 
   // 获取日志统计信息
   static getStatistics(): LogStatistics {
-    let now = Date.now()
     let todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
     let todayTimestamp = todayStart.getTime()
@@ -231,6 +303,90 @@ export class LogStorageService {
     }
   }
 
+  // 导出日志到文件
+  static async exportToFile(
+    entries: LogEntry[],
+    format: LogExportFormat,
+    trigger: LogExportTrigger
+  ): Promise<LogExportResult> {
+    let now = Date.now()
+
+    if (entries.length === 0) {
+      return {
+        success: false,
+        count: entries.length,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        errorMessage: '没有可导出的日志'
+      }
+    }
+
+    let content = LogStorageService.exportToString(entries, format)
+    let fileName = LogStorageService.buildExportFileName(format, entries.length, now)
+    let primaryDir = LogStorageService.resolveConfiguredExportDirectory()
+    let primaryWrite = LogStorageService.tryWriteExportFile(primaryDir, fileName, content)
+
+    if (primaryWrite.success) {
+      return {
+        count: entries.length,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        success: true,
+        fileName: fileName,
+        directory: primaryDir,
+        fullPath: primaryWrite.fullPath,
+        sizeBytes: primaryWrite.sizeBytes
+      }
+    }
+
+    let defaultDir = LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
+    if (defaultDir.length > 0 && defaultDir !== primaryDir) {
+      let fallbackWrite = LogStorageService.tryWriteExportFile(defaultDir, fileName, content)
+      if (fallbackWrite.success) {
+        let fallbackMsg = `配置目录不可写，已降级到默认目录: ${defaultDir}`
+        hilog.warn(DOMAIN, TAG, fallbackMsg)
+        return {
+          count: entries.length,
+          format: format,
+          timestamp: now,
+          trigger: trigger,
+          success: true,
+          fileName: fileName,
+          directory: defaultDir,
+          fullPath: fallbackWrite.fullPath,
+          sizeBytes: fallbackWrite.sizeBytes,
+          errorMessage: fallbackMsg
+        }
+      }
+    }
+
+    return {
+      success: false,
+      count: entries.length,
+      format: format,
+      timestamp: now,
+      trigger: trigger,
+      fileName: fileName,
+      directory: primaryDir,
+      errorCode: primaryWrite.errorCode,
+      errorMessage: primaryWrite.errorMessage
+    }
+  }
+
+  // 获取默认导出目录
+  static getDefaultExportDirectory(context: common.UIAbilityContext): string {
+    return LogStorageService.resolveDefaultExportDirectory(context)
+  }
+
+  // 设置导出目录
+  static async setExportDirectory(path: string): Promise<boolean> {
+    let cfg = LogStorageService.getConfig()
+    cfg.exportPath = path
+    return LogStorageService.updateConfig(cfg)
+  }
+
   // 获取当前条目总数
   static getEntryCount(): number {
     return LogStorageService.logEntries.length
@@ -253,14 +409,19 @@ export class LogStorageService {
     try {
       LogStorageService.storageConfig = {
         maxLocalEntries: LogStorageService.normalizeMaxEntries(config.maxLocalEntries),
-        retentionDays: config.retentionDays,
-        autoExportEnabled: config.autoExportEnabled,
-        exportPath: config.exportPath
+        retentionDays: LogStorageService.normalizeRetentionDays(config.retentionDays),
+        autoExportEnabled: LogStorageService.normalizeBoolean(
+          config.autoExportEnabled as Object,
+          DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
+        ),
+        exportPath: LogStorageService.normalizeExportDirectory(config.exportPath)
       }
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       if (LogStorageService.logEntries.length > maxEntries) {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
       }
+      LogStorageService.cleanExpiredEntries()
+      await LogStorageService.saveEntries()
       await LogStorageService.saveConfig()
       hilog.info(DOMAIN, TAG, 'Storage config updated')
       return true
@@ -360,6 +521,184 @@ export class LogStorageService {
     return result
   }
 
+  private static normalizeExportDirectory(path: string | undefined): string | undefined {
+    if (!path) {
+      return undefined
+    }
+
+    let normalized = path.trim()
+    if (normalized.length === 0) {
+      return undefined
+    }
+
+    normalized = normalized.replace(/\\/g, '/')
+    if (normalized.startsWith('file://')) {
+      normalized = normalized.substring('file://'.length)
+    }
+    let queryIndex = normalized.indexOf('?')
+    if (queryIndex >= 0) {
+      normalized = normalized.substring(0, queryIndex)
+    }
+    try {
+      normalized = decodeURIComponent(normalized)
+    } catch (_err) {
+    }
+    normalized = normalized.replace(/\/+$/, '')
+    return normalized.length > 0 ? normalized : undefined
+  }
+
+  private static resolveDefaultExportDirectory(context: common.UIAbilityContext): string {
+    return `${context.filesDir}/${DEFAULT_EXPORT_DIR_NAME}`
+  }
+
+  private static resolveDefaultExportDirectoryFromCurrentContext(): string {
+    if (!LogStorageService.context) {
+      return ''
+    }
+    return LogStorageService.resolveDefaultExportDirectory(LogStorageService.context)
+  }
+
+  private static resolveConfiguredExportDirectory(): string {
+    let configured = LogStorageService.normalizeExportDirectory(LogStorageService.storageConfig.exportPath)
+    if (configured && configured.length > 0) {
+      return configured
+    }
+    return LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
+  }
+
+  private static buildExportFileName(format: LogExportFormat, count: number, timestamp: number): string {
+    let date = new Date(timestamp)
+    let pad = (n: number): string => n.toString().padStart(2, '0')
+    let datePart = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
+    let timePart = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+    return `security_log_${datePart}_${timePart}_${count}.${format}`
+  }
+
+  private static tryWriteExportFile(
+    directory: string,
+    fileName: string,
+    content: string
+  ): ExportWriteResult {
+    if (directory.length === 0) {
+      return {
+        success: false,
+        errorMessage: '导出目录为空'
+      }
+    }
+
+    let fullPath = LogStorageService.joinPath(directory, fileName)
+    let file: fileIo.File | undefined = undefined
+    try {
+      LogStorageService.ensureDirectoryExists(directory)
+      file = fileIo.openSync(
+        fullPath,
+        fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC
+      )
+      fileIo.writeSync(file.fd, content)
+      fileIo.closeSync(file)
+      file = undefined
+
+      let stat = fileIo.statSync(fullPath)
+      return {
+        success: true,
+        fullPath: fullPath,
+        sizeBytes: stat.size
+      }
+    } catch (err) {
+      if (file) {
+        try {
+          fileIo.closeSync(file)
+        } catch (_closeErr) {
+        }
+      }
+      try {
+        let code = LogStorageService.extractErrorCode(err as Object)
+        let msg = `写入导出文件失败: ${JSON.stringify(err)}`
+        hilog.error(DOMAIN, TAG, msg)
+        return {
+          success: false,
+          errorCode: code,
+          errorMessage: msg
+        }
+      } catch (_formatErr) {
+        return {
+          success: false,
+          errorMessage: '写入导出文件失败'
+        }
+      }
+    }
+  }
+
+  private static ensureDirectoryExists(path: string): void {
+    if (path.length === 0 || path === '/') {
+      return
+    }
+
+    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (normalized.length === 0 || normalized === '/') {
+      return
+    }
+
+    try {
+      let stat = fileIo.statSync(normalized)
+      if (!stat.isDirectory()) {
+        throw new Error(`Path is not a directory: ${normalized}`)
+      }
+      return
+    } catch (_statErr) {
+    }
+
+    let parent = LogStorageService.getParentDirectory(normalized)
+    if (parent.length > 0 && parent !== normalized) {
+      LogStorageService.ensureDirectoryExists(parent)
+    }
+
+    try {
+      fileIo.mkdirSync(normalized)
+    } catch (_mkdirErr) {
+      // 目录可能由并发流程创建，再次校验即可
+      let stat = fileIo.statSync(normalized)
+      if (!stat.isDirectory()) {
+        throw new Error(`Failed to create directory: ${normalized}`)
+      }
+    }
+  }
+
+  private static getParentDirectory(path: string): string {
+    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (normalized.length === 0 || normalized === '/') {
+      return ''
+    }
+
+    let idx = normalized.lastIndexOf('/')
+    if (idx < 0) {
+      return ''
+    }
+    if (idx === 0) {
+      return '/'
+    }
+    return normalized.substring(0, idx)
+  }
+
+  private static joinPath(base: string, name: string): string {
+    if (base.endsWith('/')) {
+      return `${base}${name}`
+    }
+    return `${base}/${name}`
+  }
+
+  private static extractErrorCode(err: Object): number | undefined {
+    let codeValue = (err as Record<string, Object>)['code']
+    if (typeof codeValue === 'number') {
+      return codeValue
+    }
+    if (typeof codeValue === 'string') {
+      let parsed = Number(codeValue)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+    return undefined
+  }
+
   // 归一化最大存储条数，避免过大导致内存峰值
   private static normalizeMaxEntries(maxEntries: number): number {
     if (!Number.isFinite(maxEntries) || maxEntries <= 0) {
@@ -370,6 +709,81 @@ export class LogStorageService {
       return MAX_IN_MEMORY_ENTRIES
     }
     return Math.floor(maxEntries)
+  }
+
+  private static normalizeRetentionDays(days: number): number {
+    if (!Number.isFinite(days)) {
+      return DEFAULT_LOG_STORAGE_CONFIG.retentionDays
+    }
+
+    let normalized = Math.floor(days)
+    if (normalized <= 0) {
+      return DEFAULT_LOG_STORAGE_CONFIG.retentionDays
+    }
+
+    if (normalized > 3650) {
+      hilog.warn(DOMAIN, TAG, `retentionDays too large (${normalized}), clamp to 3650`)
+      return 3650
+    }
+
+    return normalized
+  }
+
+  private static normalizeBoolean(value: Object, fallback: boolean): boolean {
+    if (typeof value === 'boolean') {
+      return value
+    }
+    if (typeof value === 'number') {
+      if (value === 1) {
+        return true
+      }
+      if (value === 0) {
+        return false
+      }
+      return fallback
+    }
+    if (typeof value === 'string') {
+      let normalized = value.trim().toLowerCase()
+      if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+        return true
+      }
+      if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+        return false
+      }
+    }
+    return fallback
+  }
+
+  private static normalizeTimestamp(ts: number): number {
+    if (!Number.isFinite(ts) || ts < 0) {
+      return Date.now()
+    }
+    return Math.floor(ts)
+  }
+
+  private static normalizeEventType(type: LogEventType): LogEventType {
+    if (ALL_LOG_EVENT_TYPES.includes(type)) {
+      return type
+    }
+    return LogEventType.FILE
+  }
+
+  private static normalizeEventResult(result: LogEventResult): LogEventResult {
+    if (
+      result === LogEventResult.SUCCESS ||
+      result === LogEventResult.BLOCKED ||
+      result === LogEventResult.FAILED
+    ) {
+      return result
+    }
+    return LogEventResult.SUCCESS
+  }
+
+  private static normalizeEntryId(id: string | undefined): string {
+    if (id && id.trim().length > 0) {
+      return id.trim()
+    }
+    return `persist_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
   }
 
   // 生效的内存上限
@@ -391,16 +805,20 @@ export class LogStorageService {
   // 单条日志瘦身
   private static normalizeEntry(entry: LogEntry): LogEntry {
     return {
-      id: entry.id,
-      timestamp: entry.timestamp,
-      eventType: entry.eventType,
+      id: LogStorageService.normalizeEntryId(entry.id),
+      timestamp: LogStorageService.normalizeTimestamp(entry.timestamp),
+      eventType: LogStorageService.normalizeEventType(entry.eventType),
       detail: LogStorageService.truncateString(entry.detail, MAX_DETAIL_LENGTH) || '',
       processName: LogStorageService.truncateString(entry.processName, MAX_PROCESS_NAME_LENGTH),
       pid: entry.pid,
       uid: entry.uid,
       filePath: LogStorageService.truncateString(entry.filePath, MAX_FILE_PATH_LENGTH),
       remoteAddr: LogStorageService.truncateString(entry.remoteAddr, MAX_REMOTE_ADDR_LENGTH),
-      result: entry.result
+      sourceEventId: entry.sourceEventId,
+      sourceSubType: entry.sourceSubType,
+      rawEventName: LogStorageService.truncateString(entry.rawEventName, MAX_RAW_EVENT_NAME_LENGTH),
+      rawOutcome: LogStorageService.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
+      result: LogStorageService.normalizeEventResult(entry.result)
     }
   }
 
@@ -512,18 +930,22 @@ export class LogStorageService {
       let retentionDays = await store.get(
         PREF_KEY_LOG_RETENTION_DAYS,
         DEFAULT_LOG_STORAGE_CONFIG.retentionDays
-      ) as number
+      ) as Object
       let autoExport = await store.get(
         PREF_KEY_LOG_AUTO_EXPORT,
         DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-      ) as boolean
+      ) as Object
       let exportPath = await store.get(PREF_KEY_LOG_EXPORT_PATH, '') as string
 
+      let retentionDaysNumber = typeof retentionDays === 'number' ? retentionDays : Number(retentionDays as string)
       LogStorageService.storageConfig = {
         maxLocalEntries: LogStorageService.normalizeMaxEntries(maxEntries),
-        retentionDays: retentionDays,
-        autoExportEnabled: autoExport,
-        exportPath: exportPath.length > 0 ? exportPath : undefined
+        retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber),
+        autoExportEnabled: LogStorageService.normalizeBoolean(
+          autoExport,
+          DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
+        ),
+        exportPath: LogStorageService.normalizeExportDirectory(exportPath)
       }
     } catch (err) {
       hilog.error(DOMAIN, TAG, `loadConfig failed: ${JSON.stringify(err)}`)
@@ -541,9 +963,10 @@ export class LogStorageService {
       await store.put(PREF_KEY_LOG_MAX_ENTRIES, LogStorageService.storageConfig.maxLocalEntries)
       await store.put(PREF_KEY_LOG_RETENTION_DAYS, LogStorageService.storageConfig.retentionDays)
       await store.put(PREF_KEY_LOG_AUTO_EXPORT, LogStorageService.storageConfig.autoExportEnabled)
-      if (LogStorageService.storageConfig.exportPath) {
-        await store.put(PREF_KEY_LOG_EXPORT_PATH, LogStorageService.storageConfig.exportPath)
-      }
+      await store.put(
+        PREF_KEY_LOG_EXPORT_PATH,
+        LogStorageService.storageConfig.exportPath ?? ''
+      )
       await store.flush()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `saveConfig failed: ${JSON.stringify(err)}`)
@@ -551,8 +974,9 @@ export class LogStorageService {
   }
 
   // 清理过期日志条目
-  private static cleanExpiredEntries(): void {
-    let retentionMs = LogStorageService.storageConfig.retentionDays * 24 * 60 * 60 * 1000
+  private static cleanExpiredEntries(): number {
+    let retentionDays = LogStorageService.normalizeRetentionDays(LogStorageService.storageConfig.retentionDays)
+    let retentionMs = retentionDays * 24 * 60 * 60 * 1000
     let cutoff = Date.now() - retentionMs
     let before = LogStorageService.logEntries.length
 
@@ -564,6 +988,7 @@ export class LogStorageService {
     if (removed > 0) {
       hilog.info(DOMAIN, TAG, `Cleaned ${removed} expired entries`)
     }
+    return removed
   }
 
   // 转换为 CSV 格式
@@ -611,4 +1036,12 @@ export class LogStorageService {
 
     return lines.join('\n')
   }
+}
+
+interface ExportWriteResult {
+  success: boolean
+  fullPath?: string
+  sizeBytes?: number
+  errorCode?: number
+  errorMessage?: string
 }

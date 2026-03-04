@@ -123,7 +123,7 @@ hdc list targets
 hdc install hapsigner/signApp.hap
 
 # 启动应用
-hdc shell aa start -a EntryAbility -b com.example.securitytool
+hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 ```
 
 ### 方式二：源码构建
@@ -182,7 +182,7 @@ hdc install signApp.hap
 | 项目 | 值 |
 |------|------|
 | 项目名称 | HarmonyShield |
-| 包名 | `com.example.securitytool` |
+| 包名 | `com.huawei.securitytool` |
 | 当前版本 | v15 |
 | 目标设备 | 2in1 |
 | SDK | HarmonyOS 5.0 |

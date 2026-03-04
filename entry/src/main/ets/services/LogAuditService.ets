@@ -4,6 +4,8 @@ import {
   LogEntry,
   LogEventType,
   LogEventResult,
+  LogAuditDiagnostics,
+  LogEventTypeDiag,
   ALL_LOG_EVENT_TYPES,
   generateLogEntryId
 } from '../models/DataModels'
@@ -11,19 +13,22 @@ import {
 const TAG = 'LogAuditService'
 const DOMAIN = 0x0006
 
-// 订阅回调类型
 export type LogEntryCallback = (entry: LogEntry) => void
 
-// 安全审计服务 - 负责订阅和解析系统安全审计事件
-export class LogAuditService {
+type JsonMap = Record<string, Object>
 
+export class LogAuditService {
   private static isSubscribed: boolean = false
   private static callback: LogEntryCallback | null = null
   private static subscribedCallbacks: Map<number, (event: securityAudit.AuditEvent) => void> = new Map()
   private static lastSubscribeErrorCode: number | undefined = undefined
   private static lastSubscribeFailedEventIds: number[] = []
 
-  // 需求清单事件类型 -> 官方 NotifyEvent 映射
+  private static diagnosticsByType: Map<LogEventType, LogEventTypeDiag> =
+    LogAuditService.createDiagnosticsMap()
+  private static unknownEventIds: number[] = []
+  private static diagnosticsUpdatedAt: number = Date.now()
+
   private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
     [
       LogEventType.FILE,
@@ -60,12 +65,11 @@ export class LogAuditService {
     [LogEventType.DNS, [securityAudit.NotifyEvent.DNS]]
   ])
 
-  // 官方事件 ID -> 业务事件类型映射
   private static readonly EVENT_TYPE_BY_ID: Map<number, LogEventType> = LogAuditService.buildEventTypeById()
 
-  // 订阅安全审计事件
   static subscribe(onLogEntry: LogEntryCallback, eventTypes?: LogEventType[]): boolean {
     if (LogAuditService.isSubscribed) {
+      LogAuditService.callback = onLogEntry
       hilog.warn(DOMAIN, TAG, 'Already subscribed to audit events')
       return true
     }
@@ -74,7 +78,10 @@ export class LogAuditService {
       LogAuditService.callback = onLogEntry
       LogAuditService.lastSubscribeErrorCode = undefined
       LogAuditService.lastSubscribeFailedEventIds = []
-      let eventIds = LogAuditService.mapTypesToIds(eventTypes)
+
+      let targetTypes = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
+      let eventIds = LogAuditService.mapTypesToIds(targetTypes)
+      LogAuditService.resetSubscriptionDiagnostics(targetTypes)
 
       if (eventIds.length === 0) {
         LogAuditService.lastSubscribeErrorCode = 401
@@ -95,17 +102,16 @@ export class LogAuditService {
         try {
           securityAudit.on('auditEventOccur', auditInfo, eventCallback)
           LogAuditService.subscribedCallbacks.set(eventId, eventCallback)
+          LogAuditService.markSubscribeSuccess(eventId)
           hilog.info(DOMAIN, TAG, `Subscribed eventId: ${eventId}`)
         } catch (err) {
+          let code = LogAuditService.extractErrorCode(err as Object)
           if (LogAuditService.lastSubscribeErrorCode === undefined) {
-            LogAuditService.lastSubscribeErrorCode = LogAuditService.extractErrorCode(err as Object)
+            LogAuditService.lastSubscribeErrorCode = code
           }
           LogAuditService.lastSubscribeFailedEventIds.push(eventId)
-          hilog.error(
-            DOMAIN,
-            TAG,
-            `Subscribe eventId ${eventId} failed: ${JSON.stringify(err)}`
-          )
+          LogAuditService.markSubscribeFailure(eventId, code)
+          hilog.error(DOMAIN, TAG, `Subscribe eventId ${eventId} failed: ${JSON.stringify(err)}`)
         }
       }
 
@@ -143,7 +149,6 @@ export class LogAuditService {
     }
   }
 
-  // 取消订阅
   static unsubscribe(): boolean {
     if (!LogAuditService.isSubscribed) {
       return true
@@ -154,6 +159,7 @@ export class LogAuditService {
       LogAuditService.callback = null
       LogAuditService.lastSubscribeErrorCode = undefined
       LogAuditService.lastSubscribeFailedEventIds = []
+      LogAuditService.markAllUnsubscribed()
       if (ok) {
         hilog.info(DOMAIN, TAG, 'Unsubscribed from security audit events')
       }
@@ -164,41 +170,79 @@ export class LogAuditService {
     }
   }
 
-  // 获取订阅状态
   static getSubscriptionStatus(): boolean {
     return LogAuditService.isSubscribed
   }
 
-  // 获取最近一次订阅失败错误码（如 201 权限失败，401 参数错误）
   static getLastSubscribeErrorCode(): number | undefined {
     return LogAuditService.lastSubscribeErrorCode
   }
 
-  // 获取最近一次订阅失败的事件 ID 列表
   static getLastSubscribeFailedEventIds(): number[] {
     return [...LogAuditService.lastSubscribeFailedEventIds]
   }
 
-  // 解析系统 AuditEvent 为内部 LogEntry 格式
+  static getLastSubscribeFailedByType(): Map<LogEventType, number[]> {
+    let result: Map<LogEventType, number[]> = new Map()
+    for (let type of ALL_LOG_EVENT_TYPES) {
+      let diag = LogAuditService.diagnosticsByType.get(type)
+      result.set(type, diag ? [...diag.failedEventIds] : [])
+    }
+    return result
+  }
+
+  static getDiagnostics(): LogAuditDiagnostics {
+    let byType = new Map<LogEventType, LogEventTypeDiag>()
+    for (let type of ALL_LOG_EVENT_TYPES) {
+      let diag = LogAuditService.ensureDiag(type)
+      byType.set(type, {
+        type: type,
+        subscribed: diag.subscribed,
+        failedEventIds: [...diag.failedEventIds],
+        lastSeenAt: diag.lastSeenAt,
+        seenCount: diag.seenCount,
+        lastErrorCode: diag.lastErrorCode
+      })
+    }
+
+    return {
+      byType: byType,
+      unknownEventIds: [...LogAuditService.unknownEventIds],
+      lastUpdatedAt: LogAuditService.diagnosticsUpdatedAt
+    }
+  }
+
+  static resetDiagnostics(): void {
+    LogAuditService.diagnosticsByType = LogAuditService.createDiagnosticsMap()
+    LogAuditService.unknownEventIds = []
+    LogAuditService.touchDiagnostics()
+  }
+
   private static parseAuditEvent(event: securityAudit.AuditEvent): LogEntry {
-    let eventType = LogAuditService.mapEventType(event.eventId)
-    let parsed = LogAuditService.parseEventContent(event.content || '', eventType)
+    let mappedType = LogAuditService.mapEventType(event.eventId)
+    let parsed = LogAuditService.parseEventContent(event.content || '')
+    let sourceSubType = LogAuditService.extractSourceSubType(event as Object)
+    let finalType = LogAuditService.inferTypeBySignals(mappedType, parsed, sourceSubType)
+    LogAuditService.markEventSeen(finalType)
 
     return {
       id: generateLogEntryId(),
       timestamp: LogAuditService.parseTimestamp(event.timestamp || ''),
-      eventType: eventType,
+      eventType: finalType,
       detail: parsed.detail,
       processName: parsed.processName,
       pid: parsed.pid,
       uid: event.userId,
       filePath: parsed.filePath,
       remoteAddr: parsed.remoteAddr,
+      sourceEventId: event.eventId,
+      sourceSubType: sourceSubType,
+      rawEventName: parsed.rawEventName,
+      rawOutcome: parsed.rawOutcome,
       result: parsed.result
     }
   }
 
-  // 解析 AuditEvent 时间戳字符串（YYYYMMDDHHMMSS）为毫秒数
   private static parseTimestamp(ts: string): number {
     if (ts.length < 14) {
       return Date.now()
@@ -213,55 +257,225 @@ export class LogAuditService {
     return date.getTime()
   }
 
-  // 将系统 eventId 映射到内部 LogEventType
   private static mapEventType(eventId: number): LogEventType {
     let mapped = LogAuditService.EVENT_TYPE_BY_ID.get(eventId)
     if (mapped !== undefined) {
       return mapped
     }
+
+    LogAuditService.recordUnknownEventId(eventId)
     hilog.warn(DOMAIN, TAG, `Unknown audit eventId: ${eventId}, fallback to FILE`)
     return LogEventType.FILE
   }
 
-  // 解析事件内容字符串
-  private static parseEventContent(content: string, eventType: LogEventType): ParsedContent {
+  private static parseEventContent(content: string): ParsedContent {
     let result: ParsedContent = {
       detail: content,
       result: LogEventResult.SUCCESS
     }
 
-    try {
-      // 尝试 JSON 解析
-      let json = JSON.parse(content) as Record<string, Object>
-
-      result.detail = (json['description'] as string) || (json['message'] as string) || content
-      result.processName = json['processName'] as string
-      result.pid = json['pid'] as number
-
-      // 根据事件类型解析特定字段
-      if (eventType === LogEventType.FILE) {
-        result.filePath = (json['filePath'] as string) ||
-          (json['path'] as string) ||
-          (json['targetPath'] as string)
-      } else if (eventType === LogEventType.NETWORK_CONN || eventType === LogEventType.NETWORK_TRAFFIC) {
-        result.remoteAddr = (json['remoteAddress'] as string) || (json['remoteAddr'] as string)
-      }
-
-      // 解析结果状态
-      let status = json['result'] as string
-      if (status === 'blocked' || status === 'denied') {
-        result.result = LogEventResult.BLOCKED
-      } else if (status === 'failed' || status === 'error') {
-        result.result = LogEventResult.FAILED
-      }
-    } catch {
-      // 非 JSON 格式，保持原始内容
+    let top = LogAuditService.safeParseJson(content)
+    if (!top) {
+      return result
     }
 
+    let extra = LogAuditService.extractExtraJson(top)
+    let sources: Array<JsonMap | undefined> = [top, extra]
+
+    result.rawEventName = LogAuditService.pickFirstString(sources, [
+      'event_name',
+      'eventName',
+      'name'
+    ])
+    result.rawOutcome = LogAuditService.pickFirstString(sources, [
+      'outcome',
+      'result',
+      'status',
+      'decision',
+      'actionResult',
+      'action_result'
+    ])
+
+    let detail = LogAuditService.pickFirstString(sources, [
+      'description',
+      'message',
+      'detail',
+      'msg',
+      'event_desc'
+    ])
+    if (detail) {
+      result.detail = detail
+    }
+
+    result.processName = LogAuditService.pickFirstString(sources, [
+      'processName',
+      'procName',
+      'proc_name',
+      'cmdline',
+      'process',
+      'process_name',
+      'package_name',
+      'bundleName'
+    ])
+    result.pid = LogAuditService.pickFirstNumber(sources, ['pid', 'processId', 'process_id'])
+
+    result.filePath = LogAuditService.pickFirstString(sources, [
+      'filePath',
+      'file_path',
+      'path',
+      'targetPath',
+      'target_path'
+    ])
+    result.remoteAddr = LogAuditService.pickFirstString(sources, [
+      'remoteAddress',
+      'remoteAddr',
+      'remote_addr',
+      'remoteIp',
+      'remote_ip',
+      'dstAddr',
+      'dst_addr',
+      'dstIp',
+      'dst_ip',
+      'peerAddr',
+      'peer_addr'
+    ])
+
+    result.result = LogAuditService.mapResult(result.rawOutcome)
     return result
   }
 
-  // 类型映射到事件 ID 列表
+  private static inferTypeByRawEventName(defaultType: LogEventType, rawEventName?: string): LogEventType {
+    if (!rawEventName) {
+      return defaultType
+    }
+
+    let name = rawEventName.toLowerCase()
+    if (name.startsWith('dns_')) {
+      return LogEventType.DNS
+    }
+    if (name.startsWith('permission_')) {
+      return LogEventType.PERMISSION
+    }
+    if (name.startsWith('network_conn_') || name.startsWith('net_conn_')) {
+      return LogEventType.NETWORK_CONN
+    }
+    if (name.startsWith('network_traffic_') || name.startsWith('traffic_')) {
+      return LogEventType.NETWORK_TRAFFIC
+    }
+    return defaultType
+  }
+
+  private static inferTypeBySignals(
+    defaultType: LogEventType,
+    parsed: ParsedContent,
+    sourceSubType?: number
+  ): LogEventType {
+    let bySubType = LogAuditService.mapSubTypeToType(sourceSubType)
+    if (bySubType !== undefined) {
+      return bySubType
+    }
+
+    let byName = LogAuditService.inferTypeByRawEventName(defaultType, parsed.rawEventName)
+    if (byName !== defaultType) {
+      return byName
+    }
+
+    if (defaultType !== LogEventType.FILE) {
+      return defaultType
+    }
+    return LogAuditService.inferTypeByContentHint(defaultType, parsed)
+  }
+
+  private static mapSubTypeToType(sourceSubType?: number): LogEventType | undefined {
+    if (sourceSubType === undefined) {
+      return undefined
+    }
+    let maybeType = sourceSubType as LogEventType
+    if (ALL_LOG_EVENT_TYPES.includes(maybeType)) {
+      return maybeType
+    }
+    return undefined
+  }
+
+  private static inferTypeByContentHint(defaultType: LogEventType, parsed: ParsedContent): LogEventType {
+    let combined = `${parsed.rawEventName || ''} ${parsed.detail || ''} ${parsed.processName || ''}`.toLowerCase()
+
+    if (parsed.remoteAddr && parsed.remoteAddr.length > 0) {
+      if (
+        combined.includes('traffic') ||
+        combined.includes('bandwidth') ||
+        combined.includes('rx ') ||
+        combined.includes('tx ')
+      ) {
+        return LogEventType.NETWORK_TRAFFIC
+      }
+      return LogEventType.NETWORK_CONN
+    }
+
+    if (
+      combined.includes('permission') ||
+      combined.includes('grant') ||
+      combined.includes('revoke') ||
+      combined.includes('authorize')
+    ) {
+      return LogEventType.PERMISSION
+    }
+    if (combined.includes('dns')) {
+      return LogEventType.DNS
+    }
+    if (
+      combined.includes('network') ||
+      combined.includes('socket') ||
+      combined.includes('connect') ||
+      combined.includes('http://') ||
+      combined.includes('https://')
+    ) {
+      return LogEventType.NETWORK_CONN
+    }
+    if (
+      combined.includes('account') ||
+      combined.includes('login') ||
+      combined.includes('logout') ||
+      combined.includes('credential')
+    ) {
+      return LogEventType.ACCOUNT
+    }
+    if (combined.includes('usb')) {
+      return LogEventType.USB_ACCESS
+    }
+    if (
+      combined.includes('app_install') ||
+      combined.includes('app_uninstall') ||
+      combined.includes('bundle')
+    ) {
+      return LogEventType.APP
+    }
+    return defaultType
+  }
+
+  private static mapResult(rawOutcome?: string): LogEventResult {
+    if (!rawOutcome || rawOutcome.length === 0) {
+      return LogEventResult.SUCCESS
+    }
+
+    let normalized = rawOutcome.toLowerCase()
+    if (
+      normalized.includes('blocked') ||
+      normalized.includes('deny') ||
+      normalized.includes('intercept')
+    ) {
+      return LogEventResult.BLOCKED
+    }
+    if (
+      normalized.includes('failed') ||
+      normalized.includes('error') ||
+      normalized.includes('reject')
+    ) {
+      return LogEventResult.FAILED
+    }
+    return LogEventResult.SUCCESS
+  }
+
   private static mapTypesToIds(eventTypes?: LogEventType[]): number[] {
     let types = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
     let ids: number[] = []
@@ -280,7 +494,6 @@ export class LogAuditService {
     return ids
   }
 
-  // 构建反向映射表
   private static buildEventTypeById(): Map<number, LogEventType> {
     let mapping: Map<number, LogEventType> = new Map()
     LogAuditService.EVENT_IDS_BY_TYPE.forEach((ids: number[], type: LogEventType) => {
@@ -291,7 +504,188 @@ export class LogAuditService {
     return mapping
   }
 
-  // 提取业务错误码
+  private static createDiagnosticsMap(): Map<LogEventType, LogEventTypeDiag> {
+    let map = new Map<LogEventType, LogEventTypeDiag>()
+    for (let type of ALL_LOG_EVENT_TYPES) {
+      map.set(type, {
+        type: type,
+        subscribed: false,
+        failedEventIds: [],
+        seenCount: 0
+      })
+    }
+    return map
+  }
+
+  private static ensureDiag(type: LogEventType): LogEventTypeDiag {
+    let existing = LogAuditService.diagnosticsByType.get(type)
+    if (existing) {
+      return existing
+    }
+
+    let created: LogEventTypeDiag = {
+      type: type,
+      subscribed: false,
+      failedEventIds: [],
+      seenCount: 0
+    }
+    LogAuditService.diagnosticsByType.set(type, created)
+    return created
+  }
+
+  private static resetSubscriptionDiagnostics(targetTypes: LogEventType[]): void {
+    for (let type of ALL_LOG_EVENT_TYPES) {
+      let diag = LogAuditService.ensureDiag(type)
+      diag.subscribed = false
+      diag.failedEventIds = []
+      diag.lastErrorCode = undefined
+      if (!targetTypes.includes(type)) {
+        diag.subscribed = false
+      }
+    }
+    LogAuditService.touchDiagnostics()
+  }
+
+  private static markSubscribeSuccess(eventId: number): void {
+    let type = LogAuditService.EVENT_TYPE_BY_ID.get(eventId)
+    if (type === undefined) {
+      return
+    }
+    let diag = LogAuditService.ensureDiag(type)
+    diag.subscribed = true
+    LogAuditService.touchDiagnostics()
+  }
+
+  private static markSubscribeFailure(eventId: number, code: number | undefined): void {
+    let type = LogAuditService.EVENT_TYPE_BY_ID.get(eventId)
+    if (type === undefined) {
+      return
+    }
+
+    let diag = LogAuditService.ensureDiag(type)
+    if (!diag.failedEventIds.includes(eventId)) {
+      diag.failedEventIds.push(eventId)
+    }
+    if (code !== undefined) {
+      diag.lastErrorCode = code
+    }
+    LogAuditService.touchDiagnostics()
+  }
+
+  private static markEventSeen(type: LogEventType): void {
+    let diag = LogAuditService.ensureDiag(type)
+    diag.seenCount += 1
+    diag.lastSeenAt = Date.now()
+    LogAuditService.touchDiagnostics()
+  }
+
+  private static recordUnknownEventId(eventId: number): void {
+    if (!LogAuditService.unknownEventIds.includes(eventId)) {
+      LogAuditService.unknownEventIds.push(eventId)
+      LogAuditService.touchDiagnostics()
+    }
+  }
+
+  private static markAllUnsubscribed(): void {
+    for (let type of ALL_LOG_EVENT_TYPES) {
+      let diag = LogAuditService.ensureDiag(type)
+      diag.subscribed = false
+    }
+    LogAuditService.touchDiagnostics()
+  }
+
+  private static touchDiagnostics(): void {
+    LogAuditService.diagnosticsUpdatedAt = Date.now()
+  }
+
+  private static safeParseJson(value: string): JsonMap | undefined {
+    try {
+      let parsed = JSON.parse(value) as Object
+      if (parsed && typeof parsed === 'object') {
+        return parsed as JsonMap
+      }
+      return undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  private static extractExtraJson(top: JsonMap): JsonMap | undefined {
+    let extraValue = top['extra']
+    if (extraValue === undefined) {
+      return undefined
+    }
+
+    if (typeof extraValue === 'string') {
+      return LogAuditService.safeParseJson(extraValue)
+    }
+    if (typeof extraValue === 'object' && extraValue !== null) {
+      return extraValue as JsonMap
+    }
+    return undefined
+  }
+
+  private static pickFirstString(sources: Array<JsonMap | undefined>, keys: string[]): string | undefined {
+    for (let source of sources) {
+      if (!source) {
+        continue
+      }
+      for (let key of keys) {
+        let raw = source[key]
+        if (typeof raw === 'string') {
+          let trimmed = raw.trim()
+          if (trimmed.length > 0) {
+            return trimmed
+          }
+        }
+      }
+    }
+    return undefined
+  }
+
+  private static pickFirstNumber(sources: Array<JsonMap | undefined>, keys: string[]): number | undefined {
+    for (let source of sources) {
+      if (!source) {
+        continue
+      }
+      for (let key of keys) {
+        let raw = source[key]
+        if (typeof raw === 'number' && Number.isFinite(raw)) {
+          return raw
+        }
+        if (typeof raw === 'string') {
+          let parsed = Number(raw)
+          if (Number.isFinite(parsed)) {
+            return parsed
+          }
+        }
+      }
+    }
+    return undefined
+  }
+
+  private static extractSourceSubType(event: Object): number | undefined {
+    let record = event as Record<string, Object>
+    let subType = record['subType']
+    if (typeof subType === 'number') {
+      return subType
+    }
+    if (typeof subType === 'string') {
+      let parsed = Number(subType)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+
+    let rawType = record['eventType']
+    if (typeof rawType === 'number') {
+      return rawType
+    }
+    if (typeof rawType === 'string') {
+      let parsed = Number(rawType)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+    return undefined
+  }
+
   private static extractErrorCode(err: Object): number | undefined {
     let codeValue = (err as Record<string, Object>)['code']
     if (typeof codeValue === 'number') {
@@ -304,19 +698,19 @@ export class LogAuditService {
     return undefined
   }
 
-  // 内部取消订阅（按 eventId + callback 精确解绑）
   private static unsubscribeInternal(): boolean {
     let ok = true
     LogAuditService.subscribedCallbacks.forEach(
       (eventCallback: (event: securityAudit.AuditEvent) => void, eventId: number) => {
-      try {
-        let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
-        securityAudit.off('auditEventOccur', auditInfo, eventCallback)
-      } catch (err) {
-        ok = false
-        hilog.error(DOMAIN, TAG, `off eventId ${eventId} failed: ${JSON.stringify(err)}`)
+        try {
+          let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
+          securityAudit.off('auditEventOccur', auditInfo, eventCallback)
+        } catch (err) {
+          ok = false
+          hilog.error(DOMAIN, TAG, `off eventId ${eventId} failed: ${JSON.stringify(err)}`)
+        }
       }
-    })
+    )
 
     LogAuditService.subscribedCallbacks.clear()
     LogAuditService.isSubscribed = false
@@ -324,7 +718,6 @@ export class LogAuditService {
   }
 }
 
-// 解析内容结果接口
 interface ParsedContent {
   detail: string
   processName?: string
@@ -332,5 +725,7 @@ interface ParsedContent {
   uid?: number
   filePath?: string
   remoteAddr?: string
+  rawEventName?: string
+  rawOutcome?: string
   result: LogEventResult
 }

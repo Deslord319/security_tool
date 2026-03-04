@@ -145,6 +145,28 @@ export enum UsbStoragePolicy {
   DISABLED = 2
 }
 
+// 企业管理员类型
+export type EnterpriseAdminType = 'super' | 'byod'
+
+// 企业管理员激活状态
+export interface AdminActivationState {
+  activated: boolean
+  errorCode?: number
+  errorMessage?: string
+  enableCommand: string
+  adminType: EnterpriseAdminType
+}
+
+// 通用操作结果
+export interface OperationResult<T = void> {
+  success: boolean
+  data?: T
+  errorCode?: number
+  errorMessage?: string
+  isAdminMissing?: boolean
+  suggestion?: string
+}
+
 // 设备连接记录
 export interface DeviceRecord {
   deviceName: string
@@ -406,6 +428,10 @@ export interface LogEntry {
   uid?: number                // 用户 ID
   filePath?: string           // 文件路径（FILE 类型）
   remoteAddr?: string         // 远程地址（NETWORK 类型）
+  sourceEventId?: number      // 原始审计 eventId
+  sourceSubType?: number      // 原始审计子类型
+  rawEventName?: string       // 原始事件名称
+  rawOutcome?: string         // 原始结果字段
   result: LogEventResult      // 操作结果
 }
 
@@ -436,8 +462,23 @@ export interface LogSubscriptionConfig {
 export interface LogStatistics {
   totalCount: number          // 总条数
   todayCount: number          // 今日条数
-  blockedCount: number        // 阻止事件数
+  blockedCount: number        // 阻断事件数
   byType: Map<LogEventType, number>  // 按类型统计
+}
+
+export interface LogEventTypeDiag {
+  type: LogEventType
+  subscribed: boolean
+  failedEventIds: number[]
+  lastSeenAt?: number
+  seenCount: number
+  lastErrorCode?: number
+}
+
+export interface LogAuditDiagnostics {
+  byType: Map<LogEventType, LogEventTypeDiag>
+  unknownEventIds: number[]
+  lastUpdatedAt: number
 }
 
 // 日志导出格式
@@ -445,6 +486,24 @@ export enum LogExportFormat {
   JSON = 'json',
   CSV = 'csv',
   TXT = 'txt'
+}
+
+// 日志导出触发来源
+export type LogExportTrigger = 'manual' | 'auto'
+
+// 日志导出结果
+export interface LogExportResult {
+  success: boolean
+  count: number
+  format: LogExportFormat
+  timestamp: number
+  trigger: LogExportTrigger
+  fileName?: string
+  fullPath?: string
+  directory?: string
+  sizeBytes?: number
+  errorCode?: number
+  errorMessage?: string
 }
 
 // 事件类型选项（UI 展示用）
@@ -456,7 +515,7 @@ export interface LogEventTypeOption {
 
 // 默认日志存储配置
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
-  maxLocalEntries: 10000,
+  maxLocalEntries: 5000,
   retentionDays: 30,
   autoExportEnabled: false
 }
@@ -488,7 +547,7 @@ export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 60, 90]
 
 // 本地最大条数选项
-export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000, 10000, 50000]
+export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000]
 
 // Preferences 键名常量（日志模块）
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
