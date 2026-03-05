@@ -76,6 +76,11 @@ export class LogRuntimeCollectorService {
 
     if (success) {
       let failed = LogAuditService.getLastSubscribeFailedEventIds()
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `subscribe mode=${LogAuditService.getSubscribeMode()}, fallback=${LogAuditService.getFallbackReason()}`
+      )
       if (failed.length > 0) {
         hilog.warn(DOMAIN, TAG, `start with partial subscribe success, failed eventIds=${failed.join(',')}`)
       }

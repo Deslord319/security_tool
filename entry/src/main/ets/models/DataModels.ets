@@ -475,9 +475,16 @@ export interface LogEventTypeDiag {
   lastErrorCode?: number
 }
 
+export type AuditSubscribeMode = 'client' | 'legacy' | 'none'
+
+export type AuditFallbackReason = 'new_api_unavailable' | 'new_api_init_failed' | 'none'
+
 export interface LogAuditDiagnostics {
   byType: Map<LogEventType, LogEventTypeDiag>
   unknownEventIds: number[]
+  subscribeMode: AuditSubscribeMode
+  fallbackReason: AuditFallbackReason
+  lastModeSwitchAt?: number
   lastUpdatedAt: number
 }
 

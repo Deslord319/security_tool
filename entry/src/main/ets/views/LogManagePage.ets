@@ -14,6 +14,8 @@ import {
   LogExportResult,
   LogAuditDiagnostics,
   LogEventTypeDiag,
+  AuditSubscribeMode,
+  AuditFallbackReason,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_RETENTION_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
@@ -47,6 +49,9 @@ export struct LogManagePage {
   @State diagnostics: LogAuditDiagnostics = {
     byType: new Map<LogEventType, LogEventTypeDiag>(),
     unknownEventIds: [],
+    subscribeMode: 'none',
+    fallbackReason: 'none',
+    lastModeSwitchAt: undefined,
     lastUpdatedAt: 0
   }
 
@@ -443,6 +448,28 @@ export struct LogManagePage {
     return ''
   }
 
+  private getSubscribeModeText(mode?: AuditSubscribeMode): string {
+    let current = mode || this.diagnostics.subscribeMode
+    if (current === 'client') {
+      return 'Client'
+    }
+    if (current === 'legacy') {
+      return 'Legacy'
+    }
+    return '未订阅'
+  }
+
+  private getFallbackReasonText(reason?: AuditFallbackReason): string {
+    let current = reason || this.diagnostics.fallbackReason
+    if (current === 'new_api_unavailable') {
+      return '新订阅 API 不可用，已自动切换到兼容模式。'
+    }
+    if (current === 'new_api_init_failed') {
+      return '新订阅 API 初始化失败，已自动切换到兼容模式。'
+    }
+    return ''
+  }
+
   build() {
     Column() {
       Row() {
@@ -463,7 +490,7 @@ export struct LogManagePage {
         Row({ space: 6 }) {
           Circle({ width: 8, height: 8 })
             .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
-          Text(this.isSubscribed ? '已订阅' : '订阅失败')
+          Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -830,7 +857,7 @@ export struct LogManagePage {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      Text(this.isSubscribed ? '已订阅' : '订阅失败')
+      Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(this.isSubscribed ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
     }
@@ -844,6 +871,19 @@ export struct LogManagePage {
   auditDiagnosticsCard() {
     Column({ space: 8 }) {
       Text('审计诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+      Text(`订阅模式: ${this.getSubscribeModeText()}`)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      if (this.diagnostics.lastModeSwitchAt !== undefined) {
+        Text(`模式切换时间: ${formatLogTimestamp(this.diagnostics.lastModeSwitchAt as number)}`)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      if (this.getFallbackReasonText().length > 0) {
+        Text(this.getFallbackReasonText())
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+      }
       ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
         Row() {
           Column({ space: 2 }) {

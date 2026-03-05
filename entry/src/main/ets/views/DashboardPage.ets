@@ -3,6 +3,7 @@ import { StatCard } from '../components/StatCard'
 import { ToolCard } from '../components/ToolCard'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
+import { LogAuditService } from '../services/LogAuditService'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -21,6 +22,7 @@ export struct DashboardPage {
   @State adminActivated: boolean = false
   @State collectorRunning: boolean = false
   @State logSubscribed: boolean = false
+  @State subscribeModeLabel: string = 'None'
   private refreshTimerId: number = -1
   private readonly REFRESH_INTERVAL_MS: number = 3000
 
@@ -69,6 +71,14 @@ export struct DashboardPage {
     let runtimeStatus = LogRuntimeCollectorService.getStatus()
     this.collectorRunning = runtimeStatus.running
     this.logSubscribed = runtimeStatus.subscribed
+    let mode = LogAuditService.getSubscribeMode()
+    if (mode === 'client') {
+      this.subscribeModeLabel = 'Client'
+    } else if (mode === 'legacy') {
+      this.subscribeModeLabel = 'Legacy'
+    } else {
+      this.subscribeModeLabel = 'None'
+    }
   }
 
   build() {
@@ -93,6 +103,7 @@ export struct DashboardPage {
           this.healthTag('管理员', this.adminActivated ? '已激活' : '未激活', this.adminActivated)
           this.healthTag('采集器', this.collectorRunning ? '运行中' : '未运行', this.collectorRunning)
           this.healthTag('日志订阅', this.logSubscribed ? '正常' : '异常', this.logSubscribed)
+          this.healthTag('订阅模式', this.subscribeModeLabel, this.subscribeModeLabel !== 'None')
         }
         .width('100%')
 

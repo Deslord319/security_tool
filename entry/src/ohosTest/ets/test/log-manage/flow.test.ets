@@ -105,6 +105,7 @@ export default function logManageFlowTest() {
       it('should display permission info', 0, async () => {
         await driver.assertComponentExist(ON.text('鏉冮檺淇℃伅'))
         await driver.assertComponentExist(ON.text('ohos.permission.QUERY_AUDIT_EVENT'))
+        await driver.assertComponentExist(ON.text('订阅模式'))
         hilog.info(DOMAIN, TAG, 'Permission info displayed')
       })
 

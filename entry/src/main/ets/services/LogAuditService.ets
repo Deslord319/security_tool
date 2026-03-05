@@ -6,6 +6,8 @@ import {
   LogEventResult,
   LogAuditDiagnostics,
   LogEventTypeDiag,
+  AuditSubscribeMode,
+  AuditFallbackReason,
   ALL_LOG_EVENT_TYPES,
   generateLogEntryId
 } from '../models/DataModels'
@@ -17,12 +19,34 @@ export type LogEntryCallback = (entry: LogEntry) => void
 
 type JsonMap = Record<string, Object>
 
+interface AuditClientCompat {
+  subscribe(eventIds: number[]): void
+  unsubscribe(eventIds: number[]): void
+}
+
+interface SubscribePathResult {
+  successCount: number
+  failedEventIds: number[]
+  shouldFallback: boolean
+  fallbackReason: AuditFallbackReason
+}
+
+interface ClientCreateResult {
+  client: AuditClientCompat | null
+  fallbackReason: AuditFallbackReason
+}
+
 export class LogAuditService {
   private static isSubscribed: boolean = false
   private static callback: LogEntryCallback | null = null
   private static subscribedCallbacks: Map<number, (event: securityAudit.AuditEvent) => void> = new Map()
+  private static client: AuditClientCompat | null = null
+  private static clientSubscribedEventIds: number[] = []
   private static lastSubscribeErrorCode: number | undefined = undefined
   private static lastSubscribeFailedEventIds: number[] = []
+  private static subscribeMode: AuditSubscribeMode = 'none'
+  private static fallbackReason: AuditFallbackReason = 'none'
+  private static lastModeSwitchAt: number | undefined = undefined
 
   private static diagnosticsByType: Map<LogEventType, LogEventTypeDiag> =
     LogAuditService.createDiagnosticsMap()
@@ -78,6 +102,7 @@ export class LogAuditService {
       LogAuditService.callback = onLogEntry
       LogAuditService.lastSubscribeErrorCode = undefined
       LogAuditService.lastSubscribeFailedEventIds = []
+      LogAuditService.fallbackReason = 'none'
 
       let targetTypes = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
       let eventIds = LogAuditService.mapTypesToIds(targetTypes)
@@ -87,57 +112,51 @@ export class LogAuditService {
         LogAuditService.lastSubscribeErrorCode = 401
         hilog.error(DOMAIN, TAG, 'subscribe failed: empty eventIds')
         LogAuditService.callback = null
+        LogAuditService.setSubscribeMode('none', 'none')
         return false
       }
 
-      for (let eventId of eventIds) {
-        let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
-        let eventCallback = (event: securityAudit.AuditEvent) => {
-          let entry = LogAuditService.parseAuditEvent(event)
-          if (LogAuditService.callback) {
-            LogAuditService.callback(entry)
-          }
+      let clientResult = LogAuditService.subscribeWithClient(eventIds)
+      if (clientResult.shouldFallback) {
+        LogAuditService.resetSubscriptionDiagnostics(targetTypes)
+        let legacyResult = LogAuditService.subscribeWithLegacyOnOff(eventIds)
+        LogAuditService.lastSubscribeFailedEventIds = legacyResult.failedEventIds
+        LogAuditService.isSubscribed = legacyResult.successCount > 0
+        LogAuditService.setSubscribeMode(
+          LogAuditService.isSubscribed ? 'legacy' : 'none',
+          clientResult.fallbackReason
+        )
+
+        if (!LogAuditService.isSubscribed) {
+          LogAuditService.callback = null
+          hilog.error(
+            DOMAIN,
+            TAG,
+            `Legacy subscribe failed after fallback, failed eventIds: ${legacyResult.failedEventIds.join(',')}`
+          )
+          return false
         }
 
-        try {
-          securityAudit.on('auditEventOccur', auditInfo, eventCallback)
-          LogAuditService.subscribedCallbacks.set(eventId, eventCallback)
-          LogAuditService.markSubscribeSuccess(eventId)
-          hilog.info(DOMAIN, TAG, `Subscribed eventId: ${eventId}`)
-        } catch (err) {
-          let code = LogAuditService.extractErrorCode(err as Object)
-          if (LogAuditService.lastSubscribeErrorCode === undefined) {
-            LogAuditService.lastSubscribeErrorCode = code
-          }
-          LogAuditService.lastSubscribeFailedEventIds.push(eventId)
-          LogAuditService.markSubscribeFailure(eventId, code)
-          hilog.error(DOMAIN, TAG, `Subscribe eventId ${eventId} failed: ${JSON.stringify(err)}`)
-        }
+        LogAuditService.logPartialFailureIfNeeded()
+        hilog.warn(DOMAIN, TAG, 'Switched to legacy subscribe mode for compatibility')
+        return true
       }
 
-      LogAuditService.isSubscribed = LogAuditService.subscribedCallbacks.size > 0
+      LogAuditService.lastSubscribeFailedEventIds = clientResult.failedEventIds
+      LogAuditService.isSubscribed = clientResult.successCount > 0
+      LogAuditService.setSubscribeMode(LogAuditService.isSubscribed ? 'client' : 'none', 'none')
+
       if (!LogAuditService.isSubscribed) {
         hilog.error(
           DOMAIN,
           TAG,
-          `Failed to subscribe any audit event, failed eventIds: ${LogAuditService.lastSubscribeFailedEventIds.join(',')}`
+          `Client subscribe failed, failed eventIds: ${LogAuditService.lastSubscribeFailedEventIds.join(',')}`
         )
         LogAuditService.callback = null
         return false
       }
 
-      hilog.info(
-        DOMAIN,
-        TAG,
-        `Subscribed audit events success=${LogAuditService.subscribedCallbacks.size}, failed=${LogAuditService.lastSubscribeFailedEventIds.length}`
-      )
-      if (LogAuditService.lastSubscribeFailedEventIds.length > 0) {
-        hilog.warn(
-          DOMAIN,
-          TAG,
-          `Some audit events are unsupported or rejected: ${LogAuditService.lastSubscribeFailedEventIds.join(',')}`
-        )
-      }
+      LogAuditService.logPartialFailureIfNeeded()
       return true
     } catch (err) {
       LogAuditService.lastSubscribeErrorCode = LogAuditService.extractErrorCode(err as Object)
@@ -145,6 +164,7 @@ export class LogAuditService {
       LogAuditService.unsubscribeInternal()
       LogAuditService.callback = null
       LogAuditService.isSubscribed = false
+      LogAuditService.setSubscribeMode('none', 'none')
       return false
     }
   }
@@ -160,6 +180,7 @@ export class LogAuditService {
       LogAuditService.lastSubscribeErrorCode = undefined
       LogAuditService.lastSubscribeFailedEventIds = []
       LogAuditService.markAllUnsubscribed()
+      LogAuditService.setSubscribeMode('none', 'none')
       if (ok) {
         hilog.info(DOMAIN, TAG, 'Unsubscribed from security audit events')
       }
@@ -180,6 +201,14 @@ export class LogAuditService {
 
   static getLastSubscribeFailedEventIds(): number[] {
     return [...LogAuditService.lastSubscribeFailedEventIds]
+  }
+
+  static getSubscribeMode(): AuditSubscribeMode {
+    return LogAuditService.subscribeMode
+  }
+
+  static getFallbackReason(): AuditFallbackReason {
+    return LogAuditService.fallbackReason
   }
 
   static getLastSubscribeFailedByType(): Map<LogEventType, number[]> {
@@ -208,6 +237,9 @@ export class LogAuditService {
     return {
       byType: byType,
       unknownEventIds: [...LogAuditService.unknownEventIds],
+      subscribeMode: LogAuditService.subscribeMode,
+      fallbackReason: LogAuditService.fallbackReason,
+      lastModeSwitchAt: LogAuditService.lastModeSwitchAt,
       lastUpdatedAt: LogAuditService.diagnosticsUpdatedAt
     }
   }
@@ -216,6 +248,187 @@ export class LogAuditService {
     LogAuditService.diagnosticsByType = LogAuditService.createDiagnosticsMap()
     LogAuditService.unknownEventIds = []
     LogAuditService.touchDiagnostics()
+  }
+
+  private static subscribeWithClient(eventIds: number[]): SubscribePathResult {
+    let eventCallback = LogAuditService.createAuditEventCallback()
+    let createResult = LogAuditService.tryCreateClient(eventCallback)
+    if (!createResult.client) {
+      return {
+        successCount: 0,
+        failedEventIds: [],
+        shouldFallback: true,
+        fallbackReason: createResult.fallbackReason
+      }
+    }
+
+    let client = createResult.client
+    let successCount = 0
+    let failedEventIds: number[] = []
+    let subscribedIds: number[] = []
+
+    for (let eventId of eventIds) {
+      try {
+        client.subscribe([eventId])
+        subscribedIds.push(eventId)
+        successCount++
+        LogAuditService.markSubscribeSuccess(eventId)
+        hilog.info(DOMAIN, TAG, `Client subscribed eventId: ${eventId}`)
+      } catch (err) {
+        let code = LogAuditService.extractErrorCode(err as Object)
+        if (LogAuditService.lastSubscribeErrorCode === undefined) {
+          LogAuditService.lastSubscribeErrorCode = code
+        }
+
+        if (LogAuditService.isApiUnavailableError(err as Object)) {
+          LogAuditService.releaseClient(client, subscribedIds)
+          hilog.warn(DOMAIN, TAG, `Client subscribe API unavailable: ${JSON.stringify(err)}`)
+          return {
+            successCount: 0,
+            failedEventIds: [],
+            shouldFallback: true,
+            fallbackReason: 'new_api_unavailable'
+          }
+        }
+
+        failedEventIds.push(eventId)
+        LogAuditService.markSubscribeFailure(eventId, code)
+        hilog.error(DOMAIN, TAG, `Client subscribe eventId ${eventId} failed: ${JSON.stringify(err)}`)
+      }
+    }
+
+    if (successCount <= 0) {
+      LogAuditService.releaseClient(client, subscribedIds)
+      return {
+        successCount: 0,
+        failedEventIds: failedEventIds,
+        shouldFallback: false,
+        fallbackReason: 'none'
+      }
+    }
+
+    LogAuditService.client = client
+    LogAuditService.clientSubscribedEventIds = subscribedIds
+    hilog.info(DOMAIN, TAG, `Client subscribe success=${successCount}, failed=${failedEventIds.length}`)
+    return {
+      successCount: successCount,
+      failedEventIds: failedEventIds,
+      shouldFallback: false,
+      fallbackReason: 'none'
+    }
+  }
+
+  private static subscribeWithLegacyOnOff(eventIds: number[]): SubscribePathResult {
+    let successCount = 0
+    let failedEventIds: number[] = []
+
+    for (let eventId of eventIds) {
+      let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
+      let eventCallback = LogAuditService.createAuditEventCallback()
+
+      try {
+        securityAudit.on('auditEventOccur', auditInfo, eventCallback)
+        LogAuditService.subscribedCallbacks.set(eventId, eventCallback)
+        successCount++
+        LogAuditService.markSubscribeSuccess(eventId)
+        hilog.info(DOMAIN, TAG, `Legacy subscribed eventId: ${eventId}`)
+      } catch (err) {
+        let code = LogAuditService.extractErrorCode(err as Object)
+        if (LogAuditService.lastSubscribeErrorCode === undefined) {
+          LogAuditService.lastSubscribeErrorCode = code
+        }
+        failedEventIds.push(eventId)
+        LogAuditService.markSubscribeFailure(eventId, code)
+        hilog.error(DOMAIN, TAG, `Legacy subscribe eventId ${eventId} failed: ${JSON.stringify(err)}`)
+      }
+    }
+
+    hilog.info(DOMAIN, TAG, `Legacy subscribe success=${successCount}, failed=${failedEventIds.length}`)
+    return {
+      successCount: successCount,
+      failedEventIds: failedEventIds,
+      shouldFallback: false,
+      fallbackReason: 'none'
+    }
+  }
+
+  private static createAuditEventCallback(): (event: securityAudit.AuditEvent) => void {
+    return (event: securityAudit.AuditEvent) => {
+      let entry = LogAuditService.parseAuditEvent(event)
+      if (LogAuditService.callback) {
+        LogAuditService.callback(entry)
+      }
+    }
+  }
+
+  private static tryCreateClient(
+    eventCallback: (event: securityAudit.AuditEvent) => void
+  ): ClientCreateResult {
+    try {
+      let clientValue = securityAudit.newClient(eventCallback) as AuditClientCompat
+      if (!clientValue || typeof clientValue.subscribe !== 'function' || typeof clientValue.unsubscribe !== 'function') {
+        return {
+          client: null,
+          fallbackReason: 'new_api_unavailable'
+        } as ClientCreateResult
+      }
+      return {
+        client: clientValue,
+        fallbackReason: 'none'
+      } as ClientCreateResult
+    } catch (err) {
+      if (LogAuditService.isApiUnavailableError(err as Object)) {
+        return {
+          client: null,
+          fallbackReason: 'new_api_unavailable'
+        } as ClientCreateResult
+      }
+      hilog.error(DOMAIN, TAG, `newClient init failed: ${JSON.stringify(err)}`)
+      return {
+        client: null,
+        fallbackReason: 'new_api_init_failed'
+      } as ClientCreateResult
+    }
+  }
+
+  private static releaseClient(client: AuditClientCompat | null, subscribedEventIds: number[]): void {
+    if (!client) {
+      return
+    }
+
+    try {
+      if (subscribedEventIds.length > 0) {
+        client.unsubscribe(subscribedEventIds)
+      }
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `client unsubscribe failed: ${JSON.stringify(err)}`)
+    }
+
+    try {
+      let deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
+      deleteClient(client)
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `deleteClient failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private static setSubscribeMode(mode: AuditSubscribeMode, reason: AuditFallbackReason): void {
+    if (LogAuditService.subscribeMode !== mode || LogAuditService.fallbackReason !== reason) {
+      LogAuditService.lastModeSwitchAt = Date.now()
+    }
+    LogAuditService.subscribeMode = mode
+    LogAuditService.fallbackReason = reason
+    LogAuditService.touchDiagnostics()
+  }
+
+  private static logPartialFailureIfNeeded(): void {
+    if (LogAuditService.lastSubscribeFailedEventIds.length > 0) {
+      hilog.warn(
+        DOMAIN,
+        TAG,
+        `Some audit events failed to subscribe: ${LogAuditService.lastSubscribeFailedEventIds.join(',')}`
+      )
+    }
   }
 
   private static parseAuditEvent(event: securityAudit.AuditEvent): LogEntry {
@@ -698,7 +911,75 @@ export class LogAuditService {
     return undefined
   }
 
+  private static extractErrorText(err: Object): string {
+    let message = (err as Record<string, Object>)['message']
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message.toLowerCase()
+    }
+    return JSON.stringify(err).toLowerCase()
+  }
+
+  private static isApiUnavailableError(err: Object): boolean {
+    let code = LogAuditService.extractErrorCode(err)
+    if (code === 201 || code === 401) {
+      return false
+    }
+    let text = LogAuditService.extractErrorText(err)
+    if (text.includes('is not a function')) {
+      return true
+    }
+    if (text.includes('not support') || text.includes('not supported') || text.includes('unsupported')) {
+      return true
+    }
+    if (text.includes('api not found') || text.includes('method not found')) {
+      return true
+    }
+    if (text.includes('undefined') && text.includes('newclient')) {
+      return true
+    }
+    return false
+  }
+
   private static unsubscribeInternal(): boolean {
+    let ok = LogAuditService.unsubscribeClientInternal()
+    if (!LogAuditService.unsubscribeLegacyInternal()) {
+      ok = false
+    }
+
+    LogAuditService.client = null
+    LogAuditService.clientSubscribedEventIds = []
+    LogAuditService.subscribedCallbacks.clear()
+    LogAuditService.isSubscribed = false
+    return ok
+  }
+
+  private static unsubscribeClientInternal(): boolean {
+    if (!LogAuditService.client) {
+      return true
+    }
+
+    let ok = true
+    try {
+      if (LogAuditService.clientSubscribedEventIds.length > 0) {
+        LogAuditService.client.unsubscribe(LogAuditService.clientSubscribedEventIds)
+      }
+    } catch (err) {
+      ok = false
+      hilog.error(DOMAIN, TAG, `client unsubscribe failed: ${JSON.stringify(err)}`)
+    }
+
+    try {
+      let deleteClient = securityAudit.deleteClient as (client: AuditClientCompat) => void
+      deleteClient(LogAuditService.client)
+    } catch (err) {
+      ok = false
+      hilog.error(DOMAIN, TAG, `deleteClient failed: ${JSON.stringify(err)}`)
+    }
+
+    return ok
+  }
+
+  private static unsubscribeLegacyInternal(): boolean {
     let ok = true
     LogAuditService.subscribedCallbacks.forEach(
       (eventCallback: (event: securityAudit.AuditEvent) => void, eventId: number) => {
@@ -711,9 +992,6 @@ export class LogAuditService {
         }
       }
     )
-
-    LogAuditService.subscribedCallbacks.clear()
-    LogAuditService.isSubscribed = false
     return ok
   }
 }

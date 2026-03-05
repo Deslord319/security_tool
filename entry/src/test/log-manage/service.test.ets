@@ -17,6 +17,8 @@ import {
   LogEntry,
   LogEventType,
   LogEventResult,
+  LogAuditDiagnostics,
+  LogEventTypeDiag,
   LogFilter,
   LogExportFormat,
   generateLogEntryId,
@@ -361,6 +363,30 @@ export default function logManageServiceTest() {
           }
         }
         expect(blockedCount).assertEqual(2)
+      })
+    })
+
+    describe('Audit diagnostics model', () => {
+      it('should include subscribe mode and fallback reason fields', 0, () => {
+        let byType = new Map<LogEventType, LogEventTypeDiag>()
+        byType.set(LogEventType.FILE, {
+          type: LogEventType.FILE,
+          subscribed: false,
+          failedEventIds: [],
+          seenCount: 0
+        } as LogEventTypeDiag)
+
+        let diagnostics: LogAuditDiagnostics = {
+          byType: byType,
+          unknownEventIds: [],
+          subscribeMode: 'client',
+          fallbackReason: 'none',
+          lastModeSwitchAt: Date.now(),
+          lastUpdatedAt: Date.now()
+        } as LogAuditDiagnostics
+
+        expect(diagnostics.subscribeMode).assertEqual('client')
+        expect(diagnostics.fallbackReason).assertEqual('none')
       })
     })
 
