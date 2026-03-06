@@ -50,6 +50,8 @@ export class LogStorageService {
   private static context: common.UIAbilityContext | null = null
   private static logEntries: LogEntry[] = []
   private static storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
+  private static nowProvider: () => number = () => Date.now()
+  private static randomProvider: () => number = () => Math.random()
   private static lastPersistTruncateWarnAt: number = 0
   private static isInitialized: boolean = false
   private static initializedContextDir: string = ''
@@ -111,11 +113,12 @@ export class LogStorageService {
         return true
       }
 
-      // 批量写入时保持“最新在前”的顺序
-      for (let i = entries.length - 1; i >= 0; i--) {
-        let normalized = LogStorageService.normalizeEntry(entries[i])
-        LogStorageService.logEntries.unshift(normalized)
+      // 批量归一化后一次性拼接，避免循环头插导致 O(n^2) 退化
+      let normalizedBatch = LogStorageService.normalizeEntriesForAppend(entries)
+      if (normalizedBatch.length === 0) {
+        return true
       }
+      LogStorageService.logEntries = normalizedBatch.concat(LogStorageService.logEntries)
 
       // 超出最大条数时删除旧条目
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
@@ -309,7 +312,7 @@ export class LogStorageService {
     format: LogExportFormat,
     trigger: LogExportTrigger
   ): Promise<LogExportResult> {
-    let now = Date.now()
+    let now = LogStorageService.nowProvider()
 
     if (entries.length === 0) {
       return {
@@ -414,7 +417,7 @@ export class LogStorageService {
           config.autoExportEnabled as Object,
           DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
         ),
-        exportPath: LogStorageService.normalizeExportDirectory(config.exportPath)
+        exportPath: LogStorageService.sanitizeConfiguredExportDirectory(config.exportPath)
       }
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       if (LogStorageService.logEntries.length > maxEntries) {
@@ -547,6 +550,53 @@ export class LogStorageService {
     return normalized.length > 0 ? normalized : undefined
   }
 
+  private static sanitizeConfiguredExportDirectory(path: string | undefined): string | undefined {
+    let normalized = LogStorageService.normalizeExportDirectory(path)
+    if (!normalized) {
+      return undefined
+    }
+    if (!LogStorageService.isExportDirectoryAllowed(normalized)) {
+      hilog.warn(DOMAIN, TAG, `exportPath is outside app sandbox, fallback to default: ${normalized}`)
+      return undefined
+    }
+    return normalized
+  }
+
+  private static normalizePathForCompare(path: string): string {
+    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+    return normalized.length > 0 ? normalized : '/'
+  }
+
+  private static isSameOrChildPath(path: string, root: string): boolean {
+    let normalizedPath = LogStorageService.normalizePathForCompare(path).toLowerCase()
+    let normalizedRoot = LogStorageService.normalizePathForCompare(root).toLowerCase()
+    return normalizedPath === normalizedRoot || normalizedPath.startsWith(`${normalizedRoot}/`)
+  }
+
+  private static isExportDirectoryAllowed(path: string): boolean {
+    if (path.length === 0 || path.includes('\0')) {
+      return false
+    }
+
+    let normalized = LogStorageService.normalizePathForCompare(path)
+    let parts = normalized.split('/')
+    for (let part of parts) {
+      if (part === '..') {
+        return false
+      }
+    }
+
+    if (!LogStorageService.context) {
+      return true
+    }
+
+    let filesDir = LogStorageService.context.filesDir || ''
+    if (filesDir.length === 0) {
+      return true
+    }
+    return LogStorageService.isSameOrChildPath(normalized, filesDir)
+  }
+
   private static resolveDefaultExportDirectory(context: common.UIAbilityContext): string {
     return `${context.filesDir}/${DEFAULT_EXPORT_DIR_NAME}`
   }
@@ -559,7 +609,7 @@ export class LogStorageService {
   }
 
   private static resolveConfiguredExportDirectory(): string {
-    let configured = LogStorageService.normalizeExportDirectory(LogStorageService.storageConfig.exportPath)
+    let configured = LogStorageService.sanitizeConfiguredExportDirectory(LogStorageService.storageConfig.exportPath)
     if (configured && configured.length > 0) {
       return configured
     }
@@ -642,10 +692,14 @@ export class LogStorageService {
     try {
       let stat = fileIo.statSync(normalized)
       if (!stat.isDirectory()) {
-        throw new Error(`Path is not a directory: ${normalized}`)
+        throw new Error(`Path exists but is not a directory: ${normalized}`)
       }
       return
-    } catch (_statErr) {
+    } catch (statErr) {
+      let message = `${statErr}`
+      if (message.includes('Path exists but is not a directory')) {
+        throw statErr as Error
+      }
     }
 
     let parent = LogStorageService.getParentDirectory(normalized)
@@ -756,7 +810,7 @@ export class LogStorageService {
 
   private static normalizeTimestamp(ts: number): number {
     if (!Number.isFinite(ts) || ts < 0) {
-      return Date.now()
+      return LogStorageService.nowProvider()
     }
     return Math.floor(ts)
   }
@@ -783,7 +837,7 @@ export class LogStorageService {
     if (id && id.trim().length > 0) {
       return id.trim()
     }
-    return `persist_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+    return `persist_${LogStorageService.nowProvider()}_${LogStorageService.randomProvider().toString(36).substring(2, 9)}`
   }
 
   // 生效的内存上限
@@ -820,6 +874,20 @@ export class LogStorageService {
       rawOutcome: LogStorageService.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
       result: LogStorageService.normalizeEventResult(entry.result)
     }
+  }
+
+  private static normalizeEntriesForAppend(entries: LogEntry[]): LogEntry[] {
+    let normalizedBatch: LogEntry[] = []
+    for (let entry of entries) {
+      if (!entry || typeof entry !== 'object') {
+        continue
+      }
+      normalizedBatch.push(LogStorageService.normalizeEntry(entry))
+    }
+
+    // 归一化后反转，保证最终“最新在前”
+    normalizedBatch.reverse()
+    return normalizedBatch
   }
 
   // 批量日志瘦身并过滤异常项
@@ -862,7 +930,7 @@ export class LogStorageService {
 
   // 限频输出裁剪日志，避免高频事件下日志风暴
   private static warnPersistTruncate(memoryCount: number, savedCount: number): void {
-    let now = Date.now()
+    let now = LogStorageService.nowProvider()
     if (now - LogStorageService.lastPersistTruncateWarnAt < 10000) {
       return
     }
@@ -945,7 +1013,7 @@ export class LogStorageService {
           autoExport,
           DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
         ),
-        exportPath: LogStorageService.normalizeExportDirectory(exportPath)
+        exportPath: LogStorageService.sanitizeConfiguredExportDirectory(exportPath)
       }
     } catch (err) {
       hilog.error(DOMAIN, TAG, `loadConfig failed: ${JSON.stringify(err)}`)
@@ -977,7 +1045,7 @@ export class LogStorageService {
   private static cleanExpiredEntries(): number {
     let retentionDays = LogStorageService.normalizeRetentionDays(LogStorageService.storageConfig.retentionDays)
     let retentionMs = retentionDays * 24 * 60 * 60 * 1000
-    let cutoff = Date.now() - retentionMs
+    let cutoff = LogStorageService.nowProvider() - retentionMs
     let before = LogStorageService.logEntries.length
 
     LogStorageService.logEntries = LogStorageService.logEntries.filter(

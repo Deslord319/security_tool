@@ -1,32 +1,20 @@
+import { abilityDelegatorRegistry } from '@kit.TestKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 import abilityTest from './common/Ability.test'
-import dashboardComponentTest from './dashboard/component.test'
-import dashboardSnapshotTest from './dashboard/snapshot.test'
-import firewallComponentTest from './firewall/component.test'
-import firewallFlowTest from './firewall/flow.test'
-import peripheralSnapshotTest from './peripheral/snapshot.test'
-import multiPageNavigationTest from './navigation/multi-page.test'
-import logManageComponentTest from './log-manage/component.test'
-import logManageFlowTest from './log-manage/flow.test'
+import routeActionTest from './simple/RouteAction.test'
 
 export default function testsuite() {
-  // 通用基础测试
+  const args = abilityDelegatorRegistry.getArguments()
+  const mode = args?.parameters?.['mode']
+  const argsText = JSON.stringify(args) ?? ''
+
+  hilog.info(0x0000, 'ListTest', 'mode=%{public}s args=%{public}s', mode ?? '', argsText)
+
+  if (mode === 'route_action' || argsText.indexOf('route_action') >= 0 || argsText.indexOf('scenario_id') >= 0) {
+    routeActionTest()
+    return
+  }
+
+  // Keep a minimal smoke case for non-route invocations.
   abilityTest()
-
-  // Dashboard 模块
-  dashboardComponentTest()
-  dashboardSnapshotTest()
-
-  // 防火墙模块
-  firewallComponentTest()
-  firewallFlowTest()
-
-  // 外设模块
-  peripheralSnapshotTest()
-
-  // 日志管理模块
-  logManageComponentTest()
-  logManageFlowTest()
-
-  // 跨模块导航测试
-  multiPageNavigationTest()
 }

@@ -24,6 +24,17 @@ export class LogRuntimeCollectorService {
 
   private static readonly BATCH_FLUSH_INTERVAL_MS: number = 500
   private static readonly MAX_PENDING_ENTRIES: number = 1200
+  private static setTimerFn: (task: () => void, delayMs: number) => number =
+    (task: () => void, delayMs: number): number => setTimeout(task, delayMs)
+  private static clearTimerFn: (timerId: number) => void =
+    (timerId: number): void => clearTimeout(timerId)
+  private static persistEntriesFn: (entries: LogEntry[]) => Promise<boolean> =
+    (entries: LogEntry[]): Promise<boolean> => LogStorageService.addEntries(entries)
+  private static subscribeFn:
+    (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]) => boolean =
+      (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]): boolean =>
+        LogAuditService.subscribe(cb, eventTypes)
+  private static unsubscribeFn: () => boolean = (): boolean => LogAuditService.unsubscribe()
   private static readonly INTERNAL_LOG_PATH_KEYWORDS: string[] = [
     'preferences/log_settings',
     'preferences/theme_preferences',
@@ -68,7 +79,7 @@ export class LogRuntimeCollectorService {
     let subscribeConfig = await LogStorageService.loadSubscriptionConfig()
     let eventTypes = subscribeConfig.subscribeAll ? undefined : subscribeConfig.subscribedTypes
 
-    let success = LogAuditService.subscribe((entry: LogEntry) => {
+    let success = LogRuntimeCollectorService.subscribeFn((entry: LogEntry) => {
       LogRuntimeCollectorService.handleIncomingEntry(entry)
     }, eventTypes)
 
@@ -84,6 +95,9 @@ export class LogRuntimeCollectorService {
       if (failed.length > 0) {
         hilog.warn(DOMAIN, TAG, `start with partial subscribe success, failed eventIds=${failed.join(',')}`)
       }
+      if (LogRuntimeCollectorService.pendingEntries.length > 0) {
+        LogRuntimeCollectorService.scheduleFlushPendingEntries()
+      }
       return true
     }
 
@@ -93,14 +107,15 @@ export class LogRuntimeCollectorService {
   }
 
   static async stop(): Promise<void> {
+    LogRuntimeCollectorService.running = false
+    LogRuntimeCollectorService.unsubscribeFn()
+
     if (LogRuntimeCollectorService.flushTimerId >= 0) {
-      clearTimeout(LogRuntimeCollectorService.flushTimerId)
+      LogRuntimeCollectorService.clearTimerFn(LogRuntimeCollectorService.flushTimerId)
       LogRuntimeCollectorService.flushTimerId = -1
     }
 
     await LogRuntimeCollectorService.flushPendingEntries()
-    LogAuditService.unsubscribe()
-    LogRuntimeCollectorService.running = false
   }
 
   static getStatus(): LogRuntimeCollectorStatus {
@@ -111,6 +126,10 @@ export class LogRuntimeCollectorService {
   }
 
   private static handleIncomingEntry(entry: LogEntry): void {
+    if (!LogRuntimeCollectorService.running) {
+      return
+    }
+
     if (LogRuntimeCollectorService.shouldIgnoreInternalEntry(entry)) {
       return
     }
@@ -150,7 +169,7 @@ export class LogRuntimeCollectorService {
       return
     }
 
-    LogRuntimeCollectorService.flushTimerId = setTimeout(() => {
+    LogRuntimeCollectorService.flushTimerId = LogRuntimeCollectorService.setTimerFn(() => {
       LogRuntimeCollectorService.flushTimerId = -1
       LogRuntimeCollectorService.flushPendingEntries().catch((err: Object) => {
         hilog.error(DOMAIN, TAG, `flushPendingEntries timer failed: ${JSON.stringify(err)}`)
@@ -168,32 +187,34 @@ export class LogRuntimeCollectorService {
     LogRuntimeCollectorService.pendingEntries = []
 
     try {
-      let saved = await LogStorageService.addEntries(batch)
+      let saved = await LogRuntimeCollectorService.persistEntriesFn(batch)
       if (!saved) {
-        LogRuntimeCollectorService.pendingEntries = batch.concat(LogRuntimeCollectorService.pendingEntries)
-        if (LogRuntimeCollectorService.pendingEntries.length > LogRuntimeCollectorService.MAX_PENDING_ENTRIES) {
-          let dropped = LogRuntimeCollectorService.pendingEntries.length -
-            LogRuntimeCollectorService.MAX_PENDING_ENTRIES
-          LogRuntimeCollectorService.pendingEntries = LogRuntimeCollectorService.pendingEntries.slice(dropped)
-          hilog.warn(DOMAIN, TAG, `flush fallback dropped ${dropped} queued entries`)
-        }
-        hilog.warn(DOMAIN, TAG, `flushPendingEntries failed, batch=${batch.length}`)
+        LogRuntimeCollectorService.requeueFailedBatch(batch, 'flushPendingEntries failed')
       }
     } catch (err) {
-      LogRuntimeCollectorService.pendingEntries = batch.concat(LogRuntimeCollectorService.pendingEntries)
-      if (LogRuntimeCollectorService.pendingEntries.length > LogRuntimeCollectorService.MAX_PENDING_ENTRIES) {
-        let dropped = LogRuntimeCollectorService.pendingEntries.length -
-          LogRuntimeCollectorService.MAX_PENDING_ENTRIES
-        LogRuntimeCollectorService.pendingEntries = LogRuntimeCollectorService.pendingEntries.slice(dropped)
-        hilog.warn(DOMAIN, TAG, `flush exception dropped ${dropped} queued entries`)
-      }
+      LogRuntimeCollectorService.requeueFailedBatch(batch, 'flushPendingEntries exception')
       hilog.error(DOMAIN, TAG, `flushPendingEntries exception: ${JSON.stringify(err)}`)
     } finally {
       LogRuntimeCollectorService.isFlushingEntries = false
     }
 
-    if (LogRuntimeCollectorService.pendingEntries.length > 0) {
+    if (LogRuntimeCollectorService.running && LogRuntimeCollectorService.pendingEntries.length > 0) {
       LogRuntimeCollectorService.scheduleFlushPendingEntries()
     }
+  }
+
+  private static requeueFailedBatch(batch: LogEntry[], reason: string): void {
+    if (batch.length === 0) {
+      return
+    }
+
+    LogRuntimeCollectorService.pendingEntries = batch.concat(LogRuntimeCollectorService.pendingEntries)
+    if (LogRuntimeCollectorService.pendingEntries.length > LogRuntimeCollectorService.MAX_PENDING_ENTRIES) {
+      let dropped = LogRuntimeCollectorService.pendingEntries.length -
+        LogRuntimeCollectorService.MAX_PENDING_ENTRIES
+      LogRuntimeCollectorService.pendingEntries = LogRuntimeCollectorService.pendingEntries.slice(dropped)
+      hilog.warn(DOMAIN, TAG, `${reason} dropped ${dropped} queued entries`)
+    }
+    hilog.warn(DOMAIN, TAG, `${reason}, batch=${batch.length}`)
   }
 }

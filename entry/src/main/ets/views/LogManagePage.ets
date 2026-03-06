@@ -165,8 +165,9 @@ export struct LogManagePage {
       filter.results = [this.filterResult as LogEventResult]
       hasFilter = true
     }
-    if (this.filterKeyword.length > 0) {
-      filter.keyword = this.filterKeyword
+    let keyword = this.filterKeyword.trim()
+    if (keyword.length > 0) {
+      filter.keyword = keyword
       hasFilter = true
     }
 
@@ -213,6 +214,7 @@ export struct LogManagePage {
 
   showExportFailureDialog(result: LogExportResult) {
     let directory = result.directory || this.exportPath || this.defaultExportPath || '未知'
+    let fileName = result.fileName || '未知'
     let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
     let reasonText = result.errorMessage || '未知错误'
 
@@ -220,6 +222,7 @@ export struct LogManagePage {
       title: '导出失败',
       message:
         `${codeText}` +
+        `目标文件: ${fileName}\n` +
         `目标目录: ${directory}\n` +
         `失败原因: ${reasonText}\n` +
         '建议: 检查路径权限，或恢复默认目录后重试。',

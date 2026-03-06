@@ -60,6 +60,7 @@ export struct SideBar {
             }
             .width('100%')
             .height(44)
+            .id(`sidebar-nav-${item.id}`)
             .padding({ left: 12, right: 12 })
             .borderRadius(AppStyles.RADIUS_MD)
             .backgroundColor(this.selectedId === item.id ? AppColors.BRAND_PRIMARY : Color.Transparent)
@@ -90,11 +91,13 @@ export struct SideBar {
           .backgroundColor(this.currentTheme === ThemeMode.DARK ? 'rgba(255,214,10,0.15)' : 'rgba(88,86,214,0.1)')
         Text(this.currentTheme === ThemeMode.DARK ? '浅色模式' : '深色模式')
           .fontSize(AppStyles.FONT_SIZE_BODY)
+          .id(this.currentTheme === ThemeMode.DARK ? 'theme-mode-dark' : 'theme-mode-light')
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       }
       .width('100%')
       .height(48)
+      .id('sidebar-theme-toggle')
       .padding({ left: 20, right: 20 })
       .onClick(() => {
         ThemeManager.getInstance().toggleTheme()

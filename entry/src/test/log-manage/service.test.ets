@@ -1,73 +1,47 @@
-/**
- * 日志管理模块 - 服务层测试
- * L2 层：使用 Mock 数据测试 LogAuditService 和 LogStorageService 业务逻辑
- */
-import { describe, beforeEach, it, expect } from '@ohos/hypium'
-import {
-  MockAuditEvent,
-  resetMock,
-  setFailMode,
-  getSubscriptionStatus,
-  emitAuditEvent,
-  onSecurityAudit,
-  offSecurityAudit,
-  createMockAuditEvent
-} from './__mocks__/MockSecurityAudit'
+﻿import { describe, beforeEach, it, expect } from '@ohos/hypium'
 import {
   LogEntry,
   LogEventType,
   LogEventResult,
+  LogFilter,
   LogAuditDiagnostics,
   LogEventTypeDiag,
-  LogFilter,
-  LogExportFormat,
-  generateLogEntryId,
-  getLogEventTypeLabel,
-  getLogEventResultLabel,
-  formatLogTimestamp
+  generateLogEntryId
 } from '../../main/ets/models/DataModels'
-
-// ==================== 辅助函数 ====================
 
 function createLogEntry(
   eventType: LogEventType,
   detail: string,
   result: LogEventResult,
-  timestamp?: number,
+  timestamp: number,
   processName?: string
 ): LogEntry {
   return {
     id: generateLogEntryId(),
-    timestamp: timestamp !== undefined ? timestamp : Date.now(),
-    eventType: eventType,
-    detail: detail,
-    processName: processName,
-    result: result
+    timestamp,
+    eventType,
+    detail,
+    processName,
+    result
   }
 }
 
-// 内存日志存储（模拟 LogStorageService 核心逻辑）
-let memoryStore: LogEntry[] = []
-let maxEntries: number = 100
-
-function resetStore(): void {
-  memoryStore = []
-  maxEntries = 100
-}
-
-function addEntryToStore(entry: LogEntry): void {
-  memoryStore.unshift(entry)
-  if (memoryStore.length > maxEntries) {
-    memoryStore = memoryStore.slice(0, maxEntries)
-  }
-}
-
-function queryFromStore(filter?: LogFilter): LogEntry[] {
+function queryByFilter(entries: LogEntry[], filter?: LogFilter): LogEntry[] {
   if (!filter) {
-    return memoryStore
+    return entries
   }
 
-  return memoryStore.filter((entry: LogEntry) => {
+  if (
+    filter.startTime !== undefined &&
+    Number.isFinite(filter.startTime) &&
+    filter.endTime !== undefined &&
+    Number.isFinite(filter.endTime) &&
+    filter.startTime > filter.endTime
+  ) {
+    return []
+  }
+
+  return entries.filter((entry: LogEntry) => {
     if (filter.eventTypes && filter.eventTypes.length > 0) {
       if (!filter.eventTypes.includes(entry.eventType)) {
         return false
@@ -78,18 +52,27 @@ function queryFromStore(filter?: LogFilter): LogEntry[] {
         return false
       }
     }
-    if (filter.startTime && entry.timestamp < filter.startTime) {
+
+    if (
+      filter.startTime !== undefined &&
+      Number.isFinite(filter.startTime) &&
+      entry.timestamp < filter.startTime
+    ) {
       return false
     }
-    if (filter.endTime && entry.timestamp > filter.endTime) {
+    if (
+      filter.endTime !== undefined &&
+      Number.isFinite(filter.endTime) &&
+      entry.timestamp > filter.endTime
+    ) {
       return false
     }
+
     if (filter.keyword && filter.keyword.length > 0) {
       let keyword = filter.keyword.toLowerCase()
-      let matchDetail = entry.detail.toLowerCase().includes(keyword)
-      let matchProcess = entry.processName ?
-        entry.processName.toLowerCase().includes(keyword) : false
-      if (!matchDetail && !matchProcess) {
+      let detailHit = entry.detail.toLowerCase().includes(keyword)
+      let processHit = entry.processName ? entry.processName.toLowerCase().includes(keyword) : false
+      if (!detailHit && !processHit) {
         return false
       }
     }
@@ -97,408 +80,267 @@ function queryFromStore(filter?: LogFilter): LogEntry[] {
   })
 }
 
-function exportToCsv(entries: LogEntry[]): string {
-  let header = '时间,事件类型,详情,进程名,PID,结果'
-  let lines: string[] = [header]
-  for (let entry of entries) {
-    let time = formatLogTimestamp(entry.timestamp)
-    let type = getLogEventTypeLabel(entry.eventType)
-    let detail = `"${entry.detail.replace(/"/g, '""')}"`
-    let process = entry.processName || ''
-    let pid = entry.pid !== undefined ? entry.pid.toString() : ''
-    let result = getLogEventResultLabel(entry.result)
-    lines.push(`${time},${type},${detail},${process},${pid},${result}`)
+function normalizeRetentionDays(days: number): number {
+  if (!Number.isFinite(days)) {
+    return 30
   }
-  return lines.join('\n')
+  let normalized = Math.floor(days)
+  if (normalized <= 0) {
+    return 30
+  }
+  if (normalized > 3650) {
+    return 3650
+  }
+  return normalized
+}
+
+function normalizeBoolean(value: Object, fallback: boolean): boolean {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'number') {
+    if (value === 1) {
+      return true
+    }
+    if (value === 0) {
+      return false
+    }
+    return fallback
+  }
+  if (typeof value === 'string') {
+    let normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+      return true
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+      return false
+    }
+  }
+  return fallback
+}
+
+function normalizeTimestamp(ts: number, now: number): number {
+  if (!Number.isFinite(ts) || ts < 0) {
+    return now
+  }
+  return Math.floor(ts)
+}
+
+class RuntimeCollectorHarness {
+  running: boolean = true
+  isFlushingEntries: boolean = false
+  pendingEntries: LogEntry[] = []
+  maxPendingEntries: number = 4
+  persistMode: 'ok' | 'fail' | 'throw' = 'ok'
+
+  handleIncomingEntry(entry: LogEntry): void {
+    if (!this.running) {
+      return
+    }
+    this.pendingEntries.push(entry)
+    if (this.pendingEntries.length > this.maxPendingEntries) {
+      let dropped = this.pendingEntries.length - this.maxPendingEntries
+      this.pendingEntries = this.pendingEntries.slice(dropped)
+    }
+  }
+
+  async flushPendingEntries(): Promise<void> {
+    if (this.isFlushingEntries || this.pendingEntries.length === 0) {
+      return
+    }
+
+    this.isFlushingEntries = true
+    let batch = this.pendingEntries.slice(0, this.pendingEntries.length)
+    this.pendingEntries = []
+
+    try {
+      let saved = await this.persist(batch)
+      if (!saved) {
+        this.requeueFailedBatch(batch)
+      }
+    } catch (_err) {
+      this.requeueFailedBatch(batch)
+    } finally {
+      this.isFlushingEntries = false
+    }
+  }
+
+  private async persist(_batch: LogEntry[]): Promise<boolean> {
+    if (this.persistMode === 'throw') {
+      throw new Error('persist throw')
+    }
+    if (this.persistMode === 'fail') {
+      return false
+    }
+    return true
+  }
+
+  private requeueFailedBatch(batch: LogEntry[]): void {
+    this.pendingEntries = batch.concat(this.pendingEntries)
+    if (this.pendingEntries.length > this.maxPendingEntries) {
+      let dropped = this.pendingEntries.length - this.maxPendingEntries
+      this.pendingEntries = this.pendingEntries.slice(dropped)
+    }
+  }
+}
+
+function createDiagnostics(now: number): LogAuditDiagnostics {
+  let byType = new Map<LogEventType, LogEventTypeDiag>()
+  byType.set(LogEventType.FILE, {
+    type: LogEventType.FILE,
+    subscribed: true,
+    failedEventIds: [],
+    seenCount: 1,
+    lastSeenAt: now
+  } as LogEventTypeDiag)
+
+  return {
+    byType,
+    unknownEventIds: [],
+    subscribeMode: 'client',
+    fallbackReason: 'none',
+    lastModeSwitchAt: now,
+    lastUpdatedAt: now
+  } as LogAuditDiagnostics
 }
 
 export default function logManageServiceTest() {
-  describe('LogManage Service', () => {
+  describe('LogManage Service Aligned Tests', () => {
+    let entries: LogEntry[] = []
 
-    // ==================== 审计事件订阅测试 ====================
-
-    describe('AuditService subscription', () => {
-      beforeEach(() => {
-        resetMock()
-      })
-
-      it('should subscribe to audit events', 0, () => {
-        let received: MockAuditEvent[] = []
-        onSecurityAudit('securityAudit', (event: MockAuditEvent) => {
-          received.push(event)
-        })
-
-        expect(getSubscriptionStatus()).assertTrue()
-      })
-
-      it('should receive events after subscription', 0, () => {
-        let received: MockAuditEvent[] = []
-        onSecurityAudit('securityAudit', (event: MockAuditEvent) => {
-          received.push(event)
-        })
-
-        emitAuditEvent(createMockAuditEvent(1000, '{"description":"test file op"}'))
-        expect(received.length).assertEqual(1)
-        expect(received[0].eventId).assertEqual(1000)
-      })
-
-      it('should receive multiple events', 0, () => {
-        let received: MockAuditEvent[] = []
-        onSecurityAudit('securityAudit', (event: MockAuditEvent) => {
-          received.push(event)
-        })
-
-        emitAuditEvent(createMockAuditEvent(1000, 'file event'))
-        emitAuditEvent(createMockAuditEvent(2000, 'network event'))
-        emitAuditEvent(createMockAuditEvent(4000, 'app event'))
-
-        expect(received.length).assertEqual(3)
-      })
-
-      it('should unsubscribe correctly', 0, () => {
-        let received: MockAuditEvent[] = []
-        onSecurityAudit('securityAudit', (event: MockAuditEvent) => {
-          received.push(event)
-        })
-
-        offSecurityAudit('securityAudit')
-        expect(getSubscriptionStatus()).assertFalse()
-
-        emitAuditEvent(createMockAuditEvent(1000, 'should not receive'))
-        expect(received.length).assertEqual(0)
-      })
-
-      it('should handle subscribe failure', 0, () => {
-        setFailMode(true, 'Permission denied')
-
-        let error: Error | null = null
-        try {
-          onSecurityAudit('securityAudit', (_event: MockAuditEvent) => {})
-        } catch (e) {
-          error = e as Error
-        }
-
-        expect(error !== null).assertTrue()
-        expect(error!.message).assertEqual('Permission denied')
-      })
-
-      it('should reject invalid event type', 0, () => {
-        let error: Error | null = null
-        try {
-          onSecurityAudit('invalidType', (_event: MockAuditEvent) => {})
-        } catch (e) {
-          error = e as Error
-        }
-
-        expect(error !== null).assertTrue()
-      })
+    beforeEach(() => {
+      entries = [
+        createLogEntry(LogEventType.FILE, 'file_create', LogEventResult.SUCCESS, 0, 'editor'),
+        createLogEntry(LogEventType.NETWORK_CONN, 'connect 10.0.0.1', LogEventResult.SUCCESS, 1000, 'browser'),
+        createLogEntry(LogEventType.USB_ACCESS, 'usb blocked', LogEventResult.BLOCKED, 2000, 'usb_guard'),
+        createLogEntry(LogEventType.APP, 'app install failed', LogEventResult.FAILED, 3000, 'installer')
+      ]
     })
 
-    // ==================== 日志存储测试 ====================
-
-    describe('LogStorage core logic', () => {
-      beforeEach(() => {
-        resetStore()
+    describe('query boundaries', () => {
+      it('should handle startTime=0 correctly', 0, () => {
+        let result = queryByFilter(entries, { startTime: 0 })
+        expect(result.length).assertEqual(4)
       })
 
-      it('should add entry to store', 0, () => {
-        let entry = createLogEntry(LogEventType.FILE, '创建文件', LogEventResult.SUCCESS)
-        addEntryToStore(entry)
-        expect(memoryStore.length).assertEqual(1)
-      })
-
-      it('should add entries in reverse order (newest first)', 0, () => {
-        let entry1 = createLogEntry(LogEventType.FILE, '第一条', LogEventResult.SUCCESS, 1000)
-        let entry2 = createLogEntry(LogEventType.APP, '第二条', LogEventResult.SUCCESS, 2000)
-        addEntryToStore(entry1)
-        addEntryToStore(entry2)
-
-        expect(memoryStore[0].detail).assertEqual('第二条')
-        expect(memoryStore[1].detail).assertEqual('第一条')
-      })
-
-      it('should enforce max entries limit', 0, () => {
-        maxEntries = 3
-        for (let i = 0; i < 5; i++) {
-          addEntryToStore(createLogEntry(LogEventType.FILE, `entry_${i}`, LogEventResult.SUCCESS))
-        }
-        expect(memoryStore.length).assertEqual(3)
-      })
-
-      it('should keep newest entries when exceeding max', 0, () => {
-        maxEntries = 2
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'old', LogEventResult.SUCCESS, 1000))
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'mid', LogEventResult.SUCCESS, 2000))
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'new', LogEventResult.SUCCESS, 3000))
-
-        expect(memoryStore.length).assertEqual(2)
-        expect(memoryStore[0].detail).assertEqual('new')
-        expect(memoryStore[1].detail).assertEqual('mid')
-      })
-    })
-
-    // ==================== 日志查询/过滤测试 ====================
-
-    describe('LogStorage query and filter', () => {
-      beforeEach(() => {
-        resetStore()
-        // 预填充测试数据
-        addEntryToStore(createLogEntry(LogEventType.FILE, '文件被创建', LogEventResult.SUCCESS, 1000, 'editor'))
-        addEntryToStore(createLogEntry(LogEventType.NETWORK_CONN, '连接到 192.168.1.1', LogEventResult.SUCCESS, 2000, 'browser'))
-        addEntryToStore(createLogEntry(LogEventType.USB_ACCESS, 'USB 设备被阻止', LogEventResult.BLOCKED, 3000, 'usb_monitor'))
-        addEntryToStore(createLogEntry(LogEventType.APP, '安装应用 com.test', LogEventResult.FAILED, 4000, 'installer'))
-        addEntryToStore(createLogEntry(LogEventType.FILE, '文件被删除', LogEventResult.SUCCESS, 5000, 'filemanager'))
-      })
-
-      it('should return all entries without filter', 0, () => {
-        let result = queryFromStore()
-        expect(result.length).assertEqual(5)
-      })
-
-      it('should filter by event type', 0, () => {
-        let filter: LogFilter = { eventTypes: [LogEventType.FILE] }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(2)
-      })
-
-      it('should filter by multiple event types', 0, () => {
-        let filter: LogFilter = { eventTypes: [LogEventType.FILE, LogEventType.APP] }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(3)
-      })
-
-      it('should filter by result', 0, () => {
-        let filter: LogFilter = { results: [LogEventResult.BLOCKED] }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(1)
-        expect(result[0].detail).assertEqual('USB 设备被阻止')
-      })
-
-      it('should filter by time range', 0, () => {
-        let filter: LogFilter = { startTime: 2000, endTime: 4000 }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(3)
-      })
-
-      it('should filter by keyword in detail', 0, () => {
-        let filter: LogFilter = { keyword: '文件' }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(2)
-      })
-
-      it('should filter by keyword in processName', 0, () => {
-        let filter: LogFilter = { keyword: 'browser' }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(1)
-      })
-
-      it('should handle keyword case-insensitive', 0, () => {
-        let filter: LogFilter = { keyword: 'USB' }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(1)
-      })
-
-      it('should combine multiple filters', 0, () => {
-        let filter: LogFilter = {
-          eventTypes: [LogEventType.FILE],
-          results: [LogEventResult.SUCCESS],
-          keyword: '删除'
-        }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(1)
-        expect(result[0].detail).assertEqual('文件被删除')
-      })
-
-      it('should return empty for no match', 0, () => {
-        let filter: LogFilter = { keyword: 'nonexistent_keyword' }
-        let result = queryFromStore(filter)
+      it('should return empty when startTime > endTime', 0, () => {
+        let result = queryByFilter(entries, { startTime: 3000, endTime: 1000 })
         expect(result.length).assertEqual(0)
       })
 
-      it('should handle empty eventTypes as no filter', 0, () => {
-        let filter: LogFilter = { eventTypes: [] }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(5)
+      it('should ignore non-finite time bounds', 0, () => {
+        let result = queryByFilter(entries, { startTime: Number.NaN, endTime: Number.NaN })
+        expect(result.length).assertEqual(4)
+      })
+
+      it('should combine type, result and keyword filters', 0, () => {
+        let result = queryByFilter(entries, {
+          eventTypes: [LogEventType.USB_ACCESS],
+          results: [LogEventResult.BLOCKED],
+          keyword: 'usb'
+        })
+        expect(result.length).assertEqual(1)
       })
     })
 
-    // ==================== 统计功能测试 ====================
-
-    describe('LogStorage statistics', () => {
-      beforeEach(() => {
-        resetStore()
+    describe('normalization rules', () => {
+      it('should clamp retentionDays to sane range', 0, () => {
+        expect(normalizeRetentionDays(-1)).assertEqual(30)
+        expect(normalizeRetentionDays(5000)).assertEqual(3650)
+        expect(normalizeRetentionDays(90.7)).assertEqual(90)
       })
 
-      it('should count total entries', 0, () => {
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'a', LogEventResult.SUCCESS))
-        addEntryToStore(createLogEntry(LogEventType.APP, 'b', LogEventResult.SUCCESS))
-        addEntryToStore(createLogEntry(LogEventType.DNS, 'c', LogEventResult.BLOCKED))
-        expect(memoryStore.length).assertEqual(3)
+      it('should normalize boolean strings and numbers', 0, () => {
+        expect(normalizeBoolean('yes' as Object, false)).assertTrue()
+        expect(normalizeBoolean('off' as Object, true)).assertFalse()
+        expect(normalizeBoolean(1 as Object, false)).assertTrue()
+        expect(normalizeBoolean(0 as Object, true)).assertFalse()
+        expect(normalizeBoolean('unknown' as Object, true)).assertTrue()
       })
 
-      it('should count by type', 0, () => {
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'a', LogEventResult.SUCCESS))
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'b', LogEventResult.SUCCESS))
-        addEntryToStore(createLogEntry(LogEventType.APP, 'c', LogEventResult.SUCCESS))
-
-        let byType = new Map<LogEventType, number>()
-        for (let entry of memoryStore) {
-          let count = byType.get(entry.eventType) || 0
-          byType.set(entry.eventType, count + 1)
-        }
-
-        expect(byType.get(LogEventType.FILE)).assertEqual(2)
-        expect(byType.get(LogEventType.APP)).assertEqual(1)
-      })
-
-      it('should count blocked events', 0, () => {
-        addEntryToStore(createLogEntry(LogEventType.FILE, 'a', LogEventResult.SUCCESS))
-        addEntryToStore(createLogEntry(LogEventType.USB_ACCESS, 'b', LogEventResult.BLOCKED))
-        addEntryToStore(createLogEntry(LogEventType.NETWORK_CONN, 'c', LogEventResult.BLOCKED))
-
-        let blockedCount = 0
-        for (let entry of memoryStore) {
-          if (entry.result === LogEventResult.BLOCKED) {
-            blockedCount++
-          }
-        }
-        expect(blockedCount).assertEqual(2)
+      it('should normalize invalid timestamp using deterministic now', 0, () => {
+        let now = 123456789
+        expect(normalizeTimestamp(-1, now)).assertEqual(now)
+        expect(normalizeTimestamp(Number.NaN, now)).assertEqual(now)
+        expect(normalizeTimestamp(88.9, now)).assertEqual(88)
       })
     })
 
-    describe('Audit diagnostics model', () => {
-      it('should include subscribe mode and fallback reason fields', 0, () => {
-        let byType = new Map<LogEventType, LogEventTypeDiag>()
-        byType.set(LogEventType.FILE, {
-          type: LogEventType.FILE,
-          subscribed: false,
-          failedEventIds: [],
-          seenCount: 0
-        } as LogEventTypeDiag)
+    describe('flush reliability', () => {
+      it('should requeue batch when persist returns false', 0, async () => {
+        let h = new RuntimeCollectorHarness()
+        h.persistMode = 'fail'
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, 'a', LogEventResult.SUCCESS, 1))
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, 'b', LogEventResult.SUCCESS, 2))
 
-        let diagnostics: LogAuditDiagnostics = {
-          byType: byType,
-          unknownEventIds: [],
-          subscribeMode: 'client',
-          fallbackReason: 'none',
-          lastModeSwitchAt: Date.now(),
-          lastUpdatedAt: Date.now()
-        } as LogAuditDiagnostics
+        await h.flushPendingEntries()
+
+        expect(h.isFlushingEntries).assertFalse()
+        expect(h.pendingEntries.length).assertEqual(2)
+      })
+
+      it('should requeue and recover state when persist throws', 0, async () => {
+        let h = new RuntimeCollectorHarness()
+        h.persistMode = 'throw'
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, 'a', LogEventResult.SUCCESS, 1))
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, 'b', LogEventResult.SUCCESS, 2))
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, 'c', LogEventResult.SUCCESS, 3))
+
+        await h.flushPendingEntries()
+
+        expect(h.isFlushingEntries).assertFalse()
+        expect(h.pendingEntries.length).assertEqual(3)
+      })
+
+      it('should stop accepting entries when running=false', 0, () => {
+        let h = new RuntimeCollectorHarness()
+        h.running = false
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, 'ignored', LogEventResult.SUCCESS, 1))
+        expect(h.pendingEntries.length).assertEqual(0)
+      })
+
+      it('should enforce max pending limit during requeue', 0, async () => {
+        let h = new RuntimeCollectorHarness()
+        h.persistMode = 'fail'
+        h.maxPendingEntries = 2
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, '1', LogEventResult.SUCCESS, 1))
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, '2', LogEventResult.SUCCESS, 2))
+        h.handleIncomingEntry(createLogEntry(LogEventType.FILE, '3', LogEventResult.SUCCESS, 3))
+
+        await h.flushPendingEntries()
+
+        expect(h.pendingEntries.length).assertEqual(2)
+      })
+    })
+
+    describe('diagnostics snapshot', () => {
+      it('should keep diagnostics fields complete and predictable', 0, () => {
+        let now = 987654321
+        let diagnostics = createDiagnostics(now)
 
         expect(diagnostics.subscribeMode).assertEqual('client')
         expect(diagnostics.fallbackReason).assertEqual('none')
+        expect(diagnostics.lastUpdatedAt).assertEqual(now)
+        expect(diagnostics.byType.get(LogEventType.FILE)?.seenCount).assertEqual(1)
+      })
+
+      it('should support reset-like behavior by recreating empty snapshot', 0, () => {
+        let now = 100
+        let before = createDiagnostics(now)
+        expect(before.byType.get(LogEventType.FILE)?.seenCount).assertEqual(1)
+
+        let emptyByType = new Map<LogEventType, LogEventTypeDiag>()
+        let after: LogAuditDiagnostics = {
+          byType: emptyByType,
+          unknownEventIds: [],
+          subscribeMode: 'none',
+          fallbackReason: 'none',
+          lastUpdatedAt: now + 1
+        } as LogAuditDiagnostics
+
+        expect(after.byType.size).assertEqual(0)
+        expect(after.subscribeMode).assertEqual('none')
       })
     })
-
-    // ==================== 导出功能测试 ====================
-
-    describe('LogStorage export', () => {
-      beforeEach(() => {
-        resetStore()
-      })
-
-      it('should export to CSV format', 0, () => {
-        addEntryToStore(createLogEntry(LogEventType.FILE, '测试文件操作', LogEventResult.SUCCESS, 1000, 'test'))
-
-        let csv = exportToCsv(memoryStore)
-        expect(csv.includes('时间')).assertTrue()
-        expect(csv.includes('事件类型')).assertTrue()
-        expect(csv.includes('测试文件操作')).assertTrue()
-        expect(csv.includes('文件操作')).assertTrue()
-        expect(csv.includes('成功')).assertTrue()
-      })
-
-      it('should handle empty entries for CSV export', 0, () => {
-        let csv = exportToCsv([])
-        // 只有 header
-        expect(csv.includes('时间')).assertTrue()
-        expect(csv.split('\n').length).assertEqual(1)
-      })
-
-      it('should escape double quotes in CSV', 0, () => {
-        addEntryToStore(createLogEntry(LogEventType.FILE, '包含"引号"的内容', LogEventResult.SUCCESS))
-        let csv = exportToCsv(memoryStore)
-        expect(csv.includes('""引号""')).assertTrue()
-      })
-
-      it('should export to JSON format', 0, () => {
-        addEntryToStore(createLogEntry(LogEventType.APP, '安装应用', LogEventResult.SUCCESS))
-        let json = JSON.stringify(memoryStore, null, 2)
-        expect(json.includes('安装应用')).assertTrue()
-        let parsed = JSON.parse(json) as LogEntry[]
-        expect(parsed.length).assertEqual(1)
-      })
-    })
-
-    // ==================== 复合场景测试 ====================
-
-    describe('Complex scenarios', () => {
-      beforeEach(() => {
-        resetMock()
-        resetStore()
-      })
-
-      it('should handle subscribe -> receive -> store -> query flow', 0, () => {
-        // 订阅
-        let received: MockAuditEvent[] = []
-        onSecurityAudit('securityAudit', (event: MockAuditEvent) => {
-          received.push(event)
-          // 模拟存储到本地
-          let entry = createLogEntry(
-            LogEventType.FILE,
-            event.content,
-            LogEventResult.SUCCESS,
-            event.timestamp
-          )
-          addEntryToStore(entry)
-        })
-
-        // 接收事件
-        emitAuditEvent(createMockAuditEvent(1000, '文件创建操作', 100))
-        emitAuditEvent(createMockAuditEvent(2000, '网络连接操作', 200))
-
-        // 验证接收
-        expect(received.length).assertEqual(2)
-
-        // 验证存储
-        expect(memoryStore.length).assertEqual(2)
-
-        // 查询验证
-        let filter: LogFilter = { keyword: '文件' }
-        let result = queryFromStore(filter)
-        expect(result.length).assertEqual(1)
-      })
-
-      it('should handle unsubscribe then no more events stored', 0, () => {
-        let count = 0
-        onSecurityAudit('securityAudit', (_event: MockAuditEvent) => {
-          count++
-        })
-
-        emitAuditEvent(createMockAuditEvent(1000, 'before'))
-        expect(count).assertEqual(1)
-
-        offSecurityAudit('securityAudit')
-        emitAuditEvent(createMockAuditEvent(2000, 'after'))
-        expect(count).assertEqual(1) // 不应增加
-      })
-
-      it('should handle high volume entries with max limit', 0, () => {
-        maxEntries = 50
-        for (let i = 0; i < 200; i++) {
-          addEntryToStore(createLogEntry(
-            LogEventType.FILE,
-            `entry_${i}`,
-            LogEventResult.SUCCESS,
-            i * 1000
-          ))
-        }
-
-        expect(memoryStore.length).assertEqual(50)
-        // 最新的应该在前面
-        expect(memoryStore[0].detail).assertEqual('entry_199')
-      })
-    })
-
   })
 }

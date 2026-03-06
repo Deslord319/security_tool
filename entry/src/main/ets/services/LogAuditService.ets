@@ -48,10 +48,11 @@ export class LogAuditService {
   private static fallbackReason: AuditFallbackReason = 'none'
   private static lastModeSwitchAt: number | undefined = undefined
 
+  private static nowProvider: () => number = () => Date.now()
   private static diagnosticsByType: Map<LogEventType, LogEventTypeDiag> =
     LogAuditService.createDiagnosticsMap()
   private static unknownEventIds: number[] = []
-  private static diagnosticsUpdatedAt: number = Date.now()
+  private static diagnosticsUpdatedAt: number = LogAuditService.nowProvider()
 
   private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
     [
@@ -414,7 +415,7 @@ export class LogAuditService {
 
   private static setSubscribeMode(mode: AuditSubscribeMode, reason: AuditFallbackReason): void {
     if (LogAuditService.subscribeMode !== mode || LogAuditService.fallbackReason !== reason) {
-      LogAuditService.lastModeSwitchAt = Date.now()
+      LogAuditService.lastModeSwitchAt = LogAuditService.nowProvider()
     }
     LogAuditService.subscribeMode = mode
     LogAuditService.fallbackReason = reason
@@ -458,7 +459,7 @@ export class LogAuditService {
 
   private static parseTimestamp(ts: string): number {
     if (ts.length < 14) {
-      return Date.now()
+      return LogAuditService.nowProvider()
     }
     let year = parseInt(ts.substring(0, 4))
     let month = parseInt(ts.substring(4, 6)) - 1
@@ -788,7 +789,7 @@ export class LogAuditService {
   private static markEventSeen(type: LogEventType): void {
     let diag = LogAuditService.ensureDiag(type)
     diag.seenCount += 1
-    diag.lastSeenAt = Date.now()
+    diag.lastSeenAt = LogAuditService.nowProvider()
     LogAuditService.touchDiagnostics()
   }
 
@@ -808,7 +809,7 @@ export class LogAuditService {
   }
 
   private static touchDiagnostics(): void {
-    LogAuditService.diagnosticsUpdatedAt = Date.now()
+    LogAuditService.diagnosticsUpdatedAt = LogAuditService.nowProvider()
   }
 
   private static safeParseJson(value: string): JsonMap | undefined {

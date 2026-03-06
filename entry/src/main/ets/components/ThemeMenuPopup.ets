@@ -154,6 +154,7 @@ export struct ThemeMenuPopup {
   ThemeButton(icon: string, option: ThemeOption) {
     Text(icon)
       .fontSize(16)
+      .id(`theme-option-${option}`)
       .fontColor(this.currentOption === option ? Color.White :
         AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
       .opacity(this.currentOption === option ? 1 :
@@ -166,6 +167,7 @@ export struct ThemeMenuPopup {
         (this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'))
       .onClick(() => {
         ThemeManager.getInstance().setOption(option)
+        this.showMenu = false
       })
   }
 

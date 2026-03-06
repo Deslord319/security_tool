@@ -3,13 +3,18 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window, promptAction } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
+import { ThemeOption } from '../theme/ThemeColors';
 import { AuthService } from '../services/AuthService';
 import { AuthMethod, PREF_KEY_STARTUP_AUTH, PREF_KEY_AUTH_METHOD, PREF_STORE_NAME_TOOL, DEFAULT_TOOL_SETTINGS } from '../models/DataModels';
 
 const DOMAIN = 0x0000;
+const UI_TEST_ROUTE_KEY = 'ui_test_route'
 
 export default class EntryAbility extends UIAbility {
+  private startupWant?: Want
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    this.startupWant = want
     hilog.info(DOMAIN, 'testTag', '[DIAG] onCreate start, colorMode=%{public}d, DARK=%{public}d, LIGHT=%{public}d, NOT_SET=%{public}d',
       this.context.config?.colorMode ?? -999,
       ConfigurationConstant.ColorMode.COLOR_MODE_DARK,
@@ -17,6 +22,7 @@ export default class EntryAbility extends UIAbility {
       ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
     // 初始化主题管理器
     ThemeManager.getInstance().init(this.context);
+    this.applyUiTestLaunchOverrides();
     hilog.info(DOMAIN, 'testTag', '[DIAG] after init, colorMode=%{public}d, AppStorage_theme=%{public}s',
       this.context.config?.colorMode ?? -999,
       AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
@@ -35,6 +41,12 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
   }
 
+  onNewWant(want: Want): void {
+    this.startupWant = want
+    this.applyUiTestLaunchOverrides()
+    hilog.info(DOMAIN, 'testTag', 'onNewWant received')
+  }
+
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'testTag', '[DIAG] onWindowStageCreate, AppStorage_theme=%{public}s',
       AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
@@ -45,6 +57,12 @@ export default class EntryAbility extends UIAbility {
 
   // 检查启动校验配置并决定是否拦截
   private async checkStartupAuth(windowStage: window.WindowStage): Promise<void> {
+    if (this.shouldSkipStartupAuth()) {
+      hilog.info(DOMAIN, 'testTag', 'skip_startup_auth is enabled, loading MainPage directly')
+      this.loadMainPage(windowStage)
+      return
+    }
+
     try {
       let prefs = await preferences.getPreferences(this.context, PREF_STORE_NAME_TOOL);
       let startupAuthEnabled = await prefs.get(
@@ -75,6 +93,69 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', `checkStartupAuth failed: ${JSON.stringify(err)}, fallback to load MainPage`);
       // 异常时降级：直接加载主页面
       this.loadMainPage(windowStage);
+    }
+  }
+
+  private shouldSkipStartupAuth(): boolean {
+    try {
+      const params = this.startupWant?.parameters
+      if (!params) {
+        return false
+      }
+
+      const raw = params['skip_startup_auth']
+      if (raw === true || raw === 1) {
+        return true
+      }
+      if (typeof raw === 'string') {
+        const normalized = raw.toLowerCase()
+        return normalized === 'true' || normalized === '1' || normalized === 'yes'
+      }
+    } catch (err) {
+      hilog.warn(DOMAIN, 'testTag', 'shouldSkipStartupAuth read failed: %{public}s', JSON.stringify(err))
+    }
+    return false
+  }
+
+  private getLaunchParamString(name: string): string {
+    try {
+      const params = this.startupWant?.parameters
+      if (!params) {
+        return ''
+      }
+      const raw = params[name]
+      if (typeof raw === 'string') {
+        return raw
+      }
+      if (typeof raw === 'number' || typeof raw === 'boolean') {
+        return `${raw}`
+      }
+    } catch (_err) {
+      // ignore
+    }
+    return ''
+  }
+
+  private applyUiTestLaunchOverrides(): void {
+    const route = this.getLaunchParamString('ui_route')
+    const theme = this.getLaunchParamString('ui_theme').toLowerCase()
+    hilog.info(DOMAIN, 'testTag', 'applyUiTestLaunchOverrides route=%{public}s theme=%{public}s', route, theme)
+    if (route.length > 0) {
+      AppStorage.setOrCreate<string>(UI_TEST_ROUTE_KEY, route)
+    }
+
+    if (theme === 'dark') {
+      ThemeManager.getInstance().setOption(ThemeOption.DARK).catch((err: Error) => {
+        hilog.warn(DOMAIN, 'testTag', 'applyUiTestLaunchOverrides dark failed: %{public}s', JSON.stringify(err))
+      })
+    } else if (theme === 'light') {
+      ThemeManager.getInstance().setOption(ThemeOption.LIGHT).catch((err: Error) => {
+        hilog.warn(DOMAIN, 'testTag', 'applyUiTestLaunchOverrides light failed: %{public}s', JSON.stringify(err))
+      })
+    } else if (theme === 'system') {
+      ThemeManager.getInstance().setOption(ThemeOption.SYSTEM).catch((err: Error) => {
+        hilog.warn(DOMAIN, 'testTag', 'applyUiTestLaunchOverrides system failed: %{public}s', JSON.stringify(err))
+      })
     }
   }
 
@@ -115,6 +196,7 @@ export default class EntryAbility extends UIAbility {
       // 页面组件创建后，@StorageLink 可能用默认值覆盖了 AppStorage
       // 需要在此重新应用正确的主题
       ThemeManager.getInstance().reapplyTheme();
+      this.applyUiTestLaunchOverrides();
       hilog.info(DOMAIN, 'testTag', '[DIAG] loadContent done, AppStorage_theme=%{public}s',
         AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
 
@@ -125,6 +207,8 @@ export default class EntryAbility extends UIAbility {
 
       // 隐藏系统标题栏（装饰栏），保留三键区和拖拽能力
       windowStage.getMainWindow().then((mainWindow: window.Window) => {
+        // Ensure snapshots are allowed for UI regression capture.
+        mainWindow.setWindowPrivacyMode(false)
         mainWindow.setWindowDecorVisible(false);
         mainWindow.setWindowDecorHeight(56);
         hilog.info(DOMAIN, 'testTag', 'Window decor hidden, height set to 56');
