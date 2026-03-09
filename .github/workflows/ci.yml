@@ -152,7 +152,7 @@ jobs:
         retention-days: 7
 
   # ============================================
-  # Job 3: Sign - 自动签名（仅 main 分支和标签）
+  # Job 3: Sign - 自动签名（仅 main/master 分支和标签）
   # ============================================
   sign:
     name: Sign HAP
@@ -162,7 +162,7 @@ jobs:
       always() && 
       needs.build.result == 'success' && 
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
-      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
     
     steps:
     - name: Checkout code
@@ -180,24 +180,33 @@ jobs:
         name: unsigned-hap
         path: hapsigner/ci
     
-    - name: Prepare signing files
+    - name: Check for signing secrets
+      id: check_secrets
       run: |
-        echo "✅ Preparing signing environment"
-        ls -la hapsigner/ci/
+        if [ -n "${{ secrets.SIGNING_KEYSTORE }}" ]; then
+          echo "has_secrets=true" >> $GITHUB_OUTPUT
+          echo "✅ Signing secrets configured"
+        else
+          echo "has_secrets=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Signing secrets NOT configured - skipping signing"
+          echo "To enable signing, configure GitHub Secrets:"
+          echo "  - SIGNING_KEYSTORE (base64 encoded OpenHarmony.p12)"
+          echo "  - SIGNING_KEYSTORE_PASSWORD"
+          echo "  - SIGNING_KEY_ALIAS"
+          echo "  - SIGNING_KEY_PASSWORD"
+        fi
     
     - name: Decode keystore from secrets
+      if: steps.check_secrets.outputs.has_secrets == 'true'
       env:
         SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
       run: |
-        if [ -z "$SIGNING_KEYSTORE" ]; then
-          echo "⚠️ SIGNING_KEYSTORE secret not configured, skipping signing"
-          exit 0
-        fi
+        mkdir -p hapsigner/ci
         echo "$SIGNING_KEYSTORE" | base64 -d > hapsigner/ci/OpenHarmony.p12
         echo "✅ Keystore decoded"
-      continue-on-error: true
     
-    - name: Sign HAP (debug mode)
+    - name: Sign HAP (with secrets)
+      if: steps.check_secrets.outputs.has_secrets == 'true'
       env:
         SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
         SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
@@ -205,30 +214,17 @@ jobs:
       run: |
         cd hapsigner
         
-        # 检查密钥文件是否存在
-        if [ ! -f "ci/OpenHarmony.p12" ]; then
-          echo "⚠️ Keystore not found, using debug signing without secrets"
-          # 使用本地调试签名（开发环境）
-          if [ -f "OpenHarmony.p12" ]; then
-            cp OpenHarmony.p12 ci/
-          else
-            echo "❌ No keystore available, signing skipped"
-            exit 0
-          fi
-        fi
-        
-        # 生成 p7b 配置文件
+        # 使用 CI 目录中的密钥文件
         java -jar hap-sign-tool.jar sign-profile \
           -mode "localSign" \
           -keyAlias "OpenHarmony Application Profile Debug" \
           -keyPwd "${SIGNING_KEY_PASSWORD:-123456}" \
-          -inFile "UnsgnsedDebugProfileTemplate.json" \
+          -inFile "UnsgnedDebugProfileTemplate.json" \
           -outFile "ci/ohos_provision_debug.p7b" \
           -keystoreFile "ci/OpenHarmony.p12" \
           -keystorePwd "${SIGNING_KEYSTORE_PASSWORD:-123456}" \
           -signAlg "SHA256withECDSA" || echo "⚠️ Profile generation may have issues"
         
-        # 签名 HAP
         java -jar hap-sign-tool.jar sign-app \
           -keyAlias "${SIGNING_KEY_ALIAS:-openharmony application release}" \
           -signAlg "SHA256withECDSA" \
@@ -242,13 +238,45 @@ jobs:
           -keystorePwd "${SIGNING_KEYSTORE_PASSWORD:-123456}" || echo "⚠️ Signing may have issues"
         
         echo "✅ Signing process completed"
-      continue-on-error: true
+    
+    - name: Copy pre-signed HAP (fallback)
+      if: steps.check_secrets.outputs.has_secrets == 'false'
+      run: |
+        echo "⚠️ No signing secrets - using pre-signed HAP from repository"
+        echo "For local development, use hapsigner/signApp.hap"
+        echo "To enable CI signing, configure GitHub Secrets (see AGENTS.md)"
+        
+        # 创建说明文件
+        cat > hapsigner/ci/README.txt << 'EOF'
+This is a placeholder for the signed HAP.
+        
+To get the signed HAP:
+1. Build locally: ./build_hap.bat
+2. Sign locally: cd hapsigner && ./2-debug-sign.bat
+3. The signed HAP is at: hapsigner/signApp.hap
+
+To enable CI signing:
+1. Go to GitHub Repository Settings → Secrets and variables → Actions
+2. Add the following secrets:
+   - SIGNING_KEYSTORE (base64 encoded OpenHarmony.p12)
+   - SIGNING_KEYSTORE_PASSWORD (default: 123456)
+   - SIGNING_KEY_ALIAS (default: openharmony application release)
+   - SIGNING_KEY_PASSWORD (default: 123456)
+EOF
+        
+        # 复制已签名的 HAP（如果存在）
+        if [ -f "hapsigner/signApp.hap" ]; then
+          cp hapsigner/signApp.hap hapsigner/ci/signApp.hap
+          echo "✅ Copied pre-signed HAP"
+        else
+          echo "⚠️ No pre-signed HAP found"
+        fi
     
     - name: Verify signed HAP
       id: verify_sign
       run: |
         if [ -f "hapsigner/ci/signApp.hap" ]; then
-          echo "✅ Signed HAP created successfully"
+          echo "✅ Signed HAP created/found"
           ls -lh hapsigner/ci/signApp.hap
           echo "has_signed_hap=true" >> $GITHUB_OUTPUT
         else
