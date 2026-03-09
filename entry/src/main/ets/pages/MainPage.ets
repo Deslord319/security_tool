@@ -142,12 +142,6 @@ struct MainPage {
         Column() {
           // 顶部标题栏
           Row() {
-            Text(this.getPageTitle())
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
             Blank()
 
             // 三点菜单按钮
@@ -300,28 +294,5 @@ struct MainPage {
     }
     .width('100%')
     .height('100%')
-  }
-
-  getPageTitle(): string {
-    switch (this.currentPage) {
-      case Routes.DASHBOARD:
-        return '安全总览'
-      case Routes.FIREWALL:
-        return '防火墙'
-      case Routes.FIREWALL_RULES:
-        return '防火墙规则'
-      case Routes.LOG_MANAGE:
-        return '日志管理'
-      case Routes.PERIPHERAL_MANAGE:
-        return '外设管理'
-      case Routes.IDENTITY:
-        return '身份鉴别'
-      case Routes.TOOL_SETTINGS:
-        return '工具设置'
-      case Routes.HELP_FEEDBACK:
-        return '帮助与反馈'
-      default:
-        return '安全管理中心'
-    }
   }
 }

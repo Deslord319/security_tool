@@ -71,6 +71,8 @@ export struct LogManagePage {
 
   private refreshTimerId: number = -1
   private readonly REFRESH_INTERVAL_MS: number = 1500
+  private readonly SETTINGS_CONTENT_MAX_WIDTH: number = 1280
+  private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 220
 
   private eventTypeFilterOptions: SelectOption[] = [
     { value: '全部类型' } as SelectOption,
@@ -426,15 +428,7 @@ export struct LogManagePage {
     }
     return diag.subscribed ?
       AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT :
-      AppColors.getColors(this.currentTheme).TEXT_PRIMARY
-  }
-
-  private getDiagDetailText(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    let lastSeen = diag.lastSeenAt ? formatLogTimestamp(diag.lastSeenAt) : '无'
-    let failed = diag.failedEventIds.length > 0 ? diag.failedEventIds.join(',') : '-'
-    let code = diag.lastErrorCode !== undefined ? diag.lastErrorCode.toString() : '-'
-    return `命中 ${diag.seenCount} 次 | 最近命中 ${lastSeen} | 失败ID ${failed} | 错误码 ${code}`
+      AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
   }
 
   private getDiagGuidanceText(type: LogEventType): string {
@@ -473,16 +467,37 @@ export struct LogManagePage {
     return ''
   }
 
+  private getDiagStatusBgColor(type: LogEventType): string {
+    let diag = this.getDiagByType(type)
+    if (diag.failedEventIds.length > 0) {
+      return AppColors.getColors(this.currentTheme).TAG_RED_BG
+    }
+    return diag.subscribed ?
+      AppColors.getColors(this.currentTheme).TAG_GREEN_BG :
+      AppColors.getColors(this.currentTheme).TAG_GRAY_BG
+  }
+
+  private getDiagCountText(type: LogEventType): string {
+    let diag = this.getDiagByType(type)
+    return `命中 ${diag.seenCount}`
+  }
+
+  private getDiagRecentTimeText(type: LogEventType): string {
+    let diag = this.getDiagByType(type)
+    let lastSeen = diag.lastSeenAt ? formatLogTimestamp(diag.lastSeenAt) : '-'
+    return `最近 ${lastSeen}`
+  }
+
   build() {
     Column() {
       Row() {
         Column({ space: 4 }) {
-          Text('日志管理')
+          Text(this.showSettings ? '日志存储设置' : '日志管理')
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('监控和审计系统安全事件日志')
+          Text(this.showSettings ? '配置日志留存、自动导出与审计诊断' : '监控和审计系统安全事件日志')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -499,7 +514,7 @@ export struct LogManagePage {
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         }
 
-        Button(this.showSettings ? '返回日志' : '存储设置')
+        Button(this.showSettings ? '返回日志列表' : '进入存储设置')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
           .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
@@ -774,77 +789,148 @@ export struct LogManagePage {
 
   @Builder
   storageSettingsView() {
-    Scroll() {
-      Column({ space: 24 }) {
-        this.storageConfigCard()
-        this.permissionInfoCard()
-        this.auditDiagnosticsCard()
+    Column() {
+      Row() {
+        Column({ space: 16 }) {
+          this.storageConfigCard()
+          this.permissionInfoCard()
+          this.auditDiagnosticsCard()
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
+        .alignItems(HorizontalAlign.Start)
       }
       .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
+
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Column({ space: 16 }) {
+        Row() {
+          Blank()
+
+          Row({ space: 12 }) {
+            Button('恢复默认').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+              .borderRadius(AppStyles.RADIUS_MD).height(36).width(120)
+              .onClick(() => {
+                this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
+                this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
+                this.autoExportEnabled = DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
+                this.exportPath = this.defaultExportPath
+                promptAction.showToast({ message: '已恢复默认，请保存以生效' })
+              })
+
+            Button('保存设置').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY)
+              .borderRadius(AppStyles.RADIUS_MD).height(36).width(132).onClick(() => { this.saveStorageSettings() })
+          }
+        }
+        .width('100%')
+        .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
     }
     .width('100%')
     .layoutWeight(1)
-    .scrollBar(BarState.Auto)
     .align(Alignment.Top)
-
-    Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-    Row({ space: 12 }) {
-      Button('恢复默认').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-        .borderRadius(AppStyles.RADIUS_MD).height(36).layoutWeight(1)
-        .onClick(() => {
-          this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
-          this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
-          this.autoExportEnabled = DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-          this.exportPath = this.defaultExportPath
-          promptAction.showToast({ message: '已恢复默认，请保存以生效' })
-        })
-
-      Button('保存设置').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY)
-        .borderRadius(AppStyles.RADIUS_MD).height(36).layoutWeight(1).onClick(() => { this.saveStorageSettings() })
-    }
-    .width('100%')
-    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
   }
 
   @Builder
   storageConfigCard() {
-    Column({ space: 12 }) {
+    Column({ space: 0 }) {
       Text('日志存储配置').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .padding({ top: 16, bottom: 12 })
 
-      Text('最大存储条数').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} 条` } as SelectOption)))
-        .selected(this.maxEntriesIndex)
-        .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} 条`)
-        .onSelect((index: number) => { this.maxEntriesIndex = index })
-
-      Text('日志保留天数').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} 天` } as SelectOption)))
-        .selected(this.retentionIndex)
-        .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} 天`)
-        .onSelect((index: number) => { this.retentionIndex = index })
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row() {
-        Text('自动导出').fontSize(AppStyles.FONT_SIZE_BODY).layoutWeight(1)
+        Text('最大存储条数')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} 条` } as SelectOption)))
+          .selected(this.maxEntriesIndex)
+          .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} 条`)
+          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .onSelect((index: number) => { this.maxEntriesIndex = index })
+      }
+      .width('100%')
+      .height(56)
+      .alignItems(VerticalAlign.Center)
+
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row() {
+        Text('日志保留天数')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} 天` } as SelectOption)))
+          .selected(this.retentionIndex)
+          .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} 天`)
+          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .onSelect((index: number) => { this.retentionIndex = index })
+      }
+      .width('100%')
+      .height(56)
+      .alignItems(VerticalAlign.Center)
+
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row() {
+        Text('自动导出')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.autoExportEnabled })
           .selectedColor(AppColors.BRAND_PRIMARY)
           .onChange((value: boolean) => { this.autoExportEnabled = value })
       }
+      .width('100%')
+      .height(56)
+      .alignItems(VerticalAlign.Center)
 
-      Text('导出保存位置').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      Row({ space: 8 }) {
-        Button('选择位置').onClick(() => { this.chooseExportDirectory() })
-        Button('恢复默认目录').onClick(() => { this.restoreDefaultExportDirectory() })
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row({ space: 12 }) {
+        Column({ space: 8 }) {
+          Text('导出保存位置')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          Text(this.toDisplayPath(this.exportPath || this.defaultExportPath))
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontFamily('monospace')
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+            .maxLines(2)
+            .width('100%')
+            .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+            .borderRadius(AppStyles.RADIUS_SM)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Row({ space: 8 }) {
+          Button('选择位置').onClick(() => { this.chooseExportDirectory() })
+          Button('恢复默认目录').onClick(() => { this.restoreDefaultExportDirectory() })
+        }
+        .alignItems(VerticalAlign.Center)
       }
-      Text(this.toDisplayPath(this.exportPath || this.defaultExportPath))
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontFamily('monospace')
-        .maxLines(2)
+      .width('100%')
+      .padding({ top: 14, bottom: 14 })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
+    .alignItems(HorizontalAlign.Start)
     .padding(16)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
@@ -852,19 +938,15 @@ export struct LogManagePage {
 
   @Builder
   permissionInfoCard() {
-    Row() {
-      Column({ space: 4 }) {
-        Text('权限信息').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
-        Text('ohos.permission.QUERY_AUDIT_EVENT').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(this.isSubscribed ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+    Column({ space: 6 }) {
+      Text('权限信息').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      Text('ohos.permission.QUERY_AUDIT_EVENT').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }
     .width('100%')
+    .alignItems(HorizontalAlign.Start)
     .padding(16)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
@@ -872,50 +954,114 @@ export struct LogManagePage {
 
   @Builder
   auditDiagnosticsCard() {
-    Column({ space: 8 }) {
-      Text('审计诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
-      Text(`订阅模式: ${this.getSubscribeModeText()}`)
+    Column({ space: 12 }) {
+      Row() {
+        Text('审计诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        Blank()
+        Text(`订阅模式 ${this.getSubscribeModeText()}`)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }
+      .width('100%')
+
+      Text(`模式切换时间: ${this.diagnostics.lastModeSwitchAt !== undefined ? formatLogTimestamp(this.diagnostics.lastModeSwitchAt as number) : '-'}`)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      if (this.diagnostics.lastModeSwitchAt !== undefined) {
-        Text(`模式切换时间: ${formatLogTimestamp(this.diagnostics.lastModeSwitchAt as number)}`)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      }
-      if (this.getFallbackReasonText().length > 0) {
-        Text(this.getFallbackReasonText())
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-      }
-      ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
-        Row() {
-          Column({ space: 2 }) {
-            Text(getLogEventTypeLabel(type)).fontSize(AppStyles.FONT_SIZE_BODY)
-            Text(this.getDiagDetailText(type)).fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            if (this.getDiagGuidanceText(type).length > 0) {
-              Text(this.getDiagGuidanceText(type)).fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-            }
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
-          Text(this.getDiagStatusText(type))
+      if (this.getFallbackReasonText().length > 0) {
+        Row() {
+          Text(this.getFallbackReasonText())
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(this.getDiagStatusColor(type))
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
         }
-      }, (type: LogEventType) => type.toString())
+        .width('100%')
+        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+        .borderRadius(AppStyles.RADIUS_SM)
+      }
 
       if (this.diagnostics.unknownEventIds.length > 0) {
-        Text(`未识别事件ID: ${this.diagnostics.unknownEventIds.join(',')}`)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+        Row() {
+          Text(`未识别事件ID: ${this.diagnostics.unknownEventIds.join(',')}`)
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+        }
+        .width('100%')
+        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+        .borderRadius(AppStyles.RADIUS_SM)
       }
+
+      Scroll() {
+        Column({ space: 8 }) {
+          ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
+            Column({ space: 8 }) {
+              Row() {
+                Text(getLogEventTypeLabel(type))
+                  .fontSize(AppStyles.FONT_SIZE_BODY)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .layoutWeight(1)
+                Text(this.getDiagStatusText(type))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(this.getDiagStatusColor(type))
+                  .backgroundColor(this.getDiagStatusBgColor(type))
+                  .borderRadius(AppStyles.RADIUS_SM)
+                  .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+
+              Row() {
+                Text(this.getDiagCountText(type))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                  .layoutWeight(1)
+                Text(this.getDiagRecentTimeText(type))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                  .layoutWeight(1)
+                  .textAlign(TextAlign.End)
+              }
+              .width('100%')
+
+              if (this.getDiagGuidanceText(type).length > 0) {
+                Text(this.getDiagGuidanceText(type))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+                  .maxLines(3)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .width('100%')
+                  .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+                  .borderRadius(AppStyles.RADIUS_SM)
+              }
+            }
+            .width('100%')
+            .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+            .borderRadius(AppStyles.RADIUS_MD)
+          }, (type: LogEventType) => type.toString())
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
     }
     .width('100%')
+    .layoutWeight(1)
+    .constraintSize({ minHeight: 360 })
     .padding(16)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
+    .alignItems(HorizontalAlign.Start)
   }
 }
