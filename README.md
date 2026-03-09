@@ -240,7 +240,28 @@ hdc install signApp.hap
 |------|------|
 | [AGENTS.md](AGENTS.md) | AI 开发助手指南，详细签名流程 |
 | [DEVLOG.md](DEVLOG.md) | 版本记录与踩坑经验 |
+| [TEST_COVERAGE_ANALYSIS.md](TEST_COVERAGE_ANALYSIS.md) | 测试覆盖率分析报告 |
+| [CI_QUICKSTART.md](CI_QUICKSTART.md) | CI/CD 快速入门指南 |
 | [security-app/index.html](security-app/index.html) | UX 设计原型预览 |
+
+### 设计文档
+
+| 文档 | 说明 |
+|------|------|
+| [业务模块审计报告](docs/business-module-audit-report.html) | 业务模块安全审计 |
+| [测试架构设计](docs/test-architecture.html) | 整体测试架构说明 |
+| [测试设计文档](docs/test-design.html) | 测试策略与方法 |
+| [测试实施报告](docs/test-implementation.html) | 测试实施详情 |
+| [测试报告](docs/test-report.html) | 测试结果汇总 |
+| [UI/UX 审计报告](docs/ui-pc-ux-audit-report.html) | 界面用户体验审计 |
+| [身份鉴别模块设计](docs/identity-module-design.html) | 身份鉴别模块详细设计 |
+| [日志管理架构](docs/log-manage-architecture.html) | 日志管理模块架构 |
+| [外设管理设计](docs/peripheral-module-design.html) | 外设管理模块设计 |
+| [外设管理测试规范](docs/peripheral-test-spec.html) | 外设管理测试用例 |
+| [主题设计规范 v2](docs/theme-design-spec-v2.html) | 主题系统设计规范 |
+| [标题栏移除规范](docs/titlebar-removal-spec.html) | 系统标题栏移除方案 |
+| [工具设置模块设计](docs/tool-settings-module-design.html) | 工具设置模块设计 |
+| [信创工具需求清单](docs/信创工具需求清单.xlsx) | 信创工具需求规格 |
 
 ---
 
@@ -250,6 +271,8 @@ hdc install signApp.hap
 
 | 版本 | 日期 | 主要更新 |
 |------|------|----------|
+| v17 | 2026-03-09 | 修复审计订阅兼容回退与诊断展示，完善测试框架 |
+| v16 | 2026-03-03 | 统一包名并同步安全中心多模块更新 |
 | v15 | 2026-03-03 | 修复日志订阅参数映射、批量入库与刷新节流，过滤内部审计自激，优化 OOM/卡顿稳定性 |
 | v14 | 2026-03-03 | 日志管理模块与帮助反馈页面，补齐日志模型与服务层能力 |
 | v13 | 2026-02-25 | 启动认证功能、AuthService 增强与测试框架搭建 |

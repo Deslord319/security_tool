@@ -89,9 +89,7 @@ export class ThemeManager {
 
       this.initialized = true
     } catch (err) {
-      console.error('ThemeManager initAsync failed:', JSON.stringify(err))
-      // 失败时保持 initSync 设置的系统主题，不覆盖
-      this.initialized = true
+      hilog.error(DOMAIN, TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }
   }
 
@@ -254,7 +252,7 @@ export class ThemeManager {
       await this.dataPreferences.put(KEY_THEME_OPTION, option)
       await this.dataPreferences.flush()
     } catch (err) {
-      console.error('saveOption failed:', JSON.stringify(err))
+      hilog.error(DOMAIN, TAG, 'savePreferences failed: %{public}s', JSON.stringify(err))
     }
   }
 
@@ -269,7 +267,7 @@ export class ThemeManager {
       await this.dataPreferences.put(KEY_THEME_PREFERENCE, preference)
       await this.dataPreferences.flush()
     } catch (err) {
-      console.error('savePreferences failed:', JSON.stringify(err))
+      hilog.error(DOMAIN, TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }
   }
 }

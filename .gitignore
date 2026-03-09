@@ -19,3 +19,9 @@ nul
 temp_*.txt
 *.png
 !security-app/*.png
+
+# Signing files (sensitive)
+hapsigner/*.hap
+hapsigner/*.p7b
+hapsigner/*.p12
+hapsigner/ci/
