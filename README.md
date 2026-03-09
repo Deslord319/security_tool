@@ -6,6 +6,7 @@
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-orange)](https://developer.huawei.com/consumer/cn/arkts/)
 [![Version](https://img.shields.io/badge/Version-v15-brightgreen)](DEVLOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
+[![CI/CD](https://github.com/Deslord319/security_tool/actions/workflows/ci.yml/badge.svg)](https://github.com/Deslord319/security_tool/actions/workflows/ci.yml)
 
 ---
 
