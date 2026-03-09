@@ -118,9 +118,28 @@ jobs:
       run: |
         ./hvigorw :entry:test \
           --mode module \
-          -p product=default \
-          || echo "⚠️ Tests completed with warnings"
-      continue-on-error: true
+          -p product=default
+    
+    - name: Check test coverage
+      run: |
+        echo "📊 Test Coverage Report"
+        echo "========================"
+        
+        # 检查测试报告是否生成
+        if [ -d "entry/.test/default/outputs/ohosTest/reports/" ]; then
+          echo "✅ Test reports generated"
+          ls -la entry/.test/default/outputs/ohosTest/reports/
+        else
+          echo "⚠️ Test reports directory not found"
+        fi
+        
+        # 统计测试文件数量
+        TEST_FILES=$(find entry/src/test -name "*.test.ets" | wc -l)
+        OHOS_TEST_FILES=$(find entry/src/ohosTest -name "*.test.ets" | wc -l)
+        echo "📈 Test Statistics:"
+        echo "  Unit test files: $TEST_FILES"
+        echo "  OHOS test files: $OHOS_TEST_FILES"
+        echo "  Total: $((TEST_FILES + OHOS_TEST_FILES))"
     
     - name: Upload test reports
       uses: actions/upload-artifact@v4
