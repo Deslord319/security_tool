@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Version-v15-brightgreen)](DEVLOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
 [![CI/CD](https://github.com/Deslord319/security_tool/actions/workflows/ci.yml/badge.svg)](https://github.com/Deslord319/security_tool/actions/workflows/ci.yml)
-[![Test Coverage](https://img.shields.io/badge/coverage-69%25-orange)](TEST_COVERAGE_ANALYSIS.md)
+[![Test Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](TEST_COVERAGE_ANALYSIS.md)
 
 ---
 
