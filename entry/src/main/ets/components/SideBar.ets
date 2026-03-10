@@ -1,6 +1,6 @@
 import { AppColors, AppStyles, NavItem, NAV_ITEMS } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @Component
 export struct SideBar {
@@ -73,35 +73,6 @@ export struct SideBar {
       .width('100%')
       .layoutWeight(1)
       .padding({ left: 8, right: 8, top: 8 })
-
-      // 底部主题切换按钮
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row({ space: 12 }) {
-        Text(this.currentTheme === ThemeMode.DARK ? '浅' : '深')
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.currentTheme === ThemeMode.DARK ? '#FFD60A' : '#5856D6')
-          .textAlign(TextAlign.Center)
-          .width(28)
-          .height(28)
-          .borderRadius(6)
-          .backgroundColor(this.currentTheme === ThemeMode.DARK ? 'rgba(255,214,10,0.15)' : 'rgba(88,86,214,0.1)')
-        Text(this.currentTheme === ThemeMode.DARK ? '浅色模式' : '深色模式')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .id(this.currentTheme === ThemeMode.DARK ? 'theme-mode-dark' : 'theme-mode-light')
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      }
-      .width('100%')
-      .height(48)
-      .id('sidebar-theme-toggle')
-      .padding({ left: 20, right: 20 })
-      .onClick(() => {
-        ThemeManager.getInstance().toggleTheme()
-      })
     }
     .width(AppStyles.SIDEBAR_WIDTH)
     .height('100%')

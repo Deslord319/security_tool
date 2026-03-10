@@ -219,7 +219,7 @@ export struct IdentityPage {
     )
 
     if (pwdResult.success && domainResult.success) {
-      promptAction.showToast({ message: '身份鉴别配置已保存' })
+      promptAction.showToast({ message: '身份鉴别配置已保存。如系统设置已打开，请重开后查看策略。' })
       return
     }
 
@@ -259,7 +259,7 @@ export struct IdentityPage {
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('配置账户口令策略和认证方式，保障系统访问安全')
+          Text('配置设备口令复杂度与域账号有效期策略，保障系统访问安全')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -483,7 +483,7 @@ export struct IdentityPage {
     Column({ space: 0 }) {
       // 区块标题
       Row() {
-        Text('口令有效期配置')
+        Text('口令有效期配置（域账号）')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -506,11 +506,11 @@ export struct IdentityPage {
       // 密码最长使用天数
       Row() {
         Column({ space: 2 }) {
-          Text('密码最长使用天数')
+          Text('域账号密码最长使用天数')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('超过此期限后用户须修改密码')
+          Text('超过此期限后用户须修改域账号密码')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -540,11 +540,11 @@ export struct IdentityPage {
       // 密码过期前提醒天数
       Row() {
         Column({ space: 2 }) {
-          Text('密码过期前提醒天数')
+          Text('域账号密码过期前提醒天数')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('在密码到期前指定天数发送提醒通知')
+          Text('在域账号密码到期前指定天数发送提醒通知')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -574,7 +574,7 @@ export struct IdentityPage {
       // 认证Token有效期
       Row() {
         Column({ space: 2 }) {
-          Text('认证Token有效期')
+          Text('认证Token有效期（域账号）')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
@@ -607,7 +607,7 @@ export struct IdentityPage {
 
       // 提示信息
       Row() {
-        Text('注意：设置域账号策略后须在设备侧修改域账号密码，否则有效期配置不生效。')
+        Text('注意：本区策略仅对域账号生效，不作用于本地 PIN。若保存后系统设置页面未同步，请关闭并重新打开系统设置查看。')
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
       }
