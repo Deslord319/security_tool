@@ -55,11 +55,6 @@ const EXPORT_TARGET_DESKTOP: LogExportTargetType = 'desktop'
 const EXPORT_TARGET_CUSTOM_URI: LogExportTargetType = 'custom_uri'
 const EXPORT_AUTH_RUNTIME: LogExportAuthMode = 'runtime_permission'
 const EXPORT_AUTH_PERSISTED: LogExportAuthMode = 'persisted_uri'
-const PUBLIC_EXPORT_PERMISSIONS: Record<string, Permissions> = {
-  [EXPORT_TARGET_DOWNLOAD]: 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions,
-  [EXPORT_TARGET_DOCUMENTS]: 'ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY' as Permissions,
-  [EXPORT_TARGET_DESKTOP]: 'ohos.permission.READ_WRITE_DESKTOP_DIRECTORY' as Permissions
-}
 const PERSIST_URI_OPERATION_MODE: number =
   fileShare.OperationMode.READ_MODE |
   fileShare.OperationMode.WRITE_MODE |
@@ -426,11 +421,24 @@ export class LogStorageService {
     return LogStorageService.resolvePublicDirectoryByType(targetType) || ''
   }
 
+  private static getPublicDirectoryPermission(targetType: LogExportTargetType): Permissions | undefined {
+    if (targetType === EXPORT_TARGET_DOWNLOAD) {
+      return 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions
+    }
+    if (targetType === EXPORT_TARGET_DOCUMENTS) {
+      return 'ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY' as Permissions
+    }
+    if (targetType === EXPORT_TARGET_DESKTOP) {
+      return 'ohos.permission.READ_WRITE_DESKTOP_DIRECTORY' as Permissions
+    }
+    return undefined
+  }
+
   static async ensurePublicDirectoryPermission(
     context: common.UIAbilityContext,
     targetType: LogExportTargetType
   ): Promise<ExportAuthResult> {
-    let permission = PUBLIC_EXPORT_PERMISSIONS[targetType]
+    let permission = LogStorageService.getPublicDirectoryPermission(targetType)
     if (!permission) {
       return { success: true }
     }
@@ -918,20 +926,9 @@ export class LogStorageService {
       if (targetType === EXPORT_TARGET_DOWNLOAD) {
         baseDir = Environment.getUserDownloadDir()
       } else if (targetType === EXPORT_TARGET_DOCUMENTS) {
-        let getter = (Environment as Record<string, Object>)['getUserDocumentDir']
-        if (typeof getter === 'function') {
-          baseDir = (getter as () => string)()
-        } else {
-          let fallback = (Environment as Record<string, Object>)['getUserDocumentsDir']
-          if (typeof fallback === 'function') {
-            baseDir = (fallback as () => string)()
-          }
-        }
+        baseDir = Environment.getUserDocumentDir()
       } else if (targetType === EXPORT_TARGET_DESKTOP) {
-        let getter = (Environment as Record<string, Object>)['getUserDesktopDir']
-        if (typeof getter === 'function') {
-          baseDir = (getter as () => string)()
-        }
+        baseDir = Environment.getUserDesktopDir()
       }
     } catch (err) {
       hilog.warn(DOMAIN, TAG, `resolve public directory failed: type=${targetType}, error=${JSON.stringify(err)}`)
@@ -1027,18 +1024,13 @@ export class LogStorageService {
       return false
     }
 
-    let checker = (fileShare as Record<string, Object>)['checkPersistentPermission']
-    if (typeof checker !== 'function') {
-      return false
-    }
-
     let policies: fileShare.PolicyInfo[] = [{
       uri: normalized,
       operationMode: PERSIST_URI_OPERATION_MODE
     } as fileShare.PolicyInfo]
 
     try {
-      let raw = await (checker as (items: fileShare.PolicyInfo[]) => Promise<Object>)(policies)
+      let raw = await fileShare.checkPersistentPermission(policies) as Object
       if (typeof raw === 'boolean') {
         return raw
       }

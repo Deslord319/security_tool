@@ -16,6 +16,7 @@ interface GuideItem {
 @Component
 export struct HelpFeedbackPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State expandedGuide: number = -1
   @State expandedFaq: number = -1
   @State hoveredCardIndex: number = -1
 
@@ -78,24 +79,39 @@ export struct HelpFeedbackPage {
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-          ForEach(this.guideItems, (item: GuideItem) => {
-            Column({ space: 4 }) {
-              Text(item.title)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-              Text(item.description)
-                .fontSize(AppStyles.FONT_SIZE_SMALL)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .lineHeight(20)
+          ForEach(this.guideItems, (item: GuideItem, index: number) => {
+            Column({ space: 0 }) {
+              Row() {
+                Text(item.title)
+                  .fontSize(AppStyles.FONT_SIZE_BODY)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+                  .layoutWeight(1)
+                Text(this.expandedGuide === index ? '\u25B2' : '\u25BC')
+                  .fontSize(10)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+              }
+              .width('100%')
+              .padding(12)
+              .onClick(() => {
+                this.expandedGuide = this.expandedGuide === index ? -1 : index
+              })
+
+              if (this.expandedGuide === index) {
+                Text(item.description)
+                  .fontSize(AppStyles.FONT_SIZE_SMALL)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                  .lineHeight(20)
+                  .padding({ left: 12, right: 12, bottom: 12 })
+                  .width('100%')
+              }
             }
             .width('100%')
-            .padding(12)
             .borderRadius(AppStyles.RADIUS_MD)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-            .alignItems(HorizontalAlign.Start)
           })
         }
         .width('100%')
