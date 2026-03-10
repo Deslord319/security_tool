@@ -292,6 +292,8 @@ export struct LogManagePage {
       autoExportEnabled: this.autoExportEnabled
     }
 
+    let publicTargetType: LogExportTargetType | undefined = undefined
+    let normalizedCustomUri = ''
     if (this.exportTargetType === 'custom_uri') {
       let customUri = this.customExportUri.trim()
       if (customUri.length === 0) {
@@ -299,30 +301,44 @@ export struct LogManagePage {
         return
       }
 
-      let persistResult = await LogStorageService.persistCustomUriPermission(customUri)
-      if (!persistResult.success) {
-        let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
-        promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
-        return
-      }
+      publicTargetType = LogStorageService.resolvePublicTargetType(customUri)
+      if (!publicTargetType) {
+        let normalizedUri = LogStorageService.normalizeCustomExportUri(customUri)
+        if (!normalizedUri) {
+          promptAction.showToast({ message: '目录格式无效，请重新选择' })
+          return
+        }
 
-      config.exportTargetType = 'custom_uri'
-      config.exportTargetValue = customUri
-      config.exportAuthMode = 'persisted_uri' as LogExportAuthMode
-      config.exportPath = customUri
+        let persistResult = await LogStorageService.persistCustomUriPermission(normalizedUri)
+        if (!persistResult.success) {
+          let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
+          promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
+          return
+        }
+        normalizedCustomUri = normalizedUri
+      }
     } else {
-      let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, this.exportTargetType)
+      publicTargetType = this.exportTargetType
+    }
+
+    if (publicTargetType && publicTargetType !== 'custom_uri') {
+      let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, publicTargetType)
       if (!permissionResult.success) {
         let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
         promptAction.showToast({ message: `目录权限未授权${codeText}` })
         return
       }
 
-      let publicPath = LogStorageService.getPublicExportDirectory(this.exportTargetType)
-      config.exportTargetType = this.exportTargetType
+      let publicPath = LogStorageService.getPublicExportDirectory(publicTargetType)
+      config.exportTargetType = publicTargetType
       config.exportTargetValue = ''
       config.exportAuthMode = 'runtime_permission' as LogExportAuthMode
       config.exportPath = publicPath
+    } else {
+      config.exportTargetType = 'custom_uri'
+      config.exportTargetValue = normalizedCustomUri
+      config.exportAuthMode = 'persisted_uri' as LogExportAuthMode
+      config.exportPath = normalizedCustomUri
     }
 
     let success = await LogStorageService.updateConfig(config)
@@ -469,7 +485,22 @@ export struct LogManagePage {
       }
 
       let selectedUri = uris[0]
-      let persistResult = await LogStorageService.persistCustomUriPermission(selectedUri)
+      let publicTargetType = LogStorageService.resolvePublicTargetType(selectedUri)
+      if (publicTargetType && publicTargetType !== 'custom_uri') {
+        this.exportTargetType = publicTargetType
+        this.customExportUri = ''
+        this.updateExportPathPreview()
+        promptAction.showToast({ message: `已切换到${this.getExportTargetLabel(publicTargetType)}，保存时将弹出权限授权` })
+        return
+      }
+
+      let normalizedUri = LogStorageService.normalizeCustomExportUri(selectedUri)
+      if (!normalizedUri) {
+        promptAction.showToast({ message: '目录格式无效，请重新选择' })
+        return
+      }
+
+      let persistResult = await LogStorageService.persistCustomUriPermission(normalizedUri)
       if (!persistResult.success) {
         let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
         promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
@@ -477,7 +508,7 @@ export struct LogManagePage {
       }
 
       this.exportTargetType = 'custom_uri'
-      this.customExportUri = selectedUri
+      this.customExportUri = normalizedUri
       this.updateExportPathPreview()
       promptAction.showToast({ message: '已选择自定义目录，请保存以生效' })
     } catch (err) {

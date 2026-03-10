@@ -71,11 +71,11 @@ export function getRuleTypeLabel(type: RuleType): string {
     case RuleType.IP:
       return 'IP'
     case RuleType.DOMAIN:
-      return '鍩熷悕'
+      return '域名'
     case RuleType.DNS:
       return 'DNS'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -83,11 +83,11 @@ export function getRuleTypeLabel(type: RuleType): string {
 export function getDirectionLabel(dir: RuleDirection): string {
   switch (dir) {
     case RuleDirection.IN:
-      return '鍏ョ珯'
+      return '入站'
     case RuleDirection.OUT:
-      return '鍑虹珯'
+      return '出站'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -111,11 +111,11 @@ export function getProtocolLabel(proto: ProtocolType): string {
 export function getActionLabel(action: RuleAction): string {
   switch (action) {
     case RuleAction.ALLOW:
-      return '鍏佽'
+      return '允许'
     case RuleAction.DENY:
-      return '鎷掔粷'
+      return '拒绝'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -145,9 +145,11 @@ export enum UsbStoragePolicy {
   DISABLED = 2
 }
 
-// 浼佷笟绠＄悊鍛樼被鍨?export type EnterpriseAdminType = 'super' | 'byod'
+// 浼佷笟绠＄悊鍛樼被鍨?
+export type EnterpriseAdminType = 'super' | 'byod'
 
-// 浼佷笟绠＄悊鍛樻縺娲荤姸鎬?export interface AdminActivationState {
+// 浼佷笟绠＄悊鍛樻縺娲荤姸鎬?
+export interface AdminActivationState {
   activated: boolean
   errorCode?: number
   errorMessage?: string
@@ -217,17 +219,17 @@ export interface InterfaceControlConfig {
 export function getPeripheralTypeLabel(type: PeripheralType): string {
   switch (type) {
     case PeripheralType.USB_STORAGE:
-      return 'USB 瀛樺偍璁惧'
+      return 'USB 存储设备'
     case PeripheralType.USB_CAMERA:
-      return 'USB 鎽勫儚澶?
+      return 'USB 摄像头'
     case PeripheralType.USB_PRINTER:
-      return 'USB 鎵撳嵃鏈?
+      return 'USB 打印机'
     case PeripheralType.USB_OTHER:
-      return 'USB 鍏朵粬'
+      return 'USB 其他'
     case PeripheralType.BLUETOOTH:
-      return '钃濈墮璁惧'
+      return '蓝牙设备'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -235,13 +237,13 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
 export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   switch (policy) {
     case UsbStoragePolicy.READ_WRITE:
-      return '璇诲啓'
+      return '读写'
     case UsbStoragePolicy.READ_ONLY:
-      return '鍙'
+      return '只读'
     case UsbStoragePolicy.DISABLED:
-      return '绂佹璁块棶'
+      return '禁止访问'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -373,10 +375,10 @@ export interface AuthMethodOption {
 
 // 璁よ瘉鏂瑰紡閫夐」
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
-  { label: 'PIN 鐮?, value: AuthMethod.PIN } as AuthMethodOption,
-  { label: '鎸囩汗', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
-  { label: '浜鸿劯璇嗗埆', value: AuthMethod.FACE } as AuthMethodOption,
-  { label: 'PIN + 鎸囩汗', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
+  { label: 'PIN 码', value: AuthMethod.PIN } as AuthMethodOption,
+  { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
+  { label: '人脸识别', value: AuthMethod.FACE } as AuthMethodOption,
+  { label: 'PIN + 指纹', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
 ]
 
 // Asset Store 閿悕甯搁噺
@@ -418,13 +420,17 @@ export enum LogEventResult {
 // 鏃ュ織鏉＄洰 - 瀵瑰簲绯荤粺 securityAudit.AuditEvent 缁撴瀯鐨?UI 灞曠ず妯″瀷
 export interface LogEntry {
   id: string                  // 鍞竴鏍囪瘑锛堝唴閮ㄧ敓鎴愶級
-  timestamp: number           // 鏃堕棿鎴筹紙姣锛?  eventType: LogEventType     // 浜嬩欢绫诲瀷
+  timestamp: number           // 鏃堕棿鎴筹紙姣锛?
+  eventType: LogEventType     // 浜嬩欢绫诲瀷
   detail: string              // 浜嬩欢璇︽儏锛坈ontent 瀛楁瑙ｆ瀽鍚庯級
   processName?: string        // 杩涚▼鍚嶇О
   pid?: number                // 杩涚▼ ID
   uid?: number                // 鐢ㄦ埛 ID
-  filePath?: string           // 鏂囦欢璺緞锛團ILE 绫诲瀷锛?  remoteAddr?: string         // 杩滅▼鍦板潃锛圢ETWORK 绫诲瀷锛?  sourceEventId?: number      // 鍘熷瀹¤ eventId
-  sourceSubType?: number      // 鍘熷瀹¤瀛愮被鍨?  rawEventName?: string       // 鍘熷浜嬩欢鍚嶇О
+  filePath?: string           // 鏂囦欢璺緞锛團ILE 绫诲瀷锛?
+  remoteAddr?: string         // 杩滅▼鍦板潃锛圢ETWORK 绫诲瀷锛?
+  sourceEventId?: number      // 鍘熷瀹¤ eventId
+  sourceSubType?: number      // 鍘熷瀹¤瀛愮被鍨?
+  rawEventName?: string       // 鍘熷浜嬩欢鍚嶇О
   rawOutcome?: string         // 鍘熷缁撴灉瀛楁
   result: LogEventResult      // 鎿嶄綔缁撴灉
 }
@@ -457,11 +463,16 @@ export type LogExportAuthMode = 'runtime_permission' | 'persisted_uri'
 // 鏃ュ織璁㈤槄閰嶇疆
 export interface LogSubscriptionConfig {
   subscribeAll: boolean         // 鏄惁璁㈤槄鍏ㄩ儴浜嬩欢绫诲瀷
-  subscribedTypes: LogEventType[] // 璁㈤槄鐨勪簨浠剁被鍨嬪垪琛?}
+  subscribedTypes: LogEventType[] // 璁㈤槄鐨勪簨浠剁被鍨嬪垪琛?
+}
 
-// 鏃ュ織缁熻淇℃伅锛堢敤浜?Dashboard 灞曠ず锛?export interface LogStatistics {
-  totalCount: number          // 鎬绘潯鏁?  todayCount: number          // 浠婃棩鏉℃暟
-  blockedCount: number        // 闃绘柇浜嬩欢鏁?  byType: Map<LogEventType, number>  // 鎸夌被鍨嬬粺璁?}
+// 鏃ュ織缁熻淇℃伅锛堢敤浜?Dashboard 灞曠ず锛?
+export interface LogStatistics {
+  totalCount: number          // 鎬绘潯鏁?
+  todayCount: number          // 浠婃棩鏉℃暟
+  blockedCount: number        // 闃绘柇浜嬩欢鏁?
+  byType: Map<LogEventType, number>  // 鎸夌被鍨嬬粺璁?
+}
 
 export interface LogEventTypeDiag {
   type: LogEventType
@@ -574,33 +585,33 @@ export const PREF_STORE_NAME_LOG = 'log_settings'
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
     case LogEventType.FILE:
-      return '鏂囦欢鎿嶄綔'
+      return '文件操作'
     case LogEventType.NETWORK_CONN:
-      return '缃戠粶杩炴帴'
+      return '网络连接'
     case LogEventType.NETWORK_TRAFFIC:
-      return '缃戠粶娴侀噺'
+      return '网络流量'
     case LogEventType.APP:
-      return '搴旂敤绠＄悊'
+      return '应用管理'
     case LogEventType.ACCOUNT:
-      return '璐︽埛鎿嶄綔'
+      return '账户操作'
     case LogEventType.USB_ACCESS:
-      return 'USB 璁块棶'
+      return 'USB访问'
     case LogEventType.PERMISSION:
-      return '鏉冮檺鍙樻洿'
+      return '权限变更'
     case LogEventType.PROCESS:
-      return '杩涚▼绠＄悊'
+      return '进程管理'
     case LogEventType.PRINTER:
-      return '鎵撳嵃鏈?
+      return '打印机'
     case LogEventType.CAMERA:
-      return '鎽勫儚澶?
+      return '摄像头'
     case LogEventType.CERT:
-      return '璇佷功绠＄悊'
+      return '证书管理'
     case LogEventType.EDM:
-      return 'EDM 绛栫暐'
+      return 'EDM策略'
     case LogEventType.DNS:
-      return 'DNS 鏌ヨ'
+      return 'DNS查询'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -608,13 +619,13 @@ export function getLogEventTypeLabel(type: LogEventType): string {
 export function getLogEventResultLabel(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
-      return '鎴愬姛'
+      return '成功'
     case LogEventResult.BLOCKED:
-      return '宸查樆姝?
+      return '已阻止'
     case LogEventResult.FAILED:
-      return '澶辫触'
+      return '失败'
     default:
-      return '鏈煡'
+      return '未知'
   }
 }
 
@@ -634,19 +645,19 @@ export function getLogEventResultColor(result: LogEventResult): string {
 
 // 浜嬩欢绫诲瀷閫夐」鍒楄〃锛堢敤浜庣瓫閫夊櫒锛?
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: '鏂囦欢鎿嶄綔', value: LogEventType.FILE },
-  { label: '缃戠粶杩炴帴', value: LogEventType.NETWORK_CONN },
-  { label: '缃戠粶娴侀噺', value: LogEventType.NETWORK_TRAFFIC },
-  { label: '搴旂敤绠＄悊', value: LogEventType.APP },
-  { label: '璐︽埛鎿嶄綔', value: LogEventType.ACCOUNT },
-  { label: 'USB 璁块棶', value: LogEventType.USB_ACCESS },
-  { label: '鏉冮檺鍙樻洿', value: LogEventType.PERMISSION },
-  { label: '杩涚▼绠＄悊', value: LogEventType.PROCESS },
-  { label: '鎵撳嵃鏈?, value: LogEventType.PRINTER },
-  { label: '鎽勫儚澶?, value: LogEventType.CAMERA },
-  { label: '璇佷功绠＄悊', value: LogEventType.CERT },
-  { label: 'EDM 绛栫暐', value: LogEventType.EDM },
-  { label: 'DNS 鏌ヨ', value: LogEventType.DNS }
+  { label: '文件操作', value: LogEventType.FILE },
+  { label: '网络连接', value: LogEventType.NETWORK_CONN },
+  { label: '网络流量', value: LogEventType.NETWORK_TRAFFIC },
+  { label: '应用管理', value: LogEventType.APP },
+  { label: '账户操作', value: LogEventType.ACCOUNT },
+  { label: 'USB访问', value: LogEventType.USB_ACCESS },
+  { label: '权限变更', value: LogEventType.PERMISSION },
+  { label: '进程管理', value: LogEventType.PROCESS },
+  { label: '打印机', value: LogEventType.PRINTER },
+  { label: '摄像头', value: LogEventType.CAMERA },
+  { label: '证书管理', value: LogEventType.CERT },
+  { label: 'EDM策略', value: LogEventType.EDM },
+  { label: 'DNS查询', value: LogEventType.DNS }
 ]
 
 // 鏍煎紡鍖栨椂闂存埑涓哄彲璇诲瓧绗︿覆

@@ -421,6 +421,14 @@ export class LogStorageService {
     return LogStorageService.resolvePublicDirectoryByType(targetType) || ''
   }
 
+  static resolvePublicTargetType(pathOrUri: string): LogExportTargetType | undefined {
+    return LogStorageService.resolvePublicTargetTypeByPath(pathOrUri)
+  }
+
+  static normalizeCustomExportUri(pathOrUri: string): string | undefined {
+    return LogStorageService.normalizeCustomUriInput(pathOrUri)
+  }
+
   private static getPublicDirectoryPermission(targetType: LogExportTargetType): Permissions | undefined {
     if (targetType === EXPORT_TARGET_DOWNLOAD) {
       return 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions
@@ -471,11 +479,20 @@ export class LogStorageService {
   }
 
   static async persistCustomUriPermission(uri: string): Promise<ExportAuthResult> {
-    let normalized = LogStorageService.sanitizeCustomUri(uri)
+    let normalized = LogStorageService.normalizeCustomUriInput(uri)
     if (!normalized) {
       return {
         success: false,
         errorMessage: '无效的自定义目录URI'
+      }
+    }
+
+    let publicType = LogStorageService.resolvePublicTargetTypeByPath(normalized)
+    if (publicType) {
+      return {
+        success: false,
+        errorCode: 13900001,
+        errorMessage: '公共目录不支持持久化授权，请切换为下载/文档/桌面目录并通过权限弹窗授权。'
       }
     }
 
@@ -498,11 +515,20 @@ export class LogStorageService {
   }
 
   static async activateCustomUriPermission(uri: string): Promise<ExportAuthResult> {
-    let normalized = LogStorageService.sanitizeCustomUri(uri)
+    let normalized = LogStorageService.normalizeCustomUriInput(uri)
     if (!normalized) {
       return {
         success: false,
         errorMessage: '无效的自定义目录URI'
+      }
+    }
+
+    let publicType = LogStorageService.resolvePublicTargetTypeByPath(normalized)
+    if (publicType) {
+      return {
+        success: false,
+        errorCode: 13900001,
+        errorMessage: '公共目录无需持久化授权，请改用目录权限弹窗授权。'
       }
     }
 
@@ -536,7 +562,16 @@ export class LogStorageService {
   // 璁剧疆瀵煎嚭鐩綍
   static async setExportDirectory(path: string): Promise<boolean> {
     let cfg = LogStorageService.getConfig()
-    let customUri = LogStorageService.sanitizeCustomUri(path)
+    let publicType = LogStorageService.resolvePublicTargetTypeByPath(path)
+    if (publicType) {
+      cfg.exportTargetType = publicType
+      cfg.exportTargetValue = ''
+      cfg.exportAuthMode = EXPORT_AUTH_RUNTIME
+      cfg.exportPath = LogStorageService.resolvePublicDirectoryByType(publicType) || cfg.exportPath
+      return LogStorageService.updateConfig(cfg)
+    }
+
+    let customUri = LogStorageService.normalizeCustomUriInput(path)
     if (customUri) {
       cfg.exportPath = customUri
       cfg.exportTargetType = EXPORT_TARGET_CUSTOM_URI
@@ -765,6 +800,75 @@ export class LogStorageService {
     return normalized.length > 0 ? normalized : '/'
   }
 
+  private static normalizeSelectionPath(pathOrUri: string | undefined): string | undefined {
+    if (!pathOrUri) {
+      return undefined
+    }
+
+    let normalized = pathOrUri.trim()
+    if (normalized.length === 0) {
+      return undefined
+    }
+
+    if (LogStorageService.isFileUri(normalized)) {
+      normalized = normalized.substring('file://'.length)
+    } else if (LogStorageService.isUriPath(normalized)) {
+      return undefined
+    }
+
+    try {
+      normalized = decodeURIComponent(normalized)
+    } catch (_err) {
+    }
+
+    normalized = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (normalized.length === 0) {
+      return undefined
+    }
+    return normalized
+  }
+
+  private static normalizeCustomUriInput(uri: string | undefined): string | undefined {
+    let normalizedUri = LogStorageService.sanitizeCustomUri(uri)
+    if (normalizedUri) {
+      return normalizedUri
+    }
+
+    let normalizedPath = LogStorageService.normalizeSelectionPath(uri)
+    if (!normalizedPath || !normalizedPath.startsWith('/')) {
+      return undefined
+    }
+    return `file://${normalizedPath}`
+  }
+
+  private static resolvePublicTargetTypeByPath(pathOrUri: string | undefined): LogExportTargetType | undefined {
+    let selectedPath = LogStorageService.normalizeSelectionPath(pathOrUri)
+    if (!selectedPath) {
+      return undefined
+    }
+
+    let selectedNormalized = LogStorageService.normalizePathForCompare(selectedPath)
+    let candidates: LogExportTargetType[] = [
+      EXPORT_TARGET_DOWNLOAD,
+      EXPORT_TARGET_DOCUMENTS,
+      EXPORT_TARGET_DESKTOP
+    ]
+    for (let candidate of candidates) {
+      let baseDir = LogStorageService.resolvePublicBaseDirectoryByType(candidate)
+      if (!baseDir) {
+        continue
+      }
+      let baseNormalized = LogStorageService.normalizePathForCompare(baseDir)
+      if (
+        selectedNormalized === baseNormalized ||
+        selectedNormalized.startsWith(`${baseNormalized}/`)
+      ) {
+        return candidate
+      }
+    }
+    return undefined
+  }
+
   private static isExportDirectoryAllowed(path: string): boolean {
     if (path.length === 0 || path.includes('\0')) {
       return false
@@ -876,10 +980,28 @@ export class LogStorageService {
     }
 
     if (normalizedType === EXPORT_TARGET_CUSTOM_URI) {
-      let customUri = LogStorageService.sanitizeCustomUri(targetValue || legacyPath)
+      let customUri = LogStorageService.normalizeCustomUriInput(targetValue || legacyPath)
       if (!customUri) {
         return LogStorageService.createDefaultTargetConfig(baseConfig)
       }
+
+      let publicType = LogStorageService.resolvePublicTargetTypeByPath(customUri)
+      if (publicType) {
+        let publicPath = LogStorageService.resolvePublicDirectoryByType(publicType)
+        if (!publicPath || publicPath.length === 0) {
+          return LogStorageService.createDefaultTargetConfig(baseConfig)
+        }
+        return {
+          maxLocalEntries: baseConfig.maxLocalEntries,
+          retentionDays: baseConfig.retentionDays,
+          autoExportEnabled: baseConfig.autoExportEnabled,
+          exportPath: publicPath,
+          exportTargetType: publicType,
+          exportTargetValue: '',
+          exportAuthMode: EXPORT_AUTH_RUNTIME
+        }
+      }
+
       return {
         maxLocalEntries: baseConfig.maxLocalEntries,
         retentionDays: baseConfig.retentionDays,
@@ -917,6 +1039,18 @@ export class LogStorageService {
   }
 
   private static resolvePublicDirectoryByType(targetType: LogExportTargetType): string | undefined {
+    let normalizedBase = LogStorageService.resolvePublicBaseDirectoryByType(targetType)
+    if (!normalizedBase) {
+      return undefined
+    }
+
+    return LogStorageService.joinPath(
+      LogStorageService.joinPath(normalizedBase, DEFAULT_EXPORT_PARENT_DIR_NAME),
+      DEFAULT_EXPORT_DIR_NAME
+    )
+  }
+
+  private static resolvePublicBaseDirectoryByType(targetType: LogExportTargetType): string | undefined {
     if (targetType === EXPORT_TARGET_CUSTOM_URI) {
       return undefined
     }
@@ -939,10 +1073,7 @@ export class LogStorageService {
     if (!normalized || LogStorageService.isUriPath(normalized)) {
       return undefined
     }
-    return LogStorageService.joinPath(
-      LogStorageService.joinPath(normalized, DEFAULT_EXPORT_PARENT_DIR_NAME),
-      DEFAULT_EXPORT_DIR_NAME
-    )
+    return normalized
   }
 
   private static resolveDefaultExportDirectoryFromCurrentContext(): string {
