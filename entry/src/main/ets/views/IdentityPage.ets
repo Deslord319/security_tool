@@ -470,26 +470,6 @@ export struct IdentityPage {
           this.updatePreviewRegex()
         })
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      // 正则预览
-      Row() {
-        Text('生成的正则表达式：')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        Text(this.previewRegex)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     }
     .width('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)

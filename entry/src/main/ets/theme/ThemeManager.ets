@@ -4,6 +4,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode, ThemePreference, ThemeOption } from './ThemeColors'
 
 const DOMAIN = 0x0000
+const TAG = 'ThemeManager'
 
 const PREFERENCES_NAME = 'theme_preferences'
 const KEY_THEME_MODE = 'theme_mode'
