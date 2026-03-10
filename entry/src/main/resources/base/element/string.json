@@ -11,6 +11,18 @@
     {
       "name": "EntryAbility_label",
       "value": "\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3"
+    },
+    {
+      "name": "download_dir_permission_reason",
+      "value": "\u7528\u4e8e\u5c06\u65e5\u5fd7\u5bfc\u51fa\u5230\u4e0b\u8f7d\u76ee\u5f55"
+    },
+    {
+      "name": "documents_dir_permission_reason",
+      "value": "\u7528\u4e8e\u5c06\u65e5\u5fd7\u5bfc\u51fa\u5230\u6587\u6863\u76ee\u5f55"
+    },
+    {
+      "name": "desktop_dir_permission_reason",
+      "value": "\u7528\u4e8e\u5c06\u65e5\u5fd7\u5bfc\u51fa\u5230\u684c\u9762\u76ee\u5f55"
     }
   ]
 }

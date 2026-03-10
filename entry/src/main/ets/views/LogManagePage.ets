@@ -10,6 +10,8 @@ import {
   LogFilter,
   LogStatistics,
   LogStorageConfig,
+  LogExportTargetType,
+  LogExportAuthMode,
   LogExportFormat,
   LogExportResult,
   LogAuditDiagnostics,
@@ -66,6 +68,8 @@ export struct LogManagePage {
   @State maxEntriesIndex: number = 1
   @State retentionIndex: number = 2
   @State autoExportEnabled: boolean = false
+  @State exportTargetType: LogExportTargetType = 'download'
+  @State customExportUri: string = ''
   @State exportPath: string = ''
   @State defaultExportPath: string = ''
 
@@ -100,6 +104,12 @@ export struct LogManagePage {
     { value: '已阻止' } as SelectOption,
     { value: '失败' } as SelectOption
   ]
+  private exportTargetOptions: SelectOption[] = [
+    { value: '下载目录' } as SelectOption,
+    { value: '文档目录' } as SelectOption,
+    { value: '桌面目录' } as SelectOption,
+    { value: '自定义目录' } as SelectOption
+  ]
 
   aboutToAppear() {
     this.initServices()
@@ -128,19 +138,7 @@ export struct LogManagePage {
       let context = getContext(this) as common.UIAbilityContext
       await LogStorageService.init(context)
       this.defaultExportPath = LogStorageService.getDefaultExportDirectory(context)
-
-      let config = LogStorageService.getConfig()
-      this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
-      if (this.maxEntriesIndex < 0) {
-        this.maxEntriesIndex = 1
-      }
-      this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(config.retentionDays)
-      if (this.retentionIndex < 0) {
-        this.retentionIndex = 2
-      }
-      this.autoExportEnabled = config.autoExportEnabled
-      this.exportPath = config.exportPath && config.exportPath.length > 0 ?
-        config.exportPath : this.defaultExportPath
+      this.applyStorageConfig(LogStorageService.getConfig())
 
       this.refreshAll()
       hilog.info(0x0006, TAG, 'Services initialized')
@@ -247,7 +245,9 @@ export struct LogManagePage {
       primaryButton: {
         value: '恢复默认目录',
         action: () => {
-          this.exportPath = this.defaultExportPath
+          this.exportTargetType = 'download'
+          this.customExportUri = ''
+          this.updateExportPathPreview()
           promptAction.showToast({ message: '已恢复默认导出目录，请重新导出' })
         }
       },
@@ -285,42 +285,160 @@ export struct LogManagePage {
   }
 
   async saveStorageSettings() {
-    let customExportPath = this.resolveExportPathForSave()
+    let context = getContext(this) as common.UIAbilityContext
     let config: LogStorageConfig = {
       maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex],
       retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex],
-      autoExportEnabled: this.autoExportEnabled,
-      exportPath: customExportPath
+      autoExportEnabled: this.autoExportEnabled
+    }
+
+    if (this.exportTargetType === 'custom_uri') {
+      let customUri = this.customExportUri.trim()
+      if (customUri.length === 0) {
+        promptAction.showToast({ message: '请先选择自定义目录' })
+        return
+      }
+
+      let persistResult = await LogStorageService.persistCustomUriPermission(customUri)
+      if (!persistResult.success) {
+        let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
+        promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
+        return
+      }
+
+      config.exportTargetType = 'custom_uri'
+      config.exportTargetValue = customUri
+      config.exportAuthMode = 'persisted_uri' as LogExportAuthMode
+      config.exportPath = customUri
+    } else {
+      let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, this.exportTargetType)
+      if (!permissionResult.success) {
+        let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
+        promptAction.showToast({ message: `目录权限未授权${codeText}` })
+        return
+      }
+
+      let publicPath = LogStorageService.getPublicExportDirectory(this.exportTargetType)
+      config.exportTargetType = this.exportTargetType
+      config.exportTargetValue = ''
+      config.exportAuthMode = 'runtime_permission' as LogExportAuthMode
+      config.exportPath = publicPath
     }
 
     let success = await LogStorageService.updateConfig(config)
     if (success) {
-      this.exportPath = customExportPath || this.defaultExportPath
+      let persistedConfig = LogStorageService.getConfig()
+      this.applyStorageConfig(persistedConfig)
       this.refreshAll()
-      promptAction.showToast({ message: '存储设置已保存' })
+
+      let expectedType = config.exportTargetType || 'download'
+      let persistedType = persistedConfig.exportTargetType || 'download'
+      let typeApplied = expectedType === persistedType
+      let valueApplied = true
+      if (expectedType === 'custom_uri') {
+        let expectedUri = config.exportTargetValue || ''
+        let persistedUri = persistedConfig.exportTargetValue || ''
+        valueApplied = this.normalizePathForCompare(expectedUri) === this.normalizePathForCompare(persistedUri)
+      }
+
+      if (typeApplied && valueApplied) {
+        promptAction.showToast({ message: '存储设置已保存' })
+      } else {
+        promptAction.showToast({ message: '所选目录不可用，已自动回退到默认目录' })
+      }
     } else {
       promptAction.showToast({ message: '保存失败' })
     }
   }
 
-  resolveExportPathForSave(): string | undefined {
-    let current = this.exportPath.trim()
-    if (current.length === 0) {
-      return undefined
+  applyStorageConfig(config: LogStorageConfig): void {
+    this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
+    if (this.maxEntriesIndex < 0) {
+      this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
     }
-    let currentNormalized = this.normalizePathForCompare(current)
-    let defaultNormalized = this.normalizePathForCompare(this.defaultExportPath)
-    if (currentNormalized === defaultNormalized) {
-      return undefined
+    if (this.maxEntriesIndex < 0) {
+      this.maxEntriesIndex = 0
     }
-    return current
+
+    this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(config.retentionDays)
+    if (this.retentionIndex < 0) {
+      this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
+    }
+    if (this.retentionIndex < 0) {
+      this.retentionIndex = 0
+    }
+
+    this.autoExportEnabled = config.autoExportEnabled
+    let targetType = config.exportTargetType || 'download'
+    if (targetType === 'custom_uri') {
+      this.exportTargetType = 'custom_uri'
+      this.customExportUri = (config.exportTargetValue || config.exportPath || '').trim()
+    } else if (targetType === 'documents' || targetType === 'desktop' || targetType === 'download') {
+      this.exportTargetType = targetType
+      this.customExportUri = ''
+    } else {
+      this.exportTargetType = 'download'
+      this.customExportUri = ''
+    }
+
+    this.updateExportPathPreview()
+  }
+
+  private getExportTargetLabel(targetType: LogExportTargetType): string {
+    if (targetType === 'download') {
+      return '下载目录'
+    }
+    if (targetType === 'documents') {
+      return '文档目录'
+    }
+    if (targetType === 'desktop') {
+      return '桌面目录'
+    }
+    return '自定义目录'
+  }
+
+  private getExportTargetSelectIndex(): number {
+    if (this.exportTargetType === 'download') {
+      return 0
+    }
+    if (this.exportTargetType === 'documents') {
+      return 1
+    }
+    if (this.exportTargetType === 'desktop') {
+      return 2
+    }
+    return 3
+  }
+
+  private applyExportTargetByIndex(index: number): void {
+    if (index === 0) {
+      this.exportTargetType = 'download'
+    } else if (index === 1) {
+      this.exportTargetType = 'documents'
+    } else if (index === 2) {
+      this.exportTargetType = 'desktop'
+    } else {
+      this.exportTargetType = 'custom_uri'
+    }
+    this.updateExportPathPreview()
+  }
+
+  private updateExportPathPreview(): void {
+    if (this.exportTargetType === 'custom_uri') {
+      this.exportPath = this.customExportUri.trim()
+      return
+    }
+
+    let resolved = LogStorageService.getPublicExportDirectory(this.exportTargetType)
+    if (resolved.length > 0) {
+      this.exportPath = resolved
+    } else {
+      this.exportPath = this.defaultExportPath
+    }
   }
 
   normalizePathForCompare(path: string): string {
-    let normalized = path.replace(/\\/g, '/').trim().replace(/\/+$/, '')
-    if (normalized.startsWith('file://')) {
-      normalized = normalized.substring('file://'.length)
-    }
+    let normalized = path.trim().replace(/\\/g, '/').replace(/\/+$/, '')
     return normalized
   }
 
@@ -350,8 +468,18 @@ export struct LogManagePage {
         return
       }
 
-      this.exportPath = uris[0]
-      promptAction.showToast({ message: '已选择导出目录，请保存以生效' })
+      let selectedUri = uris[0]
+      let persistResult = await LogStorageService.persistCustomUriPermission(selectedUri)
+      if (!persistResult.success) {
+        let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
+        promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
+        return
+      }
+
+      this.exportTargetType = 'custom_uri'
+      this.customExportUri = selectedUri
+      this.updateExportPathPreview()
+      promptAction.showToast({ message: '已选择自定义目录，请保存以生效' })
     } catch (err) {
       hilog.error(0x0006, TAG, `chooseExportDirectory failed: ${JSON.stringify(err)}`)
       promptAction.showToast({ message: '选择目录失败，请重试' })
@@ -359,7 +487,9 @@ export struct LogManagePage {
   }
 
   restoreDefaultExportDirectory() {
-    this.exportPath = this.defaultExportPath
+    this.exportTargetType = 'download'
+    this.customExportUri = ''
+    this.updateExportPathPreview()
     promptAction.showToast({ message: '已恢复默认导出目录，请保存以生效' })
   }
 
@@ -847,7 +977,9 @@ export struct LogManagePage {
                 this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
                 this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
                 this.autoExportEnabled = DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-                this.exportPath = this.defaultExportPath
+                this.exportTargetType = 'download'
+                this.customExportUri = ''
+                this.updateExportPathPreview()
                 promptAction.showToast({ message: '已恢复默认，请保存以生效' })
               })
 
@@ -927,27 +1059,55 @@ export struct LogManagePage {
 
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
+      Row() {
+        Text('导出目录类型')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Select(this.exportTargetOptions)
+          .selected(this.getExportTargetSelectIndex())
+          .value(this.getExportTargetLabel(this.exportTargetType))
+          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .onSelect((index: number) => { this.applyExportTargetByIndex(index) })
+      }
+      .width('100%')
+      .height(56)
+      .alignItems(VerticalAlign.Center)
+
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
       Row({ space: 12 }) {
         Column({ space: 8 }) {
           Text('导出保存位置')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Text(this.toDisplayPath(this.exportPath || this.defaultExportPath))
+          Text(this.toDisplayPath(this.exportPath.length > 0 ? this.exportPath : '未选择目录'))
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontFamily('monospace')
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            .maxLines(2)
+            .maxLines(3)
             .width('100%')
             .padding({ left: 10, right: 10, top: 8, bottom: 8 })
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
             .borderRadius(AppStyles.RADIUS_SM)
+          Text('下载/文档/桌面目录通过系统权限授权；其他目录通过文件选择器授权并持久化。')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .maxLines(2)
+          Text('若所选目录不可写，导出时会自动回退到默认目录并在导出详情提示。')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .maxLines(2)
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
         Row({ space: 8 }) {
-          Button('选择位置').onClick(() => { this.chooseExportDirectory() })
+          Button('选择自定义目录').onClick(() => { this.chooseExportDirectory() })
           Button('恢复默认目录').onClick(() => { this.restoreDefaultExportDirectory() })
         }
         .alignItems(VerticalAlign.Center)
@@ -980,6 +1140,18 @@ export struct LogManagePage {
       Text('权限信息').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
       Text('ohos.permission.QUERY_AUDIT_EVENT').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      Text('ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      Text('ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      Text('ohos.permission.READ_WRITE_DESKTOP_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      Text('ohos.permission.FILE_ACCESS_PERSIST').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }

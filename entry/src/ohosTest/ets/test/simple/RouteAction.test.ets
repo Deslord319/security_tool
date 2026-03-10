@@ -77,12 +77,26 @@ async function ensureTheme(driver: Driver, targetTheme: ThemeId): Promise<void> 
     return
   }
 
-  const switchHint = targetTheme === 'dark' ? '深色模式' : '浅色模式'
-  const switchEntry = await findByTextWithRetry(driver, switchHint, 2)
-  if (switchEntry) {
-    await switchEntry.click()
-    await driver.delayMs(400)
+  const menuTrigger = await driver.findComponent(ON.id('top-menu-trigger'))
+  if (!menuTrigger) {
+    return
   }
+
+  await menuTrigger.click()
+  await driver.delayMs(300)
+
+  const optionId = targetTheme === 'dark' ? 'theme-option-dark' : 'theme-option-light'
+  const switchEntry = await driver.findComponent(ON.id(optionId))
+  if (!switchEntry) {
+    return
+  }
+
+  await switchEntry.click()
+  await driver.delayMs(400)
+
+  const expectedMarkerId = targetTheme === 'dark' ? 'theme-marker-dark' : 'theme-marker-light'
+  const applied = await driver.exists(ON.id(expectedMarkerId))
+  expect(applied).assertTrue()
 }
 
 export default function routeActionTest() {
@@ -122,3 +136,4 @@ export default function routeActionTest() {
     })
   })
 }
+

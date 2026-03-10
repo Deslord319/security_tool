@@ -20,11 +20,26 @@ export struct HelpFeedbackPage {
   @State hoveredCardIndex: number = -1
 
   private guideItems: GuideItem[] = [
-    { title: '防火墙管理', description: '在防火墙页面中可以启用/关闭防火墙，查看和管理防火墙规则。支持按域名、IP 地址配置白名单和黑名单规则。' },
-    { title: '外设管理', description: '外设管理页面提供 USB、蓝牙、Wi-Fi 等外设的统一管控。可以按需启用或禁用各类外设接口。' },
-    { title: '身份鉴别', description: '配置设备口令复杂度与域账号有效期策略。口令有效期仅作用于域账号，不作用于本地 PIN。' },
-    { title: '工具设置', description: '配置应用的启动校验和访问密码。启用启动校验后，每次打开应用需要进行身份认证。' },
-    { title: '深色模式', description: '点击右上角三点菜单或左下角主题按钮切换显示模式。支持跟随系统、浅色和深色三种模式。' }
+    {
+      title: '\u9632\u706B\u5899\u7BA1\u7406',
+      description: '\u5728\u9632\u706B\u5899\u9875\u9762\u4E2D\u53EF\u4EE5\u542F\u7528/\u5173\u95ED\u9632\u706B\u5899\uFF0C\u67E5\u770B\u548C\u7BA1\u7406\u9632\u706B\u5899\u89C4\u5219\u3002\u652F\u6301\u6309\u57DF\u540D\u3001IP \u5730\u5740\u914D\u7F6E\u767D\u540D\u5355\u548C\u9ED1\u540D\u5355\u89C4\u5219\u3002'
+    },
+    {
+      title: '\u5916\u8BBE\u7BA1\u7406',
+      description: '\u5916\u8BBE\u7BA1\u7406\u9875\u9762\u63D0\u4F9B USB\u3001\u84DD\u7259\u3001Wi-Fi \u7B49\u5916\u8BBE\u7684\u7EDF\u4E00\u7BA1\u63A7\u3002\u53EF\u4EE5\u6309\u9700\u542F\u7528\u6216\u7981\u7528\u5404\u7C7B\u5916\u8BBE\u63A5\u53E3\u3002'
+    },
+    {
+      title: '\u8EAB\u4EFD\u9274\u522B',
+      description: '\u914D\u7F6E\u8BBE\u5907\u53E3\u4EE4\u590D\u6742\u5EA6\u4E0E\u57DF\u8D26\u53F7\u6709\u6548\u671F\u7B56\u7565\u3002\u53E3\u4EE4\u6709\u6548\u671F\u4EC5\u4F5C\u7528\u4E8E\u57DF\u8D26\u53F7\uFF0C\u4E0D\u4F5C\u7528\u4E8E\u672C\u5730 PIN\u3002'
+    },
+    {
+      title: '\u5DE5\u5177\u8BBE\u7F6E',
+      description: '\u914D\u7F6E\u5E94\u7528\u7684\u542F\u52A8\u6821\u9A8C\u548C\u8BBF\u95EE\u5BC6\u7801\u3002\u542F\u7528\u542F\u52A8\u6821\u9A8C\u540E\uFF0C\u6BCF\u6B21\u6253\u5F00\u5E94\u7528\u9700\u8981\u8FDB\u884C\u8EAB\u4EFD\u8BA4\u8BC1\u3002'
+    },
+    {
+      title: '\u6DF1\u8272\u6A21\u5F0F',
+      description: '\u70B9\u51FB\u53F3\u4E0A\u89D2\u4E09\u70B9\u83DC\u5355\u5207\u6362\u663E\u793A\u6A21\u5F0F\u3002\u652F\u6301\u8DDF\u968F\u7CFB\u7EDF\u3001\u6D45\u8272\u548C\u6DF1\u8272\u4E09\u79CD\u6A21\u5F0F\u3002'
+    }
   ]
 
   private faqItems: FaqItem[] = [
@@ -219,3 +234,4 @@ export struct HelpFeedbackPage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 }
+

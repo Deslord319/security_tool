@@ -1,7 +1,7 @@
-import { preferences } from '@kit.ArkData'
+﻿import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { common } from '@kit.AbilityKit'
-import { fileIo } from '@kit.CoreFileKit'
+import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit'
+import { Environment, fileIo, fileShare } from '@kit.CoreFileKit'
 import {
   LogEntry,
   LogFilter,
@@ -13,6 +13,8 @@ import {
   LogExportFormat,
   LogExportResult,
   LogExportTrigger,
+  LogExportTargetType,
+  LogExportAuthMode,
   DEFAULT_LOG_STORAGE_CONFIG,
   DEFAULT_SUBSCRIPTION_CONFIG,
   ALL_LOG_EVENT_TYPES,
@@ -21,6 +23,9 @@ import {
   PREF_KEY_LOG_RETENTION_DAYS,
   PREF_KEY_LOG_AUTO_EXPORT,
   PREF_KEY_LOG_EXPORT_PATH,
+  PREF_KEY_LOG_EXPORT_TARGET_TYPE,
+  PREF_KEY_LOG_EXPORT_TARGET_VALUE,
+  PREF_KEY_LOG_EXPORT_AUTH_MODE,
   PREF_KEY_LOG_SUBSCRIBE_ALL,
   PREF_KEY_LOG_SUBSCRIBED_TYPES,
   formatLogTimestamp,
@@ -31,7 +36,7 @@ import {
 const TAG = 'LogStorageService'
 const DOMAIN = 0x0007
 
-// 日志数据存储 key
+// 鏃ュ織鏁版嵁瀛樺偍 key
 const LOG_DATA_KEY = 'log_entries'
 const MAX_IN_MEMORY_ENTRIES = 5000
 const MAX_PERSIST_ENTRIES = 1000
@@ -43,8 +48,24 @@ const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const DEFAULT_EXPORT_DIR_NAME = 'log_exports'
+const DEFAULT_EXPORT_PARENT_DIR_NAME = 'SecurityTool'
+const EXPORT_TARGET_DOWNLOAD: LogExportTargetType = 'download'
+const EXPORT_TARGET_DOCUMENTS: LogExportTargetType = 'documents'
+const EXPORT_TARGET_DESKTOP: LogExportTargetType = 'desktop'
+const EXPORT_TARGET_CUSTOM_URI: LogExportTargetType = 'custom_uri'
+const EXPORT_AUTH_RUNTIME: LogExportAuthMode = 'runtime_permission'
+const EXPORT_AUTH_PERSISTED: LogExportAuthMode = 'persisted_uri'
+const PUBLIC_EXPORT_PERMISSIONS: Record<string, Permissions> = {
+  [EXPORT_TARGET_DOWNLOAD]: 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions,
+  [EXPORT_TARGET_DOCUMENTS]: 'ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY' as Permissions,
+  [EXPORT_TARGET_DESKTOP]: 'ohos.permission.READ_WRITE_DESKTOP_DIRECTORY' as Permissions
+}
+const PERSIST_URI_OPERATION_MODE: number =
+  fileShare.OperationMode.READ_MODE |
+  fileShare.OperationMode.WRITE_MODE |
+  fileShare.OperationMode.CREATE_MODE
 
-// 日志存储服务 - 负责日志的持久化、查询、过滤、导出
+// 鏃ュ織瀛樺偍鏈嶅姟 - 璐熻矗鏃ュ織鐨勬寔涔呭寲銆佹煡璇€佽繃婊ゃ€佸鍑?
 export class LogStorageService {
 
   private static context: common.UIAbilityContext | null = null
@@ -57,7 +78,7 @@ export class LogStorageService {
   private static initializedContextDir: string = ''
   private static initPromise: Promise<boolean> | null = null
 
-  // 初始化（需要 UIAbilityContext 用于 Preferences）
+  // 鍒濆鍖栵紙闇€瑕?UIAbilityContext 鐢ㄤ簬 Preferences锛?
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     LogStorageService.context = context
     let contextDir = context.filesDir || ''
@@ -79,11 +100,11 @@ export class LogStorageService {
     try {
       LogStorageService.context = context
 
-      // 加载存储配置
+      // 鍔犺浇瀛樺偍閰嶇疆
       await LogStorageService.loadConfig()
-      // 从持久化存储加载日志
+      await LogStorageService.tryActivateConfiguredExportTarget()
       await LogStorageService.loadEntries()
-      // 清理过期日志
+      // 娓呯悊杩囨湡鏃ュ織
       let cleaned = LogStorageService.cleanExpiredEntries()
       if (cleaned > 0) {
         await LogStorageService.saveEntries()
@@ -101,26 +122,26 @@ export class LogStorageService {
     }
   }
 
-  // 添加新日志条目
+  // 娣诲姞鏂版棩蹇楁潯鐩?
   static async addEntry(entry: LogEntry): Promise<boolean> {
     return LogStorageService.addEntries([entry])
   }
 
-  // 批量添加日志条目（用于高频审计事件，避免每条都落盘）
+  // 鎵归噺娣诲姞鏃ュ織鏉＄洰锛堢敤浜庨珮棰戝璁′簨浠讹紝閬垮厤姣忔潯閮借惤鐩橈級
   static async addEntries(entries: LogEntry[]): Promise<boolean> {
     try {
       if (entries.length === 0) {
         return true
       }
 
-      // 批量归一化后一次性拼接，避免循环头插导致 O(n^2) 退化
+      // 鎵归噺褰掍竴鍖栧悗涓€娆℃€ф嫾鎺ワ紝閬垮厤寰幆澶存彃瀵艰嚧 O(n^2) 閫€鍖?
       let normalizedBatch = LogStorageService.normalizeEntriesForAppend(entries)
       if (normalizedBatch.length === 0) {
         return true
       }
       LogStorageService.logEntries = normalizedBatch.concat(LogStorageService.logEntries)
 
-      // 超出最大条数时删除旧条目
+      // 瓒呭嚭鏈€澶ф潯鏁版椂鍒犻櫎鏃ф潯鐩?
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       let overflowCount = LogStorageService.logEntries.length - maxEntries
       if (overflowCount > 0 && LogStorageService.storageConfig.autoExportEnabled) {
@@ -158,7 +179,7 @@ export class LogStorageService {
     }
   }
 
-  // 根据过滤条件查询日志
+  // 鏍规嵁杩囨护鏉′欢鏌ヨ鏃ュ織
   static queryEntries(filter?: LogFilter): LogEntry[] {
     if (!filter) {
       return LogStorageService.logEntries.slice(0, LogStorageService.logEntries.length)
@@ -175,21 +196,21 @@ export class LogStorageService {
     }
 
     return LogStorageService.logEntries.filter((entry: LogEntry) => {
-      // 事件类型过滤
+      // 浜嬩欢绫诲瀷杩囨护
       if (filter.eventTypes && filter.eventTypes.length > 0) {
         if (!filter.eventTypes.includes(entry.eventType)) {
           return false
         }
       }
 
-      // 结果过滤
+      // 缁撴灉杩囨护
       if (filter.results && filter.results.length > 0) {
         if (!filter.results.includes(entry.result)) {
           return false
         }
       }
 
-      // 时间范围过滤
+      // 鏃堕棿鑼冨洿杩囨护
       if (
         filter.startTime !== undefined &&
         Number.isFinite(filter.startTime) &&
@@ -205,7 +226,7 @@ export class LogStorageService {
         return false
       }
 
-      // 关键字搜索
+      // 鍏抽敭瀛楁悳绱?
       if (filter.keyword && filter.keyword.length > 0) {
         let keyword = filter.keyword.toLowerCase()
         let matchDetail = entry.detail.toLowerCase().includes(keyword)
@@ -222,7 +243,7 @@ export class LogStorageService {
     })
   }
 
-  // 获取日志统计信息
+  // 鑾峰彇鏃ュ織缁熻淇℃伅
   static getStatistics(): LogStatistics {
     let todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
@@ -233,16 +254,16 @@ export class LogStorageService {
     let blockedCount = 0
 
     for (let entry of LogStorageService.logEntries) {
-      // 按类型统计
+      // 鎸夌被鍨嬬粺璁?
       let count = byType.get(entry.eventType) || 0
       byType.set(entry.eventType, count + 1)
 
-      // 今日统计
+      // 浠婃棩缁熻
       if (entry.timestamp >= todayTimestamp) {
         todayCount++
       }
 
-      // 阻止事件统计
+      // 闃绘浜嬩欢缁熻
       if (entry.result === LogEventResult.BLOCKED) {
         blockedCount++
       }
@@ -256,7 +277,7 @@ export class LogStorageService {
     }
   }
 
-  // 清空所有日志
+  // 娓呯┖鎵€鏈夋棩蹇?
   static async clearAll(): Promise<boolean> {
     try {
       LogStorageService.logEntries = []
@@ -269,7 +290,7 @@ export class LogStorageService {
     }
   }
 
-  // 删除指定日志条目
+  // 鍒犻櫎鎸囧畾鏃ュ織鏉＄洰
   static async deleteEntry(entryId: string): Promise<boolean> {
     try {
       let initialLength = LogStorageService.logEntries.length
@@ -289,7 +310,7 @@ export class LogStorageService {
     }
   }
 
-  // 导出日志为文本
+  // 瀵煎嚭鏃ュ織涓烘枃鏈?
   static exportToString(entries: LogEntry[], format: LogExportFormat): string {
     switch (format) {
       case LogExportFormat.JSON:
@@ -306,7 +327,7 @@ export class LogStorageService {
     }
   }
 
-  // 导出日志到文件
+  // 瀵煎嚭鏃ュ織鍒版枃浠?
   static async exportToFile(
     entries: LogEntry[],
     format: LogExportFormat,
@@ -321,14 +342,29 @@ export class LogStorageService {
         format: format,
         timestamp: now,
         trigger: trigger,
-        errorMessage: '没有可导出的日志'
+        errorMessage: '娌℃湁鍙鍑虹殑鏃ュ織'
       }
     }
 
     let content = LogStorageService.exportToString(entries, format)
     let fileName = LogStorageService.buildExportFileName(format, entries.length, now)
-    let primaryDir = LogStorageService.resolveConfiguredExportDirectory()
-    let primaryWrite = LogStorageService.tryWriteExportFile(primaryDir, fileName, content)
+    let primaryTarget = LogStorageService.resolveConfiguredExportDirectory()
+    let primaryDir = primaryTarget.directory
+    let activateMessage = ''
+    if (primaryTarget.targetType === EXPORT_TARGET_CUSTOM_URI) {
+      let activateResult = await LogStorageService.activateCustomUriPermission(primaryDir)
+      if (!activateResult.success) {
+        activateMessage = activateResult.errorMessage || '自定义目录授权失效'
+        hilog.warn(DOMAIN, TAG, `activate custom uri failed, fallback to default: ${activateMessage}`)
+      }
+    }
+    let primaryWrite = activateMessage.length > 0
+      ? {
+        success: false,
+        errorCode: 13900001,
+        errorMessage: activateMessage
+      } as ExportWriteResult
+      : LogStorageService.tryWriteExportFile(primaryDir, fileName, content)
 
     if (primaryWrite.success) {
       return {
@@ -348,8 +384,11 @@ export class LogStorageService {
     if (defaultDir.length > 0 && defaultDir !== primaryDir) {
       let fallbackWrite = LogStorageService.tryWriteExportFile(defaultDir, fileName, content)
       if (fallbackWrite.success) {
-        let fallbackMsg = `配置目录不可写，已降级到默认目录: ${defaultDir}`
+        let fallbackMsg = `配置目录不可写，已回退到默认目录: ${defaultDir}`
         hilog.warn(DOMAIN, TAG, fallbackMsg)
+        if (primaryTarget.targetType === EXPORT_TARGET_CUSTOM_URI) {
+          await LogStorageService.fallbackToDefaultExportTarget()
+        }
         return {
           count: entries.length,
           format: format,
@@ -378,47 +417,173 @@ export class LogStorageService {
     }
   }
 
-  // 获取默认导出目录
+  // 鑾峰彇榛樿瀵煎嚭鐩綍
   static getDefaultExportDirectory(context: common.UIAbilityContext): string {
     return LogStorageService.resolveDefaultExportDirectory(context)
   }
 
-  // 设置导出目录
+  static getPublicExportDirectory(targetType: LogExportTargetType): string {
+    return LogStorageService.resolvePublicDirectoryByType(targetType) || ''
+  }
+
+  static async ensurePublicDirectoryPermission(
+    context: common.UIAbilityContext,
+    targetType: LogExportTargetType
+  ): Promise<ExportAuthResult> {
+    let permission = PUBLIC_EXPORT_PERMISSIONS[targetType]
+    if (!permission) {
+      return { success: true }
+    }
+
+    try {
+      let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager()
+      let grantResult = await atManager.requestPermissionsFromUser(context, [permission])
+      if (grantResult.authResults.length === 0) {
+        return {
+          success: false,
+          errorMessage: `权限未授予: ${permission}`
+        }
+      }
+
+      let granted = grantResult.authResults[0] === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED
+      if (granted) {
+        return { success: true }
+      }
+      return {
+        success: false,
+        errorMessage: `用户拒绝权限: ${permission}`
+      }
+    } catch (err) {
+      return {
+        success: false,
+        errorCode: LogStorageService.extractErrorCode(err as Object),
+        errorMessage: `申请目录权限失败: ${JSON.stringify(err)}`
+      }
+    }
+  }
+
+  static async persistCustomUriPermission(uri: string): Promise<ExportAuthResult> {
+    let normalized = LogStorageService.sanitizeCustomUri(uri)
+    if (!normalized) {
+      return {
+        success: false,
+        errorMessage: '无效的自定义目录URI'
+      }
+    }
+
+    let policies: fileShare.PolicyInfo[] = [{
+      uri: normalized,
+      operationMode: PERSIST_URI_OPERATION_MODE
+    } as fileShare.PolicyInfo]
+    try {
+      await fileShare.persistPermission(policies)
+      return { success: true }
+    } catch (err) {
+      let message = `持久化目录授权失败: ${JSON.stringify(err)}`
+      hilog.warn(DOMAIN, TAG, message)
+      return {
+        success: false,
+        errorCode: LogStorageService.extractErrorCode(err as Object),
+        errorMessage: message
+      }
+    }
+  }
+
+  static async activateCustomUriPermission(uri: string): Promise<ExportAuthResult> {
+    let normalized = LogStorageService.sanitizeCustomUri(uri)
+    if (!normalized) {
+      return {
+        success: false,
+        errorMessage: '无效的自定义目录URI'
+      }
+    }
+
+    let policies: fileShare.PolicyInfo[] = [{
+      uri: normalized,
+      operationMode: PERSIST_URI_OPERATION_MODE
+    } as fileShare.PolicyInfo]
+
+    try {
+      let persisted = await LogStorageService.checkCustomUriPersistentPermission(normalized)
+      if (!persisted) {
+        let persistResult = await LogStorageService.persistCustomUriPermission(normalized)
+        if (!persistResult.success) {
+          return persistResult
+        }
+      }
+
+      await fileShare.activatePermission(policies)
+      return { success: true }
+    } catch (err) {
+      let message = `激活目录授权失败: ${JSON.stringify(err)}`
+      hilog.warn(DOMAIN, TAG, message)
+      return {
+        success: false,
+        errorCode: LogStorageService.extractErrorCode(err as Object),
+        errorMessage: message
+      }
+    }
+  }
+
+  // 璁剧疆瀵煎嚭鐩綍
   static async setExportDirectory(path: string): Promise<boolean> {
     let cfg = LogStorageService.getConfig()
-    cfg.exportPath = path
+    let customUri = LogStorageService.sanitizeCustomUri(path)
+    if (customUri) {
+      cfg.exportPath = customUri
+      cfg.exportTargetType = EXPORT_TARGET_CUSTOM_URI
+      cfg.exportTargetValue = customUri
+      cfg.exportAuthMode = EXPORT_AUTH_PERSISTED
+      return LogStorageService.updateConfig(cfg)
+    }
+
+    let normalizedPath = LogStorageService.sanitizeConfiguredExportDirectory(path)
+    let legacyType = normalizedPath ? LogStorageService.resolveLegacyPublicTargetType(normalizedPath) : undefined
+    if (legacyType) {
+      cfg.exportTargetType = legacyType
+      cfg.exportTargetValue = ''
+      cfg.exportAuthMode = EXPORT_AUTH_RUNTIME
+      cfg.exportPath = LogStorageService.resolvePublicDirectoryByType(legacyType) || normalizedPath
+    } else {
+      cfg = LogStorageService.createDefaultTargetConfig(cfg)
+    }
     return LogStorageService.updateConfig(cfg)
   }
 
-  // 获取当前条目总数
+  // 鑾峰彇褰撳墠鏉＄洰鎬绘暟
   static getEntryCount(): number {
     return LogStorageService.logEntries.length
   }
 
-  // 获取存储配置
+  // 鑾峰彇瀛樺偍閰嶇疆
   static getConfig(): LogStorageConfig {
     let cfg = LogStorageService.storageConfig
     let copy: LogStorageConfig = {
       maxLocalEntries: cfg.maxLocalEntries,
       retentionDays: cfg.retentionDays,
       autoExportEnabled: cfg.autoExportEnabled,
-      exportPath: cfg.exportPath
+      exportPath: cfg.exportPath,
+      exportTargetType: cfg.exportTargetType,
+      exportTargetValue: cfg.exportTargetValue,
+      exportAuthMode: cfg.exportAuthMode
     }
     return copy
   }
 
-  // 更新存储配置
+  // 鏇存柊瀛樺偍閰嶇疆
   static async updateConfig(config: LogStorageConfig): Promise<boolean> {
     try {
-      LogStorageService.storageConfig = {
-        maxLocalEntries: LogStorageService.normalizeMaxEntries(config.maxLocalEntries),
-        retentionDays: LogStorageService.normalizeRetentionDays(config.retentionDays),
-        autoExportEnabled: LogStorageService.normalizeBoolean(
-          config.autoExportEnabled as Object,
-          DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-        ),
-        exportPath: LogStorageService.sanitizeConfiguredExportDirectory(config.exportPath)
+      let normalizedConfig = LogStorageService.normalizeStorageConfig(config)
+      if (normalizedConfig.exportTargetType === EXPORT_TARGET_CUSTOM_URI) {
+        let targetUri = normalizedConfig.exportTargetValue || ''
+        let authResult = await LogStorageService.activateCustomUriPermission(targetUri)
+        if (!authResult.success) {
+          hilog.warn(DOMAIN, TAG, `custom uri not available, fallback to default: ${authResult.errorMessage}`)
+          normalizedConfig = LogStorageService.createDefaultTargetConfig(normalizedConfig)
+        }
       }
+
+      LogStorageService.storageConfig = normalizedConfig
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       if (LogStorageService.logEntries.length > maxEntries) {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
@@ -434,7 +599,7 @@ export class LogStorageService {
     }
   }
 
-  // 加载日志订阅配置
+  // 鍔犺浇鏃ュ織璁㈤槄閰嶇疆
   static async loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
     if (!LogStorageService.context) {
       return {
@@ -482,7 +647,7 @@ export class LogStorageService {
     }
   }
 
-  // 保存日志订阅配置
+  // 淇濆瓨鏃ュ織璁㈤槄閰嶇疆
   static async saveSubscriptionConfig(config: LogSubscriptionConfig): Promise<boolean> {
     if (!LogStorageService.context) {
       return false
@@ -510,9 +675,9 @@ export class LogStorageService {
     }
   }
 
-  // ========== 内部方法 ==========
+  // ========== 鍐呴儴鏂规硶 ==========
 
-  // 过滤非法事件类型并去重
+  // 杩囨护闈炴硶浜嬩欢绫诲瀷骞跺幓閲?
   private static sanitizeSubscribedTypes(types: number[]): LogEventType[] {
     let result: LogEventType[] = []
     for (let value of types) {
@@ -534,20 +699,15 @@ export class LogStorageService {
       return undefined
     }
 
-    normalized = normalized.replace(/\\/g, '/')
-    if (normalized.startsWith('file://')) {
-      normalized = normalized.substring('file://'.length)
+    if (LogStorageService.isUriPath(normalized)) {
+      return LogStorageService.sanitizeCustomUri(normalized)
     }
-    let queryIndex = normalized.indexOf('?')
-    if (queryIndex >= 0) {
-      normalized = normalized.substring(0, queryIndex)
+
+    normalized = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (normalized.length === 0 || normalized === '/') {
+      return undefined
     }
-    try {
-      normalized = decodeURIComponent(normalized)
-    } catch (_err) {
-    }
-    normalized = normalized.replace(/\/+$/, '')
-    return normalized.length > 0 ? normalized : undefined
+    return normalized
   }
 
   private static sanitizeConfiguredExportDirectory(path: string | undefined): string | undefined {
@@ -555,22 +715,46 @@ export class LogStorageService {
     if (!normalized) {
       return undefined
     }
+    if (LogStorageService.isUriPath(normalized)) {
+      return normalized
+    }
     if (!LogStorageService.isExportDirectoryAllowed(normalized)) {
-      hilog.warn(DOMAIN, TAG, `exportPath is outside app sandbox, fallback to default: ${normalized}`)
+      hilog.warn(DOMAIN, TAG, `exportPath is invalid, fallback to default: ${normalized}`)
       return undefined
     }
     return normalized
   }
 
-  private static normalizePathForCompare(path: string): string {
-    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
-    return normalized.length > 0 ? normalized : '/'
+  private static sanitizeCustomUri(uri: string | undefined): string | undefined {
+    if (!uri) {
+      return undefined
+    }
+
+    let normalized = uri.trim()
+    if (normalized.length === 0 || normalized.includes('\0')) {
+      return undefined
+    }
+    if (!LogStorageService.isUriPath(normalized)) {
+      return undefined
+    }
+
+    if (!normalized.includes('?') && !normalized.includes('#')) {
+      normalized = normalized.replace(/\/+$/, '')
+    }
+    return normalized.length > 0 ? normalized : undefined
   }
 
-  private static isSameOrChildPath(path: string, root: string): boolean {
-    let normalizedPath = LogStorageService.normalizePathForCompare(path).toLowerCase()
-    let normalizedRoot = LogStorageService.normalizePathForCompare(root).toLowerCase()
-    return normalizedPath === normalizedRoot || normalizedPath.startsWith(`${normalizedRoot}/`)
+  private static normalizePathForCompare(path: string): string {
+    if (LogStorageService.isUriPath(path)) {
+      let normalized = path.trim().replace(/\\/g, '/').replace(/\/+$/, '')
+      let idx = normalized.indexOf('://')
+      let schema = normalized.substring(0, idx).toLowerCase()
+      let body = normalized.substring(idx + 3)
+      return `${schema}://${body}`
+    }
+
+    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+    return normalized.length > 0 ? normalized : '/'
   }
 
   private static isExportDirectoryAllowed(path: string): boolean {
@@ -578,7 +762,15 @@ export class LogStorageService {
       return false
     }
 
+    if (LogStorageService.isUriPath(path)) {
+      return true
+    }
+
     let normalized = LogStorageService.normalizePathForCompare(path)
+    if (normalized.length === 0 || normalized === '/') {
+      return false
+    }
+
     let parts = normalized.split('/')
     for (let part of parts) {
       if (part === '..') {
@@ -586,19 +778,174 @@ export class LogStorageService {
       }
     }
 
-    if (!LogStorageService.context) {
-      return true
+    return normalized.startsWith('/')
+  }
+
+  private static normalizeTargetType(
+    targetType: LogExportTargetType | string | undefined
+  ): LogExportTargetType | undefined {
+    if (
+      targetType === EXPORT_TARGET_DOWNLOAD ||
+      targetType === EXPORT_TARGET_DOCUMENTS ||
+      targetType === EXPORT_TARGET_DESKTOP ||
+      targetType === EXPORT_TARGET_CUSTOM_URI
+    ) {
+      return targetType
+    }
+    return undefined
+  }
+
+  private static resolveLegacyPublicTargetType(path: string): LogExportTargetType | undefined {
+    let current = LogStorageService.normalizePathForCompare(path)
+    let candidates: LogExportTargetType[] = [
+      EXPORT_TARGET_DOWNLOAD,
+      EXPORT_TARGET_DOCUMENTS,
+      EXPORT_TARGET_DESKTOP
+    ]
+    for (let item of candidates) {
+      let expected = LogStorageService.resolvePublicDirectoryByType(item)
+      if (!expected) {
+        continue
+      }
+      let expectedNormalized = LogStorageService.normalizePathForCompare(expected)
+      if (current === expectedNormalized || current.startsWith(`${expectedNormalized}/`)) {
+        return item
+      }
+    }
+    return undefined
+  }
+
+  private static createDefaultTargetConfig(baseConfig?: LogStorageConfig): LogStorageConfig {
+    let maxLocalEntries = LogStorageService.normalizeMaxEntries(
+      baseConfig?.maxLocalEntries ?? DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
+    )
+    let retentionDays = LogStorageService.normalizeRetentionDays(
+      baseConfig?.retentionDays ?? DEFAULT_LOG_STORAGE_CONFIG.retentionDays
+    )
+    let autoExportEnabled = LogStorageService.normalizeBoolean(
+      baseConfig?.autoExportEnabled as Object,
+      DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
+    )
+
+    let exportPath = LogStorageService.resolvePublicDirectoryByType(EXPORT_TARGET_DOWNLOAD)
+    if (!exportPath || exportPath.length === 0) {
+      exportPath = LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
     }
 
-    let filesDir = LogStorageService.context.filesDir || ''
-    if (filesDir.length === 0) {
-      return true
+    return {
+      maxLocalEntries: maxLocalEntries,
+      retentionDays: retentionDays,
+      autoExportEnabled: autoExportEnabled,
+      exportPath: exportPath,
+      exportTargetType: EXPORT_TARGET_DOWNLOAD,
+      exportTargetValue: '',
+      exportAuthMode: EXPORT_AUTH_RUNTIME
     }
-    return LogStorageService.isSameOrChildPath(normalized, filesDir)
+  }
+
+  private static normalizeStorageConfig(config: LogStorageConfig): LogStorageConfig {
+    let baseConfig: LogStorageConfig = {
+      maxLocalEntries: LogStorageService.normalizeMaxEntries(config.maxLocalEntries),
+      retentionDays: LogStorageService.normalizeRetentionDays(config.retentionDays),
+      autoExportEnabled: LogStorageService.normalizeBoolean(
+        config.autoExportEnabled as Object,
+        DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
+      )
+    }
+
+    let normalizedType = LogStorageService.normalizeTargetType(config.exportTargetType)
+    let targetValue = config.exportTargetValue
+    let legacyPath = LogStorageService.sanitizeConfiguredExportDirectory(config.exportPath)
+    if (!normalizedType) {
+      if (legacyPath && LogStorageService.isUriPath(legacyPath)) {
+        normalizedType = EXPORT_TARGET_CUSTOM_URI
+        targetValue = legacyPath
+      } else if (legacyPath) {
+        normalizedType = LogStorageService.resolveLegacyPublicTargetType(legacyPath) ?? EXPORT_TARGET_DOWNLOAD
+      } else {
+        normalizedType = EXPORT_TARGET_DOWNLOAD
+      }
+    }
+
+    if (normalizedType === EXPORT_TARGET_CUSTOM_URI) {
+      let customUri = LogStorageService.sanitizeCustomUri(targetValue || legacyPath)
+      if (!customUri) {
+        return LogStorageService.createDefaultTargetConfig(baseConfig)
+      }
+      return {
+        maxLocalEntries: baseConfig.maxLocalEntries,
+        retentionDays: baseConfig.retentionDays,
+        autoExportEnabled: baseConfig.autoExportEnabled,
+        exportPath: customUri,
+        exportTargetType: EXPORT_TARGET_CUSTOM_URI,
+        exportTargetValue: customUri,
+        exportAuthMode: EXPORT_AUTH_PERSISTED
+      }
+    }
+
+    let publicPath = LogStorageService.resolvePublicDirectoryByType(normalizedType)
+    if (!publicPath || publicPath.length === 0) {
+      return LogStorageService.createDefaultTargetConfig(baseConfig)
+    }
+
+    return {
+      maxLocalEntries: baseConfig.maxLocalEntries,
+      retentionDays: baseConfig.retentionDays,
+      autoExportEnabled: baseConfig.autoExportEnabled,
+      exportPath: publicPath,
+      exportTargetType: normalizedType,
+      exportTargetValue: '',
+      exportAuthMode: EXPORT_AUTH_RUNTIME
+    }
   }
 
   private static resolveDefaultExportDirectory(context: common.UIAbilityContext): string {
-    return `${context.filesDir}/${DEFAULT_EXPORT_DIR_NAME}`
+    let publicDefault = LogStorageService.resolvePublicDirectoryByType(EXPORT_TARGET_DOWNLOAD)
+    if (publicDefault && publicDefault.length > 0) {
+      return publicDefault
+    }
+
+    return LogStorageService.joinPath(context.filesDir, DEFAULT_EXPORT_DIR_NAME)
+  }
+
+  private static resolvePublicDirectoryByType(targetType: LogExportTargetType): string | undefined {
+    if (targetType === EXPORT_TARGET_CUSTOM_URI) {
+      return undefined
+    }
+
+    let baseDir = ''
+    try {
+      if (targetType === EXPORT_TARGET_DOWNLOAD) {
+        baseDir = Environment.getUserDownloadDir()
+      } else if (targetType === EXPORT_TARGET_DOCUMENTS) {
+        let getter = (Environment as Record<string, Object>)['getUserDocumentDir']
+        if (typeof getter === 'function') {
+          baseDir = (getter as () => string)()
+        } else {
+          let fallback = (Environment as Record<string, Object>)['getUserDocumentsDir']
+          if (typeof fallback === 'function') {
+            baseDir = (fallback as () => string)()
+          }
+        }
+      } else if (targetType === EXPORT_TARGET_DESKTOP) {
+        let getter = (Environment as Record<string, Object>)['getUserDesktopDir']
+        if (typeof getter === 'function') {
+          baseDir = (getter as () => string)()
+        }
+      }
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `resolve public directory failed: type=${targetType}, error=${JSON.stringify(err)}`)
+      return undefined
+    }
+
+    let normalized = LogStorageService.normalizeExportDirectory(baseDir)
+    if (!normalized || LogStorageService.isUriPath(normalized)) {
+      return undefined
+    }
+    return LogStorageService.joinPath(
+      LogStorageService.joinPath(normalized, DEFAULT_EXPORT_PARENT_DIR_NAME),
+      DEFAULT_EXPORT_DIR_NAME
+    )
   }
 
   private static resolveDefaultExportDirectoryFromCurrentContext(): string {
@@ -608,12 +955,109 @@ export class LogStorageService {
     return LogStorageService.resolveDefaultExportDirectory(LogStorageService.context)
   }
 
-  private static resolveConfiguredExportDirectory(): string {
-    let configured = LogStorageService.sanitizeConfiguredExportDirectory(LogStorageService.storageConfig.exportPath)
-    if (configured && configured.length > 0) {
-      return configured
+  private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
+    let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
+    let targetType = normalizedConfig.exportTargetType ?? EXPORT_TARGET_DOWNLOAD
+
+    if (targetType === EXPORT_TARGET_CUSTOM_URI) {
+      let customUri = LogStorageService.sanitizeCustomUri(normalizedConfig.exportTargetValue)
+      if (customUri) {
+        return {
+          targetType: EXPORT_TARGET_CUSTOM_URI,
+          authMode: EXPORT_AUTH_PERSISTED,
+          directory: customUri
+        }
+      }
     }
-    return LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
+
+    let publicPath = LogStorageService.resolvePublicDirectoryByType(targetType)
+    if (publicPath && publicPath.length > 0) {
+      return {
+        targetType: targetType,
+        authMode: EXPORT_AUTH_RUNTIME,
+        directory: publicPath
+      }
+    }
+
+    let fallback = LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
+    return {
+      targetType: EXPORT_TARGET_DOWNLOAD,
+      authMode: EXPORT_AUTH_RUNTIME,
+      directory: fallback
+    }
+  }
+
+  private static async tryActivateConfiguredExportTarget(): Promise<void> {
+    let resolvedTarget = LogStorageService.resolveConfiguredExportDirectory()
+    if (resolvedTarget.targetType !== EXPORT_TARGET_CUSTOM_URI) {
+      if (LogStorageService.storageConfig.exportPath !== resolvedTarget.directory) {
+        LogStorageService.storageConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
+        await LogStorageService.saveConfig()
+      }
+      return
+    }
+
+    let authResult = await LogStorageService.activateCustomUriPermission(resolvedTarget.directory)
+    if (!authResult.success) {
+      hilog.warn(DOMAIN, TAG, `configured custom uri invalid, fallback to default: ${authResult.errorMessage}`)
+      await LogStorageService.fallbackToDefaultExportTarget()
+      return
+    }
+
+    if (
+      LogStorageService.storageConfig.exportPath !== resolvedTarget.directory ||
+      LogStorageService.storageConfig.exportTargetValue !== resolvedTarget.directory
+    ) {
+      LogStorageService.storageConfig.exportPath = resolvedTarget.directory
+      LogStorageService.storageConfig.exportTargetType = EXPORT_TARGET_CUSTOM_URI
+      LogStorageService.storageConfig.exportTargetValue = resolvedTarget.directory
+      LogStorageService.storageConfig.exportAuthMode = EXPORT_AUTH_PERSISTED
+      await LogStorageService.saveConfig()
+    }
+  }
+
+  private static async fallbackToDefaultExportTarget(): Promise<void> {
+    LogStorageService.storageConfig = LogStorageService.createDefaultTargetConfig(LogStorageService.storageConfig)
+    await LogStorageService.saveConfig()
+  }
+
+  private static async checkCustomUriPersistentPermission(uri: string): Promise<boolean> {
+    let normalized = LogStorageService.sanitizeCustomUri(uri)
+    if (!normalized) {
+      return false
+    }
+
+    let checker = (fileShare as Record<string, Object>)['checkPersistentPermission']
+    if (typeof checker !== 'function') {
+      return false
+    }
+
+    let policies: fileShare.PolicyInfo[] = [{
+      uri: normalized,
+      operationMode: PERSIST_URI_OPERATION_MODE
+    } as fileShare.PolicyInfo]
+
+    try {
+      let raw = await (checker as (items: fileShare.PolicyInfo[]) => Promise<Object>)(policies)
+      if (typeof raw === 'boolean') {
+        return raw
+      }
+
+      if (Array.isArray(raw) && raw.length > 0) {
+        let first = raw[0] as Record<string, Object>
+        let boolLike = first['isPersisted'] ?? first['persisted'] ?? first['granted']
+        if (typeof boolLike === 'boolean') {
+          return boolLike
+        }
+        if (typeof boolLike === 'number') {
+          return boolLike > 0
+        }
+      }
+      return false
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `check persistent permission failed: ${JSON.stringify(err)}`)
+      return false
+    }
   }
 
   private static buildExportFileName(format: LogExportFormat, count: number, timestamp: number): string {
@@ -639,7 +1083,9 @@ export class LogStorageService {
     let fullPath = LogStorageService.joinPath(directory, fileName)
     let file: fileIo.File | undefined = undefined
     try {
-      LogStorageService.ensureDirectoryExists(directory)
+      if (!LogStorageService.isUriPath(directory)) {
+        LogStorageService.ensureDirectoryExists(directory)
+      }
       file = fileIo.openSync(
         fullPath,
         fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC
@@ -680,12 +1126,12 @@ export class LogStorageService {
   }
 
   private static ensureDirectoryExists(path: string): void {
-    if (path.length === 0 || path === '/') {
+    if (path.length === 0 || LogStorageService.isDirectoryRoot(path) || LogStorageService.isUriPath(path)) {
       return
     }
 
-    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
-    if (normalized.length === 0 || normalized === '/') {
+    let normalized = LogStorageService.normalizeDirectoryPath(path)
+    if (normalized.length === 0 || LogStorageService.isDirectoryRoot(normalized)) {
       return
     }
 
@@ -710,7 +1156,7 @@ export class LogStorageService {
     try {
       fileIo.mkdirSync(normalized)
     } catch (_mkdirErr) {
-      // 目录可能由并发流程创建，再次校验即可
+      // 鐩綍鍙兘鐢卞苟鍙戞祦绋嬪垱寤猴紝鍐嶆鏍￠獙鍗冲彲
       let stat = fileIo.statSync(normalized)
       if (!stat.isDirectory()) {
         throw new Error(`Failed to create directory: ${normalized}`)
@@ -719,9 +1165,24 @@ export class LogStorageService {
   }
 
   private static getParentDirectory(path: string): string {
-    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
-    if (normalized.length === 0 || normalized === '/') {
+    let normalized = LogStorageService.normalizeDirectoryPath(path)
+    if (normalized.length === 0 || LogStorageService.isDirectoryRoot(normalized)) {
       return ''
+    }
+
+    if (LogStorageService.isFileUri(normalized)) {
+      let body = normalized.substring('file://'.length)
+      if (body.length === 0 || body === '/') {
+        return ''
+      }
+      let idx = body.lastIndexOf('/')
+      if (idx < 0) {
+        return ''
+      }
+      if (idx === 0) {
+        return 'file:///'
+      }
+      return `file://${body.substring(0, idx)}`
     }
 
     let idx = normalized.lastIndexOf('/')
@@ -735,10 +1196,66 @@ export class LogStorageService {
   }
 
   private static joinPath(base: string, name: string): string {
+    if (LogStorageService.isUriPath(base)) {
+      let queryIndex = base.indexOf('?')
+      let fragmentIndex = base.indexOf('#')
+      let cutIndex = -1
+      if (queryIndex >= 0 && fragmentIndex >= 0) {
+        cutIndex = Math.min(queryIndex, fragmentIndex)
+      } else if (queryIndex >= 0) {
+        cutIndex = queryIndex
+      } else if (fragmentIndex >= 0) {
+        cutIndex = fragmentIndex
+      }
+
+      let prefix = cutIndex >= 0 ? base.substring(0, cutIndex) : base
+      let suffix = cutIndex >= 0 ? base.substring(cutIndex) : ''
+      if (prefix.endsWith('/')) {
+        return `${prefix}${name}${suffix}`
+      }
+      return `${prefix}/${name}${suffix}`
+    }
+
     if (base.endsWith('/')) {
       return `${base}${name}`
     }
     return `${base}/${name}`
+  }
+
+  private static isUriPath(path: string): boolean {
+    return path.includes('://')
+  }
+
+  private static isFileUri(path: string): boolean {
+    return path.startsWith('file://')
+  }
+
+  private static normalizeDirectoryPath(path: string): string {
+    let normalized = path.replace(/\\/g, '/')
+    if (LogStorageService.isFileUri(normalized)) {
+      let body = normalized.substring('file://'.length).replace(/\/+$/, '')
+      if (body.length === 0) {
+        return 'file:///'
+      }
+      return `file://${body}`
+    }
+
+    normalized = normalized.replace(/\/+$/, '')
+    return normalized.length > 0 ? normalized : '/'
+  }
+
+  private static isDirectoryRoot(path: string): boolean {
+    if (path === '/' || path.length === 0) {
+      return true
+    }
+    if (!LogStorageService.isFileUri(path)) {
+      return false
+    }
+    let body = path.substring('file://'.length).replace(/\/+$/, '')
+    if (body.length === 0 || body === '/') {
+      return true
+    }
+    return !body.includes('/')
   }
 
   private static extractErrorCode(err: Object): number | undefined {
@@ -753,7 +1270,7 @@ export class LogStorageService {
     return undefined
   }
 
-  // 归一化最大存储条数，避免过大导致内存峰值
+  // 褰掍竴鍖栨渶澶у瓨鍌ㄦ潯鏁帮紝閬垮厤杩囧ぇ瀵艰嚧鍐呭瓨宄板€?
   private static normalizeMaxEntries(maxEntries: number): number {
     if (!Number.isFinite(maxEntries) || maxEntries <= 0) {
       return DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
@@ -840,12 +1357,12 @@ export class LogStorageService {
     return `persist_${LogStorageService.nowProvider()}_${LogStorageService.randomProvider().toString(36).substring(2, 9)}`
   }
 
-  // 生效的内存上限
+  // 鐢熸晥鐨勫唴瀛樹笂闄?
   private static getEffectiveMaxEntries(): number {
     return LogStorageService.normalizeMaxEntries(LogStorageService.storageConfig.maxLocalEntries)
   }
 
-  // 截断超长字符串，防止单条日志过大
+  // 鎴柇瓒呴暱瀛楃涓诧紝闃叉鍗曟潯鏃ュ織杩囧ぇ
   private static truncateString(value: string | undefined, limit: number): string | undefined {
     if (value === undefined) {
       return undefined
@@ -856,7 +1373,7 @@ export class LogStorageService {
     return `${value.substring(0, limit)}...`
   }
 
-  // 单条日志瘦身
+  // 鍗曟潯鏃ュ織鐦﹁韩
   private static normalizeEntry(entry: LogEntry): LogEntry {
     return {
       id: LogStorageService.normalizeEntryId(entry.id),
@@ -885,12 +1402,12 @@ export class LogStorageService {
       normalizedBatch.push(LogStorageService.normalizeEntry(entry))
     }
 
-    // 归一化后反转，保证最终“最新在前”
+    // 褰掍竴鍖栧悗鍙嶈浆锛屼繚璇佹渶缁堚€滄渶鏂板湪鍓嶁€?
     normalizedBatch.reverse()
     return normalizedBatch
   }
 
-  // 批量日志瘦身并过滤异常项
+  // 鎵归噺鏃ュ織鐦﹁韩骞惰繃婊ゅ紓甯搁」
   private static sanitizeEntries(entries: LogEntry[]): LogEntry[] {
     let result: LogEntry[] = []
     let limit = Math.min(entries.length, LogStorageService.getEffectiveMaxEntries())
@@ -904,7 +1421,7 @@ export class LogStorageService {
     return result
   }
 
-  // 构建可安全落盘的 payload（按条数和内容大小双重裁剪）
+  // 鏋勫缓鍙畨鍏ㄨ惤鐩樼殑 payload锛堟寜鏉℃暟鍜屽唴瀹瑰ぇ灏忓弻閲嶈鍓級
   private static buildPersistPayload(): string {
     let effectiveMax = LogStorageService.getEffectiveMaxEntries()
     let saveLimit = Math.min(LogStorageService.logEntries.length, effectiveMax, MAX_PERSIST_ENTRIES)
@@ -928,7 +1445,7 @@ export class LogStorageService {
     return payload
   }
 
-  // 限频输出裁剪日志，避免高频事件下日志风暴
+  // 闄愰杈撳嚭瑁佸壀鏃ュ織锛岄伩鍏嶉珮棰戜簨浠朵笅鏃ュ織椋庢毚
   private static warnPersistTruncate(memoryCount: number, savedCount: number): void {
     let now = LogStorageService.nowProvider()
     if (now - LogStorageService.lastPersistTruncateWarnAt < 10000) {
@@ -938,7 +1455,7 @@ export class LogStorageService {
     hilog.warn(DOMAIN, TAG, `Persist entries truncated: memory=${memoryCount}, saved=${savedCount}`)
   }
 
-  // 从 Preferences 加载日志条目
+  // 浠?Preferences 鍔犺浇鏃ュ織鏉＄洰
   private static async loadEntries(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -966,7 +1483,7 @@ export class LogStorageService {
     }
   }
 
-  // 持久化日志条目到 Preferences
+  // 鎸佷箙鍖栨棩蹇楁潯鐩埌 Preferences
   private static async saveEntries(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -982,7 +1499,7 @@ export class LogStorageService {
     }
   }
 
-  // 加载存储配置
+  // 鍔犺浇瀛樺偍閰嶇疆
   private static async loadConfig(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -1004,23 +1521,34 @@ export class LogStorageService {
         DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
       ) as Object
       let exportPath = await store.get(PREF_KEY_LOG_EXPORT_PATH, '') as string
+      let exportTargetType = await store.get(PREF_KEY_LOG_EXPORT_TARGET_TYPE, '') as string
+      let exportTargetValue = await store.get(PREF_KEY_LOG_EXPORT_TARGET_VALUE, '') as string
+      let exportAuthMode = await store.get(PREF_KEY_LOG_EXPORT_AUTH_MODE, '') as string
 
       let retentionDaysNumber = typeof retentionDays === 'number' ? retentionDays : Number(retentionDays as string)
-      LogStorageService.storageConfig = {
+      let normalized = LogStorageService.normalizeStorageConfig({
         maxLocalEntries: LogStorageService.normalizeMaxEntries(maxEntries),
         retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber),
         autoExportEnabled: LogStorageService.normalizeBoolean(
           autoExport,
           DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
         ),
-        exportPath: LogStorageService.sanitizeConfiguredExportDirectory(exportPath)
+        exportPath: LogStorageService.sanitizeConfiguredExportDirectory(exportPath),
+        exportTargetType: exportTargetType as LogExportTargetType,
+        exportTargetValue: exportTargetValue,
+        exportAuthMode: exportAuthMode as LogExportAuthMode
+      })
+      LogStorageService.storageConfig = normalized
+
+      if (exportTargetType.length === 0) {
+        await LogStorageService.saveConfig()
       }
     } catch (err) {
       hilog.error(DOMAIN, TAG, `loadConfig failed: ${JSON.stringify(err)}`)
     }
   }
 
-  // 保存存储配置
+  // 淇濆瓨瀛樺偍閰嶇疆
   private static async saveConfig(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -1035,13 +1563,25 @@ export class LogStorageService {
         PREF_KEY_LOG_EXPORT_PATH,
         LogStorageService.storageConfig.exportPath ?? ''
       )
+      await store.put(
+        PREF_KEY_LOG_EXPORT_TARGET_TYPE,
+        LogStorageService.storageConfig.exportTargetType ?? EXPORT_TARGET_DOWNLOAD
+      )
+      await store.put(
+        PREF_KEY_LOG_EXPORT_TARGET_VALUE,
+        LogStorageService.storageConfig.exportTargetValue ?? ''
+      )
+      await store.put(
+        PREF_KEY_LOG_EXPORT_AUTH_MODE,
+        LogStorageService.storageConfig.exportAuthMode ?? EXPORT_AUTH_RUNTIME
+      )
       await store.flush()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `saveConfig failed: ${JSON.stringify(err)}`)
     }
   }
 
-  // 清理过期日志条目
+  // 娓呯悊杩囨湡鏃ュ織鏉＄洰
   private static cleanExpiredEntries(): number {
     let retentionDays = LogStorageService.normalizeRetentionDays(LogStorageService.storageConfig.retentionDays)
     let retentionMs = retentionDays * 24 * 60 * 60 * 1000
@@ -1059,15 +1599,15 @@ export class LogStorageService {
     return removed
   }
 
-  // 转换为 CSV 格式
+  // 杞崲涓?CSV 鏍煎紡
   private static toCsv(entries: LogEntry[]): string {
-    let header = '时间,事件类型,详情,进程名,PID,结果'
+    let header = '鏃堕棿,浜嬩欢绫诲瀷,璇︽儏,杩涚▼鍚?PID,缁撴灉'
     let lines: string[] = [header]
 
     for (let entry of entries) {
       let time = formatLogTimestamp(entry.timestamp)
       let type = getLogEventTypeLabel(entry.eventType)
-      // CSV 中双引号转义
+      // CSV 涓弻寮曞彿杞箟
       let detail = `"${entry.detail.replace(/"/g, '""')}"`
       let process = entry.processName || ''
       let pid = entry.pid !== undefined ? entry.pid.toString() : ''
@@ -1079,7 +1619,7 @@ export class LogStorageService {
     return lines.join('\n')
   }
 
-  // 转换为纯文本格式
+  // 杞崲涓虹函鏂囨湰鏍煎紡
   private static toTxt(entries: LogEntry[]): string {
     let lines: string[] = []
 
@@ -1090,13 +1630,13 @@ export class LogStorageService {
       let line = `[${time}] [${type}] [${result}] ${entry.detail}`
 
       if (entry.processName) {
-        line += ` (进程: ${entry.processName})`
+        line += ` (杩涚▼: ${entry.processName})`
       }
       if (entry.filePath) {
-        line += ` 路径: ${entry.filePath}`
+        line += ` 璺緞: ${entry.filePath}`
       }
       if (entry.remoteAddr) {
-        line += ` 地址: ${entry.remoteAddr}`
+        line += ` 鍦板潃: ${entry.remoteAddr}`
       }
 
       lines.push(line)
@@ -1113,3 +1653,16 @@ interface ExportWriteResult {
   errorCode?: number
   errorMessage?: string
 }
+
+interface ExportAuthResult {
+  success: boolean
+  errorCode?: number
+  errorMessage?: string
+}
+
+interface ResolvedExportTarget {
+  targetType: LogExportTargetType
+  authMode: LogExportAuthMode
+  directory: string
+}
+

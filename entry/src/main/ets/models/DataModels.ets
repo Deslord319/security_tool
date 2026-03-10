@@ -1,23 +1,23 @@
-// 防火墙规则类型
+﻿// 闃茬伀澧欒鍒欑被鍨?
 export enum RuleType {
   IP = 1,
   DOMAIN = 2,
   DNS = 3
 }
 
-// 防火墙规则方向
+// 闃茬伀澧欒鍒欐柟鍚?
 export enum RuleDirection {
   IN = 1,
   OUT = 2
 }
 
-// 防火墙规则策略
+// 闃茬伀澧欒鍒欑瓥鐣?
 export enum RuleAction {
   ALLOW = 0,
   DENY = 1
 }
 
-// 协议类型
+// 鍗忚绫诲瀷
 export enum ProtocolType {
   ALL = 0,
   TCP = 6,
@@ -25,7 +25,7 @@ export enum ProtocolType {
   ICMP = 1
 }
 
-// UI 展示用的规则模型
+// UI 灞曠ず鐢ㄧ殑瑙勫垯妯″瀷
 export interface FirewallRuleDisplay {
   ruleId: number
   name: string
@@ -38,7 +38,7 @@ export interface FirewallRuleDisplay {
   isEnabled: boolean
 }
 
-// 统计卡片数据模型
+// 缁熻鍗＄墖鏁版嵁妯″瀷
 export interface StatCardData {
   label: string
   value: string
@@ -47,7 +47,7 @@ export interface StatCardData {
   icon: Resource
 }
 
-// 快捷工具卡片数据模型
+// 蹇嵎宸ュ叿鍗＄墖鏁版嵁妯″瀷
 export interface ToolCardData {
   label: string
   icon: Resource
@@ -56,7 +56,7 @@ export interface ToolCardData {
   gradientEnd: string
 }
 
-// 规则类型列表项模型
+// 瑙勫垯绫诲瀷鍒楄〃椤规ā鍨?
 export interface RuleTypeData {
   label: string
   description: string
@@ -65,33 +65,33 @@ export interface RuleTypeData {
   iconColor: string
 }
 
-// 获取规则类型标签
+// 鑾峰彇瑙勫垯绫诲瀷鏍囩
 export function getRuleTypeLabel(type: RuleType): string {
   switch (type) {
     case RuleType.IP:
       return 'IP'
     case RuleType.DOMAIN:
-      return '域名'
+      return '鍩熷悕'
     case RuleType.DNS:
       return 'DNS'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// 获取方向标签
+// 鑾峰彇鏂瑰悜鏍囩
 export function getDirectionLabel(dir: RuleDirection): string {
   switch (dir) {
     case RuleDirection.IN:
-      return '入站'
+      return '鍏ョ珯'
     case RuleDirection.OUT:
-      return '出站'
+      return '鍑虹珯'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// 获取协议标签
+// 鑾峰彇鍗忚鏍囩
 export function getProtocolLabel(proto: ProtocolType): string {
   switch (proto) {
     case ProtocolType.ALL:
@@ -107,21 +107,21 @@ export function getProtocolLabel(proto: ProtocolType): string {
   }
 }
 
-// 获取策略标签
+// 鑾峰彇绛栫暐鏍囩
 export function getActionLabel(action: RuleAction): string {
   switch (action) {
     case RuleAction.ALLOW:
-      return '允许'
+      return '鍏佽'
     case RuleAction.DENY:
-      return '拒绝'
+      return '鎷掔粷'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// ==================== 外设管理模块 ====================
+// ==================== 澶栬绠＄悊妯″潡 ====================
 
-// 外设类型
+// 澶栬绫诲瀷
 export enum PeripheralType {
   USB_STORAGE = 'usb_storage',
   USB_CAMERA = 'usb_camera',
@@ -130,7 +130,7 @@ export enum PeripheralType {
   BLUETOOTH = 'bluetooth'
 }
 
-// 接口管控 feature
+// 鎺ュ彛绠℃帶 feature
 export enum InterfaceFeature {
   USB = 'usb',
   BLUETOOTH = 'bluetooth',
@@ -138,18 +138,16 @@ export enum InterfaceFeature {
   HDC = 'hdc'
 }
 
-// USB 存储访问策略
+// USB 瀛樺偍璁块棶绛栫暐
 export enum UsbStoragePolicy {
   READ_WRITE = 0,
   READ_ONLY = 1,
   DISABLED = 2
 }
 
-// 企业管理员类型
-export type EnterpriseAdminType = 'super' | 'byod'
+// 浼佷笟绠＄悊鍛樼被鍨?export type EnterpriseAdminType = 'super' | 'byod'
 
-// 企业管理员激活状态
-export interface AdminActivationState {
+// 浼佷笟绠＄悊鍛樻縺娲荤姸鎬?export interface AdminActivationState {
   activated: boolean
   errorCode?: number
   errorMessage?: string
@@ -157,7 +155,7 @@ export interface AdminActivationState {
   adminType: EnterpriseAdminType
 }
 
-// 通用操作结果
+// 閫氱敤鎿嶄綔缁撴灉
 export interface OperationResult<T = void> {
   success: boolean
   data?: T
@@ -167,7 +165,7 @@ export interface OperationResult<T = void> {
   suggestion?: string
 }
 
-// 设备连接记录
+// 璁惧杩炴帴璁板綍
 export interface DeviceRecord {
   deviceName: string
   deviceType: PeripheralType
@@ -176,23 +174,23 @@ export interface DeviceRecord {
   policy: string
 }
 
-// 设备管控记录（支持策略下拉选择）
+// 璁惧绠℃帶璁板綍锛堟敮鎸佺瓥鐣ヤ笅鎷夐€夋嫨锛?
 export interface DeviceControlRecord {
   deviceName: string
   deviceType: PeripheralType
   deviceId: string
   connectTime: string
-  policyIndex: number  // 0=允许, 1=禁用, 2=未配置
+  policyIndex: number  // 0=鍏佽, 1=绂佺敤, 2=鏈厤缃?
 }
 
-// USB 白名单项（UI 展示用，含备注）
+// USB 鐧藉悕鍗曢」锛圲I 灞曠ず鐢紝鍚娉級
 export interface UsbWhitelistItem {
   vendorId: number
   productId: number
   remark: string
 }
 
-// USB 类型黑名单项（UI 展示用，含描述）
+// USB 绫诲瀷榛戝悕鍗曢」锛圲I 灞曠ず鐢紝鍚弿杩帮級
 export interface UsbBlacklistItem {
   baseClass: number
   subClass: number
@@ -200,13 +198,13 @@ export interface UsbBlacklistItem {
   description: string
 }
 
-// 蓝牙白名单项（UI 展示用，含备注）
+// 钃濈墮鐧藉悕鍗曢」锛圲I 灞曠ず鐢紝鍚娉級
 export interface BluetoothWhitelistItem {
   deviceId: string
   remark: string
 }
 
-// 接口管控配置项
+// 鎺ュ彛绠℃帶閰嶇疆椤?
 export interface InterfaceControlConfig {
   feature: string
   label: string
@@ -215,47 +213,47 @@ export interface InterfaceControlConfig {
   selectedIndex: number
 }
 
-// 获取外设类型标签
+// 鑾峰彇澶栬绫诲瀷鏍囩
 export function getPeripheralTypeLabel(type: PeripheralType): string {
   switch (type) {
     case PeripheralType.USB_STORAGE:
-      return 'USB 存储设备'
+      return 'USB 瀛樺偍璁惧'
     case PeripheralType.USB_CAMERA:
-      return 'USB 摄像头'
+      return 'USB 鎽勫儚澶?
     case PeripheralType.USB_PRINTER:
-      return 'USB 打印机'
+      return 'USB 鎵撳嵃鏈?
     case PeripheralType.USB_OTHER:
-      return 'USB 其他'
+      return 'USB 鍏朵粬'
     case PeripheralType.BLUETOOTH:
-      return '蓝牙设备'
+      return '钃濈墮璁惧'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// 获取 USB 存储策略标签
+// 鑾峰彇 USB 瀛樺偍绛栫暐鏍囩
 export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   switch (policy) {
     case UsbStoragePolicy.READ_WRITE:
-      return '读写'
+      return '璇诲啓'
     case UsbStoragePolicy.READ_ONLY:
-      return '只读'
+      return '鍙'
     case UsbStoragePolicy.DISABLED:
-      return '禁止访问'
+      return '绂佹璁块棶'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// ==================== 设备 ID 解析工具函数 ====================
+// ==================== 璁惧 ID 瑙ｆ瀽宸ュ叿鍑芥暟 ====================
 
-// USB 设备 ID 解析结果
+// USB 璁惧 ID 瑙ｆ瀽缁撴灉
 export interface ParsedUsbId {
   vendorId: number
   productId: number
 }
 
-// 解析 "VID:2B7E PID:B5A2" → ParsedUsbId
+// 瑙ｆ瀽 "VID:2B7E PID:B5A2" 鈫?ParsedUsbId
 export function parseUsbDeviceId(deviceId: string): ParsedUsbId | null {
   let match = deviceId.match(/VID:([0-9A-Fa-f]+)\s+PID:([0-9A-Fa-f]+)/)
   if (!match) {
@@ -268,19 +266,19 @@ export function parseUsbDeviceId(deviceId: string): ParsedUsbId | null {
   return result
 }
 
-// 解析 "MAC: AA:BB:CC:DD:EE:01" → "AA:BB:CC:DD:EE:01"
+// 瑙ｆ瀽 "MAC: AA:BB:CC:DD:EE:01" 鈫?"AA:BB:CC:DD:EE:01"
 export function parseBluetoothMac(deviceId: string): string | null {
   let match = deviceId.match(/MAC:\s*([0-9A-Fa-f:]+)/)
   return match ? match[1] : null
 }
 
-// 格式化 { vendorId, productId } → "VID:2B7E PID:B5A2"
+// 鏍煎紡鍖?{ vendorId, productId } 鈫?"VID:2B7E PID:B5A2"
 export function formatUsbDeviceId(vendorId: number, productId: number): string {
   return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
 }
 
-// PeripheralType → USB Base Class 映射（禁用时加入黑名单用）
-// USB_STORAGE → 0x08, USB_CAMERA → 0x0E, USB_PRINTER → 0x07
+// PeripheralType 鈫?USB Base Class 鏄犲皠锛堢鐢ㄦ椂鍔犲叆榛戝悕鍗曠敤锛?
+// USB_STORAGE 鈫?0x08, USB_CAMERA 鈫?0x0E, USB_PRINTER 鈫?0x07
 export function inferUsbBaseClass(type: PeripheralType): number {
   switch (type) {
     case PeripheralType.USB_STORAGE:
@@ -294,7 +292,7 @@ export function inferUsbBaseClass(type: PeripheralType): number {
   }
 }
 
-// USB Base Class → PeripheralType 反查
+// USB Base Class 鈫?PeripheralType 鍙嶆煡
 export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralType {
   switch (baseClass) {
     case 0x08:
@@ -308,163 +306,162 @@ export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralT
   }
 }
 
-// ==================== 身份鉴别模块 ====================
+// ==================== 韬唤閴村埆妯″潡 ====================
 
-// 口令复杂度 UI 配置（用于 View 层状态管理）
+// 鍙ｄ护澶嶆潅搴?UI 閰嶇疆锛堢敤浜?View 灞傜姸鎬佺鐞嗭級
 export interface PasswordComplexityConfig {
-  minLength: number           // 最小密码长度: 6/8/10/12/16
-  requireUppercase: boolean   // 要求大写字母
-  requireLowercase: boolean   // 要求小写字母
-  requireDigit: boolean       // 要求数字
-  requireSpecialChar: boolean // 要求特殊字符
+  minLength: number           // 鏈€灏忓瘑鐮侀暱搴? 6/8/10/12/16
+  requireUppercase: boolean   // 瑕佹眰澶у啓瀛楁瘝
+  requireLowercase: boolean   // 瑕佹眰灏忓啓瀛楁瘝
+  requireDigit: boolean       // 瑕佹眰鏁板瓧
+  requireSpecialChar: boolean // 瑕佹眰鐗规畩瀛楃
 }
 
-// 口令有效期 UI 配置
+// 鍙ｄ护鏈夋晥鏈?UI 閰嶇疆
 export interface DomainPolicyConfig {
-  passwordMaxAgeDays: number        // 密码最长使用天数: 30/60/90/180/-1(不限)
-  expirationNotifyDays: number      // 过期前提醒天数: 3/7/14/30
-  authTokenValidityMinutes: number  // 认证Token有效期(分钟): 5/15/30/60/-1(永久)
+  passwordMaxAgeDays: number        // 瀵嗙爜鏈€闀夸娇鐢ㄥぉ鏁? 30/60/90/180/-1(涓嶉檺)
+  expirationNotifyDays: number      // 杩囨湡鍓嶆彁閱掑ぉ鏁? 3/7/14/30
+  authTokenValidityMinutes: number  // 璁よ瘉Token鏈夋晥鏈?鍒嗛挓): 5/15/30/60/-1(姘镐箙)
 }
 
-// 最小密码长度选项
+// 鏈€灏忓瘑鐮侀暱搴﹂€夐」
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
 
-// 密码有效期选项 (天, -1 = 不限制)
+// 瀵嗙爜鏈夋晥鏈熼€夐」 (澶? -1 = 涓嶉檺鍒?
 export const PASSWORD_MAX_AGE_OPTIONS: number[] = [30, 60, 90, 180, -1]
 
-// 过期提醒天数选项
+// 杩囨湡鎻愰啋澶╂暟閫夐」
 export const EXPIRY_NOTIFY_OPTIONS: number[] = [3, 7, 14, 30]
 
-// 认证Token有效期选项 (分钟, -1 = 永久)
+// 璁よ瘉Token鏈夋晥鏈熼€夐」 (鍒嗛挓, -1 = 姘镐箙)
 export const AUTH_TOKEN_VALIDITY_OPTIONS: number[] = [5, 15, 30, 60, -1]
 
-// ==================== 工具设置模块 ====================
+// ==================== 宸ュ叿璁剧疆妯″潡 ====================
 
-// 认证方式枚举（对应 userAuth.UserAuthType）
+// 璁よ瘉鏂瑰紡鏋氫妇锛堝搴?userAuth.UserAuthType锛?
 export enum AuthMethod {
-  PIN = 1,          // PIN 码认证
-  FACE = 2,         // 人脸识别
-  FINGERPRINT = 4,  // 指纹认证
-  PIN_FINGERPRINT = 5 // PIN + 指纹组合
+  PIN = 1,          // PIN 鐮佽璇?
+  FACE = 2,         // 浜鸿劯璇嗗埆
+  FINGERPRINT = 4,  // 鎸囩汗璁よ瘉
+  PIN_FINGERPRINT = 5 // PIN + 鎸囩汗缁勫悎
 }
 
-// 工具设置 UI 配置
+// 宸ュ叿璁剧疆 UI 閰嶇疆
 export interface ToolSettingsConfig {
-  startupAuthEnabled: boolean   // 启动时是否需要认证
-  authMethod: AuthMethod        // 认证方式
+  startupAuthEnabled: boolean   // 鍚姩鏃舵槸鍚﹂渶瑕佽璇?
+  authMethod: AuthMethod        // 璁よ瘉鏂瑰紡
 }
 
-// 密码变更请求
+// 瀵嗙爜鍙樻洿璇锋眰
 export interface PasswordChangeRequest {
-  currentPassword: string       // 当前密码
-  newPassword: string           // 新密码
-  confirmPassword: string       // 确认新密码
+  currentPassword: string       // 褰撳墠瀵嗙爜
+  newPassword: string           // 鏂板瘑鐮?
+  confirmPassword: string       // 纭鏂板瘑鐮?
 }
 
-// 默认工具设置配置
+// 榛樿宸ュ叿璁剧疆閰嶇疆
 export const DEFAULT_TOOL_SETTINGS: ToolSettingsConfig = {
   startupAuthEnabled: true,
   authMethod: AuthMethod.PIN
 }
 
-// 认证方式选项接口
+// 璁よ瘉鏂瑰紡閫夐」鎺ュ彛
 export interface AuthMethodOption {
   label: string
   value: AuthMethod
 }
 
-// 认证方式选项
+// 璁よ瘉鏂瑰紡閫夐」
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
-  { label: 'PIN 码', value: AuthMethod.PIN } as AuthMethodOption,
-  { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
-  { label: '人脸识别', value: AuthMethod.FACE } as AuthMethodOption,
-  { label: 'PIN + 指纹', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
+  { label: 'PIN 鐮?, value: AuthMethod.PIN } as AuthMethodOption,
+  { label: '鎸囩汗', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
+  { label: '浜鸿劯璇嗗埆', value: AuthMethod.FACE } as AuthMethodOption,
+  { label: 'PIN + 鎸囩汗', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
 ]
 
-// Asset Store 键名常量
+// Asset Store 閿悕甯搁噺
 export const ASSET_KEY_TOOL_PASSWORD = 'tool_password'
 
-// Preferences 键名常量
+// Preferences 閿悕甯搁噺
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
 
-// Preferences Store 名称常量
+// Preferences Store 鍚嶇О甯搁噺
 export const PREF_STORE_NAME_TOOL = 'tool_settings'
 
-// ==================== 日志管理模块 ====================
+// ==================== 鏃ュ織绠＄悊妯″潡 ====================
 
-// 安全审计事件类型（对应 securityAudit.AuditEventType）
+// 瀹夊叏瀹¤浜嬩欢绫诲瀷锛堝搴?securityAudit.AuditEventType锛?
 export enum LogEventType {
-  FILE = 0,              // 文件操作（含审批流）
-  NETWORK_CONN = 1,      // 网络连接
-  NETWORK_TRAFFIC = 2,   // 网络流量
-  APP = 3,               // 应用安装/卸载/启动
-  ACCOUNT = 4,           // 账户操作（登录/登出/锁定）
-  USB_ACCESS = 5,        // USB 外设访问
-  PERMISSION = 6,        // 权限变更
-  PROCESS = 7,           // 进程创建/终止
-  PRINTER = 8,           // 打印机操作
-  CAMERA = 9,            // 摄像头使用
-  CERT = 10,             // 证书导入/删除
-  EDM = 11,              // EDM 策略变更
-  DNS = 12               // DNS 查询
+  FILE = 0,              // 鏂囦欢鎿嶄綔锛堝惈瀹℃壒娴侊級
+  NETWORK_CONN = 1,      // 缃戠粶杩炴帴
+  NETWORK_TRAFFIC = 2,   // 缃戠粶娴侀噺
+  APP = 3,               // 搴旂敤瀹夎/鍗歌浇/鍚姩
+  ACCOUNT = 4,           // 璐︽埛鎿嶄綔锛堢櫥褰?鐧诲嚭/閿佸畾锛?
+  USB_ACCESS = 5,        // USB 澶栬璁块棶
+  PERMISSION = 6,        // 鏉冮檺鍙樻洿
+  PROCESS = 7,           // 杩涚▼鍒涘缓/缁堟
+  PRINTER = 8,           // 鎵撳嵃鏈烘搷浣?
+  CAMERA = 9,            // 鎽勫儚澶翠娇鐢?
+  CERT = 10,             // 璇佷功瀵煎叆/鍒犻櫎
+  EDM = 11,              // EDM 绛栫暐鍙樻洿
+  DNS = 12               // DNS 鏌ヨ
 }
 
-// 审计事件操作结果
+// 瀹¤浜嬩欢鎿嶄綔缁撴灉
 export enum LogEventResult {
-  SUCCESS = 0,    // 操作成功
-  BLOCKED = 1,    // 被策略阻止
-  FAILED = 2      // 操作失败
+  SUCCESS = 0,    // 鎿嶄綔鎴愬姛
+  BLOCKED = 1,    // 琚瓥鐣ラ樆姝?
+  FAILED = 2      // 鎿嶄綔澶辫触
 }
 
-// 日志条目 - 对应系统 securityAudit.AuditEvent 结构的 UI 展示模型
+// 鏃ュ織鏉＄洰 - 瀵瑰簲绯荤粺 securityAudit.AuditEvent 缁撴瀯鐨?UI 灞曠ず妯″瀷
 export interface LogEntry {
-  id: string                  // 唯一标识（内部生成）
-  timestamp: number           // 时间戳（毫秒）
-  eventType: LogEventType     // 事件类型
-  detail: string              // 事件详情（content 字段解析后）
-  processName?: string        // 进程名称
-  pid?: number                // 进程 ID
-  uid?: number                // 用户 ID
-  filePath?: string           // 文件路径（FILE 类型）
-  remoteAddr?: string         // 远程地址（NETWORK 类型）
-  sourceEventId?: number      // 原始审计 eventId
-  sourceSubType?: number      // 原始审计子类型
-  rawEventName?: string       // 原始事件名称
-  rawOutcome?: string         // 原始结果字段
-  result: LogEventResult      // 操作结果
+  id: string                  // 鍞竴鏍囪瘑锛堝唴閮ㄧ敓鎴愶級
+  timestamp: number           // 鏃堕棿鎴筹紙姣锛?  eventType: LogEventType     // 浜嬩欢绫诲瀷
+  detail: string              // 浜嬩欢璇︽儏锛坈ontent 瀛楁瑙ｆ瀽鍚庯級
+  processName?: string        // 杩涚▼鍚嶇О
+  pid?: number                // 杩涚▼ ID
+  uid?: number                // 鐢ㄦ埛 ID
+  filePath?: string           // 鏂囦欢璺緞锛團ILE 绫诲瀷锛?  remoteAddr?: string         // 杩滅▼鍦板潃锛圢ETWORK 绫诲瀷锛?  sourceEventId?: number      // 鍘熷瀹¤ eventId
+  sourceSubType?: number      // 鍘熷瀹¤瀛愮被鍨?  rawEventName?: string       // 鍘熷浜嬩欢鍚嶇О
+  rawOutcome?: string         // 鍘熷缁撴灉瀛楁
+  result: LogEventResult      // 鎿嶄綔缁撴灉
 }
 
-// 日志过滤条件
+// 鏃ュ織杩囨护鏉′欢
 export interface LogFilter {
-  eventTypes?: LogEventType[] // 事件类型过滤（空数组=全部）
-  results?: LogEventResult[]  // 结果过滤（空数组=全部）
-  keyword?: string            // 关键字搜索（detail/processName）
-  startTime?: number          // 开始时间（毫秒）
-  endTime?: number            // 结束时间（毫秒）
+  eventTypes?: LogEventType[] // 浜嬩欢绫诲瀷杩囨护锛堢┖鏁扮粍=鍏ㄩ儴锛?
+  results?: LogEventResult[]  // 缁撴灉杩囨护锛堢┖鏁扮粍=鍏ㄩ儴锛?
+  keyword?: string            // 鍏抽敭瀛楁悳绱紙detail/processName锛?
+  startTime?: number          // 寮€濮嬫椂闂达紙姣锛?
+  endTime?: number            // 缁撴潫鏃堕棿锛堟绉掞級
 }
 
-// 日志存储配置
+// 鏃ュ織瀛樺偍閰嶇疆
 export interface LogStorageConfig {
-  maxLocalEntries: number     // 本地最大条数
-  retentionDays: number       // 保留天数
-  autoExportEnabled: boolean  // 自动导出开关
-  exportPath?: string         // 导出路径
+  maxLocalEntries: number
+  retentionDays: number
+  autoExportEnabled: boolean
+  // Legacy field, kept for backward compatibility.
+  exportPath?: string
+  exportTargetType?: LogExportTargetType
+  exportTargetValue?: string
+  exportAuthMode?: LogExportAuthMode
 }
 
-// 日志订阅配置
+export type LogExportTargetType = 'download' | 'documents' | 'desktop' | 'custom_uri'
+
+export type LogExportAuthMode = 'runtime_permission' | 'persisted_uri'
+
+// 鏃ュ織璁㈤槄閰嶇疆
 export interface LogSubscriptionConfig {
-  subscribeAll: boolean         // 是否订阅全部事件类型
-  subscribedTypes: LogEventType[] // 订阅的事件类型列表
-}
+  subscribeAll: boolean         // 鏄惁璁㈤槄鍏ㄩ儴浜嬩欢绫诲瀷
+  subscribedTypes: LogEventType[] // 璁㈤槄鐨勪簨浠剁被鍨嬪垪琛?}
 
-// 日志统计信息（用于 Dashboard 展示）
-export interface LogStatistics {
-  totalCount: number          // 总条数
-  todayCount: number          // 今日条数
-  blockedCount: number        // 阻断事件数
-  byType: Map<LogEventType, number>  // 按类型统计
-}
+// 鏃ュ織缁熻淇℃伅锛堢敤浜?Dashboard 灞曠ず锛?export interface LogStatistics {
+  totalCount: number          // 鎬绘潯鏁?  todayCount: number          // 浠婃棩鏉℃暟
+  blockedCount: number        // 闃绘柇浜嬩欢鏁?  byType: Map<LogEventType, number>  // 鎸夌被鍨嬬粺璁?}
 
 export interface LogEventTypeDiag {
   type: LogEventType
@@ -488,17 +485,17 @@ export interface LogAuditDiagnostics {
   lastUpdatedAt: number
 }
 
-// 日志导出格式
+// 鏃ュ織瀵煎嚭鏍煎紡
 export enum LogExportFormat {
   JSON = 'json',
   CSV = 'csv',
   TXT = 'txt'
 }
 
-// 日志导出触发来源
+// 鏃ュ織瀵煎嚭瑙﹀彂鏉ユ簮
 export type LogExportTrigger = 'manual' | 'auto'
 
-// 日志导出结果
+// 鏃ュ織瀵煎嚭缁撴灉
 export interface LogExportResult {
   success: boolean
   count: number
@@ -513,21 +510,24 @@ export interface LogExportResult {
   errorMessage?: string
 }
 
-// 事件类型选项（UI 展示用）
+// 浜嬩欢绫诲瀷閫夐」锛圲I 灞曠ず鐢級
 export interface LogEventTypeOption {
   label: string
   value: LogEventType
   icon?: Resource
 }
 
-// 默认日志存储配置
+// 榛樿鏃ュ織瀛樺偍閰嶇疆
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   maxLocalEntries: 5000,
   retentionDays: 30,
-  autoExportEnabled: false
+  autoExportEnabled: false,
+  exportTargetType: 'download',
+  exportTargetValue: '',
+  exportAuthMode: 'runtime_permission'
 }
 
-// 全部审计类型（需求清单 13 类）
+// 鍏ㄩ儴瀹¤绫诲瀷锛堥渶姹傛竻鍗?13 绫伙級
 export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.FILE,
   LogEventType.NETWORK_CONN,
@@ -544,116 +544,120 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.DNS
 ]
 
-// 默认订阅配置（默认订阅全部 13 类）
+// 榛樿璁㈤槄閰嶇疆锛堥粯璁よ闃呭叏閮?13 绫伙級
 export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
   subscribeAll: true,
   subscribedTypes: ALL_LOG_EVENT_TYPES
 }
 
-// 日志保留天数选项
+// 鏃ュ織淇濈暀澶╂暟閫夐」
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 60, 90]
 
-// 本地最大条数选项
+// 鏈湴鏈€澶ф潯鏁伴€夐」
 export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000]
 
-// Preferences 键名常量（日志模块）
+// Preferences 閿悕甯搁噺锛堟棩蹇楁ā鍧楋級
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
 export const PREF_KEY_LOG_AUTO_EXPORT = 'log_auto_export'
 export const PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
+export const PREF_KEY_LOG_EXPORT_TARGET_TYPE = 'log_export_target_type'
+export const PREF_KEY_LOG_EXPORT_TARGET_VALUE = 'log_export_target_value'
+export const PREF_KEY_LOG_EXPORT_AUTH_MODE = 'log_export_auth_mode'
 export const PREF_KEY_LOG_SUBSCRIBE_ALL = 'log_subscribe_all'
 export const PREF_KEY_LOG_SUBSCRIBED_TYPES = 'log_subscribed_types'
 
-// Preferences Store 名称常量（日志模块）
+// Preferences Store 鍚嶇О甯搁噺锛堟棩蹇楁ā鍧楋級
 export const PREF_STORE_NAME_LOG = 'log_settings'
 
-// 获取事件类型标签
+// 鑾峰彇浜嬩欢绫诲瀷鏍囩
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
     case LogEventType.FILE:
-      return '文件操作'
+      return '鏂囦欢鎿嶄綔'
     case LogEventType.NETWORK_CONN:
-      return '网络连接'
+      return '缃戠粶杩炴帴'
     case LogEventType.NETWORK_TRAFFIC:
-      return '网络流量'
+      return '缃戠粶娴侀噺'
     case LogEventType.APP:
-      return '应用管理'
+      return '搴旂敤绠＄悊'
     case LogEventType.ACCOUNT:
-      return '账户操作'
+      return '璐︽埛鎿嶄綔'
     case LogEventType.USB_ACCESS:
-      return 'USB 访问'
+      return 'USB 璁块棶'
     case LogEventType.PERMISSION:
-      return '权限变更'
+      return '鏉冮檺鍙樻洿'
     case LogEventType.PROCESS:
-      return '进程管理'
+      return '杩涚▼绠＄悊'
     case LogEventType.PRINTER:
-      return '打印机'
+      return '鎵撳嵃鏈?
     case LogEventType.CAMERA:
-      return '摄像头'
+      return '鎽勫儚澶?
     case LogEventType.CERT:
-      return '证书管理'
+      return '璇佷功绠＄悊'
     case LogEventType.EDM:
-      return 'EDM 策略'
+      return 'EDM 绛栫暐'
     case LogEventType.DNS:
-      return 'DNS 查询'
+      return 'DNS 鏌ヨ'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// 获取事件结果标签
+// 鑾峰彇浜嬩欢缁撴灉鏍囩
 export function getLogEventResultLabel(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
-      return '成功'
+      return '鎴愬姛'
     case LogEventResult.BLOCKED:
-      return '已阻止'
+      return '宸查樆姝?
     case LogEventResult.FAILED:
-      return '失败'
+      return '澶辫触'
     default:
-      return '未知'
+      return '鏈煡'
   }
 }
 
-// 获取事件结果颜色（用于 UI 展示）
+// 鑾峰彇浜嬩欢缁撴灉棰滆壊锛堢敤浜?UI 灞曠ず锛?
 export function getLogEventResultColor(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
-      return '#4CAF50'  // 绿色
+      return '#4CAF50'  // 缁胯壊
     case LogEventResult.BLOCKED:
-      return '#FF9800'  // 橙色
+      return '#FF9800'  // 姗欒壊
     case LogEventResult.FAILED:
-      return '#F44336'  // 红色
+      return '#F44336'  // 绾㈣壊
     default:
-      return '#9E9E9E'  // 灰色
+      return '#9E9E9E'  // 鐏拌壊
   }
 }
 
-// 事件类型选项列表（用于筛选器）
+// 浜嬩欢绫诲瀷閫夐」鍒楄〃锛堢敤浜庣瓫閫夊櫒锛?
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: '文件操作', value: LogEventType.FILE },
-  { label: '网络连接', value: LogEventType.NETWORK_CONN },
-  { label: '网络流量', value: LogEventType.NETWORK_TRAFFIC },
-  { label: '应用管理', value: LogEventType.APP },
-  { label: '账户操作', value: LogEventType.ACCOUNT },
-  { label: 'USB 访问', value: LogEventType.USB_ACCESS },
-  { label: '权限变更', value: LogEventType.PERMISSION },
-  { label: '进程管理', value: LogEventType.PROCESS },
-  { label: '打印机', value: LogEventType.PRINTER },
-  { label: '摄像头', value: LogEventType.CAMERA },
-  { label: '证书管理', value: LogEventType.CERT },
-  { label: 'EDM 策略', value: LogEventType.EDM },
-  { label: 'DNS 查询', value: LogEventType.DNS }
+  { label: '鏂囦欢鎿嶄綔', value: LogEventType.FILE },
+  { label: '缃戠粶杩炴帴', value: LogEventType.NETWORK_CONN },
+  { label: '缃戠粶娴侀噺', value: LogEventType.NETWORK_TRAFFIC },
+  { label: '搴旂敤绠＄悊', value: LogEventType.APP },
+  { label: '璐︽埛鎿嶄綔', value: LogEventType.ACCOUNT },
+  { label: 'USB 璁块棶', value: LogEventType.USB_ACCESS },
+  { label: '鏉冮檺鍙樻洿', value: LogEventType.PERMISSION },
+  { label: '杩涚▼绠＄悊', value: LogEventType.PROCESS },
+  { label: '鎵撳嵃鏈?, value: LogEventType.PRINTER },
+  { label: '鎽勫儚澶?, value: LogEventType.CAMERA },
+  { label: '璇佷功绠＄悊', value: LogEventType.CERT },
+  { label: 'EDM 绛栫暐', value: LogEventType.EDM },
+  { label: 'DNS 鏌ヨ', value: LogEventType.DNS }
 ]
 
-// 格式化时间戳为可读字符串
+// 鏍煎紡鍖栨椂闂存埑涓哄彲璇诲瓧绗︿覆
 export function formatLogTimestamp(timestamp: number): string {
   let date = new Date(timestamp)
   let pad = (n: number): string => n.toString().padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-// 生成日志条目唯一 ID
+// 鐢熸垚鏃ュ織鏉＄洰鍞竴 ID
 export function generateLogEntryId(): string {
   return `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
+

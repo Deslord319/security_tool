@@ -28,7 +28,11 @@
             "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
             "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY",
             "ohos.permission.ACCESS_BIOMETRIC",
-            "ohos.permission.QUERY_AUDIT_EVENT"
+            "ohos.permission.QUERY_AUDIT_EVENT",
+            "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
+            "ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY",
+            "ohos.permission.READ_WRITE_DESKTOP_DIRECTORY",
+            "ohos.permission.FILE_ACCESS_PERSIST"
         ]
     },
     "permissions": {
@@ -45,7 +49,11 @@
             "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
             "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY",
             "ohos.permission.ACCESS_BIOMETRIC",
-            "ohos.permission.QUERY_AUDIT_EVENT"
+            "ohos.permission.QUERY_AUDIT_EVENT",
+            "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
+            "ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY",
+            "ohos.permission.READ_WRITE_DESKTOP_DIRECTORY",
+            "ohos.permission.FILE_ACCESS_PERSIST"
         ]
     },
     "debug-info": {
