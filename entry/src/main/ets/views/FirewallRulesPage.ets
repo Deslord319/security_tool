@@ -2,18 +2,18 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallService } from '../services/FirewallService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-
-const TAG = 'FirewallRulesPage'
+import { HoverUtils } from '../utils/HoverUtils'
 
 @Component
 export struct FirewallRulesPage {
   @State rules: netFirewall.NetFirewallRule[] = []
   @State currentTab: number = 0
   @State isLoading: boolean = false
+  @State hoveredSummaryIndex: number = -1
+  @State hoveredRuleIndex: number = -1
   onBack: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
@@ -71,16 +71,20 @@ export struct FirewallRulesPage {
     return this.rules.filter((r: netFirewall.NetFirewallRule) => r.type === typeMap[this.currentTab])
   }
 
+  countRulesByType(type: netFirewall.NetFirewallRuleType): number {
+    return this.rules.filter((r: netFirewall.NetFirewallRule) => r.type === type).length
+  }
+
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return 'IP'
+        return 'IP 规则'
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return '域名'
+        return '域名规则'
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return 'DNS'
+        return 'DNS 规则'
       default:
-        return '未知'
+        return '未知规则'
     }
   }
 
@@ -107,6 +111,19 @@ export struct FirewallRulesPage {
         return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
       default:
         return AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
+    }
+  }
+
+  getRuleIcon(type: netFirewall.NetFirewallRuleType): Resource {
+    switch (type) {
+      case netFirewall.NetFirewallRuleType.RULE_IP:
+        return $r('app.media.network')
+      case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
+        return $r('app.media.globe')
+      case netFirewall.NetFirewallRuleType.RULE_DNS:
+        return $r('app.media.server')
+      default:
+        return $r('app.media.firewall')
     }
   }
 
@@ -145,7 +162,7 @@ export struct FirewallRulesPage {
       let port = rule.remotePorts[0]
       return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
     }
-    return '-'
+    return 'ALL'
   }
 
   getProtocolLabel(rule: netFirewall.NetFirewallRule): string {
@@ -166,70 +183,151 @@ export struct FirewallRulesPage {
 
   @Builder
   tabBuilder(title: string, index: number) {
-    Text(title)
-      .fontSize(AppStyles.FONT_SIZE_BODY)
-      .fontWeight(this.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
-      .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+    Row() {
+      Text(title)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(this.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
+        .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+    }
+    .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+    .backgroundColor(this.currentTab === index ? AppColors.getColors(this.currentTheme).BG_CARD : Color.Transparent)
+    .borderRadius(AppStyles.RADIUS_MD)
+  }
+
+  @Builder
+  summaryCard(index: number, label: string, value: string, icon: Resource, color: string) {
+    Column({ space: 10 }) {
+      Row() {
+        Column() {
+          Image(icon)
+            .width(18)
+            .height(18)
+            .fillColor(Color.White)
+        }
+        .width(36)
+        .height(36)
+        .borderRadius(18)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor(color)
+
+        Blank()
+      }
+      .width('100%')
+
+      Text(value)
+        .fontSize(22)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+
+      Text(label)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+    }
+    .width('100%')
+    .padding(16)
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: this.hoveredSummaryIndex === index ? color : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSummaryIndex === index, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredSummaryIndex === index, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredSummaryIndex = isHover ? index : -1
+      })
+    })
   }
 
   build() {
-    Column() {
-      // 页面头部
-      Row() {
-        Row({ space: 8 }) {
-          Text('<')
-            .fontSize(20)
-            .fontColor(AppColors.BRAND_PRIMARY)
+    Scroll() {
+      Column({ space: 18 }) {
+        Row() {
+          Column({ space: 4 }) {
+            Row({ space: 8 }) {
+              Text('<')
+                .fontSize(20)
+                .fontColor(AppColors.BRAND_PRIMARY)
+                .onClick(() => {
+                  this.onBack()
+                })
+              Text('防火墙规则')
+                .fontSize(AppStyles.FONT_SIZE_TITLE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            }
+
+            Text('按规则类型快速筛选，并直接查看方向、协议、地址与端口。')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          Button('+ 添加规则')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(Color.White)
+            .backgroundColor(AppColors.BRAND_PRIMARY)
+            .borderRadius(AppStyles.RADIUS_MD)
+            .height(36)
             .onClick(() => {
-              this.onBack()
+              this.addRuleDialogController.open()
             })
-          Text('防火墙规则')
-            .fontSize(AppStyles.FONT_SIZE_TITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         }
+        .width('100%')
+
+        GridRow({ columns: 4, gutter: 14 }) {
+          GridCol() {
+            this.summaryCard(0, '全部规则', this.rules.length.toString(), $r('app.media.firewall'), AppColors.BRAND_PRIMARY)
+          }
+          GridCol() {
+            this.summaryCard(1, 'IP 规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP).toString(),
+              $r('app.media.network'), AppColors.BRAND_PRIMARY)
+          }
+          GridCol() {
+            this.summaryCard(2, '域名规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN).toString(),
+              $r('app.media.globe'), '#5856D6')
+          }
+          GridCol() {
+            this.summaryCard(3, 'DNS 规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS).toString(),
+              $r('app.media.server'), AppColors.SUCCESS)
+          }
+        }
+        .width('100%')
+
+        Tabs({ barPosition: BarPosition.Start }) {
+          TabContent() {
+            this.ruleListBuilder()
+          }.tabBar(this.tabBuilder('全部', 0))
+
+          TabContent() {
+            this.ruleListBuilder()
+          }.tabBar(this.tabBuilder('IP', 1))
+
+          TabContent() {
+            this.ruleListBuilder()
+          }.tabBar(this.tabBuilder('域名', 2))
+
+          TabContent() {
+            this.ruleListBuilder()
+          }.tabBar(this.tabBuilder('DNS', 3))
+        }
+        .barMode(BarMode.Scrollable)
+        .barBackgroundColor(Color.Transparent)
+        .divider(null)
+        .onChange((index: number) => {
+          this.currentTab = index
+        })
         .layoutWeight(1)
-
-        Button('+ 添加规则')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(Color.White)
-          .backgroundColor(AppColors.BRAND_PRIMARY)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .height(36)
-          .onClick(() => {
-            this.addRuleDialogController.open()
-          })
       }
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG, bottom: AppStyles.PADDING_LG })
       .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
-
-      // Tab 切换
-      Tabs({ barPosition: BarPosition.Start }) {
-        TabContent() {
-          this.ruleListBuilder()
-        }.tabBar(this.tabBuilder('全部规则', 0))
-
-        TabContent() {
-          this.ruleListBuilder()
-        }.tabBar(this.tabBuilder('IP 规则', 1))
-
-        TabContent() {
-          this.ruleListBuilder()
-        }.tabBar(this.tabBuilder('域名规则', 2))
-
-        TabContent() {
-          this.ruleListBuilder()
-        }.tabBar(this.tabBuilder('DNS 规则', 3))
-      }
-      .barMode(BarMode.Fixed)
-      .barWidth('100%')
-      .onChange((index: number) => {
-        this.currentTab = index
-      })
-      .layoutWeight(1)
     }
     .width('100%')
     .height('100%')
@@ -239,120 +337,154 @@ export struct FirewallRulesPage {
   @Builder
   ruleListBuilder() {
     Column() {
-      if (this.getFilteredRules().length === 0) {
-        Column({ space: 12 }) {
-          Text('暂无规则')
+      if (this.isLoading) {
+        Column({ space: 10 }) {
+          LoadingProgress()
+            .width(42)
+            .height(42)
+          Text('加载规则中...')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .width('100%')
-        .height('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      } else if (this.getFilteredRules().length === 0) {
+        Column({ space: 10 }) {
+          Image($r('app.media.rules'))
+            .width(28)
+            .height(28)
+            .fillColor(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          Text('当前筛选下暂无规则')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        }
+        .width('100%')
+        .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else {
-        // 表头
-        Row() {
-          Text('规则名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('方向').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('协议').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('地址').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('端口').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-          Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-        .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
-
-        // 数据列表
-        List() {
-          ForEach(this.getFilteredRules(), (rule: netFirewall.NetFirewallRule) => {
+        List({ space: 12 }) {
+          ForEach(this.getFilteredRules(), (rule: netFirewall.NetFirewallRule, index: number) => {
             ListItem() {
-              Row() {
-                Text(rule.name ?? '-')
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                  .layoutWeight(2)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+              Column({ space: 14 }) {
+                Row({ space: 12 }) {
+                  Column() {
+                    Image(this.getRuleIcon(rule.type))
+                      .width(18)
+                      .height(18)
+                      .fillColor(Color.White)
+                  }
+                  .width(40)
+                  .height(40)
+                  .borderRadius(12)
+                  .justifyContent(FlexAlign.Center)
+                  .alignItems(HorizontalAlign.Center)
+                  .backgroundColor(this.getRuleTypeTextColor(rule.type))
 
-                Text(this.getRuleTypeLabel(rule.type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(this.getRuleTypeTextColor(rule.type))
-                  .backgroundColor(this.getRuleTypeBgColor(rule.type))
-                  .borderRadius(4)
-                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                  .layoutWeight(1)
+                  Column({ space: 6 }) {
+                    Text(rule.name ?? '-')
+                      .fontSize(AppStyles.FONT_SIZE_BODY)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-                Text(this.getDirectionLabel(rule.direction))
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1)
+                    Row({ space: 8 }) {
+                      Text(this.getRuleTypeLabel(rule.type))
+                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                        .fontColor(this.getRuleTypeTextColor(rule.type))
+                        .backgroundColor(this.getRuleTypeBgColor(rule.type))
+                        .borderRadius(10)
+                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
 
-                Text(this.getProtocolLabel(rule))
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1)
+                      Text(this.getDirectionLabel(rule.direction))
+                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                        .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+                        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+                        .borderRadius(10)
+                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
 
-                Text(this.getRuleAddress(rule))
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                  .layoutWeight(2)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                Text(this.getRulePort(rule))
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1)
-
-                Text(this.getActionLabel(rule.action))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(this.getActionTextColor(rule.action))
-                  .backgroundColor(this.getActionBgColor(rule.action))
-                  .borderRadius(4)
-                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                  .layoutWeight(1)
-
-                Text('删除')
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.DANGER)
-                  .layoutWeight(1)
-                  .onClick(() => {
-                    if (rule.id !== undefined) {
-                      this.handleDeleteRule(rule.id)
+                      Text(this.getActionLabel(rule.action))
+                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                        .fontColor(this.getActionTextColor(rule.action))
+                        .backgroundColor(this.getActionBgColor(rule.action))
+                        .borderRadius(10)
+                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
                     }
-                  })
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+
+                  Button('删除')
+                    .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                    .fontColor(AppColors.DANGER)
+                    .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
+                    .borderRadius(AppStyles.RADIUS_SM)
+                    .height(30)
+                    .onClick(() => {
+                      if (rule.id !== undefined) {
+                        this.handleDeleteRule(rule.id)
+                      }
+                    })
+                }
+                .width('100%')
+
+                Column({ space: 10 }) {
+                  this.detailRow('地址 / 域名', this.getRuleAddress(rule))
+                  this.detailRow('端口', this.getRulePort(rule))
+                  this.detailRow('协议', this.getProtocolLabel(rule))
+                }
+                .width('100%')
               }
               .width('100%')
-              .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+              .padding(18)
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+              .borderRadius(AppStyles.RADIUS_LG)
+              .border({
+                width: 1,
+                color: this.hoveredRuleIndex === index ? this.getRuleTypeTextColor(rule.type) : AppColors.getColors(this.currentTheme).BORDER
+              })
+              .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredRuleIndex === index, true))
+              .translate({ y: HoverUtils.getTranslateY(this.hoveredRuleIndex === index, 4) })
+              .onHover((isHover: boolean) => {
+                HoverUtils.animate(() => {
+                  this.hoveredRuleIndex = isHover ? index : -1
+                })
+              })
             }
           })
         }
         .width('100%')
         .layoutWeight(1)
-        .divider({ strokeWidth: 1, color: AppColors.getColors(this.currentTheme).BORDER, startMargin: 0, endMargin: 0 })
+        .scrollBar(BarState.Auto)
       }
     }
     .width('100%')
     .height('100%')
-    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+    .padding({ top: AppStyles.PADDING_MD, bottom: 2 })
+  }
+
+  @Builder
+  detailRow(label: string, value: string) {
+    Row() {
+      Text(label)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .width(92)
+
+      Text(value)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(1)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
   }
 }

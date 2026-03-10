@@ -22,9 +22,11 @@ const UI_TEST_ROUTE_KEY = 'ui_test_route'
 @Entry
 @Component
 struct MainPage {
-  @State currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? Routes.DASHBOARD
+  @State @Watch('onPageRouteChange') currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? Routes.DASHBOARD
   @State @Watch('onFirewallStatusChange') firewallEnabled: boolean = false
   @State showMenu: boolean = false
+  @State pageEnterOpacity: number = 1
+  @State pageEnterOffset: number = 0
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   private runtimeInitialized: boolean = false
   private runtimeInitInProgress: boolean = false
@@ -118,6 +120,18 @@ struct MainPage {
 
   onFirewallStatusChange() {
     // 防火墙状态变更时可在此处理
+  }
+
+  onPageRouteChange(): void {
+    this.pageEnterOpacity = 0.76
+    this.pageEnterOffset = this.currentPage === Routes.DASHBOARD ? 18 : 10
+    animateTo({
+      duration: 320,
+      curve: Curve.Friction
+    }, () => {
+      this.pageEnterOpacity = 1
+      this.pageEnterOffset = 0
+    })
   }
 
   build() {
@@ -246,6 +260,8 @@ struct MainPage {
             }
           }
           .layoutWeight(1)
+          .opacity(this.pageEnterOpacity)
+          .translate({ y: this.pageEnterOffset })
         }
         .layoutWeight(1)
         .height('100%')

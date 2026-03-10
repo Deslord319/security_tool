@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { HoverUtils } from '../utils/HoverUtils'
 
 interface FaqItem {
   question: string
@@ -16,6 +17,7 @@ interface GuideItem {
 export struct HelpFeedbackPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State expandedFaq: number = -1
+  @State hoveredCardIndex: number = -1
 
   private guideItems: GuideItem[] = [
     { title: '防火墙管理', description: '在防火墙页面中可以启用/关闭防火墙，查看和管理防火墙规则。支持按域名、IP 地址配置白名单和黑名单规则。' },
@@ -86,6 +88,17 @@ export struct HelpFeedbackPage {
         .borderRadius(AppStyles.RADIUS_LG)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .alignItems(HorizontalAlign.Start)
+        .border({
+          width: 1,
+          color: this.hoveredCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredCardIndex = isHover ? 0 : -1
+          })
+        })
 
         // 常见问题卡片
         Column({ space: 12 }) {
@@ -135,6 +148,17 @@ export struct HelpFeedbackPage {
         .borderRadius(AppStyles.RADIUS_LG)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .alignItems(HorizontalAlign.Start)
+        .border({
+          width: 1,
+          color: this.hoveredCardIndex === 1 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 1, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 1, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredCardIndex = isHover ? 1 : -1
+          })
+        })
 
         // 联系反馈卡片
         Column({ space: 8 }) {
@@ -175,6 +199,17 @@ export struct HelpFeedbackPage {
         .borderRadius(AppStyles.RADIUS_LG)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .alignItems(HorizontalAlign.Start)
+        .border({
+          width: 1,
+          color: this.hoveredCardIndex === 2 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 2, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 2, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredCardIndex = isHover ? 2 : -1
+          })
+        })
       }
       .padding(AppStyles.PADDING_LG)
     }

@@ -84,14 +84,14 @@ export struct DashboardPage {
   build() {
     Scroll() {
       Column({ space: 20 }) {
-        // 页面标题
         Column({ space: 4 }) {
           Text('安全总览')
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('HarmonyOS 安全管理中心 — 企业级设备安全管控平台')
+
+          Text('HarmonyOS 安全管理中心，提供企业级设备安全管控能力。')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -107,7 +107,6 @@ export struct DashboardPage {
         }
         .width('100%')
 
-        // 统计卡片区域 - 4列网格
         GridRow({ columns: 4, gutter: 16 }) {
           GridCol() {
             StatCard({
@@ -115,7 +114,7 @@ export struct DashboardPage {
               value: this.firewallEnabled ? '已开启' : '已关闭',
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
-              iconText: '防'
+              icon: $r('app.media.firewall')
             })
           }
 
@@ -125,17 +124,17 @@ export struct DashboardPage {
               value: this.todayAuditCount.toString(),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
-              iconText: '日'
+              icon: $r('app.media.log')
             })
           }
 
           GridCol() {
             StatCard({
-              label: '已阻断事件',
+              label: '已阻止事件',
               value: this.blockedAuditCount.toString(),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
-              iconText: '外'
+              icon: $r('app.media.alert')
             })
           }
 
@@ -145,25 +144,23 @@ export struct DashboardPage {
               value: this.totalLogCount.toString(),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
-              iconText: '身'
+              icon: $r('app.media.folder')
             })
           }
         }
         .width('100%')
 
-        // 快捷功能区标题
         Text('快捷功能')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-        // 快捷功能卡片 - 6个，3列2行
         GridRow({ columns: 3, gutter: 16 }) {
           GridCol() {
             ToolCard({
               label: '防火墙管理',
-              iconText: '防',
+              icon: $r('app.media.firewall'),
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
               onPress: () => { this.onNavigate(Routes.FIREWALL) }
@@ -173,7 +170,7 @@ export struct DashboardPage {
           GridCol() {
             ToolCard({
               label: '日志管理',
-              iconText: '日',
+              icon: $r('app.media.log'),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
               onPress: () => { this.onNavigate(Routes.LOG_MANAGE) }
@@ -183,7 +180,7 @@ export struct DashboardPage {
           GridCol() {
             ToolCard({
               label: '外设管理',
-              iconText: '外',
+              icon: $r('app.media.peripheral'),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
               onPress: () => { this.onNavigate(Routes.PERIPHERAL_MANAGE) }
@@ -193,7 +190,7 @@ export struct DashboardPage {
           GridCol() {
             ToolCard({
               label: '身份鉴别',
-              iconText: '身',
+              icon: $r('app.media.identity'),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
               onPress: () => { this.onNavigate(Routes.IDENTITY) }
@@ -203,7 +200,7 @@ export struct DashboardPage {
           GridCol() {
             ToolCard({
               label: '防火墙规则',
-              iconText: '规',
+              icon: $r('app.media.rules'),
               gradientStart: '#FF3B30',
               gradientEnd: '#FF6B6B',
               onPress: () => { this.onNavigate(Routes.FIREWALL_RULES) }
@@ -213,7 +210,7 @@ export struct DashboardPage {
           GridCol() {
             ToolCard({
               label: '工具设置',
-              iconText: '设',
+              icon: $r('app.media.settings'),
               gradientStart: '#8E8E93',
               gradientEnd: '#AEAEB2',
               onPress: () => { this.onNavigate(Routes.TOOL_SETTINGS) }

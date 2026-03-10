@@ -14,12 +14,14 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'ToolSettingsPage'
 
 @Component
 export struct ToolSettingsPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State hoveredCardIndex: number = -1
 
   // ========== 启动校验状态 ==========
   @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
@@ -457,6 +459,17 @@ export struct ToolSettingsPage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .clip(true)
+    .border({
+      width: 1,
+      color: this.hoveredCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredCardIndex = isHover ? 0 : -1
+      })
+    })
   }
 
   // ==================== 功能区 2: 工具密码管理 ====================
@@ -544,6 +557,17 @@ export struct ToolSettingsPage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .clip(true)
+    .border({
+      width: 1,
+      color: this.hoveredCardIndex === 1 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 1, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 1, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredCardIndex = isHover ? 1 : -1
+      })
+    })
   }
 
   // ==================== 密码输入行 Builder ====================

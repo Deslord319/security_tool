@@ -32,12 +32,15 @@ import { common } from '@kit.AbilityKit'
 import { picker } from '@kit.CoreFileKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'LogManagePage'
 
 @Component
 export struct LogManagePage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State hoveredStatIndex: number = -1
+  @State hoveredSettingsCardIndex: number = -1
 
   @State logEntries: LogEntry[] = []
   @State statistics: LogStatistics = {
@@ -73,6 +76,19 @@ export struct LogManagePage {
   private readonly REFRESH_INTERVAL_MS: number = 1500
   private readonly SETTINGS_CONTENT_MAX_WIDTH: number = 1280
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 220
+
+  private resolveStatIndex(label: string): number {
+    if (label === '总计') {
+      return 0
+    }
+    if (label === '今日') {
+      return 1
+    }
+    if (label === '已阻止') {
+      return 2
+    }
+    return 3
+  }
 
   private eventTypeFilterOptions: SelectOption[] = [
     { value: '全部类型' } as SelectOption,
@@ -581,6 +597,17 @@ export struct LogManagePage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_MD)
     .alignItems(HorizontalAlign.Center)
+    .border({
+      width: 1,
+      color: this.hoveredStatIndex === this.resolveStatIndex(label) ? color : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredStatIndex === this.resolveStatIndex(label)))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredStatIndex === this.resolveStatIndex(label), 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredStatIndex = isHover ? this.resolveStatIndex(label) : -1
+      })
+    })
   }
 
   @Builder
@@ -934,6 +961,17 @@ export struct LogManagePage {
     .padding(16)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: this.hoveredSettingsCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 0, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 0, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredSettingsCardIndex = isHover ? 0 : -1
+      })
+    })
   }
 
   @Builder
@@ -950,6 +988,17 @@ export struct LogManagePage {
     .padding(16)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: this.hoveredSettingsCardIndex === 1 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 1, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 1, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredSettingsCardIndex = isHover ? 1 : -1
+      })
+    })
   }
 
   @Builder
@@ -1063,5 +1112,16 @@ export struct LogManagePage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .alignItems(HorizontalAlign.Start)
+    .border({
+      width: 1,
+      color: this.hoveredSettingsCardIndex === 2 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 2, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 2, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredSettingsCardIndex = isHover ? 2 : -1
+      })
+    })
   }
 }

@@ -23,6 +23,7 @@ import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
+import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'PeripheralPage'
 type PeripheralResultData =
@@ -38,6 +39,7 @@ type PeripheralResultData =
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State currentTab: number = 0
+  @State hoveredPanelIndex: number = -1
   @State isLoading: boolean = false
   @State adminState: AdminActivationState = {
     activated: false,
@@ -670,6 +672,22 @@ export struct PeripheralPage {
   @Builder
   deviceRecordsBuilder() {
     Column() {
+      Column({ space: 4 }) {
+        Text('设备连接记录')
+          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        Text('查看最近接入过的外设身份、连接时间与当前命中策略。')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+      .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
+
       if (this.deviceRecords.length === 0) {
         Column({ space: 12 }) {
           Text('暂无设备连接记录')
@@ -681,6 +699,8 @@ export struct PeripheralPage {
         .height('100%')
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
       } else {
         // 表头
         Row() {
@@ -746,17 +766,35 @@ export struct PeripheralPage {
               .width('100%')
               .padding({ left: 16, right: 16, top: 14, bottom: 14 })
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+              .border({
+                width: { bottom: 1 },
+                color: AppColors.getColors(this.currentTheme).BORDER
+              })
             }
           })
         }
         .width('100%')
         .layoutWeight(1)
         .divider({ strokeWidth: 1, color: AppColors.getColors(this.currentTheme).BORDER, startMargin: 0, endMargin: 0 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
       }
     }
     .width('100%')
     .height('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+    .border({
+      width: 1,
+      color: this.hoveredPanelIndex === 0 ? AppColors.BRAND_PRIMARY : Color.Transparent
+    })
+    .borderRadius(AppStyles.RADIUS_LG)
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredPanelIndex = isHover ? 0 : -1
+      })
+    })
   }
 
   // ==================== Tab 2: 接口管控 ====================
@@ -826,6 +864,17 @@ export struct PeripheralPage {
         }
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
+        .border({
+          width: 1,
+          color: this.hoveredPanelIndex === 1 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 1, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 1, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredPanelIndex = isHover ? 1 : -1
+          })
+        })
       }
       .width('100%')
       .justifyContent(FlexAlign.Start)
@@ -977,6 +1026,18 @@ export struct PeripheralPage {
     .width('100%')
     .height('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+    .border({
+      width: 1,
+      color: this.hoveredPanelIndex === 2 ? AppColors.SUCCESS : Color.Transparent
+    })
+    .borderRadius(AppStyles.RADIUS_LG)
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 2, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 2, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredPanelIndex = isHover ? 2 : -1
+      })
+    })
   }
 
   // ==================== Tab 4: 黑白名单 ====================
@@ -1060,6 +1121,20 @@ export struct PeripheralPage {
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
+        .padding(16)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: this.hoveredPanelIndex === 3 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredPanelIndex = isHover ? 3 : -1
+          })
+        })
 
         // USB 设备类型黑名单
         Column({ space: 12 }) {
@@ -1142,6 +1217,20 @@ export struct PeripheralPage {
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
+        .padding(16)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: this.hoveredPanelIndex === 4 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 4, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 4, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredPanelIndex = isHover ? 4 : -1
+          })
+        })
 
         // 蓝牙白名单
         Column({ space: 12 }) {
@@ -1212,6 +1301,20 @@ export struct PeripheralPage {
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
+        .padding(16)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: this.hoveredPanelIndex === 5 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 5, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 5, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredPanelIndex = isHover ? 5 : -1
+          })
+        })
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })

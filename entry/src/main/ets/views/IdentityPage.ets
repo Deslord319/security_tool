@@ -15,12 +15,14 @@ import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
+import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'IdentityPage'
 
 @Component
 export struct IdentityPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State hoveredCardIndex: number = -1
   @State adminState: AdminActivationState = {
     activated: false,
     enableCommand: EnterpriseAdminService.buildEnableCommand(),
@@ -475,6 +477,17 @@ export struct IdentityPage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .clip(true)
+    .border({
+      width: 1,
+      color: this.hoveredCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredCardIndex = isHover ? 0 : -1
+      })
+    })
   }
 
   // ==================== 功能区 2: 口令有效期配置 ====================
@@ -619,6 +632,17 @@ export struct IdentityPage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .clip(true)
+    .border({
+      width: 1,
+      color: this.hoveredCardIndex === 1 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 1, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 1, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredCardIndex = isHover ? 1 : -1
+      })
+    })
   }
 
   // ==================== 通用 Toggle 行 Builder ====================

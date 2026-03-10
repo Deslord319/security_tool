@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { HoverUtils } from '../utils/HoverUtils'
 
 @Component
 export struct InterfaceControlItem {
@@ -10,6 +11,7 @@ export struct InterfaceControlItem {
   @Prop selectedIndex: number = 0
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onSelect: (index: number) => void = () => {}
+  @State isHovered: boolean = false
 
   build() {
     Row() {
@@ -42,5 +44,11 @@ export struct InterfaceControlItem {
     .width('100%')
     .padding({ left: 20, right: 20, top: 16, bottom: 16 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .translate({ y: HoverUtils.getTranslateY(this.isHovered, 2) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.isHovered = isHover
+      })
+    })
   }
 }

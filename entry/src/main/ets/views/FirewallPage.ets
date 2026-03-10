@@ -137,7 +137,7 @@ export struct FirewallPage {
               description: '基于 IP 地址和端口的访问控制',
               count: this.ipCount,
               iconColor: AppColors.BRAND_PRIMARY,
-              iconText: 'IP',
+              icon: $r('app.media.network'),
               onPress: () => { this.onNavigateToRules(1) }
             })
 
@@ -151,7 +151,7 @@ export struct FirewallPage {
               description: '基于域名的访问控制',
               count: this.domainCount,
               iconColor: '#5856D6',
-              iconText: '域',
+              icon: $r('app.media.globe'),
               onPress: () => { this.onNavigateToRules(2) }
             })
 
@@ -165,7 +165,7 @@ export struct FirewallPage {
               description: '基于 DNS 的访问控制',
               count: this.dnsCount,
               iconColor: '#34C759',
-              iconText: 'DN',
+              icon: $r('app.media.server'),
               onPress: () => { this.onNavigateToRules(3) }
             })
           }
