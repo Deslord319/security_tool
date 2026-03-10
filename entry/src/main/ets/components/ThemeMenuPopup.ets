@@ -57,7 +57,7 @@ struct AboutDialog {
           this.controller.close()
         })
     }
-    .width('100%')
+    .width(360)
     .padding(24)
     .alignItems(HorizontalAlign.Center)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
