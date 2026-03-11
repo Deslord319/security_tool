@@ -1672,20 +1672,24 @@ export struct LogManagePage {
   @Builder
   storageSettingsView() {
     Column() {
-      Row() {
-        Column({ space: 16 }) {
-          this.storageConfigCard()
-          this.auditDiagnosticsCard()
+      Scroll() {
+        Row() {
+          Column({ space: 16 }) {
+            this.storageConfigCard()
+            this.auditDiagnosticsCard()
+          }
+          .width('100%')
+          .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
+          .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
-        .layoutWeight(1)
-        .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
-        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.Center)
+        .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
       }
       .width('100%')
       .layoutWeight(1)
-      .justifyContent(FlexAlign.Center)
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
+      .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
 
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
@@ -1942,67 +1946,60 @@ export struct LogManagePage {
         .borderRadius(AppStyles.RADIUS_SM)
       }
 
-      Scroll() {
-        Column({ space: 8 }) {
-          ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
-            Column({ space: 8 }) {
-              Row() {
-                Text(getLogEventTypeLabel(type))
-                  .fontSize(AppStyles.FONT_SIZE_BODY)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .layoutWeight(1)
-                Text(this.getDiagStatusText(type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(this.getDiagStatusColor(type))
-                  .backgroundColor(this.getDiagStatusBgColor(type))
-                  .borderRadius(AppStyles.RADIUS_SM)
-                  .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-              }
-              .width('100%')
-              .alignItems(VerticalAlign.Center)
-
-              Row() {
-                Text(this.getDiagCountText(type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1)
-                Text(this.getDiagRecentTimeText(type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1)
-                  .textAlign(TextAlign.End)
-              }
-              .width('100%')
-
-              if (this.getDiagGuidanceText(type).length > 0) {
-                Text(this.getDiagGuidanceText(type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-                  .maxLines(3)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .width('100%')
-                  .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
-                  .borderRadius(AppStyles.RADIUS_SM)
-              }
+      Column({ space: 8 }) {
+        ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
+          Column({ space: 8 }) {
+            Row() {
+              Text(getLogEventTypeLabel(type))
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .layoutWeight(1)
+              Text(this.getDiagStatusText(type))
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(this.getDiagStatusColor(type))
+                .backgroundColor(this.getDiagStatusBgColor(type))
+                .borderRadius(AppStyles.RADIUS_SM)
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
             }
             .width('100%')
-            .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-            .borderRadius(AppStyles.RADIUS_MD)
-          }, (type: LogEventType) => type.toString())
-        }
-        .width('100%')
+            .alignItems(VerticalAlign.Center)
+
+            Row() {
+              Text(this.getDiagCountText(type))
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1)
+              Text(this.getDiagRecentTimeText(type))
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1)
+                .textAlign(TextAlign.End)
+            }
+            .width('100%')
+
+            if (this.getDiagGuidanceText(type).length > 0) {
+              Text(this.getDiagGuidanceText(type))
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+                .maxLines(3)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .width('100%')
+                .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+                .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+                .borderRadius(AppStyles.RADIUS_SM)
+            }
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+          .borderRadius(AppStyles.RADIUS_MD)
+        }, (type: LogEventType) => type.toString())
       }
       .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Auto)
-      .align(Alignment.Top)
     }
     .width('100%')
-    .layoutWeight(1)
     .constraintSize({ minHeight: 360 })
     .padding(16)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
