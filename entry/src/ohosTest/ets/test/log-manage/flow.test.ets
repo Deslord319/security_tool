@@ -132,10 +132,19 @@ export default function logManageFlowTest() {
 
     describe('Export flow', () => {
 
-      it('should trigger JSON export', 0, async () => {
-        let exportBtn = await driver.findComponent(ON.text('瀵煎嚭 JSON'))
+      it('should open export format dialog and trigger JSON export', 0, async () => {
+        let exportBtn = await driver.findComponent(ON.text('瀵煎嚭鏃ュ織'))
         expect(exportBtn !== null).assertTrue()
         await exportBtn.click()
+        await driver.delayMs(300)
+
+        await driver.assertComponentExist(ON.text('JSON'))
+        await driver.assertComponentExist(ON.text('CSV'))
+        await driver.assertComponentExist(ON.text('TXT'))
+
+        let jsonBtn = await driver.findComponent(ON.text('JSON'))
+        expect(jsonBtn !== null).assertTrue()
+        await jsonBtn.click()
         await driver.delayMs(1000)
         let detailDialog = await driver.findComponent(ON.text('瀵煎嚭璇︽儏'))
         let noDataToast = await driver.findComponent(ON.text('娌℃湁鍙鍑虹殑鏃ュ織'))
@@ -143,10 +152,15 @@ export default function logManageFlowTest() {
         hilog.info(DOMAIN, TAG, 'JSON export triggered')
       })
 
-      it('should trigger CSV export', 0, async () => {
-        let exportBtn = await driver.findComponent(ON.text('瀵煎嚭 CSV'))
+      it('should open export format dialog and trigger CSV export', 0, async () => {
+        let exportBtn = await driver.findComponent(ON.text('瀵煎嚭鏃ュ織'))
         expect(exportBtn !== null).assertTrue()
         await exportBtn.click()
+        await driver.delayMs(300)
+
+        let csvBtn = await driver.findComponent(ON.text('CSV'))
+        expect(csvBtn !== null).assertTrue()
+        await csvBtn.click()
         await driver.delayMs(500)
         hilog.info(DOMAIN, TAG, 'CSV export triggered')
       })

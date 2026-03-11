@@ -506,6 +506,8 @@ export enum LogExportFormat {
 // 鏃ュ織瀵煎嚭瑙﹀彂鏉ユ簮
 export type LogExportTrigger = 'manual' | 'auto'
 
+export type LogExportRecoveryAction = 'pick_directory'
+
 // 鏃ュ織瀵煎嚭缁撴灉
 export interface LogExportResult {
   success: boolean
@@ -519,6 +521,7 @@ export interface LogExportResult {
   sizeBytes?: number
   errorCode?: number
   errorMessage?: string
+  recoverAction?: LogExportRecoveryAction
 }
 
 // 浜嬩欢绫诲瀷閫夐」锛圲I 灞曠ず鐢級

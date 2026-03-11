@@ -38,6 +38,210 @@ import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'LogManagePage'
 
+interface PublicSelectionResult {
+  targetType: LogExportTargetType
+  exportPath: string
+}
+
+interface DetailDialogField {
+  key: string
+  label: string
+  value: string
+}
+
+@Component
+struct DetailTableRow {
+  label: string = ''
+  value: string = '-'
+  labelWidth: number = 112
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State expanded: boolean = false
+
+  private shouldCollapse(): boolean {
+    return this.value.length > 60 || this.value.indexOf('\n') >= 0
+  }
+
+  build() {
+    Row({ space: 12 }) {
+      Text(this.label)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .width(this.labelWidth)
+
+      Column({ space: 6 }) {
+        Text(this.value)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .maxLines(this.shouldCollapse() && !this.expanded ? 2 : 12)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+
+        if (this.shouldCollapse()) {
+          Text(this.expanded ? '收起' : '展开')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.BRAND_PRIMARY)
+            .onClick(() => {
+              this.expanded = !this.expanded
+            })
+        }
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+    .padding({ top: 10, bottom: 10 })
+  }
+}
+
+@CustomDialog
+struct DetailTableDialog {
+  controller: CustomDialogController
+  title: string = ''
+  fields: DetailDialogField[] = []
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  private readonly labelWidth: number = 112
+
+  build() {
+    Column({ space: 0 }) {
+      Row() {
+        Text(this.title)
+          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        Blank()
+        Button('关闭')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(30)
+          .onClick(() => {
+            this.controller.close()
+          })
+      }
+      .width('100%')
+
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+        .margin({ top: 10, bottom: 10 })
+
+      Scroll() {
+        Column({ space: 0 }) {
+          ForEach(this.fields, (field: DetailDialogField, index: number) => {
+            DetailTableRow({
+              label: field.label,
+              value: field.value,
+              labelWidth: this.labelWidth
+            })
+            if (index < this.fields.length - 1) {
+              Divider()
+                .color(AppColors.getColors(this.currentTheme).BORDER)
+                .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+            }
+          }, (field: DetailDialogField) => field.key)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .constraintSize({ maxHeight: 420 })
+      .scrollBar(BarState.Auto)
+    }
+    .width(580)
+    .padding(18)
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
+  }
+}
+
+@CustomDialog
+struct ExportFormatDialog {
+  controller: CustomDialogController
+  onSelect: (format: LogExportFormat) => void = () => {}
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  private handleSelect(format: LogExportFormat): void {
+    this.controller.close()
+    this.onSelect(format)
+  }
+
+  build() {
+    Column({ space: 12 }) {
+      Text('选择导出格式')
+        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+
+      Row({ space: 10 }) {
+        Button('JSON')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .layoutWeight(1)
+          .height(36)
+          .onClick(() => {
+            this.handleSelect(LogExportFormat.JSON)
+          })
+
+        Button('CSV')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_GREEN_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .layoutWeight(1)
+          .height(36)
+          .onClick(() => {
+            this.handleSelect(LogExportFormat.CSV)
+          })
+
+        Button('TXT')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .layoutWeight(1)
+          .height(36)
+          .onClick(() => {
+            this.handleSelect(LogExportFormat.TXT)
+          })
+      }
+      .width('100%')
+
+      Button('取消')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .height(34)
+        .width('100%')
+        .onClick(() => {
+          this.controller.close()
+        })
+    }
+    .width(360)
+    .padding(18)
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
+  }
+}
+
 @Component
 export struct LogManagePage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -45,6 +249,10 @@ export struct LogManagePage {
   @State hoveredSettingsCardIndex: number = -1
 
   @State logEntries: LogEntry[] = []
+  @State pagedLogEntries: LogEntry[] = []
+  @State currentPage: number = 1
+  @State pageInputValue: string = '1'
+  @State pageSizeIndex: number = 1
   @State statistics: LogStatistics = {
     totalCount: 0,
     todayCount: 0,
@@ -69,6 +277,7 @@ export struct LogManagePage {
   @State retentionIndex: number = 2
   @State autoExportEnabled: boolean = false
   @State exportTargetType: LogExportTargetType = 'download'
+  @State publicExportPath: string = ''
   @State customExportUri: string = ''
   @State exportPath: string = ''
   @State defaultExportPath: string = ''
@@ -80,6 +289,19 @@ export struct LogManagePage {
   private readonly REFRESH_INTERVAL_MS: number = 1500
   private readonly SETTINGS_CONTENT_MAX_WIDTH: number = 1280
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 220
+  private readonly pageSizeOptions: number[] = [20, 50, 100]
+  private detailDialogController?: CustomDialogController
+
+  private exportFormatDialogController: CustomDialogController = new CustomDialogController({
+    builder: ExportFormatDialog({
+      onSelect: (format: LogExportFormat) => {
+        void this.exportLogs(format)
+      }
+    }),
+    autoCancel: true,
+    customStyle: true,
+    alignment: DialogAlignment.Center
+  })
 
   private resolveStatIndex(label: string): number {
     if (label === '总计') {
@@ -167,6 +389,104 @@ export struct LogManagePage {
     let filter = this.buildFilter()
     this.logEntries = LogStorageService.queryEntries(filter)
     this.statistics = LogStorageService.getStatistics()
+    this.updatePagedEntries()
+  }
+
+  private getCurrentPageSize(): number {
+    if (this.pageSizeIndex < 0 || this.pageSizeIndex >= this.pageSizeOptions.length) {
+      return this.pageSizeOptions[0]
+    }
+    return this.pageSizeOptions[this.pageSizeIndex]
+  }
+
+  private getTotalPages(): number {
+    let pageSize = this.getCurrentPageSize()
+    if (this.logEntries.length === 0) {
+      return 1
+    }
+    return Math.max(1, Math.ceil(this.logEntries.length / pageSize))
+  }
+
+  private updatePagedEntries(): void {
+    let totalPages = this.getTotalPages()
+    if (this.currentPage < 1) {
+      this.currentPage = 1
+    } else if (this.currentPage > totalPages) {
+      this.currentPage = totalPages
+    }
+
+    let pageSize = this.getCurrentPageSize()
+    let start = (this.currentPage - 1) * pageSize
+    this.pagedLogEntries = this.logEntries.slice(start, start + pageSize)
+    this.syncPageInputWithCurrentPage()
+  }
+
+  private resetToFirstPageAndRefresh(): void {
+    this.currentPage = 1
+    this.syncPageInputWithCurrentPage()
+    this.refreshData()
+  }
+
+  private goToPreviousPage(): void {
+    if (this.currentPage <= 1) {
+      return
+    }
+    this.currentPage = this.currentPage - 1
+    this.updatePagedEntries()
+  }
+
+  private goToNextPage(): void {
+    let totalPages = this.getTotalPages()
+    if (this.currentPage >= totalPages) {
+      return
+    }
+    this.currentPage = this.currentPage + 1
+    this.updatePagedEntries()
+  }
+
+  private syncPageInputWithCurrentPage(): void {
+    this.pageInputValue = `${this.currentPage}`
+  }
+
+  private sanitizePageInput(input: string): string {
+    return input.replace(/[^0-9]/g, '')
+  }
+
+  private jumpToInputPage(): void {
+    let cleaned = this.sanitizePageInput(this.pageInputValue)
+    if (cleaned.length === 0) {
+      this.syncPageInputWithCurrentPage()
+      return
+    }
+
+    let targetPage = parseInt(cleaned, 10)
+    if (targetPage < 1) {
+      targetPage = 1
+    }
+
+    let totalPages = this.getTotalPages()
+    if (targetPage > totalPages) {
+      targetPage = totalPages
+    }
+
+    this.currentPage = targetPage
+    this.updatePagedEntries()
+  }
+
+  private getPageSizeOptions(): SelectOption[] {
+    return this.pageSizeOptions.map((size: number): SelectOption => {
+      return { value: `${size} 条/页` } as SelectOption
+    })
+  }
+
+  private getCurrentRangeText(): string {
+    if (this.logEntries.length === 0) {
+      return '0-0'
+    }
+    let pageSize = this.getCurrentPageSize()
+    let start = (this.currentPage - 1) * pageSize + 1
+    let end = Math.min(this.currentPage * pageSize, this.logEntries.length)
+    return `${start}-${end}`
   }
 
   buildFilter(): LogFilter | undefined {
@@ -190,6 +510,10 @@ export struct LogManagePage {
     return hasFilter ? filter : undefined
   }
 
+  private showExportFormatDialog(): void {
+    this.exportFormatDialogController.open()
+  }
+
   async exportLogs(format: LogExportFormat) {
     if (this.logEntries.length === 0) {
       promptAction.showToast({ message: '没有可导出的日志' })
@@ -198,13 +522,126 @@ export struct LogManagePage {
 
     let result = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
     if (result.success) {
-      this.showExportSuccessDialog(result)
+      this.showExportSuccessDetailDialog(result)
       return
+    }
+
+    if (result.recoverAction === 'pick_directory') {
+      let recovered = await this.tryRecoverExportDirectoryAndRetry(format)
+      if (recovered) {
+        return
+      }
     }
 
     this.showExportFailureDialog(result)
   }
 
+  private async tryRecoverExportDirectoryAndRetry(format: LogExportFormat): Promise<boolean> {
+    promptAction.showToast({ message: '当前目录无权限，请重新选择导出目录' })
+    let recovered = await this.chooseExportDirectoryAndPersist()
+    if (!recovered) {
+      return false
+    }
+
+    let retryResult = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
+    if (retryResult.success) {
+      this.showExportSuccessDetailDialog(retryResult)
+      return true
+    }
+
+    this.showExportFailureDialog(retryResult)
+    return true
+  }
+
+  private async chooseExportDirectoryAndPersist(): Promise<boolean> {
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      let documentPicker = new picker.DocumentViewPicker(context)
+      let options: picker.DocumentSelectOptions = {
+        maxSelectNumber: 1,
+        selectMode: picker.DocumentSelectMode.FOLDER
+      } as picker.DocumentSelectOptions
+
+      let uris = await documentPicker.select(options)
+      if (uris.length === 0) {
+        return false
+      }
+
+      let selectedUri = uris[0]
+      let selection = LogStorageService.classifyExportSelection(selectedUri)
+      if (!selection) {
+        promptAction.showToast({ message: '目录格式无效，请重新选择' })
+        return false
+      }
+
+      let targetType: LogExportTargetType = selection.targetType
+      let selectedPublicPath = ''
+      let normalizedCustomUri = ''
+      let config = LogStorageService.getConfig()
+
+      if (targetType !== 'custom_uri') {
+        selectedPublicPath = selection.exportPath
+      } else {
+        normalizedCustomUri = selection.exportTargetValue
+        let persistResult = await LogStorageService.persistCustomUriPermission(normalizedCustomUri)
+        if (!persistResult.success) {
+          let publicFallback = this.resolvePublicFallbackFromPersistFailure(normalizedCustomUri)
+          if (publicFallback) {
+            targetType = publicFallback.targetType
+            selectedPublicPath = publicFallback.exportPath
+            normalizedCustomUri = ''
+          } else {
+            this.exportTargetType = 'custom_uri'
+            this.publicExportPath = ''
+            this.customExportUri = normalizedCustomUri
+            this.updateExportPathPreview()
+            if (LogStorageService.isCustomUriPersistenceForbidden(persistResult)) {
+              promptAction.showToast({
+                message: 'Selected directory cannot be persisted. Selection is kept; please choose another directory.'
+              })
+              return false
+            }
+            let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
+            promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
+            return false
+          }
+        }
+      }
+
+      if (targetType !== 'custom_uri') {
+        let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, targetType)
+        if (!permissionResult.success) {
+          let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
+          promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
+          return false
+        }
+
+        config.exportTargetType = targetType
+        config.exportTargetValue = ''
+        config.exportAuthMode = 'runtime_permission' as LogExportAuthMode
+        config.exportPath = selectedPublicPath || LogStorageService.getPublicExportDirectory(targetType)
+      } else {
+        config.exportTargetType = 'custom_uri'
+        config.exportTargetValue = normalizedCustomUri
+        config.exportAuthMode = 'persisted_uri' as LogExportAuthMode
+        config.exportPath = normalizedCustomUri
+      }
+
+      let saved = await LogStorageService.updateConfig(config)
+      if (!saved) {
+        promptAction.showToast({ message: '保存目录失败，请重试' })
+        return false
+      }
+
+      this.applyStorageConfig(LogStorageService.getConfig())
+      this.refreshAll()
+      return true
+    } catch (err) {
+      hilog.error(0x0006, TAG, `chooseExportDirectoryAndPersist failed: ${JSON.stringify(err)}`)
+      promptAction.showToast({ message: '选择目录失败，请重试' })
+      return false
+    }
+  }
   showExportSuccessDialog(result: LogExportResult) {
     let fileName = result.fileName || '未知'
     let directory = result.directory || '未知'
@@ -255,6 +692,95 @@ export struct LogManagePage {
     })
   }
 
+  private displayField(value: string | number | undefined): string {
+    if (value === undefined || value === null) {
+      return '-'
+    }
+    let text = value.toString().trim()
+    if (text.length === 0) {
+      return '-'
+    }
+    return text
+  }
+
+  private toDetailField(key: string, label: string, value: string | number | undefined): DetailDialogField {
+    return {
+      key: key,
+      label: label,
+      value: this.displayField(value)
+    } as DetailDialogField
+  }
+
+  private openDetailTableDialog(title: string, fields: DetailDialogField[]): void {
+    this.detailDialogController = new CustomDialogController({
+      builder: DetailTableDialog({
+        title: title,
+        fields: fields
+      }),
+      autoCancel: true,
+      customStyle: true,
+      alignment: DialogAlignment.Center
+    })
+    this.detailDialogController.open()
+  }
+
+  private showExportSuccessDetailDialog(result: LogExportResult): void {
+    let fields: DetailDialogField[] = [
+      this.toDetailField('summary', '导出结果', `导出完成（${result.count} 条）`),
+      this.toDetailField('format', '导出格式', result.format.toUpperCase()),
+      this.toDetailField('count', '导出条数', result.count.toString()),
+      this.toDetailField('file_name', '文件名', result.fileName),
+      this.toDetailField('directory', '保存位置', result.directory),
+      this.toDetailField('full_path', '完整路径', result.fullPath),
+      this.toDetailField('size', '文件大小', this.formatBytes(result.sizeBytes)),
+      this.toDetailField('exported_at', '导出时间', formatLogTimestamp(result.timestamp))
+    ]
+    if (result.errorMessage && result.errorMessage.trim().length > 0) {
+      fields.push(this.toDetailField('remark', '备注', result.errorMessage))
+    }
+    this.openDetailTableDialog('导出详情', fields)
+  }
+
+  private openLogDetailTableDialog(entry: LogEntry): void {
+    let fields: DetailDialogField[] = [
+      this.toDetailField('timestamp', '时间', formatLogTimestamp(entry.timestamp)),
+      this.toDetailField('event_type', '类型', getLogEventTypeLabel(entry.eventType)),
+      this.toDetailField('result', '结果', getLogEventResultLabel(entry.result)),
+      this.toDetailField('detail', '详情', entry.detail),
+      this.toDetailField('process', '进程', entry.processName),
+      this.toDetailField('pid', 'PID', entry.pid),
+      this.toDetailField('uid', 'UID', entry.uid),
+      this.toDetailField('file_path', '文件路径', entry.filePath),
+      this.toDetailField('remote_addr', '远端地址', entry.remoteAddr),
+      this.toDetailField('source_event_id', '源事件 ID', entry.sourceEventId),
+      this.toDetailField('source_sub_type', '源子类型', entry.sourceSubType),
+      this.toDetailField('raw_event_name', '原始事件名', entry.rawEventName),
+      this.toDetailField('raw_outcome', '原始结果', entry.rawOutcome)
+    ]
+    this.openDetailTableDialog('日志详情', fields)
+  }
+
+  private showLogDetailDialog(entry: LogEntry): void {
+    AlertDialog.show({
+      title: '日志详情',
+      message:
+        `时间: ${formatLogTimestamp(entry.timestamp)}\n` +
+        `类型: ${getLogEventTypeLabel(entry.eventType)}\n` +
+        `结果: ${getLogEventResultLabel(entry.result)}\n` +
+        `详情: ${this.displayField(entry.detail)}\n` +
+        `进程: ${this.displayField(entry.processName)}\n` +
+        `PID: ${this.displayField(entry.pid)}\n` +
+        `UID: ${this.displayField(entry.uid)}\n` +
+        `文件路径: ${this.displayField(entry.filePath)}\n` +
+        `远端地址: ${this.displayField(entry.remoteAddr)}\n` +
+        `源事件 ID: ${this.displayField(entry.sourceEventId)}\n` +
+        `源子类型: ${this.displayField(entry.sourceSubType)}\n` +
+        `原始事件名: ${this.displayField(entry.rawEventName)}\n` +
+        `原始结果: ${this.displayField(entry.rawOutcome)}`,
+      primaryButton: { value: '关闭', action: () => {} }
+    })
+  }
+
   formatBytes(sizeBytes: number | undefined): string {
     if (sizeBytes === undefined || sizeBytes < 0) {
       return '未知'
@@ -294,6 +820,8 @@ export struct LogManagePage {
 
     let publicTargetType: LogExportTargetType | undefined = undefined
     let normalizedCustomUri = ''
+    let selectedPublicPath = ''
+
     if (this.exportTargetType === 'custom_uri') {
       let customUri = this.customExportUri.trim()
       if (customUri.length === 0) {
@@ -301,35 +829,52 @@ export struct LogManagePage {
         return
       }
 
-      publicTargetType = LogStorageService.resolvePublicTargetType(customUri)
-      if (!publicTargetType) {
-        let normalizedUri = LogStorageService.normalizeCustomExportUri(customUri)
-        if (!normalizedUri) {
-          promptAction.showToast({ message: '目录格式无效，请重新选择' })
-          return
-        }
+      let selection = LogStorageService.classifyExportSelection(customUri)
+      if (!selection) {
+        promptAction.showToast({ message: '目录格式无效，请重新选择' })
+        return
+      }
 
+      if (selection.targetType !== 'custom_uri') {
+        publicTargetType = selection.targetType
+        selectedPublicPath = selection.exportPath
+      } else {
+        let normalizedUri = selection.exportTargetValue
         let persistResult = await LogStorageService.persistCustomUriPermission(normalizedUri)
         if (!persistResult.success) {
-          let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
-          promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
-          return
+          let publicFallback = this.resolvePublicFallbackFromPersistFailure(normalizedUri)
+          if (publicFallback) {
+            publicTargetType = publicFallback.targetType
+            selectedPublicPath = publicFallback.exportPath
+          } else {
+            if (LogStorageService.isCustomUriPersistenceForbidden(persistResult)) {
+              promptAction.showToast({
+                message: 'Selected directory cannot be persisted. Selection is kept; please choose another directory.'
+              })
+              return
+            }
+            let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
+            promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
+            return
+          }
+        } else {
+          normalizedCustomUri = normalizedUri
         }
-        normalizedCustomUri = normalizedUri
       }
     } else {
       publicTargetType = this.exportTargetType
+      selectedPublicPath = LogStorageService.resolvePublicExportPath(this.publicExportPath, publicTargetType) || ''
     }
 
     if (publicTargetType && publicTargetType !== 'custom_uri') {
       let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, publicTargetType)
       if (!permissionResult.success) {
         let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
-        promptAction.showToast({ message: `目录权限未授权${codeText}` })
+        promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
         return
       }
 
-      let publicPath = LogStorageService.getPublicExportDirectory(publicTargetType)
+      let publicPath = selectedPublicPath || LogStorageService.getPublicExportDirectory(publicTargetType)
       config.exportTargetType = publicTargetType
       config.exportTargetValue = ''
       config.exportAuthMode = 'runtime_permission' as LogExportAuthMode
@@ -355,18 +900,21 @@ export struct LogManagePage {
         let expectedUri = config.exportTargetValue || ''
         let persistedUri = persistedConfig.exportTargetValue || ''
         valueApplied = this.normalizePathForCompare(expectedUri) === this.normalizePathForCompare(persistedUri)
+      } else {
+        let expectedPath = config.exportPath || ''
+        let persistedPath = persistedConfig.exportPath || ''
+        valueApplied = this.normalizePathForCompare(expectedPath) === this.normalizePathForCompare(persistedPath)
       }
 
       if (typeApplied && valueApplied) {
         promptAction.showToast({ message: '存储设置已保存' })
       } else {
-        promptAction.showToast({ message: '所选目录不可用，已自动回退到默认目录' })
+        promptAction.showToast({ message: 'Selected directory was not applied. Please choose again.' })
       }
     } else {
       promptAction.showToast({ message: '保存失败' })
     }
   }
-
   applyStorageConfig(config: LogStorageConfig): void {
     this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
     if (this.maxEntriesIndex < 0) {
@@ -385,6 +933,8 @@ export struct LogManagePage {
     }
 
     this.autoExportEnabled = config.autoExportEnabled
+    this.publicExportPath = ''
+
     let targetType = config.exportTargetType || 'download'
     if (targetType === 'custom_uri') {
       this.exportTargetType = 'custom_uri'
@@ -392,6 +942,11 @@ export struct LogManagePage {
     } else if (targetType === 'documents' || targetType === 'desktop' || targetType === 'download') {
       this.exportTargetType = targetType
       this.customExportUri = ''
+      let configuredPath = (config.exportPath || '').trim()
+      let selectedPublicPath = LogStorageService.resolvePublicExportPath(configuredPath, targetType)
+      if (selectedPublicPath) {
+        this.publicExportPath = selectedPublicPath
+      }
     } else {
       this.exportTargetType = 'download'
       this.customExportUri = ''
@@ -399,7 +954,6 @@ export struct LogManagePage {
 
     this.updateExportPathPreview()
   }
-
   private getExportTargetLabel(targetType: LogExportTargetType): string {
     if (targetType === 'download') {
       return '下载目录'
@@ -427,12 +981,16 @@ export struct LogManagePage {
   }
 
   private applyExportTargetByIndex(index: number): void {
+    this.publicExportPath = ''
     if (index === 0) {
       this.exportTargetType = 'download'
+      this.customExportUri = ''
     } else if (index === 1) {
       this.exportTargetType = 'documents'
+      this.customExportUri = ''
     } else if (index === 2) {
       this.exportTargetType = 'desktop'
+      this.customExportUri = ''
     } else {
       this.exportTargetType = 'custom_uri'
     }
@@ -445,12 +1003,40 @@ export struct LogManagePage {
       return
     }
 
+    let selectedPublicPath = LogStorageService.resolvePublicExportPath(this.publicExportPath, this.exportTargetType)
+    if (selectedPublicPath) {
+      this.exportPath = selectedPublicPath
+      return
+    }
+
     let resolved = LogStorageService.getPublicExportDirectory(this.exportTargetType)
     if (resolved.length > 0) {
       this.exportPath = resolved
     } else {
       this.exportPath = this.defaultExportPath
     }
+  }
+
+  private resolvePublicSelection(pathOrUri: string): PublicSelectionResult | undefined {
+    let targetType = LogStorageService.resolvePublicTargetType(pathOrUri)
+    if (!targetType || targetType === 'custom_uri') {
+      return undefined
+    }
+    let selectedPublicPath = LogStorageService.resolvePublicExportPath(pathOrUri, targetType)
+    let exportPath = selectedPublicPath || LogStorageService.getPublicExportDirectory(targetType)
+    if (exportPath.length === 0) {
+      return undefined
+    }
+    return {
+      targetType: targetType,
+      exportPath: exportPath
+    } as PublicSelectionResult
+  }
+
+  private resolvePublicFallbackFromPersistFailure(
+    sourcePathOrUri: string
+  ): PublicSelectionResult | undefined {
+    return this.resolvePublicSelection(sourcePathOrUri)
   }
 
   normalizePathForCompare(path: string): string {
@@ -485,29 +1071,52 @@ export struct LogManagePage {
       }
 
       let selectedUri = uris[0]
-      let publicTargetType = LogStorageService.resolvePublicTargetType(selectedUri)
-      if (publicTargetType && publicTargetType !== 'custom_uri') {
-        this.exportTargetType = publicTargetType
-        this.customExportUri = ''
-        this.updateExportPathPreview()
-        promptAction.showToast({ message: `已切换到${this.getExportTargetLabel(publicTargetType)}，保存时将弹出权限授权` })
-        return
-      }
-
-      let normalizedUri = LogStorageService.normalizeCustomExportUri(selectedUri)
-      if (!normalizedUri) {
+      let selection = LogStorageService.classifyExportSelection(selectedUri)
+      if (!selection) {
         promptAction.showToast({ message: '目录格式无效，请重新选择' })
         return
       }
 
+      if (selection.targetType !== 'custom_uri') {
+        this.exportTargetType = selection.targetType
+        this.publicExportPath = selection.exportPath
+        this.customExportUri = ''
+        this.updateExportPathPreview()
+        promptAction.showToast({ message: `已切换到${this.getExportTargetLabel(selection.targetType)}，保存时将弹出权限授权` })
+        return
+      }
+
+      let normalizedUri = selection.exportTargetValue
       let persistResult = await LogStorageService.persistCustomUriPermission(normalizedUri)
       if (!persistResult.success) {
+        let publicFallback = this.resolvePublicFallbackFromPersistFailure(normalizedUri)
+        if (publicFallback) {
+          this.exportTargetType = publicFallback.targetType
+          this.publicExportPath = publicFallback.exportPath
+          this.customExportUri = ''
+          this.updateExportPathPreview()
+          promptAction.showToast({ message: `æ£€æµ‹åˆ°å…¬å…±ç›®å½•ï¼Œå·²åˆ‡æ¢åˆ°${this.getExportTargetLabel(publicFallback.targetType)}` })
+          return
+        }
+
+        this.exportTargetType = 'custom_uri'
+        this.publicExportPath = ''
+        this.customExportUri = normalizedUri
+        this.updateExportPathPreview()
+        if (LogStorageService.isCustomUriPersistenceForbidden(persistResult)) {
+          promptAction.showToast({
+            message: 'Selected directory cannot be persisted. Selection is kept; please choose another directory.'
+          })
+          return
+        }
+
         let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
-        promptAction.showToast({ message: `目录授权失败${codeText}，请重新选择` })
+        promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
         return
       }
 
       this.exportTargetType = 'custom_uri'
+      this.publicExportPath = ''
       this.customExportUri = normalizedUri
       this.updateExportPathPreview()
       promptAction.showToast({ message: '已选择自定义目录，请保存以生效' })
@@ -519,11 +1128,11 @@ export struct LogManagePage {
 
   restoreDefaultExportDirectory() {
     this.exportTargetType = 'download'
+    this.publicExportPath = ''
     this.customExportUri = ''
     this.updateExportPathPreview()
     promptAction.showToast({ message: '已恢复默认导出目录，请保存以生效' })
   }
-
   private getCurrentTypeDiag(): LogEventTypeDiag | undefined {
     if (this.filterEventType < 0) {
       return undefined
@@ -717,6 +1326,7 @@ export struct LogManagePage {
         this.filterToolbar()
         this.filterHintView()
         this.logListView()
+        this.paginationToolbar()
         this.bottomToolbar()
       }
     }
@@ -731,7 +1341,7 @@ export struct LogManagePage {
       this.statItem('总计', this.statistics.totalCount.toString(), AppColors.BRAND_PRIMARY)
       this.statItem('今日', this.statistics.todayCount.toString(), AppColors.SUCCESS)
       this.statItem('已阻止', this.statistics.blockedCount.toString(), AppColors.WARNING)
-      this.statItem('当前显示', this.logEntries.length.toString(), '#9E9E9E')
+      this.statItem('当前显示', this.pagedLogEntries.length.toString(), '#9E9E9E')
     }
     .width('100%')
     .padding({
@@ -785,7 +1395,7 @@ export struct LogManagePage {
         .width(120)
         .onSelect((index: number) => {
           this.filterEventType = index - 1
-          this.refreshData()
+          this.resetToFirstPageAndRefresh()
         })
 
       Select(this.resultFilterOptions)
@@ -799,7 +1409,7 @@ export struct LogManagePage {
         .width(110)
         .onSelect((index: number) => {
           this.filterResult = index - 1
-          this.refreshData()
+          this.resetToFirstPageAndRefresh()
         })
 
       TextInput({ placeholder: '搜索日志内容...', text: this.filterKeyword })
@@ -811,7 +1421,7 @@ export struct LogManagePage {
         .layoutWeight(1)
         .onChange((value: string) => {
           this.filterKeyword = value
-          this.refreshData()
+          this.resetToFirstPageAndRefresh()
         })
 
       Button('刷新')
@@ -883,7 +1493,7 @@ export struct LogManagePage {
       .justifyContent(FlexAlign.Center)
     } else {
       List({ space: 1 }) {
-        ForEach(this.logEntries, (entry: LogEntry) => {
+        ForEach(this.pagedLogEntries, (entry: LogEntry) => {
           ListItem() {
             this.logEntryRow(entry)
           }
@@ -893,6 +1503,95 @@ export struct LogManagePage {
       .layoutWeight(1)
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM })
       .scrollBar(BarState.Auto)
+    }
+  }
+
+  @Builder
+  paginationToolbar() {
+    if (!this.isLoading && this.logEntries.length > 0) {
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row({ space: 12 }) {
+        Text(`显示 ${this.getCurrentRangeText()} / 共 ${this.logEntries.length} 条`)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .layoutWeight(1)
+
+        Select(this.getPageSizeOptions())
+          .selected(this.pageSizeIndex)
+          .value(`${this.getCurrentPageSize()} 条/页`)
+          .font({ size: AppStyles.FONT_SIZE_CAPTION })
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+          .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+          .width(126)
+          .height(32)
+          .onSelect((index: number) => {
+            this.pageSizeIndex = index
+            this.currentPage = 1
+            this.updatePagedEntries()
+          })
+
+        Button('上一页')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(this.currentPage > 1 ? AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY : 0.4)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(32)
+          .padding({ left: 12, right: 12 })
+          .onClick(() => {
+            this.goToPreviousPage()
+          })
+
+        Text(`${this.currentPage}/${this.getTotalPages()}`)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .width(52)
+          .textAlign(TextAlign.Center)
+
+        TextInput({ text: this.pageInputValue, placeholder: '页码' })
+          .type(InputType.Number)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(32)
+          .width(62)
+          .onChange((value: string) => {
+            this.pageInputValue = this.sanitizePageInput(value)
+          })
+
+        Button('跳转')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(32)
+          .padding({ left: 10, right: 10 })
+          .onClick(() => {
+            this.jumpToInputPage()
+          })
+
+        Button('下一页')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(this.currentPage < this.getTotalPages() ? AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY : 0.4)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(32)
+          .padding({ left: 12, right: 12 })
+          .onClick(() => {
+            this.goToNextPage()
+          })
+      }
+      .width('100%')
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: 10, bottom: 10 })
+      .alignItems(VerticalAlign.Center)
     }
   }
 
@@ -946,6 +1645,9 @@ export struct LogManagePage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_SM)
     .alignItems(VerticalAlign.Center)
+    .onClick(() => {
+      this.openLogDetailTableDialog(entry)
+    })
   }
 
   @Builder
@@ -955,17 +1657,9 @@ export struct LogManagePage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     Row({ space: 12 }) {
-      Button('导出 JSON').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+      Button('导出日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.exportLogs(LogExportFormat.JSON) })
-
-      Button('导出 CSV').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_GREEN_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.exportLogs(LogExportFormat.CSV) })
-
-      Button('导出 TXT').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.exportLogs(LogExportFormat.TXT) })
+        .height(36).layoutWeight(1).onClick(() => { this.showExportFormatDialog() })
 
       Button('清空日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG).borderRadius(AppStyles.RADIUS_SM)
@@ -981,7 +1675,6 @@ export struct LogManagePage {
       Row() {
         Column({ space: 16 }) {
           this.storageConfigCard()
-          this.permissionInfoCard()
           this.auditDiagnosticsCard()
         }
         .width('100%')
@@ -1317,14 +2010,16 @@ export struct LogManagePage {
     .alignItems(HorizontalAlign.Start)
     .border({
       width: 1,
-      color: this.hoveredSettingsCardIndex === 2 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+      color: this.hoveredSettingsCardIndex === 1 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
     })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 2, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 2, 4) })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 1, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 1, 4) })
     .onHover((isHover: boolean) => {
       HoverUtils.animate(() => {
-        this.hoveredSettingsCardIndex = isHover ? 2 : -1
+        this.hoveredSettingsCardIndex = isHover ? 1 : -1
       })
     })
   }
 }
+
+

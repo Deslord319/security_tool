@@ -125,19 +125,9 @@ export default function logManageComponentTest() {
 
     describe('Bottom Toolbar', () => {
 
-      it('should display export JSON button', 0, async () => {
-        await driver.assertComponentExist(ON.text('瀵煎嚭 JSON'))
-        hilog.info(DOMAIN, TAG, 'Export JSON button verified')
-      })
-
-      it('should display export CSV button', 0, async () => {
-        await driver.assertComponentExist(ON.text('瀵煎嚭 CSV'))
-        hilog.info(DOMAIN, TAG, 'Export CSV button verified')
-      })
-
-      it('should display export TXT button', 0, async () => {
-        await driver.assertComponentExist(ON.text('瀵煎嚭 TXT'))
-        hilog.info(DOMAIN, TAG, 'Export TXT button verified')
+      it('should display merged export button', 0, async () => {
+        await driver.assertComponentExist(ON.text('瀵煎嚭鏃ュ織'))
+        hilog.info(DOMAIN, TAG, 'Merged export button verified')
       })
 
       it('should display clear logs button', 0, async () => {
