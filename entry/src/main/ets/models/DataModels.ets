@@ -363,7 +363,7 @@ export interface PasswordChangeRequest {
 
 // 榛樿宸ュ叿璁剧疆閰嶇疆
 export const DEFAULT_TOOL_SETTINGS: ToolSettingsConfig = {
-  startupAuthEnabled: true,
+  startupAuthEnabled: false,
   authMethod: AuthMethod.PIN
 }
 

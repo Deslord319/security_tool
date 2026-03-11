@@ -83,7 +83,7 @@ export struct FirewallPage {
         // 页面头部：标题 + 开关
         Row() {
           Column({ space: 4 }) {
-            Text('防火墙')
+            Text('防火墙管理')
               .fontSize(AppStyles.FONT_SIZE_TITLE)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

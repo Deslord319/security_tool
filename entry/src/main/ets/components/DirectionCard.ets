@@ -19,9 +19,9 @@ export struct DirectionCard {
       Column() {
         if (this.icon !== undefined) {
           Image(this.icon)
-            .width(20)
-            .height(20)
-            .fillColor(Color.White)
+            .width(32)
+            .height(32)
+            .objectFit(ImageFit.Contain)
         } else {
           Text(this.iconText)
             .fontSize(20)

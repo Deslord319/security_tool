@@ -130,18 +130,18 @@ export struct ThemeMenuPopup {
   private resolveThemeButtonBackground(option: ThemeOption): string {
     let isSelected = this.currentOption === option
     if (isSelected) {
-      return AppColors.BRAND_PRIMARY
+      return this.currentTheme === ThemeMode.DARK ? 'rgba(125, 161, 255, 0.18)' : 'rgba(10, 132, 255, 0.12)'
     }
-    return this.currentTheme === ThemeMode.DARK ? AppColors.MENU_ICON_TILE_DARK : AppColors.MENU_ICON_TILE_LIGHT
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(60,60,67,0.06)'
   }
 
   private resolveActionIconTileBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(84,84,88,1)' : 'rgba(236,236,240,1)'
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(60,60,67,0.06)'
   }
 
   private resolveThemeIconColor(option: ThemeOption): ResourceColor {
     if (this.currentOption === option) {
-      return Color.White
+      return this.currentTheme === ThemeMode.DARK ? '#A9C7FF' : AppColors.BRAND_PRIMARY
     }
     switch (option) {
       case ThemeOption.SYSTEM:
@@ -156,7 +156,7 @@ export struct ThemeMenuPopup {
   }
 
   private resolveActionIconColor(): ResourceColor {
-    return this.currentTheme === ThemeMode.DARK ? AppColors.BRAND_LIGHT : AppColors.BRAND_PRIMARY
+    return this.currentTheme === ThemeMode.DARK ? '#A9C7FF' : '#2F6FE4'
   }
 
   @Builder
