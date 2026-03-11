@@ -5,6 +5,7 @@ import firewallServiceTest from './firewall/service.test'
 import authTest from './auth/service.test'
 import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
+import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
 import identityTest from './identity/service.test'
 import logManageModelsTest from './log-manage/models.test'
 import logManageServiceTest from './log-manage/service.test'
@@ -29,6 +30,7 @@ export default function testsuite() {
   // 外设模块
   peripheralModelsTest()
   peripheralServiceTest()
+  peripheralConnectionRecordServiceTest()
 
   // 身份鉴别模块
   identityTest()

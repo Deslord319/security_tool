@@ -891,20 +891,6 @@ export struct LogManagePage {
       AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
   }
 
-  private getDiagGuidanceText(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    if (type === LogEventType.ACCOUNT && diag.lastErrorCode === 401) {
-      return '账户审计在当前设备被系统策略限制（401），属于系统能力受限，不是应用权限缺失。'
-    }
-    if (diag.failedEventIds.length > 0) {
-      return '该类型存在订阅失败，通常为系统限制或事件不支持。'
-    }
-    if (diag.seenCount === 0 && diag.subscribed) {
-      return this.getTypeTriggerHint(type)
-    }
-    return ''
-  }
-
   private getSubscribeModeText(mode?: AuditSubscribeMode): string {
     let current = mode || this.diagnostics.subscribeMode
     if (current === 'client') {
@@ -1493,16 +1479,6 @@ export struct LogManagePage {
             .padding({ left: 10, right: 10, top: 8, bottom: 8 })
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
             .borderRadius(AppStyles.RADIUS_SM)
-          Text('仅支持下载/文档/桌面目录，导出文件固定保存到所选目录下的 securityLog 子目录。')
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            .maxLines(2)
-          Text('若所选目录不可写，导出时会自动回退到默认目录并在导出详情提示。')
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            .maxLines(2)
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
@@ -1576,13 +1552,6 @@ export struct LogManagePage {
       Row() {
         Text('审计诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        Blank()
-        Text(`订阅模式 ${this.getSubscribeModeText()}`)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       }
       .width('100%')
 
@@ -1648,17 +1617,6 @@ export struct LogManagePage {
             }
             .width('100%')
 
-            if (this.getDiagGuidanceText(type).length > 0) {
-              Text(this.getDiagGuidanceText(type))
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-                .maxLines(3)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .width('100%')
-                .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-                .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
-                .borderRadius(AppStyles.RADIUS_SM)
-            }
           }
           .width('100%')
           .padding({ left: 12, right: 12, top: 10, bottom: 10 })

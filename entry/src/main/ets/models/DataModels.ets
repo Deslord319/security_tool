@@ -172,8 +172,41 @@ export interface DeviceRecord {
   deviceName: string
   deviceType: PeripheralType
   deviceId: string
-  connectTime: string
-  policy: string
+  connectTime?: string
+  policy?: string
+}
+
+export type PeripheralRecordSource = 'audit_event' | 'policy_snapshot'
+
+export type PeripheralRecordAction = 'connect' | 'intercept' | 'unknown'
+
+export type PeripheralRecordPolicyHit = 'allow' | 'deny' | 'unknown'
+
+export interface PeripheralConnectionRecord {
+  id: string
+  timestamp: number
+  deviceName: string
+  deviceType: PeripheralType
+  deviceId: string
+  action: PeripheralRecordAction
+  result: LogEventResult
+  policyHit: PeripheralRecordPolicyHit
+  source: PeripheralRecordSource
+  summary: string
+  rawEventId?: number
+  rawEventName?: string
+  rawOutcome?: string
+  detail?: string
+  processName?: string
+}
+
+export interface PeripheralConnectionFilter {
+  deviceTypes?: PeripheralType[]
+  results?: LogEventResult[]
+  sources?: PeripheralRecordSource[]
+  startTime?: number
+  endTime?: number
+  keyword?: string
 }
 
 
@@ -247,6 +280,40 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   }
 }
 
+export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
+  switch (source) {
+    case 'audit_event':
+      return '审计事件'
+    case 'policy_snapshot':
+      return '策略快照'
+    default:
+      return '未知来源'
+  }
+}
+
+export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
+  switch (action) {
+    case 'connect':
+      return '连接'
+    case 'intercept':
+      return '拦截'
+    default:
+      return '未知动作'
+  }
+}
+
+export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
+  switch (policyHit) {
+    case 'allow':
+      return '允许'
+    case 'deny':
+      return '阻止'
+    default:
+      return '未知'
+  }
+}
+
+// ==================== 璁惧 ID 瑙ｆ瀽宸ュ叿鍑芥暟 ====================
 
 
 

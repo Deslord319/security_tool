@@ -1,5 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
+import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
+import { LogStorageService } from '../services/LogStorageService'
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
@@ -7,8 +9,16 @@ import {
   AdminActivationState,
   DeviceRecord,
   DeviceControlRecord,
+  PeripheralConnectionFilter,
+  PeripheralConnectionRecord,
   OperationResult,
   PeripheralType,
+  LogEventResult,
+  formatLogTimestamp,
+  getLogEventResultLabel,
+  getPeripheralRecordActionLabel,
+  getPeripheralRecordPolicyHitLabel,
+  getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
   ParsedUsbId,
   parseUsbDeviceId,
@@ -61,7 +71,29 @@ export struct PeripheralPage {
   @State btWhitelist: string[] = []
 
   // 设备连接记录（本地模拟数据）
-  @State deviceRecords: DeviceRecord[] = []
+  @State deviceRecords: PeripheralConnectionRecord[] = []
+  @State recordFilterTypeIndex: number = 0
+  @State recordFilterResultIndex: number = 0
+  @State recordFilterKeyword: string = ''
+  @State recordHintMessage: string = ''
+  private recordStorageListenerId: number = -1
+  private readonly recordTypeFilterOptions: SelectOption[] = [
+    { value: '全部类型' },
+    { value: 'USB' },
+    { value: '蓝牙' }
+  ]
+  private readonly recordResultFilterOptions: SelectOption[] = [
+    { value: '全部结果' },
+    { value: '成功' },
+    { value: '已阻止' },
+    { value: '失败' }
+  ]
+  private readonly usbRecordTypes: PeripheralType[] = [
+    PeripheralType.USB_STORAGE,
+    PeripheralType.USB_CAMERA,
+    PeripheralType.USB_PRINTER,
+    PeripheralType.USB_OTHER
+  ]
 
   // 设备管控记录（独立数据源）
   @State deviceControlRecords: DeviceControlRecord[] = []
@@ -110,6 +142,60 @@ export struct PeripheralPage {
   aboutToAppear() {
     this.refreshAdminActivationState()
     this.loadAllData()
+    this.subscribeRecordStorageChange()
+  }
+
+  aboutToDisappear() {
+    this.unsubscribeRecordStorageChange()
+  }
+
+  private subscribeRecordStorageChange(): void {
+    this.unsubscribeRecordStorageChange()
+    this.recordStorageListenerId = LogStorageService.addChangeListener(() => {
+      this.reloadDeviceRecords()
+    })
+  }
+
+  private unsubscribeRecordStorageChange(): void {
+    if (this.recordStorageListenerId < 0) {
+      return
+    }
+    LogStorageService.removeChangeListener(this.recordStorageListenerId)
+    this.recordStorageListenerId = -1
+  }
+
+  private buildRecordFilter(): PeripheralConnectionFilter {
+    let filter: PeripheralConnectionFilter = {}
+    if (this.recordFilterTypeIndex === 1) {
+      filter.deviceTypes = this.usbRecordTypes
+    } else if (this.recordFilterTypeIndex === 2) {
+      filter.deviceTypes = [PeripheralType.BLUETOOTH]
+    }
+
+    if (this.recordFilterResultIndex > 0) {
+      let resultMap: LogEventResult[] = [
+        LogEventResult.SUCCESS,
+        LogEventResult.BLOCKED,
+        LogEventResult.FAILED
+      ]
+      filter.results = [resultMap[this.recordFilterResultIndex - 1]]
+    }
+
+    let keyword = this.recordFilterKeyword.trim()
+    if (keyword.length > 0) {
+      filter.keyword = keyword
+    }
+    return filter
+  }
+
+  private reloadDeviceRecords(): void {
+    this.deviceRecords = PeripheralConnectionRecordService.queryRecords(this.buildRecordFilter())
+    let hasAuditEvent = this.deviceRecords.some((record: PeripheralConnectionRecord) => record.source === 'audit_event')
+    if (this.deviceRecords.length === 0) {
+      this.recordHintMessage = '暂无设备连接记录'
+      return
+    }
+    this.recordHintMessage = hasAuditEvent ? '' : '当前仅展示策略快照，未收到审计事件'
   }
 
   private refreshAdminActivationState(): void {
@@ -196,7 +282,8 @@ export struct PeripheralPage {
     }
 
     // 模拟设备连接记录
-    this.deviceRecords = [
+    this.reloadDeviceRecords()
+    /*
       {
         deviceName: 'ShineOptics FHD Camera',
         deviceType: PeripheralType.USB_CAMERA,
@@ -226,6 +313,7 @@ export struct PeripheralPage {
         policy: '允许'
       }
     ]
+    */
 
     // 从 MDM API 加载设备管控记录
     if (this.adminState.activated) {
@@ -368,6 +456,7 @@ export struct PeripheralPage {
     let result = PeripheralService.addUsbWhitelistWithResult([device])
     if (result.success) {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: 'USB 白名单已添加' })
       } catch (e) {
@@ -385,6 +474,7 @@ export struct PeripheralPage {
     let result = PeripheralService.removeUsbWhitelistWithResult([device])
     if (result.success) {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: '已从白名单移除' })
       } catch (e) {
@@ -402,6 +492,7 @@ export struct PeripheralPage {
     let result = PeripheralService.addBluetoothWhitelistWithResult([mac])
     if (result.success) {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: '蓝牙白名单已添加' })
       } catch (e) {
@@ -419,6 +510,7 @@ export struct PeripheralPage {
     let result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
     if (result.success) {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: '已从蓝牙白名单移除' })
       } catch (e) {
@@ -444,6 +536,7 @@ export struct PeripheralPage {
     let result = PeripheralService.addUsbBlacklistWithResult([deviceType])
     if (result.success) {
       this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: 'USB 黑名单已添加' })
       } catch (e) {
@@ -461,6 +554,7 @@ export struct PeripheralPage {
     let result = PeripheralService.removeUsbBlacklistWithResult([deviceType])
     if (result.success) {
       this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: '已从黑名单移除' })
       } catch (e) {
@@ -557,6 +651,7 @@ export struct PeripheralPage {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
+      this.reloadDeviceRecords()
       try {
         promptAction.showToast({ message: `${record.deviceName} 策略已更新为「${policyLabels[policyIndex]}」` })
       } catch (e) {
@@ -678,19 +773,19 @@ export struct PeripheralPage {
     return this.deviceRecords.filter((record: DeviceRecord) => record.policy !== '允许').length
   }
 
-  private getDeviceRecordPolicyTextColor(policy: string): string {
+  private getDeviceRecordPolicyTextColor(policy: string | undefined): string {
     return policy === '允许'
       ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
       : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
   }
 
-  private getDeviceRecordPolicyBgColor(policy: string): string {
+  private getDeviceRecordPolicyBgColor(policy: string | undefined): string {
     return policy === '允许'
       ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG
       : AppColors.getColors(this.currentTheme).TAG_RED_BG
   }
 
-  private getDeviceRecordPolicySummary(policy: string): string {
+  private getDeviceRecordPolicySummary(policy: string | undefined): string {
     return policy === '允许' ? '已按当前接口策略放行' : '已被当前接口策略拦截'
   }
 
@@ -844,10 +939,351 @@ export struct PeripheralPage {
     .align(Alignment.Top)
   }
 
+  private getConnectionAllowCount(): number {
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.policyHit === 'allow').length
+  }
+
+  private getConnectionBlockCount(): number {
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.policyHit === 'deny').length
+  }
+
+  private getConnectionUnknownCount(): number {
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.policyHit === 'unknown').length
+  }
+
+  private getConnectionTypeFilterLabel(): string {
+    let option = this.recordTypeFilterOptions[this.recordFilterTypeIndex]
+    return option ? option.value as string : this.recordTypeFilterOptions[0].value as string
+  }
+
+  private getConnectionResultFilterLabel(): string {
+    let option = this.recordResultFilterOptions[this.recordFilterResultIndex]
+    return option ? option.value as string : this.recordResultFilterOptions[0].value as string
+  }
+
+  private getConnectionResultTextColor(result: LogEventResult): string {
+    if (result === LogEventResult.SUCCESS) {
+      return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
+    }
+    if (result === LogEventResult.BLOCKED) {
+      return AppColors.getColors(this.currentTheme).TAG_RED_TEXT
+    }
+    return AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT
+  }
+
+  private getConnectionResultBgColor(result: LogEventResult): string {
+    if (result === LogEventResult.SUCCESS) {
+      return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
+    }
+    if (result === LogEventResult.BLOCKED) {
+      return AppColors.getColors(this.currentTheme).TAG_RED_BG
+    }
+    return AppColors.getColors(this.currentTheme).TAG_ORANGE_BG
+  }
+
+  private formatConnectionTime(record: PeripheralConnectionRecord): string {
+    if (record.timestamp <= 0) {
+      return '--'
+    }
+    return formatLogTimestamp(record.timestamp)
+  }
+
+  @Builder
+  private connectionStatItem(title: string, value: string, valueColor: string) {
+    Column({ space: 4 }) {
+      Text(title)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      Text(value)
+        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(valueColor)
+    }
+    .layoutWeight(1)
+    .padding({ top: 10, bottom: 10 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_MD)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  private connectionRecordStatsPanel() {
+    Row({ space: 8 }) {
+      this.connectionStatItem('总记录', `${this.deviceRecords.length}`, AppColors.BRAND_PRIMARY)
+      this.connectionStatItem('允许', `${this.getConnectionAllowCount()}`, AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
+      this.connectionStatItem('阻止', `${this.getConnectionBlockCount()}`, AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+      this.connectionStatItem('未知', `${this.getConnectionUnknownCount()}`, AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+    }
+    .width('100%')
+    .padding({
+      left: AppStyles.PADDING_LG,
+      right: AppStyles.PADDING_LG,
+      top: AppStyles.PADDING_MD
+    })
+  }
+
+  @Builder
+  private connectionRecordFilterToolbar() {
+    Row({ space: 8 }) {
+      Select(this.recordTypeFilterOptions)
+        .selected(this.recordFilterTypeIndex)
+        .value(this.getConnectionTypeFilterLabel())
+        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .width(120)
+        .onSelect((index: number) => {
+          this.recordFilterTypeIndex = index
+          this.reloadDeviceRecords()
+        })
+
+      Select(this.recordResultFilterOptions)
+        .selected(this.recordFilterResultIndex)
+        .value(this.getConnectionResultFilterLabel())
+        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .width(120)
+        .onSelect((index: number) => {
+          this.recordFilterResultIndex = index
+          this.reloadDeviceRecords()
+        })
+
+      TextInput({ placeholder: '关键字过滤设备/ID', text: this.recordFilterKeyword })
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .height(36)
+        .layoutWeight(1)
+        .onChange((value: string) => {
+          this.recordFilterKeyword = value
+          this.reloadDeviceRecords()
+        })
+
+      Button('刷新')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .height(36)
+        .onClick(() => {
+          this.reloadDeviceRecords()
+        })
+    }
+    .width('100%')
+    .padding({
+      left: AppStyles.PADDING_LG,
+      right: AppStyles.PADDING_LG,
+      top: AppStyles.PADDING_SM
+    })
+  }
+
+  @Builder
+  private connectionRecordHintView() {
+    if (this.recordHintMessage.length > 0) {
+      Row() {
+        Text(this.recordHintMessage)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .padding({
+        left: AppStyles.PADDING_LG,
+        right: AppStyles.PADDING_LG,
+        top: 6,
+        bottom: 4
+      })
+    }
+  }
+
+  @Builder
+  private connectionRecordItem(record: PeripheralConnectionRecord, index: number) {
+    Row({ space: 16 }) {
+      Column({ space: 8 }) {
+        Row({ space: 8 }) {
+          Text(record.deviceName)
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+          Text(getPeripheralTypeLabel(record.deviceType))
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+        }
+
+        Text(record.deviceId)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Row({ space: 8 }) {
+          Text(getPeripheralRecordSourceLabel(record.source))
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+
+          Text(getPeripheralRecordActionLabel(record.action))
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+        }
+
+        Row({ space: 20 }) {
+          Column({ space: 4 }) {
+            Text('连接时间')
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            Text(this.formatConnectionTime(record))
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+
+          Column({ space: 4 }) {
+            Text('策略说明')
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            Text(record.summary)
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+        }
+        .width('100%')
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: 8 }) {
+        Text(getLogEventResultLabel(record.result))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getConnectionResultTextColor(record.result))
+          .backgroundColor(this.getConnectionResultBgColor(record.result))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+
+        Text(getPeripheralRecordPolicyHitLabel(record.policyHit))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .textAlign(TextAlign.End)
+      }
+      .alignItems(HorizontalAlign.End)
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 18, bottom: 18 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredDeviceRecordIndex = isHover ? index : -1
+      })
+    })
+  }
+
+  @Builder
+  private connectionRecordsPanel() {
+    Scroll() {
+      Column({ space: 0 }) {
+        this.connectionRecordStatsPanel()
+        this.connectionRecordFilterToolbar()
+        this.connectionRecordHintView()
+
+        Column({ space: 0 }) {
+          if (this.deviceRecords.length === 0) {
+            Column({ space: 10 }) {
+              Text('暂无设备连接记录')
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
+              Text('请接入设备或调整筛选条件后刷新。')
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                .textAlign(TextAlign.Center)
+            }
+            .width('100%')
+            .padding({ left: 20, right: 20, top: 42, bottom: 42 })
+            .alignItems(HorizontalAlign.Center)
+          } else {
+            Column({ space: 0 }) {
+              ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
+                Column({ space: 0 }) {
+                  this.connectionRecordItem(record, index)
+                  if (index < this.deviceRecords.length - 1) {
+                    Divider()
+                      .color(AppColors.getColors(this.currentTheme).BORDER)
+                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                      .margin({ left: 20, right: 20 })
+                  }
+                }
+              })
+            }
+            .width('100%')
+          }
+        }
+        .borderRadius(AppStyles.RADIUS_LG)
+        .clip(true)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .border({
+          width: 1,
+          color: this.hoveredPanelIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredPanelIndex = isHover ? 0 : -1
+          })
+        })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Start)
+      .padding({
+        left: AppStyles.PADDING_LG,
+        right: AppStyles.PADDING_LG,
+        top: AppStyles.PADDING_MD,
+        bottom: AppStyles.PADDING_MD
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
+  }
+
   @Builder
   deviceRecordsBuilder() {
     if (true) {
-      this.deviceRecordsPanel()
+      this.connectionRecordsPanel()
     } else {
       /*
       Column() {

@@ -1,4 +1,4 @@
-﻿import { preferences } from '@kit.ArkData'
+import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit'
 import { Environment, fileIo } from '@kit.CoreFileKit'
@@ -54,6 +54,14 @@ const EXPORT_TARGET_DOCUMENTS: LogExportTargetType = 'documents'
 const EXPORT_TARGET_DESKTOP: LogExportTargetType = 'desktop'
 const EXPORT_AUTH_RUNTIME: LogExportAuthMode = 'runtime_permission'
 
+export interface LogStorageChangeEvent {
+  totalCount: number
+  addedCount: number
+  timestamp: number
+}
+
+export type LogStorageChangeListener = (event: LogStorageChangeEvent) => void
+
 // 鏃ュ織瀛樺偍鏈嶅姟 - 璐熻矗鏃ュ織鐨勬寔涔呭寲銆佹煡璇€佽繃婊ゃ€佸鍑?
 export class LogStorageService {
 
@@ -66,6 +74,8 @@ export class LogStorageService {
   private static isInitialized: boolean = false
   private static initializedContextDir: string = ''
   private static initPromise: Promise<boolean> | null = null
+  private static nextListenerId: number = 1
+  private static changeListeners: Map<number, LogStorageChangeListener> = new Map()
 
   // 鍒濆鍖栵紙闇€瑕?UIAbilityContext 鐢ㄤ簬 Preferences锛?
   static async init(context: common.UIAbilityContext): Promise<boolean> {
@@ -161,6 +171,7 @@ export class LogStorageService {
       }
 
       await LogStorageService.saveEntries()
+      LogStorageService.notifyEntriesChanged(normalizedBatch.length)
       return true
     } catch (err) {
       hilog.error(DOMAIN, TAG, `addEntries failed: ${JSON.stringify(err)}`)
@@ -271,6 +282,7 @@ export class LogStorageService {
     try {
       LogStorageService.logEntries = []
       await LogStorageService.saveEntries()
+      LogStorageService.notifyEntriesChanged(0)
       hilog.info(DOMAIN, TAG, 'All log entries cleared')
       return true
     } catch (err) {
@@ -289,6 +301,7 @@ export class LogStorageService {
 
       if (LogStorageService.logEntries.length < initialLength) {
         await LogStorageService.saveEntries()
+        LogStorageService.notifyEntriesChanged(0)
         hilog.debug(DOMAIN, TAG, `Deleted entry: ${entryId}`)
         return true
       }
@@ -306,7 +319,8 @@ export class LogStorageService {
         return JSON.stringify(entries, null, 2)
 
       case LogExportFormat.CSV:
-        return LogStorageService.toCsv(entries)
+        // Add UTF-8 BOM for Excel-compatible CSV decoding.
+        return `\uFEFF${LogStorageService.toCsv(entries)}`
 
       case LogExportFormat.TXT:
         return LogStorageService.toTxt(entries)
@@ -543,6 +557,16 @@ export class LogStorageService {
     return copy
   }
 
+  static addChangeListener(listener: LogStorageChangeListener): number {
+    let listenerId = LogStorageService.nextListenerId++
+    LogStorageService.changeListeners.set(listenerId, listener)
+    return listenerId
+  }
+
+  static removeChangeListener(listenerId: number): void {
+    LogStorageService.changeListeners.delete(listenerId)
+  }
+
   // 鏇存柊瀛樺偍閰嶇疆
   static async updateConfig(config: LogStorageConfig): Promise<boolean> {
     try {
@@ -651,6 +675,24 @@ export class LogStorageService {
       }
     }
     return result
+  }
+
+  private static notifyEntriesChanged(addedCount: number): void {
+    if (LogStorageService.changeListeners.size === 0) {
+      return
+    }
+    let event: LogStorageChangeEvent = {
+      totalCount: LogStorageService.logEntries.length,
+      addedCount: addedCount,
+      timestamp: LogStorageService.nowProvider()
+    }
+    LogStorageService.changeListeners.forEach((listener: LogStorageChangeListener) => {
+      try {
+        listener(event)
+      } catch (err) {
+        hilog.warn(DOMAIN, TAG, `change listener failed: ${JSON.stringify(err)}`)
+      }
+    })
   }
 
   private static normalizeExportDirectory(path: string | undefined): string | undefined {
@@ -1686,7 +1728,7 @@ export class LogStorageService {
       lines.push(`${time},${type},${detail},${process},${pid},${result}`)
     }
 
-    return lines.join('\n')
+    return lines.join('\r\n')
   }
 
   // 转换为纯文本格式
