@@ -161,13 +161,11 @@ struct MainPage {
 
             // 三点菜单按钮
             Button() {
-              Text('\u22ef')
+              Image(this.currentTheme === ThemeMode.DARK
+                ? $r('app.media.menu_vertical_dark')
+                : $r('app.media.menu_vertical_light'))
                 .width(18)
                 .height(18)
-                .fontSize(18)
-                .fontWeight(FontWeight.Bold)
-                .textAlign(TextAlign.Center)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             }
             .type(ButtonType.Normal)

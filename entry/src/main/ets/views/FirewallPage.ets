@@ -189,7 +189,7 @@ export struct FirewallPage {
               count: this.inCount,
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
-              iconText: '入'
+              icon: $r('app.media.arrow_down')
             })
               .layoutWeight(1)
 
@@ -198,7 +198,7 @@ export struct FirewallPage {
               count: this.outCount,
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
-              iconText: '出'
+              icon: $r('app.media.arrow_up')
             })
               .layoutWeight(1)
           }

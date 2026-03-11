@@ -10,17 +10,24 @@ export struct DirectionCard {
   @Prop gradientStart: string = '#0A84FF'
   @Prop gradientEnd: string = '#00C6FF'
   @Prop iconText: string = ''
+  @Prop icon: Resource | undefined = undefined
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State isHovered: boolean = false
 
   build() {
     Row({ space: 16 }) {
-      // 渐变图标
       Column() {
-        Text(this.iconText)
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
+        if (this.icon !== undefined) {
+          Image(this.icon)
+            .width(20)
+            .height(20)
+            .fillColor(Color.White)
+        } else {
+          Text(this.iconText)
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.White)
+        }
       }
       .width(48)
       .height(48)
@@ -37,13 +44,13 @@ export struct DirectionCard {
       .scale({ x: this.isHovered ? 1.06 : 1, y: this.isHovered ? 1.06 : 1 })
       .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered))
 
-      // 文字
       Column({ space: 4 }) {
         Text(this.label)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
         Text(`${this.count} 条规则`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

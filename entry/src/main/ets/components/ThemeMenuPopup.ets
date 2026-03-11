@@ -10,7 +10,7 @@ struct AboutDialog {
   build() {
     Column({ space: 16 }) {
       Column() {
-        Image($r('app.media.shield'))
+        Image($r('app.media.info'))
           .width(24)
           .height(24)
           .fillColor(AppColors.BRAND_PRIMARY)
@@ -103,7 +103,7 @@ export struct ThemeMenuPopup {
 
       Column({ space: 2 }) {
         this.ActionMenuItem($r('app.media.settings'), '\u5de5\u5177\u8bbe\u7f6e', 'tool-settings')
-        this.ActionMenuItem($r('app.media.alert'), '\u5e2e\u52a9\u4e0e\u53cd\u9988', 'help-feedback')
+        this.ActionMenuItem($r('app.media.help'), '\u5e2e\u52a9\u4e0e\u53cd\u9988', 'help-feedback')
         this.AboutMenuItem()
       }
       .width('100%')
@@ -244,7 +244,7 @@ export struct ThemeMenuPopup {
   AboutMenuItem() {
     Row({ space: 12 }) {
       Column() {
-        Image($r('app.media.shield'))
+        Image($r('app.media.info'))
           .width(18)
           .height(18)
           .fillColor(this.resolveActionIconColor())
