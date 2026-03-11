@@ -233,33 +233,6 @@ export struct ToolSettingsPage {
     })
   }
 
-  // 测试认证
-  async testAuth() {
-    let authMethod = AUTH_METHOD_OPTIONS[this.authMethodIndex].value
-
-    // 先检查可用性
-    let checkResult = AuthService.checkAuthMethodAvailability(authMethod)
-    if (!checkResult.available) {
-      AlertDialog.show({
-        title: '认证方式不可用',
-        message: checkResult.message,
-        confirm: {
-          value: '知道了',
-          action: () => {}
-        }
-      })
-      return
-    }
-
-    // 执行认证
-    let success = await AuthService.authenticate(authMethod)
-    if (success) {
-      promptAction.showToast({ message: '认证成功' })
-    } else {
-      promptAction.showToast({ message: '认证已取消' })
-    }
-  }
-
   build() {
     Column() {
       // 页面头部
@@ -428,26 +401,6 @@ export struct ToolSettingsPage {
       .width('100%')
       .padding({ left: 16, right: 16, top: 14, bottom: 14 })
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      // 测试认证按钮
-      Row() {
-        Blank()
-        Button('测试认证')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .height(32)
-          .padding({ left: 16, right: 16 })
-          .onClick(() => {
-            this.testAuth()
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
     }
     .width('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -525,21 +478,6 @@ export struct ToolSettingsPage {
           this.showConfirmPwd = show
         })
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      // 提示信息
-      Row() {
-        Text(this.hasExistingPassword
-          ? '提示：修改密码需要先验证当前密码。密码存储在设备安全区域内。'
-          : '提示：首次设置密码后，再次修改需要验证当前密码。')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
     }
     .width('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)

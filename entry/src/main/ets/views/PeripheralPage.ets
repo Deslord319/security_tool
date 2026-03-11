@@ -77,6 +77,8 @@ export struct PeripheralPage {
   @State recordFilterKeyword: string = ''
   @State recordHintMessage: string = ''
   private recordStorageListenerId: number = -1
+  private recordAutoRefreshTimerId: number = -1
+  private readonly recordAutoRefreshIntervalMs: number = 2000
   private readonly recordTypeFilterOptions: SelectOption[] = [
     { value: '全部类型' },
     { value: 'USB' },
@@ -143,10 +145,12 @@ export struct PeripheralPage {
     this.refreshAdminActivationState()
     this.loadAllData()
     this.subscribeRecordStorageChange()
+    this.startRecordAutoRefresh()
   }
 
   aboutToDisappear() {
     this.unsubscribeRecordStorageChange()
+    this.stopRecordAutoRefresh()
   }
 
   private subscribeRecordStorageChange(): void {
@@ -162,6 +166,21 @@ export struct PeripheralPage {
     }
     LogStorageService.removeChangeListener(this.recordStorageListenerId)
     this.recordStorageListenerId = -1
+  }
+
+  private startRecordAutoRefresh(): void {
+    this.stopRecordAutoRefresh()
+    this.recordAutoRefreshTimerId = setInterval(() => {
+      this.reloadDeviceRecords()
+    }, this.recordAutoRefreshIntervalMs)
+  }
+
+  private stopRecordAutoRefresh(): void {
+    if (this.recordAutoRefreshTimerId < 0) {
+      return
+    }
+    clearInterval(this.recordAutoRefreshTimerId)
+    this.recordAutoRefreshTimerId = -1
   }
 
   private buildRecordFilter(): PeripheralConnectionFilter {
@@ -195,7 +214,7 @@ export struct PeripheralPage {
       this.recordHintMessage = '暂无设备连接记录'
       return
     }
-    this.recordHintMessage = hasAuditEvent ? '' : '当前仅展示策略快照，未收到审计事件'
+    this.recordHintMessage = hasAuditEvent ? '' : '当前仅展示策略快照（非实时插拔审计）'
   }
 
   private refreshAdminActivationState(): void {
@@ -939,16 +958,30 @@ export struct PeripheralPage {
     .align(Alignment.Top)
   }
 
+  private getConnectionAuditCount(): number {
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'audit_event').length
+  }
+
+  private getConnectionSnapshotCount(): number {
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'policy_snapshot').length
+  }
+
   private getConnectionAllowCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.policyHit === 'allow').length
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
+      return record.source === 'audit_event' && record.policyHit === 'allow'
+    }).length
   }
 
   private getConnectionBlockCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.policyHit === 'deny').length
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
+      return record.source === 'audit_event' && record.policyHit === 'deny'
+    }).length
   }
 
   private getConnectionUnknownCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.policyHit === 'unknown').length
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
+      return record.source === 'audit_event' && record.policyHit === 'unknown'
+    }).length
   }
 
   private getConnectionTypeFilterLabel(): string {
@@ -961,24 +994,44 @@ export struct PeripheralPage {
     return option ? option.value as string : this.recordResultFilterOptions[0].value as string
   }
 
-  private getConnectionResultTextColor(result: LogEventResult): string {
-    if (result === LogEventResult.SUCCESS) {
+  private getConnectionResultLabel(record: PeripheralConnectionRecord): string {
+    if (record.source === 'policy_snapshot') {
+      return '快照'
+    }
+    return getLogEventResultLabel(record.result)
+  }
+
+  private getConnectionResultTextColor(record: PeripheralConnectionRecord): string {
+    if (record.source === 'policy_snapshot') {
+      return AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
+    }
+    if (record.result === LogEventResult.SUCCESS) {
       return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
     }
-    if (result === LogEventResult.BLOCKED) {
+    if (record.result === LogEventResult.BLOCKED) {
       return AppColors.getColors(this.currentTheme).TAG_RED_TEXT
     }
     return AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT
   }
 
-  private getConnectionResultBgColor(result: LogEventResult): string {
-    if (result === LogEventResult.SUCCESS) {
+  private getConnectionResultBgColor(record: PeripheralConnectionRecord): string {
+    if (record.source === 'policy_snapshot') {
+      return AppColors.getColors(this.currentTheme).TAG_GRAY_BG
+    }
+    if (record.result === LogEventResult.SUCCESS) {
       return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
     }
-    if (result === LogEventResult.BLOCKED) {
+    if (record.result === LogEventResult.BLOCKED) {
       return AppColors.getColors(this.currentTheme).TAG_RED_BG
     }
     return AppColors.getColors(this.currentTheme).TAG_ORANGE_BG
+  }
+
+  private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
+    if (record.source === 'policy_snapshot') {
+      return '未审计'
+    }
+    return getPeripheralRecordPolicyHitLabel(record.policyHit)
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {
@@ -1010,10 +1063,10 @@ export struct PeripheralPage {
   @Builder
   private connectionRecordStatsPanel() {
     Row({ space: 8 }) {
-      this.connectionStatItem('总记录', `${this.deviceRecords.length}`, AppColors.BRAND_PRIMARY)
+      this.connectionStatItem('审计记录', `${this.getConnectionAuditCount()}`, AppColors.BRAND_PRIMARY)
       this.connectionStatItem('允许', `${this.getConnectionAllowCount()}`, AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
       this.connectionStatItem('阻止', `${this.getConnectionBlockCount()}`, AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-      this.connectionStatItem('未知', `${this.getConnectionUnknownCount()}`, AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+      this.connectionStatItem('策略快照', `${this.getConnectionSnapshotCount()}`, AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT)
     }
     .width('100%')
     .padding({
@@ -1181,15 +1234,15 @@ export struct PeripheralPage {
       .alignItems(HorizontalAlign.Start)
 
       Column({ space: 8 }) {
-        Text(getLogEventResultLabel(record.result))
+        Text(this.getConnectionResultLabel(record))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontWeight(FontWeight.Medium)
-          .fontColor(this.getConnectionResultTextColor(record.result))
-          .backgroundColor(this.getConnectionResultBgColor(record.result))
+          .fontColor(this.getConnectionResultTextColor(record))
+          .backgroundColor(this.getConnectionResultBgColor(record))
           .borderRadius(AppStyles.RADIUS_SM)
           .padding({ left: 10, right: 10, top: 5, bottom: 5 })
 
-        Text(getPeripheralRecordPolicyHitLabel(record.policyHit))
+        Text(this.getConnectionPolicyHitLabel(record))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
