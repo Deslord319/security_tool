@@ -39,6 +39,9 @@
         "name": "ohos.permission.ENTERPRISE_ADMIN_MANAGE"
       },
       {
+        "name": "ohos.permission.START_PROVISIONING_MESSAGE"
+      },
+      {
         "name": "ohos.permission.ENTERPRISE_MANAGE_SECURITY"
       },
       {

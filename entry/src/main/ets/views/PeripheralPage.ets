@@ -226,27 +226,17 @@ export struct PeripheralPage {
     if (this.adminState.activated) {
       return true
     }
-    this.showAdminRequiredDialog(action)
-    return false
-  }
-
-  private showAdminRequiredDialog(action: string): void {
-    let codeText = this.adminState.errorCode !== undefined ? `错误码: ${this.adminState.errorCode}\n` : ''
     let reasonText = this.adminState.errorMessage || '企业管理员未激活'
-    AlertDialog.show({
-      title: '企业管理员未激活',
-      message:
-        `${action}需要企业管理员能力。\n` +
-        `${codeText}` +
-        `原因: ${reasonText}\n` +
-        `请在设备执行以下命令后重试：\n${this.adminState.enableCommand}`,
-      primaryButton: { value: '我知道了', action: () => {} }
-    })
+    let codeText = this.adminState.errorCode !== undefined ? ` (${this.adminState.errorCode})` : ''
+    promptAction.showToast({ message: `${action}不可用：${reasonText}${codeText}` })
+    return false
   }
 
   private showOperationFailure(action: string, result: OperationResult<PeripheralResultData>): void {
     if (result.isAdminMissing) {
-      this.showAdminRequiredDialog(action)
+      let reasonText = result.errorMessage || '企业管理员未激活'
+      let codeText = result.errorCode !== undefined ? ` (${result.errorCode})` : ''
+      promptAction.showToast({ message: `${action}失败：${reasonText}${codeText}` })
       return
     }
     let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
@@ -722,36 +712,6 @@ export struct PeripheralPage {
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
-
-      if (!this.adminState.activated) {
-        Column({ space: 8 }) {
-          Text('企业管理员未激活，外设策略已进入只读模式')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-          Text(`请执行：${this.adminState.enableCommand}`)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            .maxLines(2)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-          Button('查看修复命令')
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-            .height(30)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .onClick(() => {
-              this.showAdminRequiredDialog('外设策略操作')
-            })
-        }
-        .width('100%')
-        .margin({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
-        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
-        .borderRadius(AppStyles.RADIUS_MD)
-        .alignItems(HorizontalAlign.Start)
-      }
 
       // Tab 切换
       Tabs({ barPosition: BarPosition.Start }) {

@@ -1,8 +1,10 @@
 import restrictions from '@ohos.enterprise.restrictions'
+import common from '@ohos.app.ability.common'
 import { Want } from '@kit.AbilityKit'
+import { adminManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppInfo } from '../constants/AppConstants'
-import { AdminActivationState, EnterpriseAdminType } from '../models/DataModels'
+import { AdminActivationState, EnterpriseAdminType, OperationResult } from '../models/DataModels'
 
 const TAG = 'EnterpriseAdminService'
 const DOMAIN = 0x0007
@@ -15,10 +17,39 @@ const ADMIN_WANT: Want = {
 }
 
 export class EnterpriseAdminService {
-  static readonly DEFAULT_ADMIN_TYPE: EnterpriseAdminType = 'super'
+  static readonly DEFAULT_ADMIN_TYPE: EnterpriseAdminType = 'byod'
 
   static buildEnableCommand(adminType: EnterpriseAdminType = EnterpriseAdminService.DEFAULT_ADMIN_TYPE): string {
     return `edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a ${ADMIN_ABILITY_NAME} -t ${adminType}`
+  }
+
+  static activateAdminWithResult(
+    context: common.Context,
+    adminType: EnterpriseAdminType = EnterpriseAdminService.DEFAULT_ADMIN_TYPE
+  ): OperationResult<void> {
+    if (adminType !== 'byod') {
+      return {
+        success: false,
+        errorMessage: '当前仅支持 BYOD 模式应用内激活',
+        suggestion: `请执行：${EnterpriseAdminService.buildEnableCommand(adminType)}`
+      } as OperationResult<void>
+    }
+
+    try {
+      adminManager.startAdminProvision(ADMIN_WANT, adminManager.AdminType.ADMIN_TYPE_BYOD, context, {})
+      return {
+        success: true
+      } as OperationResult<void>
+    } catch (err) {
+      let code = EnterpriseAdminService.extractErrorCode(err as Object)
+      let message = code !== undefined ? `管理员激活拉起失败（错误码 ${code}）` : '管理员激活拉起失败'
+      hilog.error(DOMAIN, TAG, `activateAdminWithResult failed: ${JSON.stringify(err)}`)
+      return {
+        success: false,
+        errorCode: code,
+        errorMessage: message
+      } as OperationResult<void>
+    }
   }
 
   static isAdminMissingError(err: Object): boolean {
