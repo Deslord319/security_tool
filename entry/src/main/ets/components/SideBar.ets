@@ -7,6 +7,42 @@ export struct SideBar {
   @Prop selectedId: string = 'dashboard'
   onItemSelect: (id: string) => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State hoveredNavId: string = ''
+  @State themeToggleHovered: boolean = false
+
+  private getBrandTileBackground(): string {
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)'
+  }
+
+  private getNavIconBackground(itemId: string): string {
+    if (this.selectedId === itemId) {
+      return AppColors.SIDEBAR_SELECTED_TILE
+    }
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.14)' : 'rgba(10,132,255,0.08)'
+  }
+
+  private getNavItemBackground(itemId: string): string {
+    if (this.selectedId === itemId) {
+      return AppColors.BRAND_PRIMARY
+    }
+    return this.hoveredNavId === itemId ? (this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT) : 'rgba(0,0,0,0)'
+  }
+
+  private getThemeModeIcon(): Resource {
+    return this.currentTheme === ThemeMode.DARK ? $r('app.media.moon') : $r('app.media.sun')
+  }
+
+  private getThemeModeLabel(): string {
+    return this.currentTheme === ThemeMode.DARK ? '深色模式' : '浅色模式'
+  }
+
+  private getThemeModeIconColor(): string {
+    return this.currentTheme === ThemeMode.DARK ? '#8E8E93' : '#FFD60A'
+  }
+
+  private getThemeModeIconBackground(): string {
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(142,142,147,0.18)' : 'rgba(255,214,10,0.14)'
+  }
 
   build() {
     Column() {
@@ -15,14 +51,14 @@ export struct SideBar {
           Image($r('app.media.shield'))
             .width(20)
             .height(20)
-            .fillColor(Color.White)
+            .fillColor(AppColors.BRAND_PRIMARY)
         }
         .width(28)
         .height(28)
         .borderRadius(8)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .backgroundColor(this.getBrandTileBackground())
 
         Text(AppInfo.APP_NAME)
           .fontSize(16)
@@ -48,18 +84,18 @@ export struct SideBar {
                 Image(item.icon)
                   .width(16)
                   .height(16)
-                  .fillColor(this.selectedId === item.id ? Color.White : AppColors.BRAND_PRIMARY)
+                  .fillColor(this.selectedId === item.id ? AppColors.SIDEBAR_SELECTED_ICON : AppColors.BRAND_PRIMARY)
               }
               .width(28)
               .height(28)
               .borderRadius(6)
               .justifyContent(FlexAlign.Center)
               .alignItems(HorizontalAlign.Center)
-              .backgroundColor(this.selectedId === item.id ? 'rgba(255,255,255,0.2)' :
-                (this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.2)' : 'rgba(10,132,255,0.1)'))
+              .backgroundColor(this.getNavIconBackground(item.id))
 
               Text(item.label)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontWeight(this.selectedId === item.id ? FontWeight.Medium : (this.hoveredNavId === item.id ? FontWeight.Bold : FontWeight.Normal))
                 .fontColor(this.selectedId === item.id ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(this.selectedId === item.id ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             }
@@ -68,7 +104,10 @@ export struct SideBar {
             .id(`sidebar-nav-${item.id}`)
             .padding({ left: 12, right: 12 })
             .borderRadius(AppStyles.RADIUS_MD)
-            .backgroundColor(this.selectedId === item.id ? AppColors.BRAND_PRIMARY : Color.Transparent)
+            .backgroundColor(this.getNavItemBackground(item.id))
+            .onHover((isHover: boolean) => {
+              this.hoveredNavId = isHover ? item.id : ''
+            })
             .onClick(() => {
               this.onItemSelect(item.id)
             })
@@ -85,19 +124,19 @@ export struct SideBar {
 
       Row({ space: 12 }) {
         Column() {
-          Image(this.currentTheme === ThemeMode.DARK ? $r('app.media.sun') : $r('app.media.moon'))
+          Image(this.getThemeModeIcon())
             .width(16)
             .height(16)
-            .fillColor(this.currentTheme === ThemeMode.DARK ? '#FFD60A' : '#5856D6')
+            .fillColor(this.getThemeModeIconColor())
         }
         .width(28)
         .height(28)
         .borderRadius(6)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .backgroundColor(this.currentTheme === ThemeMode.DARK ? 'rgba(255,214,10,0.15)' : 'rgba(88,86,214,0.1)')
+        .backgroundColor(this.getThemeModeIconBackground())
 
-        Text(this.currentTheme === ThemeMode.DARK ? '浅色模式' : '深色模式')
+        Text(this.getThemeModeLabel())
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .id(this.currentTheme === ThemeMode.DARK ? 'theme-mode-dark' : 'theme-mode-light')
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -107,6 +146,11 @@ export struct SideBar {
       .height(48)
       .id('sidebar-theme-toggle')
       .padding({ left: 20, right: 20 })
+      .borderRadius(AppStyles.RADIUS_MD)
+      .backgroundColor(this.themeToggleHovered ? (this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT) : Color.Transparent)
+      .onHover((isHover: boolean) => {
+        this.themeToggleHovered = isHover
+      })
       .onClick(() => {
         ThemeManager.getInstance().toggleTheme()
       })

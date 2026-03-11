@@ -9,44 +9,41 @@ struct AboutDialog {
 
   build() {
     Column({ space: 16 }) {
-      // 应用图标
-      Text('S')
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
-        .textAlign(TextAlign.Center)
+      Column() {
+        Image($r('app.media.shield'))
+          .width(24)
+          .height(24)
+          .fillColor(AppColors.BRAND_PRIMARY)
+      }
         .width(56)
         .height(56)
         .borderRadius(14)
-        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor(this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)')
 
-      // 应用名称
       Text(AppInfo.APP_NAME)
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      // 版本号
-      Text('版本 ' + AppInfo.APP_VERSION)
+      Text(`\u7248\u672c ${AppInfo.APP_VERSION}`)
         .fontSize(14)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-      // 包名
       Text(AppInfo.BUNDLE_NAME)
         .fontSize(12)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
-      // 版权
-      Text('Copyright \u00A9 2025')
+      Text('Copyright 2025')
         .fontSize(12)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
-      // 确定按钮
-      Button('确定')
+      Button('\u786e\u5b9a')
         .width('100%')
         .height(40)
         .fontSize(16)
@@ -71,6 +68,9 @@ export struct ThemeMenuPopup {
   @StorageLink(STORAGE_KEY_OPTION) currentOption: ThemeOption = ThemeOption.SYSTEM
   @Link showMenu: boolean
   onNavigate?: (route: string) => void
+  @State hoveredThemeKey: string = ''
+  @State hoveredActionKey: string = ''
+  @State aboutHovered: boolean = false
 
   private aboutDialogController: CustomDialogController = new CustomDialogController({
     builder: AboutDialog(),
@@ -80,65 +80,35 @@ export struct ThemeMenuPopup {
   })
 
   build() {
-    Column() {
-      // 主题选择区域（单行紧凑布局）
-      Row() {
-        Text('显示模式')
-          .fontSize(12)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+    Column({ space: 6 }) {
+      Column({ space: 6 }) {
+        Text('\u663e\u793a\u6a21\u5f0f\uff1a')
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .width('100%')
+          .padding({ left: 8, right: 8, top: 4 })
 
-        Blank()
-
-        Row({ space: 4 }) {
-          this.ThemeButton('\uD83D\uDDA5', ThemeOption.SYSTEM)
-          this.ThemeButton('\u2600', ThemeOption.LIGHT)
-          this.ThemeButton('\uD83C\uDF19', ThemeOption.DARK)
-        }
+        this.ThemeButton($r('app.media.dashboard'), '\u8ddf\u968f\u7cfb\u7edf', ThemeOption.SYSTEM)
+        this.ThemeButton($r('app.media.sun'), '\u6d45\u8272\u6a21\u5f0f', ThemeOption.LIGHT)
+        this.ThemeButton($r('app.media.moon'), '\u6df1\u8272\u6a21\u5f0f', ThemeOption.DARK)
       }
       .width('100%')
-      .height(48)
-      .padding({ left: 16, right: 12 })
-      .alignItems(VerticalAlign.Center)
 
-      // 分隔线
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-        .margin({ left: 16, right: 16 })
+        .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
-      // 设置
-      this.ActionMenuItem('设置', '\u2699', 'tool-settings')
-
-      // 帮助和反馈
-      this.ActionMenuItem('帮助和反馈', '?', 'help-feedback')
-
-      // 关于
-      Row() {
-        Text('\u24D8')
-          .fontSize(16)
-          .width(24)
-          .textAlign(TextAlign.Center)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-
-        Text('关于')
-          .fontSize(14)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          .layoutWeight(1)
-          .margin({ left: 8 })
+      Column({ space: 2 }) {
+        this.ActionMenuItem($r('app.media.settings'), '\u5de5\u5177\u8bbe\u7f6e', 'tool-settings')
+        this.ActionMenuItem($r('app.media.alert'), '\u5e2e\u52a9\u4e0e\u53cd\u9988', 'help-feedback')
+        this.AboutMenuItem()
       }
       .width('100%')
-      .height(44)
-      .padding({ left: 16, right: 16 })
-      .onClick(() => {
-        this.showMenu = false
-        this.aboutDialogController.open()
-      })
     }
-    .width(220)
+    .width(236)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .shadow({
@@ -147,24 +117,82 @@ export struct ThemeMenuPopup {
       offsetX: 0,
       offsetY: 4
     })
-    .padding({ top: 4, bottom: 8 })
+    .padding(8)
+  }
+
+  private resolveMenuHoverBackground(isHovered: boolean): string {
+    if (!isHovered) {
+      return 'rgba(0,0,0,0)'
+    }
+    return this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT
+  }
+
+  private resolveThemeButtonBackground(option: ThemeOption): string {
+    let isSelected = this.currentOption === option
+    if (isSelected) {
+      return AppColors.BRAND_PRIMARY
+    }
+    return this.currentTheme === ThemeMode.DARK ? AppColors.MENU_ICON_TILE_DARK : AppColors.MENU_ICON_TILE_LIGHT
+  }
+
+  private resolveActionIconTileBackground(): string {
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(84,84,88,1)' : 'rgba(236,236,240,1)'
+  }
+
+  private resolveThemeIconColor(option: ThemeOption): ResourceColor {
+    if (this.currentOption === option) {
+      return Color.White
+    }
+    switch (option) {
+      case ThemeOption.SYSTEM:
+        return AppColors.BRAND_PRIMARY
+      case ThemeOption.LIGHT:
+        return '#FFD60A'
+      case ThemeOption.DARK:
+        return '#8E8E93'
+      default:
+        return AppColors.getColors(this.currentTheme).TEXT_PRIMARY
+    }
+  }
+
+  private resolveActionIconColor(): ResourceColor {
+    return this.currentTheme === ThemeMode.DARK ? AppColors.BRAND_LIGHT : AppColors.BRAND_PRIMARY
   }
 
   @Builder
-  ThemeButton(icon: string, option: ThemeOption) {
-    Text(icon)
-      .fontSize(16)
+  ThemeButton(icon: Resource, label: string, option: ThemeOption) {
+    Row({ space: 12 }) {
+      Column() {
+        Image(icon)
+          .width(18)
+          .height(18)
+          .fillColor(this.resolveThemeIconColor(option))
+      }
+      .width(30)
+      .height(30)
+      .borderRadius(10)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .backgroundColor(this.resolveThemeButtonBackground(option))
+
+      Text(label)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(this.currentOption === option ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(this.currentOption === option ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(1)
+    }
       .id(`theme-option-${option}`)
-      .fontColor(this.currentOption === option ? Color.White :
-        AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(this.currentOption === option ? 1 :
-        AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .width(32)
-      .height(32)
-      .textAlign(TextAlign.Center)
-      .borderRadius(AppStyles.RADIUS_MD)
-      .backgroundColor(this.currentOption === option ? AppColors.BRAND_PRIMARY :
-        (this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'))
+      .width('100%')
+      .height(44)
+      .padding({ left: 8, right: 10 })
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
+      .borderRadius(12)
+      .backgroundColor(this.resolveMenuHoverBackground(this.hoveredThemeKey === option))
+      .onHover((hover: boolean) => {
+        this.hoveredThemeKey = hover ? option : ''
+      })
       .onClick(() => {
         ThemeManager.getInstance().setOption(option)
         this.showMenu = false
@@ -172,30 +200,82 @@ export struct ThemeMenuPopup {
   }
 
   @Builder
-  ActionMenuItem(label: string, icon: string, route: string) {
-    Row() {
-      Text(icon)
-        .fontSize(16)
-        .width(24)
-        .textAlign(TextAlign.Center)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+  ActionMenuItem(icon: Resource, label: string, route: string) {
+    Row({ space: 12 }) {
+      Column() {
+        Image(icon)
+          .width(18)
+          .height(18)
+          .fillColor(this.resolveActionIconColor())
+      }
+      .width(30)
+      .height(30)
+      .borderRadius(10)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .backgroundColor(this.resolveActionIconTileBackground())
 
       Text(label)
-        .fontSize(14)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         .layoutWeight(1)
-        .margin({ left: 8 })
     }
+    .id(`menu-action-${route}`)
     .width('100%')
     .height(44)
-    .padding({ left: 16, right: 16 })
+    .padding({ left: 8, right: 10 })
+    .justifyContent(FlexAlign.Start)
+    .alignItems(VerticalAlign.Center)
+    .backgroundColor(this.resolveMenuHoverBackground(this.hoveredActionKey === route))
+    .borderRadius(12)
+    .onHover((hover: boolean) => {
+      this.hoveredActionKey = hover ? route : ''
+    })
     .onClick(() => {
       this.showMenu = false
       if (route && this.onNavigate) {
         this.onNavigate(route)
       }
+    })
+  }
+
+  @Builder
+  AboutMenuItem() {
+    Row({ space: 12 }) {
+      Column() {
+        Image($r('app.media.shield'))
+          .width(18)
+          .height(18)
+          .fillColor(this.resolveActionIconColor())
+      }
+      .width(30)
+      .height(30)
+      .borderRadius(10)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .backgroundColor(this.resolveActionIconTileBackground())
+
+      Text('\u5173\u4e8e')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .layoutWeight(1)
+    }
+    .id('menu-action-about')
+    .width('100%')
+    .height(44)
+    .padding({ left: 8, right: 10 })
+    .justifyContent(FlexAlign.Start)
+    .alignItems(VerticalAlign.Center)
+    .backgroundColor(this.resolveMenuHoverBackground(this.aboutHovered))
+    .borderRadius(12)
+    .onHover((isHover: boolean) => {
+      this.aboutHovered = isHover
+    })
+    .onClick(() => {
+      this.showMenu = false
+      this.aboutDialogController.open()
     })
   }
 }

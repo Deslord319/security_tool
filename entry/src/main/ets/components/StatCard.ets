@@ -27,50 +27,35 @@ export struct StatCard {
         .linearGradient({
           angle: 18,
           colors: [
-            [this.isHovered ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.02)', 0],
-            [this.isHovered ? 'rgba(255,255,255,0.00)' : 'rgba(255,255,255,0.00)', 1]
+            [this.isHovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)', 0],
+            ['rgba(255,255,255,0.00)', 1]
           ]
         })
-        .opacity(this.isHovered ? 1 : 0.65)
+        .opacity(this.isHovered ? 0.9 : 0.55)
 
       Row({ space: 16 }) {
-        Stack({ alignContent: Alignment.TopEnd }) {
-          Column() {
-            Image(this.icon)
-              .width(24)
-              .height(24)
-              .fillColor(Color.White)
-          }
-          .width(52)
-          .height(52)
-          .borderRadius(AppStyles.RADIUS_LG)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [this.gradientStart, 0],
-              [this.gradientEnd, 1]
-            ]
-          })
-          .scale({ x: this.isHovered ? 1.08 : 1, y: this.isHovered ? 1.08 : 1 })
-          .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered))
-
-          Column()
-            .width(22)
-            .height(52)
-            .linearGradient({
-              angle: 180,
-              colors: [
-                ['rgba(255,255,255,0)', 0],
-                ['rgba(255,255,255,0.36)', 0.55],
-                ['rgba(255,255,255,0)', 1]
-              ]
-            })
-            .rotate({ angle: 18 })
-            .translate({ x: this.isHovered ? 34 : -32 })
-            .opacity(this.isHovered ? 1 : 0)
+        Column() {
+          Image(this.icon)
+            .width(24)
+            .height(24)
+            .fillColor(Color.White)
         }
+        .width(52)
+        .height(52)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .scale({
+          x: HoverUtils.getScale(this.isHovered, 1.06),
+          y: HoverUtils.getScale(this.isHovered, 1.06)
+        })
+        .linearGradient({
+          angle: 135,
+          colors: [
+            [this.gradientStart, 0],
+            [this.gradientEnd, 1]
+          ]
+        })
 
         Column({ space: 4 }) {
           Text(this.value)
@@ -80,14 +65,13 @@ export struct StatCard {
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .translate({ y: this.isHovered ? -1 : 0 })
 
           Text(this.label)
             .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(this.isHovered ? FontWeight.Bold : FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(this.isHovered ? 0.72 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+            .opacity(this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             .maxLines(1)
-            .translate({ y: this.isHovered ? -1 : 0 })
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
@@ -104,11 +88,10 @@ export struct StatCard {
       width: 1,
       color: this.isHovered ? this.gradientStart : AppColors.getColors(this.currentTheme).BORDER
     })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))
-    .translate({ y: HoverUtils.getTranslateY(this.isHovered) })
+    .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })
     .scale({
-      x: HoverUtils.getScale(this.isHovered, 1.015),
-      y: HoverUtils.getScale(this.isHovered, 1.015)
+      x: HoverUtils.getScale(this.isHovered),
+      y: HoverUtils.getScale(this.isHovered)
     })
     .clip(true)
     .onHover((isHover: boolean) => {

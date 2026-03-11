@@ -1,8 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { HoverUtils } from '../utils/HoverUtils'
-
 @Component
 export struct RuleTypeItem {
   @Prop label: string = ''
@@ -73,12 +71,11 @@ export struct RuleTypeItem {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .translate({ y: HoverUtils.getTranslateY(this.isHovered, 2) })
+    .backgroundColor(this.isHovered
+      ? (this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.03)' : 'rgba(10,132,255,0.04)')
+      : AppColors.getColors(this.currentTheme).BG_CARD)
     .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.isHovered = isHover
-      })
+      this.isHovered = isHover
     })
     .onClick(() => {
       this.onPress()

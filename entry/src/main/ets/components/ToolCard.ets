@@ -27,56 +27,41 @@ export struct ToolCard {
         .linearGradient({
           angle: 180,
           colors: [
-            [this.isHovered ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.02)', 0],
+            [this.isHovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)', 0],
             ['rgba(255,255,255,0)', 1]
           ]
         })
 
       Column({ space: 12 }) {
-        Stack({ alignContent: Alignment.TopEnd }) {
-          Column() {
-            Image(this.icon)
-              .width(28)
-              .height(28)
-              .fillColor(Color.White)
-          }
-          .width(56)
-          .height(56)
-          .borderRadius(28)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [this.gradientStart, 0],
-              [this.gradientEnd, 1]
-            ]
-          })
-          .scale({ x: this.isHovered ? 1.08 : 1, y: this.isHovered ? 1.08 : 1 })
-          .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered))
-
-          Column()
-            .width(20)
-            .height(56)
-            .linearGradient({
-              angle: 180,
-              colors: [
-                ['rgba(255,255,255,0)', 0],
-                ['rgba(255,255,255,0.34)', 0.55],
-                ['rgba(255,255,255,0)', 1]
-              ]
-            })
-            .rotate({ angle: 16 })
-            .translate({ x: this.isHovered ? 36 : -30 })
-            .opacity(this.isHovered ? 1 : 0)
+        Column() {
+          Image(this.icon)
+            .width(28)
+            .height(28)
+            .fillColor(Color.White)
         }
+        .width(56)
+        .height(56)
+        .borderRadius(28)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .scale({
+          x: HoverUtils.getScale(this.isHovered, 1.06),
+          y: HoverUtils.getScale(this.isHovered, 1.06)
+        })
+        .linearGradient({
+          angle: 135,
+          colors: [
+            [this.gradientStart, 0],
+            [this.gradientEnd, 1]
+          ]
+        })
 
         Text(this.label)
           .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(this.isHovered ? FontWeight.Bold : FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          .opacity(this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .maxLines(1)
-          .translate({ y: this.isHovered ? -1 : 0 })
       }
       .width('100%')
       .height('100%')
@@ -91,11 +76,10 @@ export struct ToolCard {
       width: 1,
       color: this.isHovered ? this.gradientStart : AppColors.getColors(this.currentTheme).BORDER
     })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))
-    .translate({ y: HoverUtils.getTranslateY(this.isHovered) })
+    .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })
     .scale({
-      x: HoverUtils.getScale(this.isHovered, 1.015),
-      y: HoverUtils.getScale(this.isHovered, 1.015)
+      x: HoverUtils.getScale(this.isHovered),
+      y: HoverUtils.getScale(this.isHovered)
     })
     .clip(true)
     .onHover((isHover: boolean) => {

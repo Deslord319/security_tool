@@ -27,6 +27,7 @@ struct MainPage {
   @State showMenu: boolean = false
   @State pageEnterOpacity: number = 1
   @State pageEnterOffset: number = 0
+  @State menuTriggerHovered: boolean = false
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   private runtimeInitialized: boolean = false
   private runtimeInitInProgress: boolean = false
@@ -160,18 +161,26 @@ struct MainPage {
 
             // 三点菜单按钮
             Button() {
-              Text('⋮')
-                .fontSize(20)
+              Text('\u22ef')
+                .width(18)
+                .height(18)
+                .fontSize(18)
                 .fontWeight(FontWeight.Bold)
+                .textAlign(TextAlign.Center)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             }
             .type(ButtonType.Normal)
             .id('top-menu-trigger')
-            .width(36)
-            .height(36)
+            .width(32)
+            .height(32)
             .borderRadius(AppStyles.RADIUS_MD)
-            .backgroundColor(Color.Transparent)
+            .backgroundColor(this.menuTriggerHovered ?
+              (this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT) :
+              Color.Transparent)
+            .onHover((isHover: boolean) => {
+              this.menuTriggerHovered = isHover
+            })
             .onClick(() => {
               this.showMenu = !this.showMenu
             })

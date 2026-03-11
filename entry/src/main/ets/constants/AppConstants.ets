@@ -21,6 +21,12 @@ export class AppColors {
   static readonly BG_CARD: string = '#FFFFFF'
   static readonly BG_COMPONENT: string = '#F0F0F0'
   static readonly BG_HOVER: string = '#E5E5E5'
+  static readonly MENU_HOVER_LIGHT: string = 'rgba(229,229,234,0.9)'
+  static readonly MENU_HOVER_DARK: string = 'rgba(72,72,74,0.9)'
+  static readonly MENU_ICON_TILE_LIGHT: string = 'rgba(242,242,247,1)'
+  static readonly MENU_ICON_TILE_DARK: string = 'rgba(58,58,60,1)'
+  static readonly SIDEBAR_SELECTED_TILE: string = '#3B9BFF'
+  static readonly SIDEBAR_SELECTED_ICON: string = '#EAF4FF'
 
   static readonly BORDER: string = '#000000'
   static readonly BORDER_OPACITY: number = 0.1
@@ -71,7 +77,7 @@ export class Routes {
 }
 
 export class AppInfo {
-  static readonly APP_NAME: string = '安全管理中心'
+  static readonly APP_NAME: string = '\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3'
   static readonly APP_VERSION: string = '1.0.0'
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
 }
@@ -83,10 +89,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: Routes.DASHBOARD, label: '总览', icon: $r('app.media.dashboard') },
-  { id: Routes.FIREWALL, label: '防火墙', icon: $r('app.media.firewall') },
-  { id: Routes.LOG_MANAGE, label: '日志管理', icon: $r('app.media.log') },
-  { id: Routes.PERIPHERAL_MANAGE, label: '外设管理', icon: $r('app.media.peripheral') },
-  { id: Routes.IDENTITY, label: '身份鉴别', icon: $r('app.media.identity') },
-  { id: Routes.TOOL_SETTINGS, label: '工具设置', icon: $r('app.media.settings') }
+  { id: Routes.DASHBOARD, label: '\u5b89\u5168\u603b\u89c8', icon: $r('app.media.dashboard') },
+  { id: Routes.FIREWALL, label: '\u9632\u706b\u5899\u7ba1\u7406', icon: $r('app.media.firewall') },
+  { id: Routes.LOG_MANAGE, label: '\u65e5\u5fd7\u7ba1\u7406', icon: $r('app.media.log') },
+  { id: Routes.PERIPHERAL_MANAGE, label: '\u5916\u8bbe\u7ba1\u7406', icon: $r('app.media.peripheral') },
+  { id: Routes.IDENTITY, label: '\u8eab\u4efd\u9274\u522b', icon: $r('app.media.identity') },
+  { id: Routes.TOOL_SETTINGS, label: '\u5de5\u5177\u8bbe\u7f6e', icon: $r('app.media.settings') }
 ]

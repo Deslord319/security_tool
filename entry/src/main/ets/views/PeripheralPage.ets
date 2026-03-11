@@ -40,6 +40,7 @@ export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State currentTab: number = 0
   @State hoveredPanelIndex: number = -1
+  @State hoveredDeviceRecordIndex: number = -1
   @State isLoading: boolean = false
   @State adminState: AdminActivationState = {
     activated: false,
@@ -669,9 +670,187 @@ export struct PeripheralPage {
   }
 
   // ==================== Tab 1: 设备连接记录 ====================
+  private getDeviceRecordAllowCount(): number {
+    return this.deviceRecords.filter((record: DeviceRecord) => record.policy === '允许').length
+  }
+
+  private getDeviceRecordBlockCount(): number {
+    return this.deviceRecords.filter((record: DeviceRecord) => record.policy !== '允许').length
+  }
+
+  private getDeviceRecordPolicyTextColor(policy: string): string {
+    return policy === '允许'
+      ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
+      : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
+  }
+
+  private getDeviceRecordPolicyBgColor(policy: string): string {
+    return policy === '允许'
+      ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG
+      : AppColors.getColors(this.currentTheme).TAG_RED_BG
+  }
+
+  private getDeviceRecordPolicySummary(policy: string): string {
+    return policy === '允许' ? '已按当前接口策略放行' : '已被当前接口策略拦截'
+  }
+
+  @Builder
+  deviceRecordItem(record: DeviceRecord, index: number) {
+    Row({ space: 16 }) {
+      Column({ space: 8 }) {
+        Row({ space: 8 }) {
+          Text(record.deviceName)
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+          Text(getPeripheralTypeLabel(record.deviceType))
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+        }
+
+        Text(record.deviceId)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Row({ space: 20 }) {
+          Column({ space: 4 }) {
+            Text('连接时间')
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            Text(record.connectTime)
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+
+          Column({ space: 4 }) {
+            Text('策略结果')
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            Text(this.getDeviceRecordPolicySummary(record.policy))
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+        }
+        .width('100%')
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: 8 }) {
+        Text(record.policy)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getDeviceRecordPolicyTextColor(record.policy))
+          .backgroundColor(this.getDeviceRecordPolicyBgColor(record.policy))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+
+        Text(record.policy === '允许' ? '命中白名单 / 默认放行' : '命中限制规则')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .textAlign(TextAlign.End)
+      }
+      .alignItems(HorizontalAlign.End)
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 18, bottom: 18 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredDeviceRecordIndex = isHover ? index : -1
+      })
+    })
+  }
+
+  @Builder
+  deviceRecordsPanel() {
+    Scroll() {
+      Column({ space: 0 }) {
+        Column({ space: 0 }) {
+          if (this.deviceRecords.length === 0) {
+            Column({ space: 10 }) {
+              Text('暂无设备连接记录')
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
+              Text('新接入的 USB、蓝牙或网络外设会在这里显示最近一次命中的控制结果。')
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                .textAlign(TextAlign.Center)
+            }
+            .width('100%')
+            .padding({ left: 20, right: 20, top: 42, bottom: 42 })
+            .alignItems(HorizontalAlign.Center)
+          } else {
+            Column({ space: 0 }) {
+              ForEach(this.deviceRecords, (record: DeviceRecord, index: number) => {
+                Column({ space: 0 }) {
+                  this.deviceRecordItem(record, index)
+                  if (index < this.deviceRecords.length - 1) {
+                    Divider()
+                      .color(AppColors.getColors(this.currentTheme).BORDER)
+                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                      .margin({ left: 20, right: 20 })
+                  }
+                }
+              })
+            }
+            .width('100%')
+          }
+        }
+        .borderRadius(AppStyles.RADIUS_LG)
+        .clip(true)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .border({
+          width: 1,
+          color: this.hoveredPanelIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredPanelIndex = isHover ? 0 : -1
+          })
+        })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Start)
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
+    }
+    .width('100%')
+    .height('100%')
+    .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
+  }
+
   @Builder
   deviceRecordsBuilder() {
-    Column() {
+    if (true) {
+      this.deviceRecordsPanel()
+    } else {
+      /*
+      Column() {
       Column({ space: 4 }) {
         Text('设备连接记录')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
@@ -795,6 +974,8 @@ export struct PeripheralPage {
         this.hoveredPanelIndex = isHover ? 0 : -1
       })
     })
+      */
+    }
   }
 
   // ==================== Tab 2: 接口管控 ====================
