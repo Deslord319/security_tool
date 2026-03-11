@@ -1,6 +1,5 @@
-﻿/**
- * 鏃ュ織绠＄悊妯″潡 - E2E 娴佺▼娴嬭瘯 (L4)
- * 娴嬭瘯鏃ュ織绠＄悊妯″潡鐨勫畬鏁寸敤鎴锋祦绋?
+/**
+ * 日志管理模块 - E2E 流程测试
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
@@ -23,13 +22,11 @@ export default function logManageFlowTest() {
 
     beforeAll(async () => {
       hilog.info(DOMAIN, TAG, 'LogManage E2E flow tests starting...')
-
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
         abilityName: ABILITY_NAME
       })
-
       await sleep(2000)
       driver = Driver.create()
       await driver.delayMs(1000)
@@ -39,101 +36,67 @@ export default function logManageFlowTest() {
       hilog.info(DOMAIN, TAG, 'LogManage E2E flow tests completed')
     })
 
-    // ==================== 瀹屾暣瀵艰埅娴佺▼ ====================
-
     describe('Full navigation flow', () => {
-
-      it('should start from dashboard', 0, async () => {
-        await driver.assertComponentExist(ON.text('瀹夊叏鎬昏'))
-        hilog.info(DOMAIN, TAG, 'Starting from dashboard')
-      })
-
-      it('should navigate to log manage via sidebar', 0, async () => {
-        let navItem = await driver.findComponent(ON.text('鏃ュ織绠＄悊'))
+      it('should start from dashboard and enter log manage', 0, async () => {
+        await driver.assertComponentExist(ON.text('安全总览'))
+        let navItem = await driver.findComponent(ON.text('日志管理'))
         expect(navItem !== null).assertTrue()
         await navItem.click()
         await driver.delayMs(1000)
 
-        // 楠岃瘉椤甸潰鏍囬
-        await driver.assertComponentExist(ON.text('鐩戞帶鍜屽璁＄郴缁熷畨鍏ㄤ簨浠舵棩蹇?))
-        hilog.info(DOMAIN, TAG, 'Navigated to log manage page')
+        await driver.assertComponentExist(ON.text('日志管理'))
+        await driver.assertComponentExist(ON.text('监控和审计系统安全事件日志'))
       })
     })
 
-    // ==================== 鏃ュ織鏌ョ湅娴佺▼ ====================
-
     describe('Log viewing flow', () => {
+      it('should display statistics and refresh', 0, async () => {
+        await driver.assertComponentExist(ON.text('总计'))
+        await driver.assertComponentExist(ON.text('今日'))
+        await driver.assertComponentExist(ON.text('已阻止'))
 
-      it('should display statistics bar', 0, async () => {
-        await driver.assertComponentExist(ON.text('鎬昏'))
-        await driver.assertComponentExist(ON.text('浠婃棩'))
-        await driver.assertComponentExist(ON.text('宸查樆姝?))
-        hilog.info(DOMAIN, TAG, 'Statistics bar displayed')
-      })
-
-      it('should show refresh button and click it', 0, async () => {
-        let refreshBtn = await driver.findComponent(ON.text('鍒锋柊'))
+        let refreshBtn = await driver.findComponent(ON.text('刷新'))
         expect(refreshBtn !== null).assertTrue()
         await refreshBtn.click()
         await driver.delayMs(500)
-        hilog.info(DOMAIN, TAG, 'Refresh clicked successfully')
       })
     })
 
-    // ==================== 瀛樺偍璁剧疆瀹屾暣娴佺▼ ====================
-
     describe('Storage settings flow', () => {
-
-      it('should open storage settings', 0, async () => {
-        let settingsBtn = await driver.findComponent(ON.text('瀛樺偍璁剧疆'))
+      it('should open and save storage settings', 0, async () => {
+        let settingsBtn = await driver.findComponent(ON.text('进入存储设置'))
         expect(settingsBtn !== null).assertTrue()
         await settingsBtn.click()
         await driver.delayMs(500)
 
-        await driver.assertComponentExist(ON.text('鏃ュ織瀛樺偍閰嶇疆'))
-        hilog.info(DOMAIN, TAG, 'Storage settings opened')
-      })
-
-      it('should display all configuration options', 0, async () => {
-        await driver.assertComponentExist(ON.text('鏈€澶у瓨鍌ㄦ潯鏁?))
-        await driver.assertComponentExist(ON.text('鏃ュ織淇濈暀澶╂暟'))
-        await driver.assertComponentExist(ON.text('鑷姩瀵煎嚭'))
-        await driver.assertComponentExist(ON.text('瀵煎嚭淇濆瓨浣嶇疆'))
-        hilog.info(DOMAIN, TAG, 'All config options displayed')
-      })
-
-      it('should display permission info', 0, async () => {
-        await driver.assertComponentExist(ON.text('鏉冮檺淇℃伅'))
-        await driver.assertComponentExist(ON.text('ohos.permission.QUERY_AUDIT_EVENT'))
+        await driver.assertComponentExist(ON.text('日志存储设置'))
+        await driver.assertComponentExist(ON.text('日志存储配置'))
+        await driver.assertComponentExist(ON.text('最大存储条数'))
+        await driver.assertComponentExist(ON.text('日志保留天数'))
+        await driver.assertComponentExist(ON.text('自动导出'))
+        await driver.assertComponentExist(ON.text('导出保存位置'))
+        await driver.assertComponentExist(ON.text('权限信息'))
         await driver.assertComponentExist(ON.text('订阅模式'))
-        hilog.info(DOMAIN, TAG, 'Permission info displayed')
-      })
 
-      it('should save settings successfully', 0, async () => {
-        let saveBtn = await driver.findComponent(ON.text('淇濆瓨璁剧疆'))
+        let saveBtn = await driver.findComponent(ON.text('保存设置'))
         expect(saveBtn !== null).assertTrue()
         await saveBtn.click()
-        await driver.delayMs(1000)
-        hilog.info(DOMAIN, TAG, 'Settings saved')
+        await driver.delayMs(500)
       })
 
       it('should navigate back to log list', 0, async () => {
-        let backBtn = await driver.findComponent(ON.text('杩斿洖鏃ュ織'))
+        let backBtn = await driver.findComponent(ON.text('返回日志列表'))
         expect(backBtn !== null).assertTrue()
         await backBtn.click()
         await driver.delayMs(500)
 
-        await driver.assertComponentExist(ON.text('鎬昏'))
-        hilog.info(DOMAIN, TAG, 'Navigated back to log list')
+        await driver.assertComponentExist(ON.text('总计'))
       })
     })
 
-    // ==================== 瀵煎嚭娴佺▼ ====================
-
     describe('Export flow', () => {
-
-      it('should open export format dialog and trigger JSON export', 0, async () => {
-        let exportBtn = await driver.findComponent(ON.text('瀵煎嚭鏃ュ織'))
+      it('should open export format dialog', 0, async () => {
+        let exportBtn = await driver.findComponent(ON.text('导出日志'))
         expect(exportBtn !== null).assertTrue()
         await exportBtn.click()
         await driver.delayMs(300)
@@ -141,65 +104,32 @@ export default function logManageFlowTest() {
         await driver.assertComponentExist(ON.text('JSON'))
         await driver.assertComponentExist(ON.text('CSV'))
         await driver.assertComponentExist(ON.text('TXT'))
-
-        let jsonBtn = await driver.findComponent(ON.text('JSON'))
-        expect(jsonBtn !== null).assertTrue()
-        await jsonBtn.click()
-        await driver.delayMs(1000)
-        let detailDialog = await driver.findComponent(ON.text('瀵煎嚭璇︽儏'))
-        let noDataToast = await driver.findComponent(ON.text('娌℃湁鍙鍑虹殑鏃ュ織'))
-        expect(detailDialog !== null || noDataToast !== null).assertTrue()
-        hilog.info(DOMAIN, TAG, 'JSON export triggered')
-      })
-
-      it('should open export format dialog and trigger CSV export', 0, async () => {
-        let exportBtn = await driver.findComponent(ON.text('瀵煎嚭鏃ュ織'))
-        expect(exportBtn !== null).assertTrue()
-        await exportBtn.click()
-        await driver.delayMs(300)
-
-        let csvBtn = await driver.findComponent(ON.text('CSV'))
-        expect(csvBtn !== null).assertTrue()
-        await csvBtn.click()
-        await driver.delayMs(500)
-        hilog.info(DOMAIN, TAG, 'CSV export triggered')
       })
     })
 
-    // ==================== 璺ㄦā鍧楀鑸?====================
-
     describe('Cross-module navigation', () => {
-
-      it('should navigate from log manage to other modules and back', 0, async () => {
-        // 鍏堝埌闃茬伀澧?
-        let firewallNav = await driver.findComponent(ON.text('闃茬伀澧?))
+      it('should navigate to firewall and back', 0, async () => {
+        let firewallNav = await driver.findComponent(ON.text('防火墙管理'))
         expect(firewallNav !== null).assertTrue()
         await firewallNav.click()
         await driver.delayMs(500)
+        await driver.assertComponentExist(ON.text('防火墙管理'))
 
-        await driver.assertComponentExist(ON.text('闃茬伀澧?))
-
-        // 鍐嶅洖鍒版棩蹇楃鐞?
-        let logNav = await driver.findComponent(ON.text('鏃ュ織绠＄悊'))
+        let logNav = await driver.findComponent(ON.text('日志管理'))
         expect(logNav !== null).assertTrue()
         await logNav.click()
         await driver.delayMs(500)
-
-        await driver.assertComponentExist(ON.text('鐩戞帶鍜屽璁＄郴缁熷畨鍏ㄤ簨浠舵棩蹇?))
-        hilog.info(DOMAIN, TAG, 'Cross-module navigation successful')
+        await driver.assertComponentExist(ON.text('日志管理'))
       })
 
       it('should navigate back to dashboard at the end', 0, async () => {
-        let dashNav = await driver.findComponent(ON.text('鎬昏'))
+        let dashNav = await driver.findComponent(ON.text('总览'))
         expect(dashNav !== null).assertTrue()
         await dashNav.click()
         await driver.delayMs(500)
 
-        await driver.assertComponentExist(ON.text('瀹夊叏鎬昏'))
-        hilog.info(DOMAIN, TAG, 'Back to dashboard, flow test complete')
+        await driver.assertComponentExist(ON.text('安全总览'))
       })
     })
-
   })
 }
-

@@ -1,9 +1,8 @@
-﻿/**
- * 闃茬伀澧欐ā鍧?- 娴佺▼ E2E 娴嬭瘯
- * 娴嬭瘯浠?Dashboard 瀵艰埅鍒伴槻鐏椤甸潰鐨勫畬鏁存祦绋嬪強闃茬伀澧欓〉闈㈠姛鑳?
+/**
+ * 防火墙模块 - 流程 E2E 测试
  */
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Driver, ON, Component } from '@kit.TestKit'
+import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const TAG = 'FirewallFlowTest'
@@ -14,20 +13,15 @@ const ABILITY_NAME = 'EntryAbility'
 export default function firewallFlowTest() {
   describe('Firewall Flow E2E Test', () => {
     let driver: Driver
-    let delegator: abilityDelegatorRegistry.AbilityDelegator
 
     beforeAll(async () => {
       hilog.info(DOMAIN, TAG, 'Firewall flow tests starting...')
-
-      delegator = abilityDelegatorRegistry.getAbilityDelegator()
-
+      const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
         abilityName: ABILITY_NAME
       })
-
       await sleep(2000)
-
       driver = Driver.create()
       await driver.delayMs(1000)
     })
@@ -36,76 +30,51 @@ export default function firewallFlowTest() {
       hilog.info(DOMAIN, TAG, 'Firewall flow tests completed')
     })
 
-    // ==================== 瀵艰埅娴佺▼娴嬭瘯 ====================
-
     describe('Navigation Flow', () => {
       it('should navigate to firewall page via sidebar', 0, async () => {
-        hilog.info(DOMAIN, TAG, 'Testing sidebar navigation to firewall...')
-
-        const firewallNav = await driver.findComponent(ON.text('闃茬伀澧?))
+        const firewallNav = await driver.findComponent(ON.text('防火墙管理'))
         expect(firewallNav !== null).assertTrue()
         await firewallNav.click()
         await driver.delayMs(500)
 
-        await driver.assertComponentExist(ON.text('闃茬伀澧?))
-        hilog.info(DOMAIN, TAG, 'Successfully navigated to firewall page')
+        await driver.assertComponentExist(ON.text('防火墙管理'))
       })
 
       it('should navigate back to dashboard via sidebar', 0, async () => {
-        hilog.info(DOMAIN, TAG, 'Testing navigation back to dashboard...')
-
-        const dashboardNav = await driver.findComponent(ON.text('鎬昏'))
+        const dashboardNav = await driver.findComponent(ON.text('总览'))
         expect(dashboardNav !== null).assertTrue()
         await dashboardNav.click()
         await driver.delayMs(500)
 
-        await driver.assertComponentExist(ON.text('瀹夊叏鎬昏'))
-        hilog.info(DOMAIN, TAG, 'Successfully navigated back to dashboard')
+        await driver.assertComponentExist(ON.text('安全总览'))
       })
 
       it('should navigate to firewall via quick action card', 0, async () => {
-        hilog.info(DOMAIN, TAG, 'Testing quick action navigation...')
-
-        const firewallCard = await driver.findComponent(ON.text('闃茬伀澧欑鐞?))
+        const firewallCard = await driver.findComponent(ON.text('防火墙管理'))
         expect(firewallCard !== null).assertTrue()
         await firewallCard.click()
         await driver.delayMs(500)
 
-        await driver.assertComponentExist(ON.text('闃茬伀澧?))
-        hilog.info(DOMAIN, TAG, 'Quick action navigation successful')
+        await driver.assertComponentExist(ON.text('防火墙管理'))
       })
     })
 
-    // ==================== 闃茬伀澧欓〉闈㈠姛鑳芥祴璇?====================
-
     describe('Firewall Page Features', () => {
       beforeEach(async () => {
-        // 纭繚鍦ㄩ槻鐏椤甸潰
-        const firewallNav = await driver.findComponent(ON.text('闃茬伀澧?))
+        const firewallNav = await driver.findComponent(ON.text('防火墙管理'))
         if (firewallNav) {
           await firewallNav.click()
           await driver.delayMs(500)
         }
       })
 
-      it('should display firewall switch', 0, async () => {
-        hilog.info(DOMAIN, TAG, 'Verifying firewall switch presence...')
-
-        await driver.assertComponentExist(ON.text('闃茬伀澧?))
-        hilog.info(DOMAIN, TAG, 'Firewall page loaded successfully')
-      })
-
-      it('should display rule type section', 0, async () => {
-        hilog.info(DOMAIN, TAG, 'Verifying rule type section...')
-        await driver.assertComponentExist(ON.text('闃茬伀澧?))
-        hilog.info(DOMAIN, TAG, 'Rule type section verified')
+      it('should display page title', 0, async () => {
+        await driver.assertComponentExist(ON.text('防火墙管理'))
       })
     })
-
   })
 }
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
-

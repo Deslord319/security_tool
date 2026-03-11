@@ -1669,15 +1669,15 @@ export class LogStorageService {
     return removed
   }
 
-  // 杞崲涓?CSV 鏍煎紡
+  // 转换为 CSV 格式
   private static toCsv(entries: LogEntry[]): string {
-    let header = '鏃堕棿,浜嬩欢绫诲瀷,璇︽儏,杩涚▼鍚?PID,缁撴灉'
+    let header = '时间,事件类型,详情,进程名,PID,结果'
     let lines: string[] = [header]
 
     for (let entry of entries) {
       let time = formatLogTimestamp(entry.timestamp)
       let type = getLogEventTypeLabel(entry.eventType)
-      // CSV 涓弻寮曞彿杞箟
+      // CSV 中双引号转义
       let detail = `"${entry.detail.replace(/"/g, '""')}"`
       let process = entry.processName || ''
       let pid = entry.pid !== undefined ? entry.pid.toString() : ''
@@ -1689,7 +1689,7 @@ export class LogStorageService {
     return lines.join('\n')
   }
 
-  // 杞崲涓虹函鏂囨湰鏍煎紡
+  // 转换为纯文本格式
   private static toTxt(entries: LogEntry[]): string {
     let lines: string[] = []
 
@@ -1700,13 +1700,13 @@ export class LogStorageService {
       let line = `[${time}] [${type}] [${result}] ${entry.detail}`
 
       if (entry.processName) {
-        line += ` (杩涚▼: ${entry.processName})`
+        line += ` (进程: ${entry.processName})`
       }
       if (entry.filePath) {
-        line += ` 璺緞: ${entry.filePath}`
+        line += ` 路径: ${entry.filePath}`
       }
       if (entry.remoteAddr) {
-        line += ` 鍦板潃: ${entry.remoteAddr}`
+        line += ` 地址: ${entry.remoteAddr}`
       }
 
       lines.push(line)

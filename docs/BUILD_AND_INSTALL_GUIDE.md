@@ -181,7 +181,7 @@ java -jar hap-sign-tool.jar sign-app \
 | `-mode` | localSign | 本地签名模式 |
 | `-appCertFile` | OpenHarmonyApplication.pem | 应用证书 |
 | `-profileFile` | ohos_provision_debug.p7b | 配置文件 |
-| `-inFile` | entry-default-unsigned.hap | � unsigned 输入文件 |
+| `-inFile` | entry-default-unsigned.hap | unsigned 输入文件 |
 | `-keystoreFile` | OpenHarmony.p12 | 密钥库文件 |
 | `-outFile` | signApp.hap | 输出文件名 |
 | `-keyPwd` | 123456 | 密钥密码 |
@@ -669,4 +669,3 @@ export class AppInfo {
 **文档版本**：v1.0
 **最后更新**：2025-02-27
 **适用环境**：Windows + DevEco Studio + WSL
-
