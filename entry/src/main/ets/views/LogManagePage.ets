@@ -11,7 +11,6 @@ import {
   LogStatistics,
   LogStorageConfig,
   LogExportTargetType,
-  LogExportAuthMode,
   LogExportFormat,
   LogExportResult,
   LogAuditDiagnostics,
@@ -31,17 +30,11 @@ import {
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
-import { picker } from '@kit.CoreFileKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'LogManagePage'
-
-interface PublicSelectionResult {
-  targetType: LogExportTargetType
-  exportPath: string
-}
 
 interface DetailDialogField {
   key: string
@@ -278,7 +271,6 @@ export struct LogManagePage {
   @State autoExportEnabled: boolean = false
   @State exportTargetType: LogExportTargetType = 'download'
   @State publicExportPath: string = ''
-  @State customExportUri: string = ''
   @State exportPath: string = ''
   @State defaultExportPath: string = ''
 
@@ -329,8 +321,7 @@ export struct LogManagePage {
   private exportTargetOptions: SelectOption[] = [
     { value: '下载目录' } as SelectOption,
     { value: '文档目录' } as SelectOption,
-    { value: '桌面目录' } as SelectOption,
-    { value: '自定义目录' } as SelectOption
+    { value: '桌面目录' } as SelectOption
   ]
 
   aboutToAppear() {
@@ -525,122 +516,7 @@ export struct LogManagePage {
       this.showExportSuccessDetailDialog(result)
       return
     }
-
-    if (result.recoverAction === 'pick_directory') {
-      let recovered = await this.tryRecoverExportDirectoryAndRetry(format)
-      if (recovered) {
-        return
-      }
-    }
-
     this.showExportFailureDialog(result)
-  }
-
-  private async tryRecoverExportDirectoryAndRetry(format: LogExportFormat): Promise<boolean> {
-    promptAction.showToast({ message: '当前目录无权限，请重新选择导出目录' })
-    let recovered = await this.chooseExportDirectoryAndPersist()
-    if (!recovered) {
-      return false
-    }
-
-    let retryResult = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
-    if (retryResult.success) {
-      this.showExportSuccessDetailDialog(retryResult)
-      return true
-    }
-
-    this.showExportFailureDialog(retryResult)
-    return true
-  }
-
-  private async chooseExportDirectoryAndPersist(): Promise<boolean> {
-    try {
-      let context = getContext(this) as common.UIAbilityContext
-      let documentPicker = new picker.DocumentViewPicker(context)
-      let options: picker.DocumentSelectOptions = {
-        maxSelectNumber: 1,
-        selectMode: picker.DocumentSelectMode.FOLDER
-      } as picker.DocumentSelectOptions
-
-      let uris = await documentPicker.select(options)
-      if (uris.length === 0) {
-        return false
-      }
-
-      let selectedUri = uris[0]
-      let selection = LogStorageService.classifyExportSelection(selectedUri)
-      if (!selection) {
-        promptAction.showToast({ message: '目录格式无效，请重新选择' })
-        return false
-      }
-
-      let targetType: LogExportTargetType = selection.targetType
-      let selectedPublicPath = ''
-      let normalizedCustomUri = ''
-      let config = LogStorageService.getConfig()
-
-      if (targetType !== 'custom_uri') {
-        selectedPublicPath = selection.exportPath
-      } else {
-        normalizedCustomUri = selection.exportTargetValue
-        let persistResult = await LogStorageService.persistCustomUriPermission(normalizedCustomUri)
-        if (!persistResult.success) {
-          let publicFallback = this.resolvePublicFallbackFromPersistFailure(normalizedCustomUri)
-          if (publicFallback) {
-            targetType = publicFallback.targetType
-            selectedPublicPath = publicFallback.exportPath
-            normalizedCustomUri = ''
-          } else {
-            this.exportTargetType = 'custom_uri'
-            this.publicExportPath = ''
-            this.customExportUri = normalizedCustomUri
-            this.updateExportPathPreview()
-            if (LogStorageService.isCustomUriPersistenceForbidden(persistResult)) {
-              promptAction.showToast({
-                message: 'Selected directory cannot be persisted. Selection is kept; please choose another directory.'
-              })
-              return false
-            }
-            let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
-            promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
-            return false
-          }
-        }
-      }
-
-      if (targetType !== 'custom_uri') {
-        let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, targetType)
-        if (!permissionResult.success) {
-          let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
-          promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
-          return false
-        }
-
-        config.exportTargetType = targetType
-        config.exportTargetValue = ''
-        config.exportAuthMode = 'runtime_permission' as LogExportAuthMode
-        config.exportPath = selectedPublicPath || LogStorageService.getPublicExportDirectory(targetType)
-      } else {
-        config.exportTargetType = 'custom_uri'
-        config.exportTargetValue = normalizedCustomUri
-        config.exportAuthMode = 'persisted_uri' as LogExportAuthMode
-        config.exportPath = normalizedCustomUri
-      }
-
-      let saved = await LogStorageService.updateConfig(config)
-      if (!saved) {
-        promptAction.showToast({ message: '保存目录失败，请重试' })
-        return false
-      }
-
-      this.applyStorageConfig(LogStorageService.getConfig())
-      this.refreshAll()
-      return true
-    } catch (err) {
-      hilog.error(0x0006, TAG, `chooseExportDirectoryAndPersist failed: ${JSON.stringify(err)}`)
-      promptAction.showToast({ message: '选择目录失败，请重试' })
-      return false
-    }
   }
   showExportSuccessDialog(result: LogExportResult) {
     let fileName = result.fileName || '未知'
@@ -683,7 +559,6 @@ export struct LogManagePage {
         value: '恢复默认目录',
         action: () => {
           this.exportTargetType = 'download'
-          this.customExportUri = ''
           this.updateExportPathPreview()
           promptAction.showToast({ message: '已恢复默认导出目录，请重新导出' })
         }
@@ -812,108 +687,33 @@ export struct LogManagePage {
 
   async saveStorageSettings() {
     let context = getContext(this) as common.UIAbilityContext
+    let targetType = this.exportTargetType
+    let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, targetType)
+    if (!permissionResult.success) {
+      let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
+      promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
+      return
+    }
+
     let config: LogStorageConfig = {
       maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex],
       retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex],
-      autoExportEnabled: this.autoExportEnabled
-    }
-
-    let publicTargetType: LogExportTargetType | undefined = undefined
-    let normalizedCustomUri = ''
-    let selectedPublicPath = ''
-
-    if (this.exportTargetType === 'custom_uri') {
-      let customUri = this.customExportUri.trim()
-      if (customUri.length === 0) {
-        promptAction.showToast({ message: '请先选择自定义目录' })
-        return
-      }
-
-      let selection = LogStorageService.classifyExportSelection(customUri)
-      if (!selection) {
-        promptAction.showToast({ message: '目录格式无效，请重新选择' })
-        return
-      }
-
-      if (selection.targetType !== 'custom_uri') {
-        publicTargetType = selection.targetType
-        selectedPublicPath = selection.exportPath
-      } else {
-        let normalizedUri = selection.exportTargetValue
-        let persistResult = await LogStorageService.persistCustomUriPermission(normalizedUri)
-        if (!persistResult.success) {
-          let publicFallback = this.resolvePublicFallbackFromPersistFailure(normalizedUri)
-          if (publicFallback) {
-            publicTargetType = publicFallback.targetType
-            selectedPublicPath = publicFallback.exportPath
-          } else {
-            if (LogStorageService.isCustomUriPersistenceForbidden(persistResult)) {
-              promptAction.showToast({
-                message: 'Selected directory cannot be persisted. Selection is kept; please choose another directory.'
-              })
-              return
-            }
-            let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
-            promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
-            return
-          }
-        } else {
-          normalizedCustomUri = normalizedUri
-        }
-      }
-    } else {
-      publicTargetType = this.exportTargetType
-      selectedPublicPath = LogStorageService.resolvePublicExportPath(this.publicExportPath, publicTargetType) || ''
-    }
-
-    if (publicTargetType && publicTargetType !== 'custom_uri') {
-      let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, publicTargetType)
-      if (!permissionResult.success) {
-        let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
-        promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
-        return
-      }
-
-      let publicPath = selectedPublicPath || LogStorageService.getPublicExportDirectory(publicTargetType)
-      config.exportTargetType = publicTargetType
-      config.exportTargetValue = ''
-      config.exportAuthMode = 'runtime_permission' as LogExportAuthMode
-      config.exportPath = publicPath
-    } else {
-      config.exportTargetType = 'custom_uri'
-      config.exportTargetValue = normalizedCustomUri
-      config.exportAuthMode = 'persisted_uri' as LogExportAuthMode
-      config.exportPath = normalizedCustomUri
+      autoExportEnabled: this.autoExportEnabled,
+      exportTargetType: targetType,
+      exportTargetValue: '',
+      exportAuthMode: 'runtime_permission',
+      exportPath: LogStorageService.getPublicExportDirectory(targetType)
     }
 
     let success = await LogStorageService.updateConfig(config)
-    if (success) {
-      let persistedConfig = LogStorageService.getConfig()
-      this.applyStorageConfig(persistedConfig)
-      this.refreshAll()
-
-      let expectedType = config.exportTargetType || 'download'
-      let persistedType = persistedConfig.exportTargetType || 'download'
-      let typeApplied = expectedType === persistedType
-      let valueApplied = true
-      if (expectedType === 'custom_uri') {
-        let expectedUri = config.exportTargetValue || ''
-        let persistedUri = persistedConfig.exportTargetValue || ''
-        valueApplied = this.normalizePathForCompare(expectedUri) === this.normalizePathForCompare(persistedUri)
-      } else {
-        let expectedPath = config.exportPath || ''
-        let persistedPath = persistedConfig.exportPath || ''
-        valueApplied = this.normalizePathForCompare(expectedPath) === this.normalizePathForCompare(persistedPath)
-      }
-
-      if (typeApplied && valueApplied) {
-        promptAction.showToast({ message: '存储设置已保存' })
-      } else {
-        promptAction.showToast({ message: 'Selected directory was not applied. Please choose again.' })
-      }
-    } else {
+    if (!success) {
       promptAction.showToast({ message: '保存失败' })
+      return
     }
+
+    this.applyStorageConfig(LogStorageService.getConfig())
+    this.refreshAll()
+    promptAction.showToast({ message: '存储设置已保存' })
   }
   applyStorageConfig(config: LogStorageConfig): void {
     this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
@@ -934,23 +734,11 @@ export struct LogManagePage {
 
     this.autoExportEnabled = config.autoExportEnabled
     this.publicExportPath = ''
-
-    let targetType = config.exportTargetType || 'download'
-    if (targetType === 'custom_uri') {
-      this.exportTargetType = 'custom_uri'
-      this.customExportUri = (config.exportTargetValue || config.exportPath || '').trim()
-    } else if (targetType === 'documents' || targetType === 'desktop' || targetType === 'download') {
-      this.exportTargetType = targetType
-      this.customExportUri = ''
-      let configuredPath = (config.exportPath || '').trim()
-      let selectedPublicPath = LogStorageService.resolvePublicExportPath(configuredPath, targetType)
-      if (selectedPublicPath) {
-        this.publicExportPath = selectedPublicPath
-      }
-    } else {
-      this.exportTargetType = 'download'
-      this.customExportUri = ''
+    let targetType = config.exportTargetType
+    if (targetType !== 'download' && targetType !== 'documents' && targetType !== 'desktop') {
+      targetType = 'download'
     }
+    this.exportTargetType = targetType
 
     this.updateExportPathPreview()
   }
@@ -964,7 +752,7 @@ export struct LogManagePage {
     if (targetType === 'desktop') {
       return '桌面目录'
     }
-    return '自定义目录'
+    return '下载目录'
   }
 
   private getExportTargetSelectIndex(): number {
@@ -977,71 +765,28 @@ export struct LogManagePage {
     if (this.exportTargetType === 'desktop') {
       return 2
     }
-    return 3
+    return 0
   }
 
   private applyExportTargetByIndex(index: number): void {
     this.publicExportPath = ''
     if (index === 0) {
       this.exportTargetType = 'download'
-      this.customExportUri = ''
     } else if (index === 1) {
       this.exportTargetType = 'documents'
-      this.customExportUri = ''
-    } else if (index === 2) {
-      this.exportTargetType = 'desktop'
-      this.customExportUri = ''
     } else {
-      this.exportTargetType = 'custom_uri'
+      this.exportTargetType = 'desktop'
     }
     this.updateExportPathPreview()
   }
 
   private updateExportPathPreview(): void {
-    if (this.exportTargetType === 'custom_uri') {
-      this.exportPath = this.customExportUri.trim()
-      return
-    }
-
-    let selectedPublicPath = LogStorageService.resolvePublicExportPath(this.publicExportPath, this.exportTargetType)
-    if (selectedPublicPath) {
-      this.exportPath = selectedPublicPath
-      return
-    }
-
     let resolved = LogStorageService.getPublicExportDirectory(this.exportTargetType)
     if (resolved.length > 0) {
       this.exportPath = resolved
     } else {
       this.exportPath = this.defaultExportPath
     }
-  }
-
-  private resolvePublicSelection(pathOrUri: string): PublicSelectionResult | undefined {
-    let targetType = LogStorageService.resolvePublicTargetType(pathOrUri)
-    if (!targetType || targetType === 'custom_uri') {
-      return undefined
-    }
-    let selectedPublicPath = LogStorageService.resolvePublicExportPath(pathOrUri, targetType)
-    let exportPath = selectedPublicPath || LogStorageService.getPublicExportDirectory(targetType)
-    if (exportPath.length === 0) {
-      return undefined
-    }
-    return {
-      targetType: targetType,
-      exportPath: exportPath
-    } as PublicSelectionResult
-  }
-
-  private resolvePublicFallbackFromPersistFailure(
-    sourcePathOrUri: string
-  ): PublicSelectionResult | undefined {
-    return this.resolvePublicSelection(sourcePathOrUri)
-  }
-
-  normalizePathForCompare(path: string): string {
-    let normalized = path.trim().replace(/\\/g, '/').replace(/\/+$/, '')
-    return normalized
   }
 
   toDisplayPath(path: string): string {
@@ -1056,80 +801,9 @@ export struct LogManagePage {
     return display
   }
 
-  async chooseExportDirectory() {
-    try {
-      let context = getContext(this) as common.UIAbilityContext
-      let documentPicker = new picker.DocumentViewPicker(context)
-      let options: picker.DocumentSelectOptions = {
-        maxSelectNumber: 1,
-        selectMode: picker.DocumentSelectMode.FOLDER
-      } as picker.DocumentSelectOptions
-
-      let uris = await documentPicker.select(options)
-      if (uris.length === 0) {
-        return
-      }
-
-      let selectedUri = uris[0]
-      let selection = LogStorageService.classifyExportSelection(selectedUri)
-      if (!selection) {
-        promptAction.showToast({ message: '目录格式无效，请重新选择' })
-        return
-      }
-
-      if (selection.targetType !== 'custom_uri') {
-        this.exportTargetType = selection.targetType
-        this.publicExportPath = selection.exportPath
-        this.customExportUri = ''
-        this.updateExportPathPreview()
-        promptAction.showToast({ message: `已切换到${this.getExportTargetLabel(selection.targetType)}，保存时将弹出权限授权` })
-        return
-      }
-
-      let normalizedUri = selection.exportTargetValue
-      let persistResult = await LogStorageService.persistCustomUriPermission(normalizedUri)
-      if (!persistResult.success) {
-        let publicFallback = this.resolvePublicFallbackFromPersistFailure(normalizedUri)
-        if (publicFallback) {
-          this.exportTargetType = publicFallback.targetType
-          this.publicExportPath = publicFallback.exportPath
-          this.customExportUri = ''
-          this.updateExportPathPreview()
-          promptAction.showToast({ message: `æ£€æµ‹åˆ°å…¬å…±ç›®å½•ï¼Œå·²åˆ‡æ¢åˆ°${this.getExportTargetLabel(publicFallback.targetType)}` })
-          return
-        }
-
-        this.exportTargetType = 'custom_uri'
-        this.publicExportPath = ''
-        this.customExportUri = normalizedUri
-        this.updateExportPathPreview()
-        if (LogStorageService.isCustomUriPersistenceForbidden(persistResult)) {
-          promptAction.showToast({
-            message: 'Selected directory cannot be persisted. Selection is kept; please choose another directory.'
-          })
-          return
-        }
-
-        let codeText = persistResult.errorCode !== undefined ? `(${persistResult.errorCode})` : ''
-        promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
-        return
-      }
-
-      this.exportTargetType = 'custom_uri'
-      this.publicExportPath = ''
-      this.customExportUri = normalizedUri
-      this.updateExportPathPreview()
-      promptAction.showToast({ message: '已选择自定义目录，请保存以生效' })
-    } catch (err) {
-      hilog.error(0x0006, TAG, `chooseExportDirectory failed: ${JSON.stringify(err)}`)
-      promptAction.showToast({ message: '选择目录失败，请重试' })
-    }
-  }
-
   restoreDefaultExportDirectory() {
     this.exportTargetType = 'download'
     this.publicExportPath = ''
-    this.customExportUri = ''
     this.updateExportPathPreview()
     promptAction.showToast({ message: '已恢复默认导出目录，请保存以生效' })
   }
@@ -1706,7 +1380,6 @@ export struct LogManagePage {
                 this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
                 this.autoExportEnabled = DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
                 this.exportTargetType = 'download'
-                this.customExportUri = ''
                 this.updateExportPathPreview()
                 promptAction.showToast({ message: '已恢复默认，请保存以生效' })
               })
@@ -1820,7 +1493,7 @@ export struct LogManagePage {
             .padding({ left: 10, right: 10, top: 8, bottom: 8 })
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
             .borderRadius(AppStyles.RADIUS_SM)
-          Text('下载/文档/桌面目录通过系统权限授权；其他目录通过文件选择器授权并持久化。')
+          Text('仅支持下载/文档/桌面目录，导出文件固定保存到所选目录下的 securityLog 子目录。')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1835,7 +1508,6 @@ export struct LogManagePage {
         .alignItems(HorizontalAlign.Start)
 
         Row({ space: 8 }) {
-          Button('选择自定义目录').onClick(() => { this.chooseExportDirectory() })
           Button('恢复默认目录').onClick(() => { this.restoreDefaultExportDirectory() })
         }
         .alignItems(VerticalAlign.Center)
@@ -1877,9 +1549,6 @@ export struct LogManagePage {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       Text('ohos.permission.READ_WRITE_DESKTOP_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      Text('ohos.permission.FILE_ACCESS_PERSIST').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }

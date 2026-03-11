@@ -456,9 +456,9 @@ export interface LogStorageConfig {
   exportAuthMode?: LogExportAuthMode
 }
 
-export type LogExportTargetType = 'download' | 'documents' | 'desktop' | 'custom_uri'
+export type LogExportTargetType = 'download' | 'documents' | 'desktop'
 
-export type LogExportAuthMode = 'runtime_permission' | 'persisted_uri'
+export type LogExportAuthMode = 'runtime_permission'
 
 // 鏃ュ織璁㈤槄閰嶇疆
 export interface LogSubscriptionConfig {

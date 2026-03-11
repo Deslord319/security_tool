@@ -40,7 +40,7 @@ export class LogRuntimeCollectorService {
     'preferences/theme_preferences',
     'files/hiappevent/',
     'databases/appevent.db',
-    'files/log_exports/'
+    'files/securitylog/'
   ]
 
   static async init(context: common.UIAbilityContext): Promise<boolean> {

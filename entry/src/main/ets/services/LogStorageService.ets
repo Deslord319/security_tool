@@ -1,7 +1,7 @@
 ﻿import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit'
-import { Environment, fileIo, fileShare } from '@kit.CoreFileKit'
+import { Environment, fileIo } from '@kit.CoreFileKit'
 import {
   LogEntry,
   LogFilter,
@@ -48,18 +48,11 @@ const MAX_FILE_PATH_LENGTH = 512
 const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
-const DEFAULT_EXPORT_DIR_NAME = 'log_exports'
-const DEFAULT_EXPORT_PARENT_DIR_NAME = 'SecurityTool'
+const DEFAULT_EXPORT_DIR_NAME = 'securityLog'
 const EXPORT_TARGET_DOWNLOAD: LogExportTargetType = 'download'
 const EXPORT_TARGET_DOCUMENTS: LogExportTargetType = 'documents'
 const EXPORT_TARGET_DESKTOP: LogExportTargetType = 'desktop'
-const EXPORT_TARGET_CUSTOM_URI: LogExportTargetType = 'custom_uri'
 const EXPORT_AUTH_RUNTIME: LogExportAuthMode = 'runtime_permission'
-const EXPORT_AUTH_PERSISTED: LogExportAuthMode = 'persisted_uri'
-const PERSIST_URI_OPERATION_MODE: number =
-  fileShare.OperationMode.READ_MODE |
-  fileShare.OperationMode.WRITE_MODE |
-  fileShare.OperationMode.CREATE_MODE
 
 // 鏃ュ織瀛樺偍鏈嶅姟 - 璐熻矗鏃ュ織鐨勬寔涔呭寲銆佹煡璇€佽繃婊ゃ€佸鍑?
 export class LogStorageService {
@@ -378,11 +371,6 @@ export class LogStorageService {
       }
     }
 
-    let recoverAction: LogExportRecoveryAction | undefined = undefined
-    if (primaryTarget.targetType === EXPORT_TARGET_CUSTOM_URI) {
-      recoverAction = 'pick_directory'
-    }
-
     return {
       success: false,
       count: entries.length,
@@ -392,8 +380,7 @@ export class LogStorageService {
       fileName: fileName,
       directory: primaryDir,
       errorCode: primaryWrite.errorCode,
-      errorMessage: primaryWrite.errorMessage,
-      recoverAction: recoverAction
+      errorMessage: primaryWrite.errorMessage
     }
   }
   static getDefaultExportDirectory(context: common.UIAbilityContext): string {
@@ -410,7 +397,7 @@ export class LogStorageService {
 
   static classifyExportSelection(pathOrUri: string): ExportSelectionResult | undefined {
     let publicType = LogStorageService.resolvePublicTargetTypeByPath(pathOrUri)
-    if (publicType && publicType !== EXPORT_TARGET_CUSTOM_URI) {
+    if (publicType) {
       let publicPath = LogStorageService.resolvePublicExportPath(pathOrUri, publicType) ||
         LogStorageService.resolvePublicDirectoryByType(publicType)
       if (publicPath && publicPath.length > 0) {
@@ -422,36 +409,7 @@ export class LogStorageService {
         } as ExportSelectionResult
       }
     }
-
-    let customUri = LogStorageService.normalizeCustomUriInput(pathOrUri)
-    if (!customUri) {
-      return undefined
-    }
-
-    let publicTypeFromUri = LogStorageService.resolvePublicTargetTypeByPath(customUri)
-    if (publicTypeFromUri && publicTypeFromUri !== EXPORT_TARGET_CUSTOM_URI) {
-      let publicPath = LogStorageService.resolvePublicExportPath(customUri, publicTypeFromUri) ||
-        LogStorageService.resolvePublicDirectoryByType(publicTypeFromUri)
-      if (publicPath && publicPath.length > 0) {
-        return {
-          targetType: publicTypeFromUri,
-          exportPath: publicPath,
-          exportTargetValue: '',
-          exportAuthMode: EXPORT_AUTH_RUNTIME
-        } as ExportSelectionResult
-      }
-    }
-
-    return {
-      targetType: EXPORT_TARGET_CUSTOM_URI,
-      exportPath: customUri,
-      exportTargetValue: customUri,
-      exportAuthMode: EXPORT_AUTH_PERSISTED
-    } as ExportSelectionResult
-  }
-
-  static normalizeCustomExportUri(pathOrUri: string): string | undefined {
-    return LogStorageService.normalizeCustomUriInput(pathOrUri)
+    return undefined
   }
 
   static normalizeExportSelectionPath(pathOrUri: string): string | undefined {
@@ -462,9 +420,6 @@ export class LogStorageService {
     pathOrUri: string,
     targetType: LogExportTargetType
   ): string | undefined {
-    if (targetType === EXPORT_TARGET_CUSTOM_URI) {
-      return undefined
-    }
     let normalized = LogStorageService.resolveSelectionDirectoryPath(pathOrUri)
     if (!normalized) {
       return undefined
@@ -527,19 +482,6 @@ export class LogStorageService {
     target: ResolvedExportTarget,
     trigger: LogExportTrigger
   ): Promise<ExportAuthResult> {
-    if (target.targetType === EXPORT_TARGET_CUSTOM_URI) {
-      let authResult = await LogStorageService.activateCustomUriPermission(target.directory)
-      if (!authResult.success) {
-        return {
-          success: false,
-          errorCode: authResult.errorCode,
-          errorMessage: authResult.errorMessage || 'Custom directory permission is invalid',
-          recoverAction: 'pick_directory'
-        }
-      }
-      return { success: true }
-    }
-
     if (trigger !== 'manual') {
       return { success: true }
     }
@@ -553,144 +495,15 @@ export class LogStorageService {
     return LogStorageService.ensurePublicDirectoryPermission(LogStorageService.context, target.targetType)
   }
 
-  static async persistCustomUriPermission(uri: string): Promise<ExportAuthResult> {
-    let normalized = LogStorageService.normalizeCustomUriInput(uri)
-    if (!normalized) {
-      return {
-        success: false,
-        errorMessage: 'Invalid custom directory URI'
-      }
-    }
-
-    let publicType = LogStorageService.resolvePublicTargetTypeByPath(normalized)
-    if (publicType) {
-      return {
-        success: false,
-        errorCode: 13900001,
-        policyErrorCode: fileShare.PolicyErrorCode.PERSISTENCE_FORBIDDEN as number,
-        persistenceForbidden: true,
-        errorMessage: 'Public directories are not persisted via URI; use runtime directory permission.'
-      }
-    }
-
-    let policies: fileShare.PolicyInfo[] = [{
-      uri: normalized,
-      operationMode: PERSIST_URI_OPERATION_MODE
-    } as fileShare.PolicyInfo]
-    try {
-      await fileShare.persistPermission(policies)
-      return { success: true }
-    } catch (err) {
-      let errorCode = LogStorageService.extractErrorCode(err as Object)
-      let policyErrorCode = LogStorageService.extractPolicyErrorCode(err as Object)
-      let persistenceForbidden =
-        errorCode === 13900001 &&
-        policyErrorCode === (fileShare.PolicyErrorCode.PERSISTENCE_FORBIDDEN as number)
-      let message = persistenceForbidden ?
-        `Persist custom URI permission failed: ${JSON.stringify(err)}; this directory cannot be persisted.` :
-        `Persist custom URI permission failed: ${JSON.stringify(err)}`
-      hilog.warn(DOMAIN, TAG, message)
-      return {
-        success: false,
-        errorCode: errorCode,
-        policyErrorCode: policyErrorCode,
-        persistenceForbidden: persistenceForbidden,
-        errorMessage: message
-      }
-    }
-  }
-
-  static async activateCustomUriPermission(uri: string): Promise<ExportAuthResult> {
-    let normalized = LogStorageService.normalizeCustomUriInput(uri)
-    if (!normalized) {
-      return {
-        success: false,
-        errorMessage: 'Invalid custom directory URI'
-      }
-    }
-
-    let publicType = LogStorageService.resolvePublicTargetTypeByPath(normalized)
-    if (publicType) {
-      return {
-        success: false,
-        errorCode: 13900001,
-        policyErrorCode: fileShare.PolicyErrorCode.PERSISTENCE_FORBIDDEN as number,
-        persistenceForbidden: true,
-        errorMessage: 'Public directories do not require URI persistence; use runtime directory permission.'
-      }
-    }
-
-    let policies: fileShare.PolicyInfo[] = [{
-      uri: normalized,
-      operationMode: PERSIST_URI_OPERATION_MODE
-    } as fileShare.PolicyInfo]
-
-    try {
-      let persisted = await LogStorageService.checkCustomUriPersistentPermission(normalized)
-      if (!persisted) {
-        let persistResult = await LogStorageService.persistCustomUriPermission(normalized)
-        if (!persistResult.success) {
-          return persistResult
-        }
-      }
-
-      await fileShare.activatePermission(policies)
-      return { success: true }
-    } catch (err) {
-      let errorCode = LogStorageService.extractErrorCode(err as Object)
-      let policyErrorCode = LogStorageService.extractPolicyErrorCode(err as Object)
-      let persistenceForbidden =
-        errorCode === 13900001 &&
-        policyErrorCode === (fileShare.PolicyErrorCode.PERSISTENCE_FORBIDDEN as number)
-      let message = persistenceForbidden ?
-        `Activate custom URI permission failed: ${JSON.stringify(err)}; this directory cannot be persisted.` :
-        `Activate custom URI permission failed: ${JSON.stringify(err)}`
-      hilog.warn(DOMAIN, TAG, message)
-      return {
-        success: false,
-        errorCode: errorCode,
-        policyErrorCode: policyErrorCode,
-        persistenceForbidden: persistenceForbidden,
-        errorMessage: message
-      }
-    }
-  }
-
-  static isCustomUriPersistenceForbidden(result: ExportAuthResult): boolean {
-    if (result.persistenceForbidden === true) {
-      return true
-    }
-    if (result.errorCode !== 13900001) {
-      return false
-    }
-    if (result.policyErrorCode !== undefined) {
-      return result.policyErrorCode === (fileShare.PolicyErrorCode.PERSISTENCE_FORBIDDEN as number)
-    }
-    let message = (result.errorMessage || '').toLowerCase()
-    return message.includes('uri forbid to be persisted') || message.includes('"code":1')
-  }
-
   // 璁剧疆瀵煎嚭鐩綍
   static async setExportDirectory(path: string): Promise<boolean> {
     let cfg = LogStorageService.getConfig()
     let publicType = LogStorageService.resolvePublicTargetTypeByPath(path)
     if (publicType) {
-      let selectedPublicPath = LogStorageService.resolvePublicExportPath(path, publicType)
       cfg.exportTargetType = publicType
       cfg.exportTargetValue = ''
       cfg.exportAuthMode = EXPORT_AUTH_RUNTIME
-      cfg.exportPath = selectedPublicPath ||
-        LogStorageService.resolvePublicDirectoryByType(publicType) ||
-        cfg.exportPath
-      return LogStorageService.updateConfig(cfg)
-    }
-
-    let customUri = LogStorageService.normalizeCustomUriInput(path)
-    if (customUri) {
-      cfg.exportPath = customUri
-      cfg.exportTargetType = EXPORT_TARGET_CUSTOM_URI
-      cfg.exportTargetValue = customUri
-      cfg.exportAuthMode = EXPORT_AUTH_PERSISTED
+      cfg.exportPath = LogStorageService.resolvePublicDirectoryByType(publicType) || cfg.exportPath
       return LogStorageService.updateConfig(cfg)
     }
 
@@ -734,15 +547,6 @@ export class LogStorageService {
   static async updateConfig(config: LogStorageConfig): Promise<boolean> {
     try {
       let normalizedConfig = LogStorageService.normalizeStorageConfig(config)
-      if (normalizedConfig.exportTargetType === EXPORT_TARGET_CUSTOM_URI) {
-        let targetUri = normalizedConfig.exportTargetValue || ''
-        let authResult = await LogStorageService.activateCustomUriPermission(targetUri)
-        if (!authResult.success) {
-          hilog.warn(DOMAIN, TAG, `custom uri not available, reject config update: ${authResult.errorMessage}`)
-          return false
-        }
-      }
-
       LogStorageService.storageConfig = normalizedConfig
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       if (LogStorageService.logEntries.length > maxEntries) {
@@ -860,7 +664,7 @@ export class LogStorageService {
     }
 
     if (LogStorageService.isUriPath(normalized)) {
-      return LogStorageService.sanitizeCustomUri(normalized)
+      return undefined
     }
 
     normalized = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
@@ -876,32 +680,14 @@ export class LogStorageService {
       return undefined
     }
     if (LogStorageService.isUriPath(normalized)) {
-      return normalized
+      hilog.warn(DOMAIN, TAG, `uri exportPath is deprecated and ignored: ${normalized}`)
+      return undefined
     }
     if (!LogStorageService.isExportDirectoryAllowed(normalized)) {
       hilog.warn(DOMAIN, TAG, `exportPath is invalid, fallback to default: ${normalized}`)
       return undefined
     }
     return normalized
-  }
-
-  private static sanitizeCustomUri(uri: string | undefined): string | undefined {
-    if (!uri) {
-      return undefined
-    }
-
-    let normalized = uri.trim()
-    if (normalized.length === 0 || normalized.includes('\0')) {
-      return undefined
-    }
-    if (!LogStorageService.isUriPath(normalized)) {
-      return undefined
-    }
-
-    if (!normalized.includes('?') && !normalized.includes('#')) {
-      normalized = normalized.replace(/\/+$/, '')
-    }
-    return normalized.length > 0 ? normalized : undefined
   }
 
   private static normalizePathForCompare(path: string): string {
@@ -952,19 +738,6 @@ export class LogStorageService {
       return undefined
     }
     return normalized
-  }
-
-  private static normalizeCustomUriInput(uri: string | undefined): string | undefined {
-    let normalizedUri = LogStorageService.sanitizeCustomUri(uri)
-    if (normalizedUri) {
-      return normalizedUri
-    }
-
-    let normalizedPath = LogStorageService.resolveSelectionDirectoryPath(uri)
-    if (!normalizedPath || !normalizedPath.startsWith('/')) {
-      return undefined
-    }
-    return `file://${normalizedPath}`
   }
 
   private static resolveSelectionDirectoryPath(pathOrUri: string | undefined): string | undefined {
@@ -1116,7 +889,7 @@ export class LogStorageService {
     }
 
     if (LogStorageService.isUriPath(path)) {
-      return true
+      return false
     }
 
     let normalized = LogStorageService.normalizePathForCompare(path)
@@ -1140,8 +913,7 @@ export class LogStorageService {
     if (
       targetType === EXPORT_TARGET_DOWNLOAD ||
       targetType === EXPORT_TARGET_DOCUMENTS ||
-      targetType === EXPORT_TARGET_DESKTOP ||
-      targetType === EXPORT_TARGET_CUSTOM_URI
+      targetType === EXPORT_TARGET_DESKTOP
     ) {
       return targetType
     }
@@ -1206,51 +978,20 @@ export class LogStorageService {
       )
     }
 
-    let normalizedType = LogStorageService.normalizeTargetType(config.exportTargetType)
-    let targetValue = config.exportTargetValue
+    let rawType = typeof config.exportTargetType === 'string' ? config.exportTargetType.trim() : ''
+    let normalizedType = LogStorageService.normalizeTargetType(rawType)
+    let targetValue = (config.exportTargetValue || '').trim()
     let legacyPath = LogStorageService.sanitizeConfiguredExportDirectory(config.exportPath)
     if (!normalizedType) {
-      if (legacyPath && LogStorageService.isUriPath(legacyPath)) {
-        normalizedType = EXPORT_TARGET_CUSTOM_URI
-        targetValue = legacyPath
+      if (rawType === 'custom_uri') {
+        normalizedType =
+          LogStorageService.resolvePublicTargetTypeByPath(targetValue) ||
+          LogStorageService.resolvePublicTargetTypeByPath(config.exportPath) ||
+          EXPORT_TARGET_DOWNLOAD
       } else if (legacyPath) {
         normalizedType = LogStorageService.resolveLegacyPublicTargetType(legacyPath) ?? EXPORT_TARGET_DOWNLOAD
       } else {
         normalizedType = EXPORT_TARGET_DOWNLOAD
-      }
-    }
-
-    if (normalizedType === EXPORT_TARGET_CUSTOM_URI) {
-      let customUri = LogStorageService.normalizeCustomUriInput(targetValue || legacyPath)
-      if (!customUri) {
-        return LogStorageService.createDefaultTargetConfig(baseConfig)
-      }
-
-      let publicType = LogStorageService.resolvePublicTargetTypeByPath(customUri)
-      if (publicType) {
-        let publicPath = LogStorageService.resolveConfiguredPublicDirectory(publicType, customUri)
-        if (!publicPath || publicPath.length === 0) {
-          return LogStorageService.createDefaultTargetConfig(baseConfig)
-        }
-        return {
-          maxLocalEntries: baseConfig.maxLocalEntries,
-          retentionDays: baseConfig.retentionDays,
-          autoExportEnabled: baseConfig.autoExportEnabled,
-          exportPath: publicPath,
-          exportTargetType: publicType,
-          exportTargetValue: '',
-          exportAuthMode: EXPORT_AUTH_RUNTIME
-        }
-      }
-
-      return {
-        maxLocalEntries: baseConfig.maxLocalEntries,
-        retentionDays: baseConfig.retentionDays,
-        autoExportEnabled: baseConfig.autoExportEnabled,
-        exportPath: customUri,
-        exportTargetType: EXPORT_TARGET_CUSTOM_URI,
-        exportTargetValue: customUri,
-        exportAuthMode: EXPORT_AUTH_PERSISTED
       }
     }
 
@@ -1284,18 +1025,10 @@ export class LogStorageService {
     if (!normalizedBase) {
       return undefined
     }
-
-    return LogStorageService.joinPath(
-      LogStorageService.joinPath(normalizedBase, DEFAULT_EXPORT_PARENT_DIR_NAME),
-      DEFAULT_EXPORT_DIR_NAME
-    )
+    return LogStorageService.joinPath(normalizedBase, DEFAULT_EXPORT_DIR_NAME)
   }
 
   private static resolvePublicBaseDirectoryByType(targetType: LogExportTargetType): string | undefined {
-    if (targetType === EXPORT_TARGET_CUSTOM_URI) {
-      return undefined
-    }
-
     let baseDir = ''
     try {
       if (targetType === EXPORT_TARGET_DOWNLOAD) {
@@ -1322,13 +1055,10 @@ export class LogStorageService {
     preferredPath?: string
   ): string | undefined {
     let defaultPath = LogStorageService.resolvePublicDirectoryByType(targetType)
-    let selectedPath = LogStorageService.normalizeSelectionPath(preferredPath)
-    if (!selectedPath || LogStorageService.isUriPath(selectedPath)) {
+    if (!preferredPath || preferredPath.trim().length === 0) {
       return defaultPath
     }
-    return LogStorageService.resolvePublicTargetTypeByPath(selectedPath) === targetType ?
-      selectedPath :
-      defaultPath
+    return defaultPath
   }
 
   private static resolveDefaultExportDirectoryFromCurrentContext(): string {
@@ -1341,17 +1071,6 @@ export class LogStorageService {
   private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
     let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
     let targetType = normalizedConfig.exportTargetType ?? EXPORT_TARGET_DOWNLOAD
-
-    if (targetType === EXPORT_TARGET_CUSTOM_URI) {
-      let customUri = LogStorageService.sanitizeCustomUri(normalizedConfig.exportTargetValue)
-      if (customUri) {
-        return {
-          targetType: EXPORT_TARGET_CUSTOM_URI,
-          authMode: EXPORT_AUTH_PERSISTED,
-          directory: customUri
-        }
-      }
-    }
 
     let publicPath = LogStorageService.resolveConfiguredPublicDirectory(targetType, normalizedConfig.exportPath)
     if (publicPath && publicPath.length > 0) {
@@ -1371,30 +1090,15 @@ export class LogStorageService {
   }
 
   private static async tryActivateConfiguredExportTarget(): Promise<void> {
-    let resolvedTarget = LogStorageService.resolveConfiguredExportDirectory()
-    if (resolvedTarget.targetType !== EXPORT_TARGET_CUSTOM_URI) {
-      if (LogStorageService.storageConfig.exportPath !== resolvedTarget.directory) {
-        LogStorageService.storageConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
-        await LogStorageService.saveConfig()
-      }
-      return
-    }
-
-    let authResult = await LogStorageService.activateCustomUriPermission(resolvedTarget.directory)
-    if (!authResult.success) {
-      hilog.warn(DOMAIN, TAG, `configured custom uri invalid, fallback to default: ${authResult.errorMessage}`)
-      await LogStorageService.fallbackToDefaultExportTarget()
-      return
-    }
-
-    if (
-      LogStorageService.storageConfig.exportPath !== resolvedTarget.directory ||
-      LogStorageService.storageConfig.exportTargetValue !== resolvedTarget.directory
-    ) {
-      LogStorageService.storageConfig.exportPath = resolvedTarget.directory
-      LogStorageService.storageConfig.exportTargetType = EXPORT_TARGET_CUSTOM_URI
-      LogStorageService.storageConfig.exportTargetValue = resolvedTarget.directory
-      LogStorageService.storageConfig.exportAuthMode = EXPORT_AUTH_PERSISTED
+    let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
+    let prevConfig = LogStorageService.storageConfig
+    let changed =
+      prevConfig.exportPath !== normalizedConfig.exportPath ||
+      prevConfig.exportTargetType !== normalizedConfig.exportTargetType ||
+      (prevConfig.exportTargetValue || '') !== (normalizedConfig.exportTargetValue || '') ||
+      (prevConfig.exportAuthMode || EXPORT_AUTH_RUNTIME) !== (normalizedConfig.exportAuthMode || EXPORT_AUTH_RUNTIME)
+    if (changed) {
+      LogStorageService.storageConfig = normalizedConfig
       await LogStorageService.saveConfig()
     }
   }
@@ -1402,40 +1106,6 @@ export class LogStorageService {
   private static async fallbackToDefaultExportTarget(): Promise<void> {
     LogStorageService.storageConfig = LogStorageService.createDefaultTargetConfig(LogStorageService.storageConfig)
     await LogStorageService.saveConfig()
-  }
-
-  private static async checkCustomUriPersistentPermission(uri: string): Promise<boolean> {
-    let normalized = LogStorageService.sanitizeCustomUri(uri)
-    if (!normalized) {
-      return false
-    }
-
-    let policies: fileShare.PolicyInfo[] = [{
-      uri: normalized,
-      operationMode: PERSIST_URI_OPERATION_MODE
-    } as fileShare.PolicyInfo]
-
-    try {
-      let raw = await fileShare.checkPersistentPermission(policies) as Object
-      if (typeof raw === 'boolean') {
-        return raw
-      }
-
-      if (Array.isArray(raw) && raw.length > 0) {
-        let first = raw[0] as Record<string, Object>
-        let boolLike = first['isPersisted'] ?? first['persisted'] ?? first['granted']
-        if (typeof boolLike === 'boolean') {
-          return boolLike
-        }
-        if (typeof boolLike === 'number') {
-          return boolLike > 0
-        }
-      }
-      return false
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `check persistent permission failed: ${JSON.stringify(err)}`)
-      return false
-    }
   }
 
   private static buildExportFileName(format: LogExportFormat, count: number, timestamp: number): string {

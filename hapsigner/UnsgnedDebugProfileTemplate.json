@@ -31,8 +31,7 @@
             "ohos.permission.QUERY_AUDIT_EVENT",
             "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
             "ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY",
-            "ohos.permission.READ_WRITE_DESKTOP_DIRECTORY",
-            "ohos.permission.FILE_ACCESS_PERSIST"
+            "ohos.permission.READ_WRITE_DESKTOP_DIRECTORY"
         ]
     },
     "permissions": {
@@ -52,8 +51,7 @@
             "ohos.permission.QUERY_AUDIT_EVENT",
             "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
             "ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY",
-            "ohos.permission.READ_WRITE_DESKTOP_DIRECTORY",
-            "ohos.permission.FILE_ACCESS_PERSIST"
+            "ohos.permission.READ_WRITE_DESKTOP_DIRECTORY"
         ]
     },
     "debug-info": {

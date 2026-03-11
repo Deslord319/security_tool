@@ -79,9 +79,6 @@
           ],
           "when": "always"
         }
-      },
-      {
-        "name": "ohos.permission.FILE_ACCESS_PERSIST"
       }
     ],
     "abilities": [
