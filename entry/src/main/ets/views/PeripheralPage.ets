@@ -2,6 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
 import { LogStorageService } from '../services/LogStorageService'
+import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
@@ -74,21 +75,30 @@ export struct PeripheralPage {
   @State deviceRecords: PeripheralConnectionRecord[] = []
   @State recordFilterTypeIndex: number = 0
   @State recordFilterResultIndex: number = 0
+  @State recordFilterSourceIndex: number = 1
   @State recordFilterKeyword: string = ''
   @State recordHintMessage: string = ''
   private recordStorageListenerId: number = -1
+  private traceStorageListenerId: number = -1
   private recordAutoRefreshTimerId: number = -1
   private readonly recordAutoRefreshIntervalMs: number = 2000
   private readonly recordTypeFilterOptions: SelectOption[] = [
-    { value: '全部类型' },
+    { value: 'All Types' },
     { value: 'USB' },
-    { value: '蓝牙' }
+    { value: 'Bluetooth' }
   ]
   private readonly recordResultFilterOptions: SelectOption[] = [
-    { value: '全部结果' },
-    { value: '成功' },
-    { value: '已阻止' },
-    { value: '失败' }
+    { value: 'All Results' },
+    { value: 'Success' },
+    { value: 'Blocked' },
+    { value: 'Failed' }
+  ]
+  private readonly recordSourceFilterOptions: SelectOption[] = [
+    { value: 'All Sources' },
+    { value: 'Realtime Only' },
+    { value: 'Runtime Only' },
+    { value: 'Audit Only' },
+    { value: 'Snapshot Only' }
   ]
   private readonly usbRecordTypes: PeripheralType[] = [
     PeripheralType.USB_STORAGE,
@@ -100,11 +110,10 @@ export struct PeripheralPage {
   // 设备管控记录（独立数据源）
   @State deviceControlRecords: DeviceControlRecord[] = []
   private deviceControlPolicyOptions: SelectOption[] = [
-    { value: '允许' },
-    { value: '禁用' },
-    { value: '未配置' }
+    { value: 'Allow' },
+    { value: 'Deny' },
+    { value: 'Unconfigured' }
   ]
-
   // 弹窗控制器
   private usbWhitelistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddWhitelistDialog({
@@ -145,11 +154,13 @@ export struct PeripheralPage {
     this.refreshAdminActivationState()
     this.loadAllData()
     this.subscribeRecordStorageChange()
+    this.subscribeTraceStorageChange()
     this.startRecordAutoRefresh()
   }
 
   aboutToDisappear() {
     this.unsubscribeRecordStorageChange()
+    this.unsubscribeTraceStorageChange()
     this.stopRecordAutoRefresh()
   }
 
@@ -168,6 +179,20 @@ export struct PeripheralPage {
     this.recordStorageListenerId = -1
   }
 
+  private subscribeTraceStorageChange(): void {
+    this.unsubscribeTraceStorageChange()
+    this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {
+      this.reloadDeviceRecords()
+    })
+  }
+
+  private unsubscribeTraceStorageChange(): void {
+    if (this.traceStorageListenerId < 0) {
+      return
+    }
+    PeripheralTraceRepository.removeChangeListener(this.traceStorageListenerId)
+    this.traceStorageListenerId = -1
+  }
   private startRecordAutoRefresh(): void {
     this.stopRecordAutoRefresh()
     this.recordAutoRefreshTimerId = setInterval(() => {
@@ -200,6 +225,16 @@ export struct PeripheralPage {
       filter.results = [resultMap[this.recordFilterResultIndex - 1]]
     }
 
+    if (this.recordFilterSourceIndex === 1) {
+      filter.sources = ['runtime_event', 'audit_event']
+    } else if (this.recordFilterSourceIndex === 2) {
+      filter.sources = ['runtime_event']
+    } else if (this.recordFilterSourceIndex === 3) {
+      filter.sources = ['audit_event']
+    } else if (this.recordFilterSourceIndex === 4) {
+      filter.sources = ['policy_snapshot']
+    }
+
     let keyword = this.recordFilterKeyword.trim()
     if (keyword.length > 0) {
       filter.keyword = keyword
@@ -209,14 +244,28 @@ export struct PeripheralPage {
 
   private reloadDeviceRecords(): void {
     this.deviceRecords = PeripheralConnectionRecordService.queryRecords(this.buildRecordFilter())
-    let hasAuditEvent = this.deviceRecords.some((record: PeripheralConnectionRecord) => record.source === 'audit_event')
+    let hasRealtime = this.deviceRecords.some((record: PeripheralConnectionRecord) => {
+      return record.source === 'runtime_event' || record.source === 'audit_event'
+    })
+    let hasSnapshot = this.deviceRecords.some((record: PeripheralConnectionRecord) => record.source === 'policy_snapshot')
+
     if (this.deviceRecords.length === 0) {
       this.recordHintMessage = ''
       return
     }
-    this.recordHintMessage = hasAuditEvent ? '' : '当前仅展示策略快照（非实时插拔审计）'
-  }
 
+    if (!hasRealtime && hasSnapshot) {
+      this.recordHintMessage = 'Only policy snapshots are visible. No realtime connection/audit events in range.'
+      return
+    }
+
+    if (hasRealtime && hasSnapshot) {
+      this.recordHintMessage = 'Realtime events are shown. Snapshot rows are policy references only.'
+      return
+    }
+
+    this.recordHintMessage = ''
+  }
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
   }
@@ -226,26 +275,26 @@ export struct PeripheralPage {
     if (this.adminState.activated) {
       return true
     }
-    let reasonText = this.adminState.errorMessage || '企业管理员未激活'
-    let codeText = this.adminState.errorCode !== undefined ? ` (${this.adminState.errorCode})` : ''
-    promptAction.showToast({ message: `${action}不可用：${reasonText}${codeText}` })
+    let reasonText: string = this.adminState.errorMessage || 'Enterprise admin is not activated'
+    let codeText: string = this.adminState.errorCode !== undefined ? ' (' + this.adminState.errorCode + ')' : ''
+    promptAction.showToast({ message: action + ' unavailable: ' + reasonText + codeText })
     return false
   }
 
   private showOperationFailure(action: string, result: OperationResult<PeripheralResultData>): void {
     if (result.isAdminMissing) {
-      let reasonText = result.errorMessage || '企业管理员未激活'
-      let codeText = result.errorCode !== undefined ? ` (${result.errorCode})` : ''
-      promptAction.showToast({ message: `${action}失败：${reasonText}${codeText}` })
+      let reasonText: string = result.errorMessage || 'Enterprise admin is not activated'
+      let codeText: string = result.errorCode !== undefined ? ' (' + result.errorCode + ')' : ''
+      promptAction.showToast({ message: action + ' failed: ' + reasonText + codeText })
       return
     }
-    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
-    let reasonText = result.errorMessage || `${action}失败`
-    let suggestionText = result.suggestion || '请检查权限声明、签名模板和设备策略状态后重试。'
+    let codeText: string = result.errorCode !== undefined ? 'Error code: ' + result.errorCode + '\n' : ''
+    let reasonText: string = result.errorMessage || (action + ' failed')
+    let suggestionText: string = result.suggestion || 'Check permissions, signing profile, and policy activation state, then retry.'
     AlertDialog.show({
-      title: `${action}失败`,
-      message: `${codeText}原因: ${reasonText}\n建议: ${suggestionText}`,
-      primaryButton: { value: '关闭', action: () => {} }
+      title: action + ' failed',
+      message: codeText + 'Reason: ' + reasonText + '\nSuggestion: ' + suggestionText,
+      primaryButton: { value: 'Close', action: (): void => {} }
     })
   }
 
@@ -336,7 +385,7 @@ export struct PeripheralPage {
 
   // ========== 设备管控数据加载 ==========
 
-  // 常见设备 VID/PID → 名称映射
+  // 常见设备 VID/PID -> 名称映射
   private static USB_DEVICE_NAMES: Map<string, string> = new Map([
     ['2B7E_B5A2', 'ShineOptics FHD Camera'],
     ['0781_5583', 'SanDisk Ultra USB 3.0'],
@@ -389,7 +438,7 @@ export struct PeripheralPage {
       // 更新匹配设备的类型
       for (let i = 0; i < records.length; i++) {
         if (records[i].deviceType === PeripheralType.USB_OTHER) {
-          // 暂保持 USB_OTHER，后续可扩展
+          // 暂保留 USB_OTHER，后续可扩展
         }
       }
     }
@@ -413,7 +462,7 @@ export struct PeripheralPage {
   // ========== 接口管控操作 ==========
 
   handleInterfaceToggle(feature: string, disallow: boolean) {
-    if (!this.ensureAdminReady('接口管控')) {
+    if (!this.ensureAdminReady('Interface control')) {
       return
     }
 
@@ -424,17 +473,17 @@ export struct PeripheralPage {
       else if (feature === 'wifi') this.wifiDisabled = disallow
       else if (feature === 'hdc') this.hdcDisabled = disallow
       try {
-        promptAction.showToast({ message: `${feature} 已${disallow ? '禁用' : '启用'}` })
+        promptAction.showToast({ message: feature + ' ' + (disallow ? 'disabled' : 'enabled') })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      this.showOperationFailure('接口管控', result)
+      this.showOperationFailure('Interface control', result)
     }
   }
 
   handleUsbStoragePolicyChange(index: number) {
-    if (!this.ensureAdminReady('设置 USB 存储策略')) {
+    if (!this.ensureAdminReady('Set USB storage policy')) {
       return
     }
     let policyMap: usbManager.UsbPolicy[] = [
@@ -446,19 +495,19 @@ export struct PeripheralPage {
     if (result.success) {
       this.usbStoragePolicyIndex = index
       try {
-        promptAction.showToast({ message: 'USB 存储策略已更新' })
+        promptAction.showToast({ message: 'USB storage policy updated' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
       return
     }
-    this.showOperationFailure('设置 USB 存储策略', result)
+    this.showOperationFailure('Set USB storage policy', result)
   }
 
   // ========== 白名单操作 ==========
 
   handleAddUsbWhitelist(vendorId: number, productId: number) {
-    if (!this.ensureAdminReady('添加 USB 白名单')) {
+    if (!this.ensureAdminReady('Add USB whitelist')) {
       return
     }
     let device: usbManager.UsbDeviceId = { vendorId: vendorId, productId: productId }
@@ -472,12 +521,12 @@ export struct PeripheralPage {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      this.showOperationFailure('添加 USB 白名单', result)
+      this.showOperationFailure('Add USB whitelist', result)
     }
   }
 
   handleRemoveUsbWhitelist(device: usbManager.UsbDeviceId) {
-    if (!this.ensureAdminReady('移除 USB 白名单')) {
+    if (!this.ensureAdminReady('Remove USB whitelist')) {
       return
     }
     let result = PeripheralService.removeUsbWhitelistWithResult([device])
@@ -485,17 +534,17 @@ export struct PeripheralPage {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
       try {
-        promptAction.showToast({ message: '已从白名单移除' })
+        promptAction.showToast({ message: 'USB whitelist item removed' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
       return
     }
-    this.showOperationFailure('移除 USB 白名单', result)
+    this.showOperationFailure('Remove USB whitelist', result)
   }
 
   handleAddBluetoothWhitelist(mac: string) {
-    if (!this.ensureAdminReady('添加蓝牙白名单')) {
+    if (!this.ensureAdminReady('Add Bluetooth whitelist')) {
       return
     }
     let result = PeripheralService.addBluetoothWhitelistWithResult([mac])
@@ -508,12 +557,12 @@ export struct PeripheralPage {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      this.showOperationFailure('添加蓝牙白名单', result)
+      this.showOperationFailure('Add Bluetooth whitelist', result)
     }
   }
 
   handleRemoveBluetoothWhitelist(mac: string) {
-    if (!this.ensureAdminReady('移除蓝牙白名单')) {
+    if (!this.ensureAdminReady('Remove Bluetooth whitelist')) {
       return
     }
     let result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
@@ -521,19 +570,19 @@ export struct PeripheralPage {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
       try {
-        promptAction.showToast({ message: '已从蓝牙白名单移除' })
+        promptAction.showToast({ message: 'Bluetooth whitelist item removed' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
       return
     }
-    this.showOperationFailure('移除蓝牙白名单', result)
+    this.showOperationFailure('Remove Bluetooth whitelist', result)
   }
 
   // ========== 黑名单操作 ==========
 
   handleAddUsbBlacklist(baseClass: number, subClass: number, protocol: number) {
-    if (!this.ensureAdminReady('添加 USB 黑名单')) {
+    if (!this.ensureAdminReady('Add USB blacklist')) {
       return
     }
     let deviceType: usbManager.UsbDeviceType = {
@@ -552,12 +601,12 @@ export struct PeripheralPage {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      this.showOperationFailure('添加 USB 黑名单', result)
+      this.showOperationFailure('Add USB blacklist', result)
     }
   }
 
   handleRemoveUsbBlacklist(deviceType: usbManager.UsbDeviceType) {
-    if (!this.ensureAdminReady('移除 USB 黑名单')) {
+    if (!this.ensureAdminReady('Remove USB blacklist')) {
       return
     }
     let result = PeripheralService.removeUsbBlacklistWithResult([deviceType])
@@ -565,25 +614,25 @@ export struct PeripheralPage {
       this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       this.reloadDeviceRecords()
       try {
-        promptAction.showToast({ message: '已从黑名单移除' })
+        promptAction.showToast({ message: 'USB blacklist item removed' })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
       return
     }
-    this.showOperationFailure('移除 USB 黑名单', result)
+    this.showOperationFailure('Remove USB blacklist', result)
   }
 
   // ========== 设备管控操作 ==========
 
   handleDeviceControlPolicyChange(recordIndex: number, policyIndex: number) {
-    if (!this.ensureAdminReady('更新设备管控策略')) {
+    if (!this.ensureAdminReady('Change device control policy')) {
       return
     }
     let record = this.deviceControlRecords[recordIndex]
     let success = false
     let failedResult: OperationResult<PeripheralResultData> | undefined = undefined
-    let policyLabels: string[] = ['允许', '禁用', '未配置']
+    let policyLabels: string[] = ['Allow', 'Deny', 'Unconfigured']
 
     if (record.deviceType === PeripheralType.BLUETOOTH) {
       // 蓝牙设备策略变更
@@ -662,14 +711,14 @@ export struct PeripheralPage {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
       try {
-        promptAction.showToast({ message: `${record.deviceName} 策略已更新为「${policyLabels[policyIndex]}」` })
+        promptAction.showToast({ message: record.deviceName + ' policy set to ' + policyLabels[policyIndex] })
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
     } else {
-      this.showOperationFailure('更新设备管控策略', failedResult || {
+      this.showOperationFailure('Change device control policy', failedResult || {
         success: false,
-        errorMessage: '策略更新失败'
+        errorMessage: 'Failed to change device policy'
       } as OperationResult<PeripheralResultData>)
     }
   }
@@ -836,7 +885,7 @@ export struct PeripheralPage {
           .borderRadius(AppStyles.RADIUS_SM)
           .padding({ left: 10, right: 10, top: 5, bottom: 5 })
 
-        Text(record.policy === '允许' ? '命中白名单 / 默认放行' : '命中限制规则')
+        Text((record.policy === '允许' || record.policy === '鍏佽') ? '命中白名单 / 默认放行' : '命中限制规则')
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -867,7 +916,7 @@ export struct PeripheralPage {
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-              Text('新接入的 USB、蓝牙或网络外设会在这里显示最近一次命中的控制结果。')
+              Text('Connect USB or Bluetooth devices to generate records.')
                 .fontSize(AppStyles.FONT_SIZE_CAPTION)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -918,6 +967,10 @@ export struct PeripheralPage {
     .align(Alignment.Top)
   }
 
+  private getConnectionRuntimeCount(): number {
+    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'runtime_event').length
+  }
+
   private getConnectionAuditCount(): number {
     return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'audit_event').length
   }
@@ -926,21 +979,21 @@ export struct PeripheralPage {
     return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'policy_snapshot').length
   }
 
-  private getConnectionAllowCount(): number {
+  private getConnectionConnectCount(): number {
     return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
-      return record.source === 'audit_event' && record.policyHit === 'allow'
+      return record.source !== 'policy_snapshot' && record.action === 'connect'
     }).length
   }
 
-  private getConnectionBlockCount(): number {
+  private getConnectionDisconnectCount(): number {
     return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
-      return record.source === 'audit_event' && record.policyHit === 'deny'
+      return record.source !== 'policy_snapshot' && record.action === 'disconnect'
     }).length
   }
 
-  private getConnectionUnknownCount(): number {
+  private getConnectionInterceptCount(): number {
     return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
-      return record.source === 'audit_event' && record.policyHit === 'unknown'
+      return record.source !== 'policy_snapshot' && record.action === 'intercept'
     }).length
   }
 
@@ -954,9 +1007,14 @@ export struct PeripheralPage {
     return option ? option.value as string : this.recordResultFilterOptions[0].value as string
   }
 
+  private getConnectionSourceFilterLabel(): string {
+    let option = this.recordSourceFilterOptions[this.recordFilterSourceIndex]
+    return option ? option.value as string : this.recordSourceFilterOptions[0].value as string
+  }
+
   private getConnectionResultLabel(record: PeripheralConnectionRecord): string {
     if (record.source === 'policy_snapshot') {
-      return '快照'
+      return 'Snapshot'
     }
     return getLogEventResultLabel(record.result)
   }
@@ -989,7 +1047,7 @@ export struct PeripheralPage {
 
   private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
     if (record.source === 'policy_snapshot') {
-      return '未审计'
+      return 'Not Audited'
     }
     return getPeripheralRecordPolicyHitLabel(record.policyHit)
   }
@@ -1023,10 +1081,12 @@ export struct PeripheralPage {
   @Builder
   private connectionRecordStatsPanel() {
     Row({ space: 8 }) {
-      this.connectionStatItem('审计记录', `${this.getConnectionAuditCount()}`, AppColors.BRAND_PRIMARY)
-      this.connectionStatItem('允许', `${this.getConnectionAllowCount()}`, AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
-      this.connectionStatItem('阻止', `${this.getConnectionBlockCount()}`, AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-      this.connectionStatItem('策略快照', `${this.getConnectionSnapshotCount()}`, AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT)
+      this.connectionStatItem('Runtime', `${this.getConnectionRuntimeCount()}`, AppColors.BRAND_PRIMARY)
+      this.connectionStatItem('Audit', `${this.getConnectionAuditCount()}`, AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+      this.connectionStatItem('Connect', `${this.getConnectionConnectCount()}`, AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
+      this.connectionStatItem('Disconnect', `${this.getConnectionDisconnectCount()}`, AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+      this.connectionStatItem('Intercept', `${this.getConnectionInterceptCount()}`, AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+      this.connectionStatItem('Snapshot', `${this.getConnectionSnapshotCount()}`, AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT)
     }
     .width('100%')
     .padding({
@@ -1035,7 +1095,6 @@ export struct PeripheralPage {
       top: AppStyles.PADDING_MD
     })
   }
-
   @Builder
   private connectionRecordFilterToolbar() {
     Row({ space: 8 }) {
@@ -1065,7 +1124,20 @@ export struct PeripheralPage {
           this.reloadDeviceRecords()
         })
 
-      TextInput({ placeholder: '关键字过滤设备/ID', text: this.recordFilterKeyword })
+      Select(this.recordSourceFilterOptions)
+        .selected(this.recordFilterSourceIndex)
+        .value(this.getConnectionSourceFilterLabel())
+        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .width(140)
+        .onSelect((index: number) => {
+          this.recordFilterSourceIndex = index
+          this.reloadDeviceRecords()
+        })
+
+      TextInput({ placeholder: 'Filter by keyword/device ID', text: this.recordFilterKeyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -1077,7 +1149,7 @@ export struct PeripheralPage {
           this.reloadDeviceRecords()
         })
 
-      Button('刷新')
+      Button('Refresh')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -1095,7 +1167,6 @@ export struct PeripheralPage {
       top: AppStyles.PADDING_SM
     })
   }
-
   @Builder
   private connectionRecordHintView() {
     if (this.recordHintMessage.length > 0) {
@@ -1237,7 +1308,7 @@ export struct PeripheralPage {
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-              Text('请接入设备或调整筛选条件后刷新。')
+              Text('No realtime records yet. Reconnect a device and refresh.')
                 .fontSize(AppStyles.FONT_SIZE_CAPTION)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1435,8 +1506,8 @@ export struct PeripheralPage {
         Column() {
           InterfaceControlItem({
             label: 'USB 接口',
-            description: '全局禁用 USB 后，所有 USB 管控策略将不生效。系统仅允许键盘鼠标接入。',
-            options: ['按策略生效', '全局禁用'],
+            description: 'Enable or disable the USB interface. Disabling blocks USB control operations.',
+            options: ['Enable', 'Disable'],
             selectedIndex: this.usbDisabled ? 1 : 0,
             onSelect: (index: number) => {
               this.handleInterfaceToggle('usb', index === 1)
@@ -1447,7 +1518,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: 'USB 存储设备',
-            description: '控制 USB 存储设备的访问策略：只读 / 读写 / 禁止访问。',
+            description: 'Configure USB storage policy: read-only, read-write, or disabled.',
             options: ['只读', '读写', '禁止访问'],
             selectedIndex: this.usbStoragePolicyIndex,
             onSelect: (index: number) => {
@@ -1460,7 +1531,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: '蓝牙',
-            description: '全局禁用/启用蓝牙功能。',
+            description: 'Enable or disable Bluetooth interface.',
             options: ['启用', '禁用'],
             selectedIndex: this.btDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -1472,7 +1543,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: 'Wi-Fi',
-            description: '全局禁用/启用 Wi-Fi 功能。',
+            description: 'Enable or disable Wi-Fi interface.',
             options: ['启用', '禁用'],
             selectedIndex: this.wifiDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -1484,7 +1555,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: 'HDC (调试接口)',
-            description: '全局禁用/启用 HDC 调试接口。',
+            description: 'Enable or disable HDC debug interface.',
             options: ['启用', '禁用'],
             selectedIndex: this.hdcDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -1540,7 +1611,7 @@ export struct PeripheralPage {
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
           Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('最近连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          Text('Scenario').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
           Text('管控策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
@@ -1607,7 +1678,7 @@ export struct PeripheralPage {
                   .textAlign(TextAlign.Center)
                   .onClick(() => {
                     try {
-                      promptAction.showToast({ message: '查看详情（待实现）' })
+                      promptAction.showToast({ message: 'Scenario detail view is under development.' })
                     } catch (e) {
                       hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
                     }
@@ -1631,7 +1702,7 @@ export struct PeripheralPage {
             .fontColor(AppColors.BRAND_PRIMARY)
             .onClick(() => {
               try {
-                promptAction.showToast({ message: '下载模板（待实现）' })
+                promptAction.showToast({ message: 'Generate baseline is under development.' })
               } catch (e) {
                 hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
               }
@@ -1641,7 +1712,7 @@ export struct PeripheralPage {
             .fontColor(AppColors.BRAND_PRIMARY)
             .onClick(() => {
               try {
-                promptAction.showToast({ message: '导入清单（待实现）' })
+                promptAction.showToast({ message: 'Apply baseline is under development.' })
               } catch (e) {
                 hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
               }
@@ -1678,7 +1749,7 @@ export struct PeripheralPage {
         // USB 设备白名单
         Column({ space: 12 }) {
           Row() {
-            Text('USB 设备白名单 (按设备ID)')
+            Text('USB 设备白名单（按设备ID）')
               .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1711,7 +1782,7 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbWhitelist.length === 0) {
-            Text('暂无白名单设备')
+            Text('No USB whitelist entries.')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1769,7 +1840,7 @@ export struct PeripheralPage {
         // USB 设备类型黑名单
         Column({ space: 12 }) {
           Row() {
-            Text('USB 设备黑名单 (按设备类型)')
+            Text('USB 设备黑名单（按设备类型）')
               .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1803,7 +1874,7 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbBlacklist.length === 0) {
-            Text('暂无黑名单设备类型')
+            Text('No USB blacklist entries.')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1865,7 +1936,7 @@ export struct PeripheralPage {
         // 蓝牙白名单
         Column({ space: 12 }) {
           Row() {
-            Text('蓝牙设备白名单 (按MAC地址)')
+            Text('蓝牙设备白名单（按MAC地址）')
               .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1895,7 +1966,7 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.btWhitelist.length === 0) {
-            Text('暂无蓝牙白名单设备')
+            Text('No Bluetooth whitelist entries.')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1956,3 +2027,11 @@ export struct PeripheralPage {
     .align(Alignment.Top)
   }
 }
+
+
+
+
+
+
+
+

@@ -176,15 +176,16 @@ export interface DeviceRecord {
   policy?: string
 }
 
-export type PeripheralRecordSource = 'audit_event' | 'policy_snapshot'
+export type PeripheralRecordSource = 'runtime_event' | 'audit_event' | 'policy_snapshot'
 
-export type PeripheralRecordAction = 'connect' | 'intercept' | 'unknown'
+export type PeripheralRecordAction = 'connect' | 'disconnect' | 'intercept' | 'unknown'
 
 export type PeripheralRecordPolicyHit = 'allow' | 'deny' | 'unknown'
 
 export interface PeripheralConnectionRecord {
   id: string
   timestamp: number
+  collectAt?: number
   deviceName: string
   deviceType: PeripheralType
   deviceId: string
@@ -193,9 +194,12 @@ export interface PeripheralConnectionRecord {
   policyHit: PeripheralRecordPolicyHit
   source: PeripheralRecordSource
   summary: string
+  correlationId?: string
+  policyVersion?: string
   rawEventId?: number
   rawEventName?: string
   rawOutcome?: string
+  rawPayload?: string
   detail?: string
   processName?: string
 }
@@ -207,6 +211,55 @@ export interface PeripheralConnectionFilter {
   startTime?: number
   endTime?: number
   keyword?: string
+}
+
+export interface PeripheralTraceRecord {
+  recordId: string
+  occurAt: number
+  collectAt: number
+  deviceName: string
+  deviceType: PeripheralType
+  deviceId: string
+  action: PeripheralRecordAction
+  decision: PeripheralRecordPolicyHit
+  result: LogEventResult
+  source: PeripheralRecordSource
+  summary: string
+  correlationId?: string
+  policyVersion?: string
+  rawEventId?: number
+  rawEventName?: string
+  rawOutcome?: string
+  rawPayload?: string
+  detail?: string
+  processName?: string
+}
+
+export interface PeripheralTraceQuery {
+  startTime?: number
+  endTime?: number
+  deviceId?: string
+  keyword?: string
+  deviceTypes?: PeripheralType[]
+  actions?: PeripheralRecordAction[]
+  decisions?: PeripheralRecordPolicyHit[]
+  results?: LogEventResult[]
+  sources?: PeripheralRecordSource[]
+  pageSize?: number
+  pageOffset?: number
+}
+
+export interface PeripheralTraceStats {
+  total: number
+  connects: number
+  disconnects: number
+  intercepts: number
+  allows: number
+  denies: number
+  unknowns: number
+  runtimeCount: number
+  auditCount: number
+  snapshotCount: number
 }
 
 
@@ -254,9 +307,9 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
     case PeripheralType.USB_STORAGE:
       return 'USB 存储设备'
     case PeripheralType.USB_CAMERA:
-      return 'USB 摄像头'
+      return 'USB Camera'
     case PeripheralType.USB_PRINTER:
-      return 'USB 打印机'
+      return 'USB Printer'
     case PeripheralType.USB_OTHER:
       return 'USB 其他'
     case PeripheralType.BLUETOOTH:
@@ -282,26 +335,29 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
 
 export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
   switch (source) {
+    case 'runtime_event':
+      return 'Runtime Event'
     case 'audit_event':
-      return '审计事件'
+      return 'Audit Event'
     case 'policy_snapshot':
-      return '策略快照'
+      return 'Policy Snapshot'
     default:
-      return '未知来源'
+      return 'Unknown Source'
   }
 }
 
 export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
   switch (action) {
     case 'connect':
-      return '连接'
+      return 'Connect'
+    case 'disconnect':
+      return 'Disconnect'
     case 'intercept':
-      return '拦截'
+      return 'Intercept'
     default:
-      return '未知动作'
+      return 'Unknown Action'
   }
 }
-
 export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
   switch (policyHit) {
     case 'allow':
@@ -313,7 +369,7 @@ export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPol
   }
 }
 
-// ==================== 璁惧 ID 瑙ｆ瀽宸ュ叿鍑芥暟 ====================
+// ==================== 设备 ID 解析工具函数 ====================
 
 
 
@@ -442,7 +498,7 @@ export interface AuthMethodOption {
 
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
-  { label: 'PIN 码', value: AuthMethod.PIN } as AuthMethodOption,
+  { label: 'PIN', value: AuthMethod.PIN } as AuthMethodOption,
   { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
   { label: '人脸识别', value: AuthMethod.FACE } as AuthMethodOption,
   { label: 'PIN + 指纹', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
@@ -671,9 +727,9 @@ export function getLogEventTypeLabel(type: LogEventType): string {
     case LogEventType.PROCESS:
       return '进程管理'
     case LogEventType.PRINTER:
-      return '打印机'
+      return 'Printer'
     case LogEventType.CAMERA:
-      return '摄像头'
+      return 'Camera'
     case LogEventType.CERT:
       return '证书管理'
     case LogEventType.EDM:
@@ -691,7 +747,7 @@ export function getLogEventResultLabel(result: LogEventResult): string {
     case LogEventResult.SUCCESS:
       return '成功'
     case LogEventResult.BLOCKED:
-      return '已阻止'
+      return 'Blocked'
     case LogEventResult.FAILED:
       return '失败'
     default:
@@ -723,8 +779,8 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: 'USB访问', value: LogEventType.USB_ACCESS },
   { label: '权限变更', value: LogEventType.PERMISSION },
   { label: '进程管理', value: LogEventType.PROCESS },
-  { label: '打印机', value: LogEventType.PRINTER },
-  { label: '摄像头', value: LogEventType.CAMERA },
+  { label: 'Printer', value: LogEventType.PRINTER },
+  { label: 'Camera', value: LogEventType.CAMERA },
   { label: '证书管理', value: LogEventType.CERT },
   { label: 'EDM策略', value: LogEventType.EDM },
   { label: 'DNS查询', value: LogEventType.DNS }
@@ -741,4 +797,7 @@ export function formatLogTimestamp(timestamp: number): string {
 export function generateLogEntryId(): string {
   return `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
+
+
+
 

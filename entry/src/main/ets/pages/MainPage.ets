@@ -16,6 +16,8 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
+import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
+import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 
@@ -88,6 +90,14 @@ struct MainPage {
         hilog.warn(0x0000, 'testTag', '[DIAG] LogRuntimeCollectorService restart failed')
       }
     }
+
+    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
+    if (!runtimeStatus.running) {
+      let runtimeStarted = await PeripheralRuntimeEventService.start()
+      if (!runtimeStarted) {
+        hilog.warn(0x0000, 'testTag', '[DIAG] PeripheralRuntimeEventService start failed')
+      }
+    }
   }
 
   private async initRuntimeServices(): Promise<void> {
@@ -107,6 +117,19 @@ struct MainPage {
       let collectorInited = await LogRuntimeCollectorService.init(context)
       if (!collectorInited) {
         hilog.error(0x0000, 'testTag', '[DIAG] LogRuntimeCollectorService init failed')
+        return
+      }
+
+      let traceRepoInited = await PeripheralTraceRepository.init(context)
+      if (!traceRepoInited) {
+        hilog.error(0x0000, 'testTag', '[DIAG] PeripheralTraceRepository init failed')
+        return
+      }
+      await PeripheralTraceRepository.configure(180, 200000)
+
+      let runtimeCollectorInited = await PeripheralRuntimeEventService.init(context)
+      if (!runtimeCollectorInited) {
+        hilog.error(0x0000, 'testTag', '[DIAG] PeripheralRuntimeEventService init failed')
         return
       }
 

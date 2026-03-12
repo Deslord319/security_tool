@@ -837,7 +837,7 @@ export struct LogManagePage {
       return `该类型订阅失败：eventId ${diag.failedEventIds.join(',')}${codeText}。${this.getTypeTriggerHint(selectedType)}`
     }
     if (diag.subscribed && totalByType === 0) {
-      return `该类型已订阅，但设备当前未上报该类事件。${this.getTypeTriggerHint(selectedType)}`
+      return ''
     }
     if (!diag.subscribed) {
       return '该类型当前未订阅。'
