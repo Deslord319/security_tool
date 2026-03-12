@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallService } from '../services/FirewallService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
+import { BackNavButton } from '../components/BackNavButton'
 import { netFirewall } from '@kit.NetworkKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -250,12 +251,11 @@ export struct FirewallRulesPage {
         Row() {
           Column({ space: 4 }) {
             Row({ space: 8 }) {
-              Text('<')
-                .fontSize(20)
-                .fontColor(AppColors.BRAND_PRIMARY)
-                .onClick(() => {
+              BackNavButton({
+                onBack: () => {
                   this.onBack()
-                })
+                }
+              })
               Text('防火墙规则')
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)

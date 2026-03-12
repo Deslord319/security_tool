@@ -15,6 +15,7 @@ import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
+import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'IdentityPage'
@@ -22,6 +23,7 @@ const TAG = 'IdentityPage'
 @Component
 export struct IdentityPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  onBack: () => void = () => {}
   @State hoveredCardIndex: number = -1
   @State adminState: AdminActivationState = {
     activated: false,
@@ -245,19 +247,29 @@ export struct IdentityPage {
     Column() {
       // 页面头部
       Row() {
-        Column({ space: 4 }) {
-          Text('身份鉴别')
-            .fontSize(AppStyles.FONT_SIZE_TITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('配置设备口令复杂度与域账号有效期策略，保障系统访问安全')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        Row({ space: 8 }) {
+          BackNavButton({
+            onBack: () => {
+              this.onBack()
+            }
+          })
+
+          Column({ space: 4 }) {
+            Text('身份鉴别')
+              .fontSize(AppStyles.FONT_SIZE_TITLE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            Text('配置设备口令复杂度与域账号有效期策略，保障系统访问安全')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
         }
-        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .alignItems(VerticalAlign.Top)
       }
       .width('100%')
       .padding({

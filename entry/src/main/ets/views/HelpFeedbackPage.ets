@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { BackNavButton } from '../components/BackNavButton'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
@@ -16,6 +17,7 @@ interface GuideItem {
 @Component
 export struct HelpFeedbackPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  onBack: () => void = () => {}
   @State expandedGuide: number = -1
   @State expandedFaq: number = -1
   @State hoveredCardIndex: number = -1
@@ -73,19 +75,29 @@ export struct HelpFeedbackPage {
     Scroll() {
       Column({ space: 20 }) {
         // 页面标题区
-        Column({ space: 4 }) {
-          Text('帮助与反馈')
-            .fontSize(AppStyles.FONT_SIZE_TITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('使用指南、常见问题和反馈渠道')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        Row({ space: 8 }) {
+          BackNavButton({
+            onBack: () => {
+              this.onBack()
+            }
+          })
+
+          Column({ space: 4 }) {
+            Text('帮助与反馈')
+              .fontSize(AppStyles.FONT_SIZE_TITLE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            Text('使用指南、常见问题和反馈渠道')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
         }
         .width('100%')
-        .alignItems(HorizontalAlign.Start)
+        .alignItems(VerticalAlign.Top)
 
         // 使用指南卡片
         Column({ space: 12 }) {

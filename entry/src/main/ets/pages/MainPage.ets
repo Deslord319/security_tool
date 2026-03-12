@@ -233,6 +233,9 @@ struct MainPage {
                   onFirewallToggle: (enabled: boolean) => {
                     this.firewallEnabled = enabled
                   },
+                  onBack: () => {
+                    this.currentPage = Routes.DASHBOARD
+                  },
                   onNavigateToRules: (filterType?: number) => {
                     this.currentPage = Routes.FIREWALL_RULES
                   }
@@ -254,35 +257,55 @@ struct MainPage {
               .height('100%')
             } else if (this.currentPage === Routes.LOG_MANAGE) {
               Column() {
-                LogManagePage()
+                LogManagePage({
+                  onBack: () => {
+                    this.currentPage = Routes.DASHBOARD
+                  }
+                })
               }
               .id('route-page-log-manage')
               .width('100%')
               .height('100%')
             } else if (this.currentPage === Routes.PERIPHERAL_MANAGE) {
               Column() {
-                PeripheralPage()
+                PeripheralPage({
+                  onBack: () => {
+                    this.currentPage = Routes.DASHBOARD
+                  }
+                })
               }
               .id('route-page-peripheral-manage')
               .width('100%')
               .height('100%')
             } else if (this.currentPage === Routes.IDENTITY) {
               Column() {
-                IdentityPage()
+                IdentityPage({
+                  onBack: () => {
+                    this.currentPage = Routes.DASHBOARD
+                  }
+                })
               }
               .id('route-page-identity')
               .width('100%')
               .height('100%')
             } else if (this.currentPage === Routes.TOOL_SETTINGS) {
               Column() {
-                ToolSettingsPage()
+                ToolSettingsPage({
+                  onBack: () => {
+                    this.currentPage = Routes.DASHBOARD
+                  }
+                })
               }
               .id('route-page-tool-settings')
               .width('100%')
               .height('100%')
             } else if (this.currentPage === Routes.HELP_FEEDBACK) {
               Column() {
-                HelpFeedbackPage()
+                HelpFeedbackPage({
+                  onBack: () => {
+                    this.currentPage = Routes.DASHBOARD
+                  }
+                })
               }
               .id('route-page-help-feedback')
               .width('100%')

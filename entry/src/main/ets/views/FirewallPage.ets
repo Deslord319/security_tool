@@ -1,6 +1,7 @@
 import { AppColors, AppStyles, Routes } from '../constants/AppConstants'
 import { RuleTypeItem } from '../components/RuleTypeItem'
 import { DirectionCard } from '../components/DirectionCard'
+import { BackNavButton } from '../components/BackNavButton'
 import { FirewallService } from '../services/FirewallService'
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
@@ -24,6 +25,7 @@ export struct FirewallPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
   onNavigateToRules: (filterType?: number) => void = () => {}
+  onBack: () => void = () => {}
 
   aboutToAppear() {
     this.loadData()
@@ -82,19 +84,29 @@ export struct FirewallPage {
       Column({ space: 24 }) {
         // 页面头部：标题 + 开关
         Row() {
-          Column({ space: 4 }) {
-            Text('防火墙管理')
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text('管控网络入站/出站流量，支持 IP、域名和DNS 三种规则类型配置')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          Row({ space: 8 }) {
+            BackNavButton({
+              onBack: () => {
+                this.onBack()
+              }
+            })
+
+            Column({ space: 4 }) {
+              Text('防火墙管理')
+                .fontSize(AppStyles.FONT_SIZE_TITLE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+              Text('管控网络入站/出站流量，支持 IP、域名和DNS 三种规则类型配置')
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
           }
-          .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
+          .alignItems(VerticalAlign.Top)
 
           Toggle({ type: ToggleType.Switch, isOn: this.firewallEnabled })
             .selectedColor(AppColors.BRAND_PRIMARY)

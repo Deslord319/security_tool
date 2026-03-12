@@ -33,6 +33,7 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { BackNavButton } from '../components/BackNavButton'
 
 const TAG = 'LogManagePage'
 
@@ -238,6 +239,7 @@ struct ExportFormatDialog {
 @Component
 export struct LogManagePage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  onBack: () => void = () => {}
   @State hoveredStatIndex: number = -1
   @State hoveredSettingsCardIndex: number = -1
 
@@ -937,19 +939,29 @@ export struct LogManagePage {
   build() {
     Column() {
       Row() {
-        Column({ space: 4 }) {
-          Text(this.showSettings ? '日志存储设置' : '日志管理')
-            .fontSize(AppStyles.FONT_SIZE_TITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text(this.showSettings ? '配置日志留存、自动导出与审计诊断' : '监控和审计系统安全事件日志')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        Row({ space: 8 }) {
+          BackNavButton({
+            onBack: () => {
+              this.onBack()
+            }
+          })
+
+          Column({ space: 4 }) {
+            Text(this.showSettings ? '日志存储设置' : '日志管理')
+              .fontSize(AppStyles.FONT_SIZE_TITLE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            Text(this.showSettings ? '配置日志留存、自动导出与审计诊断' : '监控和审计系统安全事件日志')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
         }
-        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .alignItems(VerticalAlign.Top)
 
         Row({ space: 6 }) {
           Circle({ width: 8, height: 8 })

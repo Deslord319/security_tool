@@ -34,6 +34,7 @@ import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
+import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'PeripheralPage'
@@ -49,6 +50,7 @@ type PeripheralResultData =
 @Component
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  onBack: () => void = () => {}
   @State currentTab: number = 0
   @State hoveredPanelIndex: number = -1
   @State hoveredDeviceRecordIndex: number = -1
@@ -745,19 +747,29 @@ export struct PeripheralPage {
     Column() {
       // 页面头部
       Row() {
-        Column({ space: 4 }) {
-          Text('外设管理')
-            .fontSize(AppStyles.FONT_SIZE_TITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        Row({ space: 8 }) {
+          BackNavButton({
+            onBack: () => {
+              this.onBack()
+            }
+          })
+
+          Column({ space: 4 }) {
+            Text('外设管理')
+              .fontSize(AppStyles.FONT_SIZE_TITLE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
         }
-        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .alignItems(VerticalAlign.Top)
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
