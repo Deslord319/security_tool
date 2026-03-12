@@ -515,6 +515,29 @@ export const PREF_KEY_AUTH_METHOD = 'auth_method'
 export const PREF_STORE_NAME_TOOL = 'tool_settings'
 
 
+export type FirewallToggleRejectReason =
+  'lockout' |
+  'pin_unavailable' |
+  'pin_failed' |
+  'policy_apply_failed'
+
+
+export interface FirewallToggleResult {
+  success: boolean
+  targetEnabled: boolean
+  reason?: FirewallToggleRejectReason
+  lockRemainingSec?: number
+  errorCode?: number
+}
+
+
+export const PREF_STORE_NAME_FIREWALL_AUTH = 'firewall_auth'
+export const PREF_KEY_FIREWALL_PIN_FAILED_COUNT = 'firewall_pin_failed_count'
+export const PREF_KEY_FIREWALL_PIN_LOCK_UNTIL = 'firewall_pin_lock_until'
+export const FIREWALL_PIN_LOCK_MAX_ATTEMPTS = 3
+export const FIREWALL_PIN_LOCK_DURATION_MS = 60 * 1000
+
+
 
 
 export enum LogEventType {

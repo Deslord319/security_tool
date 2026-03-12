@@ -35,6 +35,14 @@ export interface ThemeColorSet {
   BORDER: string
   BORDER_OPACITY: number
 
+  // Form control colors
+  FORM_BG: string
+  FORM_BORDER: string
+  FORM_TEXT: string
+  FORM_PLACEHOLDER: string
+  FORM_ICON: string
+  FORM_FOCUS_BORDER: string
+
   // Tag 颜色
   TAG_BLUE_BG: string
   TAG_BLUE_TEXT: string
@@ -70,6 +78,14 @@ export const LightThemeColors: ThemeColorSet = {
   BORDER: '#000000',
   BORDER_OPACITY: 0.1,
 
+  // Form control colors
+  FORM_BG: '#FFFFFF',
+  FORM_BORDER: '#D0D7DE',
+  FORM_TEXT: '#111827',
+  FORM_PLACEHOLDER: '#6B7280',
+  FORM_ICON: '#475467',
+  FORM_FOCUS_BORDER: '#0A84FF',
+
   // Tag 颜色
   TAG_BLUE_BG: '#E3F2FD',
   TAG_BLUE_TEXT: '#1565C0',
@@ -98,12 +114,20 @@ export const DarkThemeColors: ThemeColorSet = {
   // 文本色
   TEXT_PRIMARY: '#FFFFFF',
   TEXT_PRIMARY_OPACITY: 0.9,
-  TEXT_SECONDARY_OPACITY: 0.7,
-  TEXT_TERTIARY_OPACITY: 0.5,
+  TEXT_SECONDARY_OPACITY: 0.8,
+  TEXT_TERTIARY_OPACITY: 0.62,
 
   // 边框色
   BORDER: '#FFFFFF',
   BORDER_OPACITY: 0.1,
+
+  // Form control colors
+  FORM_BG: '#2A2A2C',
+  FORM_BORDER: '#5A5A5E',
+  FORM_TEXT: '#F4F4F5',
+  FORM_PLACEHOLDER: '#A1A1AA',
+  FORM_ICON: '#D4D4D8',
+  FORM_FOCUS_BORDER: '#4AA3FF',
 
   // Tag 颜色 (深色模式下调整为更柔和的色调)
   TAG_BLUE_BG: '#1E3A5F',

@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 @CustomDialog
 export struct AddBlacklistDialog {
@@ -49,9 +50,11 @@ export struct AddBlacklistDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x08' })
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.baseClassText = value })
       }
       .width('100%')
@@ -65,9 +68,11 @@ export struct AddBlacklistDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x06' })
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.subClassText = value })
       }
       .width('100%')
@@ -81,9 +86,11 @@ export struct AddBlacklistDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: 0x50' })
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.protocolText = value })
       }
       .width('100%')
@@ -97,9 +104,11 @@ export struct AddBlacklistDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '例: USB 大容量存储设备' })
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.description = value })
       }
       .width('100%')

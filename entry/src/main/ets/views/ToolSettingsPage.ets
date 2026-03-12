@@ -16,6 +16,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 const TAG = 'ToolSettingsPage'
 
@@ -402,10 +403,14 @@ export struct ToolSettingsPage {
           .selected(this.authMethodIndex)
           .value(this.authMethodOptions[this.authMethodIndex].value as string)
           .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
           .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(140)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.authMethodIndex = index
           })
@@ -522,8 +527,10 @@ export struct ToolSettingsPage {
       TextInput({ placeholder: placeholder, text: value })
         .type(showPassword ? InputType.Normal : InputType.Password)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+        .fontColor(FormControlUtils.text(this.currentTheme))
+        .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .borderRadius(AppStyles.RADIUS_SM)
         .height(36)
         .layoutWeight(1)

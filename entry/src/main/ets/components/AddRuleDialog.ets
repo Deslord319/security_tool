@@ -2,6 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 @CustomDialog
 export struct AddRuleDialog {
@@ -90,9 +91,11 @@ export struct AddRuleDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '输入规则名称' })
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.ruleName = value })
       }
       .width('100%')
@@ -112,12 +115,13 @@ export struct AddRuleDialog {
         ])
           .selected(0)
           .value('IP 规则')
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.ruleType = index + 1 })
       }
       .width('100%')
@@ -136,12 +140,13 @@ export struct AddRuleDialog {
         ])
           .selected(0)
           .value('入站')
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.ruleDirection = index + 1 })
       }
       .width('100%')
@@ -162,12 +167,13 @@ export struct AddRuleDialog {
           ])
             .selected(0)
             .value('TCP')
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .fontColor(FormControlUtils.text(this.currentTheme))
             .font({ size: AppStyles.FONT_SIZE_BODY })
             .width('100%')
             .height(40)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+            .backgroundColor(FormControlUtils.background(this.currentTheme))
             .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .onSelect((index: number) => {
               let protocols: number[] = [6, 17, 1]
               this.protocol = protocols[index]
@@ -189,9 +195,11 @@ export struct AddRuleDialog {
             this.ruleType === 3 ? '例: 8.8.8.8' : '例: 0.0.0.0/0'
         })
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.remoteAddress = value })
       }
       .width('100%')
@@ -206,10 +214,12 @@ export struct AddRuleDialog {
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 443' })
-            .height(40)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .height(40)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .type(InputType.Number)
             .onChange((value: string) => { this.remotePort = value })
         }
@@ -230,12 +240,13 @@ export struct AddRuleDialog {
         ])
           .selected(0)
           .value('允许')
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.action = index })
       }
       .width('100%')

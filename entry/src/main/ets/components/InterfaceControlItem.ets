@@ -2,6 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 @Component
 export struct InterfaceControlItem {
@@ -35,8 +36,11 @@ export struct InterfaceControlItem {
       }))
         .selected(this.selectedIndex)
         .value(this.options[this.selectedIndex] ?? '')
-        .fontColor(AppColors.TEXT_PRIMARY)
+        .fontColor(FormControlUtils.text(this.currentTheme))
         .font({ size: AppStyles.FONT_SIZE_BODY })
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_MD)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.onSelect(index)
         })

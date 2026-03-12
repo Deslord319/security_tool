@@ -37,6 +37,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 const TAG = 'PeripheralPage'
 type PeripheralResultData =
@@ -1145,10 +1146,14 @@ export struct PeripheralPage {
         .selected(this.recordFilterTypeIndex)
         .value(this.getConnectionTypeFilterLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(120)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.recordFilterTypeIndex = index
           this.reloadDeviceRecords()
@@ -1158,10 +1163,14 @@ export struct PeripheralPage {
         .selected(this.recordFilterResultIndex)
         .value(this.getConnectionResultFilterLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(120)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.recordFilterResultIndex = index
           this.reloadDeviceRecords()
@@ -1171,10 +1180,14 @@ export struct PeripheralPage {
         .selected(this.recordFilterSourceIndex)
         .value(this.getConnectionSourceFilterLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(140)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.recordFilterSourceIndex = index
           this.reloadDeviceRecords()
@@ -1182,8 +1195,10 @@ export struct PeripheralPage {
 
       TextInput({ placeholder: '按关键字或设备 ID 过滤', text: this.recordFilterKeyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .fontColor(FormControlUtils.text(this.currentTheme))
+        .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .borderRadius(AppStyles.RADIUS_SM)
         .height(36)
         .layoutWeight(1)
@@ -1705,9 +1720,12 @@ export struct PeripheralPage {
                   .selected(record.policyIndex)
                   .value(this.deviceControlPolicyOptions[record.policyIndex].value as string)
                   .font({ size: AppStyles.FONT_SIZE_CAPTION })
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .fontColor(FormControlUtils.text(this.currentTheme))
                   .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
                   .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+                  .backgroundColor(FormControlUtils.background(this.currentTheme))
+                  .borderRadius(AppStyles.RADIUS_SM)
+                  .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
                   .layoutWeight(1.5)
                   .onSelect((selectIndex: number) => {
                     this.handleDeviceControlPolicyChange(index, selectIndex)

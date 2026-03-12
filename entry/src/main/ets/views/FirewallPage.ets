@@ -3,9 +3,12 @@ import { RuleTypeItem } from '../components/RuleTypeItem'
 import { DirectionCard } from '../components/DirectionCard'
 import { BackNavButton } from '../components/BackNavButton'
 import { FirewallService } from '../services/FirewallService'
+import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
+import { common } from '@kit.AbilityKit'
+import { FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -21,6 +24,8 @@ export struct FirewallPage {
   @State inCount: number = 0
   @State outCount: number = 0
   @State isLoading: boolean = false
+  @State isToggleProcessing: boolean = false
+  @State firewallSwitchValue: boolean = false
   @State serviceErrorText: string = ''
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
@@ -28,6 +33,7 @@ export struct FirewallPage {
   onBack: () => void = () => {}
 
   aboutToAppear() {
+    this.firewallSwitchValue = this.firewallEnabled
     this.loadData()
   }
 
@@ -36,6 +42,7 @@ export struct FirewallPage {
     this.serviceErrorText = ''
     try {
       let status = await FirewallService.getFirewallStatus()
+      this.firewallSwitchValue = status
       let statusError = FirewallService.getLastErrorText()
       if (statusError.length > 0) {
         this.serviceErrorText = statusError
@@ -79,6 +86,63 @@ export struct FirewallPage {
     promptAction.showToast({ message: `防火墙操作失败：${this.serviceErrorText}` })
   }
 
+  async handleToggleWithAuth(isOn: boolean) {
+    if (this.isToggleProcessing) {
+      this.firewallSwitchValue = this.firewallEnabled
+      return
+    }
+    let currentEnabled = this.firewallEnabled
+    if (isOn === currentEnabled) {
+      this.firewallSwitchValue = currentEnabled
+      return
+    }
+
+    this.isToggleProcessing = true
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      let result = await FirewallToggleAuthService.executeToggle(context, currentEnabled, isOn)
+      if (result.success) {
+        this.firewallSwitchValue = isOn
+        this.onFirewallToggle(isOn)
+        this.serviceErrorText = ''
+        return
+      }
+
+      this.firewallSwitchValue = currentEnabled
+      this.onFirewallToggle(currentEnabled)
+      this.serviceErrorText = this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
+      promptAction.showToast({ message: this.serviceErrorText })
+    } catch (err) {
+      this.firewallSwitchValue = currentEnabled
+      this.onFirewallToggle(currentEnabled)
+      this.serviceErrorText = '防火墙状态更新失败'
+      promptAction.showToast({ message: this.serviceErrorText })
+      hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
+    } finally {
+      this.isToggleProcessing = false
+    }
+  }
+
+  private buildToggleFailedMessage(
+    reason: FirewallToggleRejectReason | undefined,
+    lockRemainingSec: number | undefined
+  ): string {
+    switch (reason) {
+      case 'lockout':
+        return `PIN认证失败次数过多，请在${lockRemainingSec ?? 60}秒后重试`
+      case 'pin_unavailable':
+        return '系统PIN不可用，请先在系统设置中启用PIN码'
+      case 'pin_failed':
+        return 'PIN认证失败，已取消防火墙状态变更'
+      case 'policy_apply_failed': {
+        let error = FirewallService.getLastErrorText()
+        return error.length > 0 ? error : '防火墙策略下发失败'
+      }
+      default:
+        return '防火墙状态更新失败'
+    }
+  }
+
   build() {
     Scroll() {
       Column({ space: 24 }) {
@@ -108,11 +172,12 @@ export struct FirewallPage {
           .layoutWeight(1)
           .alignItems(VerticalAlign.Top)
 
-          Toggle({ type: ToggleType.Switch, isOn: this.firewallEnabled })
+          Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
             .selectedColor(AppColors.BRAND_PRIMARY)
             .switchPointColor(Color.White)
+            .enabled(!this.isToggleProcessing)
             .onChange((isOn: boolean) => {
-              this.handleToggle(isOn)
+              this.handleToggleWithAuth(isOn)
             })
         }
         .width('100%')

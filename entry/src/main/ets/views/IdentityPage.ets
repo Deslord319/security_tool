@@ -17,6 +17,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 const TAG = 'IdentityPage'
 
@@ -382,10 +383,14 @@ export struct IdentityPage {
           .selected(this.minLengthIndex)
           .value(this.lengthOptions[this.minLengthIndex].value as string)
           .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
           .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(120)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.minLengthIndex = index
             this.updatePreviewRegex()
@@ -495,10 +500,14 @@ export struct IdentityPage {
           .selected(this.maxAgeIndex)
           .value(this.maxAgeOptions[this.maxAgeIndex].value as string)
           .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
           .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(120)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.maxAgeIndex = index
           })
@@ -529,10 +538,14 @@ export struct IdentityPage {
           .selected(this.notifyDaysIndex)
           .value(this.notifyOptions[this.notifyDaysIndex].value as string)
           .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
           .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(120)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.notifyDaysIndex = index
           })
@@ -563,10 +576,14 @@ export struct IdentityPage {
           .selected(this.authValidityIndex)
           .value(this.authValidityOptions[this.authValidityIndex].value as string)
           .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
           .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(120)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.authValidityIndex = index
           })

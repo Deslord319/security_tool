@@ -24,6 +24,10 @@ export class FirewallService {
     return FirewallService.lastErrorMessage
   }
 
+  static getLastErrorCode(): number | undefined {
+    return FirewallService.lastErrorCode
+  }
+
   private static recordError(action: string, err: Object): void {
     let code = FirewallService.extractErrorCode(err)
     FirewallService.lastErrorCode = code

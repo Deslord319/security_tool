@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 @CustomDialog
 export struct AddWhitelistDialog {
@@ -56,11 +57,13 @@ export struct AddWhitelistDialog {
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 0x2B7E' })
-            .height(40)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
-            .onChange((value: string) => { this.vendorIdText = value })
+          .height(40)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .onChange((value: string) => { this.vendorIdText = value })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -72,11 +75,13 @@ export struct AddWhitelistDialog {
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: 0xB5A2' })
-            .height(40)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
-            .onChange((value: string) => { this.productIdText = value })
+          .height(40)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .onChange((value: string) => { this.productIdText = value })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -88,11 +93,13 @@ export struct AddWhitelistDialog {
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           TextInput({ placeholder: '例: AA:BB:CC:DD:EE:01' })
-            .height(40)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
-            .onChange((value: string) => { this.macAddress = value })
+          .height(40)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .onChange((value: string) => { this.macAddress = value })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -105,10 +112,12 @@ export struct AddWhitelistDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ placeholder: '设备备注信息' })
-          .height(40)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .height(40)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.remark = value })
       }
       .width('100%')

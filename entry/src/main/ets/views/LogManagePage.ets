@@ -34,6 +34,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { BackNavButton } from '../components/BackNavButton'
+import { FormControlUtils } from '../utils/FormControlUtils'
 
 const TAG = 'LogManagePage'
 
@@ -1061,10 +1062,14 @@ export struct LogManagePage {
         .value(this.filterEventType < 0 ? '全部类型' :
           getLogEventTypeLabel(this.filterEventType as LogEventType))
         .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(120)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.filterEventType = index - 1
           this.resetToFirstPageAndRefresh()
@@ -1075,10 +1080,14 @@ export struct LogManagePage {
         .value(this.filterResult < 0 ? '全部结果' :
           getLogEventResultLabel(this.filterResult as LogEventResult))
         .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(110)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.filterResult = index - 1
           this.resetToFirstPageAndRefresh()
@@ -1086,8 +1095,10 @@ export struct LogManagePage {
 
       TextInput({ placeholder: '搜索日志内容...', text: this.filterKeyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .fontColor(FormControlUtils.text(this.currentTheme))
+        .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .borderRadius(AppStyles.RADIUS_SM)
         .height(36)
         .layoutWeight(1)
@@ -1196,11 +1207,14 @@ export struct LogManagePage {
           .selected(this.pageSizeIndex)
           .value(`${this.getCurrentPageSize()} 条/页`)
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
           .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
           .width(126)
           .height(32)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.pageSizeIndex = index
             this.currentPage = 1
@@ -1228,8 +1242,10 @@ export struct LogManagePage {
         TextInput({ text: this.pageInputValue, placeholder: '页码' })
           .type(InputType.Number)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .borderRadius(AppStyles.RADIUS_SM)
           .height(32)
           .width(62)
@@ -1416,7 +1432,15 @@ export struct LogManagePage {
         Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} 条` } as SelectOption)))
           .selected(this.maxEntriesIndex)
           .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} 条`)
+          .font({ size: AppStyles.FONT_SIZE_BODY })
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.maxEntriesIndex = index })
       }
       .width('100%')
@@ -1434,7 +1458,15 @@ export struct LogManagePage {
         Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} 天` } as SelectOption)))
           .selected(this.retentionIndex)
           .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} 天`)
+          .font({ size: AppStyles.FONT_SIZE_BODY })
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.retentionIndex = index })
       }
       .width('100%')
@@ -1467,7 +1499,15 @@ export struct LogManagePage {
         Select(this.exportTargetOptions)
           .selected(this.getExportTargetSelectIndex())
           .value(this.getExportTargetLabel(this.exportTargetType))
+          .font({ size: AppStyles.FONT_SIZE_BODY })
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.applyExportTargetByIndex(index) })
       }
       .width('100%')
