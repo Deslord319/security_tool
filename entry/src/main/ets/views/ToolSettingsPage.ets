@@ -2,7 +2,6 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { SecureStorageService } from '../services/SecureStorageService'
 import { AuthService } from '../services/AuthService'
 import { preferences } from '@kit.ArkData'
-import common from '@ohos.app.ability.common'
 import {
   AuthMethod,
   AUTH_METHOD_OPTIONS,
@@ -15,7 +14,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'ToolSettingsPage'
@@ -235,18 +233,6 @@ export struct ToolSettingsPage {
     })
   }
 
-  activateEnterpriseAdmin() {
-    let context = getContext(this) as common.UIAbilityContext
-    let result = EnterpriseAdminService.activateAdminWithResult(context)
-    if (result.success) {
-      promptAction.showToast({ message: '已发起管理员激活，请在系统页面完成授权' })
-      return
-    }
-    let codeText = result.errorCode !== undefined ? ` (${result.errorCode})` : ''
-    let reasonText = result.errorMessage || '管理员激活拉起失败'
-    promptAction.showToast({ message: `${reasonText}${codeText}` })
-  }
-
   build() {
     Column() {
       // 页面头部
@@ -275,9 +261,6 @@ export struct ToolSettingsPage {
       // 主内容区
       Scroll() {
         Column({ space: 24 }) {
-          // 功能区 0: 管理员激活
-          this.adminActivationBuilder()
-
           // 功能区 1: 启动校验
           this.startupAuthBuilder()
 
@@ -338,62 +321,6 @@ export struct ToolSettingsPage {
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-  }
-
-  // ==================== 功能区 1: 启动校验 ====================
-  @Builder
-  adminActivationBuilder() {
-    Column({ space: 0 }) {
-      Row() {
-        Text('企业管理员激活')
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Blank()
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row({ space: 12 }) {
-        Column({ space: 2 }) {
-          Text('激活企业管理员能力')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('点击后将拉起系统激活流程，完成后可在策略页面执行管理操作')
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Button('激活管理员')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(Color.White)
-          .backgroundColor(AppColors.BRAND_PRIMARY)
-          .height(32)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .onClick(() => {
-            this.activateEnterpriseAdmin()
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    }
-    .width('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .clip(true)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
   }
 
   // ==================== 功能区 1: 启动校验 ====================
