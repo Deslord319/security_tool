@@ -199,6 +199,7 @@ export interface PeripheralConnectionRecord {
   rawEventId?: number
   rawEventName?: string
   rawOutcome?: string
+  rawAction?: string
   rawPayload?: string
   detail?: string
   processName?: string
@@ -230,6 +231,7 @@ export interface PeripheralTraceRecord {
   rawEventId?: number
   rawEventName?: string
   rawOutcome?: string
+  rawAction?: string
   rawPayload?: string
   detail?: string
   processName?: string
@@ -578,6 +580,7 @@ export interface LogEntry {
   sourceSubType?: number
   rawEventName?: string
   rawOutcome?: string
+  rawAction?: string
   result: LogEventResult
 }
 
@@ -604,7 +607,7 @@ export interface LogStorageConfig {
 
 export type LogExportTargetType = 'download' | 'documents' | 'desktop'
 
-export type LogExportAuthMode = 'runtime_permission'
+export type LogExportAuthMode = 'runtime_permission' | 'download_mode'
 
 
 export interface LogSubscriptionConfig {
@@ -652,7 +655,7 @@ export enum LogExportFormat {
 
 export type LogExportTrigger = 'manual' | 'auto'
 
-export type LogExportRecoveryAction = 'pick_directory'
+export type LogExportRecoveryAction = 'pick_directory' | 'authorize_download'
 
 
 export interface LogExportResult {
@@ -684,7 +687,7 @@ export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   autoExportEnabled: false,
   exportTargetType: 'download',
   exportTargetValue: '',
-  exportAuthMode: 'runtime_permission'
+  exportAuthMode: 'download_mode'
 }
 
 

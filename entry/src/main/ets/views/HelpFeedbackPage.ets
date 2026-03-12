@@ -48,7 +48,7 @@ export struct HelpFeedbackPage {
   private faqItems: FaqItem[] = [
     {
       question: '\u65e5\u5fd7\u5bfc\u51fa\u76ee\u5f55\u6709\u54ea\u4e9b\u9650\u5236\uff1f',
-      answer: '\u65e5\u5fd7\u5bfc\u51fa\u4ec5\u652f\u6301\u4e0b\u8f7d\u76ee\u5f55\u3001\u6587\u6863\u76ee\u5f55\u548c\u684c\u9762\u76ee\u5f55\u3002\u5bfc\u51fa\u6587\u4ef6\u4f1a\u56fa\u5b9a\u4fdd\u5b58\u5230\u6240\u9009\u76ee\u5f55\u4e0b\u7684 securityLog \u5b50\u76ee\u5f55\u3002'
+      answer: '\u65e5\u5fd7\u5bfc\u51fa\u5df2\u7edf\u4e00\u4e3a DOWNLOAD \u6a21\u5f0f\u3002\u9996\u6b21\u5bfc\u51fa\u65f6\u7cfb\u7edf\u4f1a\u81ea\u52a8\u5f15\u5bfc\u6388\u6743\uff0c\u540e\u7eed\u6240\u6709\u5bfc\u51fa\u9ed8\u8ba4\u4f7f\u7528\u8be5\u6388\u6743\u76ee\u5f55\u3002'
     },
     {
       question: '\u5bfc\u51fa\u76ee\u5f55\u4e0d\u53ef\u5199\u65f6\u4f1a\u600e\u6837\uff1f',
@@ -238,17 +238,17 @@ export struct HelpFeedbackPage {
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            Text('support@example.com')
+            Text('cbge@huawei.com')
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.BRAND_PRIMARY)
           }
 
           Row({ space: 8 }) {
-            Text('项目地址')
+            Text('项目版本')
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            Text('github.com/example/security-tool')
+            Text('1.0.0-beta')
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.BRAND_PRIMARY)
           }

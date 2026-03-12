@@ -1,7 +1,7 @@
 import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit'
-import { Environment, fileIo } from '@kit.CoreFileKit'
+import { Environment, fileIo, fileUri, picker } from '@kit.CoreFileKit'
 import {
   LogEntry,
   LogFilter,
@@ -48,11 +48,13 @@ const MAX_FILE_PATH_LENGTH = 512
 const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
+const MAX_RAW_ACTION_LENGTH = 64
 const DEFAULT_EXPORT_DIR_NAME = 'securityLog'
 const EXPORT_TARGET_DOWNLOAD: LogExportTargetType = 'download'
 const EXPORT_TARGET_DOCUMENTS: LogExportTargetType = 'documents'
 const EXPORT_TARGET_DESKTOP: LogExportTargetType = 'desktop'
 const EXPORT_AUTH_RUNTIME: LogExportAuthMode = 'runtime_permission'
+const EXPORT_AUTH_DOWNLOAD: LogExportAuthMode = 'download_mode'
 
 export interface LogStorageChangeEvent {
   totalCount: number
@@ -170,8 +172,10 @@ export class LogStorageService {
         )
       }
 
-      await LogStorageService.saveEntries()
       LogStorageService.notifyEntriesChanged(normalizedBatch.length)
+      void LogStorageService.saveEntries().catch((err: Object) => {
+        hilog.error(DOMAIN, TAG, `saveEntries async failed: ${JSON.stringify(err)}`)
+      })
       return true
     } catch (err) {
       hilog.error(DOMAIN, TAG, `addEntries failed: ${JSON.stringify(err)}`)
@@ -352,9 +356,8 @@ export class LogStorageService {
     let content = LogStorageService.exportToString(entries, format)
     let fileName = LogStorageService.buildExportFileName(format, entries.length, now)
     let primaryTarget = LogStorageService.resolveConfiguredExportDirectory()
-    let primaryDir = primaryTarget.directory
-
     let authResult = await LogStorageService.ensureExportTargetReady(primaryTarget, trigger)
+    let primaryDir = authResult.directory || primaryTarget.directory
     if (!authResult.success) {
       return {
         success: false,
@@ -382,6 +385,59 @@ export class LogStorageService {
         directory: primaryDir,
         fullPath: primaryWrite.fullPath,
         sizeBytes: primaryWrite.sizeBytes
+      }
+    }
+
+    if (
+      trigger === 'manual' &&
+      LogStorageService.isUriPath(primaryDir) &&
+      LogStorageService.shouldRetryDownloadAuthorization(primaryWrite.errorCode)
+    ) {
+      await LogStorageService.clearDownloadAuthorization()
+      let retryTarget = LogStorageService.resolveConfiguredExportDirectory()
+      let retryAuth = await LogStorageService.ensureExportTargetReady(retryTarget, trigger)
+      let retryDir = retryAuth.directory || retryTarget.directory
+      if (!retryAuth.success) {
+        return {
+          success: false,
+          count: entries.length,
+          format: format,
+          timestamp: now,
+          trigger: trigger,
+          fileName: fileName,
+          directory: retryDir,
+          errorCode: retryAuth.errorCode,
+          errorMessage: retryAuth.errorMessage,
+          recoverAction: retryAuth.recoverAction
+        }
+      }
+
+      let retryWrite = LogStorageService.tryWriteExportFile(retryDir, fileName, content)
+      if (retryWrite.success) {
+        return {
+          count: entries.length,
+          format: format,
+          timestamp: now,
+          trigger: trigger,
+          success: true,
+          fileName: fileName,
+          directory: retryDir,
+          fullPath: retryWrite.fullPath,
+          sizeBytes: retryWrite.sizeBytes
+        }
+      }
+
+      return {
+        success: false,
+        count: entries.length,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        fileName: fileName,
+        directory: retryDir,
+        errorCode: retryWrite.errorCode,
+        errorMessage: retryWrite.errorMessage,
+        recoverAction: 'authorize_download'
       }
     }
 
@@ -419,7 +475,7 @@ export class LogStorageService {
           targetType: publicType,
           exportPath: publicPath,
           exportTargetValue: '',
-          exportAuthMode: EXPORT_AUTH_RUNTIME
+          exportAuthMode: EXPORT_AUTH_DOWNLOAD
         } as ExportSelectionResult
       }
     }
@@ -496,45 +552,119 @@ export class LogStorageService {
     target: ResolvedExportTarget,
     trigger: LogExportTrigger
   ): Promise<ExportAuthResult> {
-    if (trigger !== 'manual') {
-      return { success: true }
-    }
-
-    if (!LogStorageService.context) {
+    let directoryUri = LogStorageService.sanitizeExportTargetUri(target.directory)
+    if (directoryUri.length > 0) {
       return {
-        success: false,
-        errorMessage: 'UI context unavailable for runtime permission request'
+        success: true,
+        directory: directoryUri
       }
     }
-    return LogStorageService.ensurePublicDirectoryPermission(LogStorageService.context, target.targetType)
+
+    if (trigger !== 'manual') {
+      return {
+        success: false,
+        errorMessage: 'Download directory authorization is required before auto export.',
+        recoverAction: 'authorize_download'
+      }
+    }
+
+    return LogStorageService.requestDownloadAuthorization()
   }
 
   // 璁剧疆瀵煎嚭鐩綍
   static async setExportDirectory(path: string): Promise<boolean> {
     let cfg = LogStorageService.getConfig()
-    let publicType = LogStorageService.resolvePublicTargetTypeByPath(path)
-    if (publicType) {
-      cfg.exportTargetType = publicType
-      cfg.exportTargetValue = ''
-      cfg.exportAuthMode = EXPORT_AUTH_RUNTIME
-      cfg.exportPath = LogStorageService.resolvePublicDirectoryByType(publicType) || cfg.exportPath
-      return LogStorageService.updateConfig(cfg)
+    cfg.exportTargetType = EXPORT_TARGET_DOWNLOAD
+    cfg.exportTargetValue = LogStorageService.sanitizeExportTargetUri(path)
+    cfg.exportAuthMode = EXPORT_AUTH_DOWNLOAD
+    cfg.exportPath = ''
+    return LogStorageService.updateConfig(cfg)
+  }
+
+  private static sanitizeExportTargetUri(uri: string | undefined): string {
+    if (!uri) {
+      return ''
+    }
+    let normalized = uri.trim().replace(/\/+$/, '')
+    return LogStorageService.isUriPath(normalized) ? normalized : ''
+  }
+
+  private static async requestDownloadAuthorization(): Promise<ExportAuthResult> {
+    if (!LogStorageService.context) {
+      return {
+        success: false,
+        errorMessage: 'UI context unavailable for download authorization.',
+        recoverAction: 'authorize_download'
+      }
     }
 
-    let normalizedPath = LogStorageService.sanitizeConfiguredExportDirectory(path)
-    let legacyType = normalizedPath ? LogStorageService.resolveLegacyPublicTargetType(normalizedPath) : undefined
-    if (legacyType && normalizedPath) {
-      let selectedPublicPath = LogStorageService.resolvePublicExportPath(normalizedPath, legacyType)
-      cfg.exportTargetType = legacyType
-      cfg.exportTargetValue = ''
-      cfg.exportAuthMode = EXPORT_AUTH_RUNTIME
-      cfg.exportPath = selectedPublicPath ||
-        LogStorageService.resolvePublicDirectoryByType(legacyType) ||
-        normalizedPath
-    } else {
-      cfg = LogStorageService.createDefaultTargetConfig(cfg)
+    try {
+      let documentViewPicker = new picker.DocumentViewPicker(LogStorageService.context)
+      let saveOptions = new picker.DocumentSaveOptions()
+      saveOptions.pickerMode = picker.DocumentPickerMode.DOWNLOAD
+      let result = await documentViewPicker.save(saveOptions)
+      if (result.length === 0) {
+        return {
+          success: false,
+          errorMessage: 'No download directory URI returned by picker.',
+          recoverAction: 'authorize_download'
+        }
+      }
+      let directoryUri = LogStorageService.sanitizeExportTargetUri(result[0])
+      if (directoryUri.length === 0) {
+        return {
+          success: false,
+          errorMessage: 'No download directory URI returned by picker.',
+          recoverAction: 'authorize_download'
+        }
+      }
+
+      LogStorageService.storageConfig = {
+        maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
+        retentionDays: LogStorageService.storageConfig.retentionDays,
+        autoExportEnabled: LogStorageService.storageConfig.autoExportEnabled,
+        exportPath: '',
+        exportTargetType: EXPORT_TARGET_DOWNLOAD,
+        exportTargetValue: directoryUri,
+        exportAuthMode: EXPORT_AUTH_DOWNLOAD
+      }
+      await LogStorageService.saveConfig()
+
+      return {
+        success: true,
+        directory: directoryUri
+      }
+    } catch (err) {
+      return {
+        success: false,
+        errorCode: LogStorageService.extractErrorCode(err as Object),
+        errorMessage: `Download directory authorization failed: ${JSON.stringify(err)}`,
+        recoverAction: 'authorize_download'
+      }
     }
-    return LogStorageService.updateConfig(cfg)
+  }
+
+  private static async clearDownloadAuthorization(): Promise<void> {
+    if ((LogStorageService.storageConfig.exportTargetValue || '').length === 0) {
+      return
+    }
+    LogStorageService.storageConfig = {
+      maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
+      retentionDays: LogStorageService.storageConfig.retentionDays,
+      autoExportEnabled: LogStorageService.storageConfig.autoExportEnabled,
+      exportPath: '',
+      exportTargetType: EXPORT_TARGET_DOWNLOAD,
+      exportTargetValue: '',
+      exportAuthMode: EXPORT_AUTH_DOWNLOAD
+    }
+    await LogStorageService.saveConfig()
+  }
+
+  private static shouldRetryDownloadAuthorization(errorCode?: number): boolean {
+    if (errorCode === undefined) {
+      return true
+    }
+    return errorCode === 13900001 || errorCode === 13900002 || errorCode === 201 || errorCode === 202
   }
 
   // 鑾峰彇褰撳墠鏉＄洰鎬绘暟
@@ -994,19 +1124,14 @@ export class LogStorageService {
       DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
     )
 
-    let exportPath = LogStorageService.resolvePublicDirectoryByType(EXPORT_TARGET_DOWNLOAD)
-    if (!exportPath || exportPath.length === 0) {
-      exportPath = LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
-    }
-
     return {
       maxLocalEntries: maxLocalEntries,
       retentionDays: retentionDays,
       autoExportEnabled: autoExportEnabled,
-      exportPath: exportPath,
+      exportPath: '',
       exportTargetType: EXPORT_TARGET_DOWNLOAD,
       exportTargetValue: '',
-      exportAuthMode: EXPORT_AUTH_RUNTIME
+      exportAuthMode: EXPORT_AUTH_DOWNLOAD
     }
   }
 
@@ -1020,36 +1145,19 @@ export class LogStorageService {
       )
     }
 
-    let rawType = typeof config.exportTargetType === 'string' ? config.exportTargetType.trim() : ''
-    let normalizedType = LogStorageService.normalizeTargetType(rawType)
-    let targetValue = (config.exportTargetValue || '').trim()
-    let legacyPath = LogStorageService.sanitizeConfiguredExportDirectory(config.exportPath)
-    if (!normalizedType) {
-      if (rawType === 'custom_uri') {
-        normalizedType =
-          LogStorageService.resolvePublicTargetTypeByPath(targetValue) ||
-          LogStorageService.resolvePublicTargetTypeByPath(config.exportPath) ||
-          EXPORT_TARGET_DOWNLOAD
-      } else if (legacyPath) {
-        normalizedType = LogStorageService.resolveLegacyPublicTargetType(legacyPath) ?? EXPORT_TARGET_DOWNLOAD
-      } else {
-        normalizedType = EXPORT_TARGET_DOWNLOAD
-      }
-    }
-
-    let publicPath = LogStorageService.resolveConfiguredPublicDirectory(normalizedType, legacyPath)
-    if (!publicPath || publicPath.length === 0) {
-      return LogStorageService.createDefaultTargetConfig(baseConfig)
+    let configuredUri = LogStorageService.sanitizeExportTargetUri(config.exportTargetValue)
+    if (configuredUri.length === 0) {
+      configuredUri = LogStorageService.sanitizeExportTargetUri(config.exportPath)
     }
 
     return {
       maxLocalEntries: baseConfig.maxLocalEntries,
       retentionDays: baseConfig.retentionDays,
       autoExportEnabled: baseConfig.autoExportEnabled,
-      exportPath: publicPath,
-      exportTargetType: normalizedType,
-      exportTargetValue: '',
-      exportAuthMode: EXPORT_AUTH_RUNTIME
+      exportPath: '',
+      exportTargetType: EXPORT_TARGET_DOWNLOAD,
+      exportTargetValue: configuredUri,
+      exportAuthMode: EXPORT_AUTH_DOWNLOAD
     }
   }
 
@@ -1112,22 +1220,11 @@ export class LogStorageService {
 
   private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
     let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
-    let targetType = normalizedConfig.exportTargetType ?? EXPORT_TARGET_DOWNLOAD
-
-    let publicPath = LogStorageService.resolveConfiguredPublicDirectory(targetType, normalizedConfig.exportPath)
-    if (publicPath && publicPath.length > 0) {
-      return {
-        targetType: targetType,
-        authMode: EXPORT_AUTH_RUNTIME,
-        directory: publicPath
-      }
-    }
-
-    let fallback = LogStorageService.resolveDefaultExportDirectoryFromCurrentContext()
+    let directoryUri = LogStorageService.sanitizeExportTargetUri(normalizedConfig.exportTargetValue)
     return {
       targetType: EXPORT_TARGET_DOWNLOAD,
-      authMode: EXPORT_AUTH_RUNTIME,
-      directory: fallback
+      authMode: EXPORT_AUTH_DOWNLOAD,
+      directory: directoryUri
     }
   }
 
@@ -1138,7 +1235,7 @@ export class LogStorageService {
       prevConfig.exportPath !== normalizedConfig.exportPath ||
       prevConfig.exportTargetType !== normalizedConfig.exportTargetType ||
       (prevConfig.exportTargetValue || '') !== (normalizedConfig.exportTargetValue || '') ||
-      (prevConfig.exportAuthMode || EXPORT_AUTH_RUNTIME) !== (normalizedConfig.exportAuthMode || EXPORT_AUTH_RUNTIME)
+      (prevConfig.exportAuthMode || EXPORT_AUTH_DOWNLOAD) !== (normalizedConfig.exportAuthMode || EXPORT_AUTH_DOWNLOAD)
     if (changed) {
       LogStorageService.storageConfig = normalizedConfig
       await LogStorageService.saveConfig()
@@ -1170,36 +1267,47 @@ export class LogStorageService {
       }
     }
 
-    let fullPath = LogStorageService.joinPath(directory, fileName)
+    let targetPath = LogStorageService.joinPath(directory, fileName)
     let file: fileIo.File | undefined = undefined
     try {
-      if (!LogStorageService.isUriPath(directory)) {
+      if (LogStorageService.isUriPath(directory)) {
+        targetPath = new fileUri.FileUri(targetPath).path
+      } else {
         LogStorageService.ensureDirectoryExists(directory)
       }
       file = fileIo.openSync(
-        fullPath,
-        fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC
+        targetPath,
+        fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE
       )
       fileIo.writeSync(file.fd, content)
-      fileIo.closeSync(file)
+      fileIo.closeSync(file.fd)
       file = undefined
 
-      let stat = fileIo.statSync(fullPath)
+      let sizeBytes: number | undefined = undefined
+      try {
+        sizeBytes = fileIo.statSync(targetPath).size
+      } catch (statErr) {
+        hilog.warn(
+          DOMAIN,
+          TAG,
+          `Export stat failed after write: ${JSON.stringify(statErr)}; targetPath=${targetPath}`
+        )
+      }
       return {
         success: true,
-        fullPath: fullPath,
-        sizeBytes: stat.size
+        fullPath: targetPath,
+        sizeBytes: sizeBytes
       }
     } catch (err) {
       if (file) {
         try {
-          fileIo.closeSync(file)
+          fileIo.closeSync(file.fd)
         } catch (_closeErr) {
         }
       }
       try {
         let code = LogStorageService.extractErrorCode(err as Object)
-        let msg = `写入导出文件失败: ${JSON.stringify(err)}`
+        let msg = `写入导出文件失败: ${JSON.stringify(err)}; directory=${directory}; targetPath=${targetPath}`
         hilog.error(DOMAIN, TAG, msg)
         return {
           success: false,
@@ -1501,6 +1609,7 @@ export class LogStorageService {
       sourceSubType: entry.sourceSubType,
       rawEventName: LogStorageService.truncateString(entry.rawEventName, MAX_RAW_EVENT_NAME_LENGTH),
       rawOutcome: LogStorageService.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
+      rawAction: LogStorageService.truncateString(entry.rawAction, MAX_RAW_ACTION_LENGTH),
       result: LogStorageService.normalizeEventResult(entry.result)
     }
   }
@@ -1685,7 +1794,7 @@ export class LogStorageService {
       )
       await store.put(
         PREF_KEY_LOG_EXPORT_AUTH_MODE,
-        LogStorageService.storageConfig.exportAuthMode ?? EXPORT_AUTH_RUNTIME
+        LogStorageService.storageConfig.exportAuthMode ?? EXPORT_AUTH_DOWNLOAD
       )
       await store.flush()
     } catch (err) {
@@ -1768,6 +1877,7 @@ interface ExportWriteResult {
 
 interface ExportAuthResult {
   success: boolean
+  directory?: string
   errorCode?: number
   policyErrorCode?: number
   persistenceForbidden?: boolean

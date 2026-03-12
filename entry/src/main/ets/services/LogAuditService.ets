@@ -459,6 +459,7 @@ export class LogAuditService {
       sourceSubType: sourceSubType,
       rawEventName: parsed.rawEventName,
       rawOutcome: parsed.rawOutcome,
+      rawAction: parsed.rawAction,
       result: parsed.result
     }
   }
@@ -514,6 +515,14 @@ export class LogAuditService {
       'decision',
       'actionResult',
       'action_result'
+    ])
+    result.rawAction = LogAuditService.pickFirstString(sources, [
+      'action',
+      'eventAction',
+      'event_action',
+      'operation',
+      'op',
+      'state'
     ])
 
     let detail = LogAuditService.pickFirstString(sources, [
@@ -1012,5 +1021,6 @@ interface ParsedContent {
   remoteAddr?: string
   rawEventName?: string
   rawOutcome?: string
+  rawAction?: string
   result: LogEventResult
 }

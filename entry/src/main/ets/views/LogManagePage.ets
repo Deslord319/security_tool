@@ -10,7 +10,6 @@ import {
   LogFilter,
   LogStatistics,
   LogStorageConfig,
-  LogExportTargetType,
   LogExportFormat,
   LogExportResult,
   LogAuditDiagnostics,
@@ -272,10 +271,6 @@ export struct LogManagePage {
   @State maxEntriesIndex: number = 1
   @State retentionIndex: number = 2
   @State autoExportEnabled: boolean = false
-  @State exportTargetType: LogExportTargetType = 'download'
-  @State publicExportPath: string = ''
-  @State exportPath: string = ''
-  @State defaultExportPath: string = ''
 
   @State showSettings: boolean = false
   @State isLoading: boolean = false
@@ -321,11 +316,6 @@ export struct LogManagePage {
     { value: '已阻止' } as SelectOption,
     { value: '失败' } as SelectOption
   ]
-  private exportTargetOptions: SelectOption[] = [
-    { value: '下载目录' } as SelectOption,
-    { value: '文档目录' } as SelectOption,
-    { value: '桌面目录' } as SelectOption
-  ]
 
   aboutToAppear() {
     this.initServices()
@@ -353,7 +343,6 @@ export struct LogManagePage {
     try {
       let context = getContext(this) as common.UIAbilityContext
       await LogStorageService.init(context)
-      this.defaultExportPath = LogStorageService.getDefaultExportDirectory(context)
       this.applyStorageConfig(LogStorageService.getConfig())
 
       this.refreshAll()
@@ -545,28 +534,20 @@ export struct LogManagePage {
   }
 
   showExportFailureDialog(result: LogExportResult) {
-    let directory = result.directory || this.exportPath || this.defaultExportPath || '未知'
+    let directory = result.directory || '-'
     let fileName = result.fileName || '未知'
-    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
+    let codeText = result.errorCode !== undefined ? '错误码: ' + result.errorCode + '\n' : ''
     let reasonText = result.errorMessage || '未知错误'
 
     AlertDialog.show({
       title: '导出失败',
       message:
-        `${codeText}` +
-        `目标文件: ${fileName}\n` +
-        `目标目录: ${directory}\n` +
-        `失败原因: ${reasonText}\n` +
-        '建议: 检查路径权限，或恢复默认目录后重试。',
-      primaryButton: {
-        value: '恢复默认目录',
-        action: () => {
-          this.exportTargetType = 'download'
-          this.updateExportPathPreview()
-          promptAction.showToast({ message: '已恢复默认导出目录，请重新导出' })
-        }
-      },
-      secondaryButton: { value: '关闭', action: () => {} }
+        codeText +
+        '目标文件: ' + fileName + '\n' +
+        '目标目录: ' + directory + '\n' +
+        '失败原因: ' + reasonText + '\n' +
+        '建议: 重试导出，系统会在需要时自动请求 DOWNLOAD 目录授权。',
+      primaryButton: { value: '关闭', action: () => {} }
     })
   }
 
@@ -689,23 +670,15 @@ export struct LogManagePage {
   }
 
   async saveStorageSettings() {
-    let context = getContext(this) as common.UIAbilityContext
-    let targetType = this.exportTargetType
-    let permissionResult = await LogStorageService.ensurePublicDirectoryPermission(context, targetType)
-    if (!permissionResult.success) {
-      let codeText = permissionResult.errorCode !== undefined ? `(${permissionResult.errorCode})` : ''
-      promptAction.showToast({ message: `Directory authorization failed ${codeText}, please choose again.` })
-      return
-    }
-
+    let previousConfig = LogStorageService.getConfig()
     let config: LogStorageConfig = {
       maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex],
       retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex],
       autoExportEnabled: this.autoExportEnabled,
-      exportTargetType: targetType,
-      exportTargetValue: '',
-      exportAuthMode: 'runtime_permission',
-      exportPath: LogStorageService.getPublicExportDirectory(targetType)
+      exportTargetType: 'download',
+      exportTargetValue: previousConfig.exportTargetValue || '',
+      exportAuthMode: 'download_mode',
+      exportPath: ''
     }
 
     let success = await LogStorageService.updateConfig(config)
@@ -736,79 +709,6 @@ export struct LogManagePage {
     }
 
     this.autoExportEnabled = config.autoExportEnabled
-    this.publicExportPath = ''
-    let targetType = config.exportTargetType
-    if (targetType !== 'download' && targetType !== 'documents' && targetType !== 'desktop') {
-      targetType = 'download'
-    }
-    this.exportTargetType = targetType
-
-    this.updateExportPathPreview()
-  }
-  private getExportTargetLabel(targetType: LogExportTargetType): string {
-    if (targetType === 'download') {
-      return '下载目录'
-    }
-    if (targetType === 'documents') {
-      return '文档目录'
-    }
-    if (targetType === 'desktop') {
-      return '桌面目录'
-    }
-    return '下载目录'
-  }
-
-  private getExportTargetSelectIndex(): number {
-    if (this.exportTargetType === 'download') {
-      return 0
-    }
-    if (this.exportTargetType === 'documents') {
-      return 1
-    }
-    if (this.exportTargetType === 'desktop') {
-      return 2
-    }
-    return 0
-  }
-
-  private applyExportTargetByIndex(index: number): void {
-    this.publicExportPath = ''
-    if (index === 0) {
-      this.exportTargetType = 'download'
-    } else if (index === 1) {
-      this.exportTargetType = 'documents'
-    } else {
-      this.exportTargetType = 'desktop'
-    }
-    this.updateExportPathPreview()
-  }
-
-  private updateExportPathPreview(): void {
-    let resolved = LogStorageService.getPublicExportDirectory(this.exportTargetType)
-    if (resolved.length > 0) {
-      this.exportPath = resolved
-    } else {
-      this.exportPath = this.defaultExportPath
-    }
-  }
-
-  toDisplayPath(path: string): string {
-    let display = path
-    if (display.startsWith('file://')) {
-      display = display.substring('file://'.length)
-    }
-    try {
-      display = decodeURIComponent(display)
-    } catch (_err) {
-    }
-    return display
-  }
-
-  restoreDefaultExportDirectory() {
-    this.exportTargetType = 'download'
-    this.publicExportPath = ''
-    this.updateExportPathPreview()
-    promptAction.showToast({ message: '已恢复默认导出目录，请保存以生效' })
   }
   private getCurrentTypeDiag(): LogEventTypeDiag | undefined {
     if (this.filterEventType < 0) {
@@ -1393,8 +1293,6 @@ export struct LogManagePage {
                 this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
                 this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
                 this.autoExportEnabled = DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-                this.exportTargetType = 'download'
-                this.updateExportPathPreview()
                 promptAction.showToast({ message: '已恢复默认，请保存以生效' })
               })
 
@@ -1487,62 +1385,6 @@ export struct LogManagePage {
       .width('100%')
       .height(56)
       .alignItems(VerticalAlign.Center)
-
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Text('导出目录类型')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-
-        Select(this.exportTargetOptions)
-          .selected(this.getExportTargetSelectIndex())
-          .value(this.getExportTargetLabel(this.exportTargetType))
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.applyExportTargetByIndex(index) })
-      }
-      .width('100%')
-      .height(56)
-      .alignItems(VerticalAlign.Center)
-
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row({ space: 12 }) {
-        Column({ space: 8 }) {
-          Text('导出保存位置')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Text(this.toDisplayPath(this.exportPath.length > 0 ? this.exportPath : '未选择目录'))
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontFamily('monospace')
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            .maxLines(3)
-            .width('100%')
-            .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-            .borderRadius(AppStyles.RADIUS_SM)
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        Row({ space: 8 }) {
-          Button('恢复默认目录').onClick(() => { this.restoreDefaultExportDirectory() })
-        }
-        .alignItems(VerticalAlign.Center)
-      }
-      .width('100%')
-      .padding({ top: 14, bottom: 14 })
-      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
@@ -1561,43 +1403,6 @@ export struct LogManagePage {
       })
     })
   }
-
-  @Builder
-  permissionInfoCard() {
-    Column({ space: 6 }) {
-      Text('权限信息').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      Text('ohos.permission.QUERY_AUDIT_EVENT').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      Text('ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      Text('ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      Text('ohos.permission.READ_WRITE_DESKTOP_DIRECTORY').fontSize(AppStyles.FONT_SIZE_BODY).fontFamily('monospace')
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: this.hoveredSettingsCardIndex === 1 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 1, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 1, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredSettingsCardIndex = isHover ? 1 : -1
-      })
-    })
-  }
-
   @Builder
   auditDiagnosticsCard() {
     Column({ space: 12 }) {

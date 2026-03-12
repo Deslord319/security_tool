@@ -22,7 +22,7 @@ export class LogRuntimeCollectorService {
   private static flushTimerId: number = -1
   private static isFlushingEntries: boolean = false
 
-  private static readonly BATCH_FLUSH_INTERVAL_MS: number = 500
+  private static readonly BATCH_FLUSH_INTERVAL_MS: number = 200
   private static readonly MAX_PENDING_ENTRIES: number = 1200
   private static setTimerFn: (task: () => void, delayMs: number) => number =
     (task: () => void, delayMs: number): number => setTimeout(task, delayMs)

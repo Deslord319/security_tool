@@ -41,14 +41,10 @@ export struct FirewallPage {
     this.isLoading = true
     this.serviceErrorText = ''
     try {
-      let status = await FirewallService.getFirewallStatus()
-      this.firewallSwitchValue = status
+      await FirewallService.getFirewallStatus()
       let statusError = FirewallService.getLastErrorText()
       if (statusError.length > 0) {
         this.serviceErrorText = statusError
-      }
-      if (status !== this.firewallEnabled) {
-        this.onFirewallToggle(status)
       }
       this.rules = await FirewallService.getAllRules()
       let rulesError = FirewallService.getLastErrorText()

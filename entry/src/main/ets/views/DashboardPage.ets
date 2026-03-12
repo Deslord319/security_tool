@@ -22,7 +22,7 @@ export struct DashboardPage {
   @State adminActivated: boolean = false
   @State collectorRunning: boolean = false
   @State logSubscribed: boolean = false
-  @State subscribeModeLabel: string = 'None'
+  @State subscribeModeLabel: string = '未订阅'
   @State titleEnterOpacity: number = 0
   @State titleEnterOffset: number = 20
   @State healthEnterOpacity: number = 0
@@ -170,7 +170,7 @@ export struct DashboardPage {
     } else if (mode === 'legacy') {
       this.subscribeModeLabel = 'Legacy'
     } else {
-      this.subscribeModeLabel = 'None'
+      this.subscribeModeLabel = '未订阅'
     }
   }
 
@@ -178,13 +178,13 @@ export struct DashboardPage {
     Scroll() {
       Column({ space: 20 }) {
         Column({ space: 4 }) {
-          Text('\u5b89\u5168\u603b\u89c8')
+          Text('安全总览')
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-          Text('HarmonyOS \u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3\uff0c\u63d0\u4f9b\u4f01\u4e1a\u7ea7\u8bbe\u5907\u5b89\u5168\u7ba1\u63a7\u80fd\u529b\u3002')
+          Text('HarmonyOS 安全管理中心，提供企业级设备安全管控能力。')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -195,10 +195,9 @@ export struct DashboardPage {
         .translate({ y: this.titleEnterOffset })
 
         Row({ space: 10 }) {
-          this.healthTag('\u7ba1\u7406\u5458', this.adminActivated ? '\u5df2\u6fc0\u6d3b' : '\u672a\u6fc0\u6d3b', this.adminActivated)
-          this.healthTag('\u91c7\u96c6\u5668', this.collectorRunning ? '\u8fd0\u884c\u4e2d' : '\u672a\u8fd0\u884c', this.collectorRunning)
-          this.healthTag('\u65e5\u5fd7\u8ba2\u9605', this.logSubscribed ? '\u6b63\u5e38' : '\u5f02\u5e38', this.logSubscribed)
-          this.healthTag('\u8ba2\u9605\u6a21\u5f0f', this.subscribeModeLabel, this.subscribeModeLabel !== 'None')
+          this.healthTag('管理员', this.adminActivated ? '已激活' : '未激活', this.adminActivated)
+          this.healthTag('采集器', this.collectorRunning ? '运行中' : '未运行', this.collectorRunning)
+          this.healthTag('订阅', this.logSubscribed ? '正常' : '异常', this.logSubscribed)
         }
         .width('100%')
         .opacity(this.healthEnterOpacity)
@@ -207,8 +206,8 @@ export struct DashboardPage {
         GridRow({ columns: 4, gutter: 16 }) {
           GridCol() {
             StatCard({
-              label: '\u9632\u706b\u5899\u72b6\u6001',
-              value: this.firewallEnabled ? '\u5df2\u5f00\u542f' : '\u5df2\u5173\u95ed',
+              label: '防火墙状态',
+              value: this.firewallEnabled ? '已开启' : '已关闭',
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
               icon: $r('app.media.firewall')
@@ -220,7 +219,7 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '\u4eca\u65e5\u5ba1\u8ba1\u4e8b\u4ef6',
+              label: '今日审计事件',
               value: this.todayAuditCount.toString(),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
@@ -233,7 +232,7 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '\u5df2\u963b\u6b62\u4e8b\u4ef6',
+              label: '已阻止事件',
               value: this.blockedAuditCount.toString(),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
@@ -246,7 +245,7 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '\u65e5\u5fd7\u603b\u91cf',
+              label: '日志总量',
               value: this.totalLogCount.toString(),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
@@ -259,7 +258,7 @@ export struct DashboardPage {
         }
         .width('100%')
 
-        Text('\u5feb\u6377\u529f\u80fd')
+        Text('快捷功能')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -269,7 +268,7 @@ export struct DashboardPage {
         GridRow({ columns: 3, gutter: 16 }) {
           GridCol() {
             ToolCard({
-              label: '\u9632\u706b\u5899\u7ba1\u7406',
+              label: '防火墙管理',
               icon: $r('app.media.firewall'),
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
@@ -282,7 +281,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '\u65e5\u5fd7\u7ba1\u7406',
+              label: '日志管理',
               icon: $r('app.media.log'),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
@@ -295,7 +294,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '\u5916\u8bbe\u7ba1\u7406',
+              label: '外设管理',
               icon: $r('app.media.peripheral'),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
@@ -308,7 +307,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '\u8eab\u4efd\u9274\u522b',
+              label: '身份鉴别',
               icon: $r('app.media.identity'),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
@@ -321,7 +320,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '\u9632\u706b\u5899\u89c4\u5219',
+              label: '防火墙规则',
               icon: $r('app.media.rules'),
               gradientStart: '#FF3B30',
               gradientEnd: '#FF6B6B',
@@ -334,7 +333,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '\u5de5\u5177\u8bbe\u7f6e',
+              label: '工具设置',
               icon: $r('app.media.settings'),
               gradientStart: '#8E8E93',
               gradientEnd: '#AEAEB2',

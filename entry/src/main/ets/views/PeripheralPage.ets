@@ -281,7 +281,7 @@ export struct PeripheralPage {
     if (runtimeStatus.capabilities.usbRuntimeEvents) {
       return ''
     }
-    return '当前设备不支持运行时插拔采集，已自动降级为审计事件和策略快照。'
+    return '当前版本未启用运行时采集，已使用审计事件和策略快照。'
   }
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
