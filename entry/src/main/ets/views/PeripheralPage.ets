@@ -211,7 +211,7 @@ export struct PeripheralPage {
     this.deviceRecords = PeripheralConnectionRecordService.queryRecords(this.buildRecordFilter())
     let hasAuditEvent = this.deviceRecords.some((record: PeripheralConnectionRecord) => record.source === 'audit_event')
     if (this.deviceRecords.length === 0) {
-      this.recordHintMessage = '暂无设备连接记录'
+      this.recordHintMessage = ''
       return
     }
     this.recordHintMessage = hasAuditEvent ? '' : '当前仅展示策略快照（非实时插拔审计）'
