@@ -80,7 +80,13 @@ export class LogAuditService {
       ]
     ],
     [LogEventType.ACCOUNT, [securityAudit.NotifyEvent.ACCOUNT]],
-    [LogEventType.USB_ACCESS, [securityAudit.NotifyEvent.USB_ACCESS_INTERCEPTED]],
+    [
+      LogEventType.USB_ACCESS,
+      [
+        securityAudit.NotifyEvent.USB_ACCESS_INTERCEPTED,
+        securityAudit.NotifyEvent.VOLUME
+      ]
+    ],
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]],
     [LogEventType.PROCESS, [securityAudit.NotifyEvent.PROCESS]],
     [LogEventType.PRINTER, [securityAudit.NotifyEvent.PRINTER]],

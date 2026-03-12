@@ -307,9 +307,9 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
     case PeripheralType.USB_STORAGE:
       return 'USB 存储设备'
     case PeripheralType.USB_CAMERA:
-      return 'USB Camera'
+      return 'USB 摄像头'
     case PeripheralType.USB_PRINTER:
-      return 'USB Printer'
+      return 'USB 打印机'
     case PeripheralType.USB_OTHER:
       return 'USB 其他'
     case PeripheralType.BLUETOOTH:
@@ -336,26 +336,26 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
 export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
   switch (source) {
     case 'runtime_event':
-      return 'Runtime Event'
+      return '运行时事件'
     case 'audit_event':
-      return 'Audit Event'
+      return '审计事件'
     case 'policy_snapshot':
-      return 'Policy Snapshot'
+      return '策略快照'
     default:
-      return 'Unknown Source'
+      return '未知来源'
   }
 }
 
 export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
   switch (action) {
     case 'connect':
-      return 'Connect'
+      return '连接'
     case 'disconnect':
-      return 'Disconnect'
+      return '断开'
     case 'intercept':
-      return 'Intercept'
+      return '拦截'
     default:
-      return 'Unknown Action'
+      return '未知动作'
   }
 }
 export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
@@ -721,21 +721,21 @@ export function getLogEventTypeLabel(type: LogEventType): string {
     case LogEventType.ACCOUNT:
       return '账户操作'
     case LogEventType.USB_ACCESS:
-      return 'USB访问'
+      return 'USB 访问'
     case LogEventType.PERMISSION:
       return '权限变更'
     case LogEventType.PROCESS:
       return '进程管理'
     case LogEventType.PRINTER:
-      return 'Printer'
+      return '打印机'
     case LogEventType.CAMERA:
-      return 'Camera'
+      return '摄像头'
     case LogEventType.CERT:
       return '证书管理'
     case LogEventType.EDM:
-      return 'EDM策略'
+      return 'EDM 策略'
     case LogEventType.DNS:
-      return 'DNS查询'
+      return 'DNS 查询'
     default:
       return '未知'
   }
@@ -747,7 +747,7 @@ export function getLogEventResultLabel(result: LogEventResult): string {
     case LogEventResult.SUCCESS:
       return '成功'
     case LogEventResult.BLOCKED:
-      return 'Blocked'
+      return '已阻止'
     case LogEventResult.FAILED:
       return '失败'
     default:
@@ -776,14 +776,14 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: '网络流量', value: LogEventType.NETWORK_TRAFFIC },
   { label: '应用管理', value: LogEventType.APP },
   { label: '账户操作', value: LogEventType.ACCOUNT },
-  { label: 'USB访问', value: LogEventType.USB_ACCESS },
+  { label: 'USB 访问', value: LogEventType.USB_ACCESS },
   { label: '权限变更', value: LogEventType.PERMISSION },
   { label: '进程管理', value: LogEventType.PROCESS },
-  { label: 'Printer', value: LogEventType.PRINTER },
-  { label: 'Camera', value: LogEventType.CAMERA },
+  { label: '打印机', value: LogEventType.PRINTER },
+  { label: '摄像头', value: LogEventType.CAMERA },
   { label: '证书管理', value: LogEventType.CERT },
-  { label: 'EDM策略', value: LogEventType.EDM },
-  { label: 'DNS查询', value: LogEventType.DNS }
+  { label: 'EDM 策略', value: LogEventType.EDM },
+  { label: 'DNS 查询', value: LogEventType.DNS }
 ]
 
 
@@ -797,7 +797,4 @@ export function formatLogTimestamp(timestamp: number): string {
 export function generateLogEntryId(): string {
   return `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
-
-
-
 
