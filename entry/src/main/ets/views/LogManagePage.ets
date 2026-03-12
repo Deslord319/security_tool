@@ -270,7 +270,6 @@ export struct LogManagePage {
 
   @State maxEntriesIndex: number = 1
   @State retentionIndex: number = 2
-  @State autoExportEnabled: boolean = false
 
   @State showSettings: boolean = false
   @State isLoading: boolean = false
@@ -674,7 +673,6 @@ export struct LogManagePage {
     let config: LogStorageConfig = {
       maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex],
       retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex],
-      autoExportEnabled: this.autoExportEnabled,
       exportTargetType: 'download',
       exportTargetValue: previousConfig.exportTargetValue || '',
       exportAuthMode: 'download_mode',
@@ -707,8 +705,6 @@ export struct LogManagePage {
     if (this.retentionIndex < 0) {
       this.retentionIndex = 0
     }
-
-    this.autoExportEnabled = config.autoExportEnabled
   }
   private getCurrentTypeDiag(): LogEventTypeDiag | undefined {
     if (this.filterEventType < 0) {
@@ -864,9 +860,81 @@ export struct LogManagePage {
         .layoutWeight(1)
         .alignItems(VerticalAlign.Top)
 
-        Row({ space: 6 }) {
-          Circle({ width: 8, height: 8 })
-            .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
+        Column({ space: 8 }) {
+          Row({ space: 6 }) {
+            Circle({ width: 8, height: 8 })
+              .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
+            Text(this.isSubscribed ? `\u5df2\u8ba2\u9605(${this.getSubscribeModeText()})` : '\u8ba2\u9605\u5931\u8d25')
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          }
+
+          Row({ space: 8 }) {
+            if (!this.showSettings) {
+              this.headerActionButton(
+                '\u5bfc\u51fa\u65e5\u5fd7',
+                $r('app.media.save'),
+                AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT,
+                AppColors.getColors(this.currentTheme).TAG_BLUE_BG,
+                () => {
+                  this.showExportFormatDialog()
+                }
+              )
+
+              this.headerActionButton(
+                '\u6e05\u7a7a\u65e5\u5fd7',
+                $r('app.media.trash'),
+                AppColors.getColors(this.currentTheme).TAG_RED_TEXT,
+                AppColors.getColors(this.currentTheme).TAG_RED_BG,
+                () => {
+                  this.clearLogs()
+                }
+              )
+            }
+
+            if (!this.showSettings) {
+              Button('\u8fdb\u5165\u5b58\u50a8\u8bbe\u7f6e')
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+                .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+                .borderRadius(AppStyles.RADIUS_SM)
+                .height(32)
+                .padding({ left: 12, right: 12 })
+                .onClick(() => {
+                  this.showSettings = true
+                })
+            } else {
+              this.headerActionButton(
+                '\u4fdd\u5b58\u8bbe\u7f6e',
+                $r('app.media.save'),
+                Color.White,
+                AppColors.BRAND_PRIMARY,
+                () => {
+                  void this.saveStorageSettings()
+                }
+              )
+
+              Button('\u8fd4\u56de\u65e5\u5fd7\u5217\u8868')
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+                .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+                .borderRadius(AppStyles.RADIUS_SM)
+                .height(32)
+                .padding({ left: 12, right: 12 })
+                .onClick(() => {
+                  this.showSettings = false
+                })
+            }
+          }
+        }
+        .margin({ left: 12 })
+        .alignItems(HorizontalAlign.End)
+
+        if (false) {
+          Row({ space: 6 }) {
+            Circle({ width: 8, height: 8 })
+              .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
           Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -884,6 +952,7 @@ export struct LogManagePage {
           .onClick(() => {
             this.showSettings = !this.showSettings
           })
+        }
       }
       .width('100%')
       .padding({
@@ -900,7 +969,6 @@ export struct LogManagePage {
         this.filterHintView()
         this.logListView()
         this.paginationToolbar()
-        this.bottomToolbar()
       }
     }
     .width('100%')
@@ -1258,12 +1326,43 @@ export struct LogManagePage {
   }
 
   @Builder
+  headerActionButton(
+    label: string,
+    icon: Resource,
+    textColor: ResourceColor,
+    backgroundColor: ResourceColor,
+    onTap: () => void
+  ) {
+    Button() {
+      Row({ space: 6 }) {
+        Image(icon)
+          .width(14)
+          .height(14)
+          .fillColor(textColor)
+
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(textColor)
+      }
+      .alignItems(VerticalAlign.Center)
+    }
+    .type(ButtonType.Normal)
+    .backgroundColor(backgroundColor)
+    .borderRadius(AppStyles.RADIUS_SM)
+    .height(32)
+    .padding({ left: 10, right: 10 })
+    .onClick(() => {
+      onTap()
+    })
+  }
+
+  @Builder
   storageSettingsView() {
     Column() {
       Scroll() {
         Row() {
           Column({ space: 16 }) {
-            this.storageConfigCard()
+            this.storageConfigCardV2()
             this.auditDiagnosticsCard()
           }
           .width('100%')
@@ -1279,9 +1378,10 @@ export struct LogManagePage {
       .scrollBar(BarState.Auto)
       .align(Alignment.Top)
 
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+      if (false) {
+        Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      Column({ space: 16 }) {
+        Column({ space: 16 }) {
         Row() {
           Blank()
 
@@ -1292,7 +1392,6 @@ export struct LogManagePage {
               .onClick(() => {
                 this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
                 this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
-                this.autoExportEnabled = DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
                 promptAction.showToast({ message: '已恢复默认，请保存以生效' })
               })
 
@@ -1306,10 +1405,90 @@ export struct LogManagePage {
       .width('100%')
       .justifyContent(FlexAlign.Center)
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
+      }
     }
     .width('100%')
     .layoutWeight(1)
     .align(Alignment.Top)
+  }
+
+  @Builder
+  storageConfigCardV2() {
+    Column({ space: 0 }) {
+      Text('\u65e5\u5fd7\u5b58\u50a8\u914d\u7f6e')
+        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .padding({ top: 16, bottom: 12 })
+
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row() {
+        Text('\u6700\u5927\u5b58\u50a8\u6761\u6570')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} \u6761` } as SelectOption)))
+          .selected(this.maxEntriesIndex)
+          .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} \u6761`)
+          .font({ size: AppStyles.FONT_SIZE_BODY })
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .onSelect((index: number) => { this.maxEntriesIndex = index })
+      }
+      .width('100%')
+      .height(56)
+      .alignItems(VerticalAlign.Center)
+
+      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row() {
+        Text('\u65e5\u5fd7\u4fdd\u7559\u5929\u6570')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} \u5929` } as SelectOption)))
+          .selected(this.retentionIndex)
+          .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} \u5929`)
+          .font({ size: AppStyles.FONT_SIZE_BODY })
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
+          .height(36)
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_SM)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .onSelect((index: number) => { this.retentionIndex = index })
+      }
+      .width('100%')
+      .height(56)
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .padding(16)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: this.hoveredSettingsCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 0, true))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 0, 4) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredSettingsCardIndex = isHover ? 0 : -1
+      })
+    })
   }
 
   @Builder
@@ -1319,7 +1498,8 @@ export struct LogManagePage {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .padding({ top: 16, bottom: 12 })
 
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+      if (false) {
+        Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row() {
         Text('最大存储条数')
@@ -1344,6 +1524,7 @@ export struct LogManagePage {
       .width('100%')
       .height(56)
       .alignItems(VerticalAlign.Center)
+      }
 
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
@@ -1378,9 +1559,8 @@ export struct LogManagePage {
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: this.autoExportEnabled })
+        Toggle({ type: ToggleType.Switch, isOn: false })
           .selectedColor(AppColors.BRAND_PRIMARY)
-          .onChange((value: boolean) => { this.autoExportEnabled = value })
       }
       .width('100%')
       .height(56)

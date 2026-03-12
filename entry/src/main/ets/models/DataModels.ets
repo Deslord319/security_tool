@@ -597,7 +597,6 @@ export interface LogFilter {
 export interface LogStorageConfig {
   maxLocalEntries: number
   retentionDays: number
-  autoExportEnabled: boolean
 
   exportPath?: string
   exportTargetType?: LogExportTargetType
@@ -684,7 +683,6 @@ export interface LogEventTypeOption {
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   maxLocalEntries: 5000,
   retentionDays: 30,
-  autoExportEnabled: false,
   exportTargetType: 'download',
   exportTargetValue: '',
   exportAuthMode: 'download_mode'
@@ -722,7 +720,6 @@ export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000]
 
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
-export const PREF_KEY_LOG_AUTO_EXPORT = 'log_auto_export'
 export const PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
 export const PREF_KEY_LOG_EXPORT_TARGET_TYPE = 'log_export_target_type'
 export const PREF_KEY_LOG_EXPORT_TARGET_VALUE = 'log_export_target_value'

@@ -210,32 +210,6 @@ export struct ToolSettingsPage {
     }
   }
 
-  // 重置默认
-  resetToDefault() {
-    AlertDialog.show({
-      title: '确认重置',
-      message: '将恢复为默认配置：\n\n- 启用启动校验\n- 使用 PIN 码认证\n\n重置后需点击"保存设置"才会持久化。',
-      primaryButton: {
-        value: '确认',
-        action: () => {
-          this.startupAuthEnabled = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-          this.authMethodIndex = AUTH_METHOD_OPTIONS.findIndex((opt) => opt.value === DEFAULT_TOOL_SETTINGS.authMethod)
-          if (this.authMethodIndex < 0) {
-            this.authMethodIndex = 0
-          }
-          this.currentPassword = ''
-          this.newPassword = ''
-          this.confirmPassword = ''
-          promptAction.showToast({ message: '已重置，请点击"保存设置"以生效' })
-        }
-      },
-      secondaryButton: {
-        value: '取消',
-        action: () => {}
-      }
-    })
-  }
-
   build() {
     Column() {
       // 页面头部
@@ -263,6 +237,16 @@ export struct ToolSettingsPage {
         }
         .layoutWeight(1)
         .alignItems(VerticalAlign.Top)
+
+        this.headerActionButton(
+          '保存设置',
+          $r('app.media.save'),
+          Color.White,
+          AppColors.BRAND_PRIMARY,
+          () => {
+            this.saveSettings()
+          }
+        )
       }
       .width('100%')
       .padding({
@@ -294,42 +278,6 @@ export struct ToolSettingsPage {
       .scrollBar(BarState.Auto)
       .align(Alignment.Top)
 
-      // 底部按钮栏
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row({ space: 12 }) {
-        Button('重置默认')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .height(36)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.resetToDefault()
-          })
-
-        Button('保存设置')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(Color.White)
-          .backgroundColor(AppColors.BRAND_PRIMARY)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .height(36)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.saveSettings()
-          })
-      }
-      .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_MD,
-        bottom: AppStyles.PADDING_MD
-      })
     }
     .width('100%')
     .height('100%')
@@ -510,6 +458,37 @@ export struct ToolSettingsPage {
       HoverUtils.animate(() => {
         this.hoveredCardIndex = isHover ? 1 : -1
       })
+    })
+  }
+
+  @Builder
+  headerActionButton(
+    label: string,
+    icon: Resource,
+    textColor: ResourceColor,
+    backgroundColor: ResourceColor,
+    onTap: () => void
+  ) {
+    Button() {
+      Row({ space: 6 }) {
+        Image(icon)
+          .width(14)
+          .height(14)
+          .fillColor(textColor)
+
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(textColor)
+      }
+      .alignItems(VerticalAlign.Center)
+    }
+    .type(ButtonType.Normal)
+    .backgroundColor(backgroundColor)
+    .borderRadius(AppStyles.RADIUS_SM)
+    .height(32)
+    .padding({ left: 10, right: 10 })
+    .onClick(() => {
+      onTap()
     })
   }
 

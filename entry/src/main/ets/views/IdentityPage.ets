@@ -271,6 +271,16 @@ export struct IdentityPage {
         }
         .layoutWeight(1)
         .alignItems(VerticalAlign.Top)
+
+        this.headerActionButton(
+          '保存配置',
+          $r('app.media.save'),
+          Color.White,
+          AppColors.BRAND_PRIMARY,
+          () => {
+            this.saveConfig()
+          }
+        )
       }
       .width('100%')
       .padding({
@@ -301,43 +311,6 @@ export struct IdentityPage {
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
       .align(Alignment.Top)
-
-      // 底部按钮栏
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row({ space: 12 }) {
-        Button('重置默认')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .height(36)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.resetToDefault()
-          })
-
-        Button('保存配置')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(Color.White)
-          .backgroundColor(AppColors.BRAND_PRIMARY)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .height(36)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.saveConfig()
-          })
-      }
-      .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_MD,
-        bottom: AppStyles.PADDING_MD
-      })
     }
     .width('100%')
     .height('100%')
@@ -345,6 +318,37 @@ export struct IdentityPage {
   }
 
   // ==================== 功能区 1: 口令复杂度策略 ====================
+  @Builder
+  headerActionButton(
+    label: string,
+    icon: Resource,
+    textColor: ResourceColor,
+    backgroundColor: ResourceColor,
+    onTap: () => void
+  ) {
+    Button() {
+      Row({ space: 6 }) {
+        Image(icon)
+          .width(14)
+          .height(14)
+          .fillColor(textColor)
+
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(textColor)
+      }
+      .alignItems(VerticalAlign.Center)
+    }
+    .type(ButtonType.Normal)
+    .backgroundColor(backgroundColor)
+    .borderRadius(AppStyles.RADIUS_SM)
+    .height(32)
+    .padding({ left: 10, right: 10 })
+    .onClick(() => {
+      onTap()
+    })
+  }
+
   @Builder
   passwordComplexityBuilder() {
     Column({ space: 0 }) {

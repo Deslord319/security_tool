@@ -22,7 +22,6 @@ import {
   PREF_STORE_NAME_LOG,
   PREF_KEY_LOG_MAX_ENTRIES,
   PREF_KEY_LOG_RETENTION_DAYS,
-  PREF_KEY_LOG_AUTO_EXPORT,
   PREF_KEY_LOG_EXPORT_PATH,
   PREF_KEY_LOG_EXPORT_TARGET_TYPE,
   PREF_KEY_LOG_EXPORT_TARGET_VALUE,
@@ -145,27 +144,6 @@ export class LogStorageService {
       // 瓒呭嚭鏈€澶ф潯鏁版椂鍒犻櫎鏃ф潯鐩?
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       let overflowCount = LogStorageService.logEntries.length - maxEntries
-      if (overflowCount > 0 && LogStorageService.storageConfig.autoExportEnabled) {
-        let exportResult = await LogStorageService.exportToFile(
-          LogStorageService.logEntries,
-          LogExportFormat.JSON,
-          'auto'
-        )
-        if (exportResult.success) {
-          hilog.info(
-            DOMAIN,
-            TAG,
-            `Auto export success: ${exportResult.fileName} -> ${exportResult.directory}`
-          )
-        } else {
-          hilog.warn(
-            DOMAIN,
-            TAG,
-            `Auto export failed before truncate: ${exportResult.errorMessage ?? 'unknown error'}`
-          )
-        }
-      }
-
       if (overflowCount > 0) {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(
           0, maxEntries
@@ -622,7 +600,6 @@ export class LogStorageService {
       LogStorageService.storageConfig = {
         maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
         retentionDays: LogStorageService.storageConfig.retentionDays,
-        autoExportEnabled: LogStorageService.storageConfig.autoExportEnabled,
         exportPath: '',
         exportTargetType: EXPORT_TARGET_DOWNLOAD,
         exportTargetValue: directoryUri,
@@ -651,7 +628,6 @@ export class LogStorageService {
     LogStorageService.storageConfig = {
       maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
       retentionDays: LogStorageService.storageConfig.retentionDays,
-      autoExportEnabled: LogStorageService.storageConfig.autoExportEnabled,
       exportPath: '',
       exportTargetType: EXPORT_TARGET_DOWNLOAD,
       exportTargetValue: '',
@@ -678,7 +654,6 @@ export class LogStorageService {
     let copy: LogStorageConfig = {
       maxLocalEntries: cfg.maxLocalEntries,
       retentionDays: cfg.retentionDays,
-      autoExportEnabled: cfg.autoExportEnabled,
       exportPath: cfg.exportPath,
       exportTargetType: cfg.exportTargetType,
       exportTargetValue: cfg.exportTargetValue,
@@ -1119,15 +1094,10 @@ export class LogStorageService {
     let retentionDays = LogStorageService.normalizeRetentionDays(
       baseConfig?.retentionDays ?? DEFAULT_LOG_STORAGE_CONFIG.retentionDays
     )
-    let autoExportEnabled = LogStorageService.normalizeBoolean(
-      baseConfig?.autoExportEnabled as Object,
-      DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-    )
 
     return {
       maxLocalEntries: maxLocalEntries,
       retentionDays: retentionDays,
-      autoExportEnabled: autoExportEnabled,
       exportPath: '',
       exportTargetType: EXPORT_TARGET_DOWNLOAD,
       exportTargetValue: '',
@@ -1138,11 +1108,7 @@ export class LogStorageService {
   private static normalizeStorageConfig(config: LogStorageConfig): LogStorageConfig {
     let baseConfig: LogStorageConfig = {
       maxLocalEntries: LogStorageService.normalizeMaxEntries(config.maxLocalEntries),
-      retentionDays: LogStorageService.normalizeRetentionDays(config.retentionDays),
-      autoExportEnabled: LogStorageService.normalizeBoolean(
-        config.autoExportEnabled as Object,
-        DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-      )
+      retentionDays: LogStorageService.normalizeRetentionDays(config.retentionDays)
     }
 
     let configuredUri = LogStorageService.sanitizeExportTargetUri(config.exportTargetValue)
@@ -1153,7 +1119,6 @@ export class LogStorageService {
     return {
       maxLocalEntries: baseConfig.maxLocalEntries,
       retentionDays: baseConfig.retentionDays,
-      autoExportEnabled: baseConfig.autoExportEnabled,
       exportPath: '',
       exportTargetType: EXPORT_TARGET_DOWNLOAD,
       exportTargetValue: configuredUri,
@@ -1737,10 +1702,6 @@ export class LogStorageService {
         PREF_KEY_LOG_RETENTION_DAYS,
         DEFAULT_LOG_STORAGE_CONFIG.retentionDays
       ) as Object
-      let autoExport = await store.get(
-        PREF_KEY_LOG_AUTO_EXPORT,
-        DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-      ) as Object
       let exportPath = await store.get(PREF_KEY_LOG_EXPORT_PATH, '') as string
       let exportTargetType = await store.get(PREF_KEY_LOG_EXPORT_TARGET_TYPE, '') as string
       let exportTargetValue = await store.get(PREF_KEY_LOG_EXPORT_TARGET_VALUE, '') as string
@@ -1750,10 +1711,6 @@ export class LogStorageService {
       let normalized = LogStorageService.normalizeStorageConfig({
         maxLocalEntries: LogStorageService.normalizeMaxEntries(maxEntries),
         retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber),
-        autoExportEnabled: LogStorageService.normalizeBoolean(
-          autoExport,
-          DEFAULT_LOG_STORAGE_CONFIG.autoExportEnabled
-        ),
         exportPath: LogStorageService.sanitizeConfiguredExportDirectory(exportPath),
         exportTargetType: exportTargetType as LogExportTargetType,
         exportTargetValue: exportTargetValue,
@@ -1779,7 +1736,6 @@ export class LogStorageService {
       let store = await preferences.getPreferences(LogStorageService.context, PREF_STORE_NAME_LOG)
       await store.put(PREF_KEY_LOG_MAX_ENTRIES, LogStorageService.storageConfig.maxLocalEntries)
       await store.put(PREF_KEY_LOG_RETENTION_DAYS, LogStorageService.storageConfig.retentionDays)
-      await store.put(PREF_KEY_LOG_AUTO_EXPORT, LogStorageService.storageConfig.autoExportEnabled)
       await store.put(
         PREF_KEY_LOG_EXPORT_PATH,
         LogStorageService.storageConfig.exportPath ?? ''
