@@ -751,7 +751,7 @@ export struct PeripheralPage {
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('通过 MDM Kit 管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
+          Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

@@ -88,7 +88,7 @@ export struct FirewallPage {
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text('通过 netFirewall API 管控网络入站/出站流量，支持 IP、域名、DNS 三种规则类型')
+            Text('管控网络入站/出站流量，支持 IP、域名和DNS 三种规则类型配置')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
