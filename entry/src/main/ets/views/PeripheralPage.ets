@@ -11,14 +11,18 @@ import {
   AdminActivationState,
   DeviceRecord,
   DeviceControlRecord,
+  PeripheralBlacklistTemplate,
+  PeripheralCandidateSource,
   PeripheralConnectionFilter,
   PeripheralConnectionRecord,
+  PeripheralWhitelistCandidate,
   OperationResult,
   PeripheralType,
   LogEventResult,
   formatLogTimestamp,
   getLogEventResultLabel,
   getPeripheralRecordActionLabel,
+  getPeripheralCandidateSourceLabel,
   getPeripheralRecordPolicyHitLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
@@ -29,7 +33,8 @@ import {
   inferUsbBaseClass,
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
-import { usbManager } from '@kit.MDMKit'
+import { usbManager as edmUsbManager } from '@kit.MDMKit'
+import { BusinessError, usbManager as hostUsbManager } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -44,10 +49,16 @@ type PeripheralResultData =
   boolean |
   number |
   string |
-  usbManager.UsbPolicy |
-  usbManager.UsbDeviceId[] |
-  usbManager.UsbDeviceType[] |
+  edmUsbManager.UsbPolicy |
+  edmUsbManager.UsbDeviceId[] |
+  edmUsbManager.UsbDeviceType[] |
   void
+
+interface UsbBlacklistDefaultTemplate {
+  title: string
+  description: string
+  baseClass: number
+}
 
 @Component
 export struct PeripheralPage {
@@ -71,9 +82,10 @@ export struct PeripheralPage {
   @State usbStoragePolicyIndex: number = 0
 
   // 黑白名单数据
-  @State usbWhitelist: usbManager.UsbDeviceId[] = []
-  @State usbBlacklist: usbManager.UsbDeviceType[] = []
+  @State usbWhitelist: edmUsbManager.UsbDeviceId[] = []
+  @State usbBlacklist: edmUsbManager.UsbDeviceType[] = []
   @State btWhitelist: string[] = []
+  @State connectedUsbDevices: hostUsbManager.USBDevice[] = []
 
   // 设备连接记录（本地模拟数据）
   @State deviceRecords: PeripheralConnectionRecord[] = []
@@ -122,6 +134,8 @@ export struct PeripheralPage {
   private usbWhitelistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddWhitelistDialog({
       mode: 'usb',
+      getCandidates: (): PeripheralWhitelistCandidate[] => this.getUsbWhitelistCandidates(),
+      emptyHint: '暂无可添加的 USB 设备，请先连接设备或使用手动录入。',
       onConfirmUsb: (vendorId: number, productId: number, _remark: string) => {
         this.handleAddUsbWhitelist(vendorId, productId)
       }
@@ -134,6 +148,8 @@ export struct PeripheralPage {
   private btWhitelistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddWhitelistDialog({
       mode: 'bluetooth',
+      getCandidates: (): PeripheralWhitelistCandidate[] => this.getBluetoothWhitelistCandidates(),
+      emptyHint: '暂无蓝牙候选设备，请先产生连接记录或使用手动录入。',
       onConfirmBluetooth: (mac: string, _remark: string) => {
         this.handleAddBluetoothWhitelist(mac)
       }
@@ -145,6 +161,7 @@ export struct PeripheralPage {
 
   private blacklistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddBlacklistDialog({
+      getTemplates: (): PeripheralBlacklistTemplate[] => this.getUsbBlacklistTemplates(),
       onConfirm: (baseClass: number, subClass: number, protocol: number, _desc: string) => {
         this.handleAddUsbBlacklist(baseClass, subClass, protocol)
       }
@@ -166,6 +183,243 @@ export struct PeripheralPage {
     this.unsubscribeRecordStorageChange()
     this.unsubscribeTraceStorageChange()
     this.stopRecordAutoRefresh()
+  }
+
+  private loadConnectedUsbDevices(): void {
+    try {
+      this.connectedUsbDevices = hostUsbManager.getDevices() || []
+    } catch (err) {
+      let error = err as BusinessError
+      this.connectedUsbDevices = []
+      hilog.warn(0x0002, TAG, `loadConnectedUsbDevices failed: code=${error.code}, message=${error.message}`)
+    }
+  }
+
+  private openUsbWhitelistDialog(): void {
+    this.loadConnectedUsbDevices()
+    this.usbWhitelistDialogController.open()
+  }
+
+  private openBtWhitelistDialog(): void {
+    this.btWhitelistDialogController.open()
+  }
+
+  private openUsbBlacklistDialog(): void {
+    this.loadConnectedUsbDevices()
+    this.blacklistDialogController.open()
+  }
+
+  private normalizeMac(rawMac: string): string {
+    return rawMac.toUpperCase().replace(/-/g, ':').trim()
+  }
+
+  private formatTimestamp(timestamp: number): string {
+    return timestamp > 0 ? formatLogTimestamp(timestamp) : '--'
+  }
+
+  private getCandidateSortWeight(source: PeripheralCandidateSource): number {
+    if (source === 'connected_usb') {
+      return 0
+    }
+    if (source === 'runtime_event') {
+      return 1
+    }
+    if (source === 'audit_event') {
+      return 2
+    }
+    return 3
+  }
+
+  private compareCandidateTime(left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate): number {
+    if (left.timestamp === right.timestamp) {
+      return this.getCandidateSortWeight(left.source) - this.getCandidateSortWeight(right.source)
+    }
+    return right.timestamp - left.timestamp
+  }
+
+  private getUsbWhitelistCandidates(): PeripheralWhitelistCandidate[] {
+    let items: Map<string, PeripheralWhitelistCandidate> = new Map()
+    let disabledKeys: string[] = this.usbWhitelist.map((device: edmUsbManager.UsbDeviceId) => {
+      return formatUsbDeviceId(device.vendorId, device.productId).toUpperCase()
+    })
+
+    for (let device of this.connectedUsbDevices) {
+      let deviceId = formatUsbDeviceId(device.vendorId, device.productId)
+      let key = deviceId.toUpperCase()
+      if (items.has(key)) {
+        continue
+      }
+      let type = inferPeripheralTypeFromBaseClass(device.clazz)
+      let name = device.productName && device.productName.trim().length > 0
+        ? device.productName.trim()
+        : this.inferUsbDeviceName(device.vendorId, device.productId)
+      items.set(key, {
+        id: `usb_connected_${key}`,
+        deviceName: name,
+        deviceType: type,
+        deviceId: deviceId,
+        timestamp: Date.now(),
+        source: 'connected_usb',
+        vendorId: device.vendorId,
+        productId: device.productId,
+        isConnected: true,
+        disabled: disabledKeys.includes(key)
+      })
+    }
+
+    for (let record of this.deviceRecords) {
+      let parsed = parseUsbDeviceId(record.deviceId)
+      if (!parsed) {
+        continue
+      }
+      let key = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
+      if (items.has(key)) {
+        continue
+      }
+      items.set(key, {
+        id: `usb_history_${record.id}`,
+        deviceName: record.deviceName,
+        deviceType: record.deviceType,
+        deviceId: formatUsbDeviceId(parsed.vendorId, parsed.productId),
+        timestamp: record.timestamp,
+        source: record.source,
+        vendorId: parsed.vendorId,
+        productId: parsed.productId,
+        disabled: disabledKeys.includes(key)
+      })
+    }
+
+    return Array.from(items.values()).sort((left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate) => {
+      return this.compareCandidateTime(left, right)
+    })
+  }
+
+  private getBluetoothWhitelistCandidates(): PeripheralWhitelistCandidate[] {
+    let items: Map<string, PeripheralWhitelistCandidate> = new Map()
+    let disabledKeys: string[] = this.btWhitelist.map((mac: string) => this.normalizeMac(mac))
+
+    for (let record of this.deviceRecords) {
+      let mac = parseBluetoothMac(record.deviceId)
+      if (!mac) {
+        continue
+      }
+      let normalizedMac = this.normalizeMac(mac)
+      if (items.has(normalizedMac)) {
+        continue
+      }
+      items.set(normalizedMac, {
+        id: `bt_${record.id}`,
+        deviceName: record.deviceName,
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceId: `MAC: ${normalizedMac}`,
+        timestamp: record.timestamp,
+        source: record.source,
+        mac: normalizedMac,
+        disabled: disabledKeys.includes(normalizedMac)
+      })
+    }
+
+    return Array.from(items.values()).sort((left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate) => {
+      return this.compareCandidateTime(left, right)
+    })
+  }
+
+  private buildBlacklistTemplateKey(baseClass: number, subClass: number, protocol: number): string {
+    return `${baseClass}|${subClass}|${protocol}`
+  }
+
+  private appendBlacklistTemplate(
+    items: Map<string, PeripheralBlacklistTemplate>,
+    disabledKeys: string[],
+    title: string,
+    description: string,
+    baseClass: number,
+    subClass: number,
+    protocol: number,
+    fromConnectedDevice: boolean
+  ): void {
+    let key = this.buildBlacklistTemplateKey(baseClass, subClass, protocol)
+    if (items.has(key)) {
+      return
+    }
+    items.set(key, {
+      id: `usb_blacklist_${key}`,
+      title: title,
+      description: description,
+      baseClass: baseClass,
+      subClass: subClass,
+      protocol: protocol,
+      fromConnectedDevice: fromConnectedDevice,
+      disabled: disabledKeys.includes(key)
+    })
+  }
+
+  private getUsbBlacklistTemplates(): PeripheralBlacklistTemplate[] {
+    let items: Map<string, PeripheralBlacklistTemplate> = new Map()
+    let disabledKeys: string[] = this.usbBlacklist.map((item: edmUsbManager.UsbDeviceType) => {
+      return this.buildBlacklistTemplateKey(item.baseClass, item.subClass, item.protocol)
+    })
+
+    for (let device of this.connectedUsbDevices) {
+      let title = device.productName && device.productName.trim().length > 0
+        ? device.productName.trim()
+        : this.inferUsbDeviceName(device.vendorId, device.productId)
+      let description = `${formatUsbDeviceId(device.vendorId, device.productId)} · 当前连接 USB 设备`
+      this.appendBlacklistTemplate(
+        items,
+        disabledKeys,
+        title,
+        description,
+        device.clazz,
+        device.subClass,
+        device.protocol,
+        true
+      )
+    }
+
+    let defaults: UsbBlacklistDefaultTemplate[] = [
+      { title: 'USB 存储设备', description: '通用大容量存储设备模板', baseClass: 0x08 },
+      { title: 'USB 打印设备', description: '通用打印设备模板', baseClass: 0x07 },
+      { title: 'USB 摄像设备', description: '通用摄像设备模板', baseClass: 0x0E }
+    ]
+    for (let item of defaults) {
+      this.appendBlacklistTemplate(
+        items,
+        disabledKeys,
+        item.title,
+        item.description,
+        item.baseClass,
+        0,
+        0,
+        false
+      )
+    }
+
+    for (let record of this.deviceRecords) {
+      let baseClass = inferUsbBaseClass(record.deviceType)
+      if (baseClass <= 0) {
+        continue
+      }
+      this.appendBlacklistTemplate(
+        items,
+        disabledKeys,
+        `${record.deviceName} 类型模板`,
+        `${getPeripheralCandidateSourceLabel(record.source)} · ${this.formatTimestamp(record.timestamp)}`,
+        baseClass,
+        0,
+        0,
+        false
+      )
+    }
+
+    let templates = Array.from(items.values())
+    templates.sort((left: PeripheralBlacklistTemplate, right: PeripheralBlacklistTemplate) => {
+      if (left.fromConnectedDevice === right.fromConnectedDevice) {
+        return left.title.localeCompare(right.title)
+      }
+      return left.fromConnectedDevice ? -1 : 1
+    })
+    return templates
   }
 
   private subscribeRecordStorageChange(): void {
@@ -332,10 +586,10 @@ export struct PeripheralPage {
 
       // 加载 USB 存储策略
       let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
-      let policy = policyResult.data ?? usbManager.UsbPolicy.READ_WRITE
-      if (policy === usbManager.UsbPolicy.READ_ONLY) {
+      let policy = policyResult.data ?? edmUsbManager.UsbPolicy.READ_WRITE
+      if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
         this.usbStoragePolicyIndex = 0
-      } else if (policy === usbManager.UsbPolicy.READ_WRITE) {
+      } else if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
         this.usbStoragePolicyIndex = 1
       } else {
         this.usbStoragePolicyIndex = 2
@@ -357,6 +611,7 @@ export struct PeripheralPage {
     }
 
     // 模拟设备连接记录
+    this.loadConnectedUsbDevices()
     this.reloadDeviceRecords()
     /*
       {
@@ -520,10 +775,10 @@ export struct PeripheralPage {
     if (!this.ensureAdminReady('设置 USB 存储策略')) {
       return
     }
-    let policyMap: usbManager.UsbPolicy[] = [
-      usbManager.UsbPolicy.READ_ONLY,
-      usbManager.UsbPolicy.READ_WRITE,
-      usbManager.UsbPolicy.DISABLED
+    let policyMap: edmUsbManager.UsbPolicy[] = [
+      edmUsbManager.UsbPolicy.READ_ONLY,
+      edmUsbManager.UsbPolicy.READ_WRITE,
+      edmUsbManager.UsbPolicy.DISABLED
     ]
     let result = PeripheralService.setUsbStoragePolicyWithResult(policyMap[index])
     if (result.success) {
@@ -544,7 +799,7 @@ export struct PeripheralPage {
     if (!this.ensureAdminReady('添加 USB 白名单')) {
       return
     }
-    let device: usbManager.UsbDeviceId = { vendorId: vendorId, productId: productId }
+    let device: edmUsbManager.UsbDeviceId = { vendorId: vendorId, productId: productId }
     let result = PeripheralService.addUsbWhitelistWithResult([device])
     if (result.success) {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
@@ -559,7 +814,7 @@ export struct PeripheralPage {
     }
   }
 
-  handleRemoveUsbWhitelist(device: usbManager.UsbDeviceId) {
+  handleRemoveUsbWhitelist(device: edmUsbManager.UsbDeviceId) {
     if (!this.ensureAdminReady('移除 USB 白名单')) {
       return
     }
@@ -619,11 +874,11 @@ export struct PeripheralPage {
     if (!this.ensureAdminReady('添加 USB 黑名单')) {
       return
     }
-    let deviceType: usbManager.UsbDeviceType = {
+    let deviceType: edmUsbManager.UsbDeviceType = {
       baseClass: baseClass,
       subClass: subClass,
       protocol: protocol,
-      descriptor: usbManager.Descriptor.INTERFACE
+      descriptor: edmUsbManager.Descriptor.INTERFACE
     }
     let result = PeripheralService.addUsbBlacklistWithResult([deviceType])
     if (result.success) {
@@ -639,7 +894,7 @@ export struct PeripheralPage {
     }
   }
 
-  handleRemoveUsbBlacklist(deviceType: usbManager.UsbDeviceType) {
+  handleRemoveUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType) {
     if (!this.ensureAdminReady('移除 USB 黑名单')) {
       return
     }
@@ -695,7 +950,7 @@ export struct PeripheralPage {
         hilog.error(0x0002, TAG, `parseUsbDeviceId failed: ${record.deviceId}`)
         return
       }
-      let device: usbManager.UsbDeviceId = {
+      let device: edmUsbManager.UsbDeviceId = {
         vendorId: parsed.vendorId,
         productId: parsed.productId
       }
@@ -714,11 +969,11 @@ export struct PeripheralPage {
         }
         let baseClass = inferUsbBaseClass(record.deviceType)
         if (baseClass > 0) {
-          let deviceType: usbManager.UsbDeviceType = {
+          let deviceType: edmUsbManager.UsbDeviceType = {
             baseClass: baseClass,
             subClass: 0,
             protocol: 0,
-            descriptor: usbManager.Descriptor.INTERFACE
+            descriptor: edmUsbManager.Descriptor.INTERFACE
           }
           let addBlackResult = PeripheralService.addUsbBlacklistWithResult([deviceType])
           if (!addBlackResult.success) {
@@ -828,6 +1083,9 @@ export struct PeripheralPage {
       .barWidth('100%')
       .onChange((index: number) => {
         this.currentTab = index
+        if (index === 3) {
+          this.loadConnectedUsbDevices()
+        }
       })
       .layoutWeight(1)
     }
@@ -1823,7 +2081,7 @@ export struct PeripheralPage {
               .borderRadius(AppStyles.RADIUS_MD)
               .height(32)
               .onClick(() => {
-                this.usbWhitelistDialogController.open()
+                this.openUsbWhitelistDialog()
               })
           }
           .width('100%')
@@ -1854,7 +2112,7 @@ export struct PeripheralPage {
               .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
           } else {
             Column() {
-              ForEach(this.usbWhitelist, (device: usbManager.UsbDeviceId) => {
+              ForEach(this.usbWhitelist, (device: edmUsbManager.UsbDeviceId) => {
                 Row() {
                   Text(this.formatHex(device.vendorId))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -1914,7 +2172,7 @@ export struct PeripheralPage {
               .borderRadius(AppStyles.RADIUS_MD)
               .height(32)
               .onClick(() => {
-                this.blacklistDialogController.open()
+                this.openUsbBlacklistDialog()
               })
           }
           .width('100%')
@@ -1946,7 +2204,7 @@ export struct PeripheralPage {
               .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
           } else {
             Column() {
-              ForEach(this.usbBlacklist, (dt: usbManager.UsbDeviceType) => {
+              ForEach(this.usbBlacklist, (dt: edmUsbManager.UsbDeviceType) => {
                 Row() {
                   Text(this.formatHex(dt.baseClass))
                     .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -2010,7 +2268,7 @@ export struct PeripheralPage {
               .borderRadius(AppStyles.RADIUS_MD)
               .height(32)
               .onClick(() => {
-                this.btWhitelistDialogController.open()
+                this.openBtWhitelistDialog()
               })
           }
           .width('100%')

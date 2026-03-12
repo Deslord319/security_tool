@@ -242,6 +242,7 @@ export struct LogManagePage {
   onBack: () => void = () => {}
   @State hoveredStatIndex: number = -1
   @State hoveredSettingsCardIndex: number = -1
+  @State hoveredDiagType: number = -1
 
   @State logEntries: LogEntry[] = []
   @State pagedLogEntries: LogEntry[] = []
@@ -273,6 +274,8 @@ export struct LogManagePage {
 
   @State showSettings: boolean = false
   @State isLoading: boolean = false
+  @State fromAuditDiagnostics: boolean = false
+  @State selectedDiagType: number = -1
 
   private refreshTimerId: number = -1
   private readonly REFRESH_INTERVAL_MS: number = 1500
@@ -409,6 +412,45 @@ export struct LogManagePage {
     this.refreshData()
   }
 
+  private exitAuditDiagnosticsView(clearTypeFilter: boolean = false): void {
+    this.fromAuditDiagnostics = false
+    this.selectedDiagType = -1
+    if (clearTypeFilter) {
+      this.filterEventType = -1
+      this.filterResult = -1
+      this.filterKeyword = ''
+    }
+  }
+
+  private applyManualFilterChange(): void {
+    if (this.fromAuditDiagnostics) {
+      this.exitAuditDiagnosticsView(false)
+    }
+    this.resetToFirstPageAndRefresh()
+  }
+
+  private openEventsByDiagType(type: LogEventType): void {
+    this.selectedDiagType = type as number
+    this.fromAuditDiagnostics = true
+    this.showSettings = false
+    this.filterEventType = type as number
+    this.filterResult = -1
+    this.filterKeyword = ''
+    this.resetToFirstPageAndRefresh()
+  }
+
+  private openSettingsFromList(): void {
+    this.exitAuditDiagnosticsView(true)
+    this.showSettings = true
+    this.refreshData()
+  }
+
+  private clearAuditDiagnosticsFilter(): void {
+    this.exitAuditDiagnosticsView(true)
+    this.showSettings = false
+    this.resetToFirstPageAndRefresh()
+  }
+
   private goToPreviousPage(): void {
     if (this.currentPage <= 1) {
       return
@@ -490,6 +532,28 @@ export struct LogManagePage {
     }
 
     return hasFilter ? filter : undefined
+  }
+
+  private getDiagMetricValue(type: LogEventType): string {
+    let diag = this.getDiagByType(type)
+    return `${diag.seenCount}`
+  }
+
+  private getDiagMetricLabel(type: LogEventType): string {
+    let diag = this.getDiagByType(type)
+    return diag.seenCount > 0 ? '命中事件' : '当前命中'
+  }
+
+  private getDiagCardSummaryText(type: LogEventType): string {
+    let diag = this.getDiagByType(type)
+    if (diag.failedEventIds.length > 0) {
+      let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
+      return `订阅异常：eventId ${diag.failedEventIds.join(',')}${codeText}`
+    }
+    if (!diag.subscribed) {
+      return '当前未订阅该类型'
+    }
+    return this.getDiagRecentTimeText(type)
   }
 
   private showExportFormatDialog(): void {
@@ -713,7 +777,22 @@ export struct LogManagePage {
     return this.diagnostics.byType.get(this.filterEventType as LogEventType)
   }
 
+  private getSelectedDiagTypeLabel(): string {
+    if (this.selectedDiagType < 0) {
+      return ''
+    }
+    return getLogEventTypeLabel(this.selectedDiagType as LogEventType)
+  }
+
   private getFilterHintMessage(): string {
+    if (this.fromAuditDiagnostics && this.selectedDiagType >= 0) {
+      let typeLabel = this.getSelectedDiagTypeLabel()
+      if (this.logEntries.length === 0) {
+        return `当前正在查看【${typeLabel}】审计事件，该类型暂无命中事件。`
+      }
+      return `当前正在查看【${typeLabel}】审计事件，共 ${this.logEntries.length} 条。`
+    }
+
     if (this.filterEventType < 0) {
       return ''
     }
@@ -902,7 +981,7 @@ export struct LogManagePage {
                 .height(32)
                 .padding({ left: 12, right: 12 })
                 .onClick(() => {
-                  this.showSettings = true
+                  this.openSettingsFromList()
                 })
             } else {
               this.headerActionButton(
@@ -923,7 +1002,9 @@ export struct LogManagePage {
                 .height(32)
                 .padding({ left: 12, right: 12 })
                 .onClick(() => {
+                  this.exitAuditDiagnosticsView(true)
                   this.showSettings = false
+                  this.refreshData()
                 })
             }
           }
@@ -1040,7 +1121,7 @@ export struct LogManagePage {
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.filterEventType = index - 1
-          this.resetToFirstPageAndRefresh()
+          this.applyManualFilterChange()
         })
 
       Select(this.resultFilterOptions)
@@ -1058,7 +1139,7 @@ export struct LogManagePage {
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => {
           this.filterResult = index - 1
-          this.resetToFirstPageAndRefresh()
+          this.applyManualFilterChange()
         })
 
       TextInput({ placeholder: '搜索日志内容...', text: this.filterKeyword })
@@ -1072,7 +1153,7 @@ export struct LogManagePage {
         .layoutWeight(1)
         .onChange((value: string) => {
           this.filterKeyword = value
-          this.resetToFirstPageAndRefresh()
+          this.applyManualFilterChange()
         })
 
       Button('刷新')
@@ -1097,12 +1178,39 @@ export struct LogManagePage {
   @Builder
   filterHintView() {
     if (this.getFilterHintMessage().length > 0) {
-      Row() {
+      Row({ space: 8 }) {
         Text(this.getFilterHintMessage())
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+
+        if (this.fromAuditDiagnostics) {
+          Button('清除筛选')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .height(28)
+            .padding({ left: 10, right: 10 })
+            .onClick(() => {
+              this.clearAuditDiagnosticsFilter()
+            })
+
+          Button('返回审计诊断')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+            .borderRadius(AppStyles.RADIUS_SM)
+            .height(28)
+            .padding({ left: 10, right: 10 })
+            .onClick(() => {
+              this.showSettings = true
+              this.exitAuditDiagnosticsView(true)
+              this.refreshData()
+            })
+        }
       }
       .width('100%')
       .padding({
@@ -1621,12 +1729,13 @@ export struct LogManagePage {
         .borderRadius(AppStyles.RADIUS_SM)
       }
 
-      Column({ space: 8 }) {
+      Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.SpaceBetween, alignItems: ItemAlign.Start }) {
         ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
-          Column({ space: 8 }) {
+          Column({ space: 12 }) {
             Row() {
               Text(getLogEventTypeLabel(type))
                 .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontWeight(FontWeight.Medium)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .layoutWeight(1)
               Text(this.getDiagStatusText(type))
@@ -1639,26 +1748,77 @@ export struct LogManagePage {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            Row() {
-              Text(this.getDiagCountText(type))
+            Column({ space: 4 }) {
+              Text(this.getDiagMetricValue(type))
+                .fontSize(28)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              Text(this.getDiagMetricLabel(type))
                 .fontSize(AppStyles.FONT_SIZE_CAPTION)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1)
-              Text(this.getDiagRecentTimeText(type))
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1)
-                .textAlign(TextAlign.End)
+            }
+            .alignItems(HorizontalAlign.Start)
+
+            Row({ space: 12 }) {
+              Column({ space: 4 }) {
+                Text(this.getDiagCountText(type))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+
+              Column({ space: 4 }) {
+                Text('最近命中')
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                Text(this.getDiagRecentTimeText(type))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.End)
             }
             .width('100%')
 
+            Row() {
+              Text(this.getDiagCardSummaryText(type))
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .layoutWeight(1)
+            }
+            .width('100%')
           }
-          .width('100%')
-          .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+          .width('49%')
+          .constraintSize({ minHeight: 168 })
+          .padding({ left: 14, right: 14, top: 14, bottom: 14 })
           .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
           .borderRadius(AppStyles.RADIUS_MD)
+          .border({
+            width: 1,
+            color: this.hoveredDiagType === (type as number) ?
+              AppColors.BRAND_PRIMARY :
+              AppColors.getColors(this.currentTheme).BORDER
+          })
+          .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredDiagType === (type as number)))
+          .translate({ y: HoverUtils.getTranslateY(this.hoveredDiagType === (type as number), 4) })
+          .onHover((isHover: boolean) => {
+            HoverUtils.animate(() => {
+              this.hoveredDiagType = isHover ? (type as number) : -1
+            })
+          })
+          .onClick(() => {
+            this.openEventsByDiagType(type)
+          })
         }, (type: LogEventType) => type.toString())
       }
       .width('100%')

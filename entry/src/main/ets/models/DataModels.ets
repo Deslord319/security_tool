@@ -178,6 +178,8 @@ export interface DeviceRecord {
 
 export type PeripheralRecordSource = 'runtime_event' | 'audit_event' | 'policy_snapshot'
 
+export type PeripheralCandidateSource = PeripheralRecordSource | 'connected_usb'
+
 export type PeripheralRecordAction = 'connect' | 'disconnect' | 'intercept' | 'unknown'
 
 export type PeripheralRecordPolicyHit = 'allow' | 'deny' | 'unknown'
@@ -203,6 +205,31 @@ export interface PeripheralConnectionRecord {
   rawPayload?: string
   detail?: string
   processName?: string
+}
+
+export interface PeripheralWhitelistCandidate {
+  id: string
+  deviceName: string
+  deviceType: PeripheralType
+  deviceId: string
+  timestamp: number
+  source: PeripheralCandidateSource
+  vendorId?: number
+  productId?: number
+  mac?: string
+  isConnected?: boolean
+  disabled: boolean
+}
+
+export interface PeripheralBlacklistTemplate {
+  id: string
+  title: string
+  description: string
+  baseClass: number
+  subClass: number
+  protocol: number
+  fromConnectedDevice?: boolean
+  disabled: boolean
 }
 
 export interface PeripheralConnectionFilter {
@@ -369,6 +396,13 @@ export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPol
     default:
       return '未知'
   }
+}
+
+export function getPeripheralCandidateSourceLabel(source: PeripheralCandidateSource): string {
+  if (source === 'connected_usb') {
+    return '当前连接'
+  }
+  return getPeripheralRecordSourceLabel(source)
 }
 
 // ==================== 设备 ID 解析工具函数 ====================
