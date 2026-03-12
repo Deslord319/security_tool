@@ -9,18 +9,9 @@ struct AboutDialog {
 
   build() {
     Column({ space: 16 }) {
-      Column() {
-        Image($r('app.media.info'))
-          .width(24)
-          .height(24)
-          .fillColor(AppColors.BRAND_PRIMARY)
-      }
-        .width(56)
-        .height(56)
-        .borderRadius(14)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)')
+      Image($r('app.media.startIcon'))
+        .width(64)
+        .height(64)
 
       Text(AppInfo.APP_NAME)
         .fontSize(18)
@@ -32,11 +23,6 @@ struct AboutDialog {
         .fontSize(14)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-
-      Text(AppInfo.BUNDLE_NAME)
-        .fontSize(12)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
       Text('Copyright 2025')
         .fontSize(12)
