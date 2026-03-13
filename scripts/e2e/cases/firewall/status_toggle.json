@@ -21,7 +21,9 @@
       "name": "toggle_firewall",
       "ref": "firewall.toggle_status",
       "params": {
-        "target_state": "invert"
+        "target_state": "invert",
+        "require_auth_prompt": true,
+        "require_auth_handled": true
       }
     }
   ],

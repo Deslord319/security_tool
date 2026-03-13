@@ -86,6 +86,26 @@ class SecurityToolFlowExecutor:
             if result.returncode != 0:
                 return FlowExecutionResult("FAIL", COMMAND_FAILED, "App launch command failed", command=command, command_result=result)
             password_result = self.mcp.input_password_if_prompted(bundle_name=self.bundle_name)
+            require_auth_prompt = bool(params.get("require_auth_prompt", False))
+            require_auth_handled = bool(params.get("require_auth_handled", require_auth_prompt))
+            if require_auth_prompt and not password_result.get("prompt_detected", False):
+                return FlowExecutionResult(
+                    "FAIL",
+                    COMMAND_FAILED,
+                    "Startup auth prompt was required but not detected",
+                    command=command,
+                    command_result=result,
+                    evidence={"password_prompt": password_result},
+                )
+            if require_auth_handled and not password_result.get("handled", False):
+                return FlowExecutionResult(
+                    "FAIL",
+                    COMMAND_FAILED,
+                    "Startup auth prompt was required but not handled successfully",
+                    command=command,
+                    command_result=result,
+                    evidence={"password_prompt": password_result},
+                )
             return FlowExecutionResult(
                 "PASS",
                 "",

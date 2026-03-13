@@ -46,22 +46,24 @@
 ## 3. 状态语义
 
 - `PASS`
-  - action 已执行成功，并产出了预期状态或证据
+  - action 已执行成功，并且产出了预期状态或证据
 - `FAIL`
   - action 已执行，但能够明确判定失败
 - `UNKNOWN`
   - action 当前无法完成，或者当前轮次无法确认结果
-  - 常见原因包括：
-    - backend 尚未覆盖该动作
-    - 当前设备环境阻塞
-    - 本轮测试主动降级
+
+常见原因：
+
+- backend 尚未覆盖该动作
+- 当前设备环境阻塞
+- 证据不足
 
 ## 4. Bridge 约束
 
 - 一次只读取一条 `stdin JSON`
 - 一次只输出一条 `stdout JSON`
 - 即使业务结果是 `FAIL` 或 `UNKNOWN`，bridge 进程也应返回 `0`
-- 只有 bridge 自身崩溃或协议无法满足时，才返回非 `0`
+- 只有 bridge 本身崩溃或协议无法满足时，才返回非 `0`
 
 ## 5. 推荐返回字段
 
@@ -80,7 +82,33 @@
 - 关键日志
 - 窗口信息
 
-## 6. 参考实现
+## 6. 统一输入能力约定
+
+涉及 `TextInput` 的业务动作，统一复用 backend 中的 `_input_text_with_commit(...)`，不允许每个 action 各自实现一套输入逻辑。
+
+适用场景：
+
+- 防火墙规则输入
+- 浏览器地址栏输入
+- 工具密码输入
+- 启动认证密码输入
+
+标准流程：
+
+1. 点击目标 `TextInput`
+2. 输入一次
+3. 回读确认输入框中是否已有目标值
+4. 如果回读为空，并且当前场景允许提交，则执行一次：
+   - `hdc shell uinput -K -d 2054 -u 2054`
+5. 再回读一次
+6. 如果仍然为空，直接失败，不做二次重输
+
+约束：
+
+- bridge/backend 不允许对同一字段做隐式二次输入兜底
+- 输入失败必须保留回读证据，便于定位“输入成功回执”和“字段实际值”不一致的问题
+
+## 7. 参考实现
 
 当前项目中的 bridge 相关实现：
 
@@ -88,9 +116,7 @@
 - [`backend_template.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/backend_template.py)
 - [`real_harmonyos_mcp_backend.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/real_harmonyos_mcp_backend.py)
 
-这些文件定义了 runner 与真实 HarmonyOS MCP runtime 之间的稳定边界。
-
-## 7. Driver 私有动作约定
+## 8. Driver 私有动作约定
 
 以下动作属于 Python driver 内部协议，不视为公共 MCP 能力：
 

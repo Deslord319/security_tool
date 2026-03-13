@@ -5,6 +5,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
@@ -439,11 +440,45 @@ class RealHarmonyOsMcpBackend:
         if not click_result.get("ok", False):
             return self._fail("MCP_EXECUTION_FAILED", "Failed to click toggle", {"click_result": click_result})
 
+        require_auth_prompt = bool(payload.get("params", {}).get("require_auth_prompt", False))
+        require_auth_handled = bool(payload.get("params", {}).get("require_auth_handled", require_auth_prompt))
+        password_result = await self._driver_input_password_if_prompted(
+            {
+                "action": "__driver_input_password_if_prompted",
+                "params": {
+                    "bundle_name": "com.huawei.securitytool",
+                    "timeout_ms": int(payload.get("params", {}).get("auth_timeout_ms", 4000)),
+                },
+            }
+        )
+        password_evidence = password_result.get("evidence", {})
+        if require_auth_prompt and not password_evidence.get("prompt_detected", False):
+            return self._fail(
+                "COMMAND_FAILED",
+                "Firewall auth prompt was required but not detected",
+                {
+                    "toggle_node": toggle_node,
+                    "target_state": payload.get("params", {}).get("target_state", ""),
+                    "password_prompt": password_result,
+                },
+            )
+        if require_auth_handled and not password_evidence.get("handled", False):
+            return self._fail(
+                "COMMAND_FAILED",
+                "Firewall auth prompt was required but not handled successfully",
+                {
+                    "toggle_node": toggle_node,
+                    "target_state": payload.get("params", {}).get("target_state", ""),
+                    "password_prompt": password_result,
+                },
+            )
+
         return self._pass(
             "Toggle action executed",
             {
                 "toggle_node": toggle_node,
                 "target_state": payload.get("params", {}).get("target_state", ""),
+                "password_prompt": password_result,
             },
         )
 
@@ -644,6 +679,16 @@ class RealHarmonyOsMcpBackend:
                 wait_type = await self._wait_for_dialog_select_text(0, desired_rule_label)
                 choose_type.setdefault("evidence", {})
                 choose_type["evidence"]["select_wait"] = wait_type
+                if wait_type.get("status") != "PASS":
+                    return self._fail(
+                        "MCP_EXECUTION_FAILED",
+                        f"Firewall rule type select did not update to {desired_rule_label}",
+                        {
+                            "desired_rule_label": desired_rule_label,
+                            "choose_type": choose_type,
+                            "wait_type": wait_type,
+                        },
+                    )
 
         ui_tree = await self._get_ui_tree()
         selects = self._dialog_nodes_by_type(ui_tree, "Select")
@@ -658,6 +703,16 @@ class RealHarmonyOsMcpBackend:
                 wait_direction = await self._wait_for_dialog_select_text(1, desired_direction_labels[0])
                 choose_direction.setdefault("evidence", {})
                 choose_direction["evidence"]["select_wait"] = wait_direction
+                if wait_direction.get("status") != "PASS":
+                    return self._fail(
+                        "MCP_EXECUTION_FAILED",
+                        f"Firewall direction select did not update to {desired_direction_labels[0]}",
+                        {
+                            "desired_direction_labels": desired_direction_labels,
+                            "choose_direction": choose_direction,
+                            "wait_direction": wait_direction,
+                        },
+                    )
 
         ui_tree = await self._get_ui_tree()
         selects = self._dialog_nodes_by_type(ui_tree, "Select")
@@ -673,6 +728,16 @@ class RealHarmonyOsMcpBackend:
                 wait_protocol = await self._wait_for_dialog_select_text(2, desired_protocol_labels[0])
                 choose_protocol.setdefault("evidence", {})
                 choose_protocol["evidence"]["select_wait"] = wait_protocol
+                if wait_protocol.get("status") != "PASS":
+                    return self._fail(
+                        "MCP_EXECUTION_FAILED",
+                        f"Firewall protocol select did not update to {desired_protocol_labels[0]}",
+                        {
+                            "desired_protocol_labels": desired_protocol_labels,
+                            "choose_protocol": choose_protocol,
+                            "wait_protocol": wait_protocol,
+                        },
+                    )
 
         ui_tree = await self._get_ui_tree()
         inputs = self._dialog_nodes_by_type(ui_tree, "TextInput")
@@ -700,24 +765,39 @@ class RealHarmonyOsMcpBackend:
 
         ui_tree = await self._get_ui_tree()
         selects = self._dialog_nodes_by_type(ui_tree, "Select")
-        if len(selects) >= 4 and policy:
+        if selects and policy:
             desired_policy_labels = FIREWALL_POLICY_OPTION_LABELS.get(policy, [])
-            if desired_policy_labels and str(selects[3].get("text", "")).strip() not in desired_policy_labels:
-                await self._call_tool("click_element", {"x": selects[3]["x"], "y": selects[3]["y"]})
+            policy_select = selects[-1]
+            if desired_policy_labels and str(policy_select.get("text", "")).strip() not in desired_policy_labels:
+                await self._call_tool("click_element", {"x": policy_select["x"], "y": policy_select["y"]})
                 await asyncio.sleep(0.4)
-                choose_policy = await self._choose_dialog_option(selects[3], desired_policy_labels)
+                choose_policy = await self._choose_dialog_option(policy_select, desired_policy_labels)
                 if choose_policy.get("status") != "PASS":
                     return choose_policy
-                wait_policy = await self._wait_for_dialog_select_text(3, desired_policy_labels[0])
+                wait_policy = await self._wait_for_dialog_select_text(len(selects) - 1, desired_policy_labels[0])
                 choose_policy.setdefault("evidence", {})
                 choose_policy["evidence"]["select_wait"] = wait_policy
+                if wait_policy.get("status") != "PASS":
+                    return self._fail(
+                        "MCP_EXECUTION_FAILED",
+                        f"Firewall policy select did not update to {desired_policy_labels[0]}",
+                        {
+                            "desired_policy_labels": desired_policy_labels,
+                            "choose_policy": choose_policy,
+                            "wait_policy": wait_policy,
+                        },
+                    )
         submit_result = await self._confirm_dialog()
         if submit_result.get("status") != "PASS":
             return submit_result
         dialog_gone = await self._wait_until_text_gone(FIREWALL_DIALOG_TITLE, timeout_sec=5.0)
-        evidence = {"params": params, "fill": {"filled_inputs": filled}}
+        evidence = {"params": params, "fill": {"filled_inputs": filled}, "submit": submit_result.get("evidence", {})}
         if dialog_gone.get("status") != "PASS":
             return self._unknown(payload, "MCP_ACTION_PENDING", "Firewall rule dialog is still open after submit")
+        rule_created = await self._find_firewall_rule({"params": params})
+        evidence["rule_created"] = rule_created
+        if rule_created.get("status") != "PASS":
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Firewall rule dialog closed but target rule was not observed")
         return self._pass("Firewall rule dialog submitted", evidence)
 
     async def _find_firewall_rule(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -772,6 +852,8 @@ class RealHarmonyOsMcpBackend:
             address_bar["x"],
             address_bar["y"],
             url,
+            commit_enter=True,
+            force_commit_enter=True,
             bundle_name="com.huawei.hmos.browser",
         )
         if not input_result.get("ok", False):
@@ -779,10 +861,21 @@ class RealHarmonyOsMcpBackend:
         verify_url = await self._verify_browser_url_entered(url)
         if verify_url.get("status") != "PASS":
             return verify_url
-        press_result = await self._call_tool("press_key", {"key": "ENTER"})
-        if not press_result.get("ok", False):
-            return self._unknown(payload, "MCP_ACTION_PENDING", "URL entered but ENTER key could not be issued")
-        return self._pass("Browser URL open triggered", {"url": url, "address_bar": address_bar})
+        browser_navigation = await self._verify_browser_navigation_started(url)
+        if browser_navigation.get("status") != "PASS":
+            return browser_navigation
+        return self._pass(
+            "Browser URL open triggered",
+            {
+                "url": url,
+                "address_bar": address_bar,
+                "submit": {
+                    "method": "input_text_with_commit",
+                    "input_result": input_result,
+                },
+                "navigation": browser_navigation.get("evidence", {}),
+            },
+        )
 
     async def _toggle_peripheral_interface(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
@@ -1238,6 +1331,12 @@ class RealHarmonyOsMcpBackend:
         labels = CONFIRM_DIALOG_LABELS
         if not allow_cancel:
             labels = CONFIRM_DELETE_LABELS
+        ui_tree = await self._get_ui_tree()
+        dialog_button = self._pick_dialog_button_by_text(ui_tree, labels)
+        if dialog_button:
+            click_result = await self._call_tool("click_element", {"x": dialog_button["x"], "y": dialog_button["y"]})
+            if click_result.get("ok", False):
+                return self._pass("Dialog confirmed", {"button": dialog_button, "labels": labels})
         result = await self._click_first_available_text(labels, bundle_name="com.huawei.securitytool")
         if result.get("ok", False):
             return self._pass("Dialog confirmed", {"labels": labels})
@@ -1306,7 +1405,9 @@ class RealHarmonyOsMcpBackend:
         deadline = time.time() + timeout_sec
         while time.time() < deadline:
             ui_tree = await self._get_ui_tree()
-            candidates = []
+            aligned_candidates = []
+            fallback_candidates = []
+            select_left = select_node.get("left") or 0
             for node in self._nodes_by_type(ui_tree, "Text"):
                 text = str(node.get("text", "")).strip()
                 if text not in wanted:
@@ -1319,9 +1420,20 @@ class RealHarmonyOsMcpBackend:
                     continue
                 if top > (select_node.get("top") or 0) + 320:
                     continue
-                candidates.append(node)
+                fallback_candidates.append(node)
+                # Dropdown option items align near the select's left edge, while
+                # page tabs with the same text sit much farther to the right.
+                if abs(left - select_left) <= 120:
+                    aligned_candidates.append(node)
+            candidates = aligned_candidates or fallback_candidates
             if candidates:
-                target = min(candidates, key=lambda node: abs((node.get("top") or 0) - ((select_node.get("top") or 0) + 120)))
+                target = min(
+                    candidates,
+                    key=lambda node: (
+                        abs((node.get("left") or 0) - select_left),
+                        abs((node.get("top") or 0) - ((select_node.get("top") or 0) + 120)),
+                    ),
+                )
                 click_result = await self._call_tool("click_element", {"x": target["x"], "y": target["y"]})
                 if click_result.get("ok", False):
                     return self._pass("Dialog option selected", {"target": target, "labels": list(wanted)})
@@ -1358,6 +1470,34 @@ class RealHarmonyOsMcpBackend:
             await asyncio.sleep(0.25)
         return self._unknown({"action": "verify_browser_url", "params": {"url": url}}, "MCP_ACTION_PENDING", "Browser URL text was not observed after input")
 
+    async def _verify_browser_navigation_started(self, url: str, *, timeout_sec: float = 6.0) -> dict[str, Any]:
+        deadline = time.time() + timeout_sec
+        parsed = urlparse(url)
+        host = parsed.netloc.lower()
+        accepted = {url.strip()}
+        if url.endswith("/"):
+            accepted.add(url.rstrip("/"))
+        else:
+            accepted.add(url + "/")
+        while time.time() < deadline:
+            tree = await self._get_ui_tree_for_bundle("com.huawei.hmos.browser")
+            for node in self._iter_nodes(tree):
+                props = node.get("properties", {}) or {}
+                values = [
+                    str(props.get("text", "")).strip(),
+                    str(props.get("value", "")).strip(),
+                    str(props.get("content", "")).strip(),
+                ]
+                values = [value for value in values if value]
+                if not values:
+                    continue
+                if any(value in accepted for value in values):
+                    return self._pass("Browser navigation observed", {"node_type": node.get("type", ""), "values": values})
+                if host and any(host in value.lower() for value in values):
+                    return self._pass("Browser navigation observed", {"node_type": node.get("type", ""), "values": values})
+            await asyncio.sleep(0.4)
+        return self._unknown({"action": "verify_browser_navigation", "params": {"url": url}}, "MCP_ACTION_PENDING", "Browser navigation result was not observed after submit")
+
     async def _input_text_with_commit(
         self,
         x: int,
@@ -1365,12 +1505,13 @@ class RealHarmonyOsMcpBackend:
         text: str,
         *,
         commit_enter: bool = False,
+        force_commit_enter: bool = False,
         bundle_name: str = "com.huawei.securitytool",
     ) -> dict[str, Any]:
         click_result = await self._call_tool("click_element", {"x": x, "y": y})
         if not click_result.get("ok", False):
             return click_result
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.5)
 
         input_result = await self._call_tool("input_text", {"x": x, "y": y, "text": text})
         if not input_result.get("ok", False):
@@ -1378,9 +1519,40 @@ class RealHarmonyOsMcpBackend:
 
         verify_result = await self._verify_text_input_value(bundle_name, x, y, text)
         if verify_result.get("ok", False):
+            enter_evidence: dict[str, Any] = {}
+            if commit_enter and force_commit_enter:
+                enter_results = []
+                for _ in range(2):
+                    enter_result = await asyncio.to_thread(self._press_hdc_enter)
+                    enter_results.append(
+                        {
+                            "returncode": enter_result.returncode,
+                            "stdout": enter_result.stdout,
+                            "stderr": enter_result.stderr,
+                        }
+                    )
+                    await asyncio.sleep(0.5)
+                enter_evidence = {
+                    "forced_commit_enter": True,
+                    "enter_repeat": 2,
+                    "enter_results": enter_results,
+                }
+                if any(result["returncode"] != 0 for result in enter_results):
+                    return self._fail(
+                        "MCP_EXECUTION_FAILED",
+                        "Input verification succeeded but forced HDC ENTER key failed",
+                        {
+                            "input_result": input_result,
+                            "verification": verify_result,
+                            **enter_evidence,
+                        },
+                    )
+                await asyncio.sleep(0.2)
             enriched = dict(input_result)
             enriched.setdefault("result", {})
             enriched["result"]["verification"] = verify_result
+            if enter_evidence:
+                enriched["result"]["commit"] = enter_evidence
             return enriched
         if commit_enter:
             enter_result = await asyncio.to_thread(self._press_hdc_enter)
@@ -1499,6 +1671,29 @@ class RealHarmonyOsMcpBackend:
             "checked": props.get("checked", False),
             "clickable": props.get("clickable", False),
         }
+
+    def _pick_dialog_button_by_text(self, ui_tree: dict[str, Any], labels: list[str]) -> dict[str, Any] | None:
+        wanted = {label.strip() for label in labels if label.strip()}
+        if not wanted:
+            return None
+        region = FIREWALL_DIALOG_REGION
+        buttons = []
+        for node in self._nodes_by_type(ui_tree, "Button"):
+            if not node.get("clickable"):
+                continue
+            text = str(node.get("text", "")).strip()
+            if text not in wanted:
+                continue
+            left = node.get("left") or 0
+            top = node.get("top") or 0
+            if left < region["left_min"] or left > 2200:
+                continue
+            if top < region["top_min"] or top > 1850:
+                continue
+            buttons.append(node)
+        if not buttons:
+            return None
+        return max(buttons, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
 
     def _normalize_auth_method(self, raw: str) -> str:
         upper = raw.upper()

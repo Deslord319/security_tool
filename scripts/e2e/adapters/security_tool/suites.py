@@ -16,7 +16,7 @@ FIREWALL_SUITE = [
     "firewall/status_toggle.json",
     "firewall/rule_create.json",
     "firewall/rule_delete.json",
-    "firewall/dns_browser.json",
+    "firewall/domain_browser.json",
 ]
 
 
