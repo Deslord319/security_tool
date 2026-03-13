@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/security_tool/e2e/case.schema.json",
+  "title": "E2E Case Schema",
+  "type": "object",
+  "required": [
+    "case_id",
+    "case_name",
+    "module"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preconditions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": []
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "assertions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": []
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "on_failure_screenshot": {
+          "type": "boolean"
+        },
+        "on_success_screenshot": {
+          "type": "boolean"
+        }
+      },
+      "default": {}
+    },
+    "result_policy": {
+      "type": "object",
+      "properties": {
+        "allow_unknown": {
+          "type": "boolean"
+        },
+        "stop_on_failure": {
+          "type": "boolean"
+        }
+      },
+      "default": {}
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "default": []
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,70 @@
+{
+  "case_id": "NAV-SMOKE-001",
+  "case_name": "主页面导航可达性",
+  "module": "navigation",
+  "steps": [
+    {
+      "name": "启动应用",
+      "type": "hdc_shell",
+      "command": "aa start -a EntryAbility -b {{bundle_name}}",
+      "timeout_sec": 20
+    },
+    {
+      "name": "导航到安全总览",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "安全总览"
+      },
+      "expected": "页面标题显示安全总览"
+    },
+    {
+      "name": "导航到防火墙管理",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "防火墙管理"
+      },
+      "expected": "页面标题显示防火墙管理"
+    },
+    {
+      "name": "导航到日志管理",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "日志管理"
+      },
+      "expected": "页面标题显示日志管理"
+    },
+    {
+      "name": "导航到外设管理",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "外设管理"
+      },
+      "expected": "页面标题显示外设管理"
+    },
+    {
+      "name": "导航到身份鉴别",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "身份鉴别"
+      },
+      "expected": "页面标题显示身份鉴别"
+    },
+    {
+      "name": "导航到工具设置",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "工具设置"
+      },
+      "expected": "页面标题显示工具设置"
+    }
+  ],
+  "notes": [
+    "这条用例主断言是页面标题和截图，不仅看点击成功。"
+  ]
+}

@@ -1,0 +1,364 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+import json
+import os
+import shlex
+import subprocess
+from pathlib import Path
+from typing import Any
+
+from scripts.e2e.core.failures import (
+    MCP_ACTION_PENDING,
+    MCP_BACKEND_NOT_CONFIGURED,
+    MCP_BRIDGE_PROTOCOL_ERROR,
+    MCP_EXECUTION_FAILED,
+)
+
+
+@dataclass
+class MpcActionRequest:
+    action: str
+    params: dict[str, Any]
+    expected: str = ""
+
+
+@dataclass
+class McpExecutionResult:
+    status: str
+    failure_code: str
+    message: str
+    evidence: dict[str, Any]
+    command: list[str] | None = None
+    raw_stdout: str | None = None
+    raw_stderr: str | None = None
+    returncode: int | None = None
+
+
+class McpDriver:
+    """UI driver that can describe or execute MCP-backed actions.
+
+    Runtime execution is delegated to an optional external bridge command
+    configured through `HARMONYOS_E2E_MCP_BRIDGE`. The bridge receives a JSON
+    payload on stdin and should return a JSON result on stdout.
+    """
+
+    def __init__(self, project_root: Path, dry_run: bool):
+        self.project_root = project_root
+        self.dry_run = dry_run
+        self.bridge_command = os.environ.get("HARMONYOS_E2E_MCP_BRIDGE", "").strip()
+
+    def describe(self, request: MpcActionRequest) -> dict[str, Any]:
+        return {
+            "type": "mcp_action",
+            "action": request.action,
+            "params": request.params,
+            "expected": request.expected,
+        }
+
+    def execute(self, request: MpcActionRequest) -> McpExecutionResult:
+        evidence = self.describe(request)
+        if self.dry_run:
+            return McpExecutionResult(
+                status="UNKNOWN",
+                failure_code=MCP_ACTION_PENDING,
+                message="Dry run: MCP action execution skipped",
+                evidence=evidence,
+            )
+
+        if not self.bridge_command:
+            return McpExecutionResult(
+                status="UNKNOWN",
+                failure_code=MCP_BACKEND_NOT_CONFIGURED,
+                message="MCP bridge command is not configured",
+                evidence=evidence,
+            )
+
+        command = shlex.split(self.bridge_command, posix=False)
+        payload = json.dumps(evidence, ensure_ascii=False)
+        result = subprocess.run(
+            command,
+            input=payload,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            cwd=self.project_root,
+        )
+        if result.returncode != 0:
+            return McpExecutionResult(
+                status="FAIL",
+                failure_code=MCP_EXECUTION_FAILED,
+                message="MCP bridge command failed",
+                evidence=evidence,
+                command=command,
+                raw_stdout=result.stdout,
+                raw_stderr=result.stderr,
+                returncode=result.returncode,
+            )
+
+        try:
+            parsed = json.loads(result.stdout) if result.stdout.strip() else {}
+        except json.JSONDecodeError:
+            return McpExecutionResult(
+                status="FAIL",
+                failure_code=MCP_BRIDGE_PROTOCOL_ERROR,
+                message="MCP bridge returned invalid JSON",
+                evidence=evidence,
+                command=command,
+                raw_stdout=result.stdout,
+                raw_stderr=result.stderr,
+                returncode=result.returncode,
+            )
+
+        status = parsed.get("status", "UNKNOWN")
+        failure_code = parsed.get("failure_code", "" if status == "PASS" else MCP_ACTION_PENDING)
+        message = parsed.get("message", "MCP bridge executed")
+        merged_evidence = {**evidence, **parsed.get("evidence", {})}
+        return McpExecutionResult(
+            status=status,
+            failure_code=failure_code,
+            message=message,
+            evidence=merged_evidence,
+            command=command,
+            raw_stdout=result.stdout,
+            raw_stderr=result.stderr,
+            returncode=result.returncode,
+        )
+
+    def get_toggle_state(
+        self,
+        *,
+        bundle_name: str,
+        text: str = "",
+        element_id: str = "",
+        window_id: str = "",
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_get_toggle_state",
+            params={
+                "bundle_name": bundle_name,
+                "text": text,
+                "element_id": element_id,
+                "window_id": window_id,
+            },
+            expected="Read toggle state",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "checked": execution.evidence.get("checked"),
+            "element": execution.evidence.get("element", {}),
+            "evidence": execution.evidence,
+        }
+
+    def wait_for_text(
+        self,
+        *,
+        bundle_name: str,
+        text: str,
+        timeout_ms: int = 5000,
+        interval_ms: int = 300,
+        window_id: str = "",
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_wait_element",
+            params={
+                "bundle_name": bundle_name,
+                "text": text,
+                "state": "found",
+                "timeout_ms": timeout_ms,
+                "interval_ms": interval_ms,
+                "window_id": window_id,
+            },
+            expected=f"Wait for text {text}",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "element": execution.evidence.get("element", {}),
+            "evidence": execution.evidence,
+        }
+
+    def wait_until_gone(
+        self,
+        *,
+        bundle_name: str,
+        text: str = "",
+        element_id: str = "",
+        timeout_ms: int = 5000,
+        interval_ms: int = 300,
+        window_id: str = "",
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_wait_element",
+            params={
+                "bundle_name": bundle_name,
+                "text": text,
+                "element_id": element_id,
+                "state": "gone",
+                "timeout_ms": timeout_ms,
+                "interval_ms": interval_ms,
+                "window_id": window_id,
+            },
+            expected="Wait until element is gone",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "evidence": execution.evidence,
+        }
+
+    def element_exists(
+        self,
+        *,
+        bundle_name: str,
+        text: str = "",
+        element_id: str = "",
+        element_type: str = "",
+        window_id: str = "",
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_element_exists",
+            params={
+                "bundle_name": bundle_name,
+                "text": text,
+                "element_id": element_id,
+                "element_type": element_type,
+                "window_id": window_id,
+            },
+            expected="Check whether element exists",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "exists": bool(execution.evidence.get("exists", False)),
+            "element": execution.evidence.get("element", {}),
+            "evidence": execution.evidence,
+        }
+
+    def scroll_until_text(
+        self,
+        *,
+        bundle_name: str,
+        text: str,
+        direction: str = "up",
+        max_swipes: int = 8,
+        timeout_ms: int = 1500,
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_scroll_until_text",
+            params={
+                "bundle_name": bundle_name,
+                "text": text,
+                "direction": direction,
+                "max_swipes": max_swipes,
+                "timeout_ms": timeout_ms,
+            },
+            expected=f"Scroll until text {text} becomes visible",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "element": execution.evidence.get("element", {}),
+            "swipes_used": execution.evidence.get("swipes_used"),
+            "evidence": execution.evidence,
+        }
+
+    def wait_for_page(
+        self,
+        *,
+        bundle_name: str,
+        page_id: str,
+        marker_text: str,
+        page_text: str = "",
+        route_element_id: str = "",
+        timeout_ms: int = 5000,
+        interval_ms: int = 300,
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_wait_for_page",
+            params={
+                "bundle_name": bundle_name,
+                "page_id": page_id,
+                "marker_text": marker_text,
+                "page_text": page_text,
+                "route_element_id": route_element_id,
+                "timeout_ms": timeout_ms,
+                "interval_ms": interval_ms,
+            },
+            expected=f"Wait for page {page_id}",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "element": execution.evidence.get("element", {}),
+            "evidence": execution.evidence,
+        }
+
+    def input_password_if_prompted(
+        self,
+        *,
+        bundle_name: str,
+        timeout_ms: int = 4000,
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_input_password_if_prompted",
+            params={
+                "bundle_name": bundle_name,
+                "timeout_ms": timeout_ms,
+            },
+            expected="Clear lock screen password prompt when present",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "handled": bool(execution.evidence.get("handled", False)),
+            "prompt_detected": bool(execution.evidence.get("prompt_detected", False)),
+            "evidence": execution.evidence,
+        }
+
+    def text_presence(
+        self,
+        *,
+        bundle_name: str,
+        text: str,
+        timeout_ms: int = 1500,
+        interval_ms: int = 250,
+        window_id: str = "",
+    ) -> dict[str, Any]:
+        request = MpcActionRequest(
+            action="__driver_text_presence",
+            params={
+                "bundle_name": bundle_name,
+                "text": text,
+                "timeout_ms": timeout_ms,
+                "interval_ms": interval_ms,
+                "window_id": window_id,
+            },
+            expected=f"Detect whether text {text} is present",
+        )
+        execution = self.execute(request)
+        return {
+            "status": execution.status,
+            "failure_code": execution.failure_code,
+            "message": execution.message,
+            "exists": bool(execution.evidence.get("exists", False)),
+            "element": execution.evidence.get("element", {}),
+            "source": execution.evidence.get("source", ""),
+            "evidence": execution.evidence,
+        }

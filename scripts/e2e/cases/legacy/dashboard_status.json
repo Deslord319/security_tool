@@ -1,0 +1,33 @@
+{
+  "case_id": "DASH-STATUS-001",
+  "case_name": "首页统计卡片存在并可读",
+  "module": "dashboard",
+  "steps": [
+    {
+      "name": "导航到首页",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "安全总览"
+      },
+      "expected": "安全总览页面显示"
+    },
+    {
+      "name": "读取日志运行状态",
+      "type": "note",
+      "message": "主断言建议结合 LogRuntimeCollectorService.getStatus() 暴露的结果和首页卡片截图。"
+    },
+    {
+      "name": "记录首页截图",
+      "type": "mcp_action",
+      "action": "capture_screenshot",
+      "params": {
+        "name": "dashboard_status"
+      },
+      "expected": "已开启、今日审计事件、已阻止事件、日志总量 可见"
+    }
+  ],
+  "notes": [
+    "这条用例偏展示层，建议和 LOG-STATUS-001 联动执行。"
+  ]
+}

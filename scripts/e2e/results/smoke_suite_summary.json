@@ -1,0 +1,19 @@
+{
+  "suite_name": "smoke",
+  "adapter_name": "security_tool",
+  "adapter_version": "1.0.0",
+  "project_id": "security_tool",
+  "mode": "completeness",
+  "started_at": "2026-03-13T03:40:08+00:00",
+  "finished_at": "2026-03-13T03:42:22+00:00",
+  "overall_status": "PASS",
+  "total_cases": 3,
+  "pass_count": 3,
+  "fail_count": 0,
+  "unknown_count": 0,
+  "result_files": [
+    "scripts\\e2e\\results\\APP-INSTALL-001.json",
+    "scripts\\e2e\\results\\APP-ADMIN-001.json",
+    "scripts\\e2e\\results\\NAV-SMOKE-001.json"
+  ]
+}

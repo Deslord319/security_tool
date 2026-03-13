@@ -1,0 +1,64 @@
+{
+  "case_id": "NAV-SMOKE-001",
+  "case_name": "Navigation Smoke",
+  "module": "navigation",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_dashboard",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "dashboard"
+      }
+    },
+    {
+      "name": "open_firewall",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "firewall"
+      }
+    },
+    {
+      "name": "open_log_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "log-manage"
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "open_identity",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "identity"
+      }
+    },
+    {
+      "name": "open_tool_settings",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "tool-settings"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Navigation remains UNKNOWN until the MCP executor is wired into the runtime."
+  ]
+}

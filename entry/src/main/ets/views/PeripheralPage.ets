@@ -1,6 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
-import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
 import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
@@ -13,8 +12,9 @@ import {
   DeviceControlRecord,
   PeripheralBlacklistTemplate,
   PeripheralCandidateSource,
-  PeripheralConnectionFilter,
   PeripheralConnectionRecord,
+  PeripheralTraceQuery,
+  PeripheralTraceRecord,
   PeripheralWhitelistCandidate,
   OperationResult,
   PeripheralType,
@@ -466,8 +466,8 @@ export struct PeripheralPage {
     this.recordAutoRefreshTimerId = -1
   }
 
-  private buildRecordFilter(): PeripheralConnectionFilter {
-    let filter: PeripheralConnectionFilter = {}
+  private buildRecordFilter(): PeripheralTraceQuery {
+    let filter: PeripheralTraceQuery = {}
     if (this.recordFilterTypeIndex === 1) {
       filter.deviceTypes = this.usbRecordTypes
     } else if (this.recordFilterTypeIndex === 2) {
@@ -500,8 +500,35 @@ export struct PeripheralPage {
     return filter
   }
 
+  private mapTraceRecord(record: PeripheralTraceRecord): PeripheralConnectionRecord {
+    return {
+      id: record.recordId,
+      timestamp: record.occurAt,
+      collectAt: record.collectAt,
+      deviceName: record.deviceName,
+      deviceType: record.deviceType,
+      deviceId: record.deviceId,
+      action: record.action,
+      result: record.result,
+      policyHit: record.decision,
+      source: record.source,
+      summary: record.summary,
+      correlationId: record.correlationId,
+      policyVersion: record.policyVersion,
+      rawEventId: record.rawEventId,
+      rawEventName: record.rawEventName,
+      rawOutcome: record.rawOutcome,
+      rawAction: record.rawAction,
+      rawPayload: record.rawPayload,
+      detail: record.detail,
+      processName: record.processName
+    }
+  }
+
   private reloadDeviceRecords(): void {
-    this.deviceRecords = PeripheralConnectionRecordService.queryRecords(this.buildRecordFilter())
+    this.deviceRecords = PeripheralTraceRepository
+      .query(this.buildRecordFilter())
+      .map((record: PeripheralTraceRecord) => this.mapTraceRecord(record))
     let hasRealtime = this.deviceRecords.some((record: PeripheralConnectionRecord) => {
       return record.source === 'runtime_event' || record.source === 'audit_event'
     })

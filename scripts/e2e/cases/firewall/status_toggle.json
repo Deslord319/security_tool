@@ -1,0 +1,36 @@
+{
+  "case_id": "FW-STATUS-001",
+  "case_name": "Firewall Status Toggle",
+  "module": "firewall",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_firewall_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "firewall"
+      }
+    },
+    {
+      "name": "toggle_firewall",
+      "ref": "firewall.toggle_status",
+      "params": {
+        "target_state": "invert"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Primary assertion will move to a service-backed firewall status read once getter execution is wired in."
+  ]
+}

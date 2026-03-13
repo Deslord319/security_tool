@@ -1,0 +1,26 @@
+{
+  "case_id": "NAV-MENU-001",
+  "case_name": "三点菜单可打开并包含核心入口",
+  "module": "navigation",
+  "steps": [
+    {
+      "name": "打开三点菜单",
+      "type": "mcp_action",
+      "action": "open_top_menu",
+      "params": {},
+      "expected": "显示模式、工具设置、帮助与反馈、关于 可见"
+    },
+    {
+      "name": "记录菜单截图",
+      "type": "mcp_action",
+      "action": "capture_screenshot",
+      "params": {
+        "name": "top_menu_open"
+      },
+      "expected": "截图保存成功"
+    }
+  ],
+  "notes": [
+    "后续可扩展为主题切换和帮助页跳转验证。"
+  ]
+}

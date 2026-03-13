@@ -1,0 +1,38 @@
+{
+  "case_id": "ID-DOMAIN-001",
+  "case_name": "Identity Domain Policy Update",
+  "module": "identity",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_identity_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "identity"
+      }
+    },
+    {
+      "name": "update_domain_policy",
+      "ref": "identity.update_domain_policy",
+      "params": {
+        "password_max_age_days": 90,
+        "expiration_notify_days": 7,
+        "auth_validity_minutes": -1
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Getter-backed domain policy assertion will be added later."
+  ]
+}

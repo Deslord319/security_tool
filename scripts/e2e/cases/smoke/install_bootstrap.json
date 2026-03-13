@@ -1,0 +1,44 @@
+{
+  "case_id": "APP-INSTALL-001",
+  "case_name": "Install And Bootstrap Check",
+  "module": "bootstrap",
+  "preconditions": [],
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "bundle_installed",
+      "type": "hdc_shell_contains",
+      "value": "{{bundle_name}}",
+      "level": "primary",
+      "params": {
+        "command": "bm dump -n {{bundle_name}}",
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "entry_ability_visible",
+      "type": "hdc_shell_contains",
+      "value": "EntryAbility",
+      "level": "primary",
+      "params": {
+        "command": "bm dump -n {{bundle_name}}",
+        "timeout_sec": 20
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": false,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Smoke baseline declarative case."
+  ]
+}

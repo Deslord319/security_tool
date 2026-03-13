@@ -1,0 +1,34 @@
+{
+  "case_id": "NAV-MENU-001",
+  "case_name": "Theme Menu Visible",
+  "module": "navigation",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_theme_menu",
+      "ref": "theme_menu.open",
+      "params": {}
+    },
+    {
+      "name": "capture_theme_menu",
+      "ref": "ui.capture_screenshot",
+      "params": {
+        "name": "top_menu_open"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Menu visibility remains UI-driven until assertions are backed by element checks."
+  ]
+}

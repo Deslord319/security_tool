@@ -1,0 +1,38 @@
+{
+  "case_id": "FW-DNS-001",
+  "case_name": "DNS 策略阻断 + 浏览器访问验证",
+  "module": "firewall",
+  "steps": [
+    {
+      "name": "进入防火墙页面并创建 DNS 拒绝规则",
+      "type": "mcp_action",
+      "action": "configure_dns_rule",
+      "params": {
+        "route": "firewall",
+        "rule_type": "dns",
+        "action": "deny",
+        "target": "example.com"
+      },
+      "expected": "页面中可见新增的 DNS 拒绝规则"
+    },
+    {
+      "name": "拉起浏览器访问目标域名",
+      "type": "mcp_action",
+      "action": "open_browser_and_visit",
+      "params": {
+        "url": "https://example.com"
+      },
+      "expected": "浏览器访问被阻断，或出现明显失败结果"
+    },
+    {
+      "name": "抓取应用最近日志",
+      "type": "hdc_shell",
+      "command": "hilog -x | grep com.huawei.securitytool",
+      "timeout_sec": 10
+    }
+  ],
+  "notes": [
+    "这条用例默认会输出 UNKNOWN，直到接入 MCP 动作执行器。",
+    "最终判定需要结合截图、页面状态和日志，不接受只看 UI。"
+  ]
+}

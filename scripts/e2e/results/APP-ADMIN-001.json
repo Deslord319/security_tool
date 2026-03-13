@@ -1,0 +1,54 @@
+{
+  "case_id": "APP-ADMIN-001",
+  "case_name": "Enable Enterprise Admin",
+  "module": "bootstrap",
+  "started_at": "2026-03-13T03:40:43+00:00",
+  "finished_at": "2026-03-13T03:40:43+00:00",
+  "status": "PASS",
+  "failure_code": "",
+  "failure_stage": "",
+  "primary_evidence": {
+    "type": "step_success",
+    "step_name": "enable_admin_success",
+    "message": "Enterprise admin enabled"
+  },
+  "secondary_evidence": [],
+  "steps": [
+    {
+      "name": "enable_admin_success",
+      "step_type": "assertion_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T03:40:43+00:00",
+      "finished_at": "2026-03-13T03:40:43+00:00",
+      "failure_code": "",
+      "command": "hdc -t 3QC0124C11000711 shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility -t super",
+      "returncode": 0,
+      "stdout": "enable-admin success.",
+      "stderr": "",
+      "message": "Enterprise admin enabled",
+      "evidence": {}
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings",
+    "通过 hdc driver 的企业管理员能力完成激活，并以命令回显作为主证据。"
+  ],
+  "result_policy": {
+    "allow_unknown": false,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": "3QC0124C11000711",
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-03-12",
+    "compatibility_mode": "declarative"
+  }
+}

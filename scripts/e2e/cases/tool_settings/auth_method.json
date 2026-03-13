@@ -1,0 +1,41 @@
+{
+  "case_id": "SET-AUTH-001",
+  "case_name": "Tool Settings Auth Method",
+  "module": "tool-settings",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_tool_settings",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "tool-settings"
+      }
+    },
+    {
+      "name": "select_auth_method",
+      "ref": "tool_settings.select_auth_method",
+      "params": {
+        "method": "PIN"
+      }
+    },
+    {
+      "name": "save_tool_settings",
+      "ref": "tool_settings.save",
+      "params": {}
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Selection persistence assertion will be added after page re-entry verification is implemented."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "case_id": "APP-ADMIN-001",
+  "case_name": "Enable Enterprise Admin",
+  "module": "bootstrap",
+  "flow": [],
+  "assertions": [
+    {
+      "name": "enable_admin_success",
+      "type": "enterprise_admin_enabled",
+      "value": "success",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "ability_name": "{{admin_ability}}",
+        "admin_type": "super",
+        "timeout_sec": 20
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": false,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "通过 hdc driver 的企业管理员能力完成激活，并以命令回显作为主证据。"
+  ]
+}

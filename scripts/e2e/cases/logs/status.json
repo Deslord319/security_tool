@@ -1,0 +1,29 @@
+{
+  "case_id": "LOG-STATUS-001",
+  "case_name": "Log Status Visible",
+  "module": "log-manage",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_log_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "log-manage"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Log status is currently UI-first and will later add service/log evidence."
+  ]
+}

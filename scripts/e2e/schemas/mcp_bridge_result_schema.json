@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/security_tool/e2e/mcp-bridge-result.schema.json",
+  "title": "MCP Bridge Result Schema",
+  "type": "object",
+  "required": [
+    "status",
+    "message"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "failure_code": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,42 @@
+{
+  "case_id": "PER-USB-WHITELIST-001",
+  "case_name": "Peripheral USB Whitelist Add",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "open_usb_whitelist_dialog",
+      "ref": "peripheral.open_usb_whitelist_dialog",
+      "params": {}
+    },
+    {
+      "name": "add_usb_whitelist_item",
+      "ref": "peripheral.add_usb_whitelist",
+      "params": {
+        "vendor_id": "0781",
+        "product_id": "5583"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Whitelist list assertion will be attached after service-backed reads are integrated."
+  ]
+}

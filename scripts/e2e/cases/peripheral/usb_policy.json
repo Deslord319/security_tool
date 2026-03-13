@@ -1,0 +1,36 @@
+{
+  "case_id": "PER-USB-001",
+  "case_name": "Peripheral USB Storage Policy",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "select_usb_storage_policy",
+      "ref": "peripheral.select_usb_storage_policy",
+      "params": {
+        "policy": "read_only"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Getter-backed USB storage policy assertion will be added later."
+  ]
+}

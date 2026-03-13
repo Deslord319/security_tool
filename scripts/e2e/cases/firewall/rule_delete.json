@@ -1,0 +1,62 @@
+{
+  "case_id": "FW-RULE-002",
+  "case_name": "Firewall Domain Rule Delete",
+  "module": "firewall",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_firewall_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "firewall"
+      }
+    },
+    {
+      "name": "open_domain_rules",
+      "ref": "firewall.open_rules",
+      "params": {
+        "rule_type": "domain"
+      }
+    },
+    {
+      "name": "add_domain_rule_for_delete",
+      "ref": "firewall.add_rule",
+      "params": {
+        "rule_type": "domain",
+        "domain": "www.baidu.com",
+        "direction": "out",
+        "policy": "deny"
+      }
+    },
+    {
+      "name": "find_domain_rule",
+      "ref": "firewall.find_rule",
+      "params": {
+        "rule_type": "domain",
+        "domain": "www.baidu.com"
+      }
+    },
+    {
+      "name": "delete_domain_rule",
+      "ref": "firewall.delete_rule",
+      "params": {
+        "rule_type": "domain",
+        "domain": "www.baidu.com"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Delete case self-seeds the target domain rule to avoid cross-case state coupling."
+  ]
+}

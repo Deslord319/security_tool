@@ -1,0 +1,26 @@
+{
+  "case_id": "PER-BT-WHITELIST-001",
+  "case_name": "蓝牙白名单新增",
+  "module": "peripheral",
+  "steps": [
+    {
+      "name": "打开蓝牙白名单新增弹窗",
+      "type": "mcp_action",
+      "action": "open_bluetooth_whitelist_dialog",
+      "params": {},
+      "expected": "弹窗显示"
+    },
+    {
+      "name": "新增蓝牙白名单设备",
+      "type": "mcp_action",
+      "action": "add_bluetooth_whitelist",
+      "params": {
+        "mac": "AA:BB:CC:DD:EE:01"
+      },
+      "expected": "蓝牙白名单列表新增一项"
+    }
+  ],
+  "notes": [
+    "主断言建议接 PeripheralService.getBluetoothWhitelistWithResult()。"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "case_id": "LOG-EVENT-001",
+  "case_name": "Log Event After Policy Change",
+  "module": "log-manage",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "change_any_policy",
+      "ref": "logs.change_any_policy",
+      "params": {
+        "preferred_module": "firewall"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "recent_security_logs_exist",
+      "type": "hdc_shell_contains",
+      "value": "com.huawei.securitytool",
+      "level": "secondary",
+      "params": {
+        "command": "hilog -x | grep com.huawei.securitytool",
+        "timeout_sec": 10
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This remains mixed evidence until log page assertions are added."
+  ]
+}

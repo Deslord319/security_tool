@@ -1,0 +1,61 @@
+{
+  "case_id": "PER-IF-001",
+  "case_name": "Peripheral Interface Toggle",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "toggle_usb_interface",
+      "ref": "peripheral.toggle_interface",
+      "params": {
+        "feature": "usb",
+        "target_state": "invert"
+      }
+    },
+    {
+      "name": "toggle_bluetooth_interface",
+      "ref": "peripheral.toggle_interface",
+      "params": {
+        "feature": "bluetooth",
+        "target_state": "invert"
+      }
+    },
+    {
+      "name": "toggle_wifi_interface",
+      "ref": "peripheral.toggle_interface",
+      "params": {
+        "feature": "wifi",
+        "target_state": "invert"
+      }
+    },
+    {
+      "name": "toggle_hdc_interface",
+      "ref": "peripheral.toggle_interface",
+      "params": {
+        "feature": "hdc",
+        "target_state": "invert"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Service-backed interface assertions will be added after the MCP executor is wired."
+  ]
+}

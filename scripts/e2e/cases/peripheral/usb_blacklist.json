@@ -1,0 +1,43 @@
+{
+  "case_id": "PER-USB-BLACKLIST-001",
+  "case_name": "Peripheral USB Blacklist Add",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "open_usb_blacklist_dialog",
+      "ref": "peripheral.open_usb_blacklist_dialog",
+      "params": {}
+    },
+    {
+      "name": "add_usb_blacklist_item",
+      "ref": "peripheral.add_usb_blacklist",
+      "params": {
+        "base_class": 8,
+        "sub_class": 6,
+        "protocol": 80
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "USB blacklist assertion will be attached after service-backed reads are integrated."
+  ]
+}

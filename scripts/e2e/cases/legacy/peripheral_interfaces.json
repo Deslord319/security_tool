@@ -1,0 +1,59 @@
+{
+  "case_id": "PER-IF-001",
+  "case_name": "接口开关状态同步",
+  "module": "peripheral",
+  "steps": [
+    {
+      "name": "导航到外设管理",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "外设管理"
+      },
+      "expected": "外设管理页面显示"
+    },
+    {
+      "name": "切换 USB 接口状态",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "usb",
+        "target_state": "invert"
+      },
+      "expected": "USB 接口状态切换成功"
+    },
+    {
+      "name": "切换蓝牙接口状态",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "bluetooth",
+        "target_state": "invert"
+      },
+      "expected": "蓝牙接口状态切换成功"
+    },
+    {
+      "name": "切换 Wi-Fi 接口状态",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "wifi",
+        "target_state": "invert"
+      },
+      "expected": "Wi-Fi 接口状态切换成功"
+    },
+    {
+      "name": "切换 HDC 接口状态",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "hdc",
+        "target_state": "invert"
+      },
+      "expected": "HDC 接口状态切换成功"
+    }
+  ],
+  "notes": [
+    "主断言建议接 PeripheralService.getInterfaceDisabledWithResult(feature)。"
+  ]
+}

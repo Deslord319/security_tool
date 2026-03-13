@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/security_tool/e2e/result.schema.json",
+  "title": "E2E Result Schema",
+  "type": "object",
+  "required": [
+    "case_id",
+    "case_name",
+    "module",
+    "started_at",
+    "finished_at",
+    "status",
+    "result_policy",
+    "steps",
+    "environment_snapshot"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "case_name": {
+      "type": "string"
+    },
+    "module": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "finished_at": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "failure_code": {
+      "type": "string"
+    },
+    "failure_stage": {
+      "type": "string"
+    },
+    "primary_evidence": {
+      "type": "object"
+    },
+    "secondary_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "result_policy": {
+      "type": "object"
+    },
+    "environment_snapshot": {
+      "type": "object",
+      "required": [
+        "project_id",
+        "adapter_name",
+        "adapter_version",
+        "bundle_name",
+        "mode",
+        "connected"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string"
+        },
+        "adapter_name": {
+          "type": "string"
+        },
+        "adapter_version": {
+          "type": "string"
+        },
+        "bundle_name": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": "string"
+        },
+        "connected": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

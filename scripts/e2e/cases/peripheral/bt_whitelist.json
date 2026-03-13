@@ -1,0 +1,41 @@
+{
+  "case_id": "PER-BT-WHITELIST-001",
+  "case_name": "Peripheral Bluetooth Whitelist Add",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "open_bt_whitelist_dialog",
+      "ref": "peripheral.open_bluetooth_whitelist_dialog",
+      "params": {}
+    },
+    {
+      "name": "add_bt_whitelist_item",
+      "ref": "peripheral.add_bluetooth_whitelist",
+      "params": {
+        "mac": "AA:BB:CC:DD:EE:01"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Bluetooth whitelist assertion will be attached after service-backed reads are integrated."
+  ]
+}

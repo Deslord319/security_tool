@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/security_tool/e2e/mcp-bridge-action.schema.json",
+  "title": "MCP Bridge Action Schema",
+  "type": "object",
+  "required": [
+    "type",
+    "action",
+    "params",
+    "expected"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "const": "mcp_action"
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "params": {
+      "type": "object"
+    },
+    "expected": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

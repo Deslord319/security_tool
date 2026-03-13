@@ -1,0 +1,274 @@
+{
+  "case_id": "PER-BT-WHITELIST-001",
+  "case_name": "Peripheral Bluetooth Whitelist Add",
+  "module": "peripheral",
+  "started_at": "2026-03-13T02:52:38+00:00",
+  "finished_at": "2026-03-13T02:54:09+00:00",
+  "status": "UNKNOWN",
+  "failure_code": "MCP_ACTION_PENDING",
+  "failure_stage": "open_peripheral_manage",
+  "primary_evidence": {
+    "type": "step_unknown",
+    "step_name": "open_peripheral_manage",
+    "failure_code": "MCP_ACTION_PENDING",
+    "message": "Navigation click succeeded but page marker did not resolve for peripheral-manage"
+  },
+  "secondary_evidence": [
+    {
+      "step_name": "launch_app",
+      "password_prompt": {
+        "status": "PASS",
+        "failure_code": "",
+        "message": "Auth prompt handled",
+        "handled": false,
+        "prompt_detected": false,
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_input_password_if_prompted",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "timeout_ms": 4000
+          },
+          "expected": "Clear lock screen password prompt when present",
+          "prompt_detected": false,
+          "handled": false,
+          "still_present": false
+        }
+      }
+    },
+    {
+      "step_name": "open_peripheral_manage",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      },
+      "expected": "Navigate to page peripheral-manage",
+      "bridge_backend": "real_harmonyos_mcp_backend",
+      "action_plan": {
+        "goal": "Open a page from the left navigation rail.",
+        "required_params": [
+          "page_id"
+        ],
+        "mcp_tools": [
+          "find_element",
+          "click_element",
+          "wait_element"
+        ],
+        "steps": [
+          "Resolve the target page title from the adapter page registry.",
+          "Find the navigation item by text or stable page locator.",
+          "Click the navigation item.",
+          "Wait for the page title or a page-specific anchor text to appear."
+        ]
+      }
+    },
+    {
+      "step_name": "open_bt_whitelist_dialog",
+      "type": "mcp_action",
+      "action": "open_bluetooth_whitelist_dialog",
+      "params": {},
+      "expected": "Bluetooth whitelist dialog is visible",
+      "bridge_backend": "real_harmonyos_mcp_backend",
+      "action_plan": {
+        "goal": "Open the Bluetooth whitelist dialog.",
+        "required_params": [],
+        "mcp_tools": [
+          "find_element",
+          "click_element",
+          "wait_element"
+        ],
+        "steps": [
+          "Locate the Bluetooth whitelist entry point.",
+          "Open the add dialog.",
+          "Wait for the dialog contents."
+        ]
+      }
+    },
+    {
+      "step_name": "add_bt_whitelist_item",
+      "type": "mcp_action",
+      "action": "add_bluetooth_whitelist",
+      "params": {
+        "mac": "AA:BB:CC:DD:EE:01"
+      },
+      "expected": "Bluetooth whitelist item is added",
+      "button": {
+        "type": "Button",
+        "text": "",
+        "x": 2981,
+        "y": 114,
+        "left": 2955,
+        "top": 87,
+        "width": 53,
+        "height": 54,
+        "checked": false,
+        "clickable": true
+      }
+    }
+  ],
+  "steps": [
+    {
+      "name": "launch_app",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T02:52:38+00:00",
+      "finished_at": "2026-03-13T02:52:45+00:00",
+      "failure_code": "",
+      "command": "hdc -t 3QC0124C11000711 shell aa start -a EntryAbility -b com.huawei.securitytool -m entry",
+      "returncode": 0,
+      "stdout": "start ability successfully.",
+      "stderr": "",
+      "message": "Flow executed",
+      "evidence": {
+        "password_prompt": {
+          "status": "PASS",
+          "failure_code": "",
+          "message": "Auth prompt handled",
+          "handled": false,
+          "prompt_detected": false,
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_input_password_if_prompted",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "timeout_ms": 4000
+            },
+            "expected": "Clear lock screen password prompt when present",
+            "prompt_detected": false,
+            "handled": false,
+            "still_present": false
+          }
+        }
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "step_type": "flow_action",
+      "status": "UNKNOWN",
+      "started_at": "2026-03-13T02:52:45+00:00",
+      "finished_at": "2026-03-13T02:53:22+00:00",
+      "failure_code": "MCP_ACTION_PENDING",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Navigation click succeeded but page marker did not resolve for peripheral-manage",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "navigate_page",
+        "params": {
+          "page_id": "peripheral-manage"
+        },
+        "expected": "Navigate to page peripheral-manage",
+        "bridge_backend": "real_harmonyos_mcp_backend",
+        "action_plan": {
+          "goal": "Open a page from the left navigation rail.",
+          "required_params": [
+            "page_id"
+          ],
+          "mcp_tools": [
+            "find_element",
+            "click_element",
+            "wait_element"
+          ],
+          "steps": [
+            "Resolve the target page title from the adapter page registry.",
+            "Find the navigation item by text or stable page locator.",
+            "Click the navigation item.",
+            "Wait for the page title or a page-specific anchor text to appear."
+          ]
+        }
+      }
+    },
+    {
+      "name": "open_bt_whitelist_dialog",
+      "step_type": "flow_action",
+      "status": "UNKNOWN",
+      "started_at": "2026-03-13T02:53:22+00:00",
+      "finished_at": "2026-03-13T02:53:53+00:00",
+      "failure_code": "MCP_ACTION_PENDING",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Dialog trigger was not found: 蓝牙白名单/添加蓝牙白名单/添加白名单",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "open_bluetooth_whitelist_dialog",
+        "params": {},
+        "expected": "Bluetooth whitelist dialog is visible",
+        "bridge_backend": "real_harmonyos_mcp_backend",
+        "action_plan": {
+          "goal": "Open the Bluetooth whitelist dialog.",
+          "required_params": [],
+          "mcp_tools": [
+            "find_element",
+            "click_element",
+            "wait_element"
+          ],
+          "steps": [
+            "Locate the Bluetooth whitelist entry point.",
+            "Open the add dialog.",
+            "Wait for the dialog contents."
+          ]
+        }
+      }
+    },
+    {
+      "name": "add_bt_whitelist_item",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T02:53:53+00:00",
+      "finished_at": "2026-03-13T02:54:09+00:00",
+      "failure_code": "",
+      "command": "python scripts/e2e/bridges/harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Dialog confirmed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "add_bluetooth_whitelist",
+        "params": {
+          "mac": "AA:BB:CC:DD:EE:01"
+        },
+        "expected": "Bluetooth whitelist item is added",
+        "button": {
+          "type": "Button",
+          "text": "",
+          "x": 2981,
+          "y": 114,
+          "left": 2955,
+          "top": 87,
+          "width": 53,
+          "height": 54,
+          "checked": false,
+          "clickable": true
+        }
+      }
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings",
+    "Bluetooth whitelist assertion will be attached after service-backed reads are integrated."
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": "3QC0124C11000711",
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-03-12",
+    "compatibility_mode": "declarative"
+  }
+}

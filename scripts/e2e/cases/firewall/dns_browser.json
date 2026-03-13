@@ -1,0 +1,53 @@
+{
+  "case_id": "FW-DNS-001",
+  "case_name": "Firewall Domain Browser Verification",
+  "module": "firewall",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_firewall_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "firewall"
+      }
+    },
+    {
+      "name": "open_domain_rules",
+      "ref": "firewall.open_rules",
+      "params": {
+        "rule_type": "domain"
+      }
+    },
+    {
+      "name": "add_domain_rule",
+      "ref": "firewall.add_rule",
+      "params": {
+        "rule_type": "domain",
+        "domain": "www.baidu.com",
+        "direction": "out",
+        "policy": "deny"
+      }
+    },
+    {
+      "name": "open_browser_url",
+      "ref": "browser.open_url",
+      "params": {
+        "url": "https://www.baidu.com"
+      }
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case remains environment-dependent until browser and DNS verification are backed by a real MCP bridge."
+  ]
+}

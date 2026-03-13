@@ -1,0 +1,116 @@
+{
+  "case_id": "DASH-STATUS-001",
+  "case_name": "Dashboard Status Visible",
+  "module": "dashboard",
+  "started_at": "2026-03-12T08:54:26+00:00",
+  "finished_at": "2026-03-12T08:54:26+00:00",
+  "status": "UNKNOWN",
+  "failure_code": "MCP_ACTION_PENDING",
+  "failure_stage": "open_dashboard",
+  "primary_evidence": {
+    "type": "step_unknown",
+    "step_name": "open_dashboard",
+    "failure_code": "MCP_ACTION_PENDING",
+    "message": "Dry run: MCP action execution skipped"
+  },
+  "secondary_evidence": [
+    {
+      "step_name": "open_dashboard",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page_id": "dashboard"
+      },
+      "expected": "Navigate to page dashboard"
+    },
+    {
+      "step_name": "capture_dashboard",
+      "type": "mcp_action",
+      "action": "capture_screenshot",
+      "params": {
+        "name": "dashboard_status"
+      },
+      "expected": "Screenshot saved successfully"
+    }
+  ],
+  "steps": [
+    {
+      "name": "launch_app",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-12T08:54:26+00:00",
+      "finished_at": "2026-03-12T08:54:26+00:00",
+      "failure_code": "",
+      "command": "hdc shell aa start -a EntryAbility -b com.huawei.securitytool",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Dry run: skipped execution",
+      "evidence": {}
+    },
+    {
+      "name": "open_dashboard",
+      "step_type": "flow_action",
+      "status": "UNKNOWN",
+      "started_at": "2026-03-12T08:54:26+00:00",
+      "finished_at": "2026-03-12T08:54:26+00:00",
+      "failure_code": "MCP_ACTION_PENDING",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Dry run: MCP action execution skipped",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "navigate_page",
+        "params": {
+          "page_id": "dashboard"
+        },
+        "expected": "Navigate to page dashboard"
+      }
+    },
+    {
+      "name": "capture_dashboard",
+      "step_type": "flow_action",
+      "status": "UNKNOWN",
+      "started_at": "2026-03-12T08:54:26+00:00",
+      "finished_at": "2026-03-12T08:54:26+00:00",
+      "failure_code": "MCP_ACTION_PENDING",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Dry run: MCP action execution skipped",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "capture_screenshot",
+        "params": {
+          "name": "dashboard_status"
+        },
+        "expected": "Screenshot saved successfully"
+      }
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings",
+    "Dashboard status remains UI-first until log/runtime collector assertions are wired in."
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": null,
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-03-12",
+    "compatibility_mode": "declarative"
+  }
+}

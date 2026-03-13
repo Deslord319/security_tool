@@ -1,0 +1,24 @@
+{
+  "case_id": "LOG-STATUS-001",
+  "case_name": "日志运行状态可读",
+  "module": "log-manage",
+  "steps": [
+    {
+      "name": "导航到日志管理",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page": "日志管理"
+      },
+      "expected": "日志管理页面显示"
+    },
+    {
+      "name": "记录日志状态说明",
+      "type": "note",
+      "message": "主断言建议接 LogRuntimeCollectorService.getStatus()，截图作为辅助证据。"
+    }
+  ],
+  "notes": [
+    "这条用例适合和首页统计卡片联动。"
+  ]
+}

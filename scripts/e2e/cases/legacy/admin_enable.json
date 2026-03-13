@@ -1,0 +1,22 @@
+{
+  "case_id": "APP-ADMIN-001",
+  "case_name": "企业管理员激活",
+  "module": "bootstrap",
+  "steps": [
+    {
+      "name": "激活企业管理员",
+      "type": "assert_hdc_shell_contains",
+      "command": "edm enable-admin -n {{bundle_name}} -a EnterpriseAdminAbility -t super",
+      "contains": "success",
+      "timeout_sec": 20
+    },
+    {
+      "name": "记录管理员状态说明",
+      "type": "note",
+      "message": "当前设备的 edm 工具不支持 list-admins，管理员激活以 enable-admin 返回结果为主证据。"
+    }
+  ],
+  "notes": [
+    "如果设备不支持 super admin 或企业管理能力不足，该用例应判为 FAIL。"
+  ]
+}

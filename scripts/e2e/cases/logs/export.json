@@ -1,0 +1,34 @@
+{
+  "case_id": "LOG-EXPORT-001",
+  "case_name": "Log Export Flow",
+  "module": "log-manage",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_log_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "log-manage"
+      }
+    },
+    {
+      "name": "export_logs",
+      "ref": "logs.export",
+      "params": {}
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Export artifact verification will be attached once filesystem assertions are wired."
+  ]
+}

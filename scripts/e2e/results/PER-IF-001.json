@@ -1,0 +1,734 @@
+{
+  "case_id": "PER-IF-001",
+  "case_name": "Peripheral Interface Toggle",
+  "module": "peripheral",
+  "started_at": "2026-03-13T02:49:03+00:00",
+  "finished_at": "2026-03-13T02:51:03+00:00",
+  "status": "UNKNOWN",
+  "failure_code": "MCP_ACTION_PENDING",
+  "failure_stage": "open_peripheral_manage",
+  "primary_evidence": {
+    "type": "step_unknown",
+    "step_name": "open_peripheral_manage",
+    "failure_code": "MCP_ACTION_PENDING",
+    "message": "Navigation click succeeded but page marker did not resolve for peripheral-manage"
+  },
+  "secondary_evidence": [
+    {
+      "step_name": "launch_app",
+      "password_prompt": {
+        "status": "PASS",
+        "failure_code": "",
+        "message": "Auth prompt handled",
+        "handled": false,
+        "prompt_detected": false,
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_input_password_if_prompted",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "timeout_ms": 4000
+          },
+          "expected": "Clear lock screen password prompt when present",
+          "prompt_detected": false,
+          "handled": false,
+          "still_present": false
+        }
+      }
+    },
+    {
+      "step_name": "open_peripheral_manage",
+      "type": "mcp_action",
+      "action": "navigate_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      },
+      "expected": "Navigate to page peripheral-manage",
+      "bridge_backend": "real_harmonyos_mcp_backend",
+      "action_plan": {
+        "goal": "Open a page from the left navigation rail.",
+        "required_params": [
+          "page_id"
+        ],
+        "mcp_tools": [
+          "find_element",
+          "click_element",
+          "wait_element"
+        ],
+        "steps": [
+          "Resolve the target page title from the adapter page registry.",
+          "Find the navigation item by text or stable page locator.",
+          "Click the navigation item.",
+          "Wait for the page title or a page-specific anchor text to appear."
+        ]
+      }
+    },
+    {
+      "step_name": "toggle_usb_interface",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "usb",
+        "target_state": "invert"
+      },
+      "expected": "Peripheral interface state changes",
+      "feature": "usb",
+      "toggle": {
+        "type": "Toggle",
+        "text": "",
+        "x": 2439,
+        "y": 556,
+        "left": 2405,
+        "top": 537,
+        "width": 68,
+        "height": 38,
+        "checked": false,
+        "clickable": true
+      },
+      "before_toggle_state": {
+        "status": "PASS",
+        "failure_code": "",
+        "message": "Toggle state resolved",
+        "checked": false,
+        "element": {
+          "type": "Toggle",
+          "text": "",
+          "x": 2439,
+          "y": 556,
+          "left": 2405,
+          "top": 537,
+          "width": 68,
+          "height": 38,
+          "checked": false,
+          "clickable": true
+        },
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "USB",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "checked": false,
+          "element": {
+            "type": "Toggle",
+            "text": "",
+            "x": 2439,
+            "y": 556,
+            "left": 2405,
+            "top": 537,
+            "width": 68,
+            "height": 38,
+            "checked": false,
+            "clickable": true
+          },
+          "source": "ui_tree"
+        }
+      },
+      "after_toggle_state": {
+        "status": "UNKNOWN",
+        "failure_code": "MCP_ACTION_PENDING",
+        "message": "Toggle state could not be resolved",
+        "checked": null,
+        "element": {},
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "USB",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "bridge_backend": "real_harmonyos_mcp_backend",
+          "action_plan": {}
+        }
+      }
+    },
+    {
+      "step_name": "toggle_bluetooth_interface",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "bluetooth",
+        "target_state": "invert"
+      },
+      "expected": "Peripheral interface state changes",
+      "feature": "bluetooth",
+      "toggle": {
+        "type": "Toggle",
+        "text": "",
+        "x": 2439,
+        "y": 556,
+        "left": 2405,
+        "top": 537,
+        "width": 68,
+        "height": 38,
+        "checked": true,
+        "clickable": true
+      },
+      "before_toggle_state": {
+        "status": "UNKNOWN",
+        "failure_code": "MCP_ACTION_PENDING",
+        "message": "Toggle state could not be resolved",
+        "checked": null,
+        "element": {},
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "蓝牙",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "bridge_backend": "real_harmonyos_mcp_backend",
+          "action_plan": {}
+        }
+      },
+      "after_toggle_state": {
+        "status": "UNKNOWN",
+        "failure_code": "MCP_ACTION_PENDING",
+        "message": "Toggle state could not be resolved",
+        "checked": null,
+        "element": {},
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "蓝牙",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "bridge_backend": "real_harmonyos_mcp_backend",
+          "action_plan": {}
+        }
+      }
+    },
+    {
+      "step_name": "toggle_wifi_interface",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "wifi",
+        "target_state": "invert"
+      },
+      "expected": "Peripheral interface state changes",
+      "feature": "wifi",
+      "toggle": {
+        "type": "Toggle",
+        "text": "",
+        "x": 2439,
+        "y": 556,
+        "left": 2405,
+        "top": 537,
+        "width": 68,
+        "height": 38,
+        "checked": true,
+        "clickable": true
+      },
+      "before_toggle_state": {
+        "status": "UNKNOWN",
+        "failure_code": "MCP_ACTION_PENDING",
+        "message": "Toggle state could not be resolved",
+        "checked": null,
+        "element": {},
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "Wi-Fi",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "bridge_backend": "real_harmonyos_mcp_backend",
+          "action_plan": {}
+        }
+      },
+      "after_toggle_state": {
+        "status": "UNKNOWN",
+        "failure_code": "MCP_ACTION_PENDING",
+        "message": "Toggle state could not be resolved",
+        "checked": null,
+        "element": {},
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "Wi-Fi",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "bridge_backend": "real_harmonyos_mcp_backend",
+          "action_plan": {}
+        }
+      }
+    },
+    {
+      "step_name": "toggle_hdc_interface",
+      "type": "mcp_action",
+      "action": "toggle_peripheral_interface",
+      "params": {
+        "feature": "hdc",
+        "target_state": "invert"
+      },
+      "expected": "Peripheral interface state changes",
+      "bridge_backend": "real_harmonyos_mcp_backend",
+      "action_plan": {
+        "goal": "Toggle one interface in the peripheral management page.",
+        "required_params": [
+          "feature",
+          "target_state"
+        ],
+        "mcp_tools": [
+          "find_element",
+          "click_element",
+          "get_ui_tree"
+        ],
+        "steps": [
+          "Locate the target peripheral interface row.",
+          "Read the current switch state.",
+          "Click only when a state change is required.",
+          "Read the resulting state and return it."
+        ]
+      },
+      "before_toggle_state": {
+        "status": "UNKNOWN",
+        "failure_code": "MCP_ACTION_PENDING",
+        "message": "Toggle state could not be resolved",
+        "checked": null,
+        "element": {},
+        "evidence": {
+          "type": "mcp_action",
+          "action": "__driver_get_toggle_state",
+          "params": {
+            "bundle_name": "com.huawei.securitytool",
+            "text": "HDC",
+            "element_id": "",
+            "window_id": ""
+          },
+          "expected": "Read toggle state",
+          "bridge_backend": "real_harmonyos_mcp_backend",
+          "action_plan": {}
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "name": "launch_app",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T02:49:03+00:00",
+      "finished_at": "2026-03-13T02:49:10+00:00",
+      "failure_code": "",
+      "command": "hdc -t 3QC0124C11000711 shell aa start -a EntryAbility -b com.huawei.securitytool -m entry",
+      "returncode": 0,
+      "stdout": "start ability successfully.",
+      "stderr": "",
+      "message": "Flow executed",
+      "evidence": {
+        "password_prompt": {
+          "status": "PASS",
+          "failure_code": "",
+          "message": "Auth prompt handled",
+          "handled": false,
+          "prompt_detected": false,
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_input_password_if_prompted",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "timeout_ms": 4000
+            },
+            "expected": "Clear lock screen password prompt when present",
+            "prompt_detected": false,
+            "handled": false,
+            "still_present": false
+          }
+        }
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "step_type": "flow_action",
+      "status": "UNKNOWN",
+      "started_at": "2026-03-13T02:49:10+00:00",
+      "finished_at": "2026-03-13T02:49:36+00:00",
+      "failure_code": "MCP_ACTION_PENDING",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Navigation click succeeded but page marker did not resolve for peripheral-manage",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "navigate_page",
+        "params": {
+          "page_id": "peripheral-manage"
+        },
+        "expected": "Navigate to page peripheral-manage",
+        "bridge_backend": "real_harmonyos_mcp_backend",
+        "action_plan": {
+          "goal": "Open a page from the left navigation rail.",
+          "required_params": [
+            "page_id"
+          ],
+          "mcp_tools": [
+            "find_element",
+            "click_element",
+            "wait_element"
+          ],
+          "steps": [
+            "Resolve the target page title from the adapter page registry.",
+            "Find the navigation item by text or stable page locator.",
+            "Click the navigation item.",
+            "Wait for the page title or a page-specific anchor text to appear."
+          ]
+        }
+      }
+    },
+    {
+      "name": "toggle_usb_interface",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T02:49:36+00:00",
+      "finished_at": "2026-03-13T02:49:52+00:00",
+      "failure_code": "",
+      "command": "python scripts/e2e/bridges/harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Peripheral interface toggle executed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "toggle_peripheral_interface",
+        "params": {
+          "feature": "usb",
+          "target_state": "invert"
+        },
+        "expected": "Peripheral interface state changes",
+        "feature": "usb",
+        "toggle": {
+          "type": "Toggle",
+          "text": "",
+          "x": 2439,
+          "y": 556,
+          "left": 2405,
+          "top": 537,
+          "width": 68,
+          "height": 38,
+          "checked": false,
+          "clickable": true
+        },
+        "before_toggle_state": {
+          "status": "PASS",
+          "failure_code": "",
+          "message": "Toggle state resolved",
+          "checked": false,
+          "element": {
+            "type": "Toggle",
+            "text": "",
+            "x": 2439,
+            "y": 556,
+            "left": 2405,
+            "top": 537,
+            "width": 68,
+            "height": 38,
+            "checked": false,
+            "clickable": true
+          },
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "USB",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "checked": false,
+            "element": {
+              "type": "Toggle",
+              "text": "",
+              "x": 2439,
+              "y": 556,
+              "left": 2405,
+              "top": 537,
+              "width": 68,
+              "height": 38,
+              "checked": false,
+              "clickable": true
+            },
+            "source": "ui_tree"
+          }
+        },
+        "after_toggle_state": {
+          "status": "UNKNOWN",
+          "failure_code": "MCP_ACTION_PENDING",
+          "message": "Toggle state could not be resolved",
+          "checked": null,
+          "element": {},
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "USB",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "bridge_backend": "real_harmonyos_mcp_backend",
+            "action_plan": {}
+          }
+        }
+      }
+    },
+    {
+      "name": "toggle_bluetooth_interface",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T02:49:52+00:00",
+      "finished_at": "2026-03-13T02:50:11+00:00",
+      "failure_code": "",
+      "command": "python scripts/e2e/bridges/harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Peripheral interface toggle executed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "toggle_peripheral_interface",
+        "params": {
+          "feature": "bluetooth",
+          "target_state": "invert"
+        },
+        "expected": "Peripheral interface state changes",
+        "feature": "bluetooth",
+        "toggle": {
+          "type": "Toggle",
+          "text": "",
+          "x": 2439,
+          "y": 556,
+          "left": 2405,
+          "top": 537,
+          "width": 68,
+          "height": 38,
+          "checked": true,
+          "clickable": true
+        },
+        "before_toggle_state": {
+          "status": "UNKNOWN",
+          "failure_code": "MCP_ACTION_PENDING",
+          "message": "Toggle state could not be resolved",
+          "checked": null,
+          "element": {},
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "蓝牙",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "bridge_backend": "real_harmonyos_mcp_backend",
+            "action_plan": {}
+          }
+        },
+        "after_toggle_state": {
+          "status": "UNKNOWN",
+          "failure_code": "MCP_ACTION_PENDING",
+          "message": "Toggle state could not be resolved",
+          "checked": null,
+          "element": {},
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "蓝牙",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "bridge_backend": "real_harmonyos_mcp_backend",
+            "action_plan": {}
+          }
+        }
+      }
+    },
+    {
+      "name": "toggle_wifi_interface",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-13T02:50:11+00:00",
+      "finished_at": "2026-03-13T02:50:46+00:00",
+      "failure_code": "",
+      "command": "python scripts/e2e/bridges/harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Peripheral interface toggle executed",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "toggle_peripheral_interface",
+        "params": {
+          "feature": "wifi",
+          "target_state": "invert"
+        },
+        "expected": "Peripheral interface state changes",
+        "feature": "wifi",
+        "toggle": {
+          "type": "Toggle",
+          "text": "",
+          "x": 2439,
+          "y": 556,
+          "left": 2405,
+          "top": 537,
+          "width": 68,
+          "height": 38,
+          "checked": true,
+          "clickable": true
+        },
+        "before_toggle_state": {
+          "status": "UNKNOWN",
+          "failure_code": "MCP_ACTION_PENDING",
+          "message": "Toggle state could not be resolved",
+          "checked": null,
+          "element": {},
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "Wi-Fi",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "bridge_backend": "real_harmonyos_mcp_backend",
+            "action_plan": {}
+          }
+        },
+        "after_toggle_state": {
+          "status": "UNKNOWN",
+          "failure_code": "MCP_ACTION_PENDING",
+          "message": "Toggle state could not be resolved",
+          "checked": null,
+          "element": {},
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "Wi-Fi",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "bridge_backend": "real_harmonyos_mcp_backend",
+            "action_plan": {}
+          }
+        }
+      }
+    },
+    {
+      "name": "toggle_hdc_interface",
+      "step_type": "flow_action",
+      "status": "UNKNOWN",
+      "started_at": "2026-03-13T02:50:46+00:00",
+      "finished_at": "2026-03-13T02:51:03+00:00",
+      "failure_code": "MCP_ACTION_PENDING",
+      "command": null,
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Peripheral toggles were not detected",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "toggle_peripheral_interface",
+        "params": {
+          "feature": "hdc",
+          "target_state": "invert"
+        },
+        "expected": "Peripheral interface state changes",
+        "bridge_backend": "real_harmonyos_mcp_backend",
+        "action_plan": {
+          "goal": "Toggle one interface in the peripheral management page.",
+          "required_params": [
+            "feature",
+            "target_state"
+          ],
+          "mcp_tools": [
+            "find_element",
+            "click_element",
+            "get_ui_tree"
+          ],
+          "steps": [
+            "Locate the target peripheral interface row.",
+            "Read the current switch state.",
+            "Click only when a state change is required.",
+            "Read the resulting state and return it."
+          ]
+        },
+        "before_toggle_state": {
+          "status": "UNKNOWN",
+          "failure_code": "MCP_ACTION_PENDING",
+          "message": "Toggle state could not be resolved",
+          "checked": null,
+          "element": {},
+          "evidence": {
+            "type": "mcp_action",
+            "action": "__driver_get_toggle_state",
+            "params": {
+              "bundle_name": "com.huawei.securitytool",
+              "text": "HDC",
+              "element_id": "",
+              "window_id": ""
+            },
+            "expected": "Read toggle state",
+            "bridge_backend": "real_harmonyos_mcp_backend",
+            "action_plan": {}
+          }
+        }
+      }
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings",
+    "Service-backed interface assertions will be added after the MCP executor is wired."
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": "3QC0124C11000711",
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-03-12",
+    "compatibility_mode": "declarative"
+  }
+}

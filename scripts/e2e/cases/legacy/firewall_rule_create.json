@@ -1,0 +1,40 @@
+{
+  "case_id": "FW-RULE-001",
+  "case_name": "新增 DNS 规则成功",
+  "module": "firewall",
+  "steps": [
+    {
+      "name": "进入 DNS 规则详情页",
+      "type": "mcp_action",
+      "action": "open_firewall_rules",
+      "params": {
+        "rule_type": "dns"
+      },
+      "expected": "DNS 规则详情页显示"
+    },
+    {
+      "name": "新增 DNS 规则",
+      "type": "mcp_action",
+      "action": "add_firewall_rule",
+      "params": {
+        "rule_type": "dns",
+        "host": "example.com",
+        "direction": "out",
+        "policy": "deny"
+      },
+      "expected": "规则列表中可见新增项"
+    },
+    {
+      "name": "记录规则页截图",
+      "type": "mcp_action",
+      "action": "capture_screenshot",
+      "params": {
+        "name": "firewall_dns_rule_created"
+      },
+      "expected": "截图保存成功"
+    }
+  ],
+  "notes": [
+    "主断言建议接入 FirewallService.getAllRules() 的结果。"
+  ]
+}

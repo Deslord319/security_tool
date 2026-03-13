@@ -1,0 +1,19 @@
+{
+  "case_id": "PER-USB-001",
+  "case_name": "USB 存储策略设置与回读",
+  "module": "peripheral",
+  "steps": [
+    {
+      "name": "切换 USB 存储策略",
+      "type": "mcp_action",
+      "action": "select_usb_storage_policy",
+      "params": {
+        "policy": "read_only"
+      },
+      "expected": "USB 存储策略变为只读"
+    }
+  ],
+  "notes": [
+    "主断言建议接 PeripheralService.getUsbStoragePolicyWithResult()。"
+  ]
+}

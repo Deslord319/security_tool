@@ -1,0 +1,41 @@
+{
+  "case_id": "SET-STARTUP-001",
+  "case_name": "Startup Auth Toggle",
+  "module": "tool-settings",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_tool_settings",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "tool-settings"
+      }
+    },
+    {
+      "name": "toggle_startup_auth",
+      "ref": "tool_settings.toggle_startup_auth",
+      "params": {
+        "target_state": "invert"
+      }
+    },
+    {
+      "name": "save_tool_settings",
+      "ref": "tool_settings.save",
+      "params": {}
+    }
+  ],
+  "assertions": [],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Primary evidence remains UI-level until a stable preference getter is exposed."
+  ]
+}

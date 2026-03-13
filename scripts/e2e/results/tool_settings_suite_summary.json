@@ -1,0 +1,19 @@
+{
+  "suite_name": "tool_settings",
+  "adapter_name": "security_tool",
+  "adapter_version": "1.0.0",
+  "project_id": "security_tool",
+  "mode": "completeness",
+  "started_at": "2026-03-13T03:19:59+00:00",
+  "finished_at": "2026-03-13T03:21:54+00:00",
+  "overall_status": "PASS",
+  "total_cases": 3,
+  "pass_count": 3,
+  "fail_count": 0,
+  "unknown_count": 0,
+  "result_files": [
+    "scripts\\e2e\\results\\SET-STARTUP-001.json",
+    "scripts\\e2e\\results\\SET-AUTH-001.json",
+    "scripts\\e2e\\results\\SET-PASSWORD-001.json"
+  ]
+}

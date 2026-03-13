@@ -1,0 +1,17 @@
+{
+  "case_id": "LOG-EXPORT-001",
+  "case_name": "导出流程可触发并留证",
+  "module": "log-manage",
+  "steps": [
+    {
+      "name": "进入日志导出流程",
+      "type": "mcp_action",
+      "action": "export_logs",
+      "params": {},
+      "expected": "出现导出成功提示或导出路径"
+    }
+  ],
+  "notes": [
+    "如果目录权限或系统文件访问限制无法确认落盘结果，该用例应判为 UNKNOWN。"
+  ]
+}

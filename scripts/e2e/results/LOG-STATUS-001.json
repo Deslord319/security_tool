@@ -1,0 +1,95 @@
+{
+  "case_id": "LOG-STATUS-001",
+  "case_name": "Log Status Visible",
+  "module": "log-manage",
+  "started_at": "2026-03-12T13:03:02+00:00",
+  "finished_at": "2026-03-12T13:03:47+00:00",
+  "status": "FAIL",
+  "failure_code": "MCP_EXECUTION_FAILED",
+  "failure_stage": "open_log_manage",
+  "primary_evidence": {
+    "type": "step_failure",
+    "step_name": "open_log_manage",
+    "failure_code": "MCP_EXECUTION_FAILED",
+    "message": "Failed to click sidebar item sidebar-nav-log-manage"
+  },
+  "secondary_evidence": [],
+  "steps": [
+    {
+      "name": "launch_app",
+      "step_type": "flow_action",
+      "status": "PASS",
+      "started_at": "2026-03-12T13:03:02+00:00",
+      "finished_at": "2026-03-12T13:03:03+00:00",
+      "failure_code": "",
+      "command": "hdc -t 3QC0124C11000711 shell aa start -a EntryAbility -b com.huawei.securitytool -m entry --ps skip_startup_auth 1",
+      "returncode": 0,
+      "stdout": "start ability successfully.",
+      "stderr": "",
+      "message": "Flow executed",
+      "evidence": {}
+    },
+    {
+      "name": "open_log_manage",
+      "step_type": "flow_action",
+      "status": "FAIL",
+      "started_at": "2026-03-12T13:03:03+00:00",
+      "finished_at": "2026-03-12T13:03:47+00:00",
+      "failure_code": "MCP_EXECUTION_FAILED",
+      "command": "python scripts\\\\e2e\\\\bridges\\\\harmonyos_mcp_bridge.py",
+      "returncode": null,
+      "stdout": null,
+      "stderr": null,
+      "message": "Failed to click sidebar item sidebar-nav-log-manage",
+      "evidence": {
+        "type": "mcp_action",
+        "action": "navigate_page",
+        "params": {
+          "page_id": "log-manage"
+        },
+        "expected": "Navigate to page log-manage",
+        "click_result": {
+          "tool": "click_element",
+          "ok": false,
+          "result": {
+            "elements": [],
+            "count": 0
+          },
+          "error": {
+            "code": "ELEMENT_NOT_FOUND",
+            "detail": "element not found: text=日志管理, type=None, id=None"
+          },
+          "meta": {
+            "request_id": "77ca222e-cd6a-48ef-9aa1-6e1267444719",
+            "timestamp": "2026-03-12T13:03:46.841697+00:00",
+            "duration_ms": 1287
+          }
+        },
+        "page_text": "日志管理",
+        "sidebar_node": {}
+      }
+    }
+  ],
+  "artifacts": [],
+  "notes": [
+    "This adapter is the reference implementation inside the business repository.",
+    "The structure is designed so core modules can be extracted into a standalone repository later.",
+    "Registered pages: dashboard, firewall, firewall-rules, log-manage, peripheral-manage, identity, tool-settings",
+    "Log status is currently UI-first and will later add service/log evidence."
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "environment_snapshot": {
+    "project_id": "security_tool",
+    "adapter_name": "security_tool",
+    "adapter_version": "1.0.0",
+    "bundle_name": "com.huawei.securitytool",
+    "device_id": "3QC0124C11000711",
+    "mode": "completeness",
+    "connected": true,
+    "page_registry_version": "2026-03-12",
+    "compatibility_mode": "declarative"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "suite_name": "identity",
+  "adapter_name": "security_tool",
+  "adapter_version": "1.0.0",
+  "project_id": "security_tool",
+  "mode": "completeness",
+  "started_at": "2026-03-12T13:07:59+00:00",
+  "finished_at": "2026-03-12T13:09:10+00:00",
+  "overall_status": "FAIL",
+  "total_cases": 2,
+  "pass_count": 1,
+  "fail_count": 1,
+  "unknown_count": 0,
+  "result_files": [
+    "scripts\\e2e\\results\\ID-PWD-001.json",
+    "scripts\\e2e\\results\\ID-DOMAIN-001.json"
+  ]
+}
