@@ -31,3 +31,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .Python
+
+# E2E test results
+scripts/e2e/results/*.json
+scripts/e2e/results/*.md
