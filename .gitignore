@@ -25,4 +25,9 @@ hapsigner/*.hap
 hapsigner/*.p7b
 hapsigner/*.p12
 hapsigner/ci/
-scripts/e2e/adapters/security_tool/local_config.py
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
