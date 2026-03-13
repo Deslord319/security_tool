@@ -35,3 +35,6 @@ __pycache__/
 # E2E test results
 scripts/e2e/results/*.json
 scripts/e2e/results/*.md
+
+# E2E artifacts (screenshots, debug files)
+scripts/e2e/artifacts/
