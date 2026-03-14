@@ -24,43 +24,43 @@ export struct HelpFeedbackPage {
 
   private guideItems: GuideItem[] = [
     {
-      title: '\u9632\u706B\u5899\u7BA1\u7406',
-      description: '\u5728\u9632\u706B\u5899\u9875\u9762\u4E2D\u53EF\u4EE5\u542F\u7528/\u5173\u95ED\u9632\u706B\u5899\uFF0C\u67E5\u770B\u548C\u7BA1\u7406\u9632\u706B\u5899\u89C4\u5219\u3002\u652F\u6301\u6309\u57DF\u540D\u3001IP \u5730\u5740\u914D\u7F6E\u767D\u540D\u5355\u548C\u9ED1\u540D\u5355\u89C4\u5219\u3002'
+      title: '防火墙管理',
+      description: '在防火墙页面中可以启用/关闭防火墙，查看和管理防火墙规则。支持按域名、IP 地址配置白名单和黑名单规则。'
     },
     {
-      title: '\u5916\u8BBE\u7BA1\u7406',
-      description: '\u5916\u8BBE\u7BA1\u7406\u9875\u9762\u63D0\u4F9B USB\u3001\u84DD\u7259\u3001Wi-Fi \u7B49\u5916\u8BBE\u7684\u7EDF\u4E00\u7BA1\u63A7\u3002\u53EF\u4EE5\u6309\u9700\u542F\u7528\u6216\u7981\u7528\u5404\u7C7B\u5916\u8BBE\u63A5\u53E3\u3002'
+      title: '外设管理',
+      description: '外设管理页面提供 USB、蓝牙、Wi-Fi 等外设的统一管控。可以按需启用或禁用各类外设接口。'
     },
     {
-      title: '\u8EAB\u4EFD\u9274\u522B',
-      description: '\u914D\u7F6E\u8BBE\u5907\u53E3\u4EE4\u590D\u6742\u5EA6\u7B56\u7565\uFF0C\u63D0\u5347\u7CFB\u7EDF\u8EAB\u4EFD\u8BA4\u8BC1\u7684\u5B89\u5168\u6027\u3002'
+      title: '身份鉴别',
+      description: '配置设备口令复杂度策略，提升系统身份认证的安全性。'
     },
     {
-      title: '\u5DE5\u5177\u8BBE\u7F6E',
-      description: '\u914D\u7F6E\u5E94\u7528\u7684\u542F\u52A8\u6821\u9A8C\u548C\u8BBF\u95EE\u5BC6\u7801\u3002\u542F\u7528\u542F\u52A8\u6821\u9A8C\u540E\uFF0C\u6BCF\u6B21\u6253\u5F00\u5E94\u7528\u9700\u8981\u8FDB\u884C\u8EAB\u4EFD\u8BA4\u8BC1\u3002'
+      title: '工具设置',
+      description: '配置应用的启动校验和访问密码。启用启动校验后，每次打开应用需要进行身份认证。'
     },
     {
-      title: '\u6DF1\u8272\u6A21\u5F0F',
-      description: '\u70B9\u51FB\u53F3\u4E0A\u89D2\u4E09\u70B9\u83DC\u5355\u5207\u6362\u663E\u793A\u6A21\u5F0F\u3002\u652F\u6301\u8DDF\u968F\u7CFB\u7EDF\u3001\u6D45\u8272\u548C\u6DF1\u8272\u4E09\u79CD\u6A21\u5F0F\u3002'
+      title: '深色模式',
+      description: '点击右上角三点菜单切换显示模式。支持跟随系统、浅色和深色三种模式。'
     }
   ]
 
   private faqItems: FaqItem[] = [
     {
-      question: '\u65e5\u5fd7\u5bfc\u51fa\u76ee\u5f55\u6709\u54ea\u4e9b\u9650\u5236\uff1f',
-      answer: '\u65e5\u5fd7\u5bfc\u51fa\u5df2\u7edf\u4e00\u4e3a DOWNLOAD \u6a21\u5f0f\u3002\u9996\u6b21\u5bfc\u51fa\u65f6\u7cfb\u7edf\u4f1a\u81ea\u52a8\u5f15\u5bfc\u6388\u6743\uff0c\u540e\u7eed\u6240\u6709\u5bfc\u51fa\u9ed8\u8ba4\u4f7f\u7528\u8be5\u6388\u6743\u76ee\u5f55\u3002'
+      question: '日志导出目录有哪些限制？',
+      answer: '日志导出已统一为 DOWNLOAD 模式。首次导出时系统会自动引导授权，后续所有导出默认使用该授权目录。'
     },
     {
-      question: '\u5bfc\u51fa\u76ee\u5f55\u4e0d\u53ef\u5199\u65f6\u4f1a\u600e\u6837\uff1f',
-      answer: '\u5f53\u6240\u9009\u76ee\u5f55\u4e0d\u53ef\u5199\u65f6\uff0c\u7cfb\u7edf\u4f1a\u81ea\u52a8\u56de\u9000\u5230\u9ed8\u8ba4\u5bfc\u51fa\u76ee\u5f55\u3002\u4f60\u53ef\u4ee5\u5728\u201c\u65e5\u5fd7\u7ba1\u7406 -> \u5bfc\u51fa\u8be6\u60c5\u201d\u4e2d\u67e5\u770b\u5b9e\u9645\u843d\u76d8\u76ee\u5f55\u4e0e\u63d0\u793a\u4fe1\u606f\u3002'
+      question: '导出目录不可写时会怎样？',
+      answer: '当所选目录不可写时，系统会自动回退到默认导出目录。你可以在“日志管理 -> 导出详情”中查看实际落盘目录与提示信息。'
     },
     {
-      question: '\u5ba1\u8ba1\u8bca\u65ad\u4e2d\u4e0d\u540c\u4e8b\u4ef6\u7c7b\u578b\u5982\u4f55\u89e6\u53d1\uff1f',
-      answer: '\u5e38\u89c1\u89e6\u53d1\u5efa\u8bae\uff1a\n\u7f51\u7edc\u8fde\u63a5\uff1a\u4ec5\u7cfb\u7edf\u4e0a\u62a5\u7684\u8fde\u63a5\u5ba1\u8ba1\u4e8b\u4ef6\u4f1a\u51fa\u73b0\uff0c\u666e\u901a\u7f51\u9875\u8bbf\u95ee\u4e0d\u4e00\u5b9a\u89e6\u53d1\u3002\n\u7f51\u7edc\u6d41\u91cf\uff1a\u901a\u5e38\u9700\u8981\u7cfb\u7edf\u4fa7\u5f00\u542f\u6d41\u91cf\u5ba1\u8ba1\u4e0a\u62a5\u3002\n\u6743\u9650\u53d8\u66f4\uff1a\u9700\u6267\u884c\u6743\u9650\u6388\u4e88\u6216\u64a4\u9500\u7b49\u7cfb\u7edf\u6743\u9650\u64cd\u4f5c\u3002\n\u8d26\u6237\u4e8b\u4ef6\uff1a\u90e8\u5206\u8bbe\u5907\u53ef\u80fd\u53d7\u7cfb\u7edf\u7b56\u7565\u9650\u5236\u3002\n\u5176\u4ed6\u7c7b\u578b\uff1a\u5148\u89e6\u53d1\u5bf9\u5e94\u7cfb\u7edf\u5b89\u5168\u64cd\u4f5c\uff0c\u518d\u5237\u65b0\u65e5\u5fd7\u67e5\u770b\u3002'
+      question: '审计诊断中不同事件类型如何触发？',
+      answer: '常见触发建议：\n网络连接：仅系统上报的连接审计事件会出现，普通网页访问不一定触发。\n网络流量：通常需要系统侧开启流量审计上报。\n权限变更：需执行权限授予或撤销等系统权限操作。\n账户事件：部分设备可能受系统策略限制。\n其他类型：先触发对应系统安全操作，再刷新日志查看。'
     },
     {
-      question: '\u5ba1\u8ba1\u4e8b\u4ef6\u663e\u793a\u8ba2\u9605\u5931\u8d25\u600e\u4e48\u529e\uff1f',
-      answer: '\u8be5\u7c7b\u578b\u8ba2\u9605\u5931\u8d25\u901a\u5e38\u4e3a\u7cfb\u7edf\u9650\u5236\u6216\u4e8b\u4ef6\u4e0d\u652f\u6301\u3002\u82e5\u4e3a\u8d26\u6237\u7c7b\u4e14\u9519\u8bef\u7801 401\uff0c\u591a\u4e3a\u7cfb\u7edf\u7b56\u7565\u9650\u5236\uff0c\u4e0d\u662f\u5e94\u7528\u6743\u9650\u7f3a\u5931\u3002'
+      question: '审计事件显示订阅失败怎么办？',
+      answer: '该类型订阅失败通常为系统限制或事件不支持。若为账户类且错误码 401，多为系统策略限制，不是应用权限缺失。'
     },
     { question: '如何启用启动校验？', answer: '进入"工具设置"页面，打开"启动时身份校验"开关，选择认证方式（PIN 码或生物识别）即可。' },
     { question: '防火墙规则不生效怎么办？', answer: '请确认防火墙主开关已启用，并检查规则的优先级设置。设备需要具备企业管理权限才能正常使用防火墙功能。' },
@@ -115,7 +115,7 @@ export struct HelpFeedbackPage {
                   .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
                   .layoutWeight(1)
-                Text(this.expandedGuide === index ? '\u25B2' : '\u25BC')
+                Text(this.expandedGuide === index ? '▲' : '▼')
                   .fontSize(10)
                   .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -175,7 +175,7 @@ export struct HelpFeedbackPage {
                   .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
                   .layoutWeight(1)
-                Text(this.expandedFaq === index ? '\u25B2' : '\u25BC')
+                Text(this.expandedFaq === index ? '▲' : '▼')
                   .fontSize(10)
                   .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
