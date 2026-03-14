@@ -33,7 +33,7 @@ export struct HelpFeedbackPage {
     },
     {
       title: '\u8EAB\u4EFD\u9274\u522B',
-      description: '\u914D\u7F6E\u8BBE\u5907\u53E3\u4EE4\u590D\u6742\u5EA6\u4E0E\u57DF\u8D26\u53F7\u6709\u6548\u671F\u7B56\u7565\u3002\u53E3\u4EE4\u6709\u6548\u671F\u4EC5\u4F5C\u7528\u4E8E\u57DF\u8D26\u53F7\uFF0C\u4E0D\u4F5C\u7528\u4E8E\u672C\u5730 PIN\u3002'
+      description: '\u914D\u7F6E\u8BBE\u5907\u53E3\u4EE4\u590D\u6742\u5EA6\u7B56\u7565\uFF0C\u63D0\u5347\u7CFB\u7EDF\u8EAB\u4EFD\u8BA4\u8BC1\u7684\u5B89\u5168\u6027\u3002'
     },
     {
       title: '\u5DE5\u5177\u8BBE\u7F6E',
@@ -67,7 +67,6 @@ export struct HelpFeedbackPage {
     { question: '忘记工具访问密码怎么办？', answer: '当前版本需要重置应用数据来清除密码。进入系统设置 → 应用管理 → 安全管理中心 → 清除数据。' },
     { question: '外设策略修改后不生效？', answer: '部分外设策略修改后需要重启设备才能生效。请确认设备已获取相应的企业管理权限。' },
     { question: '身份策略保存后系统设置未同步怎么办？', answer: '系统设置页面可能不会实时刷新策略展示。请先关闭系统设置，再重新打开查看最新策略；若仍异常，可重启设备后复核。' },
-    { question: '口令有效期配置是否对 PIN 码生效？', answer: '当前“口令有效期配置”通过域账号策略接口下发，仅对域账号生效，不作用于本地 PIN 码。' },
     { question: '可以在鸿蒙盾内直接修改系统 PIN 码吗？', answer: '当前版本不支持。公开系统接口主要提供认证与策略下发能力，不提供在应用内直接修改系统 PIN 码的能力，请在系统设置中修改。' }
   ]
 

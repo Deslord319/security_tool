@@ -479,23 +479,7 @@ export interface PasswordComplexityConfig {
 }
 
 
-export interface DomainPolicyConfig {
-  passwordMaxAgeDays: number
-  expirationNotifyDays: number
-  authTokenValidityMinutes: number
-}
-
-
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
-
-
-export const PASSWORD_MAX_AGE_OPTIONS: number[] = [30, 60, 90, 180, -1]
-
-
-export const EXPIRY_NOTIFY_OPTIONS: number[] = [3, 7, 14, 30]
-
-
-export const AUTH_TOKEN_VALIDITY_OPTIONS: number[] = [5, 15, 30, 60, -1]
 
 
 
