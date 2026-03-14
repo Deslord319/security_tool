@@ -486,8 +486,7 @@ export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
 
 export enum AuthMethod {
   PIN = 1,
-  FINGERPRINT = 4,
-  PIN_FINGERPRINT = 5
+  FINGERPRINT = 4
 }
 
 
@@ -511,8 +510,7 @@ export interface AuthMethodOption {
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
   { label: 'PIN', value: AuthMethod.PIN } as AuthMethodOption,
-  { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption,
-  { label: 'PIN + 指纹', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
+  { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption
 ]
 
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'

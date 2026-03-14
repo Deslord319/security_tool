@@ -2,7 +2,6 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { AuthService } from '../services/AuthService'
 import { preferences } from '@kit.ArkData'
 import {
-  AuthMethod,
   AUTH_METHOD_OPTIONS,
   PREF_KEY_STARTUP_AUTH,
   PREF_KEY_AUTH_METHOD,
@@ -26,7 +25,6 @@ export struct ToolSettingsPage {
   @State hoveredCardIndex: number = -1
   @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   @State authMethodIndex: number = 0
-  @State availableAuthMethods: AuthMethod[] = []
 
   private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   private initialAuthMethodIndex: number = 0
@@ -35,7 +33,6 @@ export struct ToolSettingsPage {
 
   aboutToAppear() {
     this.loadSettings()
-    this.checkAvailableAuthMethods()
   }
 
   async loadSettings() {
@@ -57,11 +54,6 @@ export struct ToolSettingsPage {
     } catch (err) {
       hilog.error(0x0004, TAG, `loadSettings failed: ${JSON.stringify(err)}`)
     }
-  }
-
-  checkAvailableAuthMethods() {
-    this.availableAuthMethods = AuthService.getAvailableAuthMethods()
-    hilog.info(0x0004, TAG, `Available auth methods: ${JSON.stringify(this.availableAuthMethods)}`)
   }
 
   async saveSettings() {

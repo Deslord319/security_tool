@@ -23,44 +23,20 @@ export class AuthService {
     }
   }
 
-  static getAvailableAuthMethods(): AuthMethod[] {
-    let available: AuthMethod[] = []
-    let pinAvailable = AuthService.isAuthAvailable(userAuth.UserAuthType.PIN)
-    let fingerprintAvailable = AuthService.isAuthAvailable(userAuth.UserAuthType.FINGERPRINT)
-
-    if (pinAvailable) {
-      available.push(AuthMethod.PIN)
-    }
-    if (fingerprintAvailable) {
-      available.push(AuthMethod.FINGERPRINT)
-    }
-    if (pinAvailable && fingerprintAvailable) {
-      available.push(AuthMethod.PIN_FINGERPRINT)
-    }
-
-    return available
-  }
-
   static checkAuthMethodAvailability(authMethod: AuthMethod): AuthAvailabilityResult {
-    let authTypes: userAuth.UserAuthType[] = AuthService.convertAuthMethod(authMethod)
-    let unavailableNames: string[] = []
-
-    for (let authType of authTypes) {
-      if (!AuthService.isAuthAvailable(authType)) {
-        if (authType === userAuth.UserAuthType.PIN) {
-          unavailableNames.push('PIN 码')
-        } else if (authType === userAuth.UserAuthType.FINGERPRINT) {
-          unavailableNames.push('指纹')
-        }
-      }
+    let authType = AuthService.convertAuthMethod(authMethod)
+    if (authType === null) {
+      return { available: false, message: '认证方式不受支持' }
     }
 
-    if (unavailableNames.length === 0) {
+    if (AuthService.isAuthAvailable(authType)) {
       return { available: true, message: '认证方式可用' }
     }
 
-    let message = `认证方式不可用：${unavailableNames.join('、')}。保存后启动校验可能无法执行。`
-    return { available: false, message: message }
+    return {
+      available: false,
+      message: `认证方式不可用：${AuthService.getAuthMethodLabel(authMethod)}。保存后启动校验可能无法执行。`
+    }
   }
 
   static getAuthMethodLabel(method: AuthMethod): string {
@@ -69,8 +45,6 @@ export class AuthService {
         return 'PIN 码'
       case AuthMethod.FINGERPRINT:
         return '指纹'
-      case AuthMethod.PIN_FINGERPRINT:
-        return 'PIN + 指纹'
       default:
         return '未知认证方式'
     }
@@ -78,13 +52,15 @@ export class AuthService {
 
   static async authenticate(authMethod: AuthMethod, challenge?: Uint8Array): Promise<boolean> {
     try {
-      let authTypes: userAuth.UserAuthType[] = AuthService.convertAuthMethod(authMethod)
+      let authType = AuthService.convertAuthMethod(authMethod)
+      if (authType === null) {
+        hilog.error(DOMAIN, TAG, `Unsupported auth method: ${authMethod}`)
+        return false
+      }
 
-      for (let authType of authTypes) {
-        if (!AuthService.isAuthAvailable(authType)) {
-          hilog.error(DOMAIN, TAG, `Auth type ${authType} is not available on this device, aborting authenticate`)
-          return false
-        }
+      if (!AuthService.isAuthAvailable(authType)) {
+        hilog.error(DOMAIN, TAG, `Auth type ${authType} is not available on this device, aborting authenticate`)
+        return false
       }
 
       let authChallenge: Uint8Array
@@ -97,11 +73,9 @@ export class AuthService {
         }
       }
 
-      hilog.info(DOMAIN, TAG, `Starting auth with types: ${JSON.stringify(authTypes)}, challenge length: ${authChallenge.length}`)
-
       let authParam: userAuth.AuthParam = {
         challenge: authChallenge,
-        authType: authTypes,
+        authType: [authType],
         authTrustLevel: userAuth.AuthTrustLevel.ATL1
       }
 
@@ -128,16 +102,14 @@ export class AuthService {
     }
   }
 
-  private static convertAuthMethod(method: AuthMethod): userAuth.UserAuthType[] {
+  private static convertAuthMethod(method: AuthMethod): userAuth.UserAuthType | null {
     switch (method) {
       case AuthMethod.PIN:
-        return [userAuth.UserAuthType.PIN]
+        return userAuth.UserAuthType.PIN
       case AuthMethod.FINGERPRINT:
-        return [userAuth.UserAuthType.FINGERPRINT]
-      case AuthMethod.PIN_FINGERPRINT:
-        return [userAuth.UserAuthType.PIN, userAuth.UserAuthType.FINGERPRINT]
+        return userAuth.UserAuthType.FINGERPRINT
       default:
-        return [userAuth.UserAuthType.PIN]
+        return null
     }
   }
 }
