@@ -1,6 +1,8 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { AuthService } from '../services/AuthService'
+import { SystemSettingsService } from '../services/SystemSettingsService'
 import { preferences } from '@kit.ArkData'
+import { common } from '@kit.AbilityKit'
 import {
   AUTH_METHOD_OPTIONS,
   PREF_KEY_STARTUP_AUTH,
@@ -64,9 +66,9 @@ export struct ToolSettingsPage {
         if (!checkResult.available) {
           AlertDialog.show({
             title: '认证方式不可用',
-            message: `${checkResult.message}\n\n保存后下次启动可能无法进入工具，是否继续？`,
+            message: `${checkResult.message}\n\n继续保存后，启动时身份校验可能无法正常工作，请确认是否仍要保存设置。`,
             primaryButton: {
-              value: '继续保存',
+              value: '仍然保存',
               action: async () => {
                 await this.doSaveSettings()
               }
@@ -83,7 +85,7 @@ export struct ToolSettingsPage {
       await this.doSaveSettings()
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
-      promptAction.showToast({ message: '保存失败' })
+      promptAction.showToast({ message: '保存设置失败' })
     }
   }
 
@@ -93,7 +95,7 @@ export struct ToolSettingsPage {
         this.authMethodIndex !== this.initialAuthMethodIndex
 
       if (!hasAuthConfigChanged) {
-        promptAction.showToast({ message: '没有需要保存的更改' })
+        promptAction.showToast({ message: '当前没有需要保存的更改' })
         return
       }
 
@@ -105,10 +107,23 @@ export struct ToolSettingsPage {
       this.initialStartupAuthEnabled = this.startupAuthEnabled
       this.initialAuthMethodIndex = this.authMethodIndex
       hilog.info(0x0004, TAG, 'Startup auth settings saved')
-      promptAction.showToast({ message: '设置已保存' })
+      promptAction.showToast({ message: '工具设置保存成功' })
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
-      promptAction.showToast({ message: '保存失败' })
+      promptAction.showToast({ message: '保存设置失败' })
+    }
+  }
+
+  private async openPasswordSettings() {
+    try {
+      const context = getContext(this) as common.UIAbilityContext
+      const opened = await SystemSettingsService.openPasswordSettings(context)
+      if (!opened) {
+        promptAction.showToast({ message: '无法打开系统密码设置，请手动前往系统设置修改' })
+      }
+    } catch (err) {
+      hilog.error(0x0004, TAG, `openPasswordSettings failed: ${JSON.stringify(err)}`)
+      promptAction.showToast({ message: '无法打开系统密码设置，请手动前往系统设置修改' })
     }
   }
 
@@ -128,7 +143,7 @@ export struct ToolSettingsPage {
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text('配置安全管理工具的启动校验方式')
+            Text('配置启动认证与系统密码修改入口等工具级安全能力')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -183,7 +198,7 @@ export struct ToolSettingsPage {
   startupAuthBuilder() {
     Column({ space: 0 }) {
       Row() {
-        Text('启动校验配置')
+        Text('启动认证设置')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -203,7 +218,7 @@ export struct ToolSettingsPage {
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('开启后每次启动工具时需要进行身份认证')
+          Text('开启后，进入工具前需要先完成系统认证')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -230,7 +245,7 @@ export struct ToolSettingsPage {
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('选择启动校验时使用的身份认证方式')
+          Text('选择启动时身份校验使用的系统认证方式')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -252,6 +267,39 @@ export struct ToolSettingsPage {
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
             this.authMethodIndex = index
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Row() {
+        Column({ space: 2 }) {
+          Text('修改密码')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          Text('打开系统设置中的“生物识别和密码”，修改系统 PIN/密码')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+
+        Button('修改密码')
+          .type(ButtonType.Normal)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(Color.White)
+          .backgroundColor(AppColors.BRAND_PRIMARY)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(36)
+          .padding({ left: 14, right: 14 })
+          .onClick(() => {
+            void this.openPasswordSettings()
           })
       }
       .width('100%')
