@@ -79,6 +79,10 @@ export struct PeripheralPage {
   @State btDisabled: boolean = false
   @State wifiDisabled: boolean = false
   @State hdcDisabled: boolean = false
+  @State networkDisabled: boolean = false
+  @State printerDisabled: boolean = false
+  @State microphoneDisabled: boolean = false
+  @State cameraDisabled: boolean = false
   @State usbStoragePolicyIndex: number = 0
 
   // 黑白名单数据
@@ -604,14 +608,22 @@ export struct PeripheralPage {
 
     if (this.adminState.activated) {
       // 加载接口管控状态
-      let usbState = PeripheralService.getInterfaceDisabledWithResult('usb')
-      let btState = PeripheralService.getInterfaceDisabledWithResult('bluetooth')
-      let wifiState = PeripheralService.getInterfaceDisabledWithResult('wifi')
-      let hdcState = PeripheralService.getInterfaceDisabledWithResult('hdc')
+      let usbState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB)
+      let btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_BLUETOOTH)
+      let wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_WIFI)
+      let hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_HDC)
+      let networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_NETWORK)
+      let printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_PRINTER)
+      let microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_MICROPHONE)
+      let cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
       this.usbDisabled = usbState.data ?? false
       this.btDisabled = btState.data ?? false
       this.wifiDisabled = wifiState.data ?? false
       this.hdcDisabled = hdcState.data ?? false
+      this.networkDisabled = networkState.data ?? false
+      this.printerDisabled = printerState.data ?? false
+      this.microphoneDisabled = microphoneState.data ?? false
+      this.cameraDisabled = cameraState.data ?? false
 
       // 加载 USB 存储策略
       let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
@@ -633,6 +645,10 @@ export struct PeripheralPage {
       this.btDisabled = false
       this.wifiDisabled = false
       this.hdcDisabled = false
+      this.networkDisabled = false
+      this.printerDisabled = false
+      this.microphoneDisabled = false
+      this.cameraDisabled = false
       this.usbStoragePolicyIndex = 1
       this.usbWhitelist = []
       this.usbBlacklist = []
@@ -675,11 +691,7 @@ export struct PeripheralPage {
     */
 
     // 从 MDM API 加载设备管控记录
-    if (this.adminState.activated) {
-      this.loadDeviceControlData()
-    } else {
-      this.deviceControlRecords = []
-    }
+    this.deviceControlRecords = []
 
     this.isLoading = false
   }
@@ -769,10 +781,14 @@ export struct PeripheralPage {
 
     let result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
     if (result.success) {
-      if (feature === 'usb') this.usbDisabled = disallow
-      else if (feature === 'bluetooth') this.btDisabled = disallow
-      else if (feature === 'wifi') this.wifiDisabled = disallow
-      else if (feature === 'hdc') this.hdcDisabled = disallow
+      if (feature === PeripheralService.FEATURE_USB) this.usbDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_BLUETOOTH) this.btDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_WIFI) this.wifiDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_HDC) this.hdcDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_NETWORK) this.networkDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_PRINTER) this.printerDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_MICROPHONE) this.microphoneDisabled = disallow
+      else if (feature === PeripheralService.FEATURE_CAMERA) this.cameraDisabled = disallow
       try {
         let featureLabel = this.getInterfaceFeatureLabel(feature)
         promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
@@ -785,17 +801,29 @@ export struct PeripheralPage {
   }
 
   private getInterfaceFeatureLabel(feature: string): string {
-    if (feature === 'usb') {
+    if (feature === PeripheralService.FEATURE_USB) {
       return 'USB 接口'
     }
-    if (feature === 'bluetooth') {
-      return '蓝牙接口'
+    if (feature === PeripheralService.FEATURE_BLUETOOTH) {
+      return '蓝牙'
     }
-    if (feature === 'wifi') {
-      return 'Wi-Fi 接口'
+    if (feature === PeripheralService.FEATURE_WIFI) {
+      return 'Wi-Fi'
     }
-    if (feature === 'hdc') {
+    if (feature === PeripheralService.FEATURE_HDC) {
       return 'HDC 调试接口'
+    }
+    if (feature === PeripheralService.FEATURE_NETWORK) {
+      return '网络'
+    }
+    if (feature === PeripheralService.FEATURE_PRINTER) {
+      return '打印机'
+    }
+    if (feature === PeripheralService.FEATURE_MICROPHONE) {
+      return '麦克风'
+    }
+    if (feature === PeripheralService.FEATURE_CAMERA) {
+      return '摄像头'
     }
     return feature
   }
@@ -1102,18 +1130,14 @@ export struct PeripheralPage {
         }.tabBar(this.tabBuilder('接口管控', 1))
 
         TabContent() {
-          this.deviceControlBuilder()
-        }.tabBar(this.tabBuilder('设备管控', 2))
-
-        TabContent() {
           this.blackWhiteListBuilder()
-        }.tabBar(this.tabBuilder('黑白名单', 3))
+        }.tabBar(this.tabBuilder('黑白名单', 2))
       }
       .barMode(BarMode.Fixed)
       .barWidth('100%')
       .onChange((index: number) => {
         this.currentTab = index
-        if (index === 3) {
+        if (index === 2) {
           this.loadConnectedUsbDevices()
         }
       })
@@ -2173,11 +2197,11 @@ export struct PeripheralPage {
         Column() {
           InterfaceControlItem({
             label: 'USB 接口',
-            description: '启用或禁用 USB 接口。禁用后将阻止 USB 控制操作。',
+            description: '启用或禁用 USB 接口。禁用后将阻止 USB 接口相关管控操作。',
             options: ['启用', '禁用'],
             selectedIndex: this.usbDisabled ? 1 : 0,
             onSelect: (index: number) => {
-              this.handleInterfaceToggle('usb', index === 1)
+              this.handleInterfaceToggle(PeripheralService.FEATURE_USB, index === 1)
             }
           })
 
@@ -2195,14 +2219,13 @@ export struct PeripheralPage {
 
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-
           InterfaceControlItem({
             label: '蓝牙',
             description: '启用或禁用蓝牙接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.btDisabled ? 1 : 0,
             onSelect: (index: number) => {
-              this.handleInterfaceToggle('bluetooth', index === 1)
+              this.handleInterfaceToggle(PeripheralService.FEATURE_BLUETOOTH, index === 1)
             }
           })
 
@@ -2214,19 +2237,67 @@ export struct PeripheralPage {
             options: ['启用', '禁用'],
             selectedIndex: this.wifiDisabled ? 1 : 0,
             onSelect: (index: number) => {
-              this.handleInterfaceToggle('wifi', index === 1)
+              this.handleInterfaceToggle(PeripheralService.FEATURE_WIFI, index === 1)
             }
           })
 
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
           InterfaceControlItem({
-            label: 'HDC (调试接口)',
+            label: 'HDC（调试接口）',
             description: '启用或禁用 HDC 调试接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.hdcDisabled ? 1 : 0,
             onSelect: (index: number) => {
-              this.handleInterfaceToggle('hdc', index === 1)
+              this.handleInterfaceToggle(PeripheralService.FEATURE_HDC, index === 1)
+            }
+          })
+
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+          InterfaceControlItem({
+            label: '网络',
+            description: '通过网络接口管控禁用或启用全部网络接口。',
+            options: ['启用', '禁用'],
+            selectedIndex: this.networkDisabled ? 1 : 0,
+            onSelect: (index: number) => {
+              this.handleInterfaceToggle(PeripheralService.FEATURE_NETWORK, index === 1)
+            }
+          })
+
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+          InterfaceControlItem({
+            label: '打印机',
+            description: '启用或禁用打印机接口策略。',
+            options: ['启用', '禁用'],
+            selectedIndex: this.printerDisabled ? 1 : 0,
+            onSelect: (index: number) => {
+              this.handleInterfaceToggle(PeripheralService.FEATURE_PRINTER, index === 1)
+            }
+          })
+
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+          InterfaceControlItem({
+            label: '麦克风',
+            description: '启用或禁用麦克风接口策略。',
+            options: ['启用', '禁用'],
+            selectedIndex: this.microphoneDisabled ? 1 : 0,
+            onSelect: (index: number) => {
+              this.handleInterfaceToggle(PeripheralService.FEATURE_MICROPHONE, index === 1)
+            }
+          })
+
+          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+          InterfaceControlItem({
+            label: '摄像头',
+            description: '启用或禁用摄像头接口策略。',
+            options: ['启用', '禁用'],
+            selectedIndex: this.cameraDisabled ? 1 : 0,
+            onSelect: (index: number) => {
+              this.handleInterfaceToggle(PeripheralService.FEATURE_CAMERA, index === 1)
             }
           })
         }
@@ -2254,7 +2325,6 @@ export struct PeripheralPage {
     .align(Alignment.Top)
   }
 
-  // ==================== Tab 3: 设备管控 ====================
   @Builder
   deviceControlBuilder() {
     Column() {
