@@ -14,7 +14,6 @@ export struct FirewallRulesPage {
   @State rules: netFirewall.NetFirewallRule[] = []
   @State currentTab: number = 0
   @State isLoading: boolean = false
-  @State hoveredSummaryIndex: number = -1
   @State hoveredRuleIndex: number = -1
   onBack: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -196,67 +195,49 @@ export struct FirewallRulesPage {
     }
   }
 
+  getTabCount(index: number): number {
+    switch (index) {
+      case 0:
+        return this.rules.length
+      case 1:
+        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP)
+      case 2:
+        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN)
+      case 3:
+        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS)
+      default:
+        return 0
+    }
+  }
+
   @Builder
   tabBuilder(title: string, index: number) {
-    Row() {
+    Row({ space: 8 }) {
       Text(title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(this.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
         .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+
+      Text(`${this.getTabCount(index)}`)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.currentTab === index ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+        .backgroundColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BG_COMPONENT)
+        .borderRadius(10)
     }
-    .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+    .padding({ left: 14, right: 14, top: 8, bottom: 8 })
     .backgroundColor(this.currentTab === index ? AppColors.getColors(this.currentTheme).BG_CARD : Color.Transparent)
     .borderRadius(AppStyles.RADIUS_MD)
   }
 
   @Builder
   summaryCard(index: number, label: string, value: string, icon: Resource, color: string) {
-    Column({ space: 10 }) {
-      Row() {
-        Column() {
-          Image(icon)
-            .width(18)
-            .height(18)
-            .fillColor(Color.White)
-        }
-        .width(36)
-        .height(36)
-        .borderRadius(18)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(color)
-
-        Blank()
-      }
-      .width('100%')
-
-      Text(value)
-        .fontSize(22)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-      Text(label)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-    }
-    .width('100%')
-    .padding(16)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: this.hoveredSummaryIndex === index ? color : AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSummaryIndex === index, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredSummaryIndex === index, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredSummaryIndex = isHover ? index : -1
-      })
-    })
+    Blank()
+      .width(0)
+      .height(0)
   }
 
   build() {
@@ -335,6 +316,8 @@ export struct FirewallRulesPage {
           }
         }
         .width('100%')
+        .height(0)
+        .visibility(Visibility.None)
 
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
@@ -387,10 +370,6 @@ export struct FirewallRulesPage {
         .justifyContent(FlexAlign.Center)
       } else if (this.getFilteredRules().length === 0) {
         Column({ space: 10 }) {
-          Image($r('app.media.rules'))
-            .width(28)
-            .height(28)
-            .fillColor(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           Text('当前筛选下暂无规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

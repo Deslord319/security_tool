@@ -173,11 +173,14 @@ export default class EntryAbility extends UIAbility {
     }
 
     // 认证方式可用，执行认证
-    let success = await AuthService.authenticate(authMethod);
+    let authResult = await AuthService.authenticate(authMethod);
 
-    if (success) {
+    if (authResult.success) {
       hilog.info(DOMAIN, 'testTag', 'Startup auth succeeded, loading MainPage');
       this.loadMainPage(windowStage);
+    } else if (authResult.reason === 'unavailable') {
+      hilog.warn(DOMAIN, 'testTag', `Startup auth unavailable: ${authResult.message}, fallback to load MainPage`);
+      this.loadMainPage(windowStage, authResult.message);
     } else {
       // 认证失败或取消，直接退出应用
       // 注意：此时没有页面上下文，无法使用 promptAction 弹窗

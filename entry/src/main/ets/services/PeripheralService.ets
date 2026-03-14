@@ -1,6 +1,7 @@
 import restrictions from '@ohos.enterprise.restrictions'
 import { usbManager } from '@kit.MDMKit'
 import { bluetoothManager } from '@kit.MDMKit'
+import { networkManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { Want } from '@kit.AbilityKit'
 import { AppInfo } from '../constants/AppConstants'
@@ -17,10 +18,22 @@ const ADMIN_WANT: Want = {
 }
 
 export class PeripheralService {
+  static readonly FEATURE_USB: string = 'usb'
+  static readonly FEATURE_BLUETOOTH: string = 'bluetooth'
+  static readonly FEATURE_WIFI: string = 'wifi'
+  static readonly FEATURE_HDC: string = 'hdc'
+  static readonly FEATURE_NETWORK: string = 'network'
+  static readonly FEATURE_PRINTER: string = 'printer'
+  static readonly FEATURE_MICROPHONE: string = 'microphone'
+  static readonly FEATURE_CAMERA: string = 'camera'
 
   // ========== 接口管控 (restrictions) ==========
 
   static setInterfaceDisabledWithResult(feature: string, disallow: boolean): OperationResult<void> {
+    if (feature === PeripheralService.FEATURE_NETWORK) {
+      return PeripheralService.setNetworkInterfaceDisabledWithResult(disallow)
+    }
+
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, feature, disallow)
       hilog.info(DOMAIN, TAG, `setInterfaceDisabled: ${feature} = ${disallow}`)
@@ -31,12 +44,30 @@ export class PeripheralService {
     }
   }
 
+  static setNetworkInterfaceDisabledWithResult(disallow: boolean): OperationResult<void> {
+    try {
+      const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
+      for (let i = 0; i < interfaces.length; i++) {
+        networkManager.setNetworkInterfaceDisabledSync(ADMIN_WANT, interfaces[i], disallow)
+      }
+      hilog.info(DOMAIN, TAG, `setNetworkInterfaceDisabled success: ${disallow}`)
+      return { success: true } as OperationResult<void>
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `setNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      return PeripheralService.buildFailureResult<void>('set network interface status failed', err as Object)
+    }
+  }
+
   // 设置接口禁用策略 (feature: 'usb' | 'bluetooth' | 'wifi' | 'hdc')
   static setInterfaceDisabled(feature: string, disallow: boolean): boolean {
     return PeripheralService.setInterfaceDisabledWithResult(feature, disallow).success
   }
 
   static getInterfaceDisabledWithResult(feature: string): OperationResult<boolean> {
+    if (feature === PeripheralService.FEATURE_NETWORK) {
+      return PeripheralService.getNetworkInterfaceDisabledWithResult()
+    }
+
     try {
       return {
         success: true,
@@ -45,6 +76,29 @@ export class PeripheralService {
     } catch (err) {
       hilog.error(DOMAIN, TAG, `getInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<boolean>('读取接口禁用状态', err as Object, false)
+    }
+  }
+
+  static getNetworkInterfaceDisabledWithResult(): OperationResult<boolean> {
+    try {
+      const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
+      if (interfaces.length === 0) {
+        return { success: true, data: false } as OperationResult<boolean>
+      }
+      let allDisabled: boolean = true
+      for (let i = 0; i < interfaces.length; i++) {
+        if (!networkManager.isNetworkInterfaceDisabledSync(ADMIN_WANT, interfaces[i])) {
+          allDisabled = false
+          break
+        }
+      }
+      return {
+        success: true,
+        data: allDisabled
+      } as OperationResult<boolean>
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      return PeripheralService.buildFailureResult<boolean>('get network interface status failed', err as Object, false)
     }
   }
 

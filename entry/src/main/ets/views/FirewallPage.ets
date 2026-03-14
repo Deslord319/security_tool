@@ -16,7 +16,6 @@ export struct FirewallPage {
   @Prop currentMode: FirewallPresetMode = 'custom'
   @State isToggleProcessing: boolean = false
   @State firewallSwitchValue: boolean = false
-  @State serviceErrorText: string = ''
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
   onModeChange: (mode: FirewallPresetMode) => void = () => {}
@@ -45,19 +44,18 @@ export struct FirewallPage {
       if (result.success) {
         this.firewallSwitchValue = isOn
         this.onFirewallToggle(isOn)
-        this.serviceErrorText = ''
         return
       }
 
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      this.serviceErrorText = this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
-      promptAction.showToast({ message: this.serviceErrorText })
+      promptAction.showToast({
+        message: result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
+      })
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      this.serviceErrorText = '防火墙状态更新失败'
-      promptAction.showToast({ message: this.serviceErrorText })
+      promptAction.showToast({ message: '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25' })
       hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -70,39 +68,39 @@ export struct FirewallPage {
   ): string {
     switch (reason) {
       case 'lockout':
-        return `PIN 认证失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
+        return `PIN \u8ba4\u8bc1\u5931\u8d25\u6b21\u6570\u8fc7\u591a\uff0c\u8bf7\u5728 ${lockRemainingSec ?? 60} \u79d2\u540e\u91cd\u8bd5`
       case 'pin_unavailable':
-        return '系统 PIN 不可用，请先在系统设置中启用 PIN 码'
+        return '\u7cfb\u7edf PIN \u8ba4\u8bc1\u6682\u4e0d\u53ef\u7528'
       case 'pin_failed':
-        return 'PIN 认证失败，已取消防火墙状态变更'
+        return 'PIN \u9a8c\u8bc1\u5931\u8d25\uff0c\u5df2\u53d6\u6d88\u672c\u6b21\u53d8\u66f4'
       case 'policy_apply_failed':
-        return '防火墙策略下发失败'
+        return '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25'
       default:
-        return '防火墙状态更新失败'
+        return '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25'
     }
   }
 
   private getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return '公用网络'
+        return '\u516c\u5171\u7f51\u7edc'
       case 'private':
-        return '专用网络'
+        return '\u4e13\u7528\u7f51\u7edc'
       case 'custom':
       default:
-        return '自定义（配置高级防火墙规则）'
+        return '\u81ea\u5b9a\u4e49'
     }
   }
 
   private getModeDescription(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return '适用于公共环境的预设防护入口，业务逻辑后续实现。'
+        return '\u9002\u5408\u5916\u90e8\u7f51\u7edc\u73af\u5883\uff0c\u63d0\u9ad8\u9632\u62a4\u5f3a\u5ea6'
       case 'private':
-        return '适用于受信任环境的预设防护入口，业务逻辑后续实现。'
+        return '\u9002\u5408\u53d7\u4fe1\u4efb\u7684\u5185\u90e8\u7f51\u7edc\u73af\u5883'
       case 'custom':
       default:
-        return '进入规则详情页，配置入站、出站及高级防火墙规则。'
+        return '\u8fdb\u5165\u89c4\u5219\u8be6\u60c5\u9875\uff0c\u914d\u7f6e\u5165\u7ad9\u3001\u51fa\u7ad9\u53ca\u9ad8\u7ea7\u9632\u706b\u5899\u89c4\u5219'
     }
   }
 
@@ -155,7 +153,7 @@ export struct FirewallPage {
       this.onNavigateToRules()
       return
     }
-    promptAction.showToast({ message: '功能开发中' })
+    promptAction.showToast({ message: '\u9884\u8bbe\u6a21\u5f0f\u5f85\u540e\u7eed\u5b8c\u5584' })
   }
 
   @Builder
@@ -234,12 +232,12 @@ export struct FirewallPage {
             })
 
             Column({ space: 4 }) {
-              Text('防火墙管理')
+              Text('\u9632\u706b\u5899\u7ba1\u7406')
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text('在不同网络场景间切换，并进入自定义模式配置高级防火墙规则。')
+              Text('\u5728\u4e0d\u540c\u7f51\u7edc\u573a\u666f\u95f4\u5207\u6362\uff0c\u5e76\u8fdb\u5165\u81ea\u5b9a\u4e49\u6a21\u5f0f\u914d\u7f6e\u9ad8\u7ea7\u9632\u706b\u5899\u89c4\u5219')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
@@ -261,24 +259,8 @@ export struct FirewallPage {
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
-        if (this.serviceErrorText.length > 0) {
-          Row({ space: 8 }) {
-            Text('⚠')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.WARNING)
-            Text(`防火墙服务异常：${this.serviceErrorText}`)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(this.getThemeColors().TAG_ORANGE_TEXT)
-              .layoutWeight(1)
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-          .backgroundColor(this.getThemeColors().TAG_ORANGE_BG)
-          .borderRadius(AppStyles.RADIUS_MD)
-        }
-
         Column({ space: 12 }) {
-          Text('网络模式')
+          Text('\u7f51\u7edc\u6a21\u5f0f')
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.getThemeColors().TEXT_PRIMARY)

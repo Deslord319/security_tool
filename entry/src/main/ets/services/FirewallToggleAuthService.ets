@@ -29,7 +29,8 @@ export class FirewallToggleAuthService {
         success: false,
         targetEnabled: targetEnabled,
         reason: 'lockout',
-        lockRemainingSec: lockState.remainingSec
+        lockRemainingSec: lockState.remainingSec,
+        errorMessage: `PIN \u8ba4\u8bc1\u5931\u8d25\u6b21\u6570\u8fc7\u591a\uff0c\u8bf7\u5728 ${lockState.remainingSec ?? 60} \u79d2\u540e\u91cd\u8bd5`
       }
       await FirewallToggleAuthService.appendAuditEntry(
         currentEnabled,
@@ -40,29 +41,33 @@ export class FirewallToggleAuthService {
       return blockedResult
     }
 
-    let availability = AuthService.checkAuthMethodAvailability(AuthMethod.PIN)
-    if (!availability.available) {
+    let authResult = await AuthService.authenticate(AuthMethod.PIN)
+    if (!authResult.success && authResult.reason === 'unavailable') {
       let unavailableResult: FirewallToggleResult = {
         success: false,
         targetEnabled: targetEnabled,
-        reason: 'pin_unavailable'
+        reason: 'pin_unavailable',
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.message
       }
       await FirewallToggleAuthService.appendAuditEntry(
         currentEnabled,
         targetEnabled,
         LogEventResult.BLOCKED,
-        `firewall toggle ${actionLabel} blocked: pin unavailable`
+        `firewall toggle ${actionLabel} blocked: pin unavailable`,
+        authResult.errorCode
       )
       return unavailableResult
     }
 
-    let authSuccess = await AuthService.authenticate(AuthMethod.PIN)
-    if (!authSuccess) {
+    if (!authResult.success) {
       let failureUpdate = await FirewallAuthStateRepository.recordFailure(context)
       let failedResult: FirewallToggleResult = {
         success: false,
         targetEnabled: targetEnabled,
-        reason: 'pin_failed'
+        reason: 'pin_failed',
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.message ?? 'PIN \u9a8c\u8bc1\u5931\u8d25\uff0c\u5df2\u53d6\u6d88\u672c\u6b21\u53d8\u66f4'
       }
       if (failureUpdate.locked) {
         failedResult.lockRemainingSec = failureUpdate.remainingSec
@@ -73,7 +78,8 @@ export class FirewallToggleAuthService {
         LogEventResult.BLOCKED,
         failureUpdate.locked ?
           `firewall toggle ${actionLabel} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
-          `firewall toggle ${actionLabel} blocked: pin failed`
+          `firewall toggle ${actionLabel} blocked: pin failed`,
+        authResult.errorCode
       )
       return failedResult
     }
@@ -87,7 +93,8 @@ export class FirewallToggleAuthService {
         success: false,
         targetEnabled: targetEnabled,
         reason: 'policy_apply_failed',
-        errorCode: errorCode
+        errorCode: errorCode,
+        errorMessage: '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25'
       }
       await FirewallToggleAuthService.appendAuditEntry(
         currentEnabled,

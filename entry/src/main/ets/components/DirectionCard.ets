@@ -15,23 +15,23 @@ export struct DirectionCard {
   @State isHovered: boolean = false
 
   build() {
-    Row({ space: 16 }) {
+    Row({ space: 12 }) {
       Column() {
         if (this.icon !== undefined) {
           Image(this.icon)
-            .width(32)
-            .height(32)
+            .width(24)
+            .height(24)
             .objectFit(ImageFit.Contain)
         } else {
           Text(this.iconText)
-            .fontSize(20)
+            .fontSize(18)
             .fontWeight(FontWeight.Bold)
             .fontColor(Color.White)
         }
       }
-      .width(48)
-      .height(48)
-      .borderRadius(AppStyles.RADIUS_LG)
+      .width(36)
+      .height(36)
+      .borderRadius(10)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
       .linearGradient({
@@ -44,9 +44,9 @@ export struct DirectionCard {
       .scale({ x: this.isHovered ? 1.06 : 1, y: this.isHovered ? 1.06 : 1 })
       .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered))
 
-      Column({ space: 4 }) {
+      Column({ space: 2 }) {
         Text(this.label)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
@@ -60,9 +60,9 @@ export struct DirectionCard {
       .layoutWeight(1)
     }
     .width('100%')
-    .padding(20)
+    .padding({ left: 14, right: 14, top: 12, bottom: 12 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
+    .borderRadius(10)
     .border({
       width: 1,
       color: this.isHovered ? this.gradientStart : AppColors.getColors(this.currentTheme).BORDER

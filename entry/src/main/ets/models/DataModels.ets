@@ -537,6 +537,7 @@ export interface FirewallToggleResult {
   reason?: FirewallToggleRejectReason
   lockRemainingSec?: number
   errorCode?: number
+  errorMessage?: string
 }
 
 
