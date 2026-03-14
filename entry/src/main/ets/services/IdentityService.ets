@@ -60,13 +60,18 @@ export class IdentityService {
     try {
       let regex = IdentityService.buildComplexityRegex(config)
       let description = IdentityService.buildDescription(config)
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `Applying password policy: minLength=${config.minLength}, upper=${config.requireUppercase}, lower=${config.requireLowercase}, digit=${config.requireDigit}, special=${config.requireSpecialChar}, validityPeriod=${config.validityPeriod}, regex=${regex}`
+      )
       let policy: securityManager.PasswordPolicy = {
         complexityRegex: regex,
-        validityPeriod: 0,
+        validityPeriod: config.validityPeriod,
         additionalDescription: description
       }
       securityManager.setPasswordPolicy(ADMIN_WANT, policy)
-      hilog.info(DOMAIN, TAG, `setPasswordPolicy success, regex=${regex}`)
+      hilog.info(DOMAIN, TAG, `setPasswordPolicy success, regex=${regex}, validityPeriod=${config.validityPeriod}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
