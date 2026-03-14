@@ -18,6 +18,7 @@ import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
+import { FirewallService } from '../services/FirewallService'
 import { FirewallPresetMode } from '../models/DataModels'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
@@ -40,6 +41,9 @@ struct MainPage {
     this.applyUiTestRouteOverride()
     hilog.info(0x0000, 'testTag', '[DIAG] MainPage aboutToAppear, currentTheme=%{public}s, AppStorage=%{public}s',
       this.currentTheme, AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined')
+    this.loadFirewallState().catch((err: Object) => {
+      hilog.error(0x0000, 'testTag', `[DIAG] loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
+    })
     this.ensureRuntimeServices().catch((err: Object) => {
       hilog.error(0x0000, 'testTag', `[DIAG] ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
@@ -65,15 +69,34 @@ struct MainPage {
       default:
         break
     }
-    // Consume one-shot route override to avoid affecting manual navigation.
     AppStorage.setOrCreate<string>(UI_TEST_ROUTE_KEY, '')
   }
 
   onPageShow(): void {
     this.applyUiTestRouteOverride()
+    this.loadFirewallState().catch((err: Object) => {
+      hilog.error(0x0000, 'testTag', `[DIAG] loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
+    })
     this.ensureRuntimeServices().catch((err: Object) => {
       hilog.error(0x0000, 'testTag', `[DIAG] ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
     })
+  }
+
+  private async loadFirewallState(): Promise<void> {
+    let policy = await FirewallService.getFirewallPolicy()
+    if (policy === null) {
+      hilog.warn(0x0000, 'testTag', '[DIAG] skip firewall state sync because getFirewallPolicy returned null')
+      return
+    }
+
+    this.firewallEnabled = policy.isOpen
+    this.firewallPresetMode = this.resolveFirewallPresetMode()
+    hilog.info(0x0000, 'testTag',
+      `[DIAG] firewall state synced from system: enabled=${this.firewallEnabled}, mode=${this.firewallPresetMode}`)
+  }
+
+  private resolveFirewallPresetMode(): FirewallPresetMode {
+    return 'custom'
   }
 
   private async ensureRuntimeServices(): Promise<void> {
@@ -145,7 +168,7 @@ struct MainPage {
   }
 
   onFirewallStatusChange() {
-    // 防火墙状态变更时可在此处理
+    hilog.info(0x0000, 'testTag', `[DIAG] firewallEnabled changed: ${this.firewallEnabled}`)
   }
 
   onPageRouteChange(): void {
@@ -162,9 +185,7 @@ struct MainPage {
 
   build() {
     Stack({ alignContent: Alignment.TopEnd }) {
-      // 主内容
       Row() {
-        // 左侧导航栏
         SideBar({
           selectedId: this.currentPage,
           onItemSelect: (id: string) => {
@@ -172,19 +193,15 @@ struct MainPage {
           }
         })
 
-        // 分割线
         Divider()
           .vertical(true)
           .color(AppColors.getColors(this.currentTheme).BORDER)
           .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-        // 右侧内容区
         Column() {
-          // 顶部标题栏
           Row() {
             Blank()
 
-            // 三点菜单按钮
             Button() {
               Image(this.currentTheme === ThemeMode.DARK
                 ? $r('app.media.menu_vertical_dark')
@@ -214,7 +231,6 @@ struct MainPage {
           .alignItems(VerticalAlign.Center)
           .backgroundColor(this.currentTheme === ThemeMode.DARK ? '#2C2C2E' : Color.Transparent)
 
-          // 页面内容
           Column() {
             if (this.currentPage === Routes.DASHBOARD) {
               Column() {
@@ -343,7 +359,6 @@ struct MainPage {
           .opacity(0)
       }
 
-      // 菜单遮罩层
       if (this.showMenu) {
         Column()
           .width('100%')
@@ -354,7 +369,6 @@ struct MainPage {
           })
       }
 
-      // 下拉菜单
       if (this.showMenu) {
         Column() {
           ThemeMenuPopup({
