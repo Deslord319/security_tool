@@ -94,6 +94,8 @@ export struct PeripheralPage {
   @State recordFilterSourceIndex: number = 1
   @State recordFilterKeyword: string = ''
   @State recordHintMessage: string = ''
+  @State isConnectionDetailDialogVisible: boolean = false
+  @State selectedConnectionRecord: PeripheralConnectionRecord | null = null
   private recordStorageListenerId: number = -1
   private traceStorageListenerId: number = -1
   private recordAutoRefreshTimerId: number = -1
@@ -1058,7 +1060,8 @@ export struct PeripheralPage {
   // ========== Build ==========
 
   build() {
-    Column() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column() {
       // 页面头部
       Row() {
         Row({ space: 8 }) {
@@ -1115,13 +1118,330 @@ export struct PeripheralPage {
         }
       })
       .layoutWeight(1)
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+
+      if (this.isConnectionDetailDialogVisible) {
+        this.connectionRecordDetailDialog()
+      }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   // ==================== Tab 1: 设备连接记录 ====================
+  private openConnectionDetailDialog(record: PeripheralConnectionRecord): void {
+    this.selectedConnectionRecord = record
+    this.isConnectionDetailDialogVisible = true
+  }
+
+  private closeConnectionDetailDialog(): void {
+    this.isConnectionDetailDialogVisible = false
+    this.selectedConnectionRecord = null
+  }
+
+  private getConnectionEventLabel(record: PeripheralConnectionRecord | null): string {
+    if (!record) {
+      return '--'
+    }
+    return getPeripheralRecordActionLabel(record.action)
+  }
+
+  private getConnectionPolicyDisplay(record: PeripheralConnectionRecord | null): string {
+    if (!record) {
+      return '--'
+    }
+    if (record.summary && record.summary.trim().length > 0) {
+      return record.summary
+    }
+    return this.getConnectionPolicyHitLabel(record)
+  }
+
+  private getConnectionHistoryTimes(record: PeripheralConnectionRecord | null): string[] {
+    if (!record) {
+      return []
+    }
+    let deviceKey = record.deviceId.replace(/\s+/g, '').toUpperCase()
+    let history: string[] = []
+    for (let item of this.deviceRecords) {
+      if (item.timestamp <= 0) {
+        continue
+      }
+      if (item.deviceId.replace(/\s+/g, '').toUpperCase() !== deviceKey) {
+        continue
+      }
+      let timeText = this.formatConnectionTime(item)
+      if (!history.includes(timeText)) {
+        history.push(timeText)
+      }
+    }
+    return history
+  }
+
+  @Builder
+  private connectionTableHeader() {
+    Row({ space: 12 }) {
+      Text('设备名称')
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(2.2)
+      Text('设备类型')
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(1.3)
+      Text('连接事件')
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(1.3)
+      Text('策略')
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(2.2)
+      Text('操作')
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(0.9)
+        .textAlign(TextAlign.Center)
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 14, bottom: 14 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+  }
+
+  @Builder
+  private connectionRecordTableRow(record: PeripheralConnectionRecord, index: number) {
+    Row({ space: 12 }) {
+      Column({ space: 4 }) {
+        Text(record.deviceName)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(record.deviceId)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .layoutWeight(2.2)
+      .alignItems(HorizontalAlign.Start)
+
+      Row() {
+        Text(getPeripheralTypeLabel(record.deviceType))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }
+      .layoutWeight(1.3)
+
+      Row() {
+        Text(this.getConnectionEventLabel(record))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }
+      .layoutWeight(1.3)
+
+      Column({ space: 4 }) {
+        Text(this.getConnectionPolicyDisplay(record))
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(this.formatConnectionTime(record))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .layoutWeight(2.2)
+      .alignItems(HorizontalAlign.Start)
+
+      Button('详情')
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(Color.White)
+        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .height(32)
+        .layoutWeight(0.9)
+        .onClick(() => {
+          this.openConnectionDetailDialog(record)
+        })
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        this.hoveredDeviceRecordIndex = isHover ? index : -1
+      })
+    })
+  }
+
+  @Builder
+  private connectionDetailInfoRow(label: string, value: string) {
+    Row({ space: 12 }) {
+      Text(label)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .width(96)
+      Text(value)
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  @Builder
+  private connectionRecordDetailDialog() {
+    Column() {
+      Blank()
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#66000000')
+    .onClick(() => {
+      this.closeConnectionDetailDialog()
+    })
+
+    Column({ space: 16 }) {
+      Row() {
+        Text('设备详情')
+          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .layoutWeight(1)
+        Button('关闭')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
+          .height(32)
+          .onClick(() => {
+            this.closeConnectionDetailDialog()
+          })
+      }
+      .width('100%')
+
+      Scroll() {
+        Column({ space: 12 }) {
+          Column({ space: 12 }) {
+            Text('设备详细信息')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            Column({ space: 10 }) {
+              this.connectionDetailInfoRow('设备名称', this.selectedConnectionRecord?.deviceName ?? '--')
+              this.connectionDetailInfoRow('设备类型', this.selectedConnectionRecord ? getPeripheralTypeLabel(this.selectedConnectionRecord.deviceType) : '--')
+              this.connectionDetailInfoRow('设备标识', this.selectedConnectionRecord?.deviceId ?? '--')
+              this.connectionDetailInfoRow('连接事件', this.getConnectionEventLabel(this.selectedConnectionRecord))
+              this.connectionDetailInfoRow('事件来源', this.selectedConnectionRecord ? getPeripheralRecordSourceLabel(this.selectedConnectionRecord.source) : '--')
+              this.connectionDetailInfoRow('最近时间', this.selectedConnectionRecord ? this.formatConnectionTime(this.selectedConnectionRecord) : '--')
+              if (this.selectedConnectionRecord?.processName) {
+                this.connectionDetailInfoRow('进程名称', this.selectedConnectionRecord.processName)
+              }
+              if (this.selectedConnectionRecord?.detail) {
+                this.connectionDetailInfoRow('详细信息', this.selectedConnectionRecord.detail)
+              }
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(16)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
+
+          Column({ space: 12 }) {
+            Text('管控策略')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            Column({ space: 10 }) {
+              this.connectionDetailInfoRow('策略结论', this.getConnectionPolicyDisplay(this.selectedConnectionRecord))
+              this.connectionDetailInfoRow('命中类型', this.selectedConnectionRecord ? this.getConnectionPolicyHitLabel(this.selectedConnectionRecord) : '--')
+              this.connectionDetailInfoRow('结果状态', this.selectedConnectionRecord ? this.getConnectionResultLabel(this.selectedConnectionRecord) : '--')
+              this.connectionDetailInfoRow('策略版本', this.selectedConnectionRecord?.policyVersion ?? 'UI 占位')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(16)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
+
+          Column({ space: 12 }) {
+            Text('历史连接时间')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            Column({ space: 8 }) {
+              if (this.getConnectionHistoryTimes(this.selectedConnectionRecord).length === 0) {
+                Text('暂无历史连接时间')
+                  .fontSize(AppStyles.FONT_SIZE_SMALL)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+              } else {
+                ForEach(this.getConnectionHistoryTimes(this.selectedConnectionRecord), (time: string, index: number) => {
+                  Row({ space: 8 }) {
+                    Text(`${index + 1}.`)
+                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                      .fontColor(AppColors.BRAND_PRIMARY)
+                    Text(time)
+                      .fontSize(AppStyles.FONT_SIZE_SMALL)
+                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  }
+                  .width('100%')
+                })
+              }
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(16)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .borderRadius(AppStyles.RADIUS_MD)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+    }
+    .width('72%')
+    .height('76%')
+    .padding(20)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .shadow(HoverUtils.getShadow(this.currentTheme, true, true))
+    .onClick(() => {
+    })
+  }
+
   private getDeviceRecordAllowCount(): number {
     return this.deviceRecords.filter((record: DeviceRecord) => record.policy === '允许').length
   }
@@ -1662,17 +1982,21 @@ export struct PeripheralPage {
             .alignItems(HorizontalAlign.Center)
           } else {
             Column({ space: 0 }) {
-              ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
-                Column({ space: 0 }) {
-                  this.connectionRecordItem(record, index)
-                  if (index < this.deviceRecords.length - 1) {
-                    Divider()
-                      .color(AppColors.getColors(this.currentTheme).BORDER)
-                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                      .margin({ left: 20, right: 20 })
+              this.connectionTableHeader()
+              Column({ space: 0 }) {
+                ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
+                  Column({ space: 0 }) {
+                    this.connectionRecordTableRow(record, index)
+                    if (index < this.deviceRecords.length - 1) {
+                      Divider()
+                        .color(AppColors.getColors(this.currentTheme).BORDER)
+                        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                        .margin({ left: 20, right: 20 })
+                    }
                   }
-                }
-              })
+                })
+              }
+              .width('100%')
             }
             .width('100%')
           }
