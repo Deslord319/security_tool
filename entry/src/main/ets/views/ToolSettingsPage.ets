@@ -1,5 +1,4 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import { SecureStorageService } from '../services/SecureStorageService'
 import { AuthService } from '../services/AuthService'
 import { preferences } from '@kit.ArkData'
 import {
@@ -25,30 +24,12 @@ export struct ToolSettingsPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @State hoveredCardIndex: number = -1
-
-  // ========== 启动校验状态 ==========
   @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-  @State authMethodIndex: number = 0  // 默认 PIN 码
-
-  // ========== 初始值（用于判断是否有变更）==========
-  private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-  private initialAuthMethodIndex: number = 0
-
-  // ========== 密码管理状态 ==========
-  @State currentPassword: string = ''
-  @State newPassword: string = ''
-  @State confirmPassword: string = ''
-  @State hasExistingPassword: boolean = false
-
-  // ========== 密码可见性状态 ==========
-  @State showCurrentPwd: boolean = false
-  @State showNewPwd: boolean = false
-  @State showConfirmPwd: boolean = false
-
-  // ========== 可用认证方式 ==========
+  @State authMethodIndex: number = 0
   @State availableAuthMethods: AuthMethod[] = []
 
-  // Select 选项
+  private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
+  private initialAuthMethodIndex: number = 0
   private authMethodOptions: SelectOption[] =
     AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
 
@@ -57,16 +38,12 @@ export struct ToolSettingsPage {
     this.checkAvailableAuthMethods()
   }
 
-  // 加载设置
   async loadSettings() {
     try {
       let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
-
-      // 加载启动校验开关
       let startupAuth = await prefs.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
       this.startupAuthEnabled = startupAuth as boolean
 
-      // 加载认证方式
       let authMethod = await prefs.get(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
       let methodValue = authMethod as number
       let idx = AUTH_METHOD_OPTIONS.findIndex((opt) => opt.value === methodValue)
@@ -74,34 +51,21 @@ export struct ToolSettingsPage {
         this.authMethodIndex = idx
       }
 
-      // 保存初始值（用于判断是否有变更）
       this.initialStartupAuthEnabled = this.startupAuthEnabled
       this.initialAuthMethodIndex = this.authMethodIndex
-
       hilog.info(0x0004, TAG, `Settings loaded: startupAuth=${this.startupAuthEnabled}, authMethod=${methodValue}`)
     } catch (err) {
       hilog.error(0x0004, TAG, `loadSettings failed: ${JSON.stringify(err)}`)
     }
-
-    // 检查是否已有密码
-    try {
-      this.hasExistingPassword = await SecureStorageService.hasPassword()
-      hilog.info(0x0004, TAG, `Has existing password: ${this.hasExistingPassword}`)
-    } catch (err) {
-      hilog.error(0x0004, TAG, `checkPassword failed: ${JSON.stringify(err)}`)
-    }
   }
 
-  // 检查可用认证方式
   checkAvailableAuthMethods() {
     this.availableAuthMethods = AuthService.getAvailableAuthMethods()
     hilog.info(0x0004, TAG, `Available auth methods: ${JSON.stringify(this.availableAuthMethods)}`)
   }
 
-  // 保存设置
   async saveSettings() {
     try {
-      // 1. 如果启用了启动校验，检查认证方式是否可用
       if (this.startupAuthEnabled) {
         let authMethod = AUTH_METHOD_OPTIONS[this.authMethodIndex].value
         let checkResult = AuthService.checkAuthMethodAvailability(authMethod)
@@ -131,78 +95,24 @@ export struct ToolSettingsPage {
     }
   }
 
-  // 实际执行保存
   private async doSaveSettings() {
     try {
-      // 检查是否有实际变更
       let hasAuthConfigChanged = this.startupAuthEnabled !== this.initialStartupAuthEnabled ||
         this.authMethodIndex !== this.initialAuthMethodIndex
-      let hasPasswordChange = this.newPassword.length > 0
 
-      // ========== 1. 优先验证密码字段（如果用户填写了当前密码）==========
-      // 如果已有密码且用户输入了当前密码，无论是否有其他变更，都先验证
-      if (this.hasExistingPassword && this.currentPassword.length > 0) {
-        let verified = await SecureStorageService.verifyPassword(this.currentPassword)
-        if (!verified) {
-          promptAction.showToast({ message: '当前密码错误' })
-          return
-        }
-        hilog.info(0x0004, TAG, 'Current password verified')
-      }
-
-      // ========== 2. 检查是否有变更 ==========
-      if (!hasAuthConfigChanged && !hasPasswordChange) {
+      if (!hasAuthConfigChanged) {
         promptAction.showToast({ message: '没有需要保存的更改' })
         return
       }
 
-      // ========== 3. 保存启动校验配置 ==========
-      if (hasAuthConfigChanged) {
-        let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
-        await prefs.put(PREF_KEY_STARTUP_AUTH, this.startupAuthEnabled)
-        await prefs.put(PREF_KEY_AUTH_METHOD, AUTH_METHOD_OPTIONS[this.authMethodIndex].value)
-        await prefs.flush()
-        hilog.info(0x0004, TAG, 'Startup auth settings saved')
+      let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
+      await prefs.put(PREF_KEY_STARTUP_AUTH, this.startupAuthEnabled)
+      await prefs.put(PREF_KEY_AUTH_METHOD, AUTH_METHOD_OPTIONS[this.authMethodIndex].value)
+      await prefs.flush()
 
-        // 更新初始值
-        this.initialStartupAuthEnabled = this.startupAuthEnabled
-        this.initialAuthMethodIndex = this.authMethodIndex
-      }
-
-      // ========== 4. 保存密码变更 ==========
-      if (hasPasswordChange) {
-        // 验证新密码和确认密码一致
-        if (this.newPassword !== this.confirmPassword) {
-          promptAction.showToast({ message: '两次输入的密码不一致' })
-          return
-        }
-
-        // 密码长度验证
-        if (this.newPassword.length < 4) {
-          promptAction.showToast({ message: '密码长度至少为 4 位' })
-          return
-        }
-
-        // 如果已有密码，需要先验证当前密码（若前面未验证）
-        if (this.hasExistingPassword && this.currentPassword.length === 0) {
-          promptAction.showToast({ message: '请输入当前密码' })
-          return
-        }
-
-        // 保存新密码
-        let saved = await SecureStorageService.savePassword(this.newPassword)
-        if (!saved) {
-          promptAction.showToast({ message: '密码保存失败' })
-          return
-        }
-
-        // 更新状态
-        this.hasExistingPassword = true
-        this.currentPassword = ''
-        this.newPassword = ''
-        this.confirmPassword = ''
-      }
-
+      this.initialStartupAuthEnabled = this.startupAuthEnabled
+      this.initialAuthMethodIndex = this.authMethodIndex
+      hilog.info(0x0004, TAG, 'Startup auth settings saved')
       promptAction.showToast({ message: '设置已保存' })
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
@@ -212,7 +122,6 @@ export struct ToolSettingsPage {
 
   build() {
     Column() {
-      // 页面头部
       Row() {
         Row({ space: 8 }) {
           BackNavButton({
@@ -227,7 +136,7 @@ export struct ToolSettingsPage {
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text('配置安全管理工具的启动校验和密码管理')
+            Text('配置安全管理工具的启动校验方式')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -255,14 +164,9 @@ export struct ToolSettingsPage {
         top: AppStyles.PADDING_LG
       })
 
-      // 主内容区
       Scroll() {
         Column({ space: 24 }) {
-          // 功能区 1: 启动校验
           this.startupAuthBuilder()
-
-          // 功能区 2: 工具密码管理
-          this.passwordManageBuilder()
         }
         .width('100%')
         .padding({
@@ -277,18 +181,15 @@ export struct ToolSettingsPage {
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
       .align(Alignment.Top)
-
     }
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
-  // ==================== 功能区 1: 启动校验 ====================
   @Builder
   startupAuthBuilder() {
     Column({ space: 0 }) {
-      // 区块标题
       Row() {
         Text('启动校验配置')
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
@@ -304,7 +205,6 @@ export struct ToolSettingsPage {
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      // 启动时密码校验开关
       Row() {
         Column({ space: 2 }) {
           Text('启动时身份校验')
@@ -332,7 +232,6 @@ export struct ToolSettingsPage {
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      // 认证方式选择
       Row() {
         Column({ space: 2 }) {
           Text('认证方式')
@@ -365,7 +264,6 @@ export struct ToolSettingsPage {
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-
     }
     .width('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -380,83 +278,6 @@ export struct ToolSettingsPage {
     .onHover((isHover: boolean) => {
       HoverUtils.animate(() => {
         this.hoveredCardIndex = isHover ? 0 : -1
-      })
-    })
-  }
-
-  // ==================== 功能区 2: 工具密码管理 ====================
-  @Builder
-  passwordManageBuilder() {
-    Column({ space: 0 }) {
-      // 区块标题
-      Row() {
-        Text('工具密码管理')
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Blank()
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      // 当前密码（仅在已有密码时显示）
-      if (this.hasExistingPassword) {
-        this.passwordInputRow('当前密码', '请输入当前密码', this.currentPassword, this.showCurrentPwd,
-          (val: string) => {
-            this.currentPassword = val
-          },
-          (show: boolean) => {
-            this.showCurrentPwd = show
-          })
-
-        Divider()
-          .color(AppColors.getColors(this.currentTheme).BORDER)
-          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-      }
-
-      // 新密码
-      this.passwordInputRow(this.hasExistingPassword ? '新密码' : '设置密码',
-        this.hasExistingPassword ? '请输入新密码' : '请设置工具访问密码',
-        this.newPassword, this.showNewPwd,
-        (val: string) => {
-          this.newPassword = val
-        },
-        (show: boolean) => {
-          this.showNewPwd = show
-        })
-
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      // 确认密码
-      this.passwordInputRow('确认密码', '请再次输入密码', this.confirmPassword, this.showConfirmPwd,
-        (val: string) => {
-          this.confirmPassword = val
-        },
-        (show: boolean) => {
-          this.showConfirmPwd = show
-        })
-
-    }
-    .width('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .clip(true)
-    .border({
-      width: 1,
-      color: this.hoveredCardIndex === 1 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 1, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 1, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredCardIndex = isHover ? 1 : -1
       })
     })
   }
@@ -490,48 +311,5 @@ export struct ToolSettingsPage {
     .onClick(() => {
       onTap()
     })
-  }
-
-  // ==================== 密码输入行 Builder ====================
-  @Builder
-  passwordInputRow(label: string, placeholder: string, value: string, showPassword: boolean,
-    onValueChange: (val: string) => void, onShowChange: (show: boolean) => void) {
-    Row() {
-      Text(label)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        .width(100)
-
-      TextInput({ placeholder: placeholder, text: value })
-        .type(showPassword ? InputType.Normal : InputType.Password)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(36)
-        .layoutWeight(1)
-        .onChange((newValue: string) => {
-          onValueChange(newValue)
-        })
-
-      Button() {
-        Text(showPassword ? '隐藏' : '显示')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      }
-      .type(ButtonType.Normal)
-      .backgroundColor(Color.Transparent)
-      .width(48)
-      .height(36)
-      .onClick(() => {
-        onShowChange(!showPassword)
-      })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
   }
 }

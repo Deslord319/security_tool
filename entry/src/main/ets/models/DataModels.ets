@@ -514,13 +514,6 @@ export interface ToolSettingsConfig {
 }
 
 
-export interface PasswordChangeRequest {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}
-
-
 export const DEFAULT_TOOL_SETTINGS: ToolSettingsConfig = {
   startupAuthEnabled: false,
   authMethod: AuthMethod.PIN
@@ -539,10 +532,6 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
   { label: '人脸识别', value: AuthMethod.FACE } as AuthMethodOption,
   { label: 'PIN + 指纹', value: AuthMethod.PIN_FINGERPRINT } as AuthMethodOption
 ]
-
-
-export const ASSET_KEY_TOOL_PASSWORD = 'tool_password'
-
 
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
