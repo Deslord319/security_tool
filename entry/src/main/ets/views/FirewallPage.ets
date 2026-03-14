@@ -1,14 +1,10 @@
-import { AppColors, AppStyles, Routes } from '../constants/AppConstants'
-import { RuleTypeItem } from '../components/RuleTypeItem'
-import { DirectionCard } from '../components/DirectionCard'
+import { AppColors, AppStyles } from '../constants/AppConstants'
 import { BackNavButton } from '../components/BackNavButton'
-import { FirewallService } from '../services/FirewallService'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
-import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
-import { FirewallToggleRejectReason } from '../models/DataModels'
+import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -17,69 +13,18 @@ const TAG = 'FirewallPage'
 @Component
 export struct FirewallPage {
   @Prop firewallEnabled: boolean = false
-  @State rules: netFirewall.NetFirewallRule[] = []
-  @State ipCount: number = 0
-  @State domainCount: number = 0
-  @State dnsCount: number = 0
-  @State inCount: number = 0
-  @State outCount: number = 0
-  @State isLoading: boolean = false
+  @Prop currentMode: FirewallPresetMode = 'custom'
   @State isToggleProcessing: boolean = false
   @State firewallSwitchValue: boolean = false
   @State serviceErrorText: string = ''
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
-  onNavigateToRules: (filterType?: number) => void = () => {}
+  onModeChange: (mode: FirewallPresetMode) => void = () => {}
+  onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled
-    this.loadData()
-  }
-
-  async loadData() {
-    this.isLoading = true
-    this.serviceErrorText = ''
-    try {
-      await FirewallService.getFirewallStatus()
-      let statusError = FirewallService.getLastErrorText()
-      if (statusError.length > 0) {
-        this.serviceErrorText = statusError
-      }
-      this.rules = await FirewallService.getAllRules()
-      let rulesError = FirewallService.getLastErrorText()
-      if (rulesError.length > 0) {
-        this.serviceErrorText = rulesError
-      }
-      this.updateCounts()
-    } catch (err) {
-      hilog.error(0x0001, TAG, `loadData failed: ${JSON.stringify(err)}`)
-      this.serviceErrorText = '读取防火墙数据失败'
-    }
-    if (this.serviceErrorText.length > 0) {
-      promptAction.showToast({ message: `防火墙服务异常：${this.serviceErrorText}` })
-    }
-    this.isLoading = false
-  }
-
-  updateCounts() {
-    this.ipCount = FirewallService.countByType(this.rules, netFirewall.NetFirewallRuleType.RULE_IP)
-    this.domainCount = FirewallService.countByType(this.rules, netFirewall.NetFirewallRuleType.RULE_DOMAIN)
-    this.dnsCount = FirewallService.countByType(this.rules, netFirewall.NetFirewallRuleType.RULE_DNS)
-    this.inCount = FirewallService.countByDirection(this.rules, netFirewall.NetFirewallRuleDirection.RULE_IN)
-    this.outCount = FirewallService.countByDirection(this.rules, netFirewall.NetFirewallRuleDirection.RULE_OUT)
-  }
-
-  async handleToggle(isOn: boolean) {
-    let success = await FirewallService.setFirewallEnabled(isOn)
-    if (success) {
-      this.onFirewallToggle(isOn)
-      this.serviceErrorText = ''
-      return
-    }
-    let error = FirewallService.getLastErrorText()
-    this.serviceErrorText = error.length > 0 ? error : '设置防火墙状态失败'
-    promptAction.showToast({ message: `防火墙操作失败：${this.serviceErrorText}` })
   }
 
   async handleToggleWithAuth(isOn: boolean) {
@@ -125,24 +70,161 @@ export struct FirewallPage {
   ): string {
     switch (reason) {
       case 'lockout':
-        return `PIN认证失败次数过多，请在${lockRemainingSec ?? 60}秒后重试`
+        return `PIN 认证失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
       case 'pin_unavailable':
-        return '系统PIN不可用，请先在系统设置中启用PIN码'
+        return '系统 PIN 不可用，请先在系统设置中启用 PIN 码'
       case 'pin_failed':
-        return 'PIN认证失败，已取消防火墙状态变更'
-      case 'policy_apply_failed': {
-        let error = FirewallService.getLastErrorText()
-        return error.length > 0 ? error : '防火墙策略下发失败'
-      }
+        return 'PIN 认证失败，已取消防火墙状态变更'
+      case 'policy_apply_failed':
+        return '防火墙策略下发失败'
       default:
         return '防火墙状态更新失败'
     }
   }
 
+  private getModeTitle(mode: FirewallPresetMode): string {
+    switch (mode) {
+      case 'public':
+        return '公用网络'
+      case 'private':
+        return '专用网络'
+      case 'custom':
+      default:
+        return '自定义（配置高级防火墙规则）'
+    }
+  }
+
+  private getModeDescription(mode: FirewallPresetMode): string {
+    switch (mode) {
+      case 'public':
+        return '适用于公共环境的预设防护入口，业务逻辑后续实现。'
+      case 'private':
+        return '适用于受信任环境的预设防护入口，业务逻辑后续实现。'
+      case 'custom':
+      default:
+        return '进入规则详情页，配置入站、出站及高级防火墙规则。'
+    }
+  }
+
+  private getModeIcon(mode: FirewallPresetMode): Resource {
+    switch (mode) {
+      case 'public':
+        return $r('app.media.globe')
+      case 'private':
+        return $r('app.media.shield')
+      case 'custom':
+      default:
+        return $r('app.media.firewall')
+    }
+  }
+
+  private getModeAccent(mode: FirewallPresetMode): string {
+    switch (mode) {
+      case 'public':
+        return '#0A84FF'
+      case 'private':
+        return '#34C759'
+      case 'custom':
+      default:
+        return '#FF9500'
+    }
+  }
+
+  private getThemeColors() {
+    return AppColors.getColors(this.currentTheme)
+  }
+
+  private isModeSelected(mode: FirewallPresetMode): boolean {
+    return this.currentMode === mode
+  }
+
+  private getModeCardBackground(mode: FirewallPresetMode): string {
+    if (this.isModeSelected(mode)) {
+      return this.currentTheme === ThemeMode.DARK ? '#2F3946' : '#EEF6FF'
+    }
+    return this.getThemeColors().BG_CARD
+  }
+
+  private getModeCardBorder(mode: FirewallPresetMode): string {
+    return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().BORDER
+  }
+
+  private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
+    this.onModeChange(mode)
+    if (mode === 'custom') {
+      this.onNavigateToRules()
+      return
+    }
+    promptAction.showToast({ message: '功能开发中' })
+  }
+
+  @Builder
+  private modeCard(mode: FirewallPresetMode) {
+    Row({ space: 16 }) {
+      Row() {
+        Image(this.getModeIcon(mode))
+          .width(22)
+          .height(22)
+          .fillColor(Color.White)
+      }
+      .width(48)
+      .height(48)
+      .borderRadius(24)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor(this.getModeAccent(mode))
+
+      Column({ space: 6 }) {
+        Text(this.getModeTitle(mode))
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getThemeColors().TEXT_PRIMARY)
+          .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
+
+        Text(this.getModeDescription(mode))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(this.getThemeColors().TEXT_PRIMARY)
+          .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Row({ space: 8 }) {
+        if (this.isModeSelected(mode)) {
+          Image($r('app.media.check'))
+            .width(18)
+            .height(18)
+            .fillColor(AppColors.SUCCESS)
+        }
+        if (mode === 'custom') {
+          Image($r('app.media.chevron_right'))
+            .width(18)
+            .height(18)
+            .fillColor(this.getThemeColors().TEXT_PRIMARY)
+            .opacity(this.getThemeColors().TEXT_SECONDARY_OPACITY)
+        }
+      }
+      .justifyContent(FlexAlign.End)
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+    .padding(18)
+    .backgroundColor(this.getModeCardBackground(mode))
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: this.getModeCardBorder(mode)
+    })
+    .onClick(() => {
+      this.handleModeSelect(mode)
+    })
+  }
+
   build() {
     Scroll() {
       Column({ space: 24 }) {
-        // 页面头部：标题 + 开关
         Row() {
           Row({ space: 8 }) {
             BackNavButton({
@@ -155,12 +237,12 @@ export struct FirewallPage {
               Text('防火墙管理')
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-              Text('管控网络入站/出站流量，支持 IP、域名和DNS 三种规则类型配置')
+                .fontColor(this.getThemeColors().TEXT_PRIMARY)
+                .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
+              Text('在不同网络场景间切换，并进入自定义模式配置高级防火墙规则。')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                .fontColor(this.getThemeColors().TEXT_PRIMARY)
+                .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
             }
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
@@ -186,94 +268,26 @@ export struct FirewallPage {
               .fontColor(AppColors.WARNING)
             Text(`防火墙服务异常：${this.serviceErrorText}`)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+              .fontColor(this.getThemeColors().TAG_ORANGE_TEXT)
               .layoutWeight(1)
           }
           .width('100%')
           .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+          .backgroundColor(this.getThemeColors().TAG_ORANGE_BG)
           .borderRadius(AppStyles.RADIUS_MD)
         }
 
-        // 规则类型区域
-        Column({ space: 0 }) {
-          Text('规则类型')
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            .margin({ bottom: 12 })
-
-          Column() {
-            RuleTypeItem({
-              label: 'IP 规则',
-              description: '基于 IP 地址和端口的访问控制',
-              count: this.ipCount,
-              iconColor: AppColors.BRAND_PRIMARY,
-              icon: $r('app.media.network'),
-              onPress: () => { this.onNavigateToRules(1) }
-            })
-
-            Divider()
-              .color(AppColors.getColors(this.currentTheme).BORDER)
-              .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-              .margin({ left: 68 })
-
-            RuleTypeItem({
-              label: '域名规则',
-              description: '基于域名的访问控制',
-              count: this.domainCount,
-              iconColor: '#5856D6',
-              icon: $r('app.media.globe'),
-              onPress: () => { this.onNavigateToRules(2) }
-            })
-
-            Divider()
-              .color(AppColors.getColors(this.currentTheme).BORDER)
-              .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-              .margin({ left: 68 })
-
-            RuleTypeItem({
-              label: 'DNS 规则',
-              description: '基于 DNS 的访问控制',
-              count: this.dnsCount,
-              iconColor: '#34C759',
-              icon: $r('app.media.server'),
-              onPress: () => { this.onNavigateToRules(3) }
-            })
-          }
-          .borderRadius(AppStyles.RADIUS_LG)
-          .clip(true)
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
-        // 流量方向区域
         Column({ space: 12 }) {
-          Text('流量方向')
+          Text('网络模式')
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .fontColor(this.getThemeColors().TEXT_PRIMARY)
+            .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
 
-          Row({ space: 16 }) {
-            DirectionCard({
-              label: '入站规则 (RULE_IN)',
-              count: this.inCount,
-              gradientStart: '#FF9500',
-              gradientEnd: '#FFCC00',
-              icon: $r('app.media.arrow_down')
-            })
-              .layoutWeight(1)
-
-            DirectionCard({
-              label: '出站规则 (RULE_OUT)',
-              count: this.outCount,
-              gradientStart: '#0A84FF',
-              gradientEnd: '#00C6FF',
-              icon: $r('app.media.arrow_up')
-            })
-              .layoutWeight(1)
+          Column({ space: 12 }) {
+            this.modeCard('public')
+            this.modeCard('private')
+            this.modeCard('custom')
           }
           .width('100%')
         }
@@ -287,6 +301,6 @@ export struct FirewallPage {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+    .backgroundColor(this.getThemeColors().BG_PAGE)
   }
 }

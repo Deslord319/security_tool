@@ -2,6 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallService } from '../services/FirewallService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
 import { BackNavButton } from '../components/BackNavButton'
+import { DirectionCard } from '../components/DirectionCard'
 import { netFirewall } from '@kit.NetworkKit'
 import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -83,6 +84,10 @@ export struct FirewallRulesPage {
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
     return this.rules.filter((r: netFirewall.NetFirewallRule) => r.type === type).length
+  }
+
+  countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
+    return this.rules.filter((r: netFirewall.NetFirewallRule) => r.direction === direction).length
   }
 
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
@@ -288,6 +293,27 @@ export struct FirewallRulesPage {
             .onClick(() => {
               this.addRuleDialogController.open()
             })
+        }
+        .width('100%')
+
+        Row({ space: 16 }) {
+          DirectionCard({
+            label: '入站规则 (RULE_IN)',
+            count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
+            gradientStart: '#FF9500',
+            gradientEnd: '#FFCC00',
+            icon: $r('app.media.arrow_down')
+          })
+            .layoutWeight(1)
+
+          DirectionCard({
+            label: '出站规则 (RULE_OUT)',
+            count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
+            gradientStart: '#0A84FF',
+            gradientEnd: '#00C6FF',
+            icon: $r('app.media.arrow_up')
+          })
+            .layoutWeight(1)
         }
         .width('100%')
 

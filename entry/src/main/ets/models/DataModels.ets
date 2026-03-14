@@ -513,6 +513,8 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
   { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption
 ]
 
+export type FirewallPresetMode = 'public' | 'private' | 'custom'
+
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
 

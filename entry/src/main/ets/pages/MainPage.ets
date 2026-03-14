@@ -18,6 +18,7 @@ import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
+import { FirewallPresetMode } from '../models/DataModels'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 
@@ -26,6 +27,7 @@ const UI_TEST_ROUTE_KEY = 'ui_test_route'
 struct MainPage {
   @State @Watch('onPageRouteChange') currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? Routes.DASHBOARD
   @State @Watch('onFirewallStatusChange') firewallEnabled: boolean = false
+  @State firewallPresetMode: FirewallPresetMode = 'custom'
   @State showMenu: boolean = false
   @State pageEnterOpacity: number = 1
   @State pageEnterOffset: number = 0
@@ -230,13 +232,17 @@ struct MainPage {
               Column() {
                 FirewallPage({
                   firewallEnabled: this.firewallEnabled,
+                  currentMode: this.firewallPresetMode,
                   onFirewallToggle: (enabled: boolean) => {
                     this.firewallEnabled = enabled
+                  },
+                  onModeChange: (mode: FirewallPresetMode) => {
+                    this.firewallPresetMode = mode
                   },
                   onBack: () => {
                     this.currentPage = Routes.DASHBOARD
                   },
-                  onNavigateToRules: (filterType?: number) => {
+                  onNavigateToRules: () => {
                     this.currentPage = Routes.FIREWALL_RULES
                   }
                 })
