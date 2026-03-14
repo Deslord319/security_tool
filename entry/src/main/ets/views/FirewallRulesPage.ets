@@ -45,7 +45,16 @@ export struct FirewallRulesPage {
       promptAction.showToast({ message: '规则添加成功' })
       this.loadRules()
     } else {
-      promptAction.showToast({ message: '规则添加失败，请检查权限' })
+      let errorKind = FirewallService.getLastErrorKind()
+      if (errorKind === 'invalid_argument') {
+        promptAction.showToast({ message: '规则参数不合法，请检查输入' })
+        return
+      }
+      if (errorKind === 'permission') {
+        promptAction.showToast({ message: '规则添加失败，请检查权限和企业管理员状态' })
+        return
+      }
+      promptAction.showToast({ message: '规则添加失败，请稍后重试' })
     }
   }
 

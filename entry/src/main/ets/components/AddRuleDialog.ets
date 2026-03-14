@@ -1,5 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
+import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
@@ -18,10 +19,105 @@ export struct AddRuleDialog {
   @State action: number = 0 // 0=ALLOW, 1=DENY
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
+  private isValidIpv4Address(value: string): boolean {
+    let parts = value.split('.')
+    if (parts.length !== 4) {
+      return false
+    }
+    return parts.every((segment: string): boolean => {
+      if (!/^\d+$/.test(segment)) {
+        return false
+      }
+      let num = parseInt(segment, 10)
+      return num >= 0 && num <= 255 && `${num}` === segment
+    })
+  }
+
+  private isValidIpv4OrCidr(value: string): boolean {
+    let parts = value.split('/')
+    if (parts.length > 2 || !this.isValidIpv4Address(parts[0].trim())) {
+      return false
+    }
+    if (parts.length === 1) {
+      return true
+    }
+    let mask = parts[1].trim()
+    if (!/^\d+$/.test(mask)) {
+      return false
+    }
+    let maskValue = parseInt(mask, 10)
+    return maskValue >= 0 && maskValue <= 32
+  }
+
+  private isValidPort(value: string): boolean {
+    if (!/^\d+$/.test(value)) {
+      return false
+    }
+    let port = parseInt(value, 10)
+    return port >= 1 && port <= 65535
+  }
+
+  private isValidDomain(value: string): boolean {
+    return /^(?:\*\.)?(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/.test(value)
+  }
+
+  private validateForm(): string {
+    let ruleName = this.ruleName.trim()
+    let remoteAddress = this.remoteAddress.trim()
+    let remotePort = this.remotePort.trim()
+
+    if (ruleName.length === 0) {
+      return '请输入规则名称'
+    }
+
+    if (remoteAddress.length === 0) {
+      if (this.ruleType === 2) {
+        return '请输入域名'
+      }
+      if (this.ruleType === 3) {
+        return '请输入 DNS 地址'
+      }
+      return '请输入 IP 地址或 CIDR'
+    }
+
+    if (this.ruleType === 1 && !this.isValidIpv4OrCidr(remoteAddress)) {
+      return '请输入合法的 IP 地址或 CIDR'
+    }
+
+    if (this.ruleType === 1 && remotePort.length > 0 && !this.isValidPort(remotePort)) {
+      return '端口范围应为 1-65535'
+    }
+
+    if (this.ruleType === 2 && !this.isValidDomain(remoteAddress)) {
+      return '请输入合法的域名'
+    }
+
+    if (this.ruleType === 3 && !this.isValidIpv4Address(remoteAddress)) {
+      return '请输入合法的 DNS 地址'
+    }
+
+    return ''
+  }
+
+  private handleSubmit(): void {
+    let validationMessage = this.validateForm()
+    if (validationMessage.length > 0) {
+      promptAction.showToast({ message: validationMessage })
+      return
+    }
+
+    let rule = this.buildRule()
+    this.onConfirm(rule)
+    this.controller.close()
+  }
+
   buildRule(): netFirewall.NetFirewallRule {
+    let ruleName = this.ruleName.trim()
+    let remoteAddress = this.remoteAddress.trim()
+    let remotePort = this.remotePort.trim()
     let rule: netFirewall.NetFirewallRule = {
       userId: 100,
-      name: this.ruleName,
+      name: ruleName,
       direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
       action: this.action as netFirewall.FirewallRuleAction,
       type: this.ruleType as netFirewall.NetFirewallRuleType,
@@ -30,32 +126,30 @@ export struct AddRuleDialog {
 
     if (this.ruleType === 1) {
       // IP 规则
-      if (this.remoteAddress) {
-        let parts = this.remoteAddress.split('/')
+      if (remoteAddress) {
+        let parts = remoteAddress.split('/')
         let ip: netFirewall.NetFirewallIpParams = {
           type: parts.length > 1 ? 1 : 1,
           family: 1,
-          address: parts[0],
-          mask: parts.length > 1 ? parseInt(parts[1]) : 32
+          address: parts[0].trim(),
+          mask: parts.length > 1 ? parseInt(parts[1].trim(), 10) : 32
         }
         rule.remoteIps = [ip]
       }
-      if (this.remotePort) {
-        let portNum = parseInt(this.remotePort)
-        if (!isNaN(portNum)) {
-          rule.remotePorts = [{ startPort: portNum, endPort: portNum }]
-        }
+      if (remotePort) {
+        let portNum = parseInt(remotePort, 10)
+        rule.remotePorts = [{ startPort: portNum, endPort: portNum }]
       }
       rule.protocol = this.protocol
     } else if (this.ruleType === 2) {
       // 域名规则
-      if (this.remoteAddress) {
-        rule.domains = [{ domain: this.remoteAddress, isWildcard: this.remoteAddress.includes('*') }]
+      if (remoteAddress) {
+        rule.domains = [{ domain: remoteAddress, isWildcard: remoteAddress.includes('*') }]
       }
     } else if (this.ruleType === 3) {
       // DNS 规则
-      if (this.remoteAddress) {
-        rule.dns = { primaryDns: this.remoteAddress }
+      if (remoteAddress) {
+        rule.dns = { primaryDns: remoteAddress }
       }
     }
 
@@ -274,11 +368,7 @@ export struct AddRuleDialog {
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
-            if (this.ruleName) {
-              let rule = this.buildRule()
-              this.onConfirm(rule)
-              this.controller.close()
-            }
+            this.handleSubmit()
           })
       }
       .width('100%')

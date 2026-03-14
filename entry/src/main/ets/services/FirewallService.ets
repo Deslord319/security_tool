@@ -4,14 +4,17 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 const TAG = 'FirewallService'
 const DOMAIN = 0x0001
 const DEFAULT_USER_ID = 100
+export type FirewallErrorKind = 'invalid_argument' | 'permission' | 'unknown'
 
 export class FirewallService {
   private static lastErrorCode: number | undefined = undefined
   private static lastErrorMessage: string = ''
+  private static lastErrorKind: FirewallErrorKind = 'unknown'
 
   static clearLastError(): void {
     FirewallService.lastErrorCode = undefined
     FirewallService.lastErrorMessage = ''
+    FirewallService.lastErrorKind = 'unknown'
   }
 
   static getLastErrorText(): string {
@@ -28,10 +31,16 @@ export class FirewallService {
     return FirewallService.lastErrorCode
   }
 
+  static getLastErrorKind(): FirewallErrorKind {
+    return FirewallService.lastErrorKind
+  }
+
   private static recordError(action: string, err: Object): void {
     let code = FirewallService.extractErrorCode(err)
+    let message = FirewallService.extractErrorMessage(err)
     FirewallService.lastErrorCode = code
-    FirewallService.lastErrorMessage = `${action}失败`
+    FirewallService.lastErrorKind = FirewallService.classifyError(code, message)
+    FirewallService.lastErrorMessage = message.length > 0 ? message : `${action}失败`
   }
 
   private static extractErrorCode(err: Object): number | undefined {
@@ -44,6 +53,37 @@ export class FirewallService {
       return Number.isNaN(parsed) ? undefined : parsed
     }
     return undefined
+  }
+
+  private static extractErrorMessage(err: Object): string {
+    let messageValue = (err as Record<string, Object>)['message']
+    if (typeof messageValue === 'string') {
+      return messageValue
+    }
+    let dataValue = (err as Record<string, Object>)['data']
+    if (typeof dataValue === 'string') {
+      return dataValue
+    }
+    return ''
+  }
+
+  private static classifyError(code: number | undefined, message: string): FirewallErrorKind {
+    let normalized = message.toLowerCase()
+    if (normalized.includes('permission') ||
+      normalized.includes('denied') ||
+      normalized.includes('admin') ||
+      normalized.includes('unauthorized') ||
+      code === 9200001) {
+      return 'permission'
+    }
+    if (normalized.includes('invalid') ||
+      normalized.includes('argument') ||
+      normalized.includes('param') ||
+      normalized.includes('format') ||
+      normalized.includes('value')) {
+      return 'invalid_argument'
+    }
+    return 'unknown'
   }
 
   // 获取防火墙策略（含开关状态）
