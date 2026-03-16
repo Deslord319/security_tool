@@ -22,6 +22,9 @@ export struct FirewallRulesPage {
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
+      onClose: () => {
+        this.addRuleDialogController.close()
+      },
       onConfirm: (rule: netFirewall.NetFirewallRule) => {
         this.handleAddRule(rule)
       }
@@ -60,8 +63,9 @@ export struct FirewallRulesPage {
         promptAction.showToast({ message: '\u89c4\u5219\u5df2\u5b58\u5728\uff0c\u65e0\u9700\u91cd\u590d\u6dfb\u52a0' })
         return
       }
-      if (conflict.kind === 'hard_conflict' && conflict.existingRule.id !== undefined) {
-        this.showReplaceRuleConfirm(conflict.existingRule.id, rule)
+      let existingRuleId = FirewallService.getRulePrimaryKey(conflict.existingRule)
+      if (conflict.kind === 'hard_conflict' && existingRuleId !== undefined) {
+        this.showReplaceRuleConfirm(existingRuleId, rule)
         return
       }
       if (conflict.kind === 'overlap_conflict') {
@@ -70,6 +74,46 @@ export struct FirewallRulesPage {
       }
     }
     await this.addRuleDirectly(rule)
+  }
+
+  private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
+    let dialogController = new CustomDialogController({
+      builder: AddRuleDialog({
+        onClose: () => {
+          dialogController.close()
+        },
+        initialRule: rule,
+        isEditMode: true,
+        onConfirm: (updatedRule: netFirewall.NetFirewallRule) => {
+          this.handleEditRule(updatedRule)
+        }
+      }),
+      autoCancel: true,
+      customStyle: true,
+      alignment: DialogAlignment.Center
+    })
+    dialogController.open()
+  }
+
+  async handleEditRule(rule: netFirewall.NetFirewallRule) {
+    let currentRuleId = FirewallService.getRulePrimaryKey(rule)
+    let conflict = FirewallService.findRuleConflict(this.rules, rule, currentRuleId)
+    if (conflict) {
+      if (conflict.kind === 'duplicate') {
+        promptAction.showToast({ message: '规则已存在，无需重复保存' })
+        return
+      }
+      let existingRuleId = FirewallService.getRulePrimaryKey(conflict.existingRule)
+      if (conflict.kind === 'hard_conflict' && existingRuleId !== undefined) {
+        this.showReplaceRuleConfirm(existingRuleId, rule, true)
+        return
+      }
+      if (conflict.kind === 'overlap_conflict') {
+        this.showOverlapRiskConfirm(rule, true)
+        return
+      }
+    }
+    await this.updateRuleDirectly(rule)
   }
 
   private async addRuleDirectly(
@@ -94,14 +138,43 @@ export struct FirewallRulesPage {
     promptAction.showToast({ message: '\u89c4\u5219\u6dfb\u52a0\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5' })
   }
 
-  private showReplaceRuleConfirm(oldRuleId: number, newRule: netFirewall.NetFirewallRule): void {
+  private async updateRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
+    let success = await FirewallService.updateRule(rule)
+    if (success) {
+      promptAction.showToast({ message: '规则更新成功' })
+      this.loadRules()
+      return
+    }
+    let errorKind = FirewallService.getLastErrorKind()
+    if (errorKind === 'invalid_argument') {
+      promptAction.showToast({ message: '规则参数不合法，请检查输入' })
+      return
+    }
+    if (errorKind === 'permission') {
+      promptAction.showToast({ message: '规则更新失败，请检查权限和企业管理员状态' })
+      return
+    }
+    promptAction.showToast({ message: '规则更新失败，请稍后重试' })
+  }
+
+  private showReplaceRuleConfirm(
+    oldRuleId: number,
+    newRule: netFirewall.NetFirewallRule,
+    isEditMode: boolean = false
+  ): void {
     AlertDialog.show({
       title: '\u5b58\u5728\u51b2\u7a81\u89c4\u5219',
-      message: '\u68c0\u6d4b\u5230\u540c\u4e00\u76ee\u6807\u548c\u65b9\u5411\u4e0b\u5df2\u5b58\u5728\u76f8\u53cd\u52a8\u4f5c\u7684\u89c4\u5219\u3002\u8986\u76d6\u540e\u5c06\u5220\u9664\u65e7\u89c4\u5219\u5e76\u4fdd\u5b58\u65b0\u89c4\u5219\u3002',
+      message: isEditMode
+        ? '检测到同一目标和方向下已存在相反动作的规则。覆盖后将删除冲突旧规则，并保存当前编辑结果。'
+        : '\u68c0\u6d4b\u5230\u540c\u4e00\u76ee\u6807\u548c\u65b9\u5411\u4e0b\u5df2\u5b58\u5728\u76f8\u53cd\u52a8\u4f5c\u7684\u89c4\u5219\u3002\u8986\u76d6\u540e\u5c06\u5220\u9664\u65e7\u89c4\u5219\u5e76\u4fdd\u5b58\u65b0\u89c4\u5219\u3002',
       primaryButton: {
         value: '\u8986\u76d6',
         action: () => {
-          this.replaceRule(oldRuleId, newRule)
+          if (isEditMode) {
+            this.replaceRuleWhileEditing(oldRuleId, newRule)
+          } else {
+            this.replaceRule(oldRuleId, newRule)
+          }
         }
       },
       secondaryButton: {
@@ -111,14 +184,18 @@ export struct FirewallRulesPage {
     })
   }
 
-  private showOverlapRiskConfirm(rule: netFirewall.NetFirewallRule): void {
+  private showOverlapRiskConfirm(rule: netFirewall.NetFirewallRule, isEditMode: boolean = false): void {
     AlertDialog.show({
       title: '\u5b58\u5728\u91cd\u53e0\u89c4\u5219',
       message: '\u65b0\u89c4\u5219\u4e0e\u73b0\u6709\u89c4\u5219\u7684\u547d\u4e2d\u8303\u56f4\u5b58\u5728\u91cd\u53e0\uff0c\u5b9e\u9645\u751f\u6548\u7ed3\u679c\u53ef\u80fd\u53d7\u7cfb\u7edf\u89c4\u5219\u4f18\u5148\u7ea7\u5f71\u54cd\u3002\u662f\u5426\u7ee7\u7eed\u4fdd\u5b58\uff1f',
       primaryButton: {
         value: '\u7ee7\u7eed\u4fdd\u5b58',
         action: () => {
-          this.addRuleDirectly(rule)
+          if (isEditMode) {
+            this.updateRuleDirectly(rule)
+          } else {
+            this.addRuleDirectly(rule)
+          }
         }
       },
       secondaryButton: {
@@ -136,6 +213,15 @@ export struct FirewallRulesPage {
       return
     }
     promptAction.showToast({ message: '\u89c4\u5219\u8986\u76d6\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5' })
+  }
+
+  private async replaceRuleWhileEditing(oldRuleId: number, updatedRule: netFirewall.NetFirewallRule): Promise<void> {
+    let removed = await FirewallService.removeRule(oldRuleId)
+    if (!removed) {
+      promptAction.showToast({ message: '规则覆盖失败，请稍后重试' })
+      return
+    }
+    await this.updateRuleDirectly(updatedRule)
   }
 
   private updateConflictNotice(): void {
@@ -568,8 +654,9 @@ export struct FirewallRulesPage {
                     .borderRadius(AppStyles.RADIUS_SM)
                     .height(30)
                     .onClick(() => {
-                      if (rule.id !== undefined) {
-                        this.handleDeleteRule(rule.id)
+                      let ruleId = FirewallService.getRulePrimaryKey(rule)
+                      if (ruleId !== undefined) {
+                        this.handleDeleteRule(ruleId)
                       }
                     })
                 }
@@ -592,6 +679,9 @@ export struct FirewallRulesPage {
               })
               .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredRuleIndex === index, true))
               .translate({ y: HoverUtils.getTranslateY(this.hoveredRuleIndex === index, 4) })
+              .onClick(() => {
+                this.openEditRuleDialog(rule)
+              })
               .onHover((isHover: boolean) => {
                 HoverUtils.animate(() => {
                   this.hoveredRuleIndex = isHover ? index : -1

@@ -5,19 +5,74 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 
+interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
+  id?: number
+  ruleId?: number
+}
+
 @CustomDialog
 export struct AddRuleDialog {
   controller: CustomDialogController
   onConfirm: (rule: netFirewall.NetFirewallRule) => void = () => {}
+  onClose: () => void = () => {}
+  initialRule?: netFirewall.NetFirewallRule
+  isEditMode: boolean = false
 
   @State ruleName: string = ''
-  @State ruleType: number = 1 // 1=IP, 2=DOMAIN, 3=DNS
-  @State ruleDirection: number = 1 // 1=IN, 2=OUT
-  @State protocol: number = 6 // 6=TCP, 17=UDP, 1=ICMP
+  @State ruleType: number = netFirewall.NetFirewallRuleType.RULE_IP
+  @State ruleDirection: number = netFirewall.NetFirewallRuleDirection.RULE_IN
+  @State protocol: number = 6
   @State remoteAddress: string = ''
   @State remotePort: string = ''
-  @State action: number = 0 // 0=ALLOW, 1=DENY
+  @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  aboutToAppear(): void {
+    this.applyInitialRule()
+  }
+
+  private applyInitialRule(): void {
+    let rule = this.initialRule
+    if (!rule) {
+      return
+    }
+    this.ruleName = rule.name ?? ''
+    this.ruleType = rule.type ?? netFirewall.NetFirewallRuleType.RULE_IP
+    this.ruleDirection = rule.direction ?? netFirewall.NetFirewallRuleDirection.RULE_IN
+    this.action = rule.action ?? netFirewall.FirewallRuleAction.RULE_ALLOW
+    this.protocol = rule.protocol ?? 6
+    this.remoteAddress = this.resolveRemoteAddress(rule)
+    this.remotePort = this.resolveRemotePort(rule)
+  }
+
+  private resolveRemoteAddress(rule: netFirewall.NetFirewallRule): string {
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
+      let ip = rule.remoteIps?.[0]
+      if (!ip?.address) {
+        return ''
+      }
+      let mask = ip.mask
+      return mask !== undefined && mask < 32 ? `${ip.address}/${mask}` : ip.address
+    }
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
+      return rule.domains?.[0]?.domain ?? ''
+    }
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      return rule.dns?.primaryDns ?? ''
+    }
+    return ''
+  }
+
+  private resolveRemotePort(rule: netFirewall.NetFirewallRule): string {
+    let port = rule.remotePorts?.[0]
+    if (!port?.startPort) {
+      return ''
+    }
+    if (port.endPort !== undefined && port.endPort !== port.startPort) {
+      return `${port.startPort}-${port.endPort}`
+    }
+    return `${port.startPort}`
+  }
 
   private isValidIpv4Address(value: string): boolean {
     let parts = value.split('.')
@@ -71,28 +126,28 @@ export struct AddRuleDialog {
     }
 
     if (remoteAddress.length === 0) {
-      if (this.ruleType === 2) {
+      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
         return '请输入域名'
       }
-      if (this.ruleType === 3) {
-        return '请输入 DNS 地址'
+      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
+        return '请输入 DNS 服务器地址'
       }
-      return '请输入 IP 地址或 CIDR'
-    }
-
-    if (this.ruleType === 1 && !this.isValidIpv4OrCidr(remoteAddress)) {
       return '请输入合法的 IP 地址或 CIDR'
     }
 
-    if (this.ruleType === 1 && remotePort.length > 0 && !this.isValidPort(remotePort)) {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && !this.isValidIpv4OrCidr(remoteAddress)) {
+      return '请输入合法的 IP 地址或 CIDR'
+    }
+
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && remotePort.length > 0 && !this.isValidPort(remotePort)) {
       return '端口范围应为 1-65535'
     }
 
-    if (this.ruleType === 2 && !this.isValidDomain(remoteAddress)) {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN && !this.isValidDomain(remoteAddress)) {
       return '请输入合法的域名'
     }
 
-    if (this.ruleType === 3 && !this.isValidIpv4Address(remoteAddress)) {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS && !this.isValidIpv4Address(remoteAddress)) {
       return '请输入合法的 DNS 地址'
     }
 
@@ -106,61 +161,121 @@ export struct AddRuleDialog {
       return
     }
 
-    let rule = this.buildRule()
+    let rule = this.isEditMode ? this.buildUpdateRule() : this.buildCreateRule()
     this.onConfirm(rule)
-    this.controller.close()
+    this.closeDialog()
   }
 
-  buildRule(): netFirewall.NetFirewallRule {
-    let ruleName = this.ruleName.trim()
+  private closeDialog(): void {
+    this.onClose()
+  }
+
+  private buildCreateRule(): netFirewall.NetFirewallRule {
     let remoteAddress = this.remoteAddress.trim()
     let remotePort = this.remotePort.trim()
     let rule: netFirewall.NetFirewallRule = {
-      userId: 100,
-      name: ruleName,
+      userId: this.initialRule?.userId ?? 100,
+      name: this.ruleName.trim(),
       direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
       action: this.action as netFirewall.FirewallRuleAction,
       type: this.ruleType as netFirewall.NetFirewallRuleType,
-      isEnabled: true
+      isEnabled: this.initialRule?.isEnabled ?? true
     }
 
-    if (this.ruleType === 1) {
-      // IP 规则
-      if (remoteAddress) {
-        let parts = remoteAddress.split('/')
-        let ip: netFirewall.NetFirewallIpParams = {
-          type: parts.length > 1 ? 1 : 1,
-          family: 1,
-          address: parts[0].trim(),
-          mask: parts.length > 1 ? parseInt(parts[1].trim(), 10) : 32
-        }
-        rule.remoteIps = [ip]
-      }
-      if (remotePort) {
+    this.applyRuleSpecificFields(rule, remoteAddress, remotePort)
+    return rule
+  }
+
+  private buildUpdateRule(): netFirewall.NetFirewallRule {
+    let baseRule: netFirewall.NetFirewallRule = {
+      userId: this.initialRule?.userId ?? 100,
+      name: this.ruleName.trim(),
+      direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
+      action: this.action as netFirewall.FirewallRuleAction,
+      type: this.ruleType as netFirewall.NetFirewallRuleType,
+      isEnabled: this.initialRule?.isEnabled ?? true
+    }
+    let originalRule = this.initialRule as FirewallRuleWithKey
+    let targetRule = baseRule as FirewallRuleWithKey
+    if (typeof originalRule.ruleId === 'number') {
+      targetRule.ruleId = originalRule.ruleId
+    }
+    if (typeof originalRule.id === 'number') {
+      targetRule.id = originalRule.id
+    }
+    this.applyRuleSpecificFields(baseRule, this.remoteAddress.trim(), this.remotePort.trim())
+    return baseRule
+  }
+
+  private applyRuleSpecificFields(
+    rule: netFirewall.NetFirewallRule,
+    remoteAddress: string,
+    remotePort: string
+  ): void {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
+      let parts = remoteAddress.split('/')
+      rule.remoteIps = [{
+        type: 1,
+        family: 1,
+        address: parts[0].trim(),
+        mask: parts.length > 1 ? parseInt(parts[1].trim(), 10) : 32
+      }]
+      if (remotePort.length > 0) {
         let portNum = parseInt(remotePort, 10)
         rule.remotePorts = [{ startPort: portNum, endPort: portNum }]
+      } else {
+        rule.remotePorts = undefined
       }
       rule.protocol = this.protocol
-    } else if (this.ruleType === 2) {
-      // 域名规则
-      if (remoteAddress) {
-        rule.domains = [{ domain: remoteAddress, isWildcard: remoteAddress.includes('*') }]
-      }
-    } else if (this.ruleType === 3) {
-      // DNS 规则
-      if (remoteAddress) {
-        rule.dns = { primaryDns: remoteAddress }
-      }
+      rule.domains = undefined
+      rule.dns = undefined
+    } else if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
+      rule.domains = [{ domain: remoteAddress, isWildcard: remoteAddress.includes('*') }]
+      rule.remoteIps = undefined
+      rule.remotePorts = undefined
+      rule.protocol = undefined
+      rule.dns = undefined
+    } else if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      rule.dns = { primaryDns: remoteAddress }
+      rule.remoteIps = undefined
+      rule.remotePorts = undefined
+      rule.protocol = undefined
+      rule.domains = undefined
     }
+  }
 
-    return rule
+  private getDialogTitle(): string {
+    return this.isEditMode ? '编辑规则' : '新增规则'
+  }
+
+  private getPrimaryButtonText(): string {
+    return this.isEditMode ? '保存' : '添加'
+  }
+
+  private getRuleTypeLabel(): string {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
+      return '域名'
+    }
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      return 'DNS 服务器'
+    }
+    return '远程地址'
+  }
+
+  private getRuleTypePlaceholder(): string {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
+      return '例: *.example.com'
+    }
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      return '例: 8.8.8.8'
+    }
+    return '例: 0.0.0.0/0'
   }
 
   build() {
     Column({ space: 16 }) {
-      // 标题 + 关闭按钮
       Row() {
-        Text('添加防火墙规则')
+        Text(this.getDialogTitle())
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -171,19 +286,18 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           .onClick(() => {
-            this.controller.close()
+            this.closeDialog()
           })
       }
       .width('100%')
 
-      // 规则名称
       Column({ space: 6 }) {
         Text('规则名称')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        TextInput({ placeholder: '输入规则名称' })
+        TextInput({ text: this.ruleName, placeholder: '请输入规则名称' })
           .height(40)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -195,7 +309,6 @@ export struct AddRuleDialog {
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      // 规则类型
       Column({ space: 6 }) {
         Text('规则类型')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -207,8 +320,9 @@ export struct AddRuleDialog {
           { value: '域名规则' },
           { value: 'DNS 规则' }
         ])
-          .selected(0)
-          .value('IP 规则')
+          .selected(this.ruleType - 1)
+          .value(this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN ? '域名规则' :
+            this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? 'DNS 规则' : 'IP 规则')
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
@@ -221,7 +335,6 @@ export struct AddRuleDialog {
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      // 方向
       Column({ space: 6 }) {
         Text('方向')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -232,8 +345,8 @@ export struct AddRuleDialog {
           { value: '入站' },
           { value: '出站' }
         ])
-          .selected(0)
-          .value('入站')
+          .selected(this.ruleDirection - 1)
+          .value(this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ? '出站' : '入站')
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
@@ -246,8 +359,7 @@ export struct AddRuleDialog {
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      // 协议（仅 IP 规则显示）
-      if (this.ruleType === 1) {
+      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
           Text('协议')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -259,8 +371,8 @@ export struct AddRuleDialog {
             { value: 'UDP' },
             { value: 'ICMP' }
           ])
-            .selected(0)
-            .value('TCP')
+            .selected(this.protocol === 17 ? 1 : this.protocol === 1 ? 2 : 0)
+            .value(this.protocol === 17 ? 'UDP' : this.protocol === 1 ? 'ICMP' : 'TCP')
             .fontColor(FormControlUtils.text(this.currentTheme))
             .font({ size: AppStyles.FONT_SIZE_BODY })
             .width('100%')
@@ -277,16 +389,15 @@ export struct AddRuleDialog {
         .alignItems(HorizontalAlign.Start)
       }
 
-      // 远程地址
       Column({ space: 6 }) {
-        Text(this.ruleType === 2 ? '域名' : this.ruleType === 3 ? 'DNS 服务器' : '远程地址')
+        Text(this.getRuleTypeLabel())
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({
-          placeholder: this.ruleType === 2 ? '例: *.example.com' :
-            this.ruleType === 3 ? '例: 8.8.8.8' : '例: 0.0.0.0/0'
+          text: this.remoteAddress,
+          placeholder: this.getRuleTypePlaceholder()
         })
           .height(40)
           .fontColor(FormControlUtils.text(this.currentTheme))
@@ -299,21 +410,20 @@ export struct AddRuleDialog {
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      // 远程端口（仅 IP 规则显示）
-      if (this.ruleType === 1) {
+      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
           Text('远程端口')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          TextInput({ placeholder: '例: 443' })
-          .height(40)
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          TextInput({ text: this.remotePort, placeholder: '例: 443' })
+            .height(40)
+            .fontColor(FormControlUtils.text(this.currentTheme))
+            .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+            .backgroundColor(FormControlUtils.background(this.currentTheme))
+            .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .type(InputType.Number)
             .onChange((value: string) => { this.remotePort = value })
         }
@@ -321,9 +431,8 @@ export struct AddRuleDialog {
         .alignItems(HorizontalAlign.Start)
       }
 
-      // 策略
       Column({ space: 6 }) {
-        Text('策略')
+        Text('动作')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -332,8 +441,8 @@ export struct AddRuleDialog {
           { value: '允许' },
           { value: '拒绝' }
         ])
-          .selected(0)
-          .value('允许')
+          .selected(this.action)
+          .value(this.action === netFirewall.FirewallRuleAction.RULE_DENY ? '拒绝' : '允许')
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
@@ -346,7 +455,6 @@ export struct AddRuleDialog {
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
-      // 按钮区域
       Row({ space: 16 }) {
         Button('取消')
           .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -358,9 +466,9 @@ export struct AddRuleDialog {
           .layoutWeight(1)
           .height(40)
           .onClick(() => {
-            this.controller.close()
+            this.closeDialog()
           })
-        Button('添加')
+        Button(this.getPrimaryButtonText())
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(Color.White)
           .backgroundColor(AppColors.BRAND_PRIMARY)

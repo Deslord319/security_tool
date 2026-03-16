@@ -41,10 +41,41 @@ interface NormalizedDomainPattern {
   suffix?: string
 }
 
+interface FirewallRuleLogPayload {
+  primaryKey?: number
+  name?: string
+  type?: netFirewall.NetFirewallRuleType
+  direction?: netFirewall.NetFirewallRuleDirection
+  action?: netFirewall.FirewallRuleAction
+  userId?: number
+  isEnabled?: boolean
+  protocol?: number
+  remoteIps?: netFirewall.NetFirewallIpParams[]
+  remotePorts?: netFirewall.NetFirewallPortParams[]
+  domains?: netFirewall.NetFirewallDomainParams[]
+  dns?: netFirewall.NetFirewallDnsParams
+}
+
+interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
+  id?: number
+  ruleId?: number
+}
+
 export class FirewallService {
   private static lastErrorCode: number | undefined = undefined
   private static lastErrorMessage: string = ''
   private static lastErrorKind: FirewallErrorKind = 'unknown'
+
+  static getRulePrimaryKey(rule: netFirewall.NetFirewallRule): number | undefined {
+    let sourceRule = rule as FirewallRuleWithKey
+    if (typeof sourceRule.ruleId === 'number') {
+      return sourceRule.ruleId
+    }
+    if (typeof sourceRule.id === 'number') {
+      return sourceRule.id
+    }
+    return undefined
+  }
 
   static clearLastError(): void {
     FirewallService.lastErrorCode = undefined
@@ -182,11 +213,13 @@ export class FirewallService {
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
     FirewallService.clearLastError()
     try {
+      FirewallService.logRulePayload('addRule payload', rule)
       let ruleId = await netFirewall.addNetFirewallRule(rule)
       hilog.info(DOMAIN, TAG, `addRule success, ruleId: ${ruleId}`)
       return ruleId
     } catch (err) {
       FirewallService.recordError('新增防火墙规则', err as Object)
+      FirewallService.logRulePayload('addRule failed payload', rule)
       hilog.error(DOMAIN, TAG, `addRule failed: ${JSON.stringify(err)}`)
       return -1
     }
@@ -210,11 +243,13 @@ export class FirewallService {
   static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
     FirewallService.clearLastError()
     try {
+      FirewallService.logRulePayload('updateRule payload', rule)
       await netFirewall.updateNetFirewallRule(rule)
       hilog.info(DOMAIN, TAG, `updateRule success`)
       return true
     } catch (err) {
       FirewallService.recordError('更新防火墙规则', err as Object)
+      FirewallService.logRulePayload('updateRule failed payload', rule)
       hilog.error(DOMAIN, TAG, `updateRule failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -236,10 +271,14 @@ export class FirewallService {
 
   static findRuleConflict(
     existingRules: netFirewall.NetFirewallRule[],
-    newRule: netFirewall.NetFirewallRule
+    newRule: netFirewall.NetFirewallRule,
+    excludeRuleId?: number
   ): FirewallRuleConflictMatch | null {
     for (let i = 0; i < existingRules.length; i++) {
       let existingRule = existingRules[i]
+      if (excludeRuleId !== undefined && FirewallService.getRulePrimaryKey(existingRule) === excludeRuleId) {
+        continue
+      }
       let kind = FirewallService.classifyRuleConflict(existingRule, newRule)
       if (kind !== 'none') {
         return { kind, existingRule }
@@ -512,6 +551,24 @@ export class FirewallService {
   }
 
   // 按规则类型统计数量
+  private static logRulePayload(prefix: string, rule: netFirewall.NetFirewallRule): void {
+    let summary: FirewallRuleLogPayload = {
+      primaryKey: FirewallService.getRulePrimaryKey(rule),
+      name: rule.name,
+      type: rule.type,
+      direction: rule.direction,
+      action: rule.action,
+      userId: rule.userId,
+      isEnabled: rule.isEnabled,
+      protocol: rule.protocol,
+      remoteIps: rule.remoteIps,
+      remotePorts: rule.remotePorts,
+      domains: rule.domains,
+      dns: rule.dns
+    }
+    hilog.info(DOMAIN, TAG, `${prefix}: ${JSON.stringify(summary)}`)
+  }
+
   static countByType(rules: netFirewall.NetFirewallRule[], type: netFirewall.NetFirewallRuleType): number {
     return rules.filter((r: netFirewall.NetFirewallRule) => r.type === type).length
   }

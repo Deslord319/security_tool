@@ -126,6 +126,7 @@ export enum PeripheralType {
   USB_STORAGE = 'usb_storage',
   USB_CAMERA = 'usb_camera',
   USB_PRINTER = 'usb_printer',
+  USB_HID = 'usb_hid',
   USB_OTHER = 'usb_other',
   BLUETOOTH = 'bluetooth'
 }
@@ -339,6 +340,8 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
       return 'USB 摄像头'
     case PeripheralType.USB_PRINTER:
       return 'USB 打印机'
+    case PeripheralType.USB_HID:
+      return 'USB HID'
     case PeripheralType.USB_OTHER:
       return 'USB 其他'
     case PeripheralType.BLUETOOTH:
@@ -448,6 +451,8 @@ export function inferUsbBaseClass(type: PeripheralType): number {
       return 0x0E
     case PeripheralType.USB_PRINTER:
       return 0x07
+    case PeripheralType.USB_HID:
+      return 0x03
     default:
       return 0
   }
@@ -462,6 +467,8 @@ export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralT
       return PeripheralType.USB_CAMERA
     case 0x07:
       return PeripheralType.USB_PRINTER
+    case 0x03:
+      return PeripheralType.USB_HID
     default:
       return PeripheralType.USB_OTHER
   }

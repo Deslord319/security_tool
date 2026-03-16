@@ -16,6 +16,7 @@ import {
   PeripheralWhitelistCandidate,
   OperationResult,
   PeripheralType,
+  PeripheralRecordAction,
   LogEventResult,
   formatLogTimestamp,
   getLogEventResultLabel,
@@ -126,6 +127,7 @@ export struct PeripheralPage {
     PeripheralType.USB_STORAGE,
     PeripheralType.USB_CAMERA,
     PeripheralType.USB_PRINTER,
+    PeripheralType.USB_HID,
     PeripheralType.USB_OTHER
   ]
 
@@ -1214,6 +1216,34 @@ export struct PeripheralPage {
     return getPeripheralRecordActionLabel(record.action)
   }
 
+  private getConnectionEventTagTextColor(action: PeripheralRecordAction): string {
+    let colors = AppColors.getColors(this.currentTheme)
+    switch (action) {
+      case 'connect':
+        return colors.TAG_GREEN_TEXT
+      case 'disconnect':
+        return colors.TAG_ORANGE_TEXT
+      case 'intercept':
+        return colors.TAG_RED_TEXT
+      default:
+        return colors.TAG_GRAY_TEXT
+    }
+  }
+
+  private getConnectionEventTagBackgroundColor(action: PeripheralRecordAction): string {
+    let colors = AppColors.getColors(this.currentTheme)
+    switch (action) {
+      case 'connect':
+        return colors.TAG_GREEN_BG
+      case 'disconnect':
+        return colors.TAG_ORANGE_BG
+      case 'intercept':
+        return colors.TAG_RED_BG
+      default:
+        return colors.TAG_GRAY_BG
+    }
+  }
+
   private getConnectionPolicyDisplay(record: PeripheralConnectionRecord | null): string {
     if (!record) {
       return '--'
@@ -1314,8 +1344,8 @@ export struct PeripheralPage {
       Row() {
         Text(this.getConnectionEventLabel(record))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+          .fontColor(this.getConnectionEventTagTextColor(record.action))
+          .backgroundColor(this.getConnectionEventTagBackgroundColor(record.action))
           .borderRadius(AppStyles.RADIUS_SM)
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       }
