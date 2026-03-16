@@ -320,11 +320,11 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '防火墙规则',
-              icon: $r('app.media.rules'),
-              gradientStart: '#FF3B30',
-              gradientEnd: '#FF6B6B',
-              onPress: () => { this.onNavigate(Routes.FIREWALL_RULES) }
+              label: '工具设置',
+              icon: $r('app.media.settings'),
+              gradientStart: '#8E8E93',
+              gradientEnd: '#AEAEB2',
+              onPress: () => { this.onNavigate(Routes.TOOL_SETTINGS) }
             })
           }
           .opacity(this.toolEnterOpacity[4])
@@ -333,11 +333,11 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '工具设置',
-              icon: $r('app.media.settings'),
-              gradientStart: '#8E8E93',
-              gradientEnd: '#AEAEB2',
-              onPress: () => { this.onNavigate(Routes.TOOL_SETTINGS) }
+              label: '帮助与反馈',
+              icon: $r('app.media.help'),
+              gradientStart: '#FF3B30',
+              gradientEnd: '#FF6B6B',
+              onPress: () => { this.onNavigate(Routes.HELP_FEEDBACK) }
             })
           }
           .opacity(this.toolEnterOpacity[5])
