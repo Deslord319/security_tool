@@ -1,4 +1,4 @@
-﻿
+
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { LogAuditService } from '../services/LogAuditService'
 import { LogStorageService } from '../services/LogStorageService'
@@ -943,7 +943,7 @@ export struct LogManagePage {
           Row({ space: 6 }) {
             Circle({ width: 8, height: 8 })
               .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
-            Text(this.isSubscribed ? `\u5df2\u8ba2\u9605(${this.getSubscribeModeText()})` : '\u8ba2\u9605\u5931\u8d25')
+            Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -952,7 +952,7 @@ export struct LogManagePage {
           Row({ space: 8 }) {
             if (!this.showSettings) {
               this.headerActionButton(
-                '\u5bfc\u51fa\u65e5\u5fd7',
+                '导出日志',
                 $r('app.media.save'),
                 AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT,
                 AppColors.getColors(this.currentTheme).TAG_BLUE_BG,
@@ -962,7 +962,7 @@ export struct LogManagePage {
               )
 
               this.headerActionButton(
-                '\u6e05\u7a7a\u65e5\u5fd7',
+                '清空日志',
                 $r('app.media.trash'),
                 AppColors.getColors(this.currentTheme).TAG_RED_TEXT,
                 AppColors.getColors(this.currentTheme).TAG_RED_BG,
@@ -973,7 +973,7 @@ export struct LogManagePage {
             }
 
             if (!this.showSettings) {
-              Button('\u8fdb\u5165\u5b58\u50a8\u8bbe\u7f6e')
+              Button('进入存储设置')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
                 .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
@@ -985,7 +985,7 @@ export struct LogManagePage {
                 })
             } else {
               this.headerActionButton(
-                '\u4fdd\u5b58\u8bbe\u7f6e',
+                '保存设置',
                 $r('app.media.save'),
                 Color.White,
                 AppColors.BRAND_PRIMARY,
@@ -994,7 +994,7 @@ export struct LogManagePage {
                 }
               )
 
-              Button('\u8fd4\u56de\u65e5\u5fd7\u5217\u8868')
+              Button('返回日志列表')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
                 .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
@@ -1523,7 +1523,7 @@ export struct LogManagePage {
   @Builder
   storageConfigCardV2() {
     Column({ space: 0 }) {
-      Text('\u65e5\u5fd7\u5b58\u50a8\u914d\u7f6e')
+      Text('日志存储配置')
         .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1532,14 +1532,14 @@ export struct LogManagePage {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row() {
-        Text('\u6700\u5927\u5b58\u50a8\u6761\u6570')
+        Text('最大存储条数')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
-        Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} \u6761` } as SelectOption)))
+        Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} 条` } as SelectOption)))
           .selected(this.maxEntriesIndex)
-          .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} \u6761`)
+          .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} 条`)
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
@@ -1558,14 +1558,14 @@ export struct LogManagePage {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row() {
-        Text('\u65e5\u5fd7\u4fdd\u7559\u5929\u6570')
+        Text('日志保留天数')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
-        Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} \u5929` } as SelectOption)))
+        Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} 天` } as SelectOption)))
           .selected(this.retentionIndex)
-          .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} \u5929`)
+          .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} 天`)
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })

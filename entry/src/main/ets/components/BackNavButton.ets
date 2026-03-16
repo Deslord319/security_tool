@@ -8,18 +8,30 @@ export struct BackNavButton {
   @State hovered: boolean = false
   onBack: () => void = () => {}
 
+  private getIconColor(): string {
+    return AppColors.getColors(this.currentTheme).TEXT_PRIMARY
+  }
+
+  private getButtonBackground(): string {
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(10,132,255,0.08)'
+  }
+
+  private getButtonHoverBackground(): string {
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.14)' : 'rgba(10,132,255,0.14)'
+  }
+
   build() {
     Button() {
       Image($r('app.media.arrow_left'))
-        .width(18)
-        .height(18)
-        .fillColor(AppColors.BRAND_PRIMARY)
+        .width(22)
+        .height(22)
+        .fillColor(this.getIconColor())
     }
     .type(ButtonType.Normal)
-    .width(32)
-    .height(32)
+    .width(36)
+    .height(36)
     .borderRadius(AppStyles.RADIUS_MD)
-    .backgroundColor(this.hovered ? AppColors.getColors(this.currentTheme).BG_COMPONENT : Color.Transparent)
+    .backgroundColor(this.hovered ? this.getButtonHoverBackground() : this.getButtonBackground())
     .onHover((isHover: boolean) => {
       this.hovered = isHover
     })

@@ -64,7 +64,7 @@ export class FirewallToggleAuthService {
         targetEnabled: targetEnabled,
         reason: 'lockout',
         lockRemainingSec: lockState.remainingSec,
-        errorMessage: `PIN \u8ba4\u8bc1\u5931\u8d25\u6b21\u6570\u8fc7\u591a\uff0c\u8bf7\u5728 ${lockState.remainingSec ?? 60} \u79d2\u540e\u91cd\u8bd5`
+        errorMessage: `PIN 认证失败次数过多，请在 ${lockState.remainingSec ?? 60} 秒后重试`
       }
       await FirewallToggleAuthService.appendAuditEntry(
         currentEnabled,
@@ -101,7 +101,7 @@ export class FirewallToggleAuthService {
         targetEnabled: targetEnabled,
         reason: 'pin_failed',
         errorCode: authResult.errorCode,
-        errorMessage: authResult.message ?? 'PIN \u9a8c\u8bc1\u5931\u8d25\uff0c\u5df2\u53d6\u6d88\u672c\u6b21\u53d8\u66f4'
+        errorMessage: authResult.message ?? 'PIN 验证失败，已取消本次变更'
       }
       if (failureUpdate.locked) {
         failedResult.lockRemainingSec = failureUpdate.remainingSec

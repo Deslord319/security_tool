@@ -77,7 +77,7 @@ export class Routes {
 }
 
 export class AppInfo {
-  static readonly APP_NAME: string = '\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3'
+  static readonly APP_NAME: string = '安全管理中心'
   static readonly APP_VERSION: string = '1.0.0'
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
 }
@@ -89,10 +89,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: Routes.DASHBOARD, label: '\u5b89\u5168\u603b\u89c8', icon: $r('app.media.dashboard') },
-  { id: Routes.FIREWALL, label: '\u9632\u706b\u5899\u7ba1\u7406', icon: $r('app.media.firewall') },
-  { id: Routes.LOG_MANAGE, label: '\u65e5\u5fd7\u7ba1\u7406', icon: $r('app.media.log') },
-  { id: Routes.PERIPHERAL_MANAGE, label: '\u5916\u8bbe\u7ba1\u7406', icon: $r('app.media.peripheral') },
-  { id: Routes.IDENTITY, label: '\u8eab\u4efd\u9274\u522b', icon: $r('app.media.identity') },
-  { id: Routes.TOOL_SETTINGS, label: '\u5de5\u5177\u8bbe\u7f6e', icon: $r('app.media.settings') }
+  { id: Routes.DASHBOARD, label: '安全总览', icon: $r('app.media.dashboard') },
+  { id: Routes.FIREWALL, label: '防火墙管理', icon: $r('app.media.firewall') },
+  { id: Routes.LOG_MANAGE, label: '日志管理', icon: $r('app.media.log') },
+  { id: Routes.PERIPHERAL_MANAGE, label: '外设管理', icon: $r('app.media.peripheral') },
+  { id: Routes.IDENTITY, label: '身份鉴别', icon: $r('app.media.identity') },
+  { id: Routes.TOOL_SETTINGS, label: '工具设置', icon: $r('app.media.settings') }
 ]

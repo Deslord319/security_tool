@@ -1,5 +1,6 @@
 import { promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import {
   FirewallToggleRejectReason,
@@ -10,6 +11,9 @@ import { UserFirewallPolicyService } from '../services/UserFirewallPolicyService
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
+
+const TAG = 'UserFirewallDialog'
+const DOMAIN = 0x0001
 
 @CustomDialog
 export struct UserFirewallControlDialog {
@@ -28,6 +32,7 @@ export struct UserFirewallControlDialog {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   aboutToAppear(): void {
+    hilog.info(DOMAIN, TAG, '[DIAG][UserFirewall] dialog appear')
     this.loadUsers()
   }
 
@@ -44,7 +49,7 @@ export struct UserFirewallControlDialog {
       this.users = []
       this.selectedIndex = 0
       this.selectedUserId = -1
-      this.statusHintText = result.message ?? '\u672a\u627e\u5230\u53ef\u7528\u7528\u6237'
+      this.statusHintText = result.message ?? '未找到可用用户'
       if (this.statusHintText.length > 0) {
         promptAction.showToast({ message: this.statusHintText })
       }
@@ -56,6 +61,13 @@ export struct UserFirewallControlDialog {
     let selectedIndex = result.users.findIndex((item: UserFirewallOption): boolean => item.userId === selectedUserId)
     this.selectedIndex = selectedIndex >= 0 ? selectedIndex : 0
     this.selectedUserId = result.users[this.selectedIndex].userId
+    hilog.info(
+      DOMAIN,
+      TAG,
+      '[DIAG][UserFirewall] loadUsers completed count=%{public}d selectedUserId=%{public}d',
+      this.users.length,
+      this.selectedUserId
+    )
     await this.loadPolicyForSelectedUser()
   }
 
@@ -73,21 +85,28 @@ export struct UserFirewallControlDialog {
     this.isLoadingPolicy = false
 
     if (result.errorCode !== undefined) {
-      this.statusHintText = result.message ?? '\u65e0\u6cd5\u83b7\u53d6\u8be5\u7528\u6237\u5f53\u524d\u9632\u706b\u5899\u72b6\u6001'
+      hilog.warn(
+        DOMAIN,
+        TAG,
+        '[DIAG][UserFirewall] loadPolicyForSelectedUser failed userId=%{public}d errorCode=%{public}s',
+        this.selectedUserId,
+        String(result.errorCode)
+      )
+      this.statusHintText = result.message ?? '无法获取该用户当前防火墙状态'
       promptAction.showToast({ message: this.statusHintText })
       return
     }
 
     this.statusReady = true
-    this.currentStatusText = result.isOpen ? '\u5df2\u5f00\u542f' : '\u5df2\u5173\u95ed'
+    this.currentStatusText = result.isOpen ? '已开启' : '已关闭'
     this.statusHintText = result.isOpen ?
-      '\u5f53\u524d\u7528\u6237\u7684\u4e3b\u9632\u706b\u5899\u7b56\u7565\u5904\u4e8e\u542f\u7528\u72b6\u6001' :
-      '\u5f53\u524d\u7528\u6237\u7684\u4e3b\u9632\u706b\u5899\u7b56\u7565\u5904\u4e8e\u5173\u95ed\u72b6\u6001'
+      '当前用户的主防火墙策略处于启用状态' :
+      '当前用户的主防火墙策略处于关闭状态'
   }
 
   private async handleSetEnabled(enabled: boolean): Promise<void> {
     if (this.selectedUserId < 0 || !this.statusReady) {
-      promptAction.showToast({ message: '\u8bf7\u5148\u9009\u62e9\u5e76\u8bfb\u53d6\u6709\u6548\u7528\u6237\u72b6\u6001' })
+      promptAction.showToast({ message: '请先选择并读取有效用户状态' })
       return
     }
 
@@ -96,7 +115,7 @@ export struct UserFirewallControlDialog {
     let result = await FirewallToggleAuthService.executeToggleForUser(
       context,
       this.selectedUserId,
-      this.currentStatusText === '\u5df2\u5f00\u542f',
+      this.currentStatusText === '已开启',
       enabled
     )
     this.isSubmitting = false
@@ -110,8 +129,8 @@ export struct UserFirewallControlDialog {
 
     promptAction.showToast({
       message: enabled ?
-        `\u7528\u6237 ${this.selectedUserId} \u9632\u706b\u5899\u5df2\u5f00\u542f` :
-        `\u7528\u6237 ${this.selectedUserId} \u9632\u706b\u5899\u5df2\u5173\u95ed`
+        `用户 ${this.selectedUserId} 防火墙已开启` :
+        `用户 ${this.selectedUserId} 防火墙已关闭`
     })
     this.onActionCompleted()
     await this.loadPolicyForSelectedUser()
@@ -123,28 +142,28 @@ export struct UserFirewallControlDialog {
   ): string {
     switch (reason) {
       case 'lockout':
-        return `PIN \u8ba4\u8bc1\u5931\u8d25\u6b21\u6570\u8fc7\u591a\uff0c\u8bf7\u5728 ${lockRemainingSec ?? 60} \u79d2\u540e\u91cd\u8bd5`
+        return `PIN 认证失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
       case 'pin_unavailable':
-        return '\u7cfb\u7edf PIN \u8ba4\u8bc1\u6682\u4e0d\u53ef\u7528'
+        return '系统 PIN 认证暂不可用'
       case 'pin_failed':
-        return 'PIN \u9a8c\u8bc1\u5931\u8d25\uff0c\u5df2\u53d6\u6d88\u672c\u6b21\u53d8\u66f4'
+        return 'PIN 验证失败，已取消本次变更'
       case 'policy_apply_failed':
-        return '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25'
+        return '防火墙状态更新失败'
       default:
-        return '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25'
+        return '防火墙状态更新失败'
     }
   }
 
   build() {
     Column({ space: 16 }) {
       Row() {
-        Text('\u6309\u7528\u6237ID\u63a7\u5236')
+        Text('按用户ID控制')
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
-        Text('\u00D7')
+        Text('×')
           .fontSize(20)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -154,7 +173,7 @@ export struct UserFirewallControlDialog {
       }
       .width('100%')
 
-      Text('\u4ece\u7cfb\u7edf\u5df2\u6fc0\u6d3b\u7684\u7528\u6237\u5217\u8868\u4e2d\u9009\u62e9\u76ee\u6807 userId\uff0c\u8bfb\u53d6\u5e76\u5207\u6362\u8be5\u7528\u6237\u7684\u4e3b\u9632\u706b\u5899\u72b6\u6001\u3002')
+      Text('从系统已激活的用户列表中选择目标 userId，读取并切换该用户的主防火墙状态。')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -165,7 +184,7 @@ export struct UserFirewallControlDialog {
           LoadingProgress()
             .width(36)
             .height(36)
-          Text('\u6b63\u5728\u52a0\u8f7d\u7528\u6237\u5217\u8868...')
+          Text('正在加载用户列表...')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -174,12 +193,12 @@ export struct UserFirewallControlDialog {
         .padding({ top: 20, bottom: 20 })
       } else if (this.users.length === 0) {
         Column({ space: 10 }) {
-          Text('\u6682\u65e0\u53ef\u9009\u7528\u6237')
+          Text('暂无可选用户')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-          Text(this.statusHintText.length > 0 ? this.statusHintText : '\u8bf7\u68c0\u67e5\u8d26\u6237\u6743\u9650\u6216\u7cfb\u7edf\u8d26\u6237\u72b6\u6001')
+          Text(this.statusHintText.length > 0 ? this.statusHintText : '请检查账户权限或系统账户状态')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -188,7 +207,7 @@ export struct UserFirewallControlDialog {
         .padding({ top: 20, bottom: 20 })
       } else {
         Column({ space: 6 }) {
-          Text('\u76ee\u6807\u7528\u6237')
+          Text('目标用户')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -209,6 +228,13 @@ export struct UserFirewallControlDialog {
             .onSelect((index: number) => {
               this.selectedIndex = index
               this.selectedUserId = this.users[index].userId
+              hilog.info(
+                DOMAIN,
+                TAG,
+                '[DIAG][UserFirewall] select user index=%{public}d userId=%{public}d',
+                index,
+                this.selectedUserId
+              )
               this.loadPolicyForSelectedUser()
             })
         }
@@ -216,24 +242,24 @@ export struct UserFirewallControlDialog {
         .alignItems(HorizontalAlign.Start)
 
         Column({ space: 8 }) {
-          Text('\u5f53\u524d\u72b6\u6001')
+          Text('当前状态')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
           if (this.isLoadingPolicy) {
-            Text('\u6b63\u5728\u8bfb\u53d6\u9632\u706b\u5899\u72b6\u6001...')
+            Text('正在读取防火墙状态...')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           } else {
-            Text(this.currentStatusText.length > 0 ? this.currentStatusText : '\u72b6\u6001\u672a\u77e5')
+            Text(this.currentStatusText.length > 0 ? this.currentStatusText : '状态未知')
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
               .fontColor(this.statusReady ? AppColors.SUCCESS : AppColors.WARNING)
 
-            Text(this.statusHintText.length > 0 ? this.statusHintText : '\u8bf7\u5148\u8bfb\u53d6\u72b6\u6001')
+            Text(this.statusHintText.length > 0 ? this.statusHintText : '请先读取状态')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -245,7 +271,7 @@ export struct UserFirewallControlDialog {
         .borderRadius(AppStyles.RADIUS_MD)
 
         Row({ space: 12 }) {
-          Button('\u5f00\u542f\u9632\u706b\u5899')
+          Button('开启防火墙')
             .layoutWeight(1)
             .height(40)
             .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -258,7 +284,7 @@ export struct UserFirewallControlDialog {
               this.handleSetEnabled(true)
             })
 
-          Button('\u5173\u95ed\u9632\u706b\u5899')
+          Button('关闭防火墙')
             .layoutWeight(1)
             .height(40)
             .fontSize(AppStyles.FONT_SIZE_BODY)

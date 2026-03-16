@@ -19,7 +19,7 @@ struct AboutDialog {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      Text(`\u7248\u672c ${AppInfo.APP_VERSION}`)
+      Text(`版本 ${AppInfo.APP_VERSION}`)
         .fontSize(14)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -29,7 +29,7 @@ struct AboutDialog {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
-      Button('\u786e\u5b9a')
+      Button('确定')
         .width('100%')
         .height(40)
         .fontSize(16)
@@ -68,7 +68,7 @@ export struct ThemeMenuPopup {
   build() {
     Column({ space: 6 }) {
       Column({ space: 6 }) {
-        Text('\u663e\u793a\u6a21\u5f0f\uff1a')
+        Text('显示模式：')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -76,9 +76,9 @@ export struct ThemeMenuPopup {
           .width('100%')
           .padding({ left: 8, right: 8, top: 4 })
 
-        this.ThemeButton($r('app.media.dashboard'), '\u8ddf\u968f\u7cfb\u7edf', ThemeOption.SYSTEM)
-        this.ThemeButton($r('app.media.sun'), '\u6d45\u8272\u6a21\u5f0f', ThemeOption.LIGHT)
-        this.ThemeButton($r('app.media.moon'), '\u6df1\u8272\u6a21\u5f0f', ThemeOption.DARK)
+        this.ThemeButton($r('app.media.dashboard'), '跟随系统', ThemeOption.SYSTEM)
+        this.ThemeButton($r('app.media.sun'), '浅色模式', ThemeOption.LIGHT)
+        this.ThemeButton($r('app.media.moon'), '深色模式', ThemeOption.DARK)
       }
       .width('100%')
 
@@ -88,8 +88,8 @@ export struct ThemeMenuPopup {
         .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
       Column({ space: 2 }) {
-        this.ActionMenuItem($r('app.media.settings'), '\u5de5\u5177\u8bbe\u7f6e', 'tool-settings')
-        this.ActionMenuItem($r('app.media.help'), '\u5e2e\u52a9\u4e0e\u53cd\u9988', 'help-feedback')
+        this.ActionMenuItem($r('app.media.settings'), '工具设置', 'tool-settings')
+        this.ActionMenuItem($r('app.media.help'), '帮助与反馈', 'help-feedback')
         this.AboutMenuItem()
       }
       .width('100%')
@@ -242,7 +242,7 @@ export struct ThemeMenuPopup {
       .alignItems(HorizontalAlign.Center)
       .backgroundColor(this.resolveActionIconTileBackground())
 
-      Text('\u5173\u4e8e')
+      Text('关于')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)

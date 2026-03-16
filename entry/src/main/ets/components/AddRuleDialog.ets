@@ -166,7 +166,7 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .layoutWeight(1)
-        Text('\u00D7')
+        Text('×')
           .fontSize(20)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

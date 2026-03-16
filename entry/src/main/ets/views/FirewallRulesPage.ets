@@ -277,7 +277,7 @@ export struct FirewallRulesPage {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          Button('\u6309\u7528\u6237ID\u63a7\u5236')
+          Button('按用户ID控制')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.BRAND_PRIMARY)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)

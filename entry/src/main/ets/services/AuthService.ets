@@ -38,7 +38,7 @@ export class AuthService {
     if (authType === null) {
       return {
         available: false,
-        message: '\u5f53\u524d\u8bbe\u5907\u4e0d\u652f\u6301\u8be5\u8ba4\u8bc1\u65b9\u5f0f'
+        message: '当前设备不支持该认证方式'
       }
     }
 
@@ -46,7 +46,7 @@ export class AuthService {
       userAuth.getAvailableStatus(authType, userAuth.AuthTrustLevel.ATL1)
       return {
         available: true,
-        message: '\u7cfb\u7edf\u8ba4\u8bc1\u53ef\u7528'
+        message: '系统认证可用'
       }
     } catch (err) {
       let e = err as BusinessError
@@ -61,9 +61,9 @@ export class AuthService {
       case AuthMethod.PIN:
         return 'PIN'
       case AuthMethod.FINGERPRINT:
-        return '\u6307\u7eb9'
+        return '指纹'
       default:
-        return '\u8ba4\u8bc1\u65b9\u5f0f'
+        return '认证方式'
     }
   }
 
@@ -75,7 +75,7 @@ export class AuthService {
         return {
           success: false,
           reason: 'unavailable',
-          message: '\u5f53\u524d\u8bbe\u5907\u4e0d\u652f\u6301\u8be5\u8ba4\u8bc1\u65b9\u5f0f'
+          message: '当前设备不支持该认证方式'
         }
       }
 
@@ -96,7 +96,7 @@ export class AuthService {
       }
 
       let widgetParam: userAuth.WidgetParam = {
-        title: '\u8eab\u4efd\u9a8c\u8bc1'
+        title: '身份验证'
       }
 
       let userAuthInstance = userAuth.getUserAuthInstance(authParam, widgetParam)
@@ -126,7 +126,7 @@ export class AuthService {
               success: false,
               reason: 'failed',
               errorCode: result.result,
-              message: '\u9a8c\u8bc1\u5931\u8d25\u6216\u5df2\u53d6\u6d88'
+              message: '验证失败或已取消'
             })
           }
         })
@@ -156,31 +156,31 @@ export class AuthService {
         return {
           available: false,
           errorCode: errorCode,
-          message: `\u7cfb\u7edf\u672a\u5f55\u5165${authLabel}\u6216\u51ed\u636e\u4e0d\u6ee1\u8db3\u8981\u6c42`
+          message: `系统未录入${authLabel}或凭据不满足要求`
         }
       case 12500006:
         return {
           available: false,
           errorCode: errorCode,
-          message: '\u5f53\u524d\u7cfb\u7edf\u8ba4\u8bc1\u7b49\u7ea7\u4e0d\u6ee1\u8db3\u8981\u6c42'
+          message: '当前系统认证等级不满足要求'
         }
       case 12500013:
         return {
           available: false,
           errorCode: errorCode,
-          message: '\u7cfb\u7edf PIN \u5df2\u8fc7\u671f\uff0c\u8bf7\u5148\u5728\u7cfb\u7edf\u8bbe\u7f6e\u4e2d\u66f4\u65b0'
+          message: '系统 PIN 已过期，请先在系统设置中更新'
         }
       case 201:
         return {
           available: false,
           errorCode: errorCode,
-          message: '\u8ba4\u8bc1\u6743\u9650\u4e0d\u8db3\uff0c\u65e0\u6cd5\u8c03\u7528\u7cfb\u7edf\u8ba4\u8bc1'
+          message: '认证权限不足，无法调用系统认证'
         }
       case 401:
         return {
           available: false,
           errorCode: errorCode,
-          message: '\u8ba4\u8bc1\u53c2\u6570\u9519\u8bef'
+          message: '认证参数错误'
         }
       default:
         return {
@@ -188,7 +188,7 @@ export class AuthService {
           errorCode: errorCode,
           message: fallbackMessage && fallbackMessage.length > 0 ?
             fallbackMessage :
-            `\u7cfb\u7edf${authLabel}\u8ba4\u8bc1\u6682\u4e0d\u53ef\u7528`
+            `系统${authLabel}认证暂不可用`
         }
     }
   }
