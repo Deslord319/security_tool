@@ -14,6 +14,10 @@ export class FormControlUtils {
     return AppColors.getColors(theme).FORM_TEXT
   }
 
+  static selectArrow(theme: ThemeMode): string {
+    return AppColors.getColors(theme).FORM_TEXT
+  }
+
   static placeholder(theme: ThemeMode): string {
     return AppColors.getColors(theme).FORM_PLACEHOLDER
   }

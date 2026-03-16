@@ -68,7 +68,7 @@ export struct ThemeMenuPopup {
   build() {
     Column({ space: 6 }) {
       Column({ space: 6 }) {
-        Text('显示模式：')
+        Text('显示模式')
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -88,7 +88,6 @@ export struct ThemeMenuPopup {
         .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
       Column({ space: 2 }) {
-        this.ActionMenuItem($r('app.media.settings'), '工具设置', 'tool-settings')
         this.ActionMenuItem($r('app.media.help'), '帮助与反馈', 'help-feedback')
         this.AboutMenuItem()
       }

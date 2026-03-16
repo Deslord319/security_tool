@@ -257,7 +257,11 @@ export struct UserFirewallControlDialog {
             Text(this.currentStatusText.length > 0 ? this.currentStatusText : '状态未知')
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
-              .fontColor(this.statusReady ? AppColors.SUCCESS : AppColors.WARNING)
+              .fontColor(
+                this.statusReady
+                  ? AppColors.SUCCESS
+                  : AppColors.getColors(this.currentTheme).TEXT_PRIMARY
+              )
 
             Text(this.statusHintText.length > 0 ? this.statusHintText : '请先读取状态')
               .fontSize(AppStyles.FONT_SIZE_BODY)

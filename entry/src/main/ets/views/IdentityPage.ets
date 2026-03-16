@@ -9,6 +9,7 @@ import {
 } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
@@ -324,6 +325,8 @@ export struct IdentityPage {
           .value(this.lengthOptions[this.minLengthIndex].value as string)
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .fontColor(FormControlUtils.text(this.currentTheme))
+          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
           .optionFont({ size: AppStyles.FONT_SIZE_BODY })
           .width(120)
@@ -414,6 +417,8 @@ export struct IdentityPage {
             .value(this.validityOptions[this.validityPeriodIndex].value as string)
             .font({ size: AppStyles.FONT_SIZE_BODY })
             .fontColor(FormControlUtils.text(this.currentTheme))
+            .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+            .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
             .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
             .optionFont({ size: AppStyles.FONT_SIZE_BODY })
             .width(120)

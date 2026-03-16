@@ -2,6 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { FormControlUtils } from '../utils/FormControlUtils'
 
 @Component
@@ -37,6 +38,8 @@ export struct InterfaceControlItem {
         .selected(this.selectedIndex)
         .value(this.options[this.selectedIndex] ?? '')
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_MD)

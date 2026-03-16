@@ -37,6 +37,7 @@ import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { BusinessError, usbManager as hostUsbManager } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
@@ -98,6 +99,7 @@ export struct PeripheralPage {
   @State recordFilterSourceIndex: number = 1
   @State recordFilterKeyword: string = ''
   @State recordHintMessage: string = ''
+  @State lastRecordHintToastMessage: string = ''
   @State isConnectionDetailDialogVisible: boolean = false
   @State selectedConnectionRecord: PeripheralConnectionRecord | null = null
   private recordStorageListenerId: number = -1
@@ -542,25 +544,27 @@ export struct PeripheralPage {
     let runtimeHint = this.buildRuntimeDegradeHint()
 
     if (this.deviceRecords.length === 0) {
-      this.recordHintMessage = runtimeHint
+      this.updateRecordHintMessage(runtimeHint)
       return
     }
 
     if (!hasRealtime && hasSnapshot) {
-      this.recordHintMessage = runtimeHint.length > 0
+      this.updateRecordHintMessage(runtimeHint.length > 0
         ? runtimeHint + ' 当前仅展示策略快照，时间范围内暂无实时连接或审计事件。'
         : '当前仅展示策略快照，时间范围内暂无实时连接或审计事件。'
+      )
       return
     }
 
     if (hasRealtime && hasSnapshot) {
-      this.recordHintMessage = runtimeHint.length > 0
+      this.updateRecordHintMessage(runtimeHint.length > 0
         ? runtimeHint + ' 已展示实时事件，快照记录仅用于策略参考。'
         : '已展示实时事件，快照记录仅用于策略参考。'
+      )
       return
     }
 
-    this.recordHintMessage = runtimeHint
+    this.updateRecordHintMessage(runtimeHint)
   }
 
   private buildRuntimeDegradeHint(): string {
@@ -570,6 +574,23 @@ export struct PeripheralPage {
     }
     return '当前版本未启用运行时采集，已使用审计事件和策略快照。'
   }
+  private updateRecordHintMessage(message: string): void {
+    this.recordHintMessage = message
+    if (message.length === 0) {
+      this.lastRecordHintToastMessage = ''
+      return
+    }
+    if (this.lastRecordHintToastMessage === message) {
+      return
+    }
+    this.lastRecordHintToastMessage = message
+    try {
+      promptAction.showToast({ message })
+    } catch (e) {
+      hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+    }
+  }
+
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
   }
@@ -1776,6 +1797,8 @@ export struct PeripheralPage {
         .value(this.getConnectionTypeFilterLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(120)
@@ -1793,6 +1816,8 @@ export struct PeripheralPage {
         .value(this.getConnectionResultFilterLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(120)
@@ -1810,6 +1835,8 @@ export struct PeripheralPage {
         .value(this.getConnectionSourceFilterLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(140)
@@ -1854,26 +1881,6 @@ export struct PeripheralPage {
       top: AppStyles.PADDING_SM
     })
   }
-  @Builder
-  private connectionRecordHintView() {
-    if (this.recordHintMessage.length > 0) {
-      Row() {
-        Text(this.recordHintMessage)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: 6,
-        bottom: 4
-      })
-    }
-  }
-
   @Builder
   private connectionRecordItem(record: PeripheralConnectionRecord, index: number) {
     Row({ space: 16 }) {
@@ -1985,7 +1992,6 @@ export struct PeripheralPage {
       Column({ space: 0 }) {
         this.connectionRecordStatsPanel()
         this.connectionRecordFilterToolbar()
-        this.connectionRecordHintView()
 
         Column({ space: 0 }) {
           if (this.deviceRecords.length === 0) {
@@ -2400,6 +2406,8 @@ export struct PeripheralPage {
                   .value(this.deviceControlPolicyOptions[record.policyIndex].value as string)
                   .font({ size: AppStyles.FONT_SIZE_CAPTION })
                   .fontColor(FormControlUtils.text(this.currentTheme))
+                  .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+                  .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
                   .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
                   .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
                   .backgroundColor(FormControlUtils.background(this.currentTheme))
