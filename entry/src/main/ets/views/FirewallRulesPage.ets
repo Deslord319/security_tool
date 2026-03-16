@@ -13,6 +13,7 @@ import { HoverUtils } from '../utils/HoverUtils'
 @Component
 export struct FirewallRulesPage {
   @State rules: netFirewall.NetFirewallRule[] = []
+  @State conflictNotice: string = ''
   @State currentTab: number = 0
   @State isLoading: boolean = false
   @State hoveredRuleIndex: number = -1
@@ -48,35 +49,118 @@ export struct FirewallRulesPage {
   async loadRules() {
     this.isLoading = true
     this.rules = await FirewallService.getAllRules()
+    this.updateConflictNotice()
     this.isLoading = false
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
-    let ruleId = await FirewallService.addRule(rule)
-    if (ruleId > 0) {
-      promptAction.showToast({ message: '规则添加成功' })
-      this.loadRules()
-    } else {
-      let errorKind = FirewallService.getLastErrorKind()
-      if (errorKind === 'invalid_argument') {
-        promptAction.showToast({ message: '规则参数不合法，请检查输入' })
+    let conflict = FirewallService.findRuleConflict(this.rules, rule)
+    if (conflict) {
+      if (conflict.kind === 'duplicate') {
+        promptAction.showToast({ message: '\u89c4\u5219\u5df2\u5b58\u5728\uff0c\u65e0\u9700\u91cd\u590d\u6dfb\u52a0' })
         return
       }
-      if (errorKind === 'permission') {
-        promptAction.showToast({ message: '规则添加失败，请检查权限和企业管理员状态' })
+      if (conflict.kind === 'hard_conflict' && conflict.existingRule.id !== undefined) {
+        this.showReplaceRuleConfirm(conflict.existingRule.id, rule)
         return
       }
-      promptAction.showToast({ message: '规则添加失败，请稍后重试' })
+      if (conflict.kind === 'overlap_conflict') {
+        this.showOverlapRiskConfirm(rule)
+        return
+      }
     }
+    await this.addRuleDirectly(rule)
   }
 
+  private async addRuleDirectly(
+    rule: netFirewall.NetFirewallRule,
+    successMessage: string = '\u89c4\u5219\u6dfb\u52a0\u6210\u529f'
+  ) {
+    let ruleId = await FirewallService.addRule(rule)
+    if (ruleId > 0) {
+      promptAction.showToast({ message: successMessage })
+      this.loadRules()
+      return
+    }
+    let errorKind = FirewallService.getLastErrorKind()
+    if (errorKind === 'invalid_argument') {
+      promptAction.showToast({ message: '\u89c4\u5219\u53c2\u6570\u4e0d\u5408\u6cd5\uff0c\u8bf7\u68c0\u67e5\u8f93\u5165' })
+      return
+    }
+    if (errorKind === 'permission') {
+      promptAction.showToast({ message: '\u89c4\u5219\u6dfb\u52a0\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u6743\u9650\u548c\u4f01\u4e1a\u7ba1\u7406\u5458\u72b6\u6001' })
+      return
+    }
+    promptAction.showToast({ message: '\u89c4\u5219\u6dfb\u52a0\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5' })
+  }
+
+  private showReplaceRuleConfirm(oldRuleId: number, newRule: netFirewall.NetFirewallRule): void {
+    AlertDialog.show({
+      title: '\u5b58\u5728\u51b2\u7a81\u89c4\u5219',
+      message: '\u68c0\u6d4b\u5230\u540c\u4e00\u76ee\u6807\u548c\u65b9\u5411\u4e0b\u5df2\u5b58\u5728\u76f8\u53cd\u52a8\u4f5c\u7684\u89c4\u5219\u3002\u8986\u76d6\u540e\u5c06\u5220\u9664\u65e7\u89c4\u5219\u5e76\u4fdd\u5b58\u65b0\u89c4\u5219\u3002',
+      primaryButton: {
+        value: '\u8986\u76d6',
+        action: () => {
+          this.replaceRule(oldRuleId, newRule)
+        }
+      },
+      secondaryButton: {
+        value: '\u53d6\u6d88',
+        action: () => {}
+      }
+    })
+  }
+
+  private showOverlapRiskConfirm(rule: netFirewall.NetFirewallRule): void {
+    AlertDialog.show({
+      title: '\u5b58\u5728\u91cd\u53e0\u89c4\u5219',
+      message: '\u65b0\u89c4\u5219\u4e0e\u73b0\u6709\u89c4\u5219\u7684\u547d\u4e2d\u8303\u56f4\u5b58\u5728\u91cd\u53e0\uff0c\u5b9e\u9645\u751f\u6548\u7ed3\u679c\u53ef\u80fd\u53d7\u7cfb\u7edf\u89c4\u5219\u4f18\u5148\u7ea7\u5f71\u54cd\u3002\u662f\u5426\u7ee7\u7eed\u4fdd\u5b58\uff1f',
+      primaryButton: {
+        value: '\u7ee7\u7eed\u4fdd\u5b58',
+        action: () => {
+          this.addRuleDirectly(rule)
+        }
+      },
+      secondaryButton: {
+        value: '\u53d6\u6d88',
+        action: () => {}
+      }
+    })
+  }
+
+  private async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<void> {
+    let ruleId = await FirewallService.replaceRule(oldRuleId, newRule)
+    if (ruleId > 0) {
+      promptAction.showToast({ message: '\u89c4\u5219\u5df2\u8986\u76d6\u5e76\u751f\u6548' })
+      this.loadRules()
+      return
+    }
+    promptAction.showToast({ message: '\u89c4\u5219\u8986\u76d6\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5' })
+  }
+
+  private updateConflictNotice(): void {
+    let summary = FirewallService.summarizeConflicts(this.rules)
+    let parts: string[] = []
+    if (summary.duplicates > 0) {
+      parts.push(`\u91cd\u590d ${summary.duplicates} \u7ec4`)
+    }
+    if (summary.hardConflicts > 0) {
+      parts.push(`\u786c\u51b2\u7a81 ${summary.hardConflicts} \u7ec4`)
+    }
+    if (summary.overlapConflicts > 0) {
+      parts.push(`\u91cd\u53e0\u51b2\u7a81 ${summary.overlapConflicts} \u7ec4`)
+    }
+    this.conflictNotice = parts.length > 0
+      ? `\u68c0\u6d4b\u5230\u5386\u53f2\u89c4\u5219\u5b58\u5728${parts.join('\u3001')}\uff0c\u5efa\u8bae\u6e05\u7406\u540e\u518d\u7ee7\u7eed\u914d\u7f6e\u3002`
+      : ''
+  }
   async handleDeleteRule(ruleId: number) {
     let success = await FirewallService.removeRule(ruleId)
     if (success) {
-      promptAction.showToast({ message: '规则已删除' })
+      promptAction.showToast({ message: '\u89c4\u5219\u5df2\u5220\u9664' })
       this.loadRules()
     } else {
-      promptAction.showToast({ message: '删除失败' })
+      promptAction.showToast({ message: '\u5220\u9664\u5931\u8d25' })
     }
   }
 
@@ -104,13 +188,13 @@ export struct FirewallRulesPage {
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return 'IP 规则'
+        return '\u0049\u0050\u89c4\u5219'
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return '域名规则'
+        return '\u57df\u540d\u89c4\u5219'
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return 'DNS 规则'
+        return '\u0044\u004e\u0053\u89c4\u5219'
       default:
-        return '未知规则'
+        return '\u672a\u77e5\u89c4\u5219'
     }
   }
 
@@ -154,11 +238,11 @@ export struct FirewallRulesPage {
   }
 
   getDirectionLabel(dir: netFirewall.NetFirewallRuleDirection): string {
-    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? '入站' : '出站'
+    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? '\u5165\u7ad9' : '\u51fa\u7ad9'
   }
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '允许' : '拒绝'
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '\u5141\u8bb8' : '\u62d2\u7edd'
   }
 
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
@@ -263,13 +347,13 @@ export struct FirewallRulesPage {
                   this.onBack()
                 }
               })
-              Text('防火墙规则')
+              Text('\u9632\u706b\u5899\u89c4\u5219')
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             }
 
-            Text('按规则类型快速筛选，并直接查看方向、协议、地址与端口。')
+            Text('\u67e5\u770b\u3001\u6dfb\u52a0\u548c\u5220\u9664\u9632\u706b\u5899\u89c4\u5219\uff0c\u6ce8\u610f\u907f\u514d\u5bf9\u540c\u4e00\u76ee\u6807\u914d\u7f6e\u76f8\u4e92\u51b2\u7a81\u7684\u52a8\u4f5c\u3002')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -277,7 +361,7 @@ export struct FirewallRulesPage {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          Button('按用户ID控制')
+          Button('\u6309\u7528\u6237\u63a7\u5236')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.BRAND_PRIMARY)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -289,7 +373,7 @@ export struct FirewallRulesPage {
               this.userFirewallControlDialogController.open()
             })
 
-          Button('+ 添加规则')
+          Button('+ \u6dfb\u52a0\u89c4\u5219')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(Color.White)
             .backgroundColor(AppColors.BRAND_PRIMARY)
@@ -301,9 +385,30 @@ export struct FirewallRulesPage {
         }
         .width('100%')
 
+        if (this.conflictNotice.length > 0) {
+          Row({ space: 8 }) {
+            Text('\u98ce\u9669\u63d0\u793a')
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#8A5200')
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .backgroundColor('#FFE8B3')
+              .borderRadius(10)
+
+            Text(this.conflictNotice)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor('#8A5200')
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .padding(12)
+          .backgroundColor('#FFF7E6')
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: '#FFD591' })
+        }
         Row({ space: 16 }) {
           DirectionCard({
-            label: '入站规则 (RULE_IN)',
+            label: '\u5165\u7ad9\u89c4\u5219 (RULE_IN)',
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
             gradientStart: '#FF9500',
             gradientEnd: '#FFCC00',
@@ -312,7 +417,7 @@ export struct FirewallRulesPage {
             .layoutWeight(1)
 
           DirectionCard({
-            label: '出站规则 (RULE_OUT)',
+            label: '\u51fa\u7ad9\u89c4\u5219 (RULE_OUT)',
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
             gradientStart: '#0A84FF',
             gradientEnd: '#00C6FF',
@@ -324,18 +429,18 @@ export struct FirewallRulesPage {
 
         GridRow({ columns: 4, gutter: 14 }) {
           GridCol() {
-            this.summaryCard(0, '全部规则', this.rules.length.toString(), $r('app.media.firewall'), AppColors.BRAND_PRIMARY)
+            this.summaryCard(0, '\u5168\u90e8\u89c4\u5219', this.rules.length.toString(), $r('app.media.firewall'), AppColors.BRAND_PRIMARY)
           }
           GridCol() {
-            this.summaryCard(1, 'IP 规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP).toString(),
+            this.summaryCard(1, '\u0049\u0050\u89c4\u5219', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP).toString(),
               $r('app.media.network'), AppColors.BRAND_PRIMARY)
           }
           GridCol() {
-            this.summaryCard(2, '域名规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN).toString(),
+            this.summaryCard(2, '\u57df\u540d\u89c4\u5219', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN).toString(),
               $r('app.media.globe'), '#5856D6')
           }
           GridCol() {
-            this.summaryCard(3, 'DNS 规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS).toString(),
+            this.summaryCard(3, '\u0044\u004e\u0053\u89c4\u5219', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS).toString(),
               $r('app.media.server'), AppColors.SUCCESS)
           }
         }
@@ -346,7 +451,7 @@ export struct FirewallRulesPage {
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('全部', 0))
+          }.tabBar(this.tabBuilder('\u5168\u90e8', 0))
 
           TabContent() {
             this.ruleListBuilder()
@@ -354,7 +459,7 @@ export struct FirewallRulesPage {
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('域名', 2))
+          }.tabBar(this.tabBuilder('\u57df\u540d', 2))
 
           TabContent() {
             this.ruleListBuilder()
@@ -384,7 +489,7 @@ export struct FirewallRulesPage {
           LoadingProgress()
             .width(42)
             .height(42)
-          Text('加载规则中...')
+          Text('\u6b63\u5728\u52a0\u8f7d\u89c4\u5219...')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -394,7 +499,7 @@ export struct FirewallRulesPage {
         .justifyContent(FlexAlign.Center)
       } else if (this.getFilteredRules().length === 0) {
         Column({ space: 10 }) {
-          Text('当前筛选下暂无规则')
+          Text('\u5f53\u524d\u7c7b\u578b\u4e0b\u6682\u65e0\u89c4\u5219')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -456,7 +561,7 @@ export struct FirewallRulesPage {
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)
 
-                  Button('删除')
+                  Button('\u5220\u9664')
                     .fontSize(AppStyles.FONT_SIZE_CAPTION)
                     .fontColor(AppColors.DANGER)
                     .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
@@ -471,9 +576,9 @@ export struct FirewallRulesPage {
                 .width('100%')
 
                 Column({ space: 10 }) {
-                  this.detailRow('地址 / 域名', this.getRuleAddress(rule))
-                  this.detailRow('端口', this.getRulePort(rule))
-                  this.detailRow('协议', this.getProtocolLabel(rule))
+                  this.detailRow('\u5730\u5740 / \u57df\u540d', this.getRuleAddress(rule))
+                  this.detailRow('\u7aef\u53e3', this.getRulePort(rule))
+                  this.detailRow('\u534f\u8bae', this.getProtocolLabel(rule))
                 }
                 .width('100%')
               }

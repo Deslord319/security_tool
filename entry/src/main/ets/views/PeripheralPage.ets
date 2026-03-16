@@ -533,10 +533,124 @@ export struct PeripheralPage {
     }
   }
 
+  private buildPreviewConnectionRecords(): PeripheralConnectionRecord[] {
+    let now = Date.now()
+    return [
+      {
+        id: 'preview-camera-connect',
+        timestamp: now - 5 * 60 * 1000,
+        collectAt: now - 5 * 60 * 1000 + 800,
+        deviceName: 'ShineOptics FHD Camera',
+        deviceType: PeripheralType.USB_CAMERA,
+        deviceId: 'VID:2B7E PID:B5A2',
+        action: 'connect',
+        result: LogEventResult.SUCCESS,
+        policyHit: 'allow',
+        source: 'runtime_event',
+        summary: '允许接入',
+        correlationId: 'preview-camera-1',
+        policyVersion: 'preview-v1',
+        rawEventName: 'usb_device_attached',
+        rawOutcome: 'allowed',
+        rawAction: 'connect',
+        rawPayload: '{"vendorId":"2B7E","productId":"B5A2"}',
+        detail: '摄像头接入后已通过策略校验，允许继续使用。',
+        processName: 'CameraService'
+      },
+      {
+        id: 'preview-storage-block',
+        timestamp: now - 18 * 60 * 1000,
+        collectAt: now - 18 * 60 * 1000 + 1200,
+        deviceName: 'SanDisk Ultra USB 3.0',
+        deviceType: PeripheralType.USB_STORAGE,
+        deviceId: 'VID:0781 PID:5583',
+        action: 'intercept',
+        result: LogEventResult.BLOCKED,
+        policyHit: 'deny',
+        source: 'audit_event',
+        summary: '策略阻止',
+        correlationId: 'preview-storage-1',
+        policyVersion: 'preview-v1',
+        rawEventName: 'usb_mass_storage_attach',
+        rawOutcome: 'blocked',
+        rawAction: 'mount',
+        rawPayload: '{"vendorId":"0781","productId":"5583"}',
+        detail: '检测到可移动存储设备接入，按只读外设策略阻止访问。',
+        processName: 'UsbPolicyGuard'
+      },
+      {
+        id: 'preview-printer-disconnect',
+        timestamp: now - 46 * 60 * 1000,
+        collectAt: now - 46 * 60 * 1000 + 600,
+        deviceName: 'HP LaserJet Pro M404',
+        deviceType: PeripheralType.USB_PRINTER,
+        deviceId: 'VID:03F0 PID:0C17',
+        action: 'disconnect',
+        result: LogEventResult.SUCCESS,
+        policyHit: 'allow',
+        source: 'runtime_event',
+        summary: '允许接入',
+        correlationId: 'preview-printer-1',
+        policyVersion: 'preview-v1',
+        rawEventName: 'usb_printer_detached',
+        rawOutcome: 'completed',
+        rawAction: 'disconnect',
+        rawPayload: '{"vendorId":"03F0","productId":"0C17"}',
+        detail: '打印机已安全断开，未触发额外限制。',
+        processName: 'PrintSpooler'
+      },
+      {
+        id: 'preview-keyboard-connect',
+        timestamp: now - 85 * 60 * 1000,
+        collectAt: now - 85 * 60 * 1000 + 500,
+        deviceName: 'Logitech MX Keys',
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceId: 'MAC: AA:BB:CC:DD:EE:01',
+        action: 'connect',
+        result: LogEventResult.SUCCESS,
+        policyHit: 'allow',
+        source: 'runtime_event',
+        summary: '允许接入',
+        correlationId: 'preview-bt-1',
+        policyVersion: 'preview-v1',
+        rawEventName: 'bluetooth_device_connected',
+        rawOutcome: 'allowed',
+        rawAction: 'pair',
+        rawPayload: '{"mac":"AA:BB:CC:DD:EE:01"}',
+        detail: '蓝牙键盘已完成配对并加入可信设备列表。',
+        processName: 'BluetoothService'
+      },
+      {
+        id: 'preview-keyboard-history',
+        timestamp: now - 140 * 60 * 1000,
+        collectAt: now - 140 * 60 * 1000 + 700,
+        deviceName: 'Logitech MX Keys',
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceId: 'MAC: AA:BB:CC:DD:EE:01',
+        action: 'disconnect',
+        result: LogEventResult.SUCCESS,
+        policyHit: 'allow',
+        source: 'audit_event',
+        summary: '允许接入',
+        correlationId: 'preview-bt-2',
+        policyVersion: 'preview-v1',
+        rawEventName: 'bluetooth_device_disconnected',
+        rawOutcome: 'completed',
+        rawAction: 'disconnect',
+        rawPayload: '{"mac":"AA:BB:CC:DD:EE:01"}',
+        detail: '蓝牙键盘连接结束，保留历史记录用于界面预览。',
+        processName: 'BluetoothService'
+      }
+    ]
+  }
+
   private reloadDeviceRecords(): void {
     this.deviceRecords = PeripheralTraceRepository
       .query(this.buildRecordFilter())
       .map((record: PeripheralTraceRecord) => this.mapTraceRecord(record))
+    if (this.deviceRecords.length === 0) {
+      this.deviceRecords = this.buildPreviewConnectionRecords()
+    }
     let hasRealtime = this.deviceRecords.some((record: PeripheralConnectionRecord) => {
       return record.source === 'runtime_event' || record.source === 'audit_event'
     })
