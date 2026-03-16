@@ -1,8 +1,8 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
-import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
+import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
@@ -13,8 +13,6 @@ import {
   PeripheralBlacklistTemplate,
   PeripheralCandidateSource,
   PeripheralConnectionRecord,
-  PeripheralTraceQuery,
-  PeripheralTraceRecord,
   PeripheralWhitelistCandidate,
   OperationResult,
   PeripheralType,
@@ -182,15 +180,11 @@ export struct PeripheralPage {
   aboutToAppear() {
     this.refreshAdminActivationState()
     this.loadAllData()
-    this.subscribeRecordStorageChange()
     this.subscribeTraceStorageChange()
-    this.startRecordAutoRefresh()
   }
 
   aboutToDisappear() {
-    this.unsubscribeRecordStorageChange()
     this.unsubscribeTraceStorageChange()
-    this.stopRecordAutoRefresh()
   }
 
   private loadConnectedUsbDevices(): void {
@@ -430,21 +424,6 @@ export struct PeripheralPage {
     return templates
   }
 
-  private subscribeRecordStorageChange(): void {
-    this.unsubscribeRecordStorageChange()
-    this.recordStorageListenerId = LogStorageService.addChangeListener(() => {
-      this.reloadDeviceRecords()
-    })
-  }
-
-  private unsubscribeRecordStorageChange(): void {
-    if (this.recordStorageListenerId < 0) {
-      return
-    }
-    LogStorageService.removeChangeListener(this.recordStorageListenerId)
-    this.recordStorageListenerId = -1
-  }
-
   private subscribeTraceStorageChange(): void {
     this.unsubscribeTraceStorageChange()
     this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {
@@ -459,81 +438,10 @@ export struct PeripheralPage {
     PeripheralTraceRepository.removeChangeListener(this.traceStorageListenerId)
     this.traceStorageListenerId = -1
   }
-  private startRecordAutoRefresh(): void {
-    this.stopRecordAutoRefresh()
-    this.recordAutoRefreshTimerId = setInterval(() => {
-      this.reloadDeviceRecords()
-    }, this.recordAutoRefreshIntervalMs)
+  private reloadDeviceRecords(): void {
+    this.deviceRecords = PeripheralConnectionRecordService.queryRecords()
   }
-
-  private stopRecordAutoRefresh(): void {
-    if (this.recordAutoRefreshTimerId < 0) {
-      return
-    }
-    clearInterval(this.recordAutoRefreshTimerId)
-    this.recordAutoRefreshTimerId = -1
-  }
-
-  private buildRecordFilter(): PeripheralTraceQuery {
-    let filter: PeripheralTraceQuery = {}
-    if (this.recordFilterTypeIndex === 1) {
-      filter.deviceTypes = this.usbRecordTypes
-    } else if (this.recordFilterTypeIndex === 2) {
-      filter.deviceTypes = [PeripheralType.BLUETOOTH]
-    }
-
-    if (this.recordFilterResultIndex > 0) {
-      let resultMap: LogEventResult[] = [
-        LogEventResult.SUCCESS,
-        LogEventResult.BLOCKED,
-        LogEventResult.FAILED
-      ]
-      filter.results = [resultMap[this.recordFilterResultIndex - 1]]
-    }
-
-    if (this.recordFilterSourceIndex === 1) {
-      filter.sources = ['runtime_event', 'audit_event']
-    } else if (this.recordFilterSourceIndex === 2) {
-      filter.sources = ['runtime_event']
-    } else if (this.recordFilterSourceIndex === 3) {
-      filter.sources = ['audit_event']
-    } else if (this.recordFilterSourceIndex === 4) {
-      filter.sources = ['policy_snapshot']
-    }
-
-    let keyword = this.recordFilterKeyword.trim()
-    if (keyword.length > 0) {
-      filter.keyword = keyword
-    }
-    return filter
-  }
-
-  private mapTraceRecord(record: PeripheralTraceRecord): PeripheralConnectionRecord {
-    return {
-      id: record.recordId,
-      timestamp: record.occurAt,
-      collectAt: record.collectAt,
-      deviceName: record.deviceName,
-      deviceType: record.deviceType,
-      deviceId: record.deviceId,
-      action: record.action,
-      result: record.result,
-      policyHit: record.decision,
-      source: record.source,
-      summary: record.summary,
-      correlationId: record.correlationId,
-      policyVersion: record.policyVersion,
-      rawEventId: record.rawEventId,
-      rawEventName: record.rawEventName,
-      rawOutcome: record.rawOutcome,
-      rawAction: record.rawAction,
-      rawPayload: record.rawPayload,
-      detail: record.detail,
-      processName: record.processName
-    }
-  }
-
-  private buildPreviewConnectionRecords(): PeripheralConnectionRecord[] {
+  private buildPreviewConnectionRecordsLegacy(): PeripheralConnectionRecord[] {
     let now = Date.now()
     return [
       {
@@ -644,26 +552,24 @@ export struct PeripheralPage {
     ]
   }
 
-  private reloadDeviceRecords(): void {
-    this.deviceRecords = PeripheralTraceRepository
-      .query(this.buildRecordFilter())
-      .map((record: PeripheralTraceRecord) => this.mapTraceRecord(record))
+  private reloadDeviceRecordsLegacy(): void {
+    this.deviceRecords = []
     if (this.deviceRecords.length === 0) {
-      this.deviceRecords = this.buildPreviewConnectionRecords()
+      this.deviceRecords = this.buildPreviewConnectionRecordsLegacy()
     }
     let hasRealtime = this.deviceRecords.some((record: PeripheralConnectionRecord) => {
       return record.source === 'runtime_event' || record.source === 'audit_event'
     })
     let hasSnapshot = this.deviceRecords.some((record: PeripheralConnectionRecord) => record.source === 'policy_snapshot')
-    let runtimeHint = this.buildRuntimeDegradeHint()
+    let runtimeHint = this.buildRuntimeDegradeHintLegacy()
 
     if (this.deviceRecords.length === 0) {
-      this.updateRecordHintMessage(runtimeHint)
+      this.updateRecordHintMessageLegacy(runtimeHint)
       return
     }
 
     if (!hasRealtime && hasSnapshot) {
-      this.updateRecordHintMessage(runtimeHint.length > 0
+      this.updateRecordHintMessageLegacy(runtimeHint.length > 0
         ? runtimeHint + ' 当前仅展示策略快照，时间范围内暂无实时连接或审计事件。'
         : '当前仅展示策略快照，时间范围内暂无实时连接或审计事件。'
       )
@@ -671,24 +577,24 @@ export struct PeripheralPage {
     }
 
     if (hasRealtime && hasSnapshot) {
-      this.updateRecordHintMessage(runtimeHint.length > 0
+      this.updateRecordHintMessageLegacy(runtimeHint.length > 0
         ? runtimeHint + ' 已展示实时事件，快照记录仅用于策略参考。'
         : '已展示实时事件，快照记录仅用于策略参考。'
       )
       return
     }
 
-    this.updateRecordHintMessage(runtimeHint)
+    this.updateRecordHintMessageLegacy(runtimeHint)
   }
 
-  private buildRuntimeDegradeHint(): string {
+  private buildRuntimeDegradeHintLegacy(): string {
     let runtimeStatus = PeripheralRuntimeEventService.getStatus()
     if (runtimeStatus.capabilities.usbRuntimeEvents) {
       return ''
     }
     return '当前版本未启用运行时采集，已使用审计事件和策略快照。'
   }
-  private updateRecordHintMessage(message: string): void {
+  private updateRecordHintMessageLegacy(message: string): void {
     this.recordHintMessage = message
     if (message.length === 0) {
       this.lastRecordHintToastMessage = ''
@@ -2104,9 +2010,6 @@ export struct PeripheralPage {
   private connectionRecordsPanel() {
     Scroll() {
       Column({ space: 0 }) {
-        this.connectionRecordStatsPanel()
-        this.connectionRecordFilterToolbar()
-
         Column({ space: 0 }) {
           if (this.deviceRecords.length === 0) {
             Column({ space: 10 }) {
