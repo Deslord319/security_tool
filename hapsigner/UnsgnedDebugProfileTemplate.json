@@ -29,7 +29,8 @@
             "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
             "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY",
             "ohos.permission.ACCESS_BIOMETRIC",
-            "ohos.permission.QUERY_AUDIT_EVENT"
+            "ohos.permission.QUERY_AUDIT_EVENT",
+            "ohos.permission.GET_LOCAL_ACCOUNTS"
         ]
     },
     "permissions": {
@@ -47,7 +48,8 @@
             "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
             "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY",
             "ohos.permission.ACCESS_BIOMETRIC",
-            "ohos.permission.QUERY_AUDIT_EVENT"
+            "ohos.permission.QUERY_AUDIT_EVENT",
+            "ohos.permission.GET_LOCAL_ACCOUNTS"
         ]
     },
     "debug-info": {

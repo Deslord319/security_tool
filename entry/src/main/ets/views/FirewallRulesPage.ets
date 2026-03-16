@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallService } from '../services/FirewallService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
+import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
 import { BackNavButton } from '../components/BackNavButton'
 import { DirectionCard } from '../components/DirectionCard'
 import { netFirewall } from '@kit.NetworkKit'
@@ -22,6 +23,17 @@ export struct FirewallRulesPage {
     builder: AddRuleDialog({
       onConfirm: (rule: netFirewall.NetFirewallRule) => {
         this.handleAddRule(rule)
+      }
+    }),
+    autoCancel: true,
+    customStyle: true,
+    alignment: DialogAlignment.Center
+  })
+
+  private userFirewallControlDialogController: CustomDialogController = new CustomDialogController({
+    builder: UserFirewallControlDialog({
+      onActionCompleted: () => {
+        this.loadRules()
       }
     }),
     autoCancel: true,
@@ -264,6 +276,18 @@ export struct FirewallRulesPage {
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
+
+          Button('\u6309\u7528\u6237ID\u63a7\u5236')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.BRAND_PRIMARY)
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+            .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: AppColors.BRAND_PRIMARY })
+            .height(36)
+            .margin({ right: 8 })
+            .onClick(() => {
+              this.userFirewallControlDialogController.open()
+            })
 
           Button('+ 添加规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)

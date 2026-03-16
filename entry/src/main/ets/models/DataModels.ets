@@ -540,6 +540,35 @@ export interface FirewallToggleResult {
   errorMessage?: string
 }
 
+export interface UserFirewallOption {
+  userId: number
+  label: string
+  isForeground?: boolean
+}
+
+export interface UserFirewallListResult {
+  users: UserFirewallOption[]
+  selectedUserId?: number
+  errorCode?: number
+  message?: string
+}
+
+export interface UserFirewallPolicyResult {
+  userId: number
+  isOpen: boolean
+  inAction: number
+  outAction: number
+  errorCode?: number
+  message?: string
+}
+
+export interface UserFirewallActionResult {
+  success: boolean
+  userId: number
+  errorCode?: number
+  message?: string
+}
+
 
 export const PREF_STORE_NAME_FIREWALL_AUTH = 'firewall_auth'
 export const PREF_KEY_FIREWALL_PIN_FAILED_COUNT = 'firewall_pin_failed_count'

@@ -52,6 +52,9 @@
       },
       {
         "name": "ohos.permission.QUERY_AUDIT_EVENT"
+      },
+      {
+        "name": "ohos.permission.GET_LOCAL_ACCOUNTS"
       }
     ],
     "abilities": [

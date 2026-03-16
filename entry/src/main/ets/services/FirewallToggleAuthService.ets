@@ -4,6 +4,7 @@ import { AuthService } from './AuthService'
 import { FirewallService } from './FirewallService'
 import { FirewallAuthStateRepository } from './FirewallAuthStateRepository'
 import { LogStorageService } from './LogStorageService'
+import { UserFirewallPolicyService } from './UserFirewallPolicyService'
 import {
   AuthMethod,
   FirewallToggleResult,
@@ -22,7 +23,40 @@ export class FirewallToggleAuthService {
     currentEnabled: boolean,
     targetEnabled: boolean
   ): Promise<FirewallToggleResult> {
-    let actionLabel = targetEnabled ? 'enable' : 'disable'
+    return FirewallToggleAuthService.executeToggleInternal(
+      context,
+      currentEnabled,
+      targetEnabled,
+      async (enabled: boolean): Promise<boolean> => FirewallService.setFirewallEnabled(enabled),
+      'firewall toggle'
+    )
+  }
+
+  static async executeToggleForUser(
+    context: common.UIAbilityContext,
+    userId: number,
+    currentEnabled: boolean,
+    targetEnabled: boolean
+  ): Promise<FirewallToggleResult> {
+    return FirewallToggleAuthService.executeToggleInternal(
+      context,
+      currentEnabled,
+      targetEnabled,
+      async (enabled: boolean): Promise<boolean> => {
+        let result = await UserFirewallPolicyService.setEnabled(userId, enabled)
+        return result.success
+      },
+      `firewall toggle user ${userId}`
+    )
+  }
+
+  private static async executeToggleInternal(
+    context: common.UIAbilityContext,
+    currentEnabled: boolean,
+    targetEnabled: boolean,
+    applyPolicy: (enabled: boolean) => Promise<boolean>,
+    auditPrefix: string
+  ): Promise<FirewallToggleResult> {
     let lockState = await FirewallAuthStateRepository.getLockState(context)
     if (lockState.locked) {
       let blockedResult: FirewallToggleResult = {
@@ -36,7 +70,7 @@ export class FirewallToggleAuthService {
         currentEnabled,
         targetEnabled,
         LogEventResult.BLOCKED,
-        `firewall toggle ${actionLabel} blocked: locked ${lockState.remainingSec}s`
+        `${auditPrefix} blocked: locked ${lockState.remainingSec}s`
       )
       return blockedResult
     }
@@ -54,7 +88,7 @@ export class FirewallToggleAuthService {
         currentEnabled,
         targetEnabled,
         LogEventResult.BLOCKED,
-        `firewall toggle ${actionLabel} blocked: pin unavailable`,
+        `${auditPrefix} blocked: pin unavailable`,
         authResult.errorCode
       )
       return unavailableResult
@@ -77,8 +111,8 @@ export class FirewallToggleAuthService {
         targetEnabled,
         LogEventResult.BLOCKED,
         failureUpdate.locked ?
-          `firewall toggle ${actionLabel} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
-          `firewall toggle ${actionLabel} blocked: pin failed`,
+          `${auditPrefix} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
+          `${auditPrefix} blocked: pin failed`,
         authResult.errorCode
       )
       return failedResult
@@ -86,21 +120,28 @@ export class FirewallToggleAuthService {
 
     await FirewallAuthStateRepository.clearFailures(context)
 
-    let applySuccess = await FirewallService.setFirewallEnabled(targetEnabled)
+    let applySuccess = await applyPolicy(targetEnabled)
     if (!applySuccess) {
       let errorCode = FirewallService.getLastErrorCode()
+      let errorMessage = '防火墙状态更新失败'
+      if (errorCode === undefined) {
+        errorCode = UserFirewallPolicyService.getLastErrorCode()
+      }
+      if (UserFirewallPolicyService.getLastErrorMessage().length > 0) {
+        errorMessage = UserFirewallPolicyService.getLastErrorMessage()
+      }
       let applyFailedResult: FirewallToggleResult = {
         success: false,
         targetEnabled: targetEnabled,
         reason: 'policy_apply_failed',
         errorCode: errorCode,
-        errorMessage: '\u9632\u706b\u5899\u72b6\u6001\u66f4\u65b0\u5931\u8d25'
+        errorMessage: errorMessage
       }
       await FirewallToggleAuthService.appendAuditEntry(
         currentEnabled,
         targetEnabled,
         LogEventResult.FAILED,
-        `firewall toggle ${actionLabel} failed: policy apply failed`,
+        `${auditPrefix} failed: policy apply failed`,
         errorCode
       )
       return applyFailedResult
@@ -114,7 +155,7 @@ export class FirewallToggleAuthService {
       currentEnabled,
       targetEnabled,
       LogEventResult.SUCCESS,
-      `firewall toggle ${actionLabel} success`
+      `${auditPrefix} success`
     )
     return successResult
   }
