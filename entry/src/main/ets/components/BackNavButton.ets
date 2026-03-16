@@ -13,11 +13,13 @@ export struct BackNavButton {
   }
 
   private getButtonBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(10,132,255,0.08)'
+    /*return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(10,132,255,0.08)'*/
+    return Color.Transparent.toString();
   }
 
   private getButtonHoverBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.14)' : 'rgba(10,132,255,0.14)'
+/*    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.14)' : 'rgba(10,132,255,0.14)';*/
+    return Color.Transparent.toString()
   }
 
   build() {
