@@ -61,6 +61,12 @@ export interface LogStorageChangeEvent {
   timestamp: number
 }
 
+export interface LogContentExportOptions {
+  fileNamePrefix?: string
+  count?: number
+  emptyErrorMessage?: string
+}
+
 export type LogStorageChangeListener = (event: LogStorageChangeEvent) => void
 
 // 鏃ュ織瀛樺偍鏈嶅姟 - 璐熻矗鏃ュ織鐨勬寔涔呭寲銆佹煡璇€佽繃婊ゃ€佸鍑?
@@ -618,6 +624,131 @@ export class LogStorageService {
         errorMessage: `Download directory authorization failed: ${JSON.stringify(err)}`,
         recoverAction: 'authorize_download'
       }
+    }
+  }
+
+  static async exportContentToFile(
+    content: string,
+    format: LogExportFormat,
+    trigger: LogExportTrigger,
+    options?: LogContentExportOptions
+  ): Promise<LogExportResult> {
+    let now = LogStorageService.nowProvider()
+    let trimmed = content.trim()
+    let count = options?.count ?? 0
+    if (trimmed.length === 0) {
+      return {
+        success: false,
+        count: count,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        errorMessage: options?.emptyErrorMessage ?? '无可导出内容'
+      }
+    }
+
+    let fileName = LogStorageService.buildExportFileNameWithPrefix(
+      options?.fileNamePrefix ?? 'export',
+      format,
+      count,
+      now
+    )
+    let primaryTarget = LogStorageService.resolveConfiguredExportDirectory()
+    let authResult = await LogStorageService.ensureExportTargetReady(primaryTarget, trigger)
+    let primaryDir = authResult.directory || primaryTarget.directory
+    if (!authResult.success) {
+      return {
+        success: false,
+        count: count,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        fileName: fileName,
+        directory: primaryDir,
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.errorMessage,
+        recoverAction: authResult.recoverAction
+      }
+    }
+
+    let primaryWrite = LogStorageService.tryWriteExportFile(primaryDir, fileName, content)
+    if (primaryWrite.success) {
+      return {
+        count: count,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        success: true,
+        fileName: fileName,
+        directory: primaryDir,
+        fullPath: primaryWrite.fullPath,
+        sizeBytes: primaryWrite.sizeBytes
+      }
+    }
+
+    if (
+      trigger === 'manual' &&
+      LogStorageService.isUriPath(primaryDir) &&
+      LogStorageService.shouldRetryDownloadAuthorization(primaryWrite.errorCode)
+    ) {
+      await LogStorageService.clearDownloadAuthorization()
+      let retryTarget = LogStorageService.resolveConfiguredExportDirectory()
+      let retryAuth = await LogStorageService.ensureExportTargetReady(retryTarget, trigger)
+      let retryDir = retryAuth.directory || primaryTarget.directory
+      if (!retryAuth.success) {
+        return {
+          success: false,
+          count: count,
+          format: format,
+          timestamp: now,
+          trigger: trigger,
+          fileName: fileName,
+          directory: retryDir,
+          errorCode: retryAuth.errorCode,
+          errorMessage: retryAuth.errorMessage,
+          recoverAction: retryAuth.recoverAction
+        }
+      }
+
+      let retryWrite = LogStorageService.tryWriteExportFile(retryDir, fileName, content)
+      if (retryWrite.success) {
+        return {
+          count: count,
+          format: format,
+          timestamp: now,
+          trigger: trigger,
+          success: true,
+          fileName: fileName,
+          directory: retryDir,
+          fullPath: retryWrite.fullPath,
+          sizeBytes: retryWrite.sizeBytes
+        }
+      }
+
+      return {
+        success: false,
+        count: count,
+        format: format,
+        timestamp: now,
+        trigger: trigger,
+        fileName: fileName,
+        directory: retryDir,
+        errorCode: retryWrite.errorCode,
+        errorMessage: retryWrite.errorMessage,
+        recoverAction: 'authorize_download'
+      }
+    }
+
+    return {
+      success: false,
+      count: count,
+      format: format,
+      timestamp: now,
+      trigger: trigger,
+      fileName: fileName,
+      directory: primaryDir,
+      errorCode: primaryWrite.errorCode,
+      errorMessage: primaryWrite.errorMessage
     }
   }
 
@@ -1213,11 +1344,20 @@ export class LogStorageService {
   }
 
   private static buildExportFileName(format: LogExportFormat, count: number, timestamp: number): string {
+    return LogStorageService.buildExportFileNameWithPrefix('security_log', format, count, timestamp)
+  }
+
+  private static buildExportFileNameWithPrefix(
+    prefix: string,
+    format: LogExportFormat,
+    count: number,
+    timestamp: number
+  ): string {
     let date = new Date(timestamp)
     let pad = (n: number): string => n.toString().padStart(2, '0')
     let datePart = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
     let timePart = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-    return `security_log_${datePart}_${timePart}_${count}.${format}`
+    return `${prefix}_${datePart}_${timePart}_${count}.${format}`
   }
 
   private static tryWriteExportFile(

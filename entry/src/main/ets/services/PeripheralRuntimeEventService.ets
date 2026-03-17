@@ -258,6 +258,15 @@ export class PeripheralRuntimeEventService {
       ['deviceName', 'name', 'productName', 'product', 'manufacturerName'],
       deviceNameField
     )
+    let productNameField = PeripheralRuntimeEventService.pickStringFieldFromSources(
+      payloadSources,
+      ['productName', 'product', 'deviceName', 'name']
+    )
+    PeripheralRuntimeEventService.logStringFieldResolution(
+      'productName',
+      ['productName', 'product', 'deviceName', 'name'],
+      productNameField
+    )
     let manufacturerNameField = PeripheralRuntimeEventService.pickStringFieldFromSources(
       payloadSources,
       ['manufacturerName', 'manufacturer', 'vendorName']
@@ -267,11 +276,11 @@ export class PeripheralRuntimeEventService {
       ['manufacturerName', 'manufacturer', 'vendorName'],
       manufacturerNameField
     )
-    let deviceName = deviceNameField ? deviceNameField.value : ''
     let manufacturerName = manufacturerNameField ? manufacturerNameField.value : ''
-    if (manufacturerName.length > 0 && deviceName.length > 0 &&
-      !deviceName.toUpperCase().startsWith(manufacturerName.toUpperCase())) {
-      deviceName = `${manufacturerName} ${deviceName}`
+    let productName = productNameField ? productNameField.value : ''
+    let deviceName = PeripheralRuntimeEventService.buildUsbDisplayName(manufacturerName, productName)
+    if (deviceName.length === 0) {
+      deviceName = deviceNameField ? deviceNameField.value : ''
     }
     if (deviceName.length === 0) {
       deviceName = hasVidPid ? 'USB device' : 'Unrecognized USB device'
@@ -585,6 +594,21 @@ export class PeripheralRuntimeEventService {
       }
     }
     return null
+  }
+
+  private static buildUsbDisplayName(manufacturerName: string, productName: string): string {
+    let manufacturer = manufacturerName.trim()
+    let product = productName.trim()
+    if (manufacturer.length > 0 && product.length > 0) {
+      return `${manufacturer} ${product}`
+    }
+    if (manufacturer.length > 0) {
+      return manufacturer
+    }
+    if (product.length > 0) {
+      return product
+    }
+    return ''
   }
 
   private static pickInterfaceClassFieldFromSources(

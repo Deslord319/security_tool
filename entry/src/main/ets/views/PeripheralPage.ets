@@ -18,6 +18,8 @@ import {
   PeripheralType,
   PeripheralRecordAction,
   LogEventResult,
+  LogExportFormat,
+  LogExportResult,
   formatLogTimestamp,
   getLogEventResultLabel,
   getPeripheralRecordActionLabel,
@@ -33,6 +35,7 @@ import {
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
+import { common } from '@kit.AbilityKit'
 import { BusinessError, usbManager as hostUsbManager } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
@@ -40,6 +43,7 @@ import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
+import { LogContentExportOptions, LogStorageService } from '../services/LogStorageService'
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
@@ -254,9 +258,12 @@ export struct PeripheralPage {
         continue
       }
       let type = inferPeripheralTypeFromBaseClass(device.clazz)
-      let name = device.productName && device.productName.trim().length > 0
-        ? device.productName.trim()
-        : this.inferUsbDeviceName(device.vendorId, device.productId)
+      let name = this.buildUsbDisplayName(
+        device.manufacturerName,
+        device.productName,
+        device.vendorId,
+        device.productId
+      )
       items.set(key, {
         id: `usb_connected_${key}`,
         deviceName: name,
@@ -365,9 +372,12 @@ export struct PeripheralPage {
     })
 
     for (let device of this.connectedUsbDevices) {
-      let title = device.productName && device.productName.trim().length > 0
-        ? device.productName.trim()
-        : this.inferUsbDeviceName(device.vendorId, device.productId)
+      let title = this.buildUsbDisplayName(
+        device.manufacturerName,
+        device.productName,
+        device.vendorId,
+        device.productId
+      )
       let description = `${formatUsbDeviceId(device.vendorId, device.productId)} · 当前连接 USB 设备`
       this.appendBlacklistTemplate(
         items,
@@ -762,6 +772,24 @@ export struct PeripheralPage {
       return name
     }
     return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
+  }
+
+  private buildUsbDisplayName(manufacturerName?: string, productName?: string, vendorId?: number, productId?: number): string {
+    let manufacturer = manufacturerName ? manufacturerName.trim() : ''
+    let product = productName ? productName.trim() : ''
+    if (manufacturer.length > 0 && product.length > 0) {
+      return `${manufacturer} ${product}`
+    }
+    if (manufacturer.length > 0) {
+      return manufacturer
+    }
+    if (product.length > 0) {
+      return product
+    }
+    if (typeof vendorId === 'number' && typeof productId === 'number') {
+      return this.inferUsbDeviceName(vendorId, productId)
+    }
+    return 'USB Device'
   }
 
   inferBluetoothDeviceName(mac: string): string {
@@ -1209,6 +1237,106 @@ export struct PeripheralPage {
     this.selectedConnectionRecord = null
   }
 
+  private async exportConnectionHistory(): Promise<void> {
+    if (this.deviceRecords.length === 0) {
+      promptAction.showToast({ message: '没有可导出的设备连接记录' })
+      return
+    }
+
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      await LogStorageService.init(context)
+      let exportOptions: LogContentExportOptions = {
+        fileNamePrefix: 'peripheral_connection_history',
+        count: this.deviceRecords.length,
+        emptyErrorMessage: '无可导出的设备连接记录'
+      }
+      let result = await LogStorageService.exportContentToFile(
+        this.buildConnectionHistoryCsv(this.deviceRecords),
+        LogExportFormat.CSV,
+        'manual',
+        exportOptions
+      )
+      if (result.success) {
+        this.showConnectionExportSuccessDialog(result)
+        return
+      }
+      this.showConnectionExportFailureDialog(result)
+    } catch (err) {
+      hilog.error(0x0008, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
+      promptAction.showToast({ message: '导出历史记录失败' })
+    }
+  }
+
+  private buildConnectionHistoryCsv(records: PeripheralConnectionRecord[]): string {
+    let headers: string[] = [
+      '设备名称',
+      '设备类型',
+      '设备标识',
+      '连接事件',
+      '策略',
+      '连接时间',
+      '事件来源',
+      '结果状态'
+    ]
+    let rows = records.map((record: PeripheralConnectionRecord) => {
+      return [
+        record.deviceName,
+        getPeripheralTypeLabel(record.deviceType),
+        record.deviceId,
+        this.getConnectionEventLabel(record),
+        this.getConnectionPolicyDisplay(record),
+        this.formatConnectionTime(record),
+        getPeripheralRecordSourceLabel(record.source),
+        this.getConnectionResultLabel(record)
+      ].map((value: string) => this.escapeCsvValue(value)).join(',')
+    })
+    return `\uFEFF${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
+  }
+
+  private escapeCsvValue(value: string): string {
+    let normalized = value.replace(/"/g, '""')
+    if (/[",\r\n]/.test(normalized)) {
+      return `"${normalized}"`
+    }
+    return normalized
+  }
+
+  private showConnectionExportSuccessDialog(result: LogExportResult): void {
+    let fileName = result.fileName || '未知'
+    let directory = result.directory || '未知'
+    let fullPath = result.fullPath || '未知'
+    let exportedAt = formatLogTimestamp(result.timestamp)
+    AlertDialog.show({
+      title: '导出详情',
+      message:
+        `导出结果: 导出完成（${result.count} 条）\n` +
+        `导出格式: ${result.format.toUpperCase()}\n` +
+        `文件名: ${fileName}\n` +
+        `保存位置: ${directory}\n` +
+        `完整路径: ${fullPath}\n` +
+        `导出时间: ${exportedAt}`,
+      primaryButton: { value: '我知道了', action: () => {} }
+    })
+  }
+
+  private showConnectionExportFailureDialog(result: LogExportResult): void {
+    let directory = result.directory || '-'
+    let fileName = result.fileName || '未知'
+    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
+    let reasonText = result.errorMessage || '未知错误'
+    AlertDialog.show({
+      title: '导出失败',
+      message:
+        codeText +
+        `目标文件: ${fileName}\n` +
+        `目标目录: ${directory}\n` +
+        `失败原因: ${reasonText}\n` +
+        '建议: 重试导出，系统会在需要时自动请求 DOWNLOAD 目录授权。',
+      primaryButton: { value: '关闭', action: () => {} }
+    })
+  }
+
   private getConnectionEventLabel(record: PeripheralConnectionRecord | null): string {
     if (!record) {
       return '--'
@@ -1282,22 +1410,27 @@ export struct PeripheralPage {
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(2.2)
+        .layoutWeight(2.1)
       Text('设备类型')
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.3)
+        .layoutWeight(1.2)
       Text('连接事件')
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.3)
+        .layoutWeight(1.1)
       Text('策略')
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(2.2)
+        .layoutWeight(1.8)
+      Text('连接时间')
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .layoutWeight(1.6)
       Text('操作')
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1328,7 +1461,7 @@ export struct PeripheralPage {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
-      .layoutWeight(2.2)
+      .layoutWeight(2.1)
       .alignItems(HorizontalAlign.Start)
 
       Row() {
@@ -1339,7 +1472,7 @@ export struct PeripheralPage {
           .borderRadius(AppStyles.RADIUS_SM)
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       }
-      .layoutWeight(1.3)
+      .layoutWeight(1.2)
 
       Row() {
         Text(this.getConnectionEventLabel(record))
@@ -1349,22 +1482,23 @@ export struct PeripheralPage {
           .borderRadius(AppStyles.RADIUS_SM)
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       }
-      .layoutWeight(1.3)
+      .layoutWeight(1.1)
 
-      Column({ space: 4 }) {
+      Row() {
         Text(this.getConnectionPolicyDisplay(record))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.formatConnectionTime(record))
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
       }
-      .layoutWeight(2.2)
-      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1.8)
+
+      Text(this.formatConnectionTime(record))
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .layoutWeight(1.6)
 
       Button('详情')
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -1404,6 +1538,30 @@ export struct PeripheralPage {
     }
     .width('100%')
     .alignItems(VerticalAlign.Top)
+  }
+
+  @Builder
+  private connectionHeaderActionButton() {
+    Button() {
+      Row({ space: 6 }) {
+        Image($r('app.media.save'))
+          .width(14)
+          .height(14)
+          .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+
+        Text('导出历史记录')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+      }
+      .alignItems(VerticalAlign.Center)
+    }
+    .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+    .borderRadius(AppStyles.RADIUS_SM)
+    .height(36)
+    .padding({ left: 12, right: 12 })
+    .onClick(() => {
+      void this.exportConnectionHistory()
+    })
   }
 
   @Builder
@@ -2059,6 +2217,26 @@ export struct PeripheralPage {
             .alignItems(HorizontalAlign.Center)
           } else {
             Column({ space: 0 }) {
+              Row() {
+                Column({ space: 4 }) {
+                  Text('设备连接记录')
+                    .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  Text('查看最近接入过的外设身份、连接时间与当前命中策略。')
+                    .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                    .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+
+                this.connectionHeaderActionButton()
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 16, bottom: 12 })
+              .alignItems(VerticalAlign.Center)
+
               this.connectionTableHeader()
               Column({ space: 0 }) {
                 ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
