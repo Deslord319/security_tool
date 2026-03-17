@@ -322,8 +322,8 @@ export struct DashboardPage {
             ToolCard({
               label: '工具设置',
               icon: $r('app.media.settings'),
-              gradientStart: '#8E8E93',
-              gradientEnd: '#AEAEB2',
+              gradientStart: '#0F766E',
+              gradientEnd: '#14B8A6',
               onPress: () => { this.onNavigate(Routes.TOOL_SETTINGS) }
             })
           }

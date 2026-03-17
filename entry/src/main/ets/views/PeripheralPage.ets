@@ -10,6 +10,7 @@ import {
   AdminActivationState,
   DeviceRecord,
   DeviceControlRecord,
+  PeripheralPolicyRecord,
   PeripheralBlacklistTemplate,
   PeripheralCandidateSource,
   PeripheralConnectionRecord,
@@ -140,12 +141,17 @@ export struct PeripheralPage {
 
   // 设备管控记录（独立数据源）
   @State deviceControlRecords: DeviceControlRecord[] = []
+  @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
   private deviceControlPolicyOptions: SelectOption[] = [
     { value: '允许' },
     { value: '禁止' },
     { value: '未配置' }
   ]
   // 弹窗控制器
+  private policyListOptions: SelectOption[] = [
+    { value: '允许接入' },
+    { value: '禁止访问' }
+  ]
   private usbWhitelistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddWhitelistDialog({
       mode: 'usb',
@@ -455,6 +461,7 @@ export struct PeripheralPage {
   }
   private reloadDeviceRecords(): void {
     this.deviceRecords = PeripheralConnectionRecordService.queryRecords()
+    this.loadPeripheralPolicyData()
   }
   private buildPreviewConnectionRecordsLegacy(): PeripheralConnectionRecord[] {
     let now = Date.now()
@@ -851,6 +858,193 @@ export struct PeripheralPage {
     hilog.info(0x0002, TAG, `loadDeviceControlData: ${records.length} devices loaded`)
   }
 
+  private loadPeripheralPolicyData(): void {
+    let whitelistKeys: Set<string> = new Set(
+      this.usbWhitelist.map((device: edmUsbManager.UsbDeviceId) => {
+        return formatUsbDeviceId(device.vendorId, device.productId).toUpperCase()
+      })
+    )
+    let blacklistKeys: Set<string> = new Set(
+      this.usbBlacklist.map((deviceType: edmUsbManager.UsbDeviceType) => {
+        return `${deviceType.baseClass}|${deviceType.subClass}|${deviceType.protocol}`
+      })
+    )
+    let items: Map<string, PeripheralPolicyRecord> = new Map()
+
+    for (let record of this.deviceRecords) {
+      if (this.usbRecordTypes.indexOf(record.deviceType) < 0) {
+        continue
+      }
+      let parsed = parseUsbDeviceId(record.deviceId)
+      if (!parsed) {
+        continue
+      }
+
+      let deviceKey = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
+      let existing = items.get(deviceKey)
+      if (existing && existing.lastSeenAt >= record.timestamp) {
+        continue
+      }
+
+      let baseClass = inferUsbBaseClass(record.deviceType)
+      let policyIndex = 0
+      if (baseClass > 0 && blacklistKeys.has(`${baseClass}|0|0`)) {
+        policyIndex = 1
+      } else if (whitelistKeys.has(deviceKey)) {
+        policyIndex = 0
+      }
+
+      items.set(deviceKey, {
+        deviceName: record.deviceName,
+        deviceType: record.deviceType,
+        deviceId: record.deviceId,
+        lastSeenAt: record.timestamp,
+        lastSeenLabel: this.formatTimestamp(record.timestamp),
+        policyIndex: policyIndex
+      })
+    }
+
+    this.peripheralPolicyRecords = Array.from(items.values()).sort((left: PeripheralPolicyRecord, right: PeripheralPolicyRecord) => {
+      return right.lastSeenAt - left.lastSeenAt
+    })
+  }
+
+  private async exportPeripheralPolicyRecords(): Promise<void> {
+    if (this.peripheralPolicyRecords.length === 0) {
+      promptAction.showToast({ message: '暂无可导出的设备策略记录' })
+      return
+    }
+
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      await LogStorageService.init(context)
+      let result = await LogStorageService.exportContentToFile(
+        this.buildPeripheralPolicyCsv(this.peripheralPolicyRecords),
+        LogExportFormat.CSV,
+        'manual',
+        {
+          fileNamePrefix: 'peripheral_policy_list',
+          count: this.peripheralPolicyRecords.length,
+          emptyErrorMessage: '暂无可导出的设备策略记录'
+        }
+      )
+      if (result.success) {
+        this.showConnectionExportSuccessDialog(result)
+        return
+      }
+      this.showConnectionExportFailureDialog(result)
+    } catch (err) {
+      hilog.error(0x0008, TAG, `exportPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
+      promptAction.showToast({ message: '导出设备策略记录失败' })
+    }
+  }
+
+  private buildPeripheralPolicyCsv(records: PeripheralPolicyRecord[]): string {
+    let headers: string[] = [
+      '设备名称',
+      '设备类型',
+      '设备标识',
+      '最近连接时间',
+      '当前策略'
+    ]
+    let rows = records.map((record: PeripheralPolicyRecord) => {
+      return [
+        record.deviceName,
+        getPeripheralTypeLabel(record.deviceType),
+        record.deviceId,
+        record.lastSeenLabel,
+        this.getPeripheralPolicyLabel(record.policyIndex)
+      ].map((value: string) => this.escapeCsvValue(value)).join(',')
+    })
+    return `\uFEFF${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
+  }
+
+  private getPeripheralPolicyLabel(policyIndex: number): string {
+    let selected = this.policyListOptions[policyIndex]
+    if (selected && typeof selected.value === 'string') {
+      return selected.value
+    }
+    return this.policyListOptions[0].value as string
+  }
+
+  private handlePeripheralPolicyChange(recordIndex: number, policyIndex: number): void {
+    if (!this.ensureAdminReady('修改设备策略')) {
+      return
+    }
+    let record = this.peripheralPolicyRecords[recordIndex]
+    if (!record) {
+      return
+    }
+    if (record.policyIndex === policyIndex) {
+      return
+    }
+    let parsed = parseUsbDeviceId(record.deviceId)
+    if (!parsed) {
+      promptAction.showToast({ message: '无法识别当前设备标识' })
+      return
+    }
+
+    let device: edmUsbManager.UsbDeviceId = {
+      vendorId: parsed.vendorId,
+      productId: parsed.productId
+    }
+    let failedResult: OperationResult<PeripheralResultData> | undefined = undefined
+    let success = false
+
+    if (policyIndex === 0) {
+      let baseClass = inferUsbBaseClass(record.deviceType)
+      if (baseClass > 0) {
+        let removeBlackResult = PeripheralService.removeUsbBlacklistWithResult([{
+          baseClass: baseClass,
+          subClass: 0,
+          protocol: 0,
+          descriptor: edmUsbManager.Descriptor.INTERFACE
+        }])
+        if (!removeBlackResult.success) {
+          failedResult = removeBlackResult
+        }
+      }
+      let addWhiteResult = PeripheralService.addUsbWhitelistWithResult([device])
+      if (!addWhiteResult.success) {
+        failedResult = addWhiteResult
+      }
+      success = failedResult === undefined
+    } else {
+      let removeWhiteResult = PeripheralService.removeUsbWhitelistWithResult([device])
+      if (!removeWhiteResult.success) {
+        failedResult = removeWhiteResult
+      }
+      let baseClass = inferUsbBaseClass(record.deviceType)
+      if (baseClass <= 0) {
+        promptAction.showToast({ message: '当前设备类型暂不支持禁止访问策略' })
+        return
+      }
+      let addBlackResult = PeripheralService.addUsbBlacklistWithResult([{
+        baseClass: baseClass,
+        subClass: 0,
+        protocol: 0,
+        descriptor: edmUsbManager.Descriptor.INTERFACE
+      }])
+      if (!addBlackResult.success) {
+        failedResult = addBlackResult
+      }
+      success = failedResult === undefined
+    }
+
+    if (!success) {
+      this.showOperationFailure('修改设备策略', failedResult || {
+        success: false,
+        errorMessage: '修改设备策略失败'
+      })
+      return
+    }
+
+    this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+    this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+    this.reloadDeviceRecords()
+    promptAction.showToast({ message: '设备策略已更新' })
+  }
+
   // ========== 接口管控操作 ==========
 
   handleInterfaceToggle(feature: string, disallow: boolean) {
@@ -1197,6 +1391,8 @@ export struct PeripheralPage {
 
         if (this.currentTab === 0) {
           this.pageHeaderActions()
+        } else if (this.currentTab === 2) {
+          this.policyListHeaderActions()
         }
       }
       .width('100%')
@@ -1213,7 +1409,7 @@ export struct PeripheralPage {
         }.tabBar(this.tabBuilder('接口管控', 1))
 
         TabContent() {
-          this.blackWhiteListBuilder()
+          this.peripheralPolicyListBuilder()
         }.tabBar(this.tabBuilder('黑白名单', 2))
       }
       .barMode(BarMode.Fixed)
@@ -1732,6 +1928,33 @@ export struct PeripheralPage {
       .padding({ left: 10, right: 10 })
       .onClick(() => {
         this.showClearConnectionHistoryConfirmDialog()
+      })
+    }
+  }
+
+  @Builder
+  private policyListHeaderActions() {
+    Row({ space: 8 }) {
+      Button() {
+        Row({ space: 6 }) {
+          Image($r('app.media.save'))
+            .width(14)
+            .height(14)
+            .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+
+          Text('导出历史记录')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .type(ButtonType.Normal)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+      .borderRadius(AppStyles.RADIUS_SM)
+      .height(32)
+      .padding({ left: 10, right: 10 })
+      .onClick(() => {
+        void this.exportPeripheralPolicyRecords()
       })
     }
   }
@@ -2855,6 +3078,129 @@ export struct PeripheralPage {
   }
 
   // ==================== Tab 4: 黑白名单 ====================
+  @Builder
+  peripheralPolicyListBuilder() {
+    Scroll() {
+      Column() {
+        if (this.peripheralPolicyRecords.length === 0) {
+          Column({ space: 12 }) {
+            Text('暂无可管理的 USB 设备记录')
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            Text('设备接入后会按最近记录去重展示，并可直接设置允许接入或禁止访问。')
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .width('100%')
+          .padding(24)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .borderRadius(AppStyles.RADIUS_LG)
+          .alignItems(HorizontalAlign.Center)
+          .justifyContent(FlexAlign.Center)
+        } else {
+          Row({ space: 12 }) {
+            Text('设备名称')
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .layoutWeight(1.8)
+            Text('设备类型')
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .layoutWeight(1.1)
+            Text('设备标识')
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .layoutWeight(1.6)
+            Text('最近连接时间')
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .layoutWeight(1.3)
+            Text('当前策略')
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .layoutWeight(1.2)
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+          .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
+
+          Column() {
+            ForEach(this.peripheralPolicyRecords, (record: PeripheralPolicyRecord, index: number) => {
+              Row({ space: 12 }) {
+                Text(record.deviceName)
+                  .fontSize(AppStyles.FONT_SIZE_SMALL)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+                  .layoutWeight(1.8)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                Text(getPeripheralTypeLabel(record.deviceType))
+                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+                  .borderRadius(4)
+                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                  .layoutWeight(1.1)
+
+                Text(record.deviceId)
+                  .fontSize(AppStyles.FONT_SIZE_SMALL)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                  .layoutWeight(1.6)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                Text(record.lastSeenLabel)
+                  .fontSize(AppStyles.FONT_SIZE_SMALL)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                  .layoutWeight(1.3)
+
+                Select(this.policyListOptions)
+                  .selected(record.policyIndex)
+                  .value(this.getPeripheralPolicyLabel(record.policyIndex))
+                  .font({ size: AppStyles.FONT_SIZE_CAPTION })
+                  .fontColor(FormControlUtils.text(this.currentTheme))
+                  .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+                  .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
+                  .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+                  .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+                  .backgroundColor(FormControlUtils.background(this.currentTheme))
+                  .borderRadius(AppStyles.RADIUS_SM)
+                  .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+                  .layoutWeight(1.2)
+                  .onSelect((selectIndex: number) => {
+                    this.handlePeripheralPolicyChange(index, selectIndex)
+                  })
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+            })
+          }
+          .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
+          .clip(true)
+        }
+      }
+      .width('100%')
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
+      .justifyContent(FlexAlign.Start)
+    }
+    .width('100%')
+    .height('100%')
+    .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
+  }
+
   @Builder
   blackWhiteListBuilder() {
     Scroll() {

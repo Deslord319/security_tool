@@ -317,6 +317,15 @@ export interface DeviceControlRecord {
   policyIndex: number
 }
 
+export interface PeripheralPolicyRecord {
+  deviceName: string
+  deviceType: PeripheralType
+  deviceId: string
+  lastSeenAt: number
+  lastSeenLabel: string
+  policyIndex: number
+}
+
 
 export interface UsbWhitelistItem {
   vendorId: number
