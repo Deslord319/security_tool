@@ -284,16 +284,7 @@ export struct LogManagePage {
   private readonly pageSizeOptions: number[] = [20, 50, 100]
   private detailDialogController?: CustomDialogController
 
-  private exportFormatDialogController: CustomDialogController = new CustomDialogController({
-    builder: ExportFormatDialog({
-      onSelect: (format: LogExportFormat) => {
-        void this.exportLogs(format)
-      }
-    }),
-    autoCancel: true,
-    customStyle: true,
-    alignment: DialogAlignment.Center
-  })
+  private exportFormatDialogController?: CustomDialogController
 
   private resolveStatIndex(label: string): number {
     if (label === '总计') {
@@ -557,7 +548,7 @@ export struct LogManagePage {
   }
 
   private showExportFormatDialog(): void {
-    this.exportFormatDialogController.open()
+    void this.exportLogs(LogExportFormat.CSV)
   }
 
   async exportLogs(format: LogExportFormat) {
@@ -636,6 +627,7 @@ export struct LogManagePage {
   private openDetailTableDialog(title: string, fields: DetailDialogField[]): void {
     this.detailDialogController = new CustomDialogController({
       builder: DetailTableDialog({
+        controller: this.detailDialogController,
         title: title,
         fields: fields
       }),

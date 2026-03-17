@@ -185,6 +185,16 @@ export type PeripheralRecordAction = 'connect' | 'disconnect' | 'intercept' | 'u
 
 export type PeripheralRecordPolicyHit = 'allow' | 'deny' | 'unknown'
 
+export type PeripheralMatchedPolicyKind =
+  'usb_disabled' |
+  'usb_storage_disabled' |
+  'usb_storage_read_only' |
+  'usb_whitelist' |
+  'usb_blacklist' |
+  'default_allow' |
+  'disconnect_event' |
+  'unknown'
+
 export interface PeripheralConnectionRecord {
   id: string
   timestamp: number
@@ -207,6 +217,8 @@ export interface PeripheralConnectionRecord {
   detail?: string
   processName?: string
   usbPolicy?: UsbStoragePolicy
+  effectivePolicyLabel?: string
+  matchedPolicyKind?: PeripheralMatchedPolicyKind
 }
 
 export interface PeripheralWhitelistCandidate {
@@ -265,6 +277,8 @@ export interface PeripheralTraceRecord {
   detail?: string
   processName?: string
   usbPolicy?: UsbStoragePolicy
+  effectivePolicyLabel?: string
+  matchedPolicyKind?: PeripheralMatchedPolicyKind
 }
 
 export interface PeripheralTraceQuery {

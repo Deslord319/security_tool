@@ -13,6 +13,7 @@ import {
   PeripheralBlacklistTemplate,
   PeripheralCandidateSource,
   PeripheralConnectionRecord,
+  PeripheralMatchedPolicyKind,
   PeripheralWhitelistCandidate,
   OperationResult,
   PeripheralType,
@@ -1195,7 +1196,7 @@ export struct PeripheralPage {
         .alignItems(VerticalAlign.Top)
 
         if (this.currentTab === 0) {
-          this.pageHeaderActionButton()
+          this.pageHeaderActions()
         }
       }
       .width('100%')
@@ -1255,6 +1256,7 @@ export struct PeripheralPage {
     }
 
     try {
+      hilog.info(0x0008, TAG, `exportConnectionHistory start, count=${this.deviceRecords.length}`)
       let context = getContext(this) as common.UIAbilityContext
       await LogStorageService.init(context)
       let exportOptions: LogContentExportOptions = {
@@ -1263,11 +1265,12 @@ export struct PeripheralPage {
         emptyErrorMessage: '无可导出的设备连接记录'
       }
       let result = await LogStorageService.exportContentToFile(
-        this.buildConnectionHistoryCsv(this.deviceRecords),
+        this.buildConnectionHistoryCsvV2(this.deviceRecords),
         LogExportFormat.CSV,
         'manual',
         exportOptions
       )
+      hilog.info(0x0008, TAG, `exportConnectionHistory result=${JSON.stringify(result)}`)
       if (result.success) {
         this.showConnectionExportSuccessDialog(result)
         return
@@ -1276,6 +1279,48 @@ export struct PeripheralPage {
     } catch (err) {
       hilog.error(0x0008, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
       promptAction.showToast({ message: '导出历史记录失败' })
+    }
+  }
+
+  private showClearConnectionHistoryConfirmDialog(): void {
+    if (this.deviceRecords.length === 0) {
+      promptAction.showToast({ message: '暂无可清理的历史记录' })
+      return
+    }
+
+    AlertDialog.show({
+      title: '清理历史记录',
+      message: '将清空当前设备连接历史记录，且无法恢复。是否继续？',
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '清理',
+        action: () => {
+          void this.clearConnectionHistory()
+        }
+      }
+    })
+  }
+
+  private async clearConnectionHistory(): Promise<void> {
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      await PeripheralTraceRepository.init(context)
+      let success = await PeripheralTraceRepository.clearAll()
+      if (!success) {
+        promptAction.showToast({ message: '清理历史记录失败' })
+        return
+      }
+      this.closeConnectionDetailDialog()
+      this.recordHintMessage = ''
+      this.lastRecordHintToastMessage = ''
+      this.reloadDeviceRecords()
+      promptAction.showToast({ message: '历史记录已清理' })
+    } catch (err) {
+      hilog.error(0x0008, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
+      promptAction.showToast({ message: '清理历史记录失败' })
     }
   }
 
@@ -1299,6 +1344,35 @@ export struct PeripheralPage {
         this.getExecutedUsbPolicyDisplay(record),
         this.formatConnectionTime(record),
         getPeripheralRecordSourceLabel(record.source),
+        this.getMatchedPolicyKindLabel(record),
+        this.getConnectionResultLabel(record)
+      ].map((value: string) => this.escapeCsvValue(value)).join(',')
+    })
+    return `\uFEFF${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
+  }
+
+  private buildConnectionHistoryCsvV2(records: PeripheralConnectionRecord[]): string {
+    let headers: string[] = [
+      '设备名称',
+      '设备类型',
+      '设备标识',
+      '连接事件',
+      '策略',
+      '连接时间',
+      '事件来源',
+      '命中类型',
+      '结果状态'
+    ]
+    let rows = records.map((record: PeripheralConnectionRecord) => {
+      return [
+        record.deviceName,
+        getPeripheralTypeLabel(record.deviceType),
+        record.deviceId,
+        this.getConnectionEventLabel(record),
+        this.getExecutedUsbPolicyDisplay(record),
+        this.formatConnectionTime(record),
+        getPeripheralRecordSourceLabel(record.source),
+        this.getMatchedPolicyKindLabel(record),
         this.getConnectionResultLabel(record)
       ].map((value: string) => this.escapeCsvValue(value)).join(',')
     })
@@ -1394,10 +1468,40 @@ export struct PeripheralPage {
   }
 
   private getExecutedUsbPolicyDisplay(record: PeripheralConnectionRecord | null): string {
-    if (!record || record.deviceType !== PeripheralType.USB_STORAGE || record.usbPolicy === undefined) {
+    if (!record) {
       return '--'
     }
-    return getUsbStoragePolicyLabel(record.usbPolicy)
+    if (record.effectivePolicyLabel && record.effectivePolicyLabel.trim().length > 0) {
+      return record.effectivePolicyLabel
+    }
+    if (record.deviceType === PeripheralType.USB_STORAGE && record.usbPolicy !== undefined) {
+      return getUsbStoragePolicyLabel(record.usbPolicy)
+    }
+    if (record.deviceType === PeripheralType.BLUETOOTH) {
+      return '--'
+    }
+    return this.usbDisabled ? '禁用' : '启用'
+  }
+
+  private getMatchedPolicyKindLabel(record: PeripheralConnectionRecord): string {
+    switch (record.matchedPolicyKind as PeripheralMatchedPolicyKind | undefined) {
+      case 'usb_disabled':
+        return 'USB 接口禁用'
+      case 'usb_storage_disabled':
+        return 'USB 存储已禁止访问'
+      case 'usb_storage_read_only':
+        return 'USB 存储只读'
+      case 'usb_whitelist':
+        return '命中 USB 白名单'
+      case 'usb_blacklist':
+        return '命中 USB 黑名单'
+      case 'default_allow':
+        return '默认允许'
+      case 'disconnect_event':
+        return '断开事件'
+      default:
+        return this.getConnectionPolicyHitLabel(record)
+    }
   }
 
   private getConnectionHistoryTimes(record: PeripheralConnectionRecord | null): string[] {
@@ -1573,13 +1677,63 @@ export struct PeripheralPage {
       }
       .alignItems(VerticalAlign.Center)
     }
+    .type(ButtonType.Normal)
     .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
     .borderRadius(AppStyles.RADIUS_SM)
-    .height(36)
-    .padding({ left: 12, right: 12 })
+    .height(32)
+    .padding({ left: 10, right: 10 })
     .onClick(() => {
       void this.exportConnectionHistory()
     })
+  }
+
+  @Builder
+  private pageHeaderActions() {
+    Row({ space: 8 }) {
+      Button() {
+        Row({ space: 6 }) {
+          Image($r('app.media.save'))
+            .width(14)
+            .height(14)
+            .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+
+          Text('导出历史记录')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .type(ButtonType.Normal)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+      .borderRadius(AppStyles.RADIUS_SM)
+      .height(32)
+      .padding({ left: 10, right: 10 })
+      .onClick(() => {
+        void this.exportConnectionHistory()
+      })
+
+      Button() {
+        Row({ space: 6 }) {
+          Image($r('app.media.trash'))
+            .width(14)
+            .height(14)
+            .fillColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+
+          Text('清理历史记录')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .type(ButtonType.Normal)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
+      .borderRadius(AppStyles.RADIUS_SM)
+      .height(32)
+      .padding({ left: 10, right: 10 })
+      .onClick(() => {
+        this.showClearConnectionHistoryConfirmDialog()
+      })
+    }
   }
 
   @Builder
@@ -1969,6 +2123,9 @@ export struct PeripheralPage {
   private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
     if (record.source === 'policy_snapshot') {
       return '未审计'
+    }
+    if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
+      return this.getMatchedPolicyKindLabel(record)
     }
     return getPeripheralRecordPolicyHitLabel(record.policyHit)
   }

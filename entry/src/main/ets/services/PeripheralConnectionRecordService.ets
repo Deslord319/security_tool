@@ -53,7 +53,9 @@ export class PeripheralConnectionRecordService {
       rawPayload: record.rawPayload,
       detail: record.detail,
       processName: record.processName,
-      usbPolicy: record.usbPolicy
+      usbPolicy: record.usbPolicy,
+      effectivePolicyLabel: record.effectivePolicyLabel,
+      matchedPolicyKind: record.matchedPolicyKind
     }
   }
 }

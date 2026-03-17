@@ -248,6 +248,19 @@ export class PeripheralTraceRepository {
     return removed
   }
 
+  static async clearAll(): Promise<boolean> {
+    try {
+      PeripheralTraceRepository.records = []
+      await PeripheralTraceRepository.saveRecords()
+      PeripheralTraceRepository.notifyChanged(0)
+      hilog.info(DOMAIN, TAG, 'clearAll success')
+      return true
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `clearAll failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
   private static async doInit(): Promise<boolean> {
     if (!PeripheralTraceRepository.context) {
       return false
@@ -316,9 +329,13 @@ export class PeripheralTraceRepository {
       rawEventId: record.rawEventId,
       rawEventName: record.rawEventName,
       rawOutcome: record.rawOutcome,
+      rawAction: record.rawAction,
       rawPayload: record.rawPayload,
       detail: record.detail,
-      processName: record.processName
+      processName: record.processName,
+      usbPolicy: record.usbPolicy,
+      effectivePolicyLabel: record.effectivePolicyLabel,
+      matchedPolicyKind: record.matchedPolicyKind || 'unknown'
     }
   }
 

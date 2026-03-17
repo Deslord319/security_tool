@@ -3,10 +3,13 @@ import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
   LogEventResult,
+  PeripheralMatchedPolicyKind,
+  PeripheralRecordPolicyHit,
   PeripheralTraceRecord,
   PeripheralType,
-  UsbStoragePolicy,
   formatUsbDeviceId,
+  getUsbStoragePolicyLabel,
+  UsbStoragePolicy,
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
 import { PeripheralTraceRepository } from './PeripheralTraceRepository'
@@ -29,11 +32,36 @@ interface ResolvedUsbEventInfo {
   vendorId: number
   productId: number
   baseClass: number
+  subClass: number
+  protocol: number
   occurAt: number
   deviceName: string
   detail: string
   deviceId: string
   deviceType: PeripheralType
+}
+
+interface UsbPolicySnapshot {
+  usbDisabled: boolean
+  usbStoragePolicy: UsbStoragePolicy
+  whitelist: string[]
+  blacklist: UsbBlacklistRule[]
+}
+
+interface UsbBlacklistRule {
+  baseClass: number
+  subClass: number
+  protocol: number
+}
+
+interface UsbEventPolicyEvaluation {
+  policyHit: PeripheralRecordPolicyHit
+  result: LogEventResult
+  summary: string
+  detail: string
+  usbPolicy?: UsbStoragePolicy
+  effectivePolicyLabel: string
+  matchedPolicyKind: PeripheralMatchedPolicyKind
 }
 
 interface ResolvedNumberField {
@@ -196,7 +224,13 @@ export class PeripheralRuntimeEventService {
     hilog.info(
       DOMAIN,
       TAG,
-      `usb event parsed: event=${data.event}, name=${info.deviceName}, deviceId=${info.deviceId}, baseClass=${info.baseClass}`
+      `usb event parsed: event=${data.event}, name=${info.deviceName}, deviceId=${info.deviceId}, baseClass=${info.baseClass}, subClass=${info.subClass}, protocol=${info.protocol}, deviceType=${info.deviceType}`
+    )
+    let evaluation = PeripheralRuntimeEventService.evaluateUsbEventPolicy(info, action)
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `usb event policy evaluation: event=${data.event}, action=${action}, deviceId=${info.deviceId}, deviceType=${info.deviceType}, policyHit=${evaluation.policyHit}, result=${evaluation.result}, effectivePolicy=${evaluation.effectivePolicyLabel}, matchedPolicy=${evaluation.matchedPolicyKind}, usbPolicy=${evaluation.usbPolicy ?? -1}`
     )
     PeripheralRuntimeEventService.persistRuntimeRecord({
       recordId: `runtime_usb_${info.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
@@ -206,28 +240,109 @@ export class PeripheralRuntimeEventService {
       deviceType: info.deviceType,
       deviceId: info.deviceId,
       action: action,
-      decision: action === 'connect' ? 'allow' : 'unknown',
-      result: LogEventResult.SUCCESS,
+      decision: evaluation.policyHit,
+      result: evaluation.result,
       source: 'runtime_event',
-      summary: action === 'connect' ? 'USB device connected' : 'USB device disconnected',
+      summary: evaluation.summary,
       rawEventName: data.event,
+      rawAction: action,
       rawPayload: PeripheralRuntimeEventService.safeJson(data),
-      detail: info.detail,
-      usbPolicy: PeripheralRuntimeEventService.resolveUsbPolicyForRecord(info.deviceType, action)
+      detail: evaluation.detail,
+      usbPolicy: evaluation.usbPolicy,
+      effectivePolicyLabel: evaluation.effectivePolicyLabel,
+      matchedPolicyKind: evaluation.matchedPolicyKind
     })
   }
 
-  private static resolveUsbPolicyForRecord(
-    deviceType: PeripheralType,
+  private static evaluateUsbEventPolicy(
+    info: ResolvedUsbEventInfo,
     action: UsbEventAction
-  ): UsbStoragePolicy | undefined {
-    if (deviceType !== PeripheralType.USB_STORAGE) {
-      return undefined
-    }
+  ): UsbEventPolicyEvaluation {
+    let snapshot = PeripheralRuntimeEventService.readCurrentUsbPolicySnapshot()
+    let effectivePolicyLabel = PeripheralRuntimeEventService.resolveEffectivePolicyLabel(info.deviceType, snapshot)
+    PeripheralRuntimeEventService.logUsbPolicySnapshot(info, action, snapshot, effectivePolicyLabel)
     if (action === 'disconnect') {
-      return PeripheralRuntimeEventService.readCurrentUsbStoragePolicy()
+      return {
+        policyHit: 'unknown',
+        result: LogEventResult.SUCCESS,
+        summary: '设备已断开',
+        detail: PeripheralRuntimeEventService.buildDisconnectDetail(info, effectivePolicyLabel),
+        usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+        effectivePolicyLabel: effectivePolicyLabel,
+        matchedPolicyKind: 'disconnect_event'
+      }
     }
-    return PeripheralRuntimeEventService.readCurrentUsbStoragePolicy()
+
+    if (snapshot.usbDisabled) {
+      return {
+        policyHit: 'deny',
+        result: LogEventResult.BLOCKED,
+        summary: 'USB 接口已禁用',
+        detail: '命中 USB 接口禁用策略，设备接入已被阻止。',
+        usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+        effectivePolicyLabel: '禁用',
+        matchedPolicyKind: 'usb_disabled'
+      }
+    }
+
+    if (info.deviceType === PeripheralType.USB_STORAGE) {
+      if (snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
+        return {
+          policyHit: 'deny',
+          result: LogEventResult.BLOCKED,
+          summary: 'USB 存储已禁止访问',
+          detail: '命中 USB 存储禁止访问策略，U 盘接入已被阻止。',
+          usbPolicy: snapshot.usbStoragePolicy,
+          effectivePolicyLabel: getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
+          matchedPolicyKind: 'usb_storage_disabled'
+        }
+      }
+      if (snapshot.usbStoragePolicy === UsbStoragePolicy.READ_ONLY) {
+        return {
+          policyHit: 'allow',
+          result: LogEventResult.SUCCESS,
+          summary: 'USB 存储仅允许只读访问',
+          detail: '命中 USB 存储只读策略，U 盘接入后仅允许只读访问。',
+          usbPolicy: snapshot.usbStoragePolicy,
+          effectivePolicyLabel: getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
+          matchedPolicyKind: 'usb_storage_read_only'
+        }
+      }
+    }
+
+    if (PeripheralRuntimeEventService.isWhitelisted(info.deviceId, snapshot.whitelist)) {
+      return {
+        policyHit: 'allow',
+        result: LogEventResult.SUCCESS,
+        summary: '命中 USB 白名单',
+        detail: `设备 ${info.deviceId} 命中 USB 白名单，允许接入。`,
+        usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+        effectivePolicyLabel: effectivePolicyLabel,
+        matchedPolicyKind: 'usb_whitelist'
+      }
+    }
+
+    if (PeripheralRuntimeEventService.isBlacklisted(info, snapshot.blacklist)) {
+      return {
+        policyHit: 'deny',
+        result: LogEventResult.BLOCKED,
+        summary: '命中 USB 黑名单',
+        detail: '设备类型命中 USB 黑名单策略，接入已被阻止。',
+        usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+        effectivePolicyLabel: effectivePolicyLabel,
+        matchedPolicyKind: 'usb_blacklist'
+      }
+    }
+
+    return {
+      policyHit: 'allow',
+      result: LogEventResult.SUCCESS,
+      summary: '按当前策略允许接入',
+      detail: '未命中更高优先级限制策略，按当前策略允许设备接入。',
+      usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+      effectivePolicyLabel: effectivePolicyLabel,
+      matchedPolicyKind: 'default_allow'
+    }
   }
 
   private static readCurrentUsbStoragePolicy(): UsbStoragePolicy {
@@ -242,6 +357,84 @@ export class PeripheralRuntimeEventService {
       default:
         return UsbStoragePolicy.READ_WRITE
     }
+  }
+
+  private static readCurrentUsbPolicySnapshot(): UsbPolicySnapshot {
+    let whitelistResult = PeripheralService.getUsbWhitelistWithResult()
+    let blacklistResult = PeripheralService.getUsbBlacklistWithResult()
+    let whitelist: string[] = (whitelistResult.data ?? []).map((item) => {
+      return formatUsbDeviceId(item.vendorId, item.productId).toUpperCase()
+    })
+    let blacklist: UsbBlacklistRule[] = (blacklistResult.data ?? []).map((item): UsbBlacklistRule => {
+      return {
+        baseClass: item.baseClass,
+        subClass: item.subClass,
+        protocol: item.protocol
+      }
+    })
+    return {
+      usbDisabled: PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB).data ?? false,
+      usbStoragePolicy: PeripheralRuntimeEventService.readCurrentUsbStoragePolicy(),
+      whitelist: whitelist,
+      blacklist: blacklist
+    }
+  }
+
+  private static logUsbPolicySnapshot(
+    info: ResolvedUsbEventInfo,
+    action: UsbEventAction,
+    snapshot: UsbPolicySnapshot,
+    effectivePolicyLabel: string
+  ): void {
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `usb policy snapshot: action=${action}, deviceId=${info.deviceId}, deviceType=${info.deviceType}, usbDisabled=${snapshot.usbDisabled}, usbStoragePolicy=${snapshot.usbStoragePolicy}, whitelistSize=${snapshot.whitelist.length}, blacklistSize=${snapshot.blacklist.length}, effectivePolicy=${effectivePolicyLabel}`
+    )
+    if (snapshot.whitelist.length > 0) {
+      hilog.info(DOMAIN, TAG, `usb policy snapshot whitelist: ${snapshot.whitelist.join(',')}`)
+    }
+    if (snapshot.blacklist.length > 0) {
+      let blacklistSummary = snapshot.blacklist
+        .map((item: UsbBlacklistRule) => `${item.baseClass}/${item.subClass}/${item.protocol}`)
+        .join(',')
+      hilog.info(DOMAIN, TAG, `usb policy snapshot blacklist: ${blacklistSummary}`)
+    }
+  }
+
+  private static resolveEffectivePolicyLabel(
+    deviceType: PeripheralType,
+    snapshot: UsbPolicySnapshot
+  ): string {
+    if (snapshot.usbDisabled) {
+      return '禁用'
+    }
+    if (deviceType === PeripheralType.USB_STORAGE) {
+      return getUsbStoragePolicyLabel(snapshot.usbStoragePolicy)
+    }
+    return '启用'
+  }
+
+  private static buildDisconnectDetail(info: ResolvedUsbEventInfo, effectivePolicyLabel: string): string {
+    return `${info.deviceName} 已断开，断开前对应策略为${effectivePolicyLabel}。`
+  }
+
+  private static isWhitelisted(deviceId: string, whitelist: string[]): boolean {
+    return whitelist.includes(deviceId.toUpperCase())
+  }
+
+  private static isBlacklisted(info: ResolvedUsbEventInfo, blacklist: UsbBlacklistRule[]): boolean {
+    for (let item of blacklist) {
+      if (item.baseClass !== info.baseClass) {
+        continue
+      }
+      let subClassMatched = item.subClass === 0 || info.subClass <= 0 || item.subClass === info.subClass
+      let protocolMatched = item.protocol === 0 || info.protocol <= 0 || item.protocol === info.protocol
+      if (subClassMatched && protocolMatched) {
+        return true
+      }
+    }
+    return false
   }
 
   private static resolveUsbEventInfo(data: commonEventManager.CommonEventData): ResolvedUsbEventInfo {
@@ -337,11 +530,21 @@ export class PeripheralRuntimeEventService {
       baseClassField
     )
     let baseClass = baseClassField ? baseClassField.value : Number.NaN
+    let subClassField = PeripheralRuntimeEventService.pickNumberFieldFromSources(
+      payloadSources,
+      ['subClass', 'subclass', 'usbSubClass']
+    )
+    let protocolField = PeripheralRuntimeEventService.pickNumberFieldFromSources(
+      payloadSources,
+      ['protocol', 'usbProtocol']
+    )
 
     let resolvedInfo: ResolvedUsbEventInfo = {
       vendorId: vendorId,
       productId: productId,
       baseClass: baseClass,
+      subClass: subClassField ? subClassField.value : 0,
+      protocol: protocolField ? protocolField.value : 0,
       occurAt: occurAt,
       deviceName: deviceName,
       detail: detail,
