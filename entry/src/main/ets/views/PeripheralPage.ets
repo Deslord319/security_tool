@@ -20,6 +20,7 @@ import {
   LogEventResult,
   LogExportFormat,
   LogExportResult,
+  UsbStoragePolicy,
   formatLogTimestamp,
   getLogEventResultLabel,
   getPeripheralRecordActionLabel,
@@ -27,6 +28,7 @@ import {
   getPeripheralRecordPolicyHitLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
+  getUsbStoragePolicyLabel,
   ParsedUsbId,
   parseUsbDeviceId,
   parseBluetoothMac,
@@ -475,7 +477,8 @@ export struct PeripheralPage {
         rawAction: 'connect',
         rawPayload: '{"vendorId":"2B7E","productId":"B5A2"}',
         detail: '摄像头接入后已通过策略校验，允许继续使用。',
-        processName: 'CameraService'
+        processName: 'CameraService',
+        usbPolicy: undefined
       },
       {
         id: 'preview-storage-block',
@@ -496,7 +499,8 @@ export struct PeripheralPage {
         rawAction: 'mount',
         rawPayload: '{"vendorId":"0781","productId":"5583"}',
         detail: '检测到可移动存储设备接入，按只读外设策略阻止访问。',
-        processName: 'UsbPolicyGuard'
+        processName: 'UsbPolicyGuard',
+        usbPolicy: UsbStoragePolicy.DISABLED
       },
       {
         id: 'preview-printer-disconnect',
@@ -517,7 +521,8 @@ export struct PeripheralPage {
         rawAction: 'disconnect',
         rawPayload: '{"vendorId":"03F0","productId":"0C17"}',
         detail: '打印机已安全断开，未触发额外限制。',
-        processName: 'PrintSpooler'
+        processName: 'PrintSpooler',
+        usbPolicy: undefined
       },
       {
         id: 'preview-keyboard-connect',
@@ -538,7 +543,8 @@ export struct PeripheralPage {
         rawAction: 'pair',
         rawPayload: '{"mac":"AA:BB:CC:DD:EE:01"}',
         detail: '蓝牙键盘已完成配对并加入可信设备列表。',
-        processName: 'BluetoothService'
+        processName: 'BluetoothService',
+        usbPolicy: undefined
       },
       {
         id: 'preview-keyboard-history',
@@ -559,7 +565,8 @@ export struct PeripheralPage {
         rawAction: 'disconnect',
         rawPayload: '{"mac":"AA:BB:CC:DD:EE:01"}',
         detail: '蓝牙键盘连接结束，保留历史记录用于界面预览。',
-        processName: 'BluetoothService'
+        processName: 'BluetoothService',
+        usbPolicy: undefined
       }
     ]
   }
@@ -1186,6 +1193,10 @@ export struct PeripheralPage {
         }
         .layoutWeight(1)
         .alignItems(VerticalAlign.Top)
+
+        if (this.currentTab === 0) {
+          this.pageHeaderActionButton()
+        }
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
@@ -1285,7 +1296,7 @@ export struct PeripheralPage {
         getPeripheralTypeLabel(record.deviceType),
         record.deviceId,
         this.getConnectionEventLabel(record),
-        this.getConnectionPolicyDisplay(record),
+        this.getExecutedUsbPolicyDisplay(record),
         this.formatConnectionTime(record),
         getPeripheralRecordSourceLabel(record.source),
         this.getConnectionResultLabel(record)
@@ -1380,6 +1391,13 @@ export struct PeripheralPage {
       return record.summary
     }
     return this.getConnectionPolicyHitLabel(record)
+  }
+
+  private getExecutedUsbPolicyDisplay(record: PeripheralConnectionRecord | null): string {
+    if (!record || record.deviceType !== PeripheralType.USB_STORAGE || record.usbPolicy === undefined) {
+      return '--'
+    }
+    return getUsbStoragePolicyLabel(record.usbPolicy)
   }
 
   private getConnectionHistoryTimes(record: PeripheralConnectionRecord | null): string[] {
@@ -1485,7 +1503,7 @@ export struct PeripheralPage {
       .layoutWeight(1.1)
 
       Row() {
-        Text(this.getConnectionPolicyDisplay(record))
+        Text(this.getExecutedUsbPolicyDisplay(record))
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
@@ -1541,7 +1559,7 @@ export struct PeripheralPage {
   }
 
   @Builder
-  private connectionHeaderActionButton() {
+  private pageHeaderActionButton() {
     Button() {
       Row({ space: 6 }) {
         Image($r('app.media.save'))
@@ -1632,6 +1650,7 @@ export struct PeripheralPage {
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             Column({ space: 10 }) {
               this.connectionDetailInfoRow('策略结论', this.getConnectionPolicyDisplay(this.selectedConnectionRecord))
+              this.connectionDetailInfoRow('实际执行策略', this.getExecutedUsbPolicyDisplay(this.selectedConnectionRecord))
               this.connectionDetailInfoRow('命中类型', this.selectedConnectionRecord ? this.getConnectionPolicyHitLabel(this.selectedConnectionRecord) : '--')
               this.connectionDetailInfoRow('结果状态', this.selectedConnectionRecord ? this.getConnectionResultLabel(this.selectedConnectionRecord) : '--')
               this.connectionDetailInfoRow('策略版本', this.selectedConnectionRecord?.policyVersion ?? 'UI 占位')
@@ -2217,26 +2236,6 @@ export struct PeripheralPage {
             .alignItems(HorizontalAlign.Center)
           } else {
             Column({ space: 0 }) {
-              Row() {
-                Column({ space: 4 }) {
-                  Text('设备连接记录')
-                    .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  Text('查看最近接入过的外设身份、连接时间与当前命中策略。')
-                    .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                    .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-                }
-                .alignItems(HorizontalAlign.Start)
-                .layoutWeight(1)
-
-                this.connectionHeaderActionButton()
-              }
-              .width('100%')
-              .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-              .alignItems(VerticalAlign.Center)
-
               this.connectionTableHeader()
               Column({ space: 0 }) {
                 ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
@@ -2293,22 +2292,6 @@ export struct PeripheralPage {
     } else {
       /*
       Column() {
-      Column({ space: 4 }) {
-        Text('设备连接记录')
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        Text('查看最近接入过的外设身份、连接时间与当前命中策略。')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      }
-      .width('100%')
-      .alignItems(HorizontalAlign.Start)
-      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-      .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
-
       if (this.deviceRecords.length === 0) {
         Column({ space: 12 }) {
           Text('暂无设备连接记录')

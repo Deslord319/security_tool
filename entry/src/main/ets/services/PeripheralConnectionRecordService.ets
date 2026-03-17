@@ -52,7 +52,8 @@ export class PeripheralConnectionRecordService {
       rawAction: record.rawAction,
       rawPayload: record.rawPayload,
       detail: record.detail,
-      processName: record.processName
+      processName: record.processName,
+      usbPolicy: record.usbPolicy
     }
   }
 }

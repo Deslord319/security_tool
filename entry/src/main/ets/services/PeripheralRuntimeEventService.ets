@@ -5,10 +5,12 @@ import {
   LogEventResult,
   PeripheralTraceRecord,
   PeripheralType,
+  UsbStoragePolicy,
   formatUsbDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
 import { PeripheralTraceRepository } from './PeripheralTraceRepository'
+import { PeripheralService } from './PeripheralService'
 
 const TAG = 'PeripheralRuntimeEvent'
 const DOMAIN = 0x000A
@@ -210,8 +212,36 @@ export class PeripheralRuntimeEventService {
       summary: action === 'connect' ? 'USB device connected' : 'USB device disconnected',
       rawEventName: data.event,
       rawPayload: PeripheralRuntimeEventService.safeJson(data),
-      detail: info.detail
+      detail: info.detail,
+      usbPolicy: PeripheralRuntimeEventService.resolveUsbPolicyForRecord(info.deviceType, action)
     })
+  }
+
+  private static resolveUsbPolicyForRecord(
+    deviceType: PeripheralType,
+    action: UsbEventAction
+  ): UsbStoragePolicy | undefined {
+    if (deviceType !== PeripheralType.USB_STORAGE) {
+      return undefined
+    }
+    if (action === 'disconnect') {
+      return PeripheralRuntimeEventService.readCurrentUsbStoragePolicy()
+    }
+    return PeripheralRuntimeEventService.readCurrentUsbStoragePolicy()
+  }
+
+  private static readCurrentUsbStoragePolicy(): UsbStoragePolicy {
+    let result = PeripheralService.getUsbStoragePolicyWithResult()
+    let policyValue = result.data as number | undefined
+    switch (policyValue) {
+      case UsbStoragePolicy.READ_ONLY:
+        return UsbStoragePolicy.READ_ONLY
+      case UsbStoragePolicy.DISABLED:
+        return UsbStoragePolicy.DISABLED
+      case UsbStoragePolicy.READ_WRITE:
+      default:
+        return UsbStoragePolicy.READ_WRITE
+    }
   }
 
   private static resolveUsbEventInfo(data: commonEventManager.CommonEventData): ResolvedUsbEventInfo {

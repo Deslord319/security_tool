@@ -206,6 +206,7 @@ export interface PeripheralConnectionRecord {
   rawPayload?: string
   detail?: string
   processName?: string
+  usbPolicy?: UsbStoragePolicy
 }
 
 export interface PeripheralWhitelistCandidate {
@@ -263,6 +264,7 @@ export interface PeripheralTraceRecord {
   rawPayload?: string
   detail?: string
   processName?: string
+  usbPolicy?: UsbStoragePolicy
 }
 
 export interface PeripheralTraceQuery {
