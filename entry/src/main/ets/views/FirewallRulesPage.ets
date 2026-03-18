@@ -1,27 +1,25 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallService } from '../services/FirewallService'
+import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
+import { FirewallModeService } from '../services/FirewallModeService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
-import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
 import { BackNavButton } from '../components/BackNavButton'
-import { DirectionCard } from '../components/DirectionCard'
 import { netFirewall } from '@kit.NetworkKit'
 import { promptAction } from '@kit.ArkUI'
+import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { HoverUtils } from '../utils/HoverUtils'
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { FirewallPresetMode } from '../models/DataModels'
 
 @Component
 export struct FirewallRulesPage {
+  @Prop currentMode: FirewallPresetMode = 'custom'
   @State rules: netFirewall.NetFirewallRule[] = []
   @State conflictNotice: string = ''
   @State currentTab: number = 0
   @State isLoading: boolean = false
-  @State hoveredRuleIndex: number = -1
   onBack: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  private resultDialogController?: CustomDialogController
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
@@ -37,73 +35,88 @@ export struct FirewallRulesPage {
     alignment: DialogAlignment.Center
   })
 
-  private userFirewallControlDialogController: CustomDialogController = new CustomDialogController({
-    builder: UserFirewallControlDialog({
-      onActionCompleted: () => {
-        this.loadRules()
-      }
-    }),
-    autoCancel: true,
-    customStyle: true,
-    alignment: DialogAlignment.Center
-  })
-
   aboutToAppear() {
-    this.loadRules()
-  }
-
-  private showResultDialog(status: ResultMessageStatus, message: string): void {
-    if (this.resultDialogController) {
-      try {
-        this.resultDialogController.close()
-      } catch (_err) {
-      }
-      this.resultDialogController = undefined
+    if (this.currentMode !== 'custom') {
+      promptAction.showToast({ message: '仅自定义模式可进入规则页' })
+      this.onBack()
+      return
     }
-
-    this.resultDialogController = new CustomDialogController({
-      builder: ResultMessageBox({
-        status: status,
-        message: message,
-        onConfirm: () => {
-          this.resultDialogController = undefined
-        },
-        onClose: () => {
-          this.resultDialogController = undefined
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
-    this.resultDialogController.open()
+    this.loadRules()
   }
 
   async loadRules() {
     this.isLoading = true
-    this.rules = await FirewallService.getAllRules()
+    let context = getContext(this) as common.UIAbilityContext
+    this.rules = await FirewallCustomRuleService.listRules(context)
     this.updateConflictNotice()
     this.isLoading = false
+  }
+
+  private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
+    let context = getContext(this) as common.UIAbilityContext
+    let saved = await FirewallCustomRuleService.replaceAllRules(context, nextRules)
+    if (!saved) {
+      promptAction.showToast({ message: '自定义规则保存失败' })
+      return
+    }
+    let result = await FirewallModeService.switchMode(context, 'custom')
+    if (!result.success) {
+      promptAction.showToast({ message: result.errorMessage?.length ? result.errorMessage : '自定义规则下发失败' })
+      return
+    }
+    await this.loadRules()
+    promptAction.showToast({ message: successMessage })
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
     let conflict = FirewallService.findRuleConflict(this.rules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        promptAction.showToast({ message: '规则已存在，无需重复添加' })
+        promptAction.showToast({ message: '存在重复规则' })
         return
       }
-      let existingRuleId = FirewallService.getRulePrimaryKey(conflict.existingRule)
-      if (conflict.kind === 'hard_conflict' && existingRuleId !== undefined) {
-        this.showReplaceRuleConfirm(existingRuleId, rule)
+      if (conflict.kind === 'hard_conflict') {
+        let conflictRule = conflict.existingRule
+        AlertDialog.show({
+          title: '存在冲突规则',
+          message: '发现动作相反的同类规则，是否用新规则覆盖旧规则？',
+          primaryButton: {
+            value: '覆盖',
+            action: () => {
+              this.replaceConflictRule(conflictRule, rule, false)
+            }
+          },
+          secondaryButton: {
+            value: '取消',
+            action: () => {}
+          }
+        })
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        this.showOverlapRiskConfirm(rule)
+        AlertDialog.show({
+          title: '规则范围重叠',
+          message: '新规则与现有规则有重叠，仍然继续保存并重新下发吗？',
+          primaryButton: {
+            value: '继续',
+            action: () => {
+              this.addRuleDirectly(rule)
+            }
+          },
+          secondaryButton: {
+            value: '取消',
+            action: () => {}
+          }
+        })
         return
       }
     }
     await this.addRuleDirectly(rule)
+  }
+
+  private async addRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
+    let nextRules = [...this.rules, rule]
+    await this.persistRules(nextRules, '自定义规则已新增')
   }
 
   private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
@@ -126,109 +139,87 @@ export struct FirewallRulesPage {
   }
 
   async handleEditRule(rule: netFirewall.NetFirewallRule) {
-    let currentRuleId = FirewallService.getRulePrimaryKey(rule)
-    let conflict = FirewallService.findRuleConflict(this.rules, rule, currentRuleId)
+    let currentRuleId = this.getLocalRuleId(rule)
+    let comparableRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== currentRuleId)
+    let conflict = FirewallService.findRuleConflict(comparableRules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        promptAction.showToast({ message: '规则已存在，无需重复保存' })
+        promptAction.showToast({ message: '存在重复规则' })
         return
       }
-      let existingRuleId = FirewallService.getRulePrimaryKey(conflict.existingRule)
-      if (conflict.kind === 'hard_conflict' && existingRuleId !== undefined) {
-        this.showReplaceRuleConfirm(existingRuleId, rule, true)
+      if (conflict.kind === 'hard_conflict') {
+        let conflictRule = conflict.existingRule
+        AlertDialog.show({
+          title: '存在冲突规则',
+          message: '发现动作相反的同类规则，是否删除旧规则并保存本次修改？',
+          primaryButton: {
+            value: '覆盖',
+            action: () => {
+              this.replaceConflictRule(conflictRule, rule, true)
+            }
+          },
+          secondaryButton: {
+            value: '取消',
+            action: () => {}
+          }
+        })
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        this.showOverlapRiskConfirm(rule, true)
+        AlertDialog.show({
+          title: '规则范围重叠',
+          message: '修改后的规则与现有规则有重叠，是否继续保存？',
+          primaryButton: {
+            value: '继续',
+            action: () => {
+              this.updateRuleDirectly(rule)
+            }
+          },
+          secondaryButton: {
+            value: '取消',
+            action: () => {}
+          }
+        })
         return
       }
     }
     await this.updateRuleDirectly(rule)
   }
 
-  private async addRuleDirectly(
-    rule: netFirewall.NetFirewallRule,
-    successMessage: string = '规则添加成功'
-  ) {
-    let ruleId = await FirewallService.addRule(rule)
-    if (ruleId > 0) {
-      this.showResultDialog('success', '防火墙规则已保存')
-      this.loadRules()
-      return
-      promptAction.showToast({ message: successMessage })
-      this.loadRules()
-      return
-    }
-    let errorKind = FirewallService.getLastErrorKind()
-    if (errorKind !== 'invalid_argument') {
-      if (errorKind === 'permission') {
-        this.showResultDialog('failure', '保存未完成，请检查权限和企业管理员状态')
-      } else {
-        this.showResultDialog('failure', '保存未完成，请稍后重试')
-      }
-      return
-    }
-    if (errorKind === 'invalid_argument') {
-      promptAction.showToast({ message: '规则参数不合法，请检查输入' })
-      return
-    }
-    if (errorKind === 'permission') {
-      this.showResultDialog('failure', '保存未完成，请检查权限和企业管理员状态')
-      return
-      promptAction.showToast({ message: '规则添加失败，请检查权限和企业管理员状态' })
-      return
-    }
-    promptAction.showToast({ message: '规则添加失败，请稍后重试' })
-  }
-
   private async updateRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let success = await FirewallService.updateRule(rule)
-    if (success) {
-      this.showResultDialog('success', '防火墙规则已更新')
-      this.loadRules()
-      return
-      promptAction.showToast({ message: '规则更新成功' })
-      this.loadRules()
-      return
-    }
-    let errorKind = FirewallService.getLastErrorKind()
-    if (errorKind !== 'invalid_argument') {
-      if (errorKind === 'permission') {
-        this.showResultDialog('failure', '更新未完成，请检查权限和企业管理员状态')
-      } else {
-        this.showResultDialog('failure', '更新未完成，请稍后重试')
-      }
-      return
-    }
-    if (errorKind === 'invalid_argument') {
-      promptAction.showToast({ message: '规则参数不合法，请检查输入' })
-      return
-    }
-    if (errorKind === 'permission') {
-      promptAction.showToast({ message: '规则更新失败，请检查权限和企业管理员状态' })
-      return
-    }
-    promptAction.showToast({ message: '规则更新失败，请稍后重试' })
+    let localRuleId = this.getLocalRuleId(rule)
+    let nextRules = this.rules.map((item: netFirewall.NetFirewallRule) =>
+      this.getLocalRuleId(item) === localRuleId ? rule : item
+    )
+    await this.persistRules(nextRules, '自定义规则已更新')
   }
 
-  private showReplaceRuleConfirm(
-    oldRuleId: number,
-    newRule: netFirewall.NetFirewallRule,
-    isEditMode: boolean = false
-  ): void {
+  private async replaceConflictRule(
+    conflictRule: netFirewall.NetFirewallRule,
+    nextRule: netFirewall.NetFirewallRule,
+    isEditMode: boolean
+  ): Promise<void> {
+    let conflictRuleId = this.getLocalRuleId(conflictRule)
+    let nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== conflictRuleId)
+    if (isEditMode) {
+      let currentRuleId = this.getLocalRuleId(nextRule)
+      nextRules = nextRules.map((item: netFirewall.NetFirewallRule) =>
+        this.getLocalRuleId(item) === currentRuleId ? nextRule : item
+      )
+    } else {
+      nextRules.push(nextRule)
+    }
+    await this.persistRules(nextRules, isEditMode ? '冲突规则已替换并保存' : '冲突规则已覆盖')
+  }
+
+  async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
     AlertDialog.show({
-      title: '存在冲突规则',
-      message: isEditMode
-        ? '检测到同一目标和方向下已存在相反动作的规则。覆盖后将删除冲突旧规则，并保存当前编辑结果。'
-        : '检测到同一目标和方向下已存在相反动作的规则。覆盖后将删除旧规则并保存新规则。',
+      title: '删除规则',
+      message: '删除后会立即重新下发当前自定义策略，是否继续？',
       primaryButton: {
-        value: '覆盖',
+        value: '删除',
         action: () => {
-          if (isEditMode) {
-            this.replaceRuleWhileEditing(oldRuleId, newRule)
-          } else {
-            this.replaceRule(oldRuleId, newRule)
-          }
+          this.deleteRuleDirectly(rule)
         }
       },
       secondaryButton: {
@@ -238,86 +229,29 @@ export struct FirewallRulesPage {
     })
   }
 
-  private showOverlapRiskConfirm(rule: netFirewall.NetFirewallRule, isEditMode: boolean = false): void {
-    AlertDialog.show({
-      title: '存在重叠规则',
-      message: '新规则与现有规则的命中范围存在重叠，实际生效结果可能受系统规则优先级影响。是否继续保存？',
-      primaryButton: {
-        value: '继续保存',
-        action: () => {
-          if (isEditMode) {
-            this.updateRuleDirectly(rule)
-          } else {
-            this.addRuleDirectly(rule)
-          }
-        }
-      },
-      secondaryButton: {
-        value: '取消',
-        action: () => {}
-      }
-    })
+  private async deleteRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
+    let localRuleId = this.getLocalRuleId(rule)
+    let nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== localRuleId)
+    await this.persistRules(nextRules, '自定义规则已删除')
   }
 
-  private async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<void> {
-    let ruleId = await FirewallService.replaceRule(oldRuleId, newRule)
-    if (ruleId <= 0) {
-      this.showResultDialog('failure', '覆盖未完成，请稍后重试')
-      return
-    }
-    if (ruleId > 0) {
-      this.showResultDialog('success', '防火墙规则已覆盖并生效')
-      this.loadRules()
-      return
-      promptAction.showToast({ message: '规则已覆盖并生效' })
-      this.loadRules()
-      return
-    }
-    promptAction.showToast({ message: '规则覆盖失败，请稍后重试' })
-  }
-
-  private async replaceRuleWhileEditing(oldRuleId: number, updatedRule: netFirewall.NetFirewallRule): Promise<void> {
-    let removed = await FirewallService.removeRule(oldRuleId)
-    if (!removed) {
-      this.showResultDialog('failure', '覆盖未完成，请稍后重试')
-      return
-      promptAction.showToast({ message: '规则覆盖失败，请稍后重试' })
-      return
-    }
-    await this.updateRuleDirectly(updatedRule)
+  private getLocalRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
+    return FirewallService.getRulePrimaryKey(rule)
   }
 
   private updateConflictNotice(): void {
     let summary = FirewallService.summarizeConflicts(this.rules)
     let parts: string[] = []
     if (summary.duplicates > 0) {
-      parts.push(`重复 ${summary.duplicates} 组`)
+      parts.push(`重复 ${summary.duplicates} 条`)
     }
     if (summary.hardConflicts > 0) {
-      parts.push(`硬冲突 ${summary.hardConflicts} 组`)
+      parts.push(`硬冲突 ${summary.hardConflicts} 条`)
     }
     if (summary.overlapConflicts > 0) {
-      parts.push(`重叠冲突 ${summary.overlapConflicts} 组`)
+      parts.push(`范围重叠 ${summary.overlapConflicts} 条`)
     }
-    this.conflictNotice = parts.length > 0
-      ? `检测到历史规则存在${parts.join('、')}，建议清理后再继续配置。`
-      : ''
-  }
-  async handleDeleteRule(ruleId: number) {
-    let success = await FirewallService.removeRule(ruleId)
-    if (!success) {
-      this.showResultDialog('failure', '删除未完成，请稍后重试')
-      return
-    }
-    if (success) {
-      this.showResultDialog('success', '防火墙规则已删除')
-      this.loadRules()
-      return
-      promptAction.showToast({ message: '规则已删除' })
-      this.loadRules()
-    } else {
-      promptAction.showToast({ message: '删除失败' })
-    }
+    this.conflictNotice = parts.length > 0 ? `当前自定义规则集中存在：${parts.join('，')}` : ''
   }
 
   getFilteredRules(): netFirewall.NetFirewallRule[] {
@@ -330,27 +264,23 @@ export struct FirewallRulesPage {
       netFirewall.NetFirewallRuleType.RULE_DOMAIN,
       netFirewall.NetFirewallRuleType.RULE_DNS
     ]
-    return this.rules.filter((r: netFirewall.NetFirewallRule) => r.type === typeMap[this.currentTab])
+    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === typeMap[this.currentTab])
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
-    return this.rules.filter((r: netFirewall.NetFirewallRule) => r.type === type).length
-  }
-
-  countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
-    return this.rules.filter((r: netFirewall.NetFirewallRule) => r.direction === direction).length
+    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === type).length
   }
 
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return 'IP规则'
+        return 'IP'
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return '域名规则'
+        return '域名'
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return 'DNS规则'
+        return 'DNS'
       default:
-        return '未知规则'
+        return '未知'
     }
   }
 
@@ -398,37 +328,52 @@ export struct FirewallRulesPage {
   }
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '允许' : '拒绝'
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '允许' : '阻止'
   }
 
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG : AppColors.getColors(this.currentTheme).TAG_RED_BG
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW
+      ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG
+      : AppColors.getColors(this.currentTheme).TAG_RED_BG
   }
 
   getActionTextColor(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW
+      ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
+      : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
   }
 
   getRuleAddress(rule: netFirewall.NetFirewallRule): string {
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP && rule.remoteIps && rule.remoteIps.length > 0) {
-      let ip = rule.remoteIps[0]
-      return ip.mask !== undefined && ip.mask < 32 ? `${ip.address}/${ip.mask}` : (ip.address ?? '-')
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
+      let ip = rule.remoteIps?.[0]
+      if (!ip?.address) {
+        return '-'
+      }
+      return ip.mask !== undefined && ip.mask < 32 ? `${ip.address}/${ip.mask}` : ip.address
     }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN && rule.domains && rule.domains.length > 0) {
-      return rule.domains[0].domain ?? '-'
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
+      return rule.domains?.[0]?.domain ?? '-'
     }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS && rule.dns) {
-      return rule.dns.primaryDns ?? '-'
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      return rule.dns?.primaryDns ?? '-'
     }
     return '-'
   }
 
-  getRulePort(rule: netFirewall.NetFirewallRule): string {
-    if (rule.remotePorts && rule.remotePorts.length > 0) {
-      let port = rule.remotePorts[0]
-      return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
+  getRuleLocalPort(rule: netFirewall.NetFirewallRule): string {
+    let port = rule.localPorts?.[0]
+    if (!port) {
+      return 'ALL'
     }
-    return 'ALL'
+    return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
+  }
+
+  getRuleRemotePort(rule: netFirewall.NetFirewallRule): string {
+    let port = rule.remotePorts?.[0]
+    if (!port) {
+      return 'ALL'
+    }
+    return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
   }
 
   getProtocolLabel(rule: netFirewall.NetFirewallRule): string {
@@ -485,13 +430,6 @@ export struct FirewallRulesPage {
     .borderRadius(AppStyles.RADIUS_MD)
   }
 
-  @Builder
-  summaryCard(index: number, label: string, value: string, icon: Resource, color: string) {
-    Blank()
-      .width(0)
-      .height(0)
-  }
-
   build() {
     Scroll() {
       Column({ space: 18 }) {
@@ -503,13 +441,13 @@ export struct FirewallRulesPage {
                   this.onBack()
                 }
               })
-              Text('防火墙规则')
+              Text('自定义规则')
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             }
 
-            Text('查看、添加和删除防火墙规则，注意避免对同一目标配置相互冲突的动作。')
+            Text('当前页面只维护自定义模式规则。保存后会重新下发整套自定义策略。')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -517,19 +455,7 @@ export struct FirewallRulesPage {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          Button('按用户控制')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.BRAND_PRIMARY)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.BRAND_PRIMARY })
-            .height(36)
-            .margin({ right: 8 })
-            .onClick(() => {
-              this.userFirewallControlDialogController.open()
-            })
-
-          Button('+ 添加规则')
+          Button('+ 新增规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(Color.White)
             .backgroundColor(AppColors.BRAND_PRIMARY)
@@ -543,7 +469,7 @@ export struct FirewallRulesPage {
 
         if (this.conflictNotice.length > 0) {
           Row({ space: 8 }) {
-            Text('风险提示')
+            Text('注意')
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontWeight(FontWeight.Medium)
               .fontColor('#8A5200')
@@ -562,47 +488,6 @@ export struct FirewallRulesPage {
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: 1, color: '#FFD591' })
         }
-        Row({ space: 16 }) {
-          DirectionCard({
-            label: '入站规则 (RULE_IN)',
-            count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
-            gradientStart: '#FF9500',
-            gradientEnd: '#FFCC00',
-            icon: $r('app.media.arrow_down')
-          })
-            .layoutWeight(1)
-
-          DirectionCard({
-            label: '出站规则 (RULE_OUT)',
-            count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
-            gradientStart: '#0A84FF',
-            gradientEnd: '#00C6FF',
-            icon: $r('app.media.arrow_up')
-          })
-            .layoutWeight(1)
-        }
-        .width('100%')
-
-        GridRow({ columns: 4, gutter: 14 }) {
-          GridCol() {
-            this.summaryCard(0, '全部规则', this.rules.length.toString(), $r('app.media.firewall'), AppColors.BRAND_PRIMARY)
-          }
-          GridCol() {
-            this.summaryCard(1, 'IP规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP).toString(),
-              $r('app.media.network'), AppColors.BRAND_PRIMARY)
-          }
-          GridCol() {
-            this.summaryCard(2, '域名规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN).toString(),
-              $r('app.media.globe'), '#5856D6')
-          }
-          GridCol() {
-            this.summaryCard(3, 'DNS规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS).toString(),
-              $r('app.media.server'), AppColors.SUCCESS)
-          }
-        }
-        .width('100%')
-        .height(0)
-        .visibility(Visibility.None)
 
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
@@ -645,7 +530,7 @@ export struct FirewallRulesPage {
           LoadingProgress()
             .width(42)
             .height(42)
-          Text('正在加载规则...')
+          Text('正在加载自定义规则...')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -655,7 +540,7 @@ export struct FirewallRulesPage {
         .justifyContent(FlexAlign.Center)
       } else if (this.getFilteredRules().length === 0) {
         Column({ space: 10 }) {
-          Text('当前类型下暂无规则')
+          Text('当前没有自定义规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -666,7 +551,7 @@ export struct FirewallRulesPage {
         .alignItems(HorizontalAlign.Center)
       } else {
         List({ space: 12 }) {
-          ForEach(this.getFilteredRules(), (rule: netFirewall.NetFirewallRule, index: number) => {
+          ForEach(this.getFilteredRules(), (rule: netFirewall.NetFirewallRule) => {
             ListItem() {
               Column({ space: 14 }) {
                 Row({ space: 12 }) {
@@ -717,24 +602,24 @@ export struct FirewallRulesPage {
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)
 
-                  Button('删除')
-                    .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                    .fontColor(AppColors.DANGER)
-                    .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
-                    .borderRadius(AppStyles.RADIUS_SM)
-                    .height(30)
-                    .onClick(() => {
-                      let ruleId = FirewallService.getRulePrimaryKey(rule)
-                      if (ruleId !== undefined) {
-                        this.handleDeleteRule(ruleId)
-                      }
-                    })
+                  Row({ space: 8 }) {
+                    Button('删除')
+                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                      .fontColor(AppColors.DANGER)
+                      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
+                      .borderRadius(AppStyles.RADIUS_SM)
+                      .height(30)
+                      .onClick(() => {
+                        this.handleDeleteRule(rule)
+                      })
+                  }
                 }
                 .width('100%')
 
                 Column({ space: 10 }) {
-                  this.detailRow('地址 / 域名', this.getRuleAddress(rule))
-                  this.detailRow('端口', this.getRulePort(rule))
+                  this.detailRow('远端地址', this.getRuleAddress(rule))
+                  this.detailRow('本地端口', this.getRuleLocalPort(rule))
+                  this.detailRow('远端端口', this.getRuleRemotePort(rule))
                   this.detailRow('协议', this.getProtocolLabel(rule))
                 }
                 .width('100%')
@@ -745,17 +630,10 @@ export struct FirewallRulesPage {
               .borderRadius(AppStyles.RADIUS_LG)
               .border({
                 width: 1,
-                color: this.hoveredRuleIndex === index ? this.getRuleTypeTextColor(rule.type) : AppColors.getColors(this.currentTheme).BORDER
+                color: AppColors.getColors(this.currentTheme).BORDER
               })
-              .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredRuleIndex === index, true))
-              .translate({ y: HoverUtils.getTranslateY(this.hoveredRuleIndex === index, 4) })
               .onClick(() => {
                 this.openEditRuleDialog(rule)
-              })
-              .onHover((isHover: boolean) => {
-                HoverUtils.animate(() => {
-                  this.hoveredRuleIndex = isHover ? index : -1
-                })
               })
             }
           })

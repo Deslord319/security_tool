@@ -551,6 +551,31 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 
+export type FirewallManagedRuleKind = 'preset' | 'custom'
+
+export interface FirewallManagedRuleMetadata {
+  owner: 'security_tool'
+  mode: FirewallPresetMode
+  kind: FirewallManagedRuleKind
+  customRuleId?: string
+  templateKey?: string
+}
+
+export interface FirewallModeSwitchResult {
+  success: boolean
+  mode: FirewallPresetMode
+  appliedRuleCount: number
+  errorCode?: number
+  errorMessage?: string
+}
+
+export interface FirewallPresetConfig {
+  fixedPublicIp: string
+  privateCidrs: string[]
+  privateTcpPorts: number[]
+  privateUdpPorts: number[]
+}
+
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
 
@@ -609,6 +634,10 @@ export const PREF_KEY_FIREWALL_PIN_FAILED_COUNT = 'firewall_pin_failed_count'
 export const PREF_KEY_FIREWALL_PIN_LOCK_UNTIL = 'firewall_pin_lock_until'
 export const FIREWALL_PIN_LOCK_MAX_ATTEMPTS = 3
 export const FIREWALL_PIN_LOCK_DURATION_MS = 60 * 1000
+export const PREF_STORE_NAME_FIREWALL_MODE = 'firewall_mode'
+export const PREF_KEY_FIREWALL_ACTIVE_MODE = 'firewall_active_mode'
+export const PREF_STORE_NAME_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules'
+export const PREF_KEY_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules_payload'
 
 
 

@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { FirewallPresetMode } from '../models/DataModels'
+import { FirewallPresetConfig, FirewallPresetMode } from '../models/DataModels'
 import { FirewallService } from './FirewallService'
 import { FirewallPresetConfigService } from './FirewallPresetConfigService'
 
@@ -12,6 +12,13 @@ export class FirewallPresetService {
     mode: FirewallPresetMode
   ): Promise<netFirewall.NetFirewallRule[]> {
     let config = await FirewallPresetConfigService.loadConfig(context)
+    return FirewallPresetService.buildRulesForConfig(mode, config)
+  }
+
+  static buildRulesForConfig(
+    mode: FirewallPresetMode,
+    config: FirewallPresetConfig
+  ): netFirewall.NetFirewallRule[] {
     if (mode === 'custom') {
       return []
     }
@@ -102,8 +109,10 @@ export class FirewallPresetService {
         if (port !== undefined) {
           rule.localPorts = [{ startPort: port, endPort: port }]
         }
-        if (cidr !== undefined) {
-          let ipParam = FirewallPresetService.toIpParam(cidr)
+        if (usingAnyScope) {
+          rule.remoteIps = [FirewallService.createAnyIpv4RangeParam()]
+        } else {
+          let ipParam = FirewallPresetService.toIpParam(cidr ?? '')
           if (!ipParam) {
             return
           }

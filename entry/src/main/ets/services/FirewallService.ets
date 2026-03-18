@@ -1,5 +1,6 @@
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../models/DataModels'
 
 const TAG = 'FirewallService'
 const DOMAIN = 0x0001
@@ -44,13 +45,17 @@ interface NormalizedDomainPattern {
 interface FirewallRuleLogPayload {
   primaryKey?: number
   name?: string
+  description?: string
   type?: netFirewall.NetFirewallRuleType
   direction?: netFirewall.NetFirewallRuleDirection
   action?: netFirewall.FirewallRuleAction
   userId?: number
+  appUidType?: string
   isEnabled?: boolean
   protocol?: number
+  localIps?: netFirewall.NetFirewallIpParams[]
   remoteIps?: netFirewall.NetFirewallIpParams[]
+  localPorts?: netFirewall.NetFirewallPortParams[]
   remotePorts?: netFirewall.NetFirewallPortParams[]
   domains?: netFirewall.NetFirewallDomainParams[]
   dns?: netFirewall.NetFirewallDnsParams
@@ -61,10 +66,29 @@ interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   ruleId?: number
 }
 
+const RULE_METADATA_PREFIX = 'SECURITY_TOOL_META:'
+
 export class FirewallService {
   private static lastErrorCode: number | undefined = undefined
   private static lastErrorMessage: string = ''
   private static lastErrorKind: FirewallErrorKind = 'unknown'
+
+  static createAnyIpv4RangeParam(): netFirewall.NetFirewallIpParams {
+    return {
+      type: 2,
+      family: 1,
+      startIp: '0.0.0.0',
+      endIp: '255.255.255.255'
+    }
+  }
+
+  static normalizeRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
+    let clonedRule = FirewallService.cloneRuleForCreate(rule)
+    if (clonedRule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
+      clonedRule.remoteIps = FirewallService.normalizeCreateIpParams(clonedRule.remoteIps)
+    }
+    return clonedRule
+  }
 
   static getRulePrimaryKey(rule: netFirewall.NetFirewallRule): number | undefined {
     let sourceRule = rule as FirewallRuleWithKey
@@ -175,10 +199,11 @@ export class FirewallService {
   static async setFirewallEnabled(enabled: boolean): Promise<boolean> {
     FirewallService.clearLastError()
     try {
+      let existingPolicy = await FirewallService.getFirewallPolicy()
       let policy: netFirewall.NetFirewallPolicy = {
         isOpen: enabled,
-        inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
-        outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
+        inAction: existingPolicy?.inAction ?? netFirewall.FirewallRuleAction.RULE_ALLOW,
+        outAction: existingPolicy?.outAction ?? netFirewall.FirewallRuleAction.RULE_ALLOW
       }
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
       hilog.info(DOMAIN, TAG, `setFirewallEnabled: ${enabled}`)
@@ -190,18 +215,41 @@ export class FirewallService {
     }
   }
 
+  static async setFirewallPolicy(policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
+    FirewallService.clearLastError()
+    try {
+      await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
+      hilog.info(DOMAIN, TAG, `setFirewallPolicy success: ${JSON.stringify(policy)}`)
+      return true
+    } catch (err) {
+      FirewallService.recordError('set firewall policy failed', err as Object)
+      hilog.error(DOMAIN, TAG, `setFirewallPolicy failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
   // 获取所有防火墙规则（分页获取全部）
   static async getAllRules(): Promise<netFirewall.NetFirewallRule[]> {
     FirewallService.clearLastError()
     try {
-      let requestParam: netFirewall.RequestParam = {
-        page: 1,
-        pageSize: 50,
-        orderField: netFirewall.NetFirewallOrderField.ORDER_BY_RULE_NAME,
-        orderType: netFirewall.NetFirewallOrderType.ORDER_ASC
+      let allRules: netFirewall.NetFirewallRule[] = []
+      let page = 1
+      while (true) {
+        let requestParam: netFirewall.RequestParam = {
+          page: page,
+          pageSize: 50,
+          orderField: netFirewall.NetFirewallOrderField.ORDER_BY_RULE_NAME,
+          orderType: netFirewall.NetFirewallOrderType.ORDER_ASC
+        }
+        let result = await netFirewall.getNetFirewallRules(DEFAULT_USER_ID, requestParam)
+        let pageRules = result.data ?? []
+        allRules.push(...pageRules)
+        if (pageRules.length < requestParam.pageSize) {
+          break
+        }
+        page++
       }
-      let result = await netFirewall.getNetFirewallRules(DEFAULT_USER_ID, requestParam)
-      return result.data ?? []
+      return allRules
     } catch (err) {
       FirewallService.recordError('读取防火墙规则', err as Object)
       hilog.error(DOMAIN, TAG, `getAllRules failed: ${JSON.stringify(err)}`)
@@ -213,13 +261,15 @@ export class FirewallService {
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
     FirewallService.clearLastError()
     try {
-      FirewallService.logRulePayload('addRule payload', rule)
-      let ruleId = await netFirewall.addNetFirewallRule(rule)
+      let preparedRule = FirewallService.normalizeRuleForCreate(rule)
+      FirewallService.logRulePayload('addRule payload', preparedRule)
+      let ruleId = await netFirewall.addNetFirewallRule(preparedRule)
       hilog.info(DOMAIN, TAG, `addRule success, ruleId: ${ruleId}`)
       return ruleId
     } catch (err) {
       FirewallService.recordError('新增防火墙规则', err as Object)
-      FirewallService.logRulePayload('addRule failed payload', rule)
+      let preparedRule = FirewallService.normalizeRuleForCreate(rule)
+      FirewallService.logRulePayload('addRule failed payload', preparedRule)
       hilog.error(DOMAIN, TAG, `addRule failed: ${JSON.stringify(err)}`)
       return -1
     }
@@ -267,6 +317,282 @@ export class FirewallService {
     }
     hilog.error(DOMAIN, TAG, `replaceRule failed after removing old rule, oldRuleId=${oldRuleId}`)
     return -1
+  }
+
+  static cloneRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
+    let clonedRule: netFirewall.NetFirewallRule = {
+      userId: FirewallService.normalizeNumber(rule.userId) ?? DEFAULT_USER_ID,
+      name: rule.name,
+      direction: rule.direction,
+      action: rule.action,
+      type: rule.type,
+      isEnabled: rule.isEnabled
+    }
+    if (rule.description !== undefined) {
+      clonedRule.description = rule.description
+    }
+    let appUid = FirewallService.normalizeNumber(rule.appUid)
+    if (appUid !== undefined) {
+      clonedRule.appUid = appUid
+    }
+    let localIps = FirewallService.cloneIpParams(rule.localIps)
+    if (localIps !== undefined) {
+      clonedRule.localIps = localIps
+    }
+    let remoteIps = FirewallService.cloneIpParams(rule.remoteIps)
+    if (remoteIps !== undefined) {
+      clonedRule.remoteIps = remoteIps
+    }
+    let protocol = FirewallService.normalizeNumber(rule.protocol)
+    if (protocol !== undefined) {
+      clonedRule.protocol = protocol
+    }
+    let localPorts = FirewallService.clonePortParams(rule.localPorts)
+    if (localPorts !== undefined) {
+      clonedRule.localPorts = localPorts
+    }
+    let remotePorts = FirewallService.clonePortParams(rule.remotePorts)
+    if (remotePorts !== undefined) {
+      clonedRule.remotePorts = remotePorts
+    }
+    let domains = FirewallService.cloneDomainParams(rule.domains)
+    if (domains !== undefined) {
+      clonedRule.domains = domains
+    }
+    let dns = FirewallService.cloneDnsParams(rule.dns)
+    if (dns !== undefined) {
+      clonedRule.dns = dns
+    }
+    return clonedRule
+  }
+
+  private static cloneIpParams(
+    source?: netFirewall.NetFirewallIpParams[]
+  ): netFirewall.NetFirewallIpParams[] | undefined {
+    if (!source || source.length === 0) {
+      return undefined
+    }
+    let result: netFirewall.NetFirewallIpParams[] = []
+    for (let i = 0; i < source.length; i++) {
+      let clonedItem = FirewallService.sanitizeIpParam(source[i])
+      if (clonedItem) {
+        result.push(clonedItem)
+      }
+    }
+    return result.length > 0 ? result : undefined
+  }
+
+  private static normalizeCreateIpParams(
+    source?: netFirewall.NetFirewallIpParams[]
+  ): netFirewall.NetFirewallIpParams[] | undefined {
+    if (!source || source.length === 0) {
+      return undefined
+    }
+    let result: netFirewall.NetFirewallIpParams[] = []
+    for (let i = 0; i < source.length; i++) {
+      let normalized = FirewallService.normalizeCreateIpParam(source[i])
+      if (normalized) {
+        result.push(normalized)
+      }
+    }
+    return result.length > 0 ? result : undefined
+  }
+
+  private static normalizeCreateIpParam(
+    source: netFirewall.NetFirewallIpParams
+  ): netFirewall.NetFirewallIpParams | undefined {
+    if (source.address === '0.0.0.0' && FirewallService.normalizeNumber(source.mask) === 0) {
+      return FirewallService.createAnyIpv4RangeParam()
+    }
+    return FirewallService.sanitizeIpParam(source)
+  }
+
+  private static sanitizeIpParam(
+    source: netFirewall.NetFirewallIpParams
+  ): netFirewall.NetFirewallIpParams | undefined {
+    let family = FirewallService.normalizeNumber(source.family) ?? 1
+    if (source.type === 1 || (source.address !== undefined && source.mask !== undefined)) {
+      let mask = FirewallService.normalizeNumber(source.mask)
+      if (source.address === undefined || mask === undefined) {
+        return undefined
+      }
+      return {
+        type: 1,
+        family: family,
+        address: source.address,
+        mask: mask
+      }
+    }
+    if (source.type === 2 || (source.startIp !== undefined && source.endIp !== undefined)) {
+      if (source.startIp === undefined || source.endIp === undefined) {
+        return undefined
+      }
+      return {
+        type: 2,
+        family: family,
+        startIp: source.startIp,
+        endIp: source.endIp
+      }
+    }
+    return undefined
+  }
+
+  private static clonePortParams(
+    source?: netFirewall.NetFirewallPortParams[]
+  ): netFirewall.NetFirewallPortParams[] | undefined {
+    if (!source || source.length === 0) {
+      return undefined
+    }
+    let result: netFirewall.NetFirewallPortParams[] = []
+    for (let i = 0; i < source.length; i++) {
+      let item = source[i]
+      let startPort = FirewallService.normalizeNumber(item.startPort)
+      let endPort = FirewallService.normalizeNumber(item.endPort)
+      if (startPort === undefined && endPort === undefined) {
+        continue
+      }
+      let resolvedStartPort = startPort ?? endPort ?? 0
+      let resolvedEndPort = endPort ?? startPort ?? resolvedStartPort
+      result.push({
+        startPort: resolvedStartPort,
+        endPort: resolvedEndPort
+      })
+    }
+    return result.length > 0 ? result : undefined
+  }
+
+  private static cloneDomainParams(
+    source?: netFirewall.NetFirewallDomainParams[]
+  ): netFirewall.NetFirewallDomainParams[] | undefined {
+    if (!source || source.length === 0) {
+      return undefined
+    }
+    let result: netFirewall.NetFirewallDomainParams[] = []
+    for (let i = 0; i < source.length; i++) {
+      let item = source[i]
+      result.push({
+        domain: item.domain,
+        isWildcard: item.isWildcard
+      })
+    }
+    return result
+  }
+
+  private static cloneDnsParams(
+    source?: netFirewall.NetFirewallDnsParams
+  ): netFirewall.NetFirewallDnsParams | undefined {
+    if (!source) {
+      return undefined
+    }
+    return {
+      primaryDns: source.primaryDns,
+      standbyDns: source.standbyDns
+    }
+  }
+
+  private static normalizeNumber(value: Object | number | undefined): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+    return undefined
+  }
+
+  static buildManagedRuleDescription(metadata: FirewallManagedRuleMetadata): string {
+    return `${RULE_METADATA_PREFIX}${JSON.stringify(metadata)}`
+  }
+
+  static parseManagedRuleDescription(description?: string): FirewallManagedRuleMetadata | null {
+    if (!description || !description.startsWith(RULE_METADATA_PREFIX)) {
+      return null
+    }
+    try {
+      let payload = JSON.parse(description.substring(RULE_METADATA_PREFIX.length)) as FirewallManagedRuleMetadata
+      if (payload.owner !== 'security_tool') {
+        return null
+      }
+      if (payload.mode !== 'public' && payload.mode !== 'private' && payload.mode !== 'custom') {
+        return null
+      }
+      if (payload.kind !== 'preset' && payload.kind !== 'custom') {
+        return null
+      }
+      return payload
+    } catch (_err) {
+      return null
+    }
+  }
+
+  static applyManagedRuleMetadata(
+    rule: netFirewall.NetFirewallRule,
+    metadata: FirewallManagedRuleMetadata
+  ): netFirewall.NetFirewallRule {
+    let clonedRule = FirewallService.cloneRuleForCreate(rule)
+    clonedRule.description = FirewallService.buildManagedRuleDescription(metadata)
+    return clonedRule
+  }
+
+  static async addRules(rules: netFirewall.NetFirewallRule[]): Promise<boolean> {
+    for (let i = 0; i < rules.length; i++) {
+      let ruleId = await FirewallService.addRule(FirewallService.cloneRuleForCreate(rules[i]))
+      if (ruleId <= 0) {
+        return false
+      }
+    }
+    return true
+  }
+
+  static async clearAllRules(): Promise<boolean> {
+    let rules = await FirewallService.getAllRules()
+    for (let i = 0; i < rules.length; i++) {
+      let ruleId = FirewallService.getRulePrimaryKey(rules[i])
+      if (ruleId === undefined) {
+        continue
+      }
+      let removed = await FirewallService.removeRule(ruleId)
+      if (!removed) {
+        return false
+      }
+    }
+    return true
+  }
+
+  static async applyRuleSet(
+    rules: netFirewall.NetFirewallRule[],
+    mode: FirewallPresetMode
+  ): Promise<boolean> {
+    FirewallService.clearLastError()
+    let snapshotPolicy = await FirewallService.getFirewallPolicy()
+    if (snapshotPolicy === null) {
+      return false
+    }
+    let snapshotRules = await FirewallService.getAllRules()
+    let targetPolicy: netFirewall.NetFirewallPolicy = {
+      isOpen: snapshotPolicy.isOpen,
+      inAction: netFirewall.FirewallRuleAction.RULE_DENY,
+      outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
+    }
+    if (!await FirewallService.clearAllRules()) {
+      return false
+    }
+    if (!await FirewallService.setFirewallPolicy(targetPolicy)) {
+      await FirewallService.restoreRuleSet(snapshotPolicy, snapshotRules)
+      return false
+    }
+    if (!await FirewallService.addRules(rules)) {
+      hilog.error(DOMAIN, TAG, `applyRuleSet failed while applying mode=${mode}`)
+      await FirewallService.restoreRuleSet(snapshotPolicy, snapshotRules)
+      return false
+    }
+    return true
+  }
+
+  private static async restoreRuleSet(
+    policy: netFirewall.NetFirewallPolicy,
+    rules: netFirewall.NetFirewallRule[]
+  ): Promise<void> {
+    await FirewallService.clearAllRules()
+    await FirewallService.setFirewallPolicy(policy)
+    await FirewallService.addRules(rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule)))
   }
 
   static findRuleConflict(
@@ -431,10 +757,10 @@ export class FirewallService {
 
   private static normalizeIpRule(rule: netFirewall.NetFirewallRule): NormalizedIpRule | null {
     let ipParams = rule.remoteIps?.[0]
-    if (!ipParams || !ipParams.address) {
+    if (!ipParams) {
       return null
     }
-    let ipRange = FirewallService.normalizeIpv4Range(ipParams.address, ipParams.mask)
+    let ipRange = FirewallService.normalizeIpParamRange(ipParams)
     if (!ipRange) {
       return null
     }
@@ -444,6 +770,24 @@ export class FirewallService {
       port: FirewallService.normalizePortRange(rule)
     }
     return normalizedRule
+  }
+
+  private static normalizeIpParamRange(ipParam: netFirewall.NetFirewallIpParams): NormalizedIpRange | null {
+    if (ipParam.startIp && ipParam.endIp) {
+      let startIp = FirewallService.parseIpv4(ipParam.startIp.trim())
+      let endIp = FirewallService.parseIpv4(ipParam.endIp.trim())
+      if (startIp === null || endIp === null || startIp > endIp) {
+        return null
+      }
+      return {
+        start: startIp,
+        end: endIp
+      }
+    }
+    if (!ipParam.address) {
+      return null
+    }
+    return FirewallService.normalizeIpv4Range(ipParam.address, ipParam.mask)
   }
 
   private static normalizeIpv4Range(address: string, maskValue?: number): NormalizedIpRange | null {
@@ -487,7 +831,7 @@ export class FirewallService {
   }
 
   private static normalizePortRange(rule: netFirewall.NetFirewallRule): NormalizedPortRange {
-    let port = rule.remotePorts?.[0]
+    let port = rule.localPorts?.[0] ?? rule.remotePorts?.[0]
     if (!port) {
       return { start: 0, end: 65535 }
     }
@@ -555,18 +899,26 @@ export class FirewallService {
     let summary: FirewallRuleLogPayload = {
       primaryKey: FirewallService.getRulePrimaryKey(rule),
       name: rule.name,
+      description: rule.description,
       type: rule.type,
       direction: rule.direction,
       action: rule.action,
       userId: rule.userId,
+      appUidType: rule.appUid === undefined ? 'absent' : typeof rule.appUid,
       isEnabled: rule.isEnabled,
       protocol: rule.protocol,
-      remoteIps: rule.remoteIps,
-      remotePorts: rule.remotePorts,
-      domains: rule.domains,
-      dns: rule.dns
+      localIps: FirewallService.sanitizeLogIpParams(rule.localIps),
+      remoteIps: FirewallService.sanitizeLogIpParams(rule.remoteIps),
+      localPorts: rule.localPorts,
+      remotePorts: rule.remotePorts
     }
     hilog.info(DOMAIN, TAG, `${prefix}: ${JSON.stringify(summary)}`)
+  }
+
+  private static sanitizeLogIpParams(
+    source?: netFirewall.NetFirewallIpParams[]
+  ): netFirewall.NetFirewallIpParams[] | undefined {
+    return FirewallService.cloneIpParams(source)
   }
 
   static countByType(rules: netFirewall.NetFirewallRule[], type: netFirewall.NetFirewallRuleType): number {

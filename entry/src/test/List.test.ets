@@ -1,6 +1,7 @@
 import localUnitTest from './common/LocalUnit.test'
 import secureStorageTest from './common/secure-storage.test'
 import firewallModelsTest from './firewall/models.test'
+import firewallPresetServiceTest from './firewall/preset-service.test'
 import firewallServiceTest from './firewall/service.test'
 import authTest from './auth/service.test'
 import peripheralModelsTest from './peripheral/models.test'
@@ -22,6 +23,7 @@ export default function testsuite() {
 
   // 防火墙模块
   firewallModelsTest()
+  firewallPresetServiceTest()
   firewallServiceTest()
 
   // 认证模块

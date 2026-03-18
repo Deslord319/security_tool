@@ -23,6 +23,7 @@ export struct AddRuleDialog {
   @State ruleDirection: number = netFirewall.NetFirewallRuleDirection.RULE_IN
   @State protocol: number = 6
   @State remoteAddress: string = ''
+  @State localPort: string = ''
   @State remotePort: string = ''
   @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -42,7 +43,8 @@ export struct AddRuleDialog {
     this.action = rule.action ?? netFirewall.FirewallRuleAction.RULE_ALLOW
     this.protocol = rule.protocol ?? 6
     this.remoteAddress = this.resolveRemoteAddress(rule)
-    this.remotePort = this.resolveRemotePort(rule)
+    this.localPort = this.resolvePort(rule.localPorts)
+    this.remotePort = this.resolvePort(rule.remotePorts)
   }
 
   private resolveRemoteAddress(rule: netFirewall.NetFirewallRule): string {
@@ -63,9 +65,9 @@ export struct AddRuleDialog {
     return ''
   }
 
-  private resolveRemotePort(rule: netFirewall.NetFirewallRule): string {
-    let port = rule.remotePorts?.[0]
-    if (!port?.startPort) {
+  private resolvePort(ports?: netFirewall.NetFirewallPortParams[]): string {
+    let port = ports?.[0]
+    if (!port) {
       return ''
     }
     if (port.endPort !== undefined && port.endPort !== port.startPort) {
@@ -119,6 +121,7 @@ export struct AddRuleDialog {
   private validateForm(): string {
     let ruleName = this.ruleName.trim()
     let remoteAddress = this.remoteAddress.trim()
+    let localPort = this.localPort.trim()
     let remotePort = this.remotePort.trim()
 
     if (ruleName.length === 0) {
@@ -130,25 +133,29 @@ export struct AddRuleDialog {
         return '请输入域名'
       }
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-        return '请输入 DNS 服务器地址'
+        return '请输入 DNS 地址'
       }
-      return '请输入合法的 IP 地址或 CIDR'
+      return '请输入远端 IP 或 CIDR'
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && !this.isValidIpv4OrCidr(remoteAddress)) {
-      return '请输入合法的 IP 地址或 CIDR'
+      return '远端 IP 或 CIDR 格式不正确'
+    }
+
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && localPort.length > 0 && !this.isValidPort(localPort)) {
+      return '本地端口范围必须为 1-65535'
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && remotePort.length > 0 && !this.isValidPort(remotePort)) {
-      return '端口范围应为 1-65535'
+      return '远端端口范围必须为 1-65535'
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN && !this.isValidDomain(remoteAddress)) {
-      return '请输入合法的域名'
+      return '域名格式不正确'
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS && !this.isValidIpv4Address(remoteAddress)) {
-      return '请输入合法的 DNS 地址'
+      return 'DNS 地址格式不正确'
     }
 
     return ''
@@ -171,8 +178,6 @@ export struct AddRuleDialog {
   }
 
   private buildCreateRule(): netFirewall.NetFirewallRule {
-    let remoteAddress = this.remoteAddress.trim()
-    let remotePort = this.remotePort.trim()
     let rule: netFirewall.NetFirewallRule = {
       userId: this.initialRule?.userId ?? 100,
       name: this.ruleName.trim(),
@@ -182,7 +187,7 @@ export struct AddRuleDialog {
       isEnabled: this.initialRule?.isEnabled ?? true
     }
 
-    this.applyRuleSpecificFields(rule, remoteAddress, remotePort)
+    this.applyRuleSpecificFields(rule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
     return rule
   }
 
@@ -193,7 +198,8 @@ export struct AddRuleDialog {
       direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
       action: this.action as netFirewall.FirewallRuleAction,
       type: this.ruleType as netFirewall.NetFirewallRuleType,
-      isEnabled: this.initialRule?.isEnabled ?? true
+      isEnabled: this.initialRule?.isEnabled ?? true,
+      description: this.initialRule?.description
     }
     let originalRule = this.initialRule as FirewallRuleWithKey
     let targetRule = baseRule as FirewallRuleWithKey
@@ -203,13 +209,14 @@ export struct AddRuleDialog {
     if (typeof originalRule.id === 'number') {
       targetRule.id = originalRule.id
     }
-    this.applyRuleSpecificFields(baseRule, this.remoteAddress.trim(), this.remotePort.trim())
+    this.applyRuleSpecificFields(baseRule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
     return baseRule
   }
 
   private applyRuleSpecificFields(
     rule: netFirewall.NetFirewallRule,
     remoteAddress: string,
+    localPort: string,
     remotePort: string
   ): void {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
@@ -220,9 +227,15 @@ export struct AddRuleDialog {
         address: parts[0].trim(),
         mask: parts.length > 1 ? parseInt(parts[1].trim(), 10) : 32
       }]
+      if (localPort.length > 0) {
+        let localPortNum = parseInt(localPort, 10)
+        rule.localPorts = [{ startPort: localPortNum, endPort: localPortNum }]
+      } else {
+        rule.localPorts = undefined
+      }
       if (remotePort.length > 0) {
-        let portNum = parseInt(remotePort, 10)
-        rule.remotePorts = [{ startPort: portNum, endPort: portNum }]
+        let remotePortNum = parseInt(remotePort, 10)
+        rule.remotePorts = [{ startPort: remotePortNum, endPort: remotePortNum }]
       } else {
         rule.remotePorts = undefined
       }
@@ -232,12 +245,14 @@ export struct AddRuleDialog {
     } else if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       rule.domains = [{ domain: remoteAddress, isWildcard: remoteAddress.includes('*') }]
       rule.remoteIps = undefined
+      rule.localPorts = undefined
       rule.remotePorts = undefined
       rule.protocol = undefined
       rule.dns = undefined
     } else if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
       rule.dns = { primaryDns: remoteAddress }
       rule.remoteIps = undefined
+      rule.localPorts = undefined
       rule.remotePorts = undefined
       rule.protocol = undefined
       rule.domains = undefined
@@ -249,7 +264,7 @@ export struct AddRuleDialog {
   }
 
   private getPrimaryButtonText(): string {
-    return this.isEditMode ? '保存' : '添加'
+    return this.isEditMode ? '保存' : '新增'
   }
 
   private getRuleTypeLabel(): string {
@@ -257,19 +272,19 @@ export struct AddRuleDialog {
       return '域名'
     }
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return 'DNS 服务器'
+      return 'DNS 地址'
     }
-    return '远程地址'
+    return '远端地址'
   }
 
   private getRuleTypePlaceholder(): string {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return '例: *.example.com'
+      return '例如 *.example.com'
     }
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return '例: 8.8.8.8'
+      return '例如 8.8.8.8'
     }
-    return '例: 0.0.0.0/0'
+    return '例如 0.0.0.0/0'
   }
 
   build() {
@@ -412,12 +427,31 @@ export struct AddRuleDialog {
 
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
-          Text('远程端口')
+          Text('本地端口')
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          TextInput({ text: this.remotePort, placeholder: '例: 443' })
+          TextInput({ text: this.localPort, placeholder: '例如 443' })
+            .height(40)
+            .fontColor(FormControlUtils.text(this.currentTheme))
+            .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
+            .backgroundColor(FormControlUtils.background(this.currentTheme))
+            .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+            .type(InputType.Number)
+            .onChange((value: string) => { this.localPort = value })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        Column({ space: 6 }) {
+          Text('远端端口')
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          TextInput({ text: this.remotePort, placeholder: '例如 443' })
             .height(40)
             .fontColor(FormControlUtils.text(this.currentTheme))
             .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -439,10 +473,10 @@ export struct AddRuleDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
           { value: '允许' },
-          { value: '拒绝' }
+          { value: '阻止' }
         ])
           .selected(this.action)
-          .value(this.action === netFirewall.FirewallRuleAction.RULE_DENY ? '拒绝' : '允许')
+          .value(this.action === netFirewall.FirewallRuleAction.RULE_DENY ? '阻止' : '允许')
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')

@@ -20,6 +20,7 @@ import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallPresetMode } from '../models/DataModels'
+import { FirewallModeService } from '../services/FirewallModeService'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 
@@ -83,6 +84,8 @@ struct MainPage {
   }
 
   private async loadFirewallState(): Promise<void> {
+    let context = getContext(this) as common.UIAbilityContext
+    await FirewallModeService.initialize(context)
     let policy = await FirewallService.getFirewallPolicy()
     if (policy === null) {
       hilog.warn(0x0000, 'testTag', '[DIAG] skip firewall state sync because getFirewallPolicy returned null')
@@ -90,13 +93,9 @@ struct MainPage {
     }
 
     this.firewallEnabled = policy.isOpen
-    this.firewallPresetMode = this.resolveFirewallPresetMode()
+    this.firewallPresetMode = await FirewallModeService.getCurrentMode(context)
     hilog.info(0x0000, 'testTag',
       `[DIAG] firewall state synced from system: enabled=${this.firewallEnabled}, mode=${this.firewallPresetMode}`)
-  }
-
-  private resolveFirewallPresetMode(): FirewallPresetMode {
-    return 'custom'
   }
 
   private async ensureRuntimeServices(): Promise<void> {
@@ -252,8 +251,14 @@ struct MainPage {
                   onFirewallToggle: (enabled: boolean) => {
                     this.firewallEnabled = enabled
                   },
-                  onModeChange: (mode: FirewallPresetMode) => {
-                    this.firewallPresetMode = mode
+                  onModeChange: async (mode: FirewallPresetMode): Promise<boolean> => {
+                    let context = getContext(this) as common.UIAbilityContext
+                    let result = await FirewallModeService.switchMode(context, mode)
+                    if (result.success) {
+                      this.firewallPresetMode = mode
+                      return true
+                    }
+                    return false
                   },
                   onBack: () => {
                     this.currentPage = Routes.DASHBOARD
@@ -269,6 +274,7 @@ struct MainPage {
             } else if (this.currentPage === Routes.FIREWALL_RULES) {
               Column() {
                 FirewallRulesPage({
+                  currentMode: this.firewallPresetMode,
                   onBack: () => {
                     this.currentPage = Routes.FIREWALL
                   }

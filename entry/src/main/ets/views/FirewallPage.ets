@@ -15,10 +15,11 @@ export struct FirewallPage {
   @Prop firewallEnabled: boolean = false
   @Prop currentMode: FirewallPresetMode = 'custom'
   @State isToggleProcessing: boolean = false
+  @State isModeProcessing: boolean = false
   @State firewallSwitchValue: boolean = false
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
-  onModeChange: (mode: FirewallPresetMode) => void = () => {}
+  onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
   onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
 
@@ -55,7 +56,7 @@ export struct FirewallPage {
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      promptAction.showToast({ message: '防火墙状态更新失败' })
+      promptAction.showToast({ message: '防火墙开关切换失败' })
       hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -68,39 +69,39 @@ export struct FirewallPage {
   ): string {
     switch (reason) {
       case 'lockout':
-        return `PIN 认证失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
+        return `PIN 校验失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
       case 'pin_unavailable':
-        return '系统 PIN 认证暂不可用'
+        return '当前设备未配置 PIN'
       case 'pin_failed':
-        return 'PIN 验证失败，已取消本次变更'
+        return 'PIN 校验失败'
       case 'policy_apply_failed':
-        return '防火墙状态更新失败'
+        return '防火墙状态写入失败'
       default:
-        return '防火墙状态更新失败'
+        return '防火墙状态切换失败'
     }
   }
 
   private getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return '公共网络'
+        return '公用网络'
       case 'private':
         return '专用网络'
       case 'custom':
       default:
-        return '自定义'
+        return '自定义规则'
     }
   }
 
   private getModeDescription(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return '适合外部网络环境，提高防护强度'
+        return '下发公用网络预置策略，成功后仅保留公用模式规则。'
       case 'private':
-        return '适合受信任的内部网络环境'
+        return '下发专用网络预置策略，成功后仅保留专用模式规则。'
       case 'custom':
       default:
-        return '进入规则详情页，配置入站、出站及高级防火墙规则'
+        return '切换为自定义模式并进入规则页，重新下发已保存的自定义策略。'
     }
   }
 
@@ -148,12 +149,28 @@ export struct FirewallPage {
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
-    this.onModeChange(mode)
-    if (mode === 'custom') {
-      this.onNavigateToRules()
+    if (this.isModeProcessing) {
       return
     }
-    promptAction.showToast({ message: '预设模式待后续完善' })
+    if (mode === this.currentMode) {
+      if (mode === 'custom') {
+        this.onNavigateToRules()
+      }
+      return
+    }
+    this.isModeProcessing = true
+    try {
+      let success = await this.onModeChange(mode)
+      if (!success) {
+        promptAction.showToast({ message: '策略下发失败，当前模式未切换' })
+        return
+      }
+      if (mode === 'custom') {
+        this.onNavigateToRules()
+      }
+    } finally {
+      this.isModeProcessing = false
+    }
   }
 
   @Builder
@@ -215,8 +232,11 @@ export struct FirewallPage {
       width: 1,
       color: this.getModeCardBorder(mode)
     })
+    .opacity(this.isModeProcessing ? 0.75 : 1)
     .onClick(() => {
-      this.handleModeSelect(mode)
+      if (!this.isModeProcessing) {
+        this.handleModeSelect(mode)
+      }
     })
   }
 
@@ -237,7 +257,7 @@ export struct FirewallPage {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text('在不同网络场景间切换，并进入自定义模式配置高级防火墙规则')
+              Text('点击模式卡片后，后端先执行策略切换，只有成功后当前模式标记才会移动。')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
@@ -260,7 +280,7 @@ export struct FirewallPage {
         .alignItems(VerticalAlign.Top)
 
         Column({ space: 12 }) {
-          Text('网络模式')
+          Text('模式切换')
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.getThemeColors().TEXT_PRIMARY)
