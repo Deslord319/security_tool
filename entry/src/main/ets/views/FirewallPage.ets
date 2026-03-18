@@ -7,6 +7,7 @@ import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'FirewallPage'
 
@@ -17,6 +18,7 @@ export struct FirewallPage {
   @State isToggleProcessing: boolean = false
   @State isModeProcessing: boolean = false
   @State firewallSwitchValue: boolean = false
+  @State hoveredMode: string = ''
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onFirewallToggle: (enabled: boolean) => void = () => {}
   onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
@@ -137,6 +139,10 @@ export struct FirewallPage {
     return this.currentMode === mode
   }
 
+  private isModeHovered(mode: FirewallPresetMode): boolean {
+    return this.hoveredMode === mode
+  }
+
   private getModeCardBackground(mode: FirewallPresetMode): string {
     if (this.isModeSelected(mode)) {
       return this.currentTheme === ThemeMode.DARK ? '#2F3946' : '#EEF6FF'
@@ -145,7 +151,22 @@ export struct FirewallPage {
   }
 
   private getModeCardBorder(mode: FirewallPresetMode): string {
+    if (this.isModeHovered(mode)) {
+      return this.getModeAccent(mode)
+    }
     return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().BORDER
+  }
+
+  private getModeCardShadow(mode: FirewallPresetMode): ShadowOptions {
+    return HoverUtils.getShadow(this.currentTheme, this.isModeHovered(mode), true)
+  }
+
+  private getModeCardTranslateY(mode: FirewallPresetMode): number {
+    return HoverUtils.getTranslateY(this.isModeHovered(mode), 4)
+  }
+
+  private getModeCardScale(mode: FirewallPresetMode): number {
+    return HoverUtils.getScale(this.isModeHovered(mode))
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
@@ -188,6 +209,10 @@ export struct FirewallPage {
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
       .backgroundColor(this.getModeAccent(mode))
+      .scale({
+        x: HoverUtils.getScale(this.isModeHovered(mode), 1.04),
+        y: HoverUtils.getScale(this.isModeHovered(mode), 1.04)
+      })
 
       Column({ space: 6 }) {
         Text(this.getModeTitle(mode))
@@ -232,7 +257,22 @@ export struct FirewallPage {
       width: 1,
       color: this.getModeCardBorder(mode)
     })
+    .shadow(this.getModeCardShadow(mode))
+    .translate({ y: this.getModeCardTranslateY(mode) })
+    .scale({
+      x: this.getModeCardScale(mode),
+      y: this.getModeCardScale(mode)
+    })
     .opacity(this.isModeProcessing ? 0.75 : 1)
+    .onHover((isHover: boolean) => {
+      HoverUtils.animate(() => {
+        if (isHover) {
+          this.hoveredMode = mode
+        } else if (this.hoveredMode === mode) {
+          this.hoveredMode = ''
+        }
+      })
+    })
     .onClick(() => {
       if (!this.isModeProcessing) {
         this.handleModeSelect(mode)

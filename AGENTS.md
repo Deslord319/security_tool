@@ -269,3 +269,43 @@ hdc install signApp.hap
 - 如果用户在当前任务中明确指定了其他文档来源、其他分支或其他站点，则以用户指令为准。
 
 *最后更新：2026-03-18 - 新增鸿蒙官方文档默认来源约定*
+
+---
+
+## Codex Subagents
+
+本项目已在仓库内落地 Codex 项目级子 agent 配置，位置如下：
+
+- `.codex/config.toml`
+- `.codex/agents/Analysis.toml`
+- `.codex/agents/BugFix.toml`
+- `.codex/agents/CTest.toml`
+- `.codex/agents/Reviewer.toml`
+- `.codex/agents/PermissionChecker.toml`
+
+角色分工约定如下：
+
+- 主 agent：负责目标理解、任务拆分、关键判断、结果整合和最终输出，定位为 `Tech Lead + Orchestrator`
+- `Analysis`：负责日志、运行证据、首个阻塞点和根因分析
+- `BugFix`：负责定点实现和缺陷修复
+- `CTest`：负责构建、安装、启动和既定轻量冒烟回归
+- `Reviewer`：负责代码审查，重点关注回归、乱码、中文 `\uXXXX` 转义、必要注释、关键日志和敏感信息泄露
+- `PermissionChecker`：负责权限、签名、包名、MDM 一致性专项检查，仅在专项问题中按需调用
+
+使用规则：
+
+- 子 agent 功能默认可用，但不会自动派生，必须在 prompt 中显式要求调用
+- 小任务默认由主 agent 直接处理，不强制拆分子 agent
+- 页面链路分析不再单独保留专门角色，需要时由主 agent 或 `BugFix` 直接承担
+- Git 提交流程不作为默认常驻子 agent，仍按独立流程处理
+
+常用协作链路：
+
+- 新功能开发：主 agent -> `BugFix` -> `CTest` -> `Reviewer`
+- 疑难故障：主 agent -> `CTest` -> `Analysis` -> `BugFix` -> `CTest`
+- 权限或签名问题：主 agent -> `PermissionChecker` -> `CTest`
+- 日常审查：主 agent -> `Reviewer`
+
+详细使用方式见：
+
+- `docs/01-总体设计/Codex子Agent使用手册.md`
