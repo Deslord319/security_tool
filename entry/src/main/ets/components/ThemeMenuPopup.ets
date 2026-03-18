@@ -88,7 +88,7 @@ export struct ThemeMenuPopup {
         .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
       Column({ space: 2 }) {
-        this.ActionMenuItem($r('app.media.help'), '帮助与反馈', 'help-feedback')
+        this.ActionMenuItem($r('app.media.help_menu'), '帮助与反馈', 'help-feedback')
         this.AboutMenuItem()
       }
       .width('100%')
@@ -121,7 +121,7 @@ export struct ThemeMenuPopup {
   }
 
   private resolveActionIconTileBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(60,60,67,0.06)'
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0)'
   }
 
   private resolveThemeIconColor(option: ThemeOption): ResourceColor {
@@ -141,7 +141,7 @@ export struct ThemeMenuPopup {
   }
 
   private resolveActionIconColor(): ResourceColor {
-    return this.currentTheme === ThemeMode.DARK ? '#A9C7FF' : '#2F6FE4'
+    return this.currentTheme === ThemeMode.DARK ? 'rgba(235,235,245,0.78)' : 'rgba(60,60,67,0.82)'
   }
 
   @Builder
@@ -229,7 +229,7 @@ export struct ThemeMenuPopup {
   AboutMenuItem() {
     Row({ space: 12 }) {
       Column() {
-        Image($r('app.media.info'))
+        Image($r('app.media.info_menu'))
           .width(18)
           .height(18)
           .fillColor(this.resolveActionIconColor())
