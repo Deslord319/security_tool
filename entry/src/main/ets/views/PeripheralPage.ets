@@ -1,4 +1,4 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
+﻿import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
@@ -988,61 +988,25 @@ export struct PeripheralPage {
       vendorId: parsed.vendorId,
       productId: parsed.productId
     }
-    let failedResult: OperationResult<PeripheralResultData> | undefined = undefined
-    let success = false
+    let targetPolicy = policyIndex === 0 ?
+      PeripheralService.USB_DEVICE_POLICY_ALLOW :
+      PeripheralService.USB_DEVICE_POLICY_DENY
+    let result = PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
 
-    if (policyIndex === 0) {
-      let baseClass = inferUsbBaseClass(record.deviceType)
-      if (baseClass > 0) {
-        let removeBlackResult = PeripheralService.removeUsbBlacklistWithResult([{
-          baseClass: baseClass,
-          subClass: 0,
-          protocol: 0,
-          descriptor: edmUsbManager.Descriptor.INTERFACE
-        }])
-        if (!removeBlackResult.success) {
-          failedResult = removeBlackResult
-        }
-      }
-      let addWhiteResult = PeripheralService.addUsbWhitelistWithResult([device])
-      if (!addWhiteResult.success) {
-        failedResult = addWhiteResult
-      }
-      success = failedResult === undefined
-    } else {
-      let removeWhiteResult = PeripheralService.removeUsbWhitelistWithResult([device])
-      if (!removeWhiteResult.success) {
-        failedResult = removeWhiteResult
-      }
-      let baseClass = inferUsbBaseClass(record.deviceType)
-      if (baseClass <= 0) {
-        promptAction.showToast({ message: '当前设备类型暂不支持禁止访问策略' })
+    if (!result.success) {
+      let userMessage = result.userMessage?.trim()
+      if (userMessage) {
+        promptAction.showToast({ message: userMessage })
         return
       }
-      let addBlackResult = PeripheralService.addUsbBlacklistWithResult([{
-        baseClass: baseClass,
-        subClass: 0,
-        protocol: 0,
-        descriptor: edmUsbManager.Descriptor.INTERFACE
-      }])
-      if (!addBlackResult.success) {
-        failedResult = addBlackResult
-      }
-      success = failedResult === undefined
-    }
-
-    if (!success) {
-      this.showOperationFailure('修改设备策略', failedResult || {
-        success: false,
-        errorMessage: '修改设备策略失败'
-      })
+      this.showOperationFailure('修改设备策略', result)
       return
     }
 
     this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
     this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
     this.reloadDeviceRecords()
-    promptAction.showToast({ message: '设备策略已更新' })
+    promptAction.showToast({ message: result.userMessage ?? '设备访问策略已更新' })
   }
 
   // ========== 接口管控操作 ==========
@@ -1062,6 +1026,21 @@ export struct PeripheralPage {
       else if (feature === PeripheralService.FEATURE_PRINTER) this.printerDisabled = disallow
       else if (feature === PeripheralService.FEATURE_MICROPHONE) this.microphoneDisabled = disallow
       else if (feature === PeripheralService.FEATURE_CAMERA) this.cameraDisabled = disallow
+      if (feature === PeripheralService.FEATURE_USB) {
+        this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+        this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+        let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
+        if (policyResult.success) {
+          let policy = policyResult.data ?? edmUsbManager.UsbPolicy.READ_WRITE
+          if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
+            this.usbStoragePolicyIndex = 0
+          } else if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
+            this.usbStoragePolicyIndex = 1
+          } else {
+            this.usbStoragePolicyIndex = 2
+          }
+        }
+      }
       try {
         let featureLabel = this.getInterfaceFeatureLabel(feature)
         promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
@@ -1110,9 +1089,11 @@ export struct PeripheralPage {
       edmUsbManager.UsbPolicy.READ_WRITE,
       edmUsbManager.UsbPolicy.DISABLED
     ]
-    let result = PeripheralService.setUsbStoragePolicyWithResult(policyMap[index])
+    let result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policyMap[index])
     if (result.success) {
       this.usbStoragePolicyIndex = index
+      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       try {
         promptAction.showToast({ message: 'USB 存储策略已更新' })
       } catch (e) {
@@ -2783,7 +2764,7 @@ export struct PeripheralPage {
     }
   }
 
-  // ==================== Tab 2: 接口管控 ====================
+  // ==================== Tab 2: 接口控制 ====================
   @Builder
   interfaceControlBuilder() {
     Scroll() {
@@ -2791,7 +2772,7 @@ export struct PeripheralPage {
         Column() {
           InterfaceControlItem({
             label: 'USB 接口',
-            description: '启用或禁用 USB 接口。禁用后将阻止 USB 接口相关管控操作。',
+            description: '启用或禁用 USB 接口。禁用后，USB 接口相关外设将无法接入。',
             options: ['启用', '禁用'],
             selectedIndex: this.usbDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -2803,7 +2784,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: 'USB 存储设备',
-            description: '设置 USB 存储策略：只读、读写或禁止访问。',
+            description: '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
             options: ['只读', '读写', '禁止访问'],
             selectedIndex: this.usbStoragePolicyIndex,
             onSelect: (index: number) => {
@@ -2838,7 +2819,7 @@ export struct PeripheralPage {
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
           InterfaceControlItem({
-            label: 'HDC（调试接口）',
+            label: 'HDC 调试',
             description: '启用或禁用 HDC 调试接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.hdcDisabled ? 1 : 0,
@@ -2850,8 +2831,8 @@ export struct PeripheralPage {
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
           InterfaceControlItem({
-            label: '网络',
-            description: '通过网络接口管控禁用或启用全部网络接口。',
+            label: '网络共享',
+            description: '启用或禁用网络共享接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.networkDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -2863,7 +2844,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: '打印机',
-            description: '启用或禁用打印机接口策略。',
+            description: '启用或禁用打印机接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.printerDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -2875,7 +2856,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: '麦克风',
-            description: '启用或禁用麦克风接口策略。',
+            description: '启用或禁用麦克风接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.microphoneDisabled ? 1 : 0,
             onSelect: (index: number) => {
@@ -2887,7 +2868,7 @@ export struct PeripheralPage {
 
           InterfaceControlItem({
             label: '摄像头',
-            description: '启用或禁用摄像头接口策略。',
+            description: '启用或禁用摄像头接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.cameraDisabled ? 1 : 0,
             onSelect: (index: number) => {

@@ -164,7 +164,9 @@ export interface OperationResult<T = void> {
   data?: T
   errorCode?: number
   errorMessage?: string
+  userMessage?: string
   isAdminMissing?: boolean
+  stage?: string
   suggestion?: string
 }
 
