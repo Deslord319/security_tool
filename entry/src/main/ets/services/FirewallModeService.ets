@@ -1,0 +1,82 @@
+import { preferences } from '@kit.ArkData'
+import { common } from '@kit.AbilityKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
+import {
+  FirewallModeSwitchResult,
+  FirewallPresetMode,
+  PREF_KEY_FIREWALL_ACTIVE_MODE,
+  PREF_STORE_NAME_FIREWALL_MODE
+} from '../models/DataModels'
+import { FirewallCustomRuleService } from './FirewallCustomRuleService'
+import { FirewallPresetService } from './FirewallPresetService'
+import { FirewallService } from './FirewallService'
+
+const TAG = 'FirewallModeService'
+const DOMAIN = 0x0013
+
+export class FirewallModeService {
+  static async initialize(context: common.UIAbilityContext): Promise<void> {
+    let storedModeValue = await FirewallModeService.getStoredModeValue(context)
+    if (storedModeValue.length > 0) {
+      return
+    }
+    let currentRules = await FirewallService.getAllRules()
+    await FirewallCustomRuleService.initializeFromSystemIfEmpty(context, currentRules)
+    await FirewallModeService.saveCurrentMode(context, 'custom')
+  }
+
+  static async getCurrentMode(context: common.UIAbilityContext): Promise<FirewallPresetMode> {
+    let storedModeValue = await FirewallModeService.getStoredModeValue(context)
+    if (storedModeValue === 'public' || storedModeValue === 'private' || storedModeValue === 'custom') {
+      return storedModeValue
+    }
+    return 'custom'
+  }
+
+  static async switchMode(
+    context: common.UIAbilityContext,
+    targetMode: FirewallPresetMode
+  ): Promise<FirewallModeSwitchResult> {
+    await FirewallModeService.initialize(context)
+    let targetRules = targetMode === 'custom'
+      ? await FirewallCustomRuleService.buildRulesForApply(context)
+      : await FirewallPresetService.buildRules(context, targetMode)
+    let applied = await FirewallService.applyRuleSet(targetRules, targetMode)
+    if (!applied) {
+      return {
+        success: false,
+        mode: targetMode,
+        appliedRuleCount: 0,
+        errorCode: FirewallService.getLastErrorCode(),
+        errorMessage: FirewallService.getLastErrorText()
+      }
+    }
+    await FirewallModeService.saveCurrentMode(context, targetMode)
+    return {
+      success: true,
+      mode: targetMode,
+      appliedRuleCount: targetRules.length
+    }
+  }
+
+  private static async getStoredModeValue(context: common.UIAbilityContext): Promise<string> {
+    try {
+      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_MODE)
+      let rawValue = await store.get(PREF_KEY_FIREWALL_ACTIVE_MODE, '')
+      return typeof rawValue === 'string' ? rawValue : ''
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `getStoredModeValue failed: ${JSON.stringify(err)}`)
+      return ''
+    }
+  }
+
+  private static async saveCurrentMode(context: common.UIAbilityContext, mode: FirewallPresetMode): Promise<void> {
+    try {
+      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_MODE)
+      await store.put(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
+      await store.flush()
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
+    }
+  }
+}
