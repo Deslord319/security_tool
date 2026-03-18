@@ -142,6 +142,8 @@ export struct PeripheralPage {
   // 设备管控记录（独立数据源）
   @State deviceControlRecords: DeviceControlRecord[] = []
   @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
+  @State policyUpdatingKeys: string[] = []
+  @State peripheralPolicyRenderVersion: number = 0
   private deviceControlPolicyOptions: SelectOption[] = [
     { value: '允许' },
     { value: '禁止' },
@@ -967,6 +969,27 @@ export struct PeripheralPage {
     return this.policyListOptions[0].value as string
   }
 
+  private refreshPeripheralPolicyRecords(): void {
+    this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+    this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+    this.loadPeripheralPolicyData()
+    this.peripheralPolicyRenderVersion += 1
+  }
+
+  private isPeripheralPolicyUpdating(deviceId: string): boolean {
+    return this.policyUpdatingKeys.indexOf(deviceId) >= 0
+  }
+
+  private markPeripheralPolicyUpdating(deviceId: string, updating: boolean): void {
+    if (updating) {
+      if (!this.isPeripheralPolicyUpdating(deviceId)) {
+        this.policyUpdatingKeys = [...this.policyUpdatingKeys, deviceId]
+      }
+      return
+    }
+    this.policyUpdatingKeys = this.policyUpdatingKeys.filter((item: string) => item !== deviceId)
+  }
+
   private handlePeripheralPolicyChange(recordIndex: number, policyIndex: number): void {
     if (!this.ensureAdminReady('修改设备策略')) {
       return
@@ -976,6 +999,9 @@ export struct PeripheralPage {
       return
     }
     if (record.policyIndex === policyIndex) {
+      return
+    }
+    if (this.isPeripheralPolicyUpdating(record.deviceId)) {
       return
     }
     let parsed = parseUsbDeviceId(record.deviceId)
@@ -991,9 +1017,12 @@ export struct PeripheralPage {
     let targetPolicy = policyIndex === 0 ?
       PeripheralService.USB_DEVICE_POLICY_ALLOW :
       PeripheralService.USB_DEVICE_POLICY_DENY
+    this.markPeripheralPolicyUpdating(record.deviceId, true)
     let result = PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
 
     if (!result.success) {
+      this.markPeripheralPolicyUpdating(record.deviceId, false)
+      this.refreshPeripheralPolicyRecords()
       let userMessage = result.userMessage?.trim()
       if (userMessage) {
         promptAction.showToast({ message: userMessage })
@@ -1003,8 +1032,8 @@ export struct PeripheralPage {
       return
     }
 
-    this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-    this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+    this.markPeripheralPolicyUpdating(record.deviceId, false)
+    this.refreshPeripheralPolicyRecords()
     this.reloadDeviceRecords()
     promptAction.showToast({ message: result.userMessage ?? '设备访问策略已更新' })
   }
@@ -3159,6 +3188,8 @@ export struct PeripheralPage {
                   .borderRadius(AppStyles.RADIUS_SM)
                   .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
                   .layoutWeight(1.2)
+                  .enabled(!this.isPeripheralPolicyUpdating(record.deviceId))
+                  .opacity(this.isPeripheralPolicyUpdating(record.deviceId) ? 0.6 : 1)
                   .onSelect((selectIndex: number) => {
                     this.handlePeripheralPolicyChange(index, selectIndex)
                   })
@@ -3166,7 +3197,7 @@ export struct PeripheralPage {
               .width('100%')
               .padding({ left: 16, right: 16, top: 12, bottom: 12 })
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-            })
+            }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${this.peripheralPolicyRenderVersion}`)
           }
           .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
           .clip(true)

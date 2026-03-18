@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "HarmonyOS \u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3"
+      "value": "HarmonyOS 安全管理中心"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3\u4e3b\u5165\u53e3"
+      "value": "安全管理中心主入口"
     },
     {
       "name": "EntryAbility_label",
-      "value": "\u5b89\u5168\u7ba1\u7406\u4e2d\u5fc3"
+      "value": "安全管理中心"
     }
   ]
 }

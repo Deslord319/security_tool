@@ -60,7 +60,7 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(this.rules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        promptAction.showToast({ message: '\u89c4\u5219\u5df2\u5b58\u5728\uff0c\u65e0\u9700\u91cd\u590d\u6dfb\u52a0' })
+        promptAction.showToast({ message: '规则已存在，无需重复添加' })
         return
       }
       let existingRuleId = FirewallService.getRulePrimaryKey(conflict.existingRule)
@@ -118,7 +118,7 @@ export struct FirewallRulesPage {
 
   private async addRuleDirectly(
     rule: netFirewall.NetFirewallRule,
-    successMessage: string = '\u89c4\u5219\u6dfb\u52a0\u6210\u529f'
+    successMessage: string = '规则添加成功'
   ) {
     let ruleId = await FirewallService.addRule(rule)
     if (ruleId > 0) {
@@ -128,14 +128,14 @@ export struct FirewallRulesPage {
     }
     let errorKind = FirewallService.getLastErrorKind()
     if (errorKind === 'invalid_argument') {
-      promptAction.showToast({ message: '\u89c4\u5219\u53c2\u6570\u4e0d\u5408\u6cd5\uff0c\u8bf7\u68c0\u67e5\u8f93\u5165' })
+      promptAction.showToast({ message: '规则参数不合法，请检查输入' })
       return
     }
     if (errorKind === 'permission') {
-      promptAction.showToast({ message: '\u89c4\u5219\u6dfb\u52a0\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u6743\u9650\u548c\u4f01\u4e1a\u7ba1\u7406\u5458\u72b6\u6001' })
+      promptAction.showToast({ message: '规则添加失败，请检查权限和企业管理员状态' })
       return
     }
-    promptAction.showToast({ message: '\u89c4\u5219\u6dfb\u52a0\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5' })
+    promptAction.showToast({ message: '规则添加失败，请稍后重试' })
   }
 
   private async updateRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
@@ -163,12 +163,12 @@ export struct FirewallRulesPage {
     isEditMode: boolean = false
   ): void {
     AlertDialog.show({
-      title: '\u5b58\u5728\u51b2\u7a81\u89c4\u5219',
+      title: '存在冲突规则',
       message: isEditMode
         ? '检测到同一目标和方向下已存在相反动作的规则。覆盖后将删除冲突旧规则，并保存当前编辑结果。'
-        : '\u68c0\u6d4b\u5230\u540c\u4e00\u76ee\u6807\u548c\u65b9\u5411\u4e0b\u5df2\u5b58\u5728\u76f8\u53cd\u52a8\u4f5c\u7684\u89c4\u5219\u3002\u8986\u76d6\u540e\u5c06\u5220\u9664\u65e7\u89c4\u5219\u5e76\u4fdd\u5b58\u65b0\u89c4\u5219\u3002',
+        : '检测到同一目标和方向下已存在相反动作的规则。覆盖后将删除旧规则并保存新规则。',
       primaryButton: {
-        value: '\u8986\u76d6',
+        value: '覆盖',
         action: () => {
           if (isEditMode) {
             this.replaceRuleWhileEditing(oldRuleId, newRule)
@@ -178,7 +178,7 @@ export struct FirewallRulesPage {
         }
       },
       secondaryButton: {
-        value: '\u53d6\u6d88',
+        value: '取消',
         action: () => {}
       }
     })
@@ -186,10 +186,10 @@ export struct FirewallRulesPage {
 
   private showOverlapRiskConfirm(rule: netFirewall.NetFirewallRule, isEditMode: boolean = false): void {
     AlertDialog.show({
-      title: '\u5b58\u5728\u91cd\u53e0\u89c4\u5219',
-      message: '\u65b0\u89c4\u5219\u4e0e\u73b0\u6709\u89c4\u5219\u7684\u547d\u4e2d\u8303\u56f4\u5b58\u5728\u91cd\u53e0\uff0c\u5b9e\u9645\u751f\u6548\u7ed3\u679c\u53ef\u80fd\u53d7\u7cfb\u7edf\u89c4\u5219\u4f18\u5148\u7ea7\u5f71\u54cd\u3002\u662f\u5426\u7ee7\u7eed\u4fdd\u5b58\uff1f',
+      title: '存在重叠规则',
+      message: '新规则与现有规则的命中范围存在重叠，实际生效结果可能受系统规则优先级影响。是否继续保存？',
       primaryButton: {
-        value: '\u7ee7\u7eed\u4fdd\u5b58',
+        value: '继续保存',
         action: () => {
           if (isEditMode) {
             this.updateRuleDirectly(rule)
@@ -199,7 +199,7 @@ export struct FirewallRulesPage {
         }
       },
       secondaryButton: {
-        value: '\u53d6\u6d88',
+        value: '取消',
         action: () => {}
       }
     })
@@ -208,11 +208,11 @@ export struct FirewallRulesPage {
   private async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<void> {
     let ruleId = await FirewallService.replaceRule(oldRuleId, newRule)
     if (ruleId > 0) {
-      promptAction.showToast({ message: '\u89c4\u5219\u5df2\u8986\u76d6\u5e76\u751f\u6548' })
+      promptAction.showToast({ message: '规则已覆盖并生效' })
       this.loadRules()
       return
     }
-    promptAction.showToast({ message: '\u89c4\u5219\u8986\u76d6\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5' })
+    promptAction.showToast({ message: '规则覆盖失败，请稍后重试' })
   }
 
   private async replaceRuleWhileEditing(oldRuleId: number, updatedRule: netFirewall.NetFirewallRule): Promise<void> {
@@ -228,25 +228,25 @@ export struct FirewallRulesPage {
     let summary = FirewallService.summarizeConflicts(this.rules)
     let parts: string[] = []
     if (summary.duplicates > 0) {
-      parts.push(`\u91cd\u590d ${summary.duplicates} \u7ec4`)
+      parts.push(`重复 ${summary.duplicates} 组`)
     }
     if (summary.hardConflicts > 0) {
-      parts.push(`\u786c\u51b2\u7a81 ${summary.hardConflicts} \u7ec4`)
+      parts.push(`硬冲突 ${summary.hardConflicts} 组`)
     }
     if (summary.overlapConflicts > 0) {
-      parts.push(`\u91cd\u53e0\u51b2\u7a81 ${summary.overlapConflicts} \u7ec4`)
+      parts.push(`重叠冲突 ${summary.overlapConflicts} 组`)
     }
     this.conflictNotice = parts.length > 0
-      ? `\u68c0\u6d4b\u5230\u5386\u53f2\u89c4\u5219\u5b58\u5728${parts.join('\u3001')}\uff0c\u5efa\u8bae\u6e05\u7406\u540e\u518d\u7ee7\u7eed\u914d\u7f6e\u3002`
+      ? `检测到历史规则存在${parts.join('、')}，建议清理后再继续配置。`
       : ''
   }
   async handleDeleteRule(ruleId: number) {
     let success = await FirewallService.removeRule(ruleId)
     if (success) {
-      promptAction.showToast({ message: '\u89c4\u5219\u5df2\u5220\u9664' })
+      promptAction.showToast({ message: '规则已删除' })
       this.loadRules()
     } else {
-      promptAction.showToast({ message: '\u5220\u9664\u5931\u8d25' })
+      promptAction.showToast({ message: '删除失败' })
     }
   }
 
@@ -274,13 +274,13 @@ export struct FirewallRulesPage {
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return '\u0049\u0050\u89c4\u5219'
+        return 'IP规则'
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return '\u57df\u540d\u89c4\u5219'
+        return '域名规则'
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return '\u0044\u004e\u0053\u89c4\u5219'
+        return 'DNS规则'
       default:
-        return '\u672a\u77e5\u89c4\u5219'
+        return '未知规则'
     }
   }
 
@@ -324,11 +324,11 @@ export struct FirewallRulesPage {
   }
 
   getDirectionLabel(dir: netFirewall.NetFirewallRuleDirection): string {
-    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? '\u5165\u7ad9' : '\u51fa\u7ad9'
+    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? '入站' : '出站'
   }
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '\u5141\u8bb8' : '\u62d2\u7edd'
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '允许' : '拒绝'
   }
 
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
@@ -433,13 +433,13 @@ export struct FirewallRulesPage {
                   this.onBack()
                 }
               })
-              Text('\u9632\u706b\u5899\u89c4\u5219')
+              Text('防火墙规则')
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             }
 
-            Text('\u67e5\u770b\u3001\u6dfb\u52a0\u548c\u5220\u9664\u9632\u706b\u5899\u89c4\u5219\uff0c\u6ce8\u610f\u907f\u514d\u5bf9\u540c\u4e00\u76ee\u6807\u914d\u7f6e\u76f8\u4e92\u51b2\u7a81\u7684\u52a8\u4f5c\u3002')
+            Text('查看、添加和删除防火墙规则，注意避免对同一目标配置相互冲突的动作。')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -447,7 +447,7 @@ export struct FirewallRulesPage {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          Button('\u6309\u7528\u6237\u63a7\u5236')
+          Button('按用户控制')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.BRAND_PRIMARY)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -459,7 +459,7 @@ export struct FirewallRulesPage {
               this.userFirewallControlDialogController.open()
             })
 
-          Button('+ \u6dfb\u52a0\u89c4\u5219')
+          Button('+ 添加规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(Color.White)
             .backgroundColor(AppColors.BRAND_PRIMARY)
@@ -473,7 +473,7 @@ export struct FirewallRulesPage {
 
         if (this.conflictNotice.length > 0) {
           Row({ space: 8 }) {
-            Text('\u98ce\u9669\u63d0\u793a')
+            Text('风险提示')
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontWeight(FontWeight.Medium)
               .fontColor('#8A5200')
@@ -494,7 +494,7 @@ export struct FirewallRulesPage {
         }
         Row({ space: 16 }) {
           DirectionCard({
-            label: '\u5165\u7ad9\u89c4\u5219 (RULE_IN)',
+            label: '入站规则 (RULE_IN)',
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
             gradientStart: '#FF9500',
             gradientEnd: '#FFCC00',
@@ -503,7 +503,7 @@ export struct FirewallRulesPage {
             .layoutWeight(1)
 
           DirectionCard({
-            label: '\u51fa\u7ad9\u89c4\u5219 (RULE_OUT)',
+            label: '出站规则 (RULE_OUT)',
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
             gradientStart: '#0A84FF',
             gradientEnd: '#00C6FF',
@@ -515,18 +515,18 @@ export struct FirewallRulesPage {
 
         GridRow({ columns: 4, gutter: 14 }) {
           GridCol() {
-            this.summaryCard(0, '\u5168\u90e8\u89c4\u5219', this.rules.length.toString(), $r('app.media.firewall'), AppColors.BRAND_PRIMARY)
+            this.summaryCard(0, '全部规则', this.rules.length.toString(), $r('app.media.firewall'), AppColors.BRAND_PRIMARY)
           }
           GridCol() {
-            this.summaryCard(1, '\u0049\u0050\u89c4\u5219', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP).toString(),
+            this.summaryCard(1, 'IP规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP).toString(),
               $r('app.media.network'), AppColors.BRAND_PRIMARY)
           }
           GridCol() {
-            this.summaryCard(2, '\u57df\u540d\u89c4\u5219', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN).toString(),
+            this.summaryCard(2, '域名规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN).toString(),
               $r('app.media.globe'), '#5856D6')
           }
           GridCol() {
-            this.summaryCard(3, '\u0044\u004e\u0053\u89c4\u5219', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS).toString(),
+            this.summaryCard(3, 'DNS规则', this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS).toString(),
               $r('app.media.server'), AppColors.SUCCESS)
           }
         }
@@ -537,7 +537,7 @@ export struct FirewallRulesPage {
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('\u5168\u90e8', 0))
+          }.tabBar(this.tabBuilder('全部', 0))
 
           TabContent() {
             this.ruleListBuilder()
@@ -545,7 +545,7 @@ export struct FirewallRulesPage {
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('\u57df\u540d', 2))
+          }.tabBar(this.tabBuilder('域名', 2))
 
           TabContent() {
             this.ruleListBuilder()
@@ -575,7 +575,7 @@ export struct FirewallRulesPage {
           LoadingProgress()
             .width(42)
             .height(42)
-          Text('\u6b63\u5728\u52a0\u8f7d\u89c4\u5219...')
+          Text('正在加载规则...')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -585,7 +585,7 @@ export struct FirewallRulesPage {
         .justifyContent(FlexAlign.Center)
       } else if (this.getFilteredRules().length === 0) {
         Column({ space: 10 }) {
-          Text('\u5f53\u524d\u7c7b\u578b\u4e0b\u6682\u65e0\u89c4\u5219')
+          Text('当前类型下暂无规则')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -647,7 +647,7 @@ export struct FirewallRulesPage {
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)
 
-                  Button('\u5220\u9664')
+                  Button('删除')
                     .fontSize(AppStyles.FONT_SIZE_CAPTION)
                     .fontColor(AppColors.DANGER)
                     .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
@@ -663,9 +663,9 @@ export struct FirewallRulesPage {
                 .width('100%')
 
                 Column({ space: 10 }) {
-                  this.detailRow('\u5730\u5740 / \u57df\u540d', this.getRuleAddress(rule))
-                  this.detailRow('\u7aef\u53e3', this.getRulePort(rule))
-                  this.detailRow('\u534f\u8bae', this.getProtocolLabel(rule))
+                  this.detailRow('地址 / 域名', this.getRuleAddress(rule))
+                  this.detailRow('端口', this.getRulePort(rule))
+                  this.detailRow('协议', this.getProtocolLabel(rule))
                 }
                 .width('100%')
               }
