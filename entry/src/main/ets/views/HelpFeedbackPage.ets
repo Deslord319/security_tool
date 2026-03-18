@@ -3,6 +3,7 @@ import { BackNavButton } from '../components/BackNavButton'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { ResultMessageBox } from '../components/ResultMessageBox'
 
 interface FaqItem {
   question: string
@@ -21,6 +22,24 @@ export struct HelpFeedbackPage {
   @State expandedGuide: number = -1
   @State expandedFaq: number = -1
   @State hoveredCardIndex: number = -1
+  private successPreviewDialogController: CustomDialogController = new CustomDialogController({
+    builder: ResultMessageBox({
+      status: 'success',
+      message: '防火墙规则已保存'
+    }),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
+  private failurePreviewDialogController: CustomDialogController = new CustomDialogController({
+    builder: ResultMessageBox({
+      status: 'failure',
+      message: '保存未完成，请稍后重试'
+    }),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
 
   private guideItems: GuideItem[] = [
     {
@@ -97,6 +116,66 @@ export struct HelpFeedbackPage {
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
+
+        Column({ space: 12 }) {
+          Text('结果弹框原型')
+            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
+          Text('参考 ElementUI MessageBox 的极简通知样式，提供成功态和失败态预览。')
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+            .lineHeight(20)
+
+          Row({ space: 12 }) {
+            Button('预览成功态')
+              .type(ButtonType.Normal)
+              .height(36)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(Color.White)
+              .backgroundColor(AppColors.BRAND_PRIMARY)
+              .borderRadius(AppStyles.RADIUS_SM)
+              .padding({ left: 16, right: 16 })
+              .onClick(() => {
+                this.successPreviewDialogController.open()
+              })
+
+            Button('预览失败态')
+              .type(ButtonType.Normal)
+              .height(36)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+              .borderRadius(AppStyles.RADIUS_SM)
+              .border({
+                width: 1,
+                color: AppColors.getColors(this.currentTheme).BORDER
+              })
+              .padding({ left: 16, right: 16 })
+              .onClick(() => {
+                this.failurePreviewDialogController.open()
+              })
+          }
+        }
+        .width('100%')
+        .padding(20)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .alignItems(HorizontalAlign.Start)
+        .border({
+          width: 1,
+          color: this.hoveredCardIndex === 3 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+        })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 3, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 3, 4) })
+        .onHover((isHover: boolean) => {
+          HoverUtils.animate(() => {
+            this.hoveredCardIndex = isHover ? 3 : -1
+          })
+        })
 
         // 使用指南卡片
         Column({ space: 12 }) {

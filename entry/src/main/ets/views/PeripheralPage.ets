@@ -51,6 +51,8 @@ import { LogContentExportOptions, LogStorageService } from '../services/LogStora
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
+import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
 type PeripheralResultData =
@@ -144,6 +146,7 @@ export struct PeripheralPage {
   @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
   @State policyUpdatingKeys: string[] = []
   @State peripheralPolicyRenderVersion: number = 0
+  private resultDialogController?: CustomDialogController
   private deviceControlPolicyOptions: SelectOption[] = [
     { value: '允许' },
     { value: '禁止' },
@@ -198,6 +201,33 @@ export struct PeripheralPage {
     this.refreshAdminActivationState()
     this.loadAllData()
     this.subscribeTraceStorageChange()
+  }
+
+  private showResultDialog(status: ResultMessageStatus, message: string): void {
+    if (this.resultDialogController) {
+      try {
+        this.resultDialogController.close()
+      } catch (_err) {
+      }
+      this.resultDialogController = undefined
+    }
+
+    this.resultDialogController = new CustomDialogController({
+      builder: ResultMessageBox({
+        status: status,
+        message: message,
+        onConfirm: () => {
+          this.resultDialogController = undefined
+        },
+        onClose: () => {
+          this.resultDialogController = undefined
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+    this.resultDialogController.open()
   }
 
   aboutToDisappear() {
@@ -649,6 +679,11 @@ export struct PeripheralPage {
     if (this.adminState.activated) {
       return true
     }
+    this.showResultDialog(
+      'failure',
+      ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
+    )
+    return false
     let reasonText: string = this.adminState.errorMessage || '企业管理员未激活'
     let codeText: string = this.adminState.errorCode !== undefined ? ' (' + this.adminState.errorCode + ')' : ''
     promptAction.showToast({ message: action + '不可用：' + reasonText + codeText })
@@ -656,6 +691,11 @@ export struct PeripheralPage {
   }
 
   private showOperationFailure(action: string, result: OperationResult<PeripheralResultData>): void {
+    let dialogMessage: string = result.isAdminMissing
+      ? ResultDialogHelper.displayReason(result.errorMessage, '企业管理员未激活')
+      : ResultDialogHelper.displayReason(result.errorMessage, `${action}未完成，请稍后重试`)
+    this.showResultDialog('failure', dialogMessage)
+    return
     if (result.isAdminMissing) {
       let reasonText: string = result.errorMessage || '企业管理员未激活'
       let codeText: string = result.errorCode !== undefined ? ' (' + result.errorCode + ')' : ''
@@ -937,6 +977,8 @@ export struct PeripheralPage {
       this.showConnectionExportFailureDialog(result)
     } catch (err) {
       hilog.error(0x0008, TAG, `exportPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '导出失败，保存位置：未知位置')
+      return
       promptAction.showToast({ message: '导出设备策略记录失败' })
     }
   }
@@ -1484,6 +1526,8 @@ export struct PeripheralPage {
       this.showConnectionExportFailureDialog(result)
     } catch (err) {
       hilog.error(0x0008, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '导出失败，保存位置：未知位置')
+      return
       promptAction.showToast({ message: '导出历史记录失败' })
     }
   }
@@ -1516,6 +1560,8 @@ export struct PeripheralPage {
       await PeripheralTraceRepository.init(context)
       let success = await PeripheralTraceRepository.clearAll()
       if (!success) {
+        this.showResultDialog('failure', '清理未完成，请稍后重试')
+        return
         promptAction.showToast({ message: '清理历史记录失败' })
         return
       }
@@ -1523,9 +1569,13 @@ export struct PeripheralPage {
       this.recordHintMessage = ''
       this.lastRecordHintToastMessage = ''
       this.reloadDeviceRecords()
+      this.showResultDialog('success', '历史记录已清理')
+      return
       promptAction.showToast({ message: '历史记录已清理' })
     } catch (err) {
       hilog.error(0x0008, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '清理未完成，请稍后重试')
+      return
       promptAction.showToast({ message: '清理历史记录失败' })
     }
   }
@@ -1594,6 +1644,8 @@ export struct PeripheralPage {
   }
 
   private showConnectionExportSuccessDialog(result: LogExportResult): void {
+    this.showResultDialog('success', `记录已导出，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
+    return
     let fileName = result.fileName || '未知'
     let directory = result.directory || '未知'
     let fullPath = result.fullPath || '未知'
@@ -1612,6 +1664,8 @@ export struct PeripheralPage {
   }
 
   private showConnectionExportFailureDialog(result: LogExportResult): void {
+    this.showResultDialog('failure', `导出失败，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
+    return
     let directory = result.directory || '-'
     let fileName = result.fileName || '未知'
     let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''

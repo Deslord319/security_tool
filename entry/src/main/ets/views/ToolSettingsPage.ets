@@ -17,6 +17,8 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
+import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'ToolSettingsPage'
 
@@ -27,6 +29,7 @@ export struct ToolSettingsPage {
   @State hoveredCardIndex: number = -1
   @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   @State authMethodIndex: number = 0
+  private resultDialogController?: CustomDialogController
 
   private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   private initialAuthMethodIndex: number = 0
@@ -35,6 +38,33 @@ export struct ToolSettingsPage {
 
   aboutToAppear() {
     this.loadSettings()
+  }
+
+  private showResultDialog(status: ResultMessageStatus, message: string): void {
+    if (this.resultDialogController) {
+      try {
+        this.resultDialogController.close()
+      } catch (_err) {
+      }
+      this.resultDialogController = undefined
+    }
+
+    this.resultDialogController = new CustomDialogController({
+      builder: ResultMessageBox({
+        status: status,
+        message: message,
+        onConfirm: () => {
+          this.resultDialogController = undefined
+        },
+        onClose: () => {
+          this.resultDialogController = undefined
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+    this.resultDialogController.open()
   }
 
   async loadSettings() {
@@ -85,6 +115,8 @@ export struct ToolSettingsPage {
       await this.doSaveSettings()
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '保存设置失败，请稍后重试')
+      return
       promptAction.showToast({ message: '保存设置失败' })
     }
   }
@@ -107,9 +139,13 @@ export struct ToolSettingsPage {
       this.initialStartupAuthEnabled = this.startupAuthEnabled
       this.initialAuthMethodIndex = this.authMethodIndex
       hilog.info(0x0004, TAG, 'Startup auth settings saved')
+      this.showResultDialog('success', '工具设置已保存')
+      return
       promptAction.showToast({ message: '工具设置保存成功' })
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '保存设置失败，请稍后重试')
+      return
       promptAction.showToast({ message: '保存设置失败' })
     }
   }

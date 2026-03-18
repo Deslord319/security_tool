@@ -9,6 +9,8 @@ import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 @Component
 export struct FirewallRulesPage {
@@ -19,6 +21,7 @@ export struct FirewallRulesPage {
   @State hoveredRuleIndex: number = -1
   onBack: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  private resultDialogController?: CustomDialogController
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
@@ -47,6 +50,33 @@ export struct FirewallRulesPage {
 
   aboutToAppear() {
     this.loadRules()
+  }
+
+  private showResultDialog(status: ResultMessageStatus, message: string): void {
+    if (this.resultDialogController) {
+      try {
+        this.resultDialogController.close()
+      } catch (_err) {
+      }
+      this.resultDialogController = undefined
+    }
+
+    this.resultDialogController = new CustomDialogController({
+      builder: ResultMessageBox({
+        status: status,
+        message: message,
+        onConfirm: () => {
+          this.resultDialogController = undefined
+        },
+        onClose: () => {
+          this.resultDialogController = undefined
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+    this.resultDialogController.open()
   }
 
   async loadRules() {
@@ -122,16 +152,29 @@ export struct FirewallRulesPage {
   ) {
     let ruleId = await FirewallService.addRule(rule)
     if (ruleId > 0) {
+      this.showResultDialog('success', '防火墙规则已保存')
+      this.loadRules()
+      return
       promptAction.showToast({ message: successMessage })
       this.loadRules()
       return
     }
     let errorKind = FirewallService.getLastErrorKind()
+    if (errorKind !== 'invalid_argument') {
+      if (errorKind === 'permission') {
+        this.showResultDialog('failure', '保存未完成，请检查权限和企业管理员状态')
+      } else {
+        this.showResultDialog('failure', '保存未完成，请稍后重试')
+      }
+      return
+    }
     if (errorKind === 'invalid_argument') {
       promptAction.showToast({ message: '规则参数不合法，请检查输入' })
       return
     }
     if (errorKind === 'permission') {
+      this.showResultDialog('failure', '保存未完成，请检查权限和企业管理员状态')
+      return
       promptAction.showToast({ message: '规则添加失败，请检查权限和企业管理员状态' })
       return
     }
@@ -141,11 +184,22 @@ export struct FirewallRulesPage {
   private async updateRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
     let success = await FirewallService.updateRule(rule)
     if (success) {
+      this.showResultDialog('success', '防火墙规则已更新')
+      this.loadRules()
+      return
       promptAction.showToast({ message: '规则更新成功' })
       this.loadRules()
       return
     }
     let errorKind = FirewallService.getLastErrorKind()
+    if (errorKind !== 'invalid_argument') {
+      if (errorKind === 'permission') {
+        this.showResultDialog('failure', '更新未完成，请检查权限和企业管理员状态')
+      } else {
+        this.showResultDialog('failure', '更新未完成，请稍后重试')
+      }
+      return
+    }
     if (errorKind === 'invalid_argument') {
       promptAction.showToast({ message: '规则参数不合法，请检查输入' })
       return
@@ -207,7 +261,14 @@ export struct FirewallRulesPage {
 
   private async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<void> {
     let ruleId = await FirewallService.replaceRule(oldRuleId, newRule)
+    if (ruleId <= 0) {
+      this.showResultDialog('failure', '覆盖未完成，请稍后重试')
+      return
+    }
     if (ruleId > 0) {
+      this.showResultDialog('success', '防火墙规则已覆盖并生效')
+      this.loadRules()
+      return
       promptAction.showToast({ message: '规则已覆盖并生效' })
       this.loadRules()
       return
@@ -218,6 +279,8 @@ export struct FirewallRulesPage {
   private async replaceRuleWhileEditing(oldRuleId: number, updatedRule: netFirewall.NetFirewallRule): Promise<void> {
     let removed = await FirewallService.removeRule(oldRuleId)
     if (!removed) {
+      this.showResultDialog('failure', '覆盖未完成，请稍后重试')
+      return
       promptAction.showToast({ message: '规则覆盖失败，请稍后重试' })
       return
     }
@@ -242,7 +305,14 @@ export struct FirewallRulesPage {
   }
   async handleDeleteRule(ruleId: number) {
     let success = await FirewallService.removeRule(ruleId)
+    if (!success) {
+      this.showResultDialog('failure', '删除未完成，请稍后重试')
+      return
+    }
     if (success) {
+      this.showResultDialog('success', '防火墙规则已删除')
+      this.loadRules()
+      return
       promptAction.showToast({ message: '规则已删除' })
       this.loadRules()
     } else {

@@ -34,6 +34,8 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { BackNavButton } from '../components/BackNavButton'
 import { FormControlUtils } from '../utils/FormControlUtils'
+import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'LogManagePage'
 
@@ -285,6 +287,7 @@ export struct LogManagePage {
   private detailDialogController?: CustomDialogController
 
   private exportFormatDialogController?: CustomDialogController
+  private resultDialogController?: CustomDialogController
 
   private resolveStatIndex(label: string): number {
     if (label === '总计') {
@@ -559,9 +562,13 @@ export struct LogManagePage {
 
     let result = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
     if (result.success) {
+      this.showResultDialog('success', `日志已导出，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
+      return
       this.showExportSuccessDetailDialog(result)
       return
     }
+    this.showResultDialog('failure', `日志导出失败，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
+    return
     this.showExportFailureDialog(result)
   }
   showExportSuccessDialog(result: LogExportResult) {
@@ -636,6 +643,33 @@ export struct LogManagePage {
       alignment: DialogAlignment.Center
     })
     this.detailDialogController.open()
+  }
+
+  private showResultDialog(status: ResultMessageStatus, message: string): void {
+    if (this.resultDialogController) {
+      try {
+        this.resultDialogController.close()
+      } catch (_err) {
+      }
+      this.resultDialogController = undefined
+    }
+
+    this.resultDialogController = new CustomDialogController({
+      builder: ResultMessageBox({
+        status: status,
+        message: message,
+        onConfirm: () => {
+          this.resultDialogController = undefined
+        },
+        onClose: () => {
+          this.resultDialogController = undefined
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+    this.resultDialogController.open()
   }
 
   private showExportSuccessDetailDialog(result: LogExportResult): void {
@@ -737,12 +771,16 @@ export struct LogManagePage {
 
     let success = await LogStorageService.updateConfig(config)
     if (!success) {
+      this.showResultDialog('failure', '保存设置失败，请稍后重试')
+      return
       promptAction.showToast({ message: '保存失败' })
       return
     }
 
     this.applyStorageConfig(LogStorageService.getConfig())
     this.refreshAll()
+    this.showResultDialog('success', '日志存储设置已保存')
+    return
     promptAction.showToast({ message: '存储设置已保存' })
   }
   applyStorageConfig(config: LogStorageConfig): void {

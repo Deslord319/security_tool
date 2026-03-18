@@ -16,6 +16,8 @@ import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
+import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'IdentityPage'
 const DOMAIN = 0x0003
@@ -39,6 +41,7 @@ export struct IdentityPage {
   @State requireSpecialChar: boolean = true
   @State validityPeriodIndex: number = 0
   @State customValidityPeriodText: string = ''
+  private resultDialogController?: CustomDialogController
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
     value: `${value} 位`
@@ -56,6 +59,33 @@ export struct IdentityPage {
     this.loadCurrentPolicy()
   }
 
+  private showResultDialog(status: ResultMessageStatus, message: string): void {
+    if (this.resultDialogController) {
+      try {
+        this.resultDialogController.close()
+      } catch (_err) {
+      }
+      this.resultDialogController = undefined
+    }
+
+    this.resultDialogController = new CustomDialogController({
+      builder: ResultMessageBox({
+        status: status,
+        message: message,
+        onConfirm: () => {
+          this.resultDialogController = undefined
+        },
+        onClose: () => {
+          this.resultDialogController = undefined
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+    this.resultDialogController.open()
+  }
+
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
   }
@@ -65,6 +95,11 @@ export struct IdentityPage {
     if (this.adminState.activated) {
       return true
     }
+    this.showResultDialog(
+      'failure',
+      ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
+    )
+    return false
     let reasonText = this.adminState.errorMessage || '企业管理员未激活'
     let codeText = this.adminState.errorCode !== undefined ? ` (${this.adminState.errorCode})` : ''
     promptAction.showToast({ message: `${action}失败：${reasonText}${codeText}` })
@@ -72,6 +107,11 @@ export struct IdentityPage {
   }
 
   private showFailureDialog<T>(action: string, result: OperationResult<T>): void {
+    let dialogMessage = result.isAdminMissing
+      ? ResultDialogHelper.displayReason(result.errorMessage, '企业管理员未激活')
+      : ResultDialogHelper.displayReason(result.errorMessage, `${action}未完成，请稍后重试`)
+    this.showResultDialog('failure', dialogMessage)
+    return
     if (result.isAdminMissing) {
       let reasonText = result.errorMessage || '企业管理员未激活'
       let codeText = result.errorCode !== undefined ? ` (${result.errorCode})` : ''
@@ -184,6 +224,8 @@ export struct IdentityPage {
 
     let pwdResult = IdentityService.setPasswordPolicyWithResult(config)
     if (pwdResult.success) {
+      this.showResultDialog('success', '身份鉴别配置已保存')
+      return
       promptAction.showToast({ message: '身份鉴别配置已保存。' })
       return
     }
