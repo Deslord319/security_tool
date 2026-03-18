@@ -322,8 +322,8 @@ export struct DashboardPage {
             ToolCard({
               label: '工具设置',
               icon: $r('app.media.settings'),
-              gradientStart: '#3F3F46',
-              gradientEnd: '#71717A',
+              gradientStart: '#9095A1',
+              gradientEnd: '#D8DCE3',
               onPress: () => { this.onNavigate(Routes.TOOL_SETTINGS) }
             })
           }
@@ -335,8 +335,8 @@ export struct DashboardPage {
             ToolCard({
               label: '帮助与反馈',
               icon: $r('app.media.help'),
-              gradientStart: '#FF3B30',
-              gradientEnd: '#FF6B6B',
+              gradientStart: '#FF8A80',
+              gradientEnd: '#FFB4A8',
               onPress: () => { this.onNavigate(Routes.HELP_FEEDBACK) }
             })
           }
