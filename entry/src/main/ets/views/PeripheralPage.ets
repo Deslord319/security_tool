@@ -1,4 +1,4 @@
-﻿import { AppColors, AppStyles } from '../constants/AppConstants'
+import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
@@ -217,9 +217,6 @@ export struct PeripheralPage {
         status: status,
         message: message,
         onConfirm: () => {
-          this.resultDialogController = undefined
-        },
-        onClose: () => {
           this.resultDialogController = undefined
         }
       }),
@@ -1644,42 +1641,14 @@ export struct PeripheralPage {
   }
 
   private showConnectionExportSuccessDialog(result: LogExportResult): void {
-    this.showResultDialog('success', `记录已导出，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
-    return
-    let fileName = result.fileName || '未知'
-    let directory = result.directory || '未知'
-    let fullPath = result.fullPath || '未知'
-    let exportedAt = formatLogTimestamp(result.timestamp)
-    AlertDialog.show({
-      title: '导出详情',
-      message:
-        `导出结果: 导出完成（${result.count} 条）\n` +
-        `导出格式: ${result.format.toUpperCase()}\n` +
-        `文件名: ${fileName}\n` +
-        `保存位置: ${directory}\n` +
-        `完整路径: ${fullPath}\n` +
-        `导出时间: ${exportedAt}`,
-      primaryButton: { value: '我知道了', action: () => {} }
-    })
+    this.showResultDialog('success', '记录已导出，保存位置：下载\\安全管理中心\\')
   }
 
   private showConnectionExportFailureDialog(result: LogExportResult): void {
-    this.showResultDialog('failure', `导出失败，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
-    return
-    let directory = result.directory || '-'
-    let fileName = result.fileName || '未知'
-    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
-    let reasonText = result.errorMessage || '未知错误'
-    AlertDialog.show({
-      title: '导出失败',
-      message:
-        codeText +
-        `目标文件: ${fileName}\n` +
-        `目标目录: ${directory}\n` +
-        `失败原因: ${reasonText}\n` +
-        '建议: 重试导出，系统会在需要时自动请求 DOWNLOAD 目录授权。',
-      primaryButton: { value: '关闭', action: () => {} }
-    })
+    this.showResultDialog(
+      'failure',
+      `导出失败，${ResultDialogHelper.displayReason(result.errorMessage, '请稍后重试')}`
+    )
   }
 
   private getConnectionEventLabel(record: PeripheralConnectionRecord | null): string {

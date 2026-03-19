@@ -8,17 +8,10 @@ export type ResultMessageStatus = 'success' | 'failure'
 export struct ResultMessageBox {
   controller: CustomDialogController
   status: ResultMessageStatus = 'success'
-  title: string = '提示'
   message: string = ''
-  buttonText: string = '确定'
+  buttonText: string = '我知道了'
   onConfirm: () => void = () => {}
-  onClose: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-
-  private closeDialog(): void {
-    this.onClose()
-    this.controller.close()
-  }
 
   private confirmDialog(): void {
     this.onConfirm()
@@ -31,30 +24,6 @@ export struct ResultMessageBox {
 
   build() {
     Column({ space: 0 }) {
-      Row() {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-        Blank()
-
-        Button('x')
-          .type(ButtonType.Normal)
-          .width(28)
-          .height(28)
-          .fontSize(16)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .backgroundColor(Color.Transparent)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .onClick(() => {
-            this.closeDialog()
-          })
-      }
-      .width('100%')
-
       Column({ space: 8 }) {
         Text(this.getStatusTitle())
           .fontSize(18)
@@ -75,7 +44,7 @@ export struct ResultMessageBox {
           .width('100%')
       }
       .width('100%')
-      .padding({ top: 20, bottom: 24 })
+      .padding({ top: 8, bottom: 24 })
 
       Row() {
         Blank()

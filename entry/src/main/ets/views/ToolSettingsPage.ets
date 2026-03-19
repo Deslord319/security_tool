@@ -55,9 +55,6 @@ export struct ToolSettingsPage {
         message: message,
         onConfirm: () => {
           this.resultDialogController = undefined
-        },
-        onClose: () => {
-          this.resultDialogController = undefined
         }
       }),
       alignment: DialogAlignment.Center,

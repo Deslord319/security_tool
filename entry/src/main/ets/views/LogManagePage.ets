@@ -562,15 +562,16 @@ export struct LogManagePage {
 
     let result = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
     if (result.success) {
-      this.showResultDialog('success', `日志已导出，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
-      return
-      this.showExportSuccessDetailDialog(result)
+      this.showResultDialog('success', '日志已导出，保存位置：下载\\安全管理中心\\')
       return
     }
-    this.showResultDialog('failure', `日志导出失败，保存位置：${ResultDialogHelper.displayLocation(result.directory)}`)
-    return
-    this.showExportFailureDialog(result)
+
+    this.showResultDialog(
+      'failure',
+      `日志导出失败，${ResultDialogHelper.displayReason(result.errorMessage, '请稍后重试')}`
+    )
   }
+
   showExportSuccessDialog(result: LogExportResult) {
     let fileName = result.fileName || '未知'
     let directory = result.directory || '未知'
@@ -659,9 +660,6 @@ export struct LogManagePage {
         status: status,
         message: message,
         onConfirm: () => {
-          this.resultDialogController = undefined
-        },
-        onClose: () => {
           this.resultDialogController = undefined
         }
       }),
@@ -1872,5 +1870,3 @@ export struct LogManagePage {
     })
   }
 }
-
-

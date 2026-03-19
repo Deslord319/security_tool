@@ -4,7 +4,6 @@ export interface ResultDialogOptions {
   status: ResultMessageStatus
   message: string
   onConfirm?: () => void
-  onClose?: () => void
 }
 
 export class ResultDialogHelper {
@@ -15,9 +14,6 @@ export class ResultDialogHelper {
         message: options.message,
         onConfirm: () => {
           options.onConfirm?.()
-        },
-        onClose: () => {
-          options.onClose?.()
         }
       }),
       alignment: DialogAlignment.Center,

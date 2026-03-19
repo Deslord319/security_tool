@@ -74,9 +74,6 @@ export struct IdentityPage {
         message: message,
         onConfirm: () => {
           this.resultDialogController = undefined
-        },
-        onClose: () => {
-          this.resultDialogController = undefined
         }
       }),
       alignment: DialogAlignment.Center,
