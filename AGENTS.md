@@ -236,10 +236,13 @@ act -j test
 
 ```bash
 # Windows (PowerShell)
-.\build_hap.bat && cd hapsigner && .\2-debug-sign.bat && hdc install signApp.hap
+hvigorw assembleHap --mode module -p product=default -p module=entry && \
+cp entry/build/default/outputs/default/entry-default-unsigned.hap hapsigner/ && \
+cd hapsigner && .\2-debug-sign.bat && hdc install signApp.hap
 
 # Linux/Mac
 ./hvigorw assembleHap --mode module -p product=default -p module=entry && \
+cp entry/build/default/outputs/default/entry-default-unsigned.hap hapsigner/ && \
 cd hapsigner && \
 java -jar hap-sign-tool.jar sign-app \
   -keyAlias "openharmony application release" \
@@ -247,19 +250,13 @@ java -jar hap-sign-tool.jar sign-app \
   -mode "localSign" \
   -appCertFile "OpenHarmonyApplication.pem" \
   -profileFile "ohos_provision_debug.p7b" \
-  -inFile "../entry/build/default/outputs/default/entry-default-unsigned.hap" \
+  -inFile "entry-default-unsigned.hap" \
   -keystoreFile "OpenHarmony.p12" \
   -outFile "signApp.hap" \
   -keyPwd "123456" \
   -keystorePwd "123456" && \
 hdc install signApp.hap
 ```
-
----
-
-*最后更新：2026-03-09 - 添加 CI/CD 自动化流程说明*
-
----
 
 ## 官方文档来源约定
 
