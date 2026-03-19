@@ -76,6 +76,7 @@ export struct PeripheralPage {
   @State currentTab: number = 0
   @State hoveredPanelIndex: number = -1
   @State hoveredDeviceRecordIndex: number = -1
+  @State hoveredPolicyRecordIndex: number = -1
   @State isLoading: boolean = false
   @State adminState: AdminActivationState = {
     activated: false,
@@ -3091,97 +3092,130 @@ export struct PeripheralPage {
           .alignItems(HorizontalAlign.Center)
           .justifyContent(FlexAlign.Center)
         } else {
-          Row({ space: 12 }) {
-            Text('设备名称')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .layoutWeight(1.8)
-            Text('设备类型')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .layoutWeight(1.1)
-            Text('设备标识')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .layoutWeight(1.6)
-            Text('最近连接时间')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .layoutWeight(1.3)
-            Text('当前策略')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .layoutWeight(1.2)
+          Column({ space: 0 }) {
+            Row({ space: 12 }) {
+              Text('设备名称')
+                .fontSize(AppStyles.FONT_SIZE_SMALL)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1.8)
+              Text('设备类型')
+                .fontSize(AppStyles.FONT_SIZE_SMALL)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1.1)
+              Text('设备标识')
+                .fontSize(AppStyles.FONT_SIZE_SMALL)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1.6)
+              Text('最近连接时间')
+                .fontSize(AppStyles.FONT_SIZE_SMALL)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1.3)
+              Text('当前策略')
+                .fontSize(AppStyles.FONT_SIZE_SMALL)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .layoutWeight(1.2)
+            }
+            .width('100%')
+            .padding({ left: 20, right: 20, top: 14, bottom: 14 })
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+
+            Column({ space: 0 }) {
+              ForEach(this.peripheralPolicyRecords, (record: PeripheralPolicyRecord, index: number) => {
+                Column({ space: 0 }) {
+                  Row({ space: 12 }) {
+                    Text(record.deviceName)
+                      .fontSize(AppStyles.FONT_SIZE_BODY)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                      .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+                      .layoutWeight(1.8)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                    Row() {
+                      Text(getPeripheralTypeLabel(record.deviceType))
+                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                        .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+                        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+                        .borderRadius(AppStyles.RADIUS_SM)
+                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                    }
+                    .layoutWeight(1.1)
+
+                    Text(record.deviceId)
+                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                      .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                      .layoutWeight(1.6)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                    Text(record.lastSeenLabel)
+                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                      .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                      .layoutWeight(1.3)
+
+                    Select(this.policyListOptions)
+                      .selected(record.policyIndex)
+                      .value(this.getPeripheralPolicyLabel(record.policyIndex))
+                      .font({ size: AppStyles.FONT_SIZE_CAPTION })
+                      .fontColor(FormControlUtils.text(this.currentTheme))
+                      .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+                      .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
+                      .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+                      .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+                      .backgroundColor(FormControlUtils.background(this.currentTheme))
+                      .borderRadius(AppStyles.RADIUS_SM)
+                      .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+                      .layoutWeight(1.2)
+                      .enabled(!this.isPeripheralPolicyUpdating(record.deviceId))
+                      .opacity(this.isPeripheralPolicyUpdating(record.deviceId) ? 0.6 : 1)
+                      .onSelect((selectIndex: number) => {
+                        this.handlePeripheralPolicyChange(index, selectIndex)
+                      })
+                  }
+                  .width('100%')
+                  .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+                  .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+                  .translate({ y: HoverUtils.getTranslateY(this.hoveredPolicyRecordIndex === index, 2) })
+                  .onHover((isHover: boolean) => {
+                    HoverUtils.animate(() => {
+                      this.hoveredPolicyRecordIndex = isHover ? index : -1
+                    })
+                  })
+
+                  if (index < this.peripheralPolicyRecords.length - 1) {
+                    Divider()
+                      .color(AppColors.getColors(this.currentTheme).BORDER)
+                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                      .margin({ left: 20, right: 20 })
+                  }
+                }
+              }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${this.peripheralPolicyRenderVersion}`)
+            }
+            .width('100%')
           }
           .width('100%')
-          .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-          .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
-
-          Column() {
-            ForEach(this.peripheralPolicyRecords, (record: PeripheralPolicyRecord, index: number) => {
-              Row({ space: 12 }) {
-                Text(record.deviceName)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                  .layoutWeight(1.8)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                Text(getPeripheralTypeLabel(record.deviceType))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-                  .borderRadius(4)
-                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                  .layoutWeight(1.1)
-
-                Text(record.deviceId)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1.6)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                Text(record.lastSeenLabel)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(1.3)
-
-                Select(this.policyListOptions)
-                  .selected(record.policyIndex)
-                  .value(this.getPeripheralPolicyLabel(record.policyIndex))
-                  .font({ size: AppStyles.FONT_SIZE_CAPTION })
-                  .fontColor(FormControlUtils.text(this.currentTheme))
-                  .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-                  .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-                  .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-                  .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-                  .backgroundColor(FormControlUtils.background(this.currentTheme))
-                  .borderRadius(AppStyles.RADIUS_SM)
-                  .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-                  .layoutWeight(1.2)
-                  .enabled(!this.isPeripheralPolicyUpdating(record.deviceId))
-                  .opacity(this.isPeripheralPolicyUpdating(record.deviceId) ? 0.6 : 1)
-                  .onSelect((selectIndex: number) => {
-                    this.handlePeripheralPolicyChange(index, selectIndex)
-                  })
-              }
-              .width('100%')
-              .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-            }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${this.peripheralPolicyRenderVersion}`)
-          }
-          .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .borderRadius(AppStyles.RADIUS_LG)
           .clip(true)
+          .border({
+            width: 1,
+            color: this.hoveredPanelIndex === 3 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+          })
+          .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
+          .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
+          .onHover((isHover: boolean) => {
+            HoverUtils.animate(() => {
+              this.hoveredPanelIndex = isHover ? 3 : -1
+            })
+          })
         }
       }
       .width('100%')
