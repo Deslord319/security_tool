@@ -14,6 +14,10 @@ export struct DirectionCard {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State isHovered: boolean = false
 
+  private getCountLabel(): string {
+    return `${this.count} 条`
+  }
+
   build() {
     Row({ space: 12 }) {
       Column() {
@@ -51,7 +55,7 @@ export struct DirectionCard {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-        Text(`${this.count} 条规则`)
+        Text(this.getCountLabel())
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
