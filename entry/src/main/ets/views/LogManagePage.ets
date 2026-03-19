@@ -11,7 +11,6 @@ import {
   LogStatistics,
   LogStorageConfig,
   LogExportFormat,
-  LogExportResult,
   LogAuditDiagnostics,
   LogEventTypeDiag,
   AuditSubscribeMode,
@@ -158,86 +157,6 @@ struct DetailTableDialog {
   }
 }
 
-@CustomDialog
-struct ExportFormatDialog {
-  controller: CustomDialogController
-  onSelect: (format: LogExportFormat) => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-
-  private handleSelect(format: LogExportFormat): void {
-    this.controller.close()
-    this.onSelect(format)
-  }
-
-  build() {
-    Column({ space: 12 }) {
-      Text('选择导出格式')
-        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .width('100%')
-        .textAlign(TextAlign.Start)
-
-      Row({ space: 10 }) {
-        Button('JSON')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .layoutWeight(1)
-          .height(36)
-          .onClick(() => {
-            this.handleSelect(LogExportFormat.JSON)
-          })
-
-        Button('CSV')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_GREEN_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .layoutWeight(1)
-          .height(36)
-          .onClick(() => {
-            this.handleSelect(LogExportFormat.CSV)
-          })
-
-        Button('TXT')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .layoutWeight(1)
-          .height(36)
-          .onClick(() => {
-            this.handleSelect(LogExportFormat.TXT)
-          })
-      }
-      .width('100%')
-
-      Button('取消')
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(34)
-        .width('100%')
-        .onClick(() => {
-          this.controller.close()
-        })
-    }
-    .width(360)
-    .padding(18)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-  }
-}
-
 @Component
 export struct LogManagePage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -286,7 +205,6 @@ export struct LogManagePage {
   private readonly pageSizeOptions: number[] = [20, 50, 100]
   private detailDialogController?: CustomDialogController
 
-  private exportFormatDialogController?: CustomDialogController
   private resultDialogController?: CustomDialogController
 
   private resolveStatIndex(label: string): number {
@@ -550,7 +468,7 @@ export struct LogManagePage {
     return this.getDiagRecentTimeText(type)
   }
 
-  private showExportFormatDialog(): void {
+  private exportLogsAsCsv(): void {
     void this.exportLogs(LogExportFormat.CSV)
   }
 
@@ -570,47 +488,6 @@ export struct LogManagePage {
       'failure',
       `日志导出失败，${ResultDialogHelper.displayReason(result.errorMessage, '请稍后重试')}`
     )
-  }
-
-  showExportSuccessDialog(result: LogExportResult) {
-    let fileName = result.fileName || '未知'
-    let directory = result.directory || '未知'
-    let fullPath = result.fullPath || '未知'
-    let size = this.formatBytes(result.sizeBytes)
-    let exportedAt = formatLogTimestamp(result.timestamp)
-    let hint = result.errorMessage ? `\n备注: ${result.errorMessage}` : ''
-
-    AlertDialog.show({
-      title: '导出详情',
-      message:
-        `导出完成（${result.count} 条）\n` +
-        `导出格式: ${result.format.toUpperCase()}\n` +
-        `导出条数: ${result.count}\n` +
-        `文件名: ${fileName}\n` +
-        `保存位置: ${directory}\n` +
-        `完整路径: ${fullPath}\n` +
-        `文件大小: ${size}\n` +
-        `导出时间: ${exportedAt}${hint}`,
-      primaryButton: { value: '我知道了', action: () => {} }
-    })
-  }
-
-  showExportFailureDialog(result: LogExportResult) {
-    let directory = result.directory || '-'
-    let fileName = result.fileName || '未知'
-    let codeText = result.errorCode !== undefined ? '错误码: ' + result.errorCode + '\n' : ''
-    let reasonText = result.errorMessage || '未知错误'
-
-    AlertDialog.show({
-      title: '导出失败',
-      message:
-        codeText +
-        '目标文件: ' + fileName + '\n' +
-        '目标目录: ' + directory + '\n' +
-        '失败原因: ' + reasonText + '\n' +
-        '建议: 重试导出，系统会在需要时自动请求 DOWNLOAD 目录授权。',
-      primaryButton: { value: '关闭', action: () => {} }
-    })
   }
 
   private displayField(value: string | number | undefined): string {
@@ -670,23 +547,6 @@ export struct LogManagePage {
     this.resultDialogController.open()
   }
 
-  private showExportSuccessDetailDialog(result: LogExportResult): void {
-    let fields: DetailDialogField[] = [
-      this.toDetailField('summary', '导出结果', `导出完成（${result.count} 条）`),
-      this.toDetailField('format', '导出格式', result.format.toUpperCase()),
-      this.toDetailField('count', '导出条数', result.count.toString()),
-      this.toDetailField('file_name', '文件名', result.fileName),
-      this.toDetailField('directory', '保存位置', result.directory),
-      this.toDetailField('full_path', '完整路径', result.fullPath),
-      this.toDetailField('size', '文件大小', this.formatBytes(result.sizeBytes)),
-      this.toDetailField('exported_at', '导出时间', formatLogTimestamp(result.timestamp))
-    ]
-    if (result.errorMessage && result.errorMessage.trim().length > 0) {
-      fields.push(this.toDetailField('remark', '备注', result.errorMessage))
-    }
-    this.openDetailTableDialog('导出详情', fields)
-  }
-
   private openLogDetailTableDialog(entry: LogEntry): void {
     let fields: DetailDialogField[] = [
       this.toDetailField('timestamp', '时间', formatLogTimestamp(entry.timestamp)),
@@ -725,19 +585,6 @@ export struct LogManagePage {
         `原始结果: ${this.displayField(entry.rawOutcome)}`,
       primaryButton: { value: '关闭', action: () => {} }
     })
-  }
-
-  formatBytes(sizeBytes: number | undefined): string {
-    if (sizeBytes === undefined || sizeBytes < 0) {
-      return '未知'
-    }
-    if (sizeBytes < 1024) {
-      return `${sizeBytes} B`
-    }
-    if (sizeBytes < 1024 * 1024) {
-      return `${(sizeBytes / 1024).toFixed(2)} KB`
-    }
-    return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
   }
 
   clearLogs() {
@@ -985,7 +832,7 @@ export struct LogManagePage {
                 AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT,
                 AppColors.getColors(this.currentTheme).TAG_BLUE_BG,
                 () => {
-                  this.showExportFormatDialog()
+                  this.exportLogsAsCsv()
                 }
               )
 
@@ -1451,7 +1298,7 @@ export struct LogManagePage {
     Row({ space: 12 }) {
       Button('导出日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.showExportFormatDialog() })
+        .height(36).layoutWeight(1).onClick(() => { this.exportLogsAsCsv() })
 
       Button('清空日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG).borderRadius(AppStyles.RADIUS_SM)

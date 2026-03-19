@@ -21,7 +21,6 @@ import {
   PeripheralRecordAction,
   LogEventResult,
   LogExportFormat,
-  LogExportResult,
   UsbStoragePolicy,
   formatLogTimestamp,
   getLogEventResultLabel,
@@ -968,13 +967,13 @@ export struct PeripheralPage {
         }
       )
       if (result.success) {
-        this.showConnectionExportSuccessDialog(result)
+        this.showPolicyRecordExportSuccessDialog()
         return
       }
-      this.showConnectionExportFailureDialog(result)
+      this.showPolicyRecordExportFailureDialog(result.errorMessage)
     } catch (err) {
       hilog.error(0x0008, TAG, `exportPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', '导出失败，保存位置：未知位置')
+      this.showPolicyRecordExportFailureDialog()
       return
       promptAction.showToast({ message: '导出设备策略记录失败' })
     }
@@ -1517,13 +1516,13 @@ export struct PeripheralPage {
       )
       hilog.info(0x0008, TAG, `exportConnectionHistory result=${JSON.stringify(result)}`)
       if (result.success) {
-        this.showConnectionExportSuccessDialog(result)
+        this.showConnectionHistoryExportSuccessDialog()
         return
       }
-      this.showConnectionExportFailureDialog(result)
+      this.showConnectionHistoryExportFailureDialog(result.errorMessage)
     } catch (err) {
       hilog.error(0x0008, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', '导出失败，保存位置：未知位置')
+      this.showConnectionHistoryExportFailureDialog()
       return
       promptAction.showToast({ message: '导出历史记录失败' })
     }
@@ -1577,33 +1576,6 @@ export struct PeripheralPage {
     }
   }
 
-  private buildConnectionHistoryCsv(records: PeripheralConnectionRecord[]): string {
-    let headers: string[] = [
-      '设备名称',
-      '设备类型',
-      '设备标识',
-      '连接事件',
-      '策略',
-      '连接时间',
-      '事件来源',
-      '结果状态'
-    ]
-    let rows = records.map((record: PeripheralConnectionRecord) => {
-      return [
-        record.deviceName,
-        getPeripheralTypeLabel(record.deviceType),
-        record.deviceId,
-        this.getConnectionEventLabel(record),
-        this.getExecutedUsbPolicyDisplay(record),
-        this.formatConnectionTime(record),
-        getPeripheralRecordSourceLabel(record.source),
-        this.getMatchedPolicyKindLabel(record),
-        this.getConnectionResultLabel(record)
-      ].map((value: string) => this.escapeCsvValue(value)).join(',')
-    })
-    return `\uFEFF${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
-  }
-
   private buildConnectionHistoryCsvV2(records: PeripheralConnectionRecord[]): string {
     let headers: string[] = [
       '设备名称',
@@ -1640,14 +1612,25 @@ export struct PeripheralPage {
     return normalized
   }
 
-  private showConnectionExportSuccessDialog(result: LogExportResult): void {
-    this.showResultDialog('success', '记录已导出，保存位置：下载\\安全管理中心\\')
+  private showConnectionHistoryExportSuccessDialog(): void {
+    this.showResultDialog('success', '历史记录已导出，保存位置：下载\\安全管理中心\\')
   }
 
-  private showConnectionExportFailureDialog(result: LogExportResult): void {
+  private showConnectionHistoryExportFailureDialog(reason?: string): void {
     this.showResultDialog(
       'failure',
-      `导出失败，${ResultDialogHelper.displayReason(result.errorMessage, '请稍后重试')}`
+      `历史记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`
+    )
+  }
+
+  private showPolicyRecordExportSuccessDialog(): void {
+    this.showResultDialog('success', '策略记录已导出，保存位置：下载\\安全管理中心\\')
+  }
+
+  private showPolicyRecordExportFailureDialog(reason?: string): void {
+    this.showResultDialog(
+      'failure',
+      `策略记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`
     )
   }
 
@@ -1892,31 +1875,6 @@ export struct PeripheralPage {
   }
 
   @Builder
-  private pageHeaderActionButton() {
-    Button() {
-      Row({ space: 6 }) {
-        Image($r('app.media.save'))
-          .width(14)
-          .height(14)
-          .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-
-        Text('导出历史记录')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-      }
-      .alignItems(VerticalAlign.Center)
-    }
-    .type(ButtonType.Normal)
-    .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-    .borderRadius(AppStyles.RADIUS_SM)
-    .height(32)
-    .padding({ left: 10, right: 10 })
-    .onClick(() => {
-      void this.exportConnectionHistory()
-    })
-  }
-
-  @Builder
   private pageHeaderActions() {
     Row({ space: 8 }) {
       Button() {
@@ -1975,7 +1933,7 @@ export struct PeripheralPage {
             .height(14)
             .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
 
-          Text('导出历史记录')
+          Text('导出策略记录')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
         }

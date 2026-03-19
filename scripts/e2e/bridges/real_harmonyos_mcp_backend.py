@@ -55,6 +55,10 @@ DELETE_ACTION_LABELS = ["删除", "移除"]
 CONFIRM_DIALOG_LABELS = ["确定", "确认", "保存", "提交", "添加"]
 CONFIRM_DELETE_LABELS = ["确定", "确认", "删除", "移除"]
 FIREWALL_DIALOG_TITLE = "添加防火墙规则"
+LOG_EXPORT_BUTTON_TEXTS = ["导出", "导出日志"]
+LOG_EXPORT_SUCCESS_TEXT = "日志已导出，保存位置：下载\\安全管理中心\\"
+LOG_EXPORT_EMPTY_TEXT = "没有可导出的日志"
+LOG_EXPORT_FAILURE_TEXTS = ["导出失败", "操作失败"]
 FIREWALL_DIALOG_REGION = {
     "left_min": 900,
     "left_max": 2100,
@@ -977,7 +981,7 @@ class RealHarmonyOsMcpBackend:
 
     async def _export_logs(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
-        open_result = await self._click_first_available_text(["瀵煎嚭", "瀵煎嚭鏃ュ織"], bundle_name="com.huawei.securitytool")
+        open_result = await self._click_first_available_text(LOG_EXPORT_BUTTON_TEXTS, bundle_name="com.huawei.securitytool")
         if not open_result.get("ok", False):
             ui_tree = await self._get_ui_tree()
             open_button = self._pick_primary_button(ui_tree)
@@ -985,12 +989,19 @@ class RealHarmonyOsMcpBackend:
                 open_result = await self._call_tool("click_element", {"x": open_button["x"], "y": open_button["y"]})
         if not open_result.get("ok", False):
             return self._unknown(payload, "MCP_ACTION_PENDING", "Log export trigger was not found")
-        await asyncio.sleep(0.4)
-        await self._choose_any_option(["CSV", "Excel", "TXT"])
-        confirm_result = await self._confirm_dialog()
-        if confirm_result.get("status") != "PASS":
-            return confirm_result
-        return self._pass("Log export flow triggered", {})
+        for _ in range(12):
+            ui_tree = await self._get_ui_tree()
+            success_node = self._find_text_containing(ui_tree, [LOG_EXPORT_SUCCESS_TEXT, "日志已导出"])
+            if success_node:
+                return self._pass("Log export completed", {"result_text": success_node.get("text", ""), "result_node": success_node})
+            empty_node = self._find_text_containing(ui_tree, [LOG_EXPORT_EMPTY_TEXT])
+            if empty_node:
+                return self._pass("Log export skipped because no logs are available", {"result_text": empty_node.get("text", ""), "result_node": empty_node, "outcome": "empty"})
+            failure_node = self._find_text_containing(ui_tree, LOG_EXPORT_FAILURE_TEXTS)
+            if failure_node:
+                return self._fail("EXPORT_FAILED", "Log export failed", {"result_text": failure_node.get("text", ""), "result_node": failure_node})
+            await asyncio.sleep(0.4)
+        return self._unknown(payload, "MCP_ACTION_PENDING", "Log export was triggered but no export result feedback was detected")
 
     async def _change_any_policy(self, payload: dict[str, Any]) -> dict[str, Any]:
         preferred = str(payload.get("params", {}).get("preferred_module", "firewall"))
@@ -1142,6 +1153,16 @@ class RealHarmonyOsMcpBackend:
             return None
         for node in self._nodes_by_type(ui_tree, "Text"):
             if str(node.get("text", "")).strip() in wanted:
+                return node
+        return None
+
+    def _find_text_containing(self, ui_tree: dict[str, Any], texts: list[str]) -> dict[str, Any] | None:
+        wanted = [text.strip() for text in texts if text.strip()]
+        if not wanted:
+            return None
+        for node in self._nodes_by_type(ui_tree, "Text"):
+            value = str(node.get("text", "")).strip()
+            if any(text in value for text in wanted):
                 return node
         return None
 
