@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from .adapter import AdapterConfig
-from .compat import normalize_case_definition
 from .contracts import ContractError, validate_case_contract, validate_result_contract
 from .context import ExecutionContext
 from .failures import (
@@ -21,6 +20,7 @@ from .failures import (
     UNSUPPORTED_STEP_TYPE,
 )
 from .models import CaseResult, FAIL, PASS, UNKNOWN, StepResult, SuiteSummary
+from .normalizer import normalize_case_definition
 from .registry import load_adapter, load_adapter_flow_executor, load_adapter_flow_registry, load_adapter_suite, list_adapter_suites
 from .reporters import write_case_result, write_suite_summary
 from .utils import format_command, resolve_placeholders, utc_now
@@ -205,7 +205,6 @@ class E2ERunner:
         notes.extend(case.get("notes", []))
         environment_snapshot = self.context.environment_snapshot(
             connected=bool(self.context.device_id) or self.context.dry_run,
-            extras={"compatibility_mode": case["compatibility_mode"]},
         )
 
         case_result = CaseResult(
@@ -416,7 +415,7 @@ def find_cases(project_root: Path, explicit_cases: list[str] | None, cases_dir: 
     return sorted(
         path
         for path in case_dir.rglob("*.json")
-        if "__pycache__" not in path.parts and "legacy" not in path.parts
+        if "__pycache__" not in path.parts
     )
 
 

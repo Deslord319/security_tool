@@ -16,8 +16,8 @@ def validate_case_contract(case: dict[str, Any]) -> None:
     if missing:
         raise ContractError(f"Case is missing required fields: {', '.join(missing)}")
 
-    if "steps" in case and not isinstance(case["steps"], list):
-        raise ContractError("Case field 'steps' must be a list when present")
+    if "steps" in case:
+        raise ContractError("Case field 'steps' is no longer supported; use 'flow' and 'assertions'")
     if "flow" in case and not isinstance(case["flow"], list):
         raise ContractError("Case field 'flow' must be a list when present")
     if "assertions" in case and not isinstance(case["assertions"], list):

@@ -18,10 +18,14 @@
       }
     },
     {
-      "name": "select_usb_storage_policy",
-      "ref": "peripheral.select_usb_storage_policy",
+      "name": "update_usb_storage_policy",
+      "ref": "entity.update",
       "params": {
-        "policy": "read_only"
+        "domain": "peripheral",
+        "entity": "usb_storage_policy",
+        "data": {
+          "policy": "read_only"
+        }
       }
     }
   ],

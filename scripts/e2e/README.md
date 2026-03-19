@@ -1,6 +1,6 @@
 # HarmonyOS E2E 测试框架
 
-当前目录保存 `SecurityTool` 项目内的 E2E 测试框架实现，但目录结构已经按未来可独立抽离的通用框架组织。
+当前目录保存 `SecurityTool` 项目的 E2E 测试实现，但结构已经按可抽离的通用框架方向整理。
 
 ## 目录结构
 
@@ -22,20 +22,37 @@ scripts/e2e/
     identity/
     tool_settings/
     logs/
-    legacy/
   schemas/
   docs/
   results/
   artifacts/
+  metadata/
+  tools/
 ```
 
 ## 设计边界
 
-- `core/` 负责 runner、contract、兼容层和结果模型。
-- `drivers/` 负责 HDC 和 MCP 的通用组合能力。
-- `adapters/security_tool/` 只保存当前项目的页面语义、flow 和 suite。
-- `bridges/` 负责 runner 与 HarmonyOS MCP runtime 之间的执行边界。
-- `cases/legacy/` 只做历史兼容，当前主路径已经切到声明式 case。
+- `core/` 负责 runner、contract、标准化和结果模型
+- `drivers/` 负责 HDC 和 MCP 的通用组合能力
+- `adapters/security_tool/` 负责项目页面语义、operation 绑定、template 和 suite
+- `bridges/` 负责 runner 与 HarmonyOS MCP runtime 之间的执行边界
+- `cases/` 只保留当前主执行路径使用的 case
+
+## 当前主链
+
+当前运行时主链已经收敛为：
+
+```text
+case -> entity.* -> execute_template_action -> backend step runtime
+```
+
+支持的通用 operation：
+
+- `entity.create`
+- `entity.update`
+- `entity.delete`
+- `entity.toggle`
+- `entity.submit`
 
 ## 常用命令
 
@@ -80,6 +97,12 @@ $env:HARMONYOS_E2E_MCP_BACKEND_MODULE="scripts\\e2e\\bridges\\real_harmonyos_mcp
 python scripts/e2e/run_e2e.py --adapter security_tool --suite smoke
 ```
 
+如果环境里没有 MCP 包：
+
+```powershell
+pip install harmonyos_dev_mcp
+```
+
 ## 本地运行时配置
 
 复制：
@@ -90,22 +113,21 @@ python scripts/e2e/run_e2e.py --adapter security_tool --suite smoke
 
 - `scripts/e2e/adapters/security_tool/local_config.py`
 
-这个本地文件不会提交到 Git，目前主要保存：
+当前本地配置主要包含：
 
 - `TOOL_PASSWORD`
 - `SKIP_STARTUP_AUTH`
 
-环境变量也可以覆盖本地文件：
+环境变量也可以覆盖本地配置：
 
 - `HARMONYOS_E2E_TOOL_PASSWORD`
 - `HARMONYOS_E2E_SKIP_STARTUP_AUTH`
 
 ## 统一输入能力
 
-当前 framework 已经把输入类交互固化为统一能力，入口在：
+当前 framework 已把输入类交互收敛到统一入口：
 
-- `scripts/e2e/bridges/real_harmonyos_mcp_backend.py`
-  - `_input_text_with_commit(...)`
+- [real_harmonyos_mcp_backend.py](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/real_harmonyos_mcp_backend.py) 中的 `_input_text_with_commit(...)`
 
 这套策略适用于：
 
@@ -119,15 +141,9 @@ python scripts/e2e/run_e2e.py --adapter security_tool --suite smoke
 1. 点击目标 `TextInput`
 2. 输入一次
 3. 回读确认输入框中是否已有目标值
-4. 如果回读为空，并且当前场景允许提交，则执行一次：
-   - `hdc shell uinput -K -d 2054 -u 2054`
+4. 如果回读为空且当前场景允许提交，则执行一次 `hdc shell uinput -K -d 2054 -u 2054`
 5. 再回读一次
-6. 如果仍然为空，直接失败，不做二次重输
-
-约束：
-
-- 不允许为同一个字段做隐式二次输入兜底
-- 失败必须保留回读证据，便于定位“输入成功回执”和“字段实际值”不一致的问题
+6. 如果仍为空，则直接失败，不做二次重输
 
 ## 当前契约
 
@@ -142,15 +158,7 @@ bridge 契约：
 - [`mcp_bridge_action_schema.json`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/schemas/mcp_bridge_action_schema.json)
 - [`mcp_bridge_result_schema.json`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/schemas/mcp_bridge_result_schema.json)
 
-## 兼容模式
+## 当前约束
 
-当前框架仍兼容历史 case 中的：
-
-- `steps`
-- `notes`
-
-兼容转换入口在：
-
-- [`compat.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/core/compat.py)
-
-但 `legacy/` 目录中的 case 已归档，不再作为主执行路径。
+- case 只接受 `flow + assertions` 声明式结构，不再支持历史 `steps`
+- metadata 和 coverage 只统计当前 case 目录中的主链资产

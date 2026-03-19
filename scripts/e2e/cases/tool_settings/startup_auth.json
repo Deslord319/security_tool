@@ -18,16 +18,15 @@
       }
     },
     {
-      "name": "toggle_startup_auth",
-      "ref": "tool_settings.toggle_startup_auth",
+      "name": "toggle_startup_auth_setting",
+      "ref": "entity.toggle",
       "params": {
-        "target_state": "invert"
+        "domain": "tool_settings",
+        "entity": "startup_auth",
+        "data": {
+          "target_state": "invert"
+        }
       }
-    },
-    {
-      "name": "save_tool_settings",
-      "ref": "tool_settings.save",
-      "params": {}
     }
   ],
   "assertions": [],

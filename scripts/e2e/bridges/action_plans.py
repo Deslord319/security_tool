@@ -5,22 +5,20 @@ ACTION_PLANS = {
     "navigate_page": {
         "goal": "Open a page from the left navigation rail.",
         "required_params": ["page_id"],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
+        "mcp_tools": ["click_element", "wait_element", "get_ui_tree"],
         "steps": [
-            "Resolve the target page title from the adapter page registry.",
-            "Find the navigation item by text or stable page locator.",
-            "Click the navigation item.",
-            "Wait for the page title or a page-specific anchor text to appear.",
+            "Resolve the sidebar item and route container for the target page.",
+            "Click the sidebar item.",
+            "Wait for the route container or page-specific marker to appear.",
         ],
     },
     "open_top_menu": {
         "goal": "Open the top three-dot menu.",
         "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
+        "mcp_tools": ["click_element", "wait_element"],
         "steps": [
-            "Find the top menu trigger.",
-            "Click the trigger.",
-            "Wait for one of the known menu items to appear.",
+            "Click the top menu trigger.",
+            "Wait for a known menu item to appear.",
         ],
     },
     "capture_screenshot": {
@@ -28,235 +26,192 @@ ACTION_PLANS = {
         "required_params": ["name"],
         "mcp_tools": ["screenshot"],
         "steps": [
-            "Generate a stable artifact file name.",
-            "Capture a screenshot through the HarmonyOS screenshot tool.",
-            "Return the artifact path as evidence.",
+            "Generate a stable artifact path.",
+            "Capture the screenshot and return it as evidence.",
+        ],
+    },
+    "execute_template_action": {
+        "goal": "Execute an adapter-defined declarative template.",
+        "required_params": ["template_key"],
+        "mcp_tools": ["click_element", "input_text", "wait_element", "get_ui_tree"],
+        "steps": [
+            "Load the template from the adapter registry.",
+            "Resolve template variables from the operation payload.",
+            "Execute each declarative step in order.",
         ],
     },
     "toggle_firewall": {
         "goal": "Toggle the firewall switch to the desired state.",
         "required_params": ["target_state"],
-        "mcp_tools": ["find_element", "click_element", "get_ui_tree"],
+        "mcp_tools": ["click_element", "get_ui_tree"],
         "steps": [
-            "Locate the firewall toggle.",
-            "Read the current toggle state.",
-            "Click only if the current state differs from the target state.",
-            "Read the toggle state again and return the final state.",
-        ],
-    },
-    "open_firewall_rules": {
-        "goal": "Open a firewall rule detail page for a specific rule type.",
-        "required_params": ["rule_type"],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Locate the rule type card or list item.",
-            "Click the rule type.",
-            "Wait for the rules detail page title or add button.",
-        ],
-    },
-    "add_firewall_rule": {
-        "goal": "Create a firewall rule from the rule detail page.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "input_text", "wait_element"],
-        "steps": [
-            "Open the add rule dialog.",
-            "Fill the fields required by the rule type.",
-            "Submit the dialog.",
-            "Wait for the dialog to disappear or a success hint to appear.",
-        ],
-    },
-    "find_firewall_rule": {
-        "goal": "Find a firewall rule in the current rule list.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "scroll_until_text"],
-        "steps": [
-            "Find the target rule text in the current list.",
-            "If needed, scroll until the target text becomes visible.",
-        ],
-    },
-    "delete_firewall_rule": {
-        "goal": "Delete a firewall rule from the current rule list.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_until_gone"],
-        "steps": [
-            "Locate the target rule entry.",
-            "Trigger delete from the rule row or detail dialog.",
-            "Confirm the deletion if a dialog appears.",
-            "Wait until the target rule disappears.",
-        ],
-    },
-    "open_browser_url": {
-        "goal": "Open a URL in the system browser.",
-        "required_params": ["url"],
-        "mcp_tools": ["run_app", "find_element", "input_text", "press_key"],
-        "steps": [
-            "Bring the browser to the foreground.",
-            "Focus the address bar.",
-            "Input the target URL.",
-            "Press Enter or the equivalent confirm key.",
-        ],
-    },
-    "toggle_peripheral_interface": {
-        "goal": "Toggle one interface in the peripheral management page.",
-        "required_params": ["feature", "target_state"],
-        "mcp_tools": ["find_element", "click_element", "get_ui_tree"],
-        "steps": [
-            "Locate the target peripheral interface row.",
-            "Read the current switch state.",
-            "Click only when a state change is required.",
-            "Read the resulting state and return it.",
-        ],
-    },
-    "select_usb_storage_policy": {
-        "goal": "Change the USB storage policy from the select control.",
-        "required_params": ["policy"],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Open the USB storage policy select control.",
-            "Choose the target option.",
-            "Wait for the selected value to be visible in the control.",
-        ],
-    },
-    "open_usb_whitelist_dialog": {
-        "goal": "Open the USB whitelist dialog.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Locate the USB whitelist entry point.",
-            "Open the add dialog.",
-            "Wait for the dialog title or confirm button.",
-        ],
-    },
-    "add_usb_whitelist": {
-        "goal": "Add an item to the USB whitelist.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "input_text", "click_element", "wait_element"],
-        "steps": [
-            "Fill the USB whitelist fields.",
-            "Submit the dialog.",
-            "Wait for the new item text or a success hint.",
-        ],
-    },
-    "open_bluetooth_whitelist_dialog": {
-        "goal": "Open the Bluetooth whitelist dialog.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Locate the Bluetooth whitelist entry point.",
-            "Open the add dialog.",
-            "Wait for the dialog contents.",
-        ],
-    },
-    "add_bluetooth_whitelist": {
-        "goal": "Add an item to the Bluetooth whitelist.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "input_text", "click_element", "wait_element"],
-        "steps": [
-            "Fill the Bluetooth whitelist fields.",
-            "Submit the dialog.",
-            "Wait for the new item or a success hint.",
-        ],
-    },
-    "open_usb_blacklist_dialog": {
-        "goal": "Open the USB blacklist dialog.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Locate the USB blacklist entry point.",
-            "Open the add dialog.",
-            "Wait for the dialog to be visible.",
-        ],
-    },
-    "add_usb_blacklist": {
-        "goal": "Add an item to the USB blacklist.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "input_text", "click_element", "wait_element"],
-        "steps": [
-            "Fill the blacklist form.",
-            "Submit the dialog.",
-            "Wait for the new item or a success hint.",
-        ],
-    },
-    "update_password_policy": {
-        "goal": "Update the identity password policy form.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "input_text", "click_element"],
-        "steps": [
-            "Locate the password policy form controls.",
-            "Update each configured field.",
-            "Return field-level evidence for later save/verification.",
-        ],
-    },
-    "update_domain_account_policy": {
-        "goal": "Update the identity domain account policy form.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "input_text", "click_element"],
-        "steps": [
-            "Locate the domain policy controls.",
-            "Update the configured fields.",
-            "Return field-level evidence for later verification.",
-        ],
-    },
-    "export_logs": {
-        "goal": "Run the log export flow.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Open the export dialog.",
-            "Choose the export format when required.",
-            "Confirm export.",
-            "Wait for the export completion hint.",
-        ],
-    },
-    "change_any_policy": {
-        "goal": "Apply one policy change to generate a log event.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "input_text"],
-        "steps": [
-            "Navigate to one mutable policy surface.",
-            "Apply one small policy change.",
-            "Save if required.",
-        ],
-    },
-    "toggle_startup_auth": {
-        "goal": "Toggle startup authentication in tool settings.",
-        "required_params": ["target_state"],
-        "mcp_tools": ["find_element", "click_element", "get_ui_tree"],
-        "steps": [
-            "Locate the startup authentication toggle.",
-            "Read the current state.",
-            "Click only when a state change is required.",
-            "Read the resulting state.",
-        ],
-    },
-    "select_auth_method": {
-        "goal": "Select an authentication method in tool settings.",
-        "required_params": ["method"],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
-        "steps": [
-            "Open the authentication method selector.",
-            "Choose the target method.",
-            "Wait for the selected method to be visible.",
-        ],
-    },
-    "set_tool_password": {
-        "goal": "Submit the tool password form.",
-        "required_params": [],
-        "mcp_tools": ["find_element", "input_text", "click_element", "wait_element"],
-        "steps": [
-            "Fill the password form fields.",
-            "Submit the form.",
-            "Wait for a success or validation hint.",
+            "Locate the firewall toggle on the firewall page.",
+            "Click the toggle and handle authentication if prompted.",
         ],
     },
     "save_tool_settings": {
         "goal": "Save the tool settings form.",
         "required_params": [],
-        "mcp_tools": ["find_element", "click_element", "wait_element"],
+        "mcp_tools": ["click_element", "wait_element", "get_ui_tree"],
         "steps": [
             "Locate the save button.",
             "Click save.",
-            "Wait for the saved confirmation hint.",
+            "Wait for the page to remain stable after save.",
+        ],
+    },
+    "set_tool_password": {
+        "goal": "Submit the tool password form.",
+        "required_params": [],
+        "mcp_tools": ["input_text", "click_element", "get_ui_tree"],
+        "steps": [
+            "Locate password form inputs.",
+            "Fill the password fields.",
+            "Submit the form and capture field-level evidence.",
+        ],
+    },
+    "open_browser_url": {
+        "goal": "Open a URL in the system browser.",
+        "required_params": ["url"],
+        "mcp_tools": ["run_app", "click_element", "input_text", "press_key"],
+        "steps": [
+            "Bring the browser to the foreground.",
+            "Focus the address bar.",
+            "Input the target URL and confirm.",
+        ],
+    },
+    "export_logs": {
+        "goal": "Run the log export flow.",
+        "required_params": [],
+        "mcp_tools": ["click_element", "wait_element", "get_ui_tree"],
+        "steps": [
+            "Open the export dialog.",
+            "Confirm the export action.",
+            "Wait for the export completion hint.",
+        ],
+    },
+    "change_any_policy": {
+        "goal": "Apply one small policy change to generate a log event.",
+        "required_params": [],
+        "mcp_tools": ["click_element", "input_text", "get_ui_tree"],
+        "steps": [
+            "Navigate to a mutable policy page.",
+            "Apply one small policy change.",
+            "Save when required.",
+        ],
+    },
+    "toggle_first_on_page": {
+        "goal": "Toggle the first visible switch on the current page.",
+        "required_params": ["page_text"],
+        "mcp_tools": ["click_element", "get_ui_tree", "wait_element"],
+        "steps": [
+            "Verify the target page is visible.",
+            "Locate the first content toggle.",
+            "Click it and handle any auth prompt.",
+        ],
+    },
+    "open_firewall_rules_page": {
+        "goal": "Open the firewall rules detail page for a specific rule type.",
+        "required_params": ["rule_type"],
+        "mcp_tools": ["click_element", "wait_element", "get_ui_tree"],
+        "steps": [
+            "Navigate to the firewall page if needed.",
+            "Open the rule type card.",
+            "Wait for the firewall rules detail page to appear.",
+        ],
+    },
+    "open_named_dialog": {
+        "goal": "Open a dialog by one of its known labels.",
+        "required_params": ["dialog_key|labels"],
+        "mcp_tools": ["click_element", "wait_element", "get_ui_tree"],
+        "steps": [
+            "Resolve the dialog descriptor or use inline labels.",
+            "Open the matching dialog.",
+            "Wait for the dialog to become visible.",
+        ],
+    },
+    "fill_inputs": {
+        "goal": "Populate the visible text inputs with provided values.",
+        "required_params": ["values", "field_group?"],
+        "mcp_tools": ["input_text", "get_ui_tree"],
+        "steps": [
+            "Locate visible text inputs.",
+            "Optionally resolve the field descriptor for evidence ordering.",
+            "Fill inputs in order with the provided values.",
+        ],
+    },
+    "fill_inputs_with_fallback_touch": {
+        "goal": "Populate visible inputs, or fall back to identity page touch interactions.",
+        "required_params": ["values", "field_group?"],
+        "mcp_tools": ["input_text", "click_element", "get_ui_tree"],
+        "steps": [
+            "Try to fill text inputs directly.",
+            "If direct input fails, fall back to touch-based interaction.",
+        ],
+    },
+    "confirm_dialog": {
+        "goal": "Confirm the currently visible dialog.",
+        "required_params": [],
+        "mcp_tools": ["click_element", "get_ui_tree"],
+        "steps": [
+            "Locate the dialog confirm action.",
+            "Click the first matching confirm label.",
+        ],
+    },
+    "submit_firewall_rule_form": {
+        "goal": "Submit the firewall rule creation dialog.",
+        "required_params": ["rule_type"],
+        "mcp_tools": ["click_element", "input_text", "wait_element", "get_ui_tree"],
+        "steps": [
+            "Open the add rule dialog if needed.",
+            "Configure select controls.",
+            "Fill dialog inputs and submit.",
+        ],
+    },
+    "toggle_indexed_control": {
+        "goal": "Toggle a control by type and index.",
+        "required_params": ["control_type", "index"],
+        "mcp_tools": ["click_element", "get_ui_tree"],
+        "steps": [
+            "Locate controls by type.",
+            "Pick the requested index.",
+            "Click the chosen control.",
+        ],
+    },
+    "select_indexed_option": {
+        "goal": "Open a select control by index and choose labels resolved from the option strategy.",
+        "required_params": ["index", "value", "option_group|options"],
+        "mcp_tools": ["click_element", "find_element", "get_ui_tree"],
+        "steps": [
+            "Locate select controls by MCP query or UI tree and choose one by index.",
+            "Open the select dropdown.",
+            "Resolve candidate labels from the option strategy and choose one.",
+        ],
+    },
+    "wait_for_text": {
+        "goal": "Wait for a target text to become visible.",
+        "required_params": ["text"],
+        "mcp_tools": ["wait_element"],
+        "steps": [
+            "Wait until the target text appears in the target bundle.",
+        ],
+    },
+    "assert_text_visible": {
+        "goal": "Assert that any one of the provided texts becomes visible.",
+        "required_params": ["candidates"],
+        "mcp_tools": ["wait_element"],
+        "steps": [
+            "Try each candidate text in order.",
+            "Return the first successful match.",
+        ],
+    },
+    "delete_visible_rule": {
+        "goal": "Delete a visible firewall rule by target text.",
+        "required_params": [],
+        "mcp_tools": ["click_element", "get_ui_tree"],
+        "steps": [
+            "Focus the target rule if present.",
+            "Trigger the delete action.",
+            "Confirm the delete dialog.",
         ],
     },
 }

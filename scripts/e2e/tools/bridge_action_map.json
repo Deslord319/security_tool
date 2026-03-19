@@ -1,0 +1,16 @@
+{
+  "navigation.open_page": "navigate_page",
+  "theme_menu.open": "open_top_menu",
+  "ui.capture_screenshot": "capture_screenshot",
+  "entity.create": "execute_template_action",
+  "entity.delete": "execute_template_action",
+  "entity.toggle": "execute_template_action",
+  "entity.update": "execute_template_action",
+  "entity.submit": "execute_template_action",
+  "firewall.toggle_status": "toggle_firewall",
+  "browser.open_url": "open_browser_url",
+  "logs.export": "export_logs",
+  "logs.change_any_policy": "change_any_policy",
+  "tool_settings.set_password": "set_tool_password",
+  "tool_settings.save": "save_tool_settings"
+}

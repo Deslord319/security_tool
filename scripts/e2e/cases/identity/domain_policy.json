@@ -18,12 +18,16 @@
       }
     },
     {
-      "name": "update_domain_policy",
-      "ref": "identity.update_domain_policy",
+      "name": "update_identity_domain_policy",
+      "ref": "entity.update",
       "params": {
-        "password_max_age_days": 90,
-        "expiration_notify_days": 7,
-        "auth_validity_minutes": -1
+        "domain": "identity",
+        "entity": "domain_policy",
+        "data": {
+          "password_max_age_days": 90,
+          "expiration_notify_days": 7,
+          "auth_validity_minutes": -1
+        }
       }
     }
   ],

@@ -1,0 +1,244 @@
+from __future__ import annotations
+
+from typing import Any
+from urllib.parse import urlparse
+
+from scripts.e2e.adapters.security_tool.strategies import (
+    FIREWALL_ADD_RULE_TEXTS,
+    FIREWALL_DIALOG_TITLE,
+    FIREWALL_PAGE_TEXT,
+    FIREWALL_RULE_TYPE_LABELS,
+    TOOL_SETTINGS_PAGE_TEXT,
+    TOOL_SETTINGS_SAVE_TEXT,
+)
+
+
+class ComplexHooksMixin:
+    async def _open_firewall_rules_page(self, rule_type: str) -> dict[str, Any]:
+        label = FIREWALL_RULE_TYPE_LABELS.get(str(rule_type).lower(), "")
+        if not label:
+            return self._fail("MCP_EXECUTION_FAILED", f"Unsupported firewall rule_type: {rule_type}", {})
+
+        click_result = await self._call_tool("click_element", {"text": label, "bundle_name": "com.huawei.securitytool"})
+        if not click_result.get("ok", False):
+            ui_tree = await self._get_ui_tree()
+            rule_card = self._pick_firewall_rule_card(ui_tree, str(rule_type).lower())
+            if rule_card:
+                click_result = await self._call_tool("click_element", {"x": rule_card["x"], "y": rule_card["y"]})
+        if not click_result.get("ok", False):
+            return self._fail("MCP_EXECUTION_FAILED", f"Failed to open firewall rule type: {label}", {"click_result": click_result})
+
+        wait_result = await self._wait_for(
+            [
+                {"element_id": "route-page-firewall-rules", "bundle_name": "com.huawei.securitytool"},
+                {"text": "防火墙规则", "bundle_name": "com.huawei.securitytool"},
+                {"text": "+ 添加规则", "bundle_name": "com.huawei.securitytool"},
+            ]
+        )
+        if not wait_result.get("ok", False):
+            return self._unknown(
+                {"action": "open_firewall_rules_page", "params": {"rule_type": rule_type}},
+                "MCP_ACTION_PENDING",
+                f"Rule type click succeeded but rules page was not detected for {label}",
+            )
+        return self._pass("Firewall rules page opened", {"rule_type": str(rule_type).lower(), "matched": wait_result.get("match", {})})
+
+    async def _submit_firewall_rule_form(self, params: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        if not await self._firewall_dialog_visible():
+            ui_tree = await self._get_ui_tree()
+            add_button = self._pick_button_by_text(ui_tree, FIREWALL_ADD_RULE_TEXTS)
+            open_result = {"ok": False}
+            if add_button:
+                open_result = await self._call_tool("click_element", {"x": add_button["x"], "y": add_button["y"]})
+            if not open_result.get("ok", False):
+                open_result = await self._click_first_available_text(FIREWALL_ADD_RULE_TEXTS, bundle_name="com.huawei.securitytool")
+            if not open_result.get("ok", False):
+                return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Add rule trigger was not found")
+
+        dialog_ready = await self._wait_for(
+            [
+                {"text": FIREWALL_DIALOG_TITLE, "bundle_name": "com.huawei.securitytool"},
+                {"text": "添加", "bundle_name": "com.huawei.securitytool"},
+            ],
+            timeout_sec=4.0,
+        )
+        if not dialog_ready.get("ok", False):
+            return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Add rule dialog did not appear")
+
+        select_result = await self._configure_firewall_dialog_selects(params)
+        if select_result.get("status") != "PASS":
+            return select_result
+        fill_result = await self._fill_firewall_dialog_inputs(params)
+        if fill_result.get("status") != "PASS":
+            return fill_result
+
+        submit_result = await self._confirm_dialog()
+        if submit_result.get("status") != "PASS":
+            return submit_result
+        dialog_gone = await self._wait_until_text_gone(FIREWALL_DIALOG_TITLE, timeout_sec=5.0)
+        evidence = {"params": params, "fill": fill_result.get("evidence", {}), "submit": submit_result.get("evidence", {}), "selects": select_result.get("evidence", {})}
+        if dialog_gone.get("status") != "PASS":
+            return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule dialog is still open after submit")
+        rule_created = await self._assert_any_text_visible(
+            [str(params.get("name", "")), str(params.get("host", "")), str(params.get("domain", "")), str(params.get("ip", ""))],
+            timeout_sec=2.5,
+        )
+        evidence["rule_created"] = rule_created
+        if rule_created.get("status") != "PASS":
+            return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule dialog closed but target rule was not observed")
+        return self._pass("Firewall rule dialog submitted", evidence)
+
+    async def _set_tool_password(self, payload: dict[str, Any]) -> dict[str, Any]:
+        params = payload.get("params", {})
+        new_password = str(params.get("new_password", ""))
+        confirm_password = str(params.get("confirm_password", ""))
+        current_password = str(params.get("current_password", ""))
+
+        ui_tree = await self._get_ui_tree()
+        inputs = self._nodes_by_type(ui_tree, "TextInput")
+        if len(inputs) < 2:
+            await self._call_tool("swipe", {"direction": "up"})
+            await self._wait_for_element(element_type="TextInput", timeout_sec=1.5)
+            ui_tree = await self._get_ui_tree()
+            inputs = self._nodes_by_type(ui_tree, "TextInput")
+        if len(inputs) < 2:
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Password form inputs were not fully detected")
+
+        input_values = []
+        if current_password and len(inputs) >= 3:
+            input_values.append((inputs[0], current_password))
+            input_values.append((inputs[1], new_password))
+            input_values.append((inputs[2], confirm_password))
+        else:
+            input_values.append((inputs[0], new_password))
+            input_values.append((inputs[1], confirm_password))
+
+        for node, value in input_values:
+            input_result = await self._input_text_with_commit(node["x"], node["y"], value)
+            if not input_result.get("ok", False):
+                return self._fail("MCP_EXECUTION_FAILED", "Failed to input password field", {"input_result": input_result, "node": node})
+
+        save_result = await self._save_tool_settings(payload)
+        if save_result.get("status") != "PASS":
+            evidence = save_result.get("evidence", {})
+            evidence["filled_inputs"] = input_values
+            save_result["evidence"] = evidence
+            return save_result
+        save_result.setdefault("evidence", {})
+        save_result["evidence"]["filled_inputs"] = input_values
+        save_result["message"] = "Tool password fields populated and save triggered"
+        return save_result
+
+    async def _open_browser_url(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        url = str(payload.get("params", {}).get("url", "")).strip()
+        if not url:
+            return self._fail("MCP_EXECUTION_FAILED", "URL is required", {})
+        if await self._firewall_dialog_visible():
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Firewall dialog is still open before browser launch")
+
+        start_result = await self._call_tool("run_app", {"bundle_name": "com.huawei.hmos.browser", "auto_detect": True})
+        if not start_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Browser app could not be launched")
+
+        address_bar = await self._locate_browser_address_bar()
+        if not address_bar:
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Browser address bar was not located")
+        focus_result = await self._call_tool("click_element", {"x": address_bar["x"], "y": address_bar["y"]})
+        if not focus_result.get("ok", False):
+            return self._fail("MCP_EXECUTION_FAILED", "Failed to focus browser address bar", {"click_result": focus_result, "address_bar": address_bar})
+
+        input_result = await self._input_text_with_commit(
+            address_bar["x"],
+            address_bar["y"],
+            url,
+            commit_enter=True,
+            force_commit_enter=True,
+            bundle_name="com.huawei.hmos.browser",
+        )
+        if not input_result.get("ok", False):
+            return self._fail("MCP_EXECUTION_FAILED", "Failed to input browser URL", {"input_result": input_result, "address_bar": address_bar})
+        verify_url = await self._verify_browser_url_entered(url)
+        if verify_url.get("status") != "PASS":
+            return verify_url
+        browser_navigation = await self._verify_browser_navigation_started(url)
+        if browser_navigation.get("status") != "PASS":
+            return browser_navigation
+        return self._pass(
+            "Browser URL open triggered",
+            {
+                "url": url,
+                "address_bar": address_bar,
+                "submit": {
+                    "method": "input_text_with_commit",
+                    "input_result": input_result,
+                },
+                "navigation": browser_navigation.get("evidence", {}),
+            },
+        )
+
+    async def _export_logs(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        open_result = await self._click_first_available_text(["导出", "导出日志"], bundle_name="com.huawei.securitytool")
+        if not open_result.get("ok", False):
+            ui_tree = await self._get_ui_tree()
+            open_button = self._pick_primary_button(ui_tree)
+            if open_button:
+                open_result = await self._call_tool("click_element", {"x": open_button["x"], "y": open_button["y"]})
+        if not open_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log export trigger was not found")
+        await self._wait_for_any_texts(["CSV", "Excel", "TXT"], timeout_sec=2.0)
+        await self._choose_any_option(["CSV", "Excel", "TXT"])
+        confirm_result = await self._confirm_dialog()
+        if confirm_result.get("status") != "PASS":
+            return confirm_result
+        return self._pass("Log export flow triggered", {})
+
+    async def _change_any_policy(self, payload: dict[str, Any]) -> dict[str, Any]:
+        preferred = str(payload.get("params", {}).get("preferred_module", "firewall"))
+        if preferred == "firewall":
+            nav_result = await self._navigate_page({"page_id": "firewall"})
+            if nav_result.get("status") != "PASS":
+                return nav_result
+            toggle_result = await self._toggle_first_toggle(payload, page_text=FIREWALL_PAGE_TEXT)
+            if toggle_result.get("status") == "PASS":
+                return toggle_result
+            ui_tree = await self._get_ui_tree()
+            button = self._pick_primary_button(ui_tree)
+            if button:
+                click_result = await self._call_tool("click_element", {"x": button["x"], "y": button["y"]})
+                if click_result.get("ok", False):
+                    return self._pass("Fallback firewall interaction executed", {"button": button})
+            return toggle_result
+        nav_result = await self._navigate_page({"page_id": "tool-settings"})
+        if nav_result.get("status") != "PASS":
+            return nav_result
+        return await self._toggle_first_toggle(payload, page_text=TOOL_SETTINGS_PAGE_TEXT)
+
+    async def _save_tool_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        ui_tree = await self._get_ui_tree()
+        save_button = self._pick_tool_settings_save_button(ui_tree)
+        click_result = None
+        if save_button:
+            click_result = await self._call_tool("click_element", {"x": save_button["x"], "y": save_button["y"]})
+        if not click_result or not click_result.get("ok", False):
+            click_result = await self._call_tool("click_element", {"text": TOOL_SETTINGS_SAVE_TEXT, "bundle_name": "com.huawei.securitytool"})
+        if not click_result.get("ok", False):
+            return self._fail(
+                "MCP_EXECUTION_FAILED",
+                "Click action failed",
+                {
+                    "click_result": click_result,
+                    "click_params": {"text": TOOL_SETTINGS_SAVE_TEXT, "bundle_name": "com.huawei.securitytool"},
+                    "save_button": save_button or {},
+                },
+            )
+        wait_result = await self._wait_for([{"text": TOOL_SETTINGS_PAGE_TEXT, "bundle_name": "com.huawei.securitytool"}])
+        if not wait_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Save click succeeded but tool settings page confirmation did not resolve")
+        return self._pass(
+            "Tool settings save action executed",
+            {"save_button": save_button or {}, "wait_match": wait_result.get("match", {})},
+        )

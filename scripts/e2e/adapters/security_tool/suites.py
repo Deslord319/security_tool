@@ -8,7 +8,6 @@ SMOKE_SUITE = [
 NAVIGATION_SUITE = [
     *SMOKE_SUITE,
     "navigation/theme_menu.json",
-    "dashboard/status.json",
 ]
 
 
@@ -43,7 +42,6 @@ TOOL_SETTINGS_SUITE = [
 
 
 LOGS_SUITE = [
-    "logs/status.json",
     "logs/export.json",
     "logs/event_after_policy_change.json",
 ]

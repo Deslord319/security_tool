@@ -18,20 +18,17 @@
       }
     },
     {
-      "name": "open_domain_rules",
-      "ref": "firewall.open_rules",
-      "params": {
-        "rule_type": "domain"
-      }
-    },
-    {
       "name": "add_domain_rule",
-      "ref": "firewall.add_rule",
+      "ref": "entity.create",
       "params": {
-        "rule_type": "domain",
-        "domain": "www.baidu.com",
-        "direction": "out",
-        "policy": "deny"
+        "domain": "firewall",
+        "entity": "rule",
+        "variant": "domain",
+        "data": {
+          "domain": "www.baidu.com",
+          "direction": "out",
+          "policy": "deny"
+        }
       }
     },
     {

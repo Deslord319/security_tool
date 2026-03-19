@@ -18,36 +18,29 @@
       }
     },
     {
-      "name": "open_domain_rules",
-      "ref": "firewall.open_rules",
+      "name": "seed_domain_rule_for_delete",
+      "ref": "entity.create",
       "params": {
-        "rule_type": "domain"
-      }
-    },
-    {
-      "name": "add_domain_rule_for_delete",
-      "ref": "firewall.add_rule",
-      "params": {
-        "rule_type": "domain",
-        "domain": "www.baidu.com",
-        "direction": "out",
-        "policy": "deny"
-      }
-    },
-    {
-      "name": "find_domain_rule",
-      "ref": "firewall.find_rule",
-      "params": {
-        "rule_type": "domain",
-        "domain": "www.baidu.com"
+        "domain": "firewall",
+        "entity": "rule",
+        "variant": "domain",
+        "data": {
+          "domain": "www.baidu.com",
+          "direction": "out",
+          "policy": "deny"
+        }
       }
     },
     {
       "name": "delete_domain_rule",
-      "ref": "firewall.delete_rule",
+      "ref": "entity.delete",
       "params": {
-        "rule_type": "domain",
-        "domain": "www.baidu.com"
+        "domain": "firewall",
+        "entity": "rule",
+        "variant": "domain",
+        "data": {
+          "domain": "www.baidu.com"
+        }
       }
     }
   ],

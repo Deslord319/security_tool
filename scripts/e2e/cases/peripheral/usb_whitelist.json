@@ -18,16 +18,16 @@
       }
     },
     {
-      "name": "open_usb_whitelist_dialog",
-      "ref": "peripheral.open_usb_whitelist_dialog",
-      "params": {}
-    },
-    {
-      "name": "add_usb_whitelist_item",
-      "ref": "peripheral.add_usb_whitelist",
+      "name": "create_usb_whitelist_entry",
+      "ref": "entity.create",
       "params": {
-        "vendor_id": "0781",
-        "product_id": "5583"
+        "domain": "peripheral",
+        "entity": "whitelist",
+        "variant": "usb",
+        "data": {
+          "vendor_id": "0781",
+          "product_id": "5583"
+        }
       }
     }
   ],

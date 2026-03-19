@@ -19,34 +19,50 @@
     },
     {
       "name": "toggle_usb_interface",
-      "ref": "peripheral.toggle_interface",
+      "ref": "entity.toggle",
       "params": {
-        "feature": "usb",
-        "target_state": "invert"
+        "domain": "peripheral",
+        "entity": "interface",
+        "variant": "usb",
+        "data": {
+          "target_state": "invert"
+        }
       }
     },
     {
       "name": "toggle_bluetooth_interface",
-      "ref": "peripheral.toggle_interface",
+      "ref": "entity.toggle",
       "params": {
-        "feature": "bluetooth",
-        "target_state": "invert"
+        "domain": "peripheral",
+        "entity": "interface",
+        "variant": "bluetooth",
+        "data": {
+          "target_state": "invert"
+        }
       }
     },
     {
       "name": "toggle_wifi_interface",
-      "ref": "peripheral.toggle_interface",
+      "ref": "entity.toggle",
       "params": {
-        "feature": "wifi",
-        "target_state": "invert"
+        "domain": "peripheral",
+        "entity": "interface",
+        "variant": "wifi",
+        "data": {
+          "target_state": "invert"
+        }
       }
     },
     {
       "name": "toggle_hdc_interface",
-      "ref": "peripheral.toggle_interface",
+      "ref": "entity.toggle",
       "params": {
-        "feature": "hdc",
-        "target_state": "invert"
+        "domain": "peripheral",
+        "entity": "interface",
+        "variant": "hdc",
+        "data": {
+          "target_state": "invert"
+        }
       }
     }
   ],

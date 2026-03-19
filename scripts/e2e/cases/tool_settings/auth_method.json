@@ -18,16 +18,15 @@
       }
     },
     {
-      "name": "select_auth_method",
-      "ref": "tool_settings.select_auth_method",
+      "name": "update_auth_method",
+      "ref": "entity.update",
       "params": {
-        "method": "PIN"
+        "domain": "tool_settings",
+        "entity": "auth_method",
+        "data": {
+          "method": "PIN"
+        }
       }
-    },
-    {
-      "name": "save_tool_settings",
-      "ref": "tool_settings.save",
-      "params": {}
     }
   ],
   "assertions": [],

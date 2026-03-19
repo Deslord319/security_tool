@@ -30,11 +30,6 @@ def normalize_case_definition(case: dict[str, Any]) -> dict[str, Any]:
     artifacts.update(normalized.get("artifacts", {}))
     normalized["artifacts"] = artifacts
 
-    if normalized.get("steps"):
-        normalized["execution_steps"] = normalized["steps"]
-        normalized["compatibility_mode"] = "legacy_steps"
-        return normalized
-
     execution_steps: list[dict[str, Any]] = []
     for flow_item in normalized.get("flow", []):
         execution_steps.append(
@@ -57,5 +52,4 @@ def normalize_case_definition(case: dict[str, Any]) -> dict[str, Any]:
             }
         )
     normalized["execution_steps"] = execution_steps
-    normalized["compatibility_mode"] = "declarative"
     return normalized

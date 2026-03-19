@@ -18,17 +18,17 @@
       }
     },
     {
-      "name": "open_usb_blacklist_dialog",
-      "ref": "peripheral.open_usb_blacklist_dialog",
-      "params": {}
-    },
-    {
-      "name": "add_usb_blacklist_item",
-      "ref": "peripheral.add_usb_blacklist",
+      "name": "create_usb_blacklist_entry",
+      "ref": "entity.create",
       "params": {
-        "base_class": 8,
-        "sub_class": 6,
-        "protocol": 80
+        "domain": "peripheral",
+        "entity": "blacklist",
+        "variant": "usb",
+        "data": {
+          "base_class": 8,
+          "sub_class": 6,
+          "protocol": 80
+        }
       }
     }
   ],

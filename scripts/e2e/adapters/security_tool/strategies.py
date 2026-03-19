@@ -1,0 +1,106 @@
+from __future__ import annotations
+
+
+PAGE_STRATEGIES = {
+    "dashboard": {"page_text": "安全总览", "marker_text": "安全总览"},
+    "firewall": {"page_text": "防火墙管理", "marker_text": "规则类型"},
+    "firewall-rules": {"page_text": "防火墙规则", "marker_text": "+ 添加规则"},
+    "log-manage": {"page_text": "日志管理", "marker_text": "日志管理"},
+    "peripheral-manage": {"page_text": "外设管理", "marker_text": "外设管理"},
+    "identity": {"page_text": "身份鉴别", "marker_text": "口令复杂度策略"},
+    "tool-settings": {"page_text": "工具设置", "marker_text": "启动时身份校验"},
+}
+
+TOP_MENU_VISIBLE_TEXT = "帮助与反馈"
+TOOL_SETTINGS_PAGE_TEXT = "工具设置"
+TOOL_SETTINGS_SAVE_TEXT = "保存设置"
+TOOL_SETTINGS_STARTUP_AUTH_TEXT = "启动时身份校验"
+
+FIREWALL_PAGE_TEXT = "防火墙管理"
+FIREWALL_DIALOG_TITLE = "添加防火墙规则"
+FIREWALL_ADD_RULE_TEXTS = ["+ 添加规则", "添加规则", "新增规则"]
+
+DIALOG_REGION_PRESETS = {
+    "firewall": {
+        "left_min": 900,
+        "left_max": 2100,
+        "top_min": 500,
+        "top_max": 1750,
+    },
+}
+
+FIREWALL_DIALOG_REGION = DIALOG_REGION_PRESETS["firewall"]
+
+DELETE_ACTION_LABELS = ["删除", "移除"]
+CONFIRM_DIALOG_LABELS = ["确定", "确认", "保存", "提交", "添加"]
+CONFIRM_DELETE_LABELS = ["确定", "确认", "删除", "移除"]
+
+FIREWALL_RULE_TYPE_LABELS = {
+    "ip": "IP 规则",
+    "domain": "域名规则",
+    "dns": "DNS 规则",
+}
+
+FIREWALL_POLICY_OPTION_LABELS = {
+    "deny": ["拒绝", "禁止"],
+    "allow": ["允许", "放行"],
+}
+
+FIREWALL_DIRECTION_OPTION_LABELS = {
+    "in": ["入站"],
+    "out": ["出站"],
+}
+
+FIREWALL_PROTOCOL_OPTION_LABELS = {
+    "tcp": ["TCP"],
+    "udp": ["UDP"],
+}
+
+AUTH_METHOD_OPTION_LABELS = {
+    "pin": ["PIN 码", "PIN"],
+    "password": ["密码"],
+    "fingerprint": ["指纹"],
+    "face": ["人脸识别"],
+}
+
+PERIPHERAL_USB_POLICY_OPTION_LABELS = {
+    "read_only": ["只读", "仅读"],
+    "disabled": ["禁用", "禁止"],
+    "allow": ["允许", "可读写", "读写"],
+}
+
+DIALOG_STRATEGIES = {
+    "peripheral.whitelist.usb": {
+        "labels": ["USB白名单", "添加 USB 设备白名单", "添加白名单"],
+        "region": {},
+    },
+    "peripheral.whitelist.bluetooth": {
+        "labels": ["蓝牙白名单", "添加蓝牙白名单", "添加白名单"],
+        "region": {},
+    },
+    "peripheral.blacklist.usb": {
+        "labels": ["USB黑名单", "添加 USB 设备黑名单", "添加黑名单"],
+        "region": {},
+    },
+    "firewall.rule.create": {
+        "labels": FIREWALL_ADD_RULE_TEXTS,
+        "region": DIALOG_REGION_PRESETS["firewall"],
+    },
+}
+
+OPTION_GROUP_STRATEGIES = {
+    "auth_method": AUTH_METHOD_OPTION_LABELS,
+    "peripheral_usb_policy": PERIPHERAL_USB_POLICY_OPTION_LABELS,
+    "firewall_policy": FIREWALL_POLICY_OPTION_LABELS,
+    "firewall_direction": FIREWALL_DIRECTION_OPTION_LABELS,
+    "firewall_protocol": FIREWALL_PROTOCOL_OPTION_LABELS,
+}
+
+FIELD_GROUP_STRATEGIES = {
+    "identity.password_policy": ["min_length"],
+    "identity.domain_policy": ["password_max_age_days", "expiration_notify_days", "auth_validity_minutes"],
+    "peripheral.whitelist.usb": ["vendor_id", "product_id"],
+    "peripheral.whitelist.bluetooth": ["mac"],
+    "peripheral.blacklist.usb": ["base_class", "sub_class", "protocol"],
+    "firewall.rule.domain": ["name", "domain", "port"],
+}

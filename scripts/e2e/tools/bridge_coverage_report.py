@@ -9,35 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.e2e.bridges.action_plans import ACTION_PLANS
-
-
-FLOW_TO_ACTION = {
-    "navigation.open_page": "navigate_page",
-    "theme_menu.open": "open_top_menu",
-    "ui.capture_screenshot": "capture_screenshot",
-    "firewall.toggle_status": "toggle_firewall",
-    "firewall.open_rules": "open_firewall_rules",
-    "firewall.add_rule": "add_firewall_rule",
-    "firewall.find_rule": "find_firewall_rule",
-    "firewall.delete_rule": "delete_firewall_rule",
-    "browser.open_url": "open_browser_url",
-    "peripheral.toggle_interface": "toggle_peripheral_interface",
-    "peripheral.select_usb_storage_policy": "select_usb_storage_policy",
-    "peripheral.open_usb_whitelist_dialog": "open_usb_whitelist_dialog",
-    "peripheral.add_usb_whitelist": "add_usb_whitelist",
-    "peripheral.open_bluetooth_whitelist_dialog": "open_bluetooth_whitelist_dialog",
-    "peripheral.add_bluetooth_whitelist": "add_bluetooth_whitelist",
-    "peripheral.open_usb_blacklist_dialog": "open_usb_blacklist_dialog",
-    "peripheral.add_usb_blacklist": "add_usb_blacklist",
-    "identity.update_password_policy": "update_password_policy",
-    "identity.update_domain_policy": "update_domain_account_policy",
-    "logs.export": "export_logs",
-    "logs.change_any_policy": "change_any_policy",
-    "tool_settings.toggle_startup_auth": "toggle_startup_auth",
-    "tool_settings.select_auth_method": "select_auth_method",
-    "tool_settings.set_password": "set_tool_password",
-    "tool_settings.save": "save_tool_settings",
-}
+from scripts.e2e.tools.test_asset_common import BRIDGE_MAP_PATH
 
 
 def load_flow_registry(project_root: Path) -> dict:
@@ -52,11 +24,15 @@ def load_scripted_results(project_root: Path) -> dict:
     return json.loads(result_file.read_text(encoding="utf-8"))
 
 
-def build_rows(flow_registry: dict, scripted_results: dict) -> list[dict]:
+def load_bridge_map(project_root: Path) -> dict[str, str]:
+    return json.loads((project_root / BRIDGE_MAP_PATH.relative_to(PROJECT_ROOT)).read_text(encoding="utf-8"))
+
+
+def build_rows(flow_registry: dict, scripted_results: dict, bridge_map: dict[str, str]) -> list[dict]:
     rows: list[dict] = []
     default_status = scripted_results.get("default", {}).get("status", "UNKNOWN")
     for flow_ref, meta in sorted(flow_registry.items()):
-        action = FLOW_TO_ACTION.get(flow_ref, "")
+        action = bridge_map.get(flow_ref, "")
         configured = action in scripted_results
         status = scripted_results.get(action, {}).get("status", default_status) if action else "N/A"
         rows.append(
@@ -94,7 +70,8 @@ def main() -> int:
     project_root = Path(__file__).resolve().parents[3]
     flow_registry = load_flow_registry(project_root)
     scripted_results = load_scripted_results(project_root)
-    rows = build_rows(flow_registry, scripted_results)
+    bridge_map = load_bridge_map(project_root)
+    rows = build_rows(flow_registry, scripted_results, bridge_map)
     target = write_markdown(project_root, rows)
     print(target)
     return 0

@@ -1,262 +1,214 @@
-# Bridge Action 执行计划
+# Bridge Action Plans
 
-本文档列出 HarmonyOS MCP bridge 需要支持的标准化 UI 动作，以及每个动作的目标、必要参数和推荐执行步骤。
+This document lists the normalized UI actions expected by the HarmonyOS MCP bridge.
 
-这些动作不是业务 case，本质上属于 `flow executor -> bridge backend` 之间的中间语义层。
+## `assert_text_visible`
 
-## `add_bluetooth_whitelist`
-
-- 目标：向蓝牙白名单中新增一条记录
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`input_text`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 填写蓝牙白名单表单
-  - 提交对话框
-  - 等待新条目出现或成功提示出现
-
-## `add_firewall_rule`
-
-- 目标：在规则详情页新增一条防火墙规则
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`input_text`、`wait_element`
-- 推荐步骤：
-  - 打开新增规则对话框
-  - 按规则类型填写必填字段
-  - 提交对话框
-  - 等待对话框消失或成功提示出现
-
-## `add_usb_blacklist`
-
-- 目标：向 USB 黑名单中新增一条记录
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`input_text`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 填写黑名单表单
-  - 提交对话框
-  - 等待新条目出现或成功提示出现
-
-## `add_usb_whitelist`
-
-- 目标：向 USB 白名单中新增一条记录
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`input_text`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 填写 USB 白名单表单
-  - 提交对话框
-  - 等待新条目文本或成功提示出现
+- Goal: Assert that any one of the provided texts becomes visible.
+- Required Params: candidates
+- Suggested MCP Tools: wait_element
+- Steps:
+  - Try each candidate text in order.
+  - Return the first successful match.
 
 ## `capture_screenshot`
 
-- 目标：为当前 UI 状态生成一张截图证据
-- 必填参数：`name`
-- 推荐 MCP 工具：`screenshot`
-- 推荐步骤：
-  - 生成稳定的截图文件名
-  - 通过 HarmonyOS 截图工具保存图片
-  - 将截图路径作为 evidence 返回
+- Goal: Capture a screenshot artifact for the current UI state.
+- Required Params: name
+- Suggested MCP Tools: screenshot
+- Steps:
+  - Generate a stable artifact path.
+  - Capture the screenshot and return it as evidence.
 
 ## `change_any_policy`
 
-- 目标：执行一次策略变更，以触发日志事件
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`input_text`
-- 推荐步骤：
-  - 导航到任意一个可修改策略的页面
-  - 做一次小范围策略修改
-  - 如果需要，执行保存
+- Goal: Apply one small policy change to generate a log event.
+- Required Params: (none)
+- Suggested MCP Tools: click_element, input_text, get_ui_tree
+- Steps:
+  - Navigate to a mutable policy page.
+  - Apply one small policy change.
+  - Save when required.
 
-## `delete_firewall_rule`
+## `confirm_dialog`
 
-- 目标：从当前规则列表中删除一条防火墙规则
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_until_gone`
-- 推荐步骤：
-  - 定位目标规则
-  - 从规则行或详情弹框触发删除
-  - 如果出现确认框，则确认删除
-  - 等待目标规则消失
+- Goal: Confirm the currently visible dialog.
+- Required Params: (none)
+- Suggested MCP Tools: click_element, get_ui_tree
+- Steps:
+  - Locate the dialog confirm action.
+  - Click the first matching confirm label.
+
+## `delete_visible_rule`
+
+- Goal: Delete a visible firewall rule by target text.
+- Required Params: (none)
+- Suggested MCP Tools: click_element, get_ui_tree
+- Steps:
+  - Focus the target rule if present.
+  - Trigger the delete action.
+  - Confirm the delete dialog.
+
+## `execute_template_action`
+
+- Goal: Execute an adapter-defined declarative template.
+- Required Params: template_key
+- Suggested MCP Tools: click_element, input_text, wait_element, get_ui_tree
+- Steps:
+  - Load the template from the adapter registry.
+  - Resolve template variables from the operation payload.
+  - Execute each declarative step in order.
 
 ## `export_logs`
 
-- 目标：执行日志导出流程
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 打开导出对话框
-  - 如有需要，选择导出格式
-  - 确认导出
-  - 等待导出完成提示
+- Goal: Run the log export flow.
+- Required Params: (none)
+- Suggested MCP Tools: click_element, wait_element, get_ui_tree
+- Steps:
+  - Open the export dialog.
+  - Confirm the export action.
+  - Wait for the export completion hint.
 
-## `find_firewall_rule`
+## `fill_inputs`
 
-- 目标：在当前规则列表中查找一条防火墙规则
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`scroll_until_text`
-- 推荐步骤：
-  - 在当前列表中查找目标规则文本
-  - 如未命中，滚动直到目标文本进入可视区域
+- Goal: Populate the visible text inputs with provided values.
+- Required Params: values
+- Suggested MCP Tools: input_text, get_ui_tree
+- Steps:
+  - Locate visible text inputs.
+  - Fill them in order with the provided values.
+
+## `fill_inputs_with_fallback_touch`
+
+- Goal: Populate visible inputs, or fall back to identity page touch interactions.
+- Required Params: values
+- Suggested MCP Tools: input_text, click_element, get_ui_tree
+- Steps:
+  - Try to fill text inputs directly.
+  - If direct input fails, fall back to touch-based interaction.
 
 ## `navigate_page`
 
-- 目标：通过左侧导航栏打开目标页面
-- 必填参数：`page_id`
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 从 adapter 页面注册表解析目标页面标题
-  - 通过文本或稳定 locator 定位导航项
-  - 点击目标导航项
-  - 等待页面标题或页面锚点出现
-
-## `open_bluetooth_whitelist_dialog`
-
-- 目标：打开蓝牙白名单新增对话框
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 定位蓝牙白名单入口
-  - 打开新增对话框
-  - 等待对话框内容出现
+- Goal: Open a page from the left navigation rail.
+- Required Params: page_id
+- Suggested MCP Tools: click_element, wait_element, get_ui_tree
+- Steps:
+  - Resolve the sidebar item and route container for the target page.
+  - Click the sidebar item.
+  - Wait for the route container or page-specific marker to appear.
 
 ## `open_browser_url`
 
-- 目标：在系统浏览器中打开一个 URL
-- 必填参数：`url`
-- 推荐 MCP 工具：`run_app`、`find_element`、`input_text`、`press_key`
-- 推荐步骤：
-  - 将浏览器切到前台
-  - 聚焦地址栏
-  - 输入目标 URL
-  - 按下回车或等价确认键
+- Goal: Open a URL in the system browser.
+- Required Params: url
+- Suggested MCP Tools: run_app, click_element, input_text, press_key
+- Steps:
+  - Bring the browser to the foreground.
+  - Focus the address bar.
+  - Input the target URL and confirm.
 
-## `open_firewall_rules`
+## `open_firewall_rules_page`
 
-- 目标：打开某一类防火墙规则的详情页
-- 必填参数：`rule_type`
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 定位规则类型卡片或列表项
-  - 点击该规则类型
-  - 等待规则详情页标题或新增按钮出现
+- Goal: Open the firewall rules detail page for a specific rule type.
+- Required Params: rule_type
+- Suggested MCP Tools: click_element, wait_element, get_ui_tree
+- Steps:
+  - Navigate to the firewall page if needed.
+  - Open the rule type card.
+  - Wait for the firewall rules detail page to appear.
+
+## `open_named_dialog`
+
+- Goal: Open a dialog by one of its known labels.
+- Required Params: labels
+- Suggested MCP Tools: click_element, wait_element, get_ui_tree
+- Steps:
+  - Try each known entry label.
+  - Open the matching dialog.
+  - Wait for the dialog to become visible.
 
 ## `open_top_menu`
 
-- 目标：打开顶部三点菜单
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 定位顶部菜单触发器
-  - 点击触发器
-  - 等待已知菜单项出现
-
-## `open_usb_blacklist_dialog`
-
-- 目标：打开 USB 黑名单新增对话框
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 定位 USB 黑名单入口
-  - 打开新增对话框
-  - 等待对话框可见
-
-## `open_usb_whitelist_dialog`
-
-- 目标：打开 USB 白名单新增对话框
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 定位 USB 白名单入口
-  - 打开新增对话框
-  - 等待对话框标题或确认按钮出现
+- Goal: Open the top three-dot menu.
+- Required Params: (none)
+- Suggested MCP Tools: click_element, wait_element
+- Steps:
+  - Click the top menu trigger.
+  - Wait for a known menu item to appear.
 
 ## `save_tool_settings`
 
-- 目标：保存工具设置表单
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 定位保存按钮
-  - 点击保存
-  - 等待保存成功提示
+- Goal: Save the tool settings form.
+- Required Params: (none)
+- Suggested MCP Tools: click_element, wait_element, get_ui_tree
+- Steps:
+  - Locate the save button.
+  - Click save.
+  - Wait for the page to remain stable after save.
 
-## `select_auth_method`
+## `select_indexed_option`
 
-- 目标：在工具设置中选择认证方式
-- 必填参数：`method`
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 打开认证方式选择器
-  - 选择目标方式
-  - 等待当前选中值可见
-
-## `select_usb_storage_policy`
-
-- 目标：修改 USB 存储策略
-- 必填参数：`policy`
-- 推荐 MCP 工具：`find_element`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 打开 USB 存储策略下拉控件
-  - 选择目标选项
-  - 等待控件上显示新的选中值
+- Goal: Open a select control by index and choose one of the configured labels.
+- Required Params: index, value, options
+- Suggested MCP Tools: click_element, get_ui_tree
+- Steps:
+  - Locate select controls and choose one by index.
+  - Open the select dropdown.
+  - Choose a matching option label.
 
 ## `set_tool_password`
 
-- 目标：提交工具密码表单
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`input_text`、`click_element`、`wait_element`
-- 推荐步骤：
-  - 填写密码表单
-  - 提交表单
-  - 等待成功提示或校验提示
+- Goal: Submit the tool password form.
+- Required Params: (none)
+- Suggested MCP Tools: input_text, click_element, get_ui_tree
+- Steps:
+  - Locate password form inputs.
+  - Fill the password fields.
+  - Submit the form and capture field-level evidence.
+
+## `submit_firewall_rule_form`
+
+- Goal: Submit the firewall rule creation dialog.
+- Required Params: rule_type
+- Suggested MCP Tools: click_element, input_text, wait_element, get_ui_tree
+- Steps:
+  - Open the add rule dialog if needed.
+  - Configure select controls.
+  - Fill dialog inputs and submit.
 
 ## `toggle_firewall`
 
-- 目标：将防火墙开关切换到目标状态
-- 必填参数：`target_state`
-- 推荐 MCP 工具：`find_element`、`click_element`、`get_ui_tree`
-- 推荐步骤：
-  - 定位防火墙开关
-  - 读取当前状态
-  - 仅在状态不一致时点击
-  - 再次读取最终状态并返回
+- Goal: Toggle the firewall switch to the desired state.
+- Required Params: target_state
+- Suggested MCP Tools: click_element, get_ui_tree
+- Steps:
+  - Locate the firewall toggle on the firewall page.
+  - Click the toggle and handle authentication if prompted.
 
-## `toggle_peripheral_interface`
+## `toggle_first_on_page`
 
-- 目标：在外设管理页切换某个接口状态
-- 必填参数：`feature`、`target_state`
-- 推荐 MCP 工具：`find_element`、`click_element`、`get_ui_tree`
-- 推荐步骤：
-  - 定位目标接口行
-  - 读取当前开关状态
-  - 仅在需要变更时点击
-  - 读取变更后的结果状态
+- Goal: Toggle the first visible switch on the current page.
+- Required Params: page_text
+- Suggested MCP Tools: click_element, get_ui_tree, wait_element
+- Steps:
+  - Verify the target page is visible.
+  - Locate the first content toggle.
+  - Click it and handle any auth prompt.
 
-## `toggle_startup_auth`
+## `toggle_indexed_control`
 
-- 目标：切换工具设置中的启动认证开关
-- 必填参数：`target_state`
-- 推荐 MCP 工具：`find_element`、`click_element`、`get_ui_tree`
-- 推荐步骤：
-  - 定位启动认证开关
-  - 读取当前状态
-  - 仅在需要变更时点击
-  - 读取最终状态
+- Goal: Toggle a control by type and index.
+- Required Params: control_type, index
+- Suggested MCP Tools: click_element, get_ui_tree
+- Steps:
+  - Locate controls by type.
+  - Pick the requested index.
+  - Click the chosen control.
 
-## `update_domain_account_policy`
+## `wait_for_text`
 
-- 目标：修改身份鉴别中的域账号策略表单
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`input_text`、`click_element`
-- 推荐步骤：
-  - 定位域账号策略控件
-  - 更新相关字段
-  - 返回字段级 evidence，供后续断言使用
-
-## `update_password_policy`
-
-- 目标：修改身份鉴别中的密码策略表单
-- 必填参数：无
-- 推荐 MCP 工具：`find_element`、`input_text`、`click_element`
-- 推荐步骤：
-  - 定位密码策略表单控件
-  - 逐项更新配置字段
-  - 返回字段级 evidence，供后续保存和断言使用
+- Goal: Wait for a target text to become visible.
+- Required Params: text
+- Suggested MCP Tools: wait_element
+- Steps:
+  - Wait until the target text appears in the target bundle.

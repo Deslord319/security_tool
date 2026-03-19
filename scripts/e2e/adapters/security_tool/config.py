@@ -1,5 +1,5 @@
 from scripts.e2e.core.adapter import AdapterConfig
-from scripts.e2e.adapters.security_tool.pages import PAGE_REGISTRY
+from scripts.e2e.adapters.security_tool.resolvers import list_registered_pages
 
 
 ADAPTER_CONFIG = AdapterConfig(
@@ -15,6 +15,6 @@ ADAPTER_CONFIG = AdapterConfig(
     notes=[
         "This adapter is the reference implementation inside the business repository.",
         "The structure is designed so core modules can be extracted into a standalone repository later.",
-        f"Registered pages: {', '.join(PAGE_REGISTRY.keys())}",
+        f"Registered pages: {', '.join(list_registered_pages())}",
     ],
 )
