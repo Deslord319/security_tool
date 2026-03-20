@@ -100,6 +100,8 @@ export struct PeripheralPage {
   @State microphoneDisabled: boolean = false
   @State cameraDisabled: boolean = false
   @State usbStoragePolicyIndex: number = 0
+  @State interfaceControlSyncToken: number = 0
+  @State interfaceControlProcessingKey: string = ''
 
   // 黑白名单数据
   @State usbWhitelist: edmUsbManager.UsbDeviceId[] = []
@@ -123,6 +125,7 @@ export struct PeripheralPage {
   private recordAutoRefreshTimerId: number = -1
   private readonly recordAutoRefreshIntervalMs: number = 2000
   private readonly connectionDetailCompactWidthThreshold: number = 1200
+  private readonly usbStorageControlKey: string = 'usb-storage-policy'
   private readonly recordTypeFilterOptions: SelectOption[] = [
     { value: '全部类型' },
     { value: 'USB' },
@@ -814,6 +817,80 @@ export struct PeripheralPage {
   // ========== 设备管控数据加载 ==========
 
   // 常见设备 VID/PID -> 名称映射
+  private getInterfaceControlKey(feature: string): string {
+    return `feature:${feature}`
+  }
+
+  private isInterfaceControlProcessing(controlKey: string): boolean {
+    return this.interfaceControlProcessingKey === controlKey
+  }
+
+  private mapUsbStoragePolicyToIndex(policy: edmUsbManager.UsbPolicy): number {
+    if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
+      return 0
+    }
+    if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
+      return 1
+    }
+    return 2
+  }
+
+  private getUsbStoragePolicyLogValue(index: number): string {
+    let values: string[] = ['read_only', 'read_write', 'disabled']
+    return values[index] ?? `unknown_${index}`
+  }
+
+  private reloadInterfaceControlState(reason: string): void {
+    hilog.info(0x0002, TAG, `interfaceControl reload start, reason=${reason}`)
+    let usbState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB)
+    let btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_BLUETOOTH)
+    let wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_WIFI)
+    let hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_HDC)
+    let networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_NETWORK)
+    let printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_PRINTER)
+    let microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_MICROPHONE)
+    let cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
+    let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
+    let policy = policyResult.data ?? edmUsbManager.UsbPolicy.READ_WRITE
+
+    this.usbDisabled = usbState.data ?? false
+    this.btDisabled = btState.data ?? false
+    this.wifiDisabled = wifiState.data ?? false
+    this.hdcDisabled = hdcState.data ?? false
+    this.networkDisabled = networkState.data ?? false
+    this.printerDisabled = printerState.data ?? false
+    this.microphoneDisabled = microphoneState.data ?? false
+    this.cameraDisabled = cameraState.data ?? false
+    this.usbStoragePolicyIndex = this.mapUsbStoragePolicyToIndex(policy)
+    this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
+    this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
+    this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
+    this.interfaceControlSyncToken += 1
+
+    hilog.info(
+      0x0002,
+      TAG,
+      `interfaceControl reload done, reason=${reason}, usb=${this.usbDisabled ? 1 : 0}, usbStorage=${this.getUsbStoragePolicyLogValue(this.usbStoragePolicyIndex)}, bt=${this.btDisabled ? 1 : 0}, wifi=${this.wifiDisabled ? 1 : 0}, hdc=${this.hdcDisabled ? 1 : 0}, network=${this.networkDisabled ? 1 : 0}, printer=${this.printerDisabled ? 1 : 0}, microphone=${this.microphoneDisabled ? 1 : 0}, camera=${this.cameraDisabled ? 1 : 0}`
+    )
+  }
+
+  private resetInterfaceControlState(reason: string): void {
+    this.usbDisabled = false
+    this.btDisabled = false
+    this.wifiDisabled = false
+    this.hdcDisabled = false
+    this.networkDisabled = false
+    this.printerDisabled = false
+    this.microphoneDisabled = false
+    this.cameraDisabled = false
+    this.usbStoragePolicyIndex = 1
+    this.usbWhitelist = []
+    this.usbBlacklist = []
+    this.btWhitelist = []
+    this.interfaceControlSyncToken += 1
+    hilog.info(0x0002, TAG, `interfaceControl reset, reason=${reason}`)
+  }
+
   private static USB_DEVICE_NAMES: Map<string, string> = new Map([
     ['2B7E_B5A2', 'ShineOptics FHD Camera'],
     ['0781_5583', 'SanDisk Ultra USB 3.0'],
@@ -1092,7 +1169,30 @@ export struct PeripheralPage {
       return
     }
 
+    let controlKey: string = this.getInterfaceControlKey(feature)
+    let targetValue: string = disallow ? 'disabled' : 'enabled'
+    this.interfaceControlProcessingKey = controlKey
+    hilog.info(0x0002, TAG, `interfaceControl update start, key=${controlKey}, target=${targetValue}`)
     let result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
+    this.reloadInterfaceControlState(`toggle:${feature}`)
+    if (result.success) {
+      hilog.info(0x0002, TAG, `interfaceControl update success, key=${controlKey}, target=${targetValue}`)
+      try {
+        let featureLabel = this.getInterfaceFeatureLabel(feature)
+        promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
+      } catch (e) {
+        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+      }
+    } else {
+      hilog.error(
+        0x0002,
+        TAG,
+        `interfaceControl update failed, key=${controlKey}, target=${targetValue}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
+      )
+      this.showOperationFailure('接口管控', result)
+    }
+    this.interfaceControlProcessingKey = ''
+    return
     if (result.success) {
       if (feature === PeripheralService.FEATURE_USB) this.usbDisabled = disallow
       else if (feature === PeripheralService.FEATURE_BLUETOOTH) this.btDisabled = disallow
@@ -1160,12 +1260,42 @@ export struct PeripheralPage {
     if (!this.ensureAdminReady('设置 USB 存储策略')) {
       return
     }
+    let controlKey: string = this.usbStorageControlKey
+    this.interfaceControlProcessingKey = controlKey
+    hilog.info(
+      0x0002,
+      TAG,
+      `usbStoragePolicy update start, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
+    )
     let policyMap: edmUsbManager.UsbPolicy[] = [
       edmUsbManager.UsbPolicy.READ_ONLY,
       edmUsbManager.UsbPolicy.READ_WRITE,
       edmUsbManager.UsbPolicy.DISABLED
     ]
     let result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policyMap[index])
+    this.reloadInterfaceControlState('toggle:usb_storage_policy')
+    if (result.success) {
+      hilog.info(
+        0x0002,
+        TAG,
+        `usbStoragePolicy update success, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
+      )
+      try {
+        promptAction.showToast({ message: 'USB 存储策略已更新' })
+      } catch (e) {
+        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+      }
+      this.interfaceControlProcessingKey = ''
+      return
+    }
+    hilog.error(
+      0x0002,
+      TAG,
+      `usbStoragePolicy update failed, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
+    )
+    this.showOperationFailure('设置 USB 存储策略', result)
+    this.interfaceControlProcessingKey = ''
+    return
     if (result.success) {
       this.usbStoragePolicyIndex = index
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
@@ -2895,6 +3025,8 @@ export struct PeripheralPage {
             description: '启用或禁用 USB 接口。禁用后，USB 接口相关外设将无法接入。',
             options: ['启用', '禁用'],
             selectedIndex: this.usbDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_USB)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_USB, index === 1)
             }
@@ -2907,6 +3039,8 @@ export struct PeripheralPage {
             description: '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
             options: ['只读', '读写', '禁止访问'],
             selectedIndex: this.usbStoragePolicyIndex,
+            isProcessing: this.isInterfaceControlProcessing(this.usbStorageControlKey),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleUsbStoragePolicyChange(index)
             }
@@ -2919,6 +3053,8 @@ export struct PeripheralPage {
             description: '启用或禁用蓝牙接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.btDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_BLUETOOTH)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_BLUETOOTH, index === 1)
             }
@@ -2931,6 +3067,8 @@ export struct PeripheralPage {
             description: '启用或禁用 Wi-Fi 接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.wifiDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_WIFI)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_WIFI, index === 1)
             }
@@ -2943,6 +3081,8 @@ export struct PeripheralPage {
             description: '启用或禁用 HDC 调试接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.hdcDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_HDC)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_HDC, index === 1)
             }
@@ -2955,6 +3095,8 @@ export struct PeripheralPage {
             description: '启用或禁用网络共享接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.networkDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_NETWORK)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_NETWORK, index === 1)
             }
@@ -2967,6 +3109,8 @@ export struct PeripheralPage {
             description: '启用或禁用打印机接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.printerDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_PRINTER)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_PRINTER, index === 1)
             }
@@ -2979,6 +3123,8 @@ export struct PeripheralPage {
             description: '启用或禁用麦克风接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.microphoneDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_MICROPHONE)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_MICROPHONE, index === 1)
             }
@@ -2991,6 +3137,8 @@ export struct PeripheralPage {
             description: '启用或禁用摄像头接口。',
             options: ['启用', '禁用'],
             selectedIndex: this.cameraDisabled ? 1 : 0,
+            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_CAMERA)),
+            syncToken: this.interfaceControlSyncToken,
             onSelect: (index: number) => {
               this.handleInterfaceToggle(PeripheralService.FEATURE_CAMERA, index === 1)
             }
