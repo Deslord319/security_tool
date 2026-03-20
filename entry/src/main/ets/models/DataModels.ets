@@ -368,7 +368,7 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
     case PeripheralType.USB_PRINTER:
       return 'USB 打印机'
     case PeripheralType.USB_HID:
-      return 'USB HID'
+      return 'USB 人机输入设备'
     case PeripheralType.USB_OTHER:
       return 'USB 其他'
     case PeripheralType.BLUETOOTH:
