@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>测试资产管理台</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 255, 255, 0.94);
+      --ink: #18211f;
+      --muted: #617069;
+      --line: rgba(24, 33, 31, 0.12);
+      --accent: #0d6b5f;
+      --accent-2: #b7642e;
+      --warn: #b7642e;
+      --danger: #b54b4b;
+      --ok: #1d7d54;
+      --focus: rgba(13, 107, 95, 0.08);
+      --shadow: 0 18px 40px rgba(24, 33, 31, 0.08);
+      --radius: 18px;
+      --control-h: 42px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(183, 100, 46, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(13, 107, 95, 0.14), transparent 24%),
+        linear-gradient(160deg, #f6f0e7, #edf4f1 58%, #f5ede6);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .hero, .toolbar, .stats, .filters, .layout, .editor-grid, .detail-grid, .reports, .secondary-toolbar {
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero { grid-template-columns: 1.15fr 1fr; align-items: start; }
+    .toolbar { grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); }
+    .secondary-toolbar { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .stats { grid-template-columns: repeat(5, 1fr); }
+    .filters { grid-template-columns: 1fr; }
+    .layout { grid-template-columns: minmax(650px, 1fr) minmax(560px, 1fr); align-items: stretch; }
+    .editor-grid { grid-template-columns: 1fr 1fr; }
+    .detail-grid { grid-template-columns: 1fr 1fr; }
+    .reports { grid-template-columns: 1fr 1fr; }
+
+    h1, h2, h3 { margin: 0 0 10px; }
+    h1 { font-size: clamp(28px, 4vw, 42px); line-height: 1.05; letter-spacing: -0.03em; }
+    p, .muted { color: var(--muted); }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+    .label-title { font-weight: 700; color: var(--ink); }
+
+    button, input, select, textarea {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      font: inherit;
+      background: rgba(255, 255, 255, 0.98);
+      color: var(--ink);
+    }
+
+    button, input, select { min-height: var(--control-h); }
+
+    button {
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #1a8576);
+    }
+
+    button.secondary { background: linear-gradient(135deg, #9f5829, var(--accent-2)); }
+    button.ghost { background: rgba(24, 33, 31, 0.08); color: var(--ink); }
+    button.danger { background: linear-gradient(135deg, #a64545, var(--danger)); }
+    button[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+    .file {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--control-h);
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(24, 33, 31, 0.08);
+      color: var(--ink);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-box {
+      flex: 1;
+      min-height: var(--control-h);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      border-radius: 14px;
+      background: rgba(13, 107, 95, 0.08);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .status-box.error {
+      background: rgba(181, 75, 75, 0.1);
+      color: var(--danger);
+    }
+
+    .pill, .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill { background: rgba(13, 107, 95, 0.1); color: var(--accent); }
+    .badge { background: rgba(24, 33, 31, 0.08); }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .danger-text { color: var(--danger); }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .summary-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .summary-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    tbody tr { cursor: pointer; }
+    tbody tr:hover, tbody tr.active { background: var(--focus); }
+    tbody tr.recent { outline: 2px solid rgba(183, 100, 46, 0.35); outline-offset: -2px; }
+
+    .case-cell strong { display: block; margin-bottom: 4px; }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .stack { display: grid; gap: 10px; }
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+
+    .code, .list {
+      min-height: 140px;
+      border-radius: 14px;
+      padding: 12px;
+      background: #17201e;
+      color: #eef8f5;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .code {
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .list {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .help {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .check-col {
+      width: 42px;
+      text-align: center;
+    }
+
+    .table-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 980px;
+    }
+
+    .table-wrap {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+    }
+
+    .row-check, #selectAll {
+      width: 18px;
+      height: 18px;
+      min-height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    @media (max-width: 1240px) {
+      .hero, .layout, .editor-grid, .detail-grid, .reports, .stats, .filters, .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel hero">
+      <div>
+        <h1>测试用例管理台</h1>
+        <p>主流程只保留导入和新建，其他动作放到记录区或维护区。</p>
+      </div>
+      <div class="toolbar">
+        <label class="file">导入 Excel<input id="fileInput" type="file" accept=".xlsx" style="display:none"></label>
+      </div>
+    </section>
+
+    <section class="panel status-row">
+      <div id="actionStatus" class="status-box">页面已就绪。</div>
+      <div id="recentHint" class="pill">暂无本次导入记录</div>
+    </section>
+
+    <section class="panel stack">
+      <div class="muted">维护操作</div>
+      <div class="secondary-toolbar">
+        <button id="transformBtn" class="ghost">整理当前记录</button>
+        <button id="validateBtn" class="ghost">检查问题</button>
+        <button id="rebuildBtn" class="ghost">同步现有用例</button>
+        <button id="promoteBtn" class="ghost">批量加入正式用例</button>
+        <button id="deleteBtn" class="danger">批量删除</button>
+      </div>
+    </section>
+
+    <section id="stats" class="stats"></section>
+
+    <section class="panel filters">
+      <input id="searchInput" placeholder="搜索 case_id / case_name">
+    </section>
+
+    <section class="panel status-row">
+      <div id="selectedSummary" class="status-box">已选 0 条。批量操作只作用于当前勾选结果。</div>
+      <div class="pill">仓库中已有用例</div>
+    </section>
+
+    <section class="layout">
+      <section class="panel table-panel">
+        <div class="section-title">
+          <h2>测试用例</h2>
+          <div class="muted" id="tableMeta"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="check-col"><input id="selectAll" type="checkbox" title="全选当前筛选结果"></th>
+                <th>Case</th>
+                <th>模块</th>
+                <th>状态</th>
+                <th>最近结果</th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <div class="section-title">
+          <div>
+            <h2 id="recordTitle">当前用例</h2>
+            <div class="muted" id="recordSub">选择一条用例后编辑。</div>
+          </div>
+          <div class="row">
+            <span id="statusBadge" class="badge">状态</span>
+            <span id="coverageBadge" class="badge">可执行性</span>
+          </div>
+        </div>
+
+        <div id="hint" class="status-box">当前用例未选择。</div>
+
+        <div class="summary">
+          <div class="summary-card"><span>当前模块</span><strong id="summaryModule">-</strong></div>
+          <div class="summary-card"><span>当前路径</span><strong id="summaryPath">-</strong></div>
+          <div class="summary-card"><span>最近结果</span><strong id="summaryResult">-</strong></div>
+          <div class="summary-card"><span>套件归属</span><strong id="summarySuites">-</strong></div>
+        </div>
+
+        <div class="row">
+          <button id="newBtn">新建用例</button>
+          <button id="saveBtn">保存当前用例</button>
+          <button id="promoteCurrentBtn" class="ghost">加入正式用例</button>
+          <button id="deleteCurrentBtn" class="danger">删除当前用例</button>
+        </div>
+
+        <div class="help">用户日常只管导入或新建、填写内容、保存。其它动作都放在当前记录或维护区。</div>
+
+        <div class="editor-grid">
+          <div class="stack">
+            <label><span class="label-title">case_id</span><input id="caseId"></label>
+            <label><span class="label-title">case_name</span><input id="caseName"></label>
+            <label><span class="label-title">module_id</span><input id="moduleId"></label>
+          </div>
+          <div class="stack">
+            <label><span class="label-title">last_result_status</span><input id="lastResultStatus" disabled></label>
+            <label><span class="label-title">可执行性</span><input id="bridgeStatus" disabled></label>
+            <label><span class="label-title">case_path</span><input id="casePath" disabled></label>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="stack">
+            <label><span class="label-title">前置条件</span><textarea id="preconditionsText"></textarea></label>
+            <label><span class="label-title">操作步骤</span><textarea id="stepsText"></textarea></label>
+            <label><span class="label-title">检查点</span><textarea id="checkpointsText"></textarea></label>
+          </div>
+          <div class="stack">
+            <label><span class="label-title">notes</span><textarea id="notesText" placeholder="一行一个 note"></textarea></label>
+            <label><span class="label-title">review_notes</span><textarea id="reviewNotesText" placeholder="一行一个审核备注"></textarea></label>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="reports">
+      <section class="panel stack">
+        <h2>当前用例结果</h2>
+        <div id="gapSummary" class="list"></div>
+        <div id="structuredFlow" class="code"></div>
+      </section>
+      <section class="panel stack">
+        <h2>最近处理结果</h2>
+        <div id="reportSummary" class="list"></div>
+        <div id="importDiff" class="list"></div>
+        <div id="validationSummary" class="list"></div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const state = { catalog: { records: [] }, coverage: {}, currentCaseId: "", recentCaseIds: [], selectedCaseIds: [], reports: {}, draftRecord: null };
+
+    const els = {
+      actionStatus: document.getElementById("actionStatus"),
+      recentHint: document.getElementById("recentHint"),
+      newBtn: document.getElementById("newBtn"),
+      promoteCurrentBtn: document.getElementById("promoteCurrentBtn"),
+      deleteCurrentBtn: document.getElementById("deleteCurrentBtn"),
+      stats: document.getElementById("stats"),
+      tableMeta: document.getElementById("tableMeta"),
+      recordsBody: document.getElementById("recordsBody"),
+      searchInput: document.getElementById("searchInput"),
+      selectAll: document.getElementById("selectAll"),
+      selectedSummary: document.getElementById("selectedSummary"),
+      fileInput: document.getElementById("fileInput"),
+      recordTitle: document.getElementById("recordTitle"),
+      recordSub: document.getElementById("recordSub"),
+      statusBadge: document.getElementById("statusBadge"),
+      coverageBadge: document.getElementById("coverageBadge"),
+      hint: document.getElementById("hint"),
+      summaryModule: document.getElementById("summaryModule"),
+      summaryPath: document.getElementById("summaryPath"),
+      summaryResult: document.getElementById("summaryResult"),
+      summarySuites: document.getElementById("summarySuites"),
+      caseId: document.getElementById("caseId"),
+      caseName: document.getElementById("caseName"),
+      moduleId: document.getElementById("moduleId"),
+      lastResultStatus: document.getElementById("lastResultStatus"),
+      bridgeStatus: document.getElementById("bridgeStatus"),
+      casePath: document.getElementById("casePath"),
+      preconditionsText: document.getElementById("preconditionsText"),
+      stepsText: document.getElementById("stepsText"),
+      checkpointsText: document.getElementById("checkpointsText"),
+      notesText: document.getElementById("notesText"),
+      reviewNotesText: document.getElementById("reviewNotesText"),
+      gapSummary: document.getElementById("gapSummary"),
+      structuredFlow: document.getElementById("structuredFlow"),
+      reportSummary: document.getElementById("reportSummary"),
+      importDiff: document.getElementById("importDiff"),
+      validationSummary: document.getElementById("validationSummary")
+    };
+
+    async function api(path, body) {
+      const response = await fetch(path, {
+        method: body ? "POST" : "GET",
+        headers: body ? { "Content-Type": "application/json" } : {},
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "request failed");
+      return data;
+    }
+
+    const pretty = value => JSON.stringify(value ?? {}, null, 2);
+
+    function setStatus(message, isError = false) {
+      els.actionStatus.textContent = message;
+      els.actionStatus.className = `status-box${isError ? " error" : ""}`;
+    }
+
+    function badgeClass(value) {
+      if (["implemented", "approved", "covered", "none", "PASS"].includes(value)) return "badge ok";
+      if (["draft", "planned", "reviewed", "partial", "NOT_RUN", "unreviewed"].includes(value)) return "badge warn";
+      if (["rejected", "missing", "mixed", "FAIL", "ERROR", "bridge_gap", "flow_gap", "assertion_gap", "deprecated"].includes(value)) return "badge danger-text";
+      return "badge";
+    }
+
+    function displayValue(value) {
+      const mapping = {
+        implemented: "已实现",
+        draft: "待加入",
+        planned: "规划中",
+        deprecated: "已废弃",
+        covered: "可执行",
+        partial: "部分可执行",
+        missing: "暂不可执行",
+        none: "无缺口",
+        flow_gap: "缺步骤映射",
+        assertion_gap: "缺断言",
+        bridge_gap: "缺执行能力",
+        mixed: "多项缺口",
+        PASS: "通过",
+        FAIL: "失败",
+        ERROR: "异常",
+        NOT_RUN: "未执行"
+      };
+      return mapping[value] || value || "-";
+    }
+
+    function setBadge(el, prefix, value) {
+      el.className = badgeClass(value);
+      el.textContent = `${prefix}: ${displayValue(value)}`;
+    }
+
+    function selectedIds() {
+      return [...state.selectedCaseIds];
+    }
+
+    function currentRecord() {
+      return state.draftRecord || state.catalog.records.find(item => item.case_id === state.currentCaseId) || null;
+    }
+
+    function blankRecord() {
+      return {
+        case_id: "",
+        case_name: "",
+        module_id: "",
+        module_name: "",
+        status: "draft",
+        source: "web_editor",
+        preconditions_text: "",
+        steps_text: "",
+        checkpoints_text: "",
+        notes: [],
+        structured_flow: [],
+        structured_assertions: [],
+        checkpoint_summary: [],
+        suite_membership: [],
+        bridge_coverage_status: "missing",
+        capability_gap_status: "flow_gap",
+        capability_gap_items: [],
+        capability_gap_breakdown: {},
+        case_path: "",
+        last_result_status: "NOT_RUN",
+        review_notes: []
+      };
+    }
+
+    function formatKeyValues(values, emptyText) {
+      const entries = Object.entries(values || {}).filter(([, value]) => value !== undefined && value !== null && value !== "");
+      return entries.length ? entries.map(([key, value]) => `- ${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`).join("\n") : emptyText;
+    }
+
+    function formatFlow(flowItems) {
+      if (!flowItems || !flowItems.length) return "还没有整理出步骤动作。先改“操作步骤”，再点“整理当前记录”。";
+      return flowItems.map((item, index) => {
+        const title = `${index + 1}. ${item.name || item.ref || "未命名 flow"}`;
+        const ref = `   ref: ${item.ref || "-"}`;
+        const params = `   params:\n${formatKeyValues(item.params || {}, "   - 无参数")}`;
+        return [title, ref, params].join("\n");
+      }).join("\n\n");
+    }
+
+    function formatAssertions(assertions) {
+      if (!assertions || !assertions.length) return "当前还没有自动断言，可以先不管。";
+      return assertions.map((item, index) => {
+        const kind = item.kind || item.type || "assertion";
+        return [`${index + 1}. ${kind}`, formatKeyValues(item, "- 无额外字段")].join("\n");
+      }).join("\n\n");
+    }
+
+    function formatCheckpoints(checkpoints) {
+      if (!checkpoints || !checkpoints.length) return "当前还没有整理出检查点。";
+      return checkpoints.map((item, index) => `- ${index + 1}. ${item}`).join("\n");
+    }
+
+    function formatGap(record) {
+      const breakdown = record.capability_gap_breakdown || {};
+      const sections = [];
+      if (breakdown.flow_gap?.length) sections.push(`缺 flow:\n${breakdown.flow_gap.map(item => `- ${item}`).join("\n")}`);
+      if (breakdown.bridge_gap?.length) sections.push(`缺 bridge/template:\n${breakdown.bridge_gap.map(item => `- ${item}`).join("\n")}`);
+      if (breakdown.assertion_gap?.length) sections.push(`缺断言:\n${breakdown.assertion_gap.map(item => `- ${item}`).join("\n")}`);
+      if (breakdown.other?.length) sections.push(`其他:\n${breakdown.other.map(item => `- ${item}`).join("\n")}`);
+      if (!sections.length && record.capability_gap_status === "none") return "当前没有明显问题，可以继续往下处理。";
+      if (!sections.length) return "系统还没明确识别出问题，先看下面整理出来的步骤动作和检查点。";
+      return sections.join("\n\n");
+    }
+
+    function canPromoteSummary(record) {
+      const blockers = [];
+      if (!["draft", "planned"].includes(record.status)) blockers.push("状态还不对");
+      if (record.bridge_coverage_status !== "covered") blockers.push("还不能稳定执行");
+      if ((record.capability_gap_status || "none") !== "none") blockers.push("还有待处理问题");
+      if (!(record.structured_flow || []).length) blockers.push("还没整理出步骤动作");
+      return blockers.length ? `现在还不能继续，原因: ${blockers.join("、")}` : "这条记录已经满足继续处理条件。";
+    }
+
+    function updateSelectedSummary() {
+      const ids = selectedIds();
+      const visibleCount = filteredRecords().length;
+      const selectedText = ids.length ? ids.join(", ") : "无";
+      els.selectedSummary.textContent = `已选 ${ids.length} / ${visibleCount} 条。当前勾选: ${selectedText}`;
+      if (els.selectAll) {
+        const checkboxes = [...document.querySelectorAll(".row-check")];
+        els.selectAll.checked = !!checkboxes.length && checkboxes.every(node => node.checked);
+      }
+    }
+
+    function renderStats() {
+      const statusStats = state.coverage.status_stats || {};
+      const validation = state.reports.validation_report || {};
+      const cards = [
+        ["总用例", state.catalog.records.length],
+        ["已实现", statusStats.implemented || 0],
+        ["待加入", statusStats.draft || 0],
+        ["规划中", statusStats.planned || 0],
+        ["校验错误", validation.error_count || 0]
+      ];
+      els.stats.innerHTML = cards.map(([label, value]) => `<div class="panel stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    }
+
+    function filteredRecords() {
+      const search = els.searchInput.value.trim().toLowerCase();
+      return state.catalog.records.filter(record =>
+        (!search || `${record.case_id} ${record.case_name}`.toLowerCase().includes(search))
+      );
+    }
+
+    function renderTable() {
+      const rows = filteredRecords();
+      els.tableMeta.textContent = `显示 ${rows.length} / ${state.catalog.records.length} 条记录`;
+      els.recordsBody.innerHTML = rows.map(record => `
+        <tr class="${record.case_id === state.currentCaseId ? "active" : ""} ${state.recentCaseIds.includes(record.case_id) ? "recent" : ""}" data-id="${record.case_id}">
+          <td class="check-col"><input class="row-check" type="checkbox" value="${record.case_id}" ${state.selectedCaseIds.includes(record.case_id) ? "checked" : ""}></td>
+          <td class="case-cell"><strong>${record.case_id}</strong><span class="muted">${record.case_name || ""}</span></td>
+          <td>${record.module_id || ""}</td>
+          <td><span class="${badgeClass(record.status || "")}">${displayValue(record.status || "")}</span></td>
+          <td><span class="${badgeClass(record.last_result_status || "")}">${displayValue(record.last_result_status || "")}</span></td>
+        </tr>
+      `).join("");
+      for (const row of els.recordsBody.querySelectorAll("tr")) {
+        row.addEventListener("click", event => {
+          if (event.target.tagName === "INPUT") return;
+          state.draftRecord = null;
+          state.currentCaseId = row.dataset.id;
+          renderCurrent();
+          renderTable();
+        });
+      }
+      for (const checkbox of els.recordsBody.querySelectorAll(".row-check")) {
+        checkbox.addEventListener("change", event => {
+          const caseId = event.target.value;
+          if (event.target.checked) {
+            if (!state.selectedCaseIds.includes(caseId)) state.selectedCaseIds.push(caseId);
+          } else {
+            state.selectedCaseIds = state.selectedCaseIds.filter(item => item !== caseId);
+          }
+          updateSelectedSummary();
+        });
+      }
+      updateSelectedSummary();
+    }
+
+    function renderCurrent() {
+      const record = currentRecord();
+      if (!record) {
+        els.recordTitle.textContent = "当前用例";
+        els.recordSub.textContent = "先从左侧点一条记录，或先勾选多条再做批量操作。";
+        els.hint.className = "status-box";
+        els.hint.textContent = "当前用例未选择。";
+        els.promoteCurrentBtn.disabled = true;
+        els.deleteCurrentBtn.disabled = true;
+        return;
+      }
+      const isDraftRecord = !!state.draftRecord;
+      els.recordTitle.textContent = isDraftRecord ? "新建用例" : `${record.case_id} · ${record.case_name || "未命名用例"}`;
+      els.recordSub.textContent = isDraftRecord ? "先填 case_id、模块、步骤和检查点，再保存这条新用例。" : "右侧编辑当前用例；左侧勾选可做批量处理。";
+      setBadge(els.statusBadge, "状态", record.status || "-");
+      setBadge(els.coverageBadge, "可执行性", record.bridge_coverage_status || "-");
+
+      els.summaryModule.textContent = record.module_id || "-";
+      els.summaryPath.textContent = record.case_path || "-";
+      els.summaryResult.textContent = record.last_result_status || "-";
+      els.summarySuites.textContent = (record.suite_membership || []).join(", ") || "-";
+
+      els.caseId.value = record.case_id || "";
+      els.caseId.disabled = !isDraftRecord;
+      els.caseName.value = record.case_name || "";
+      els.moduleId.value = record.module_id || "";
+      els.lastResultStatus.value = record.last_result_status || "";
+      els.bridgeStatus.value = displayValue(record.bridge_coverage_status || "");
+      els.casePath.value = record.case_path || "";
+      els.preconditionsText.value = record.preconditions_text || "";
+      els.stepsText.value = record.steps_text || "";
+      els.checkpointsText.value = record.checkpoints_text || "";
+      els.notesText.value = (record.notes || []).join("\n");
+      els.reviewNotesText.value = (record.review_notes || []).join("\n");
+
+      els.gapSummary.textContent = [
+        `当前状态: ${displayValue(record.status || "-")}`,
+        `可执行性: ${displayValue(record.bridge_coverage_status || "-")}`,
+        "",
+        canPromoteSummary(record),
+        "",
+        formatGap(record)
+      ].join("\n");
+      els.structuredFlow.textContent = [
+        "整理后的步骤动作",
+        "",
+        formatFlow(record.structured_flow || []),
+        "",
+        "整理后的检查点",
+        "",
+        formatCheckpoints(record.checkpoint_summary || [])
+      ].join("\n");
+
+      const canPromote = ["draft", "planned"].includes(record.status) &&
+        record.bridge_coverage_status === "covered" &&
+        (record.capability_gap_status || "none") === "none" &&
+        (record.structured_flow || []).length;
+
+      const canDelete = !record.case_path;
+      els.promoteCurrentBtn.disabled = isDraftRecord || !canDelete || !(record.structured_flow || []).length;
+      els.deleteCurrentBtn.disabled = isDraftRecord || !canDelete;
+      let hintText = "";
+      if (isDraftRecord) {
+        hintText = "这是新建中的用例。先保存，再点“整理当前记录”。";
+      } else if (canPromote) {
+        hintText = "这条用例已经整理好了，可以加入正式用例。";
+      } else if (record.case_path) {
+        hintText = "这是一条正式用例。页面里不能直接删除它。";
+      } else if (canDelete) {
+        hintText = "这条记录还不是正式用例，可以直接删除。";
+      } else {
+        hintText = "这条用例还没整理好，先看下面的步骤动作和检查点。";
+      }
+      els.hint.className = `status-box${canPromote || canDelete ? "" : " error"}`;
+      els.hint.textContent = hintText;
+    }
+
+    function collectRecord() {
+      const base = currentRecord() || {};
+      return {
+        ...base,
+        case_id: els.caseId.value,
+        case_name: els.caseName.value,
+        module_id: els.moduleId.value,
+        module_name: els.moduleId.value,
+        status: base.status || "draft",
+        suite_membership: base.suite_membership || [],
+        preconditions_text: els.preconditionsText.value,
+        steps_text: els.stepsText.value,
+        checkpoints_text: els.checkpointsText.value,
+        notes: els.notesText.value.split("\n").map(item => item.trim()).filter(Boolean),
+        review_notes: els.reviewNotesText.value.split("\n").map(item => item.trim()).filter(Boolean)
+      };
+    }
+
+    function renderReports() {
+      const imported = state.reports.import_report || {};
+      const diff = imported.diff || {};
+      const summary = imported.summary || {};
+      const validation = state.reports.validation_report || {};
+      const reportLines = [
+        `当前共 ${state.catalog.records.length} 条用例，默认这 17 条是仓库里已有的正式用例。`,
+        `新建用例 = 新增一条用例。`,
+        `最近一次检查问题: 错误 ${validation.error_count || 0} 个，警告 ${validation.warning_count || 0} 个。`
+      ];
+      els.reportSummary.textContent = reportLines.join("\n");
+
+      const diffLines = [
+        `最近导入文件: ${imported.filename || "无"}`,
+        `新增 ${summary.added || 0} 条: ${(diff.added || []).map(item => item.case_id).join(", ") || "-"}`,
+        `更新 ${summary.updated || 0} 条: ${(diff.updated || []).map(item => item.case_id).join(", ") || "-"}`,
+        `冲突 ${summary.conflicts || 0} 条: ${(diff.conflicts || []).map(item => `${item.case_id}${item.reason ? ` (${item.reason})` : ""}`).join(", ") || "-"}`
+      ];
+      els.importDiff.textContent = diffLines.join("\n");
+
+      const validationLines = [
+        validation.error_count || validation.warning_count
+          ? "下面这些用例还有问题要处理，先看错误，再看警告。"
+          : "最近一次检查没有发现阻塞问题。",
+        `错误: ${validation.error_count || 0}`,
+        `警告: ${validation.warning_count || 0}`
+      ].concat((validation.errors || []).slice(0, 8).map(item => `错误 - ${item.case_id || "-"}: ${item.reason}`))
+        .concat((validation.warnings || []).slice(0, 8).map(item => `警告 - ${item.case_id || "-"}: ${item.reason}`));
+      els.validationSummary.textContent = validationLines.join("\n");
+    }
+
+    async function refresh(preferredCaseId = "") {
+      const data = await api("/api/catalog");
+      state.catalog = data.catalog;
+      state.coverage = data.coverage;
+      state.selectedCaseIds = state.selectedCaseIds.filter(caseId => state.catalog.records.some(record => record.case_id === caseId));
+      if (state.draftRecord && preferredCaseId && state.catalog.records.some(record => record.case_id === preferredCaseId)) {
+        state.draftRecord = null;
+      } else if (state.draftRecord && state.draftRecord.case_id && state.catalog.records.some(record => record.case_id === state.draftRecord.case_id)) {
+        state.draftRecord = null;
+      }
+      state.reports = {
+        import_report: data.import_report || {},
+        validation_report: data.validation_report || {}
+      };
+      renderStats();
+      renderTable();
+      renderReports();
+      els.recentHint.textContent = state.recentCaseIds.length ? `本次高亮 ${state.recentCaseIds.length} 条记录` : "暂无本次导入记录";
+      const nextCaseId = preferredCaseId || state.currentCaseId || state.recentCaseIds[0] || state.catalog.records[0]?.case_id || "";
+      if (nextCaseId) {
+        state.currentCaseId = nextCaseId;
+        renderCurrent();
+        renderTable();
+      }
+    }
+
+    async function importFile(file) {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+      setStatus(`正在导入 ${file.name}...`);
+      const data = await api("/api/import-excel", { filename: file.name, content_base64: btoa(binary) });
+      state.recentCaseIds = (data.report.imported || []).map(item => item.case_id);
+      await refresh(state.recentCaseIds[0] || "");
+      setStatus(`导入完成，新增 ${state.recentCaseIds.length} 条，冲突 ${(data.report.conflicts || []).length} 条。`);
+    }
+
+    function startNewRecord() {
+      state.draftRecord = blankRecord();
+      state.currentCaseId = "";
+      renderCurrent();
+      renderTable();
+      setStatus("已创建空白用例。先填写 case_id、模块、步骤和检查点，再点“保存当前记录”。");
+    }
+
+    async function batchPromote() {
+      const caseIds = selectedIds();
+      if (!caseIds.length) return setStatus("先勾选至少一条记录。", true);
+      const data = await api("/api/batch-promote", { case_ids: caseIds });
+      await refresh(state.currentCaseId);
+      const blocked = (data.blocked || []).slice(0, 5).map(item => `${item.case_id}: ${item.reason}`).join("；");
+      setStatus(`批量加入正式用例完成，成功 ${data.promoted_count} 条，阻塞 ${data.blocked_count} 条。${blocked ? ` 阻塞原因: ${blocked}` : ""}`, !!data.blocked_count);
+    }
+
+    async function batchDelete() {
+      const caseIds = selectedIds();
+      if (!caseIds.length) return setStatus("先勾选至少一条记录。", true);
+      const data = await api("/api/batch-delete", { case_ids: caseIds });
+      state.selectedCaseIds = state.selectedCaseIds.filter(caseId => !(data.deleted || []).some(item => item.case_id === caseId));
+      state.currentCaseId = "";
+      await refresh();
+      const blocked = (data.blocked || []).slice(0, 5).map(item => `${item.case_id}: ${item.reason}`).join("；");
+      setStatus(`批量删除完成，删除 ${data.deleted_count} 条，阻塞 ${data.blocked_count} 条。${blocked ? ` 阻塞原因: ${blocked}` : ""}`, !!data.blocked_count);
+    }
+
+    async function promoteCurrent() {
+      const record = currentRecord();
+      if (!record || !record.case_id) return setStatus("先选择一条记录。", true);
+      const data = await api("/api/batch-promote", { case_ids: [record.case_id] });
+      await refresh(record.case_id);
+      if (data.promoted_count) return setStatus(`已加入正式用例 ${record.case_id}。`);
+      const blocked = (data.blocked || []).map(item => item.reason).join("；");
+      setStatus(`当前用例无法加入正式用例: ${blocked || "未知原因"}`, true);
+    }
+
+    async function deleteCurrent() {
+      const record = currentRecord();
+      if (!record || !record.case_id) return setStatus("先选择一条记录。", true);
+      const data = await api("/api/batch-delete", { case_ids: [record.case_id] });
+      state.selectedCaseIds = state.selectedCaseIds.filter(caseId => caseId !== record.case_id);
+      state.currentCaseId = "";
+      await refresh();
+      if (data.deleted_count) return setStatus(`已删除 ${record.case_id}。`);
+      const blocked = (data.blocked || []).map(item => item.reason).join("；");
+      setStatus(`当前记录无法删除: ${blocked || "未知原因"}`, true);
+    }
+
+    document.getElementById("newBtn").addEventListener("click", startNewRecord);
+    document.getElementById("rebuildBtn").addEventListener("click", () => api("/api/catalog/rebuild", {}).then(() => refresh()).then(() => setStatus("现有用例已同步。")).catch(error => setStatus(`同步失败: ${error.message}`, true)));
+    document.getElementById("transformBtn").addEventListener("click", () => api("/api/transform", {}).then(() => refresh(state.currentCaseId)).then(() => setStatus("当前记录已整理。")).catch(error => setStatus(`整理失败: ${error.message}`, true)));
+    document.getElementById("validateBtn").addEventListener("click", () => api("/api/validate", {}).then(data => refresh(state.currentCaseId).then(() => data)).then(data => setStatus(`问题检查完成。错误 ${data.report.error_count || 0} 个，警告 ${data.report.warning_count || 0} 个。`, !!(data.report.error_count || data.report.warning_count))).catch(error => setStatus(`检查失败: ${error.message}`, true)));
+    document.getElementById("promoteBtn").addEventListener("click", () => batchPromote().catch(error => setStatus(`批量加入正式用例失败: ${error.message}`, true)));
+    document.getElementById("deleteBtn").addEventListener("click", () => batchDelete().catch(error => setStatus(`批量删除失败: ${error.message}`, true)));
+    els.promoteCurrentBtn.addEventListener("click", () => promoteCurrent().catch(error => setStatus(`加入正式用例失败: ${error.message}`, true)));
+    els.deleteCurrentBtn.addEventListener("click", () => deleteCurrent().catch(error => setStatus(`删除失败: ${error.message}`, true)));
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const record = collectRecord();
+      if (!record.case_id.trim()) return setStatus("新建用例时必须填写 case_id。", true);
+      api("/api/catalog/upsert", { record }).then(() => {
+        state.draftRecord = null;
+        return refresh(record.case_id);
+      }).then(() => setStatus(`已保存 ${record.case_id}。`)).catch(error => setStatus(`保存失败: ${error.message}`, true));
+    });
+
+    els.fileInput.addEventListener("change", async event => {
+      const file = event.target.files?.[0];
+      if (file) {
+        try {
+          await importFile(file);
+        } catch (error) {
+          setStatus(`导入失败: ${error.message}`, true);
+        }
+      }
+      event.target.value = "";
+    });
+
+    els.searchInput.addEventListener("input", renderTable);
+    els.selectAll.addEventListener("change", event => {
+      const visibleIds = filteredRecords().map(record => record.case_id);
+      if (event.target.checked) {
+        state.selectedCaseIds = [...new Set([...state.selectedCaseIds, ...visibleIds])];
+      } else {
+        state.selectedCaseIds = state.selectedCaseIds.filter(caseId => !visibleIds.includes(caseId));
+      }
+      for (const checkbox of document.querySelectorAll(".row-check")) checkbox.checked = event.target.checked;
+      updateSelectedSummary();
+    });
+    refresh().catch(error => setStatus(`初始化失败: ${error.message}`, true));
+  </script>
+</body>
+</html>

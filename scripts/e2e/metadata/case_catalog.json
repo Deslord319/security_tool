@@ -1,12 +1,12 @@
 {
   "version": "1.0",
-  "updated_at": "2026-03-19T13:20:36+00:00",
+  "updated_at": "2026-03-20T09:33:22+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
       "case_name": "Enable Enterprise Admin",
       "module_id": "bootstrap",
-      "module_name": "启动初始化",
+      "module_name": "bootstrap",
       "status": "implemented",
       "source": "manual",
       "preconditions_text": "",
@@ -14,23 +14,8 @@
       "checkpoints_text": "",
       "notes": [],
       "structured_flow": [],
-      "structured_assertions": [
-        {
-          "name": "enable_admin_success",
-          "type": "enterprise_admin_enabled",
-          "value": "success",
-          "level": "primary",
-          "params": {
-            "bundle_name": "{{bundle_name}}",
-            "ability_name": "{{admin_ability}}",
-            "admin_type": "super",
-            "timeout_sec": 20
-          }
-        }
-      ],
-      "checkpoint_summary": [
-        "success"
-      ],
+      "structured_assertions": [],
+      "checkpoint_summary": [],
       "suite_membership": [
         "smoke",
         "navigation",
@@ -39,14 +24,35 @@
       "bridge_coverage_status": "missing",
       "capability_gap_status": "mixed",
       "capability_gap_items": [
+        "模块未识别，无法自动生成具体 flow",
         "缺少可执行 flow 草稿",
-        "Bridge 覆盖未完整"
+        "Bridge 覆盖未完整",
+        "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "模块未识别，无法自动生成具体 flow",
+          "缺少可执行 flow 草稿"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/smoke/admin_enable.json",
       "draft_path": "",
-      "last_result_status": "PASS",
-      "review_status": "unreviewed",
-      "review_notes": []
+      "last_result_status": "NOT_RUN",
+      "review_status": "approved",
+      "review_notes": [
+        "tmp test",
+        "restore"
+      ]
     },
     {
       "case_id": "APP-INSTALL-001",
@@ -101,10 +107,31 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [],
+      "capability_gap_items": [
+        "模块未识别，无法自动生成具体 flow",
+        "缺少可执行 flow 草稿",
+        "Bridge 覆盖未完整",
+        "缺少断言草稿"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "模块未识别，无法自动生成具体 flow",
+          "缺少可执行 flow 草稿"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -165,11 +192,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "防火墙步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -230,11 +271,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "防火墙步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/firewall/rule_create.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -300,11 +355,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "防火墙步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/firewall/rule_delete.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -353,11 +422,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "防火墙步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/firewall/status_toggle.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -410,11 +493,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "身份鉴别步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "身份鉴别步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/identity/domain_policy.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -469,11 +566,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "身份鉴别步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "身份鉴别步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/identity/password_policy.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -526,10 +637,26 @@
       ],
       "bridge_coverage_status": "covered",
       "capability_gap_status": "none",
-      "capability_gap_items": [],
+      "capability_gap_items": [
+        "日志步骤未能稳定映射到具体 flow",
+        "缺少断言草稿"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "日志步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/logs/event_after_policy_change.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -574,11 +701,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "日志步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "日志步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/logs/export.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -623,11 +764,28 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "缺少可执行 flow 草稿",
+        "Bridge 覆盖未完整",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "缺少可执行 flow 草稿"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/navigation/theme_menu.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -703,67 +861,28 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "缺少可执行 flow 草稿",
+        "Bridge 覆盖未完整",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "缺少可执行 flow 草稿"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
-      "review_status": "unreviewed",
-      "review_notes": []
-    },
-    {
-      "case_id": "PER-BT-WHITELIST-001",
-      "case_name": "Peripheral Bluetooth Whitelist Add",
-      "module_id": "peripheral",
-      "module_name": "外设管理",
-      "status": "implemented",
-      "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
-      "structured_flow": [
-        {
-          "name": "launch_app",
-          "ref": "app.launch",
-          "params": {
-            "timeout_sec": 20
-          }
-        },
-        {
-          "name": "open_peripheral_manage",
-          "ref": "navigation.open_page",
-          "params": {
-            "page_id": "peripheral-manage"
-          }
-        },
-        {
-          "name": "create_bluetooth_whitelist_entry",
-          "ref": "entity.create",
-          "params": {
-            "domain": "peripheral",
-            "entity": "whitelist",
-            "variant": "bluetooth",
-            "data": {
-              "mac": "AA:BB:CC:DD:EE:01"
-            }
-          }
-        }
-      ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
-      "suite_membership": [
-        "peripheral",
-        "completeness"
-      ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
-      "capability_gap_items": [
-        "缺少断言草稿"
-      ],
-      "case_path": "scripts/e2e/cases/peripheral/bt_whitelist.json",
-      "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -851,11 +970,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "外设步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "外设步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/peripheral/interfaces.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -906,126 +1039,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "外设步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "外设步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/peripheral/usb_policy.json",
       "draft_path": "",
-      "last_result_status": "UNKNOWN",
-      "review_status": "unreviewed",
-      "review_notes": []
-    },
-    {
-      "case_id": "PER-USB-BLACKLIST-001",
-      "case_name": "Peripheral USB Blacklist Add",
-      "module_id": "peripheral",
-      "module_name": "外设管理",
-      "status": "implemented",
-      "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
-      "structured_flow": [
-        {
-          "name": "launch_app",
-          "ref": "app.launch",
-          "params": {
-            "timeout_sec": 20
-          }
-        },
-        {
-          "name": "open_peripheral_manage",
-          "ref": "navigation.open_page",
-          "params": {
-            "page_id": "peripheral-manage"
-          }
-        },
-        {
-          "name": "create_usb_blacklist_entry",
-          "ref": "entity.create",
-          "params": {
-            "domain": "peripheral",
-            "entity": "blacklist",
-            "variant": "usb",
-            "data": {
-              "base_class": 8,
-              "sub_class": 6,
-              "protocol": 80
-            }
-          }
-        }
-      ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
-      "suite_membership": [
-        "peripheral",
-        "completeness"
-      ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
-      "capability_gap_items": [
-        "缺少断言草稿"
-      ],
-      "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
-      "draft_path": "",
-      "last_result_status": "FAIL",
-      "review_status": "unreviewed",
-      "review_notes": []
-    },
-    {
-      "case_id": "PER-USB-WHITELIST-001",
-      "case_name": "Peripheral USB Whitelist Add",
-      "module_id": "peripheral",
-      "module_name": "外设管理",
-      "status": "implemented",
-      "source": "manual",
-      "preconditions_text": "",
-      "steps_text": "",
-      "checkpoints_text": "",
-      "notes": [],
-      "structured_flow": [
-        {
-          "name": "launch_app",
-          "ref": "app.launch",
-          "params": {
-            "timeout_sec": 20
-          }
-        },
-        {
-          "name": "open_peripheral_manage",
-          "ref": "navigation.open_page",
-          "params": {
-            "page_id": "peripheral-manage"
-          }
-        },
-        {
-          "name": "create_usb_whitelist_entry",
-          "ref": "entity.create",
-          "params": {
-            "domain": "peripheral",
-            "entity": "whitelist",
-            "variant": "usb",
-            "data": {
-              "vendor_id": "0781",
-              "product_id": "5583"
-            }
-          }
-        }
-      ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
-      "suite_membership": [
-        "peripheral",
-        "completeness"
-      ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
-      "capability_gap_items": [
-        "缺少断言草稿"
-      ],
-      "case_path": "scripts/e2e/cases/peripheral/usb_whitelist.json",
-      "draft_path": "",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1076,11 +1108,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "工具设置步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "工具设置步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/tool_settings/auth_method.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1129,11 +1175,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "工具设置步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "工具设置步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/tool_settings/password_flow.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1186,11 +1246,25 @@
       "bridge_coverage_status": "covered",
       "capability_gap_status": "assertion_gap",
       "capability_gap_items": [
+        "工具设置步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
       ],
+      "capability_gap_breakdown": {
+        "flow": [
+          "工具设置步骤未能稳定映射到具体 flow"
+        ],
+        "template": [],
+        "params": [],
+        "assertion": [
+          "缺少断言草稿"
+        ],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
       "case_path": "scripts/e2e/cases/tool_settings/startup_auth.json",
       "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     }

@@ -14,14 +14,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.e2e.tools.test_asset_common import (
     COVERAGE_PATH,
-    GENERATION_REPORT_PATH,
     IMPORT_REPORT_PATH,
     VALIDATION_REPORT_PATH,
+    batch_delete_catalog_records,
+    batch_promote_case_drafts,
     build_case_catalog,
     build_coverage_snapshot,
     decode_base64_file,
     default_catalog,
-    generate_case_drafts,
     import_excel_workbook,
     load_catalog,
     load_json,
@@ -64,7 +64,15 @@ class TestAssetHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path in {"/", "/index.html"}:
-            self._write_html(HTML_PATH.read_text(encoding="utf-8"))
+            if HTML_PATH.exists():
+                self._write_html(HTML_PATH.read_text(encoding="utf-8"))
+            else:
+                self._write_json(
+                    {
+                        "message": "test asset dashboard html has been removed",
+                        "catalog_endpoint": "/api/catalog",
+                    }
+                )
             return
         if parsed.path == "/api/catalog":
             catalog = load_catalog()
@@ -74,7 +82,6 @@ class TestAssetHandler(BaseHTTPRequestHandler):
                     "catalog": catalog,
                     "coverage": coverage,
                     "import_report": load_json(IMPORT_REPORT_PATH, {}),
-                    "generation_report": load_json(GENERATION_REPORT_PATH, {}),
                     "validation_report": load_json(VALIDATION_REPORT_PATH, {}),
                 }
             )
@@ -83,26 +90,27 @@ class TestAssetHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        route_path = parsed.path.rstrip("/") or "/"
         try:
-            if parsed.path == "/api/catalog/rebuild":
+            if route_path == "/api/catalog/rebuild":
                 catalog = build_case_catalog()
                 coverage = build_coverage_snapshot(catalog)
                 self._write_json({"catalog": catalog, "coverage": coverage})
                 return
-            if parsed.path == "/api/catalog/save":
+            if route_path == "/api/catalog/save":
                 payload = read_json_body(self)
                 catalog = payload.get("catalog", default_catalog())
                 saved = save_catalog(catalog)
                 coverage = build_coverage_snapshot(saved)
                 self._write_json({"catalog": saved, "coverage": coverage})
                 return
-            if parsed.path == "/api/catalog/upsert":
+            if route_path == "/api/catalog/upsert":
                 payload = read_json_body(self)
                 catalog = upsert_record(payload.get("record", {}))
                 coverage = build_coverage_snapshot(catalog)
                 self._write_json({"catalog": catalog, "coverage": coverage})
                 return
-            if parsed.path == "/api/import-excel":
+            if route_path == "/api/import-excel":
                 payload = read_json_body(self)
                 filename = payload.get("filename", "upload.xlsx")
                 content = decode_base64_file(payload["content_base64"])
@@ -110,16 +118,22 @@ class TestAssetHandler(BaseHTTPRequestHandler):
                 coverage = build_coverage_snapshot(result.catalog)
                 self._write_json({"catalog": result.catalog, "coverage": coverage, "report": result.report})
                 return
-            if parsed.path == "/api/transform":
+            if route_path == "/api/transform":
                 catalog = transform_catalog_records()
                 coverage = build_coverage_snapshot(catalog)
                 self._write_json({"catalog": catalog, "coverage": coverage})
                 return
-            if parsed.path == "/api/generate-drafts":
-                report = generate_case_drafts()
-                self._write_json({"report": report, "catalog": load_catalog()})
+            if route_path == "/api/batch-promote":
+                payload = read_json_body(self)
+                result = batch_promote_case_drafts(payload.get("case_ids", []))
+                self._write_json(result)
                 return
-            if parsed.path == "/api/validate":
+            if route_path == "/api/batch-delete":
+                payload = read_json_body(self)
+                result = batch_delete_catalog_records(payload.get("case_ids", []))
+                self._write_json(result)
+                return
+            if route_path == "/api/validate":
                 report = validate_test_assets()
                 self._write_json({"report": report})
                 return

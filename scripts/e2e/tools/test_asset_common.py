@@ -18,21 +18,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.e2e.adapters.security_tool.action_templates import ACTION_TEMPLATES
 from scripts.e2e.adapters.security_tool.config import ADAPTER_CONFIG
 from scripts.e2e.adapters.security_tool.flows.registry import FLOW_REGISTRY
 from scripts.e2e.adapters.security_tool.resolvers import PAGE_REGISTRY
 from scripts.e2e.core.resolver_contracts import LOCAL_ONLY_FLOW_REFS
 from scripts.e2e.adapters.security_tool.suites import SUITES
-from scripts.e2e.core.contracts import ContractError, validate_case_contract
+from scripts.e2e.core.contracts import validate_case_contract
 
 METADATA_DIR = PROJECT_ROOT / "scripts/e2e/metadata"
-DRAFTS_DIR = PROJECT_ROOT / "scripts/e2e/drafts"
 CASES_DIR = PROJECT_ROOT / "scripts/e2e/cases"
 RESULTS_DIR = PROJECT_ROOT / "scripts/e2e/results"
 CATALOG_PATH = METADATA_DIR / "case_catalog.json"
 COVERAGE_PATH = METADATA_DIR / "coverage_snapshot.json"
 IMPORT_REPORT_PATH = METADATA_DIR / "import_report.json"
-GENERATION_REPORT_PATH = METADATA_DIR / "generation_report.json"
 VALIDATION_REPORT_PATH = METADATA_DIR / "validation_report.json"
 BRIDGE_MAP_PATH = PROJECT_ROOT / "scripts/e2e/tools/bridge_action_map.json"
 
@@ -52,7 +51,6 @@ EDITABLE_FIELDS = {
     "capability_gap_status",
     "capability_gap_items",
     "bridge_coverage_status",
-    "draft_path",
 }
 
 MODULE_NAME_TO_ID = {
@@ -120,7 +118,6 @@ def utc_now() -> str:
 
 def ensure_directories() -> None:
     METADATA_DIR.mkdir(parents=True, exist_ok=True)
-    DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def to_posix(path: Path) -> str:
@@ -207,8 +204,16 @@ def default_record(case_id: str = "") -> dict[str, Any]:
         "bridge_coverage_status": "missing",
         "capability_gap_status": "none",
         "capability_gap_items": [],
+        "capability_gap_breakdown": {
+            "flow": [],
+            "template": [],
+            "params": [],
+            "assertion": [],
+            "bridge": [],
+            "module": [],
+            "other": [],
+        },
         "case_path": "",
-        "draft_path": "",
         "last_result_status": "NOT_RUN",
         "review_status": "unreviewed",
         "review_notes": [],
@@ -290,18 +295,100 @@ def extract_checkpoint_summary(case_payload: dict[str, Any]) -> list[str]:
     return unique_list(summary)
 
 
-def compute_bridge_status(flow_refs: list[str], bridge_map: dict[str, str]) -> str:
-    if not flow_refs:
+def derive_template_key(flow_ref: str, params: dict[str, Any]) -> str:
+    if not flow_ref.startswith("entity."):
+        return ""
+    domain = str(params.get("domain", "")).strip()
+    entity = str(params.get("entity", "")).strip()
+    action = str(params.get("action", flow_ref.split(".")[-1])).strip()
+    variant = str(params.get("variant", "")).strip().lower()
+    return ".".join(part for part in (domain, entity, action, variant) if part)
+
+
+def collect_template_placeholders(template: dict[str, Any]) -> set[str]:
+    placeholders: set[str] = set()
+
+    def visit(value: Any) -> None:
+        if isinstance(value, str):
+            for match in re.findall(r"\$\{([^}]+)\}", value):
+                placeholders.add(match)
+            return
+        if isinstance(value, list):
+            for item in value:
+                visit(item)
+            return
+        if isinstance(value, dict):
+            for item in value.values():
+                visit(item)
+
+    visit(template)
+    return placeholders
+
+
+TEMPLATE_REQUIRED_DATA = {
+    "firewall.rule.create.domain": ["domain", "direction", "policy"],
+    "firewall.rule.delete.domain": ["domain"],
+    "tool_settings.startup_auth.toggle": ["target_state"],
+    "tool_settings.auth_method.update": ["method"],
+    "peripheral.interface.toggle.usb": ["target_state"],
+    "peripheral.interface.toggle.bluetooth": ["target_state"],
+    "peripheral.interface.toggle.wifi": ["target_state"],
+    "peripheral.interface.toggle.hdc": ["target_state"],
+    "peripheral.usb_storage_policy.update": ["policy"],
+    "peripheral.whitelist.create.usb": ["device_id"],
+    "peripheral.whitelist.create.bluetooth": ["device_id"],
+    "peripheral.blacklist.create.usb": ["device_id"],
+    "identity.password_policy.update": ["min_length"],
+    "identity.domain_policy.update": ["password_max_age_days", "expiration_notify_days", "auth_validity_minutes"],
+}
+
+
+def template_support_issues(flow_ref: str, params: dict[str, Any]) -> list[str]:
+    if not flow_ref.startswith("entity."):
+        return []
+    template_key = derive_template_key(flow_ref, params)
+    if not template_key:
+        return ["缺少 template_key 组成字段"]
+    template = ACTION_TEMPLATES.get(template_key)
+    if not template:
+        return [f"模板未定义: {template_key}"]
+
+    data = params.get("data", {}) if isinstance(params.get("data", {}), dict) else {}
+    issues: list[str] = []
+    required_keys = TEMPLATE_REQUIRED_DATA.get(template_key)
+    if required_keys is None:
+        required_keys = sorted(
+            placeholder.split(".", 1)[1]
+            for placeholder in collect_template_placeholders(template)
+            if placeholder.startswith("data.")
+        )
+    for key in required_keys:
+        value = data.get(key)
+        if value in ("", None):
+            issues.append(f"模板缺少必填数据: {template_key}.{key}")
+    return issues
+
+
+def compute_bridge_status(flow_items: list[Any], bridge_map: dict[str, str]) -> str:
+    if not flow_items:
         return "missing"
     statuses = []
-    for flow_ref in flow_refs:
+    for item in flow_items:
+        flow_ref = item.get("ref", "") if isinstance(item, dict) else str(item)
+        params = item.get("params", {}) if isinstance(item, dict) else {}
         if flow_ref in LOCAL_ONLY_FLOW_REFS:
             statuses.append("covered")
             continue
         if flow_ref not in FLOW_REGISTRY:
             statuses.append("missing")
             continue
-        statuses.append("covered" if bridge_map.get(flow_ref) else "missing")
+        if not bridge_map.get(flow_ref):
+            statuses.append("missing")
+            continue
+        if flow_ref.startswith("entity."):
+            statuses.append("covered" if not template_support_issues(flow_ref, params) else "missing")
+        else:
+            statuses.append("covered")
     if all(status == "covered" for status in statuses):
         return "covered"
     if any(status == "covered" for status in statuses):
@@ -309,18 +396,49 @@ def compute_bridge_status(flow_refs: list[str], bridge_map: dict[str, str]) -> s
     return "missing"
 
 
+def build_gap_breakdown(gap_items: list[str]) -> dict[str, list[str]]:
+    breakdown = {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": [],
+    }
+    for item in unique_list(gap_items):
+        lower_item = item.lower()
+        if "unknown flow" in lower_item or "flow" in lower_item or "未知 flow" in item or "缺少可执行 flow" in item:
+            bucket = "flow"
+        elif "template" in lower_item or "模板未定义" in item:
+            bucket = "template"
+        elif "required data" in lower_item or "param" in lower_item or "模板缺少必填数据" in item:
+            bucket = "params"
+        elif "assertion" in lower_item or "断言" in item:
+            bucket = "assertion"
+        elif "bridge" in lower_item or "Bridge" in item:
+            bucket = "bridge"
+        elif "module" in lower_item or "模块" in item:
+            bucket = "module"
+        else:
+            bucket = "other"
+        breakdown[bucket].append(item)
+    return breakdown
+
+
 def classify_gap_status(flow_items: list[dict[str, Any]], assertions: list[dict[str, Any]], bridge_status: str) -> tuple[str, list[str]]:
     gaps: list[str] = []
     if not flow_items:
-        gaps.append("缺少可执行 flow 草稿")
+        gaps.append("缺少可执行 flow")
     for item in flow_items:
         ref = item.get("ref", "")
         if ref and ref not in FLOW_REGISTRY:
             gaps.append(f"未知 flow 引用: {ref}")
+        gaps.extend(template_support_issues(ref, item.get("params", {})))
     if bridge_status != "covered":
         gaps.append("Bridge 覆盖未完整")
     if not assertions:
-        gaps.append("缺少断言草稿")
+        gaps.append("缺少断言")
     if not gaps:
         return "none", []
     if any("未知 flow" in gap or "缺少可执行 flow" in gap for gap in gaps):
@@ -346,8 +464,7 @@ def build_case_catalog() -> dict[str, Any]:
         relative_case_path = to_posix(case_path)
         suite_membership = infer_suite_membership(str(case_path.relative_to(CASES_DIR)).replace("\\", "/"))
         flow_items = normalize_flow_items(payload.get("flow", []))
-        flow_refs = [item["ref"] for item in flow_items]
-        bridge_status = compute_bridge_status(flow_refs, bridge_map)
+        bridge_status = compute_bridge_status(flow_items, bridge_map)
         gap_status, gap_items = classify_gap_status(flow_items, payload.get("assertions", []), bridge_status)
 
         record = default_record(case_id)
@@ -371,8 +488,8 @@ def build_case_catalog() -> dict[str, Any]:
                 "bridge_coverage_status": bridge_status,
                 "capability_gap_status": gap_status,
                 "capability_gap_items": unique_list(previous.get("capability_gap_items", []) + gap_items),
+                "capability_gap_breakdown": build_gap_breakdown(unique_list(previous.get("capability_gap_items", []) + gap_items)),
                 "case_path": relative_case_path,
-                "draft_path": previous.get("draft_path", ""),
                 "last_result_status": result_status_map.get(case_id, {}).get("status", "NOT_RUN"),
             }
         )
@@ -441,6 +558,33 @@ def xlsx_column_index(cell_ref: str) -> int:
 
 
 def parse_xlsx_rows(data: bytes) -> list[dict[str, str]]:
+    try:
+        from openpyxl import load_workbook  # type: ignore
+
+        workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        worksheet = workbook.active
+        raw_rows = [
+            [normalize_text(cell) for cell in row]
+            for row in worksheet.iter_rows(values_only=True)
+        ]
+        raw_rows = [row for row in raw_rows if any(normalize_text(value) for value in row)]
+        if raw_rows:
+            header = raw_rows[0]
+            rows: list[dict[str, str]] = []
+            for row_values in raw_rows[1:]:
+                width = max(len(header), len(row_values))
+                row = {
+                    normalize_text(header[index]) if index < len(header) else f"column_{index}":
+                    normalize_text(row_values[index]) if index < len(row_values) else ""
+                    for index in range(width)
+                }
+                if any(normalize_text(value) for value in row.values()):
+                    rows.append(row)
+            if rows:
+                return rows
+    except Exception:
+        pass
+
     rows: list[dict[str, str]] = []
     with zipfile.ZipFile(io.BytesIO(data)) as workbook:
         shared_strings: list[str] = []
@@ -588,10 +732,10 @@ def infer_structured_flow(module_id: str, steps_text: str, checkpoints_text: str
         if has_any_keyword(combined, ("启动时身份校验", "启动认证", "启动校验")):
             append_flow(flow_items, "entity.toggle", {"domain": "tool_settings", "entity": "startup_auth", "data": {"target_state": "invert"}})
         elif has_any_keyword(combined, ("认证方式", "PIN", "密码方式")):
-            method = "PIN" if "PIN" in combined.upper() else "PASSWORD"
+            method = "pin" if "PIN" in combined.upper() else "password"
             append_flow(flow_items, "entity.update", {"domain": "tool_settings", "entity": "auth_method", "data": {"method": method}})
         elif has_any_keyword(combined, ("密码", "口令")):
-            append_flow(flow_items, "tool_settings.set_password", {})
+            append_flow(flow_items, "tool_settings.set_password", {"new_password": "1234", "confirm_password": "1234"})
         else:
             gap_items.append("工具设置步骤未能稳定映射到具体 flow")
 
@@ -599,9 +743,9 @@ def infer_structured_flow(module_id: str, steps_text: str, checkpoints_text: str
         if has_any_keyword(combined, ("开启", "关闭", "开关", "状态切换", "切换")):
             append_flow(flow_items, "firewall.toggle_status", {"target_state": "invert"})
         if has_any_keyword(combined, ("规则", "白名单", "黑名单", "新增")):
-            append_flow(flow_items, "entity.create", {"domain": "firewall", "entity": "rule", "variant": "domain", "data": {}})
+            append_flow(flow_items, "entity.create", {"domain": "firewall", "entity": "rule", "variant": "domain", "data": {"name": "imported-domain-rule", "domain": "example.com", "direction": "out", "policy": "deny", "protocol": "tcp", "port": "443"}})
         if has_any_keyword(combined, ("删除", "移除")):
-            append_flow(flow_items, "entity.delete", {"domain": "firewall", "entity": "rule", "variant": "domain", "data": {}})
+            append_flow(flow_items, "entity.delete", {"domain": "firewall", "entity": "rule", "variant": "domain", "data": {"name": "imported-domain-rule", "domain": "example.com"}})
         if has_any_keyword(combined, ("浏览器", "网址", "URL")):
             append_flow(flow_items, "browser.open_url", {"url": "https://example.com"})
         if len(flow_items) <= 2:
@@ -613,19 +757,19 @@ def infer_structured_flow(module_id: str, steps_text: str, checkpoints_text: str
         if has_any_keyword(combined, ("USB 存储", "存储策略", "只读", "禁用")):
             append_flow(flow_items, "entity.update", {"domain": "peripheral", "entity": "usb_storage_policy", "data": {"policy": "read_only"}})
         if has_any_keyword(combined, ("USB 白名单", "usb 白名单")):
-            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "whitelist", "variant": "usb", "data": {}})
+            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "whitelist", "variant": "usb", "data": {"device_id": "USB-DEVICE-001"}})
         if has_any_keyword(combined, ("蓝牙白名单", "bluetooth")):
-            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "whitelist", "variant": "bluetooth", "data": {}})
+            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "whitelist", "variant": "bluetooth", "data": {"device_id": "BT-DEVICE-001"}})
         if has_any_keyword(combined, ("USB 黑名单", "usb 黑名单")):
-            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "blacklist", "variant": "usb", "data": {}})
+            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "blacklist", "variant": "usb", "data": {"device_id": "USB-DEVICE-002"}})
         if len(flow_items) <= 2:
             gap_items.append("外设步骤未能稳定映射到具体 flow")
 
     elif module_id == "identity":
         if has_any_keyword(combined, ("口令", "密码复杂度", "密码策略")):
-            append_flow(flow_items, "entity.update", {"domain": "identity", "entity": "password_policy", "data": {}})
+            append_flow(flow_items, "entity.update", {"domain": "identity", "entity": "password_policy", "data": {"min_length": "8"}})
         if has_any_keyword(combined, ("域", "账号策略", "domain")):
-            append_flow(flow_items, "entity.update", {"domain": "identity", "entity": "domain_policy", "data": {}})
+            append_flow(flow_items, "entity.update", {"domain": "identity", "entity": "domain_policy", "data": {"password_max_age_days": "90", "expiration_notify_days": "7", "auth_validity_minutes": "30"}})
         if len(flow_items) <= 2:
             gap_items.append("身份鉴别步骤未能稳定映射到具体 flow")
 
@@ -655,7 +799,7 @@ def transform_record(record: dict[str, Any]) -> dict[str, Any]:
     flow_items, transform_gaps = infer_structured_flow(module_id, steps_text, checkpoints_text)
     checkpoint_summary = summarize_checkpoints(checkpoints_text, steps_text)
     assertions = make_assertions(module_id, checkpoint_summary)
-    bridge_status = compute_bridge_status([item["ref"] for item in flow_items], load_bridge_action_map())
+    bridge_status = compute_bridge_status(flow_items, load_bridge_action_map())
     gap_status, gap_items = classify_gap_status(flow_items, assertions, bridge_status)
     transformed["structured_flow"] = flow_items
     transformed["structured_assertions"] = assertions
@@ -663,6 +807,7 @@ def transform_record(record: dict[str, Any]) -> dict[str, Any]:
     transformed["bridge_coverage_status"] = bridge_status
     transformed["capability_gap_status"] = gap_status if not transform_gaps else ("mixed" if gap_status != "none" else "flow_gap")
     transformed["capability_gap_items"] = unique_list(transform_gaps + gap_items)
+    transformed["capability_gap_breakdown"] = build_gap_breakdown(transformed["capability_gap_items"])
     transformed["review_status"] = transformed.get("review_status") or "unreviewed"
     transformed["notes"] = unique_list(list(transformed.get("notes", [])))
     return transformed
@@ -671,6 +816,7 @@ def transform_record(record: dict[str, Any]) -> dict[str, Any]:
 def import_excel_workbook(data: bytes, filename: str = "upload.xlsx") -> ImportResult:
     ensure_directories()
     catalog = load_catalog()
+    previous_records = {record.get("case_id"): copy.deepcopy(record) for record in catalog.get("records", [])}
     existing_records = {record.get("case_id"): record for record in catalog.get("records", [])}
     rows = parse_xlsx_rows(data)
     report = {
@@ -680,6 +826,8 @@ def import_excel_workbook(data: bytes, filename: str = "upload.xlsx") -> ImportR
         "imported": [],
         "conflicts": [],
         "warnings": [],
+        "diff": {"added": [], "updated": [], "unchanged": [], "conflicts": []},
+        "summary": {},
     }
 
     next_records = list(catalog.get("records", []))
@@ -704,7 +852,9 @@ def import_excel_workbook(data: bytes, filename: str = "upload.xlsx") -> ImportR
                 case_id = derive_case_id(module_id or "AUTO", index + 100, case_name)
 
         if case_id in existing_records:
-            report["conflicts"].append({"row_index": index + 2, "case_id": case_id, "reason": "case_id 已存在台账"})
+            conflict = {"row_index": index + 2, "case_id": case_id, "reason": "case_id 已存在台账"}
+            report["conflicts"].append(conflict)
+            report["diff"]["conflicts"].append(conflict)
             continue
 
         record = default_record(case_id)
@@ -733,8 +883,23 @@ def import_excel_workbook(data: bytes, filename: str = "upload.xlsx") -> ImportR
         used_ids.add(case_id)
         existing_records[case_id] = record
         report["imported"].append({"row_index": index + 2, "case_id": case_id, "module_id": module_id, "status": record["status"]})
+        previous = previous_records.get(case_id)
+        if previous is None:
+            report["diff"]["added"].append({"case_id": case_id, "status": record["status"], "module_id": module_id})
+        elif previous == record:
+            report["diff"]["unchanged"].append({"case_id": case_id})
+        else:
+            changed_fields = sorted(key for key in record.keys() if previous.get(key) != record.get(key))
+            report["diff"]["updated"].append({"case_id": case_id, "changed_fields": changed_fields})
 
     new_catalog = save_catalog({"version": CATALOG_VERSION, "updated_at": utc_now(), "records": next_records})
+    report["summary"] = {
+        "added": len(report["diff"]["added"]),
+        "updated": len(report["diff"]["updated"]),
+        "unchanged": len(report["diff"]["unchanged"]),
+        "conflicts": len(report["diff"]["conflicts"]),
+        "warnings": len(report["warnings"]),
+    }
     save_json(IMPORT_REPORT_PATH, report)
     return ImportResult(catalog=new_catalog, report=report)
 
@@ -766,45 +931,126 @@ def build_case_payload_from_record(record: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def generate_case_drafts() -> dict[str, Any]:
+def module_id_to_case_dir(module_id: str) -> Path:
+    mapping = {
+        "dashboard": CASES_DIR / "navigation",
+        "firewall": CASES_DIR / "firewall",
+        "identity": CASES_DIR / "identity",
+        "log-manage": CASES_DIR / "logs",
+        "navigation": CASES_DIR / "navigation",
+        "peripheral": CASES_DIR / "peripheral",
+        "tool-settings": CASES_DIR / "tool_settings",
+        "bootstrap": CASES_DIR / "smoke",
+    }
+    return mapping.get(module_id, CASES_DIR / "navigation")
+
+
+def promote_case_draft(case_id: str) -> dict[str, Any]:
     ensure_directories()
     catalog = load_catalog()
-    generated: list[dict[str, Any]] = []
-    skipped: list[dict[str, str]] = []
     next_records: list[dict[str, Any]] = []
+    promoted: dict[str, Any] | None = None
 
     for record in catalog.get("records", []):
         updated_record = copy.deepcopy(record)
-        if updated_record.get("status") not in {"draft", "planned"}:
+        if updated_record.get("case_id") != case_id:
             next_records.append(updated_record)
             continue
+
         if not updated_record.get("module_id"):
-            skipped.append({"case_id": updated_record.get("case_id", ""), "reason": "缺少 module_id"})
-            next_records.append(updated_record)
-            continue
+            raise ValueError("selected record is missing module_id")
+        if updated_record.get("status") not in {"draft", "planned"}:
+            raise ValueError("only draft or planned records can be promoted")
         if not updated_record.get("structured_flow"):
-            skipped.append({"case_id": updated_record.get("case_id", ""), "reason": "缺少 structured_flow"})
-            next_records.append(updated_record)
-            continue
+            raise ValueError("structured_flow is empty; promotion is blocked")
 
         payload = build_case_payload_from_record(updated_record)
-        draft_path = DRAFTS_DIR / f"{updated_record['case_id'].lower()}.json"
-        save_json(draft_path, payload)
-        updated_record["draft_path"] = to_posix(draft_path)
-        generated.append(
-            {
-                "case_id": updated_record["case_id"],
-                "draft_path": updated_record["draft_path"],
-                "bridge_coverage_status": updated_record.get("bridge_coverage_status", "missing"),
-                "capability_gap_status": updated_record.get("capability_gap_status", "none"),
-            }
-        )
+        target_dir = module_id_to_case_dir(updated_record["module_id"])
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_path = target_dir / f"{updated_record['case_id'].lower()}.json"
+        save_json(target_path, payload)
+
+        updated_record["case_path"] = to_posix(target_path)
+        updated_record["status"] = "implemented"
+        promoted = {
+            "case_id": updated_record["case_id"],
+            "case_path": updated_record["case_path"],
+            "status": updated_record["status"],
+        }
         next_records.append(updated_record)
 
+    if promoted is None:
+        raise ValueError(f"case_id not found: {case_id}")
+
     updated_catalog = save_catalog({"version": CATALOG_VERSION, "updated_at": utc_now(), "records": next_records})
-    report = {"generated_at": utc_now(), "generated": generated, "skipped": skipped}
-    save_json(GENERATION_REPORT_PATH, report)
-    return report
+    build_coverage_snapshot(updated_catalog)
+    return {"promoted_at": utc_now(), "record": promoted, "catalog": updated_catalog}
+
+
+def batch_promote_case_drafts(case_ids: list[str]) -> dict[str, Any]:
+    requested = unique_list(case_ids)
+    promoted: list[dict[str, Any]] = []
+    blocked: list[dict[str, str]] = []
+
+    for case_id in requested:
+        try:
+            result = promote_case_draft(case_id)
+            promoted.append(result["record"])
+        except Exception as exc:  # noqa: BLE001
+            blocked.append({"case_id": case_id, "reason": str(exc)})
+
+    return {
+        "processed_at": utc_now(),
+        "requested_count": len(requested),
+        "promoted_count": len(promoted),
+        "blocked_count": len(blocked),
+        "promoted": promoted,
+        "blocked": blocked,
+        "catalog": load_catalog(),
+    }
+
+
+def batch_delete_catalog_records(case_ids: list[str]) -> dict[str, Any]:
+    requested = unique_list(case_ids)
+    if not requested:
+        return {
+            "processed_at": utc_now(),
+            "requested_count": 0,
+            "deleted_count": 0,
+            "deleted": [],
+            "blocked": [],
+            "catalog": load_catalog(),
+        }
+
+    catalog = load_catalog()
+    remaining_records: list[dict[str, Any]] = []
+    deleted: list[dict[str, str]] = []
+    blocked: list[dict[str, str]] = []
+
+    for record in catalog.get("records", []):
+        case_id = record.get("case_id", "")
+        if case_id not in requested:
+            remaining_records.append(record)
+            continue
+
+        if record.get("case_path"):
+            blocked.append({"case_id": case_id, "reason": "正式 case 不能从页面直接删除"})
+            remaining_records.append(record)
+            continue
+
+        deleted.append({"case_id": case_id, "status": record.get("status", "")})
+
+    updated_catalog = save_catalog({"version": CATALOG_VERSION, "updated_at": utc_now(), "records": remaining_records})
+    build_coverage_snapshot(updated_catalog)
+    return {
+        "processed_at": utc_now(),
+        "requested_count": len(requested),
+        "deleted_count": len(deleted),
+        "blocked_count": len(blocked),
+        "deleted": deleted,
+        "blocked": blocked,
+        "catalog": updated_catalog,
+    }
 
 
 def validate_test_assets() -> dict[str, Any]:
@@ -831,17 +1077,8 @@ def validate_test_assets() -> dict[str, Any]:
             flow_ref = flow_item.get("ref", "")
             if flow_ref not in FLOW_REGISTRY:
                 errors.append({"case_id": case_id, "reason": f"未知 flow_ref: {flow_ref}"})
-
-        draft_path_text = record.get("draft_path", "")
-        if draft_path_text:
-            draft_path = PROJECT_ROOT / draft_path_text
-            if not draft_path.exists():
-                warnings.append({"case_id": case_id, "reason": "draft_path 指向的文件不存在"})
-            else:
-                try:
-                    validate_case_contract(json.loads(draft_path.read_text(encoding="utf-8")))
-                except (json.JSONDecodeError, ContractError) as exc:
-                    errors.append({"case_id": case_id, "reason": f"草稿 case 校验失败: {exc}"})
+            for issue in template_support_issues(flow_ref, flow_item.get("params", {})):
+                errors.append({"case_id": case_id, "reason": issue})
 
     report = {
         "validated_at": utc_now(),
