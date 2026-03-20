@@ -287,7 +287,7 @@ hdc install signApp.hap
 - `SE`：负责需求分析、方案拆解、影响面评估、文件职责说明和文件级改动建议，默认只读，建议使用 `gpt-5.4`，输出应尽量形成可直接交给 `BugFix` 的结构化实施方案
 - `Analysis`：负责日志、运行证据、首个阻塞点和根因分析
 - `BugFix`：负责定点实现和缺陷修复，默认按 `SE` 方案执行，并在实际实现偏离方案时回报差异
-- `CTest`：负责构建、安装、启动和既定轻量冒烟回归
+- `CTest`：负责构建、安装、启动和既定轻量冒烟回归；当其紧跟在 `BugFix` 之后且改动影响 HAP 时，必须先重新构建、重新签名并重新安装，再执行回归
 - `Reviewer`：负责代码审查，重点关注回归、乱码、中文 `\uXXXX` 转义、必要注释、关键日志和敏感信息泄露
 - `PermissionChecker`：负责权限、签名、包名、MDM 一致性专项检查，仅在专项问题中按需调用
 
@@ -297,7 +297,9 @@ hdc install signApp.hap
 - 小任务默认由主 agent 直接处理，不强制拆分子 agent
 - `SE` 负责回答“改什么、为什么改、影响什么”，`Analysis` 负责回答“为什么坏、卡在哪”
 - `SE` 输出应尽量包含 `Implementation Scope`、`Out of Scope`、`Acceptance Signals`，作为 `BugFix` 的默认交接格式
-- 除非主 agent 明确覆盖，否则 `BugFix` 应将 `SE` 输出的方案视为默认执行契约
+- 除非主 agent 明确覆盖，否则 BugFix 应将 SE 输出的方案视为默认执行契约
+- 当 CTest 处于 BugFix -> CTest 的修复后验证链路，且 BugFix 改动影响运行时代码或打包输入时，CTest 必须按 fresh deploy 模式执行：重新构建、重新签名、重新安装后才能给出验证结论
+- 非修复后验证链路下，CTest 可按弱约束复用当前已安装包，但必须在结果中明确说明是否使用了 freshly deployed build
 - 页面链路分析不再单独保留专门角色，需要时由主 agent 或 `BugFix` 直接承担
 - Git 提交流程不作为默认常驻子 agent，仍按独立流程处理
 
