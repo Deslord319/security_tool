@@ -117,10 +117,12 @@ export struct PeripheralPage {
   @State lastRecordHintToastMessage: string = ''
   @State isConnectionDetailDialogVisible: boolean = false
   @State selectedConnectionRecord: PeripheralConnectionRecord | null = null
+  @State connectionDetailHostWidth: number = 0
   private recordStorageListenerId: number = -1
   private traceStorageListenerId: number = -1
   private recordAutoRefreshTimerId: number = -1
   private readonly recordAutoRefreshIntervalMs: number = 2000
+  private readonly connectionDetailCompactWidthThreshold: number = 1200
   private readonly recordTypeFilterOptions: SelectOption[] = [
     { value: '全部类型' },
     { value: 'USB' },
@@ -1779,9 +1781,29 @@ export struct PeripheralPage {
     return normalized.length > 0 ? normalized : '--'
   }
 
+  private isCompactConnectionDetailDialog(): boolean {
+    return this.connectionDetailHostWidth > 0 && this.connectionDetailHostWidth < this.connectionDetailCompactWidthThreshold
+  }
+
+  private getConnectionDetailDialogMaxWidth(): number {
+    return this.isCompactConnectionDetailDialog() ? 620 : 760
+  }
+
+  private getConnectionDetailDialogMaxHeight(): number {
+    return this.isCompactConnectionDetailDialog() ? 470 : 560
+  }
+
+  private getConnectionDetailDialogContentMaxHeight(): number {
+    return this.isCompactConnectionDetailDialog() ? 372 : 452
+  }
+
+  private getConnectionDetailHistoryMaxHeight(): number {
+    return this.isCompactConnectionDetailDialog() ? 108 : 136
+  }
+
   @Builder
   private connectionDetailMetricField(label: string, value: string) {
-    Column({ space: 6 }) {
+    Column({ space: 4 }) {
       Text(label)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -2006,7 +2028,7 @@ export struct PeripheralPage {
         this.closeConnectionDetailDialog()
       })
 
-      Column({ space: 12 }) {
+      Column({ space: 8 }) {
         Row() {
           Text('设备详情')
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
@@ -2036,14 +2058,14 @@ export struct PeripheralPage {
           .width('100%')
         } else {
           Scroll() {
-            Column({ space: 12 }) {
-              Column({ space: 10 }) {
+            Column({ space: 8 }) {
+              Column({ space: 8 }) {
                 Text('关键信息')
                   .fontSize(AppStyles.FONT_SIZE_BODY)
                   .fontWeight(FontWeight.Medium)
                   .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-                Column({ space: 10 }) {
+                Column({ space: 8 }) {
                   Row({ space: 12 }) {
                     this.connectionDetailMetricField('设备标识', this.normalizeConnectionDetailValue((this.selectedConnectionRecord as PeripheralConnectionRecord).deviceId))
                     this.connectionDetailMetricField('最近时间', this.formatConnectionTime(this.selectedConnectionRecord as PeripheralConnectionRecord))
@@ -2071,11 +2093,11 @@ export struct PeripheralPage {
                 .width('100%')
               }
               .width('100%')
-              .padding(16)
+              .padding(12)
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
               .borderRadius(AppStyles.RADIUS_LG)
 
-              Column({ space: 12 }) {
+              Column({ space: 8 }) {
                 Row() {
                   Text('历史连接记录')
                     .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -2126,7 +2148,7 @@ export struct PeripheralPage {
                           .alignItems(HorizontalAlign.Start)
                         }
                         .width('100%')
-                        .padding(12)
+                        .padding(10)
                         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
                         .borderRadius(AppStyles.RADIUS_MD)
                       })
@@ -2134,26 +2156,26 @@ export struct PeripheralPage {
                     .width('100%')
                   }
                   .width('100%')
-                  .constraintSize({ maxHeight: 180 })
+                  .constraintSize({ maxHeight: this.getConnectionDetailHistoryMaxHeight() })
                   .scrollBar(BarState.Auto)
                 }
               }
               .width('100%')
-              .padding(16)
+              .padding(12)
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
               .borderRadius(AppStyles.RADIUS_LG)
             }
             .width('100%')
           }
           .width('100%')
-          .layoutWeight(1)
+          .constraintSize({ maxHeight: this.getConnectionDetailDialogContentMaxHeight() })
           .scrollBar(BarState.Auto)
         }
       }
       .width('100%')
-      .constraintSize({ maxWidth: 840, maxHeight: 680 })
-      .padding(20)
-      .margin({ left: 20, right: 20, top: 20, bottom: 20 })
+      .constraintSize({ maxWidth: this.getConnectionDetailDialogMaxWidth(), maxHeight: this.getConnectionDetailDialogMaxHeight() })
+      .padding(16)
+      .margin({ left: 16, right: 16, top: 16, bottom: 16 })
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
       .borderRadius(AppStyles.RADIUS_XL)
       .shadow(HoverUtils.getShadow(this.currentTheme, true, true))
@@ -2162,6 +2184,12 @@ export struct PeripheralPage {
     }
     .width('100%')
     .height('100%')
+    .onAreaChange((_oldValue, newValue) => {
+      let nextWidth = Number(newValue.width)
+      if (nextWidth > 0 && nextWidth !== this.connectionDetailHostWidth) {
+        this.connectionDetailHostWidth = nextWidth
+      }
+    })
   }
 
   private getDeviceRecordAllowCount(): number {
