@@ -3,7 +3,7 @@ import { StatCard } from '../components/StatCard'
 import { ToolCard } from '../components/ToolCard'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
-import { LogAuditService } from '../services/LogAuditService'
+import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -20,9 +20,8 @@ export struct DashboardPage {
   @State blockedAuditCount: number = 0
   @State totalLogCount: number = 0
   @State adminActivated: boolean = false
-  @State collectorRunning: boolean = false
-  @State logSubscribed: boolean = false
-  @State subscribeModeLabel: string = '未订阅'
+  @State logManageListening: boolean = false
+  @State peripheralRuntimeListening: boolean = false
   @State titleEnterOpacity: number = 0
   @State titleEnterOffset: number = 20
   @State healthEnterOpacity: number = 0
@@ -161,17 +160,11 @@ export struct DashboardPage {
   private refreshHealthStatus(): void {
     let adminState = EnterpriseAdminService.probeActivation()
     this.adminActivated = adminState.activated
-    let runtimeStatus = LogRuntimeCollectorService.getStatus()
-    this.collectorRunning = runtimeStatus.running
-    this.logSubscribed = runtimeStatus.subscribed
-    let mode = LogAuditService.getSubscribeMode()
-    if (mode === 'client') {
-      this.subscribeModeLabel = 'Client'
-    } else if (mode === 'legacy') {
-      this.subscribeModeLabel = 'Legacy'
-    } else {
-      this.subscribeModeLabel = '未订阅'
-    }
+    let logRuntimeStatus = LogRuntimeCollectorService.getStatus()
+    this.logManageListening = logRuntimeStatus.running && logRuntimeStatus.subscribed
+    let peripheralRuntimeStatus = PeripheralRuntimeEventService.getStatus()
+    this.peripheralRuntimeListening = peripheralRuntimeStatus.running &&
+      peripheralRuntimeStatus.capabilities.usbRuntimeEvents
   }
 
   build() {
@@ -196,8 +189,12 @@ export struct DashboardPage {
 
         Row({ space: 10 }) {
           this.healthTag('管理员', this.adminActivated ? '已激活' : '未激活', this.adminActivated)
-          this.healthTag('采集器', this.collectorRunning ? '运行中' : '未运行', this.collectorRunning)
-          this.healthTag('订阅', this.logSubscribed ? '正常' : '异常', this.logSubscribed)
+          this.healthTag('日志管理', this.logManageListening ? '监听中' : '未监听', this.logManageListening)
+          this.healthTag(
+            '外设管理',
+            this.peripheralRuntimeListening ? '监听中' : '未监听',
+            this.peripheralRuntimeListening
+          )
         }
         .width('100%')
         .opacity(this.healthEnterOpacity)
