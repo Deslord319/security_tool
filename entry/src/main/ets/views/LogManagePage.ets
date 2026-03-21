@@ -967,7 +967,7 @@ export struct LogManagePage {
     .alignItems(HorizontalAlign.Center)
     .border({
       width: 1,
-      color: this.hoveredStatIndex === this.resolveStatIndex(label) ? color : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredStatIndex === this.resolveStatIndex(label)))
     .translate({ y: HoverUtils.getTranslateY(this.hoveredStatIndex === this.resolveStatIndex(label), 4) })
@@ -1463,7 +1463,7 @@ export struct LogManagePage {
     .borderRadius(AppStyles.RADIUS_LG)
     .border({
       width: 1,
-      color: this.hoveredSettingsCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 0, true))
     .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 0, 4) })
@@ -1556,7 +1556,7 @@ export struct LogManagePage {
     .borderRadius(AppStyles.RADIUS_LG)
     .border({
       width: 1,
-      color: this.hoveredSettingsCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 0, true))
     .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 0, 4) })
@@ -1706,7 +1706,7 @@ export struct LogManagePage {
     .alignItems(HorizontalAlign.Start)
     .border({
       width: 1,
-      color: this.hoveredSettingsCardIndex === 1 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 1, true))
     .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 1, 4) })

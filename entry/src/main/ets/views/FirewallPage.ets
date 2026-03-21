@@ -151,9 +151,6 @@ export struct FirewallPage {
   }
 
   private getModeCardBorder(mode: FirewallPresetMode): string {
-    if (this.isModeHovered(mode)) {
-      return this.getModeAccent(mode)
-    }
     return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().BORDER
   }
 

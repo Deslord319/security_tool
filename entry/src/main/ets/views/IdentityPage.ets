@@ -505,7 +505,7 @@ export struct IdentityPage {
     .clip(true)
     .border({
       width: 1,
-      color: this.hoveredCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
     .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })

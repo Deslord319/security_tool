@@ -2476,7 +2476,7 @@ export struct PeripheralPage {
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .border({
           width: 1,
-          color: this.hoveredPanelIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
@@ -2871,7 +2871,7 @@ export struct PeripheralPage {
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .border({
           width: 1,
-          color: this.hoveredPanelIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
@@ -3148,7 +3148,7 @@ export struct PeripheralPage {
         .clip(true)
         .border({
           width: 1,
-          color: this.hoveredPanelIndex === 1 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 1, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 1, 4) })
@@ -3464,7 +3464,7 @@ export struct PeripheralPage {
           .clip(true)
           .border({
             width: 1,
-            color: this.hoveredPanelIndex === 3 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+            color: AppColors.getColors(this.currentTheme).BORDER
           })
           .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
           .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
@@ -3570,7 +3570,7 @@ export struct PeripheralPage {
         .borderRadius(AppStyles.RADIUS_LG)
         .border({
           width: 1,
-          color: this.hoveredPanelIndex === 3 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
@@ -3666,7 +3666,7 @@ export struct PeripheralPage {
         .borderRadius(AppStyles.RADIUS_LG)
         .border({
           width: 1,
-          color: this.hoveredPanelIndex === 4 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 4, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 4, 4) })
@@ -3750,7 +3750,7 @@ export struct PeripheralPage {
         .borderRadius(AppStyles.RADIUS_LG)
         .border({
           width: 1,
-          color: this.hoveredPanelIndex === 5 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 5, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 5, 4) })

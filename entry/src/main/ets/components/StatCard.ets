@@ -109,7 +109,7 @@ export struct StatCard {
     .borderRadius(AppStyles.RADIUS_LG)
     .border({
       width: 1,
-      color: this.isHovered ? this.gradientStart : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(this.resolveHoverShadow())
     .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })

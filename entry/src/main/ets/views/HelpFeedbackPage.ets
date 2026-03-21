@@ -166,7 +166,7 @@ export struct HelpFeedbackPage {
         .alignItems(HorizontalAlign.Start)
         .border({
           width: 1,
-          color: this.hoveredCardIndex === 0 ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
@@ -226,7 +226,7 @@ export struct HelpFeedbackPage {
         .alignItems(HorizontalAlign.Start)
         .border({
           width: 1,
-          color: this.hoveredCardIndex === 1 ? AppColors.WARNING : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 1, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 1, 4) })
@@ -278,7 +278,7 @@ export struct HelpFeedbackPage {
         .alignItems(HorizontalAlign.Start)
         .border({
           width: 1,
-          color: this.hoveredCardIndex === 2 ? AppColors.SUCCESS : AppColors.getColors(this.currentTheme).BORDER
+          color: AppColors.getColors(this.currentTheme).BORDER
         })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 2, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 2, 4) })

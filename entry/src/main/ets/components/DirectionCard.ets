@@ -69,7 +69,7 @@ export struct DirectionCard {
     .borderRadius(10)
     .border({
       width: 1,
-      color: this.isHovered ? this.gradientStart : AppColors.getColors(this.currentTheme).BORDER
+      color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))
     .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })
