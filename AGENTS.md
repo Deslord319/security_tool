@@ -302,6 +302,54 @@ hdc install signApp.hap
 - 非修复后验证链路下，CTest 可按弱约束复用当前已安装包，但必须在结果中明确说明是否使用了 freshly deployed build
 - 页面链路分析不再单独保留专门角色，需要时由主 agent 或 `BugFix` 直接承担
 - Git 提交流程不作为默认常驻子 agent，仍按独立流程处理
+- `agent-observer/recorder/recorder.py` 及其 `start-run`、`write-step`、`write-event`、`add-artifact`、`write-review`、`finish-run`、`rebuild-index`、`migrate-legacy-runs` 命令只允许主 agent 使用；子 agent 不得直接调用 recorder，也不得自行写入 `agent-observer/data/`
+- 子 agent 可以读取 `agent-observer/data/` 作为上下文，但只能把阶段性结果、证据路径和结论回传给主 agent，由主 agent 决定是否写入 observer
+- 所有子 agent 的最终输出必须包含一份稳定的 handoff JSON；主 agent 只接受该 handoff 作为 observer 写入输入，不接受子 agent 直接落盘
+
+### Agent Observer Handoff 契约
+
+所有子 agent 交回主 agent 的最终 handoff 必须满足以下约束：
+
+- 最终消息末尾必须包含一个 fenced `json` 代码块，且其后不得再追加解释性文本
+- JSON 顶层字段固定为：`handoffVersion`、`sourceAgent`、`stepTitle`、`status`、`input`、`output`、`artifacts`
+- 可选字段：`sourceAgentTaskId`
+- `status` 统一使用：`completed`、`blocked`、`partial`、`failed`
+- `input.summary`、`output.summary` 必填且必须为非空字符串
+- `output.keyPoints` 必须为字符串数组
+- `input.details`、`output.details` 必须为对象
+- `artifacts` 必须为数组；没有证据时返回空数组
+
+参考结构如下：
+
+```json
+{
+  "handoffVersion": "1.0",
+  "sourceAgent": "SE",
+  "sourceAgentTaskId": "optional-task-id",
+  "stepTitle": "短标题",
+  "status": "completed",
+  "input": {
+    "summary": "主 agent 分派给当前子 agent 的阶段目标",
+    "details": {}
+  },
+  "output": {
+    "summary": "当前阶段最重要的结论",
+    "keyPoints": [
+      "要点 1",
+      "要点 2"
+    ],
+    "details": {}
+  },
+  "artifacts": [
+    {
+      "kind": "screenshot",
+      "title": "证据标题",
+      "path": "可选，本地文件路径或相对路径",
+      "description": "可选，证据说明"
+    }
+  ]
+}
+```
 
 常用协作链路：
 

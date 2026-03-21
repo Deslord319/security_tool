@@ -1,0 +1,15 @@
+﻿{
+  "inputSummary": "输入是修复后的 fresh deploy 回归要求，需重新构建、重新签名、重新安装。",
+  "outputSummary": "fresh deploy 后主路径通过，保存成功提示和重入回显均正常。",
+  "keyPoints": [
+    "本次使用 freshly deployed build",
+    "保存成功提示出现",
+    "再次进入页面状态正确"
+  ],
+  "details": {
+    "deployMode": "fresh",
+    "testRoute": ["launch app", "open firewall", "save rule", "re-enter page"],
+    "result": "passed"
+  },
+  "reviewStatus": "valid"
+}

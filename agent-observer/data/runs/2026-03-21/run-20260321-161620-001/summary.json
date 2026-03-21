@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run-20260321-161620-001",
+  "title": "外设管理页签顺序调整",
+  "goal": "按指定链路完成外设管理三个页签顺序调整：接口管控、设备连接记录、黑白名单，并记录关键节点",
+  "mode": "subagent_orchestration",
+  "status": "in_progress",
+  "resultStatus": null,
+  "createdAt": "2026-03-21T16:16:20+08:00",
+  "updatedAt": "2026-03-21T16:16:20+08:00",
+  "completedAt": null,
+  "eventCount": 0,
+  "artifactCount": 0,
+  "agents": [],
+  "latestEventId": null,
+  "runDir": "D:\\project\\ai\\security_tool\\agent-observer\\data\\runs\\2026-03-21\\run-20260321-161620-001",
+  "sequence": {
+    "event": 1,
+    "artifact": 1
+  },
+  "stepCount": 0,
+  "latestEventType": null,
+  "latestEventTitle": null,
+  "latestAgent": null,
+  "latestSummary": "",
+  "sequences": {
+    "event": 0,
+    "artifact": 0,
+    "step": 0,
+    "review": 0
+  },
+  "taskKey": "task-b0bc7f39f254"
+}

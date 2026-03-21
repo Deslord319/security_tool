@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run-20260321-175725-001",
+  "taskKey": "task-2033752c3e1d",
+  "title": "深色模式顶部按钮复现",
+  "goal": "在已安装包基础上复现右侧顶部四个按钮在深色模式下不可见问题，确认页面和按钮数量，收集截图与UI证据，不做修复",
+  "mode": "verify",
+  "status": "completed",
+  "resultStatus": "reproduced",
+  "createdAt": "2026-03-21T17:57:25+08:00",
+  "updatedAt": "2026-03-21T17:59:37+08:00",
+  "completedAt": "2026-03-21T17:59:37+08:00",
+  "eventCount": 3,
+  "stepCount": 0,
+  "artifactCount": 0,
+  "agents": [
+    "Main"
+  ],
+  "latestEventId": "evt-000003",
+  "latestEventType": "run.completed",
+  "latestEventTitle": "Run completed",
+  "latestAgent": "Main",
+  "latestSummary": "Verified in reuse-installed-build mode on pages/MainPage. Switched to dark theme and reproduced that the top-right window controls (menu, maximize/restore, minimize, close) are low-contrast against the dark title bar. Evidence captured in screenshots/ctest-after-theme-toggle-attempt.png and screenshots/ctest-darkmode-topright-crop.png.",
+  "sequences": {
+    "event": 3,
+    "artifact": 0,
+    "step": 0,
+    "review": 0
+  }
+}

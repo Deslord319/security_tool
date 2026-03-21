@@ -1,0 +1,4 @@
+﻿SE plan:
+- Touch FirewallPage.ets only
+- Add null guard and success toast binding
+- Keep shared components unchanged

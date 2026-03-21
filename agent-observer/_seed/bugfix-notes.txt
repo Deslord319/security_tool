@@ -1,0 +1,4 @@
+﻿BugFix notes:
+- Implemented save callback guard
+- Added success feedback and state refresh
+- No deviation from SE implementation scope

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run-20260321-111537-001",
+  "title": "防火墙规则选中态审查与修复",
+  "goal": "复现防火墙管理界面规则被选中标识不明显的问题，产出方案，待批准后修复并回归验证",
+  "mode": "ui-regression",
+  "status": "completed",
+  "createdAt": "2026-03-21T11:15:37+08:00",
+  "updatedAt": "2026-03-21T11:32:57+08:00",
+  "completedAt": "2026-03-21T11:32:57+08:00",
+  "eventCount": 21,
+  "artifactCount": 3,
+  "agents": [
+    "Main",
+    "CTest",
+    "SE",
+    "BugFix",
+    "Reviewer"
+  ],
+  "latestEventId": "evt-000021",
+  "runDir": "D:\\project\\ai\\security_tool\\agent-observer\\data\\runs\\2026-03-21\\run-20260321-111537-001",
+  "sequence": {
+    "event": 22,
+    "artifact": 4
+  },
+  "resultStatus": "blocked",
+  "stepCount": 7,
+  "latestEventType": null,
+  "latestEventTitle": null,
+  "latestAgent": "Reviewer",
+  "latestSummary": "Reviewer 未发现阻塞问题。残余风险主要是 fresh deploy 未完成，且深色主题缺少实机截图验证。",
+  "sequences": {
+    "event": 0,
+    "artifact": 0,
+    "step": 7,
+    "review": 0
+  },
+  "taskKey": "task-76525663030e",
+  "latestStepId": "step-000007",
+  "latestStepTitle": "Reviewer 最终审查结果"
+}
