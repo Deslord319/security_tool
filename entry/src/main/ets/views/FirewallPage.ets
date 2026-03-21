@@ -145,13 +145,73 @@ export struct FirewallPage {
 
   private getModeCardBackground(mode: FirewallPresetMode): string {
     if (this.isModeSelected(mode)) {
-      return this.currentTheme === ThemeMode.DARK ? '#2F3946' : '#EEF6FF'
+      return this.currentTheme === ThemeMode.DARK ? '#243140' : '#EEF6FF'
     }
     return this.getThemeColors().BG_CARD
   }
 
   private getModeCardBorder(mode: FirewallPresetMode): string {
     return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().BORDER
+  }
+
+  private getModeCardBorderWidth(mode: FirewallPresetMode): number {
+    return this.isModeSelected(mode) ? 2 : 1
+  }
+
+  private getModeIconContainerBorder(mode: FirewallPresetMode): BorderOptions {
+    if (!this.isModeSelected(mode)) {
+      return {
+        width: 0
+      }
+    }
+    return {
+      width: 3,
+      color: this.currentTheme === ThemeMode.DARK ? '#0F1720' : '#FFFFFF'
+    }
+  }
+
+  private getModeIconContainerShadow(mode: FirewallPresetMode): ShadowOptions | ShadowStyle {
+    if (!this.isModeSelected(mode)) {
+      return ShadowStyle.OUTER_DEFAULT_SM
+    }
+    return {
+      radius: 16,
+      color: this.currentTheme === ThemeMode.DARK ? '#66000000' : '#22000000',
+      offsetX: 0,
+      offsetY: 6
+    }
+  }
+
+  private getModeTitleColor(mode: FirewallPresetMode): string {
+    return this.isModeSelected(mode) ? this.getModeAccent(mode) : this.getThemeColors().TEXT_PRIMARY
+  }
+
+  private getModeTitleOpacity(mode: FirewallPresetMode): number {
+    return this.isModeSelected(mode) ? 1 : this.getThemeColors().TEXT_PRIMARY_OPACITY
+  }
+
+  private getModeDescriptionOpacity(mode: FirewallPresetMode): number {
+    return this.isModeSelected(mode) ? this.getThemeColors().TEXT_SECONDARY_OPACITY : this.getThemeColors().TEXT_TERTIARY_OPACITY
+  }
+
+  private getModeStatusBackground(mode: FirewallPresetMode): string {
+    return this.currentTheme === ThemeMode.DARK ? `${this.getModeAccent(mode)}33` : this.getModeAccent(mode)
+  }
+
+  private getModeStatusTextColor(mode: FirewallPresetMode): string {
+    return this.currentTheme === ThemeMode.DARK ? this.getModeAccent(mode) : '#FFFFFF'
+  }
+
+  private getModeStatusBorder(mode: FirewallPresetMode): BorderOptions {
+    if (this.currentTheme === ThemeMode.DARK) {
+      return {
+        width: 1,
+        color: `${this.getModeAccent(mode)}55`
+      }
+    }
+    return {
+      width: 0
+    }
   }
 
   private getModeCardShadow(mode: FirewallPresetMode): ShadowOptions {
@@ -206,52 +266,91 @@ export struct FirewallPage {
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
       .backgroundColor(this.getModeAccent(mode))
+      .border(this.getModeIconContainerBorder(mode))
+      .shadow(this.getModeIconContainerShadow(mode))
       .scale({
         x: HoverUtils.getScale(this.isModeHovered(mode), 1.04),
         y: HoverUtils.getScale(this.isModeHovered(mode), 1.04)
       })
 
       Column({ space: 6 }) {
+        if (this.isModeSelected(mode)) {
+          Row({ space: 4 }) {
+            Image($r('app.media.check'))
+              .width(12)
+              .height(12)
+              .fillColor(this.getModeStatusTextColor(mode))
+            Text('当前模式')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.getModeStatusTextColor(mode))
+          }
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .borderRadius(999)
+          .backgroundColor(this.getModeStatusBackground(mode))
+          .border(this.getModeStatusBorder(mode))
+        }
+
         Text(this.getModeTitle(mode))
           .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.getThemeColors().TEXT_PRIMARY)
-          .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
+          .fontWeight(this.isModeSelected(mode) ? FontWeight.Bold : FontWeight.Medium)
+          .fontColor(this.getModeTitleColor(mode))
+          .opacity(this.getModeTitleOpacity(mode))
 
         Text(this.getModeDescription(mode))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(this.getThemeColors().TEXT_PRIMARY)
-          .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
+          .opacity(this.getModeDescriptionOpacity(mode))
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      Row({ space: 8 }) {
-        if (this.isModeSelected(mode)) {
-          Image($r('app.media.check'))
-            .width(18)
-            .height(18)
-            .fillColor(AppColors.SUCCESS)
-        }
+      Column({ space: 8 }) {
         if (mode === 'custom') {
-          Image($r('app.media.chevron_right'))
-            .width(18)
-            .height(18)
+          Row({ space: 4 }) {
+            Text('规则页')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.getThemeColors().TEXT_PRIMARY)
+              .opacity(this.isModeSelected(mode) ? this.getThemeColors().TEXT_SECONDARY_OPACITY : this.getThemeColors().TEXT_TERTIARY_OPACITY)
+            Image($r('app.media.chevron_right'))
+              .width(16)
+              .height(16)
+              .fillColor(this.getThemeColors().TEXT_PRIMARY)
+              .opacity(this.isModeSelected(mode) ? this.getThemeColors().TEXT_SECONDARY_OPACITY : this.getThemeColors().TEXT_TERTIARY_OPACITY)
+          }
+        } else if (this.isModeSelected(mode)) {
+          Row({ space: 4 }) {
+            Text('已生效')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.getThemeColors().TEXT_PRIMARY)
+              .opacity(this.getThemeColors().TEXT_SECONDARY_OPACITY)
+            Image($r('app.media.check'))
+              .width(14)
+              .height(14)
+              .fillColor(this.getModeAccent(mode))
+          }
+        } else {
+          Image($r('app.media.check'))
+            .width(14)
+            .height(14)
             .fillColor(this.getThemeColors().TEXT_PRIMARY)
-            .opacity(this.getThemeColors().TEXT_SECONDARY_OPACITY)
+            .opacity(0)
         }
       }
-      .justifyContent(FlexAlign.End)
-      .alignItems(VerticalAlign.Center)
+      .alignItems(HorizontalAlign.End)
+      .justifyContent(FlexAlign.Center)
     }
+    .alignItems(VerticalAlign.Center)
     .width('100%')
     .padding(18)
     .backgroundColor(this.getModeCardBackground(mode))
     .borderRadius(AppStyles.RADIUS_LG)
     .border({
-      width: 1,
+      width: this.getModeCardBorderWidth(mode),
       color: this.getModeCardBorder(mode)
     })
     .shadow(this.getModeCardShadow(mode))
