@@ -17,7 +17,7 @@
 使用 `build_app` MCP 工具构建项目时，路径参数必须使用正确的大小写：
 
 ```
-项目路径：D:\lxl\ho_demo\SecurityTool
+项目路径：D:\project\ai\security_tool
 ```
 
 构建产物位于：
@@ -151,7 +151,7 @@ ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY
 2. **安装失败（签名错误）**：确认 `UnsgnedDebugProfileTemplate.json` 中 `bundle-name` 与 `app.json5` 中 `bundleName` 一致，并重新执行 p7b 生成 + 签名。
 3. **权限不足**：确认权限同时声明在 `module.json5` 和签名模板的 `acls` + `permissions` 中。
 4. **MDM 操作失败（错误码 9200001）**：表示应用未激活为企业管理员，执行 `edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility -t super` 后重试。
-5. **构建路径错误**：MCP `build_app` 工具路径参数注意大小写，使用 `D:\lxl\ho_demo\SecurityTool`。
+5. **构建路径错误**：MCP `build_app` 工具路径参数注意大小写，使用 `D:\project\ai\security_tool`。
 
 ---
 

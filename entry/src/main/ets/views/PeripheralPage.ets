@@ -1576,7 +1576,7 @@ export struct PeripheralPage {
         .layoutWeight(1)
         .alignItems(VerticalAlign.Top)
 
-        if (this.currentTab === 0) {
+        if (this.currentTab === 1) {
           this.pageHeaderActions()
         } else if (this.currentTab === 2) {
           this.policyListHeaderActions()
@@ -1588,12 +1588,12 @@ export struct PeripheralPage {
       // Tab 切换
       Tabs({ barPosition: BarPosition.Start }) {
         TabContent() {
-          this.deviceRecordsBuilder()
-        }.tabBar(this.tabBuilder('设备连接记录', 0))
+          this.interfaceControlBuilder()
+        }.tabBar(this.tabBuilder('接口管控', 0))
 
         TabContent() {
-          this.interfaceControlBuilder()
-        }.tabBar(this.tabBuilder('接口管控', 1))
+          this.deviceRecordsBuilder()
+        }.tabBar(this.tabBuilder('设备连接记录', 1))
 
         TabContent() {
           this.peripheralPolicyListBuilder()
