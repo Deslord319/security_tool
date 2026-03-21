@@ -70,21 +70,21 @@ PERIPHERAL_USB_POLICY_OPTION_LABELS = {
 }
 
 DIALOG_STRATEGIES = {
-    "peripheral.whitelist.usb": {
-        "labels": ["USB白名单", "添加 USB 设备白名单", "添加白名单"],
-        "region": {},
-    },
-    "peripheral.whitelist.bluetooth": {
-        "labels": ["蓝牙白名单", "添加蓝牙白名单", "添加白名单"],
-        "region": {},
-    },
-    "peripheral.blacklist.usb": {
-        "labels": ["USB黑名单", "添加 USB 设备黑名单", "添加黑名单"],
-        "region": {},
-    },
     "firewall.rule.create": {
         "labels": FIREWALL_ADD_RULE_TEXTS,
         "region": DIALOG_REGION_PRESETS["firewall"],
+    },
+    "peripheral.whitelist.create.usb": {
+        "labels": ["USB白名单", "添加 USB 设备白名单", "添加白名单"],
+        "region": {},
+    },
+    "peripheral.whitelist.create.bluetooth": {
+        "labels": ["蓝牙白名单", "添加蓝牙白名单", "添加白名单"],
+        "region": {},
+    },
+    "peripheral.blacklist.create.usb": {
+        "labels": ["USB黑名单", "添加 USB 设备黑名单", "添加黑名单"],
+        "region": {},
     },
 }
 
@@ -99,8 +99,8 @@ OPTION_GROUP_STRATEGIES = {
 FIELD_GROUP_STRATEGIES = {
     "identity.password_policy": ["min_length"],
     "identity.domain_policy": ["password_max_age_days", "expiration_notify_days", "auth_validity_minutes"],
-    "peripheral.whitelist.usb": ["vendor_id", "product_id"],
-    "peripheral.whitelist.bluetooth": ["mac"],
-    "peripheral.blacklist.usb": ["base_class", "sub_class", "protocol"],
     "firewall.rule.domain": ["name", "domain", "port"],
+    "peripheral.whitelist.usb": ["device_id"],
+    "peripheral.whitelist.bluetooth": ["device_id"],
+    "peripheral.blacklist.usb": ["device_id"],
 }

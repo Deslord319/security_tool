@@ -50,30 +50,6 @@ ACTION_TEMPLATES = {
             {"type": "save_tool_settings"},
         ],
     },
-    "peripheral.whitelist.create.usb": {
-        "description": "Create a USB whitelist record through generic dialog helpers.",
-        "sequence": [
-            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.whitelist.usb"}},
-            {"type": "fill_inputs", "params": {"field_group": "peripheral.whitelist.usb", "values": ["${data.vendor_id}", "${data.product_id}"]}},
-            {"type": "confirm_dialog"},
-        ],
-    },
-    "peripheral.whitelist.create.bluetooth": {
-        "description": "Create a Bluetooth whitelist record through generic dialog helpers.",
-        "sequence": [
-            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.whitelist.bluetooth"}},
-            {"type": "fill_inputs", "params": {"field_group": "peripheral.whitelist.bluetooth", "values": ["${data.mac}"]}},
-            {"type": "confirm_dialog"},
-        ],
-    },
-    "peripheral.blacklist.create.usb": {
-        "description": "Create a USB blacklist record through generic dialog helpers.",
-        "sequence": [
-            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.blacklist.usb"}},
-            {"type": "fill_inputs", "params": {"field_group": "peripheral.blacklist.usb", "values": ["${data.base_class}", "${data.sub_class}", "${data.protocol}"]}},
-            {"type": "confirm_dialog"},
-        ],
-    },
     "peripheral.interface.toggle.usb": {
         "description": "Toggle the USB interface through generic control steps.",
         "sequence": [
@@ -102,6 +78,30 @@ ACTION_TEMPLATES = {
         "description": "Update the USB storage policy through generic select steps.",
         "sequence": [
             {"type": "select_indexed_option", "params": {"index": 0, "value": "${data.policy}", "option_group": "peripheral_usb_policy"}},
+        ],
+    },
+    "peripheral.whitelist.create.usb": {
+        "description": "Add a USB device to the peripheral whitelist.",
+        "sequence": [
+            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.whitelist.create.usb"}},
+            {"type": "fill_inputs", "params": {"field_group": "peripheral.whitelist.usb", "values": ["${data.device_id}"]}},
+            {"type": "confirm_dialog", "params": {"allow_cancel": False}},
+        ],
+    },
+    "peripheral.whitelist.create.bluetooth": {
+        "description": "Add a Bluetooth device to the peripheral whitelist.",
+        "sequence": [
+            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.whitelist.create.bluetooth"}},
+            {"type": "fill_inputs", "params": {"field_group": "peripheral.whitelist.bluetooth", "values": ["${data.device_id}"]}},
+            {"type": "confirm_dialog", "params": {"allow_cancel": False}},
+        ],
+    },
+    "peripheral.blacklist.create.usb": {
+        "description": "Add a USB device to the peripheral blacklist.",
+        "sequence": [
+            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.blacklist.create.usb"}},
+            {"type": "fill_inputs", "params": {"field_group": "peripheral.blacklist.usb", "values": ["${data.device_id}"]}},
+            {"type": "confirm_dialog", "params": {"allow_cancel": False}},
         ],
     },
     "identity.password_policy.update": {
