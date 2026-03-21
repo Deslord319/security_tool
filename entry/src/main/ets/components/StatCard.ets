@@ -19,29 +19,6 @@ export struct StatCard {
     })
   }
 
-  private resolveHoverShadow(): ShadowOptions {
-    if (!this.isHovered) {
-      return {
-        radius: 0,
-        color: 'rgba(0,0,0,0)',
-        offsetX: 0,
-        offsetY: 0
-      }
-    }
-
-    return this.currentTheme === ThemeMode.DARK ? {
-      radius: 18,
-      color: 'rgba(0,0,0,0.26)',
-      offsetX: 0,
-      offsetY: 8
-    } : {
-      radius: 18,
-      color: 'rgba(15,23,42,0.10)',
-      offsetX: 0,
-      offsetY: 8
-    }
-  }
-
   build() {
     Stack() {
       Column()
@@ -111,7 +88,7 @@ export struct StatCard {
       width: 1,
       color: AppColors.getColors(this.currentTheme).BORDER
     })
-    .shadow(this.resolveHoverShadow())
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered))
     .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })
     .scale({
       x: HoverUtils.getScale(this.isHovered),

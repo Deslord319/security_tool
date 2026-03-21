@@ -1,30 +1,30 @@
 import { ThemeMode } from '../theme/ThemeColors'
 
 export class HoverUtils {
-  static readonly DURATION_MS: number = 280
+  static readonly DURATION_MS: number = 220
 
   static animate(update: () => void): void {
     animateTo({
       duration: HoverUtils.DURATION_MS,
-      curve: Curve.Friction
+      curve: Curve.EaseOut
     }, update)
   }
 
   static getShadow(theme: ThemeMode, isHovered: boolean, strong: boolean = false): ShadowOptions {
     if (theme === ThemeMode.DARK) {
       return {
-        radius: isHovered ? (strong ? 24 : 18) : 6,
-        color: isHovered ? 'rgba(0,0,0,0.42)' : 'rgba(0,0,0,0.28)',
+        radius: isHovered ? (strong ? 34 : 28) : 10,
+        color: isHovered ? (strong ? 'rgba(0,0,0,0.52)' : 'rgba(0,0,0,0.42)') : 'rgba(0,0,0,0.20)',
         offsetX: 0,
-        offsetY: isHovered ? (strong ? 12 : 8) : 2
+        offsetY: isHovered ? (strong ? 16 : 12) : 3
       }
     }
 
     return {
-      radius: isHovered ? (strong ? 24 : 18) : 6,
-      color: isHovered ? 'rgba(15,23,42,0.14)' : 'rgba(15,23,42,0.08)',
+      radius: isHovered ? (strong ? 34 : 28) : 10,
+      color: isHovered ? (strong ? 'rgba(15,23,42,0.20)' : 'rgba(15,23,42,0.15)') : 'rgba(15,23,42,0.06)',
       offsetX: 0,
-      offsetY: isHovered ? (strong ? 12 : 8) : 2
+      offsetY: isHovered ? (strong ? 16 : 12) : 3
     }
   }
 
