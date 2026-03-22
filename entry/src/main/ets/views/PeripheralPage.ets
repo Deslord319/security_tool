@@ -54,6 +54,7 @@ import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessa
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
+const MIN_USB_LOADING_DIALOG_DURATION_MS = 500
 type PeripheralResultData =
   boolean |
   number |
@@ -73,6 +74,42 @@ interface ConnectionHistoryItem {
   time: string
   policy: string
   result: string
+}
+
+@CustomDialog
+struct PeripheralUsbLoadingDialog {
+  controller: CustomDialogController
+  message: string = '正在更新 USB 策略，请稍候'
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  build() {
+    Column({ space: 14 }) {
+      LoadingProgress()
+        .width(44)
+        .height(44)
+      Text(this.message)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+    }
+    .width(280)
+    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow({
+      radius: 20,
+      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.36)' : 'rgba(0,0,0,0.14)',
+      offsetX: 0,
+      offsetY: 10
+    })
+  }
 }
 
 @Component
@@ -158,6 +195,9 @@ export struct PeripheralPage {
   @State policyUpdatingKeys: string[] = []
   @State peripheralPolicyRenderVersion: number = 0
   private resultDialogController?: CustomDialogController
+  private usbLoadingDialogController?: CustomDialogController
+  private isUsbLoadingDialogOpen: boolean = false
+  private usbLoadingDialogOpenedAt: number = 0
   private deviceControlPolicyOptions: SelectOption[] = [
     { value: '允许' },
     { value: '禁止' },
@@ -238,7 +278,65 @@ export struct PeripheralPage {
     this.resultDialogController.open()
   }
 
+  private openUsbLoadingDialog(message: string): void {
+    this.closeUsbLoadingDialog()
+    this.usbLoadingDialogController = new CustomDialogController({
+      builder: PeripheralUsbLoadingDialog({
+        message: message
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+    this.usbLoadingDialogOpenedAt = Date.now()
+    this.usbLoadingDialogController.open()
+    this.isUsbLoadingDialogOpen = true
+  }
+
+  private closeUsbLoadingDialog(): void {
+    if (!this.isUsbLoadingDialogOpen) {
+      this.usbLoadingDialogOpenedAt = 0
+      this.usbLoadingDialogController = undefined
+      return
+    }
+    try {
+      this.usbLoadingDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.isUsbLoadingDialogOpen = false
+      this.usbLoadingDialogOpenedAt = 0
+      this.usbLoadingDialogController = undefined
+    }
+  }
+
+  private async waitForUsbLoadingDialogMinimumDuration(): Promise<void> {
+    if (!this.isUsbLoadingDialogOpen) {
+      return
+    }
+    let elapsed = Date.now() - this.usbLoadingDialogOpenedAt
+    let remainingDuration = MIN_USB_LOADING_DIALOG_DURATION_MS - elapsed
+    if (remainingDuration <= 0) {
+      return
+    }
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => {
+        resolve()
+      }, remainingDuration)
+    })
+  }
+
+  private async runUsbOperationWithLoading<T>(message: string, operation: () => T): Promise<T> {
+    this.openUsbLoadingDialog(message)
+    try {
+      return operation()
+    } finally {
+      await this.waitForUsbLoadingDialogMinimumDuration()
+      this.closeUsbLoadingDialog()
+    }
+  }
+
   aboutToDisappear() {
+    this.closeUsbLoadingDialog()
     this.unsubscribeTraceStorageChange()
   }
 
@@ -1114,7 +1212,7 @@ export struct PeripheralPage {
     this.policyUpdatingKeys = this.policyUpdatingKeys.filter((item: string) => item !== deviceId)
   }
 
-  private handlePeripheralPolicyChange(recordIndex: number, policyIndex: number): void {
+  private async handlePeripheralPolicyChange(recordIndex: number, policyIndex: number): Promise<void> {
     if (!this.ensureAdminReady('修改设备策略')) {
       return
     }
@@ -1142,29 +1240,35 @@ export struct PeripheralPage {
       PeripheralService.USB_DEVICE_POLICY_ALLOW :
       PeripheralService.USB_DEVICE_POLICY_DENY
     this.markPeripheralPolicyUpdating(record.deviceId, true)
-    let result = PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
+    try {
+      let result = await this.runUsbOperationWithLoading(
+        '正在更新 USB 设备策略，请稍候',
+        (): OperationResult<void> => {
+          return PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
+        }
+      )
 
-    if (!result.success) {
-      this.markPeripheralPolicyUpdating(record.deviceId, false)
       this.refreshPeripheralPolicyRecords()
-      let userMessage = result.userMessage?.trim()
-      if (userMessage) {
-        promptAction.showToast({ message: userMessage })
+      if (!result.success) {
+        let userMessage = result.userMessage?.trim()
+        if (userMessage) {
+          promptAction.showToast({ message: userMessage })
+          return
+        }
+        this.showOperationFailure('修改设备策略', result)
         return
       }
-      this.showOperationFailure('修改设备策略', result)
-      return
-    }
 
-    this.markPeripheralPolicyUpdating(record.deviceId, false)
-    this.refreshPeripheralPolicyRecords()
-    this.reloadDeviceRecords()
-    promptAction.showToast({ message: result.userMessage ?? '设备访问策略已更新' })
+      this.reloadDeviceRecords()
+      promptAction.showToast({ message: result.userMessage ?? '设备访问策略已更新' })
+    } finally {
+      this.markPeripheralPolicyUpdating(record.deviceId, false)
+    }
   }
 
   // ========== 接口管控操作 ==========
 
-  handleInterfaceToggle(feature: string, disallow: boolean) {
+  async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
     if (!this.ensureAdminReady('接口管控')) {
       return
     }
@@ -1173,59 +1277,42 @@ export struct PeripheralPage {
     let targetValue: string = disallow ? 'disabled' : 'enabled'
     this.interfaceControlProcessingKey = controlKey
     hilog.info(0x0002, TAG, `interfaceControl update start, key=${controlKey}, target=${targetValue}`)
-    let result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
-    this.reloadInterfaceControlState(`toggle:${feature}`)
-    if (result.success) {
-      hilog.info(0x0002, TAG, `interfaceControl update success, key=${controlKey}, target=${targetValue}`)
-      try {
-        let featureLabel = this.getInterfaceFeatureLabel(feature)
-        promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
-    } else {
-      hilog.error(
-        0x0002,
-        TAG,
-        `interfaceControl update failed, key=${controlKey}, target=${targetValue}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
-      )
-      this.showOperationFailure('接口管控', result)
-    }
-    this.interfaceControlProcessingKey = ''
-    return
-    if (result.success) {
-      if (feature === PeripheralService.FEATURE_USB) this.usbDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_BLUETOOTH) this.btDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_WIFI) this.wifiDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_HDC) this.hdcDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_NETWORK) this.networkDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_PRINTER) this.printerDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_MICROPHONE) this.microphoneDisabled = disallow
-      else if (feature === PeripheralService.FEATURE_CAMERA) this.cameraDisabled = disallow
+    try {
+      let result: OperationResult<void>
       if (feature === PeripheralService.FEATURE_USB) {
-        this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-        this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-        let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
-        if (policyResult.success) {
-          let policy = policyResult.data ?? edmUsbManager.UsbPolicy.READ_WRITE
-          if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
-            this.usbStoragePolicyIndex = 0
-          } else if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
-            this.usbStoragePolicyIndex = 1
-          } else {
-            this.usbStoragePolicyIndex = 2
+        result = await this.runUsbOperationWithLoading(
+          '正在切换 USB 接口策略，请稍候',
+          (): OperationResult<void> => {
+            let actionResult = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
+            this.reloadInterfaceControlState(`toggle:${feature}`)
+            return actionResult
           }
+        )
+      } else {
+        result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
+        this.reloadInterfaceControlState(`toggle:${feature}`)
+      }
+
+      if (result.success) {
+        hilog.info(0x0002, TAG, `interfaceControl update success, key=${controlKey}, target=${targetValue}`)
+        try {
+          let featureLabel = this.getInterfaceFeatureLabel(feature)
+          promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
+        } catch (e) {
+          hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
         }
+      } else {
+        hilog.error(
+          0x0002,
+          TAG,
+          `interfaceControl update failed, key=${controlKey}, target=${targetValue}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
+        )
+        this.showOperationFailure('接口管控', result)
       }
-      try {
-        let featureLabel = this.getInterfaceFeatureLabel(feature)
-        promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
-    } else {
-      this.showOperationFailure('接口管控', result)
+    } finally {
+      this.interfaceControlProcessingKey = ''
     }
+    return
   }
 
   private getInterfaceFeatureLabel(feature: string): string {
@@ -1256,7 +1343,7 @@ export struct PeripheralPage {
     return feature
   }
 
-  handleUsbStoragePolicyChange(index: number) {
+  async handleUsbStoragePolicyChange(index: number): Promise<void> {
     if (!this.ensureAdminReady('设置 USB 存储策略')) {
       return
     }
@@ -1272,42 +1359,37 @@ export struct PeripheralPage {
       edmUsbManager.UsbPolicy.READ_WRITE,
       edmUsbManager.UsbPolicy.DISABLED
     ]
-    let result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policyMap[index])
-    this.reloadInterfaceControlState('toggle:usb_storage_policy')
-    if (result.success) {
-      hilog.info(
+    try {
+      let result = await this.runUsbOperationWithLoading(
+        '正在设置 USB 存储策略，请稍候',
+        (): OperationResult<void> => {
+          let actionResult = PeripheralService.setUsbStoragePolicyWithCleanupResult(policyMap[index])
+          this.reloadInterfaceControlState('toggle:usb_storage_policy')
+          return actionResult
+        }
+      )
+      if (result.success) {
+        hilog.info(
+          0x0002,
+          TAG,
+          `usbStoragePolicy update success, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
+        )
+        try {
+          promptAction.showToast({ message: 'USB 存储策略已更新' })
+        } catch (e) {
+          hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+        }
+        return
+      }
+      hilog.error(
         0x0002,
         TAG,
-        `usbStoragePolicy update success, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
+        `usbStoragePolicy update failed, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
       )
-      try {
-        promptAction.showToast({ message: 'USB 存储策略已更新' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      this.showOperationFailure('设置 USB 存储策略', result)
+    } finally {
       this.interfaceControlProcessingKey = ''
-      return
     }
-    hilog.error(
-      0x0002,
-      TAG,
-      `usbStoragePolicy update failed, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
-    )
-    this.showOperationFailure('设置 USB 存储策略', result)
-    this.interfaceControlProcessingKey = ''
-    return
-    if (result.success) {
-      this.usbStoragePolicyIndex = index
-      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-      try {
-        promptAction.showToast({ message: 'USB 存储策略已更新' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
-      return
-    }
-    this.showOperationFailure('设置 USB 存储策略', result)
   }
 
   // ========== 白名单操作 ==========

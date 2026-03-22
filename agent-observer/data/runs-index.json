@@ -1,7 +1,46 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-03-23T15:15:28+08:00",
+  "generatedAt": "2026-03-23T16:41:34+08:00",
   "runs": [
+    {
+      "schemaVersion": "1.0",
+      "runId": "run-20260323-155202-001",
+      "taskKey": "task-65d09191a109",
+      "title": "外设管理策略等待反馈方案审查",
+      "goal": "分析外设管理中 USB 接口、USB 存储设备与黑白名单策略切换的长等待反馈问题，参考防火墙延时弹框方案产出 SE 审查意见与修改方案",
+      "mode": "review",
+      "status": "completed",
+      "resultStatus": "partial",
+      "createdAt": "2026-03-23T15:52:02+08:00",
+      "updatedAt": "2026-03-23T16:40:53+08:00",
+      "completedAt": "2026-03-23T16:41:34+08:00",
+      "eventCount": 13,
+      "stepCount": 4,
+      "artifactCount": 6,
+      "agents": [
+        "Main",
+        "SE",
+        "BugFix",
+        "CTest",
+        "Reviewer"
+      ],
+      "latestEventId": "evt-000013",
+      "latestEventType": "run.completed",
+      "latestEventTitle": "Run completed",
+      "latestAgent": "Reviewer",
+      "latestSummary": "外设页 USB 等待反馈最终代码审查",
+      "reviewStats": {
+        "valid": 0,
+        "partial": 0,
+        "invalid": 0
+      },
+      "runDir": "data/runs/2026-03-23/run-20260323-155202-001",
+      "summaryPath": "data/runs/2026-03-23/run-20260323-155202-001/summary.json",
+      "eventsPath": "data/runs/2026-03-23/run-20260323-155202-001/events.jsonl",
+      "stepsPath": "data/runs/2026-03-23/run-20260323-155202-001/steps.jsonl",
+      "reviewsPath": "data/runs/2026-03-23/run-20260323-155202-001/reviews.jsonl",
+      "artifactsPath": "data/runs/2026-03-23/run-20260323-155202-001/artifacts"
+    },
     {
       "schemaVersion": "1.0",
       "runId": "run-20260323-143719-001",
