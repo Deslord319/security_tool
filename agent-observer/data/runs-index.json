@@ -1,7 +1,81 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-03-21T18:59:01+08:00",
+  "generatedAt": "2026-03-22T17:17:11+08:00",
   "runs": [
+    {
+      "schemaVersion": "1.0",
+      "runId": "run-20260322-170620-001",
+      "taskKey": "task-33e31b1fd7ea",
+      "title": "深色模式顶部按钮可见性审查",
+      "goal": "按 CTest->SE 链路复现并分析深色模式下主窗口右上角四个按钮不可见问题，输出审查意见和修改方案，不进入修复",
+      "mode": "review",
+      "status": "completed",
+      "resultStatus": "reviewed",
+      "createdAt": "2026-03-22T17:06:20+08:00",
+      "updatedAt": "2026-03-22T17:17:05+08:00",
+      "completedAt": "2026-03-22T17:17:11+08:00",
+      "eventCount": 13,
+      "stepCount": 2,
+      "artifactCount": 9,
+      "agents": [
+        "Main",
+        "CTest",
+        "SE"
+      ],
+      "latestEventId": "evt-000013",
+      "latestEventType": "run.completed",
+      "latestEventTitle": "Run completed",
+      "latestAgent": "SE",
+      "latestSummary": "深色模式标题栏右上角按钮对比不足根因分析与实施方案",
+      "reviewStats": {
+        "valid": 0,
+        "partial": 0,
+        "invalid": 0
+      },
+      "runDir": "data/runs/2026-03-22/run-20260322-170620-001",
+      "summaryPath": "data/runs/2026-03-22/run-20260322-170620-001/summary.json",
+      "eventsPath": "data/runs/2026-03-22/run-20260322-170620-001/events.jsonl",
+      "stepsPath": "data/runs/2026-03-22/run-20260322-170620-001/steps.jsonl",
+      "reviewsPath": "data/runs/2026-03-22/run-20260322-170620-001/reviews.jsonl",
+      "artifactsPath": "data/runs/2026-03-22/run-20260322-170620-001/artifacts"
+    },
+    {
+      "schemaVersion": "1.0",
+      "runId": "run-20260322-163337-001",
+      "taskKey": "dark-mode-top-actions-review-preview",
+      "title": "Dark Mode Top Actions Review Preview (handoff)",
+      "goal": "Preview event-only observer rendering from original CTest and SE handoffs.",
+      "mode": "review-preview",
+      "status": "completed",
+      "resultStatus": "reviewed",
+      "createdAt": "2026-03-22T16:33:37+08:00",
+      "updatedAt": "2026-03-22T16:33:38+08:00",
+      "completedAt": "2026-03-22T16:33:39+08:00",
+      "eventCount": 12,
+      "stepCount": 2,
+      "artifactCount": 8,
+      "agents": [
+        "Main",
+        "CTest",
+        "SE"
+      ],
+      "latestEventId": "evt-000012",
+      "latestEventType": "run.completed",
+      "latestEventTitle": "Run completed",
+      "latestAgent": "SE",
+      "latestSummary": "Event-only preview with complete handoff fields and 8 linked artifacts.",
+      "reviewStats": {
+        "valid": 0,
+        "partial": 0,
+        "invalid": 0
+      },
+      "runDir": "data/runs/2026-03-22/run-20260322-163337-001",
+      "summaryPath": "data/runs/2026-03-22/run-20260322-163337-001/summary.json",
+      "eventsPath": "data/runs/2026-03-22/run-20260322-163337-001/events.jsonl",
+      "stepsPath": "data/runs/2026-03-22/run-20260322-163337-001/steps.jsonl",
+      "reviewsPath": "data/runs/2026-03-22/run-20260322-163337-001/reviews.jsonl",
+      "artifactsPath": "data/runs/2026-03-22/run-20260322-163337-001/artifacts"
+    },
     {
       "schemaVersion": "1.0",
       "runId": "run-20260321-185517-001",

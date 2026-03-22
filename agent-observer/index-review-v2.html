@@ -17,7 +17,7 @@
     .focus-card,.detail-hero,.detail-card,.artifact-card{padding:14px}.focus-card{margin-bottom:14px}.focus-title,.timeline-title,.title-sm{font-weight:800;line-height:1.4}.focus-title{margin:10px 0 0;font-size:24px}.title-sm{font-size:16px}.timeline-title{font-size:15px}.desc,.detail-copy,.detail-field-value,.artifact-fallback{color:#445364;font-size:13px;line-height:1.8;word-break:break-word}.signals,.timeline-meta,.event-meta,.detail-actions,.artifact-links{display:flex;flex-wrap:wrap;gap:8px}.signals{margin-top:10px}.signal{padding:6px 10px;border-radius:999px;font-size:12px;color:#576576;background:rgba(255,255,255,.94);border:1px solid rgba(150,118,77,.14)}
     .focus-stats,.detail-summary{display:grid;gap:8px}.focus-stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:14px}.focus-stat,.summary-block{padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.84);border:1px solid rgba(150,118,77,.14)}.focus-stat .label{color:var(--muted);font-size:12px}.focus-stat .value,.summary-block .value{margin-top:4px;font-size:13px;font-weight:700;line-height:1.6;word-break:break-word}.detail-summary{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px}.summary-block.full{grid-column:1/-1}
     .step{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:rgba(15,118,110,.12);color:var(--brand);font-weight:700}.timeline-main{min-width:0;display:grid;gap:6px}.timeline-trailing{display:grid;justify-items:end;gap:8px;flex-shrink:0}.timeline-count{font-size:12px;color:var(--muted);white-space:nowrap}
-    .detail-card h4{margin:0 0 10px;font-size:15px}.detail-table{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px 12px;font-size:13px;color:#445364}.detail-table strong{color:var(--muted);font-weight:600}.detail-card ul,.detail-field-list{margin:0;padding-left:18px;color:#445364;font-size:13px;line-height:1.8}.detail-fields,.artifact-grid{display:grid;gap:12px}.detail-field-label{font-weight:700;letter-spacing:.02em}.detail-path-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}.detail-path-item,.detail-pre{display:block;padding:8px 10px;border-radius:12px;border:1px solid rgba(150,118,77,.16);background:rgba(255,255,255,.92);font-family:Consolas,"SFMono-Regular",monospace;font-size:12px;line-height:1.7;color:#445364;word-break:break-all}.detail-pre{margin:0;white-space:pre-wrap}.detail-fallback{padding-top:4px;border-top:1px dashed rgba(150,118,77,.26)}
+    .detail-card h4{margin:0 0 10px;font-size:15px}.detail-table{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px 12px;font-size:13px;color:#445364}.detail-table strong{color:var(--muted);font-weight:600}.detail-card ul,.detail-field-list{margin:0;padding-left:18px;color:#445364;font-size:13px;line-height:1.8}.detail-fields,.artifact-grid,.detail-object,.detail-nested-list{display:grid;gap:12px}.detail-field,.detail-nested-card{padding:12px;border-radius:16px;border:1px solid rgba(150,118,77,.14);background:rgba(255,255,255,.84)}.detail-field-label{font-weight:700;letter-spacing:.02em}.detail-path-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}.detail-path-item,.detail-pre{display:block;padding:8px 10px;border-radius:12px;border:1px solid rgba(150,118,77,.16);background:rgba(255,255,255,.92);font-family:Consolas,"SFMono-Regular",monospace;font-size:12px;line-height:1.7;color:#445364;word-break:break-all}.detail-pre{margin:0;white-space:pre-wrap}.detail-fallback{padding-top:4px;border-top:1px dashed rgba(150,118,77,.26)}
     .artifact-thumb{width:100%;padding:0;border:1px solid rgba(150,118,77,.16);border-radius:14px;overflow:hidden;background:#fff}.artifact-image{display:block;width:100%;max-height:220px;object-fit:contain;background:#fff}.artifact-body{margin-top:10px}.artifact-fallback{padding:10px 12px;border-radius:14px;border:1px dashed rgba(150,118,77,.26);background:rgba(255,255,255,.7)}
     .empty,.error{padding:22px 18px;border-radius:18px;font-size:13px;line-height:1.8}.empty{border:1px dashed #bca892;background:rgba(255,255,255,.62);color:var(--muted)}.error{border:1px solid rgba(180,35,24,.2);background:#fff2ef;color:var(--danger)}.pagination-actions,.viewer-actions{display:flex;gap:8px}
     .viewer{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(16,24,40,.72);z-index:999}.viewer.open{display:flex}.viewer-card{width:min(1120px,100%);max-height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:16px;border-radius:24px;background:rgba(255,252,247,.98);box-shadow:var(--shadow)}.viewer-stage{display:flex;align-items:center;justify-content:center;min-height:320px;overflow:auto;border-radius:18px;background:rgba(15,23,42,.06);border:1px solid rgba(150,118,77,.14)}.viewer-stage img{max-width:100%;max-height:72vh;object-fit:contain;background:#fff}
@@ -33,7 +33,7 @@
     <section class="topbar">
       <div class="title">
         <h1>Agent Observer</h1>
-        <p>面向多角色协作任务的可视化观察台，用于统一查看运行记录、执行事件线、审查结论与关联证据。</p>
+        <p>面向多角色协作任务的可视化观察台，用于统一查看运行记录、执行事件线、结构化 handoff 与关联证据。</p>
       </div>
       <button class="btn" id="reloadBtn" type="button">刷新数据</button>
     </section>
@@ -58,7 +58,7 @@
       </aside>
       <main class="panel card">
         <article class="focus-card"><div class="focus-top"><div><div class="signals" id="runChips"></div><div class="focus-title" id="runTitle">暂无可展示运行</div><div class="desc" id="runSummary">请先运行 recorder 并生成 run 数据。</div><div class="signals" id="focusSignals"></div></div></div><div class="focus-stats" id="focusStats"></div><div class="detail-table" id="overview"></div></article>
-        <div class="panel-head"><div><h3>执行事件线</h3><div class="sub">按步骤查看运行过程，重点关注当前状态、摘要和关联证据数量。</div></div><span class="chip neutral" id="eventCount">0 个步骤</span></div>
+        <div class="panel-head"><div><h3>执行事件线</h3><div class="sub">按事件查看运行过程，重点关注当前状态、摘要和关联证据数量。</div></div><span class="chip neutral" id="eventCount">0 个事件</span></div>
         <div class="scroll-stack" id="timeline"></div>
       </main>
       <aside class="panel card detail-panel">
@@ -77,7 +77,7 @@
     const INDEX_URL = "./data/runs-index.json";
     const PAGE_SIZE = 10;
     const lifecycleStatusMeta = { in_progress: ["warn", "进行中"], awaiting_feedback: ["warn", "待反馈"], completed: ["ok", "已完成"], failed: ["danger", "失败"] };
-    const resultStatusMeta = { verified: ["ok", "已验证"], partial: ["warn", "部分有效"], blocked: ["danger", "阻塞"], failed: ["danger", "失败"], unknown: ["neutral", "未给结果"] };
+    const resultStatusMeta = { verified: ["ok", "已验证"], reviewed: ["brand", "已审查"], partial: ["warn", "部分有效"], blocked: ["danger", "阻塞"], failed: ["danger", "失败"], unknown: ["neutral", "未给结果"] };
     const eventStatusMeta = { completed: ["ok", "完成"], in_progress: ["warn", "进行中"], blocked: ["danger", "阻塞"], failed: ["danger", "失败"] };
     const reviewStatusMeta = { valid: ["ok", "有效"], partial: ["warn", "部分有效"], invalid: ["danger", "无效"], unreviewed: ["neutral", "未复核"] };
     const DETAIL_FIELD_META = {
@@ -93,7 +93,7 @@
     function formatNumber(value) { return new Intl.NumberFormat("zh-CN").format(value || 0); }
     function formatScalar(value) { return typeof value === "boolean" ? (value ? "是" : "否") : String(value ?? ""); }
     function eventTypeLabel(eventType) { const map = { "run.started": "运行开始", "run.completed": "运行完成", "run.failed": "运行失败", "run.blocked": "运行阻塞", "run.updated": "运行更新", "agent.input": "角色输入", "agent.output": "角色输出", "artifact.created": "证据生成", "manual.reviewed": "人工复核", milestone: "里程碑", "verification.stage.started": "验证开始", "verification.stage.completed": "验证完成", "workflow.stage.started": "阶段开始", "workflow.stage.progress": "阶段推进", "workflow.stage.updated": "阶段更新", "workflow.stage.completed": "阶段完成", "workflow.stage.approved": "阶段批准" }; return map[eventType] || eventType; }
-    function artifactKindLabel(kind) { const map = { screenshot: "截图", log: "日志", diff: "Diff", patch: "Patch", json: "JSON", artifact: "证据" }; return map[kind] || kind || "证据"; }
+    function artifactKindLabel(kind) { const map = { screenshot: "截图", log: "日志", diff: "Diff", patch: "Patch", json: "JSON", code: "代码", artifact: "证据" }; return map[kind] || kind || "证据"; }
     function isImageArtifact(artifact) { const path = (artifact.path || "").toLowerCase(); return ["png", "jpg", "jpeg", "gif", "webp", "svg"].some(ext => path.endsWith(`.${ext}`)); }
     function isTextArtifact(artifact) { const path = (artifact.path || "").toLowerCase(); return ["txt", "log", "json", "md", "patch", "diff", "ets", "toml"].some(ext => path.endsWith(`.${ext}`)); }
     async function fetchJson(url) { const response = await fetch(url, { cache: "no-store" }); if (!response.ok) throw new Error(`读取失败：${url} (${response.status})`); return response.json(); }
@@ -103,21 +103,78 @@
     function normalizeIndexPath(path) { if (!path) return path; const value = String(path).replace(/\\/g, "/"); if (/^(https?:)?\/\//.test(value) || value.startsWith("./") || value.startsWith("../") || value.startsWith("/")) return value; if (value.startsWith("data/")) return `./${value}`; if (value.startsWith("runs/")) return `./data/${value}`; return `./${value}`; }
     function normalizeIndexEntry(entry) { return { ...entry, runDir: normalizeIndexPath(entry.runDir), summaryPath: normalizeIndexPath(entry.summaryPath), eventsPath: normalizeIndexPath(entry.eventsPath), reviewsPath: normalizeIndexPath(entry.reviewsPath || `${dirname(entry.summaryPath)}/reviews.jsonl`), artifactsPath: normalizeIndexPath(entry.artifactsPath), resultStatus: entry.resultStatus || null }; }
     function normalizeReviewStatus(review) { if (!review || typeof review !== "object") return "unreviewed"; const value = review.reviewStatus || "unreviewed"; return ["valid", "partial", "invalid", "unreviewed"].includes(value) ? value : "unreviewed"; }
+    function extractHandoff(payload) {
+      if (!payload || typeof payload !== "object") return null;
+      if (!payload.handoffVersion || !payload.sourceAgent || !payload.stepTitle) return null;
+      if (!payload.input || typeof payload.input !== "object" || !payload.output || typeof payload.output !== "object") return null;
+      return payload;
+    }
+    function isPlainObject(value) { return Boolean(value) && typeof value === "object" && !Array.isArray(value); }
+    function normalizeArtifactPath(value) { return String(value || "").replace(/\\/g, "/").toLowerCase(); }
+    function isAbsoluteFsPath(value) { return /^[a-z]:[\\/]/i.test(String(value || "")); }
     function hasDetailValue(value) { if (Array.isArray(value)) return value.length > 0; if (value && typeof value === "object") return Object.keys(value).length > 0; return value !== null && value !== undefined && String(value).trim() !== ""; }
-    function formatDetailValue(value) { if (Array.isArray(value)) return value.map(item => typeof item === "object" ? JSON.stringify(item, null, 2) : formatScalar(item)).join("，"); if (value && typeof value === "object") return Object.entries(value).map(([key, item]) => `${key}: ${Array.isArray(item) ? item.map(formatScalar).join("，") : formatScalar(item)}`).join("，"); return formatScalar(value); }
-    function normalizeDetailItems(value) { if (Array.isArray(value)) return value.flatMap(item => typeof item === "object" ? JSON.stringify(item, null, 2) : formatScalar(item)).map(item => String(item).trim()).filter(Boolean); if (value && typeof value === "object") return Object.entries(value).map(([key, item]) => `${key}: ${Array.isArray(item) ? item.map(formatScalar).join("，") : formatScalar(item)}`).filter(Boolean); return String(value ?? "").split(/\r?\n+/).map(item => item.trim()).filter(Boolean); }
-    function normalizeDetailFields(details) { const entries = Object.entries(details || {}).filter(([, value]) => hasDetailValue(value)); const knownFields = [], unknownFields = []; entries.forEach(([key, value]) => { const meta = DETAIL_FIELD_META[key]; const item = { key, label: (meta && meta.label) || key, view: (meta && meta.view) || "text", order: (meta && meta.order) || 999, value }; if (meta) knownFields.push(item); else unknownFields.push(item); }); knownFields.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, "zh-CN")); unknownFields.sort((a, b) => a.label.localeCompare(b.label, "zh-CN")); return { knownFields, unknownFields }; }
-    function renderDetailField(field) { const items = normalizeDetailItems(field.value); let body = ""; if (field.view === "path-list") body = `<div class="detail-path-list">${items.map(item => `<span class="detail-path-item">${escapeHtml(item)}</span>`).join("")}</div>`; else if (field.view === "bullet-list") body = `<ul class="detail-field-list">${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`; else if (field.view === "paragraph") body = `<div class="detail-field-value">${items.map(item => `<p>${escapeHtml(item)}</p>`).join("")}</div>`; else body = `<div class="detail-field-value">${escapeHtml(formatDetailValue(field.value))}</div>`; return `<article class="detail-field"><div class="detail-field-label">${escapeHtml(field.label)}</div>${body}</article>`; }
-    function renderDetailsTable(details) { const { knownFields, unknownFields } = normalizeDetailFields(details); if (!knownFields.length && !unknownFields.length) return `<div class="empty">当前事件没有额外详细数据。</div>`; const knownMarkup = knownFields.map(renderDetailField).join(""); const unknownMarkup = unknownFields.length ? `<div class="detail-fallback"><div class="detail-field-label">其他字段</div><div class="detail-table">${unknownFields.map(field => `<strong>${escapeHtml(field.label)}</strong><span>${escapeHtml(formatDetailValue(field.value))}</span>`).join("")}</div></div>` : ""; return `<div class="detail-fields">${knownMarkup}${unknownMarkup}</div>`; }
+    function sortDetailEntries(entries) { return [...entries].sort(([a], [b]) => { const left = DETAIL_FIELD_META[a] || { order: 999, label: a }; const right = DETAIL_FIELD_META[b] || { order: 999, label: b }; return left.order - right.order || String(left.label || a).localeCompare(String(right.label || b), "zh-CN"); }); }
+    function renderScalarValue(value, view) {
+      const text = formatScalar(value);
+      if (view === "paragraph") return `<div class="detail-field-value">${String(text).split(/\r?\n+/).filter(Boolean).map(item => `<p>${escapeHtml(item)}</p>`).join("") || `<p>${escapeHtml(text)}</p>`}</div>`;
+      if (view === "path-list") return `<div class="detail-path-list"><span class="detail-path-item">${escapeHtml(text)}</span></div>`;
+      return `<div class="detail-field-value">${escapeHtml(text)}</div>`;
+    }
+    function renderStructuredValue(value, view = "text", depth = 0) {
+      if (!hasDetailValue(value)) return `<div class="empty">未提供。</div>`;
+      if (Array.isArray(value)) {
+        if (!value.length) return `<div class="empty">暂无数据。</div>`;
+        const scalarItems = value.every(item => !isPlainObject(item) && !Array.isArray(item));
+        if (scalarItems && view === "path-list") return `<div class="detail-path-list">${value.map(item => `<span class="detail-path-item">${escapeHtml(formatScalar(item))}</span>`).join("")}</div>`;
+        if (scalarItems && view === "paragraph") return `<div class="detail-field-value">${value.map(item => `<p>${escapeHtml(formatScalar(item))}</p>`).join("")}</div>`;
+        if (scalarItems) return `<ul class="detail-field-list">${value.map(item => `<li>${escapeHtml(formatScalar(item))}</li>`).join("")}</ul>`;
+        return `<div class="detail-nested-list">${value.map((item, index) => `<article class="detail-nested-card"><div class="detail-field-label">${escapeHtml(`条目 ${index + 1}`)}</div>${renderStructuredValue(item, "text", depth + 1)}</article>`).join("")}</div>`;
+      }
+      if (isPlainObject(value)) {
+        const entries = sortDetailEntries(Object.entries(value).filter(([, item]) => hasDetailValue(item)));
+        if (!entries.length) return `<div class="empty">暂无数据。</div>`;
+        return `<div class="detail-object">${entries.map(([key, item]) => { const meta = DETAIL_FIELD_META[key] || {}; return `<article class="detail-field"><div class="detail-field-label">${escapeHtml(meta.label || key)}</div>${renderStructuredValue(item, meta.view || "text", depth + 1)}</article>`; }).join("")}</div>`;
+      }
+      return renderScalarValue(value, view);
+    }
+    function renderDetailSections(details) { return hasDetailValue(details) ? renderStructuredValue(details, "text", 0) : `<div class="empty">当前事件没有额外详细数据。</div>`; }
+    function renderInfoTable(rows) {
+      const validRows = rows.filter(row => Array.isArray(row) && hasDetailValue(row[1]));
+      if (!validRows.length) return `<div class="empty">未提供元信息。</div>`;
+      return `<div class="detail-table">${validRows.map(([label, value]) => `<strong>${escapeHtml(label)}</strong><span>${escapeHtml(formatScalar(value))}</span>`).join("")}</div>`;
+    }
     function conciseEventSummary(event) { return event.outputSummary || event.inputSummary || "该事件未提供额外摘要。"; }
     function pickPayloadDetails(payload) { if (!payload || typeof payload !== "object") return {}; if (payload.details && typeof payload.details === "object") return payload.details; const details = {}; Object.entries(payload).forEach(([key, value]) => { if (["inputSummary", "outputSummary", "summaryText", "keyPoints", "details"].includes(key)) return; details[key] = value; }); return details; }
     function summarizePayload(payload) { if (!payload || typeof payload !== "object") return ""; const parts = []; if (payload.stage) parts.push(`阶段：${payload.stage}`); if (payload.role) parts.push(`角色：${payload.role}`); if (payload.targetPage) parts.push(`页面：${payload.targetPage}`); if (payload.verificationMode) parts.push(`验证：${payload.verificationMode}`); if (payload.mode && !parts.length) parts.push(`模式：${payload.mode}`); return parts.join(" · "); }
+    function mergeHandoffArtifacts(handoff, event, artifactIds, artifactsById, baseDir) {
+      const ids = [...artifactIds];
+      if (!handoff || !Array.isArray(handoff.artifacts)) return ids;
+      handoff.artifacts.forEach((meta, index) => {
+        if (!meta || typeof meta !== "object") return;
+        const metaPath = normalizeArtifactPath(meta.path);
+        let artifact = ids.map(id => artifactsById.get(id)).find(item => item && ((metaPath && [item.sourcePath, item.originalPath, item.path].map(normalizeArtifactPath).includes(metaPath)) || (meta.title && item.title === meta.title))) || null;
+        if (!artifact) {
+          const inlineId = meta.artifactId || `inline-${event.eventId}-${index + 1}`;
+          artifact = { id: inlineId, kind: meta.kind || "artifact", title: meta.title || `证据 ${index + 1}`, path: meta.path || "", sourcePath: meta.path || "", originalPath: meta.path || "", sourceAgent: handoff.sourceAgent || event.agent || "Unknown", description: meta.description || "", targetEventId: event.eventId, createdAt: event.timestamp, url: meta.path && !isAbsoluteFsPath(meta.path) ? joinPath(baseDir, meta.path) : "" };
+          artifactsById.set(inlineId, artifact);
+        }
+        if (meta.kind && (!artifact.kind || artifact.kind === "artifact")) artifact.kind = meta.kind;
+        if (meta.title) artifact.title = meta.title;
+        if (meta.description && !artifact.description) artifact.description = meta.description;
+        if (meta.path && !artifact.originalPath) artifact.originalPath = meta.path;
+        if (meta.path && !artifact.sourcePath) artifact.sourcePath = meta.path;
+        if (!artifact.sourceAgent) artifact.sourceAgent = handoff.sourceAgent || event.agent || "Unknown";
+        if (!ids.includes(artifact.id)) ids.push(artifact.id);
+      });
+      return ids;
+    }
 
     function normalizeSummary(entry, summary, events) {
       const latestEvent = [...events].reverse().find(event => event.eventType !== "artifact.created") || events[events.length - 1] || null;
       const latestPayload = latestEvent && typeof latestEvent.payload === "object" ? latestEvent.payload : {};
-      const summaryText = latestPayload.summaryText || latestPayload.outputSummary || entry.latestSummary || summary.goal || "暂无摘要";
-      return { id: summary.runId, title: summary.title, goal: summary.goal, mode: summary.mode, status: entry.status || summary.status, resultStatus: entry.resultStatus ?? summary.resultStatus ?? null, createdAt: summary.createdAt, updatedAt: summary.updatedAt, completedAt: summary.completedAt, eventCount: summary.eventCount ?? events.length, artifactCount: summary.artifactCount ?? 0, agents: summary.agents || [], latestEventId: summary.latestEventId, latestAgent: entry.latestAgent || (latestEvent ? latestEvent.agent : null), summary: summaryText, reviewStats: entry.reviewStats || { valid: 0, partial: 0, invalid: 0 } };
+      const latestHandoff = extractHandoff(latestPayload);
+      const summaryText = latestPayload.summaryText || (latestHandoff && latestHandoff.output && latestHandoff.output.summary) || latestPayload.outputSummary || entry.latestSummary || summary.goal || "暂无摘要";
+      return { id: summary.runId, title: summary.title, goal: summary.goal, mode: summary.mode, status: entry.status || summary.status, resultStatus: entry.resultStatus ?? summary.resultStatus ?? null, createdAt: summary.createdAt, updatedAt: summary.updatedAt, completedAt: summary.completedAt, eventCount: summary.eventCount ?? events.length, artifactCount: summary.artifactCount ?? 0, agents: summary.agents || [], latestEventId: summary.latestEventId, latestAgent: entry.latestAgent || (latestEvent ? latestEvent.agent : null), summary: summaryText, latestSummary: summaryText, reviewStats: entry.reviewStats || { valid: 0, partial: 0, invalid: 0 } };
     }
 
     function buildRunView(entry, summary, rawEvents, reviews) {
@@ -126,19 +183,45 @@
       rawEvents.forEach(event => {
         if (event.eventType !== "artifact.created") return;
         const payload = typeof event.payload === "object" ? event.payload : {};
-        const artifact = { id: payload.artifactId, kind: payload.kind || "artifact", title: payload.title || event.title, path: payload.path || "", sourceAgent: payload.sourceAgent || event.agent || "Unknown", targetEventId: payload.targetEventId || event.parentEventId || null, createdAt: payload.createdAt || event.timestamp, url: payload.path ? joinPath(baseDir, payload.path) : "" };
+        const artifact = { id: payload.artifactId, kind: payload.kind || "artifact", title: payload.title || event.title, path: payload.path || "", sourcePath: payload.sourcePath || "", originalPath: payload.sourcePath || payload.path || "", description: payload.description || "", sourceAgent: payload.sourceAgent || event.agent || "Unknown", targetEventId: payload.targetEventId || event.parentEventId || null, createdAt: payload.createdAt || event.timestamp, url: payload.path ? joinPath(baseDir, payload.path) : "" };
         artifactsById.set(artifact.id, artifact);
         if (artifact.targetEventId) { const bucket = artifactsByTarget.get(artifact.targetEventId) || []; bucket.push(artifact.id); artifactsByTarget.set(artifact.targetEventId, bucket); }
       });
-      (reviews || []).forEach(review => { if (review && review.eventId) reviewByEvent.set(review.eventId, review); });
+      (reviews || []).forEach(review => { if (review && (review.targetEventId || review.eventId)) reviewByEvent.set(review.targetEventId || review.eventId, review); });
       const summaryView = normalizeSummary(entry, summary, rawEvents);
       const events = rawEvents.filter(event => event.eventType !== "artifact.created").map((event, index) => {
         const payload = typeof event.payload === "object" ? event.payload : {};
+        const handoff = extractHandoff(payload);
         const explicitArtifactIds = Array.isArray(event.artifacts) ? event.artifacts.map(item => typeof item === "string" ? item : (item && typeof item === "object" ? (item.artifactId || item.id || null) : null)).filter(Boolean) : [];
-        const relatedArtifactIds = [...new Set([...(artifactsByTarget.get(event.eventId) || []), ...explicitArtifactIds])];
+        const relatedArtifactIds = mergeHandoffArtifacts(handoff, event, [...new Set([...(artifactsByTarget.get(event.eventId) || []), ...explicitArtifactIds])], artifactsById, baseDir);
         const review = reviewByEvent.get(event.eventId) || null;
         const payloadSummary = summarizePayload(payload);
-        return { id: event.eventId, step: index + 1, time: formatTime(event.timestamp), timestamp: event.timestamp, agent: event.agent || "Main", type: eventTypeLabel(event.eventType), rawType: event.eventType, title: event.title, status: event.status || "completed", resultStatus: payload.resultStatus || null, reviewStatus: normalizeReviewStatus(review), reviewComment: review && review.comment ? review.comment : "", reviewedAt: review && review.reviewedAt ? review.reviewedAt : "", reviewedBy: review && review.reviewedBy ? review.reviewedBy : "", inputSummary: payload.inputSummary || (event.eventType === "run.started" ? `目标：${summary.goal}` : payload.goal ? `目标：${payload.goal}` : payloadSummary) || "", outputSummary: payload.outputSummary || payload.summaryText || (event.eventType === "run.started" ? `模式：${summary.mode}` : payloadSummary) || "", keyPoints: Array.isArray(payload.keyPoints) ? payload.keyPoints : [], details: pickPayloadDetails(payload), artifacts: relatedArtifactIds };
+        return {
+          id: event.eventId,
+          sequence: index + 1,
+          time: formatTime(event.timestamp),
+          timestamp: event.timestamp,
+          agent: (handoff && handoff.sourceAgent) || event.agent || "Main",
+          sourceAgentTaskId: (handoff && handoff.sourceAgentTaskId) || event.agentTaskId || "",
+          handoffVersion: (handoff && handoff.handoffVersion) || "",
+          isHandoff: Boolean(handoff),
+          type: eventTypeLabel(event.eventType),
+          rawType: event.eventType,
+          title: (handoff && handoff.stepTitle) || event.title,
+          status: (handoff && handoff.status) || event.status || "completed",
+          resultStatus: payload.resultStatus || null,
+          reviewStatus: normalizeReviewStatus(review),
+          reviewComment: review && review.comment ? review.comment : "",
+          reviewedAt: review && review.reviewedAt ? review.reviewedAt : "",
+          reviewedBy: review && review.reviewedBy ? review.reviewedBy : "",
+          inputSummary: (handoff && handoff.input && handoff.input.summary) || payload.inputSummary || (event.eventType === "run.started" ? `目标：${summary.goal}` : payload.goal ? `目标：${payload.goal}` : payloadSummary) || "",
+          outputSummary: (handoff && handoff.output && handoff.output.summary) || payload.outputSummary || payload.summaryText || (event.eventType === "run.started" ? `模式：${summary.mode}` : payloadSummary) || "",
+          keyPoints: (handoff && handoff.output && Array.isArray(handoff.output.keyPoints) ? handoff.output.keyPoints : Array.isArray(payload.keyPoints) ? payload.keyPoints : []),
+          inputDetails: (handoff && handoff.input && handoff.input.details) || {},
+          outputDetails: (handoff && handoff.output && handoff.output.details) || {},
+          details: handoff ? {} : pickPayloadDetails(payload),
+          artifacts: relatedArtifactIds
+        };
       });
       return { ...summaryView, events, artifacts: [...artifactsById.values()] };
     }
@@ -221,8 +304,8 @@
         document.getElementById("focusSignals").innerHTML = "";
         document.getElementById("focusStats").innerHTML = "";
         document.getElementById("overview").innerHTML = "";
-        document.getElementById("eventCount").textContent = "0 个步骤";
-        document.getElementById("timeline").innerHTML = `<div class="${state.error ? "error" : "empty"}">${state.error || "当前没有可展示的执行步骤。"}</div>`;
+        document.getElementById("eventCount").textContent = "0 个事件";
+        document.getElementById("timeline").innerHTML = `<div class="${state.error ? "error" : "empty"}">${state.error || "当前没有可展示的执行事件。"}</div>`;
         return;
       }
       const reviewedTotal = (run.reviewStats.valid || 0) + (run.reviewStats.partial || 0) + (run.reviewStats.invalid || 0);
@@ -233,10 +316,10 @@
       document.getElementById("focusSignals").innerHTML = "";
       document.getElementById("focusStats").innerHTML = [["事件数", `${run.eventCount || 0}`], ["证据数", `${run.artifactCount || 0}`], ["有效率", `${validity}%`], ["最终结果", labelFor(run.resultStatus || "unknown", resultStatusMeta)]].map(([label, value]) => `<div class="focus-stat"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`).join("");
       document.getElementById("overview").innerHTML = "";
-      document.getElementById("eventCount").textContent = `${run.events.length} 个步骤`;
+      document.getElementById("eventCount").textContent = `${run.events.length} 个事件`;
       document.getElementById("timeline").innerHTML = run.events.length ? run.events.map(event => `
         <article class="event-card ${state.selectedEventId === event.id ? "active" : ""}" data-event="${escapeHtml(event.id)}">
-          <div class="row"><div class="timeline-main"><div class="timeline-meta"><span class="step">${event.step}</span><span>${escapeHtml(event.time)}</span><span>${escapeHtml(event.agent)}</span><span>${escapeHtml(event.type)}</span></div><div class="timeline-title">${escapeHtml(event.title)}</div><div class="desc">${escapeHtml(conciseEventSummary(event))}</div></div><div class="timeline-trailing">${chip(event.status, eventStatusMeta)}<div class="timeline-count">${event.artifacts.length} 份证据</div></div></div>
+          <div class="row"><div class="timeline-main"><div class="timeline-meta"><span class="step">${event.sequence}</span><span>${escapeHtml(event.time)}</span><span>${escapeHtml(event.agent)}</span><span>${escapeHtml(event.type)}</span></div><div class="timeline-title">${escapeHtml(event.title)}</div><div class="desc">${escapeHtml(conciseEventSummary(event))}</div></div><div class="timeline-trailing">${chip(event.status, eventStatusMeta)}<div class="timeline-count">${event.artifacts.length} 份证据</div></div></div>
         </article>
       `).join("") : `<div class="empty">当前 run 暂无事件数据。</div>`;
     }
@@ -247,11 +330,14 @@
 
     function renderArtifactCard(artifact) {
       const meta = `<div class="meta" style="margin-top:6px;">来源 ${escapeHtml(artifact.sourceAgent || "Unknown")} · 类型 ${escapeHtml(artifactKindLabel(artifact.kind))}</div>`;
-      if (artifact.url && isImageArtifact(artifact)) return `<article class="artifact-card"><div class="artifact-head"><div><div class="title-sm" style="font-size:14px;">${escapeHtml(artifact.title || "未命名证据")}</div>${meta}</div><button class="action-btn" type="button" data-artifact-preview="${escapeHtml(artifact.id)}">查看截图</button></div><div class="artifact-body"><button class="artifact-thumb" type="button" data-artifact-preview="${escapeHtml(artifact.id)}" aria-label="预览 ${escapeHtml(artifact.title || "截图")}"><img class="artifact-image" src="${escapeHtml(artifact.url)}" alt="${escapeHtml(artifact.title || "artifact image")}" loading="lazy"></button></div></article>`;
+      const description = artifact.description ? `<div class="desc" style="margin-top:8px;">${escapeHtml(artifact.description)}</div>` : "";
+      const storedPath = artifact.path ? `<div class="meta" style="margin-top:6px;">落盘路径 ${escapeHtml(artifact.path)}</div>` : "";
+      const sourcePath = artifact.originalPath && artifact.originalPath !== artifact.path ? `<div class="meta" style="margin-top:6px;">原始路径 ${escapeHtml(artifact.originalPath)}</div>` : "";
+      if (artifact.url && isImageArtifact(artifact)) return `<article class="artifact-card"><div class="artifact-head"><div><div class="title-sm" style="font-size:14px;">${escapeHtml(artifact.title || "未命名证据")}</div>${meta}${description}${storedPath}${sourcePath}</div><button class="action-btn" type="button" data-artifact-preview="${escapeHtml(artifact.id)}">查看截图</button></div><div class="artifact-body"><button class="artifact-thumb" type="button" data-artifact-preview="${escapeHtml(artifact.id)}" aria-label="预览 ${escapeHtml(artifact.title || "截图")}"><img class="artifact-image" src="${escapeHtml(artifact.url)}" alt="${escapeHtml(artifact.title || "artifact image")}" loading="lazy"></button></div></article>`;
       const previewId = `artifact-preview-${artifact.id}`;
       const previewBody = isTextArtifact(artifact) ? `<pre class="detail-pre" id="${escapeHtml(previewId)}">正在读取文本预览…</pre>` : `<div class="artifact-fallback">证据文件：${escapeHtml(artifact.path || "未提供路径")}<br>当前页面对该类型只展示元信息。</div>`;
       const links = artifact.url ? `<div class="artifact-links"><a class="artifact-link" href="${escapeHtml(artifact.url)}" target="_blank" rel="noopener noreferrer">打开证据</a></div>` : "";
-      return `<article class="artifact-card"><div class="title-sm" style="font-size:14px;">${escapeHtml(artifact.title || "未命名证据")}</div>${meta}<div class="artifact-body">${previewBody}</div>${links}</article>`;
+      return `<article class="artifact-card"><div class="title-sm" style="font-size:14px;">${escapeHtml(artifact.title || "未命名证据")}</div>${meta}${description}${storedPath}${sourcePath}<div class="artifact-body">${previewBody}</div>${links}</article>`;
     }
 
     function renderActionButtons(artifacts) {
@@ -263,7 +349,7 @@
     }
 
     function renderEvidenceSummary(artifacts) {
-      if (!artifacts.length) return `<div class="empty">当前步骤没有挂接证据。</div>`;
+      if (!artifacts.length) return `<div class="empty">当前事件没有挂接证据。</div>`;
       return `<div class="detail-summary">${artifacts.slice(0, 4).map(artifact => `<div class="summary-block"><div class="meta">${escapeHtml(artifactKindLabel(artifact.kind))}</div><div class="value">${escapeHtml(artifact.title || "未命名证据")}</div></div>`).join("")}</div>`;
     }
 
@@ -272,21 +358,24 @@
       if (!run || !event) {
         document.getElementById("targetChip").textContent = "未选择";
         document.getElementById("targetChip").className = "chip neutral";
-        document.getElementById("detailContent").innerHTML = `<div class="${state.error ? "error" : "empty"}">${state.error || "请选择中间事件线中的一个步骤，右侧会显示输入、输出、关键结论和关联证据。"}</div>`;
+        document.getElementById("detailContent").innerHTML = `<div class="${state.error ? "error" : "empty"}">${state.error || "请选择中间事件线中的一个事件，右侧会显示输入、输出、关键结论和关联证据。"}</div>`;
         return;
       }
       const relatedArtifacts = event.artifacts.map(id => run.artifacts.find(item => item.id === id)).filter(Boolean);
       document.getElementById("targetChip").textContent = `${event.agent} · ${event.time}`;
       document.getElementById("targetChip").className = `chip ${(eventStatusMeta[event.status] || ["neutral"])[0]}`;
       document.getElementById("detailContent").innerHTML = `
-        <section class="detail-hero"><div class="event-meta"><span class="step">${event.step}</span><span>${escapeHtml(event.agent)}</span><span>${escapeHtml(event.type)}</span><span>${escapeHtml(event.time)}</span></div><div class="title-sm" style="margin-top:10px;">${escapeHtml(event.title)}</div><div class="detail-copy">${escapeHtml(event.outputSummary || "该步骤没有输出摘要。")}</div><div class="detail-summary"><div class="summary-block"><div class="meta">执行状态</div><div class="value">${escapeHtml(labelFor(event.status, eventStatusMeta))}</div></div><div class="summary-block"><div class="meta">人工复核</div><div class="value">${escapeHtml(labelFor(event.reviewStatus, reviewStatusMeta))}</div></div><div class="summary-block"><div class="meta">关联证据</div><div class="value">${relatedArtifacts.length} 份</div></div>${event.resultStatus ? `<div class="summary-block"><div class="meta">结果状态</div><div class="value">${escapeHtml(labelFor(event.resultStatus, resultStatusMeta))}</div></div>` : ""}<div class="summary-block full"><div class="meta">输入摘要</div><div class="value">${escapeHtml(event.inputSummary || "未提供输入摘要。")}</div></div></div></section>
+        <section class="detail-hero"><div class="event-meta"><span class="step">${event.sequence}</span><span>${escapeHtml(event.agent)}</span><span>${escapeHtml(event.type)}</span><span>${escapeHtml(event.time)}</span></div><div class="title-sm" style="margin-top:10px;">${escapeHtml(event.title)}</div><div class="detail-copy">${escapeHtml(event.outputSummary || "该事件没有输出摘要。")}</div><div class="detail-summary"><div class="summary-block"><div class="meta">执行状态</div><div class="value">${escapeHtml(labelFor(event.status, eventStatusMeta))}</div></div><div class="summary-block"><div class="meta">人工复核</div><div class="value">${escapeHtml(labelFor(event.reviewStatus, reviewStatusMeta))}</div></div><div class="summary-block"><div class="meta">关联证据</div><div class="value">${relatedArtifacts.length} 份</div></div>${event.resultStatus ? `<div class="summary-block"><div class="meta">结果状态</div><div class="value">${escapeHtml(labelFor(event.resultStatus, resultStatusMeta))}</div></div>` : ""}<div class="summary-block full"><div class="meta">输入摘要</div><div class="value">${escapeHtml(event.inputSummary || "未提供输入摘要。")}</div></div></div></section>
+        ${event.isHandoff ? `<section class="detail-card"><h4>Handoff 来源</h4>${renderInfoTable([["Handoff 版本", event.handoffVersion], ["来源角色", event.agent], ["来源任务", event.sourceAgentTaskId], ["事件类型", event.rawType]])}</section>` : ""}
         ${renderActionButtons(relatedArtifacts)}
+        <section class="detail-card"><h4>输入摘要</h4><div class="detail-copy">${escapeHtml(event.inputSummary || "未提供输入摘要。")}</div></section>
+        ${event.isHandoff ? `<section class="detail-card"><h4>输入详情</h4>${renderDetailSections(event.inputDetails)}</section>` : ""}
         <section class="detail-card"><h4>结论摘要</h4><div class="detail-copy">${escapeHtml(event.outputSummary || "未提供输出摘要。")}</div></section>
         <section class="detail-card"><h4>人工复核记录</h4><div class="detail-table"><strong>复核状态</strong><span>${escapeHtml(labelFor(event.reviewStatus, reviewStatusMeta))}</span><strong>复核人</strong><span>${escapeHtml(event.reviewedBy || "未填写")}</span><strong>复核时间</strong><span>${escapeHtml(event.reviewedAt ? formatTime(event.reviewedAt) : "未填写")}</span><strong>复核意见</strong><span>${escapeHtml(event.reviewComment || "暂无人工复核意见。")}</span></div></section>
         <section class="detail-card"><h4>关键结论</h4>${event.keyPoints.length ? `<ul>${event.keyPoints.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<div class="empty">当前事件没有单独列出的关键结论。</div>`}</section>
-        <section class="detail-card"><h4>详细数据</h4>${renderDetailsTable(event.details)}</section>
+        <section class="detail-card"><h4>${event.isHandoff ? "输出详情" : "详细数据"}</h4>${renderDetailSections(event.isHandoff ? event.outputDetails : event.details)}</section>
         <section class="detail-card" id="artifactSection"><h4>证据概览</h4>${renderEvidenceSummary(relatedArtifacts)}</section>
-        <section class="detail-card"><h4>关联证据</h4><div class="artifact-grid">${relatedArtifacts.length ? relatedArtifacts.map(renderArtifactCard).join("") : `<div class="empty">当前步骤没有挂接证据。</div>`}</div></section>
+        <section class="detail-card"><h4>关联证据</h4><div class="artifact-grid">${relatedArtifacts.length ? relatedArtifacts.map(renderArtifactCard).join("") : `<div class="empty">当前事件没有挂接证据。</div>`}</div></section>
       `;
       hydrateTextArtifacts(relatedArtifacts);
     }
