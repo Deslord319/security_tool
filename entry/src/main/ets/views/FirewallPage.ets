@@ -10,6 +10,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'FirewallPage'
+const MIN_MODE_LOADING_DIALOG_DURATION_MS = 500
 
 @CustomDialog
 struct FirewallModeLoadingDialog {
@@ -60,6 +61,7 @@ export struct FirewallPage {
   onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
   private isModeLoadingDialogOpen: boolean = false
+  private modeLoadingDialogOpenedAt: number = 0
   private modeLoadingDialogController: CustomDialogController = new CustomDialogController({
     builder: FirewallModeLoadingDialog(),
     alignment: DialogAlignment.Center,
@@ -276,12 +278,14 @@ export struct FirewallPage {
     if (this.isModeLoadingDialogOpen) {
       return
     }
+    this.modeLoadingDialogOpenedAt = Date.now()
     this.modeLoadingDialogController.open()
     this.isModeLoadingDialogOpen = true
   }
 
   private closeModeLoadingDialog(): void {
     if (!this.isModeLoadingDialogOpen) {
+      this.modeLoadingDialogOpenedAt = 0
       return
     }
     try {
@@ -289,7 +293,24 @@ export struct FirewallPage {
     } catch (_err) {
     } finally {
       this.isModeLoadingDialogOpen = false
+      this.modeLoadingDialogOpenedAt = 0
     }
+  }
+
+  private async waitForModeLoadingDialogMinimumDuration(): Promise<void> {
+    if (!this.isModeLoadingDialogOpen) {
+      return
+    }
+    let elapsed = Date.now() - this.modeLoadingDialogOpenedAt
+    let remainingDuration = MIN_MODE_LOADING_DIALOG_DURATION_MS - elapsed
+    if (remainingDuration <= 0) {
+      return
+    }
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => {
+        resolve()
+      }, remainingDuration)
+    })
   }
 
   private showModeChangeFailedToast(): void {
@@ -308,24 +329,23 @@ export struct FirewallPage {
     }
     this.isModeProcessing = true
     this.openModeLoadingDialog()
+    let success = false
     try {
-      let success = await this.onModeChange(mode)
-      this.closeModeLoadingDialog()
-      if (!success) {
-        this.showModeChangeFailedToast()
-        return
-      }
-      promptAction.showToast({ message: '\u6a21\u5f0f\u5207\u6362\u6210\u529f' })
-      if (mode === 'custom') {
-        this.onNavigateToRules()
-      }
+      success = await this.onModeChange(mode)
     } catch (err) {
-      this.closeModeLoadingDialog()
-      this.showModeChangeFailedToast()
       hilog.error(0x0001, TAG, `handleModeSelect failed: ${JSON.stringify(err)}`)
     } finally {
+      await this.waitForModeLoadingDialogMinimumDuration()
       this.closeModeLoadingDialog()
       this.isModeProcessing = false
+    }
+    if (!success) {
+      this.showModeChangeFailedToast()
+      return
+    }
+    promptAction.showToast({ message: '\u6a21\u5f0f\u5207\u6362\u6210\u529f' })
+    if (mode === 'custom') {
+      this.onNavigateToRules()
     }
   }
 

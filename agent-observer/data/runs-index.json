@@ -1,7 +1,46 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-03-23T12:07:07+08:00",
+  "generatedAt": "2026-03-23T15:15:28+08:00",
   "runs": [
+    {
+      "schemaVersion": "1.0",
+      "runId": "run-20260323-143719-001",
+      "taskKey": "task-491353f1b45a",
+      "title": "防火墙模式切换等待弹框时延审查",
+      "goal": "审查公用网络、专用网络、自定义规则切换时等待弹框闪烁问题，先完成 SE 分析与方案评审，不进入修复",
+      "mode": "review",
+      "status": "completed",
+      "resultStatus": "verified",
+      "createdAt": "2026-03-23T14:37:19+08:00",
+      "updatedAt": "2026-03-23T15:15:28+08:00",
+      "completedAt": "2026-03-23T15:15:28+08:00",
+      "eventCount": 19,
+      "stepCount": 5,
+      "artifactCount": 9,
+      "agents": [
+        "Main",
+        "SE",
+        "BugFix",
+        "CTest",
+        "Reviewer"
+      ],
+      "latestEventId": "evt-000019",
+      "latestEventType": "run.completed",
+      "latestEventTitle": "Run completed",
+      "latestAgent": "Main",
+      "latestSummary": "FirewallPage loading-dialog timing fix completed; fresh deploy verification passed for public/private/custom success paths; Reviewer reported no findings, with only failure-path and page-disappear edge-case verification gaps remaining.",
+      "reviewStats": {
+        "valid": 0,
+        "partial": 0,
+        "invalid": 0
+      },
+      "runDir": "data/runs/2026-03-23/run-20260323-143719-001",
+      "summaryPath": "data/runs/2026-03-23/run-20260323-143719-001/summary.json",
+      "eventsPath": "data/runs/2026-03-23/run-20260323-143719-001/events.jsonl",
+      "stepsPath": "data/runs/2026-03-23/run-20260323-143719-001/steps.jsonl",
+      "reviewsPath": "data/runs/2026-03-23/run-20260323-143719-001/reviews.jsonl",
+      "artifactsPath": "data/runs/2026-03-23/run-20260323-143719-001/artifacts"
+    },
     {
       "schemaVersion": "1.0",
       "runId": "run-20260323-111822-001",
