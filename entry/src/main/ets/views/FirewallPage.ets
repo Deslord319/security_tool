@@ -11,6 +11,41 @@ import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'FirewallPage'
 
+@CustomDialog
+struct FirewallModeLoadingDialog {
+  controller: CustomDialogController
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  build() {
+    Column({ space: 14 }) {
+      LoadingProgress()
+        .width(44)
+        .height(44)
+      Text('\u6b63\u5728\u5207\u6362\u9632\u706b\u5899\u6a21\u5f0f\uff0c\u8bf7\u7a0d\u5019')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+    }
+    .width(280)
+    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
+    .shadow({
+      radius: 20,
+      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.36)' : 'rgba(0,0,0,0.14)',
+      offsetX: 0,
+      offsetY: 10
+    })
+  }
+}
+
 @Component
 export struct FirewallPage {
   @Prop firewallEnabled: boolean = false
@@ -24,9 +59,20 @@ export struct FirewallPage {
   onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
   onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
+  private isModeLoadingDialogOpen: boolean = false
+  private modeLoadingDialogController: CustomDialogController = new CustomDialogController({
+    builder: FirewallModeLoadingDialog(),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled
+  }
+
+  aboutToDisappear() {
+    this.closeModeLoadingDialog()
   }
 
   async handleToggleWithAuth(isOn: boolean) {
@@ -226,6 +272,30 @@ export struct FirewallPage {
     return HoverUtils.getScale(this.isModeHovered(mode))
   }
 
+  private openModeLoadingDialog(): void {
+    if (this.isModeLoadingDialogOpen) {
+      return
+    }
+    this.modeLoadingDialogController.open()
+    this.isModeLoadingDialogOpen = true
+  }
+
+  private closeModeLoadingDialog(): void {
+    if (!this.isModeLoadingDialogOpen) {
+      return
+    }
+    try {
+      this.modeLoadingDialogController.close()
+    } catch (_err) {
+    } finally {
+      this.isModeLoadingDialogOpen = false
+    }
+  }
+
+  private showModeChangeFailedToast(): void {
+    promptAction.showToast({ message: '\u7b56\u7565\u4e0b\u53d1\u5931\u8d25\uff0c\u5f53\u524d\u6a21\u5f0f\u672a\u5207\u6362' })
+  }
+
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
     if (this.isModeProcessing) {
       return
@@ -237,19 +307,28 @@ export struct FirewallPage {
       return
     }
     this.isModeProcessing = true
+    this.openModeLoadingDialog()
     try {
       let success = await this.onModeChange(mode)
+      this.closeModeLoadingDialog()
       if (!success) {
-        promptAction.showToast({ message: '策略下发失败，当前模式未切换' })
+        this.showModeChangeFailedToast()
         return
       }
+      promptAction.showToast({ message: '\u6a21\u5f0f\u5207\u6362\u6210\u529f' })
       if (mode === 'custom') {
         this.onNavigateToRules()
       }
+    } catch (err) {
+      this.closeModeLoadingDialog()
+      this.showModeChangeFailedToast()
+      hilog.error(0x0001, TAG, `handleModeSelect failed: ${JSON.stringify(err)}`)
     } finally {
+      this.closeModeLoadingDialog()
       this.isModeProcessing = false
     }
   }
+
 
   @Builder
   private modeCard(mode: FirewallPresetMode) {

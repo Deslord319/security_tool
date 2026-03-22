@@ -319,6 +319,16 @@ hdc install signApp.hap
 - `input.details`、`output.details` 必须为对象
 - `artifacts` 必须为数组；没有证据时返回空数组
 
+### Agent Observer 编码与落盘规则
+
+- observer 相关临时 JSON（如 handoff、artifacts、review payload）默认按 UTF-8 处理；主 agent 不得依赖 PowerShell/控制台默认编码推断
+- 在 Windows / PowerShell 环境中，禁止通过 `echo`、管道、here-string、`>`、`>>`、`Out-File`、`Set-Content` 默认编码等“原始文本链路”传递包含中文的完整 JSON
+- 需要中转 observer JSON 时，优先使用显式 UTF-8 文件写入；如果当前链路无法保证 Unicode 安全，则必须改用 ASCII-safe 方式中转（例如将非 ASCII 字符转为 `\uXXXX` 后再落盘/传递）
+- 子 agent 返回 handoff 后，主 agent 在写入 `agent.output` 前必须先落临时 payload 文件，再按 UTF-8 回读并校验；若发现 `?`、`�`、`????` 等明显乱码痕迹，不得写入正式 observer 事件
+- `write-event` 成功后，主 agent 应重新读取刚写入的 event，确认 `event.payload` 仍是完整 handoff JSON，且关键字段（`stepTitle`、`input.summary`、`output.summary`、artifact 标题/说明）未在写入过程中损坏
+- 一旦中文在临时文件中已被替换为字面量 `?`，视为信息已丢失；不得继续沿用该 payload，必须从原始 handoff 重新生成
+- 编码校验失败的尝试可以写 review 标记为 `invalid`，但不得把乱码 payload 当作最终有效的 `agent.output`
+
 参考结构如下：
 
 ```json
