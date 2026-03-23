@@ -109,9 +109,7 @@ export class FirewallPresetService {
         if (port !== undefined) {
           rule.localPorts = [{ startPort: port, endPort: port }]
         }
-        if (usingAnyScope) {
-          rule.remoteIps = [FirewallService.createAnyIpv4RangeParam()]
-        } else {
+        if (!usingAnyScope) {
           let ipParam = FirewallPresetService.toIpParam(cidr ?? '')
           if (!ipParam) {
             return
