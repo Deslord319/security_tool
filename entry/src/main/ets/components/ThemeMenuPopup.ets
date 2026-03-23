@@ -9,9 +9,9 @@ struct AboutDialog {
 
   build() {
     Column({ space: 16 }) {
-      Image($r('app.media.startIcon'))
-        .width(64)
-        .height(64)
+      Image($r('app.media.startIcon_about'))
+        .width(80)
+        .height(80)
 
       Text(AppInfo.APP_NAME)
         .fontSize(18)
@@ -24,7 +24,7 @@ struct AboutDialog {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-      Text('Copyright 2025')
+      Text('Copyright 2026')
         .fontSize(12)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -57,6 +57,7 @@ export struct ThemeMenuPopup {
   @State hoveredThemeKey: string = ''
   @State hoveredActionKey: string = ''
   @State aboutHovered: boolean = false
+  @State menuHoverArmed: boolean = false
 
   private aboutDialogController: CustomDialogController = new CustomDialogController({
     builder: AboutDialog(),
@@ -103,6 +104,22 @@ export struct ThemeMenuPopup {
       offsetY: 4
     })
     .padding(8)
+    .onAppear(() => {
+      this.hoveredThemeKey = ''
+      this.hoveredActionKey = ''
+      this.aboutHovered = false
+      this.menuHoverArmed = false
+    })
+    .onHover((isHover: boolean) => {
+      if (isHover) {
+        this.menuHoverArmed = true
+        return
+      }
+      this.menuHoverArmed = false
+      this.hoveredThemeKey = ''
+      this.hoveredActionKey = ''
+      this.aboutHovered = false
+    })
   }
 
   private resolveMenuHoverBackground(isHovered: boolean): string {
@@ -112,36 +129,12 @@ export struct ThemeMenuPopup {
     return this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT
   }
 
-  private resolveThemeButtonBackground(option: ThemeOption): string {
-    let isSelected = this.currentOption === option
-    if (isSelected) {
-      return this.currentTheme === ThemeMode.DARK ? 'rgba(125, 161, 255, 0.18)' : 'rgba(10, 132, 255, 0.12)'
-    }
+  private resolveMenuIconFillColor(): ResourceColor {
+    return this.currentTheme === ThemeMode.DARK ? '#A9C7FF' : AppColors.BRAND_PRIMARY
+  }
+
+  private resolveMenuIconTileBackground(): string {
     return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(60,60,67,0.06)'
-  }
-
-  private resolveActionIconTileBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0)'
-  }
-
-  private resolveThemeIconColor(option: ThemeOption): ResourceColor {
-    if (this.currentOption === option) {
-      return this.currentTheme === ThemeMode.DARK ? '#A9C7FF' : AppColors.BRAND_PRIMARY
-    }
-    switch (option) {
-      case ThemeOption.SYSTEM:
-        return AppColors.BRAND_PRIMARY
-      case ThemeOption.LIGHT:
-        return '#FFD60A'
-      case ThemeOption.DARK:
-        return '#8E8E93'
-      default:
-        return AppColors.getColors(this.currentTheme).TEXT_PRIMARY
-    }
-  }
-
-  private resolveActionIconColor(): ResourceColor {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(235,235,245,0.78)' : 'rgba(60,60,67,0.82)'
   }
 
   @Builder
@@ -151,14 +144,14 @@ export struct ThemeMenuPopup {
         Image(icon)
           .width(18)
           .height(18)
-          .fillColor(this.resolveThemeIconColor(option))
+          .fillColor(this.resolveMenuIconFillColor())
       }
       .width(30)
       .height(30)
       .borderRadius(10)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
-      .backgroundColor(this.resolveThemeButtonBackground(option))
+      .backgroundColor(this.resolveMenuIconTileBackground())
 
       Text(label)
         .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -176,6 +169,9 @@ export struct ThemeMenuPopup {
       .borderRadius(12)
       .backgroundColor(this.resolveMenuHoverBackground(this.hoveredThemeKey === option))
       .onHover((hover: boolean) => {
+        if (!this.menuHoverArmed) {
+          return
+        }
         this.hoveredThemeKey = hover ? option : ''
       })
       .onClick(() => {
@@ -191,14 +187,14 @@ export struct ThemeMenuPopup {
         Image(icon)
           .width(18)
           .height(18)
-          .fillColor(this.resolveActionIconColor())
+          .fillColor(this.resolveMenuIconFillColor())
       }
       .width(30)
       .height(30)
       .borderRadius(10)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
-      .backgroundColor(this.resolveActionIconTileBackground())
+      .backgroundColor(this.resolveMenuIconTileBackground())
 
       Text(label)
         .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -215,6 +211,9 @@ export struct ThemeMenuPopup {
     .backgroundColor(this.resolveMenuHoverBackground(this.hoveredActionKey === route))
     .borderRadius(12)
     .onHover((hover: boolean) => {
+      if (!this.menuHoverArmed) {
+        return
+      }
       this.hoveredActionKey = hover ? route : ''
     })
     .onClick(() => {
@@ -232,14 +231,14 @@ export struct ThemeMenuPopup {
         Image($r('app.media.info_menu'))
           .width(18)
           .height(18)
-          .fillColor(this.resolveActionIconColor())
+          .fillColor(this.resolveMenuIconFillColor())
       }
       .width(30)
       .height(30)
       .borderRadius(10)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
-      .backgroundColor(this.resolveActionIconTileBackground())
+      .backgroundColor(this.resolveMenuIconTileBackground())
 
       Text('关于')
         .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -256,6 +255,9 @@ export struct ThemeMenuPopup {
     .backgroundColor(this.resolveMenuHoverBackground(this.aboutHovered))
     .borderRadius(12)
     .onHover((isHover: boolean) => {
+      if (!this.menuHoverArmed) {
+        return
+      }
       this.aboutHovered = isHover
     })
     .onClick(() => {

@@ -255,18 +255,7 @@ export struct HelpFeedbackPage {
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-            Text('cbge@huawei.com')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.BRAND_PRIMARY)
-          }
-
-          Row({ space: 8 }) {
-            Text('项目版本')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-
-            Text('1.0.0-beta')
+            Text('consumer@huawei.com')
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.BRAND_PRIMARY)
           }
