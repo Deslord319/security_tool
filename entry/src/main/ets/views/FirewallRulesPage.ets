@@ -266,12 +266,12 @@ export struct FirewallRulesPage {
     if (this.currentTab === 0) {
       return this.rules
     }
-    let typeMap: netFirewall.NetFirewallRuleType[] = [
-      netFirewall.NetFirewallRuleType.RULE_IP,
-      netFirewall.NetFirewallRuleType.RULE_IP,
-      netFirewall.NetFirewallRuleType.RULE_DOMAIN,
-      netFirewall.NetFirewallRuleType.RULE_DNS
-    ]
+      let typeMap: netFirewall.NetFirewallRuleType[] = [
+        netFirewall.NetFirewallRuleType.RULE_IP,
+        netFirewall.NetFirewallRuleType.RULE_IP,
+        netFirewall.NetFirewallRuleType.RULE_DOMAIN,
+        netFirewall.NetFirewallRuleType.RULE_DNS
+      ]
     return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === typeMap[this.currentTab])
   }
 
@@ -525,19 +525,19 @@ export struct FirewallRulesPage {
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('全部', 0))
+          }.tabBar(this.tabBuilder('全部规则', 0))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('IP', 1))
+          }.tabBar(this.tabBuilder('IP规则', 1))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('域名', 2))
+          }.tabBar(this.tabBuilder('域名规则', 2))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('DNS', 3))
+          }.tabBar(this.tabBuilder('DNS规则', 3))
         }
         .barMode(BarMode.Scrollable)
         .barBackgroundColor(Color.Transparent)
