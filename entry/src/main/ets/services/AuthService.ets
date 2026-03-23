@@ -22,17 +22,6 @@ export interface AuthExecutionResult {
 }
 
 export class AuthService {
-  static isAuthAvailable(authType: userAuth.UserAuthType): boolean {
-    try {
-      userAuth.getAvailableStatus(authType, userAuth.AuthTrustLevel.ATL1)
-      return true
-    } catch (err) {
-      let e = err as BusinessError
-      hilog.warn(DOMAIN, TAG, `Auth type ${authType} not available: code=${e.code}, msg=${e.message}`)
-      return false
-    }
-  }
-
   static checkAuthMethodAvailability(authMethod: AuthMethod): AuthAvailabilityResult {
     let authType = AuthService.convertAuthMethod(authMethod)
     if (authType === null) {

@@ -36,7 +36,7 @@ import {
 const TAG = 'LogStorageService'
 const DOMAIN = 0x0007
 
-// 鏃ュ織鏁版嵁瀛樺偍 key
+// Log data storage key
 const LOG_DATA_KEY = 'log_entries'
 const MAX_IN_MEMORY_ENTRIES = 5000
 const MAX_PERSIST_ENTRIES = 1000
@@ -69,7 +69,7 @@ export interface LogContentExportOptions {
 
 export type LogStorageChangeListener = (event: LogStorageChangeEvent) => void
 
-// 鏃ュ織瀛樺偍鏈嶅姟 - 璐熻矗鏃ュ織鐨勬寔涔呭寲銆佹煡璇€佽繃婊ゃ€佸鍑?
+// Log storage service for persistence, querying, filtering, and export.
 export class LogStorageService {
 
   private static context: common.UIAbilityContext | null = null
@@ -84,7 +84,7 @@ export class LogStorageService {
   private static nextListenerId: number = 1
   private static changeListeners: Map<number, LogStorageChangeListener> = new Map()
 
-  // 鍒濆鍖栵紙闇€瑕?UIAbilityContext 鐢ㄤ簬 Preferences锛?
+  // Initialize with a UIAbilityContext for Preferences access.
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     LogStorageService.context = context
     let contextDir = context.filesDir || ''
@@ -106,11 +106,11 @@ export class LogStorageService {
     try {
       LogStorageService.context = context
 
-      // 鍔犺浇瀛樺偍閰嶇疆
+      // Load persisted config.
       await LogStorageService.loadConfig()
       await LogStorageService.tryActivateConfiguredExportTarget()
       await LogStorageService.loadEntries()
-      // 娓呯悊杩囨湡鏃ュ織
+      // Remove expired entries.
       let cleaned = LogStorageService.cleanExpiredEntries()
       if (cleaned > 0) {
         await LogStorageService.saveEntries()
@@ -128,26 +128,26 @@ export class LogStorageService {
     }
   }
 
-  // 娣诲姞鏂版棩蹇楁潯鐩?
+  // Add a single log entry.
   static async addEntry(entry: LogEntry): Promise<boolean> {
     return LogStorageService.addEntries([entry])
   }
 
-  // 鎵归噺娣诲姞鏃ュ織鏉＄洰锛堢敤浜庨珮棰戝璁′簨浠讹紝閬垮厤姣忔潯閮借惤鐩橈級
+  // Add entries in batch to reduce write amplification for high-frequency events.
   static async addEntries(entries: LogEntry[]): Promise<boolean> {
     try {
       if (entries.length === 0) {
         return true
       }
 
-      // 鎵归噺褰掍竴鍖栧悗涓€娆℃€ф嫾鎺ワ紝閬垮厤寰幆澶存彃瀵艰嚧 O(n^2) 閫€鍖?
+      // Normalize once and prepend once to avoid repeated O(n^2) head inserts.
       let normalizedBatch = LogStorageService.normalizeEntriesForAppend(entries)
       if (normalizedBatch.length === 0) {
         return true
       }
       LogStorageService.logEntries = normalizedBatch.concat(LogStorageService.logEntries)
 
-      // 瓒呭嚭鏈€澶ф潯鏁版椂鍒犻櫎鏃ф潯鐩?
+      // Trim oldest entries when the effective max count is exceeded.
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
       let overflowCount = LogStorageService.logEntries.length - maxEntries
       if (overflowCount > 0) {
@@ -167,7 +167,7 @@ export class LogStorageService {
     }
   }
 
-  // 鏍规嵁杩囨护鏉′欢鏌ヨ鏃ュ織
+  // Query entries using the provided filter.
   static queryEntries(filter?: LogFilter): LogEntry[] {
     if (!filter) {
       return LogStorageService.logEntries.slice(0, LogStorageService.logEntries.length)
@@ -184,21 +184,21 @@ export class LogStorageService {
     }
 
     return LogStorageService.logEntries.filter((entry: LogEntry) => {
-      // 浜嬩欢绫诲瀷杩囨护
+      // Filter by event type.
       if (filter.eventTypes && filter.eventTypes.length > 0) {
         if (!filter.eventTypes.includes(entry.eventType)) {
           return false
         }
       }
 
-      // 缁撴灉杩囨护
+      // Filter by result.
       if (filter.results && filter.results.length > 0) {
         if (!filter.results.includes(entry.result)) {
           return false
         }
       }
 
-      // 鏃堕棿鑼冨洿杩囨护
+      // Filter by time range.
       if (
         filter.startTime !== undefined &&
         Number.isFinite(filter.startTime) &&
@@ -214,7 +214,7 @@ export class LogStorageService {
         return false
       }
 
-      // 鍏抽敭瀛楁悳绱?
+      // Filter by keyword.
       if (filter.keyword && filter.keyword.length > 0) {
         let keyword = filter.keyword.toLowerCase()
         let matchDetail = entry.detail.toLowerCase().includes(keyword)
@@ -231,7 +231,7 @@ export class LogStorageService {
     })
   }
 
-  // 鑾峰彇鏃ュ織缁熻淇℃伅
+  // Compute aggregated log statistics.
   static getStatistics(): LogStatistics {
     let todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
@@ -242,16 +242,16 @@ export class LogStorageService {
     let blockedCount = 0
 
     for (let entry of LogStorageService.logEntries) {
-      // 鎸夌被鍨嬬粺璁?
+      // Count by event type.
       let count = byType.get(entry.eventType) || 0
       byType.set(entry.eventType, count + 1)
 
-      // 浠婃棩缁熻
+      // Count today's entries.
       if (entry.timestamp >= todayTimestamp) {
         todayCount++
       }
 
-      // 闃绘浜嬩欢缁熻
+      // Count blocked events.
       if (entry.result === LogEventResult.BLOCKED) {
         blockedCount++
       }
@@ -265,7 +265,7 @@ export class LogStorageService {
     }
   }
 
-  // 娓呯┖鎵€鏈夋棩蹇?
+  // Clear all entries.
   static async clearAll(): Promise<boolean> {
     try {
       LogStorageService.logEntries = []
@@ -279,7 +279,7 @@ export class LogStorageService {
     }
   }
 
-  // 鍒犻櫎鎸囧畾鏃ュ織鏉＄洰
+  // Delete a specific entry by id.
   static async deleteEntry(entryId: string): Promise<boolean> {
     try {
       let initialLength = LogStorageService.logEntries.length
@@ -300,7 +300,7 @@ export class LogStorageService {
     }
   }
 
-  // 瀵煎嚭鏃ュ織涓烘枃鏈?
+  // Export logs as text content.
   static exportToString(entries: LogEntry[], format: LogExportFormat): string {
     switch (format) {
       case LogExportFormat.JSON:
@@ -318,7 +318,7 @@ export class LogStorageService {
     }
   }
 
-  // 瀵煎嚭鏃ュ織鍒版枃浠?
+  // Export logs to a file.
   static async exportToFile(
     entries: LogEntry[],
     format: LogExportFormat,
@@ -555,7 +555,7 @@ export class LogStorageService {
     return LogStorageService.requestDownloadAuthorization()
   }
 
-  // 璁剧疆瀵煎嚭鐩綍
+  // Set the export directory.
   static async setExportDirectory(path: string): Promise<boolean> {
     let cfg = LogStorageService.getConfig()
     cfg.exportTargetType = EXPORT_TARGET_DOWNLOAD
@@ -774,12 +774,12 @@ export class LogStorageService {
     return errorCode === 13900001 || errorCode === 13900002 || errorCode === 201 || errorCode === 202
   }
 
-  // 鑾峰彇褰撳墠鏉＄洰鎬绘暟
+  // Get the current entry count.
   static getEntryCount(): number {
     return LogStorageService.logEntries.length
   }
 
-  // 鑾峰彇瀛樺偍閰嶇疆
+  // Get the current storage config.
   static getConfig(): LogStorageConfig {
     let cfg = LogStorageService.storageConfig
     let copy: LogStorageConfig = {
@@ -803,7 +803,7 @@ export class LogStorageService {
     LogStorageService.changeListeners.delete(listenerId)
   }
 
-  // 鏇存柊瀛樺偍閰嶇疆
+  // Update the storage config.
   static async updateConfig(config: LogStorageConfig): Promise<boolean> {
     try {
       let normalizedConfig = LogStorageService.normalizeStorageConfig(config)
@@ -823,7 +823,7 @@ export class LogStorageService {
     }
   }
 
-  // 鍔犺浇鏃ュ織璁㈤槄閰嶇疆
+  // Load the subscription config.
   static async loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
     if (!LogStorageService.context) {
       return {
@@ -871,7 +871,7 @@ export class LogStorageService {
     }
   }
 
-  // 淇濆瓨鏃ュ織璁㈤槄閰嶇疆
+  // Save the subscription config.
   static async saveSubscriptionConfig(config: LogSubscriptionConfig): Promise<boolean> {
     if (!LogStorageService.context) {
       return false
@@ -899,9 +899,9 @@ export class LogStorageService {
     }
   }
 
-  // ========== 鍐呴儴鏂规硶 ==========
+  // ========== Internal helpers ==========
 
-  // 杩囨护闈炴硶浜嬩欢绫诲瀷骞跺幓閲?
+  // Filter invalid event types and deduplicate values.
   private static sanitizeSubscribedTypes(types: number[]): LogEventType[] {
     let result: LogEventType[] = []
     for (let value of types) {
@@ -1459,7 +1459,7 @@ export class LogStorageService {
     try {
       fileIo.mkdirSync(normalized)
     } catch (_mkdirErr) {
-      // 鐩綍鍙兘鐢卞苟鍙戞祦绋嬪垱寤猴紝鍐嶆鏍￠獙鍗冲彲
+      // The directory may have been created concurrently; recheck before failing.
       let stat = fileIo.statSync(normalized)
       if (!stat.isDirectory()) {
         throw new Error(`Failed to create directory: ${normalized}`)
@@ -1595,7 +1595,7 @@ export class LogStorageService {
     return undefined
   }
 
-  // 褰掍竴鍖栨渶澶у瓨鍌ㄦ潯鏁帮紝閬垮厤杩囧ぇ瀵艰嚧鍐呭瓨宄板€?
+  // Normalize the max entry count to avoid excessive memory usage.
   private static normalizeMaxEntries(maxEntries: number): number {
     if (!Number.isFinite(maxEntries) || maxEntries <= 0) {
       return DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
@@ -1682,12 +1682,12 @@ export class LogStorageService {
     return `persist_${LogStorageService.nowProvider()}_${LogStorageService.randomProvider().toString(36).substring(2, 9)}`
   }
 
-  // 鐢熸晥鐨勫唴瀛樹笂闄?
+  // Effective in-memory entry limit.
   private static getEffectiveMaxEntries(): number {
     return LogStorageService.normalizeMaxEntries(LogStorageService.storageConfig.maxLocalEntries)
   }
 
-  // 鎴柇瓒呴暱瀛楃涓诧紝闃叉鍗曟潯鏃ュ織杩囧ぇ
+  // Truncate oversized strings to keep a single entry bounded.
   private static truncateString(value: string | undefined, limit: number): string | undefined {
     if (value === undefined) {
       return undefined
@@ -1698,7 +1698,7 @@ export class LogStorageService {
     return `${value.substring(0, limit)}...`
   }
 
-  // 鍗曟潯鏃ュ織鐦﹁韩
+  // Compact a single log entry.
   private static normalizeEntry(entry: LogEntry): LogEntry {
     return {
       id: LogStorageService.normalizeEntryId(entry.id),
@@ -1728,12 +1728,12 @@ export class LogStorageService {
       normalizedBatch.push(LogStorageService.normalizeEntry(entry))
     }
 
-    // 褰掍竴鍖栧悗鍙嶈浆锛屼繚璇佹渶缁堚€滄渶鏂板湪鍓嶁€?
+    // Reverse after normalization so the final order remains newest-first.
     normalizedBatch.reverse()
     return normalizedBatch
   }
 
-  // 鎵归噺鏃ュ織鐦﹁韩骞惰繃婊ゅ紓甯搁」
+  // Compact batched entries and drop malformed items.
   private static sanitizeEntries(entries: LogEntry[]): LogEntry[] {
     let result: LogEntry[] = []
     let limit = Math.min(entries.length, LogStorageService.getEffectiveMaxEntries())
@@ -1747,7 +1747,7 @@ export class LogStorageService {
     return result
   }
 
-  // 鏋勫缓鍙畨鍏ㄨ惤鐩樼殑 payload锛堟寜鏉℃暟鍜屽唴瀹瑰ぇ灏忓弻閲嶈鍓級
+  // Build a payload that is safe to persist with both count and size limits.
   private static buildPersistPayload(): string {
     let effectiveMax = LogStorageService.getEffectiveMaxEntries()
     let saveLimit = Math.min(LogStorageService.logEntries.length, effectiveMax, MAX_PERSIST_ENTRIES)
@@ -1771,7 +1771,7 @@ export class LogStorageService {
     return payload
   }
 
-  // 闄愰杈撳嚭瑁佸壀鏃ュ織锛岄伩鍏嶉珮棰戜簨浠朵笅鏃ュ織椋庢毚
+  // Rate-limit truncate warnings to avoid log storms under high-frequency input.
   private static warnPersistTruncate(memoryCount: number, savedCount: number): void {
     let now = LogStorageService.nowProvider()
     if (now - LogStorageService.lastPersistTruncateWarnAt < 10000) {
@@ -1781,7 +1781,7 @@ export class LogStorageService {
     hilog.warn(DOMAIN, TAG, `Persist entries truncated: memory=${memoryCount}, saved=${savedCount}`)
   }
 
-  // 浠?Preferences 鍔犺浇鏃ュ織鏉＄洰
+  // Load entries from Preferences.
   private static async loadEntries(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -1809,7 +1809,7 @@ export class LogStorageService {
     }
   }
 
-  // 鎸佷箙鍖栨棩蹇楁潯鐩埌 Preferences
+  // Persist entries to Preferences.
   private static async saveEntries(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -1825,7 +1825,7 @@ export class LogStorageService {
     }
   }
 
-  // 鍔犺浇瀛樺偍閰嶇疆
+  // Load storage config.
   private static async loadConfig(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -1866,7 +1866,7 @@ export class LogStorageService {
     }
   }
 
-  // 淇濆瓨瀛樺偍閰嶇疆
+  // Save storage config.
   private static async saveConfig(): Promise<void> {
     if (!LogStorageService.context) {
       return
@@ -1898,7 +1898,7 @@ export class LogStorageService {
     }
   }
 
-  // 娓呯悊杩囨湡鏃ュ織鏉＄洰
+  // Remove expired log entries.
   private static cleanExpiredEntries(): number {
     let retentionDays = LogStorageService.normalizeRetentionDays(LogStorageService.storageConfig.retentionDays)
     let retentionMs = retentionDays * 24 * 60 * 60 * 1000
@@ -1916,7 +1916,7 @@ export class LogStorageService {
     return removed
   }
 
-  // 转换为 CSV 格式
+  // Convert to CSV format.
   private static toCsv(entries: LogEntry[]): string {
     let header = '时间,事件类型,详情,进程名,PID,结果'
     let lines: string[] = [header]
@@ -1924,7 +1924,7 @@ export class LogStorageService {
     for (let entry of entries) {
       let time = formatLogTimestamp(entry.timestamp)
       let type = getLogEventTypeLabel(entry.eventType)
-      // CSV 中双引号转义
+      // Escape double quotes in CSV fields.
       let detail = `"${entry.detail.replace(/"/g, '""')}"`
       let process = entry.processName || ''
       let pid = entry.pid !== undefined ? entry.pid.toString() : ''
@@ -1936,7 +1936,7 @@ export class LogStorageService {
     return lines.join('\r\n')
   }
 
-  // 转换为纯文本格式
+  // Convert to plain text format.
   private static toTxt(entries: LogEntry[]): string {
     let lines: string[] = []
 
