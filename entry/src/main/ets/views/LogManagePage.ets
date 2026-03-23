@@ -566,27 +566,6 @@ export struct LogManagePage {
     this.openDetailTableDialog('日志详情', fields)
   }
 
-  private showLogDetailDialog(entry: LogEntry): void {
-    AlertDialog.show({
-      title: '日志详情',
-      message:
-        `时间: ${formatLogTimestamp(entry.timestamp)}\n` +
-        `类型: ${getLogEventTypeLabel(entry.eventType)}\n` +
-        `结果: ${getLogEventResultLabel(entry.result)}\n` +
-        `详情: ${this.displayField(entry.detail)}\n` +
-        `进程: ${this.displayField(entry.processName)}\n` +
-        `PID: ${this.displayField(entry.pid)}\n` +
-        `UID: ${this.displayField(entry.uid)}\n` +
-        `文件路径: ${this.displayField(entry.filePath)}\n` +
-        `远端地址: ${this.displayField(entry.remoteAddr)}\n` +
-        `源事件 ID: ${this.displayField(entry.sourceEventId)}\n` +
-        `源子类型: ${this.displayField(entry.sourceSubType)}\n` +
-        `原始事件名: ${this.displayField(entry.rawEventName)}\n` +
-        `原始结果: ${this.displayField(entry.rawOutcome)}`,
-      primaryButton: { value: '关闭', action: () => {} }
-    })
-  }
-
   clearLogs() {
     AlertDialog.show({
       title: '确认清空',

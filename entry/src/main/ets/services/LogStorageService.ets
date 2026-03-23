@@ -1185,39 +1185,6 @@ export class LogStorageService {
     return normalized.startsWith('/')
   }
 
-  private static normalizeTargetType(
-    targetType: LogExportTargetType | string | undefined
-  ): LogExportTargetType | undefined {
-    if (
-      targetType === EXPORT_TARGET_DOWNLOAD ||
-      targetType === EXPORT_TARGET_DOCUMENTS ||
-      targetType === EXPORT_TARGET_DESKTOP
-    ) {
-      return targetType
-    }
-    return undefined
-  }
-
-  private static resolveLegacyPublicTargetType(path: string): LogExportTargetType | undefined {
-    let current = LogStorageService.normalizePathForCompare(path)
-    let candidates: LogExportTargetType[] = [
-      EXPORT_TARGET_DOWNLOAD,
-      EXPORT_TARGET_DOCUMENTS,
-      EXPORT_TARGET_DESKTOP
-    ]
-    for (let item of candidates) {
-      let expected = LogStorageService.resolvePublicDirectoryByType(item)
-      if (!expected) {
-        continue
-      }
-      let expectedNormalized = LogStorageService.normalizePathForCompare(expected)
-      if (current === expectedNormalized || current.startsWith(`${expectedNormalized}/`)) {
-        return item
-      }
-    }
-    return undefined
-  }
-
   private static createDefaultTargetConfig(baseConfig?: LogStorageConfig): LogStorageConfig {
     let maxLocalEntries = LogStorageService.normalizeMaxEntries(
       baseConfig?.maxLocalEntries ?? DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
@@ -1296,24 +1263,6 @@ export class LogStorageService {
     return normalized
   }
 
-  private static resolveConfiguredPublicDirectory(
-    targetType: LogExportTargetType,
-    preferredPath?: string
-  ): string | undefined {
-    let defaultPath = LogStorageService.resolvePublicDirectoryByType(targetType)
-    if (!preferredPath || preferredPath.trim().length === 0) {
-      return defaultPath
-    }
-    return defaultPath
-  }
-
-  private static resolveDefaultExportDirectoryFromCurrentContext(): string {
-    if (!LogStorageService.context) {
-      return ''
-    }
-    return LogStorageService.resolveDefaultExportDirectory(LogStorageService.context)
-  }
-
   private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
     let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
     let directoryUri = LogStorageService.sanitizeExportTargetUri(normalizedConfig.exportTargetValue)
@@ -1336,11 +1285,6 @@ export class LogStorageService {
       LogStorageService.storageConfig = normalizedConfig
       await LogStorageService.saveConfig()
     }
-  }
-
-  private static async fallbackToDefaultExportTarget(): Promise<void> {
-    LogStorageService.storageConfig = LogStorageService.createDefaultTargetConfig(LogStorageService.storageConfig)
-    await LogStorageService.saveConfig()
   }
 
   private static buildExportFileName(format: LogExportFormat, count: number, timestamp: number): string {
@@ -1573,28 +1517,6 @@ export class LogStorageService {
     return undefined
   }
 
-  private static extractPolicyErrorCode(err: Object): number | undefined {
-    let dataValue = (err as Record<string, Object>)['data']
-    if (!Array.isArray(dataValue) || dataValue.length === 0) {
-      return undefined
-    }
-
-    let first = dataValue[0] as Record<string, Object>
-    if (!first) {
-      return undefined
-    }
-
-    let codeValue = first['code']
-    if (typeof codeValue === 'number') {
-      return codeValue
-    }
-    if (typeof codeValue === 'string') {
-      let parsed = Number(codeValue)
-      return Number.isNaN(parsed) ? undefined : parsed
-    }
-    return undefined
-  }
-
   // Normalize the max entry count to avoid excessive memory usage.
   private static normalizeMaxEntries(maxEntries: number): number {
     if (!Number.isFinite(maxEntries) || maxEntries <= 0) {
@@ -1623,31 +1545,6 @@ export class LogStorageService {
     }
 
     return normalized
-  }
-
-  private static normalizeBoolean(value: Object, fallback: boolean): boolean {
-    if (typeof value === 'boolean') {
-      return value
-    }
-    if (typeof value === 'number') {
-      if (value === 1) {
-        return true
-      }
-      if (value === 0) {
-        return false
-      }
-      return fallback
-    }
-    if (typeof value === 'string') {
-      let normalized = value.trim().toLowerCase()
-      if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
-        return true
-      }
-      if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
-        return false
-      }
-    }
-    return fallback
   }
 
   private static normalizeTimestamp(ts: number): number {

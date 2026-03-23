@@ -94,31 +94,6 @@ function normalizeRetentionDays(days: number): number {
   return normalized
 }
 
-function normalizeBoolean(value: Object, fallback: boolean): boolean {
-  if (typeof value === 'boolean') {
-    return value
-  }
-  if (typeof value === 'number') {
-    if (value === 1) {
-      return true
-    }
-    if (value === 0) {
-      return false
-    }
-    return fallback
-  }
-  if (typeof value === 'string') {
-    let normalized = value.trim().toLowerCase()
-    if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
-      return true
-    }
-    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
-      return false
-    }
-  }
-  return fallback
-}
-
 function normalizeTimestamp(ts: number, now: number): number {
   if (!Number.isFinite(ts) || ts < 0) {
     return now
@@ -248,14 +223,6 @@ export default function logManageServiceTest() {
         expect(normalizeRetentionDays(-1)).assertEqual(30)
         expect(normalizeRetentionDays(5000)).assertEqual(3650)
         expect(normalizeRetentionDays(90.7)).assertEqual(90)
-      })
-
-      it('should normalize boolean strings and numbers', 0, () => {
-        expect(normalizeBoolean('yes' as Object, false)).assertTrue()
-        expect(normalizeBoolean('off' as Object, true)).assertFalse()
-        expect(normalizeBoolean(1 as Object, false)).assertTrue()
-        expect(normalizeBoolean(0 as Object, true)).assertFalse()
-        expect(normalizeBoolean('unknown' as Object, true)).assertTrue()
       })
 
       it('should normalize invalid timestamp using deterministic now', 0, () => {
