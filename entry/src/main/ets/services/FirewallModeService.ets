@@ -1,5 +1,6 @@
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
+import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
   FirewallModeSwitchResult,
@@ -41,22 +42,15 @@ export class FirewallModeService {
     let targetRules = targetMode === 'custom'
       ? await FirewallCustomRuleService.buildRulesForApply(context)
       : await FirewallPresetService.buildRules(context, targetMode)
-    let applied = await FirewallService.applyRuleSet(targetRules, targetMode)
-    if (!applied) {
-      return {
-        success: false,
-        mode: targetMode,
-        appliedRuleCount: 0,
-        errorCode: FirewallService.getLastErrorCode(),
-        errorMessage: FirewallService.getLastErrorText()
-      }
-    }
-    await FirewallModeService.saveCurrentMode(context, targetMode)
-    return {
-      success: true,
-      mode: targetMode,
-      appliedRuleCount: targetRules.length
-    }
+    return FirewallModeService.applyModeRules(context, targetMode, targetRules)
+  }
+
+  static async applyCustomRules(
+    context: common.UIAbilityContext,
+    rules: netFirewall.NetFirewallRule[]
+  ): Promise<FirewallModeSwitchResult> {
+    await FirewallModeService.initialize(context)
+    return FirewallModeService.applyModeRules(context, 'custom', rules)
   }
 
   private static async getStoredModeValue(context: common.UIAbilityContext): Promise<string> {
@@ -77,6 +71,29 @@ export class FirewallModeService {
       await store.flush()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private static async applyModeRules(
+    context: common.UIAbilityContext,
+    targetMode: FirewallPresetMode,
+    targetRules: netFirewall.NetFirewallRule[]
+  ): Promise<FirewallModeSwitchResult> {
+    let applied = await FirewallService.applyRuleSet(targetRules, targetMode)
+    if (!applied) {
+      return {
+        success: false,
+        mode: targetMode,
+        appliedRuleCount: 0,
+        errorCode: FirewallService.getLastErrorCode(),
+        errorMessage: FirewallService.getLastErrorText()
+      }
+    }
+    await FirewallModeService.saveCurrentMode(context, targetMode)
+    return {
+      success: true,
+      mode: targetMode,
+      appliedRuleCount: targetRules.length
     }
   }
 }

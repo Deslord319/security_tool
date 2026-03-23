@@ -911,7 +911,9 @@ export class FirewallService {
       localIps: FirewallService.sanitizeLogIpParams(rule.localIps),
       remoteIps: FirewallService.sanitizeLogIpParams(rule.remoteIps),
       localPorts: rule.localPorts,
-      remotePorts: rule.remotePorts
+      remotePorts: rule.remotePorts,
+      domains: FirewallService.cloneDomainParams(rule.domains),
+      dns: FirewallService.cloneDnsParams(rule.dns)
     }
     hilog.info(DOMAIN, TAG, `${prefix}: ${JSON.stringify(summary)}`)
   }

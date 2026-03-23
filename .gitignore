@@ -38,3 +38,6 @@ scripts/e2e/results/*.md
 
 # E2E artifacts (screenshots, debug files)
 scripts/e2e/artifacts/
+
+# Agent observer index
+agent-observer/data/runs-index.json

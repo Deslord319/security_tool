@@ -55,14 +55,21 @@ export struct FirewallRulesPage {
 
   private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
     let context = getContext(this) as common.UIAbilityContext
-    let saved = await FirewallCustomRuleService.replaceAllRules(context, nextRules)
-    if (!saved) {
-      promptAction.showToast({ message: '自定义规则保存失败' })
-      return
-    }
-    let result = await FirewallModeService.switchMode(context, 'custom')
+    let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
+    let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {
       promptAction.showToast({ message: result.errorMessage?.length ? result.errorMessage : '自定义规则下发失败' })
+      return
+    }
+    let saved = await FirewallCustomRuleService.replaceAllRules(context, nextRules)
+    if (!saved) {
+      let rollbackResult = await FirewallModeService.applyCustomRules(context, previousRules)
+      if (!rollbackResult.success) {
+        promptAction.showToast({ message: '规则已下发，但本地保存失败，请重新进入页面确认' })
+        return
+      }
+      await this.loadRules()
+      promptAction.showToast({ message: '自定义规则保存失败，已恢复原策略' })
       return
     }
     await this.loadRules()
