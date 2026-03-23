@@ -73,21 +73,12 @@ export class FirewallService {
   private static lastErrorMessage: string = ''
   private static lastErrorKind: FirewallErrorKind = 'unknown'
 
-  static createAnyIpv4RangeParam(): netFirewall.NetFirewallIpParams {
-    return {
-      type: 2,
-      family: 1,
-      startIp: '0.0.0.0',
-      endIp: '255.255.255.255'
-    }
-  }
-
   static normalizeRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
-    let clonedRule = FirewallService.cloneRuleForCreate(rule)
-    if (clonedRule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      clonedRule.remoteIps = FirewallService.normalizeCreateIpParams(clonedRule.remoteIps)
+    if (rule.type !== netFirewall.NetFirewallRuleType.RULE_IP) {
+      return FirewallService.cloneRuleForCreate(rule)
     }
-    return clonedRule
+    let normalizedRemoteIps = FirewallService.normalizeCreateIpParams(rule.remoteIps)
+    return FirewallService.cloneRuleForCreate(rule, normalizedRemoteIps, normalizedRemoteIps !== undefined)
   }
 
   static getRulePrimaryKey(rule: netFirewall.NetFirewallRule): number | undefined {
@@ -319,7 +310,11 @@ export class FirewallService {
     return -1
   }
 
-  static cloneRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
+  static cloneRuleForCreate(
+    rule: netFirewall.NetFirewallRule,
+    remoteIpsOverride?: netFirewall.NetFirewallIpParams[],
+    includeRemoteIps: boolean = true
+  ): netFirewall.NetFirewallRule {
     let clonedRule: netFirewall.NetFirewallRule = {
       userId: FirewallService.normalizeNumber(rule.userId) ?? DEFAULT_USER_ID,
       name: rule.name,
@@ -339,9 +334,11 @@ export class FirewallService {
     if (localIps !== undefined) {
       clonedRule.localIps = localIps
     }
-    let remoteIps = FirewallService.cloneIpParams(rule.remoteIps)
-    if (remoteIps !== undefined) {
-      clonedRule.remoteIps = remoteIps
+    if (includeRemoteIps) {
+      let remoteIps = remoteIpsOverride ?? FirewallService.cloneIpParams(rule.remoteIps)
+      if (remoteIps !== undefined) {
+        clonedRule.remoteIps = remoteIps
+      }
     }
     let protocol = FirewallService.normalizeNumber(rule.protocol)
     if (protocol !== undefined) {
@@ -401,10 +398,14 @@ export class FirewallService {
   private static normalizeCreateIpParam(
     source: netFirewall.NetFirewallIpParams
   ): netFirewall.NetFirewallIpParams | undefined {
-    if (source.address === '0.0.0.0' && FirewallService.normalizeNumber(source.mask) === 0) {
-      return FirewallService.createAnyIpv4RangeParam()
+    if (FirewallService.isAnyIpv4Param(source)) {
+      return undefined
     }
     return FirewallService.sanitizeIpParam(source)
+  }
+
+  private static isAnyIpv4Param(source: netFirewall.NetFirewallIpParams): boolean {
+    return source.address === '0.0.0.0' && FirewallService.normalizeNumber(source.mask) === 0
   }
 
   private static sanitizeIpParam(
