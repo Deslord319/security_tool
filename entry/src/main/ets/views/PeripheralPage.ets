@@ -1189,15 +1189,29 @@ export struct PeripheralPage {
       PeripheralService.USB_DEVICE_POLICY_DENY
     this.markPeripheralPolicyUpdating(record.deviceId, true)
     try {
+      hilog.info(
+        0x0002,
+        TAG,
+        `peripheralPolicy update start, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}`
+      )
       let result = await this.runUsbOperationWithLoading(
         '正在更新 USB 设备策略，请稍候',
         (): OperationResult<void> => {
-          return PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
+          let actionResult = PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
+          this.refreshPeripheralPolicyRecords()
+          if (actionResult.success) {
+            this.reloadDeviceRecords()
+          }
+          return actionResult
         }
       )
 
-      this.refreshPeripheralPolicyRecords()
       if (!result.success) {
+        hilog.error(
+          0x0002,
+          TAG,
+          `peripheralPolicy update failed, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
+        )
         let userMessage = result.userMessage?.trim()
         if (userMessage) {
           promptAction.showToast({ message: userMessage })
@@ -1207,7 +1221,11 @@ export struct PeripheralPage {
         return
       }
 
-      this.reloadDeviceRecords()
+      hilog.info(
+        0x0002,
+        TAG,
+        `peripheralPolicy update success, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}`
+      )
       promptAction.showToast({ message: result.userMessage ?? '设备访问策略已更新' })
     } finally {
       this.markPeripheralPolicyUpdating(record.deviceId, false)
