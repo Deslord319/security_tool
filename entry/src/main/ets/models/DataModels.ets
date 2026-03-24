@@ -5,18 +5,15 @@ export enum RuleType {
   DNS = 3
 }
 
-
 export enum RuleDirection {
   IN = 1,
   OUT = 2
 }
 
-
 export enum RuleAction {
   ALLOW = 0,
   DENY = 1
 }
-
 
 export enum ProtocolType {
   ALL = 0,
@@ -24,7 +21,6 @@ export enum ProtocolType {
   UDP = 17,
   ICMP = 1
 }
-
 
 export interface FirewallRuleDisplay {
   ruleId: number
@@ -38,7 +34,6 @@ export interface FirewallRuleDisplay {
   isEnabled: boolean
 }
 
-
 export interface StatCardData {
   label: string
   value: string
@@ -46,7 +41,6 @@ export interface StatCardData {
   gradientEnd: string
   icon: Resource
 }
-
 
 export interface ToolCardData {
   label: string
@@ -56,7 +50,6 @@ export interface ToolCardData {
   gradientEnd: string
 }
 
-
 export interface RuleTypeData {
   label: string
   description: string
@@ -64,7 +57,6 @@ export interface RuleTypeData {
   count: number
   iconColor: string
 }
-
 
 export function getRuleTypeLabel(type: RuleType): string {
   switch (type) {
@@ -79,7 +71,6 @@ export function getRuleTypeLabel(type: RuleType): string {
   }
 }
 
-
 export function getDirectionLabel(dir: RuleDirection): string {
   switch (dir) {
     case RuleDirection.IN:
@@ -90,7 +81,6 @@ export function getDirectionLabel(dir: RuleDirection): string {
       return '未知'
   }
 }
-
 
 export function getProtocolLabel(proto: ProtocolType): string {
   switch (proto) {
@@ -106,7 +96,6 @@ export function getProtocolLabel(proto: ProtocolType): string {
       return 'ALL'
   }
 }
-
 
 export function getActionLabel(action: RuleAction): string {
   switch (action) {
@@ -128,7 +117,6 @@ export enum PeripheralType {
   BLUETOOTH = 'bluetooth'
 }
 
-
 export enum InterfaceFeature {
   USB = 'usb',
   BLUETOOTH = 'bluetooth',
@@ -136,16 +124,13 @@ export enum InterfaceFeature {
   HDC = 'hdc'
 }
 
-
 export enum UsbStoragePolicy {
   READ_WRITE = 0,
   READ_ONLY = 1,
   DISABLED = 2
 }
 
-
 export type EnterpriseAdminType = 'super' | 'byod'
-
 
 export interface AdminActivationState {
   activated: boolean
@@ -154,7 +139,6 @@ export interface AdminActivationState {
   enableCommand: string
   adminType: EnterpriseAdminType
 }
-
 
 export interface OperationResult<T = void> {
   success: boolean
@@ -166,7 +150,6 @@ export interface OperationResult<T = void> {
   stage?: string
   suggestion?: string
 }
-
 
 export interface DeviceRecord {
   deviceName: string
@@ -307,7 +290,6 @@ export interface PeripheralTraceStats {
   snapshotCount: number
 }
 
-
 export interface DeviceControlRecord {
   deviceName: string
   deviceType: PeripheralType
@@ -325,13 +307,11 @@ export interface PeripheralPolicyRecord {
   policyIndex: number
 }
 
-
 export interface UsbWhitelistItem {
   vendorId: number
   productId: number
   remark: string
 }
-
 
 export interface UsbBlacklistItem {
   baseClass: number
@@ -340,12 +320,10 @@ export interface UsbBlacklistItem {
   description: string
 }
 
-
 export interface BluetoothWhitelistItem {
   deviceId: string
   remark: string
 }
-
 
 export interface InterfaceControlConfig {
   feature: string
@@ -354,7 +332,6 @@ export interface InterfaceControlConfig {
   options: string[]
   selectedIndex: number
 }
-
 
 export function getPeripheralTypeLabel(type: PeripheralType): string {
   switch (type) {
@@ -374,7 +351,6 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
       return '未知'
   }
 }
-
 
 export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   switch (policy) {
@@ -439,7 +415,6 @@ export interface ParsedUsbId {
   productId: number
 }
 
-
 export function parseUsbDeviceId(deviceId: string): ParsedUsbId | null {
   let match = deviceId.match(/VID:([0-9A-Fa-f]+)\s+PID:([0-9A-Fa-f]+)/)
   if (!match) {
@@ -452,12 +427,10 @@ export function parseUsbDeviceId(deviceId: string): ParsedUsbId | null {
   return result
 }
 
-
 export function parseBluetoothMac(deviceId: string): string | null {
   let match = deviceId.match(/MAC:\s*([0-9A-Fa-f:]+)/)
   return match ? match[1] : null
 }
-
 
 export function formatUsbDeviceId(vendorId: number, productId: number): string {
   return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
@@ -477,7 +450,6 @@ export function inferUsbBaseClass(type: PeripheralType): number {
       return 0
   }
 }
-
 
 export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralType {
   switch (baseClass) {
@@ -503,34 +475,28 @@ export interface PasswordComplexityConfig {
   validityPeriod: number
 }
 
-
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
 export const PASSWORD_VALIDITY_OPTIONS: number[] = [0, 30, 60, 90]
-
 
 export enum AuthMethod {
   PIN = 1,
   FINGERPRINT = 4
 }
 
-
 export interface ToolSettingsConfig {
   startupAuthEnabled: boolean
   authMethod: AuthMethod
 }
-
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettingsConfig = {
   startupAuthEnabled: false,
   authMethod: AuthMethod.PIN
 }
 
-
 export interface AuthMethodOption {
   label: string
   value: AuthMethod
 }
-
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
   { label: 'PIN', value: AuthMethod.PIN } as AuthMethodOption,
@@ -568,13 +534,11 @@ export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
 export const PREF_STORE_NAME_TOOL = 'tool_settings'
 
-
 export type FirewallToggleRejectReason =
   'lockout' |
   'pin_unavailable' |
   'pin_failed' |
   'policy_apply_failed'
-
 
 export interface FirewallToggleResult {
   success: boolean
@@ -614,7 +578,6 @@ export interface UserFirewallActionResult {
   message?: string
 }
 
-
 export const PREF_STORE_NAME_FIREWALL_AUTH = 'firewall_auth'
 export const PREF_KEY_FIREWALL_PIN_FAILED_COUNT = 'firewall_pin_failed_count'
 export const PREF_KEY_FIREWALL_PIN_LOCK_UNTIL = 'firewall_pin_lock_until'
@@ -624,9 +587,6 @@ export const PREF_STORE_NAME_FIREWALL_MODE = 'firewall_mode'
 export const PREF_KEY_FIREWALL_ACTIVE_MODE = 'firewall_active_mode'
 export const PREF_STORE_NAME_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules'
 export const PREF_KEY_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules_payload'
-
-
-
 
 export enum LogEventType {
   CRASH = 0,
@@ -730,7 +690,6 @@ export enum LogExportFormat {
 export type LogExportTrigger = 'manual' | 'auto'
 
 export type LogExportRecoveryAction = 'pick_directory' | 'authorize_download'
-
 
 export interface LogExportResult {
   success: boolean

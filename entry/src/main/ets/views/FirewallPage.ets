@@ -107,7 +107,6 @@ export struct FirewallPage {
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
 
-
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
@@ -354,7 +353,6 @@ export struct FirewallPage {
       this.onNavigateToRules()
     }
   }
-
 
   @Builder
   private modeCard(mode: FirewallPresetMode) {
