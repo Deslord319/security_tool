@@ -50,6 +50,7 @@ import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessa
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlPanel } from '../components/peripheral/InterfaceControlPanel'
+import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -1018,7 +1019,11 @@ export struct PeripheralPage {
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
       if (this.isConnectionDetailDialogVisible) {
-        this.connectionRecordDetailDialog()
+        ConnectionDetailDialog({
+          selectedRecord: this.selectedConnectionRecord,
+          currentTheme: this.currentTheme,
+          onClose: () => this.closeConnectionDetailDialog()
+        })
       }
     }
     .width('100%')
