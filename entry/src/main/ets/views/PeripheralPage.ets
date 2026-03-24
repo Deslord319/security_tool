@@ -5,7 +5,7 @@ import { PeripheralConnectionRecordService } from '../services/PeripheralConnect
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
-import { EmptyStatePanel， EmptyStateCard } from '../components/EmptyStatePanel'
+import { EmptyStateCard, EmptyStatePanel } from '../components/EmptyStatePanel'
 import {
   AdminActivationState,
   DeviceControlRecord,
@@ -378,6 +378,24 @@ export struct PeripheralPage {
       return this.getCandidateSortWeight(left.source) - this.getCandidateSortWeight(right.source)
     }
     return right.timestamp - left.timestamp
+  }
+
+  private setPanelHover(index: number, isHover: boolean): void {
+    HoverUtils.animate(() => {
+      this.hoveredPanelIndex = isHover ? index : -1
+    })
+  }
+
+  private setDeviceRecordHover(index: number, isHover: boolean): void {
+    HoverUtils.animate(() => {
+      this.hoveredDeviceRecordIndex = isHover ? index : -1
+    })
+  }
+
+  private setPolicyRecordHover(index: number, isHover: boolean): void {
+    HoverUtils.animate(() => {
+      this.hoveredPolicyRecordIndex = isHover ? index : -1
+    })
   }
 
   private getUsbWhitelistCandidates(): PeripheralWhitelistCandidate[] {
@@ -1884,9 +1902,7 @@ export struct PeripheralPage {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
     .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredDeviceRecordIndex = isHover ? index : -1
-      })
+      this.setDeviceRecordHover(index, isHover)
     })
   }
 
@@ -2186,9 +2202,7 @@ export struct PeripheralPage {
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
         .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredPanelIndex = isHover ? 0 : -1
-          })
+          this.setPanelHover(0, isHover)
         })
       }
       .width('100%')
@@ -2345,9 +2359,7 @@ export struct PeripheralPage {
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 1, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 1, 4) })
         .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredPanelIndex = isHover ? 1 : -1
-          })
+          this.setPanelHover(1, isHover)
         })
       }
       .width('100%')
@@ -2512,9 +2524,7 @@ export struct PeripheralPage {
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 2, true))
     .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 2, 4) })
     .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredPanelIndex = isHover ? 2 : -1
-      })
+      this.setPanelHover(2, isHover)
     })
   }
 
@@ -2624,9 +2634,7 @@ export struct PeripheralPage {
                   .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
                   .translate({ y: HoverUtils.getTranslateY(this.hoveredPolicyRecordIndex === index, 2) })
                   .onHover((isHover: boolean) => {
-                    HoverUtils.animate(() => {
-                      this.hoveredPolicyRecordIndex = isHover ? index : -1
-                    })
+                    this.setPolicyRecordHover(index, isHover)
                   })
 
                   if (index < this.peripheralPolicyRecords.length - 1) {
@@ -2651,9 +2659,7 @@ export struct PeripheralPage {
           .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
           .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
           .onHover((isHover: boolean) => {
-            HoverUtils.animate(() => {
-              this.hoveredPanelIndex = isHover ? 3 : -1
-            })
+            this.setPanelHover(3, isHover)
           })
         }
       }
@@ -2754,9 +2760,7 @@ export struct PeripheralPage {
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
         .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredPanelIndex = isHover ? 3 : -1
-          })
+          this.setPanelHover(3, isHover)
         })
 
         // USB 设备类型黑名单
@@ -2847,9 +2851,7 @@ export struct PeripheralPage {
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 4, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 4, 4) })
         .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredPanelIndex = isHover ? 4 : -1
-          })
+          this.setPanelHover(4, isHover)
         })
 
         // 蓝牙白名单
@@ -2928,9 +2930,7 @@ export struct PeripheralPage {
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 5, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 5, 4) })
         .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredPanelIndex = isHover ? 5 : -1
-          })
+          this.setPanelHover(5, isHover)
         })
       }
       .width('100%')
