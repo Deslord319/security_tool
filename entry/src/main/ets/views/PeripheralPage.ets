@@ -391,15 +391,27 @@ export struct PeripheralPage {
       return
     }
 
-    // 向左滑动（从右到左）：切换到下一个 Tab
-    if (offsetX < 0 && this.touchStartTab < 2) {
-      this.switchToTab(this.touchStartTab + 1)
+    // 向右滑动：去序号更大的 Tab（循环：Tab 2 → Tab 0）
+    if (offsetX > 0) {
+      if (this.touchStartTab === 0) {
+        this.switchToTab(1)
+      } else if (this.touchStartTab === 1) {
+        this.switchToTab(2)
+      } else if (this.touchStartTab === 2) {
+        this.switchToTab(0)
+      }
       return
     }
 
-    // 向右滑动（从左到右）：切换到上一个 Tab
-    if (offsetX > 0 && this.touchStartTab > 0) {
-      this.switchToTab(this.touchStartTab - 1)
+    // 向左滑动：去序号更小的 Tab（循环：Tab 0 → Tab 2）
+    if (offsetX < 0) {
+      if (this.touchStartTab === 0) {
+        this.switchToTab(2)
+      } else if (this.touchStartTab === 1) {
+        this.switchToTab(0)
+      } else if (this.touchStartTab === 2) {
+        this.switchToTab(1)
+      }
     }
   }
 
