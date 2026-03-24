@@ -18,7 +18,7 @@ const DOMAIN = 0x0001
 @CustomDialog
 export struct UserFirewallControlDialog {
   controller: CustomDialogController
-  onActionCompleted: () => void = () => {}
+  onActionCompleted: (userId: number, enabled: boolean) => Promise<void> = async (_userId: number, _enabled: boolean) => {}
 
   @State users: UserFirewallOption[] = []
   @State selectedIndex: number = 0
@@ -126,14 +126,16 @@ export struct UserFirewallControlDialog {
         'failure',
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
-
-      })
       return
     }
 
-    hilog.info(DOMAIN, TAG, `user firewall updated, userId=${userId}, enabled=${enabled}`)
+    hilog.info(DOMAIN, TAG, `user firewall updated, userId=${this.selectedUserId}, enabled=${enabled}`)
 
-    this.onActionCompleted()
+    try {
+      await this.onActionCompleted(this.selectedUserId, enabled)
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `onActionCompleted failed: ${JSON.stringify(err)}`)
+    }
     await this.loadPolicyForSelectedUser()
   }
 
@@ -158,7 +160,7 @@ export struct UserFirewallControlDialog {
   build() {
     Column({ space: 16 }) {
       Row() {
-        Text('按用户ID控制')
+        Text('按用户ID控制主防火墙')
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -174,7 +176,7 @@ export struct UserFirewallControlDialog {
       }
       .width('100%')
 
-      Text('从系统已激活的用户列表中选择目标 userId，读取并切换该用户的主防火墙状态。')
+      Text('从系统已激活的用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需完成 PIN 验证。')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

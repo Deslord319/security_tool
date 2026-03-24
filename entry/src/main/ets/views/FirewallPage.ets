@@ -1,5 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { BackNavButton } from '../components/BackNavButton'
+import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
+import { FirewallService } from '../services/FirewallService'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -12,6 +14,7 @@ import { HoverUtils } from '../utils/HoverUtils'
 const TAG = 'FirewallPage'
 const DOMAIN = 0x0010
 const MIN_MODE_LOADING_DIALOG_DURATION_MS = 500
+const DEFAULT_FIREWALL_USER_ID = 100
 
 @CustomDialog
 struct FirewallModeLoadingDialog {
@@ -69,6 +72,7 @@ export struct FirewallPage {
     autoCancel: false,
     customStyle: true
   })
+  private userFirewallDialogController?: CustomDialogController
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled
@@ -76,6 +80,7 @@ export struct FirewallPage {
 
   aboutToDisappear() {
     this.closeModeLoadingDialog()
+    this.closeUserFirewallDialog()
   }
 
   async handleToggleWithAuth(isOn: boolean) {
@@ -280,6 +285,46 @@ export struct FirewallPage {
 
   private getModeCardScale(mode: FirewallPresetMode): number {
     return HoverUtils.getScale(this.isModeHovered(mode))
+  }
+
+  private openUserFirewallDialog(): void {
+    this.closeUserFirewallDialog()
+    this.userFirewallDialogController = new CustomDialogController({
+      builder: UserFirewallControlDialog({
+        controller: this.userFirewallDialogController,
+        onActionCompleted: async (userId: number, enabled: boolean): Promise<void> => {
+          await this.handleUserFirewallActionCompleted(userId, enabled)
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    })
+    this.userFirewallDialogController.open()
+  }
+
+  private closeUserFirewallDialog(): void {
+    try {
+      this.userFirewallDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.userFirewallDialogController = undefined
+    }
+  }
+
+  private async handleUserFirewallActionCompleted(userId: number, enabled: boolean): Promise<void> {
+    if (userId !== DEFAULT_FIREWALL_USER_ID) {
+      return
+    }
+    let nextEnabled = enabled
+    let policy = await FirewallService.getFirewallPolicy()
+    if (policy !== null) {
+      nextEnabled = policy.isOpen
+    } else {
+      hilog.warn(DOMAIN, TAG, 'sync default firewall state fallback to requested value after user-specific update')
+    }
+    this.firewallSwitchValue = nextEnabled
+    this.onFirewallToggle(nextEnabled)
   }
 
   private openModeLoadingDialog(): void {
@@ -509,7 +554,7 @@ export struct FirewallPage {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text(' 统一配置网络访问规则，精准控制应用与设备的通信行为，降低未授权连接带来的安全风险')
+              Text('点击模式卡片后，后端先执行策略切换，只有成功后当前模式标记才会移动。如需按指定 userId 单独启用或关闭主防火墙，请使用“按用户ID控制”，并完成 PIN 验证。')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
@@ -542,6 +587,25 @@ export struct FirewallPage {
             this.modeCard('public')
             this.modeCard('private')
             this.modeCard('custom')
+
+            Button('按用户ID控制')
+              .type(ButtonType.Normal)
+              .width('100%')
+              .height(42)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.BRAND_PRIMARY)
+              .backgroundColor(this.getThemeColors().BG_CARD)
+              .borderRadius(AppStyles.RADIUS_MD)
+              .border({
+                width: 1,
+                color: this.getThemeColors().BORDER
+              })
+              .enabled(!this.isToggleProcessing && !this.isModeProcessing)
+              .opacity(!this.isToggleProcessing && !this.isModeProcessing ? 1 : 0.5)
+              .onClick(() => {
+                this.openUserFirewallDialog()
+              })
           }
           .width('100%')
         }
