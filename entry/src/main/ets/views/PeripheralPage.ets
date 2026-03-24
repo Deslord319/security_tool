@@ -5,6 +5,7 @@ import { PeripheralConnectionRecordService } from '../services/PeripheralConnect
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
+import { EmptyStatePanel， EmptyStateCard } from '../components/EmptyStatePanel'
 import {
   AdminActivationState,
   DeviceControlRecord,
@@ -2143,26 +2144,17 @@ export struct PeripheralPage {
   }
 
   @Builder
-  private connectionRecordsPanel() {
+  private deviceRecordsBuilder() {
     Scroll() {
       Column({ space: 0 }) {
         Column({ space: 0 }) {
           if (this.deviceRecords.length === 0) {
-            Column({ space: 10 }) {
-              Text('暂无设备连接记录')
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-              Text('暂无实时记录，请重新插拔设备后刷新。')
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-                .textAlign(TextAlign.Center)
-            }
-            .width('100%')
-            .padding({ left: 20, right: 20, top: 42, bottom: 42 })
-            .alignItems(HorizontalAlign.Center)
+            EmptyStatePanel({
+              title: '暂无设备连接记录',
+              description: '暂无实时记录，请重新插拔设备后刷新。',
+              radius: AppStyles.RADIUS_LG,
+              verticalPadding: 24
+            })
           } else {
             Column({ space: 0 }) {
               this.connectionTableHeader()
@@ -2212,11 +2204,6 @@ export struct PeripheralPage {
     .height('100%')
     .scrollBar(BarState.Auto)
     .align(Alignment.Top)
-  }
-
-  @Builder
-  deviceRecordsBuilder() {
-    this.connectionRecordsPanel()
   }
 
   // ==================== Tab 2: 接口控制 ====================
@@ -2537,22 +2524,12 @@ export struct PeripheralPage {
     Scroll() {
       Column() {
         if (this.peripheralPolicyRecords.length === 0) {
-          Column({ space: 12 }) {
-            Text('暂无可管理的 USB 设备记录')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            Text('设备接入后会按最近记录去重展示，并可直接设置允许接入或禁止访问。')
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .width('100%')
-          .padding(24)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-          .borderRadius(AppStyles.RADIUS_LG)
-          .alignItems(HorizontalAlign.Center)
-          .justifyContent(FlexAlign.Center)
+          EmptyStatePanel({
+            title: '暂无可管理的 USB 设备记录',
+            description: '设备接入后会按最近记录去重展示，并可直接设置允许接入或禁止访问。',
+            radius: AppStyles.RADIUS_LG,
+            verticalPadding: 24
+          })
         } else {
           Column({ space: 0 }) {
             Row({ space: 12 }) {
@@ -2730,15 +2707,12 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbWhitelist.length === 0) {
-            Text('暂无 USB 白名单项。')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-              .padding(24)
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-              .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
+            EmptyStateCard({
+              title: '暂无 USB 白名单项。',
+              radius: AppStyles.RADIUS_MD,
+              bottomOnly: true,
+              verticalPadding: 24
+            })
           } else {
             Column() {
               ForEach(this.usbWhitelist, (device: edmUsbManager.UsbDeviceId) => {
@@ -2822,15 +2796,12 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbBlacklist.length === 0) {
-            Text('暂无 USB 黑名单项。')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-              .padding(24)
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-              .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
+            EmptyStateCard({
+              title: '暂无 USB 黑名单项。',
+              radius: AppStyles.RADIUS_MD,
+              bottomOnly: true,
+              verticalPadding: 24
+            })
           } else {
             Column() {
               ForEach(this.usbBlacklist, (dt: edmUsbManager.UsbDeviceType) => {
@@ -2914,15 +2885,12 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.btWhitelist.length === 0) {
-            Text('暂无蓝牙白名单项。')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-              .padding(24)
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-              .borderRadius({ bottomLeft: AppStyles.RADIUS_MD, bottomRight: AppStyles.RADIUS_MD })
+            EmptyStateCard({
+              title: '暂无蓝牙白名单项。',
+              radius: AppStyles.RADIUS_MD,
+              bottomOnly: true,
+              verticalPadding: 24
+            })
           } else {
             Column() {
               ForEach(this.btWhitelist, (mac: string) => {
