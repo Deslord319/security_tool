@@ -12,6 +12,7 @@
 /.appanalyzer
 oh-package-lock.json5
 /.qoder
+*.bat
 
 # Temporary files
 .bin/

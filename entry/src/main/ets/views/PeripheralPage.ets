@@ -8,7 +8,6 @@ import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
 import { EmptyStatePanel } from '../components/EmptyStatePanel'
 import {
   AdminActivationState,
-  DeviceControlRecord,
   PeripheralPolicyRecord,
   PeripheralBlacklistTemplate,
   PeripheralCandidateSource,
@@ -162,8 +161,7 @@ export struct PeripheralPage {
     PeripheralType.USB_OTHER
   ]
 
-  // 设备管控记录（独立数据源）
-  @State deviceControlRecords: DeviceControlRecord[] = []
+  // 设备管控记录（独立数据源）- 已删除方案 A
   @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
   @State policyUpdatingKeys: string[] = []
   @State peripheralPolicyRenderVersion: number = 0
@@ -179,11 +177,6 @@ export struct PeripheralPage {
   private usbLoadingDialogController?: CustomDialogController
   private isUsbLoadingDialogOpen: boolean = false
   private usbLoadingDialogOpenedAt: number = 0
-  private deviceControlPolicyOptions: SelectOption[] = [
-    { value: '允许' },
-    { value: '禁止' },
-    { value: '未配置' }
-  ]
   // 弹窗控制器
   private policyListOptions: SelectOption[] = [
     { value: '允许接入' },
@@ -698,9 +691,6 @@ export struct PeripheralPage {
     this.loadConnectedUsbDevices()
     this.reloadDeviceRecords()
 
-    // 从 MDM API 加载设备管控记录
-    this.deviceControlRecords = []
-
     this.isLoading = false
   }
 
@@ -810,48 +800,6 @@ export struct PeripheralPage {
       return name
     }
     return `蓝牙设备 (${mac})`
-  }
-
-  loadDeviceControlData() {
-    let records: DeviceControlRecord[] = []
-
-    // 1. 从 USB 白名单加载（策略=允许）
-    let usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-    for (let device of usbWhitelist) {
-      records.push({
-        deviceName: this.inferUsbDeviceName(device.vendorId, device.productId),
-        deviceType: PeripheralType.USB_OTHER,
-        deviceId: formatUsbDeviceId(device.vendorId, device.productId),
-        connectTime: '--',
-        policyIndex: 0
-      })
-    }
-
-    // 2. 尝试从 USB 黑名单推断设备类型并更新已有记录
-    let usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-    for (let deviceType of usbBlacklist) {
-      // 更新匹配设备的类型
-      for (let i = 0; i < records.length; i++) {
-        if (records[i].deviceType === PeripheralType.USB_OTHER) {
-          // 暂保留 USB_OTHER，后续可扩展
-        }
-      }
-    }
-
-    // 3. 从蓝牙白名单加载（策略=允许）
-    let btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
-    for (let mac of btWhitelist) {
-      records.push({
-        deviceName: this.inferBluetoothDeviceName(mac),
-        deviceType: PeripheralType.BLUETOOTH,
-        deviceId: `MAC: ${mac}`,
-        connectTime: '--',
-        policyIndex: 0
-      })
-    }
-
-    this.deviceControlRecords = records
-    hilog.info(0x0002, TAG, `loadDeviceControlData: ${records.length} devices loaded`)
   }
 
   private loadPeripheralPolicyData(): void {
@@ -1265,106 +1213,6 @@ export struct PeripheralPage {
       return
     }
     this.showOperationFailure('移除 USB 黑名单', result)
-  }
-
-  // ========== 设备管控操作 ==========
-
-  handleDeviceControlPolicyChange(recordIndex: number, policyIndex: number) {
-    if (!this.ensureAdminReady('修改设备管控策略')) {
-      return
-    }
-    let record = this.deviceControlRecords[recordIndex]
-    let success = false
-    let failedResult: OperationResult<PeripheralResultData> | undefined = undefined
-    let policyLabels: string[] = ['允许', '禁止', '未配置']
-
-    if (record.deviceType === PeripheralType.BLUETOOTH) {
-      // 蓝牙设备策略变更
-      let mac = parseBluetoothMac(record.deviceId)
-      if (!mac) {
-        hilog.error(0x0002, TAG, `parseBluetoothMac failed: ${record.deviceId}`)
-        return
-      }
-      if (policyIndex === 0) {
-        let result = PeripheralService.addBluetoothWhitelistWithResult([mac])
-        success = result.success
-        if (!result.success) {
-          failedResult = result
-        }
-      } else {
-        let result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
-        success = result.success
-        if (!result.success) {
-          failedResult = result
-        }
-      }
-    } else {
-      // USB 设备策略变更
-      let parsed = parseUsbDeviceId(record.deviceId)
-      if (!parsed) {
-        hilog.error(0x0002, TAG, `parseUsbDeviceId failed: ${record.deviceId}`)
-        return
-      }
-      let device: edmUsbManager.UsbDeviceId = {
-        vendorId: parsed.vendorId,
-        productId: parsed.productId
-      }
-      if (policyIndex === 0) {
-        // 允许：加入白名单
-        let result = PeripheralService.addUsbWhitelistWithResult([device])
-        success = result.success
-        if (!result.success) {
-          failedResult = result
-        }
-      } else if (policyIndex === 1) {
-        // 禁用：从白名单移除 + 按类型加入黑名单
-        let removeResult = PeripheralService.removeUsbWhitelistWithResult([device])
-        if (!removeResult.success) {
-          failedResult = removeResult
-        }
-        let baseClass = inferUsbBaseClass(record.deviceType)
-        if (baseClass > 0) {
-          let deviceType: edmUsbManager.UsbDeviceType = {
-            baseClass: baseClass,
-            subClass: 0,
-            protocol: 0,
-            descriptor: edmUsbManager.Descriptor.INTERFACE
-          }
-          let addBlackResult = PeripheralService.addUsbBlacklistWithResult([deviceType])
-          if (!addBlackResult.success) {
-            failedResult = addBlackResult
-          }
-        }
-        success = failedResult === undefined
-      } else {
-        // 未配置：从白名单移除
-        let result = PeripheralService.removeUsbWhitelistWithResult([device])
-        success = result.success
-        if (!result.success) {
-          failedResult = result
-        }
-      }
-    }
-
-    if (success) {
-      // 重新从 MDM API 加载设备列表
-      this.loadDeviceControlData()
-      // 同步刷新黑白名单 tab 数据
-      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      try {
-        hilog.info(0x0002, TAG, `${record.deviceName} 策略已设置为${policyLabels[policyIndex]}`)
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
-    } else {
-      this.showOperationFailure('修改设备管控策略', failedResult || {
-        success: false,
-        errorMessage: '修改设备策略失败'
-      } as OperationResult<PeripheralResultData>)
-    }
   }
 
   // ========== Tab Builder ==========

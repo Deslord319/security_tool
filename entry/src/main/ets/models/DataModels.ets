@@ -290,14 +290,6 @@ export interface PeripheralTraceStats {
   snapshotCount: number
 }
 
-export interface DeviceControlRecord {
-  deviceName: string
-  deviceType: PeripheralType
-  deviceId: string
-  connectTime: string
-  policyIndex: number
-}
-
 export interface PeripheralPolicyRecord {
   deviceName: string
   deviceType: PeripheralType
