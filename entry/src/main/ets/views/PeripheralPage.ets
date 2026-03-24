@@ -334,10 +334,6 @@ export struct PeripheralPage {
     return timestamp > 0 ? formatLogTimestamp(timestamp) : '--'
   }
 
-  private getCandidateSortWeight(source: PeripheralCandidateSource): number {
-    if (source === 'connected_usb') {
-      return 0
-    }
     if (source === 'runtime_event') {
       return 1
     }
@@ -916,10 +912,6 @@ export struct PeripheralPage {
     }
   }
 
-  private getInterfaceFeatureLabel(feature: string): string {
-    if (feature === PeripheralService.FEATURE_USB) {
-      return 'USB 接口'
-    }
     if (feature === PeripheralService.FEATURE_BLUETOOTH) {
       return '蓝牙'
     }
@@ -1297,10 +1289,6 @@ export struct PeripheralPage {
     )
   }
 
-  private getConnectionEventLabel(record: PeripheralConnectionRecord | null): string {
-    if (!record) {
-      return '--'
-    }
     return getPeripheralRecordActionLabel(record.action)
   }
 
