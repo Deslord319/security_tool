@@ -51,6 +51,7 @@ import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlPanel } from '../components/peripheral/InterfaceControlPanel'
 import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
+import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -1720,153 +1721,25 @@ export struct PeripheralPage {
   // ==================== Tab 2: 接口控制 ====================
   @Builder
   interfaceControlBuilder() {
-    Scroll() {
-      Column({ space: 0 }) {
-        Column() {
-          InterfaceControlItem({
-            label: 'USB 接口',
-            description: '启用或禁用 USB 接口。禁用后，USB 接口相关外设将无法接入。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.usbDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_USB)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_USB, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: 'USB 存储设备',
-            description: '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
-            options: ['只读', '读写', '禁止访问'],
-            selectedIndex: this.usbStoragePolicyIndex,
-            isProcessing: this.isInterfaceControlProcessing(this.usbStorageControlKey),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleUsbStoragePolicyChange(index)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: '蓝牙',
-            description: '启用或禁用蓝牙接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.btDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_BLUETOOTH)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_BLUETOOTH, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: 'Wi-Fi',
-            description: '启用或禁用 Wi-Fi 接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.wifiDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_WIFI)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_WIFI, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: 'HDC 调试',
-            description: '启用或禁用 HDC 调试接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.hdcDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_HDC)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_HDC, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: '网络共享',
-            description: '启用或禁用网络共享接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.networkDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_NETWORK)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_NETWORK, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: '打印机',
-            description: '启用或禁用打印机接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.printerDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_PRINTER)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_PRINTER, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: '麦克风',
-            description: '启用或禁用麦克风接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.microphoneDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_MICROPHONE)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_MICROPHONE, index === 1)
-            }
-          })
-
-          Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-          InterfaceControlItem({
-            label: '摄像头',
-            description: '启用或禁用摄像头接口。',
-            options: ['启用', '禁用'],
-            selectedIndex: this.cameraDisabled ? 1 : 0,
-            isProcessing: this.isInterfaceControlProcessing(this.getInterfaceControlKey(PeripheralService.FEATURE_CAMERA)),
-            syncToken: this.interfaceControlSyncToken,
-            onSelect: (index: number) => {
-              this.handleInterfaceToggle(PeripheralService.FEATURE_CAMERA, index === 1)
-            }
-          })
-        }
-        .borderRadius(AppStyles.RADIUS_LG)
-        .clip(true)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
-        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 1, true))
-        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 1, 4) })
-        .onHover((isHover: boolean) => {
-          this.setPanelHover(1, isHover)
-        })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Start)
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
-    }
-    .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Auto)
-    .align(Alignment.Top)
+    InterfaceControlTab({
+      usbDisabled: this.usbDisabled,
+      btDisabled: this.btDisabled,
+      wifiDisabled: this.wifiDisabled,
+      hdcDisabled: this.hdcDisabled,
+      networkDisabled: this.networkDisabled,
+      printerDisabled: this.printerDisabled,
+      microphoneDisabled: this.microphoneDisabled,
+      cameraDisabled: this.cameraDisabled,
+      usbStoragePolicyIndex: this.usbStoragePolicyIndex,
+      interfaceControlProcessingKey: this.interfaceControlProcessingKey,
+      usbStorageControlKey: this.usbStorageControlKey,
+      interfaceControlSyncToken: this.interfaceControlSyncToken,
+      currentTheme: this.sharedVM.currentTheme,
+      hoveredPanelIndex: this.hoveredPanelIndex,
+      onInterfaceToggle: (feature, disallow) => this.viewModel.toggleInterface(feature, disallow),
+      onUsbStoragePolicyChange: (index) => this.viewModel.setUsbStoragePolicy(index),
+      onPanelHover: (isHover) => this.setPanelHover(1, isHover)
+    })
   }
 
   // ==================== Tab 3: 黑白名单 ====================
