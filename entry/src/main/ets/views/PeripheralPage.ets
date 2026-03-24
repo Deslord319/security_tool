@@ -1,14 +1,12 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
-import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
 import {
   AdminActivationState,
-  DeviceRecord,
   DeviceControlRecord,
   PeripheralPolicyRecord,
   PeripheralBlacklistTemplate,
@@ -21,7 +19,6 @@ import {
   PeripheralRecordAction,
   LogEventResult,
   LogExportFormat,
-  UsbStoragePolicy,
   formatLogTimestamp,
   getLogEventResultLabel,
   getPeripheralRecordActionLabel,
@@ -152,15 +149,10 @@ export struct PeripheralPage {
   @State recordFilterResultIndex: number = 0
   @State recordFilterSourceIndex: number = 1
   @State recordFilterKeyword: string = ''
-  @State recordHintMessage: string = ''
-  @State lastRecordHintToastMessage: string = ''
   @State isConnectionDetailDialogVisible: boolean = false
   @State selectedConnectionRecord: PeripheralConnectionRecord | null = null
   @State connectionDetailHostWidth: number = 0
-  private recordStorageListenerId: number = -1
   private traceStorageListenerId: number = -1
-  private recordAutoRefreshTimerId: number = -1
-  private readonly recordAutoRefreshIntervalMs: number = 2000
   private readonly connectionDetailCompactWidthThreshold: number = 1200
   private readonly usbStorageControlKey: string = 'usb-storage-policy'
   private readonly recordTypeFilterOptions: SelectOption[] = [
@@ -596,146 +588,6 @@ export struct PeripheralPage {
     this.deviceRecords = PeripheralConnectionRecordService.queryRecords()
     this.loadPeripheralPolicyData()
   }
-  private buildPreviewConnectionRecordsLegacy(): PeripheralConnectionRecord[] {
-    let now = Date.now()
-    return [
-      {
-        id: 'preview-camera-connect',
-        timestamp: now - 5 * 60 * 1000,
-        collectAt: now - 5 * 60 * 1000 + 800,
-        deviceName: 'ShineOptics FHD Camera',
-        deviceType: PeripheralType.USB_CAMERA,
-        deviceId: 'VID:2B7E PID:B5A2',
-        action: 'connect',
-        result: LogEventResult.SUCCESS,
-        policyHit: 'allow',
-        source: 'runtime_event',
-        summary: '允许接入',
-        correlationId: 'preview-camera-1',
-        policyVersion: 'preview-v1',
-        rawEventName: 'usb_device_attached',
-        rawOutcome: 'allowed',
-        rawAction: 'connect',
-        rawPayload: '{"vendorId":"2B7E","productId":"B5A2"}',
-        detail: '摄像头接入后已通过策略校验，允许继续使用。',
-        processName: 'CameraService',
-        usbPolicy: undefined
-      },
-      {
-        id: 'preview-storage-block',
-        timestamp: now - 18 * 60 * 1000,
-        collectAt: now - 18 * 60 * 1000 + 1200,
-        deviceName: 'SanDisk Ultra USB 3.0',
-        deviceType: PeripheralType.USB_STORAGE,
-        deviceId: 'VID:0781 PID:5583',
-        action: 'intercept',
-        result: LogEventResult.BLOCKED,
-        policyHit: 'deny',
-        source: 'audit_event',
-        summary: '策略阻止',
-        correlationId: 'preview-storage-1',
-        policyVersion: 'preview-v1',
-        rawEventName: 'usb_mass_storage_attach',
-        rawOutcome: 'blocked',
-        rawAction: 'mount',
-        rawPayload: '{"vendorId":"0781","productId":"5583"}',
-        detail: '检测到可移动存储设备接入，按只读外设策略阻止访问。',
-        processName: 'UsbPolicyGuard',
-        usbPolicy: UsbStoragePolicy.DISABLED
-      },
-      {
-        id: 'preview-printer-disconnect',
-        timestamp: now - 46 * 60 * 1000,
-        collectAt: now - 46 * 60 * 1000 + 600,
-        deviceName: 'HP LaserJet Pro M404',
-        deviceType: PeripheralType.USB_PRINTER,
-        deviceId: 'VID:03F0 PID:0C17',
-        action: 'disconnect',
-        result: LogEventResult.SUCCESS,
-        policyHit: 'allow',
-        source: 'runtime_event',
-        summary: '允许接入',
-        correlationId: 'preview-printer-1',
-        policyVersion: 'preview-v1',
-        rawEventName: 'usb_printer_detached',
-        rawOutcome: 'completed',
-        rawAction: 'disconnect',
-        rawPayload: '{"vendorId":"03F0","productId":"0C17"}',
-        detail: '打印机已安全断开，未触发额外限制。',
-        processName: 'PrintSpooler',
-        usbPolicy: undefined
-      },
-      {
-        id: 'preview-keyboard-connect',
-        timestamp: now - 85 * 60 * 1000,
-        collectAt: now - 85 * 60 * 1000 + 500,
-        deviceName: 'Logitech MX Keys',
-        deviceType: PeripheralType.BLUETOOTH,
-        deviceId: 'MAC: AA:BB:CC:DD:EE:01',
-        action: 'connect',
-        result: LogEventResult.SUCCESS,
-        policyHit: 'allow',
-        source: 'runtime_event',
-        summary: '允许接入',
-        correlationId: 'preview-bt-1',
-        policyVersion: 'preview-v1',
-        rawEventName: 'bluetooth_device_connected',
-        rawOutcome: 'allowed',
-        rawAction: 'pair',
-        rawPayload: '{"mac":"AA:BB:CC:DD:EE:01"}',
-        detail: '蓝牙键盘已完成配对并加入可信设备列表。',
-        processName: 'BluetoothService',
-        usbPolicy: undefined
-      },
-      {
-        id: 'preview-keyboard-history',
-        timestamp: now - 140 * 60 * 1000,
-        collectAt: now - 140 * 60 * 1000 + 700,
-        deviceName: 'Logitech MX Keys',
-        deviceType: PeripheralType.BLUETOOTH,
-        deviceId: 'MAC: AA:BB:CC:DD:EE:01',
-        action: 'disconnect',
-        result: LogEventResult.SUCCESS,
-        policyHit: 'allow',
-        source: 'audit_event',
-        summary: '允许接入',
-        correlationId: 'preview-bt-2',
-        policyVersion: 'preview-v1',
-        rawEventName: 'bluetooth_device_disconnected',
-        rawOutcome: 'completed',
-        rawAction: 'disconnect',
-        rawPayload: '{"mac":"AA:BB:CC:DD:EE:01"}',
-        detail: '蓝牙键盘连接结束，保留历史记录用于界面预览。',
-        processName: 'BluetoothService',
-        usbPolicy: undefined
-      }
-    ]
-  }
-
-  private buildRuntimeDegradeHintLegacy(): string {
-    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
-    if (runtimeStatus.capabilities.usbRuntimeEvents) {
-      return ''
-    }
-    return '当前版本未启用运行时采集，已使用审计事件和策略快照。'
-  }
-  private updateRecordHintMessageLegacy(message: string): void {
-    this.recordHintMessage = message
-    if (message.length === 0) {
-      this.lastRecordHintToastMessage = ''
-      return
-    }
-    if (this.lastRecordHintToastMessage === message) {
-      return
-    }
-    this.lastRecordHintToastMessage = message
-    try {
-      hilog.info(0x0002, TAG, `record hint: ${message}`)
-    } catch (e) {
-      hilog.error(0x0002, TAG, `record hint log failed: ${JSON.stringify(e)}`)
-    }
-  }
-
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
   }
@@ -812,40 +664,9 @@ export struct PeripheralPage {
       this.btWhitelist = []
     }
 
-    // 模拟设备连接记录
+    // 加载设备连接记录
     this.loadConnectedUsbDevices()
     this.reloadDeviceRecords()
-    /*
-      {
-        deviceName: 'ShineOptics FHD Camera',
-        deviceType: PeripheralType.USB_CAMERA,
-        deviceId: 'VID:2B7E PID:B5A2',
-        connectTime: '2026-02-09 16:01:19',
-        policy: '允许'
-      },
-      {
-        deviceName: 'SanDisk Ultra USB 3.0',
-        deviceType: PeripheralType.USB_STORAGE,
-        deviceId: 'VID:0781 PID:5583',
-        connectTime: '2026-02-09 14:30:08',
-        policy: '拒绝'
-      },
-      {
-        deviceName: 'HP LaserJet Pro M404',
-        deviceType: PeripheralType.USB_PRINTER,
-        deviceId: 'VID:03F0 PID:0C17',
-        connectTime: '2026-02-09 10:15:42',
-        policy: '允许'
-      },
-      {
-        deviceName: 'Logitech MX Keys',
-        deviceType: PeripheralType.BLUETOOTH,
-        deviceId: 'MAC: AA:BB:CC:DD:EE:01',
-        connectTime: '2026-02-09 09:00:05',
-        policy: '允许'
-      }
-    ]
-    */
 
     // 从 MDM API 加载设备管控记录
     this.deviceControlRecords = []
@@ -1701,8 +1522,6 @@ export struct PeripheralPage {
         return
       }
       this.closeConnectionDetailDialog()
-      this.recordHintMessage = ''
-      this.lastRecordHintToastMessage = ''
       this.reloadDeviceRecords()
       this.showResultDialog('success', '历史记录已清理')
     } catch (err) {
@@ -1849,6 +1668,30 @@ export struct PeripheralPage {
       default:
         return this.getConnectionPolicyHitLabel(record)
     }
+  }
+
+  private getConnectionResultLabel(record: PeripheralConnectionRecord): string {
+    if (record.source === 'policy_snapshot') {
+      return '快照'
+    }
+    return getLogEventResultLabel(record.result)
+  }
+
+  private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
+    if (record.source === 'policy_snapshot') {
+      return '未审计'
+    }
+    if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
+      return this.getMatchedPolicyKindLabel(record)
+    }
+    return getPeripheralRecordPolicyHitLabel(record.policyHit)
+  }
+
+  private formatConnectionTime(record: PeripheralConnectionRecord): string {
+    if (record.timestamp <= 0) {
+      return '--'
+    }
+    return formatLogTimestamp(record.timestamp)
   }
 
   private getConnectionHistoryItems(record: PeripheralConnectionRecord | null): ConnectionHistoryItem[] {
@@ -2299,483 +2142,6 @@ export struct PeripheralPage {
     })
   }
 
-  private getDeviceRecordPolicyTextColor(policy: string | undefined): string {
-    return policy === '允许'
-      ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
-      : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
-  }
-
-  private getDeviceRecordPolicyBgColor(policy: string | undefined): string {
-    return policy === '允许'
-      ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG
-      : AppColors.getColors(this.currentTheme).TAG_RED_BG
-  }
-
-  private getDeviceRecordPolicySummary(policy: string | undefined): string {
-    return policy === '允许' ? '已按当前接口策略放行' : '已被当前接口策略拦截'
-  }
-
-  @Builder
-  deviceRecordItem(record: DeviceRecord, index: number) {
-    Row({ space: 16 }) {
-      Column({ space: 8 }) {
-        Row({ space: 8 }) {
-          Text(record.deviceName)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-          Text(getPeripheralTypeLabel(record.deviceType))
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-        }
-
-        Text(record.deviceId)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        Row({ space: 20 }) {
-          Column({ space: 4 }) {
-            Text('连接时间')
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            Text(record.connectTime)
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-
-          Column({ space: 4 }) {
-            Text('策略结果')
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            Text(this.getDeviceRecordPolicySummary(record.policy))
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-        }
-        .width('100%')
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Column({ space: 8 }) {
-        Text(record.policy)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.getDeviceRecordPolicyTextColor(record.policy))
-          .backgroundColor(this.getDeviceRecordPolicyBgColor(record.policy))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-
-        Text(record.policy === '允许' ? '命中白名单 / 默认放行' : '命中限制规则')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .textAlign(TextAlign.End)
-      }
-      .alignItems(HorizontalAlign.End)
-    }
-    .width('100%')
-    .padding({ left: 20, right: 20, top: 18, bottom: 18 })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredDeviceRecordIndex = isHover ? index : -1
-      })
-    })
-  }
-
-  @Builder
-  deviceRecordsPanel() {
-    Scroll() {
-      Column({ space: 0 }) {
-        Column({ space: 0 }) {
-          if (this.deviceRecords.length === 0) {
-            Column({ space: 10 }) {
-              Text('暂无设备连接记录')
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-              Text('请连接 USB 或蓝牙设备以生成记录。')
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-                .textAlign(TextAlign.Center)
-            }
-            .width('100%')
-            .padding({ left: 20, right: 20, top: 42, bottom: 42 })
-            .alignItems(HorizontalAlign.Center)
-          } else {
-            Column({ space: 0 }) {
-              ForEach(this.deviceRecords, (record: DeviceRecord, index: number) => {
-                Column({ space: 0 }) {
-                  this.deviceRecordItem(record, index)
-                  if (index < this.deviceRecords.length - 1) {
-                    Divider()
-                      .color(AppColors.getColors(this.currentTheme).BORDER)
-                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                      .margin({ left: 20, right: 20 })
-                  }
-                }
-              })
-            }
-            .width('100%')
-          }
-        }
-        .borderRadius(AppStyles.RADIUS_LG)
-        .clip(true)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
-        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
-        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
-        .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredPanelIndex = isHover ? 0 : -1
-          })
-        })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Start)
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
-    }
-    .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Auto)
-    .align(Alignment.Top)
-  }
-
-  private getConnectionRuntimeCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'runtime_event').length
-  }
-
-  private getConnectionAuditCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'audit_event').length
-  }
-
-  private getConnectionSnapshotCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => record.source === 'policy_snapshot').length
-  }
-
-  private getConnectionConnectCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
-      return record.source !== 'policy_snapshot' && record.action === 'connect'
-    }).length
-  }
-
-  private getConnectionDisconnectCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
-      return record.source !== 'policy_snapshot' && record.action === 'disconnect'
-    }).length
-  }
-
-  private getConnectionInterceptCount(): number {
-    return this.deviceRecords.filter((record: PeripheralConnectionRecord) => {
-      return record.source !== 'policy_snapshot' && record.action === 'intercept'
-    }).length
-  }
-
-  private getConnectionTypeFilterLabel(): string {
-    let option = this.recordTypeFilterOptions[this.recordFilterTypeIndex]
-    return option ? option.value as string : this.recordTypeFilterOptions[0].value as string
-  }
-
-  private getConnectionResultFilterLabel(): string {
-    let option = this.recordResultFilterOptions[this.recordFilterResultIndex]
-    return option ? option.value as string : this.recordResultFilterOptions[0].value as string
-  }
-
-  private getConnectionSourceFilterLabel(): string {
-    let option = this.recordSourceFilterOptions[this.recordFilterSourceIndex]
-    return option ? option.value as string : this.recordSourceFilterOptions[0].value as string
-  }
-
-  private getConnectionResultLabel(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return '快照'
-    }
-    return getLogEventResultLabel(record.result)
-  }
-
-  private getConnectionResultTextColor(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
-    }
-    if (record.result === LogEventResult.SUCCESS) {
-      return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
-    }
-    if (record.result === LogEventResult.BLOCKED) {
-      return AppColors.getColors(this.currentTheme).TAG_RED_TEXT
-    }
-    return AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT
-  }
-
-  private getConnectionResultBgColor(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return AppColors.getColors(this.currentTheme).TAG_GRAY_BG
-    }
-    if (record.result === LogEventResult.SUCCESS) {
-      return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
-    }
-    if (record.result === LogEventResult.BLOCKED) {
-      return AppColors.getColors(this.currentTheme).TAG_RED_BG
-    }
-    return AppColors.getColors(this.currentTheme).TAG_ORANGE_BG
-  }
-
-  private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return '未审计'
-    }
-    if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
-      return this.getMatchedPolicyKindLabel(record)
-    }
-    return getPeripheralRecordPolicyHitLabel(record.policyHit)
-  }
-
-  private formatConnectionTime(record: PeripheralConnectionRecord): string {
-    if (record.timestamp <= 0) {
-      return '--'
-    }
-    return formatLogTimestamp(record.timestamp)
-  }
-
-  @Builder
-  private connectionStatItem(title: string, value: string, valueColor: string) {
-    Column({ space: 4 }) {
-      Text(title)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      Text(value)
-        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(valueColor)
-    }
-    .layoutWeight(1)
-    .padding({ top: 10, bottom: 10 })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_MD)
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  @Builder
-  private connectionRecordFilterToolbar() {
-    Row({ space: 8 }) {
-      Select(this.recordTypeFilterOptions)
-        .selected(this.recordFilterTypeIndex)
-        .value(this.getConnectionTypeFilterLabel())
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(120)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => {
-          this.recordFilterTypeIndex = index
-          this.reloadDeviceRecords()
-        })
-
-      Select(this.recordResultFilterOptions)
-        .selected(this.recordFilterResultIndex)
-        .value(this.getConnectionResultFilterLabel())
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(120)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => {
-          this.recordFilterResultIndex = index
-          this.reloadDeviceRecords()
-        })
-
-      Select(this.recordSourceFilterOptions)
-        .selected(this.recordFilterSourceIndex)
-        .value(this.getConnectionSourceFilterLabel())
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(140)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => {
-          this.recordFilterSourceIndex = index
-          this.reloadDeviceRecords()
-        })
-
-      TextInput({ placeholder: '按关键字或设备 ID 过滤', text: this.recordFilterKeyword })
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(36)
-        .layoutWeight(1)
-        .onChange((value: string) => {
-          this.recordFilterKeyword = value
-          this.reloadDeviceRecords()
-        })
-
-      Button('刷新')
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(36)
-        .onClick(() => {
-          this.reloadDeviceRecords()
-        })
-    }
-    .width('100%')
-    .padding({
-      left: AppStyles.PADDING_LG,
-      right: AppStyles.PADDING_LG,
-      top: AppStyles.PADDING_SM
-    })
-  }
-  @Builder
-  connectionRecordItem(record: PeripheralConnectionRecord, index: number) {
-    Row({ space: 16 }) {
-      Column({ space: 8 }) {
-        Row({ space: 8 }) {
-          Text(record.deviceName)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-          Text(getPeripheralTypeLabel(record.deviceType))
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-        }
-
-        Text(record.deviceId)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        Row({ space: 8 }) {
-          Text(getPeripheralRecordSourceLabel(record.source))
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-
-          Text(getPeripheralRecordActionLabel(record.action))
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-        }
-
-        Row({ space: 20 }) {
-          Column({ space: 4 }) {
-            Text('连接时间')
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            Text(this.formatConnectionTime(record))
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-
-          Column({ space: 4 }) {
-            Text('策略说明')
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            Text(record.summary)
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-        }
-        .width('100%')
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Column({ space: 8 }) {
-        Text(this.getConnectionResultLabel(record))
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.getConnectionResultTextColor(record))
-          .backgroundColor(this.getConnectionResultBgColor(record))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-
-        Text(this.getConnectionPolicyHitLabel(record))
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .textAlign(TextAlign.End)
-      }
-      .alignItems(HorizontalAlign.End)
-    }
-    .width('100%')
-    .padding({ left: 20, right: 20, top: 18, bottom: 18 })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredDeviceRecordIndex = isHover ? index : -1
-      })
-    })
-  }
-
   @Builder
   private connectionRecordsPanel() {
     Scroll() {
@@ -2850,120 +2216,7 @@ export struct PeripheralPage {
 
   @Builder
   deviceRecordsBuilder() {
-    if (true) {
-      this.connectionRecordsPanel()
-    } else {
-      /*
-      Column() {
-      if (this.deviceRecords.length === 0) {
-        Column({ space: 12 }) {
-          Text('暂无设备连接记录')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
-      } else {
-        // 表头
-        Row() {
-          Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1.5)
-          Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(2)
-          Text('策略').fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).layoutWeight(1)
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-        .borderRadius({ topLeft: AppStyles.RADIUS_LG, topRight: AppStyles.RADIUS_LG })
-
-        // 数据列表
-        List() {
-          ForEach(this.deviceRecords, (record: DeviceRecord) => {
-            ListItem() {
-              Row() {
-                Text(record.deviceName)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                  .layoutWeight(2)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                Text(getPeripheralTypeLabel(record.deviceType))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-                  .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-                  .borderRadius(4)
-                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                  .layoutWeight(1.5)
-
-                Text(record.deviceId)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(2)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                Text(record.connectTime)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .layoutWeight(2)
-
-                Text(record.policy)
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(record.policy === '允许' ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT : AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-                  .backgroundColor(record.policy === '允许' ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG : AppColors.getColors(this.currentTheme).TAG_RED_BG)
-                  .borderRadius(4)
-                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                  .layoutWeight(1)
-              }
-              .width('100%')
-              .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-              .border({
-                width: { bottom: 1 },
-                color: AppColors.getColors(this.currentTheme).BORDER
-              })
-            }
-          })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .divider({ strokeWidth: 1, color: AppColors.getColors(this.currentTheme).BORDER, startMargin: 0, endMargin: 0 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius({ bottomLeft: AppStyles.RADIUS_LG, bottomRight: AppStyles.RADIUS_LG })
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
-    .border({
-      width: 1,
-      color: this.hoveredPanelIndex === 0 ? AppColors.BRAND_PRIMARY : Color.Transparent
-    })
-    .borderRadius(AppStyles.RADIUS_LG)
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredPanelIndex = isHover ? 0 : -1
-      })
-    })
-      */
-    }
+    this.connectionRecordsPanel()
   }
 
   // ==================== Tab 2: 接口控制 ====================
