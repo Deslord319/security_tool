@@ -707,12 +707,7 @@ export struct PeripheralPage {
     this.interfaceControlSyncToken += 1
     hilog.info(0x0002, TAG, `interfaceControl reload done, reason=${reason}`)
   }
-
-  private loadPeripheralPolicyData(): void {
-    let whitelistKeys: Set<string> = new Set(
-      this.usbWhitelist.map((device: edmUsbManager.UsbDeviceId) => {
-        return formatUsbDeviceId(device.vendorId, device.productId).toUpperCase()
-      })
+)
     )
     let blacklistKeys: Set<string> = new Set(
       this.usbBlacklist.map((deviceType: edmUsbManager.UsbDeviceType) => {
