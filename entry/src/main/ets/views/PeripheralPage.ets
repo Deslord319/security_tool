@@ -1196,10 +1196,6 @@ export struct PeripheralPage {
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
   }
 
-  formatHex(num: number): string {
-    return '0x' + num.toString(16).toUpperCase().padStart(2, '0')
-  }
-
   // ========== Build ==========
 
   build() {
