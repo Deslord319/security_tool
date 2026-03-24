@@ -131,11 +131,8 @@ export struct UserFirewallControlDialog {
       return
     }
 
-    hilog.info(DOMAIN, TAG, user firewall updated, userId=, enabled=)
+    hilog.info(DOMAIN, TAG, `user firewall updated, userId=${userId}, enabled=${enabled}`)
 
-
-
-    })
     this.onActionCompleted()
     await this.loadPolicyForSelectedUser()
   }

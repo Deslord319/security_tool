@@ -119,9 +119,6 @@ export function getActionLabel(action: RuleAction): string {
   }
 }
 
-
-
-
 export enum PeripheralType {
   USB_STORAGE = 'usb_storage',
   USB_CAMERA = 'usb_camera',
@@ -437,8 +434,6 @@ export function getPeripheralCandidateSourceLabel(source: PeripheralCandidateSou
 
 // ==================== 设备 ID 解析工具函数 ====================
 
-
-
 export interface ParsedUsbId {
   vendorId: number
   productId: number
@@ -467,8 +462,6 @@ export function parseBluetoothMac(deviceId: string): string | null {
 export function formatUsbDeviceId(vendorId: number, productId: number): string {
   return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
 }
-
-
 
 export function inferUsbBaseClass(type: PeripheralType): number {
   switch (type) {
@@ -501,9 +494,6 @@ export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralT
   }
 }
 
-
-
-
 export interface PasswordComplexityConfig {
   minLength: number
   requireUppercase: boolean
@@ -516,8 +506,6 @@ export interface PasswordComplexityConfig {
 
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
 export const PASSWORD_VALIDITY_OPTIONS: number[] = [0, 30, 60, 90]
-
-
 
 
 export enum AuthMethod {
@@ -578,8 +566,6 @@ export interface FirewallPresetConfig {
 
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
-
-
 export const PREF_STORE_NAME_TOOL = 'tool_settings'
 
 
@@ -649,13 +635,11 @@ export enum LogEventType {
   PERMISSION = 3
 }
 
-
 export enum LogEventResult {
   SUCCESS = 0,
   BLOCKED = 1,
   FAILED = 2
 }
-
 
 export interface LogEntry {
   id: string
@@ -675,7 +659,6 @@ export interface LogEntry {
   result: LogEventResult
 }
 
-
 export interface LogFilter {
   eventTypes?: LogEventType[]
   results?: LogEventResult[]
@@ -683,7 +666,6 @@ export interface LogFilter {
   startTime?: number
   endTime?: number
 }
-
 
 export interface LogStorageConfig {
   maxLocalEntries: number
@@ -699,12 +681,10 @@ export type LogExportTargetType = 'download' | 'documents' | 'desktop'
 
 export type LogExportAuthMode = 'runtime_permission' | 'download_mode'
 
-
 export interface LogSubscriptionConfig {
   subscribeAll: boolean
   subscribedTypes: LogEventType[]
 }
-
 
 export interface LogStatistics {
   totalCount: number
@@ -741,13 +721,11 @@ export interface LogAuditDiagnostics {
   lastUpdatedAt: number
 }
 
-
 export enum LogExportFormat {
   JSON = 'json',
   CSV = 'csv',
   TXT = 'txt'
 }
-
 
 export type LogExportTrigger = 'manual' | 'auto'
 
@@ -769,13 +747,11 @@ export interface LogExportResult {
   recoverAction?: LogExportRecoveryAction
 }
 
-
 export interface LogEventTypeOption {
   label: string
   value: LogEventType
   icon?: Resource
 }
-
 
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   maxLocalEntries: 5000,
@@ -785,7 +761,6 @@ export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   exportAuthMode: 'download_mode'
 }
 
-
 export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.CRASH,
   LogEventType.FILE,
@@ -793,18 +768,14 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.PERMISSION
 ]
 
-
 export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
   subscribeAll: true,
   subscribedTypes: ALL_LOG_EVENT_TYPES
 }
 
-
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 60, 90]
 
-
 export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000]
-
 
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
@@ -814,10 +785,7 @@ export const PREF_KEY_LOG_EXPORT_TARGET_VALUE = 'log_export_target_value'
 export const PREF_KEY_LOG_EXPORT_AUTH_MODE = 'log_export_auth_mode'
 export const PREF_KEY_LOG_SUBSCRIBE_ALL = 'log_subscribe_all'
 export const PREF_KEY_LOG_SUBSCRIBED_TYPES = 'log_subscribed_types'
-
-
 export const PREF_STORE_NAME_LOG = 'log_settings'
-
 
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
@@ -834,7 +802,6 @@ export function getLogEventTypeLabel(type: LogEventType): string {
   }
 }
 
-
 export function getLogEventResultLabel(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
@@ -847,7 +814,6 @@ export function getLogEventResultLabel(result: LogEventResult): string {
       return '未知'
   }
 }
-
 
 export function getLogEventResultColor(result: LogEventResult): string {
   switch (result) {
@@ -862,7 +828,6 @@ export function getLogEventResultColor(result: LogEventResult): string {
   }
 }
 
-
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: '崩溃日志', value: LogEventType.CRASH },
   { label: '文件操作', value: LogEventType.FILE },
@@ -870,15 +835,12 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: '权限变更', value: LogEventType.PERMISSION }
 ]
 
-
 export function formatLogTimestamp(timestamp: number): string {
   let date = new Date(timestamp)
   let pad = (n: number): string => n.toString().padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-
 export function generateLogEntryId(): string {
   return `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
-

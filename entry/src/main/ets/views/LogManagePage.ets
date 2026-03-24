@@ -36,6 +36,7 @@ import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessa
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'LogManagePage'
+const DOMAIN = 0x0012
 
 interface DetailDialogField {
   key: string
@@ -253,7 +254,8 @@ export struct LogManagePage {
     ResultDialogHelper.prepareResultDialog(status, message)
     try {
       this.resultDialogController.close()
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
     }
     this.resultDialogController.open()
   }

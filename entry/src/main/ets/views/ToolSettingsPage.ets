@@ -20,6 +20,7 @@ import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessa
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'ToolSettingsPage'
+const DOMAIN = 0x0014
 
 @Component
 export struct ToolSettingsPage {
@@ -51,7 +52,8 @@ export struct ToolSettingsPage {
     ResultDialogHelper.prepareResultDialog(status, message)
     try {
       this.resultDialogController.close()
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
     }
     this.resultDialogController.open()
   }

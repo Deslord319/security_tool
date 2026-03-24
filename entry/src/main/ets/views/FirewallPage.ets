@@ -10,6 +10,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
 const TAG = 'FirewallPage'
+const DOMAIN = 0x0010
 const MIN_MODE_LOADING_DIALOG_DURATION_MS = 500
 
 @CustomDialog
@@ -294,7 +295,8 @@ export struct FirewallPage {
     }
     try {
       this.modeLoadingDialogController.close()
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to close mode loading dialog: ${JSON.stringify(err)}`)
     } finally {
       this.isModeLoadingDialogOpen = false
       this.modeLoadingDialogOpenedAt = 0

@@ -438,7 +438,8 @@ export class LogAuditService {
     }
     try {
       normalized = decodeURIComponent(normalized)
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
     }
     normalized = LogAuditService.cutPathSuffix(normalized.replace(/\\/g, '/'))
     if (normalized.length === 0) {
@@ -794,12 +795,14 @@ export class LogAuditService {
       if (subscribedEventIds.length > 0) {
         client.unsubscribe(subscribedEventIds)
       }
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
     }
     try {
       let deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
       deleteClient(client)
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `deleteClient failed: ${JSON.stringify(err)}`)
     }
   }
 

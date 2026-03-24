@@ -48,11 +48,7 @@ const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const MAX_RAW_ACTION_LENGTH = 64
-const DEFAULT_EXPORT_DIR_NAME = 'securityLog'
 const EXPORT_TARGET_DOWNLOAD: LogExportTargetType = 'download'
-const EXPORT_TARGET_DOCUMENTS: LogExportTargetType = 'documents'
-const EXPORT_TARGET_DESKTOP: LogExportTargetType = 'desktop'
-const EXPORT_AUTH_RUNTIME: LogExportAuthMode = 'runtime_permission'
 const EXPORT_AUTH_DOWNLOAD: LogExportAuthMode = 'download_mode'
 
 export interface LogStorageChangeEvent {
@@ -904,7 +900,8 @@ export class LogStorageService {
 
     try {
       normalized = decodeURIComponent(normalized)
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
     }
 
     normalized = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
@@ -925,7 +922,8 @@ export class LogStorageService {
       if (decoded.length > 0 && decoded !== uri) {
         candidates.push(decoded)
       }
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed for URI: ${JSON.stringify(err)}`)
     }
 
     for (let candidate of candidates) {
@@ -1139,7 +1137,8 @@ export class LogStorageService {
       if (file) {
         try {
           fileIo.closeSync(file.fd)
-        } catch (_closeErr) {
+        } catch (closeErr) {
+          hilog.warn(DOMAIN, TAG, `Failed to close file handle during error recovery: ${JSON.stringify(closeErr)}`)
         }
       }
       try {
@@ -1678,7 +1677,3 @@ interface ResolvedExportTarget {
   authMode: LogExportAuthMode
   directory: string
 }
-
-
-
-

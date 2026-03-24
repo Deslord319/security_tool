@@ -53,6 +53,7 @@ import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessa
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
+const DOMAIN = 0x0013
 const MIN_USB_LOADING_DIALOG_DURATION_MS = 500
 type PeripheralResultData =
   boolean |
@@ -265,7 +266,8 @@ export struct PeripheralPage {
     ResultDialogHelper.prepareResultDialog(status, message)
     try {
       this.resultDialogController.close()
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
     }
     this.resultDialogController.open()
   }
@@ -293,7 +295,8 @@ export struct PeripheralPage {
     }
     try {
       this.usbLoadingDialogController?.close()
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to close USB loading dialog: ${JSON.stringify(err)}`)
     } finally {
       this.isUsbLoadingDialogOpen = false
       this.usbLoadingDialogOpenedAt = 0
@@ -976,7 +979,6 @@ export struct PeripheralPage {
     // 2. 尝试从 USB 黑名单推断设备类型并更新已有记录
     let usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
     for (let deviceType of usbBlacklist) {
-      let peripheralType = inferPeripheralTypeFromBaseClass(deviceType.baseClass)
       // 更新匹配设备的类型
       for (let i = 0; i < records.length; i++) {
         if (records[i].deviceType === PeripheralType.USB_OTHER) {
@@ -1197,7 +1199,6 @@ export struct PeripheralPage {
         TAG,
         `peripheralPolicy update success, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}`
       )
-      hilog.info(0x0002, TAG, result.userMessage ?? '设备访问策略已更新')
     } finally {
       this.markPeripheralPolicyUpdating(record.deviceId, false)
     }
@@ -1307,7 +1308,6 @@ export struct PeripheralPage {
           TAG,
           `usbStoragePolicy update success, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
         )
-        hilog.info(0x0002, TAG, 'USB 存储策略已更新')
         return
       }
       hilog.error(

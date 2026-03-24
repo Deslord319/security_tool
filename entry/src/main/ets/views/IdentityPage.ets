@@ -19,7 +19,7 @@ import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessa
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'IdentityPage'
-const DOMAIN = 0x0003
+const DOMAIN = 0x0011
 const CUSTOM_VALIDITY_OPTION_INDEX = PASSWORD_VALIDITY_OPTIONS.length
 
 @Component
@@ -70,7 +70,8 @@ export struct IdentityPage {
     ResultDialogHelper.prepareResultDialog(status, message)
     try {
       this.resultDialogController.close()
-    } catch (_err) {
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
     }
     this.resultDialogController.open()
   }
