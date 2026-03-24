@@ -391,13 +391,15 @@ export struct PeripheralPage {
       return
     }
 
-    if (offsetX > 0 && this.touchStartTab === 2) {
-      this.switchToTab(0)
+    // 向左滑动（从右到左）：切换到下一个 Tab
+    if (offsetX < 0 && this.touchStartTab < 2) {
+      this.switchToTab(this.touchStartTab + 1)
       return
     }
 
-    if (offsetX < 0 && this.touchStartTab === 0) {
-      this.switchToTab(2)
+    // 向右滑动（从左到右）：切换到上一个 Tab
+    if (offsetX > 0 && this.touchStartTab > 0) {
+      this.switchToTab(this.touchStartTab - 1)
     }
   }
 
