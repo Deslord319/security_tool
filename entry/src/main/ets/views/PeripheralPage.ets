@@ -55,6 +55,7 @@ import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTa
 import { PolicyList } from '../components/peripheral/PolicyList'
 import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { ConnectionDetailMetricField } from '../components/peripheral/ConnectionDetailMetricField'
+import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -944,16 +945,6 @@ export struct PeripheralPage {
 
   // ========== Tab Builder ==========
 
-  @Builder
-  tabBuilder(title: string, index: number) {
-    Text(title)
-      .fontSize(AppStyles.FONT_SIZE_BODY)
-      .fontWeight(this.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
-      .fontColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-  }
-
   // ========== Build ==========
 
   build() {
@@ -1007,15 +998,15 @@ export struct PeripheralPage {
       Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
         TabContent() {
           this.interfaceControlBuilder()
-        }.tabBar(this.tabBuilder('接口管控', 0))
+        }.tabBar(TabBuilder({ title: '接口管控', index: 0, currentTab: this.sharedVM.currentTab, currentTheme: this.sharedVM.currentTheme }))
 
         TabContent() {
           this.deviceRecordsBuilder()
-        }.tabBar(this.tabBuilder('设备连接记录', 1))
+        }.tabBar(TabBuilder({ title: '设备连接记录', index: 1, currentTab: this.sharedVM.currentTab, currentTheme: this.sharedVM.currentTheme }))
 
         TabContent() {
           this.peripheralPolicyListBuilder()
-        }.tabBar(this.tabBuilder('黑白名单', 2))
+        }.tabBar(TabBuilder({ title: '黑白名单', index: 2, currentTab: this.sharedVM.currentTab, currentTheme: this.sharedVM.currentTheme }))
       }
       .barMode(BarMode.Fixed)
       .barWidth('100%')
