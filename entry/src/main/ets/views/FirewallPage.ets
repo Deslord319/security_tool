@@ -509,7 +509,7 @@ export struct FirewallPage {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text('点击模式卡片后，后端先执行策略切换；防火墙关闭时不可切换模式。')
+              Text(' 统一配置网络访问规则，精准控制应用与设备的通信行为，降低未授权连接带来的安全风险')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
