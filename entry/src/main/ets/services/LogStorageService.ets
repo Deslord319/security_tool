@@ -699,6 +699,26 @@ export class LogStorageService {
     LogStorageService.changeListeners.delete(listenerId)
   }
 
+  // Update the storage config.
+  static async updateConfig(config: LogStorageConfig): Promise<boolean> {
+    try {
+      let normalizedConfig = LogStorageService.normalizeStorageConfig(config)
+      LogStorageService.storageConfig = normalizedConfig
+      let maxEntries = LogStorageService.getEffectiveMaxEntries()
+      if (LogStorageService.logEntries.length > maxEntries) {
+        LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
+      }
+      LogStorageService.cleanExpiredEntries()
+      await LogStorageService.saveEntries()
+      await LogStorageService.saveConfig()
+      hilog.info(DOMAIN, TAG, 'Storage config updated')
+      return true
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `updateConfig failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
   // Load the subscription config.
   static async loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
     if (!LogStorageService.context) {
