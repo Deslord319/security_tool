@@ -166,9 +166,6 @@ static async checkAdminActive(): Promise&lt;boolean&gt; {
 <p><strong>说明：</strong>在外设管理页面 aboutToAppear 生命周期中调用管理员检测，非管理员状态下禁用操作按钮并显示提示信息。</p>
 <pre>async aboutToAppear() {
   this.isAdmin = await PeripheralService.checkAdminActive();
-  if (!this.isAdmin) {
-    promptAction.showToast({ message: '应用未注册为设备管理员' });
-  }
 }</pre>
 </div>
 <div class="card">

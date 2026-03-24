@@ -1,11 +1,12 @@
 import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window, promptAction } from '@kit.ArkUI';
+import { window } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
 import { ThemeOption } from '../theme/ThemeColors';
 import { AuthService } from '../services/AuthService';
 import { AuthMethod, PREF_KEY_STARTUP_AUTH, PREF_KEY_AUTH_METHOD, PREF_STORE_NAME_TOOL, DEFAULT_TOOL_SETTINGS } from '../models/DataModels';
+import { ResultDialogHelper } from '../utils/ResultDialogHelper';
 
 const DOMAIN = 0x0000;
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
@@ -166,7 +167,6 @@ export default class EntryAbility extends UIAbility {
 
     if (!checkResult.available) {
       // 认证方式不可用时优雅降级：直接加载主页面，不阻断启动
-      // 注意：此时尚未调用 loadContent，promptAction 没有 UI 上下文无法弹窗
       hilog.warn(DOMAIN, 'testTag', `Startup auth method unavailable: ${checkResult.message}, fallback to load MainPage`);
       this.loadMainPage(windowStage, `启动校验跳过：${checkResult.message}`);
       return;
@@ -183,7 +183,6 @@ export default class EntryAbility extends UIAbility {
       this.loadMainPage(windowStage, authResult.message);
     } else {
       // 认证失败或取消，直接退出应用
-      // 注意：此时没有页面上下文，无法使用 promptAction 弹窗
       hilog.warn(DOMAIN, 'testTag', 'Startup auth failed or cancelled, terminating');
       this.context.terminateSelf();
     }
@@ -205,7 +204,11 @@ export default class EntryAbility extends UIAbility {
 
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {
-        promptAction.showToast({ message: toastMessage, duration: 3000 });
+        windowStage.getMainWindow().then((mainWindow: window.Window) => {
+          ResultDialogHelper.openAlertDialog(mainWindow.getUIContext(), 'failure', toastMessage);
+        }).catch((dialogErr: Error) => {
+          hilog.error(DOMAIN, 'testTag', 'Failed to show startup dialog: %{public}s', JSON.stringify(dialogErr));
+        });
       }
 
       // 隐藏系统标题栏（装饰栏），保留三键区和拖拽能力

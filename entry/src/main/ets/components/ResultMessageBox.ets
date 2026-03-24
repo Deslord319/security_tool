@@ -1,25 +1,34 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import {
+  STORAGE_KEY_RESULT_DIALOG_BUTTON,
+  STORAGE_KEY_RESULT_DIALOG_MESSAGE,
+  STORAGE_KEY_RESULT_DIALOG_STATUS
+} from '../utils/ResultDialogHelper'
 
 export type ResultMessageStatus = 'success' | 'failure'
 
 @CustomDialog
 export struct ResultMessageBox {
   controller: CustomDialogController
-  status: ResultMessageStatus = 'success'
-  message: string = ''
-  buttonText: string = '我知道了'
   onConfirm: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @StorageLink(STORAGE_KEY_RESULT_DIALOG_STATUS) statusText: string = 'success'
+  @StorageLink(STORAGE_KEY_RESULT_DIALOG_MESSAGE) message: string = ''
+  @StorageLink(STORAGE_KEY_RESULT_DIALOG_BUTTON) buttonText: string = '我知道了'
 
   private confirmDialog(): void {
-    this.onConfirm()
     this.controller.close()
+    this.onConfirm()
+  }
+
+  private getStatus(): ResultMessageStatus {
+    return this.statusText === 'failure' ? 'failure' : 'success'
   }
 
   private getStatusTitle(): string {
-    return this.status === 'success' ? '操作成功 ✅' : '操作失败 ❌'
+    return this.getStatus() === 'success' ? '操作成功 ✅' : '操作失败 ❌'
   }
 
   build() {

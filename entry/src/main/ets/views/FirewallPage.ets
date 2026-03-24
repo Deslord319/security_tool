@@ -2,7 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { BackNavButton } from '../components/BackNavButton'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { promptAction } from '@kit.ArkUI'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -22,7 +22,7 @@ struct FirewallModeLoadingDialog {
       LoadingProgress()
         .width(44)
         .height(44)
-      Text('\u6b63\u5728\u5207\u6362\u9632\u706b\u5899\u6a21\u5f0f\uff0c\u8bf7\u7a0d\u5019')
+      Text('正在切换防火墙模式，请稍候')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -100,13 +100,17 @@ export struct FirewallPage {
 
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      promptAction.showToast({
-        message: result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
-      })
+      ResultDialogHelper.openAlertDialog(
+        this.getUIContext(),
+        'failure',
+        result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
+      )
+
+
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      promptAction.showToast({ message: '防火墙开关切换失败' })
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '防火墙开关切换失败')
       hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -313,8 +317,8 @@ export struct FirewallPage {
     })
   }
 
-  private showModeChangeFailedToast(): void {
-    promptAction.showToast({ message: '\u7b56\u7565\u4e0b\u53d1\u5931\u8d25\uff0c\u5f53\u524d\u6a21\u5f0f\u672a\u5207\u6362' })
+  private showModeChangeFailedDialog(): void {
+    ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '策略下发失败，当前模式未切换')
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
@@ -340,10 +344,10 @@ export struct FirewallPage {
       this.isModeProcessing = false
     }
     if (!success) {
-      this.showModeChangeFailedToast()
+      this.showModeChangeFailedDialog()
       return
     }
-    promptAction.showToast({ message: '\u6a21\u5f0f\u5207\u6362\u6210\u529f' })
+    hilog.info(0x0001, TAG, 'mode changed successfully')
     if (mode === 'custom') {
       this.onNavigateToRules()
     }

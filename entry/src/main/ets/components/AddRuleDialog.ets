@@ -1,6 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
-import { promptAction } from '@kit.ArkUI'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
@@ -164,7 +164,7 @@ export struct AddRuleDialog {
   private handleSubmit(): void {
     let validationMessage = this.validateForm()
     if (validationMessage.length > 0) {
-      promptAction.showToast({ message: validationMessage })
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', validationMessage)
       return
     }
 

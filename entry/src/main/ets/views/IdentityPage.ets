@@ -8,7 +8,6 @@ import {
   PASSWORD_VALIDITY_OPTIONS
 } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { promptAction } from '@kit.ArkUI'
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -41,7 +40,15 @@ export struct IdentityPage {
   @State requireSpecialChar: boolean = true
   @State validityPeriodIndex: number = 0
   @State customValidityPeriodText: string = ''
-  private resultDialogController?: CustomDialogController
+  private resultDialogController: CustomDialogController = new CustomDialogController({
+    builder: ResultMessageBox({
+      onConfirm: () => {
+      }
+    }),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
     value: `${value} 位`
@@ -60,26 +67,11 @@ export struct IdentityPage {
   }
 
   private showResultDialog(status: ResultMessageStatus, message: string): void {
-    if (this.resultDialogController) {
-      try {
-        this.resultDialogController.close()
-      } catch (_err) {
-      }
-      this.resultDialogController = undefined
+    ResultDialogHelper.prepareResultDialog(status, message)
+    try {
+      this.resultDialogController.close()
+    } catch (_err) {
     }
-
-    this.resultDialogController = new CustomDialogController({
-      builder: ResultMessageBox({
-        status: status,
-        message: message,
-        onConfirm: () => {
-          this.resultDialogController = undefined
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
     this.resultDialogController.open()
   }
 
@@ -97,10 +89,6 @@ export struct IdentityPage {
       ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
     )
     return false
-    let reasonText = this.adminState.errorMessage || '企业管理员未激活'
-    let codeText = this.adminState.errorCode !== undefined ? ` (${this.adminState.errorCode})` : ''
-    promptAction.showToast({ message: `${action}失败：${reasonText}${codeText}` })
-    return false
   }
 
   private showFailureDialog<T>(action: string, result: OperationResult<T>): void {
@@ -108,22 +96,6 @@ export struct IdentityPage {
       ? ResultDialogHelper.displayReason(result.errorMessage, '企业管理员未激活')
       : ResultDialogHelper.displayReason(result.errorMessage, `${action}未完成，请稍后重试`)
     this.showResultDialog('failure', dialogMessage)
-    return
-    if (result.isAdminMissing) {
-      let reasonText = result.errorMessage || '企业管理员未激活'
-      let codeText = result.errorCode !== undefined ? ` (${result.errorCode})` : ''
-      promptAction.showToast({ message: `${action}失败：${reasonText}${codeText}` })
-      return
-    }
-
-    let codeText = result.errorCode !== undefined ? `错误码: ${result.errorCode}\n` : ''
-    let reasonText = result.errorMessage || `${action}失败`
-    let suggestionText = result.suggestion || '请检查企业管理员状态和系统权限后重试。'
-    AlertDialog.show({
-      title: `${action}失败`,
-      message: `${codeText}原因: ${reasonText}\n建议: ${suggestionText}`,
-      primaryButton: { value: '知道了', action: () => {} }
-    })
   }
 
   private loadCurrentPolicy(): void {
@@ -195,7 +167,7 @@ export struct IdentityPage {
   private buildConfig(): PasswordComplexityConfig | null {
     let validityPeriod = this.resolveValidityPeriod()
     if (validityPeriod === null) {
-      promptAction.showToast({ message: '请输入非负整数天数，0 表示永久有效' })
+      this.showResultDialog('failure', '请输入非负整数天数，0 表示永久有效')
       return null
     }
 
@@ -219,11 +191,18 @@ export struct IdentityPage {
       return
     }
 
+    let currentPolicy = IdentityService.getPasswordPolicyWithResult().data
+    let currentRegex: string = currentPolicy?.complexityRegex ?? ''
+    let nextRegex: string = IdentityService.buildComplexityRegex(config)
+    let currentValidity = currentPolicy?.validityPeriod ?? 0
+    if (currentRegex === nextRegex && currentValidity === config.validityPeriod) {
+      this.showResultDialog('failure', '当前没有需要保存的更改')
+      return
+    }
+
     let pwdResult = IdentityService.setPasswordPolicyWithResult(config)
     if (pwdResult.success) {
       this.showResultDialog('success', '身份鉴别配置已保存')
-      return
-      promptAction.showToast({ message: '身份鉴别配置已保存。' })
       return
     }
     this.showFailureDialog('设置口令策略', pwdResult)

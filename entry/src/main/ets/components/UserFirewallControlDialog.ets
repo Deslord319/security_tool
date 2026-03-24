@@ -1,4 +1,4 @@
-import { promptAction } from '@kit.ArkUI'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppColors, AppStyles } from '../constants/AppConstants'
@@ -51,7 +51,7 @@ export struct UserFirewallControlDialog {
       this.selectedUserId = -1
       this.statusHintText = result.message ?? '未找到可用用户'
       if (this.statusHintText.length > 0) {
-        promptAction.showToast({ message: this.statusHintText })
+        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', this.statusHintText)
       }
       return
     }
@@ -93,7 +93,7 @@ export struct UserFirewallControlDialog {
         String(result.errorCode)
       )
       this.statusHintText = result.message ?? '无法获取该用户当前防火墙状态'
-      promptAction.showToast({ message: this.statusHintText })
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', this.statusHintText)
       return
     }
 
@@ -106,7 +106,7 @@ export struct UserFirewallControlDialog {
 
   private async handleSetEnabled(enabled: boolean): Promise<void> {
     if (this.selectedUserId < 0 || !this.statusReady) {
-      promptAction.showToast({ message: '请先选择并读取有效用户状态' })
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '请先选择并读取有效用户状态')
       return
     }
 
@@ -121,16 +121,20 @@ export struct UserFirewallControlDialog {
     this.isSubmitting = false
 
     if (!result.success) {
-      promptAction.showToast({
-        message: result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
+      ResultDialogHelper.openAlertDialog(
+        this.getUIContext(),
+        'failure',
+        result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
+      )
+
       })
       return
     }
 
-    promptAction.showToast({
-      message: enabled ?
-        `用户 ${this.selectedUserId} 防火墙已开启` :
-        `用户 ${this.selectedUserId} 防火墙已关闭`
+    hilog.info(DOMAIN, TAG, user firewall updated, userId=, enabled=)
+
+
+
     })
     this.onActionCompleted()
     await this.loadPolicyForSelectedUser()

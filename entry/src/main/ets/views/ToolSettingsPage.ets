@@ -11,7 +11,6 @@ import {
   PREF_STORE_NAME_TOOL
 } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { promptAction } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BackNavButton } from '../components/BackNavButton'
@@ -29,7 +28,15 @@ export struct ToolSettingsPage {
   @State hoveredCardIndex: number = -1
   @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   @State authMethodIndex: number = 0
-  private resultDialogController?: CustomDialogController
+  private resultDialogController: CustomDialogController = new CustomDialogController({
+    builder: ResultMessageBox({
+      onConfirm: () => {
+      }
+    }),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
 
   private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
   private initialAuthMethodIndex: number = 0
@@ -41,26 +48,11 @@ export struct ToolSettingsPage {
   }
 
   private showResultDialog(status: ResultMessageStatus, message: string): void {
-    if (this.resultDialogController) {
-      try {
-        this.resultDialogController.close()
-      } catch (_err) {
-      }
-      this.resultDialogController = undefined
+    ResultDialogHelper.prepareResultDialog(status, message)
+    try {
+      this.resultDialogController.close()
+    } catch (_err) {
     }
-
-    this.resultDialogController = new CustomDialogController({
-      builder: ResultMessageBox({
-        status: status,
-        message: message,
-        onConfirm: () => {
-          this.resultDialogController = undefined
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
     this.resultDialogController.open()
   }
 
@@ -91,7 +83,7 @@ export struct ToolSettingsPage {
         let authMethod = AUTH_METHOD_OPTIONS[this.authMethodIndex].value
         let checkResult = AuthService.checkAuthMethodAvailability(authMethod)
         if (!checkResult.available) {
-          AlertDialog.show({
+          void this.getUIContext().showAlertDialog({
             title: '认证方式不可用',
             message: `${checkResult.message}\n\n继续保存后，启动时身份校验可能无法正常工作，请确认是否仍要保存设置。`,
             primaryButton: {
@@ -113,8 +105,6 @@ export struct ToolSettingsPage {
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', '保存设置失败，请稍后重试')
-      return
-      promptAction.showToast({ message: '保存设置失败' })
     }
   }
 
@@ -124,7 +114,7 @@ export struct ToolSettingsPage {
         this.authMethodIndex !== this.initialAuthMethodIndex
 
       if (!hasAuthConfigChanged) {
-        promptAction.showToast({ message: '当前没有需要保存的更改' })
+        this.showResultDialog('failure', '当前没有需要保存的更改')
         return
       }
 
@@ -137,13 +127,9 @@ export struct ToolSettingsPage {
       this.initialAuthMethodIndex = this.authMethodIndex
       hilog.info(0x0004, TAG, 'Startup auth settings saved')
       this.showResultDialog('success', '工具设置已保存')
-      return
-      promptAction.showToast({ message: '工具设置保存成功' })
     } catch (err) {
       hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', '保存设置失败，请稍后重试')
-      return
-      promptAction.showToast({ message: '保存设置失败' })
     }
   }
 
@@ -152,11 +138,11 @@ export struct ToolSettingsPage {
       const context = getContext(this) as common.UIAbilityContext
       const opened = await SystemSettingsService.openPasswordSettings(context)
       if (!opened) {
-        promptAction.showToast({ message: '无法打开系统密码设置，请手动前往系统设置修改' })
+        this.showResultDialog('failure', '无法打开系统密码设置，请手动前往系统设置修改')
       }
     } catch (err) {
       hilog.error(0x0004, TAG, `openPasswordSettings failed: ${JSON.stringify(err)}`)
-      promptAction.showToast({ message: '无法打开系统密码设置，请手动前往系统设置修改' })
+      this.showResultDialog('failure', '无法打开系统密码设置，请手动前往系统设置修改')
     }
   }
 

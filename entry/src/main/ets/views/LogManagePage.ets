@@ -203,8 +203,15 @@ export struct LogManagePage {
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 220
   private readonly pageSizeOptions: number[] = [20, 50, 100]
   private detailDialogController?: CustomDialogController
-
-  private resultDialogController?: CustomDialogController
+  private resultDialogController: CustomDialogController = new CustomDialogController({
+    builder: ResultMessageBox({
+      onConfirm: () => {
+      }
+    }),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
 
   private resolveStatIndex(label: string): number {
     if (label === '总计') {
@@ -240,6 +247,15 @@ export struct LogManagePage {
       clearInterval(this.refreshTimerId)
       this.refreshTimerId = -1
     }
+  }
+
+  private showResultDialog(status: ResultMessageStatus, message: string): void {
+    ResultDialogHelper.prepareResultDialog(status, message)
+    try {
+      this.resultDialogController.close()
+    } catch (_err) {
+    }
+    this.resultDialogController.open()
   }
 
   private startRefreshTimer(): void {
@@ -535,30 +551,6 @@ export struct LogManagePage {
     this.detailDialogController.open()
   }
 
-  private showResultDialog(status: ResultMessageStatus, message: string): void {
-    if (this.resultDialogController) {
-      try {
-        this.resultDialogController.close()
-      } catch (_err) {
-      }
-      this.resultDialogController = undefined
-    }
-
-    this.resultDialogController = new CustomDialogController({
-      builder: ResultMessageBox({
-        status: status,
-        message: message,
-        onConfirm: () => {
-          this.resultDialogController = undefined
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
-    this.resultDialogController.open()
-  }
-
   private openLogDetailTableDialog(entry: LogEntry): void {
     let fields: DetailDialogField[] = [
       this.toDetailField('timestamp', '时间', formatLogTimestamp(entry.timestamp)),
@@ -579,7 +571,7 @@ export struct LogManagePage {
   }
 
   clearLogs() {
-    AlertDialog.show({
+    void this.getUIContext().showAlertDialog({
       title: '确认清空',
       message: `将清除所有 ${this.statistics.totalCount} 条日志记录，此操作不可撤销。`,
       primaryButton: {
@@ -603,6 +595,12 @@ export struct LogManagePage {
       exportTargetValue: previousConfig.exportTargetValue || '',
       exportAuthMode: 'download_mode',
       exportPath: ''
+    }
+
+    if (previousConfig.maxLocalEntries === config.maxLocalEntries &&
+      previousConfig.retentionDays === config.retentionDays) {
+      this.showResultDialog('failure', '当前没有需要保存的更改')
+      return
     }
 
     let success = await LogStorageService.updateConfig(config)

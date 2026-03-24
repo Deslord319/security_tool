@@ -41,7 +41,6 @@ import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { common } from '@kit.AbilityKit'
 import { BusinessError, usbManager as hostUsbManager } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { promptAction } from '@kit.ArkUI'
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -194,7 +193,15 @@ export struct PeripheralPage {
   @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
   @State policyUpdatingKeys: string[] = []
   @State peripheralPolicyRenderVersion: number = 0
-  private resultDialogController?: CustomDialogController
+  private resultDialogController: CustomDialogController = new CustomDialogController({
+    builder: ResultMessageBox({
+      onConfirm: () => {
+      }
+    }),
+    alignment: DialogAlignment.Center,
+    autoCancel: false,
+    customStyle: true
+  })
   private usbLoadingDialogController?: CustomDialogController
   private isUsbLoadingDialogOpen: boolean = false
   private usbLoadingDialogOpenedAt: number = 0
@@ -255,26 +262,11 @@ export struct PeripheralPage {
   }
 
   private showResultDialog(status: ResultMessageStatus, message: string): void {
-    if (this.resultDialogController) {
-      try {
-        this.resultDialogController.close()
-      } catch (_err) {
-      }
-      this.resultDialogController = undefined
+    ResultDialogHelper.prepareResultDialog(status, message)
+    try {
+      this.resultDialogController.close()
+    } catch (_err) {
     }
-
-    this.resultDialogController = new CustomDialogController({
-      builder: ResultMessageBox({
-        status: status,
-        message: message,
-        onConfirm: () => {
-          this.resultDialogController = undefined
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
     this.resultDialogController.open()
   }
 
@@ -735,9 +727,9 @@ export struct PeripheralPage {
     }
     this.lastRecordHintToastMessage = message
     try {
-      promptAction.showToast({ message })
+      hilog.info(0x0002, TAG, `record hint: ${message}`)
     } catch (e) {
-      hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
+      hilog.error(0x0002, TAG, `record hint log failed: ${JSON.stringify(e)}`)
     }
   }
 
@@ -755,10 +747,6 @@ export struct PeripheralPage {
       ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
     )
     return false
-    let reasonText: string = this.adminState.errorMessage || '企业管理员未激活'
-    let codeText: string = this.adminState.errorCode !== undefined ? ' (' + this.adminState.errorCode + ')' : ''
-    promptAction.showToast({ message: action + '不可用：' + reasonText + codeText })
-    return false
   }
 
   private showOperationFailure(action: string, result: OperationResult<PeripheralResultData>): void {
@@ -766,21 +754,6 @@ export struct PeripheralPage {
       ? ResultDialogHelper.displayReason(result.errorMessage, '企业管理员未激活')
       : ResultDialogHelper.displayReason(result.errorMessage, `${action}未完成，请稍后重试`)
     this.showResultDialog('failure', dialogMessage)
-    return
-    if (result.isAdminMissing) {
-      let reasonText: string = result.errorMessage || '企业管理员未激活'
-      let codeText: string = result.errorCode !== undefined ? ' (' + result.errorCode + ')' : ''
-      promptAction.showToast({ message: action + '失败：' + reasonText + codeText })
-      return
-    }
-    let codeText: string = result.errorCode !== undefined ? '错误码：' + result.errorCode + '\n' : ''
-    let reasonText: string = result.errorMessage || (action + '失败')
-    let suggestionText: string = result.suggestion || '请检查权限声明、签名模板和策略激活状态后重试。'
-    AlertDialog.show({
-      title: action + '失败',
-      message: codeText + '原因：' + reasonText + '\n建议：' + suggestionText,
-      primaryButton: { value: '关闭', action: (): void => {} }
-    })
   }
 
   loadAllData() {
@@ -1081,7 +1054,7 @@ export struct PeripheralPage {
 
   private async exportPeripheralPolicyRecords(): Promise<void> {
     if (this.peripheralPolicyRecords.length === 0) {
-      promptAction.showToast({ message: '暂无可导出的设备策略记录' })
+      this.showResultDialog('failure', '暂无可导出的设备策略记录')
       return
     }
 
@@ -1106,8 +1079,6 @@ export struct PeripheralPage {
     } catch (err) {
       hilog.error(0x0008, TAG, `exportPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
       this.showPolicyRecordExportFailureDialog()
-      return
-      promptAction.showToast({ message: '导出设备策略记录失败' })
     }
   }
 
@@ -1176,7 +1147,7 @@ export struct PeripheralPage {
     }
     let parsed = parseUsbDeviceId(record.deviceId)
     if (!parsed) {
-      promptAction.showToast({ message: '无法识别当前设备标识' })
+      this.showResultDialog('failure', '无法识别当前设备标识')
       return
     }
 
@@ -1214,7 +1185,7 @@ export struct PeripheralPage {
         )
         let userMessage = result.userMessage?.trim()
         if (userMessage) {
-          promptAction.showToast({ message: userMessage })
+          this.showResultDialog('failure', userMessage)
           return
         }
         this.showOperationFailure('修改设备策略', result)
@@ -1226,7 +1197,7 @@ export struct PeripheralPage {
         TAG,
         `peripheralPolicy update success, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}`
       )
-      promptAction.showToast({ message: result.userMessage ?? '设备访问策略已更新' })
+      hilog.info(0x0002, TAG, result.userMessage ?? '设备访问策略已更新')
     } finally {
       this.markPeripheralPolicyUpdating(record.deviceId, false)
     }
@@ -1261,12 +1232,8 @@ export struct PeripheralPage {
 
       if (result.success) {
         hilog.info(0x0002, TAG, `interfaceControl update success, key=${controlKey}, target=${targetValue}`)
-        try {
-          let featureLabel = this.getInterfaceFeatureLabel(feature)
-          promptAction.showToast({ message: featureLabel + (disallow ? '已禁用' : '已启用') })
-        } catch (e) {
-          hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-        }
+        let featureLabel = this.getInterfaceFeatureLabel(feature)
+        hilog.info(0x0002, TAG, `${featureLabel}${disallow ? '已禁用' : '已启用'}`)
       } else {
         hilog.error(
           0x0002,
@@ -1340,11 +1307,7 @@ export struct PeripheralPage {
           TAG,
           `usbStoragePolicy update success, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
         )
-        try {
-          promptAction.showToast({ message: 'USB 存储策略已更新' })
-        } catch (e) {
-          hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-        }
+        hilog.info(0x0002, TAG, 'USB 存储策略已更新')
         return
       }
       hilog.error(
@@ -1369,11 +1332,7 @@ export struct PeripheralPage {
     if (result.success) {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
-      try {
-        promptAction.showToast({ message: 'USB 白名单已添加' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      hilog.info(0x0002, TAG, 'USB 白名单已添加')
     } else {
       this.showOperationFailure('添加 USB 白名单', result)
     }
@@ -1387,11 +1346,7 @@ export struct PeripheralPage {
     if (result.success) {
       this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
-      try {
-        promptAction.showToast({ message: 'USB 白名单项已移除' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      hilog.info(0x0002, TAG, 'USB 白名单项已移除')
       return
     }
     this.showOperationFailure('移除 USB 白名单', result)
@@ -1405,11 +1360,7 @@ export struct PeripheralPage {
     if (result.success) {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
-      try {
-        promptAction.showToast({ message: '蓝牙白名单已添加' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      hilog.info(0x0002, TAG, '蓝牙白名单已添加')
     } else {
       this.showOperationFailure('添加蓝牙白名单', result)
     }
@@ -1423,11 +1374,7 @@ export struct PeripheralPage {
     if (result.success) {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
-      try {
-        promptAction.showToast({ message: '蓝牙白名单项已移除' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      hilog.info(0x0002, TAG, '蓝牙白名单项已移除')
       return
     }
     this.showOperationFailure('移除蓝牙白名单', result)
@@ -1449,11 +1396,7 @@ export struct PeripheralPage {
     if (result.success) {
       this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       this.reloadDeviceRecords()
-      try {
-        promptAction.showToast({ message: 'USB 黑名单已添加' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      hilog.info(0x0002, TAG, 'USB 黑名单已添加')
     } else {
       this.showOperationFailure('添加 USB 黑名单', result)
     }
@@ -1467,11 +1410,7 @@ export struct PeripheralPage {
     if (result.success) {
       this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
       this.reloadDeviceRecords()
-      try {
-        promptAction.showToast({ message: 'USB 黑名单项已移除' })
-      } catch (e) {
-        hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
-      }
+      hilog.info(0x0002, TAG, 'USB 黑名单项已移除')
       return
     }
     this.showOperationFailure('移除 USB 黑名单', result)
@@ -1565,7 +1504,7 @@ export struct PeripheralPage {
       this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
       this.reloadDeviceRecords()
       try {
-        promptAction.showToast({ message: record.deviceName + ' 策略已设置为' + policyLabels[policyIndex] })
+        hilog.info(0x0002, TAG, `${record.deviceName} 策略已设置为${policyLabels[policyIndex]}`)
       } catch (e) {
         hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
       }
@@ -1697,7 +1636,7 @@ export struct PeripheralPage {
 
   private async exportConnectionHistory(): Promise<void> {
     if (this.deviceRecords.length === 0) {
-      promptAction.showToast({ message: '没有可导出的设备连接记录' })
+      this.showResultDialog('failure', '没有可导出的设备连接记录')
       return
     }
 
@@ -1726,17 +1665,17 @@ export struct PeripheralPage {
       hilog.error(0x0008, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
       this.showConnectionHistoryExportFailureDialog()
       return
-      promptAction.showToast({ message: '导出历史记录失败' })
+      this.showResultDialog('failure', '导出历史记录失败，请稍后重试')
     }
   }
 
   private showClearConnectionHistoryConfirmDialog(): void {
     if (this.deviceRecords.length === 0) {
-      promptAction.showToast({ message: '暂无可清理的历史记录' })
+      this.showResultDialog('failure', '暂无可清理的历史记录')
       return
     }
 
-    AlertDialog.show({
+    void this.getUIContext().showAlertDialog({
       title: '清理历史记录',
       message: '将清空当前设备连接历史记录，且无法恢复。是否继续？',
       primaryButton: {
@@ -1809,7 +1748,7 @@ export struct PeripheralPage {
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
-    this.showResultDialog('success', '历史记录已导出，保存位置：下载\\安全管理中心\\')
+    this.showResultDialog('success', '历史记录已导出，保存位置：下载/安全管理中心')
   }
 
   private showConnectionHistoryExportFailureDialog(reason?: string): void {
@@ -1820,7 +1759,7 @@ export struct PeripheralPage {
   }
 
   private showPolicyRecordExportSuccessDialog(): void {
-    this.showResultDialog('success', '策略记录已导出，保存位置：下载\\安全管理中心\\')
+    this.showResultDialog('success', '策略记录已导出，保存位置：下载/安全管理中心')
   }
 
   private showPolicyRecordExportFailureDialog(reason?: string): void {
@@ -3276,7 +3215,7 @@ export struct PeripheralPage {
                   .textAlign(TextAlign.Center)
                   .onClick(() => {
                     try {
-                      promptAction.showToast({ message: '场景详情功能开发中。' })
+                      this.showResultDialog('failure', '场景详情功能开发中')
                     } catch (e) {
                       hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
                     }
@@ -3300,7 +3239,7 @@ export struct PeripheralPage {
             .fontColor(AppColors.BRAND_PRIMARY)
             .onClick(() => {
               try {
-                promptAction.showToast({ message: '下载模板功能开发中。' })
+                this.showResultDialog('failure', '下载模板功能开发中')
               } catch (e) {
                 hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
               }
@@ -3310,7 +3249,7 @@ export struct PeripheralPage {
             .fontColor(AppColors.BRAND_PRIMARY)
             .onClick(() => {
               try {
-                promptAction.showToast({ message: '导入清单功能开发中。' })
+                this.showResultDialog('failure', '导入清单功能开发中')
               } catch (e) {
                 hilog.error(0x0002, TAG, `showToast failed: ${JSON.stringify(e)}`)
               }
@@ -3783,11 +3722,3 @@ export struct PeripheralPage {
     .align(Alignment.Top)
   }
 }
-
-
-
-
-
-
-
-

@@ -1,24 +1,24 @@
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ResultMessageStatus } from '../components/ResultMessageBox'
 
-export interface ResultDialogOptions {
-  status: ResultMessageStatus
-  message: string
-  onConfirm?: () => void
-}
+export const STORAGE_KEY_RESULT_DIALOG_STATUS: string = 'result_dialog_status'
+export const STORAGE_KEY_RESULT_DIALOG_MESSAGE: string = 'result_dialog_message'
+export const STORAGE_KEY_RESULT_DIALOG_BUTTON: string = 'result_dialog_button'
 
 export class ResultDialogHelper {
-  static createController(options: ResultDialogOptions): CustomDialogController {
-    return new CustomDialogController({
-      builder: ResultMessageBox({
-        status: options.status,
-        message: options.message,
-        onConfirm: () => {
-          options.onConfirm?.()
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
+  static prepareResultDialog(status: ResultMessageStatus, message: string, buttonText: string = '我知道了'): void {
+    AppStorage.setOrCreate<string>(STORAGE_KEY_RESULT_DIALOG_STATUS, status)
+    AppStorage.setOrCreate<string>(STORAGE_KEY_RESULT_DIALOG_MESSAGE, message)
+    AppStorage.setOrCreate<string>(STORAGE_KEY_RESULT_DIALOG_BUTTON, buttonText)
+  }
+
+  static openAlertDialog(uiContext: UIContext, status: ResultMessageStatus, message: string): void {
+    void uiContext.showAlertDialog({
+      title: status === 'success' ? '操作成功' : '操作失败',
+      message: message,
+      primaryButton: {
+        value: '我知道了',
+        action: () => {}
+      }
     })
   }
 

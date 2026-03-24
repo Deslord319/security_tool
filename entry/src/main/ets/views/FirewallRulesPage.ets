@@ -6,12 +6,14 @@ import { AddRuleDialog } from '../components/AddRuleDialog'
 import { BackNavButton } from '../components/BackNavButton'
 import { DirectionCard } from '../components/DirectionCard'
 import { netFirewall } from '@kit.NetworkKit'
-import { promptAction } from '@kit.ArkUI'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FirewallPresetMode } from '../models/DataModels'
+import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
+const TAG = 'FirewallRulesPage'
 @Component
 export struct FirewallRulesPage {
   @Prop currentMode: FirewallPresetMode = 'custom'
@@ -38,7 +40,7 @@ export struct FirewallRulesPage {
 
   aboutToAppear() {
     if (this.currentMode !== 'custom') {
-      promptAction.showToast({ message: '仅自定义模式可进入规则页' })
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '仅自定义模式可进入规则页')
       this.onBack()
       return
     }
@@ -58,34 +60,42 @@ export struct FirewallRulesPage {
     let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
     let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {
-      promptAction.showToast({ message: result.errorMessage?.length ? result.errorMessage : '自定义规则下发失败' })
+      ResultDialogHelper.openAlertDialog(
+        this.getUIContext(),
+        'failure',
+        result.errorMessage?.length ? result.errorMessage : '自定义规则下发失败'
+      )
       return
     }
     let saved = await FirewallCustomRuleService.replaceAllRules(context, nextRules)
     if (!saved) {
       let rollbackResult = await FirewallModeService.applyCustomRules(context, previousRules)
       if (!rollbackResult.success) {
-        promptAction.showToast({ message: '规则已下发，但本地保存失败，请重新进入页面确认' })
+        ResultDialogHelper.openAlertDialog(
+          this.getUIContext(),
+          'failure',
+          '规则已下发，但本地保存失败，请重新进入页面确认'
+        )
         return
       }
       await this.loadRules()
-      promptAction.showToast({ message: '自定义规则保存失败，已恢复原策略' })
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '自定义规则保存失败，已恢复原策略')
       return
     }
     await this.loadRules()
-    promptAction.showToast({ message: successMessage })
+    hilog.info(0x0001, TAG, 'persistRules success')
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
     let conflict = FirewallService.findRuleConflict(this.rules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        promptAction.showToast({ message: '存在重复规则' })
+        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '存在重复规则')
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-        AlertDialog.show({
+        void this.getUIContext().showAlertDialog({
           title: '存在冲突规则',
           message: '发现动作相反的同类规则，是否用新规则覆盖旧规则？',
           primaryButton: {
@@ -102,7 +112,7 @@ export struct FirewallRulesPage {
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        AlertDialog.show({
+        void this.getUIContext().showAlertDialog({
           title: '规则范围重叠',
           message: '新规则与现有规则有重叠，仍然继续保存并重新下发吗？',
           primaryButton: {
@@ -152,12 +162,12 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(comparableRules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        promptAction.showToast({ message: '存在重复规则' })
+        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '存在重复规则')
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-        AlertDialog.show({
+        void this.getUIContext().showAlertDialog({
           title: '存在冲突规则',
           message: '发现动作相反的同类规则，是否删除旧规则并保存本次修改？',
           primaryButton: {
@@ -174,7 +184,7 @@ export struct FirewallRulesPage {
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        AlertDialog.show({
+        void this.getUIContext().showAlertDialog({
           title: '规则范围重叠',
           message: '修改后的规则与现有规则有重叠，是否继续保存？',
           primaryButton: {
@@ -221,7 +231,7 @@ export struct FirewallRulesPage {
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
-    AlertDialog.show({
+    void this.getUIContext().showAlertDialog({
       title: '删除规则',
       message: '删除后会立即重新下发当前自定义策略，是否继续？',
       primaryButton: {
