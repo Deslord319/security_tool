@@ -474,7 +474,7 @@ export struct LogManagePage {
 
   async exportLogs(format: LogExportFormat) {
     if (this.logEntries.length === 0) {
-      promptAction.showToast({ message: '没有可导出的日志' })
+      this.showResultDialog('failure', '没有可导出的日志')
       return
     }
 
@@ -575,7 +575,7 @@ export struct LogManagePage {
         action: async () => {
           await LogStorageService.clearAll()
           this.refreshAll()
-          promptAction.showToast({ message: '日志已清空' })
+          this.showResultDialog('success', '日志已清空')
         }
       },
       secondaryButton: { value: '取消', action: () => {} }
@@ -597,15 +597,11 @@ export struct LogManagePage {
     if (!success) {
       this.showResultDialog('failure', '保存设置失败，请稍后重试')
       return
-      promptAction.showToast({ message: '保存失败' })
-      return
     }
 
     this.applyStorageConfig(LogStorageService.getConfig())
     this.refreshAll()
     this.showResultDialog('success', '日志存储设置已保存')
-    return
-    promptAction.showToast({ message: '存储设置已保存' })
   }
   applyStorageConfig(config: LogStorageConfig): void {
     this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
@@ -1354,7 +1350,7 @@ export struct LogManagePage {
               .onClick(() => {
                 this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
                 this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
-                promptAction.showToast({ message: '已恢复默认，请保存以生效' })
+                this.showResultDialog('success', '已恢复默认，请保存以生效')
               })
 
             Button('保存设置').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY)

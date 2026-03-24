@@ -2715,7 +2715,7 @@ export struct PeripheralPage {
     })
   }
   @Builder
-  deviceRecordItem(record: DeviceRecord, index: number) {
+  connectionRecordItem(record: PeripheralConnectionRecord, index: number) {
     Row({ space: 16 }) {
       Column({ space: 8 }) {
         Row({ space: 8 }) {
