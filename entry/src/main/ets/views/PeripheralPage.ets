@@ -748,36 +748,22 @@ export struct PeripheralPage {
 
   private reloadInterfaceControlState(reason: string): void {
     hilog.info(0x0002, TAG, `interfaceControl reload start, reason=${reason}`)
-    let usbState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB)
-    let btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_BLUETOOTH)
-    let wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_WIFI)
-    let hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_HDC)
-    let networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_NETWORK)
-    let printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_PRINTER)
-    let microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_MICROPHONE)
-    let cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
-    let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
-    let policy = policyResult.data ?? edmUsbManager.UsbPolicy.READ_WRITE
-
-    this.usbDisabled = usbState.data ?? false
-    this.btDisabled = btState.data ?? false
-    this.wifiDisabled = wifiState.data ?? false
-    this.hdcDisabled = hdcState.data ?? false
-    this.networkDisabled = networkState.data ?? false
-    this.printerDisabled = printerState.data ?? false
-    this.microphoneDisabled = microphoneState.data ?? false
-    this.cameraDisabled = cameraState.data ?? false
-    this.usbStoragePolicyIndex = this.mapUsbStoragePolicyToIndex(policy)
-    this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-    this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-    this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
+    this.viewModel.reloadAllData()
+    // Sync state from ViewModel to Page
+    this.usbDisabled = this.viewModel.usbDisabled
+    this.btDisabled = this.viewModel.btDisabled
+    this.wifiDisabled = this.viewModel.wifiDisabled
+    this.hdcDisabled = this.viewModel.hdcDisabled
+    this.networkDisabled = this.viewModel.networkDisabled
+    this.printerDisabled = this.viewModel.printerDisabled
+    this.microphoneDisabled = this.viewModel.microphoneDisabled
+    this.cameraDisabled = this.viewModel.cameraDisabled
+    this.usbStoragePolicyIndex = this.viewModel.usbStoragePolicyIndex
+    this.usbWhitelist = this.viewModel.usbWhitelist
+    this.usbBlacklist = this.viewModel.usbBlacklist
+    this.btWhitelist = this.viewModel.btWhitelist
     this.interfaceControlSyncToken += 1
-
-    hilog.info(
-      0x0002,
-      TAG,
-      `interfaceControl reload done, reason=${reason}, usb=${this.usbDisabled ? 1 : 0}, usbStorage=${this.getUsbStoragePolicyLogValue(this.usbStoragePolicyIndex)}, bt=${this.btDisabled ? 1 : 0}, wifi=${this.wifiDisabled ? 1 : 0}, hdc=${this.hdcDisabled ? 1 : 0}, network=${this.networkDisabled ? 1 : 0}, printer=${this.printerDisabled ? 1 : 0}, microphone=${this.microphoneDisabled ? 1 : 0}, camera=${this.cameraDisabled ? 1 : 0}`
-    )
+    hilog.info(0x0002, TAG, `interfaceControl reload done, reason=${reason}`)
   }
 
   private loadPeripheralPolicyData(): void {
