@@ -423,12 +423,7 @@ export struct PeripheralPage {
       }
     }
   }
-
-  private getUsbWhitelistCandidates(): PeripheralWhitelistCandidate[] {
-    let items: Map<string, PeripheralWhitelistCandidate> = new Map()
-    let disabledKeys: string[] = this.usbWhitelist.map((device: edmUsbManager.UsbDeviceId) => {
-      return formatUsbDeviceId(device.vendorId, device.productId).toUpperCase()
-    })
+)
 
     for (let device of this.connectedUsbDevices) {
       let deviceId = formatUsbDeviceId(device.vendorId, device.productId)
@@ -484,15 +479,6 @@ export struct PeripheralPage {
     })
   }
 
-  private getBluetoothWhitelistCandidates(): PeripheralWhitelistCandidate[] {
-    let items: Map<string, PeripheralWhitelistCandidate> = new Map()
-    let disabledKeys: string[] = this.btWhitelist.map((mac: string) => this.normalizeMac(mac))
-
-    for (let record of this.deviceRecords) {
-      let mac = parseBluetoothMac(record.deviceId)
-      if (!mac) {
-        continue
-      }
       let normalizedMac = this.normalizeMac(mac)
       if (items.has(normalizedMac)) {
         continue
@@ -513,25 +499,9 @@ export struct PeripheralPage {
       return this.compareCandidateTime(left, right)
     })
   }
-
-  private buildBlacklistTemplateKey(baseClass: number, subClass: number, protocol: number): string {
-    return `${baseClass}|${subClass}|${protocol}`
+|${subClass}|${protocol}`
   }
 
-  private appendBlacklistTemplate(
-    items: Map<string, PeripheralBlacklistTemplate>,
-    disabledKeys: string[],
-    title: string,
-    description: string,
-    baseClass: number,
-    subClass: number,
-    protocol: number,
-    fromConnectedDevice: boolean
-  ): void {
-    let key = this.buildBlacklistTemplateKey(baseClass, subClass, protocol)
-    if (items.has(key)) {
-      return
-    }
     items.set(key, {
       id: `usb_blacklist_${key}`,
       title: title,
@@ -543,12 +513,7 @@ export struct PeripheralPage {
       disabled: disabledKeys.includes(key)
     })
   }
-
-  private getUsbBlacklistTemplates(): PeripheralBlacklistTemplate[] {
-    let items: Map<string, PeripheralBlacklistTemplate> = new Map()
-    let disabledKeys: string[] = this.usbBlacklist.map((item: edmUsbManager.UsbDeviceType) => {
-      return this.buildBlacklistTemplateKey(item.baseClass, item.subClass, item.protocol)
-    })
+)
 
     for (let device of this.connectedUsbDevices) {
       let title = this.viewModel.buildUsbDisplayName(
