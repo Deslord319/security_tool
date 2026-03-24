@@ -48,6 +48,8 @@ import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
+import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
+import { InterfaceControlPanel } from '../components/peripheral/InterfaceControlPanel'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -1701,61 +1703,13 @@ export struct PeripheralPage {
 
   @Builder
   private deviceRecordsBuilder() {
-    Scroll() {
-      Column({ space: 0 }) {
-        if (this.deviceRecords.length === 0) {
-          EmptyStatePanel({
-            title: '暂无设备连接记录',
-            description: '暂无实时记录，请重新插拔设备后刷新。',
-            radius: AppStyles.RADIUS_LG,
-            verticalPadding: 24
-          })
-        } else {
-          Column({ space: 0 }) {
-            this.connectionTableHeader()
-            Column({ space: 0 }) {
-              ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
-                Column({ space: 0 }) {
-                  this.connectionRecordTableRow(record, index)
-                  if (index < this.deviceRecords.length - 1) {
-                    Divider()
-                      .color(AppColors.getColors(this.currentTheme).BORDER)
-                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                      .margin({ left: 20, right: 20 })
-                  }
-                }
-              })
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .borderRadius(AppStyles.RADIUS_LG)
-          .clip(true)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-          .border({
-            width: 1,
-            color: AppColors.getColors(this.currentTheme).BORDER
-          })
-          .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
-          .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
-          .onHover((isHover: boolean) => {
-            this.setPanelHover(0, isHover)
-          })
-        }
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Start)
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_MD,
-        bottom: AppStyles.PADDING_MD
-      })
-    }
-    .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Auto)
-    .align(Alignment.Top)
+    DeviceRecordList({
+      deviceRecords: this.deviceRecords,
+      currentTheme: this.sharedVM.currentTheme,
+      hoveredPanelIndex: this.hoveredPanelIndex,
+      onRecordClick: (record) => this.viewModel.openConnectionDetailDialog(record),
+      onPanelHover: (isHover) => this.setPanelHover(0, isHover)
+    })
   }
 
   // ==================== Tab 2: 接口控制 ====================
