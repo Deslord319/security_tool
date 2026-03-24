@@ -47,6 +47,7 @@ import { BackNavButton } from '../components/BackNavButton'
 import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -113,6 +114,7 @@ struct PeripheralUsbLoadingDialog {
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
+  private viewModel: PeripheralViewModel = new PeripheralViewModel()
   private tabsController: TabsController = new TabsController()
   private touchStartTab: number = 0
   @State currentTab: number = 0
@@ -1000,46 +1002,10 @@ export struct PeripheralPage {
   // ========== 接口管控操作 ==========
 
   async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
-    if (!this.ensureAdminReady('接口管控')) {
-      return
+    const success = await this.viewModel.toggleInterface(feature, disallow)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '接口管控失败')
     }
-
-    let controlKey: string = this.getInterfaceControlKey(feature)
-    let targetValue: string = disallow ? 'disabled' : 'enabled'
-    this.interfaceControlProcessingKey = controlKey
-    hilog.info(0x0002, TAG, `interfaceControl update start, key=${controlKey}, target=${targetValue}`)
-    try {
-      let result: OperationResult<void>
-      if (feature === PeripheralService.FEATURE_USB) {
-        result = await this.runUsbOperationWithLoading(
-          '正在切换 USB 接口策略，请稍候',
-          (): OperationResult<void> => {
-            let actionResult = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
-            this.reloadInterfaceControlState(`toggle:${feature}`)
-            return actionResult
-          }
-        )
-      } else {
-        result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
-        this.reloadInterfaceControlState(`toggle:${feature}`)
-      }
-
-      if (result.success) {
-        hilog.info(0x0002, TAG, `interfaceControl update success, key=${controlKey}, target=${targetValue}`)
-        let featureLabel = this.getInterfaceFeatureLabel(feature)
-        hilog.info(0x0002, TAG, `${featureLabel}${disallow ? '已禁用' : '已启用'}`)
-      } else {
-        hilog.error(
-          0x0002,
-          TAG,
-          `interfaceControl update failed, key=${controlKey}, target=${targetValue}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
-        )
-        this.showOperationFailure('接口管控', result)
-      }
-    } finally {
-      this.interfaceControlProcessingKey = ''
-    }
-    return
   }
 
   private getInterfaceFeatureLabel(feature: string): string {
