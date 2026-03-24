@@ -53,6 +53,7 @@ import { InterfaceControlPanel } from '../components/peripheral/InterfaceControl
 import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PolicyList } from '../components/peripheral/PolicyList'
+import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -984,9 +985,18 @@ export struct PeripheralPage {
         .alignItems(VerticalAlign.Top)
 
         if (this.currentTab === 1) {
-          this.pageHeaderActions()
+          PageHeaderActions({
+            currentTheme: this.sharedVM.currentTheme,
+            onExport: () => void this.viewModel.exportConnectionHistory(),
+            onClear: () => this.viewModel.showClearConnectionHistoryConfirmDialog(),
+            showClear: true
+          })
         } else if (this.currentTab === 2) {
-          this.policyListHeaderActions()
+          PageHeaderActions({
+            currentTheme: this.sharedVM.currentTheme,
+            onExport: () => void this.viewModel.exportPeripheralPolicyRecords(),
+            showClear: false
+          })
         }
       }
       .width('100%')
@@ -1340,82 +1350,6 @@ export struct PeripheralPage {
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  private pageHeaderActions() {
-    Row({ space: 8 }) {
-      Button() {
-        Row({ space: 6 }) {
-          Image($r('app.media.save'))
-            .width(14)
-            .height(14)
-            .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-
-          Text('导出历史记录')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-        }
-        .alignItems(VerticalAlign.Center)
-      }
-      .type(ButtonType.Normal)
-      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-      .borderRadius(AppStyles.RADIUS_SM)
-      .height(32)
-      .padding({ left: 10, right: 10 })
-      .onClick(() => {
-        void this.exportConnectionHistory()
-      })
-
-      Button() {
-        Row({ space: 6 }) {
-          Image($r('app.media.trash'))
-            .width(14)
-            .height(14)
-            .fillColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-
-          Text('清理历史记录')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-        }
-        .alignItems(VerticalAlign.Center)
-      }
-      .type(ButtonType.Normal)
-      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
-      .borderRadius(AppStyles.RADIUS_SM)
-      .height(32)
-      .padding({ left: 10, right: 10 })
-      .onClick(() => {
-        this.showClearConnectionHistoryConfirmDialog()
-      })
-    }
-  }
-
-  @Builder
-  private policyListHeaderActions() {
-    Row({ space: 8 }) {
-      Button() {
-        Row({ space: 6 }) {
-          Image($r('app.media.save'))
-            .width(14)
-            .height(14)
-            .fillColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-
-          Text('导出策略记录')
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-        }
-        .alignItems(VerticalAlign.Center)
-      }
-      .type(ButtonType.Normal)
-      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-      .borderRadius(AppStyles.RADIUS_SM)
-      .height(32)
-      .padding({ left: 10, right: 10 })
-      .onClick(() => {
-        void this.exportPeripheralPolicyRecords()
-      })
-    }
   }
 
   @Builder
