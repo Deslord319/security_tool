@@ -276,7 +276,7 @@ export struct FirewallRulesPage {
     if (this.currentTab === 0) {
       return this.rules
     }
-    
+
     // 根据 Tab 索引确定要过滤的规则类型
     const targetType = (() => {
       switch (this.currentTab) {
@@ -286,7 +286,7 @@ export struct FirewallRulesPage {
         default: return null
       }
     })()
-    
+
     if (!targetType) return this.rules
     return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === targetType)
   }
