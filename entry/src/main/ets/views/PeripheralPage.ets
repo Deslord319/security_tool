@@ -52,6 +52,7 @@ import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlPanel } from '../components/peripheral/InterfaceControlPanel'
 import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
+import { PolicyList } from '../components/peripheral/PolicyList'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -1745,44 +1746,16 @@ export struct PeripheralPage {
   // ==================== Tab 3: 黑白名单 ====================
   @Builder
   peripheralPolicyListBuilder() {
-    Scroll() {
-      Column() {
-        if (this.peripheralPolicyRecords.length === 0) {
-          EmptyStatePanel({
-            title: '暂无可管理的 USB 设备记录',
-            description: '设备接入后会按最近记录去重展示，并可直接设置允许接入或禁止访问。',
-            radius: AppStyles.RADIUS_LG,
-            verticalPadding: 24
-          })
-        } else {
-          Column({ space: 0 }) {
-            Row({ space: 12 }) {
-              Text('设备名称')
-                .fontSize(AppStyles.FONT_SIZE_SMALL)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1.8)
-              Text('设备类型')
-                .fontSize(AppStyles.FONT_SIZE_SMALL)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1.1)
-              Text('设备标识')
-                .fontSize(AppStyles.FONT_SIZE_SMALL)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1.6)
-              Text('最近连接时间')
-                .fontSize(AppStyles.FONT_SIZE_SMALL)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1.3)
-              Text('当前策略')
-                .fontSize(AppStyles.FONT_SIZE_SMALL)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .layoutWeight(1.2)
-            }
+    PolicyList({
+      policyRecords: this.peripheralPolicyRecords,
+      policyListOptions: this.policyListOptions,
+      currentTheme: this.sharedVM.currentTheme,
+      updatingKeys: this.policyUpdatingKeys,
+      onPolicyChange: (index, policyIndex) => this.viewModel.handlePeripheralPolicyChange(index, this.peripheralPolicyRecords[index].deviceId, this.peripheralPolicyRecords[index].deviceType, policyIndex),
+      getPolicyLabel: (index) => this.getPeripheralPolicyLabel(index),
+      isUpdating: (deviceId) => this.isPeripheralPolicyUpdating(deviceId)
+    })
+  }
             .width('100%')
             .padding({ left: 20, right: 20, top: 14, bottom: 14 })
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
