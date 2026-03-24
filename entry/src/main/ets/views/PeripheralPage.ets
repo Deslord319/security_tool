@@ -593,10 +593,6 @@ export struct PeripheralPage {
     this.adminState = this.viewModel.adminState
   }
 
-  private ensureAdminReady(action: string): boolean {
-    if (this.viewModel.ensureAdminReady(action)) {
-      return true
-    }
     this.showResultDialog(
       'failure',
       ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
