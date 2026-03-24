@@ -59,6 +59,7 @@ interface FirewallRuleLogPayload {
   remotePorts?: netFirewall.NetFirewallPortParams[]
   domains?: netFirewall.NetFirewallDomainParams[]
   dns?: netFirewall.NetFirewallDnsParams
+  dnsStandbyState?: string
 }
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
@@ -482,13 +483,30 @@ export class FirewallService {
   private static cloneDnsParams(
     source?: netFirewall.NetFirewallDnsParams
   ): netFirewall.NetFirewallDnsParams | undefined {
+    if (!source || typeof source.primaryDns !== 'string' || source.primaryDns.trim().length === 0) {
+      return undefined
+    }
+    let result: netFirewall.NetFirewallDnsParams = {
+      primaryDns: source.primaryDns
+    }
+    if (typeof source.standbyDns === 'string' && source.standbyDns.trim().length > 0) {
+      result.standbyDns = source.standbyDns
+    }
+    return result
+  }
+
+  private static getDnsStandbyState(source?: netFirewall.NetFirewallDnsParams): string | undefined {
     if (!source) {
       return undefined
     }
-    return {
-      primaryDns: source.primaryDns,
-      standbyDns: source.standbyDns
+    let keys = Object.keys(source as Object as Record<string, Object>)
+    if (keys.indexOf('standbyDns') === -1) {
+      return 'omitted'
     }
+    if (typeof source.standbyDns === 'string' && source.standbyDns.trim().length > 0) {
+      return 'present'
+    }
+    return 'invalid'
   }
 
   private static normalizeNumber(value: Object | number | undefined): number | undefined {
@@ -913,7 +931,8 @@ export class FirewallService {
       localPorts: rule.localPorts,
       remotePorts: rule.remotePorts,
       domains: FirewallService.cloneDomainParams(rule.domains),
-      dns: FirewallService.cloneDnsParams(rule.dns)
+      dns: FirewallService.cloneDnsParams(rule.dns),
+      dnsStandbyState: FirewallService.getDnsStandbyState(rule.dns)
     }
     hilog.info(DOMAIN, TAG, `${prefix}: ${JSON.stringify(summary)}`)
   }
