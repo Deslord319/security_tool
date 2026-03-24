@@ -717,41 +717,6 @@ export struct PeripheralPage {
     ]
   }
 
-  private reloadDeviceRecordsLegacy(): void {
-    this.deviceRecords = []
-    if (this.deviceRecords.length === 0) {
-      this.deviceRecords = this.buildPreviewConnectionRecordsLegacy()
-    }
-    let hasRealtime = this.deviceRecords.some((record: PeripheralConnectionRecord) => {
-      return record.source === 'runtime_event' || record.source === 'audit_event'
-    })
-    let hasSnapshot = this.deviceRecords.some((record: PeripheralConnectionRecord) => record.source === 'policy_snapshot')
-    let runtimeHint = this.buildRuntimeDegradeHintLegacy()
-
-    if (this.deviceRecords.length === 0) {
-      this.updateRecordHintMessageLegacy(runtimeHint)
-      return
-    }
-
-    if (!hasRealtime && hasSnapshot) {
-      this.updateRecordHintMessageLegacy(runtimeHint.length > 0
-        ? runtimeHint + ' 当前仅展示策略快照，时间范围内暂无实时连接或审计事件。'
-        : '当前仅展示策略快照，时间范围内暂无实时连接或审计事件。'
-      )
-      return
-    }
-
-    if (hasRealtime && hasSnapshot) {
-      this.updateRecordHintMessageLegacy(runtimeHint.length > 0
-        ? runtimeHint + ' 已展示实时事件，快照记录仅用于策略参考。'
-        : '已展示实时事件，快照记录仅用于策略参考。'
-      )
-      return
-    }
-
-    this.updateRecordHintMessageLegacy(runtimeHint)
-  }
-
   private buildRuntimeDegradeHintLegacy(): string {
     let runtimeStatus = PeripheralRuntimeEventService.getStatus()
     if (runtimeStatus.capabilities.usbRuntimeEvents) {
@@ -970,23 +935,6 @@ export struct PeripheralPage {
       TAG,
       `interfaceControl reload done, reason=${reason}, usb=${this.usbDisabled ? 1 : 0}, usbStorage=${this.getUsbStoragePolicyLogValue(this.usbStoragePolicyIndex)}, bt=${this.btDisabled ? 1 : 0}, wifi=${this.wifiDisabled ? 1 : 0}, hdc=${this.hdcDisabled ? 1 : 0}, network=${this.networkDisabled ? 1 : 0}, printer=${this.printerDisabled ? 1 : 0}, microphone=${this.microphoneDisabled ? 1 : 0}, camera=${this.cameraDisabled ? 1 : 0}`
     )
-  }
-
-  private resetInterfaceControlState(reason: string): void {
-    this.usbDisabled = false
-    this.btDisabled = false
-    this.wifiDisabled = false
-    this.hdcDisabled = false
-    this.networkDisabled = false
-    this.printerDisabled = false
-    this.microphoneDisabled = false
-    this.cameraDisabled = false
-    this.usbStoragePolicyIndex = 1
-    this.usbWhitelist = []
-    this.usbBlacklist = []
-    this.btWhitelist = []
-    this.interfaceControlSyncToken += 1
-    hilog.info(0x0002, TAG, `interfaceControl reset, reason=${reason}`)
   }
 
   private static USB_DEVICE_NAMES: Map<string, string> = new Map([
@@ -1952,10 +1900,6 @@ export struct PeripheralPage {
     }
   }
 
-  private getConnectionHistoryTimes(record: PeripheralConnectionRecord | null): string[] {
-    return this.getConnectionHistoryItems(record).map((item: ConnectionHistoryItem) => item.time)
-  }
-
   private getConnectionHistoryItems(record: PeripheralConnectionRecord | null): ConnectionHistoryItem[] {
     if (!record) {
       return []
@@ -2404,14 +2348,6 @@ export struct PeripheralPage {
     })
   }
 
-  private getDeviceRecordAllowCount(): number {
-    return this.deviceRecords.filter((record: DeviceRecord) => record.policy === '允许').length
-  }
-
-  private getDeviceRecordBlockCount(): number {
-    return this.deviceRecords.filter((record: DeviceRecord) => record.policy !== '允许').length
-  }
-
   private getDeviceRecordPolicyTextColor(policy: string | undefined): string {
     return policy === '允许'
       ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
@@ -2693,23 +2629,6 @@ export struct PeripheralPage {
   }
 
   @Builder
-  private connectionRecordStatsPanel() {
-    Row({ space: 8 }) {
-      this.connectionStatItem('运行时', `${this.getConnectionRuntimeCount()}`, AppColors.BRAND_PRIMARY)
-      this.connectionStatItem('审计', `${this.getConnectionAuditCount()}`, AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-      this.connectionStatItem('连接', `${this.getConnectionConnectCount()}`, AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT)
-      this.connectionStatItem('断开', `${this.getConnectionDisconnectCount()}`, AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-      this.connectionStatItem('拦截', `${this.getConnectionInterceptCount()}`, AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-      this.connectionStatItem('快照', `${this.getConnectionSnapshotCount()}`, AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT)
-    }
-    .width('100%')
-    .padding({
-      left: AppStyles.PADDING_LG,
-      right: AppStyles.PADDING_LG,
-      top: AppStyles.PADDING_MD
-    })
-  }
-  @Builder
   private connectionRecordFilterToolbar() {
     Row({ space: 8 }) {
       Select(this.recordTypeFilterOptions)
@@ -2802,7 +2721,7 @@ export struct PeripheralPage {
     })
   }
   @Builder
-  private connectionRecordItem(record: PeripheralConnectionRecord, index: number) {
+  deviceRecordItem(record: DeviceRecord, index: number) {
     Row({ space: 16 }) {
       Column({ space: 8 }) {
         Row({ space: 8 }) {

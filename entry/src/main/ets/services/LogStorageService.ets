@@ -1,7 +1,7 @@
 import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit'
-import { Environment, fileIo, fileUri, picker } from '@kit.CoreFileKit'
+import { common } from '@kit.AbilityKit'
+import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
 import {
   LogEntry,
   LogFilter,
@@ -437,100 +437,6 @@ export class LogStorageService {
       errorMessage: primaryWrite.errorMessage
     }
   }
-  static getDefaultExportDirectory(context: common.UIAbilityContext): string {
-    return LogStorageService.resolveDefaultExportDirectory(context)
-  }
-
-  static getPublicExportDirectory(targetType: LogExportTargetType): string {
-    return LogStorageService.resolvePublicDirectoryByType(targetType) || ''
-  }
-
-  static resolvePublicTargetType(pathOrUri: string): LogExportTargetType | undefined {
-    return LogStorageService.resolvePublicTargetTypeByPath(pathOrUri)
-  }
-
-  static classifyExportSelection(pathOrUri: string): ExportSelectionResult | undefined {
-    let publicType = LogStorageService.resolvePublicTargetTypeByPath(pathOrUri)
-    if (publicType) {
-      let publicPath = LogStorageService.resolvePublicExportPath(pathOrUri, publicType) ||
-        LogStorageService.resolvePublicDirectoryByType(publicType)
-      if (publicPath && publicPath.length > 0) {
-        return {
-          targetType: publicType,
-          exportPath: publicPath,
-          exportTargetValue: '',
-          exportAuthMode: EXPORT_AUTH_DOWNLOAD
-        } as ExportSelectionResult
-      }
-    }
-    return undefined
-  }
-
-  static normalizeExportSelectionPath(pathOrUri: string): string | undefined {
-    return LogStorageService.normalizeSelectionPath(pathOrUri)
-  }
-
-  static resolvePublicExportPath(
-    pathOrUri: string,
-    targetType: LogExportTargetType
-  ): string | undefined {
-    let normalized = LogStorageService.resolveSelectionDirectoryPath(pathOrUri)
-    if (!normalized) {
-      return undefined
-    }
-    return LogStorageService.resolvePublicTargetTypeByPath(normalized) === targetType ?
-      normalized :
-      undefined
-  }
-
-  private static getPublicDirectoryPermission(targetType: LogExportTargetType): Permissions | undefined {
-    if (targetType === EXPORT_TARGET_DOWNLOAD) {
-      return 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions
-    }
-    if (targetType === EXPORT_TARGET_DOCUMENTS) {
-      return 'ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY' as Permissions
-    }
-    if (targetType === EXPORT_TARGET_DESKTOP) {
-      return 'ohos.permission.READ_WRITE_DESKTOP_DIRECTORY' as Permissions
-    }
-    return undefined
-  }
-
-  static async ensurePublicDirectoryPermission(
-    context: common.UIAbilityContext,
-    targetType: LogExportTargetType
-  ): Promise<ExportAuthResult> {
-    let permission = LogStorageService.getPublicDirectoryPermission(targetType)
-    if (!permission) {
-      return { success: true }
-    }
-
-    try {
-      let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager()
-      let grantResult = await atManager.requestPermissionsFromUser(context, [permission])
-      if (grantResult.authResults.length === 0) {
-        return {
-          success: false,
-          errorMessage: `权限未授予: ${permission}`
-        }
-      }
-
-      let granted = grantResult.authResults[0] === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED
-      if (granted) {
-        return { success: true }
-      }
-      return {
-        success: false,
-        errorMessage: `用户拒绝权限: ${permission}`
-      }
-    } catch (err) {
-      return {
-        success: false,
-        errorCode: LogStorageService.extractErrorCode(err as Object),
-        errorMessage: `申请目录权限失败: ${JSON.stringify(err)}`
-      }
-    }
-  }
 
   private static async ensureExportTargetReady(
     target: ResolvedExportTarget,
@@ -553,16 +459,6 @@ export class LogStorageService {
     }
 
     return LogStorageService.requestDownloadAuthorization()
-  }
-
-  // Set the export directory.
-  static async setExportDirectory(path: string): Promise<boolean> {
-    let cfg = LogStorageService.getConfig()
-    cfg.exportTargetType = EXPORT_TARGET_DOWNLOAD
-    cfg.exportTargetValue = LogStorageService.sanitizeExportTargetUri(path)
-    cfg.exportAuthMode = EXPORT_AUTH_DOWNLOAD
-    cfg.exportPath = ''
-    return LogStorageService.updateConfig(cfg)
   }
 
   private static sanitizeExportTargetUri(uri: string | undefined): string {
@@ -803,26 +699,6 @@ export class LogStorageService {
     LogStorageService.changeListeners.delete(listenerId)
   }
 
-  // Update the storage config.
-  static async updateConfig(config: LogStorageConfig): Promise<boolean> {
-    try {
-      let normalizedConfig = LogStorageService.normalizeStorageConfig(config)
-      LogStorageService.storageConfig = normalizedConfig
-      let maxEntries = LogStorageService.getEffectiveMaxEntries()
-      if (LogStorageService.logEntries.length > maxEntries) {
-        LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
-      }
-      LogStorageService.cleanExpiredEntries()
-      await LogStorageService.saveEntries()
-      await LogStorageService.saveConfig()
-      hilog.info(DOMAIN, TAG, 'Storage config updated')
-      return true
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `updateConfig failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
   // Load the subscription config.
   static async loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
     if (!LogStorageService.context) {
@@ -1018,29 +894,6 @@ export class LogStorageService {
     return normalized
   }
 
-  private static resolveSelectionDirectoryPath(pathOrUri: string | undefined): string | undefined {
-    let normalized = LogStorageService.normalizeSelectionPath(pathOrUri)
-    if (!normalized || LogStorageService.isUriPath(normalized)) {
-      return normalized
-    }
-
-    let normalizedPath = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
-    if (normalizedPath.length === 0) {
-      return undefined
-    }
-
-    try {
-      let stat = fileIo.statSync(normalizedPath)
-      if (stat.isDirectory()) {
-        return normalizedPath
-      }
-      let parent = LogStorageService.getParentDirectory(normalizedPath)
-      return parent.length > 0 ? parent : undefined
-    } catch (_err) {
-      return normalizedPath
-    }
-  }
-
   private static extractAbsolutePathFromUri(uri: string): string | undefined {
     if (!LogStorageService.isUriPath(uri)) {
       return undefined
@@ -1133,34 +986,6 @@ export class LogStorageService {
     return cutIndex >= 0 ? path.substring(0, cutIndex) : path
   }
 
-  private static resolvePublicTargetTypeByPath(pathOrUri: string | undefined): LogExportTargetType | undefined {
-    let selectedPath = LogStorageService.normalizeSelectionPath(pathOrUri)
-    if (!selectedPath) {
-      return undefined
-    }
-
-    let selectedNormalized = LogStorageService.normalizePathForCompare(selectedPath)
-    let candidates: LogExportTargetType[] = [
-      EXPORT_TARGET_DOWNLOAD,
-      EXPORT_TARGET_DOCUMENTS,
-      EXPORT_TARGET_DESKTOP
-    ]
-    for (let candidate of candidates) {
-      let baseDir = LogStorageService.resolvePublicBaseDirectoryByType(candidate)
-      if (!baseDir) {
-        continue
-      }
-      let baseNormalized = LogStorageService.normalizePathForCompare(baseDir)
-      if (
-        selectedNormalized === baseNormalized ||
-        selectedNormalized.startsWith(`${baseNormalized}/`)
-      ) {
-        return candidate
-      }
-    }
-    return undefined
-  }
-
   private static isExportDirectoryAllowed(path: string): boolean {
     if (path.length === 0 || path.includes('\0')) {
       return false
@@ -1185,24 +1010,6 @@ export class LogStorageService {
     return normalized.startsWith('/')
   }
 
-  private static createDefaultTargetConfig(baseConfig?: LogStorageConfig): LogStorageConfig {
-    let maxLocalEntries = LogStorageService.normalizeMaxEntries(
-      baseConfig?.maxLocalEntries ?? DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
-    )
-    let retentionDays = LogStorageService.normalizeRetentionDays(
-      baseConfig?.retentionDays ?? DEFAULT_LOG_STORAGE_CONFIG.retentionDays
-    )
-
-    return {
-      maxLocalEntries: maxLocalEntries,
-      retentionDays: retentionDays,
-      exportPath: '',
-      exportTargetType: EXPORT_TARGET_DOWNLOAD,
-      exportTargetValue: '',
-      exportAuthMode: EXPORT_AUTH_DOWNLOAD
-    }
-  }
-
   private static normalizeStorageConfig(config: LogStorageConfig): LogStorageConfig {
     let baseConfig: LogStorageConfig = {
       maxLocalEntries: LogStorageService.normalizeMaxEntries(config.maxLocalEntries),
@@ -1222,45 +1029,6 @@ export class LogStorageService {
       exportTargetValue: configuredUri,
       exportAuthMode: EXPORT_AUTH_DOWNLOAD
     }
-  }
-
-  private static resolveDefaultExportDirectory(context: common.UIAbilityContext): string {
-    let publicDefault = LogStorageService.resolvePublicDirectoryByType(EXPORT_TARGET_DOWNLOAD)
-    if (publicDefault && publicDefault.length > 0) {
-      return publicDefault
-    }
-
-    return LogStorageService.joinPath(context.filesDir, DEFAULT_EXPORT_DIR_NAME)
-  }
-
-  private static resolvePublicDirectoryByType(targetType: LogExportTargetType): string | undefined {
-    let normalizedBase = LogStorageService.resolvePublicBaseDirectoryByType(targetType)
-    if (!normalizedBase) {
-      return undefined
-    }
-    return LogStorageService.joinPath(normalizedBase, DEFAULT_EXPORT_DIR_NAME)
-  }
-
-  private static resolvePublicBaseDirectoryByType(targetType: LogExportTargetType): string | undefined {
-    let baseDir = ''
-    try {
-      if (targetType === EXPORT_TARGET_DOWNLOAD) {
-        baseDir = Environment.getUserDownloadDir()
-      } else if (targetType === EXPORT_TARGET_DOCUMENTS) {
-        baseDir = Environment.getUserDocumentDir()
-      } else if (targetType === EXPORT_TARGET_DESKTOP) {
-        baseDir = Environment.getUserDesktopDir()
-      }
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `resolve public directory failed: type=${targetType}, error=${JSON.stringify(err)}`)
-      return undefined
-    }
-
-    let normalized = LogStorageService.normalizeExportDirectory(baseDir)
-    if (!normalized || LogStorageService.isUriPath(normalized)) {
-      return undefined
-    }
-    return normalized
   }
 
   private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
