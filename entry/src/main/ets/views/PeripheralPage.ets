@@ -326,13 +326,7 @@ export struct PeripheralPage {
     this.blacklistDialogController.open()
   }
 
-  private normalizeMac(rawMac: string): string {
-    return rawMac.toUpperCase().replace(/-/g, ':').trim()
-  }
 
-  private formatTimestamp(timestamp: number): string {
-    return timestamp > 0 ? formatLogTimestamp(timestamp) : '--'
-  }
 
     if (source === 'runtime_event') {
       return 1
@@ -343,10 +337,6 @@ export struct PeripheralPage {
     return 3
   }
 
-  private compareCandidateTime(left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate): number {
-    if (left.timestamp === right.timestamp) {
-      return this.getCandidateSortWeight(left.source) - this.getCandidateSortWeight(right.source)
-    }
     return right.timestamp - left.timestamp
   }
 
@@ -683,28 +673,19 @@ export struct PeripheralPage {
 
   // ========== 设备管控数据加载 ==========
 
-  // 常见设备 VID/PID -> 名称映射
-  private getInterfaceControlKey(feature: string): string {
-    return `feature:${feature}`
+  // 常见设备 VID/PID -> 名称映射`
   }
 
   private isInterfaceControlProcessing(controlKey: string): boolean {
     return this.interfaceControlProcessingKey === controlKey
   }
 
-  private mapUsbStoragePolicyToIndex(policy: edmUsbManager.UsbPolicy): number {
-    if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
-      return 0
-    }
     if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
       return 1
     }
     return 2
   }
-
-  private getUsbStoragePolicyLogValue(index: number): string {
-    let values: string[] = ['read_only', 'read_write', 'disabled']
-    return values[index] ?? `unknown_${index}`
+`
   }
 
   private reloadInterfaceControlState(reason: string): void {
@@ -810,15 +791,7 @@ export struct PeripheralPage {
   }
 
 
-  private isPeripheralPolicyUpdating(deviceId: string): boolean {
-    return this.policyUpdatingKeys.indexOf(deviceId) >= 0
-  }
 
-  private markPeripheralPolicyUpdating(deviceId: string, updating: boolean): void {
-    if (updating) {
-      if (!this.isPeripheralPolicyUpdating(deviceId)) {
-        this.policyUpdatingKeys = [...this.policyUpdatingKeys, deviceId]
-      }
       return
     }
     this.policyUpdatingKeys = this.policyUpdatingKeys.filter((item: string) => item !== deviceId)
