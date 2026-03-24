@@ -778,11 +778,6 @@ export struct PeripheralPage {
     })
   }
 
-  private async exportPeripheralPolicyRecords(): Promise<void> {
-    if (this.peripheralPolicyRecords.length === 0) {
-      this.showResultDialog('failure', '暂无可导出的设备策略记录')
-      return
-    }
 
     try {
       let context = getContext(this) as common.UIAbilityContext
@@ -807,41 +802,13 @@ export struct PeripheralPage {
       this.showPolicyRecordExportFailureDialog()
     }
   }
-
-  private buildPeripheralPolicyCsv(records: PeripheralPolicyRecord[]): string {
-    let headers: string[] = [
-      '设备名称',
-      '设备类型',
-      '设备标识',
-      '最近连接时间',
-      '当前策略'
-    ]
-    let rows = records.map((record: PeripheralPolicyRecord) => {
-      return [
-        record.deviceName,
-        getPeripheralTypeLabel(record.deviceType),
-        record.deviceId,
-        record.lastSeenLabel,
-        this.getPeripheralPolicyLabel(record.policyIndex)
-      ].map((value: string) => this.escapeCsvValue(value)).join(',')
-    })
+)
     return `\﻿${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
   }
 
-  private getPeripheralPolicyLabel(policyIndex: number): string {
-    let selected = this.policyListOptions[policyIndex]
-    if (selected && typeof selected.value === 'string') {
-      return selected.value
-    }
     return this.policyListOptions[0].value as string
   }
 
-  private refreshPeripheralPolicyRecords(): void {
-    this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-    this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-    this.loadPeripheralPolicyData()
-    this.peripheralPolicyRenderVersion += 1
-  }
 
   private isPeripheralPolicyUpdating(deviceId: string): boolean {
     return this.policyUpdatingKeys.indexOf(deviceId) >= 0
@@ -1121,11 +1088,6 @@ export struct PeripheralPage {
     this.selectedConnectionRecord = null
   }
 
-  private async exportConnectionHistory(): Promise<void> {
-    if (this.deviceRecords.length === 0) {
-      this.showResultDialog('failure', '没有可导出的设备连接记录')
-      return
-    }
 
     try {
       hilog.info(0x0008, TAG, `exportConnectionHistory start, count=${this.deviceRecords.length}`)
@@ -1195,32 +1157,7 @@ export struct PeripheralPage {
       this.showResultDialog('failure', '清理未完成，请稍后重试')
     }
   }
-
-  private buildConnectionHistoryCsvV2(records: PeripheralConnectionRecord[]): string {
-    let headers: string[] = [
-      '设备名称',
-      '设备类型',
-      '设备标识',
-      '连接事件',
-      '策略',
-      '连接时间',
-      '事件来源',
-      '命中类型',
-      '结果状态'
-    ]
-    let rows = records.map((record: PeripheralConnectionRecord) => {
-      return [
-        record.deviceName,
-        getPeripheralTypeLabel(record.deviceType),
-        record.deviceId,
-        this.getConnectionEventLabel(record),
-        this.getExecutedUsbPolicyDisplay(record),
-        this.formatConnectionTime(record),
-        getPeripheralRecordSourceLabel(record.source),
-        this.getMatchedPolicyKindLabel(record),
-        this.getConnectionResultLabel(record)
-      ].map((value: string) => this.escapeCsvValue(value)).join(',')
-    })
+)
     return `\﻿${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
   }
 
