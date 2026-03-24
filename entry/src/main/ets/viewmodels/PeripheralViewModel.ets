@@ -106,7 +106,7 @@ export class PeripheralViewModel {
     }
   }
 
-  private reloadDeviceRecords(): void {
+  reloadDeviceRecords(): void {
     try {
       this.deviceRecords = PeripheralConnectionRecordService.queryRecords()
     } catch (err) {

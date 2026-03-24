@@ -634,7 +634,7 @@ export struct PeripheralPage {
     this.traceStorageListenerId = -1
   }
   private reloadDeviceRecords(): void {
-    this.deviceRecords = PeripheralConnectionRecordService.queryRecords()
+    this.viewModel.reloadDeviceRecords()
     this.loadPeripheralPolicyData()
   }
   private refreshAdminActivationState(): void {
