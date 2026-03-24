@@ -161,7 +161,6 @@ export struct PeripheralPage {
     PeripheralType.USB_OTHER
   ]
 
-  // 设备管控记录（独立数据源）- 已删除方案 A
   @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
   @State policyUpdatingKeys: string[] = []
   @State peripheralPolicyRenderVersion: number = 0
