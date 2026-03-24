@@ -304,7 +304,7 @@ export class LogStorageService {
 
       case LogExportFormat.CSV:
         // Add UTF-8 BOM for Excel-compatible CSV decoding.
-        return `\uFEFF${LogStorageService.toCsv(entries)}`
+        return `﻿${LogStorageService.toCsv(entries)}`
 
       case LogExportFormat.TXT:
         return LogStorageService.toTxt(entries)

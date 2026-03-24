@@ -1101,7 +1101,7 @@ export struct PeripheralPage {
         this.getPeripheralPolicyLabel(record.policyIndex)
       ].map((value: string) => this.escapeCsvValue(value)).join(',')
     })
-    return `\uFEFF${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
+    return `\﻿${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
   }
 
   private getPeripheralPolicyLabel(policyIndex: number): string {
@@ -1736,7 +1736,7 @@ export struct PeripheralPage {
         this.getConnectionResultLabel(record)
       ].map((value: string) => this.escapeCsvValue(value)).join(',')
     })
-    return `\uFEFF${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
+    return `\﻿${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
   }
 
   private escapeCsvValue(value: string): string {
