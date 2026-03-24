@@ -48,7 +48,7 @@ export default function logManageComponentTest() {
     describe('LogManage Page Header', () => {
       it('should display page title and description', 0, async () => {
         await driver.assertComponentExist(ON.text('日志管理'))
-        await driver.assertComponentExist(ON.text('监控和审计系统安全事件日志'))
+        await driver.assertComponentExist(ON.text('监控崩溃与关键安全日志'))
         await driver.assertComponentExist(ON.text('进入存储设置'))
       })
     })
@@ -83,10 +83,8 @@ export default function logManageComponentTest() {
       it('should display storage settings content', 0, async () => {
         await driver.assertComponentExist(ON.text('最大存储条数'))
         await driver.assertComponentExist(ON.text('日志保留天数'))
-        await driver.assertComponentExist(ON.text('自动导出'))
-        await driver.assertComponentExist(ON.text('导出保存位置'))
-        await driver.assertComponentExist(ON.text('权限信息'))
-        await driver.assertComponentExist(ON.text('保存设置'))
+        await driver.assertComponentExist(ON.text('采集诊断'))
+        await driver.assertComponentExist(ON.text('首页数量'))
       })
 
       it('should switch back to log list view', 0, async () => {

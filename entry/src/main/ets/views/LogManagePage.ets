@@ -1,6 +1,5 @@
 
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import { LogAuditService } from '../services/LogAuditService'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import {
@@ -279,7 +278,7 @@ export struct LogManagePage {
   }
 
   private refreshDiagnostics() {
-    this.diagnostics = LogAuditService.getDiagnostics()
+    this.diagnostics = LogRuntimeCollectorService.getDiagnostics()
   }
 
   refreshData() {
@@ -447,13 +446,11 @@ export struct LogManagePage {
   }
 
   private getDiagMetricValue(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    return `${diag.seenCount}`
+    return `${this.getStoredCountByType(type)}`
   }
 
   private getDiagMetricLabel(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    return diag.seenCount > 0 ? '命中事件' : '当前命中'
+    return '首页数量'
   }
 
   private getDiagCardSummaryText(type: LogEventType): string {
@@ -461,6 +458,21 @@ export struct LogManagePage {
     if (diag.failedEventIds.length > 0) {
       let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
       return `订阅异常：eventId ${diag.failedEventIds.join(',')}${codeText}`
+    }
+    if (type === LogEventType.FILE) {
+      let unsupported = diag.preFilterUnsupportedEventIds || []
+      let preFilterFailed = diag.preFilterFailedEventIds || []
+      if (unsupported.length > 0) {
+        return `前置路径过滤已回退：eventId ${unsupported.join(',')}`
+      }
+      if (preFilterFailed.length > 0) {
+        let codeText = diag.preFilterLastErrorCode !== undefined ? `，错误码 ${diag.preFilterLastErrorCode}` : ''
+        return `前置路径过滤异常：eventId ${preFilterFailed.join(',')}${codeText}`
+      }
+      let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
+      if (dropped > 0) {
+        return `已丢弃 ${dropped} 条非用户文件事件`
+      }
     }
     if (!diag.subscribed) {
       return '当前未订阅该类型'
@@ -637,10 +649,21 @@ export struct LogManagePage {
   private getFilterHintMessage(): string {
     if (this.fromAuditDiagnostics && this.selectedDiagType >= 0) {
       let typeLabel = this.getSelectedDiagTypeLabel()
+      let selectedType = this.selectedDiagType as LogEventType
+      let diag = this.getDiagByType(selectedType)
       if (this.logEntries.length === 0) {
-        return `当前正在查看【${typeLabel}】审计事件，该类型暂无命中事件。`
+        if (selectedType === LogEventType.FILE) {
+          let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
+          if (dropped > 0) {
+            return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，已过滤 ${dropped} 条系统或未知路径事件。`
+          }
+        }
+        if (diag.seenCount > 0) {
+          return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，本次会话命中 ${diag.seenCount} 条。`
+        }
+        return `当前正在查看【${typeLabel}】采集事件，该类型暂无命中事件。`
       }
-      return `当前正在查看【${typeLabel}】审计事件，共 ${this.logEntries.length} 条。`
+      return `当前正在查看【${typeLabel}】采集事件，共 ${this.logEntries.length} 条。`
     }
 
     if (this.filterEventType < 0) {
@@ -659,10 +682,16 @@ export struct LogManagePage {
     }
     if (diag.failedEventIds.length > 0) {
       if (selectedType === LogEventType.ACCOUNT && diag.lastErrorCode === 401) {
-        return '账户审计在当前设备受系统策略限制（401），并非应用权限缺失。'
+        return '用户认证日志在当前设备受系统策略限制（401），并非应用权限缺失。'
       }
       let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
       return `该类型订阅失败：eventId ${diag.failedEventIds.join(',')}${codeText}。${this.getTypeTriggerHint(selectedType)}`
+    }
+    if (selectedType === LogEventType.FILE) {
+      let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
+      if (dropped > 0) {
+        return `当前文件日志仅保留用户文件操作，已过滤 ${dropped} 条系统或未知路径事件。`
+      }
     }
     if (diag.subscribed && totalByType === 0) {
       return ''
@@ -675,10 +704,10 @@ export struct LogManagePage {
 
   private getTypeTriggerHint(type: LogEventType): string {
     switch (type) {
-      case LogEventType.NETWORK_CONN:
-        return '提示：只有系统上报的连接审计事件会出现，普通网页访问未必触发。'
-      case LogEventType.NETWORK_TRAFFIC:
-        return '提示：该类型通常需要系统侧开启流量审计上报。'
+      case LogEventType.CRASH:
+        return '提示：需等待系统上报 APP_CRASH 或 APP_FREEZE。'
+      case LogEventType.FILE:
+        return '提示：只记录用户公共目录或公共媒体文件操作。'
       case LogEventType.PERMISSION:
         return '提示：需触发权限授予/撤销等系统权限变更行为。'
       case LogEventType.ACCOUNT:
@@ -699,6 +728,10 @@ export struct LogManagePage {
       failedEventIds: [],
       seenCount: 0
     }
+  }
+
+  private getStoredCountByType(type: LogEventType): number {
+    return this.statistics.byType.get(type) || 0
   }
 
   private getDiagStatusText(type: LogEventType): string {
@@ -753,7 +786,13 @@ export struct LogManagePage {
 
   private getDiagCountText(type: LogEventType): string {
     let diag = this.getDiagByType(type)
-    return `命中 ${diag.seenCount}`
+    if (type === LogEventType.FILE) {
+      let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
+      if (dropped > 0) {
+        return `本次会话命中 ${diag.seenCount} / 过滤 ${dropped}`
+      }
+    }
+    return `本次会话命中 ${diag.seenCount}`
   }
 
   private getDiagRecentTimeText(type: LogEventType): string {
@@ -778,7 +817,7 @@ export struct LogManagePage {
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text(this.showSettings ? '配置日志留存、自动导出与审计诊断' : '监控和审计系统安全事件日志')
+            Text(this.showSettings ? '配置日志留存与采集诊断' : '监控崩溃与关键安全日志')
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1048,7 +1087,7 @@ export struct LogManagePage {
               this.clearAuditDiagnosticsFilter()
             })
 
-          Button('返回审计诊断')
+          Button('返回采集诊断')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -1092,7 +1131,7 @@ export struct LogManagePage {
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Text('系统安全审计事件将实时显示在此处')
+        Text('安全事件与崩溃日志将实时显示在此处')
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1545,7 +1584,7 @@ export struct LogManagePage {
   auditDiagnosticsCard() {
     Column({ space: 12 }) {
       Row() {
-        Text('审计诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+        Text('采集诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
       }
       .width('100%')

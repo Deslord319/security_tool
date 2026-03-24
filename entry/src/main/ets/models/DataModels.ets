@@ -643,19 +643,10 @@ export const PREF_KEY_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules_payload'
 
 
 export enum LogEventType {
-  FILE = 0,
-  NETWORK_CONN = 1,
-  NETWORK_TRAFFIC = 2,
-  APP = 3,
-  ACCOUNT = 4,
-  USB_ACCESS = 5,
-  PERMISSION = 6,
-  PROCESS = 7,
-  PRINTER = 8,
-  CAMERA = 9,
-  CERT = 10,
-  EDM = 11,
-  DNS = 12
+  CRASH = 0,
+  FILE = 1,
+  ACCOUNT = 2,
+  PERMISSION = 3
 }
 
 
@@ -729,6 +720,12 @@ export interface LogEventTypeDiag {
   lastSeenAt?: number
   seenCount: number
   lastErrorCode?: number
+  preFilterUnsupportedEventIds?: number[]
+  preFilterFailedEventIds?: number[]
+  preFilterLastErrorCode?: number
+  droppedNoPathCount?: number
+  droppedPrefixMismatchCount?: number
+  lastDropReason?: string
 }
 
 export type AuditSubscribeMode = 'client' | 'legacy' | 'none'
@@ -790,19 +787,10 @@ export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
 
 
 export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
+  LogEventType.CRASH,
   LogEventType.FILE,
-  LogEventType.NETWORK_CONN,
-  LogEventType.NETWORK_TRAFFIC,
-  LogEventType.APP,
   LogEventType.ACCOUNT,
-  LogEventType.USB_ACCESS,
-  LogEventType.PERMISSION,
-  LogEventType.PROCESS,
-  LogEventType.PRINTER,
-  LogEventType.CAMERA,
-  LogEventType.CERT,
-  LogEventType.EDM,
-  LogEventType.DNS
+  LogEventType.PERMISSION
 ]
 
 
@@ -833,32 +821,14 @@ export const PREF_STORE_NAME_LOG = 'log_settings'
 
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
+    case LogEventType.CRASH:
+      return '崩溃日志'
     case LogEventType.FILE:
       return '文件操作'
-    case LogEventType.NETWORK_CONN:
-      return '网络连接'
-    case LogEventType.NETWORK_TRAFFIC:
-      return '网络流量'
-    case LogEventType.APP:
-      return '应用管理'
     case LogEventType.ACCOUNT:
-      return '账户操作'
-    case LogEventType.USB_ACCESS:
-      return 'USB 访问'
+      return '用户认证'
     case LogEventType.PERMISSION:
       return '权限变更'
-    case LogEventType.PROCESS:
-      return '进程管理'
-    case LogEventType.PRINTER:
-      return '打印机'
-    case LogEventType.CAMERA:
-      return '摄像头'
-    case LogEventType.CERT:
-      return '证书管理'
-    case LogEventType.EDM:
-      return 'EDM 策略'
-    case LogEventType.DNS:
-      return 'DNS 查询'
     default:
       return '未知'
   }
@@ -894,19 +864,10 @@ export function getLogEventResultColor(result: LogEventResult): string {
 
 
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
+  { label: '崩溃日志', value: LogEventType.CRASH },
   { label: '文件操作', value: LogEventType.FILE },
-  { label: '网络连接', value: LogEventType.NETWORK_CONN },
-  { label: '网络流量', value: LogEventType.NETWORK_TRAFFIC },
-  { label: '应用管理', value: LogEventType.APP },
-  { label: '账户操作', value: LogEventType.ACCOUNT },
-  { label: 'USB 访问', value: LogEventType.USB_ACCESS },
-  { label: '权限变更', value: LogEventType.PERMISSION },
-  { label: '进程管理', value: LogEventType.PROCESS },
-  { label: '打印机', value: LogEventType.PRINTER },
-  { label: '摄像头', value: LogEventType.CAMERA },
-  { label: '证书管理', value: LogEventType.CERT },
-  { label: 'EDM 策略', value: LogEventType.EDM },
-  { label: 'DNS 查询', value: LogEventType.DNS }
+  { label: '用户认证', value: LogEventType.ACCOUNT },
+  { label: '权限变更', value: LogEventType.PERMISSION }
 ]
 
 

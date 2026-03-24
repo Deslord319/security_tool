@@ -1,8 +1,9 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppInfo } from '../constants/AppConstants'
-import { LogEntry, LogEventType } from '../models/DataModels'
+import { LogAuditDiagnostics, LogEntry, LogEventType, LogEventTypeDiag } from '../models/DataModels'
 import { LogAuditService } from './LogAuditService'
+import { LogCrashService } from './LogCrashService'
 import { LogStorageService } from './LogStorageService'
 
 const TAG = 'LogRuntimeCollector'
@@ -30,11 +31,14 @@ export class LogRuntimeCollectorService {
     (timerId: number): void => clearTimeout(timerId)
   private static persistEntriesFn: (entries: LogEntry[]) => Promise<boolean> =
     (entries: LogEntry[]): Promise<boolean> => LogStorageService.addEntries(entries)
-  private static subscribeFn:
+  private static subscribeAuditFn:
     (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]) => boolean =
       (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]): boolean =>
         LogAuditService.subscribe(cb, eventTypes)
-  private static unsubscribeFn: () => boolean = (): boolean => LogAuditService.unsubscribe()
+  private static subscribeCrashFn: (cb: (entry: LogEntry) => void) => boolean =
+    (cb: (entry: LogEntry) => void): boolean => LogCrashService.subscribe(cb)
+  private static unsubscribeAuditFn: () => boolean = (): boolean => LogAuditService.unsubscribe()
+  private static unsubscribeCrashFn: () => boolean = (): boolean => LogCrashService.unsubscribe()
   private static readonly INTERNAL_LOG_PATH_KEYWORDS: string[] = [
     'preferences/log_settings',
     'preferences/theme_preferences',
@@ -77,12 +81,23 @@ export class LogRuntimeCollectorService {
     }
 
     let subscribeConfig = await LogStorageService.loadSubscriptionConfig()
-    let eventTypes = subscribeConfig.subscribeAll ? undefined : subscribeConfig.subscribedTypes
+    let targetTypes = subscribeConfig.subscribeAll ? undefined : subscribeConfig.subscribedTypes
+    let auditTypes = targetTypes?.filter((type: LogEventType) => type !== LogEventType.CRASH)
+    let shouldCollectCrash = targetTypes === undefined || targetTypes.includes(LogEventType.CRASH)
+    let auditEnabled = auditTypes === undefined || auditTypes.length > 0
 
-    let success = LogRuntimeCollectorService.subscribeFn((entry: LogEntry) => {
-      LogRuntimeCollectorService.handleIncomingEntry(entry)
-    }, eventTypes)
+    let auditStarted = auditEnabled ?
+      LogRuntimeCollectorService.subscribeAuditFn((entry: LogEntry) => {
+        LogRuntimeCollectorService.handleIncomingEntry(entry)
+      }, auditTypes) :
+      true
+    let crashStarted = shouldCollectCrash ?
+      LogRuntimeCollectorService.subscribeCrashFn((entry: LogEntry) => {
+        LogRuntimeCollectorService.handleIncomingEntry(entry)
+      }) :
+      true
 
+    let success = auditStarted || crashStarted
     LogRuntimeCollectorService.running = success
 
     if (success) {
@@ -90,7 +105,7 @@ export class LogRuntimeCollectorService {
       hilog.info(
         DOMAIN,
         TAG,
-        `subscribe mode=${LogAuditService.getSubscribeMode()}, fallback=${LogAuditService.getFallbackReason()}`
+        `auditMode=${LogAuditService.getSubscribeMode()}, fallback=${LogAuditService.getFallbackReason()}, crash=${crashStarted}`
       )
       if (failed.length > 0) {
         hilog.warn(DOMAIN, TAG, `start with partial subscribe success, failed eventIds=${failed.join(',')}`)
@@ -102,13 +117,14 @@ export class LogRuntimeCollectorService {
     }
 
     let code = LogAuditService.getLastSubscribeErrorCode()
-    hilog.error(DOMAIN, TAG, `start failed: subscribe failed, code=${code}`)
+    hilog.error(DOMAIN, TAG, `start failed: audit=${auditStarted}, crash=${crashStarted}, code=${code}`)
     return false
   }
 
   static async stop(): Promise<void> {
     LogRuntimeCollectorService.running = false
-    LogRuntimeCollectorService.unsubscribeFn()
+    LogRuntimeCollectorService.unsubscribeAuditFn()
+    LogRuntimeCollectorService.unsubscribeCrashFn()
 
     if (LogRuntimeCollectorService.flushTimerId >= 0) {
       LogRuntimeCollectorService.clearTimerFn(LogRuntimeCollectorService.flushTimerId)
@@ -121,8 +137,26 @@ export class LogRuntimeCollectorService {
   static getStatus(): LogRuntimeCollectorStatus {
     return {
       running: LogRuntimeCollectorService.running,
-      subscribed: LogAuditService.getSubscriptionStatus()
+      subscribed: LogAuditService.getSubscriptionStatus() || LogCrashService.getSubscriptionStatus()
     } as LogRuntimeCollectorStatus
+  }
+
+  static getDiagnostics(): LogAuditDiagnostics {
+    let diagnostics = LogAuditService.getDiagnostics()
+    let crashDiag = LogCrashService.getDiagnostics()
+    let mergedByType = new Map<LogEventType, LogEventTypeDiag>()
+    diagnostics.byType.forEach((value: LogEventTypeDiag, key: LogEventType) => {
+      mergedByType.set(key, value)
+    })
+    mergedByType.set(LogEventType.CRASH, crashDiag)
+    return {
+      byType: mergedByType,
+      unknownEventIds: diagnostics.unknownEventIds,
+      subscribeMode: diagnostics.subscribeMode,
+      fallbackReason: diagnostics.fallbackReason,
+      lastModeSwitchAt: diagnostics.lastModeSwitchAt,
+      lastUpdatedAt: Math.max(diagnostics.lastUpdatedAt, crashDiag.lastSeenAt || 0)
+    } as LogAuditDiagnostics
   }
 
   private static handleIncomingEntry(entry: LogEntry): void {

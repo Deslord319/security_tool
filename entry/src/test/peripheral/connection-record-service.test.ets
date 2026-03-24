@@ -22,7 +22,7 @@ function createUsbAuditEntry(
   return {
     id: id,
     timestamp: timestamp,
-    eventType: LogEventType.USB_ACCESS,
+    eventType: LogEventType.FILE,
     detail: detail,
     result: result,
     processName: 'usb-daemon',
@@ -131,7 +131,7 @@ export default function peripheralConnectionRecordServiceTest() {
         {
           id: 'audit_action_1',
           timestamp: 1700000001650,
-          eventType: LogEventType.USB_ACCESS,
+          eventType: LogEventType.FILE,
           detail: 'VID:1111 PID:0004',
           rawAction: 'unplug',
           result: LogEventResult.SUCCESS
@@ -149,7 +149,7 @@ export default function peripheralConnectionRecordServiceTest() {
         {
           id: 'audit_unknown_1',
           timestamp: 1700000001675,
-          eventType: LogEventType.USB_ACCESS,
+          eventType: LogEventType.FILE,
           detail: 'VID:1111 PID:0005',
           result: LogEventResult.SUCCESS
         }
@@ -166,7 +166,7 @@ export default function peripheralConnectionRecordServiceTest() {
         {
           id: 'audit_meta_1',
           timestamp: 1700000001700,
-          eventType: LogEventType.USB_ACCESS,
+          eventType: LogEventType.FILE,
           detail: 'VID:0781 PID:5583',
           rawEventName: 'volume_attach',
           sourceEventId: 6001,
@@ -175,7 +175,7 @@ export default function peripheralConnectionRecordServiceTest() {
         {
           id: 'audit_meta_2',
           timestamp: 1700000002300,
-          eventType: LogEventType.USB_ACCESS,
+          eventType: LogEventType.FILE,
           detail: 'VID:0781 PID:5583',
           rawEventName: 'volume_changed',
           sourceEventId: 6002,
@@ -217,7 +217,7 @@ export default function peripheralConnectionRecordServiceTest() {
         {
           id: 'audit_5',
           timestamp: 1700000004000,
-          eventType: LogEventType.USB_ACCESS,
+          eventType: LogEventType.FILE,
           detail: 'Mass storage mounted VID:046D PID:C52B',
           result: LogEventResult.SUCCESS,
           processName: 'storage-service'
@@ -225,7 +225,7 @@ export default function peripheralConnectionRecordServiceTest() {
         {
           id: 'audit_6',
           timestamp: 1700000005000,
-          eventType: LogEventType.USB_ACCESS,
+          eventType: LogEventType.FILE,
           detail: 'Camera blocked VID:2B7E PID:B5A2',
           result: LogEventResult.BLOCKED,
           processName: 'camera-guard'

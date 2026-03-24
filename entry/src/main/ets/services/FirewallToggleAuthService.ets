@@ -174,7 +174,7 @@ export class FirewallToggleAuthService {
     let entry: LogEntry = {
       id: generateLogEntryId(),
       timestamp: Date.now(),
-      eventType: LogEventType.EDM,
+      eventType: LogEventType.ACCOUNT,
       detail: normalizedDetail,
       processName: 'firewall-toggle-auth',
       result: result,

@@ -45,7 +45,7 @@ export default function logManageFlowTest() {
         await driver.delayMs(1000)
 
         await driver.assertComponentExist(ON.text('日志管理'))
-        await driver.assertComponentExist(ON.text('监控和审计系统安全事件日志'))
+        await driver.assertComponentExist(ON.text('监控崩溃与关键安全日志'))
       })
     })
 
@@ -73,15 +73,8 @@ export default function logManageFlowTest() {
         await driver.assertComponentExist(ON.text('日志存储配置'))
         await driver.assertComponentExist(ON.text('最大存储条数'))
         await driver.assertComponentExist(ON.text('日志保留天数'))
-        await driver.assertComponentExist(ON.text('自动导出'))
-        await driver.assertComponentExist(ON.text('导出保存位置'))
-        await driver.assertComponentExist(ON.text('权限信息'))
-        await driver.assertComponentExist(ON.text('订阅模式'))
-
-        let saveBtn = await driver.findComponent(ON.text('保存设置'))
-        expect(saveBtn !== null).assertTrue()
-        await saveBtn.click()
-        await driver.delayMs(500)
+        await driver.assertComponentExist(ON.text('采集诊断'))
+        await driver.assertComponentExist(ON.text('首页数量'))
       })
 
       it('should navigate back to log list', 0, async () => {
