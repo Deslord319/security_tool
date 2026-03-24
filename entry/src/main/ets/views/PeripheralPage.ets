@@ -929,73 +929,13 @@ export struct PeripheralPage {
   }
 
   private async handlePeripheralPolicyChange(recordIndex: number, policyIndex: number): Promise<void> {
-    if (!this.ensureAdminReady('修改设备策略')) {
-      return
-    }
-    let record = this.peripheralPolicyRecords[recordIndex]
-    if (!record) {
-      return
-    }
-    if (record.policyIndex === policyIndex) {
-      return
-    }
-    if (this.isPeripheralPolicyUpdating(record.deviceId)) {
-      return
-    }
-    let parsed = parseUsbDeviceId(record.deviceId)
-    if (!parsed) {
-      this.showResultDialog('failure', '无法识别当前设备标识')
-      return
-    }
+    const record = this.peripheralPolicyRecords[recordIndex]
+    if (!record) return
+    if (record.policyIndex === policyIndex) return
 
-    let device: edmUsbManager.UsbDeviceId = {
-      vendorId: parsed.vendorId,
-      productId: parsed.productId
-    }
-    let targetPolicy = policyIndex === 0 ?
-      PeripheralService.USB_DEVICE_POLICY_ALLOW :
-      PeripheralService.USB_DEVICE_POLICY_DENY
-    this.markPeripheralPolicyUpdating(record.deviceId, true)
-    try {
-      hilog.info(
-        0x0002,
-        TAG,
-        `peripheralPolicy update start, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}`
-      )
-      let result = await this.runUsbOperationWithLoading(
-        '正在更新 USB 设备策略，请稍候',
-        (): OperationResult<void> => {
-          let actionResult = PeripheralService.switchUsbDevicePolicyWithResult(device, record.deviceType, targetPolicy)
-          this.refreshPeripheralPolicyRecords()
-          if (actionResult.success) {
-            this.reloadDeviceRecords()
-          }
-          return actionResult
-        }
-      )
-
-      if (!result.success) {
-        hilog.error(
-          0x0002,
-          TAG,
-          `peripheralPolicy update failed, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
-        )
-        let userMessage = result.userMessage?.trim()
-        if (userMessage) {
-          this.showResultDialog('failure', userMessage)
-          return
-        }
-        this.showOperationFailure('修改设备策略', result)
-        return
-      }
-
-      hilog.info(
-        0x0002,
-        TAG,
-        `peripheralPolicy update success, device=${record.deviceId}, target=${this.getPeripheralPolicyLabel(policyIndex)}`
-      )
-    } finally {
-      this.markPeripheralPolicyUpdating(record.deviceId, false)
+    const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '修改设备策略失败')
     }
   }
 

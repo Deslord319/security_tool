@@ -10,7 +10,8 @@ import {
   PeripheralConnectionRecord,
   PeripheralType,
   formatUsbDeviceId,
-  inferPeripheralTypeFromBaseClass
+  inferPeripheralTypeFromBaseClass,
+  parseUsbDeviceId
 } from '../models/DataModels'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
@@ -239,6 +240,40 @@ export class PeripheralViewModel {
       }
     } catch (err) {
       this.errorMessage = `从 USB 黑名单移除失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
+
+  async handlePeripheralPolicyChange(
+    deviceId: string,
+    deviceType: PeripheralType,
+    policyIndex: number
+  ): Promise<boolean> {
+    try {
+      const parsed = parseUsbDeviceId(deviceId)
+      if (!parsed) {
+        this.errorMessage = '无法识别当前设备标识'
+        return false
+      }
+
+      const device: edmUsbManager.UsbDeviceId = {
+        vendorId: parsed.vendorId,
+        productId: parsed.productId
+      }
+      const targetPolicy = policyIndex === 0 ?
+        PeripheralService.USB_DEVICE_POLICY_ALLOW :
+        PeripheralService.USB_DEVICE_POLICY_DENY
+
+      const result = PeripheralService.switchUsbDevicePolicyWithResult(device, deviceType, targetPolicy)
+      if (result.success) {
+        await this.reloadAllData()
+        return true
+      } else {
+        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '修改设备策略失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `修改设备策略失败：${JSON.stringify(err)}`
       return false
     }
   }
