@@ -638,12 +638,12 @@ export struct PeripheralPage {
     this.loadPeripheralPolicyData()
   }
   private refreshAdminActivationState(): void {
-    this.adminState = EnterpriseAdminService.probeActivation()
+    this.viewModel.refreshAdminActivationState()
+    this.adminState = this.viewModel.adminState
   }
 
   private ensureAdminReady(action: string): boolean {
-    this.refreshAdminActivationState()
-    if (this.adminState.activated) {
+    if (this.viewModel.ensureAdminReady(action)) {
       return true
     }
     this.showResultDialog(

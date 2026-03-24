@@ -9,12 +9,14 @@ import { PeripheralConnectionRecordService } from '../services/PeripheralConnect
 import {
   PeripheralConnectionRecord,
   PeripheralType,
+  AdminActivationState,
   formatUsbDeviceId,
   inferPeripheralTypeFromBaseClass,
   parseUsbDeviceId
 } from '../models/DataModels'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 
 const TAG = 'PeripheralViewModel'
 const DOMAIN = 0x0013
@@ -38,6 +40,13 @@ export class PeripheralViewModel {
   
   // 设备连接记录
   deviceRecords: PeripheralConnectionRecord[] = []
+  
+  // 管理员状态
+  adminState: AdminActivationState = {
+    activated: false,
+    enableCommand: EnterpriseAdminService.buildEnableCommand(),
+    adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
+  }
   
   // UI 状态
   isLoading: boolean = false
@@ -294,5 +303,17 @@ export class PeripheralViewModel {
       return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
     }
     return 'USB Device'
+  }
+
+  refreshAdminActivationState(): void {
+    this.adminState = EnterpriseAdminService.probeActivation()
+  }
+
+  ensureAdminReady(action: string): boolean {
+    this.refreshAdminActivationState()
+    if (this.adminState.activated) {
+      return true
+    }
+    return false
   }
 }
