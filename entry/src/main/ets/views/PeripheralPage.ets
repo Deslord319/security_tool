@@ -1742,21 +1742,15 @@ export struct PeripheralPage {
       if (!success) {
         this.showResultDialog('failure', '清理未完成，请稍后重试')
         return
-        promptAction.showToast({ message: '清理历史记录失败' })
-        return
       }
       this.closeConnectionDetailDialog()
       this.recordHintMessage = ''
       this.lastRecordHintToastMessage = ''
       this.reloadDeviceRecords()
       this.showResultDialog('success', '历史记录已清理')
-      return
-      promptAction.showToast({ message: '历史记录已清理' })
     } catch (err) {
       hilog.error(0x0008, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', '清理未完成，请稍后重试')
-      return
-      promptAction.showToast({ message: '清理历史记录失败' })
     }
   }
 
