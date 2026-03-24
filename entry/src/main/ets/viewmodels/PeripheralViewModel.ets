@@ -277,4 +277,22 @@ export class PeripheralViewModel {
       return false
     }
   }
+
+  buildUsbDisplayName(manufacturerName?: string, productName?: string, vendorId?: number, productId?: number): string {
+    const manufacturer = manufacturerName ? manufacturerName.trim() : ''
+    const product = productName ? productName.trim() : ''
+    if (manufacturer.length > 0 && product.length > 0) {
+      return `${manufacturer} ${product}`
+    }
+    if (manufacturer.length > 0) {
+      return manufacturer
+    }
+    if (product.length > 0) {
+      return product
+    }
+    if (typeof vendorId === 'number' && typeof productId === 'number') {
+      return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
+    }
+    return 'USB Device'
+  }
 }

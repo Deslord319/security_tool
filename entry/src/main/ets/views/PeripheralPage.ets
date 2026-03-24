@@ -441,7 +441,7 @@ export struct PeripheralPage {
         continue
       }
       let type = inferPeripheralTypeFromBaseClass(device.clazz)
-      let name = this.buildUsbDisplayName(
+      let name = this.viewModel.buildUsbDisplayName(
         device.manufacturerName,
         device.productName,
         device.vendorId,
@@ -555,7 +555,7 @@ export struct PeripheralPage {
     })
 
     for (let device of this.connectedUsbDevices) {
-      let title = this.buildUsbDisplayName(
+      let title = this.viewModel.buildUsbDisplayName(
         device.manufacturerName,
         device.productName,
         device.vendorId,
@@ -778,24 +778,6 @@ export struct PeripheralPage {
       TAG,
       `interfaceControl reload done, reason=${reason}, usb=${this.usbDisabled ? 1 : 0}, usbStorage=${this.getUsbStoragePolicyLogValue(this.usbStoragePolicyIndex)}, bt=${this.btDisabled ? 1 : 0}, wifi=${this.wifiDisabled ? 1 : 0}, hdc=${this.hdcDisabled ? 1 : 0}, network=${this.networkDisabled ? 1 : 0}, printer=${this.printerDisabled ? 1 : 0}, microphone=${this.microphoneDisabled ? 1 : 0}, camera=${this.cameraDisabled ? 1 : 0}`
     )
-  }
-
-  private buildUsbDisplayName(manufacturerName?: string, productName?: string, vendorId?: number, productId?: number): string {
-    let manufacturer = manufacturerName ? manufacturerName.trim() : ''
-    let product = productName ? productName.trim() : ''
-    if (manufacturer.length > 0 && product.length > 0) {
-      return `${manufacturer} ${product}`
-    }
-    if (manufacturer.length > 0) {
-      return manufacturer
-    }
-    if (product.length > 0) {
-      return product
-    }
-    if (typeof vendorId === 'number' && typeof productId === 'number') {
-      return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
-    }
-    return 'USB Device'
   }
 
   private loadPeripheralPolicyData(): void {
