@@ -1401,6 +1401,52 @@ export struct PeripheralPage {
     }
   }
 
+  private showClearPeripheralPolicyRecordsConfirmDialog(): void {
+    if (this.peripheralPolicyRecords.length === 0) {
+      this.showResultDialog('failure', '暂无可清理的策略记录')
+      return
+    }
+
+    hilog.info(0x0008, TAG, `showClearPeripheralPolicyRecordsConfirmDialog count=${this.peripheralPolicyRecords.length}`)
+    void this.getUIContext().showAlertDialog({
+      title: '删除策略记录',
+      message: '将清空当前策略记录列表，且无法恢复。是否继续？',
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '删除',
+        action: () => {
+          void this.clearPeripheralPolicyRecords()
+        }
+      }
+    })
+  }
+
+  private async clearPeripheralPolicyRecords(): Promise<void> {
+    let beforeCount = this.peripheralPolicyRecords.length
+    hilog.info(0x0008, TAG, `clearPeripheralPolicyRecords start, count=${beforeCount}`)
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      await PeripheralTraceRepository.init(context)
+      let success = await PeripheralTraceRepository.clearAll()
+      if (!success) {
+        hilog.error(0x0008, TAG, `clearPeripheralPolicyRecords failed, count=${beforeCount}`)
+        this.showResultDialog('failure', '清理未完成，请稍后重试')
+        return
+      }
+      this.closeConnectionDetailDialog()
+      this.policyUpdatingKeys = []
+      this.reloadDeviceRecords()
+      hilog.info(0x0008, TAG, `clearPeripheralPolicyRecords success, before=${beforeCount}, after=${this.peripheralPolicyRecords.length}`)
+      this.showResultDialog('success', '策略记录已清理')
+    } catch (err) {
+      hilog.error(0x0008, TAG, `clearPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '清理未完成，请稍后重试')
+    }
+  }
+
   private buildConnectionHistoryCsvV2(records: PeripheralConnectionRecord[]): string {
     let headers: string[] = [
       '设备名称',
@@ -1826,6 +1872,28 @@ export struct PeripheralPage {
       .padding({ left: 10, right: 10 })
       .onClick(() => {
         void this.exportPeripheralPolicyRecords()
+      })
+
+      Button() {
+        Row({ space: 6 }) {
+          Image($r('app.media.trash'))
+            .width(14)
+            .height(14)
+            .fillColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+
+          Text('删除策略记录')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .type(ButtonType.Normal)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
+      .borderRadius(AppStyles.RADIUS_SM)
+      .height(32)
+      .padding({ left: 10, right: 10 })
+      .onClick(() => {
+        this.showClearPeripheralPolicyRecordsConfirmDialog()
       })
     }
   }
