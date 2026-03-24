@@ -5,7 +5,7 @@ import { PeripheralConnectionRecordService } from '../services/PeripheralConnect
 import { InterfaceControlItem } from '../components/InterfaceControlItem'
 import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
 import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
-import { EmptyStateCard, EmptyStatePanel } from '../components/EmptyStatePanel'
+import { EmptyStatePanel } from '../components/EmptyStatePanel'
 import {
   AdminActivationState,
   DeviceControlRecord,
@@ -114,10 +114,12 @@ struct PeripheralUsbLoadingDialog {
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
+  private tabsController: TabsController = new TabsController()
+  private touchStartTab: number = 0
   @State currentTab: number = 0
   @State hoveredPanelIndex: number = -1
-  @State hoveredDeviceRecordIndex: number = -1
-  @State hoveredPolicyRecordIndex: number = -1
+  @State touchStartX: number = 0
+  @State touchStartY: number = 0
   @State isLoading: boolean = false
   @State adminState: AdminActivationState = {
     activated: false,
@@ -386,16 +388,47 @@ export struct PeripheralPage {
     })
   }
 
-  private setDeviceRecordHover(index: number, isHover: boolean): void {
-    HoverUtils.animate(() => {
-      this.hoveredDeviceRecordIndex = isHover ? index : -1
-    })
+  private switchToTab(index: number): void {
+    if (index < 0 || index > 2 || index === this.currentTab) {
+      return
+    }
+
+    this.tabsController.changeIndex(index)
+    this.currentTab = index
+    if (index === 2) {
+      this.loadConnectedUsbDevices()
+    }
   }
 
-  private setPolicyRecordHover(index: number, isHover: boolean): void {
-    HoverUtils.animate(() => {
-      this.hoveredPolicyRecordIndex = isHover ? index : -1
-    })
+  private handlePageTouch(event: TouchEvent): void {
+    if (event.type === TouchType.Down) {
+      if (event.touches.length === 0) {
+        return
+      }
+      this.touchStartTab = this.currentTab
+      this.touchStartX = event.touches[0].x
+      this.touchStartY = event.touches[0].y
+      return
+    }
+
+    if (event.type !== TouchType.Up || event.changedTouches.length === 0) {
+      return
+    }
+
+    let offsetX = event.changedTouches[0].x - this.touchStartX
+    let offsetY = event.changedTouches[0].y - this.touchStartY
+    if (Math.abs(offsetX) < 120 || Math.abs(offsetX) <= Math.abs(offsetY)) {
+      return
+    }
+
+    if (offsetX > 0 && this.touchStartTab === 2) {
+      this.switchToTab(0)
+      return
+    }
+
+    if (offsetX < 0 && this.touchStartTab === 0) {
+      this.switchToTab(2)
+    }
   }
 
   private getUsbWhitelistCandidates(): PeripheralWhitelistCandidate[] {
@@ -1413,7 +1446,7 @@ export struct PeripheralPage {
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
 
       // Tab 切换
-      Tabs({ barPosition: BarPosition.Start }) {
+      Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
         TabContent() {
           this.interfaceControlBuilder()
         }.tabBar(this.tabBuilder('接口管控', 0))
@@ -1446,6 +1479,9 @@ export struct PeripheralPage {
     }
     .width('100%')
     .height('100%')
+    .onTouch((event: TouchEvent) => {
+      this.handlePageTouch(event)
+    })
   }
 
   // ==================== Tab 1: 设备连接记录 ====================
@@ -1900,10 +1936,6 @@ export struct PeripheralPage {
     .width('100%')
     .padding({ left: 20, right: 20, top: 16, bottom: 16 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredDeviceRecordIndex === index, 2) })
-    .onHover((isHover: boolean) => {
-      this.setDeviceRecordHover(index, isHover)
-    })
   }
 
   @Builder
@@ -2163,47 +2195,45 @@ export struct PeripheralPage {
   private deviceRecordsBuilder() {
     Scroll() {
       Column({ space: 0 }) {
-        Column({ space: 0 }) {
-          if (this.deviceRecords.length === 0) {
-            EmptyStatePanel({
-              title: '暂无设备连接记录',
-              description: '暂无实时记录，请重新插拔设备后刷新。',
-              radius: AppStyles.RADIUS_LG,
-              verticalPadding: 24
-            })
-          } else {
+        if (this.deviceRecords.length === 0) {
+          EmptyStatePanel({
+            title: '暂无设备连接记录',
+            description: '暂无实时记录，请重新插拔设备后刷新。',
+            radius: AppStyles.RADIUS_LG,
+            verticalPadding: 24
+          })
+        } else {
+          Column({ space: 0 }) {
+            this.connectionTableHeader()
             Column({ space: 0 }) {
-              this.connectionTableHeader()
-              Column({ space: 0 }) {
-                ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
-                  Column({ space: 0 }) {
-                    this.connectionRecordTableRow(record, index)
-                    if (index < this.deviceRecords.length - 1) {
-                      Divider()
-                        .color(AppColors.getColors(this.currentTheme).BORDER)
-                        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                        .margin({ left: 20, right: 20 })
-                    }
+              ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
+                Column({ space: 0 }) {
+                  this.connectionRecordTableRow(record, index)
+                  if (index < this.deviceRecords.length - 1) {
+                    Divider()
+                      .color(AppColors.getColors(this.currentTheme).BORDER)
+                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                      .margin({ left: 20, right: 20 })
                   }
-                })
-              }
-              .width('100%')
+                }
+              })
             }
             .width('100%')
           }
+          .width('100%')
+          .borderRadius(AppStyles.RADIUS_LG)
+          .clip(true)
+          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .border({
+            width: 1,
+            color: AppColors.getColors(this.currentTheme).BORDER
+          })
+          .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
+          .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
+          .onHover((isHover: boolean) => {
+            this.setPanelHover(0, isHover)
+          })
         }
-        .borderRadius(AppStyles.RADIUS_LG)
-        .clip(true)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
-        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
-        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
-        .onHover((isHover: boolean) => {
-          this.setPanelHover(0, isHover)
-        })
       }
       .width('100%')
       .justifyContent(FlexAlign.Start)
@@ -2526,6 +2556,9 @@ export struct PeripheralPage {
     .onHover((isHover: boolean) => {
       this.setPanelHover(2, isHover)
     })
+    .onTouch((event: TouchEvent) => {
+      this.handlePageTouch(event)
+    })
   }
 
   // ==================== Tab 4: 黑白名单 ====================
@@ -2632,10 +2665,6 @@ export struct PeripheralPage {
                   .width('100%')
                   .padding({ left: 20, right: 20, top: 16, bottom: 16 })
                   .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-                  .translate({ y: HoverUtils.getTranslateY(this.hoveredPolicyRecordIndex === index, 2) })
-                  .onHover((isHover: boolean) => {
-                    this.setPolicyRecordHover(index, isHover)
-                  })
 
                   if (index < this.peripheralPolicyRecords.length - 1) {
                     Divider()
@@ -2713,10 +2742,9 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbWhitelist.length === 0) {
-            EmptyStateCard({
+            EmptyStatePanel({
               title: '暂无 USB 白名单项。',
               radius: AppStyles.RADIUS_MD,
-              bottomOnly: true,
               verticalPadding: 24
             })
           } else {
@@ -2800,10 +2828,9 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.usbBlacklist.length === 0) {
-            EmptyStateCard({
+            EmptyStatePanel({
               title: '暂无 USB 黑名单项。',
               radius: AppStyles.RADIUS_MD,
-              bottomOnly: true,
               verticalPadding: 24
             })
           } else {
@@ -2887,10 +2914,9 @@ export struct PeripheralPage {
           .borderRadius({ topLeft: AppStyles.RADIUS_MD, topRight: AppStyles.RADIUS_MD })
 
           if (this.btWhitelist.length === 0) {
-            EmptyStateCard({
+            EmptyStatePanel({
               title: '暂无蓝牙白名单项。',
               radius: AppStyles.RADIUS_MD,
-              bottomOnly: true,
               verticalPadding: 24
             })
           } else {
@@ -2941,5 +2967,8 @@ export struct PeripheralPage {
     .height('100%')
     .scrollBar(BarState.Auto)
     .align(Alignment.Top)
+    .onTouch((event: TouchEvent) => {
+      this.handlePageTouch(event)
+    })
   }
 }
