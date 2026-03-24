@@ -554,7 +554,7 @@ export struct FirewallPage {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text('点击模式卡片后，后端先执行策略切换，只有成功后当前模式标记才会移动。如需按指定 userId 单独启用或关闭主防火墙，请使用“按用户ID控制”，并完成 PIN 验证。')
+              Text('统一配置网络访问规则，精准控制应用与设备的通信行为，降低未授权连接带来的安全风险。')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
@@ -565,13 +565,35 @@ export struct FirewallPage {
           .layoutWeight(1)
           .alignItems(VerticalAlign.Top)
 
-          Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
-            .selectedColor(AppColors.BRAND_PRIMARY)
-            .switchPointColor(Color.White)
-            .enabled(!this.isToggleProcessing)
-            .onChange((isOn: boolean) => {
-              this.handleToggleWithAuth(isOn)
-            })
+          Row({ space: 12 }) {
+            Button('按用户ID控制')
+              .type(ButtonType.Normal)
+              .height(36)
+              .padding({ left: 14, right: 14 })
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.BRAND_PRIMARY)
+              .backgroundColor(this.getThemeColors().BG_CARD)
+              .borderRadius(AppStyles.RADIUS_MD)
+              .border({
+                width: 1,
+                color: this.getThemeColors().BORDER
+              })
+              .enabled(!this.isToggleProcessing && !this.isModeProcessing)
+              .opacity(!this.isToggleProcessing && !this.isModeProcessing ? 1 : 0.5)
+              .onClick(() => {
+                this.openUserFirewallDialog()
+              })
+
+            Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
+              .selectedColor(AppColors.BRAND_PRIMARY)
+              .switchPointColor(Color.White)
+              .enabled(!this.isToggleProcessing)
+              .onChange((isOn: boolean) => {
+                this.handleToggleWithAuth(isOn)
+              })
+          }
+          .alignItems(VerticalAlign.Center)
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
@@ -587,25 +609,6 @@ export struct FirewallPage {
             this.modeCard('public')
             this.modeCard('private')
             this.modeCard('custom')
-
-            Button('按用户ID控制')
-              .type(ButtonType.Normal)
-              .width('100%')
-              .height(42)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.BRAND_PRIMARY)
-              .backgroundColor(this.getThemeColors().BG_CARD)
-              .borderRadius(AppStyles.RADIUS_MD)
-              .border({
-                width: 1,
-                color: this.getThemeColors().BORDER
-              })
-              .enabled(!this.isToggleProcessing && !this.isModeProcessing)
-              .opacity(!this.isToggleProcessing && !this.isModeProcessing ? 1 : 0.5)
-              .onClick(() => {
-                this.openUserFirewallDialog()
-              })
           }
           .width('100%')
         }

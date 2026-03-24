@@ -176,7 +176,7 @@ export struct UserFirewallControlDialog {
       }
       .width('100%')
 
-      Text('从系统已激活的用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需完成 PIN 验证。')
+      Text('从系统全部已创建用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需完成 PIN 验证。')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
