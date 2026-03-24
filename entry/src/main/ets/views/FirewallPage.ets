@@ -192,7 +192,11 @@ export struct FirewallPage {
   }
 
   private isModeHovered(mode: FirewallPresetMode): boolean {
-    return this.hoveredMode === mode
+    return this.canOperateModeCards() && this.hoveredMode === mode
+  }
+
+  private canOperateModeCards(): boolean {
+    return this.firewallEnabled && !this.isToggleProcessing && !this.isModeProcessing
   }
 
   private getModeCardBackground(mode: FirewallPresetMode): string {
@@ -323,6 +327,9 @@ export struct FirewallPage {
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
+    if (!this.canOperateModeCards()) {
+      return
+    }
     if (this.isModeProcessing) {
       return
     }
@@ -462,8 +469,14 @@ export struct FirewallPage {
       x: this.getModeCardScale(mode),
       y: this.getModeCardScale(mode)
     })
-    .opacity(this.isModeProcessing ? 0.75 : 1)
+    .opacity(this.canOperateModeCards() ? (this.isModeProcessing ? 0.75 : 1) : 0.56)
     .onHover((isHover: boolean) => {
+      if (!this.canOperateModeCards()) {
+        if (this.hoveredMode === mode) {
+          this.hoveredMode = ''
+        }
+        return
+      }
       HoverUtils.animate(() => {
         if (isHover) {
           this.hoveredMode = mode
@@ -473,7 +486,7 @@ export struct FirewallPage {
       })
     })
     .onClick(() => {
-      if (!this.isModeProcessing) {
+      if (this.canOperateModeCards()) {
         this.handleModeSelect(mode)
       }
     })
@@ -496,7 +509,7 @@ export struct FirewallPage {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text('点击模式卡片后，后端先执行策略切换，只有成功后当前模式标记才会移动。')
+              Text('点击模式卡片后，后端先执行策略切换；防火墙关闭时不可切换模式。')
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
