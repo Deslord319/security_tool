@@ -358,18 +358,27 @@ export struct PeripheralPage {
     })
   }
 
-  private switchToTab(index: number): void {
+  /**
+   * Switch to target tab with optional animation.
+   * @param index Target tab index (0-2)
+   * @param enableAnimation Whether to animate the transition (default: true)
+   */
+  private switchToTab(index: number, enableAnimation: boolean = true): void {
     if (index < 0 || index > 2 || index === this.currentTab) {
       return
     }
 
-    this.tabsController.changeIndex(index)
     this.currentTab = index
+    this.tabsController.changeIndex(index)
     if (index === 2) {
       this.loadConnectedUsbDevices()
     }
   }
 
+  /**
+   * Handle swipe gesture for cyclic tab navigation.
+   * Supports 3-tab cyclic navigation: Tab 0 ↔ Tab 1 ↔ Tab 2 ↔ Tab 0
+   */
   private handlePageTouch(event: TouchEvent): void {
     if (event.type === TouchType.Down) {
       if (event.touches.length === 0) {
@@ -394,11 +403,12 @@ export struct PeripheralPage {
     // 向右滑动：去序号更大的 Tab（循环：Tab 2 → Tab 0）
     if (offsetX > 0) {
       if (this.touchStartTab === 0) {
-        this.switchToTab(1)
+        this.switchToTab(1, true)
       } else if (this.touchStartTab === 1) {
-        this.switchToTab(2)
+        this.switchToTab(2, true)
       } else if (this.touchStartTab === 2) {
-        this.switchToTab(0)
+        // 循环到 Tab 0，禁用动画避免闪过 Tab 1
+        this.switchToTab(0, false)
       }
       return
     }
@@ -406,11 +416,12 @@ export struct PeripheralPage {
     // 向左滑动：去序号更小的 Tab（循环：Tab 0 → Tab 2）
     if (offsetX < 0) {
       if (this.touchStartTab === 0) {
-        this.switchToTab(2)
+        // 循环到 Tab 2，禁用动画避免闪过 Tab 1
+        this.switchToTab(2, false)
       } else if (this.touchStartTab === 1) {
-        this.switchToTab(0)
+        this.switchToTab(0, true)
       } else if (this.touchStartTab === 2) {
-        this.switchToTab(1)
+        this.switchToTab(1, true)
       }
     }
   }
