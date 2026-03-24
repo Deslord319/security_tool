@@ -753,28 +753,6 @@ export struct PeripheralPage {
     )
   }
 
-  private static USB_DEVICE_NAMES: Map<string, string> = new Map([
-    ['2B7E_B5A2', 'ShineOptics FHD Camera'],
-    ['0781_5583', 'SanDisk Ultra USB 3.0'],
-    ['03F0_0C17', 'HP LaserJet Pro M404'],
-    ['046D_C52B', 'Logitech Unifying Receiver'],
-    ['8087_0026', 'Intel Wireless Bluetooth'],
-    ['0BDA_8153', 'Realtek USB Ethernet'],
-  ])
-
-  private static BT_DEVICE_NAMES: Map<string, string> = new Map([
-    ['AA:BB:CC:DD:EE:01', 'Logitech MX Keys'],
-  ])
-
-  inferUsbDeviceName(vendorId: number, productId: number): string {
-    let key = `${vendorId.toString(16).toUpperCase().padStart(4, '0')}_${productId.toString(16).toUpperCase().padStart(4, '0')}`
-    let name = PeripheralPage.USB_DEVICE_NAMES.get(key)
-    if (name) {
-      return name
-    }
-    return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
-  }
-
   private buildUsbDisplayName(manufacturerName?: string, productName?: string, vendorId?: number, productId?: number): string {
     let manufacturer = manufacturerName ? manufacturerName.trim() : ''
     let product = productName ? productName.trim() : ''
@@ -788,17 +766,9 @@ export struct PeripheralPage {
       return product
     }
     if (typeof vendorId === 'number' && typeof productId === 'number') {
-      return this.inferUsbDeviceName(vendorId, productId)
+      return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
     }
     return 'USB Device'
-  }
-
-  inferBluetoothDeviceName(mac: string): string {
-    let name = PeripheralPage.BT_DEVICE_NAMES.get(mac)
-    if (name) {
-      return name
-    }
-    return `蓝牙设备 (${mac})`
   }
 
   private loadPeripheralPolicyData(): void {
