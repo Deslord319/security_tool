@@ -266,13 +266,19 @@ export struct FirewallRulesPage {
     if (this.currentTab === 0) {
       return this.rules
     }
-      let typeMap: netFirewall.NetFirewallRuleType[] = [
-        netFirewall.NetFirewallRuleType.RULE_IP,
-        netFirewall.NetFirewallRuleType.RULE_IP,
-        netFirewall.NetFirewallRuleType.RULE_DOMAIN,
-        netFirewall.NetFirewallRuleType.RULE_DNS
-      ]
-    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === typeMap[this.currentTab])
+    
+    // 根据 Tab 索引确定要过滤的规则类型
+    const targetType = (() => {
+      switch (this.currentTab) {
+        case 1: return netFirewall.NetFirewallRuleType.RULE_IP
+        case 2: return netFirewall.NetFirewallRuleType.RULE_DOMAIN
+        case 3: return netFirewall.NetFirewallRuleType.RULE_DNS
+        default: return null
+      }
+    })()
+    
+    if (!targetType) return this.rules
+    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === targetType)
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
