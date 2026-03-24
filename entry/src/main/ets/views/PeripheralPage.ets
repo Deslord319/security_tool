@@ -1082,61 +1082,32 @@ export struct PeripheralPage {
 
   // ========== 白名单操作 ==========
 
-  handleAddUsbWhitelist(vendorId: number, productId: number) {
-    if (!this.ensureAdminReady('添加 USB 白名单')) {
-      return
-    }
-    let device: edmUsbManager.UsbDeviceId = { vendorId: vendorId, productId: productId }
-    let result = PeripheralService.addUsbWhitelistWithResult([device])
-    if (result.success) {
-      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      hilog.info(0x0002, TAG, 'USB 白名单已添加')
-    } else {
-      this.showOperationFailure('添加 USB 白名单', result)
+  async handleAddUsbWhitelist(vendorId: number, productId: number) {
+    const success = await this.viewModel.addToUsbWhitelist(vendorId, productId)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '添加 USB 白名单失败')
     }
   }
 
-  handleRemoveUsbWhitelist(device: edmUsbManager.UsbDeviceId) {
-    if (!this.ensureAdminReady('移除 USB 白名单')) {
-      return
-    }
-    let result = PeripheralService.removeUsbWhitelistWithResult([device])
-    if (result.success) {
-      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      hilog.info(0x0002, TAG, 'USB 白名单项已移除')
-      return
-    }
-    this.showOperationFailure('移除 USB 白名单', result)
-  }
-
-  handleAddBluetoothWhitelist(mac: string) {
-    if (!this.ensureAdminReady('添加蓝牙白名单')) {
-      return
-    }
-    let result = PeripheralService.addBluetoothWhitelistWithResult([mac])
-    if (result.success) {
-      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      hilog.info(0x0002, TAG, '蓝牙白名单已添加')
-    } else {
-      this.showOperationFailure('添加蓝牙白名单', result)
+  async handleRemoveUsbWhitelist(device: edmUsbManager.UsbDeviceId) {
+    const success = await this.viewModel.removeFromUsbWhitelist(device)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '移除 USB 白名单失败')
     }
   }
 
-  handleRemoveBluetoothWhitelist(mac: string) {
-    if (!this.ensureAdminReady('移除蓝牙白名单')) {
-      return
+  async handleAddBluetoothWhitelist(mac: string) {
+    const success = await this.viewModel.addToBluetoothWhitelist(mac)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '添加蓝牙白名单失败')
     }
-    let result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
-    if (result.success) {
-      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      hilog.info(0x0002, TAG, '蓝牙白名单项已移除')
-      return
+  }
+
+  async handleRemoveBluetoothWhitelist(mac: string) {
+    const success = await this.viewModel.removeFromBluetoothWhitelist(mac)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '移除蓝牙白名单失败')
     }
-    this.showOperationFailure('移除蓝牙白名单', result)
   }
 
   // ========== 黑名单操作 ==========
@@ -1161,18 +1132,11 @@ export struct PeripheralPage {
     }
   }
 
-  handleRemoveUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType) {
-    if (!this.ensureAdminReady('移除 USB 黑名单')) {
-      return
+  async handleRemoveUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType) {
+    const success = await this.viewModel.removeFromUsbBlacklist(deviceType)
+    if (!success) {
+      this.showResultDialog('failure', this.viewModel.errorMessage || '移除 USB 黑名单失败')
     }
-    let result = PeripheralService.removeUsbBlacklistWithResult([deviceType])
-    if (result.success) {
-      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      hilog.info(0x0002, TAG, 'USB 黑名单项已移除')
-      return
-    }
-    this.showOperationFailure('移除 USB 黑名单', result)
   }
 
   // ========== Tab Builder ==========

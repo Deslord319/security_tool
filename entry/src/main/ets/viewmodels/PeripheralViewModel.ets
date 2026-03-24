@@ -145,4 +145,101 @@ export class PeripheralViewModel {
       return false
     }
   }
+
+  async addToUsbWhitelist(vendorId: number, productId: number): Promise<boolean> {
+    try {
+      const result = PeripheralService.addUsbWhitelistWithResult([{ vendorId, productId }])
+      if (result.success) {
+        await this.reloadWhitelistBlacklist()
+        return true
+      } else {
+        this.errorMessage = result.errorMessage || '添加失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `添加到 USB 白名单失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
+
+  async removeFromUsbWhitelist(device: edmUsbManager.UsbDeviceId): Promise<boolean> {
+    try {
+      const result = PeripheralService.removeUsbWhitelistWithResult([device])
+      if (result.success) {
+        await this.reloadWhitelistBlacklist()
+        return true
+      } else {
+        this.errorMessage = result.errorMessage || '移除失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `从 USB 白名单移除失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
+
+  async addToBluetoothWhitelist(mac: string): Promise<boolean> {
+    try {
+      const result = PeripheralService.addBluetoothWhitelistWithResult([mac])
+      if (result.success) {
+        await this.reloadWhitelistBlacklist()
+        return true
+      } else {
+        this.errorMessage = result.errorMessage || '添加失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `添加到蓝牙白名单失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
+
+  async removeFromBluetoothWhitelist(mac: string): Promise<boolean> {
+    try {
+      const result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
+      if (result.success) {
+        await this.reloadWhitelistBlacklist()
+        return true
+      } else {
+        this.errorMessage = result.errorMessage || '移除失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `从蓝牙白名单移除失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
+
+  async addToUsbBlacklist(baseClass: number, subClass: number, protocol: number): Promise<boolean> {
+    try {
+      const deviceType: edmUsbManager.UsbDeviceType = { baseClass, subClass, protocol, descriptor: edmUsbManager.Descriptor.INTERFACE }
+      const result = PeripheralService.addUsbBlacklistWithResult([deviceType])
+      if (result.success) {
+        await this.reloadWhitelistBlacklist()
+        return true
+      } else {
+        this.errorMessage = result.errorMessage || '添加失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `添加到 USB 黑名单失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
+
+  async removeFromUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType): Promise<boolean> {
+    try {
+      const result = PeripheralService.removeUsbBlacklistWithResult([deviceType])
+      if (result.success) {
+        await this.reloadWhitelistBlacklist()
+        return true
+      } else {
+        this.errorMessage = result.errorMessage || '移除失败'
+        return false
+      }
+    } catch (err) {
+      this.errorMessage = `从 USB 黑名单移除失败：${JSON.stringify(err)}`
+      return false
+    }
+  }
 }
