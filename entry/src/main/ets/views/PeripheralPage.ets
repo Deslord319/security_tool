@@ -54,6 +54,7 @@ import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetai
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PolicyList } from '../components/peripheral/PolicyList'
 import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
+import { ConnectionDetailMetricField } from '../components/peripheral/ConnectionDetailMetricField'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'PeripheralPage'
@@ -1334,25 +1335,6 @@ export struct PeripheralPage {
   }
 
   @Builder
-  private connectionDetailMetricField(label: string, value: string) {
-    Column({ space: 4 }) {
-      Text(label)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      Text(value)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
   private connectionRecordDetailDialog() {
     Stack({ alignContent: Alignment.Center }) {
       Column() {
@@ -1404,26 +1386,58 @@ export struct PeripheralPage {
 
                 Column({ space: 8 }) {
                   Row({ space: 12 }) {
-                    this.connectionDetailMetricField('设备标识', this.normalizeConnectionDetailValue((this.selectedConnectionRecord as PeripheralConnectionRecord).deviceId))
-                    this.connectionDetailMetricField('最近时间', this.formatConnectionTime(this.selectedConnectionRecord as PeripheralConnectionRecord))
+                    ConnectionDetailMetricField({
+                      label: '设备标识',
+                      value: this.normalizeConnectionDetailValue((this.selectedConnectionRecord as PeripheralConnectionRecord).deviceId),
+                      currentTheme: this.currentTheme
+                    })
+                    ConnectionDetailMetricField({
+                      label: '最近时间',
+                      value: this.formatConnectionTime(this.selectedConnectionRecord as PeripheralConnectionRecord),
+                      currentTheme: this.currentTheme
+                    })
                   }
                   .width('100%')
 
                   Row({ space: 12 }) {
-                    this.connectionDetailMetricField('连接事件', this.getConnectionEventLabel(this.selectedConnectionRecord))
-                    this.connectionDetailMetricField('事件来源', getPeripheralRecordSourceLabel((this.selectedConnectionRecord as PeripheralConnectionRecord).source))
+                    ConnectionDetailMetricField({
+                      label: '连接事件',
+                      value: this.getConnectionEventLabel(this.selectedConnectionRecord),
+                      currentTheme: this.currentTheme
+                    })
+                    ConnectionDetailMetricField({
+                      label: '事件来源',
+                      value: getPeripheralRecordSourceLabel((this.selectedConnectionRecord as PeripheralConnectionRecord).source),
+                      currentTheme: this.currentTheme
+                    })
                   }
                   .width('100%')
 
                   Row({ space: 12 }) {
-                    this.connectionDetailMetricField('策略结论', this.getConnectionPolicyDisplay(this.selectedConnectionRecord))
-                    this.connectionDetailMetricField('实际执行策略', this.getExecutedUsbPolicyDisplay(this.selectedConnectionRecord))
+                    ConnectionDetailMetricField({
+                      label: '策略结论',
+                      value: this.getConnectionPolicyDisplay(this.selectedConnectionRecord),
+                      currentTheme: this.currentTheme
+                    })
+                    ConnectionDetailMetricField({
+                      label: '实际执行策略',
+                      value: this.getExecutedUsbPolicyDisplay(this.selectedConnectionRecord),
+                      currentTheme: this.currentTheme
+                    })
                   }
                   .width('100%')
 
                   Row({ space: 12 }) {
-                    this.connectionDetailMetricField('命中类型', this.getConnectionPolicyHitLabel(this.selectedConnectionRecord as PeripheralConnectionRecord))
-                    this.connectionDetailMetricField('结果状态', this.getConnectionResultLabel(this.selectedConnectionRecord as PeripheralConnectionRecord))
+                    ConnectionDetailMetricField({
+                      label: '命中类型',
+                      value: this.getConnectionPolicyHitLabel(this.selectedConnectionRecord as PeripheralConnectionRecord),
+                      currentTheme: this.currentTheme
+                    })
+                    ConnectionDetailMetricField({
+                      label: '结果状态',
+                      value: this.getConnectionResultLabel(this.selectedConnectionRecord as PeripheralConnectionRecord),
+                      currentTheme: this.currentTheme
+                    })
                   }
                   .width('100%')
                 }
