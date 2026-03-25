@@ -1,6 +1,3 @@
-/**
- * Peripheral policy list.
- */
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
@@ -22,109 +19,71 @@ export struct PolicyList {
   isUpdating?: (deviceId: string) => boolean
 
   build() {
-    Scroll() {
-      Column() {
-        if (this.policyRecords.length === 0) {
-          EmptyStatePanel({
-            title: '暂无可管理的 USB 设备记录',
-            description: '设备接入后会展示在这里，允许设置接入或禁止访问策略。',
-            radius: AppStyles.RADIUS_LG,
-            verticalPadding: 24
-          })
-        } else {
-          Column({ space: 0 }) {
-            this.tableHeader()
-
+    Column({ space: 0 }) {
+      if (this.policyRecords.length === 0) {
+        EmptyStatePanel({
+          title: '暂无可管理的 USB 设备记录',
+          description: '设备接入后会展示在这里，允许设置接入或禁止访问策略。',
+          radius: AppStyles.RADIUS_LG,
+          verticalPadding: 24
+        })
+      } else {
+        Column({ space: 0 }) {
+          this.tableHeader()
+          ForEach(this.policyRecords, (record: PeripheralPolicyRecord, index: number) => {
             Column({ space: 0 }) {
-              ForEach(this.policyRecords, (record: PeripheralPolicyRecord, index: number) => {
-                Column({ space: 0 }) {
-                  this.tableRow(record, index)
-                  if (index < this.policyRecords.length - 1) {
-                    Divider()
-                      .color(AppColors.getColors(this.currentTheme).BORDER)
-                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                      .margin({ left: 20, right: 20 })
-                  }
-                }
-              })
+              this.tableRow(record, index)
+              if (index < this.policyRecords.length - 1) {
+                Divider()
+                  .color(AppColors.getColors(this.currentTheme).BORDER)
+                  .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                  .margin({ left: 20, right: 20 })
+              }
             }
-            .width('100%')
-          }
-          .width('100%')
-          .borderRadius(AppStyles.RADIUS_LG)
-          .clip(true)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-          .border({
-            width: 1,
-            color: AppColors.getColors(this.currentTheme).BORDER
-          })
+          }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}`)
         }
+        .width('100%')
+        .borderRadius(AppStyles.RADIUS_LG)
+        .clip(true)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .border({
+          width: 1,
+          color: AppColors.getColors(this.currentTheme).BORDER
+        })
       }
-      .width('100%')
-      .justifyContent(FlexAlign.Start)
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
     }
     .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Auto)
-    .align(Alignment.Top)
   }
 
   @Builder
   private tableHeader() {
-    Row({ space: 12 }) {
-      Text('设备名称')
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.8)
-      Text('设备类型')
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.1)
-      Text('设备标识')
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.6)
-      Text('最近连接时间')
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.3)
-      Text('当前策略')
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1.2)
+    Row() {
+      Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.8)
+      Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.1)
+      Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.6)
+      Text('最近连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.3)
+      Text('当前策略').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.2)
     }
     .width('100%')
-    .padding({ left: 20, right: 20, top: 14, bottom: 14 })
+    .padding({ left: 20, right: 20, top: 12, bottom: 12 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   @Builder
   private tableRow(record: PeripheralPolicyRecord, index: number) {
-    Row({ space: 12 }) {
+    Row() {
       Text(record.deviceName)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         .layoutWeight(1.8)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-      Row() {
-        Text(getPeripheralTypeLabel(record.deviceType))
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-      }
-      .layoutWeight(1.1)
+      Text(getPeripheralTypeLabel(record.deviceType))
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+        .layoutWeight(1.1)
 
       Text(record.deviceId)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)

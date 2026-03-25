@@ -7,6 +7,7 @@ import {
   PeripheralConnectionRecord
 } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
+import { ConnectionDetailMetricField } from './ConnectionDetailMetricField'
 
 export interface ConnectionHistoryItem {
   time: string
@@ -83,26 +84,26 @@ export struct ConnectionDetailDialog {
         .fontWeight(FontWeight.Medium)
 
       Row({ space: 10 }) {
-        this.metric('设备标识', record.deviceId)
-        this.metric('最近时间', this.formatConnectionTime(record))
+        ConnectionDetailMetricField({ label: '设备标识', value: record.deviceId, currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '最近时间', value: this.formatConnectionTime(record), currentTheme: this.currentTheme })
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metric('连接事件', getPeripheralRecordActionLabel(record.action))
-        this.metric('事件来源', getPeripheralRecordSourceLabel(record.source))
+        ConnectionDetailMetricField({ label: '连接事件', value: getPeripheralRecordActionLabel(record.action), currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '事件来源', value: getPeripheralRecordSourceLabel(record.source), currentTheme: this.currentTheme })
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metric('策略结论', getPeripheralRecordPolicyHitLabel(record.policyHit))
-        this.metric('执行策略', record.effectivePolicyLabel ?? '--')
+        ConnectionDetailMetricField({ label: '策略结论', value: getPeripheralRecordPolicyHitLabel(record.policyHit), currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '执行策略', value: record.effectivePolicyLabel ?? '--', currentTheme: this.currentTheme })
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metric('命中类型', record.matchedPolicyKind ?? 'unknown')
-        this.metric('结果状态', getLogEventResultLabel(record.result))
+        ConnectionDetailMetricField({ label: '命中类型', value: record.matchedPolicyKind ?? 'unknown', currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '结果状态', value: getLogEventResultLabel(record.result), currentTheme: this.currentTheme })
       }
       .width('100%')
     }
@@ -163,23 +164,6 @@ export struct ConnectionDetailDialog {
     .padding(12)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     .borderRadius(AppStyles.RADIUS_LG)
-  }
-
-  @Builder
-  private metric(label: string, value: string) {
-    Column({ space: 4 }) {
-      Text(label)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      Text(value)
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('50%')
-    .padding(8)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_MD)
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {

@@ -204,12 +204,14 @@ class PeripheralViewModel {
         : index === 1
           ? edmUsbManager.UsbPolicy.READ_WRITE
           : edmUsbManager.UsbPolicy.DISABLED
-      const result = PeripheralService.setUsbStoragePolicyWithResult(policy)
+      const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policy)
       if (!result.success) {
         this.errorMessage = result.userMessage?.trim() || result.errorMessage || '设置 USB 存储策略失败'
         return false
       }
       this.interfaceState.usbStoragePolicyIndex = index
+      this.reloadWhitelistBlacklist()
+      this.loadPeripheralPolicyData()
       this.errorMessage = null
       return true
     } catch (err) {
