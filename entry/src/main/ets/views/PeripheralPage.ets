@@ -1,5 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { BackNavButton } from '../components/BackNavButton'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
@@ -10,9 +9,7 @@ import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import {
-  PeripheralPolicyRecord,
-} from '../models/DataModels'
+import { PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -66,6 +63,7 @@ export struct PeripheralPage {
   private usbLoadingDialogController?: CustomDialogController
   private isUsbLoadingDialogOpen: boolean = false
   private usbLoadingDialogOpenedAt: number = 0
+
   aboutToAppear() {
     void this.initViewModel()
   }
@@ -169,7 +167,7 @@ export struct PeripheralPage {
   }
 
   build() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         this.header()
         this.tabs()
@@ -252,7 +250,12 @@ export struct PeripheralPage {
 
   @Builder
   private interfaceTab() {
-    Column() {
+    Column()
+      .width('100%')
+      .height('100%')
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Start)
+    {
       InterfaceControlTab({
         usbDisabled: this.viewModel.interfaceState.usbDisabled,
         btDisabled: this.viewModel.interfaceState.btDisabled,
@@ -273,19 +276,24 @@ export struct PeripheralPage {
         onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
       })
     }
-    .width('100%')
-    .height('100%')
   }
 
   @Builder
   private deviceTab() {
-    DeviceRecordList({
-      deviceRecords: this.viewModel.deviceRecords,
-      currentTheme: this.currentTheme,
-      hoveredPanelIndex: this.hoveredPanelIndex,
-      onRecordClick: (record) => this.viewModel.openConnectionDetailDialog(record),
-      onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
-    })
+    Column()
+      .width('100%')
+      .height('100%')
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Start)
+    {
+      DeviceRecordList({
+        deviceRecords: this.viewModel.deviceRecords,
+        currentTheme: this.currentTheme,
+        hoveredPanelIndex: this.hoveredPanelIndex,
+        onRecordClick: (record) => this.viewModel.openConnectionDetailDialog(record),
+        onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
+      })
+    }
   }
 
   @Builder
@@ -303,7 +311,7 @@ export struct PeripheralPage {
         currentTheme: this.currentTheme,
         updatingKeys: this.viewModel.policyUpdatingKeys,
         onPolicyChange: (index: number, policyIndex: number) => {
-          const record = this.viewModel.peripheralPolicyRecords[index]
+          const record: PeripheralPolicyRecord | undefined = this.viewModel.peripheralPolicyRecords[index]
           if (record) {
             void this.handlePolicyChange(record, policyIndex)
           }
@@ -353,12 +361,20 @@ export struct PeripheralPage {
 
   private async handleExportConnectionHistory(): Promise<void> {
     const success = await this.viewModel.exportConnectionHistory()
-    success ? this.showConnectionHistoryExportSuccessDialog() : this.showConnectionHistoryExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+    if (success) {
+      this.showConnectionHistoryExportSuccessDialog()
+    } else {
+      this.showConnectionHistoryExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+    }
   }
 
   private async handleExportPeripheralPolicyRecords(): Promise<void> {
     const success = await this.viewModel.exportPeripheralPolicyRecords()
-    success ? this.showPolicyRecordExportSuccessDialog() : this.showPolicyRecordExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+    if (success) {
+      this.showPolicyRecordExportSuccessDialog()
+    } else {
+      this.showPolicyRecordExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+    }
   }
 
   private showClearHistoryConfirmDialog(): void {

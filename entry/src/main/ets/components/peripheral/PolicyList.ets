@@ -23,7 +23,7 @@ export struct PolicyList {
       if (this.policyRecords.length === 0) {
         EmptyStatePanel({
           title: '暂无可管理的 USB 设备记录',
-          description: '设备接入后会展示在这里，允许设置接入或禁止访问策略。',
+          description: '设备接入后会显示在这里，可直接设置允许接入或禁止访问。',
           radius: AppStyles.RADIUS_LG,
           verticalPadding: 24
         })

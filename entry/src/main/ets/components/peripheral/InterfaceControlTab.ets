@@ -58,6 +58,8 @@ export struct InterfaceControlTab {
     }
     .width('100%')
     .height('100%')
+    .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
   }
 
   @Builder
@@ -81,7 +83,7 @@ export struct InterfaceControlTab {
   private storageItem() {
     InterfaceControlItem({
       label: 'USB 存储设备',
-      description: '设置 USB 存储设备的访问权限，可选择只读、读写或禁止访问。',
+      description: '设置 USB 存储设备访问权限，可选择只读、读写或禁止访问。',
       options: ['只读', '读写', '禁止访问'],
       selectedIndex: this.usbStoragePolicyIndex,
       isProcessing: this.interfaceControlProcessingKey === this.usbStorageControlKey,

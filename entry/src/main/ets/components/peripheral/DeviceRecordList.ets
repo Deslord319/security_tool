@@ -35,7 +35,10 @@ export struct DeviceRecordList {
               Column({ space: 0 }) {
                 this.row(record, index)
                 if (index < this.deviceRecords.length - 1) {
-                  Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY).margin({ left: 20, right: 20 })
+                  Divider()
+                    .color(AppColors.getColors(this.currentTheme).BORDER)
+                    .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                    .margin({ left: 20, right: 20 })
                 }
               }
             })
@@ -56,6 +59,7 @@ export struct DeviceRecordList {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
   }
 
   @Builder
@@ -81,7 +85,12 @@ export struct DeviceRecordList {
       Text(record.deviceId).fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(2).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(getPeripheralRecordActionLabel(record.action)).fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(this.eventColor(record)).layoutWeight(1.5)
       Text(getLogEventResultLabel(record.result)).fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(this.resultColor(record.result)).layoutWeight(1.5)
-      Text('详情').fontSize(AppStyles.FONT_SIZE_CAPTION).fontColor(AppColors.BRAND_PRIMARY).layoutWeight(1).textAlign(TextAlign.Center).onClick(() => this.onRecordClick && this.onRecordClick(record))
+      Text('详情')
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.BRAND_PRIMARY)
+        .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+        .onClick(() => this.onRecordClick && this.onRecordClick(record))
     }
     .width('100%')
     .padding({ left: 20, right: 20, top: 10, bottom: 10 })
