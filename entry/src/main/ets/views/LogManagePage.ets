@@ -38,65 +38,192 @@ import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 const TAG = 'LogManagePage'
 const DOMAIN = 0x0012
 
-interface DetailDialogField {
+interface LogDetailField {
   key: string
   label: string
   value: string
 }
 
 @Component
-struct DetailTableRow {
-  label: string = ''
-  value: string = '-'
-  labelWidth: number = 112
+struct LogDetailTextBlock {
+  title: string = ''
+  value: string = ''
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State expanded: boolean = false
 
   private shouldCollapse(): boolean {
-    return this.value.length > 60 || this.value.indexOf('\n') >= 0
+    return this.value.length > 72 || this.value.indexOf('\n') >= 0
   }
 
   build() {
-    Row({ space: 12 }) {
+    Column({ space: 6 }) {
+      Text(this.title)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
+      Text(this.value)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .maxLines(this.shouldCollapse() && !this.expanded ? 2 : 12)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+
+      if (this.shouldCollapse()) {
+        Text(this.expanded ? '收起' : '展开')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.BRAND_PRIMARY)
+          .onClick(() => {
+            this.expanded = !this.expanded
+          })
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .padding(12)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+    .borderRadius(AppStyles.RADIUS_MD)
+  }
+}
+
+@Component
+struct LogDetailMetricCard {
+  label: string = ''
+  value: string = ''
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  build() {
+    Column({ space: 4 }) {
       Text(this.label)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .width(this.labelWidth)
 
-      Column({ space: 6 }) {
-        Text(this.value)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .maxLines(this.shouldCollapse() && !this.expanded ? 2 : 12)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-
-        if (this.shouldCollapse()) {
-          Text(this.expanded ? '收起' : '展开')
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.BRAND_PRIMARY)
-            .onClick(() => {
-              this.expanded = !this.expanded
-            })
-        }
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
+      Text(this.value)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .width('100%')
-    .alignItems(VerticalAlign.Top)
-    .padding({ top: 10, bottom: 10 })
+    .alignItems(HorizontalAlign.Start)
+    .padding(12)
+    .layoutWeight(1)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+    .borderRadius(AppStyles.RADIUS_MD)
+  }
+}
+
+@Component
+struct LogDetailInfoRow {
+  field: LogDetailField = { key: '', label: '', value: '' }
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State expanded: boolean = false
+
+  private shouldCollapse(): boolean {
+    return this.field.value.length > 72 || this.field.value.indexOf('\n') >= 0
+  }
+
+  build() {
+    Column({ space: 6 }) {
+      Text(this.field.label)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+
+      Text(this.field.value)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .maxLines(this.shouldCollapse() && !this.expanded ? 2 : 12)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+
+      if (this.shouldCollapse()) {
+        Text(this.expanded ? '收起' : '展开')
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.BRAND_PRIMARY)
+          .onClick(() => {
+            this.expanded = !this.expanded
+          })
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .padding(12)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+    .borderRadius(AppStyles.RADIUS_MD)
   }
 }
 
 @CustomDialog
-struct DetailTableDialog {
+struct LogDetailDialog {
   controller: CustomDialogController
   title: string = ''
-  fields: DetailDialogField[] = []
+  entry: LogEntry = {
+    id: '',
+    timestamp: 0,
+    eventType: LogEventType.FILE,
+    detail: '',
+    result: LogEventResult.SUCCESS
+  } as LogEntry
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  private readonly labelWidth: number = 112
+
+  private hasValue(value?: string | number): boolean {
+    if (value === undefined || value === null) {
+      return false
+    }
+    return value.toString().trim().length > 0
+  }
+
+  private displayValue(value?: string | number): string {
+    if (!this.hasValue(value)) {
+      return ''
+    }
+    return value!.toString().trim()
+  }
+
+  private getResultTagTextColor(): string {
+    return getLogEventResultColor(this.entry.result)
+  }
+
+  private getResultTagBgColor(): string {
+    if (this.entry.result === LogEventResult.SUCCESS) {
+      return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
+    }
+    if (this.entry.result === LogEventResult.BLOCKED) {
+      return AppColors.getColors(this.currentTheme).TAG_ORANGE_BG
+    }
+    return AppColors.getColors(this.currentTheme).TAG_RED_BG
+  }
+
+  private getMetricFields(): LogDetailField[] {
+    let fields: LogDetailField[] = []
+    if (this.hasValue(this.entry.processName)) {
+      fields.push({ key: 'process', label: '进程', value: this.displayValue(this.entry.processName) } as LogDetailField)
+    }
+    if (this.hasValue(this.entry.pid)) {
+      fields.push({ key: 'pid', label: 'PID', value: this.displayValue(this.entry.pid) } as LogDetailField)
+    }
+    if (this.hasValue(this.entry.uid)) {
+      fields.push({ key: 'uid', label: 'UID', value: this.displayValue(this.entry.uid) } as LogDetailField)
+    }
+    return fields
+  }
+
+  private getInfoFields(): LogDetailField[] {
+    let fields: LogDetailField[] = []
+    if (this.hasValue(this.entry.filePath)) {
+      fields.push({ key: 'file_path', label: '文件路径', value: this.displayValue(this.entry.filePath) } as LogDetailField)
+    }
+    if (this.hasValue(this.entry.remoteAddr)) {
+      fields.push({ key: 'remote_addr', label: '远端地址', value: this.displayValue(this.entry.remoteAddr) } as LogDetailField)
+    }
+    return fields
+  }
 
   build() {
     Column({ space: 0 }) {
@@ -125,19 +252,70 @@ struct DetailTableDialog {
         .margin({ top: 10, bottom: 10 })
 
       Scroll() {
-        Column({ space: 0 }) {
-          ForEach(this.fields, (field: DetailDialogField, index: number) => {
-            DetailTableRow({
-              label: field.label,
-              value: field.value,
-              labelWidth: this.labelWidth
-            })
-            if (index < this.fields.length - 1) {
-              Divider()
-                .color(AppColors.getColors(this.currentTheme).BORDER)
-                .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+        Column({ space: 12 }) {
+          Row({ space: 8 }) {
+            Text(formatLogTimestamp(this.entry.timestamp))
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+              .fontFamily('monospace')
+              .layoutWeight(1)
+
+            Text(getLogEventTypeLabel(this.entry.eventType))
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+              .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+              .borderRadius(AppStyles.RADIUS_SM)
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+
+            Text(getLogEventResultLabel(this.entry.result))
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(this.getResultTagTextColor())
+              .backgroundColor(this.getResultTagBgColor())
+              .borderRadius(AppStyles.RADIUS_SM)
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+
+          LogDetailTextBlock({
+            title: '详情',
+            value: this.entry.detail.trim().length > 0 ? this.entry.detail : '暂无详情'
+          })
+
+          if (this.getMetricFields().length > 0 || this.getInfoFields().length > 0) {
+            Column({ space: 8 }) {
+              Text('附加信息')
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
+              if (this.getMetricFields().length > 0) {
+                Row({ space: 8 }) {
+                  ForEach(this.getMetricFields(), (field: LogDetailField) => {
+                    LogDetailMetricCard({
+                      label: field.label,
+                      value: field.value
+                    })
+                  }, (field: LogDetailField) => field.key)
+                }
+                .width('100%')
+              }
+
+              if (this.getInfoFields().length > 0) {
+                Column({ space: 8 }) {
+                  ForEach(this.getInfoFields(), (field: LogDetailField) => {
+                    LogDetailInfoRow({
+                      field: field
+                    })
+                  }, (field: LogDetailField) => field.key)
+                }
+                .width('100%')
+              }
             }
-          }, (field: DetailDialogField) => field.key)
+            .width('100%')
+          }
         }
         .width('100%')
       }
@@ -145,7 +323,7 @@ struct DetailTableDialog {
       .constraintSize({ maxHeight: 420 })
       .scrollBar(BarState.Auto)
     }
-    .width(580)
+    .width(560)
     .padding(18)
     .alignItems(HorizontalAlign.Start)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -520,56 +698,18 @@ export struct LogManagePage {
     )
   }
 
-  private displayField(value: string | number | undefined): string {
-    if (value === undefined || value === null) {
-      return '-'
-    }
-    let text = value.toString().trim()
-    if (text.length === 0) {
-      return '-'
-    }
-    return text
-  }
-
-  private toDetailField(key: string, label: string, value: string | number | undefined): DetailDialogField {
-    return {
-      key: key,
-      label: label,
-      value: this.displayField(value)
-    } as DetailDialogField
-  }
-
-  private openDetailTableDialog(title: string, fields: DetailDialogField[]): void {
+  private openLogDetailTableDialog(entry: LogEntry): void {
     this.detailDialogController = new CustomDialogController({
-      builder: DetailTableDialog({
-        controller: this.detailDialogController,
-        title: title,
-        fields: fields
+      builder: LogDetailDialog({
+        controller: this.detailDialogController as CustomDialogController,
+        title: '日志详情',
+        entry: entry
       }),
       autoCancel: true,
       customStyle: true,
       alignment: DialogAlignment.Center
     })
     this.detailDialogController.open()
-  }
-
-  private openLogDetailTableDialog(entry: LogEntry): void {
-    let fields: DetailDialogField[] = [
-      this.toDetailField('timestamp', '时间', formatLogTimestamp(entry.timestamp)),
-      this.toDetailField('event_type', '类型', getLogEventTypeLabel(entry.eventType)),
-      this.toDetailField('result', '结果', getLogEventResultLabel(entry.result)),
-      this.toDetailField('detail', '详情', entry.detail),
-      this.toDetailField('process', '进程', entry.processName),
-      this.toDetailField('pid', 'PID', entry.pid),
-      this.toDetailField('uid', 'UID', entry.uid),
-      this.toDetailField('file_path', '文件路径', entry.filePath),
-      this.toDetailField('remote_addr', '远端地址', entry.remoteAddr),
-      this.toDetailField('source_event_id', '源事件 ID', entry.sourceEventId),
-      this.toDetailField('source_sub_type', '源子类型', entry.sourceSubType),
-      this.toDetailField('raw_event_name', '原始事件名', entry.rawEventName),
-      this.toDetailField('raw_outcome', '原始结果', entry.rawOutcome)
-    ]
-    this.openDetailTableDialog('日志详情', fields)
   }
 
   clearLogs() {
