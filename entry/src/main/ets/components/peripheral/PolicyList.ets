@@ -1,26 +1,20 @@
 /**
- * 外设策略列表组件
+ * Peripheral policy list.
  */
 import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { PeripheralPolicyRecord, PeripheralType, getPeripheralTypeLabel } from '../../models/DataModels'
+import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { FormControlUtils } from '../../utils/FormControlUtils'
 import { EmptyStatePanel } from '../EmptyStatePanel'
 
-interface PolicyListProps {
-  policyRecords: PeripheralPolicyRecord[]
-  policyListOptions: Array<{ value: string }>
-  currentTheme: ThemeMode
-  updatingKeys: string[]
-  onPolicyChange: (index: number, policyIndex: number) => void
-  getPolicyLabel: (index: number) => string
-  isUpdating: (deviceId: string) => boolean
+export interface PolicyOption {
+  value: string
 }
 
 @Component
 export struct PolicyList {
   @Prop policyRecords: PeripheralPolicyRecord[] = []
-  @Prop policyListOptions: Array<{ value: string }> = []
+  @Prop policyListOptions: PolicyOption[] = []
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop updatingKeys: string[] = []
   onPolicyChange?: (index: number, policyIndex: number) => void
@@ -33,7 +27,7 @@ export struct PolicyList {
         if (this.policyRecords.length === 0) {
           EmptyStatePanel({
             title: '暂无可管理的 USB 设备记录',
-            description: '设备接入后会按最近记录去重展示，并可直接设置允许接入或禁止访问。',
+            description: '设备接入后会展示在这里，允许设置接入或禁止访问策略。',
             radius: AppStyles.RADIUS_LG,
             verticalPadding: 24
           })
@@ -146,13 +140,11 @@ export struct PolicyList {
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         .layoutWeight(1.3)
 
-      Select(this.policyListOptions)
+      Select(this.policyListOptions as SelectOption[])
         .selected(record.policyIndex)
         .value(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
         .font({ size: AppStyles.FONT_SIZE_CAPTION })
         .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
         .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
         .backgroundColor(FormControlUtils.background(this.currentTheme))

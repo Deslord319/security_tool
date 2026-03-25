@@ -1,87 +1,33 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
-import { PeripheralService } from '../services/PeripheralService'
-import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
-import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
-import { InterfaceControlItem } from '../components/InterfaceControlItem'
-import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
-import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
-import { EmptyStatePanel } from '../components/EmptyStatePanel'
-import {
-  AdminActivationState,
-  PeripheralPolicyRecord,
-  PeripheralBlacklistTemplate,
-  PeripheralCandidateSource,
-  PeripheralConnectionRecord,
-  PeripheralMatchedPolicyKind,
-  PeripheralWhitelistCandidate,
-  OperationResult,
-  PeripheralType,
-  PeripheralRecordAction,
-  LogEventResult,
-  LogExportFormat,
-  formatLogTimestamp,
-  getLogEventResultLabel,
-  getPeripheralRecordActionLabel,
-  getPeripheralCandidateSourceLabel,
-  getPeripheralRecordPolicyHitLabel,
-  getPeripheralRecordSourceLabel,
-  getPeripheralTypeLabel,
-  getUsbStoragePolicyLabel,
-  ParsedUsbId,
-  parseUsbDeviceId,
-  parseBluetoothMac,
-  formatUsbDeviceId,
-  inferUsbBaseClass,
-  inferPeripheralTypeFromBaseClass
-} from '../models/DataModels'
-import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { common } from '@kit.AbilityKit'
-import { BusinessError, usbManager as hostUsbManager } from '@kit.BasicServicesKit'
+import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
+import { AddBlacklistDialog } from '../components/AddBlacklistDialog'
+import { AddWhitelistDialog } from '../components/AddWhitelistDialog'
+import { BackNavButton } from '../components/BackNavButton'
+import { EmptyStatePanel } from '../components/EmptyStatePanel'
+import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
+import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
+import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
+import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
+import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
+import { TabBuilder } from '../components/peripheral/TabBuilder'
+import { AppColors, AppStyles } from '../constants/AppConstants'
+import {
+  formatUsbDeviceId,
+  getPeripheralTypeLabel,
+  PeripheralBlacklistTemplate,
+  PeripheralPolicyRecord,
+  PeripheralWhitelistCandidate
+} from '../models/DataModels'
+import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
-import { LogContentExportOptions, LogStorageService } from '../services/LogStorageService'
-import { BackNavButton } from '../components/BackNavButton'
-import { HoverUtils } from '../utils/HoverUtils'
-import { FormControlUtils } from '../utils/FormControlUtils'
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
-import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
-import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
-import { InterfaceControlPanel } from '../components/peripheral/InterfaceControlPanel'
-import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
-import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
-import { PolicyList } from '../components/peripheral/PolicyList'
-import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
-import { ConnectionDetailMetricField } from '../components/peripheral/ConnectionDetailMetricField'
-import { TabBuilder } from '../components/peripheral/TabBuilder'
-import { ConnectionRecordDetailDialog } from '../components/peripheral/ConnectionRecordDetailDialog'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
 const MIN_USB_LOADING_DIALOG_DURATION_MS = 500
-type PeripheralResultData =
-  boolean |
-  number |
-  string |
-  edmUsbManager.UsbPolicy |
-  edmUsbManager.UsbDeviceId[] |
-  edmUsbManager.UsbDeviceType[] |
-  void
-
-interface UsbBlacklistDefaultTemplate {
-  title: string
-  description: string
-  baseClass: number
-}
-
-interface ConnectionHistoryItem {
-  time: string
-  policy: string
-  result: string
-}
 
 @CustomDialog
 struct PeripheralUsbLoadingDialog {
@@ -91,9 +37,7 @@ struct PeripheralUsbLoadingDialog {
 
   build() {
     Column({ space: 14 }) {
-      LoadingProgress()
-        .width(44)
-        .height(44)
+      LoadingProgress().width(44).height(44)
       Text(this.message)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -106,80 +50,25 @@ struct PeripheralUsbLoadingDialog {
     .justifyContent(FlexAlign.Center)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow({
-      radius: 20,
-      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.36)' : 'rgba(0,0,0,0.14)',
-      offsetX: 0,
-      offsetY: 10
-    })
+    .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
   }
+}
+
+interface PolicyOption {
+  value: string
 }
 
 @Component
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
-  private viewModel: PeripheralViewModel = new PeripheralViewModel()
-  private tabsController: TabsController = new TabsController()
-  private touchStartTab: number = 0
-  @State currentTab: number = 0
+  @State viewModel: PeripheralViewModel = new PeripheralViewModel()
   @State hoveredPanelIndex: number = -1
-  @State touchStartX: number = 0
-  @State touchStartY: number = 0
-  @State isLoading: boolean = false
-  @State adminState: AdminActivationState = {
-    activated: false,
-    enableCommand: EnterpriseAdminService.buildEnableCommand(),
-    adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
-  }
 
-  // 接口管控状态
-  @State usbDisabled: boolean = false
-  @State btDisabled: boolean = false
-  @State wifiDisabled: boolean = false
-  @State hdcDisabled: boolean = false
-  @State networkDisabled: boolean = false
-  @State printerDisabled: boolean = false
-  @State microphoneDisabled: boolean = false
-  @State cameraDisabled: boolean = false
-  @State usbStoragePolicyIndex: number = 0
-  @State interfaceControlSyncToken: number = 0
-  @State interfaceControlProcessingKey: string = ''
-
-  // 黑白名单数据
-  @State usbWhitelist: edmUsbManager.UsbDeviceId[] = []
-  @State usbBlacklist: edmUsbManager.UsbDeviceType[] = []
-  @State btWhitelist: string[] = []
-  @State connectedUsbDevices: hostUsbManager.USBDevice[] = []
-
-  // 设备连接记录
-  @State deviceRecords: PeripheralConnectionRecord[] = []
-  @State isConnectionDetailDialogVisible: boolean = false
-  @State selectedConnectionRecord: PeripheralConnectionRecord | null = null
-  @State connectionDetailHostWidth: number = 0
-  private traceStorageListenerId: number = -1
-  private readonly connectionDetailCompactWidthThreshold: number = 1200
-  private readonly usbStorageControlKey: string = 'usb-storage-policy'
-  private readonly usbRecordTypes: PeripheralType[] = [
-    PeripheralType.USB_STORAGE,
-    PeripheralType.USB_CAMERA,
-    PeripheralType.USB_PRINTER,
-    PeripheralType.USB_HID,
-    PeripheralType.USB_OTHER
-  ]
-
-  @State peripheralPolicyRecords: PeripheralPolicyRecord[] = []
-  @State policyUpdatingKeys: string[] = []
-  @State peripheralPolicyRenderVersion: number = 0
+  private tabsController: TabsController = new TabsController()
+  private policyListOptions: PolicyOption[] = [{ value: '允许接入' }, { value: '禁止访问' }]
   private resultDialogController: CustomDialogController = new CustomDialogController({
-    builder: ResultMessageBox({
-      onConfirm: () => {
-      }
-    }),
+    builder: ResultMessageBox({ onConfirm: () => {} }),
     alignment: DialogAlignment.Center,
     autoCancel: false,
     customStyle: true
@@ -187,45 +76,32 @@ export struct PeripheralPage {
   private usbLoadingDialogController?: CustomDialogController
   private isUsbLoadingDialogOpen: boolean = false
   private usbLoadingDialogOpenedAt: number = 0
-  // 弹窗控制器
-  private policyListOptions: SelectOption[] = [
-    { value: '允许接入' },
-    { value: '禁止访问' }
-  ]
   private usbWhitelistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddWhitelistDialog({
       mode: 'usb',
-      getCandidates: (): PeripheralWhitelistCandidate[] => this.getUsbWhitelistCandidates(),
+      getCandidates: (): PeripheralWhitelistCandidate[] => this.viewModel.getUsbWhitelistCandidates(),
       emptyHint: '暂无可添加的 USB 设备，请先连接设备或使用手动录入。',
-      onConfirmUsb: (vendorId: number, productId: number, _remark: string) => {
-        this.handleAddUsbWhitelist(vendorId, productId)
-      }
+      onConfirmUsb: (vendorId: number, productId: number, _remark: string) => void this.handleAddUsbWhitelist(vendorId, productId)
     }),
     autoCancel: true,
     customStyle: true,
     alignment: DialogAlignment.Center
   })
-
   private btWhitelistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddWhitelistDialog({
       mode: 'bluetooth',
-      getCandidates: (): PeripheralWhitelistCandidate[] => this.getBluetoothWhitelistCandidates(),
+      getCandidates: (): PeripheralWhitelistCandidate[] => this.viewModel.getBluetoothWhitelistCandidates(),
       emptyHint: '暂无蓝牙候选设备，请先产生连接记录或使用手动录入。',
-      onConfirmBluetooth: (mac: string, _remark: string) => {
-        this.handleAddBluetoothWhitelist(mac)
-      }
+      onConfirmBluetooth: (mac: string, _remark: string) => void this.handleAddBluetoothWhitelist(mac)
     }),
     autoCancel: true,
     customStyle: true,
     alignment: DialogAlignment.Center
   })
-
   private blacklistDialogController: CustomDialogController = new CustomDialogController({
     builder: AddBlacklistDialog({
-      getTemplates: (): PeripheralBlacklistTemplate[] => this.getUsbBlacklistTemplates(),
-      onConfirm: (baseClass: number, subClass: number, protocol: number, _desc: string) => {
-        this.handleAddUsbBlacklist(baseClass, subClass, protocol)
-      }
+      getTemplates: (): PeripheralBlacklistTemplate[] => this.viewModel.getUsbBlacklistTemplates(),
+      onConfirm: (baseClass: number, subClass: number, protocol: number, _desc: string) => void this.handleAddUsbBlacklist(baseClass, subClass, protocol)
     }),
     autoCancel: true,
     customStyle: true,
@@ -233,27 +109,56 @@ export struct PeripheralPage {
   })
 
   aboutToAppear() {
-    this.refreshAdminActivationState()
-    this.loadAllData()
-    this.subscribeTraceStorageChange()
+    void this.initViewModel()
+  }
+
+  aboutToDisappear() {
+    this.closeUsbLoadingDialog()
+    this.viewModel.destroy()
+  }
+
+  private async initViewModel(): Promise<void> {
+    try {
+      await this.viewModel.initialize(getContext(this) as common.UIAbilityContext)
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
+      this.showResultDialog('failure', '外设管理初始化失败，请稍后重试')
+    }
   }
 
   private showResultDialog(status: ResultMessageStatus, message: string): void {
     ResultDialogHelper.prepareResultDialog(status, message)
     try {
       this.resultDialogController.close()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
+    } catch (_err) {
     }
     this.resultDialogController.open()
+  }
+
+  private showAdminRequiredDialog(action: string): void {
+    this.showResultDialog('failure', `${action}未完成，${ResultDialogHelper.displayReason(this.viewModel.errorMessage ?? undefined, '请先激活企业管理员')}`)
+  }
+
+  private showConnectionHistoryExportSuccessDialog(): void {
+    this.showResultDialog('success', '历史记录已导出，保存位置：下载/安全管理中心')
+  }
+
+  private showConnectionHistoryExportFailureDialog(reason?: string): void {
+    this.showResultDialog('failure', `历史记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`)
+  }
+
+  private showPolicyRecordExportSuccessDialog(): void {
+    this.showResultDialog('success', '策略记录已导出，保存位置：下载/安全管理中心')
+  }
+
+  private showPolicyRecordExportFailureDialog(reason?: string): void {
+    this.showResultDialog('failure', `策略记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`)
   }
 
   private openUsbLoadingDialog(message: string): void {
     this.closeUsbLoadingDialog()
     this.usbLoadingDialogController = new CustomDialogController({
-      builder: PeripheralUsbLoadingDialog({
-        message: message
-      }),
+      builder: PeripheralUsbLoadingDialog({ message }),
       alignment: DialogAlignment.Center,
       autoCancel: false,
       customStyle: true
@@ -265,1212 +170,504 @@ export struct PeripheralPage {
 
   private closeUsbLoadingDialog(): void {
     if (!this.isUsbLoadingDialogOpen) {
-      this.usbLoadingDialogOpenedAt = 0
       this.usbLoadingDialogController = undefined
+      this.usbLoadingDialogOpenedAt = 0
       return
     }
     try {
       this.usbLoadingDialogController?.close()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to close USB loading dialog: ${JSON.stringify(err)}`)
+    } catch (_err) {
     } finally {
-      this.isUsbLoadingDialogOpen = false
-      this.usbLoadingDialogOpenedAt = 0
       this.usbLoadingDialogController = undefined
+      this.usbLoadingDialogOpenedAt = 0
+      this.isUsbLoadingDialogOpen = false
     }
   }
 
-  private async waitForUsbLoadingDialogMinimumDuration(): Promise<void> {
-    if (!this.isUsbLoadingDialogOpen) {
-      return
-    }
-    let elapsed = Date.now() - this.usbLoadingDialogOpenedAt
-    let remainingDuration = MIN_USB_LOADING_DIALOG_DURATION_MS - elapsed
-    if (remainingDuration <= 0) {
-      return
-    }
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => {
-        resolve()
-      }, remainingDuration)
-    })
-  }
-
-  private async runUsbOperationWithLoading<T>(message: string, operation: () => T): Promise<T> {
+  private async runUsbOperationWithLoading(message: string, operation: () => Promise<boolean>): Promise<boolean> {
     this.openUsbLoadingDialog(message)
     try {
-      return operation()
+      return await operation()
     } finally {
-      await this.waitForUsbLoadingDialogMinimumDuration()
+      const remaining = MIN_USB_LOADING_DIALOG_DURATION_MS - (Date.now() - this.usbLoadingDialogOpenedAt)
+      if (remaining > 0) {
+        await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), remaining))
+      }
       this.closeUsbLoadingDialog()
     }
   }
 
-  aboutToDisappear() {
-    this.closeUsbLoadingDialog()
-    this.unsubscribeTraceStorageChange()
-  }
-
-  private loadConnectedUsbDevices(): void {
-    try {
-      this.connectedUsbDevices = hostUsbManager.getDevices() || []
-    } catch (err) {
-      let error = err as BusinessError
-      this.connectedUsbDevices = []
-      hilog.warn(0x0002, TAG, `loadConnectedUsbDevices failed: code=${error.code}, message=${error.message}`)
-    }
-  }
-
-  private openUsbWhitelistDialog(): void {
-    this.loadConnectedUsbDevices()
-    this.usbWhitelistDialogController.open()
-  }
-
-  private openBtWhitelistDialog(): void {
-    this.btWhitelistDialogController.open()
-  }
-
-  private openUsbBlacklistDialog(): void {
-    this.loadConnectedUsbDevices()
-    this.blacklistDialogController.open()
-  }
-
-
-
-    if (source === 'runtime_event') {
-      return 1
-    }
-    if (source === 'audit_event') {
-      return 2
-    }
-    return 3
-  }
-
-    return right.timestamp - left.timestamp
-  }
-
   private setPanelHover(index: number, isHover: boolean): void {
-    HoverUtils.animate(() => {
-      this.hoveredPanelIndex = isHover ? index : -1
-    })
+    this.hoveredPanelIndex = isHover ? index : -1
   }
 
-  /**
-   * Switch to target tab with optional animation.
-   * @param index Target tab index (0-2)
-   * @param enableAnimation Whether to animate the transition (default: true)
-   */
-  private switchToTab(index: number, enableAnimation: boolean = true): void {
-    if (index < 0 || index > 2 || index === this.currentTab) {
-      return
-    }
-
-    this.currentTab = index
-    this.tabsController.changeIndex(index)
-    if (index === 2) {
-      this.loadConnectedUsbDevices()
-    }
+  private handleTabChange(index: number): void {
+    this.viewModel.switchToTab(index)
   }
 
-  /**
-   * Handle swipe gesture for cyclic tab navigation.
-   * Supports 3-tab cyclic navigation: Tab 0 ↔ Tab 1 ↔ Tab 2 ↔ Tab 0
-   */
-  private handlePageTouch(event: TouchEvent): void {
-    if (event.type === TouchType.Down) {
-      if (event.touches.length === 0) {
-        return
-      }
-      this.touchStartTab = this.currentTab
-      this.touchStartX = event.touches[0].x
-      this.touchStartY = event.touches[0].y
-      return
-    }
-
-    if (event.type !== TouchType.Up || event.changedTouches.length === 0) {
-      return
-    }
-
-    let offsetX = event.changedTouches[0].x - this.touchStartX
-    let offsetY = event.changedTouches[0].y - this.touchStartY
-    if (Math.abs(offsetX) < 120 || Math.abs(offsetX) <= Math.abs(offsetY)) {
-      return
-    }
-
-    // 向右滑动：去序号更大的 Tab（循环：Tab 2 → Tab 0）
-    if (offsetX > 0) {
-      if (this.touchStartTab === 0) {
-        this.switchToTab(1, true)
-      } else if (this.touchStartTab === 1) {
-        this.switchToTab(2, true)
-      } else if (this.touchStartTab === 2) {
-        // 循环到 Tab 0，禁用动画避免闪过 Tab 1
-        this.switchToTab(0, false)
-      }
-      return
-    }
-
-    // 向左滑动：去序号更小的 Tab（循环：Tab 0 → Tab 2）
-    if (offsetX < 0) {
-      if (this.touchStartTab === 0) {
-        // 循环到 Tab 2，禁用动画避免闪过 Tab 1
-        this.switchToTab(2, false)
-      } else if (this.touchStartTab === 1) {
-        this.switchToTab(0, true)
-      } else if (this.touchStartTab === 2) {
-        this.switchToTab(1, true)
-      }
-    }
+  @Builder
+  private tabBarBuilder(title: string, index: number) {
+    TabBuilder({ title, index, currentTab: this.viewModel.currentTab, currentTheme: this.currentTheme })
   }
-)
-
-    for (let device of this.connectedUsbDevices) {
-      let deviceId = formatUsbDeviceId(device.vendorId, device.productId)
-      let key = deviceId.toUpperCase()
-      if (items.has(key)) {
-        continue
-      }
-      let type = inferPeripheralTypeFromBaseClass(device.clazz)
-      let name = this.viewModel.buildUsbDisplayName(
-        device.manufacturerName,
-        device.productName,
-        device.vendorId,
-        device.productId
-      )
-      items.set(key, {
-        id: `usb_connected_${key}`,
-        deviceName: name,
-        deviceType: type,
-        deviceId: deviceId,
-        timestamp: Date.now(),
-        source: 'connected_usb',
-        vendorId: device.vendorId,
-        productId: device.productId,
-        isConnected: true,
-        disabled: disabledKeys.includes(key)
-      })
-    }
-
-    for (let record of this.deviceRecords) {
-      let parsed = parseUsbDeviceId(record.deviceId)
-      if (!parsed) {
-        continue
-      }
-      let key = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
-      if (items.has(key)) {
-        continue
-      }
-      items.set(key, {
-        id: `usb_history_${record.id}`,
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        deviceId: formatUsbDeviceId(parsed.vendorId, parsed.productId),
-        timestamp: record.timestamp,
-        source: record.source,
-        vendorId: parsed.vendorId,
-        productId: parsed.productId,
-        disabled: disabledKeys.includes(key)
-      })
-    }
-
-    return Array.from(items.values()).sort((left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate) => {
-      return this.compareCandidateTime(left, right)
-    })
-  }
-
-      let normalizedMac = this.normalizeMac(mac)
-      if (items.has(normalizedMac)) {
-        continue
-      }
-      items.set(normalizedMac, {
-        id: `bt_${record.id}`,
-        deviceName: record.deviceName,
-        deviceType: PeripheralType.BLUETOOTH,
-        deviceId: `MAC: ${normalizedMac}`,
-        timestamp: record.timestamp,
-        source: record.source,
-        mac: normalizedMac,
-        disabled: disabledKeys.includes(normalizedMac)
-      })
-    }
-
-    return Array.from(items.values()).sort((left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate) => {
-      return this.compareCandidateTime(left, right)
-    })
-  }
-|${subClass}|${protocol}`
-  }
-
-    items.set(key, {
-      id: `usb_blacklist_${key}`,
-      title: title,
-      description: description,
-      baseClass: baseClass,
-      subClass: subClass,
-      protocol: protocol,
-      fromConnectedDevice: fromConnectedDevice,
-      disabled: disabledKeys.includes(key)
-    })
-  }
-)
-
-    for (let device of this.connectedUsbDevices) {
-      let title = this.viewModel.buildUsbDisplayName(
-        device.manufacturerName,
-        device.productName,
-        device.vendorId,
-        device.productId
-      )
-      let description = `${formatUsbDeviceId(device.vendorId, device.productId)} · 当前连接 USB 设备`
-      this.appendBlacklistTemplate(
-        items,
-        disabledKeys,
-        title,
-        description,
-        device.clazz,
-        device.subClass,
-        device.protocol,
-        true
-      )
-    }
-
-    let defaults: UsbBlacklistDefaultTemplate[] = [
-      { title: 'USB 存储设备', description: '通用大容量存储设备模板', baseClass: 0x08 },
-      { title: 'USB 打印设备', description: '通用打印设备模板', baseClass: 0x07 },
-      { title: 'USB 摄像设备', description: '通用摄像设备模板', baseClass: 0x0E }
-    ]
-    for (let item of defaults) {
-      this.appendBlacklistTemplate(
-        items,
-        disabledKeys,
-        item.title,
-        item.description,
-        item.baseClass,
-        0,
-        0,
-        false
-      )
-    }
-
-    for (let record of this.deviceRecords) {
-      let baseClass = inferUsbBaseClass(record.deviceType)
-      if (baseClass <= 0) {
-        continue
-      }
-      this.appendBlacklistTemplate(
-        items,
-        disabledKeys,
-        `${record.deviceName} 类型模板`,
-        `${getPeripheralCandidateSourceLabel(record.source)} · ${this.formatTimestamp(record.timestamp)}`,
-        baseClass,
-        0,
-        0,
-        false
-      )
-    }
-
-    let templates = Array.from(items.values())
-    templates.sort((left: PeripheralBlacklistTemplate, right: PeripheralBlacklistTemplate) => {
-      if (left.fromConnectedDevice === right.fromConnectedDevice) {
-        return left.title.localeCompare(right.title)
-      }
-      return left.fromConnectedDevice ? -1 : 1
-    })
-    return templates
-  }
-
-  private subscribeTraceStorageChange(): void {
-    this.unsubscribeTraceStorageChange()
-    this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {
-      this.reloadDeviceRecords()
-    })
-  }
-
-  private unsubscribeTraceStorageChange(): void {
-    if (this.traceStorageListenerId < 0) {
-      return
-    }
-    PeripheralTraceRepository.removeChangeListener(this.traceStorageListenerId)
-    this.traceStorageListenerId = -1
-  }
-  private reloadDeviceRecords(): void {
-    this.viewModel.reloadDeviceRecords()
-    this.loadPeripheralPolicyData()
-  }
-  private refreshAdminActivationState(): void {
-    this.viewModel.refreshAdminActivationState()
-    this.adminState = this.viewModel.adminState
-  }
-
-    this.showResultDialog(
-      'failure',
-      ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
-    )
-    return false
-  }
-
-  private showOperationFailure(action: string, result: OperationResult<PeripheralResultData>): void {
-    let dialogMessage: string = result.isAdminMissing
-      ? ResultDialogHelper.displayReason(result.errorMessage, '企业管理员未激活')
-      : ResultDialogHelper.displayReason(result.errorMessage, `${action}未完成，请稍后重试`)
-    this.showResultDialog('failure', dialogMessage)
-  }
-
-  loadAllData() {
-    this.isLoading = true
-    this.refreshAdminActivationState()
-
-    if (this.adminState.activated) {
-      // 加载接口管控状态
-      let usbState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB)
-      let btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_BLUETOOTH)
-      let wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_WIFI)
-      let hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_HDC)
-      let networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_NETWORK)
-      let printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_PRINTER)
-      let microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_MICROPHONE)
-      let cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
-      this.usbDisabled = usbState.data ?? false
-      this.btDisabled = btState.data ?? false
-      this.wifiDisabled = wifiState.data ?? false
-      this.hdcDisabled = hdcState.data ?? false
-      this.networkDisabled = networkState.data ?? false
-      this.printerDisabled = printerState.data ?? false
-      this.microphoneDisabled = microphoneState.data ?? false
-      this.cameraDisabled = cameraState.data ?? false
-
-      // 加载 USB 存储策略
-      let policyResult = PeripheralService.getUsbStoragePolicyWithResult()
-      let policy = policyResult.data ?? edmUsbManager.UsbPolicy.READ_WRITE
-      if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
-        this.usbStoragePolicyIndex = 0
-      } else if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
-        this.usbStoragePolicyIndex = 1
-      } else {
-        this.usbStoragePolicyIndex = 2
-      }
-
-      // 加载黑白名单
-      this.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
-      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-      this.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
-    } else {
-      this.usbDisabled = false
-      this.btDisabled = false
-      this.wifiDisabled = false
-      this.hdcDisabled = false
-      this.networkDisabled = false
-      this.printerDisabled = false
-      this.microphoneDisabled = false
-      this.cameraDisabled = false
-      this.usbStoragePolicyIndex = 1
-      this.usbWhitelist = []
-      this.usbBlacklist = []
-      this.btWhitelist = []
-    }
-
-    // 加载设备连接记录
-    this.loadConnectedUsbDevices()
-    this.reloadDeviceRecords()
-
-    this.isLoading = false
-  }
-
-  // ========== 设备管控数据加载 ==========
-
-  // 常见设备 VID/PID -> 名称映射`
-  }
-
-  private isInterfaceControlProcessing(controlKey: string): boolean {
-    return this.interfaceControlProcessingKey === controlKey
-  }
-
-    if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
-      return 1
-    }
-    return 2
-  }
-`
-  }
-
-  private reloadInterfaceControlState(reason: string): void {
-    hilog.info(0x0002, TAG, `interfaceControl reload start, reason=${reason}`)
-    this.viewModel.reloadAllData()
-    // Sync state from ViewModel to Page
-    this.usbDisabled = this.viewModel.usbDisabled
-    this.btDisabled = this.viewModel.btDisabled
-    this.wifiDisabled = this.viewModel.wifiDisabled
-    this.hdcDisabled = this.viewModel.hdcDisabled
-    this.networkDisabled = this.viewModel.networkDisabled
-    this.printerDisabled = this.viewModel.printerDisabled
-    this.microphoneDisabled = this.viewModel.microphoneDisabled
-    this.cameraDisabled = this.viewModel.cameraDisabled
-    this.usbStoragePolicyIndex = this.viewModel.usbStoragePolicyIndex
-    this.usbWhitelist = this.viewModel.usbWhitelist
-    this.usbBlacklist = this.viewModel.usbBlacklist
-    this.btWhitelist = this.viewModel.btWhitelist
-    this.interfaceControlSyncToken += 1
-    hilog.info(0x0002, TAG, `interfaceControl reload done, reason=${reason}`)
-  }
-)
-    )
-    let blacklistKeys: Set<string> = new Set(
-      this.usbBlacklist.map((deviceType: edmUsbManager.UsbDeviceType) => {
-        return `${deviceType.baseClass}|${deviceType.subClass}|${deviceType.protocol}`
-      })
-    )
-    let items: Map<string, PeripheralPolicyRecord> = new Map()
-
-    for (let record of this.deviceRecords) {
-      if (this.usbRecordTypes.indexOf(record.deviceType) < 0) {
-        continue
-      }
-      let parsed = parseUsbDeviceId(record.deviceId)
-      if (!parsed) {
-        continue
-      }
-
-      let deviceKey = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
-      let existing = items.get(deviceKey)
-      if (existing && existing.lastSeenAt >= record.timestamp) {
-        continue
-      }
-
-      let baseClass = inferUsbBaseClass(record.deviceType)
-      let policyIndex = 0
-      if (baseClass > 0 && blacklistKeys.has(`${baseClass}|0|0`)) {
-        policyIndex = 1
-      } else if (whitelistKeys.has(deviceKey)) {
-        policyIndex = 0
-      }
-
-      items.set(deviceKey, {
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        deviceId: record.deviceId,
-        lastSeenAt: record.timestamp,
-        lastSeenLabel: this.formatTimestamp(record.timestamp),
-        policyIndex: policyIndex
-      })
-    }
-
-    this.peripheralPolicyRecords = Array.from(items.values()).sort((left: PeripheralPolicyRecord, right: PeripheralPolicyRecord) => {
-      return right.lastSeenAt - left.lastSeenAt
-    })
-  }
-
-
-    try {
-      let context = getContext(this) as common.UIAbilityContext
-      await LogStorageService.init(context)
-      let result = await LogStorageService.exportContentToFile(
-        this.buildPeripheralPolicyCsv(this.peripheralPolicyRecords),
-        LogExportFormat.CSV,
-        'manual',
-        {
-          fileNamePrefix: 'peripheral_policy_list',
-          count: this.peripheralPolicyRecords.length,
-          emptyErrorMessage: '暂无可导出的设备策略记录'
-        }
-      )
-      if (result.success) {
-        this.showPolicyRecordExportSuccessDialog()
-        return
-      }
-      this.showPolicyRecordExportFailureDialog(result.errorMessage)
-    } catch (err) {
-      hilog.error(0x0008, TAG, `exportPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
-      this.showPolicyRecordExportFailureDialog()
-    }
-  }
-)
-    return `\﻿${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
-  }
-
-    return this.policyListOptions[0].value as string
-  }
-
-
-
-      return
-    }
-    this.policyUpdatingKeys = this.policyUpdatingKeys.filter((item: string) => item !== deviceId)
-  }
-
-  private async handlePeripheralPolicyChange(recordIndex: number, policyIndex: number): Promise<void> {
-    const record = this.peripheralPolicyRecords[recordIndex]
-    if (!record) return
-    if (record.policyIndex === policyIndex) return
-
-    const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '修改设备策略失败')
-    }
-  }
-
-  // ========== 接口管控操作 ==========
-
-  async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
-    const success = await this.viewModel.toggleInterface(feature, disallow)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '接口管控失败')
-    }
-  }
-
-    if (feature === PeripheralService.FEATURE_BLUETOOTH) {
-      return '蓝牙'
-    }
-    if (feature === PeripheralService.FEATURE_WIFI) {
-      return 'Wi-Fi'
-    }
-    if (feature === PeripheralService.FEATURE_HDC) {
-      return 'HDC 调试接口'
-    }
-    if (feature === PeripheralService.FEATURE_NETWORK) {
-      return '网络'
-    }
-    if (feature === PeripheralService.FEATURE_PRINTER) {
-      return '打印机'
-    }
-    if (feature === PeripheralService.FEATURE_MICROPHONE) {
-      return '麦克风'
-    }
-    if (feature === PeripheralService.FEATURE_CAMERA) {
-      return '摄像头'
-    }
-    return feature
-  }
-
-  async handleUsbStoragePolicyChange(index: number): Promise<void> {
-    if (!this.ensureAdminReady('设置 USB 存储策略')) {
-      return
-    }
-    let controlKey: string = this.usbStorageControlKey
-    this.interfaceControlProcessingKey = controlKey
-    hilog.info(
-      0x0002,
-      TAG,
-      `usbStoragePolicy update start, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
-    )
-    let policyMap: edmUsbManager.UsbPolicy[] = [
-      edmUsbManager.UsbPolicy.READ_ONLY,
-      edmUsbManager.UsbPolicy.READ_WRITE,
-      edmUsbManager.UsbPolicy.DISABLED
-    ]
-    try {
-      let result = await this.runUsbOperationWithLoading(
-        '正在设置 USB 存储策略，请稍候',
-        (): OperationResult<void> => {
-          let actionResult = PeripheralService.setUsbStoragePolicyWithCleanupResult(policyMap[index])
-          this.reloadInterfaceControlState('toggle:usb_storage_policy')
-          return actionResult
-        }
-      )
-      if (result.success) {
-        hilog.info(
-          0x0002,
-          TAG,
-          `usbStoragePolicy update success, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}`
-        )
-        return
-      }
-      hilog.error(
-        0x0002,
-        TAG,
-        `usbStoragePolicy update failed, key=${controlKey}, target=${this.getUsbStoragePolicyLogValue(index)}, code=${result.errorCode ?? -1}, adminMissing=${result.isAdminMissing ? 1 : 0}`
-      )
-      this.showOperationFailure('设置 USB 存储策略', result)
-    } finally {
-      this.interfaceControlProcessingKey = ''
-    }
-  }
-
-  // ========== 白名单操作 ==========
-
-  async handleAddUsbWhitelist(vendorId: number, productId: number) {
-    const success = await this.viewModel.addToUsbWhitelist(vendorId, productId)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '添加 USB 白名单失败')
-    }
-  }
-
-  async handleRemoveUsbWhitelist(device: edmUsbManager.UsbDeviceId) {
-    const success = await this.viewModel.removeFromUsbWhitelist(device)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '移除 USB 白名单失败')
-    }
-  }
-
-  async handleAddBluetoothWhitelist(mac: string) {
-    const success = await this.viewModel.addToBluetoothWhitelist(mac)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '添加蓝牙白名单失败')
-    }
-  }
-
-  async handleRemoveBluetoothWhitelist(mac: string) {
-    const success = await this.viewModel.removeFromBluetoothWhitelist(mac)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '移除蓝牙白名单失败')
-    }
-  }
-
-  // ========== 黑名单操作 ==========
-
-  handleAddUsbBlacklist(baseClass: number, subClass: number, protocol: number) {
-    if (!this.ensureAdminReady('添加 USB 黑名单')) {
-      return
-    }
-    let deviceType: edmUsbManager.UsbDeviceType = {
-      baseClass: baseClass,
-      subClass: subClass,
-      protocol: protocol,
-      descriptor: edmUsbManager.Descriptor.INTERFACE
-    }
-    let result = PeripheralService.addUsbBlacklistWithResult([deviceType])
-    if (result.success) {
-      this.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-      this.reloadDeviceRecords()
-      hilog.info(0x0002, TAG, 'USB 黑名单已添加')
-    } else {
-      this.showOperationFailure('添加 USB 黑名单', result)
-    }
-  }
-
-  async handleRemoveUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType) {
-    const success = await this.viewModel.removeFromUsbBlacklist(deviceType)
-    if (!success) {
-      this.showResultDialog('failure', this.viewModel.errorMessage || '移除 USB 黑名单失败')
-    }
-  }
-
-  // ========== Tab Builder ==========
-
-  // ========== Build ==========
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
       Column() {
-      // 页面头部
-      Row() {
-        Row({ space: 8 }) {
-          BackNavButton({
-            onBack: () => {
-              this.onBack()
-            }
-          })
-
-          Column({ space: 4 }) {
-            Text('外设管理')
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-        }
-        .layoutWeight(1)
-        .alignItems(VerticalAlign.Top)
-
-        if (this.currentTab === 1) {
-          PageHeaderActions({
-            currentTheme: this.sharedVM.currentTheme,
-            onExport: () => void this.viewModel.exportConnectionHistory(),
-            onClear: () => this.viewModel.showClearConnectionHistoryConfirmDialog(),
-            showClear: true
-          })
-        } else if (this.currentTab === 2) {
-          PageHeaderActions({
-            currentTheme: this.sharedVM.currentTheme,
-            onExport: () => void this.viewModel.exportPeripheralPolicyRecords(),
-            showClear: false
-          })
-        }
-      }
-      .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
-
-      // Tab 切换
-      Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
-        TabContent() {
-          this.interfaceControlBuilder()
-        }.tabBar(TabBuilder({ title: '接口管控', index: 0, currentTab: this.sharedVM.currentTab, currentTheme: this.sharedVM.currentTheme }))
-
-        TabContent() {
-          this.deviceRecordsBuilder()
-        }.tabBar(TabBuilder({ title: '设备连接记录', index: 1, currentTab: this.sharedVM.currentTab, currentTheme: this.sharedVM.currentTheme }))
-
-        TabContent() {
-          this.peripheralPolicyListBuilder()
-        }.tabBar(TabBuilder({ title: '黑白名单', index: 2, currentTab: this.sharedVM.currentTab, currentTheme: this.sharedVM.currentTheme }))
-      }
-      .barMode(BarMode.Fixed)
-      .barWidth('100%')
-      .onChange((index: number) => {
-        this.currentTab = index
-        if (index === 2) {
-          this.loadConnectedUsbDevices()
-        }
-      })
-      .layoutWeight(1)
+        this.header()
+        this.tabs()
       }
       .width('100%')
       .height('100%')
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
-      if (this.isConnectionDetailDialogVisible) {
+      if (this.viewModel.connectionDetailDialog.visible) {
         ConnectionDetailDialog({
-          selectedRecord: this.selectedConnectionRecord,
+          selectedRecord: this.viewModel.connectionDetailDialog.record,
+          historyItems: this.viewModel.connectionDetailDialog.historyItems,
           currentTheme: this.currentTheme,
-          onClose: () => this.closeConnectionDetailDialog()
+          onClose: () => this.viewModel.closeConnectionDetailDialog()
         })
       }
     }
     .width('100%')
     .height('100%')
-    .onTouch((event: TouchEvent) => {
-      this.handlePageTouch(event)
+  }
+
+  @Builder
+  private header() {
+    Row() {
+      Row({ space: 8 }) {
+        BackNavButton({ onBack: () => this.onBack() })
+        Column({ space: 4 }) {
+          Text('外设管理')
+            .fontSize(AppStyles.FONT_SIZE_TITLE)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+      }
+      .layoutWeight(1)
+      .alignItems(VerticalAlign.Top)
+
+      if (this.viewModel.currentTab === 1) {
+        PageHeaderActions({
+          currentTheme: this.currentTheme,
+          exportLabel: '导出历史记录',
+          clearLabel: '清理历史记录',
+          onExport: () => void this.handleExportConnectionHistory(),
+          onClear: () => this.showClearHistoryConfirmDialog(),
+          showClear: true
+        })
+      } else if (this.viewModel.currentTab === 2) {
+        PageHeaderActions({
+          currentTheme: this.currentTheme,
+          exportLabel: '导出策略记录',
+          onExport: () => void this.handleExportPeripheralPolicyRecords(),
+          onClear: () => {},
+          showClear: false
+        })
+      }
+    }
+    .width('100%')
+    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
+  }
+
+  @Builder
+  private tabs() {
+    Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
+      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder('接口管控', 0))
+      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder('设备连接记录', 1))
+      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder('黑白名单', 2))
+    }
+    .barMode(BarMode.Fixed)
+    .barWidth('100%')
+    .onChange((index: number) => this.handleTabChange(index))
+    .layoutWeight(1)
+  }
+
+  @Builder
+  private adminBanner(scope: string) {
+    if (!this.viewModel.adminState.activated) {
+      Row({ space: 10 }) {
+        Text('!')
+          .width(18)
+          .textAlign(TextAlign.Center)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
+        Text(`${scope}需要先激活企业管理员：${this.viewModel.adminState.enableCommand}`)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .padding(14)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
+      .borderRadius(AppStyles.RADIUS_LG)
+    }
+  }
+
+  @Builder
+  private interfaceTab() {
+    Column({ space: 12 }) {
+      this.adminBanner('接口控制、USB 存储策略和设备访问策略')
+      InterfaceControlTab({
+        usbDisabled: this.viewModel.interfaceState.usbDisabled,
+        btDisabled: this.viewModel.interfaceState.btDisabled,
+        wifiDisabled: this.viewModel.interfaceState.wifiDisabled,
+        hdcDisabled: this.viewModel.interfaceState.hdcDisabled,
+        networkDisabled: this.viewModel.interfaceState.networkDisabled,
+        printerDisabled: this.viewModel.interfaceState.printerDisabled,
+        microphoneDisabled: this.viewModel.interfaceState.microphoneDisabled,
+        cameraDisabled: this.viewModel.interfaceState.cameraDisabled,
+        usbStoragePolicyIndex: this.viewModel.interfaceState.usbStoragePolicyIndex,
+        interfaceControlProcessingKey: this.viewModel.interfaceControlProcessingKey,
+        usbStorageControlKey: 'usb-storage-policy',
+        interfaceControlSyncToken: 0,
+        currentTheme: this.currentTheme,
+        hoveredPanelIndex: this.hoveredPanelIndex,
+        onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
+        onUsbStoragePolicyChange: (index: number) => void this.handleUsbStoragePolicyChange(index),
+        onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
+      })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private deviceTab() {
+    DeviceRecordList({
+      deviceRecords: this.viewModel.deviceRecords,
+      currentTheme: this.currentTheme,
+      hoveredPanelIndex: this.hoveredPanelIndex,
+      onRecordClick: (record) => this.viewModel.openConnectionDetailDialog(record),
+      onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
     })
   }
 
-  // ==================== Tab 1: 设备连接记录 ====================
-  private openConnectionDetailDialog(record: PeripheralConnectionRecord): void {
-    let historyCount = this.getConnectionHistoryItems(record).length
-    hilog.info(
-      0x0002,
-      TAG,
-      `openConnectionDetailDialog type=${record.deviceType}, action=${record.action}, source=${record.source}, result=${this.getConnectionResultLabel(record)}, historyCount=${historyCount}`
-    )
-    this.selectedConnectionRecord = record
-    this.isConnectionDetailDialogVisible = true
-  }
-
-  private closeConnectionDetailDialog(): void {
-    if (this.selectedConnectionRecord) {
-      hilog.info(
-        0x0002,
-        TAG,
-        `closeConnectionDetailDialog type=${this.selectedConnectionRecord.deviceType}, action=${this.selectedConnectionRecord.action}, source=${this.selectedConnectionRecord.source}`
-      )
-    } else {
-      hilog.info(0x0002, TAG, 'closeConnectionDetailDialog without active record')
+  @Builder
+  private policyTab() {
+    Scroll() {
+      Column({ space: 16 }) {
+        this.adminBanner('黑白名单和设备访问策略')
+        this.policyTable()
+        this.usbWhitelistCard()
+        this.bluetoothWhitelistCard()
+        this.usbBlacklistCard()
+      }
+      .width('100%')
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
     }
-    this.isConnectionDetailDialogVisible = false
-    this.selectedConnectionRecord = null
+    .width('100%')
+    .height('100%')
   }
 
+  @Builder
+  private policyTable() {
+    Column({ space: 0 }) {
+      Row() {
+        Text('设备访问策略').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        Blank()
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 18, bottom: 12 })
 
-    try {
-      hilog.info(0x0008, TAG, `exportConnectionHistory start, count=${this.deviceRecords.length}`)
-      let context = getContext(this) as common.UIAbilityContext
-      await LogStorageService.init(context)
-      let exportOptions: LogContentExportOptions = {
-        fileNamePrefix: 'peripheral_connection_history',
-        count: this.deviceRecords.length,
-        emptyErrorMessage: '无可导出的设备连接记录'
+      if (this.viewModel.peripheralPolicyRecords.length === 0) {
+        EmptyStatePanel({
+          title: '暂无可管理的 USB 设备记录',
+          description: '设备接入后会显示在这里，允许设置允许接入或禁止访问策略。',
+          radius: AppStyles.RADIUS_LG,
+          verticalPadding: 24
+        })
+      } else {
+        Row({ space: 12 }) {
+          Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.8)
+          Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.1)
+          Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.6)
+          Text('最近连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.3)
+          Text('当前策略').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.2)
+        }
+        .width('100%')
+        .padding({ left: 20, right: 20, top: 14, bottom: 14 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+
+        ForEach(this.viewModel.peripheralPolicyRecords, (record: PeripheralPolicyRecord, index: number) => {
+          Row({ space: 12 }) {
+            Text(record.deviceName).fontSize(AppStyles.FONT_SIZE_BODY).layoutWeight(1.8).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text(getPeripheralTypeLabel(record.deviceType)).fontSize(AppStyles.FONT_SIZE_CAPTION).layoutWeight(1.1)
+            Text(record.deviceId).fontSize(AppStyles.FONT_SIZE_CAPTION).layoutWeight(1.6).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text(record.lastSeenLabel).fontSize(AppStyles.FONT_SIZE_CAPTION).layoutWeight(1.3)
+            Select(this.policyListOptions as SelectOption[])
+              .selected(record.policyIndex)
+              .value(this.policyListOptions[record.policyIndex].value)
+              .font({ size: AppStyles.FONT_SIZE_CAPTION })
+              .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+              .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+              .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+              .borderRadius(AppStyles.RADIUS_SM)
+              .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+              .layoutWeight(1.2)
+              .enabled(!this.viewModel.isPeripheralPolicyUpdating(record.deviceId.toUpperCase()))
+              .opacity(this.viewModel.isPeripheralPolicyUpdating(record.deviceId.toUpperCase()) ? 0.6 : 1)
+              .onSelect((policyIndex: number) => void this.handlePolicyChange(record, policyIndex))
+          }
+          .width('100%')
+          .padding({ left: 20, right: 20, top: 10, bottom: 10 })
+          .backgroundColor(index % 2 === 0 ? AppColors.getColors(this.currentTheme).BG_CARD : AppColors.getColors(this.currentTheme).BG_PAGE)
+        }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${this.viewModel.peripheralPolicyRenderVersion}`)
       }
-      let result = await LogStorageService.exportContentToFile(
-        this.buildConnectionHistoryCsvV2(this.deviceRecords),
-        LogExportFormat.CSV,
-        'manual',
-        exportOptions
-      )
-      hilog.info(0x0008, TAG, `exportConnectionHistory result=${JSON.stringify(result)}`)
-      if (result.success) {
-        this.showConnectionHistoryExportSuccessDialog()
-        return
+    }
+    .width('100%')
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .clip(true)
+    .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+  }
+
+  @Builder
+  private usbWhitelistCard() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('USB 白名单').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+        Blank()
+        Button('添加 USB 白名单').fontSize(AppStyles.FONT_SIZE_CAPTION).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY).borderRadius(AppStyles.RADIUS_MD).height(36).onClick(() => this.usbWhitelistDialogController.open())
       }
-      this.showConnectionHistoryExportFailureDialog(result.errorMessage)
-    } catch (err) {
-      hilog.error(0x0008, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
-      this.showConnectionHistoryExportFailureDialog()
+      .width('100%')
+
+      if (this.viewModel.whitelistBlacklistState.usbWhitelist.length === 0) {
+        EmptyStatePanel({ title: '暂无 USB 白名单', description: '添加后将显示在这里。', radius: AppStyles.RADIUS_LG, verticalPadding: 20 })
+      } else {
+        Column({ space: 8 }) {
+          ForEach(this.viewModel.whitelistBlacklistState.usbWhitelist, (device: edmUsbManager.UsbDeviceId) => {
+            this.removableItem(`USB ${formatUsbDeviceId(device.vendorId, device.productId)}`, '允许接入', () => void this.handleRemoveUsbWhitelist(device))
+          }, (device: edmUsbManager.UsbDeviceId) => `${device.vendorId}-${device.productId}`)
+        }
+        .width('100%')
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+  }
+
+  @Builder
+  private bluetoothWhitelistCard() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('蓝牙白名单').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+        Blank()
+        Button('添加蓝牙白名单').fontSize(AppStyles.FONT_SIZE_CAPTION).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY).borderRadius(AppStyles.RADIUS_MD).height(36).onClick(() => this.btWhitelistDialogController.open())
+      }
+      .width('100%')
+
+      if (this.viewModel.whitelistBlacklistState.btWhitelist.length === 0) {
+        EmptyStatePanel({ title: '暂无蓝牙白名单', description: '产生蓝牙连接记录后可直接从候选列表添加。', radius: AppStyles.RADIUS_LG, verticalPadding: 20 })
+      } else {
+        Column({ space: 8 }) {
+          ForEach(this.viewModel.whitelistBlacklistState.btWhitelist, (mac: string) => {
+            this.removableItem(`MAC: ${mac}`, '允许接入', () => void this.handleRemoveBluetoothWhitelist(mac))
+          }, (mac: string) => mac)
+        }
+        .width('100%')
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+  }
+
+  @Builder
+  private usbBlacklistCard() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('USB 黑名单').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+        Blank()
+        Button('添加 USB 黑名单').fontSize(AppStyles.FONT_SIZE_CAPTION).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY).borderRadius(AppStyles.RADIUS_MD).height(36).onClick(() => this.blacklistDialogController.open())
+      }
+      .width('100%')
+
+      if (this.viewModel.whitelistBlacklistState.usbBlacklist.length === 0) {
+        EmptyStatePanel({ title: '暂无 USB 黑名单', description: '添加后符合类型的 USB 设备将被禁止访问。', radius: AppStyles.RADIUS_LG, verticalPadding: 20 })
+      } else {
+        Column({ space: 8 }) {
+          ForEach(this.viewModel.whitelistBlacklistState.usbBlacklist, (deviceType: edmUsbManager.UsbDeviceType) => {
+            this.removableItem(`Base ${this.hex(deviceType.baseClass)} / Sub ${this.hex(deviceType.subClass)} / Protocol ${this.hex(deviceType.protocol)}`, '禁止访问', () => void this.handleRemoveUsbBlacklist(deviceType))
+          }, (deviceType: edmUsbManager.UsbDeviceType) => `${deviceType.baseClass}-${deviceType.subClass}-${deviceType.protocol}`)
+        }
+        .width('100%')
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+  }
+
+  @Builder
+  private removableItem(title: string, tagText: string, onRemove: () => void) {
+    Row({ space: 10 }) {
+      Column({ space: 4 }) {
+        Text(title).fontSize(AppStyles.FONT_SIZE_BODY).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(tagText)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      Button('移除').fontSize(AppStyles.FONT_SIZE_CAPTION).height(34).borderRadius(AppStyles.RADIUS_MD).backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE).onClick(() => onRemove())
+    }
+    .width('100%')
+    .padding(12)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+    .borderRadius(AppStyles.RADIUS_MD)
+  }
+
+  private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
+    this.viewModel.interfaceControlProcessingKey = feature
+    const success = await this.viewModel.toggleInterface(feature, disallow)
+    this.viewModel.interfaceControlProcessingKey = ''
+    if (!success) {
+      if (!this.viewModel.adminState.activated) {
+        this.showAdminRequiredDialog('设置接口策略')
+      } else {
+        this.showResultDialog('failure', this.viewModel.errorMessage || '接口控制失败')
+      }
+    }
+  }
+
+  private async handleUsbStoragePolicyChange(index: number): Promise<void> {
+    this.viewModel.interfaceControlProcessingKey = 'usb-storage-policy'
+    const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候', async () => await this.viewModel.setUsbStoragePolicy(index))
+    this.viewModel.interfaceControlProcessingKey = ''
+    if (!success) {
+      if (!this.viewModel.adminState.activated) {
+        this.showAdminRequiredDialog('设置 USB 存储策略')
+      } else {
+        this.showResultDialog('failure', this.viewModel.errorMessage || '设置 USB 存储策略失败')
+      }
+    }
+  }
+
+  private async handlePolicyChange(record: PeripheralPolicyRecord, policyIndex: number): Promise<void> {
+    const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
+    if (!success) {
+      if (!this.viewModel.adminState.activated) {
+        this.showAdminRequiredDialog('修改设备策略')
+      } else {
+        this.showResultDialog('failure', this.viewModel.errorMessage || '修改设备策略失败')
+      }
+    }
+  }
+
+  private async handleAddUsbWhitelist(vendorId: number, productId: number): Promise<void> {
+    const success = await this.viewModel.addToUsbWhitelist(vendorId, productId)
+    if (!success) {
+      this.viewModel.adminState.activated ? this.showResultDialog('failure', this.viewModel.errorMessage || '添加 USB 白名单失败') : this.showAdminRequiredDialog('添加 USB 白名单')
       return
-      this.showResultDialog('failure', '导出历史记录失败，请稍后重试')
     }
+    this.showResultDialog('success', 'USB 白名单已添加')
   }
 
-  private showClearConnectionHistoryConfirmDialog(): void {
-    if (this.deviceRecords.length === 0) {
+  private async handleRemoveUsbWhitelist(device: edmUsbManager.UsbDeviceId): Promise<void> {
+    const success = await this.viewModel.removeFromUsbWhitelist(device)
+    if (!success) {
+      this.viewModel.adminState.activated ? this.showResultDialog('failure', this.viewModel.errorMessage || '移除 USB 白名单失败') : this.showAdminRequiredDialog('移除 USB 白名单')
+      return
+    }
+    this.showResultDialog('success', 'USB 白名单已移除')
+  }
+
+  private async handleAddBluetoothWhitelist(mac: string): Promise<void> {
+    const success = await this.viewModel.addToBluetoothWhitelist(mac)
+    if (!success) {
+      this.viewModel.adminState.activated ? this.showResultDialog('failure', this.viewModel.errorMessage || '添加蓝牙白名单失败') : this.showAdminRequiredDialog('添加蓝牙白名单')
+      return
+    }
+    this.showResultDialog('success', '蓝牙白名单已添加')
+  }
+
+  private async handleRemoveBluetoothWhitelist(mac: string): Promise<void> {
+    const success = await this.viewModel.removeFromBluetoothWhitelist(mac)
+    if (!success) {
+      this.viewModel.adminState.activated ? this.showResultDialog('failure', this.viewModel.errorMessage || '移除蓝牙白名单失败') : this.showAdminRequiredDialog('移除蓝牙白名单')
+      return
+    }
+    this.showResultDialog('success', '蓝牙白名单已移除')
+  }
+
+  private async handleAddUsbBlacklist(baseClass: number, subClass: number, protocol: number): Promise<void> {
+    const success = await this.viewModel.addToUsbBlacklist(baseClass, subClass, protocol)
+    if (!success) {
+      this.viewModel.adminState.activated ? this.showResultDialog('failure', this.viewModel.errorMessage || '添加 USB 黑名单失败') : this.showAdminRequiredDialog('添加 USB 黑名单')
+      return
+    }
+    this.showResultDialog('success', 'USB 黑名单已添加')
+  }
+
+  private async handleRemoveUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType): Promise<void> {
+    const success = await this.viewModel.removeFromUsbBlacklist(deviceType)
+    if (!success) {
+      this.viewModel.adminState.activated ? this.showResultDialog('failure', this.viewModel.errorMessage || '移除 USB 黑名单失败') : this.showAdminRequiredDialog('移除 USB 黑名单')
+      return
+    }
+    this.showResultDialog('success', 'USB 黑名单已移除')
+  }
+
+  private async handleExportConnectionHistory(): Promise<void> {
+    const success = await this.viewModel.exportConnectionHistory()
+    success ? this.showConnectionHistoryExportSuccessDialog() : this.showConnectionHistoryExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+  }
+
+  private async handleExportPeripheralPolicyRecords(): Promise<void> {
+    const success = await this.viewModel.exportPeripheralPolicyRecords()
+    success ? this.showPolicyRecordExportSuccessDialog() : this.showPolicyRecordExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+  }
+
+  private showClearHistoryConfirmDialog(): void {
+    if (this.viewModel.deviceRecords.length === 0) {
       this.showResultDialog('failure', '暂无可清理的历史记录')
       return
     }
-
     void this.getUIContext().showAlertDialog({
       title: '清理历史记录',
       message: '将清空当前设备连接历史记录，且无法恢复。是否继续？',
-      primaryButton: {
-        value: '取消',
-        action: () => {}
-      },
-      secondaryButton: {
-        value: '清理',
-        action: () => {
-          void this.clearConnectionHistory()
-        }
-      }
+      primaryButton: { value: '取消', action: () => {} },
+      secondaryButton: { value: '清理', action: () => void this.clearConnectionHistory() }
     })
   }
 
   private async clearConnectionHistory(): Promise<void> {
     try {
-      let context = getContext(this) as common.UIAbilityContext
-      await PeripheralTraceRepository.init(context)
-      let success = await PeripheralTraceRepository.clearAll()
+      await PeripheralTraceRepository.init(getContext(this) as common.UIAbilityContext)
+      const success = await PeripheralTraceRepository.clearAll()
       if (!success) {
         this.showResultDialog('failure', '清理未完成，请稍后重试')
         return
       }
-      this.closeConnectionDetailDialog()
-      this.reloadDeviceRecords()
+      this.viewModel.closeConnectionDetailDialog()
+      this.viewModel.reloadDeviceRecords()
       this.showResultDialog('success', '历史记录已清理')
     } catch (err) {
-      hilog.error(0x0008, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
+      hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', '清理未完成，请稍后重试')
     }
   }
-)
-    return `\﻿${headers.map((item: string) => this.escapeCsvValue(item)).join(',')}\n${rows.join('\n')}`
-  }
 
-  private escapeCsvValue(value: string): string {
-    let normalized = value.replace(/"/g, '""')
-    if (/[",\r\n]/.test(normalized)) {
-      return `"${normalized}"`
-    }
-    return normalized
-  }
-
-  private showConnectionHistoryExportSuccessDialog(): void {
-    this.showResultDialog('success', '历史记录已导出，保存位置：下载/安全管理中心')
-  }
-
-  private showConnectionHistoryExportFailureDialog(reason?: string): void {
-    this.showResultDialog(
-      'failure',
-      `历史记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`
-    )
-  }
-
-  private showPolicyRecordExportSuccessDialog(): void {
-    this.showResultDialog('success', '策略记录已导出，保存位置：下载/安全管理中心')
-  }
-
-  private showPolicyRecordExportFailureDialog(reason?: string): void {
-    this.showResultDialog(
-      'failure',
-      `策略记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`
-    )
-  }
-
-    return getPeripheralRecordActionLabel(record.action)
-  }
-
-  private getConnectionEventTagTextColor(action: PeripheralRecordAction): string {
-    let colors = AppColors.getColors(this.currentTheme)
-    switch (action) {
-      case 'connect':
-        return colors.TAG_GREEN_TEXT
-      case 'disconnect':
-        return colors.TAG_ORANGE_TEXT
-      case 'intercept':
-        return colors.TAG_RED_TEXT
-      default:
-        return colors.TAG_GRAY_TEXT
-    }
-  }
-
-  private getConnectionEventTagBackgroundColor(action: PeripheralRecordAction): string {
-    let colors = AppColors.getColors(this.currentTheme)
-    switch (action) {
-      case 'connect':
-        return colors.TAG_GREEN_BG
-      case 'disconnect':
-        return colors.TAG_ORANGE_BG
-      case 'intercept':
-        return colors.TAG_RED_BG
-      default:
-        return colors.TAG_GRAY_BG
-    }
-  }
-
-  private getConnectionPolicyDisplay(record: PeripheralConnectionRecord | null): string {
-    if (!record) {
-      return '--'
-    }
-    if (record.summary && record.summary.trim().length > 0) {
-      return record.summary
-    }
-    return this.getConnectionPolicyHitLabel(record)
-  }
-
-  private getExecutedUsbPolicyDisplay(record: PeripheralConnectionRecord | null): string {
-    if (!record) {
-      return '--'
-    }
-    if (record.effectivePolicyLabel && record.effectivePolicyLabel.trim().length > 0) {
-      return record.effectivePolicyLabel
-    }
-    if (record.deviceType === PeripheralType.USB_STORAGE && record.usbPolicy !== undefined) {
-      return getUsbStoragePolicyLabel(record.usbPolicy)
-    }
-    if (record.deviceType === PeripheralType.BLUETOOTH) {
-      return '--'
-    }
-    return this.usbDisabled ? '禁用' : '启用'
-  }
-
-  private getMatchedPolicyKindLabel(record: PeripheralConnectionRecord): string {
-    switch (record.matchedPolicyKind as PeripheralMatchedPolicyKind | undefined) {
-      case 'usb_disabled':
-        return 'USB 接口禁用'
-      case 'usb_storage_disabled':
-        return 'USB 存储已禁止访问'
-      case 'usb_storage_read_only':
-        return 'USB 存储只读'
-      case 'usb_whitelist':
-        return '命中 USB 白名单'
-      case 'usb_blacklist':
-        return '命中 USB 黑名单'
-      case 'default_allow':
-        return '默认允许'
-      case 'disconnect_event':
-        return '断开事件'
-      default:
-        return this.getConnectionPolicyHitLabel(record)
-    }
-  }
-
-  private getConnectionResultLabel(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return '快照'
-    }
-    return getLogEventResultLabel(record.result)
-  }
-
-  private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return '未审计'
-    }
-    if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
-      return this.getMatchedPolicyKindLabel(record)
-    }
-    return getPeripheralRecordPolicyHitLabel(record.policyHit)
-  }
-
-  private formatConnectionTime(record: PeripheralConnectionRecord): string {
-    if (record.timestamp <= 0) {
-      return '--'
-    }
-    return formatLogTimestamp(record.timestamp)
-  }
-
-  private getConnectionHistoryItems(record: PeripheralConnectionRecord | null): ConnectionHistoryItem[] {
-    if (!record) {
-      return []
-    }
-    let deviceKey = record.deviceId.replace(/\s+/g, '').toUpperCase()
-    let history: ConnectionHistoryItem[] = []
-    for (let item of this.deviceRecords) {
-      if (item.timestamp <= 0) {
-        continue
-      }
-      if (item.deviceId.replace(/\s+/g, '').toUpperCase() !== deviceKey) {
-        continue
-      }
-      let historyItem: ConnectionHistoryItem = {
-        time: this.formatConnectionTime(item),
-        policy: this.getConnectionPolicyHitLabel(item),
-        result: this.getConnectionResultLabel(item)
-      }
-      if (!history.some((existing: ConnectionHistoryItem) => {
-        return existing.time === historyItem.time &&
-          existing.policy === historyItem.policy &&
-          existing.result === historyItem.result
-      })) {
-        history.push(historyItem)
-      }
-    }
-    return history
-  }
-
-  private normalizeConnectionDetailValue(value?: string): string {
-    if (!value) {
-      return '--'
-    }
-    let normalized = value.trim()
-    return normalized.length > 0 ? normalized : '--'
-  }
-
-  private isCompactConnectionDetailDialog(): boolean {
-    return this.connectionDetailHostWidth > 0 && this.connectionDetailHostWidth < this.connectionDetailCompactWidthThreshold
-  }
-
-  private getConnectionDetailDialogMaxWidth(): number {
-    return this.isCompactConnectionDetailDialog() ? 620 : 760
-  }
-
-  private getConnectionDetailDialogMaxHeight(): number {
-    return this.isCompactConnectionDetailDialog() ? 470 : 560
-  }
-
-  private getConnectionDetailDialogContentMaxHeight(): number {
-    return this.isCompactConnectionDetailDialog() ? 372 : 452
-  }
-
-  private getConnectionDetailHistoryMaxHeight(): number {
-    return this.isCompactConnectionDetailDialog() ? 108 : 136
-  }
-
-  @Builder
-  private deviceRecordsBuilder() {
-    DeviceRecordList({
-      deviceRecords: this.deviceRecords,
-      currentTheme: this.sharedVM.currentTheme,
-      hoveredPanelIndex: this.hoveredPanelIndex,
-      onRecordClick: (record) => this.viewModel.openConnectionDetailDialog(record),
-      onPanelHover: (isHover) => this.setPanelHover(0, isHover)
-    })
-  }
-
-  // ==================== Tab 2: 接口控制 ====================
-  @Builder
-  interfaceControlBuilder() {
-    InterfaceControlTab({
-      usbDisabled: this.usbDisabled,
-      btDisabled: this.btDisabled,
-      wifiDisabled: this.wifiDisabled,
-      hdcDisabled: this.hdcDisabled,
-      networkDisabled: this.networkDisabled,
-      printerDisabled: this.printerDisabled,
-      microphoneDisabled: this.microphoneDisabled,
-      cameraDisabled: this.cameraDisabled,
-      usbStoragePolicyIndex: this.usbStoragePolicyIndex,
-      interfaceControlProcessingKey: this.interfaceControlProcessingKey,
-      usbStorageControlKey: this.usbStorageControlKey,
-      interfaceControlSyncToken: this.interfaceControlSyncToken,
-      currentTheme: this.sharedVM.currentTheme,
-      hoveredPanelIndex: this.hoveredPanelIndex,
-      onInterfaceToggle: (feature, disallow) => this.viewModel.toggleInterface(feature, disallow),
-      onUsbStoragePolicyChange: (index) => this.viewModel.setUsbStoragePolicy(index),
-      onPanelHover: (isHover) => this.setPanelHover(1, isHover)
-    })
-  }
-
-  // ==================== Tab 3: 黑白名单 ====================
-  @Builder
-  peripheralPolicyListBuilder() {
-    PolicyList({
-      policyRecords: this.peripheralPolicyRecords,
-      policyListOptions: this.policyListOptions,
-      currentTheme: this.sharedVM.currentTheme,
-      updatingKeys: this.policyUpdatingKeys,
-      onPolicyChange: (index, policyIndex) => this.viewModel.handlePeripheralPolicyChange(index, this.peripheralPolicyRecords[index].deviceId, this.peripheralPolicyRecords[index].deviceType, policyIndex),
-      getPolicyLabel: (index) => this.getPeripheralPolicyLabel(index),
-      isUpdating: (deviceId) => this.isPeripheralPolicyUpdating(deviceId)
-    })
-  }
-            .width('100%')
-            .padding({ left: 20, right: 20, top: 14, bottom: 14 })
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-
-            Column({ space: 0 }) {
-              ForEach(this.peripheralPolicyRecords, (record: PeripheralPolicyRecord, index: number) => {
-                Column({ space: 0 }) {
-                  Row({ space: 12 }) {
-                    Text(record.deviceName)
-                      .fontSize(AppStyles.FONT_SIZE_BODY)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                      .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                      .layoutWeight(1.8)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                    Row() {
-                      Text(getPeripheralTypeLabel(record.deviceType))
-                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                        .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-                        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-                        .borderRadius(AppStyles.RADIUS_SM)
-                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                    }
-                    .layoutWeight(1.1)
-
-                    Text(record.deviceId)
-                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                      .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-                      .layoutWeight(1.6)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                    Text(record.lastSeenLabel)
-                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                      .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-                      .layoutWeight(1.3)
-
-                    Select(this.policyListOptions)
-                      .selected(record.policyIndex)
-                      .value(this.getPeripheralPolicyLabel(record.policyIndex))
-                      .font({ size: AppStyles.FONT_SIZE_CAPTION })
-                      .fontColor(FormControlUtils.text(this.currentTheme))
-                      .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-                      .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-                      .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-                      .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-                      .backgroundColor(FormControlUtils.background(this.currentTheme))
-                      .borderRadius(AppStyles.RADIUS_SM)
-                      .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-                      .layoutWeight(1.2)
-                      .enabled(!this.isPeripheralPolicyUpdating(record.deviceId))
-                      .opacity(this.isPeripheralPolicyUpdating(record.deviceId) ? 0.6 : 1)
-                      .onSelect((selectIndex: number) => {
-                        this.handlePeripheralPolicyChange(index, selectIndex)
-                      })
-                  }
-                  .width('100%')
-                  .padding({ left: 20, right: 20, top: 16, bottom: 16 })
-                  .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-
-                  if (index < this.peripheralPolicyRecords.length - 1) {
-                    Divider()
-                      .color(AppColors.getColors(this.currentTheme).BORDER)
-                      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                      .margin({ left: 20, right: 20 })
-                  }
-                }
-              }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${this.peripheralPolicyRenderVersion}`)
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-          .borderRadius(AppStyles.RADIUS_LG)
-          .clip(true)
-          .border({
-            width: 1,
-            color: AppColors.getColors(this.currentTheme).BORDER
-          })
-          .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 3, true))
-          .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 3, 4) })
-          .onHover((isHover: boolean) => {
-            this.setPanelHover(3, isHover)
-          })
-        }
-      }
-      .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
-      .justifyContent(FlexAlign.Start)
-    }
-    .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Auto)
-    .align(Alignment.Top)
+  private hex(value: number): string {
+    return `0x${value.toString(16).toUpperCase().padStart(2, '0')}`
   }
 }
