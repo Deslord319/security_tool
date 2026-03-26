@@ -9,7 +9,6 @@ import {
   LogFilter,
   LogStatistics,
   LogStorageConfig,
-  LogExportFormat,
   LogAuditDiagnostics,
   LogEventTypeDiag,
   AuditSubscribeMode,
@@ -392,18 +391,7 @@ export struct LogManagePage {
     customStyle: true
   })
 
-  private resolveStatIndex(label: string): number {
-    if (label === '总计') {
-      return 0
-    }
-    if (label === '今日') {
-      return 1
-    }
-    if (label === '已阻止') {
-      return 2
-    }
-    return 3
-  }
+
 
   private eventTypeFilterOptions: SelectOption[] = [
     { value: '全部类型' } as SelectOption,
@@ -676,19 +664,15 @@ export struct LogManagePage {
     return this.getDiagRecentTimeText(type)
   }
 
-  private exportLogsAsCsv(): void {
-    void this.exportLogs(LogExportFormat.CSV)
-  }
-
-  async exportLogs(format: LogExportFormat) {
+  async exportLogs() {
     if (this.logEntries.length === 0) {
       this.showResultDialog('failure', '没有可导出的日志')
       return
     }
 
-    let result = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
+    let result = await LogStorageService.exportToCsvFile(this.logEntries)
     if (result.success) {
-      this.showResultDialog('success', '日志已导出，保存位置：下载/安全管理中心')
+      this.showResultDialog('success', `日志已导出，文件名：${result.fileName}`)
       return
     }
 
@@ -982,7 +966,7 @@ export struct LogManagePage {
                 AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT,
                 AppColors.getColors(this.currentTheme).TAG_BLUE_BG,
                 () => {
-                  this.exportLogsAsCsv()
+                  this.exportLogs()
                 }
               )
 
@@ -1085,10 +1069,10 @@ export struct LogManagePage {
   @Builder
   statisticsBar() {
     Row({ space: 12 }) {
-      this.statItem('总计', this.statistics.totalCount.toString(), AppColors.BRAND_PRIMARY)
-      this.statItem('今日', this.statistics.todayCount.toString(), AppColors.SUCCESS)
-      this.statItem('已阻止', this.statistics.blockedCount.toString(), AppColors.WARNING)
-      this.statItem('当前显示', this.pagedLogEntries.length.toString(), '#9E9E9E')
+      this.statItem(0, '总计', this.statistics.totalCount.toString(), AppColors.BRAND_PRIMARY)
+      this.statItem(1, '今日', this.statistics.todayCount.toString(), AppColors.SUCCESS)
+      this.statItem(2, '已阻止', this.statistics.blockedCount.toString(), AppColors.WARNING)
+      this.statItem(3, '当前显示', this.pagedLogEntries.length.toString(), '#9E9E9E')
     }
     .width('100%')
     .padding({
@@ -1099,7 +1083,7 @@ export struct LogManagePage {
   }
 
   @Builder
-  statItem(label: string, value: string, color: string) {
+  statItem(index: number, label: string, value: string, color: string) {
     Column({ space: 4 }) {
       Text(value)
         .fontSize(20)
@@ -1119,11 +1103,11 @@ export struct LogManagePage {
       width: 1,
       color: AppColors.getColors(this.currentTheme).BORDER
     })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredStatIndex === this.resolveStatIndex(label)))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredStatIndex === this.resolveStatIndex(label), 4) })
+    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredStatIndex === index))
+    .translate({ y: HoverUtils.getTranslateY(this.hoveredStatIndex === index, 4) })
     .onHover((isHover: boolean) => {
       HoverUtils.animate(() => {
-        this.hoveredStatIndex = isHover ? this.resolveStatIndex(label) : -1
+        this.hoveredStatIndex = isHover ? index : -1
       })
     })
   }
@@ -1448,7 +1432,7 @@ export struct LogManagePage {
     Row({ space: 12 }) {
       Button('导出日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.exportLogsAsCsv() })
+        .height(36).layoutWeight(1).onClick(() => { this.exportLogs() })
 
       Button('清空日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG).borderRadius(AppStyles.RADIUS_SM)

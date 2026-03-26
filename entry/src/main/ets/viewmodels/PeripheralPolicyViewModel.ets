@@ -4,7 +4,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
   formatUsbDeviceId,
   getPeripheralTypeLabel,
-  LogExportFormat,
   parseUsbDeviceId,
   PeripheralConnectionRecord,
   PeripheralPolicyRecord,
@@ -110,8 +109,6 @@ export class PeripheralPolicyViewModel {
       await LogStorageService.init(context)
       const result = await LogStorageService.exportContentToFile(
         this.buildPolicyCsv(this.records),
-        LogExportFormat.CSV,
-        'manual',
         {
           fileNamePrefix: 'peripheral_policy_list',
           count: this.records.length,

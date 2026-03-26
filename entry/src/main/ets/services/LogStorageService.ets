@@ -10,10 +10,7 @@ import {
   LogStatistics,
   LogEventType,
   LogEventResult,
-  LogExportFormat,
   LogExportResult,
-  LogExportTrigger,
-  LogExportRecoveryAction,
   DEFAULT_LOG_STORAGE_CONFIG,
   DEFAULT_SUBSCRIPTION_CONFIG,
   ALL_LOG_EVENT_TYPES,
@@ -42,11 +39,6 @@ const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const MAX_RAW_ACTION_LENGTH = 64
-const PREF_KEY_LOG_EXPORT_DOWNLOAD_URI = 'log_export_download_uri'
-const LEGACY_PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
-const LEGACY_PREF_KEY_LOG_EXPORT_TARGET_TYPE = 'log_export_target_type'
-const LEGACY_PREF_KEY_LOG_EXPORT_TARGET_VALUE = 'log_export_target_value'
-const LEGACY_PREF_KEY_LOG_EXPORT_AUTH_MODE = 'log_export_auth_mode'
 
 export interface LogStorageChangeEvent {
   totalCount: number
@@ -68,7 +60,6 @@ export class LogStorageService {
   private static context: common.UIAbilityContext | null = null
   private static logEntries: LogEntry[] = []
   private static storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
-  private static exportDirectoryUri: string = ''
   private static nowProvider: () => number = () => Date.now()
   private static randomProvider: () => number = () => Math.random()
   private static lastPersistTruncateWarnAt: number = 0
@@ -293,226 +284,83 @@ export class LogStorageService {
     }
   }
 
-  // Export logs as text content.
-  static exportToString(entries: LogEntry[], format: LogExportFormat): string {
-    switch (format) {
-      case LogExportFormat.JSON:
-        return JSON.stringify(entries, null, 2)
-
-      case LogExportFormat.CSV:
-        // Add UTF-8 BOM for Excel-compatible CSV decoding.
-        return `﻿${LogStorageService.toCsv(entries)}`
-
-      case LogExportFormat.TXT:
-        return LogStorageService.toTxt(entries)
-
-      default:
-        return JSON.stringify(entries, null, 2)
-    }
-  }
-
-  // Export logs to a file.
-  static async exportToFile(
-    entries: LogEntry[],
-    format: LogExportFormat,
-    trigger: LogExportTrigger
-  ): Promise<LogExportResult> {
+  // Export logs to CSV format.
+  static async exportToCsvFile(entries: LogEntry[]): Promise<LogExportResult> {
     let now = LogStorageService.nowProvider()
 
     if (entries.length === 0) {
       return {
         success: false,
-        count: entries.length,
-        format: format,
+        count: 0,
         timestamp: now,
-        trigger: trigger,
         errorMessage: '无可导出日志'
       }
     }
 
-    let content = LogStorageService.exportToString(entries, format)
-    let fileName = LogStorageService.buildExportFileName(format, entries.length, now)
-    let primaryTarget = LogStorageService.resolveConfiguredExportDirectory()
-    let authResult = await LogStorageService.ensureExportTargetReady(primaryTarget, trigger)
-    let primaryDir = authResult.directory || primaryTarget.directory
-    if (!authResult.success) {
-      return {
-        success: false,
-        count: entries.length,
-        format: format,
-        timestamp: now,
-        trigger: trigger,
-        fileName: fileName,
-        directory: primaryDir,
-        errorCode: authResult.errorCode,
-        errorMessage: authResult.errorMessage,
-        recoverAction: authResult.recoverAction
-      }
-    }
-
-    let primaryWrite = LogStorageService.tryWriteExportFile(primaryDir, fileName, content)
-    if (primaryWrite.success) {
-      return {
-        count: entries.length,
-        format: format,
-        timestamp: now,
-        trigger: trigger,
-        success: true,
-        fileName: fileName,
-        directory: primaryDir,
-        fullPath: primaryWrite.fullPath,
-        sizeBytes: primaryWrite.sizeBytes
-      }
-    }
-
-    if (
-      trigger === 'manual' &&
-      LogStorageService.isUriPath(primaryDir) &&
-      LogStorageService.shouldRetryDownloadAuthorization(primaryWrite.errorCode)
-    ) {
-      await LogStorageService.clearDownloadAuthorization()
-      let retryTarget = LogStorageService.resolveConfiguredExportDirectory()
-      let retryAuth = await LogStorageService.ensureExportTargetReady(retryTarget, trigger)
-      let retryDir = retryAuth.directory || retryTarget.directory
-      if (!retryAuth.success) {
-        return {
-          success: false,
-          count: entries.length,
-          format: format,
-          timestamp: now,
-          trigger: trigger,
-          fileName: fileName,
-          directory: retryDir,
-          errorCode: retryAuth.errorCode,
-          errorMessage: retryAuth.errorMessage,
-          recoverAction: retryAuth.recoverAction
-        }
-      }
-
-      let retryWrite = LogStorageService.tryWriteExportFile(retryDir, fileName, content)
-      if (retryWrite.success) {
-        return {
-          count: entries.length,
-          format: format,
-          timestamp: now,
-          trigger: trigger,
-          success: true,
-          fileName: fileName,
-          directory: retryDir,
-          fullPath: retryWrite.fullPath,
-          sizeBytes: retryWrite.sizeBytes
-        }
-      }
-
-      return {
-        success: false,
-        count: entries.length,
-        format: format,
-        timestamp: now,
-        trigger: trigger,
-        fileName: fileName,
-        directory: retryDir,
-        errorCode: retryWrite.errorCode,
-        errorMessage: retryWrite.errorMessage,
-        recoverAction: 'authorize_download'
-      }
-    }
-
-    return {
-      success: false,
-      count: entries.length,
-      format: format,
-      timestamp: now,
-      trigger: trigger,
-      fileName: fileName,
-      directory: primaryDir,
-      errorCode: primaryWrite.errorCode,
-      errorMessage: primaryWrite.errorMessage
-    }
-  }
-
-  private static async ensureExportTargetReady(
-    target: ResolvedExportTarget,
-    trigger: LogExportTrigger
-  ): Promise<ExportAuthResult> {
-    let directoryUri = LogStorageService.sanitizeExportTargetUri(target.directory)
-    if (directoryUri.length > 0) {
-      return {
-        success: true,
-        directory: directoryUri
-      }
-    }
-
-    if (trigger !== 'manual') {
-      return {
-        success: false,
-        errorMessage: 'Download directory authorization is required before auto export.',
-        recoverAction: 'authorize_download'
-      }
-    }
-
-    return LogStorageService.requestDownloadAuthorization()
-  }
-
-  private static sanitizeExportTargetUri(uri: string | undefined): string {
-    if (!uri) {
-      return ''
-    }
-    let normalized = uri.trim().replace(/\/+$/, '')
-    return LogStorageService.isUriPath(normalized) ? normalized : ''
-  }
-
-  private static async requestDownloadAuthorization(): Promise<ExportAuthResult> {
+    // Add UTF-8 BOM for Excel-compatible CSV decoding.
+    let content = ` ${LogStorageService.toCsv(entries)}`
+    let fileName = LogStorageService.buildExportFileName(now)
+    
     if (!LogStorageService.context) {
       return {
         success: false,
-        errorMessage: 'UI context unavailable for download authorization.',
-        recoverAction: 'authorize_download'
+        count: entries.length,
+        timestamp: now,
+        errorMessage: 'UI 上下文不可用'
       }
     }
 
     try {
-      let documentViewPicker = new picker.DocumentViewPicker(LogStorageService.context)
+      // Let user choose save location via system picker
+      let picker_instance = new picker.DocumentViewPicker(LogStorageService.context)
       let saveOptions = new picker.DocumentSaveOptions()
-      saveOptions.pickerMode = picker.DocumentPickerMode.DOWNLOAD
-      let result = await documentViewPicker.save(saveOptions)
+      let result = await picker_instance.save(saveOptions)
+      
       if (result.length === 0) {
         return {
           success: false,
-          errorMessage: 'No download directory URI returned by picker.',
-          recoverAction: 'authorize_download'
+          count: entries.length,
+          timestamp: now,
+          errorMessage: '用户取消保存'
         }
       }
-      let directoryUri = LogStorageService.sanitizeExportTargetUri(result[0])
-      if (directoryUri.length === 0) {
-        return {
-          success: false,
-          errorMessage: 'No download directory URI returned by picker.',
-          recoverAction: 'authorize_download'
-        }
+      
+      let directoryUri = result[0]
+      let targetPath = new fileUri.FileUri(`${directoryUri}/${fileName}`).path
+      let file = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+      fileIo.writeSync(file.fd, content)
+      fileIo.closeSync(file.fd)
+      
+      let sizeBytes: number | undefined = undefined
+      try {
+        sizeBytes = fileIo.statSync(targetPath).size
+      } catch (statErr) {
+        hilog.warn(DOMAIN, TAG, `Export stat failed: ${JSON.stringify(statErr)}`)
       }
-
-      LogStorageService.exportDirectoryUri = directoryUri
-      await LogStorageService.saveConfig()
-
+      
       return {
         success: true,
-        directory: directoryUri
+        count: entries.length,
+        timestamp: now,
+        fileName: fileName,
+        directory: directoryUri,
+        fullPath: targetPath,
+        sizeBytes: sizeBytes
       }
     } catch (err) {
+      let code = LogStorageService.extractErrorCode(err as Object)
       return {
         success: false,
-        errorCode: LogStorageService.extractErrorCode(err as Object),
-        errorMessage: `Download directory authorization failed: ${JSON.stringify(err)}`,
-        recoverAction: 'authorize_download'
+        count: entries.length,
+        timestamp: now,
+        errorCode: code,
+        errorMessage: `导出失败：${JSON.stringify(err)}`
       }
     }
   }
 
   static async exportContentToFile(
     content: string,
-    format: LogExportFormat,
-    trigger: LogExportTrigger,
     options?: LogContentExportOptions
   ): Promise<LogExportResult> {
     let now = LogStorageService.nowProvider()
@@ -521,132 +369,69 @@ export class LogStorageService {
     if (trimmed.length === 0) {
       return {
         success: false,
-        count: count,
-        format: format,
+        count: 0,
         timestamp: now,
-        trigger: trigger,
         errorMessage: options?.emptyErrorMessage ?? '无可导出内容'
       }
     }
 
-    let fileName = LogStorageService.buildExportFileNameWithPrefix(
-      options?.fileNamePrefix ?? 'export',
-      format,
-      count,
-      now
-    )
-    let primaryTarget = LogStorageService.resolveConfiguredExportDirectory()
-    let authResult = await LogStorageService.ensureExportTargetReady(primaryTarget, trigger)
-    let primaryDir = authResult.directory || primaryTarget.directory
-    if (!authResult.success) {
+    let fileName = LogStorageService.buildExportFileName(now, options?.fileNamePrefix ?? 'export')
+    
+    if (!LogStorageService.context) {
       return {
         success: false,
         count: count,
-        format: format,
         timestamp: now,
-        trigger: trigger,
-        fileName: fileName,
-        directory: primaryDir,
-        errorCode: authResult.errorCode,
-        errorMessage: authResult.errorMessage,
-        recoverAction: authResult.recoverAction
+        errorMessage: 'UI 上下文不可用'
       }
     }
 
-    let primaryWrite = LogStorageService.tryWriteExportFile(primaryDir, fileName, content)
-    if (primaryWrite.success) {
-      return {
-        count: count,
-        format: format,
-        timestamp: now,
-        trigger: trigger,
-        success: true,
-        fileName: fileName,
-        directory: primaryDir,
-        fullPath: primaryWrite.fullPath,
-        sizeBytes: primaryWrite.sizeBytes
-      }
-    }
-
-    if (
-      trigger === 'manual' &&
-      LogStorageService.isUriPath(primaryDir) &&
-      LogStorageService.shouldRetryDownloadAuthorization(primaryWrite.errorCode)
-    ) {
-      await LogStorageService.clearDownloadAuthorization()
-      let retryTarget = LogStorageService.resolveConfiguredExportDirectory()
-      let retryAuth = await LogStorageService.ensureExportTargetReady(retryTarget, trigger)
-      let retryDir = retryAuth.directory || primaryTarget.directory
-      if (!retryAuth.success) {
+    try {
+      let picker_instance = new picker.DocumentViewPicker(LogStorageService.context)
+      let saveOptions = new picker.DocumentSaveOptions()
+      let result = await picker_instance.save(saveOptions)
+      
+      if (result.length === 0) {
         return {
           success: false,
           count: count,
-          format: format,
           timestamp: now,
-          trigger: trigger,
-          fileName: fileName,
-          directory: retryDir,
-          errorCode: retryAuth.errorCode,
-          errorMessage: retryAuth.errorMessage,
-          recoverAction: retryAuth.recoverAction
+          errorMessage: '用户取消保存'
         }
       }
-
-      let retryWrite = LogStorageService.tryWriteExportFile(retryDir, fileName, content)
-      if (retryWrite.success) {
-        return {
-          count: count,
-          format: format,
-          timestamp: now,
-          trigger: trigger,
-          success: true,
-          fileName: fileName,
-          directory: retryDir,
-          fullPath: retryWrite.fullPath,
-          sizeBytes: retryWrite.sizeBytes
-        }
+      
+      let directoryUri = result[0]
+      let targetPath = new fileUri.FileUri(`${directoryUri}/${fileName}`).path
+      let file = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+      fileIo.writeSync(file.fd, content)
+      fileIo.closeSync(file.fd)
+      
+      let sizeBytes: number | undefined = undefined
+      try {
+        sizeBytes = fileIo.statSync(targetPath).size
+      } catch (statErr) {
+        hilog.warn(DOMAIN, TAG, `Export stat failed: ${JSON.stringify(statErr)}`)
       }
-
+      
+      return {
+        success: true,
+        count: count,
+        timestamp: now,
+        fileName: fileName,
+        directory: directoryUri,
+        fullPath: targetPath,
+        sizeBytes: sizeBytes
+      }
+    } catch (err) {
+      let code = LogStorageService.extractErrorCode(err as Object)
       return {
         success: false,
         count: count,
-        format: format,
         timestamp: now,
-        trigger: trigger,
-        fileName: fileName,
-        directory: retryDir,
-        errorCode: retryWrite.errorCode,
-        errorMessage: retryWrite.errorMessage,
-        recoverAction: 'authorize_download'
+        errorCode: code,
+        errorMessage: `导出失败：${JSON.stringify(err)}`
       }
     }
-
-    return {
-      success: false,
-      count: count,
-      format: format,
-      timestamp: now,
-      trigger: trigger,
-      fileName: fileName,
-      directory: primaryDir,
-      errorCode: primaryWrite.errorCode,
-      errorMessage: primaryWrite.errorMessage
-    }
-  }
-
-  private static async clearDownloadAuthorization(): Promise<void> {
-    if (LogStorageService.exportDirectoryUri.length === 0) {
-      return
-    }
-    LogStorageService.exportDirectoryUri = ''
-    await LogStorageService.saveConfig()
-  }
-
-  private static shouldRetryDownloadAuthorization(errorCode?: number): boolean {
-    if (errorCode === undefined) {
-      return true
-    }
-    return errorCode === 13900001 || errorCode === 13900002 || errorCode === 201 || errorCode === 202
   }
 
   // Get the current entry count.
@@ -809,229 +594,14 @@ export class LogStorageService {
     }
   }
 
-  private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
-    return {
-      directory: LogStorageService.sanitizeExportTargetUri(LogStorageService.exportDirectoryUri)
-    }
-  }
 
-  private static buildExportFileName(format: LogExportFormat, count: number, timestamp: number): string {
-    return LogStorageService.buildExportFileNameWithPrefix('security_log', format, count, timestamp)
-  }
 
-  private static buildExportFileNameWithPrefix(
-    prefix: string,
-    format: LogExportFormat,
-    count: number,
-    timestamp: number
-  ): string {
+  private static buildExportFileName(timestamp: number, prefix: string = 'security_log'): string {
     let date = new Date(timestamp)
     let pad = (n: number): string => n.toString().padStart(2, '0')
     let datePart = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
     let timePart = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-    return `${prefix}_${datePart}_${timePart}_${count}.${format}`
-  }
-
-  private static tryWriteExportFile(
-    directory: string,
-    fileName: string,
-    content: string
-  ): ExportWriteResult {
-    if (directory.length === 0) {
-      return {
-        success: false,
-        errorMessage: '导出目录为空'
-      }
-    }
-
-    let targetPath = LogStorageService.joinPath(directory, fileName)
-    let file: fileIo.File | undefined = undefined
-    try {
-      if (LogStorageService.isUriPath(directory)) {
-        targetPath = new fileUri.FileUri(targetPath).path
-      } else {
-        LogStorageService.ensureDirectoryExists(directory)
-      }
-      file = fileIo.openSync(
-        targetPath,
-        fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE
-      )
-      fileIo.writeSync(file.fd, content)
-      fileIo.closeSync(file.fd)
-      file = undefined
-
-      let sizeBytes: number | undefined = undefined
-      try {
-        sizeBytes = fileIo.statSync(targetPath).size
-      } catch (statErr) {
-        hilog.warn(
-          DOMAIN,
-          TAG,
-          `Export stat failed after write: ${JSON.stringify(statErr)}; targetPath=${targetPath}`
-        )
-      }
-      return {
-        success: true,
-        fullPath: targetPath,
-        sizeBytes: sizeBytes
-      }
-    } catch (err) {
-      if (file) {
-        try {
-          fileIo.closeSync(file.fd)
-        } catch (closeErr) {
-          hilog.warn(DOMAIN, TAG, `Failed to close file handle during error recovery: ${JSON.stringify(closeErr)}`)
-        }
-      }
-      try {
-        let code = LogStorageService.extractErrorCode(err as Object)
-        let msg = `写入导出文件失败: ${JSON.stringify(err)}; directory=${directory}; targetPath=${targetPath}`
-        hilog.error(DOMAIN, TAG, msg)
-        return {
-          success: false,
-          errorCode: code,
-          errorMessage: msg
-        }
-      } catch (_formatErr) {
-        return {
-          success: false,
-          errorMessage: '写入导出文件失败'
-        }
-      }
-    }
-  }
-
-  private static ensureDirectoryExists(path: string): void {
-    if (path.length === 0 || LogStorageService.isDirectoryRoot(path) || LogStorageService.isUriPath(path)) {
-      return
-    }
-
-    let normalized = LogStorageService.normalizeDirectoryPath(path)
-    if (normalized.length === 0 || LogStorageService.isDirectoryRoot(normalized)) {
-      return
-    }
-
-    try {
-      let stat = fileIo.statSync(normalized)
-      if (!stat.isDirectory()) {
-        throw new Error(`Path exists but is not a directory: ${normalized}`)
-      }
-      return
-    } catch (statErr) {
-      let message = `${statErr}`
-      if (message.includes('Path exists but is not a directory')) {
-        throw statErr as Error
-      }
-    }
-
-    let parent = LogStorageService.getParentDirectory(normalized)
-    if (parent.length > 0 && parent !== normalized) {
-      LogStorageService.ensureDirectoryExists(parent)
-    }
-
-    try {
-      fileIo.mkdirSync(normalized)
-    } catch (_mkdirErr) {
-      // The directory may have been created concurrently; recheck before failing.
-      let stat = fileIo.statSync(normalized)
-      if (!stat.isDirectory()) {
-        throw new Error(`Failed to create directory: ${normalized}`)
-      }
-    }
-  }
-
-  private static getParentDirectory(path: string): string {
-    let normalized = LogStorageService.normalizeDirectoryPath(path)
-    if (normalized.length === 0 || LogStorageService.isDirectoryRoot(normalized)) {
-      return ''
-    }
-
-    if (LogStorageService.isFileUri(normalized)) {
-      let body = normalized.substring('file://'.length)
-      if (body.length === 0 || body === '/') {
-        return ''
-      }
-      let idx = body.lastIndexOf('/')
-      if (idx < 0) {
-        return ''
-      }
-      if (idx === 0) {
-        return 'file:///'
-      }
-      return `file://${body.substring(0, idx)}`
-    }
-
-    let idx = normalized.lastIndexOf('/')
-    if (idx < 0) {
-      return ''
-    }
-    if (idx === 0) {
-      return '/'
-    }
-    return normalized.substring(0, idx)
-  }
-
-  private static joinPath(base: string, name: string): string {
-    if (LogStorageService.isUriPath(base)) {
-      let queryIndex = base.indexOf('?')
-      let fragmentIndex = base.indexOf('#')
-      let cutIndex = -1
-      if (queryIndex >= 0 && fragmentIndex >= 0) {
-        cutIndex = Math.min(queryIndex, fragmentIndex)
-      } else if (queryIndex >= 0) {
-        cutIndex = queryIndex
-      } else if (fragmentIndex >= 0) {
-        cutIndex = fragmentIndex
-      }
-
-      let prefix = cutIndex >= 0 ? base.substring(0, cutIndex) : base
-      let suffix = cutIndex >= 0 ? base.substring(cutIndex) : ''
-      if (prefix.endsWith('/')) {
-        return `${prefix}${name}${suffix}`
-      }
-      return `${prefix}/${name}${suffix}`
-    }
-
-    if (base.endsWith('/')) {
-      return `${base}${name}`
-    }
-    return `${base}/${name}`
-  }
-
-  private static isUriPath(path: string): boolean {
-    return path.includes('://')
-  }
-
-  private static isFileUri(path: string): boolean {
-    return path.startsWith('file://')
-  }
-
-  private static normalizeDirectoryPath(path: string): string {
-    let normalized = path.replace(/\\/g, '/')
-    if (LogStorageService.isFileUri(normalized)) {
-      let body = normalized.substring('file://'.length).replace(/\/+$/, '')
-      if (body.length === 0) {
-        return 'file:///'
-      }
-      return `file://${body}`
-    }
-
-    normalized = normalized.replace(/\/+$/, '')
-    return normalized.length > 0 ? normalized : '/'
-  }
-
-  private static isDirectoryRoot(path: string): boolean {
-    if (path === '/' || path.length === 0) {
-      return true
-    }
-    if (!LogStorageService.isFileUri(path)) {
-      return false
-    }
-    let body = path.substring('file://'.length).replace(/\/+$/, '')
-    if (body.length === 0 || body === '/') {
-      return true
-    }
-    return !body.includes('/')
+    return `${prefix}_${datePart}_${timePart}.csv`
   }
 
   private static extractErrorCode(err: Object): number | undefined {
@@ -1268,30 +838,12 @@ export class LogStorageService {
         PREF_KEY_LOG_RETENTION_DAYS,
         DEFAULT_LOG_STORAGE_CONFIG.retentionDays
       ) as Object
-      let exportDirectoryUri = await store.get(PREF_KEY_LOG_EXPORT_DOWNLOAD_URI, '') as string
-      if (exportDirectoryUri.length === 0) {
-        exportDirectoryUri = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_VALUE, '') as string
-      }
-      if (exportDirectoryUri.length === 0) {
-        exportDirectoryUri = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_PATH, '') as string
-      }
 
       let retentionDaysNumber = typeof retentionDays === 'number' ? retentionDays : Number(retentionDays as string)
       LogStorageService.storageConfig = LogStorageService.normalizeStorageConfig({
         maxLocalEntries: LogStorageService.normalizeMaxEntries(maxEntries),
         retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber)
       })
-      LogStorageService.exportDirectoryUri = LogStorageService.sanitizeExportTargetUri(exportDirectoryUri)
-
-      let legacyExportTargetType = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_TYPE, '') as string
-      let legacyExportAuthMode = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_AUTH_MODE, '') as string
-      if (
-        legacyExportTargetType.length > 0 ||
-        legacyExportAuthMode.length > 0 ||
-        exportDirectoryUri.length > 0
-      ) {
-        await LogStorageService.saveConfig()
-      }
     } catch (err) {
       hilog.error(DOMAIN, TAG, `loadConfig failed: ${JSON.stringify(err)}`)
     }
@@ -1307,11 +859,6 @@ export class LogStorageService {
       let store = await preferences.getPreferences(LogStorageService.context, PREF_STORE_NAME_LOG)
       await store.put(PREF_KEY_LOG_MAX_ENTRIES, LogStorageService.storageConfig.maxLocalEntries)
       await store.put(PREF_KEY_LOG_RETENTION_DAYS, LogStorageService.storageConfig.retentionDays)
-      await store.put(PREF_KEY_LOG_EXPORT_DOWNLOAD_URI, LogStorageService.exportDirectoryUri)
-      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_PATH)
-      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_TYPE)
-      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_VALUE)
-      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_AUTH_MODE)
       await store.flush()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `saveConfig failed: ${JSON.stringify(err)}`)
@@ -1398,7 +945,6 @@ interface ExportAuthResult {
   policyErrorCode?: number
   persistenceForbidden?: boolean
   errorMessage?: string
-  recoverAction?: LogExportRecoveryAction
 }
 
 interface ResolvedExportTarget {

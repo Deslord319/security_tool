@@ -4,7 +4,6 @@ import {
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
-  LogExportFormat,
   PeripheralConnectionRecord
 } from '../models/DataModels'
 import { LogContentExportOptions, LogStorageService } from '../services/LogStorageService'
@@ -84,8 +83,6 @@ export class PeripheralRecordViewModel {
       }
       const result = await LogStorageService.exportContentToFile(
         this.buildConnectionHistoryCsv(this.records),
-        LogExportFormat.CSV,
-        'manual',
         exportOptions
       )
       return result.success ? null : REASON_EXPORT_CONNECTION_HISTORY_FAILED

@@ -664,29 +664,16 @@ export interface LogAuditDiagnostics {
   lastUpdatedAt: number
 }
 
-export enum LogExportFormat {
-  JSON = 'json',
-  CSV = 'csv',
-  TXT = 'txt'
-}
-
-export type LogExportTrigger = 'manual' | 'auto'
-
-export type LogExportRecoveryAction = 'pick_directory' | 'authorize_download'
-
 export interface LogExportResult {
   success: boolean
   count: number
-  format: LogExportFormat
   timestamp: number
-  trigger: LogExportTrigger
   fileName?: string
   fullPath?: string
   directory?: string
   sizeBytes?: number
   errorCode?: number
   errorMessage?: string
-  recoverAction?: LogExportRecoveryAction
 }
 
 export interface LogEventTypeOption {
