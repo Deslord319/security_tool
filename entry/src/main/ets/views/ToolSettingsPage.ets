@@ -60,7 +60,7 @@ export struct ToolSettingsPage {
 
   async loadSettings() {
     try {
-      let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
+      let prefs = await preferences.getPreferences(this.getUIContext().getHostContext() as common.UIAbilityContext, PREF_STORE_NAME_TOOL)
       let startupAuth = await prefs.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
       this.startupAuthEnabled = startupAuth as boolean
 
@@ -120,7 +120,7 @@ export struct ToolSettingsPage {
         return
       }
 
-      let prefs = await preferences.getPreferences(getContext(this), PREF_STORE_NAME_TOOL)
+      let prefs = await preferences.getPreferences(this.getUIContext().getHostContext() as common.UIAbilityContext, PREF_STORE_NAME_TOOL)
       await prefs.put(PREF_KEY_STARTUP_AUTH, this.startupAuthEnabled)
       await prefs.put(PREF_KEY_AUTH_METHOD, AUTH_METHOD_OPTIONS[this.authMethodIndex].value)
       await prefs.flush()
@@ -137,7 +137,7 @@ export struct ToolSettingsPage {
 
   private async openPasswordSettings() {
     try {
-      const context = getContext(this) as common.UIAbilityContext
+      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       const opened = await SystemSettingsService.openPasswordSettings(context)
       if (!opened) {
         this.showResultDialog('failure', '无法打开系统密码设置，请手动前往系统设置修改')

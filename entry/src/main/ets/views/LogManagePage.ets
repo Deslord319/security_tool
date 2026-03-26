@@ -450,7 +450,7 @@ export struct LogManagePage {
   async initServices() {
     this.isLoading = true
     try {
-      let context = getContext(this) as common.UIAbilityContext
+      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await LogStorageService.init(context)
       this.applyStorageConfig(LogStorageService.getConfig())
 
@@ -688,7 +688,7 @@ export struct LogManagePage {
 
     let result = await LogStorageService.exportToFile(this.logEntries, format, 'manual')
     if (result.success) {
-      this.showResultDialog('success', '日志已导出，保存位置：下载\\安全管理中心\\')
+      this.showResultDialog('success', '日志已导出，保存位置：下载/安全管理中心')
       return
     }
 
@@ -732,11 +732,7 @@ export struct LogManagePage {
     let previousConfig = LogStorageService.getConfig()
     let config: LogStorageConfig = {
       maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex],
-      retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex],
-      exportTargetType: 'download',
-      exportTargetValue: previousConfig.exportTargetValue || '',
-      exportAuthMode: 'download_mode',
-      exportPath: ''
+      retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex]
     }
 
     if (previousConfig.maxLocalEntries === config.maxLocalEntries &&
@@ -1499,7 +1495,7 @@ export struct LogManagePage {
       Scroll() {
         Row() {
           Column({ space: 16 }) {
-            this.storageConfigCardV2()
+            this.storageConfigCard()
             this.auditDiagnosticsCard()
           }
           .width('100%')
@@ -1550,7 +1546,7 @@ export struct LogManagePage {
   }
 
   @Builder
-  storageConfigCardV2() {
+  storageConfigCard() {
     Column({ space: 0 }) {
       Text('日志存储配置')
         .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
@@ -1628,98 +1624,6 @@ export struct LogManagePage {
     })
   }
 
-  @Builder
-  storageConfigCard() {
-    Column({ space: 0 }) {
-      Text('日志存储配置').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .padding({ top: 16, bottom: 12 })
-
-      if (false) {
-        Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Text('最大存储条数')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-
-        Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} 条` } as SelectOption)))
-          .selected(this.maxEntriesIndex)
-          .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} 条`)
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.maxEntriesIndex = index })
-      }
-      .width('100%')
-      .height(56)
-      .alignItems(VerticalAlign.Center)
-      }
-
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Text('日志保留天数')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-
-        Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} 天` } as SelectOption)))
-          .selected(this.retentionIndex)
-          .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} 天`)
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.retentionIndex = index })
-      }
-      .width('100%')
-      .height(56)
-      .alignItems(VerticalAlign.Center)
-
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Text('自动导出')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: false })
-          .selectedColor(AppColors.BRAND_PRIMARY)
-      }
-      .width('100%')
-      .height(56)
-      .alignItems(VerticalAlign.Center)
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 0, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 0, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredSettingsCardIndex = isHover ? 0 : -1
-      })
-    })
-  }
   @Builder
   auditDiagnosticsCard() {
     Column({ space: 12 }) {

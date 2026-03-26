@@ -111,7 +111,7 @@ export struct UserFirewallControlDialog {
     }
 
     this.isSubmitting = true
-    let context = getContext(this) as common.UIAbilityContext
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     let result = await FirewallToggleAuthService.executeToggleForUser(
       context,
       this.selectedUserId,

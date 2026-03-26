@@ -96,7 +96,7 @@ export struct FirewallPage {
 
     this.isToggleProcessing = true
     try {
-      let context = getContext(this) as common.UIAbilityContext
+      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let result = await FirewallToggleAuthService.executeToggle(context, currentEnabled, isOn)
       if (result.success) {
         this.firewallSwitchValue = isOn

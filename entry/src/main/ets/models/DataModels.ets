@@ -622,16 +622,7 @@ export interface LogFilter {
 export interface LogStorageConfig {
   maxLocalEntries: number
   retentionDays: number
-
-  exportPath?: string
-  exportTargetType?: LogExportTargetType
-  exportTargetValue?: string
-  exportAuthMode?: LogExportAuthMode
 }
-
-export type LogExportTargetType = 'download' | 'documents' | 'desktop'
-
-export type LogExportAuthMode = 'runtime_permission' | 'download_mode'
 
 export interface LogSubscriptionConfig {
   subscribeAll: boolean
@@ -706,10 +697,7 @@ export interface LogEventTypeOption {
 
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   maxLocalEntries: 5000,
-  retentionDays: 30,
-  exportTargetType: 'download',
-  exportTargetValue: '',
-  exportAuthMode: 'download_mode'
+  retentionDays: 30
 }
 
 export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
@@ -730,10 +718,6 @@ export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000]
 
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
-export const PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
-export const PREF_KEY_LOG_EXPORT_TARGET_TYPE = 'log_export_target_type'
-export const PREF_KEY_LOG_EXPORT_TARGET_VALUE = 'log_export_target_value'
-export const PREF_KEY_LOG_EXPORT_AUTH_MODE = 'log_export_auth_mode'
 export const PREF_KEY_LOG_SUBSCRIBE_ALL = 'log_subscribe_all'
 export const PREF_KEY_LOG_SUBSCRIBED_TYPES = 'log_subscribed_types'
 export const PREF_STORE_NAME_LOG = 'log_settings'

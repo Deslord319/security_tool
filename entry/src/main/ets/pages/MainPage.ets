@@ -90,7 +90,7 @@ struct MainPage {
   }
 
   private syncDecorButtonStyle(): void {
-    let context = getContext(this) as common.UIAbilityContext
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     let decorButtonStyle: window.DecorButtonStyle = {
       colorMode: this.currentTheme === ThemeMode.DARK
         ? ConfigurationConstant.ColorMode.COLOR_MODE_DARK
@@ -113,7 +113,7 @@ struct MainPage {
   }
 
   private async loadFirewallState(): Promise<void> {
-    let context = getContext(this) as common.UIAbilityContext
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     await FirewallModeService.initialize(context)
     let policy = await FirewallService.getFirewallPolicy()
     if (policy === null) {
@@ -160,7 +160,7 @@ struct MainPage {
     this.runtimeInitInProgress = true
 
     try {
-      let context = getContext(this) as common.UIAbilityContext
+      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let storageOk = await LogStorageService.init(context)
       if (!storageOk) {
         hilog.error(0x0000, 'testTag', '[DIAG] LogStorageService init failed')
@@ -279,7 +279,7 @@ struct MainPage {
                     this.firewallEnabled = enabled
                   },
                   onModeChange: async (mode: FirewallPresetMode): Promise<boolean> => {
-                    let context = getContext(this) as common.UIAbilityContext
+                    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
                     let result = await FirewallModeService.switchMode(context, mode)
                     if (result.success) {
                       this.firewallPresetMode = mode

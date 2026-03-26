@@ -49,14 +49,14 @@ export struct FirewallRulesPage {
 
   async loadRules() {
     this.isLoading = true
-    let context = getContext(this) as common.UIAbilityContext
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     this.rules = await FirewallCustomRuleService.listRules(context)
     this.updateConflictNotice()
     this.isLoading = false
   }
 
   private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
-    let context = getContext(this) as common.UIAbilityContext
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
     let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {

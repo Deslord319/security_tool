@@ -14,18 +14,12 @@ import {
   LogExportResult,
   LogExportTrigger,
   LogExportRecoveryAction,
-  LogExportTargetType,
-  LogExportAuthMode,
   DEFAULT_LOG_STORAGE_CONFIG,
   DEFAULT_SUBSCRIPTION_CONFIG,
   ALL_LOG_EVENT_TYPES,
   PREF_STORE_NAME_LOG,
   PREF_KEY_LOG_MAX_ENTRIES,
   PREF_KEY_LOG_RETENTION_DAYS,
-  PREF_KEY_LOG_EXPORT_PATH,
-  PREF_KEY_LOG_EXPORT_TARGET_TYPE,
-  PREF_KEY_LOG_EXPORT_TARGET_VALUE,
-  PREF_KEY_LOG_EXPORT_AUTH_MODE,
   PREF_KEY_LOG_SUBSCRIBE_ALL,
   PREF_KEY_LOG_SUBSCRIBED_TYPES,
   formatLogTimestamp,
@@ -48,8 +42,11 @@ const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const MAX_RAW_ACTION_LENGTH = 64
-const EXPORT_TARGET_DOWNLOAD: LogExportTargetType = 'download'
-const EXPORT_AUTH_DOWNLOAD: LogExportAuthMode = 'download_mode'
+const PREF_KEY_LOG_EXPORT_DOWNLOAD_URI = 'log_export_download_uri'
+const LEGACY_PREF_KEY_LOG_EXPORT_PATH = 'log_export_path'
+const LEGACY_PREF_KEY_LOG_EXPORT_TARGET_TYPE = 'log_export_target_type'
+const LEGACY_PREF_KEY_LOG_EXPORT_TARGET_VALUE = 'log_export_target_value'
+const LEGACY_PREF_KEY_LOG_EXPORT_AUTH_MODE = 'log_export_auth_mode'
 
 export interface LogStorageChangeEvent {
   totalCount: number
@@ -71,6 +68,7 @@ export class LogStorageService {
   private static context: common.UIAbilityContext | null = null
   private static logEntries: LogEntry[] = []
   private static storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
+  private static exportDirectoryUri: string = ''
   private static nowProvider: () => number = () => Date.now()
   private static randomProvider: () => number = () => Math.random()
   private static lastPersistTruncateWarnAt: number = 0
@@ -104,7 +102,6 @@ export class LogStorageService {
 
       // Load persisted config.
       await LogStorageService.loadConfig()
-      await LogStorageService.tryActivateConfiguredExportTarget()
       await LogStorageService.loadEntries()
       // Remove expired entries.
       let cleaned = LogStorageService.cleanExpiredEntries()
@@ -495,14 +492,7 @@ export class LogStorageService {
         }
       }
 
-      LogStorageService.storageConfig = {
-        maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
-        retentionDays: LogStorageService.storageConfig.retentionDays,
-        exportPath: '',
-        exportTargetType: EXPORT_TARGET_DOWNLOAD,
-        exportTargetValue: directoryUri,
-        exportAuthMode: EXPORT_AUTH_DOWNLOAD
-      }
+      LogStorageService.exportDirectoryUri = directoryUri
       await LogStorageService.saveConfig()
 
       return {
@@ -645,17 +635,10 @@ export class LogStorageService {
   }
 
   private static async clearDownloadAuthorization(): Promise<void> {
-    if ((LogStorageService.storageConfig.exportTargetValue || '').length === 0) {
+    if (LogStorageService.exportDirectoryUri.length === 0) {
       return
     }
-    LogStorageService.storageConfig = {
-      maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
-      retentionDays: LogStorageService.storageConfig.retentionDays,
-      exportPath: '',
-      exportTargetType: EXPORT_TARGET_DOWNLOAD,
-      exportTargetValue: '',
-      exportAuthMode: EXPORT_AUTH_DOWNLOAD
-    }
+    LogStorageService.exportDirectoryUri = ''
     await LogStorageService.saveConfig()
   }
 
@@ -676,11 +659,7 @@ export class LogStorageService {
     let cfg = LogStorageService.storageConfig
     let copy: LogStorageConfig = {
       maxLocalEntries: cfg.maxLocalEntries,
-      retentionDays: cfg.retentionDays,
-      exportPath: cfg.exportPath,
-      exportTargetType: cfg.exportTargetType,
-      exportTargetValue: cfg.exportTargetValue,
-      exportAuthMode: cfg.exportAuthMode
+      retentionDays: cfg.retentionDays
     }
     return copy
   }
@@ -823,253 +802,16 @@ export class LogStorageService {
     })
   }
 
-  private static normalizeExportDirectory(path: string | undefined): string | undefined {
-    if (!path) {
-      return undefined
-    }
-
-    let normalized = path.trim()
-    if (normalized.length === 0) {
-      return undefined
-    }
-
-    if (LogStorageService.isUriPath(normalized)) {
-      return undefined
-    }
-
-    normalized = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
-    if (normalized.length === 0 || normalized === '/') {
-      return undefined
-    }
-    return normalized
-  }
-
-  private static sanitizeConfiguredExportDirectory(path: string | undefined): string | undefined {
-    let normalized = LogStorageService.normalizeExportDirectory(path)
-    if (!normalized) {
-      return undefined
-    }
-    if (LogStorageService.isUriPath(normalized)) {
-      hilog.warn(DOMAIN, TAG, `uri exportPath is deprecated and ignored: ${normalized}`)
-      return undefined
-    }
-    if (!LogStorageService.isExportDirectoryAllowed(normalized)) {
-      hilog.warn(DOMAIN, TAG, `exportPath is invalid, fallback to default: ${normalized}`)
-      return undefined
-    }
-    return normalized
-  }
-
-  private static normalizePathForCompare(path: string): string {
-    if (LogStorageService.isUriPath(path)) {
-      let normalized = path.trim().replace(/\\/g, '/').replace(/\/+$/, '')
-      let idx = normalized.indexOf('://')
-      let schema = normalized.substring(0, idx).toLowerCase()
-      let body = normalized.substring(idx + 3)
-      return `${schema}://${body}`
-    }
-
-    let normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
-    return normalized.length > 0 ? normalized : '/'
-  }
-
-  private static normalizeSelectionPath(pathOrUri: string | undefined): string | undefined {
-    if (!pathOrUri) {
-      return undefined
-    }
-
-    let normalized = pathOrUri.trim()
-    if (normalized.length === 0) {
-      return undefined
-    }
-
-    if (LogStorageService.isFileUri(normalized)) {
-      normalized = normalized.substring('file://'.length)
-    } else if (LogStorageService.isUriPath(normalized)) {
-      let extractedPath = LogStorageService.extractAbsolutePathFromUri(normalized)
-      if (!extractedPath) {
-        return undefined
-      }
-      normalized = extractedPath
-    } else {
-      let extractedPath = LogStorageService.extractAbsolutePathFromText(normalized)
-      if (extractedPath) {
-        normalized = extractedPath
-      }
-    }
-
-    try {
-      normalized = decodeURIComponent(normalized)
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
-    }
-
-    normalized = normalized.replace(/\\/g, '/').replace(/\/+$/, '')
-    if (normalized.length === 0) {
-      return undefined
-    }
-    return normalized
-  }
-
-  private static extractAbsolutePathFromUri(uri: string): string | undefined {
-    if (!LogStorageService.isUriPath(uri)) {
-      return undefined
-    }
-
-    let candidates: string[] = [uri]
-    try {
-      let decoded = decodeURIComponent(uri)
-      if (decoded.length > 0 && decoded !== uri) {
-        candidates.push(decoded)
-      }
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed for URI: ${JSON.stringify(err)}`)
-    }
-
-    for (let candidate of candidates) {
-      let lower = candidate.toLowerCase()
-      let fileIndex = lower.indexOf('file://')
-      if (fileIndex >= 0) {
-        let filePart = candidate.substring(fileIndex)
-        let filePath = LogStorageService.extractAbsolutePathFromText(filePart)
-        if (filePath) {
-          return filePath
-        }
-      }
-
-      let schemaIndex = candidate.indexOf('://')
-      if (schemaIndex >= 0) {
-        let afterSchema = candidate.substring(schemaIndex + 3)
-        let directPath = LogStorageService.extractAbsolutePathFromText(afterSchema)
-        if (directPath) {
-          return directPath
-        }
-      }
-
-      let pathInText = LogStorageService.extractAbsolutePathFromText(candidate)
-      if (pathInText) {
-        return pathInText
-      }
-    }
-
-    return undefined
-  }
-
-  private static extractAbsolutePathFromText(raw: string): string | undefined {
-    if (!raw) {
-      return undefined
-    }
-
-    let source = raw.trim().replace(/\\/g, '/')
-    if (source.length === 0) {
-      return undefined
-    }
-
-    let fileUriIndex = source.toLowerCase().indexOf('file://')
-    if (fileUriIndex >= 0) {
-      source = source.substring(fileUriIndex + 'file://'.length)
-    }
-
-    let candidate = LogStorageService.cutPathSuffix(source)
-    if (candidate.startsWith('/')) {
-      let normalized = candidate.replace(/\/+$/, '')
-      return normalized.length > 0 ? normalized : undefined
-    }
-
-    let markers: string[] = ['/storage/', '/mnt/', '/data/']
-    for (let marker of markers) {
-      let index = source.indexOf(marker)
-      if (index >= 0) {
-        let extracted = source.substring(index)
-        extracted = LogStorageService.cutPathSuffix(extracted)
-        extracted = extracted.replace(/\/+$/, '')
-        if (extracted.startsWith('/')) {
-          return extracted.length > 0 ? extracted : undefined
-        }
-      }
-    }
-
-    return undefined
-  }
-
-  private static cutPathSuffix(path: string): string {
-    let cutIndex = path.length
-    let separators: string[] = ['?', '#', '&', '"', '\'', ',', '}', ']', ' ']
-    for (let sep of separators) {
-      let idx = path.indexOf(sep)
-      if (idx >= 0 && idx < cutIndex) {
-        cutIndex = idx
-      }
-    }
-    return cutIndex >= 0 ? path.substring(0, cutIndex) : path
-  }
-
-  private static isExportDirectoryAllowed(path: string): boolean {
-    if (path.length === 0 || path.includes('\0')) {
-      return false
-    }
-
-    if (LogStorageService.isUriPath(path)) {
-      return false
-    }
-
-    let normalized = LogStorageService.normalizePathForCompare(path)
-    if (normalized.length === 0 || normalized === '/') {
-      return false
-    }
-
-    let parts = normalized.split('/')
-    for (let part of parts) {
-      if (part === '..') {
-        return false
-      }
-    }
-
-    return normalized.startsWith('/')
-  }
-
   private static normalizeStorageConfig(config: LogStorageConfig): LogStorageConfig {
-    let baseConfig: LogStorageConfig = {
+    return {
       maxLocalEntries: LogStorageService.normalizeMaxEntries(config.maxLocalEntries),
       retentionDays: LogStorageService.normalizeRetentionDays(config.retentionDays)
-    }
-
-    let configuredUri = LogStorageService.sanitizeExportTargetUri(config.exportTargetValue)
-    if (configuredUri.length === 0) {
-      configuredUri = LogStorageService.sanitizeExportTargetUri(config.exportPath)
-    }
-
-    return {
-      maxLocalEntries: baseConfig.maxLocalEntries,
-      retentionDays: baseConfig.retentionDays,
-      exportPath: '',
-      exportTargetType: EXPORT_TARGET_DOWNLOAD,
-      exportTargetValue: configuredUri,
-      exportAuthMode: EXPORT_AUTH_DOWNLOAD
     }
   }
 
   private static resolveConfiguredExportDirectory(): ResolvedExportTarget {
-    let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
-    let directoryUri = LogStorageService.sanitizeExportTargetUri(normalizedConfig.exportTargetValue)
     return {
-      targetType: EXPORT_TARGET_DOWNLOAD,
-      authMode: EXPORT_AUTH_DOWNLOAD,
-      directory: directoryUri
-    }
-  }
-
-  private static async tryActivateConfiguredExportTarget(): Promise<void> {
-    let normalizedConfig = LogStorageService.normalizeStorageConfig(LogStorageService.storageConfig)
-    let prevConfig = LogStorageService.storageConfig
-    let changed =
-      prevConfig.exportPath !== normalizedConfig.exportPath ||
-      prevConfig.exportTargetType !== normalizedConfig.exportTargetType ||
-      (prevConfig.exportTargetValue || '') !== (normalizedConfig.exportTargetValue || '') ||
-      (prevConfig.exportAuthMode || EXPORT_AUTH_DOWNLOAD) !== (normalizedConfig.exportAuthMode || EXPORT_AUTH_DOWNLOAD)
-    if (changed) {
-      LogStorageService.storageConfig = normalizedConfig
-      await LogStorageService.saveConfig()
+      directory: LogStorageService.sanitizeExportTargetUri(LogStorageService.exportDirectoryUri)
     }
   }
 
@@ -1526,23 +1268,28 @@ export class LogStorageService {
         PREF_KEY_LOG_RETENTION_DAYS,
         DEFAULT_LOG_STORAGE_CONFIG.retentionDays
       ) as Object
-      let exportPath = await store.get(PREF_KEY_LOG_EXPORT_PATH, '') as string
-      let exportTargetType = await store.get(PREF_KEY_LOG_EXPORT_TARGET_TYPE, '') as string
-      let exportTargetValue = await store.get(PREF_KEY_LOG_EXPORT_TARGET_VALUE, '') as string
-      let exportAuthMode = await store.get(PREF_KEY_LOG_EXPORT_AUTH_MODE, '') as string
+      let exportDirectoryUri = await store.get(PREF_KEY_LOG_EXPORT_DOWNLOAD_URI, '') as string
+      if (exportDirectoryUri.length === 0) {
+        exportDirectoryUri = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_VALUE, '') as string
+      }
+      if (exportDirectoryUri.length === 0) {
+        exportDirectoryUri = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_PATH, '') as string
+      }
 
       let retentionDaysNumber = typeof retentionDays === 'number' ? retentionDays : Number(retentionDays as string)
-      let normalized = LogStorageService.normalizeStorageConfig({
+      LogStorageService.storageConfig = LogStorageService.normalizeStorageConfig({
         maxLocalEntries: LogStorageService.normalizeMaxEntries(maxEntries),
-        retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber),
-        exportPath: LogStorageService.sanitizeConfiguredExportDirectory(exportPath),
-        exportTargetType: exportTargetType as LogExportTargetType,
-        exportTargetValue: exportTargetValue,
-        exportAuthMode: exportAuthMode as LogExportAuthMode
+        retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber)
       })
-      LogStorageService.storageConfig = normalized
+      LogStorageService.exportDirectoryUri = LogStorageService.sanitizeExportTargetUri(exportDirectoryUri)
 
-      if (exportTargetType.length === 0) {
+      let legacyExportTargetType = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_TYPE, '') as string
+      let legacyExportAuthMode = await store.get(LEGACY_PREF_KEY_LOG_EXPORT_AUTH_MODE, '') as string
+      if (
+        legacyExportTargetType.length > 0 ||
+        legacyExportAuthMode.length > 0 ||
+        exportDirectoryUri.length > 0
+      ) {
         await LogStorageService.saveConfig()
       }
     } catch (err) {
@@ -1560,22 +1307,11 @@ export class LogStorageService {
       let store = await preferences.getPreferences(LogStorageService.context, PREF_STORE_NAME_LOG)
       await store.put(PREF_KEY_LOG_MAX_ENTRIES, LogStorageService.storageConfig.maxLocalEntries)
       await store.put(PREF_KEY_LOG_RETENTION_DAYS, LogStorageService.storageConfig.retentionDays)
-      await store.put(
-        PREF_KEY_LOG_EXPORT_PATH,
-        LogStorageService.storageConfig.exportPath ?? ''
-      )
-      await store.put(
-        PREF_KEY_LOG_EXPORT_TARGET_TYPE,
-        LogStorageService.storageConfig.exportTargetType ?? EXPORT_TARGET_DOWNLOAD
-      )
-      await store.put(
-        PREF_KEY_LOG_EXPORT_TARGET_VALUE,
-        LogStorageService.storageConfig.exportTargetValue ?? ''
-      )
-      await store.put(
-        PREF_KEY_LOG_EXPORT_AUTH_MODE,
-        LogStorageService.storageConfig.exportAuthMode ?? EXPORT_AUTH_DOWNLOAD
-      )
+      await store.put(PREF_KEY_LOG_EXPORT_DOWNLOAD_URI, LogStorageService.exportDirectoryUri)
+      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_PATH)
+      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_TYPE)
+      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_TARGET_VALUE)
+      await store.delete(LEGACY_PREF_KEY_LOG_EXPORT_AUTH_MODE)
       await store.flush()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `saveConfig failed: ${JSON.stringify(err)}`)
@@ -1665,15 +1401,6 @@ interface ExportAuthResult {
   recoverAction?: LogExportRecoveryAction
 }
 
-interface ExportSelectionResult {
-  targetType: LogExportTargetType
-  exportPath: string
-  exportTargetValue: string
-  exportAuthMode: LogExportAuthMode
-}
-
 interface ResolvedExportTarget {
-  targetType: LogExportTargetType
-  authMode: LogExportAuthMode
   directory: string
 }

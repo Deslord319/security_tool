@@ -97,7 +97,7 @@ export struct PeripheralPage {
       this.viewModel.onRefresh = () => {
         this.renderVersion++
       }
-      const context = getContext(this) as common.UIAbilityContext
+      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await PeripheralRuntimeEventService.init(context)
       await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(context)
@@ -106,7 +106,7 @@ export struct PeripheralPage {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', resolvePeripheralReason(PeripheralViewModelReasons.REASON_INIT_FAILED))
     }
-  }
+  } 
 
   private showResultDialog(status: ResultMessageStatus, message: string): void {
     ResultDialogHelper.prepareResultDialog(status, message)
@@ -456,7 +456,7 @@ export struct PeripheralPage {
 
   private async clearConnectionHistory(): Promise<void> {
     try {
-      await PeripheralTraceRepository.init(getContext(this) as common.UIAbilityContext)
+      await PeripheralTraceRepository.init(this.getUIContext().getHostContext() as common.UIAbilityContext)
       const success = await PeripheralTraceRepository.clearAll()
       if (!success) {
         this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
