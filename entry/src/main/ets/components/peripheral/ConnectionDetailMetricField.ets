@@ -1,14 +1,8 @@
 /**
- * 连接详情指标字段组件
+ * Connection detail metric field component.
  */
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { ThemeMode } from '../../theme/ThemeColors'
-
-interface ConnectionDetailMetricFieldProps {
-  label: string
-  value: string
-  currentTheme: ThemeMode
-}
 
 @Component
 export struct ConnectionDetailMetricField {

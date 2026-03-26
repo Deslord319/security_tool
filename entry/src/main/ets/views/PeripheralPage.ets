@@ -93,7 +93,10 @@ export struct PeripheralPage {
   }
 
   private showAdminRequiredDialog(action: string): void {
-    this.showResultDialog('failure', `${action}未完成，${ResultDialogHelper.displayReason(this.viewModel.errorMessage ?? undefined, '请先激活企业管理员')}`)
+    this.showResultDialog(
+      'failure',
+      `${action}未完成，${ResultDialogHelper.displayReason(this.viewModel.errorMessage ?? undefined, '请先激活企业管理员')}`
+    )
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
@@ -340,7 +343,10 @@ export struct PeripheralPage {
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
     this.viewModel.interfaceControlProcessingKey = 'usb-storage-policy'
-    const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候', async () => await this.viewModel.setUsbStoragePolicy(index))
+    const success = await this.runUsbOperationWithLoading(
+      '正在设置 USB 存储策略，请稍候',
+      async () => await this.viewModel.setUsbStoragePolicy(index)
+    )
     this.viewModel.interfaceControlProcessingKey = ''
     if (!success) {
       if (!this.viewModel.adminState.activated) {

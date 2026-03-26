@@ -65,8 +65,8 @@ export struct InterfaceControlTab {
   @Builder
   private toggleItem(label: string, description: string, feature: string, disabled: boolean) {
     InterfaceControlItem({
-      label,
-      description,
+      label: label,
+      description: description,
       options: ['启用', '禁用'],
       selectedIndex: disabled ? 1 : 0,
       isProcessing: this.interfaceControlProcessingKey === feature,
