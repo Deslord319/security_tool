@@ -40,6 +40,7 @@ export class InterfaceControlViewModel {
   }
 
   processingKey: string = ''
+  syncVersion: number = 0
 
   reloadState(): void {
     try {
@@ -53,17 +54,20 @@ export class InterfaceControlViewModel {
       const cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
       const storagePolicy = PeripheralService.getUsbStoragePolicyWithResult()
 
-      this.state.usbDisabled = usbState.data ?? false
-      this.state.btDisabled = btState.data ?? false
-      this.state.wifiDisabled = wifiState.data ?? false
-      this.state.hdcDisabled = hdcState.data ?? false
-      this.state.networkDisabled = networkState.data ?? false
-      this.state.printerDisabled = printerState.data ?? false
-      this.state.microphoneDisabled = microphoneState.data ?? false
-      this.state.cameraDisabled = cameraState.data ?? false
-      this.state.usbStoragePolicyIndex = this.getUsbStoragePolicyIndex(
-        storagePolicy.data ?? edmUsbManager.UsbPolicy.READ_WRITE
-      )
+      this.state = {
+        usbDisabled: usbState.data ?? false,
+        btDisabled: btState.data ?? false,
+        wifiDisabled: wifiState.data ?? false,
+        hdcDisabled: hdcState.data ?? false,
+        networkDisabled: networkState.data ?? false,
+        printerDisabled: printerState.data ?? false,
+        microphoneDisabled: microphoneState.data ?? false,
+        cameraDisabled: cameraState.data ?? false,
+        usbStoragePolicyIndex: this.getUsbStoragePolicyIndex(
+          storagePolicy.data ?? edmUsbManager.UsbPolicy.READ_WRITE
+        )
+      }
+      this.syncVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `reloadState failed: ${JSON.stringify(err)}`)
     }
@@ -71,11 +75,13 @@ export class InterfaceControlViewModel {
 
   async toggleInterface(feature: string, disallow: boolean): Promise<string | null> {
     this.processingKey = feature
+    this.syncVersion++
     try {
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
         return this.normalizeReason(result.stage, REASON_TOGGLE_INTERFACE_FAILED)
       }
+      this.updateInterfaceState(feature, disallow)
       this.reloadState()
       return null
     } catch (err) {
@@ -83,11 +89,13 @@ export class InterfaceControlViewModel {
       return REASON_TOGGLE_INTERFACE_FAILED
     } finally {
       this.processingKey = ''
+      this.syncVersion++
     }
   }
 
   async setUsbStoragePolicy(index: number): Promise<string | null> {
     this.processingKey = 'usb-storage-policy'
+    this.syncVersion++
     try {
       const policy = index === 0
         ? edmUsbManager.UsbPolicy.READ_ONLY
@@ -98,7 +106,18 @@ export class InterfaceControlViewModel {
       if (!result.success) {
         return this.normalizeReason(result.stage, REASON_USB_STORAGE_POLICY_FAILED)
       }
-      this.state.usbStoragePolicyIndex = index
+      this.state = {
+        usbDisabled: this.state.usbDisabled,
+        btDisabled: this.state.btDisabled,
+        wifiDisabled: this.state.wifiDisabled,
+        hdcDisabled: this.state.hdcDisabled,
+        networkDisabled: this.state.networkDisabled,
+        printerDisabled: this.state.printerDisabled,
+        microphoneDisabled: this.state.microphoneDisabled,
+        cameraDisabled: this.state.cameraDisabled,
+        usbStoragePolicyIndex: index
+      }
+      this.syncVersion++
       this.reloadState()
       return null
     } catch (err) {
@@ -106,7 +125,23 @@ export class InterfaceControlViewModel {
       return REASON_USB_STORAGE_POLICY_FAILED
     } finally {
       this.processingKey = ''
+      this.syncVersion++
     }
+  }
+
+  private updateInterfaceState(feature: string, disallow: boolean): void {
+    this.state = {
+      usbDisabled: feature === PeripheralService.FEATURE_USB ? disallow : this.state.usbDisabled,
+      btDisabled: feature === PeripheralService.FEATURE_BLUETOOTH ? disallow : this.state.btDisabled,
+      wifiDisabled: feature === PeripheralService.FEATURE_WIFI ? disallow : this.state.wifiDisabled,
+      hdcDisabled: feature === PeripheralService.FEATURE_HDC ? disallow : this.state.hdcDisabled,
+      networkDisabled: feature === PeripheralService.FEATURE_NETWORK ? disallow : this.state.networkDisabled,
+      printerDisabled: feature === PeripheralService.FEATURE_PRINTER ? disallow : this.state.printerDisabled,
+      microphoneDisabled: feature === PeripheralService.FEATURE_MICROPHONE ? disallow : this.state.microphoneDisabled,
+      cameraDisabled: feature === PeripheralService.FEATURE_CAMERA ? disallow : this.state.cameraDisabled,
+      usbStoragePolicyIndex: this.state.usbStoragePolicyIndex
+    }
+    this.syncVersion++
   }
 
   private getUsbStoragePolicyIndex(policy: edmUsbManager.UsbPolicy): number {

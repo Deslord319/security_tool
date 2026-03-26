@@ -1,8 +1,9 @@
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { PeripheralService } from '../../services/PeripheralService'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
-import { InterfaceControlItem } from '../InterfaceControlItem'
+import { FormControlUtils } from '../../utils/FormControlUtils'
 
 @Component
 export struct InterfaceControlTab {
@@ -28,7 +29,12 @@ export struct InterfaceControlTab {
     Scroll() {
       Column({ space: 0 }) {
         Column() {
-          this.toggleItem('USB 接口', '启用或禁用 USB 接口。', PeripheralService.FEATURE_USB, this.usbDisabled)
+          this.toggleItem(
+            'USB 接口',
+            '启用或禁用 USB 接口。禁用后，USB 接口相关外设将无法接入。',
+            PeripheralService.FEATURE_USB,
+            this.usbDisabled
+          )
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.storageItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
@@ -40,7 +46,7 @@ export struct InterfaceControlTab {
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.toggleItem('网络共享', '启用或禁用网络共享接口。', PeripheralService.FEATURE_NETWORK, this.networkDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('打印机', '启用或禁用打印设备接口。', PeripheralService.FEATURE_PRINTER, this.printerDisabled)
+          this.toggleItem('打印机', '启用或禁用打印机接口。', PeripheralService.FEATURE_PRINTER, this.printerDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.toggleItem('麦克风', '启用或禁用麦克风接口。', PeripheralService.FEATURE_MICROPHONE, this.microphoneDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
@@ -64,31 +70,82 @@ export struct InterfaceControlTab {
 
   @Builder
   private toggleItem(label: string, description: string, feature: string, disabled: boolean) {
-    InterfaceControlItem({
-      label: label,
-      description: description,
-      options: ['启用', '禁用'],
-      selectedIndex: disabled ? 1 : 0,
-      isProcessing: this.interfaceControlProcessingKey === feature,
-      syncToken: this.interfaceControlSyncToken,
-      onSelect: (index: number) => {
+    this.controlRow(
+      label,
+      description,
+      ['启用', '禁用'],
+      disabled ? 1 : 0,
+      this.interfaceControlProcessingKey === feature,
+      (index: number) => {
         if (this.onInterfaceToggle) {
           this.onInterfaceToggle(feature, index === 1)
         }
       }
-    })
+    )
   }
 
   @Builder
   private storageItem() {
-    InterfaceControlItem({
-      label: 'USB 存储设备',
-      description: '设置 USB 存储设备访问权限，可选择只读、读写或禁止访问。',
-      options: ['只读', '读写', '禁止访问'],
-      selectedIndex: this.usbStoragePolicyIndex,
-      isProcessing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
-      syncToken: this.interfaceControlSyncToken,
-      onSelect: (index: number) => this.onUsbStoragePolicyChange && this.onUsbStoragePolicyChange(index)
-    })
+    this.controlRow(
+      'USB 存储设备',
+      '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
+      ['只读', '读写', '禁止访问'],
+      this.usbStoragePolicyIndex,
+      this.interfaceControlProcessingKey === this.usbStorageControlKey,
+      (index: number) => this.onUsbStoragePolicyChange && this.onUsbStoragePolicyChange(index)
+    )
+  }
+
+  @Builder
+  private controlRow(
+    label: string,
+    description: string,
+    options: string[],
+    selectedIndex: number,
+    isProcessing: boolean,
+    onSelect: (index: number) => void
+  ) {
+    Row() {
+      Text(`${this.interfaceControlSyncToken}`)
+        .fontSize(0)
+        .width(0)
+        .height(0)
+        .opacity(0)
+
+      Column({ space: 4 }) {
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        Text(description)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Select(options.map((opt: string) => {
+        let item: SelectOption = { value: opt }
+        return item
+      }))
+        .selected(selectedIndex)
+        .value(options[selectedIndex] ?? '')
+        .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
+        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_MD)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .enabled(!isProcessing)
+        .opacity(isProcessing ? 0.6 : 1)
+        .onSelect((index: number) => onSelect(index))
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .opacity(isProcessing ? 0.8 : 1)
   }
 }

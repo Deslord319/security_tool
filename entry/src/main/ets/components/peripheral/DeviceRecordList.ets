@@ -124,8 +124,9 @@ export struct DeviceRecordList {
       Row() {
         Text(this.getPolicyText(record))
           .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
+          .fontWeight(FontWeight.Regular)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           .textAlign(TextAlign.Center)
       }
       .layoutWeight(1.2)

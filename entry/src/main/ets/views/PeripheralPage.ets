@@ -355,12 +355,7 @@ export struct PeripheralPage {
 
   @Builder
   private interfaceTab() {
-    Column()
-      .width('100%')
-      .height('100%')
-      .alignItems(HorizontalAlign.Start)
-      .justifyContent(FlexAlign.Start)
-    {
+    Column() {
       InterfaceControlTab({
         usbDisabled: this.viewModel.interfaceControl.state.usbDisabled,
         btDisabled: this.viewModel.interfaceControl.state.btDisabled,
@@ -373,7 +368,7 @@ export struct PeripheralPage {
         usbStoragePolicyIndex: this.viewModel.interfaceControl.state.usbStoragePolicyIndex,
         interfaceControlProcessingKey: this.viewModel.interfaceControl.processingKey,
         usbStorageControlKey: 'usb-storage-policy',
-        interfaceControlSyncToken: this.renderVersion,
+        interfaceControlSyncToken: this.viewModel.interfaceControl.syncVersion,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
@@ -381,16 +376,15 @@ export struct PeripheralPage {
         onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
       })
     }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Start)
+    .justifyContent(FlexAlign.Start)
   }
 
   @Builder
   private deviceTab() {
-    Column()
-      .width('100%')
-      .height('100%')
-      .alignItems(HorizontalAlign.Start)
-      .justifyContent(FlexAlign.Start)
-    {
+    Column() {
       DeviceRecordList({
         deviceRecords: this.viewModel.records.records,
         currentTheme: this.currentTheme,
@@ -400,16 +394,15 @@ export struct PeripheralPage {
         onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
       })
     }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Start)
+    .justifyContent(FlexAlign.Start)
   }
 
   @Builder
   private policyTab() {
-    Column()
-      .width('100%')
-      .height('100%')
-      .alignItems(HorizontalAlign.Start)
-      .justifyContent(FlexAlign.Start)
-    {
+    Column() {
       PolicyList({
         policyRecords: this.viewModel.policy.records,
         policyListOptions: this.policyListOptions,
@@ -427,6 +420,10 @@ export struct PeripheralPage {
         onPanelHover: (isHover: boolean) => this.setPanelHover(2, isHover)
       })
     }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Start)
+    .justifyContent(FlexAlign.Start)
   }
 
   private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
