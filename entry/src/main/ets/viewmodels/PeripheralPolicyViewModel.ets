@@ -108,7 +108,10 @@ export class PeripheralPolicyViewModel {
     try {
       await LogStorageService.init(context)
       const csvContent = this.buildPolicyCsv(this.records)
-      const result = await LogStorageService.exportToCsvFile(csvContent, 'peripheral_policy_list')
+      const result = await LogStorageService.exportToCsvFile({
+        csvContent,
+        fileNamePrefix: 'peripheral_policy_list'
+      })
       return result.success ? null : REASON_EXPORT_POLICY_RECORDS_FAILED
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportRecords failed: ${JSON.stringify(err)}`)

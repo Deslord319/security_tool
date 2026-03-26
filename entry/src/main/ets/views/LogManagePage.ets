@@ -670,7 +670,9 @@ export struct LogManagePage {
       return
     }
 
-    let result = await LogStorageService.exportToCsvFile(this.logEntries)
+    let result = await LogStorageService.exportToCsvFile({
+      csvContent: LogStorageService.buildCsvContent(this.logEntries)
+    })
     if (result.success) {
       this.showResultDialog('success', `日志已导出，文件名：${result.fileName}`)
       return

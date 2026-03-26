@@ -666,7 +666,6 @@ export interface LogAuditDiagnostics {
 
 export interface LogExportResult {
   success: boolean
-  count: number
   timestamp: number
   fileName?: string
   fullPath?: string

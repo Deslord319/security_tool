@@ -77,7 +77,10 @@ export class PeripheralRecordViewModel {
     try {
       await LogStorageService.init(context)
       const csvContent = this.buildConnectionHistoryCsv(this.records)
-      const result = await LogStorageService.exportToCsvFile(csvContent, 'peripheral_connection_history')
+      const result = await LogStorageService.exportToCsvFile({
+        csvContent,
+        fileNamePrefix: 'peripheral_connection_history'
+      })
       return result.success ? null : REASON_EXPORT_CONNECTION_HISTORY_FAILED
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)

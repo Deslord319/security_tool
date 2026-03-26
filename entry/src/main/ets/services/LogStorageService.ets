@@ -1,4 +1,4 @@
-import { preferences } from '@kit.ArkData'
+﻿import { preferences } from '@kit.ArkData'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
@@ -39,6 +39,12 @@ const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const MAX_RAW_ACTION_LENGTH = 64
+
+export interface LogCsvExportPayload {
+  csvContent: string
+  count?: number
+  fileNamePrefix?: string
+}
 
 // Log storage service for persistence, querying, filtering, and export.
 export class LogStorageService {
@@ -247,47 +253,37 @@ export class LogStorageService {
       return false
     }
   }
+  static buildCsvContent(entries: LogEntry[]): string {
+    return LogStorageService.toCsv(entries)
+  }
 
-  // Export to CSV file. Supports both log entries and custom CSV content.
-  static async exportToCsvFile(
-    entries: LogEntry[] | string,
-    fileNamePrefix?: string
-  ): Promise<LogExportResult> {
+  // Export CSV content using a normalized payload.
+  static async exportToCsvFile(payload: LogCsvExportPayload): Promise<LogExportResult> {
     let now = LogStorageService.nowProvider()
-
-    // Handle custom CSV content
-    if (typeof entries === 'string') {
-      const fileName = LogStorageService.buildExportFileName(now, fileNamePrefix ?? 'export')
-      return LogStorageService.writeAndSave(entries, fileName, 0, now)
-    }
-
-    // Handle log entries
-    if (entries.length === 0) {
+    let trimmedContent = payload.csvContent.trim()
+    if (trimmedContent.length === 0) {
       return {
         success: false,
-        count: 0,
         timestamp: now,
-        errorMessage: '无日志可导出'
+        errorMessage: '鏃犳棩蹇楀彲瀵煎嚭'
       }
     }
 
-    let content = LogStorageService.toCsv(entries)
-    let fileName = LogStorageService.buildExportFileName(now, fileNamePrefix ?? 'security_log')
-    return LogStorageService.writeAndSave(content, fileName, entries.length, now)
+    let fileName = LogStorageService.buildExportFileName(now, payload.fileNamePrefix ?? 'security_log')
+    return LogStorageService.writeAndSave(trimmedContent, fileName, now)
   }
+
 
   private static async writeAndSave(
     content: string,
     fileName: string,
-    count: number,
     timestamp: number
   ): Promise<LogExportResult> {
     if (!LogStorageService.context) {
       return {
         success: false,
-        count: count,
         timestamp: timestamp,
-        errorMessage: 'UI 上下文不可用'
+        errorMessage: 'UI 涓婁笅鏂囦笉鍙敤'
       }
     }
 
@@ -300,9 +296,8 @@ export class LogStorageService {
       if (result.length === 0) {
         return {
           success: false,
-          count: count,
           timestamp: timestamp,
-          errorMessage: '用户取消保存'
+          errorMessage: '鐢ㄦ埛鍙栨秷淇濆瓨'
         }
       }
       
@@ -321,7 +316,6 @@ export class LogStorageService {
       
       return {
         success: true,
-        count: count,
         timestamp: timestamp,
         fileName: fileName,
         directory: directoryUri,
@@ -332,10 +326,9 @@ export class LogStorageService {
       let code = LogStorageService.extractErrorCode(err as Object)
       return {
         success: false,
-        count: count,
         timestamp: timestamp,
         errorCode: code,
-        errorMessage: `导出失败：${JSON.stringify(err)}`
+        errorMessage: `瀵煎嚭澶辫触锛?{JSON.stringify(err)}`
       }
     }
   }
@@ -727,7 +720,7 @@ export class LogStorageService {
 
   // Convert to CSV format.
   private static toCsv(entries: LogEntry[]): string {
-    let header = '时间,事件类型,详情,进程名,PID,结果'
+    let header = '鏃堕棿,浜嬩欢绫诲瀷,璇︽儏,杩涚▼鍚?PID,缁撴灉'
     let lines: string[] = [header]
 
     for (let entry of entries) {
