@@ -59,13 +59,34 @@ export class UserFirewallPolicyService {
     return typeof messageValue === 'string' ? messageValue : ''
   }
 
+  private static extractErrorName(err: Object): string {
+    let nameValue = (err as Object as Record<string, Object>)['name']
+    return typeof nameValue === 'string' ? nameValue : ''
+  }
+
+  private static extractErrorStackFirstLine(err: Object): string {
+    let stackValue = (err as Object as Record<string, Object>)['stack']
+    if (typeof stackValue !== 'string' || stackValue.length === 0) {
+      return ''
+    }
+    let firstLine = stackValue.split('\n')[0]
+    return firstLine ?? ''
+  }
+
+  private static buildErrorDiag(err: Object): string {
+    let codeValue = UserFirewallPolicyService.extractErrorCode(err)
+    let nameValue = UserFirewallPolicyService.extractErrorName(err)
+    let messageValue = UserFirewallPolicyService.extractErrorMessage(err)
+    let stackFirstLine = UserFirewallPolicyService.extractErrorStackFirstLine(err)
+    let jsonValue = UserFirewallPolicyService.safeStringifyForDiag(err)
+    return `type=${typeof err}, name=${nameValue.length > 0 ? nameValue : '[empty]'}, code=${String(codeValue ?? '')}, message=${messageValue.length > 0 ? messageValue : '[empty]'}, stack=${stackFirstLine.length > 0 ? stackFirstLine : '[empty]'}, json=${jsonValue}`
+  }
+
   private static resolveErrorMessage(action: string, code: number | undefined): string {
     if (action === '读取用户列表') {
       switch (code) {
         case 201:
           return '缺少系统用户列表读取权限'
-        case 801:
-          return '系统当前不支持查询全部已创建用户'
         case 12300001:
         case 2100002:
           return '系统账号服务连接失败'
@@ -90,37 +111,25 @@ export class UserFirewallPolicyService {
     }
   }
 
-  private static async queryAllCreatedUserIds(): Promise<number[]> {
-    let accountManager = osAccount.getAccountManager()
-    let queryMethod = (accountManager as Object as Record<string, Object>)['getOsAccountLocalIds']
-    if (typeof queryMethod !== 'function') {
-      throw new Error('getOsAccountLocalIds is not available')
-    }
-    let ids = await (queryMethod as () => Promise<number[]>)()
-    if (!Array.isArray(ids)) {
-      throw new Error('getOsAccountLocalIds returned invalid result')
-    }
-    return ids
-  }
-
   static async loadAvailableUserIds(): Promise<UserFirewallListResult> {
     UserFirewallPolicyService.clearLastError()
     hilog.info(DOMAIN, TAG, '[DIAG][UserFirewall] loadAvailableUserIds start')
     try {
       let accountManager = osAccount.getAccountManager()
-      let ids = await UserFirewallPolicyService.queryAllCreatedUserIds()
+      hilog.info(DOMAIN, TAG, '[DIAG][UserFirewall] invoking getActivatedOsAccountLocalIds')
+      let ids = await accountManager.getActivatedOsAccountLocalIds()
       hilog.info(
         DOMAIN,
         TAG,
-        '[DIAG][UserFirewall] created ids raw=%{public}s count=%{public}d',
+        '[DIAG][UserFirewall] getActivatedOsAccountLocalIds result raw=%{public}s count=%{public}d',
         UserFirewallPolicyService.safeStringifyForDiag(ids),
         ids.length
       )
       if (ids.length === 0) {
-        hilog.warn(DOMAIN, TAG, '[DIAG][UserFirewall] no created users returned')
+        hilog.warn(DOMAIN, TAG, '[DIAG][UserFirewall] no activated users returned')
         return {
           users: [],
-          message: '未找到已创建用户'
+          message: '未找到已激活用户'
         } as UserFirewallListResult
       }
 
@@ -128,7 +137,7 @@ export class UserFirewallPolicyService {
       hilog.info(
         DOMAIN,
         TAG,
-        '[DIAG][UserFirewall] created ids sorted=%{public}s',
+        '[DIAG][UserFirewall] activated ids sorted=%{public}s',
         UserFirewallPolicyService.safeStringifyForDiag(sortedIds)
       )
       let foregroundId: number | undefined = undefined
@@ -136,7 +145,12 @@ export class UserFirewallPolicyService {
         foregroundId = await accountManager.getForegroundOsAccountLocalId()
         hilog.info(DOMAIN, TAG, '[DIAG][UserFirewall] foreground localId=%{public}d', foregroundId)
       } catch (err) {
-        hilog.warn(DOMAIN, TAG, `getForegroundOsAccountLocalId failed: ${JSON.stringify(err)}`)
+        hilog.warn(
+          DOMAIN,
+          TAG,
+          '[DIAG][UserFirewall] getForegroundOsAccountLocalId failed: %{public}s',
+          UserFirewallPolicyService.buildErrorDiag(err as Object)
+        )
       }
 
       let users: UserFirewallOption[] = sortedIds.map((userId: number): UserFirewallOption => {
@@ -162,17 +176,13 @@ export class UserFirewallPolicyService {
         selectedUserId: selectedUserId
       } as UserFirewallListResult
     } catch (err) {
-      let errMessage = UserFirewallPolicyService.extractErrorMessage(err as Object)
-      if (errMessage === 'getOsAccountLocalIds is not available') {
-        UserFirewallPolicyService.lastErrorCode = 801
-        UserFirewallPolicyService.lastErrorMessage = UserFirewallPolicyService.resolveErrorMessage('读取用户列表', 801)
-      } else if (errMessage === 'getOsAccountLocalIds returned invalid result') {
-        UserFirewallPolicyService.lastErrorCode = 12300001
-        UserFirewallPolicyService.lastErrorMessage = UserFirewallPolicyService.resolveErrorMessage('读取用户列表', 12300001)
-      } else {
-        UserFirewallPolicyService.recordError('读取用户列表', err as Object)
-      }
-      hilog.error(DOMAIN, TAG, `loadAvailableUserIds failed: ${JSON.stringify(err)}`)
+      UserFirewallPolicyService.recordError('读取用户列表', err as Object)
+      hilog.error(
+        DOMAIN,
+        TAG,
+        '[DIAG][UserFirewall] loadAvailableUserIds failed: %{public}s',
+        UserFirewallPolicyService.buildErrorDiag(err as Object)
+      )
       return {
         users: [],
         errorCode: UserFirewallPolicyService.getLastErrorCode(),
