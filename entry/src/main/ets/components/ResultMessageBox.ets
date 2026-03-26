@@ -28,7 +28,7 @@ export struct ResultMessageBox {
   }
 
   private getStatusTitle(): string {
-    return this.getStatus() === 'success' ? '操作成功 ✅' : '操作失败 ❌'
+    return this.getStatus() === 'success' ? '操作成功' : '操作失败'
   }
 
   build() {

@@ -2,7 +2,10 @@ import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { BackNavButton } from '../components/BackNavButton'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
-import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
+import {
+  ConnectionDetailDialog,
+  ConnectionHistoryItem
+} from '../components/peripheral/ConnectionDetailDialog'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
@@ -78,7 +81,7 @@ export struct PeripheralPage {
   @State renderVersion: number = 0
   @State detailVisible: boolean = false
   @State detailRecord: PeripheralConnectionRecord | null = null
-  @State detailHistoryItems: Object[] = []
+  @State detailHistoryItems: ConnectionHistoryItem[] = []
 
   private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [{ value: '允许接入' }, { value: '禁止访问' }]
@@ -106,14 +109,13 @@ export struct PeripheralPage {
   private async initViewModel(): Promise<void> {
     try {
       this.viewModel.onRefresh = () => {
-        setTimeout(() => {
-          this.renderVersion++
-        }, 0)
+        this.renderVersion++
       }
       const context = getContext(this) as common.UIAbilityContext
       await PeripheralRuntimeEventService.init(context)
       await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(context)
+      this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', this.resolveReason(REASON_INIT_FAILED))
@@ -123,13 +125,13 @@ export struct PeripheralPage {
   private resolveReason(reason?: string | null): string {
     switch (reason) {
       case REASON_ADMIN_REQUIRED:
-        return '请先激活企业管理员'
+        return '请先激活企业管理员权限'
       case REASON_INIT_FAILED:
         return '外设管理初始化失败，请稍后重试'
       case REASON_INVALID_DEVICE_ID:
         return '无法识别当前设备标识'
       case REASON_EXPORT_ENV_NOT_READY:
-        return '导出环境未初始化，请稍后重试'
+        return '导出环境尚未初始化，请稍后重试'
       case REASON_EMPTY_CONNECTION_HISTORY:
         return '没有可导出的设备连接记录'
       case REASON_EMPTY_POLICY_RECORDS:
@@ -153,9 +155,9 @@ export struct PeripheralPage {
       case REASON_READ_USB_BLACKLIST_FAILED:
         return '读取 USB 黑名单失败，请稍后重试'
       case REASON_PRECHECK_BLACKLIST_CONFLICT:
-        return '当前已存在其他 USB 禁止访问策略，请先清理后再设置允许接入'
+        return '当前存在 USB 禁止访问规则冲突，请先清理后再设置允许接入'
       case REASON_PRECHECK_WHITELIST_CONFLICT:
-        return '当前已存在其他 USB 允许接入策略，请先清理后再设置禁止访问'
+        return '当前存在 USB 允许接入规则冲突，请先清理后再设置禁止访问'
       case REASON_INFER_BLACKLIST_TYPE_FAILED:
         return '当前设备类型暂不支持设置为禁止访问'
       case REASON_SET_USB_INTERFACE_CONFLICT:
@@ -177,7 +179,7 @@ export struct PeripheralPage {
   }
 
   private showAdminRequiredDialog(action: string): void {
-    this.showResultDialog('failure', `${action}未完成，${this.resolveReason(this.viewModel.reasonCode)}`)
+    this.showResultDialog('failure', `${action}未完成，请先激活企业管理员权限`)
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
@@ -238,6 +240,23 @@ export struct PeripheralPage {
 
   private handleTabChange(index: number): void {
     this.viewModel.switchToTab(index)
+    this.renderVersion++
+  }
+
+  private openDetailDialog(record: PeripheralConnectionRecord): void {
+    this.viewModel.openConnectionDetailDialog(record)
+    this.detailRecord = this.viewModel.records.connectionDetailDialog.record
+    this.detailHistoryItems = [...this.viewModel.records.connectionDetailDialog.historyItems]
+    this.detailVisible = this.detailRecord !== null
+    this.renderVersion++
+  }
+
+  private closeDetailDialog(): void {
+    this.viewModel.closeConnectionDetailDialog()
+    this.detailVisible = false
+    this.detailRecord = null
+    this.detailHistoryItems = []
+    this.renderVersion++
   }
 
   @Builder
@@ -263,10 +282,10 @@ export struct PeripheralPage {
       .alignItems(HorizontalAlign.Start)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
-      if (this.detailVisible) {
+      if (this.detailVisible && this.detailRecord) {
         ConnectionDetailDialog({
           selectedRecord: this.detailRecord,
-          historyItems: this.detailHistoryItems as Object[] as import('../components/peripheral/ConnectionDetailDialog').ConnectionHistoryItem[],
+          historyItems: this.detailHistoryItems,
           currentTheme: this.currentTheme,
           onClose: () => this.closeDetailDialog()
         })
@@ -286,7 +305,7 @@ export struct PeripheralPage {
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略')
+          Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备访问策略')
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -417,7 +436,9 @@ export struct PeripheralPage {
       } else {
         this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
       }
+      return
     }
+    this.renderVersion++
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
@@ -430,7 +451,9 @@ export struct PeripheralPage {
       } else {
         this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
       }
+      return
     }
+    this.renderVersion++
   }
 
   private async handlePolicyChange(record: PeripheralPolicyRecord, policyIndex: number): Promise<void> {
@@ -441,7 +464,9 @@ export struct PeripheralPage {
       } else {
         this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
       }
+      return
     }
+    this.renderVersion++
   }
 
   private async handleExportConnectionHistory(): Promise<void> {
@@ -460,20 +485,6 @@ export struct PeripheralPage {
     } else {
       this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
     }
-  }
-
-  private openDetailDialog(record: PeripheralConnectionRecord): void {
-    this.viewModel.openConnectionDetailDialog(record)
-    this.detailRecord = this.viewModel.records.connectionDetailDialog.record
-    this.detailHistoryItems = [...this.viewModel.records.connectionDetailDialog.historyItems]
-    this.detailVisible = true
-  }
-
-  private closeDetailDialog(): void {
-    this.viewModel.closeConnectionDetailDialog()
-    this.detailVisible = false
-    this.detailRecord = null
-    this.detailHistoryItems = []
   }
 
   private showClearHistoryConfirmDialog(): void {
@@ -499,6 +510,7 @@ export struct PeripheralPage {
       }
       this.closeDetailDialog()
       this.viewModel.reloadDeviceRecords()
+      this.renderVersion++
       this.showResultDialog('success', '历史记录已清理')
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)

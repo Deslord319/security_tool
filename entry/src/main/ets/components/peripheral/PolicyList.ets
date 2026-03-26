@@ -167,7 +167,6 @@ export struct PolicyList {
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
         .optionFont({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
         .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         .borderRadius(8)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .height(32)
