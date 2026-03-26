@@ -39,6 +39,7 @@ export struct ConnectionDetailDialog {
           Blank()
           Button('关闭')
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(this.currentTheme === ThemeMode.DARK ? Color.White : Color.Black)
             .height(32)
             .borderRadius(AppStyles.RADIUS_MD)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)

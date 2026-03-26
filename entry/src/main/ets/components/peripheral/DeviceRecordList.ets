@@ -32,7 +32,7 @@ export struct DeviceRecordList {
             this.header()
             ForEach(this.deviceRecords, (record: PeripheralConnectionRecord, index: number) => {
               Column({ space: 0 }) {
-                this.row(record, index)
+                this.row(record)
                 if (index < this.deviceRecords.length - 1) {
                   Divider()
                     .color(AppColors.getColors(this.currentTheme).BORDER)
@@ -69,7 +69,7 @@ export struct DeviceRecordList {
       this.headerText('连接事件', 1.3, TextAlign.Center)
       this.headerText('策略', 1.2, TextAlign.Center)
       this.headerText('连接时间', 1.9, TextAlign.Center)
-      this.headerText('操作', 1.1, TextAlign.End)
+      this.headerText('操作', 1.0, TextAlign.Center)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -77,7 +77,7 @@ export struct DeviceRecordList {
   }
 
   @Builder
-  private row(record: PeripheralConnectionRecord, index: number) {
+  private row(record: PeripheralConnectionRecord) {
     Row() {
       Column({ space: 6 }) {
         Text(record.deviceName)
@@ -96,13 +96,13 @@ export struct DeviceRecordList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      this.tagCell(getPeripheralTypeLabel(record.deviceType), AppColors.TAG_PURPLE_BG, AppColors.TAG_PURPLE_TEXT, 1.5)
+      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
 
       Row() {
         Text(getPeripheralRecordActionLabel(record.action))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
-          .fontColor(this.eventTagText(record))
+          .fontColor(this.eventTextColor(record))
       }
       .layoutWeight(1.3)
       .justifyContent(FlexAlign.Center)
@@ -127,16 +127,16 @@ export struct DeviceRecordList {
 
       Row() {
         Text('详情')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontWeight(FontWeight.Medium)
           .fontColor(Color.White)
       }
-      .height(36)
-      .padding({ left: 26, right: 26 })
+      .height(32)
+      .padding({ left: 18, right: 18 })
       .justifyContent(FlexAlign.Center)
-      .borderRadius(10)
+      .borderRadius(8)
       .backgroundColor(AppColors.BRAND_PRIMARY)
-      .layoutWeight(1.1)
+      .layoutWeight(1.0)
       .onClick(() => this.onRecordClick && this.onRecordClick(record))
     }
     .width('100%')
@@ -146,7 +146,7 @@ export struct DeviceRecordList {
   }
 
   @Builder
-  private headerText(label: string, weight: number, align: TextAlign = TextAlign.Start) {
+  private headerText(label: string, weight: number, align: TextAlign) {
     Text(label)
       .fontSize(AppStyles.FONT_SIZE_SMALL)
       .fontWeight(FontWeight.Medium)
@@ -157,18 +157,18 @@ export struct DeviceRecordList {
   }
 
   @Builder
-  private tagCell(label: string, backgroundColor: ResourceColor, textColor: ResourceColor, weight: number) {
+  private typeTag(label: string, weight: number) {
     Row() {
       Row() {
         Text(label)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(textColor)
+          .fontColor(AppColors.TAG_PURPLE_TEXT)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .padding({ left: 10, right: 10, top: 5, bottom: 5 })
       .borderRadius(6)
-      .backgroundColor(backgroundColor)
+      .backgroundColor(AppColors.TAG_PURPLE_BG)
     }
     .layoutWeight(weight)
     .justifyContent(FlexAlign.Center)
@@ -187,7 +187,7 @@ export struct DeviceRecordList {
     return getPeripheralRecordPolicyHitLabel(record.policyHit)
   }
 
-  private eventTagText(record: PeripheralConnectionRecord): ResourceColor {
+  private eventTextColor(record: PeripheralConnectionRecord): ResourceColor {
     if (record.action === 'connect') {
       return AppColors.TAG_GREEN_TEXT
     }

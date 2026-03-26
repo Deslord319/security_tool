@@ -29,12 +29,7 @@ export struct PolicyList {
         }
       }
       .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_MD,
-        bottom: AppStyles.PADDING_MD
-      })
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
     }
     .width('100%')
     .height('100%')
@@ -75,13 +70,15 @@ export struct PolicyList {
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .textAlign(TextAlign.Center)
       Text('设备接入后会显示在这里，可直接设置允许接入或禁止访问。')
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .textAlign(TextAlign.Center)
     }
     .width('100%')
-    .alignItems(HorizontalAlign.Start)
+    .alignItems(HorizontalAlign.Center)
     .padding({ left: 22, right: 22, top: 24, bottom: 24 })
     .borderRadius(AppStyles.RADIUS_LG)
     .clip(true)
@@ -99,7 +96,7 @@ export struct PolicyList {
       this.headerText('设备类型', 1.5, TextAlign.Center)
       this.headerText('当前策略', 1.5, TextAlign.Center)
       this.headerText('最近连接时间', 1.8, TextAlign.Center)
-      this.headerText('操作', 1.6, TextAlign.End)
+      this.headerText('操作', 1.4, TextAlign.Center)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -126,7 +123,7 @@ export struct PolicyList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      this.typeTag(record)
+      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
 
       Row() {
         Text(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
@@ -149,15 +146,15 @@ export struct PolicyList {
       Select(this.policyListOptions as SelectOption[])
         .selected(record.policyIndex)
         .value(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
-        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .font({ size: AppStyles.FONT_SIZE_CAPTION })
         .fontColor(FormControlUtils.text(this.currentTheme))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+        .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
         .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(10)
+        .borderRadius(8)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .height(36)
-        .layoutWeight(1.6)
+        .height(32)
+        .layoutWeight(1.4)
         .enabled(!(this.isUpdating ? this.isUpdating(record.deviceId) : false))
         .opacity((this.isUpdating ? this.isUpdating(record.deviceId) : false) ? 0.6 : 1)
         .onSelect((selectIndex: number) => {
@@ -173,7 +170,7 @@ export struct PolicyList {
   }
 
   @Builder
-  private headerText(label: string, weight: number, align: TextAlign = TextAlign.Start) {
+  private headerText(label: string, weight: number, align: TextAlign) {
     Text(label)
       .fontSize(AppStyles.FONT_SIZE_SMALL)
       .fontWeight(FontWeight.Medium)
@@ -184,10 +181,10 @@ export struct PolicyList {
   }
 
   @Builder
-  private typeTag(record: PeripheralPolicyRecord) {
+  private typeTag(label: string, weight: number) {
     Row() {
       Row() {
-        Text(getPeripheralTypeLabel(record.deviceType))
+        Text(label)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.TAG_PURPLE_TEXT)
           .maxLines(1)
@@ -197,8 +194,8 @@ export struct PolicyList {
       .borderRadius(6)
       .backgroundColor(AppColors.TAG_PURPLE_BG)
     }
+    .layoutWeight(weight)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
-    .layoutWeight(1.5)
   }
 }
