@@ -2,6 +2,7 @@
  * PeripheralViewModel coordinator tests.
  */
 import { beforeEach, describe, expect, it } from '@ohos/hypium'
+import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/PeripheralViewModel'
 
 describe('PeripheralViewModel', () => {
@@ -32,5 +33,32 @@ describe('PeripheralViewModel', () => {
     const ready = viewModel.ensureAdminReady()
     expect(ready).assertFalse()
     expect(viewModel.reasonCode).assertEqual('admin_required')
+  })
+
+  it('should notify refresh when opening and closing connection detail dialog', 0, () => {
+    let refreshCount = 0
+    viewModel.onRefresh = () => {
+      refreshCount++
+    }
+
+    viewModel.records.records = [{
+      id: 'record-1',
+      timestamp: Date.now(),
+      deviceId: 'VID:1234 PID:5678',
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      source: 'runtime_event',
+      action: 'connect',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'allow',
+      summary: 'connected'
+    }]
+
+    viewModel.openConnectionDetailDialog(viewModel.records.records[0])
+    expect(viewModel.records.connectionDetailDialog.visible).assertTrue()
+
+    viewModel.closeConnectionDetailDialog()
+    expect(viewModel.records.connectionDetailDialog.visible).assertFalse()
+    expect(refreshCount).assertEqual(2)
   })
 })

@@ -76,6 +76,9 @@ export struct PeripheralPage {
   @State viewModel: PeripheralViewModel = new PeripheralViewModel()
   @State hoveredPanelIndex: number = -1
   @State renderVersion: number = 0
+  @State detailVisible: boolean = false
+  @State detailRecord: PeripheralConnectionRecord | null = null
+  @State detailHistoryItems: Object[] = []
 
   private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [{ value: '允许接入' }, { value: '禁止访问' }]
@@ -95,6 +98,7 @@ export struct PeripheralPage {
 
   aboutToDisappear() {
     this.closeUsbLoadingDialog()
+    this.closeDetailDialog()
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
   }
@@ -243,6 +247,12 @@ export struct PeripheralPage {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
+      Text(`${this.renderVersion}`)
+        .fontSize(0)
+        .width(0)
+        .height(0)
+        .opacity(0)
+
       Column() {
         this.header()
         this.tabs()
@@ -253,12 +263,12 @@ export struct PeripheralPage {
       .alignItems(HorizontalAlign.Start)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
-      if (this.viewModel.records.connectionDetailDialog.visible) {
+      if (this.detailVisible) {
         ConnectionDetailDialog({
-          selectedRecord: this.viewModel.records.connectionDetailDialog.record,
-          historyItems: this.viewModel.records.connectionDetailDialog.historyItems,
+          selectedRecord: this.detailRecord,
+          historyItems: this.detailHistoryItems as Object[] as import('../components/peripheral/ConnectionDetailDialog').ConnectionHistoryItem[],
           currentTheme: this.currentTheme,
-          onClose: () => this.viewModel.closeConnectionDetailDialog()
+          onClose: () => this.closeDetailDialog()
         })
       }
     }
@@ -366,7 +376,7 @@ export struct PeripheralPage {
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         refreshVersion: this.renderVersion,
-        onRecordClick: (record: PeripheralConnectionRecord) => this.viewModel.openConnectionDetailDialog(record),
+        onRecordClick: (record: PeripheralConnectionRecord) => this.openDetailDialog(record),
         onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
       })
     }
@@ -452,6 +462,20 @@ export struct PeripheralPage {
     }
   }
 
+  private openDetailDialog(record: PeripheralConnectionRecord): void {
+    this.viewModel.openConnectionDetailDialog(record)
+    this.detailRecord = this.viewModel.records.connectionDetailDialog.record
+    this.detailHistoryItems = [...this.viewModel.records.connectionDetailDialog.historyItems]
+    this.detailVisible = true
+  }
+
+  private closeDetailDialog(): void {
+    this.viewModel.closeConnectionDetailDialog()
+    this.detailVisible = false
+    this.detailRecord = null
+    this.detailHistoryItems = []
+  }
+
   private showClearHistoryConfirmDialog(): void {
     if (this.viewModel.records.records.length === 0) {
       this.showResultDialog('failure', '暂无可清理的历史记录')
@@ -473,7 +497,7 @@ export struct PeripheralPage {
         this.showResultDialog('failure', '清理未完成，请稍后重试')
         return
       }
-      this.viewModel.closeConnectionDetailDialog()
+      this.closeDetailDialog()
       this.viewModel.reloadDeviceRecords()
       this.showResultDialog('success', '历史记录已清理')
     } catch (err) {

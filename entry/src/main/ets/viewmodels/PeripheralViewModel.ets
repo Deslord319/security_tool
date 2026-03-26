@@ -29,7 +29,6 @@ export class PeripheralViewModel {
   isLoading: boolean = false
   reasonCode: string | null = null
   currentTab: number = 0
-  refreshVersion: number = 0
   onRefresh?: () => void
   interfaceControl: InterfaceControlViewModel = new InterfaceControlViewModel()
   records: PeripheralRecordViewModel = new PeripheralRecordViewModel()
@@ -76,7 +75,7 @@ export class PeripheralViewModel {
     this.policy.reloadWhitelistBlacklist()
     this.records.reloadRecords()
     this.policy.rebuildRecords(this.records.records)
-    this.bumpRefreshVersion('reloadAllData')
+    this.notifyRefresh('reloadAllData')
   }
 
   refreshAdminActivationState(): void {
@@ -95,18 +94,17 @@ export class PeripheralViewModel {
   reloadDeviceRecords(): void {
     this.records.reloadRecords()
     this.policy.rebuildRecords(this.records.records)
-    this.bumpRefreshVersion('reloadDeviceRecords')
+    this.notifyRefresh('reloadDeviceRecords')
   }
 
   private refreshTraceDrivenData(): void {
     this.records.reloadRecords()
     this.policy.reloadWhitelistBlacklist()
     this.policy.rebuildRecords(this.records.records)
-    this.bumpRefreshVersion('refreshTraceDrivenData')
+    this.notifyRefresh('refreshTraceDrivenData')
   }
 
-  private bumpRefreshVersion(source: string): void {
-    this.refreshVersion++
+  private notifyRefresh(source: string): void {
     try {
       this.onRefresh && this.onRefresh()
     } catch (err) {
@@ -115,7 +113,7 @@ export class PeripheralViewModel {
     hilog.info(
       DOMAIN,
       TAG,
-      `refreshVersion=${this.refreshVersion}, source=${source}, records=${this.records.records.length}, policyRecords=${this.policy.records.length}`
+      `source=${source}, records=${this.records.records.length}, policyRecords=${this.policy.records.length}`
     )
   }
 
@@ -137,6 +135,7 @@ export class PeripheralViewModel {
     }
     this.policy.reloadWhitelistBlacklist()
     this.policy.rebuildRecords(this.records.records)
+    this.notifyRefresh('setUsbStoragePolicy')
     return true
   }
 
@@ -164,10 +163,12 @@ export class PeripheralViewModel {
 
   openConnectionDetailDialog(record: PeripheralConnectionRecord): void {
     this.records.openConnectionDetailDialog(record)
+    this.notifyRefresh('openConnectionDetailDialog')
   }
 
   closeConnectionDetailDialog(): void {
     this.records.closeConnectionDetailDialog()
+    this.notifyRefresh('closeConnectionDetailDialog')
   }
 
   switchToTab(index: number): void {
