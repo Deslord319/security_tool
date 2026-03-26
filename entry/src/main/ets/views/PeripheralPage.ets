@@ -329,9 +329,10 @@ export struct PeripheralPage {
         PageHeaderActions({
           currentTheme: this.currentTheme,
           exportLabel: '导出策略记录',
+          clearLabel: '删除策略记录',
           onExport: () => void this.handleExportPeripheralPolicyRecords(),
-          onClear: () => {},
-          showClear: false
+          onClear: () => this.showClearPolicyRecordsConfirmDialog(),
+          showClear: true
         })
       }
     }
@@ -500,6 +501,19 @@ export struct PeripheralPage {
     })
   }
 
+  private showClearPolicyRecordsConfirmDialog(): void {
+    if (this.viewModel.policy.records.length === 0) {
+      this.showResultDialog('failure', '暂无可清理的策略记录')
+      return
+    }
+    void this.getUIContext().showAlertDialog({
+      title: '删除策略记录',
+      message: '将清空当前策略记录列表，且无法恢复。是否继续？',
+      primaryButton: { value: '取消', action: () => {} },
+      secondaryButton: { value: '删除', action: () => void this.clearPolicyRecords() }
+    })
+  }
+
   private async clearConnectionHistory(): Promise<void> {
     try {
       await PeripheralTraceRepository.init(getContext(this) as common.UIAbilityContext)
@@ -516,5 +530,16 @@ export struct PeripheralPage {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', '清理未完成，请稍后重试')
     }
+  }
+
+  private async clearPolicyRecords(): Promise<void> {
+    const success = await this.viewModel.clearPeripheralPolicyRecords()
+    if (!success) {
+      this.showResultDialog('failure', '清理未完成，请稍后重试')
+      return
+    }
+    this.closeDetailDialog()
+    this.renderVersion++
+    this.showResultDialog('success', '策略记录已清理')
   }
 }

@@ -161,6 +161,25 @@ export class PeripheralViewModel {
     return this.reasonCode === null
   }
 
+  async clearPeripheralPolicyRecords(): Promise<boolean> {
+    if (!this.appContext) {
+      return false
+    }
+    try {
+      await PeripheralTraceRepository.init(this.appContext)
+      const success = await PeripheralTraceRepository.clearAll()
+      if (!success) {
+        return false
+      }
+      this.policy.resetUpdatingState()
+      await this.reloadAllData()
+      return true
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `clearPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
   openConnectionDetailDialog(record: PeripheralConnectionRecord): void {
     this.records.openConnectionDetailDialog(record)
     this.notifyRefresh('openConnectionDetailDialog')

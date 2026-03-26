@@ -71,6 +71,10 @@ export class PeripheralPolicyViewModel {
     return this.updatingKeys.includes(deviceId) || this.updatingKeys.includes(deviceId.toUpperCase())
   }
 
+  resetUpdatingState(): void {
+    this.updatingKeys = []
+  }
+
   async changePolicy(deviceId: string, deviceType: PeripheralType, policyIndex: number): Promise<string | null> {
     const parsed = parseUsbDeviceId(deviceId)
     if (!parsed) {
