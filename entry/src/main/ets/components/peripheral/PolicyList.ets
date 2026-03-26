@@ -1,8 +1,8 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
+import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
-import { EmptyStatePanel } from '../EmptyStatePanel'
 
 export interface PolicyOption {
   value: string
@@ -13,20 +13,35 @@ export struct PolicyList {
   @Prop policyRecords: PeripheralPolicyRecord[] = []
   @Prop policyListOptions: PolicyOption[] = []
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Prop updatingKeys: string[] = []
+  @Prop hoveredPanelIndex: number = -1
   onPolicyChange?: (index: number, policyIndex: number) => void
   getPolicyLabel?: (index: number) => string
   isUpdating?: (deviceId: string) => boolean
+  onPanelHover?: (isHover: boolean) => void
 
   build() {
     Column({ space: 0 }) {
       if (this.policyRecords.length === 0) {
-        EmptyStatePanel({
-          title: '暂无可管理的 USB 设备记录',
-          description: '设备接入后会显示在这里，可直接设置允许接入或禁止访问。',
-          radius: AppStyles.RADIUS_LG,
-          verticalPadding: 24
-        })
+        Column({ space: 10 }) {
+          Text('暂无可管理的 USB 设备记录')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          Text('设备接入后会显示在这里，可直接设置允许接入或禁止访问。')
+            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+        .padding({ left: 22, right: 22, top: 24, bottom: 24 })
+        .borderRadius(AppStyles.RADIUS_LG)
+        .clip(true)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 2, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 2, 4) })
+        .onHover((isHover: boolean) => this.onPanelHover && this.onPanelHover(isHover))
       } else {
         Column({ space: 0 }) {
           this.tableHeader()
@@ -46,10 +61,10 @@ export struct PolicyList {
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
+        .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 2, true))
+        .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 2, 4) })
+        .onHover((isHover: boolean) => this.onPanelHover && this.onPanelHover(isHover))
       }
     }
     .width('100%')
@@ -58,58 +73,65 @@ export struct PolicyList {
   @Builder
   private tableHeader() {
     Row() {
-      Text('设备名称').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.8)
-      Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.1)
-      Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.6)
-      Text('最近连接时间').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.3)
-      Text('当前策略').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.2)
+      this.headerText('设备名称', 2.6, TextAlign.Center)
+      this.headerText('设备类型', 1.5, TextAlign.Center)
+      this.headerText('当前策略', 1.5, TextAlign.Center)
+      this.headerText('最近连接时间', 1.8, TextAlign.Center)
+      this.headerText('操作', 1.6, TextAlign.End)
     }
     .width('100%')
-    .padding({ left: 20, right: 20, top: 12, bottom: 12 })
+    .padding({ left: 22, right: 22, top: 14, bottom: 14 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   @Builder
   private tableRow(record: PeripheralPolicyRecord, index: number) {
     Row() {
-      Text(record.deviceName)
+      Column({ space: 6 }) {
+        Text(record.deviceName)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(record.deviceId)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(2.6)
+
+      this.typeTag(record)
+
+      Text(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .layoutWeight(1.8)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-      Text(getPeripheralTypeLabel(record.deviceType))
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-        .layoutWeight(1.1)
-
-      Text(record.deviceId)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .layoutWeight(1.6)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .layoutWeight(1.5)
+        .textAlign(TextAlign.Center)
 
       Text(record.lastSeenLabel)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .layoutWeight(1.3)
+        .layoutWeight(1.8)
+        .textAlign(TextAlign.Center)
 
       Select(this.policyListOptions as SelectOption[])
         .selected(record.policyIndex)
         .value(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
-        .font({ size: AppStyles.FONT_SIZE_CAPTION })
+        .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-        .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
+        .borderRadius(10)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .layoutWeight(1.2)
+        .height(36)
+        .layoutWeight(1.6)
         .enabled(!(this.isUpdating ? this.isUpdating(record.deviceId) : false))
         .opacity((this.isUpdating ? this.isUpdating(record.deviceId) : false) ? 0.6 : 1)
         .onSelect((selectIndex: number) => {
@@ -119,7 +141,38 @@ export struct PolicyList {
         })
     }
     .width('100%')
-    .padding({ left: 20, right: 20, top: 10, bottom: 10 })
+    .padding({ left: 22, right: 22, top: 18, bottom: 18 })
     .backgroundColor(index % 2 === 0 ? AppColors.getColors(this.currentTheme).BG_CARD : AppColors.getColors(this.currentTheme).BG_PAGE)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private headerText(label: string, weight: number, align: TextAlign = TextAlign.Start) {
+    Text(label)
+      .fontSize(AppStyles.FONT_SIZE_SMALL)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .layoutWeight(weight)
+      .textAlign(align)
+  }
+
+  @Builder
+  private typeTag(record: PeripheralPolicyRecord) {
+    Row() {
+      Row() {
+        Text(getPeripheralTypeLabel(record.deviceType))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.TAG_PURPLE_TEXT)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .borderRadius(6)
+      .backgroundColor(AppColors.TAG_PURPLE_BG)
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+    .layoutWeight(1.5)
   }
 }

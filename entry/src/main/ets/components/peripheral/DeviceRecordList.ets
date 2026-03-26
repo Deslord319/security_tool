@@ -1,9 +1,8 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import {
-  getLogEventResultLabel,
   getPeripheralRecordActionLabel,
+  getPeripheralRecordPolicyHitLabel,
   getPeripheralTypeLabel,
-  LogEventResult,
   PeripheralConnectionRecord
 } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
@@ -24,7 +23,7 @@ export struct DeviceRecordList {
         if (this.deviceRecords.length === 0) {
           EmptyStatePanel({
             title: '暂无设备连接记录',
-            description: '重新插拔设备后，可在这里查看最新连接历史。',
+            description: '重新连接设备后，可在这里查看最新的接入历史。',
             radius: AppStyles.RADIUS_LG,
             verticalPadding: 24
           })
@@ -41,7 +40,7 @@ export struct DeviceRecordList {
                     .margin({ left: 20, right: 20 })
                 }
               }
-            })
+            }, (record: PeripheralConnectionRecord) => record.id)
           }
           .width('100%')
           .borderRadius(AppStyles.RADIUS_LG)
@@ -65,63 +64,129 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      Text('时间').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(2)
-      Text('设备类型').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.5)
-      Text('设备标识').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(2)
-      Text('事件').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.5)
-      Text('结果').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1.5)
-      Text('操作').fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(1)
+      this.headerText('设备名称', 2.6, TextAlign.Center)
+      this.headerText('设备类型', 1.5, TextAlign.Center)
+      this.headerText('连接事件', 1.3, TextAlign.Center)
+      this.headerText('策略', 1.2, TextAlign.Center)
+      this.headerText('连接时间', 1.9, TextAlign.Center)
+      this.headerText('操作', 1.1, TextAlign.End)
     }
     .width('100%')
-    .padding({ left: 20, right: 20, top: 12, bottom: 12 })
+    .padding({ left: 22, right: 22, top: 14, bottom: 14 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   @Builder
   private row(record: PeripheralConnectionRecord, index: number) {
     Row() {
-      Text(this.formatConnectionTime(record)).fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(2)
-      Text(getPeripheralTypeLabel(record.deviceType)).fontSize(AppStyles.FONT_SIZE_CAPTION).layoutWeight(1.5)
-      Text(record.deviceId).fontSize(AppStyles.FONT_SIZE_SMALL).layoutWeight(2).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-      Text(getPeripheralRecordActionLabel(record.action)).fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(this.eventColor(record)).layoutWeight(1.5)
-      Text(getLogEventResultLabel(record.result)).fontSize(AppStyles.FONT_SIZE_SMALL).fontColor(this.resultColor(record.result)).layoutWeight(1.5)
-      Text('详情')
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.BRAND_PRIMARY)
-        .layoutWeight(1)
+      Column({ space: 6 }) {
+        Text(record.deviceName)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(record.deviceId)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(2.6)
+
+      this.tagCell(getPeripheralTypeLabel(record.deviceType), AppColors.TAG_PURPLE_BG, AppColors.TAG_PURPLE_TEXT, 1.5)
+
+      Text(getPeripheralRecordActionLabel(record.action))
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.eventTagText(record))
+        .layoutWeight(1.3)
+
+      Text(this.getPolicyText(record))
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .layoutWeight(1.2)
         .textAlign(TextAlign.Center)
-        .onClick(() => this.onRecordClick && this.onRecordClick(record))
+
+      Text(this.formatConnectionTime(record))
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .layoutWeight(1.9)
+        .textAlign(TextAlign.Center)
+
+      Row() {
+        Text('详情')
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(Color.White)
+      }
+      .height(36)
+      .padding({ left: 26, right: 26 })
+      .justifyContent(FlexAlign.Center)
+      .borderRadius(10)
+      .backgroundColor(AppColors.BRAND_PRIMARY)
+      .layoutWeight(1.1)
+      .onClick(() => this.onRecordClick && this.onRecordClick(record))
     }
     .width('100%')
-    .padding({ left: 20, right: 20, top: 10, bottom: 10 })
-    .backgroundColor(index % 2 === 0 ? AppColors.getColors(this.currentTheme).BG_CARD : AppColors.getColors(this.currentTheme).BG_PAGE)
+    .padding({ left: 22, right: 22, top: 18, bottom: 18 })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private headerText(label: string, weight: number, align: TextAlign = TextAlign.Start) {
+    Text(label)
+      .fontSize(AppStyles.FONT_SIZE_SMALL)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .layoutWeight(weight)
+      .textAlign(align)
+  }
+
+  @Builder
+  private tagCell(label: string, backgroundColor: ResourceColor, textColor: ResourceColor, weight: number) {
+    Row() {
+      Row() {
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(textColor)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .borderRadius(6)
+      .backgroundColor(backgroundColor)
+    }
+    .layoutWeight(weight)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {
     const date = new Date(record.timestamp)
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
   }
 
-  private eventColor(record: PeripheralConnectionRecord): ResourceColor {
-    if (record.result === LogEventResult.BLOCKED || record.action === 'intercept') {
-      return AppColors.DANGER
+  private getPolicyText(record: PeripheralConnectionRecord): string {
+    if (record.effectivePolicyLabel && record.effectivePolicyLabel.trim().length > 0) {
+      return record.effectivePolicyLabel
+    }
+    return getPeripheralRecordPolicyHitLabel(record.policyHit)
+  }
+
+  private eventTagText(record: PeripheralConnectionRecord): ResourceColor {
+    if (record.action === 'connect') {
+      return AppColors.TAG_GREEN_TEXT
     }
     if (record.action === 'disconnect') {
-      return AppColors.WARNING
+      return AppColors.TAG_ORANGE_TEXT
     }
-    return AppColors.SUCCESS
-  }
-
-  private resultColor(result: LogEventResult): ResourceColor {
-    if (result === LogEventResult.SUCCESS) {
-      return AppColors.SUCCESS
-    }
-    if (result === LogEventResult.BLOCKED) {
-      return AppColors.WARNING
-    }
-    if (result === LogEventResult.FAILED) {
-      return AppColors.DANGER
-    }
-    return AppColors.getColors(this.currentTheme).TEXT_PRIMARY
+    return AppColors.TAG_RED_TEXT
   }
 }

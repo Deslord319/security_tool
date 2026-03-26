@@ -13,6 +13,7 @@ import { PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { HoverUtils } from '../utils/HoverUtils'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 
@@ -154,7 +155,9 @@ export struct PeripheralPage {
   }
 
   private setPanelHover(index: number, isHover: boolean): void {
-    this.hoveredPanelIndex = isHover ? index : -1
+    HoverUtils.animate(() => {
+      this.hoveredPanelIndex = isHover ? index : -1
+    })
   }
 
   private handleTabChange(index: number): void {
@@ -309,7 +312,7 @@ export struct PeripheralPage {
         policyRecords: this.viewModel.peripheralPolicyRecords,
         policyListOptions: this.policyListOptions,
         currentTheme: this.currentTheme,
-        updatingKeys: this.viewModel.policyUpdatingKeys,
+        hoveredPanelIndex: this.hoveredPanelIndex,
         onPolicyChange: (index: number, policyIndex: number) => {
           const record: PeripheralPolicyRecord | undefined = this.viewModel.peripheralPolicyRecords[index]
           if (record) {
@@ -317,7 +320,8 @@ export struct PeripheralPage {
           }
         },
         getPolicyLabel: (index: number) => this.policyListOptions[index].value,
-        isUpdating: (deviceId: string) => this.viewModel.isPeripheralPolicyUpdating(deviceId.toUpperCase())
+        isUpdating: (deviceId: string) => this.viewModel.isPeripheralPolicyUpdating(deviceId.toUpperCase()),
+        onPanelHover: (isHover: boolean) => this.setPanelHover(2, isHover)
       })
     }
   }
