@@ -257,9 +257,8 @@ export class LogStorageService {
 
     // Handle custom CSV content
     if (typeof entries === 'string') {
-      const content = entries.startsWith('\uFEFF') ? entries : `\uFEFF${entries}`
       const fileName = LogStorageService.buildExportFileName(now, fileNamePrefix ?? 'export')
-      return LogStorageService.writeAndSave(content, fileName, 0, now)
+      return LogStorageService.writeAndSave(entries, fileName, 0, now)
     }
 
     // Handle log entries
@@ -272,8 +271,7 @@ export class LogStorageService {
       }
     }
 
-    // Add UTF-8 BOM for Excel-compatible CSV decoding.
-    let content = ` ${LogStorageService.toCsv(entries)}`
+    let content = LogStorageService.toCsv(entries)
     let fileName = LogStorageService.buildExportFileName(now, fileNamePrefix ?? 'security_log')
     return LogStorageService.writeAndSave(content, fileName, entries.length, now)
   }

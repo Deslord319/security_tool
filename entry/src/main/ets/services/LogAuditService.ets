@@ -1,6 +1,7 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import { Environment } from '@kit.CoreFileKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { LogPathUtils } from '../utils/LogPathUtils'
 import {
   LogEntry,
   LogEventType,
@@ -339,7 +340,7 @@ export class LogAuditService {
 
     return {
       detail: LogAuditService.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-        content || metadata || '安全审计事件',
+        content || metadata || 'Security audit event',
       result: LogAuditService.mapResult(rawOutcome),
       processName: LogAuditService.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
       pid: LogAuditService.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
@@ -356,11 +357,7 @@ export class LogAuditService {
       'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
       'filePath', 'file_path', 'path', 'srcPath', 'src_path'
     ])
-    let normalized = LogAuditService.normalizePathCandidate(structured)
-    if (normalized) {
-      return normalized
-    }
-    return LogAuditService.extractPathFromRawText(content) || LogAuditService.extractPathFromRawText(metadata)
+    return LogPathUtils.resolveAuditFilePath(structured, [content, metadata])
   }
 
   private static tryAttachFilePrefixFilter(client: AuditClientCompat, eventId: number): void {
@@ -391,94 +388,33 @@ export class LogAuditService {
 
   private static isAllowedUserFileEvent(candidatePath?: string): boolean {
     if (!candidatePath) {
-      LogAuditService.recordFileDrop('no_path', '未提取到用户文件路径')
+      LogAuditService.recordFileDrop('no_path', 'No user file path extracted')
       return false
     }
-    let normalized = LogAuditService.normalizePathCandidate(candidatePath)
+    let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
     if (!normalized) {
-      LogAuditService.recordFileDrop('no_path', '文件路径归一化失败')
+      LogAuditService.recordFileDrop('no_path', 'Path normalization failed')
       return false
     }
-    // Fixed: Directly check if normalized path starts with any prefix
-    // Previous logic had bugs with subdirectory matching
-    for (let prefix of LogAuditService.FILE_FILTER_PREFIXES) {
-      if (normalized.startsWith(prefix)) {
-        return true
-      }
+    if (LogPathUtils.hasAllowedPrefix(normalized, LogAuditService.FILE_FILTER_PREFIXES)) {
+      return true
     }
-    LogAuditService.recordFileDrop('prefix_mismatch', `非用户文件路径：${normalized}`)
+    LogAuditService.recordFileDrop('prefix_mismatch', `Non-user file path: ${normalized}`)
     return false
   }
 
   private static buildFileFilterPrefixes(): string[] {
-    let prefixes: string[] = [
+    return LogPathUtils.buildFileFilterPrefixes([
       'file://docs/storage/Users/currentUser/',
       'file://media/',
       '/storage/Users/currentUser/'
-    ]
-    let envDirs = [Environment.getUserDownloadDir(), Environment.getUserDocumentDir(), Environment.getUserDesktopDir()]
-    for (let dir of envDirs) {
-      let normalized = LogAuditService.normalizePathCandidate(dir)
-      if (normalized) {
-        let prefix = `${normalized}/`
-        if (!prefixes.includes(prefix)) {
-          prefixes.push(prefix)
-        }
-      }
-    }
-    return prefixes
+    ], [
+      Environment.getUserDownloadDir(),
+      Environment.getUserDocumentDir(),
+      Environment.getUserDesktopDir()
+    ])
   }
 
-  private static normalizePathCandidate(pathOrUri: string | undefined): string | undefined {
-    if (!pathOrUri) {
-      return undefined
-    }
-    let normalized = pathOrUri.trim()
-    if (normalized.length === 0) {
-      return undefined
-    }
-    try {
-      normalized = decodeURIComponent(normalized)
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
-    }
-    normalized = LogAuditService.cutPathSuffix(normalized.replace(/\\/g, '/'))
-    if (normalized.length === 0) {
-      return undefined
-    }
-    normalized = normalized.replace(/\/+$/, '')
-    return normalized.length > 0 ? normalized : undefined
-  }
-
-  private static extractPathFromRawText(raw: string | undefined): string | undefined {
-    if (!raw) {
-      return undefined
-    }
-    let source = raw.trim().replace(/\\/g, '/')
-    if (source.length === 0) {
-      return undefined
-    }
-    let uriMatch = source.match(/file:\/\/[^\s"',}\]]+/i)
-    if (uriMatch && uriMatch.length > 0) {
-      return LogAuditService.normalizePathCandidate(uriMatch[0])
-    }
-    let pathMatch = source.match(/\/(?:storage|data|mnt)\/[^\s"',}\]]+/)
-    if (pathMatch && pathMatch.length > 0) {
-      return LogAuditService.normalizePathCandidate(pathMatch[0])
-    }
-    return undefined
-  }
-
-  private static cutPathSuffix(path: string): string {
-    let cutIndex = path.length
-    for (let sep of ['?', '#', '&', '"', '\'', ',', '}', ']', ' ']) {
-      let index = path.indexOf(sep)
-      if (index >= 0 && index < cutIndex) {
-        cutIndex = index
-      }
-    }
-    return cutIndex >= 0 ? path.substring(0, cutIndex) : path
-  }
 
   private static parseTimestamp(ts: string): number {
     if (ts.length < 14) {
