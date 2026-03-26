@@ -340,7 +340,7 @@ export class LogAuditService {
 
     return {
       detail: LogAuditService.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-        content || metadata || 'Security audit event',
+        content || metadata || '安全审计事件',
       result: LogAuditService.mapResult(rawOutcome),
       processName: LogAuditService.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
       pid: LogAuditService.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
@@ -388,18 +388,18 @@ export class LogAuditService {
 
   private static isAllowedUserFileEvent(candidatePath?: string): boolean {
     if (!candidatePath) {
-      LogAuditService.recordFileDrop('no_path', 'No user file path extracted')
+      LogAuditService.recordFileDrop('no_path', '未提取到用户文件路径')
       return false
     }
     let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
     if (!normalized) {
-      LogAuditService.recordFileDrop('no_path', 'Path normalization failed')
+      LogAuditService.recordFileDrop('no_path', '文件路径归一化失败')
       return false
     }
     if (LogPathUtils.hasAllowedPrefix(normalized, LogAuditService.FILE_FILTER_PREFIXES)) {
       return true
     }
-    LogAuditService.recordFileDrop('prefix_mismatch', `Non-user file path: ${normalized}`)
+    LogAuditService.recordFileDrop('prefix_mismatch', `非用户文件路径: ${normalized}`)
     return false
   }
 
