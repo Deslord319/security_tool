@@ -171,10 +171,14 @@
 
     function normalizeSummary(entry, summary, events) {
       const latestEvent = [...events].reverse().find(event => event.eventType !== "artifact.created") || events[events.length - 1] || null;
+      const terminalEvent = [...events].reverse().find(event => event.eventType === "run.completed" || event.eventType === "run.failed") || null;
       const latestPayload = latestEvent && typeof latestEvent.payload === "object" ? latestEvent.payload : {};
+      const terminalPayload = terminalEvent && typeof terminalEvent.payload === "object" ? terminalEvent.payload : {};
       const latestHandoff = extractHandoff(latestPayload);
       const summaryText = latestPayload.summaryText || (latestHandoff && latestHandoff.output && latestHandoff.output.summary) || latestPayload.outputSummary || entry.latestSummary || summary.goal || "暂无摘要";
-      return { id: summary.runId, title: summary.title, goal: summary.goal, mode: summary.mode, status: entry.status || summary.status, resultStatus: entry.resultStatus ?? summary.resultStatus ?? null, createdAt: summary.createdAt, updatedAt: summary.updatedAt, completedAt: summary.completedAt, eventCount: summary.eventCount ?? events.length, artifactCount: summary.artifactCount ?? 0, agents: summary.agents || [], latestEventId: summary.latestEventId, latestAgent: entry.latestAgent || (latestEvent ? latestEvent.agent : null), summary: summaryText, latestSummary: summaryText, reviewStats: entry.reviewStats || { valid: 0, partial: 0, invalid: 0 } };
+      const lifecycleStatus = summary.status || (terminalEvent ? (terminalEvent.eventType === "run.failed" ? "failed" : "completed") : entry.status) || "in_progress";
+      const resultStatus = summary.resultStatus ?? terminalPayload.resultStatus ?? entry.resultStatus ?? null;
+      return { id: summary.runId, title: summary.title, goal: summary.goal, mode: summary.mode, status: lifecycleStatus, resultStatus, createdAt: summary.createdAt, updatedAt: summary.updatedAt, completedAt: summary.completedAt, eventCount: summary.eventCount ?? events.length, artifactCount: summary.artifactCount ?? 0, agents: summary.agents || [], latestEventId: summary.latestEventId, latestAgent: latestEvent ? latestEvent.agent : entry.latestAgent, summary: summaryText, latestSummary: summaryText, reviewStats: entry.reviewStats || { valid: 0, partial: 0, invalid: 0 } };
     }
 
     function buildRunView(entry, summary, rawEvents, reviews) {
@@ -233,6 +237,28 @@
       const [summary, rawEvents, reviews] = await Promise.all([fetchJson(entry.summaryPath), fetchJsonl(entry.eventsPath), fetchJsonl(entry.reviewsPath)]);
       const run = buildRunView(entry, summary, rawEvents, reviews);
       state.runCache.set(runId, run);
+      const runIndex = state.indexRuns.findIndex(item => item.runId === runId);
+      if (runIndex >= 0) {
+        state.indexRuns[runIndex] = {
+          ...state.indexRuns[runIndex],
+          title: run.title,
+          goal: run.goal,
+          mode: run.mode,
+          status: run.status,
+          resultStatus: run.resultStatus,
+          createdAt: run.createdAt,
+          updatedAt: run.updatedAt,
+          completedAt: run.completedAt,
+          eventCount: run.eventCount,
+          artifactCount: run.artifactCount,
+          agents: run.agents,
+          latestEventId: run.latestEventId,
+          latestAgent: run.latestAgent,
+          latestSummary: run.latestSummary,
+          reviewStats: run.reviewStats
+        };
+        state.indexRuns.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+      }
       return run;
     }
 

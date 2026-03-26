@@ -12,7 +12,8 @@ import { Routes, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { common } from '@kit.AbilityKit'
+import { common, ConfigurationConstant } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
@@ -33,7 +34,7 @@ struct MainPage {
   @State pageEnterOpacity: number = 1
   @State pageEnterOffset: number = 0
   @State menuTriggerHovered: boolean = false
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @StorageLink(STORAGE_KEY_THEME) @Watch('onThemeChange') currentTheme: ThemeMode = ThemeMode.LIGHT
   private runtimeInitialized: boolean = false
   private runtimeInitInProgress: boolean = false
 
@@ -47,6 +48,7 @@ struct MainPage {
     this.ensureRuntimeServices().catch((err: Object) => {
       hilog.error(0x0000, 'testTag', `[DIAG] ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
+    this.syncDecorButtonStyle()
   }
 
   private applyUiTestRouteOverride(): void {
@@ -79,6 +81,34 @@ struct MainPage {
     })
     this.ensureRuntimeServices().catch((err: Object) => {
       hilog.error(0x0000, 'testTag', `[DIAG] ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
+    })
+    this.syncDecorButtonStyle()
+  }
+
+  onThemeChange(): void {
+    this.syncDecorButtonStyle()
+  }
+
+  private syncDecorButtonStyle(): void {
+    let context = getContext(this) as common.UIAbilityContext
+    let decorButtonStyle: window.DecorButtonStyle = {
+      colorMode: this.currentTheme === ThemeMode.DARK
+        ? ConfigurationConstant.ColorMode.COLOR_MODE_DARK
+        : ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT
+    }
+
+    window.getLastWindow(context).then((mainWindow: window.Window) => {
+      try {
+        mainWindow.setDecorButtonStyle(decorButtonStyle)
+      } catch (err) {
+        hilog.warn(0x0000, 'testTag',
+          '[DIAG] setDecorButtonStyle skipped for theme=%{public}s: %{public}s',
+          this.currentTheme, JSON.stringify(err))
+      }
+    }).catch((err: Error) => {
+      hilog.warn(0x0000, 'testTag',
+        '[DIAG] getLastWindow failed, skip decor button style sync for theme=%{public}s: %{public}s',
+        this.currentTheme, JSON.stringify(err))
     })
   }
 
@@ -201,12 +231,10 @@ struct MainPage {
             Blank()
 
             Button() {
-              Image(this.currentTheme === ThemeMode.DARK
-                ? $r('app.media.menu_vertical_dark')
-                : $r('app.media.menu_vertical_light'))
+              Image($r('app.media.menu_vertical_light'))
                 .width(18)
                 .height(18)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+                .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             }
             .type(ButtonType.Normal)
             .id('top-menu-trigger')

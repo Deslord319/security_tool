@@ -29,10 +29,31 @@ def print_json(data: Any) -> None:
     sys.stdout.write("\n")
 
 
+def normalize_data_root(candidate: Path) -> Path:
+    resolved = candidate.resolve()
+    if resolved.name == "runs":
+        return resolved
+
+    observer_runs = resolved / "data" / "runs"
+    if resolved.name == "agent-observer" or observer_runs.exists():
+        return observer_runs.resolve()
+
+    repo_observer_runs = resolved / "agent-observer" / "data" / "runs"
+    if repo_observer_runs.exists():
+        return repo_observer_runs.resolve()
+
+    if resolved.name == "data":
+        runs_dir = resolved / "runs"
+        if resolved.parent.name == "agent-observer" or runs_dir.exists():
+            return runs_dir.resolve()
+
+    return resolved
+
+
 def resolve_data_root(data_root: str | None) -> Path:
     if data_root:
-        return Path(data_root).resolve()
-    return (Path(__file__).resolve().parent.parent / "data" / "runs").resolve()
+        return normalize_data_root(Path(data_root))
+    return normalize_data_root(Path(__file__).resolve().parent.parent / "data" / "runs")
 
 
 def observer_root_from_data_root(data_root: Path) -> Path:
