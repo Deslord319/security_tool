@@ -265,7 +265,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: now,
-        errorMessage: '鏃犳棩蹇楀彲瀵煎嚭'
+        errorMessage: '无日志可导出'
       }
     }
 
@@ -283,7 +283,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: timestamp,
-        errorMessage: 'UI 涓婁笅鏂囦笉鍙敤'
+        errorMessage: 'UI 上下文不可用'
       }
     }
 
@@ -297,7 +297,7 @@ export class LogStorageService {
         return {
           success: false,
           timestamp: timestamp,
-          errorMessage: '鐢ㄦ埛鍙栨秷淇濆瓨'
+          errorMessage: '用户取消保存'
         }
       }
       
@@ -328,7 +328,7 @@ export class LogStorageService {
         success: false,
         timestamp: timestamp,
         errorCode: code,
-        errorMessage: `瀵煎嚭澶辫触锛?{JSON.stringify(err)}`
+        errorMessage: `导出失败：${JSON.stringify(err)}`
       }
     }
   }
@@ -720,7 +720,7 @@ export class LogStorageService {
 
   // Convert to CSV format.
   private static toCsv(entries: LogEntry[]): string {
-    let header = '鏃堕棿,浜嬩欢绫诲瀷,璇︽儏,杩涚▼鍚?PID,缁撴灉'
+    let header = '时间,事件类型,详情,进程名,PID,结果'
     let lines: string[] = [header]
 
     for (let entry of entries) {
