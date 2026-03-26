@@ -6,7 +6,7 @@ import {
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
 } from '../models/DataModels'
-import { LogContentExportOptions, LogStorageService } from '../services/LogStorageService'
+import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
 import {
   buildConnectionHistoryItems,
@@ -76,15 +76,8 @@ export class PeripheralRecordViewModel {
 
     try {
       await LogStorageService.init(context)
-      const exportOptions: LogContentExportOptions = {
-        fileNamePrefix: 'peripheral_connection_history',
-        count: this.records.length,
-        emptyErrorMessage: '无可导出的设备连接记录'
-      }
-      const result = await LogStorageService.exportContentToFile(
-        this.buildConnectionHistoryCsv(this.records),
-        exportOptions
-      )
+      const csvContent = this.buildConnectionHistoryCsv(this.records)
+      const result = await LogStorageService.exportToCsvFile(csvContent, 'peripheral_connection_history')
       return result.success ? null : REASON_EXPORT_CONNECTION_HISTORY_FAILED
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)

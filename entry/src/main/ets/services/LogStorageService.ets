@@ -40,20 +40,6 @@ const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const MAX_RAW_ACTION_LENGTH = 64
 
-export interface LogStorageChangeEvent {
-  totalCount: number
-  addedCount: number
-  timestamp: number
-}
-
-export interface LogContentExportOptions {
-  fileNamePrefix?: string
-  count?: number
-  emptyErrorMessage?: string
-}
-
-export type LogStorageChangeListener = (event: LogStorageChangeEvent) => void
-
 // Log storage service for persistence, querying, filtering, and export.
 export class LogStorageService {
 
@@ -66,8 +52,6 @@ export class LogStorageService {
   private static isInitialized: boolean = false
   private static initializedContextDir: string = ''
   private static initPromise: Promise<boolean> | null = null
-  private static nextListenerId: number = 1
-  private static changeListeners: Map<number, LogStorageChangeListener> = new Map()
 
   // Initialize with a UIAbilityContext for Preferences access.
   static async init(context: common.UIAbilityContext): Promise<boolean> {
@@ -129,18 +113,20 @@ export class LogStorageService {
       if (normalizedBatch.length === 0) {
         return true
       }
-      LogStorageService.logEntries = normalizedBatch.concat(LogStorageService.logEntries)
-
-      // Trim oldest entries when the effective max count is exceeded.
+      // Optimize memory: limit batch size first, then merge and trim
       let maxEntries = LogStorageService.getEffectiveMaxEntries()
-      let overflowCount = LogStorageService.logEntries.length - maxEntries
-      if (overflowCount > 0) {
-        LogStorageService.logEntries = LogStorageService.logEntries.slice(
-          0, maxEntries
-        )
+      
+      // Limit incoming batch to avoid excessive temporary array allocation
+      if (normalizedBatch.length > maxEntries) {
+        normalizedBatch = normalizedBatch.slice(0, maxEntries)
+      }
+      
+      // Merge new entries (newest first) and trim to max
+      LogStorageService.logEntries = normalizedBatch.concat(LogStorageService.logEntries)
+      if (LogStorageService.logEntries.length > maxEntries) {
+        LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
       }
 
-      LogStorageService.notifyEntriesChanged(normalizedBatch.length)
       void LogStorageService.saveEntries().catch((err: Object) => {
         hilog.error(DOMAIN, TAG, `saveEntries async failed: ${JSON.stringify(err)}`)
       })
@@ -254,7 +240,6 @@ export class LogStorageService {
     try {
       LogStorageService.logEntries = []
       await LogStorageService.saveEntries()
-      LogStorageService.notifyEntriesChanged(0)
       hilog.info(DOMAIN, TAG, 'All log entries cleared')
       return true
     } catch (err) {
@@ -263,50 +248,48 @@ export class LogStorageService {
     }
   }
 
-  // Delete a specific entry by id.
-  static async deleteEntry(entryId: string): Promise<boolean> {
-    try {
-      let initialLength = LogStorageService.logEntries.length
-      LogStorageService.logEntries = LogStorageService.logEntries.filter(
-        (e: LogEntry) => e.id !== entryId
-      )
-
-      if (LogStorageService.logEntries.length < initialLength) {
-        await LogStorageService.saveEntries()
-        LogStorageService.notifyEntriesChanged(0)
-        hilog.debug(DOMAIN, TAG, `Deleted entry: ${entryId}`)
-        return true
-      }
-      return false
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `deleteEntry failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  // Export logs to CSV format.
-  static async exportToCsvFile(entries: LogEntry[]): Promise<LogExportResult> {
+  // Export to CSV file. Supports both log entries and custom CSV content.
+  static async exportToCsvFile(
+    entries: LogEntry[] | string,
+    fileNamePrefix?: string
+  ): Promise<LogExportResult> {
     let now = LogStorageService.nowProvider()
 
+    // Handle custom CSV content
+    if (typeof entries === 'string') {
+      const content = entries.startsWith('\uFEFF') ? entries : `\uFEFF${entries}`
+      const fileName = LogStorageService.buildExportFileName(now, fileNamePrefix ?? 'export')
+      return LogStorageService.writeAndSave(content, fileName, 0, now)
+    }
+
+    // Handle log entries
     if (entries.length === 0) {
       return {
         success: false,
         count: 0,
         timestamp: now,
-        errorMessage: '无可导出日志'
+        errorMessage: '鏃犲彲瀵煎嚭鏃ュ織'
       }
     }
 
     // Add UTF-8 BOM for Excel-compatible CSV decoding.
     let content = ` ${LogStorageService.toCsv(entries)}`
-    let fileName = LogStorageService.buildExportFileName(now)
-    
+    let fileName = LogStorageService.buildExportFileName(now, fileNamePrefix ?? 'security_log')
+    return LogStorageService.writeAndSave(content, fileName, entries.length, now)
+  }
+
+  private static async writeAndSave(
+    content: string,
+    fileName: string,
+    count: number,
+    timestamp: number
+  ): Promise<LogExportResult> {
     if (!LogStorageService.context) {
       return {
         success: false,
-        count: entries.length,
-        timestamp: now,
-        errorMessage: 'UI 上下文不可用'
+        count: count,
+        timestamp: timestamp,
+        errorMessage: 'UI 涓婁笅鏂囦笉鍙敤'
       }
     }
 
@@ -319,84 +302,9 @@ export class LogStorageService {
       if (result.length === 0) {
         return {
           success: false,
-          count: entries.length,
-          timestamp: now,
-          errorMessage: '用户取消保存'
-        }
-      }
-      
-      let directoryUri = result[0]
-      let targetPath = new fileUri.FileUri(`${directoryUri}/${fileName}`).path
-      let file = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
-      fileIo.writeSync(file.fd, content)
-      fileIo.closeSync(file.fd)
-      
-      let sizeBytes: number | undefined = undefined
-      try {
-        sizeBytes = fileIo.statSync(targetPath).size
-      } catch (statErr) {
-        hilog.warn(DOMAIN, TAG, `Export stat failed: ${JSON.stringify(statErr)}`)
-      }
-      
-      return {
-        success: true,
-        count: entries.length,
-        timestamp: now,
-        fileName: fileName,
-        directory: directoryUri,
-        fullPath: targetPath,
-        sizeBytes: sizeBytes
-      }
-    } catch (err) {
-      let code = LogStorageService.extractErrorCode(err as Object)
-      return {
-        success: false,
-        count: entries.length,
-        timestamp: now,
-        errorCode: code,
-        errorMessage: `导出失败：${JSON.stringify(err)}`
-      }
-    }
-  }
-
-  static async exportContentToFile(
-    content: string,
-    options?: LogContentExportOptions
-  ): Promise<LogExportResult> {
-    let now = LogStorageService.nowProvider()
-    let trimmed = content.trim()
-    let count = options?.count ?? 0
-    if (trimmed.length === 0) {
-      return {
-        success: false,
-        count: 0,
-        timestamp: now,
-        errorMessage: options?.emptyErrorMessage ?? '无可导出内容'
-      }
-    }
-
-    let fileName = LogStorageService.buildExportFileName(now, options?.fileNamePrefix ?? 'export')
-    
-    if (!LogStorageService.context) {
-      return {
-        success: false,
-        count: count,
-        timestamp: now,
-        errorMessage: 'UI 上下文不可用'
-      }
-    }
-
-    try {
-      let picker_instance = new picker.DocumentViewPicker(LogStorageService.context)
-      let saveOptions = new picker.DocumentSaveOptions()
-      let result = await picker_instance.save(saveOptions)
-      
-      if (result.length === 0) {
-        return {
-          success: false,
           count: count,
-          timestamp: now,
-          errorMessage: '用户取消保存'
+          timestamp: timestamp,
+          errorMessage: '鐢ㄦ埛鍙栨秷淇濆瓨'
         }
       }
       
@@ -416,7 +324,7 @@ export class LogStorageService {
       return {
         success: true,
         count: count,
-        timestamp: now,
+        timestamp: timestamp,
         fileName: fileName,
         directory: directoryUri,
         fullPath: targetPath,
@@ -427,55 +335,10 @@ export class LogStorageService {
       return {
         success: false,
         count: count,
-        timestamp: now,
+        timestamp: timestamp,
         errorCode: code,
-        errorMessage: `导出失败：${JSON.stringify(err)}`
+        errorMessage: `瀵煎嚭澶辫触锛?{JSON.stringify(err)}`
       }
-    }
-  }
-
-  // Get the current entry count.
-  static getEntryCount(): number {
-    return LogStorageService.logEntries.length
-  }
-
-  // Get the current storage config.
-  static getConfig(): LogStorageConfig {
-    let cfg = LogStorageService.storageConfig
-    let copy: LogStorageConfig = {
-      maxLocalEntries: cfg.maxLocalEntries,
-      retentionDays: cfg.retentionDays
-    }
-    return copy
-  }
-
-  static addChangeListener(listener: LogStorageChangeListener): number {
-    let listenerId = LogStorageService.nextListenerId++
-    LogStorageService.changeListeners.set(listenerId, listener)
-    return listenerId
-  }
-
-  static removeChangeListener(listenerId: number): void {
-    LogStorageService.changeListeners.delete(listenerId)
-  }
-
-  // Update the storage config.
-  static async updateConfig(config: LogStorageConfig): Promise<boolean> {
-    try {
-      let normalizedConfig = LogStorageService.normalizeStorageConfig(config)
-      LogStorageService.storageConfig = normalizedConfig
-      let maxEntries = LogStorageService.getEffectiveMaxEntries()
-      if (LogStorageService.logEntries.length > maxEntries) {
-        LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
-      }
-      LogStorageService.cleanExpiredEntries()
-      await LogStorageService.saveEntries()
-      await LogStorageService.saveConfig()
-      hilog.info(DOMAIN, TAG, 'Storage config updated')
-      return true
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `updateConfig failed: ${JSON.stringify(err)}`)
-      return false
     }
   }
 
@@ -527,34 +390,6 @@ export class LogStorageService {
     }
   }
 
-  // Save the subscription config.
-  static async saveSubscriptionConfig(config: LogSubscriptionConfig): Promise<boolean> {
-    if (!LogStorageService.context) {
-      return false
-    }
-
-    try {
-      let store = await preferences.getPreferences(LogStorageService.context, PREF_STORE_NAME_LOG)
-      let subscribedTypes = config.subscribeAll
-        ? [...ALL_LOG_EVENT_TYPES]
-        : LogStorageService.sanitizeSubscribedTypes(config.subscribedTypes as number[])
-      let subscribeAll = config.subscribeAll
-      if (subscribedTypes.length === 0) {
-        subscribeAll = true
-        subscribedTypes = [...ALL_LOG_EVENT_TYPES]
-      }
-
-      await store.put(PREF_KEY_LOG_SUBSCRIBE_ALL, subscribeAll)
-      await store.put(PREF_KEY_LOG_SUBSCRIBED_TYPES, JSON.stringify(subscribedTypes))
-      await store.flush()
-      hilog.info(DOMAIN, TAG, 'Subscription config saved')
-      return true
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveSubscriptionConfig failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
   // ========== Internal helpers ==========
 
   // Filter invalid event types and deduplicate values.
@@ -567,24 +402,6 @@ export class LogStorageService {
       }
     }
     return result
-  }
-
-  private static notifyEntriesChanged(addedCount: number): void {
-    if (LogStorageService.changeListeners.size === 0) {
-      return
-    }
-    let event: LogStorageChangeEvent = {
-      totalCount: LogStorageService.logEntries.length,
-      addedCount: addedCount,
-      timestamp: LogStorageService.nowProvider()
-    }
-    LogStorageService.changeListeners.forEach((listener: LogStorageChangeListener) => {
-      try {
-        listener(event)
-      } catch (err) {
-        hilog.warn(DOMAIN, TAG, `change listener failed: ${JSON.stringify(err)}`)
-      }
-    })
   }
 
   private static normalizeStorageConfig(config: LogStorageConfig): LogStorageConfig {
@@ -865,6 +682,33 @@ export class LogStorageService {
     }
   }
 
+  // Get the current storage config.
+  static getConfig(): LogStorageConfig {
+    return {
+      maxLocalEntries: LogStorageService.storageConfig.maxLocalEntries,
+      retentionDays: LogStorageService.storageConfig.retentionDays
+    }
+  }
+
+  // Update storage config.
+  static async updateConfig(config: LogStorageConfig): Promise<boolean> {
+    try {
+      LogStorageService.storageConfig = LogStorageService.normalizeStorageConfig(config)
+      let maxEntries = LogStorageService.getEffectiveMaxEntries()
+      if (LogStorageService.logEntries.length > maxEntries) {
+        LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
+      }
+      LogStorageService.cleanExpiredEntries()
+      await LogStorageService.saveEntries()
+      await LogStorageService.saveConfig()
+      hilog.info(DOMAIN, TAG, 'Storage config updated')
+      return true
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `updateConfig failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
   // Remove expired log entries.
   private static cleanExpiredEntries(): number {
     let retentionDays = LogStorageService.normalizeRetentionDays(LogStorageService.storageConfig.retentionDays)
@@ -885,7 +729,7 @@ export class LogStorageService {
 
   // Convert to CSV format.
   private static toCsv(entries: LogEntry[]): string {
-    let header = '时间,事件类型,详情,进程名,PID,结果'
+    let header = '鏃堕棿,浜嬩欢绫诲瀷,璇︽儏,杩涚▼鍚?PID,缁撴灉'
     let lines: string[] = [header]
 
     for (let entry of entries) {
@@ -902,51 +746,4 @@ export class LogStorageService {
 
     return lines.join('\r\n')
   }
-
-  // Convert to plain text format.
-  private static toTxt(entries: LogEntry[]): string {
-    let lines: string[] = []
-
-    for (let entry of entries) {
-      let time = formatLogTimestamp(entry.timestamp)
-      let type = getLogEventTypeLabel(entry.eventType)
-      let result = getLogEventResultLabel(entry.result)
-      let line = `[${time}] [${type}] [${result}] ${entry.detail}`
-
-      if (entry.processName) {
-        line += ` (进程: ${entry.processName})`
-      }
-      if (entry.filePath) {
-        line += ` 路径: ${entry.filePath}`
-      }
-      if (entry.remoteAddr) {
-        line += ` 地址: ${entry.remoteAddr}`
-      }
-
-      lines.push(line)
-    }
-
-    return lines.join('\n')
-  }
-}
-
-interface ExportWriteResult {
-  success: boolean
-  fullPath?: string
-  sizeBytes?: number
-  errorCode?: number
-  errorMessage?: string
-}
-
-interface ExportAuthResult {
-  success: boolean
-  directory?: string
-  errorCode?: number
-  policyErrorCode?: number
-  persistenceForbidden?: boolean
-  errorMessage?: string
-}
-
-interface ResolvedExportTarget {
-  directory: string
 }

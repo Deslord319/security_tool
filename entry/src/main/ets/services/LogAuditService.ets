@@ -399,13 +399,14 @@ export class LogAuditService {
       LogAuditService.recordFileDrop('no_path', '文件路径归一化失败')
       return false
     }
-    let matchCandidate = `${normalized}/`
+    // Fixed: Directly check if normalized path starts with any prefix
+    // Previous logic had bugs with subdirectory matching
     for (let prefix of LogAuditService.FILE_FILTER_PREFIXES) {
-      if (normalized === prefix.substring(0, prefix.length - 1) || matchCandidate.startsWith(prefix)) {
+      if (normalized.startsWith(prefix)) {
         return true
       }
     }
-    LogAuditService.recordFileDrop('prefix_mismatch', `非用户文件路径: ${normalized}`)
+    LogAuditService.recordFileDrop('prefix_mismatch', `非用户文件路径：${normalized}`)
     return false
   }
 
