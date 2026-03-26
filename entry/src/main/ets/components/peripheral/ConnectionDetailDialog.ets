@@ -149,7 +149,7 @@ export struct ConnectionDetailDialog {
                 Text(item.time)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
                   .fontWeight(FontWeight.Medium)
-                Text(`${item.policy} · ${item.result}`)
+                Text(`${item.policy} / ${item.result}`)
                   .fontSize(AppStyles.FONT_SIZE_CAPTION)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
               }

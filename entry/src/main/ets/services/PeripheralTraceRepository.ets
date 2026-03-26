@@ -102,11 +102,12 @@ export class PeripheralTraceRepository {
         return true
       }
 
-      // Newest first.
+      // Newest first. Notify listeners immediately after the in-memory state changes
+      // so UI consumers can refresh without waiting for persistence to finish.
       PeripheralTraceRepository.records = normalized.concat(PeripheralTraceRepository.records)
       PeripheralTraceRepository.cleanupInMemory()
-      await PeripheralTraceRepository.saveRecords()
       PeripheralTraceRepository.notifyChanged(normalized.length)
+      await PeripheralTraceRepository.saveRecords()
       return true
     } catch (err) {
       hilog.error(DOMAIN, TAG, `appendBatch failed: ${JSON.stringify(err)}`)
