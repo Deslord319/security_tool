@@ -54,7 +54,7 @@ export class InterfaceControlViewModel {
       const cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
       const storagePolicy = PeripheralService.getUsbStoragePolicyWithResult()
 
-      this.state = {
+      this.commitState({
         usbDisabled: usbState.data ?? false,
         btDisabled: btState.data ?? false,
         wifiDisabled: wifiState.data ?? false,
@@ -66,8 +66,7 @@ export class InterfaceControlViewModel {
         usbStoragePolicyIndex: this.getUsbStoragePolicyIndex(
           storagePolicy.data ?? edmUsbManager.UsbPolicy.READ_WRITE
         )
-      }
-      this.syncVersion++
+      })
     } catch (err) {
       hilog.error(DOMAIN, TAG, `reloadState failed: ${JSON.stringify(err)}`)
     }
@@ -106,7 +105,7 @@ export class InterfaceControlViewModel {
       if (!result.success) {
         return this.normalizeReason(result.stage, REASON_USB_STORAGE_POLICY_FAILED)
       }
-      this.state = {
+      this.commitState({
         usbDisabled: this.state.usbDisabled,
         btDisabled: this.state.btDisabled,
         wifiDisabled: this.state.wifiDisabled,
@@ -116,8 +115,7 @@ export class InterfaceControlViewModel {
         microphoneDisabled: this.state.microphoneDisabled,
         cameraDisabled: this.state.cameraDisabled,
         usbStoragePolicyIndex: index
-      }
-      this.syncVersion++
+      })
       this.reloadState()
       return null
     } catch (err) {
@@ -130,7 +128,7 @@ export class InterfaceControlViewModel {
   }
 
   private updateInterfaceState(feature: string, disallow: boolean): void {
-    this.state = {
+    this.commitState({
       usbDisabled: feature === PeripheralService.FEATURE_USB ? disallow : this.state.usbDisabled,
       btDisabled: feature === PeripheralService.FEATURE_BLUETOOTH ? disallow : this.state.btDisabled,
       wifiDisabled: feature === PeripheralService.FEATURE_WIFI ? disallow : this.state.wifiDisabled,
@@ -140,7 +138,11 @@ export class InterfaceControlViewModel {
       microphoneDisabled: feature === PeripheralService.FEATURE_MICROPHONE ? disallow : this.state.microphoneDisabled,
       cameraDisabled: feature === PeripheralService.FEATURE_CAMERA ? disallow : this.state.cameraDisabled,
       usbStoragePolicyIndex: this.state.usbStoragePolicyIndex
-    }
+    })
+  }
+
+  private commitState(nextState: InterfaceControlState): void {
+    this.state = nextState
     this.syncVersion++
   }
 
