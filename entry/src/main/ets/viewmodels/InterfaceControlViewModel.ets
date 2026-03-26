@@ -2,6 +2,10 @@ import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralService } from '../services/PeripheralService'
 import {
+  REASON_READ_USB_STATUS_FAILED,
+  REASON_READ_USB_STORAGE_POLICY_FAILED,
+  REASON_SET_USB_INTERFACE_CONFLICT,
+  REASON_SET_USB_STORAGE_POLICY_CONFLICT,
   REASON_TOGGLE_INTERFACE_FAILED,
   REASON_USB_STORAGE_POLICY_FAILED
 } from './PeripheralViewModelReasons'
@@ -70,7 +74,7 @@ export class InterfaceControlViewModel {
     try {
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
-        return result.stage || REASON_TOGGLE_INTERFACE_FAILED
+        return this.normalizeReason(result.stage, REASON_TOGGLE_INTERFACE_FAILED)
       }
       this.reloadState()
       return null
@@ -92,7 +96,7 @@ export class InterfaceControlViewModel {
           : edmUsbManager.UsbPolicy.DISABLED
       const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policy)
       if (!result.success) {
-        return result.stage || REASON_USB_STORAGE_POLICY_FAILED
+        return this.normalizeReason(result.stage, REASON_USB_STORAGE_POLICY_FAILED)
       }
       this.state.usbStoragePolicyIndex = index
       this.reloadState()
@@ -113,5 +117,20 @@ export class InterfaceControlViewModel {
       return 1
     }
     return 2
+  }
+
+  private normalizeReason(stage: string | undefined, fallbackReason: string): string {
+    switch (stage) {
+      case REASON_READ_USB_STATUS_FAILED:
+        return REASON_READ_USB_STATUS_FAILED
+      case REASON_READ_USB_STORAGE_POLICY_FAILED:
+        return REASON_READ_USB_STORAGE_POLICY_FAILED
+      case REASON_SET_USB_INTERFACE_CONFLICT:
+        return REASON_SET_USB_INTERFACE_CONFLICT
+      case REASON_SET_USB_STORAGE_POLICY_CONFLICT:
+        return REASON_SET_USB_STORAGE_POLICY_CONFLICT
+      default:
+        return stage || fallbackReason
+    }
   }
 }

@@ -24,9 +24,18 @@ import {
   REASON_EXPORT_CONNECTION_HISTORY_FAILED,
   REASON_EXPORT_ENV_NOT_READY,
   REASON_EXPORT_POLICY_RECORDS_FAILED,
+  REASON_INFER_BLACKLIST_TYPE_FAILED,
   REASON_INIT_FAILED,
   REASON_INVALID_DEVICE_ID,
   REASON_POLICY_CHANGE_FAILED,
+  REASON_PRECHECK_BLACKLIST_CONFLICT,
+  REASON_PRECHECK_WHITELIST_CONFLICT,
+  REASON_READ_USB_BLACKLIST_FAILED,
+  REASON_READ_USB_STATUS_FAILED,
+  REASON_READ_USB_STORAGE_POLICY_FAILED,
+  REASON_READ_USB_WHITELIST_FAILED,
+  REASON_SET_USB_INTERFACE_CONFLICT,
+  REASON_SET_USB_STORAGE_POLICY_CONFLICT,
   REASON_TOGGLE_INTERFACE_FAILED,
   REASON_USB_STORAGE_POLICY_FAILED
 } from '../viewmodels/PeripheralViewModelReasons'
@@ -38,7 +47,7 @@ const MIN_USB_LOADING_DIALOG_DURATION_MS = 500
 @CustomDialog
 struct PeripheralUsbLoadingDialog {
   controller: CustomDialogController
-  message: string = '正在更新 USB 策略，请稍候'
+  message: string = '正在更新 USB 策略，请稍候...'
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
@@ -100,7 +109,7 @@ export struct PeripheralPage {
       const context = getContext(this) as common.UIAbilityContext
       await PeripheralRuntimeEventService.init(context)
       await PeripheralRuntimeEventService.start()
-      await this.viewModel.initialize(getContext(this) as common.UIAbilityContext)
+      await this.viewModel.initialize(context)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       this.showResultDialog('failure', this.resolveReason(REASON_INIT_FAILED))
@@ -122,7 +131,7 @@ export struct PeripheralPage {
       case REASON_EMPTY_POLICY_RECORDS:
         return '暂无可导出的设备策略记录'
       case REASON_TOGGLE_INTERFACE_FAILED:
-        return '接口控制失败，请稍后重试'
+        return '接口管控设置失败，请稍后重试'
       case REASON_USB_STORAGE_POLICY_FAILED:
         return '设置 USB 存储策略失败，请稍后重试'
       case REASON_POLICY_CHANGE_FAILED:
@@ -131,23 +140,23 @@ export struct PeripheralPage {
         return '导出历史记录失败，请稍后重试'
       case REASON_EXPORT_POLICY_RECORDS_FAILED:
         return '导出策略记录失败，请稍后重试'
-      case 'read_usb_status':
+      case REASON_READ_USB_STATUS_FAILED:
         return '读取 USB 状态失败，请稍后重试'
-      case 'read_usb_storage_policy':
+      case REASON_READ_USB_STORAGE_POLICY_FAILED:
         return '读取 USB 存储策略失败，请稍后重试'
-      case 'read_usb_whitelist':
+      case REASON_READ_USB_WHITELIST_FAILED:
         return '读取 USB 白名单失败，请稍后重试'
-      case 'read_usb_blacklist':
+      case REASON_READ_USB_BLACKLIST_FAILED:
         return '读取 USB 黑名单失败，请稍后重试'
-      case 'precheck_blacklist_conflict':
+      case REASON_PRECHECK_BLACKLIST_CONFLICT:
         return '当前已存在其他 USB 禁止访问策略，请先清理后再设置允许接入'
-      case 'precheck_whitelist_conflict':
+      case REASON_PRECHECK_WHITELIST_CONFLICT:
         return '当前已存在其他 USB 允许接入策略，请先清理后再设置禁止访问'
-      case 'infer_blacklist_type':
+      case REASON_INFER_BLACKLIST_TYPE_FAILED:
         return '当前设备类型暂不支持设置为禁止访问'
-      case 'set_usb_interface':
+      case REASON_SET_USB_INTERFACE_CONFLICT:
         return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
-      case 'set_usb_storage_policy':
+      case REASON_SET_USB_STORAGE_POLICY_CONFLICT:
         return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
       default:
         return reason && reason.trim().length > 0 ? reason : '请稍后重试'
@@ -334,7 +343,7 @@ export struct PeripheralPage {
         usbStoragePolicyIndex: this.viewModel.interfaceControl.state.usbStoragePolicyIndex,
         interfaceControlProcessingKey: this.viewModel.interfaceControl.processingKey,
         usbStorageControlKey: 'usb-storage-policy',
-        interfaceControlSyncToken: 0,
+        interfaceControlSyncToken: this.renderVersion,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
@@ -402,7 +411,7 @@ export struct PeripheralPage {
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
-    const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候', async () => {
+    const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候...', async () => {
       return await this.viewModel.setUsbStoragePolicy(index)
     })
     if (!success) {

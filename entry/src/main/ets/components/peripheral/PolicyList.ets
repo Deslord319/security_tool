@@ -25,6 +25,12 @@ export struct PolicyList {
   build() {
     Scroll() {
       Column({ space: 0 }) {
+        Text(`${this.refreshVersion}`)
+          .fontSize(0)
+          .width(0)
+          .height(0)
+          .opacity(0)
+
         if (this.policyRecords.length === 0) {
           this.emptyCard()
         } else {
@@ -54,7 +60,7 @@ export struct PolicyList {
               .margin({ left: 20, right: 20 })
           }
         }
-      }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}`)
+      }, (record: PeripheralPolicyRecord) => `${this.refreshVersion}-${record.deviceId}-${record.policyIndex}`)
     }
     .width('100%')
     .borderRadius(AppStyles.RADIUS_LG)

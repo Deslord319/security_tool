@@ -17,8 +17,11 @@ import {
   REASON_EMPTY_POLICY_RECORDS,
   REASON_EXPORT_ENV_NOT_READY,
   REASON_EXPORT_POLICY_RECORDS_FAILED,
+  REASON_INFER_BLACKLIST_TYPE_FAILED,
   REASON_INVALID_DEVICE_ID,
-  REASON_POLICY_CHANGE_FAILED
+  REASON_POLICY_CHANGE_FAILED,
+  REASON_PRECHECK_BLACKLIST_CONFLICT,
+  REASON_PRECHECK_WHITELIST_CONFLICT
 } from './PeripheralViewModelReasons'
 
 const TAG = 'PeripheralPolicyViewModel'
@@ -82,7 +85,7 @@ export class PeripheralPolicyViewModel {
         deviceType,
         policyIndex === 0 ? PeripheralService.USB_DEVICE_POLICY_ALLOW : PeripheralService.USB_DEVICE_POLICY_DENY
       )
-      return result.success ? null : (result.stage || REASON_POLICY_CHANGE_FAILED)
+      return result.success ? null : this.normalizeReason(result.stage)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `changePolicy failed: ${JSON.stringify(err)}`)
       return REASON_POLICY_CHANGE_FAILED
@@ -126,6 +129,19 @@ export class PeripheralPolicyViewModel {
 
   private endUpdate(deviceId: string): void {
     this.updatingKeys = this.updatingKeys.filter((item: string) => item !== deviceId)
+  }
+
+  private normalizeReason(stage: string | undefined): string {
+    switch (stage) {
+      case REASON_PRECHECK_BLACKLIST_CONFLICT:
+        return REASON_PRECHECK_BLACKLIST_CONFLICT
+      case REASON_PRECHECK_WHITELIST_CONFLICT:
+        return REASON_PRECHECK_WHITELIST_CONFLICT
+      case REASON_INFER_BLACKLIST_TYPE_FAILED:
+        return REASON_INFER_BLACKLIST_TYPE_FAILED
+      default:
+        return stage || REASON_POLICY_CHANGE_FAILED
+    }
   }
 
   private buildPolicyCsv(records: PeripheralPolicyRecord[]): string {
