@@ -22,36 +22,18 @@ import { HoverUtils } from '../utils/HoverUtils'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 import {
-  REASON_ADMIN_REQUIRED,
-  REASON_EMPTY_CONNECTION_HISTORY,
-  REASON_EMPTY_POLICY_RECORDS,
-  REASON_EXPORT_CONNECTION_HISTORY_FAILED,
-  REASON_EXPORT_ENV_NOT_READY,
-  REASON_EXPORT_POLICY_RECORDS_FAILED,
-  REASON_INFER_BLACKLIST_TYPE_FAILED,
-  REASON_INIT_FAILED,
-  REASON_INVALID_DEVICE_ID,
-  REASON_POLICY_CHANGE_FAILED,
-  REASON_PRECHECK_BLACKLIST_CONFLICT,
-  REASON_PRECHECK_WHITELIST_CONFLICT,
-  REASON_READ_USB_BLACKLIST_FAILED,
-  REASON_READ_USB_STATUS_FAILED,
-  REASON_READ_USB_STORAGE_POLICY_FAILED,
-  REASON_READ_USB_WHITELIST_FAILED,
-  REASON_SET_USB_INTERFACE_CONFLICT,
-  REASON_SET_USB_STORAGE_POLICY_CONFLICT,
-  REASON_TOGGLE_INTERFACE_FAILED,
-  REASON_USB_STORAGE_POLICY_FAILED
+  PeripheralPageConstant,
+  PeripheralViewModelReasons,
+  resolvePeripheralReason
 } from '../viewmodels/PeripheralViewModelReasons'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
-const MIN_USB_LOADING_DIALOG_DURATION_MS = 500
 
 @CustomDialog
 struct PeripheralUsbLoadingDialog {
   controller: CustomDialogController
-  message: string = '正在更新 USB 策略，请稍候...'
+  message: string = PeripheralPageConstant.usbLoadingMessage
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
@@ -119,54 +101,7 @@ export struct PeripheralPage {
       this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', this.resolveReason(REASON_INIT_FAILED))
-    }
-  }
-
-  private resolveReason(reason?: string | null): string {
-    switch (reason) {
-      case REASON_ADMIN_REQUIRED:
-        return '请先激活企业管理员权限'
-      case REASON_INIT_FAILED:
-        return '外设管理初始化失败，请稍后重试'
-      case REASON_INVALID_DEVICE_ID:
-        return '无法识别当前设备标识'
-      case REASON_EXPORT_ENV_NOT_READY:
-        return '导出环境尚未初始化，请稍后重试'
-      case REASON_EMPTY_CONNECTION_HISTORY:
-        return '没有可导出的设备连接记录'
-      case REASON_EMPTY_POLICY_RECORDS:
-        return '暂无可导出的设备策略记录'
-      case REASON_TOGGLE_INTERFACE_FAILED:
-        return '接口管控设置失败，请稍后重试'
-      case REASON_USB_STORAGE_POLICY_FAILED:
-        return '设置 USB 存储策略失败，请稍后重试'
-      case REASON_POLICY_CHANGE_FAILED:
-        return '修改设备策略失败，请稍后重试'
-      case REASON_EXPORT_CONNECTION_HISTORY_FAILED:
-        return '导出历史记录失败，请稍后重试'
-      case REASON_EXPORT_POLICY_RECORDS_FAILED:
-        return '导出策略记录失败，请稍后重试'
-      case REASON_READ_USB_STATUS_FAILED:
-        return '读取 USB 状态失败，请稍后重试'
-      case REASON_READ_USB_STORAGE_POLICY_FAILED:
-        return '读取 USB 存储策略失败，请稍后重试'
-      case REASON_READ_USB_WHITELIST_FAILED:
-        return '读取 USB 白名单失败，请稍后重试'
-      case REASON_READ_USB_BLACKLIST_FAILED:
-        return '读取 USB 黑名单失败，请稍后重试'
-      case REASON_PRECHECK_BLACKLIST_CONFLICT:
-        return '当前存在 USB 禁止访问规则冲突，请先清理后再设置允许接入'
-      case REASON_PRECHECK_WHITELIST_CONFLICT:
-        return '当前存在 USB 允许接入规则冲突，请先清理后再设置禁止访问'
-      case REASON_INFER_BLACKLIST_TYPE_FAILED:
-        return '当前设备类型暂不支持设置为禁止访问'
-      case REASON_SET_USB_INTERFACE_CONFLICT:
-        return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
-      case REASON_SET_USB_STORAGE_POLICY_CONFLICT:
-        return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
-      default:
-        return reason && reason.trim().length > 0 ? reason : '请稍后重试'
+      this.showResultDialog('failure', resolvePeripheralReason(PeripheralViewModelReasons.REASON_INIT_FAILED))
     }
   }
 
@@ -184,11 +119,11 @@ export struct PeripheralPage {
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
-    this.showResultDialog('success', '历史记录已导出，保存位置：下载/安全管理中心')
+    this.showResultDialog('success', PeripheralPageConstant.exportHistorySuccess)
   }
 
   private showPolicyRecordExportSuccessDialog(): void {
-    this.showResultDialog('success', '策略记录已导出，保存位置：下载/安全管理中心')
+    this.showResultDialog('success', PeripheralPageConstant.exportPolicySuccess)
   }
 
   private openUsbLoadingDialog(message: string): void {
@@ -226,7 +161,7 @@ export struct PeripheralPage {
       await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), 120))
       return await operation()
     } finally {
-      const remaining = MIN_USB_LOADING_DIALOG_DURATION_MS - (Date.now() - this.usbLoadingDialogOpenedAt)
+      const remaining = PeripheralPageConstant.minUsbLoadingDuration - (Date.now() - this.usbLoadingDialogOpenedAt)
       if (remaining > 0) {
         await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), remaining))
       }
@@ -437,7 +372,7 @@ export struct PeripheralPage {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('设置接口策略')
       } else {
-        this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
+        this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -452,7 +387,7 @@ export struct PeripheralPage {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('设置 USB 存储策略')
       } else {
-        this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
+        this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -465,7 +400,7 @@ export struct PeripheralPage {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('修改设备策略')
       } else {
-        this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
+        this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -477,7 +412,7 @@ export struct PeripheralPage {
     if (success) {
       this.showConnectionHistoryExportSuccessDialog()
     } else {
-      this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
+      this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
     }
   }
 
@@ -486,7 +421,7 @@ export struct PeripheralPage {
     if (success) {
       this.showPolicyRecordExportSuccessDialog()
     } else {
-      this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
+      this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
     }
   }
 
