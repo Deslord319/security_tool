@@ -304,7 +304,6 @@ export struct PeripheralPage {
     Column()
       .width('100%')
       .height('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
       .alignItems(HorizontalAlign.Start)
       .justifyContent(FlexAlign.Start)
     {

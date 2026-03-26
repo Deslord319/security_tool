@@ -98,25 +98,32 @@ export struct DeviceRecordList {
 
       this.tagCell(getPeripheralTypeLabel(record.deviceType), AppColors.TAG_PURPLE_BG, AppColors.TAG_PURPLE_TEXT, 1.5)
 
-      Text(getPeripheralRecordActionLabel(record.action))
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.eventTagText(record))
-        .layoutWeight(1.3)
+      Row() {
+        Text(getPeripheralRecordActionLabel(record.action))
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.eventTagText(record))
+      }
+      .layoutWeight(1.3)
+      .justifyContent(FlexAlign.Center)
 
-      Text(this.getPolicyText(record))
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .layoutWeight(1.2)
-        .textAlign(TextAlign.Center)
+      Row() {
+        Text(this.getPolicyText(record))
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      }
+      .layoutWeight(1.2)
+      .justifyContent(FlexAlign.Center)
 
-      Text(this.formatConnectionTime(record))
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .layoutWeight(1.9)
-        .textAlign(TextAlign.Center)
+      Row() {
+        Text(this.formatConnectionTime(record))
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .layoutWeight(1.9)
+      .justifyContent(FlexAlign.Center)
 
       Row() {
         Text('详情')
