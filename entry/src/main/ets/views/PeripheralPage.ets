@@ -13,6 +13,7 @@ import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
+import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -222,6 +223,7 @@ export struct PeripheralPage {
   private async runUsbOperationWithLoading(message: string, operation: () => Promise<boolean>): Promise<boolean> {
     this.openUsbLoadingDialog(message)
     try {
+      await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), 120))
       return await operation()
     } finally {
       const remaining = MIN_USB_LOADING_DIALOG_DURATION_MS - (Date.now() - this.usbLoadingDialogOpenedAt)
@@ -427,7 +429,10 @@ export struct PeripheralPage {
   }
 
   private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
-    const success = await this.viewModel.toggleInterface(feature, disallow)
+    const toggle = async (): Promise<boolean> => this.viewModel.toggleInterface(feature, disallow)
+    const success = feature === PeripheralService.FEATURE_USB
+      ? await this.runUsbOperationWithLoading('正在设置 USB 接口策略，请稍候...', toggle)
+      : await toggle()
     if (!success) {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('设置接口策略')

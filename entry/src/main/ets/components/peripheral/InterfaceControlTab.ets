@@ -5,6 +5,9 @@ import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
 
+const ENABLE_DISABLE_OPTIONS: string[] = ['启用', '禁用']
+const USB_STORAGE_OPTIONS: string[] = ['只读', '读写', '禁止访问']
+
 @Component
 export struct InterfaceControlTab {
   @Prop usbDisabled: boolean = false
@@ -73,7 +76,7 @@ export struct InterfaceControlTab {
     this.controlRow(
       label,
       description,
-      ['启用', '禁用'],
+      ENABLE_DISABLE_OPTIONS,
       disabled ? 1 : 0,
       this.interfaceControlProcessingKey === feature,
       (index: number) => {
@@ -89,7 +92,7 @@ export struct InterfaceControlTab {
     this.controlRow(
       'USB 存储设备',
       '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
-      ['只读', '读写', '禁止访问'],
+      USB_STORAGE_OPTIONS,
       this.usbStoragePolicyIndex,
       this.interfaceControlProcessingKey === this.usbStorageControlKey,
       (index: number) => this.onUsbStoragePolicyChange && this.onUsbStoragePolicyChange(index)
@@ -126,22 +129,31 @@ export struct InterfaceControlTab {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      Select(options.map((opt: string) => {
-        let item: SelectOption = { value: opt }
-        return item
-      }))
-        .selected(selectedIndex)
-        .value(options[selectedIndex] ?? '')
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_MD)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .enabled(!isProcessing)
-        .opacity(isProcessing ? 0.6 : 1)
-        .onSelect((index: number) => onSelect(index))
+      Row({ space: 10 }) {
+        if (isProcessing) {
+          LoadingProgress()
+            .width(18)
+            .height(18)
+            .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        }
+
+        Select(options.map((value: string) => {
+          const item: SelectOption = { value: value }
+          return item
+        }))
+          .selected(selectedIndex)
+          .value(options[selectedIndex] ?? '')
+          .fontColor(FormControlUtils.text(this.currentTheme))
+          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
+          .font({ size: AppStyles.FONT_SIZE_BODY })
+          .backgroundColor(FormControlUtils.background(this.currentTheme))
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .enabled(!isProcessing)
+          .opacity(isProcessing ? 0.72 : 1)
+          .onSelect((index: number) => onSelect(index))
+      }
     }
     .width('100%')
     .padding({ left: 20, right: 20, top: 16, bottom: 16 })
