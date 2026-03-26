@@ -9,7 +9,7 @@ import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import { PeripheralPolicyRecord } from '../models/DataModels'
+import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -93,10 +93,7 @@ export struct PeripheralPage {
   }
 
   private showAdminRequiredDialog(action: string): void {
-    this.showResultDialog(
-      'failure',
-      `${action}未完成，${ResultDialogHelper.displayReason(this.viewModel.errorMessage ?? undefined, '请先激活企业管理员')}`
-    )
+    this.showResultDialog('failure', `${action}未完成，${ResultDialogHelper.displayReason(this.viewModel.errorMessage ?? undefined, '请先激活企业管理员')}`)
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
@@ -118,7 +115,7 @@ export struct PeripheralPage {
   private openUsbLoadingDialog(message: string): void {
     this.closeUsbLoadingDialog()
     this.usbLoadingDialogController = new CustomDialogController({
-      builder: PeripheralUsbLoadingDialog({ message }),
+      builder: PeripheralUsbLoadingDialog({ message: message }),
       alignment: DialogAlignment.Center,
       autoCancel: false,
       customStyle: true
@@ -169,7 +166,7 @@ export struct PeripheralPage {
 
   @Builder
   private tabBarBuilder(title: string, index: number) {
-    TabBuilder({ title, index, currentTab: this.viewModel.currentTab, currentTheme: this.currentTheme })
+    TabBuilder({ title: title, index: index, currentTab: this.viewModel.currentTab, currentTheme: this.currentTheme })
   }
 
   build() {
@@ -296,7 +293,7 @@ export struct PeripheralPage {
         deviceRecords: this.viewModel.deviceRecords,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
-        onRecordClick: (record) => this.viewModel.openConnectionDetailDialog(record),
+        onRecordClick: (record: PeripheralConnectionRecord) => this.viewModel.openConnectionDetailDialog(record),
         onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
       })
     }
@@ -343,10 +340,9 @@ export struct PeripheralPage {
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
     this.viewModel.interfaceControlProcessingKey = 'usb-storage-policy'
-    const success = await this.runUsbOperationWithLoading(
-      '正在设置 USB 存储策略，请稍候',
-      async () => await this.viewModel.setUsbStoragePolicy(index)
-    )
+    const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候', async () => {
+      return await this.viewModel.setUsbStoragePolicy(index)
+    })
     this.viewModel.interfaceControlProcessingKey = ''
     if (!success) {
       if (!this.viewModel.adminState.activated) {

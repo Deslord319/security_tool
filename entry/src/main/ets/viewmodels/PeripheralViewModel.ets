@@ -6,14 +6,10 @@ import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
   AdminActivationState,
-  formatLogTimestamp,
   formatUsbDeviceId,
-  getLogEventResultLabel,
   getPeripheralRecordActionLabel,
-  getPeripheralRecordPolicyHitLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
-  inferUsbBaseClass,
   LogExportFormat,
   parseUsbDeviceId,
   PeripheralConnectionRecord,
@@ -25,6 +21,16 @@ import { LogContentExportOptions, LogStorageService } from '../services/LogStora
 import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
 import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
+import {
+  buildConnectionHistoryItems,
+  buildPeripheralPolicyRecords,
+  formatPeripheralTimestamp,
+  PeripheralConnectionHistoryItem
+} from '../utils/PeripheralRecordViewDataUtils'
+import {
+  getPeripheralConnectionPolicyLabel,
+  getPeripheralConnectionResultLabel
+} from '../utils/PeripheralRecordDisplayUtils'
 
 const TAG = 'PeripheralViewModel'
 const DOMAIN = 0x0013
@@ -47,16 +53,10 @@ interface WhitelistBlacklistState {
   btWhitelist: string[]
 }
 
-interface ConnectionHistoryItem {
-  time: string
-  policy: string
-  result: string
-}
-
 interface ConnectionDetailDialogState {
   visible: boolean
   record: PeripheralConnectionRecord | null
-  historyItems: ConnectionHistoryItem[]
+  historyItems: PeripheralConnectionHistoryItem[]
 }
 
 @Observed
@@ -100,13 +100,6 @@ class PeripheralViewModel {
 
   private traceStorageListenerId: number = -1
   private appContext: common.UIAbilityContext | null = null
-  private readonly usbRecordTypes: PeripheralType[] = [
-    PeripheralType.USB_STORAGE,
-    PeripheralType.USB_CAMERA,
-    PeripheralType.USB_PRINTER,
-    PeripheralType.USB_HID,
-    PeripheralType.USB_OTHER
-  ]
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.isLoading = true
@@ -154,7 +147,11 @@ class PeripheralViewModel {
   reloadDeviceRecords(): void {
     try {
       this.deviceRecords = PeripheralConnectionRecordService.queryRecords()
-      this.loadPeripheralPolicyData()
+      this.peripheralPolicyRecords = buildPeripheralPolicyRecords(
+        this.deviceRecords,
+        this.whitelistBlacklistState.usbWhitelist,
+        this.whitelistBlacklistState.usbBlacklist
+      )
     } catch (err) {
       hilog.error(DOMAIN, TAG, `reloadDeviceRecords failed: ${JSON.stringify(err)}`)
       this.deviceRecords = []
@@ -200,7 +197,11 @@ class PeripheralViewModel {
       }
       this.interfaceState.usbStoragePolicyIndex = index
       this.reloadWhitelistBlacklist()
-      this.loadPeripheralPolicyData()
+      this.peripheralPolicyRecords = buildPeripheralPolicyRecords(
+        this.deviceRecords,
+        this.whitelistBlacklistState.usbWhitelist,
+        this.whitelistBlacklistState.usbBlacklist
+      )
       this.errorMessage = null
       return true
     } catch (err) {
@@ -261,7 +262,7 @@ class PeripheralViewModel {
     this.connectionDetailDialog = {
       visible: true,
       record: record,
-      historyItems: this.getConnectionHistoryItems(record)
+      historyItems: buildConnectionHistoryItems(this.deviceRecords, record)
     }
   }
 
@@ -395,86 +396,6 @@ class PeripheralViewModel {
     }
   }
 
-  private loadPeripheralPolicyData(): void {
-    const whitelistKeys: Set<string> = new Set(
-      this.whitelistBlacklistState.usbWhitelist.map((device: edmUsbManager.UsbDeviceId) => {
-        return formatUsbDeviceId(device.vendorId, device.productId).toUpperCase()
-      })
-    )
-    const blacklistKeys: Set<string> = new Set(
-      this.whitelistBlacklistState.usbBlacklist.map((deviceType: edmUsbManager.UsbDeviceType) => {
-        return `${deviceType.baseClass}|${deviceType.subClass}|${deviceType.protocol}`
-      })
-    )
-    const items: Map<string, PeripheralPolicyRecord> = new Map()
-
-    for (const record of this.deviceRecords) {
-      if (this.usbRecordTypes.indexOf(record.deviceType) < 0) {
-        continue
-      }
-      const parsed = parseUsbDeviceId(record.deviceId)
-      if (!parsed) {
-        continue
-      }
-      const deviceKey = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
-      const existing = items.get(deviceKey)
-      if (existing && existing.lastSeenAt >= record.timestamp) {
-        continue
-      }
-
-      let policyIndex = 0
-      const baseClass = inferUsbBaseClass(record.deviceType)
-      if (baseClass > 0 && blacklistKeys.has(`${baseClass}|0|0`)) {
-        policyIndex = 1
-      } else if (whitelistKeys.has(deviceKey)) {
-        policyIndex = 0
-      }
-
-      items.set(deviceKey, {
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        deviceId: formatUsbDeviceId(parsed.vendorId, parsed.productId),
-        lastSeenAt: record.timestamp,
-        lastSeenLabel: this.formatTimestamp(record.timestamp),
-        policyIndex: policyIndex
-      })
-    }
-
-    this.peripheralPolicyRecords = Array.from(items.values()).sort((left: PeripheralPolicyRecord, right: PeripheralPolicyRecord) => {
-      return right.lastSeenAt - left.lastSeenAt
-    })
-  }
-
-  private getConnectionHistoryItems(record: PeripheralConnectionRecord | null): ConnectionHistoryItem[] {
-    if (!record) {
-      return []
-    }
-
-    const deviceKey = record.deviceId.replace(/\s+/g, '').toUpperCase()
-    const history: ConnectionHistoryItem[] = []
-    for (const item of this.deviceRecords) {
-      if (item.timestamp <= 0) {
-        continue
-      }
-      if (item.deviceId.replace(/\s+/g, '').toUpperCase() !== deviceKey) {
-        continue
-      }
-      const nextItem: ConnectionHistoryItem = {
-        time: this.formatConnectionTime(item),
-        policy: this.getConnectionPolicyHitLabel(item),
-        result: this.getConnectionResultLabel(item)
-      }
-      if (!history.some((existing: ConnectionHistoryItem) => {
-        return existing.time === nextItem.time &&
-          existing.policy === nextItem.policy &&
-          existing.result === nextItem.result
-      })) {
-        history.push(nextItem)
-      }
-    }
-    return history
-  }
-
   private getUsbStoragePolicyIndex(policy: edmUsbManager.UsbPolicy): number {
     if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
       return 0
@@ -483,55 +404,6 @@ class PeripheralViewModel {
       return 1
     }
     return 2
-  }
-
-  private formatTimestamp(timestamp: number): string {
-    if (timestamp <= 0) {
-      return '--'
-    }
-    return formatLogTimestamp(timestamp)
-  }
-
-  private formatConnectionTime(record: PeripheralConnectionRecord): string {
-    return this.formatTimestamp(record.timestamp)
-  }
-
-  private getConnectionPolicyHitLabel(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return '未审计'
-    }
-    if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
-      return this.getMatchedPolicyKindLabel(record)
-    }
-    return getPeripheralRecordPolicyHitLabel(record.policyHit)
-  }
-
-  private getConnectionResultLabel(record: PeripheralConnectionRecord): string {
-    if (record.source === 'policy_snapshot') {
-      return '快照'
-    }
-    return getLogEventResultLabel(record.result)
-  }
-
-  private getMatchedPolicyKindLabel(record: PeripheralConnectionRecord): string {
-    switch (record.matchedPolicyKind) {
-      case 'usb_disabled':
-        return 'USB 接口禁用'
-      case 'usb_storage_disabled':
-        return 'USB 存储已禁用'
-      case 'usb_storage_read_only':
-        return 'USB 存储只读'
-      case 'usb_whitelist':
-        return '命中 USB 白名单'
-      case 'usb_blacklist':
-        return '命中 USB 黑名单'
-      case 'default_allow':
-        return '默认允许'
-      case 'disconnect_event':
-        return '断开事件'
-      default:
-        return getPeripheralRecordPolicyHitLabel(record.policyHit)
-    }
   }
 
   private buildConnectionHistoryCsv(records: PeripheralConnectionRecord[]): string {
@@ -547,13 +419,13 @@ class PeripheralViewModel {
     ]
     const rows = records.map((record: PeripheralConnectionRecord) => {
       return [
-        this.formatConnectionTime(record),
+        formatPeripheralTimestamp(record.timestamp),
         record.deviceName,
         getPeripheralTypeLabel(record.deviceType),
         record.deviceId,
         getPeripheralRecordActionLabel(record.action),
-        this.getConnectionPolicyHitLabel(record),
-        this.getConnectionResultLabel(record),
+        getPeripheralConnectionPolicyLabel(record),
+        getPeripheralConnectionResultLabel(record),
         getPeripheralRecordSourceLabel(record.source)
       ].map((value: string) => this.escapeCsvValue(value)).join(',')
     })

@@ -7,6 +7,7 @@ import {
 } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
+import { getPeripheralConnectionPolicyLabel } from '../../utils/PeripheralRecordDisplayUtils'
 import { EmptyStatePanel } from '../EmptyStatePanel'
 import { PeripheralTableHeaderCell } from './PeripheralTableHeaderCell'
 import { PeripheralTypeTag } from './PeripheralTypeTag'
@@ -163,7 +164,7 @@ export struct DeviceRecordList {
     if (record.effectivePolicyLabel && record.effectivePolicyLabel.trim().length > 0) {
       return record.effectivePolicyLabel
     }
-    return getPeripheralRecordPolicyHitLabel(record.policyHit)
+    return getPeripheralConnectionPolicyLabel(record)
   }
 
   private eventTextColor(record: PeripheralConnectionRecord): ResourceColor {

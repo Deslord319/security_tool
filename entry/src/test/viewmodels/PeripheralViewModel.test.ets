@@ -182,4 +182,4 @@ describe('PeripheralViewModel', () => {
       done()
     })
   })
-})
+}

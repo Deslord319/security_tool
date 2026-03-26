@@ -1,12 +1,15 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import {
-  getLogEventResultLabel,
   getPeripheralRecordActionLabel,
-  getPeripheralRecordPolicyHitLabel,
   getPeripheralRecordSourceLabel,
   PeripheralConnectionRecord
 } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
+import {
+  getPeripheralConnectionPolicyLabel,
+  getPeripheralConnectionResultLabel,
+  getPeripheralMatchedPolicyKindLabel
+} from '../../utils/PeripheralRecordDisplayUtils'
 import { ConnectionDetailMetricField } from './ConnectionDetailMetricField'
 
 export interface ConnectionHistoryItem {
@@ -97,14 +100,14 @@ export struct ConnectionDetailDialog {
       .width('100%')
 
       Row({ space: 10 }) {
-        ConnectionDetailMetricField({ label: '策略结论', value: getPeripheralRecordPolicyHitLabel(record.policyHit), currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '策略结论', value: getPeripheralConnectionPolicyLabel(record), currentTheme: this.currentTheme })
         ConnectionDetailMetricField({ label: '执行策略', value: record.effectivePolicyLabel ?? '--', currentTheme: this.currentTheme })
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        ConnectionDetailMetricField({ label: '命中类型', value: record.matchedPolicyKind ?? 'unknown', currentTheme: this.currentTheme })
-        ConnectionDetailMetricField({ label: '结果状态', value: getLogEventResultLabel(record.result), currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '命中类型', value: getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind), currentTheme: this.currentTheme })
+        ConnectionDetailMetricField({ label: '结果状态', value: getPeripheralConnectionResultLabel(record), currentTheme: this.currentTheme })
       }
       .width('100%')
     }
