@@ -11,11 +11,25 @@ import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
+import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
+import {
+  REASON_ADMIN_REQUIRED,
+  REASON_EMPTY_CONNECTION_HISTORY,
+  REASON_EMPTY_POLICY_RECORDS,
+  REASON_EXPORT_CONNECTION_HISTORY_FAILED,
+  REASON_EXPORT_ENV_NOT_READY,
+  REASON_EXPORT_POLICY_RECORDS_FAILED,
+  REASON_INIT_FAILED,
+  REASON_INVALID_DEVICE_ID,
+  REASON_POLICY_CHANGE_FAILED,
+  REASON_TOGGLE_INTERFACE_FAILED,
+  REASON_USB_STORAGE_POLICY_FAILED
+} from '../viewmodels/PeripheralViewModelReasons'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
@@ -52,6 +66,7 @@ export struct PeripheralPage {
   onBack: () => void = () => {}
   @State viewModel: PeripheralViewModel = new PeripheralViewModel()
   @State hoveredPanelIndex: number = -1
+  @State renderVersion: number = 0
 
   private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [{ value: '允许接入' }, { value: '禁止访问' }]
@@ -71,15 +86,71 @@ export struct PeripheralPage {
 
   aboutToDisappear() {
     this.closeUsbLoadingDialog()
+    this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
   }
 
   private async initViewModel(): Promise<void> {
     try {
+      this.viewModel.onRefresh = () => {
+        setTimeout(() => {
+          this.renderVersion++
+        }, 0)
+      }
+      const context = getContext(this) as common.UIAbilityContext
+      await PeripheralRuntimeEventService.init(context)
+      await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(getContext(this) as common.UIAbilityContext)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', '外设管理初始化失败，请稍后重试')
+      this.showResultDialog('failure', this.resolveReason(REASON_INIT_FAILED))
+    }
+  }
+
+  private resolveReason(reason?: string | null): string {
+    switch (reason) {
+      case REASON_ADMIN_REQUIRED:
+        return '请先激活企业管理员'
+      case REASON_INIT_FAILED:
+        return '外设管理初始化失败，请稍后重试'
+      case REASON_INVALID_DEVICE_ID:
+        return '无法识别当前设备标识'
+      case REASON_EXPORT_ENV_NOT_READY:
+        return '导出环境未初始化，请稍后重试'
+      case REASON_EMPTY_CONNECTION_HISTORY:
+        return '没有可导出的设备连接记录'
+      case REASON_EMPTY_POLICY_RECORDS:
+        return '暂无可导出的设备策略记录'
+      case REASON_TOGGLE_INTERFACE_FAILED:
+        return '接口控制失败，请稍后重试'
+      case REASON_USB_STORAGE_POLICY_FAILED:
+        return '设置 USB 存储策略失败，请稍后重试'
+      case REASON_POLICY_CHANGE_FAILED:
+        return '修改设备策略失败，请稍后重试'
+      case REASON_EXPORT_CONNECTION_HISTORY_FAILED:
+        return '导出历史记录失败，请稍后重试'
+      case REASON_EXPORT_POLICY_RECORDS_FAILED:
+        return '导出策略记录失败，请稍后重试'
+      case 'read_usb_status':
+        return '读取 USB 状态失败，请稍后重试'
+      case 'read_usb_storage_policy':
+        return '读取 USB 存储策略失败，请稍后重试'
+      case 'read_usb_whitelist':
+        return '读取 USB 白名单失败，请稍后重试'
+      case 'read_usb_blacklist':
+        return '读取 USB 黑名单失败，请稍后重试'
+      case 'precheck_blacklist_conflict':
+        return '当前已存在其他 USB 禁止访问策略，请先清理后再设置允许接入'
+      case 'precheck_whitelist_conflict':
+        return '当前已存在其他 USB 允许接入策略，请先清理后再设置禁止访问'
+      case 'infer_blacklist_type':
+        return '当前设备类型暂不支持设置为禁止访问'
+      case 'set_usb_interface':
+        return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
+      case 'set_usb_storage_policy':
+        return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
+      default:
+        return reason && reason.trim().length > 0 ? reason : '请稍后重试'
     }
   }
 
@@ -93,23 +164,15 @@ export struct PeripheralPage {
   }
 
   private showAdminRequiredDialog(action: string): void {
-    this.showResultDialog('failure', `${action}未完成，${ResultDialogHelper.displayReason(this.viewModel.errorMessage ?? undefined, '请先激活企业管理员')}`)
+    this.showResultDialog('failure', `${action}未完成，${this.resolveReason(this.viewModel.reasonCode)}`)
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
     this.showResultDialog('success', '历史记录已导出，保存位置：下载/安全管理中心')
   }
 
-  private showConnectionHistoryExportFailureDialog(reason?: string): void {
-    this.showResultDialog('failure', `历史记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`)
-  }
-
   private showPolicyRecordExportSuccessDialog(): void {
     this.showResultDialog('success', '策略记录已导出，保存位置：下载/安全管理中心')
-  }
-
-  private showPolicyRecordExportFailureDialog(reason?: string): void {
-    this.showResultDialog('failure', `策略记录导出失败，${ResultDialogHelper.displayReason(reason, '请稍后重试')}`)
   }
 
   private openUsbLoadingDialog(message: string): void {
@@ -181,10 +244,10 @@ export struct PeripheralPage {
       .alignItems(HorizontalAlign.Start)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
-      if (this.viewModel.connectionDetailDialog.visible) {
+      if (this.viewModel.records.connectionDetailDialog.visible) {
         ConnectionDetailDialog({
-          selectedRecord: this.viewModel.connectionDetailDialog.record,
-          historyItems: this.viewModel.connectionDetailDialog.historyItems,
+          selectedRecord: this.viewModel.records.connectionDetailDialog.record,
+          historyItems: this.viewModel.records.connectionDetailDialog.historyItems,
           currentTheme: this.currentTheme,
           onClose: () => this.viewModel.closeConnectionDetailDialog()
         })
@@ -260,16 +323,16 @@ export struct PeripheralPage {
       .justifyContent(FlexAlign.Start)
     {
       InterfaceControlTab({
-        usbDisabled: this.viewModel.interfaceState.usbDisabled,
-        btDisabled: this.viewModel.interfaceState.btDisabled,
-        wifiDisabled: this.viewModel.interfaceState.wifiDisabled,
-        hdcDisabled: this.viewModel.interfaceState.hdcDisabled,
-        networkDisabled: this.viewModel.interfaceState.networkDisabled,
-        printerDisabled: this.viewModel.interfaceState.printerDisabled,
-        microphoneDisabled: this.viewModel.interfaceState.microphoneDisabled,
-        cameraDisabled: this.viewModel.interfaceState.cameraDisabled,
-        usbStoragePolicyIndex: this.viewModel.interfaceState.usbStoragePolicyIndex,
-        interfaceControlProcessingKey: this.viewModel.interfaceControlProcessingKey,
+        usbDisabled: this.viewModel.interfaceControl.state.usbDisabled,
+        btDisabled: this.viewModel.interfaceControl.state.btDisabled,
+        wifiDisabled: this.viewModel.interfaceControl.state.wifiDisabled,
+        hdcDisabled: this.viewModel.interfaceControl.state.hdcDisabled,
+        networkDisabled: this.viewModel.interfaceControl.state.networkDisabled,
+        printerDisabled: this.viewModel.interfaceControl.state.printerDisabled,
+        microphoneDisabled: this.viewModel.interfaceControl.state.microphoneDisabled,
+        cameraDisabled: this.viewModel.interfaceControl.state.cameraDisabled,
+        usbStoragePolicyIndex: this.viewModel.interfaceControl.state.usbStoragePolicyIndex,
+        interfaceControlProcessingKey: this.viewModel.interfaceControl.processingKey,
         usbStorageControlKey: 'usb-storage-policy',
         interfaceControlSyncToken: 0,
         currentTheme: this.currentTheme,
@@ -290,9 +353,10 @@ export struct PeripheralPage {
       .justifyContent(FlexAlign.Start)
     {
       DeviceRecordList({
-        deviceRecords: this.viewModel.deviceRecords,
+        deviceRecords: this.viewModel.records.records,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
+        refreshVersion: this.renderVersion,
         onRecordClick: (record: PeripheralConnectionRecord) => this.viewModel.openConnectionDetailDialog(record),
         onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
       })
@@ -308,47 +372,44 @@ export struct PeripheralPage {
       .justifyContent(FlexAlign.Start)
     {
       PolicyList({
-        policyRecords: this.viewModel.peripheralPolicyRecords,
+        policyRecords: this.viewModel.policy.records,
         policyListOptions: this.policyListOptions,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
+        refreshVersion: this.renderVersion,
         onPolicyChange: (index: number, policyIndex: number) => {
-          const record: PeripheralPolicyRecord | undefined = this.viewModel.peripheralPolicyRecords[index]
+          const record: PeripheralPolicyRecord | undefined = this.viewModel.policy.records[index]
           if (record) {
             void this.handlePolicyChange(record, policyIndex)
           }
         },
         getPolicyLabel: (index: number) => this.policyListOptions[index].value,
-        isUpdating: (deviceId: string) => this.viewModel.isPeripheralPolicyUpdating(deviceId.toUpperCase()),
+        isUpdating: (deviceId: string) => this.viewModel.policy.isUpdating(deviceId.toUpperCase()),
         onPanelHover: (isHover: boolean) => this.setPanelHover(2, isHover)
       })
     }
   }
 
   private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
-    this.viewModel.interfaceControlProcessingKey = feature
     const success = await this.viewModel.toggleInterface(feature, disallow)
-    this.viewModel.interfaceControlProcessingKey = ''
     if (!success) {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('设置接口策略')
       } else {
-        this.showResultDialog('failure', this.viewModel.errorMessage || '接口控制失败')
+        this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
       }
     }
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
-    this.viewModel.interfaceControlProcessingKey = 'usb-storage-policy'
     const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候', async () => {
       return await this.viewModel.setUsbStoragePolicy(index)
     })
-    this.viewModel.interfaceControlProcessingKey = ''
     if (!success) {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('设置 USB 存储策略')
       } else {
-        this.showResultDialog('failure', this.viewModel.errorMessage || '设置 USB 存储策略失败')
+        this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
       }
     }
   }
@@ -359,7 +420,7 @@ export struct PeripheralPage {
       if (!this.viewModel.adminState.activated) {
         this.showAdminRequiredDialog('修改设备策略')
       } else {
-        this.showResultDialog('failure', this.viewModel.errorMessage || '修改设备策略失败')
+        this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
       }
     }
   }
@@ -369,7 +430,7 @@ export struct PeripheralPage {
     if (success) {
       this.showConnectionHistoryExportSuccessDialog()
     } else {
-      this.showConnectionHistoryExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+      this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
     }
   }
 
@@ -378,12 +439,12 @@ export struct PeripheralPage {
     if (success) {
       this.showPolicyRecordExportSuccessDialog()
     } else {
-      this.showPolicyRecordExportFailureDialog(this.viewModel.errorMessage ?? undefined)
+      this.showResultDialog('failure', this.resolveReason(this.viewModel.reasonCode))
     }
   }
 
   private showClearHistoryConfirmDialog(): void {
-    if (this.viewModel.deviceRecords.length === 0) {
+    if (this.viewModel.records.records.length === 0) {
       this.showResultDialog('failure', '暂无可清理的历史记录')
       return
     }

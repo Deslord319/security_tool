@@ -1,7 +1,6 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import {
   getPeripheralRecordActionLabel,
-  getPeripheralRecordPolicyHitLabel,
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
 } from '../../models/DataModels'
@@ -17,6 +16,7 @@ export struct DeviceRecordList {
   @Prop deviceRecords: PeripheralConnectionRecord[] = []
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop hoveredPanelIndex: number = -1
+  @Prop refreshVersion: number = 0
   onRecordClick?: (record: PeripheralConnectionRecord) => void
   onPanelHover?: (isHover: boolean) => void
 

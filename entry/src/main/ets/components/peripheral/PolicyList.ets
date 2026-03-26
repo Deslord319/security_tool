@@ -16,6 +16,7 @@ export struct PolicyList {
   @Prop policyListOptions: PolicyOption[] = []
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop hoveredPanelIndex: number = -1
+  @Prop refreshVersion: number = 0
   onPolicyChange?: (index: number, policyIndex: number) => void
   getPolicyLabel?: (index: number) => string
   isUpdating?: (deviceId: string) => boolean

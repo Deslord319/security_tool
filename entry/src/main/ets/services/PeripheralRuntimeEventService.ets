@@ -28,6 +28,14 @@ interface PeripheralRuntimeStatus {
   capabilities: PeripheralRuntimeCapabilities
 }
 
+export interface UsbRuntimeEvent {
+  action: UsbEventAction
+  deviceId: string
+  deviceName: string
+  deviceType: PeripheralType
+  occurAt: number
+}
+
 interface ResolvedUsbEventInfo {
   vendorId: number
   productId: number
@@ -90,6 +98,8 @@ export class PeripheralRuntimeEventService {
     degradedReason: 'not_started'
   }
   private static lastSeenByKey: Map<string, number> = new Map()
+  private static nextListenerId: number = 1
+  private static listeners: Map<number, (event: UsbRuntimeEvent) => void> = new Map()
 
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     PeripheralRuntimeEventService.context = context
@@ -145,6 +155,16 @@ export class PeripheralRuntimeEventService {
         hilog.warn(DOMAIN, TAG, `unsubscribe failed: code=${err.code}, message=${err.message}`)
       }
     })
+  }
+
+  static addUsbEventListener(listener: (event: UsbRuntimeEvent) => void): number {
+    const id = PeripheralRuntimeEventService.nextListenerId++
+    PeripheralRuntimeEventService.listeners.set(id, listener)
+    return id
+  }
+
+  static removeUsbEventListener(listenerId: number): void {
+    PeripheralRuntimeEventService.listeners.delete(listenerId)
   }
 
   static getStatus(): PeripheralRuntimeStatus {
@@ -581,9 +601,30 @@ export class PeripheralRuntimeEventService {
       return
     }
     PeripheralRuntimeEventService.lastSeenByKey.set(dedupeKey, now)
-    PeripheralTraceRepository.append(record).then((ok: boolean) => {
+    const appendPromise = PeripheralTraceRepository.append(record)
+    PeripheralRuntimeEventService.notifyUsbEventListeners({
+      action: record.action as UsbEventAction,
+      deviceId: record.deviceId,
+      deviceName: record.deviceName,
+      deviceType: record.deviceType,
+      occurAt: record.occurAt
+    })
+    appendPromise.then((ok: boolean) => {
       if (!ok) {
         hilog.warn(DOMAIN, TAG, `append runtime record failed, deviceId=${record.deviceId}`)
+      }
+    })
+  }
+
+  private static notifyUsbEventListeners(event: UsbRuntimeEvent): void {
+    if (PeripheralRuntimeEventService.listeners.size <= 0) {
+      return
+    }
+    PeripheralRuntimeEventService.listeners.forEach((listener: (event: UsbRuntimeEvent) => void) => {
+      try {
+        listener(event)
+      } catch (err) {
+        hilog.warn(DOMAIN, TAG, `usb event listener failed: ${JSON.stringify(err)}`)
       }
     })
   }
