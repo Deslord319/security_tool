@@ -67,7 +67,10 @@ export struct PeripheralPage {
   @State detailHistoryItems: ConnectionHistoryItem[] = []
 
   private tabsController: TabsController = new TabsController()
-  private policyListOptions: PolicyOption[] = [{ value: '允许接入' }, { value: '禁止访问' }]
+  private policyListOptions: PolicyOption[] = [
+    { value: PeripheralPageConstant.policyOptions[0] },
+    { value: PeripheralPageConstant.policyOptions[1] }
+  ]
   private resultDialogController: CustomDialogController = new CustomDialogController({
     builder: ResultMessageBox({ onConfirm: () => {} }),
     alignment: DialogAlignment.Center,
@@ -238,11 +241,11 @@ export struct PeripheralPage {
       Row({ space: 8 }) {
         BackNavButton({ onBack: () => this.onBack() })
         Column({ space: 4 }) {
-          Text('外设管理')
+          Text(PeripheralPageConstant.pageTitle)
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Text('管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备访问策略')
+          Text(PeripheralPageConstant.pageSubtitle)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -256,8 +259,8 @@ export struct PeripheralPage {
       if (this.viewModel.currentTab === 1) {
         PageHeaderActions({
           currentTheme: this.currentTheme,
-          exportLabel: '导出历史记录',
-          clearLabel: '清理历史记录',
+          exportLabel: PeripheralPageConstant.exportHistoryLabel,
+          clearLabel: PeripheralPageConstant.clearHistoryLabel,
           onExport: () => void this.handleExportConnectionHistory(),
           onClear: () => this.showClearHistoryConfirmDialog(),
           showClear: true
@@ -265,8 +268,8 @@ export struct PeripheralPage {
       } else if (this.viewModel.currentTab === 2) {
         PageHeaderActions({
           currentTheme: this.currentTheme,
-          exportLabel: '导出策略记录',
-          clearLabel: '删除策略记录',
+          exportLabel: PeripheralPageConstant.exportPolicyLabel,
+          clearLabel: PeripheralPageConstant.clearPolicyLabel,
           onExport: () => void this.handleExportPeripheralPolicyRecords(),
           onClear: () => this.showClearPolicyRecordsConfirmDialog(),
           showClear: true
@@ -280,9 +283,9 @@ export struct PeripheralPage {
   @Builder
   private tabs() {
     Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
-      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder('接口管控', 0))
-      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder('设备连接记录', 1))
-      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder('黑白名单', 2))
+      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder(PeripheralPageConstant.interfaceTabTitle, 0))
+      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder(PeripheralPageConstant.deviceTabTitle, 1))
+      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder(PeripheralPageConstant.policyTabTitle, 2))
     }
     .barMode(BarMode.Fixed)
     .barWidth('100%')
@@ -366,11 +369,11 @@ export struct PeripheralPage {
   private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
     const toggle = async (): Promise<boolean> => this.viewModel.toggleInterface(feature, disallow)
     const success = feature === PeripheralService.FEATURE_USB
-      ? await this.runUsbOperationWithLoading('正在设置 USB 接口策略，请稍候...', toggle)
+      ? await this.runUsbOperationWithLoading(PeripheralPageConstant.usbInterfaceLoadingMessage, toggle)
       : await toggle()
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog('设置接口策略')
+        this.showAdminRequiredDialog(PeripheralPageConstant.setInterfaceAction)
       } else {
         this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -380,12 +383,12 @@ export struct PeripheralPage {
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
-    const success = await this.runUsbOperationWithLoading('正在设置 USB 存储策略，请稍候...', async () => {
+    const success = await this.runUsbOperationWithLoading(PeripheralPageConstant.usbStorageLoadingMessage, async () => {
       return await this.viewModel.setUsbStoragePolicy(index)
     })
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog('设置 USB 存储策略')
+        this.showAdminRequiredDialog(PeripheralPageConstant.setUsbStorageAction)
       } else {
         this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -398,7 +401,7 @@ export struct PeripheralPage {
     const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog('修改设备策略')
+        this.showAdminRequiredDialog(PeripheralPageConstant.updatePolicyAction)
       } else {
         this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
       }
@@ -427,27 +430,27 @@ export struct PeripheralPage {
 
   private showClearHistoryConfirmDialog(): void {
     if (this.viewModel.records.records.length === 0) {
-      this.showResultDialog('failure', '暂无可清理的历史记录')
+      this.showResultDialog('failure', PeripheralPageConstant.emptyHistoryToClear)
       return
     }
     void this.getUIContext().showAlertDialog({
-      title: '清理历史记录',
-      message: '将清空当前设备连接历史记录，且无法恢复。是否继续？',
-      primaryButton: { value: '取消', action: () => {} },
-      secondaryButton: { value: '清理', action: () => void this.clearConnectionHistory() }
+      title: PeripheralPageConstant.clearHistoryTitle,
+      message: PeripheralPageConstant.clearHistoryMessage,
+      primaryButton: { value: PeripheralPageConstant.cancelLabel, action: () => {} },
+      secondaryButton: { value: PeripheralPageConstant.clearLabel, action: () => void this.clearConnectionHistory() }
     })
   }
 
   private showClearPolicyRecordsConfirmDialog(): void {
     if (this.viewModel.policy.records.length === 0) {
-      this.showResultDialog('failure', '暂无可清理的策略记录')
+      this.showResultDialog('failure', PeripheralPageConstant.emptyPolicyToClear)
       return
     }
     void this.getUIContext().showAlertDialog({
-      title: '删除策略记录',
-      message: '将清空当前策略记录列表，且无法恢复。是否继续？',
-      primaryButton: { value: '取消', action: () => {} },
-      secondaryButton: { value: '删除', action: () => void this.clearPolicyRecords() }
+      title: PeripheralPageConstant.clearPolicyTitle,
+      message: PeripheralPageConstant.clearPolicyMessage,
+      primaryButton: { value: PeripheralPageConstant.cancelLabel, action: () => {} },
+      secondaryButton: { value: PeripheralPageConstant.deleteLabel, action: () => void this.clearPolicyRecords() }
     })
   }
 
@@ -456,27 +459,27 @@ export struct PeripheralPage {
       await PeripheralTraceRepository.init(getContext(this) as common.UIAbilityContext)
       const success = await PeripheralTraceRepository.clearAll()
       if (!success) {
-        this.showResultDialog('failure', '清理未完成，请稍后重试')
+        this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
         return
       }
       this.closeDetailDialog()
       this.viewModel.reloadDeviceRecords()
       this.renderVersion++
-      this.showResultDialog('success', '历史记录已清理')
+      this.showResultDialog('success', PeripheralPageConstant.clearHistorySuccess)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', '清理未完成，请稍后重试')
+      this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
     }
   }
 
   private async clearPolicyRecords(): Promise<void> {
     const success = await this.viewModel.clearPeripheralPolicyRecords()
     if (!success) {
-      this.showResultDialog('failure', '清理未完成，请稍后重试')
+      this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
       return
     }
     this.closeDetailDialog()
     this.renderVersion++
-    this.showResultDialog('success', '策略记录已清理')
+    this.showResultDialog('success', PeripheralPageConstant.clearPolicySuccess)
   }
 }
