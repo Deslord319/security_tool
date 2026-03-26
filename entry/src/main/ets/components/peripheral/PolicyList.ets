@@ -3,6 +3,8 @@ import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/Dat
 import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
+import { PeripheralTableHeaderCell } from './PeripheralTableHeaderCell'
+import { PeripheralTypeTag } from './PeripheralTypeTag'
 
 export interface PolicyOption {
   value: string
@@ -92,11 +94,11 @@ export struct PolicyList {
   @Builder
   private tableHeader() {
     Row() {
-      this.headerText('设备名称', 2.6, TextAlign.Center)
-      this.headerText('设备类型', 1.5, TextAlign.Center)
-      this.headerText('当前策略', 1.5, TextAlign.Center)
-      this.headerText('最近连接时间', 1.8, TextAlign.Center)
-      this.headerText('操作', 1.4, TextAlign.Center)
+      PeripheralTableHeaderCell({ label: '设备名称', weight: 2.6, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '设备类型', weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '当前策略', weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '最近连接时间', weight: 1.8, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '操作', weight: 1.4, currentTheme: this.currentTheme })
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -123,13 +125,18 @@ export struct PolicyList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
+      PeripheralTypeTag({
+        label: getPeripheralTypeLabel(record.deviceType),
+        weight: 1.5,
+        currentTheme: this.currentTheme
+      })
 
       Row() {
         Text(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .textAlign(TextAlign.Center)
       }
       .layoutWeight(1.5)
       .justifyContent(FlexAlign.Center)
@@ -139,6 +146,7 @@ export struct PolicyList {
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .textAlign(TextAlign.Center)
       }
       .layoutWeight(1.8)
       .justifyContent(FlexAlign.Center)
@@ -166,36 +174,6 @@ export struct PolicyList {
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .alignItems(VerticalAlign.Center)
-  }
-
-  @Builder
-  private headerText(label: string, weight: number, align: TextAlign) {
-    Text(label)
-      .fontSize(AppStyles.FONT_SIZE_SMALL)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .layoutWeight(weight)
-      .textAlign(align)
-  }
-
-  @Builder
-  private typeTag(label: string, weight: number) {
-    Row() {
-      Row() {
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.TAG_PURPLE_TEXT)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .borderRadius(6)
-      .backgroundColor(AppColors.TAG_PURPLE_BG)
-    }
-    .layoutWeight(weight)
-    .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
   }
 }

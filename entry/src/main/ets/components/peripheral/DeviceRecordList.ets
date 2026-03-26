@@ -8,6 +8,8 @@ import {
 import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { EmptyStatePanel } from '../EmptyStatePanel'
+import { PeripheralTableHeaderCell } from './PeripheralTableHeaderCell'
+import { PeripheralTypeTag } from './PeripheralTypeTag'
 
 @Component
 export struct DeviceRecordList {
@@ -64,12 +66,12 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      this.headerText('设备名称', 2.6, TextAlign.Center)
-      this.headerText('设备类型', 1.5, TextAlign.Center)
-      this.headerText('连接事件', 1.3, TextAlign.Center)
-      this.headerText('策略', 1.2, TextAlign.Center)
-      this.headerText('连接时间', 1.9, TextAlign.Center)
-      this.headerText('操作', 1.0, TextAlign.Center)
+      PeripheralTableHeaderCell({ label: '设备名称', weight: 2.6, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '设备类型', weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '连接事件', weight: 1.3, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '策略', weight: 1.2, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '连接时间', weight: 1.9, currentTheme: this.currentTheme })
+      PeripheralTableHeaderCell({ label: '操作', weight: 1.0, currentTheme: this.currentTheme })
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -96,13 +98,18 @@ export struct DeviceRecordList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
+      PeripheralTypeTag({
+        label: getPeripheralTypeLabel(record.deviceType),
+        weight: 1.5,
+        currentTheme: this.currentTheme
+      })
 
       Row() {
         Text(getPeripheralRecordActionLabel(record.action))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.eventTextColor(record))
+          .textAlign(TextAlign.Center)
       }
       .layoutWeight(1.3)
       .justifyContent(FlexAlign.Center)
@@ -112,6 +119,7 @@ export struct DeviceRecordList {
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .textAlign(TextAlign.Center)
       }
       .layoutWeight(1.2)
       .justifyContent(FlexAlign.Center)
@@ -121,6 +129,7 @@ export struct DeviceRecordList {
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .textAlign(TextAlign.Center)
       }
       .layoutWeight(1.9)
       .justifyContent(FlexAlign.Center)
@@ -132,7 +141,7 @@ export struct DeviceRecordList {
           .fontColor(Color.White)
       }
       .height(32)
-      .padding({ left: 18, right: 18 })
+      .padding({ left: 16, right: 16 })
       .justifyContent(FlexAlign.Center)
       .borderRadius(8)
       .backgroundColor(AppColors.BRAND_PRIMARY)
@@ -142,36 +151,6 @@ export struct DeviceRecordList {
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .alignItems(VerticalAlign.Center)
-  }
-
-  @Builder
-  private headerText(label: string, weight: number, align: TextAlign) {
-    Text(label)
-      .fontSize(AppStyles.FONT_SIZE_SMALL)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .layoutWeight(weight)
-      .textAlign(align)
-  }
-
-  @Builder
-  private typeTag(label: string, weight: number) {
-    Row() {
-      Row() {
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.TAG_PURPLE_TEXT)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .borderRadius(6)
-      .backgroundColor(AppColors.TAG_PURPLE_BG)
-    }
-    .layoutWeight(weight)
-    .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
   }
 

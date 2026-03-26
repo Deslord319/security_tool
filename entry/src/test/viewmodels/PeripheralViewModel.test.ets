@@ -62,9 +62,13 @@ describe('PeripheralViewModel', () => {
       expect(viewModel.currentTab).assertEqual(2)
     })
 
-    it('should ignore invalid indices', 0, () => {
+    it('should ignore invalid indices and repeated switch', 0, () => {
+      viewModel.switchToTab(0)
+      expect(viewModel.currentTab).assertEqual(0)
+
       viewModel.switchToTab(-1)
       expect(viewModel.currentTab).assertEqual(0)
+
       viewModel.switchToTab(3)
       expect(viewModel.currentTab).assertEqual(0)
     })
@@ -75,6 +79,8 @@ describe('PeripheralViewModel', () => {
       const deviceId = 'VID:1234 PID:5678'
       viewModel.startPeripheralPolicyUpdate(deviceId)
       expect(viewModel.isPeripheralPolicyUpdating(deviceId)).assertTrue()
+      expect(viewModel.isPeripheralPolicyUpdating(deviceId.toLowerCase())).assertTrue()
+
       viewModel.endPeripheralPolicyUpdate(deviceId)
       expect(viewModel.isPeripheralPolicyUpdating(deviceId)).assertFalse()
     })
@@ -116,6 +122,27 @@ describe('PeripheralViewModel', () => {
       expect(viewModel.connectionDetailDialog.historyItems.length).assertEqual(2)
     })
 
+    it('should deduplicate identical history items', 0, () => {
+      const timestamp = Date.now()
+      const record: PeripheralConnectionRecord = {
+        id: 'test-1',
+        timestamp: timestamp,
+        deviceId: 'VID:1234 PID:5678',
+        deviceName: 'Test Device',
+        deviceType: PeripheralType.USB_STORAGE,
+        source: 'runtime_event',
+        action: 'connect',
+        result: LogEventResult.SUCCESS,
+        policyHit: 'allow',
+        summary: 'device connected'
+      }
+      viewModel.deviceRecords = [record, { ...record, id: 'test-2' }]
+
+      viewModel.openConnectionDetailDialog(record)
+
+      expect(viewModel.connectionDetailDialog.historyItems.length).assertEqual(1)
+    })
+
     it('should close dialog and reset state', 0, () => {
       viewModel.connectionDetailDialog.visible = true
       viewModel.closeConnectionDetailDialog()
@@ -129,7 +156,7 @@ describe('PeripheralViewModel', () => {
     it('should return false when admin is not activated', 0, () => {
       const result = viewModel.ensureAdminReady('测试操作')
       expect(result).assertFalse()
-      expect(viewModel.errorMessage !== null).assertTrue()
+      expect(viewModel.errorMessage).assertEqual('测试操作未完成，请先激活企业管理员')
     })
 
     it('should reject exporting connection history when there are no records', 0, async (done: Function) => {
@@ -147,27 +174,12 @@ describe('PeripheralViewModel', () => {
     })
   })
 
-  describe('helper methods', () => {
-    it('should build usb display name from manufacturer and product', 0, () => {
-      const name = viewModel.buildUsbDisplayName('Kingston', 'DataTraveler', 0x0951, 0x1666)
-      expect(name).assertEqual('Kingston DataTraveler')
-    })
-
-    it('should fall back to vid pid when names are missing', 0, () => {
-      const name = viewModel.buildUsbDisplayName('', '', 0x0951, 0x1666)
-      expect(name).assertEqual('USB 设备 (0951:1666)')
-    })
-
-    it('candidate helpers should be callable with empty state', 0, () => {
-      expect(viewModel.getUsbWhitelistCandidates().length).assertEqual(0)
-      expect(viewModel.getBluetoothWhitelistCandidates().length).assertEqual(0)
-      expect(viewModel.getUsbBlacklistTemplates().length >= 3).assertTrue()
-    })
-
-    it('safe public methods should be callable', 0, () => {
+  describe('safe public methods', () => {
+    it('safe public methods should be callable', 0, async (done: Function) => {
       expect(() => viewModel.reloadDeviceRecords()).not.toThrow()
-      expect(() => viewModel.reloadAllData()).not.toThrow()
+      await viewModel.reloadAllData()
       expect(() => viewModel.destroy()).not.toThrow()
+      done()
     })
   })
 })

@@ -2,7 +2,6 @@
  * Peripheral page ViewModel.
  */
 import { common } from '@kit.AbilityKit'
-import { BusinessError, usbManager as hostUsbManager } from '@kit.BasicServicesKit'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
@@ -10,19 +9,16 @@ import {
   formatLogTimestamp,
   formatUsbDeviceId,
   getLogEventResultLabel,
-  getPeripheralCandidateSourceLabel,
   getPeripheralRecordActionLabel,
   getPeripheralRecordPolicyHitLabel,
+  getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
-  inferPeripheralTypeFromBaseClass,
   inferUsbBaseClass,
   LogExportFormat,
   parseUsbDeviceId,
-  PeripheralBlacklistTemplate,
   PeripheralConnectionRecord,
   PeripheralPolicyRecord,
-  PeripheralType,
-  PeripheralWhitelistCandidate
+  PeripheralType
 } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { LogContentExportOptions, LogStorageService } from '../services/LogStorageService'
@@ -63,12 +59,6 @@ interface ConnectionDetailDialogState {
   historyItems: ConnectionHistoryItem[]
 }
 
-interface UsbBlacklistDefaultTemplate {
-  title: string
-  description: string
-  baseClass: number
-}
-
 @Observed
 class PeripheralViewModel {
   adminState: AdminActivationState = {
@@ -101,7 +91,6 @@ class PeripheralViewModel {
   errorMessage: string | null = null
   interfaceControlProcessingKey: string = ''
   policyUpdatingKeys: string[] = []
-  peripheralPolicyRenderVersion: number = 0
   connectionDetailDialog: ConnectionDetailDialogState = {
     visible: false,
     record: null,
@@ -128,7 +117,7 @@ class PeripheralViewModel {
         this.reloadDeviceRecords()
       })
     } catch (err) {
-      this.errorMessage = `初始化失败：${JSON.stringify(err)}`
+      this.errorMessage = `外设管理初始化失败：${JSON.stringify(err)}`
       hilog.error(DOMAIN, TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
@@ -220,135 +209,6 @@ class PeripheralViewModel {
     }
   }
 
-  async addToUsbWhitelist(vendorId: number, productId: number): Promise<boolean> {
-    if (!this.ensureAdminReady('添加 USB 白名单')) {
-      return false
-    }
-
-    try {
-      const result = PeripheralService.addUsbWhitelistWithResult([{ vendorId, productId }])
-      if (!result.success) {
-        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '添加 USB 白名单失败'
-        return false
-      }
-      this.reloadWhitelistBlacklist()
-      this.loadPeripheralPolicyData()
-      this.errorMessage = null
-      return true
-    } catch (err) {
-      this.errorMessage = `添加 USB 白名单失败：${JSON.stringify(err)}`
-      return false
-    }
-  }
-
-  async removeFromUsbWhitelist(device: edmUsbManager.UsbDeviceId): Promise<boolean> {
-    if (!this.ensureAdminReady('移除 USB 白名单')) {
-      return false
-    }
-
-    try {
-      const result = PeripheralService.removeUsbWhitelistWithResult([device])
-      if (!result.success) {
-        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '移除 USB 白名单失败'
-        return false
-      }
-      this.reloadWhitelistBlacklist()
-      this.loadPeripheralPolicyData()
-      this.errorMessage = null
-      return true
-    } catch (err) {
-      this.errorMessage = `移除 USB 白名单失败：${JSON.stringify(err)}`
-      return false
-    }
-  }
-
-  async addToBluetoothWhitelist(mac: string): Promise<boolean> {
-    if (!this.ensureAdminReady('添加蓝牙白名单')) {
-      return false
-    }
-
-    try {
-      const result = PeripheralService.addBluetoothWhitelistWithResult([mac])
-      if (!result.success) {
-        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '添加蓝牙白名单失败'
-        return false
-      }
-      this.reloadWhitelistBlacklist()
-      this.errorMessage = null
-      return true
-    } catch (err) {
-      this.errorMessage = `添加蓝牙白名单失败：${JSON.stringify(err)}`
-      return false
-    }
-  }
-
-  async removeFromBluetoothWhitelist(mac: string): Promise<boolean> {
-    if (!this.ensureAdminReady('移除蓝牙白名单')) {
-      return false
-    }
-
-    try {
-      const result = PeripheralService.removeBluetoothWhitelistWithResult([mac])
-      if (!result.success) {
-        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '移除蓝牙白名单失败'
-        return false
-      }
-      this.reloadWhitelistBlacklist()
-      this.errorMessage = null
-      return true
-    } catch (err) {
-      this.errorMessage = `移除蓝牙白名单失败：${JSON.stringify(err)}`
-      return false
-    }
-  }
-
-  async addToUsbBlacklist(baseClass: number, subClass: number, protocol: number): Promise<boolean> {
-    if (!this.ensureAdminReady('添加 USB 黑名单')) {
-      return false
-    }
-
-    try {
-      const result = PeripheralService.addUsbBlacklistWithResult([{
-        baseClass,
-        subClass,
-        protocol,
-        descriptor: edmUsbManager.Descriptor.INTERFACE
-      }])
-      if (!result.success) {
-        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '添加 USB 黑名单失败'
-        return false
-      }
-      this.reloadWhitelistBlacklist()
-      this.loadPeripheralPolicyData()
-      this.errorMessage = null
-      return true
-    } catch (err) {
-      this.errorMessage = `添加 USB 黑名单失败：${JSON.stringify(err)}`
-      return false
-    }
-  }
-
-  async removeFromUsbBlacklist(deviceType: edmUsbManager.UsbDeviceType): Promise<boolean> {
-    if (!this.ensureAdminReady('移除 USB 黑名单')) {
-      return false
-    }
-
-    try {
-      const result = PeripheralService.removeUsbBlacklistWithResult([deviceType])
-      if (!result.success) {
-        this.errorMessage = result.userMessage?.trim() || result.errorMessage || '移除 USB 黑名单失败'
-        return false
-      }
-      this.reloadWhitelistBlacklist()
-      this.loadPeripheralPolicyData()
-      this.errorMessage = null
-      return true
-    } catch (err) {
-      this.errorMessage = `移除 USB 黑名单失败：${JSON.stringify(err)}`
-      return false
-    }
-  }
-
   async handlePeripheralPolicyChange(deviceId: string, deviceType: PeripheralType, policyIndex: number): Promise<boolean> {
     if (!this.ensureAdminReady('修改设备策略')) {
       return false
@@ -400,7 +260,7 @@ class PeripheralViewModel {
   openConnectionDetailDialog(record: PeripheralConnectionRecord): void {
     this.connectionDetailDialog = {
       visible: true,
-      record,
+      record: record,
       historyItems: this.getConnectionHistoryItems(record)
     }
   }
@@ -437,12 +297,11 @@ class PeripheralViewModel {
         'manual',
         exportOptions
       )
-      hilog.info(DOMAIN, TAG, `exportConnectionHistory result=${JSON.stringify(result)}`)
       if (!result.success) {
         this.errorMessage = result.errorMessage || '导出历史记录失败，请稍后重试'
         return false
       }
-      this.errorMessage = result.fullPath ?? '历史记录已导出'
+      this.errorMessage = null
       return true
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
@@ -477,171 +336,13 @@ class PeripheralViewModel {
         this.errorMessage = result.errorMessage || '导出策略记录失败，请稍后重试'
         return false
       }
-      this.errorMessage = result.fullPath ?? '策略记录已导出'
+      this.errorMessage = null
       return true
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
       this.errorMessage = '导出策略记录失败，请稍后重试'
       return false
     }
-  }
-
-  buildUsbDisplayName(manufacturerName?: string, productName?: string, vendorId?: number, productId?: number): string {
-    const manufacturer = manufacturerName ? manufacturerName.trim() : ''
-    const product = productName ? productName.trim() : ''
-    if (manufacturer.length > 0 && product.length > 0) {
-      return `${manufacturer} ${product}`
-    }
-    if (manufacturer.length > 0) {
-      return manufacturer
-    }
-    if (product.length > 0) {
-      return product
-    }
-    if (typeof vendorId === 'number' && typeof productId === 'number') {
-      return `USB 设备 (${formatUsbDeviceId(vendorId, productId)})`
-    }
-    return 'USB Device'
-  }
-
-  getUsbWhitelistCandidates(): PeripheralWhitelistCandidate[] {
-    const items: Map<string, PeripheralWhitelistCandidate> = new Map()
-    const disabledKeys = this.whitelistBlacklistState.usbWhitelist.map((device: edmUsbManager.UsbDeviceId) => {
-      return formatUsbDeviceId(device.vendorId, device.productId).toUpperCase()
-    })
-
-    for (const device of this.getConnectedUsbDevices()) {
-      const deviceId = formatUsbDeviceId(device.vendorId, device.productId)
-      const key = deviceId.toUpperCase()
-      if (items.has(key)) {
-        continue
-      }
-      items.set(key, {
-        id: `usb_connected_${key}`,
-        deviceName: this.buildUsbDisplayName(
-          device.manufacturerName,
-          device.productName,
-          device.vendorId,
-          device.productId
-        ),
-        deviceType: inferPeripheralTypeFromBaseClass(device.clazz),
-        deviceId,
-        timestamp: Date.now(),
-        source: 'connected_usb',
-        vendorId: device.vendorId,
-        productId: device.productId,
-        isConnected: true,
-        disabled: disabledKeys.includes(key)
-      })
-    }
-
-    for (const record of this.deviceRecords) {
-      const parsed = parseUsbDeviceId(record.deviceId)
-      if (!parsed) {
-        continue
-      }
-      const key = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
-      if (items.has(key)) {
-        continue
-      }
-      items.set(key, {
-        id: `usb_history_${record.id}`,
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        deviceId: formatUsbDeviceId(parsed.vendorId, parsed.productId),
-        timestamp: record.timestamp,
-        source: record.source,
-        vendorId: parsed.vendorId,
-        productId: parsed.productId,
-        disabled: disabledKeys.includes(key)
-      })
-    }
-
-    return Array.from(items.values()).sort((left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate) => {
-      return this.compareCandidateTime(left, right)
-    })
-  }
-
-  getBluetoothWhitelistCandidates(): PeripheralWhitelistCandidate[] {
-    const items: Map<string, PeripheralWhitelistCandidate> = new Map()
-    const disabledKeys = this.whitelistBlacklistState.btWhitelist.map((mac: string) => mac.toUpperCase())
-
-    for (const record of this.deviceRecords) {
-      if (record.deviceType !== PeripheralType.BLUETOOTH) {
-        continue
-      }
-      const mac = this.normalizeMac(record.deviceId.replace(/MAC:\s*/gi, ''))
-      if (!mac || items.has(mac)) {
-        continue
-      }
-      items.set(mac, {
-        id: `bt_${record.id}`,
-        deviceName: record.deviceName,
-        deviceType: PeripheralType.BLUETOOTH,
-        deviceId: `MAC: ${mac}`,
-        timestamp: record.timestamp,
-        source: record.source,
-        mac,
-        disabled: disabledKeys.includes(mac)
-      })
-    }
-
-    return Array.from(items.values()).sort((left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate) => {
-      return this.compareCandidateTime(left, right)
-    })
-  }
-
-  getUsbBlacklistTemplates(): PeripheralBlacklistTemplate[] {
-    const items: Map<string, PeripheralBlacklistTemplate> = new Map()
-    const disabledKeys = this.whitelistBlacklistState.usbBlacklist.map((deviceType: edmUsbManager.UsbDeviceType) => {
-      return `${deviceType.baseClass}|${deviceType.subClass}|${deviceType.protocol}`
-    })
-
-    for (const device of this.getConnectedUsbDevices()) {
-      const title = this.buildUsbDisplayName(
-        device.manufacturerName,
-        device.productName,
-        device.vendorId,
-        device.productId
-      )
-      const description = `${formatUsbDeviceId(device.vendorId, device.productId)} · 当前连接 USB 设备`
-      this.appendBlacklistTemplate(items, disabledKeys, title, description, device.clazz, device.subClass, device.protocol, true)
-    }
-
-    const defaults: UsbBlacklistDefaultTemplate[] = [
-      { title: 'USB 存储设备', description: '通用大容量存储设备模板', baseClass: 0x08 },
-      { title: 'USB 打印设备', description: '通用打印设备模板', baseClass: 0x07 },
-      { title: 'USB 摄像设备', description: '通用摄像设备模板', baseClass: 0x0E }
-    ]
-    for (const item of defaults) {
-      this.appendBlacklistTemplate(items, disabledKeys, item.title, item.description, item.baseClass, 0, 0, false)
-    }
-
-    for (const record of this.deviceRecords) {
-      const baseClass = inferUsbBaseClass(record.deviceType)
-      if (baseClass <= 0) {
-        continue
-      }
-      this.appendBlacklistTemplate(
-        items,
-        disabledKeys,
-        `${record.deviceName} 类型模板`,
-        `${getPeripheralCandidateSourceLabel(record.source)} · ${this.formatTimestamp(record.timestamp)}`,
-        baseClass,
-        0,
-        0,
-        false
-      )
-    }
-
-    const templates = Array.from(items.values())
-    templates.sort((left: PeripheralBlacklistTemplate, right: PeripheralBlacklistTemplate) => {
-      if (!!left.fromConnectedDevice === !!right.fromConnectedDevice) {
-        return left.title.localeCompare(right.title)
-      }
-      return left.fromConnectedDevice ? -1 : 1
-    })
-    return templates
   }
 
   switchToTab(index: number): void {
@@ -735,14 +436,13 @@ class PeripheralViewModel {
         deviceId: formatUsbDeviceId(parsed.vendorId, parsed.productId),
         lastSeenAt: record.timestamp,
         lastSeenLabel: this.formatTimestamp(record.timestamp),
-        policyIndex
+        policyIndex: policyIndex
       })
     }
 
     this.peripheralPolicyRecords = Array.from(items.values()).sort((left: PeripheralPolicyRecord, right: PeripheralPolicyRecord) => {
       return right.lastSeenAt - left.lastSeenAt
     })
-    this.peripheralPolicyRenderVersion += 1
   }
 
   private getConnectionHistoryItems(record: PeripheralConnectionRecord | null): ConnectionHistoryItem[] {
@@ -818,7 +518,7 @@ class PeripheralViewModel {
       case 'usb_disabled':
         return 'USB 接口禁用'
       case 'usb_storage_disabled':
-        return 'USB 存储已禁止访问'
+        return 'USB 存储已禁用'
       case 'usb_storage_read_only':
         return 'USB 存储只读'
       case 'usb_whitelist':
@@ -854,7 +554,7 @@ class PeripheralViewModel {
         getPeripheralRecordActionLabel(record.action),
         this.getConnectionPolicyHitLabel(record),
         this.getConnectionResultLabel(record),
-        getPeripheralCandidateSourceLabel(record.source)
+        getPeripheralRecordSourceLabel(record.source)
       ].map((value: string) => this.escapeCsvValue(value)).join(',')
     })
     return `\uFEFF${headers.map((value: string) => this.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
@@ -890,59 +590,6 @@ class PeripheralViewModel {
       return `"${normalized}"`
     }
     return normalized
-  }
-
-  private getConnectedUsbDevices(): hostUsbManager.USBDevice[] {
-    try {
-      return hostUsbManager.getDevices() || []
-    } catch (err) {
-      const error = err as BusinessError
-      hilog.warn(DOMAIN, TAG, `getConnectedUsbDevices failed: code=${error.code}, message=${error.message}`)
-      return []
-    }
-  }
-
-  private compareCandidateTime(left: PeripheralWhitelistCandidate, right: PeripheralWhitelistCandidate): number {
-    if (left.isConnected && !right.isConnected) {
-      return -1
-    }
-    if (!left.isConnected && right.isConnected) {
-      return 1
-    }
-    if (left.timestamp !== right.timestamp) {
-      return right.timestamp - left.timestamp
-    }
-    return left.deviceName.localeCompare(right.deviceName)
-  }
-
-  private normalizeMac(mac: string): string {
-    return mac.trim().toUpperCase().replace(/-/g, ':')
-  }
-
-  private appendBlacklistTemplate(
-    items: Map<string, PeripheralBlacklistTemplate>,
-    disabledKeys: string[],
-    title: string,
-    description: string,
-    baseClass: number,
-    subClass: number,
-    protocol: number,
-    fromConnectedDevice: boolean
-  ): void {
-    const key = `${baseClass}|${subClass}|${protocol}`
-    if (items.has(key)) {
-      return
-    }
-    items.set(key, {
-      id: `usb_blacklist_${key}`,
-      title,
-      description,
-      baseClass,
-      subClass,
-      protocol,
-      fromConnectedDevice,
-      disabled: disabledKeys.includes(key)
-    })
   }
 }
 
