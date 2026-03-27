@@ -16,7 +16,6 @@ import {
 
 const TAG = 'LogAuditService'
 const DOMAIN = 0x0006
-const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
 const FILE_EVENT_IDS: number[] = [
   securityAudit.NotifyEvent.FILE,
   securityAudit.NotifyEvent.FILE_INTERCEPTED,
@@ -34,7 +33,6 @@ type JsonMap = Record<string, JsonField>
 interface AuditClientCompat {
   subscribe(eventIds: number[]): void
   unsubscribe(eventIds: number[]): void
-  addFilter?(eventId: number, filter: securityAudit.Filter): void
 }
 
 interface SubscribePathResult {
@@ -189,9 +187,6 @@ export class LogAuditService {
         lastSeenAt: diag.lastSeenAt,
         seenCount: diag.seenCount,
         lastErrorCode: diag.lastErrorCode,
-        preFilterUnsupportedEventIds: [...(diag.preFilterUnsupportedEventIds || [])],
-        preFilterFailedEventIds: [...(diag.preFilterFailedEventIds || [])],
-        preFilterLastErrorCode: diag.preFilterLastErrorCode,
         droppedNoPathCount: diag.droppedNoPathCount,
         droppedPrefixMismatchCount: diag.droppedPrefixMismatchCount,
         lastDropReason: diag.lastDropReason
@@ -229,7 +224,6 @@ export class LogAuditService {
         subscribedIds.push(eventId)
         successCount += 1
         LogAuditService.markSubscribeSuccess(eventId)
-        LogAuditService.tryAttachFilePrefixFilter(createResult.client, eventId)
       } catch (err) {
         let code = LogAuditService.extractErrorCode(err as Object)
         if (LogAuditService.lastSubscribeErrorCode === undefined) {
@@ -309,11 +303,27 @@ export class LogAuditService {
     }
 
     let parsed = LogAuditService.parseAuditPayload(event.content || '', event.metadata)
-    if (mappedType === LogEventType.FILE && !LogAuditService.isAllowedUserFileEvent(parsed.filePath)) {
-      return undefined
+    if (mappedType === LogEventType.FILE) {
+      let normalizedFilePath = LogAuditService.resolveAllowedUserFilePath(
+        parsed.filePath,
+        event.eventId,
+        parsed.rawEventName,
+        parsed.rawAction
+      )
+      if (!normalizedFilePath) {
+        return undefined
+      }
+      parsed.filePath = normalizedFilePath
     }
 
     LogAuditService.markEventSeen(mappedType)
+    if (mappedType === LogEventType.FILE) {
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `FILE event accepted eventId=${event.eventId}, name=${parsed.rawEventName || '-'}, action=${parsed.rawAction || '-'}, path=${parsed.filePath || '-'}, pathKind=${LogPathUtils.describePathKind(parsed.filePath)}`
+      )
+    }
     return {
       id: generateLogEntryId(),
       timestamp: LogAuditService.parseTimestamp(event.timestamp || ''),
@@ -360,47 +370,44 @@ export class LogAuditService {
     return LogPathUtils.resolveAuditFilePath(structured, [content, metadata])
   }
 
-  private static tryAttachFilePrefixFilter(client: AuditClientCompat, eventId: number): void {
-    if (!FILE_EVENT_IDS.includes(eventId)) {
-      return
-    }
-    if (typeof client.addFilter !== 'function') {
-      LogAuditService.markPreFilterUnsupported(eventId)
-      return
-    }
-
-    let filter: securityAudit.Filter = {
-      isInclude: true,
-      type: securityAudit.FilterType.FILE_PATH_PREFIX,
-      values: [...LogAuditService.FILE_FILTER_PREFIXES]
-    }
-    try {
-      client.addFilter(eventId, filter)
-    } catch (err) {
-      let code = LogAuditService.extractErrorCode(err as Object)
-      if (code === FILE_FILTER_UNSUPPORTED_CODE) {
-        LogAuditService.markPreFilterUnsupported(eventId)
-        return
-      }
-      LogAuditService.markPreFilterFailure(eventId, code)
-    }
-  }
-
-  private static isAllowedUserFileEvent(candidatePath?: string): boolean {
+  private static resolveAllowedUserFilePath(
+    candidatePath?: string,
+    eventId?: number,
+    rawEventName?: string,
+    rawAction?: string
+  ): string | undefined {
+    let resolvedEventId = eventId !== undefined ? eventId : -1
     if (!candidatePath) {
       LogAuditService.recordFileDrop('no_path', '未提取到用户文件路径')
-      return false
+      hilog.info(DOMAIN, TAG, `FILE event dropped eventId=${resolvedEventId}, name=${rawEventName || '-'}, action=${rawAction || '-'}, reason=no_path`)
+      return undefined
     }
     let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
     if (!normalized) {
       LogAuditService.recordFileDrop('no_path', '文件路径归一化失败')
-      return false
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `FILE event dropped eventId=${resolvedEventId}, name=${rawEventName || '-'}, action=${rawAction || '-'}, rawPath=${candidatePath}, reason=normalize_failed`
+      )
+      return undefined
     }
+    let pathKind = LogPathUtils.describePathKind(normalized)
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `FILE event resolved eventId=${resolvedEventId}, name=${rawEventName || '-'}, action=${rawAction || '-'}, rawPath=${candidatePath}, normalizedPath=${normalized}, pathKind=${pathKind}`
+    )
     if (LogPathUtils.hasAllowedPrefix(normalized, LogAuditService.FILE_FILTER_PREFIXES)) {
-      return true
+      return normalized
     }
-    LogAuditService.recordFileDrop('prefix_mismatch', `非用户文件路径: ${normalized}`)
-    return false
+    LogAuditService.recordFileDrop('prefix_mismatch', `非用户目录或非公共媒体路径(pathKind=${pathKind})`)
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `FILE event dropped eventId=${resolvedEventId}, name=${rawEventName || '-'}, action=${rawAction || '-'}, rawPath=${candidatePath}, normalizedPath=${normalized}, reason=prefix_mismatch, pathKind=${pathKind}`
+    )
+    return undefined
   }
 
   private static buildFileFilterPrefixes(): string[] {
@@ -484,8 +491,6 @@ export class LogAuditService {
         subscribed: false,
         failedEventIds: [],
         seenCount: 0,
-        preFilterUnsupportedEventIds: [],
-        preFilterFailedEventIds: [],
         droppedNoPathCount: 0,
         droppedPrefixMismatchCount: 0
       })
@@ -503,8 +508,6 @@ export class LogAuditService {
       subscribed: false,
       failedEventIds: [],
       seenCount: 0,
-      preFilterUnsupportedEventIds: [],
-      preFilterFailedEventIds: [],
       droppedNoPathCount: 0,
       droppedPrefixMismatchCount: 0
     }
@@ -519,9 +522,6 @@ export class LogAuditService {
       diag.failedEventIds = []
       diag.lastErrorCode = undefined
       if (type === LogEventType.FILE) {
-        diag.preFilterUnsupportedEventIds = []
-        diag.preFilterFailedEventIds = []
-        diag.preFilterLastErrorCode = undefined
         diag.droppedNoPathCount = 0
         diag.droppedPrefixMismatchCount = 0
         diag.lastDropReason = undefined
@@ -548,23 +548,6 @@ export class LogAuditService {
       diag.failedEventIds.push(eventId)
     }
     diag.lastErrorCode = code
-    LogAuditService.touchDiagnostics()
-  }
-
-  private static markPreFilterUnsupported(eventId: number): void {
-    let diag = LogAuditService.ensureDiag(LogEventType.FILE)
-    if (!(diag.preFilterUnsupportedEventIds || []).includes(eventId)) {
-      diag.preFilterUnsupportedEventIds = [...(diag.preFilterUnsupportedEventIds || []), eventId]
-    }
-    LogAuditService.touchDiagnostics()
-  }
-
-  private static markPreFilterFailure(eventId: number, code: number | undefined): void {
-    let diag = LogAuditService.ensureDiag(LogEventType.FILE)
-    if (!(diag.preFilterFailedEventIds || []).includes(eventId)) {
-      diag.preFilterFailedEventIds = [...(diag.preFilterFailedEventIds || []), eventId]
-    }
-    diag.preFilterLastErrorCode = code
     LogAuditService.touchDiagnostics()
   }
 

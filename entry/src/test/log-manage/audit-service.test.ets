@@ -9,7 +9,6 @@ export default function logAuditServiceTest() {
       let diagnostics = LogAuditService.getDiagnostics()
       expect(diagnostics.byType.size).assertEqual(4)
       expect(diagnostics.byType.get(LogEventType.FILE)?.seenCount).assertEqual(0)
-      expect((diagnostics.byType.get(LogEventType.FILE)?.preFilterUnsupportedEventIds || []).length).assertEqual(0)
     })
 
     it('should keep subscription mode defaults predictable before subscribe', 0, () => {

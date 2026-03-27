@@ -68,7 +68,7 @@ export class LogManageStrings {
 
   static readonly triggerHint: string = '请触发对应安全事件后再查看诊断结果'
   static readonly crashTriggerHint: string = '请触发一次应用崩溃或异常退出以生成崩溃日志'
-  static readonly fileTriggerHint: string = '请执行一次文件访问操作以触发文件审计事件'
+  static readonly fileTriggerHint: string = '提示：记录下载、文档、桌面及公共媒体文件操作。'
   static readonly permissionTriggerHint: string = '请触发一次权限申请或拒绝行为以生成权限事件'
   static readonly accountTriggerHint: string = '请进行一次账户登录、切换或访问行为以生成账户事件'
   static readonly newApiUnavailableFallback: string = '当前设备不支持新版审计接口，已回退到兼容模式'
@@ -115,19 +115,11 @@ export class LogManageStrings {
   }
 
   static buildFilteredFileEventText(droppedCount: number): string {
-    return `文件事件中过滤了 ${droppedCount} 条非用户目录记录`
-  }
-
-  static buildPreFilterRollbackText(eventIds: string): string {
-    return `事件 ${eventIds} 不支持前置路径过滤，已回退到兼容订阅模式`
-  }
-
-  static buildPreFilterFailedText(eventIds: string, codeText: string): string {
-    return `事件 ${eventIds} 的前置路径过滤设置失败${codeText}`
+    return `当前文件日志仅保留用户目录或公共媒体文件操作，已过滤 ${droppedCount} 条非用户目录或未知路径事件。`
   }
 
   static buildDroppedNonUserFileText(droppedCount: number): string {
-    return `已丢弃 ${droppedCount} 条非用户目录的文件事件`
+    return `已过滤 ${droppedCount} 条非用户目录或未知路径事件`
   }
 
   static buildViewingWithHitsText(typeLabel: string, seenCount: number): string {
@@ -139,7 +131,7 @@ export class LogManageStrings {
   }
 
   static buildViewingFilteredText(typeLabel: string, droppedCount: number): string {
-    return `当前查看 ${typeLabel}，已过滤 ${droppedCount} 条无效记录`
+    return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，已过滤 ${droppedCount} 条非用户目录或未知路径事件。`
   }
 
   static buildViewingTotalText(typeLabel: string, totalCount: number): string {

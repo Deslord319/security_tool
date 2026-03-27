@@ -21,6 +21,7 @@ export class LogPathUtils {
     if (normalized.length === 0) {
       return undefined
     }
+    normalized = LogPathUtils.remapUserDocsAuditPath(normalized)
     normalized = normalized.replace(/\/+$/, '')
     return normalized.length > 0 ? normalized : undefined
   }
@@ -86,6 +87,32 @@ export class LogPathUtils {
     return false
   }
 
+  static describePathKind(candidatePath: string | undefined): string {
+    let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
+    if (!normalized) {
+      return 'unknown'
+    }
+    if (normalized.startsWith('file://media/')) {
+      return 'public_media'
+    }
+    if (LogPathUtils.isUserDirectoryPath(normalized, 'Download')) {
+      return 'user_download'
+    }
+    if (LogPathUtils.isUserDirectoryPath(normalized, 'Documents')) {
+      return 'user_documents'
+    }
+    if (LogPathUtils.isUserDirectoryPath(normalized, 'Desktop')) {
+      return 'user_desktop'
+    }
+    if (normalized.startsWith('/data/storage/')) {
+      return 'app_sandbox'
+    }
+    if (normalized.startsWith('/data/')) {
+      return 'system_internal'
+    }
+    return 'other'
+  }
+
   private static cutPathSuffix(path: string): string {
     let cutIndex = path.length
     for (let sep of ['?', '#', '&', '"', '\'', ',', '}', ']', ' ']) {
@@ -95,5 +122,28 @@ export class LogPathUtils {
       }
     }
     return cutIndex >= 0 ? path.substring(0, cutIndex) : path
+  }
+
+  private static remapUserDocsAuditPath(path: string): string {
+    let matched = path.match(/^\/data\/service\/el2\/\d+\/hmdfs\/account\/files\/Docs\/(Download|Documents|Desktop)(?:\/(.*))?$/)
+    if (!matched) {
+      return path
+    }
+    let baseDir = matched[1]
+    let remainder = matched[2] ? `/${matched[2]}` : ''
+    let remapped = `/storage/Users/currentUser/${baseDir}${remainder}`
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `remap audit path by rule=hmdfs_docs_${baseDir.toLowerCase()}, rawPath=${path}, normalizedPath=${remapped}`
+    )
+    return remapped
+  }
+
+  private static isUserDirectoryPath(normalizedPath: string, dirName: string): boolean {
+    return normalizedPath === `/storage/Users/currentUser/${dirName}` ||
+      normalizedPath.startsWith(`/storage/Users/currentUser/${dirName}/`) ||
+      normalizedPath === `file://docs/storage/Users/currentUser/${dirName}` ||
+      normalizedPath.startsWith(`file://docs/storage/Users/currentUser/${dirName}/`)
   }
 }

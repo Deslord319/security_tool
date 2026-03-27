@@ -625,9 +625,6 @@ export interface LogEventTypeDiag {
   lastSeenAt?: number
   seenCount: number
   lastErrorCode?: number
-  preFilterUnsupportedEventIds?: number[]
-  preFilterFailedEventIds?: number[]
-  preFilterLastErrorCode?: number
   droppedNoPathCount?: number
   droppedPrefixMismatchCount?: number
   lastDropReason?: string

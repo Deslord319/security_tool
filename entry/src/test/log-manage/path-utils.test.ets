@@ -25,5 +25,19 @@ export default function logPathUtilsTest() {
       ])
       expect(matched).assertTrue()
     })
+
+    it('should remap hmdfs docs audit paths into user directory paths', 0, () => {
+      let normalized = LogPathUtils.normalizePathCandidate(
+        '/data/service/el2/100/hmdfs/account/files/Docs/Download/oh-kia-samples/probe.txt'
+      )
+      expect(normalized).assertEqual('/storage/Users/currentUser/Download/oh-kia-samples/probe.txt')
+    })
+
+    it('should classify remapped hmdfs docs path as user download', 0, () => {
+      let kind = LogPathUtils.describePathKind(
+        '/data/service/el2/100/hmdfs/account/files/Docs/Download/oh-kia-samples/probe.txt'
+      )
+      expect(kind).assertEqual('user_download')
+    })
   })
 }

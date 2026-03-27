@@ -646,15 +646,6 @@ export struct LogManagePage {
       return LogManageStrings.buildSubscriptionErrorText(diag.failedEventIds.join(','), codeText)
     }
     if (type === LogEventType.FILE) {
-      let unsupported = diag.preFilterUnsupportedEventIds || []
-      let preFilterFailed = diag.preFilterFailedEventIds || []
-      if (unsupported.length > 0) {
-        return LogManageStrings.buildPreFilterRollbackText(unsupported.join(','))
-      }
-      if (preFilterFailed.length > 0) {
-        let codeText = diag.preFilterLastErrorCode !== undefined ? `，错误码 ${diag.preFilterLastErrorCode}` : ''
-        return LogManageStrings.buildPreFilterFailedText(preFilterFailed.join(','), codeText)
-      }
       let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
       if (dropped > 0) {
         return LogManageStrings.buildDroppedNonUserFileText(dropped)
