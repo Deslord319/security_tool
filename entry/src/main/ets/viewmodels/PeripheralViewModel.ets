@@ -3,6 +3,7 @@
  */
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import { AdminActivationState, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
@@ -10,7 +11,6 @@ import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository
 import { InterfaceControlViewModel } from './InterfaceControlViewModel'
 import { PeripheralPolicyViewModel } from './PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from './PeripheralRecordViewModel'
-import { PeripheralViewModelReasons } from './PeripheralViewModelReasons'
 
 const TAG = 'PeripheralViewModel'
 const DOMAIN = 0x0013
@@ -48,7 +48,7 @@ export class PeripheralViewModel {
       })
       this.reasonCode = null
     } catch (err) {
-      this.reasonCode = PeripheralViewModelReasons.REASON_INIT_FAILED
+      this.reasonCode = PeripheralReasons.INIT_FAILED
       hilog.error(DOMAIN, TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
@@ -84,7 +84,7 @@ export class PeripheralViewModel {
     if (this.adminState.activated) {
       return true
     }
-    this.reasonCode = PeripheralViewModelReasons.REASON_ADMIN_REQUIRED
+    this.reasonCode = PeripheralReasons.ADMIN_REQUIRED
     return false
   }
 

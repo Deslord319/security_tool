@@ -12,6 +12,8 @@ import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralService } from '../services/PeripheralService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
@@ -21,11 +23,6 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
-import {
-  PeripheralPageConstant,
-  PeripheralViewModelReasons,
-  resolvePeripheralReason
-} from '../viewmodels/PeripheralViewModelReasons'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
@@ -33,7 +30,7 @@ const DOMAIN = 0x0013
 @CustomDialog
 struct PeripheralUsbLoadingDialog {
   controller: CustomDialogController
-  message: string = PeripheralPageConstant.usbLoadingMessage
+  message: string = PeripheralStrings.usbLoadingMessage
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
@@ -68,8 +65,8 @@ export struct PeripheralPage {
 
   private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [
-    { value: PeripheralPageConstant.policyOptions[0] },
-    { value: PeripheralPageConstant.policyOptions[1] }
+    { value: PeripheralStrings.policyOptions[0] },
+    { value: PeripheralStrings.policyOptions[1] }
   ]
   private resultDialogController: CustomDialogController = new CustomDialogController({
     builder: ResultMessageBox({ onConfirm: () => {} }),
@@ -104,7 +101,7 @@ export struct PeripheralPage {
       this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', resolvePeripheralReason(PeripheralViewModelReasons.REASON_INIT_FAILED))
+      this.showResultDialog('failure', PeripheralStrings.resolveReason(PeripheralReasons.INIT_FAILED))
     }
   } 
 
@@ -118,15 +115,15 @@ export struct PeripheralPage {
   }
 
   private showAdminRequiredDialog(action: string): void {
-    this.showResultDialog('failure', `${action}未完成，请先激活企业管理员权限`)
+    this.showResultDialog('failure', `${action}${PeripheralStrings.adminRequiredActionSuffix}`)
   }
 
   private showConnectionHistoryExportSuccessDialog(): void {
-    this.showResultDialog('success', PeripheralPageConstant.exportHistorySuccess)
+    this.showResultDialog('success', PeripheralStrings.exportHistorySuccess)
   }
 
   private showPolicyRecordExportSuccessDialog(): void {
-    this.showResultDialog('success', PeripheralPageConstant.exportPolicySuccess)
+    this.showResultDialog('success', PeripheralStrings.exportPolicySuccess)
   }
 
   private openUsbLoadingDialog(message: string): void {
@@ -164,7 +161,7 @@ export struct PeripheralPage {
       await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), 120))
       return await operation()
     } finally {
-      const remaining = PeripheralPageConstant.minUsbLoadingDuration - (Date.now() - this.usbLoadingDialogOpenedAt)
+      const remaining = PeripheralStrings.minUsbLoadingDuration - (Date.now() - this.usbLoadingDialogOpenedAt)
       if (remaining > 0) {
         await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), remaining))
       }
@@ -241,11 +238,11 @@ export struct PeripheralPage {
       Row({ space: 8 }) {
         BackNavButton({ onBack: () => this.onBack() })
         Column({ space: 4 }) {
-          Text(PeripheralPageConstant.pageTitle)
+          Text(PeripheralStrings.pageTitle)
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Text(PeripheralPageConstant.pageSubtitle)
+          Text(PeripheralStrings.pageSubtitle)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -259,8 +256,8 @@ export struct PeripheralPage {
       if (this.viewModel.currentTab === 1) {
         PageHeaderActions({
           currentTheme: this.currentTheme,
-          exportLabel: PeripheralPageConstant.exportHistoryLabel,
-          clearLabel: PeripheralPageConstant.clearHistoryLabel,
+          exportLabel: PeripheralStrings.exportHistoryLabel,
+          clearLabel: PeripheralStrings.clearHistoryLabel,
           onExport: () => void this.handleExportConnectionHistory(),
           onClear: () => this.showClearHistoryConfirmDialog(),
           showClear: true
@@ -268,8 +265,8 @@ export struct PeripheralPage {
       } else if (this.viewModel.currentTab === 2) {
         PageHeaderActions({
           currentTheme: this.currentTheme,
-          exportLabel: PeripheralPageConstant.exportPolicyLabel,
-          clearLabel: PeripheralPageConstant.clearPolicyLabel,
+          exportLabel: PeripheralStrings.exportPolicyLabel,
+          clearLabel: PeripheralStrings.clearPolicyLabel,
           onExport: () => void this.handleExportPeripheralPolicyRecords(),
           onClear: () => this.showClearPolicyRecordsConfirmDialog(),
           showClear: true
@@ -283,9 +280,9 @@ export struct PeripheralPage {
   @Builder
   private tabs() {
     Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
-      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder(PeripheralPageConstant.interfaceTabTitle, 0))
-      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder(PeripheralPageConstant.deviceTabTitle, 1))
-      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder(PeripheralPageConstant.policyTabTitle, 2))
+      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder(PeripheralStrings.interfaceTabTitle, 0))
+      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder(PeripheralStrings.deviceTabTitle, 1))
+      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder(PeripheralStrings.policyTabTitle, 2))
     }
     .barMode(BarMode.Fixed)
     .barWidth('100%')
@@ -369,13 +366,13 @@ export struct PeripheralPage {
   private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
     const toggle = async (): Promise<boolean> => this.viewModel.toggleInterface(feature, disallow)
     const success = feature === PeripheralService.FEATURE_USB
-      ? await this.runUsbOperationWithLoading(PeripheralPageConstant.usbInterfaceLoadingMessage, toggle)
+      ? await this.runUsbOperationWithLoading(PeripheralStrings.usbInterfaceLoadingMessage, toggle)
       : await toggle()
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog(PeripheralPageConstant.setInterfaceAction)
+        this.showAdminRequiredDialog(PeripheralStrings.setInterfaceAction)
       } else {
-        this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
+        this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -383,14 +380,14 @@ export struct PeripheralPage {
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
-    const success = await this.runUsbOperationWithLoading(PeripheralPageConstant.usbStorageLoadingMessage, async () => {
+    const success = await this.runUsbOperationWithLoading(PeripheralStrings.usbStorageLoadingMessage, async () => {
       return await this.viewModel.setUsbStoragePolicy(index)
     })
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog(PeripheralPageConstant.setUsbStorageAction)
+        this.showAdminRequiredDialog(PeripheralStrings.setUsbStorageAction)
       } else {
-        this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
+        this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -401,9 +398,9 @@ export struct PeripheralPage {
     const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog(PeripheralPageConstant.updatePolicyAction)
+        this.showAdminRequiredDialog(PeripheralStrings.updatePolicyAction)
       } else {
-        this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
+        this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -415,7 +412,7 @@ export struct PeripheralPage {
     if (success) {
       this.showConnectionHistoryExportSuccessDialog()
     } else {
-      this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
+      this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
   }
 
@@ -424,33 +421,33 @@ export struct PeripheralPage {
     if (success) {
       this.showPolicyRecordExportSuccessDialog()
     } else {
-      this.showResultDialog('failure', resolvePeripheralReason(this.viewModel.reasonCode))
+      this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
   }
 
   private showClearHistoryConfirmDialog(): void {
     if (this.viewModel.records.records.length === 0) {
-      this.showResultDialog('failure', PeripheralPageConstant.emptyHistoryToClear)
+      this.showResultDialog('failure', PeripheralStrings.emptyHistoryToClear)
       return
     }
     void this.getUIContext().showAlertDialog({
-      title: PeripheralPageConstant.clearHistoryTitle,
-      message: PeripheralPageConstant.clearHistoryMessage,
-      primaryButton: { value: PeripheralPageConstant.cancelLabel, action: () => {} },
-      secondaryButton: { value: PeripheralPageConstant.clearLabel, action: () => void this.clearConnectionHistory() }
+      title: PeripheralStrings.clearHistoryLabel,
+      message: PeripheralStrings.clearHistoryMessage,
+      primaryButton: { value: PeripheralStrings.cancelLabel, action: () => {} },
+      secondaryButton: { value: PeripheralStrings.clearLabel, action: () => void this.clearConnectionHistory() }
     })
   }
 
   private showClearPolicyRecordsConfirmDialog(): void {
     if (this.viewModel.policy.records.length === 0) {
-      this.showResultDialog('failure', PeripheralPageConstant.emptyPolicyToClear)
+      this.showResultDialog('failure', PeripheralStrings.emptyPolicyToClear)
       return
     }
     void this.getUIContext().showAlertDialog({
-      title: PeripheralPageConstant.clearPolicyTitle,
-      message: PeripheralPageConstant.clearPolicyMessage,
-      primaryButton: { value: PeripheralPageConstant.cancelLabel, action: () => {} },
-      secondaryButton: { value: PeripheralPageConstant.deleteLabel, action: () => void this.clearPolicyRecords() }
+      title: PeripheralStrings.clearPolicyLabel,
+      message: PeripheralStrings.clearPolicyMessage,
+      primaryButton: { value: PeripheralStrings.cancelLabel, action: () => {} },
+      secondaryButton: { value: PeripheralStrings.deleteLabel, action: () => void this.clearPolicyRecords() }
     })
   }
 
@@ -459,27 +456,27 @@ export struct PeripheralPage {
       await PeripheralTraceRepository.init(this.getUIContext().getHostContext() as common.UIAbilityContext)
       const success = await PeripheralTraceRepository.clearAll()
       if (!success) {
-        this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
+        this.showResultDialog('failure', PeripheralStrings.clearFailed)
         return
       }
       this.closeDetailDialog()
       this.viewModel.reloadDeviceRecords()
       this.renderVersion++
-      this.showResultDialog('success', PeripheralPageConstant.clearHistorySuccess)
+      this.showResultDialog('success', PeripheralStrings.clearHistorySuccess)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
+      this.showResultDialog('failure', PeripheralStrings.clearFailed)
     }
   }
 
   private async clearPolicyRecords(): Promise<void> {
     const success = await this.viewModel.clearPeripheralPolicyRecords()
     if (!success) {
-      this.showResultDialog('failure', PeripheralPageConstant.clearFailed)
+      this.showResultDialog('failure', PeripheralStrings.clearFailed)
       return
     }
     this.closeDetailDialog()
     this.renderVersion++
-    this.showResultDialog('success', PeripheralPageConstant.clearPolicySuccess)
+    this.showResultDialog('success', PeripheralStrings.clearPolicySuccess)
   }
 }
