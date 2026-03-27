@@ -27,6 +27,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { BackNavButton } from '../components/BackNavButton'
+import { SettingsSectionCard } from '../components/SettingsSectionCard'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -336,8 +337,6 @@ export struct LogManagePage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @State hoveredStatIndex: number = -1
-  @State hoveredSettingsCardIndex: number = -1
-
   @State logEntries: LogEntry[] = []
   @State pagedLogEntries: LogEntry[] = []
   @State currentPage: number = 1
@@ -1221,14 +1220,16 @@ export struct LogManagePage {
 
   @Builder
   storageConfigCard() {
-    Column({ space: 0 }) {
-      Text(LogManageStrings.settingsTitle)
-        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .padding({ top: 16, bottom: 12 })
+    SettingsSectionCard({
+      title: LogManageStrings.settingsTitle,
+      content: () => {
+        this.storageConfigContent()
+      }
+    })
+  }
 
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+  @Builder
+  storageConfigContent() {
 
       Row() {
         Text(LogManageStrings.maxEntriesLabel)
@@ -1252,6 +1253,7 @@ export struct LogManagePage {
       }
       .width('100%')
       .height(56)
+      .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
 
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
@@ -1278,23 +1280,7 @@ export struct LogManagePage {
       }
       .width('100%')
       .height(56)
+      .padding({ left: 16, right: 16, bottom: 16 })
       .alignItems(VerticalAlign.Center)
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 0, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 0, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredSettingsCardIndex = isHover ? 0 : -1
-      })
-    })
   }
 }

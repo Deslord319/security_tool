@@ -14,7 +14,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { BackNavButton } from '../components/BackNavButton'
-import { HoverUtils } from '../utils/HoverUtils'
+import { SettingsSectionCard } from '../components/SettingsSectionCard'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -27,7 +27,6 @@ const CUSTOM_VALIDITY_OPTION_INDEX = PASSWORD_VALIDITY_OPTIONS.length
 export struct IdentityPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
-  @State hoveredCardIndex: number = -1
   @State adminState: AdminActivationState = {
     activated: false,
     enableCommand: EnterpriseAdminService.buildEnableCommand(),
@@ -259,7 +258,12 @@ export struct IdentityPage {
 
       Scroll() {
         Column({ space: 24 }) {
-          this.passwordComplexityBuilder()
+          SettingsSectionCard({
+            title: IdentityStrings.sectionPasswordComplexity,
+            content: () => {
+              this.passwordComplexityContent()
+            }
+          })
         }
         .width('100%')
         .padding({
@@ -312,23 +316,7 @@ export struct IdentityPage {
   }
 
   @Builder
-  passwordComplexityBuilder() {
-    Column({ space: 0 }) {
-      Row() {
-        Text(IdentityStrings.sectionPasswordComplexity)
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Blank()
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
+  passwordComplexityContent() {
       Row() {
         Column({ space: 2 }) {
           Text(IdentityStrings.minPasswordLength)
@@ -482,22 +470,6 @@ export struct IdentityPage {
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 14, bottom: 16 })
-    }
-    .width('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .clip(true)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredCardIndex = isHover ? 0 : -1
-      })
-    })
   }
 
   @Builder
