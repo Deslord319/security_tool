@@ -1,45 +1,24 @@
-export const REASON_INIT_FAILED = 'init_failed'
-export const REASON_ADMIN_REQUIRED = 'admin_required'
-export const REASON_INVALID_DEVICE_ID = 'invalid_device_id'
-export const REASON_EXPORT_ENV_NOT_READY = 'export_env_not_ready'
-export const REASON_EMPTY_CONNECTION_HISTORY = 'empty_connection_history'
-export const REASON_EMPTY_POLICY_RECORDS = 'empty_policy_records'
-export const REASON_TOGGLE_INTERFACE_FAILED = 'toggle_interface_failed'
-export const REASON_USB_STORAGE_POLICY_FAILED = 'usb_storage_policy_failed'
-export const REASON_POLICY_CHANGE_FAILED = 'policy_change_failed'
-export const REASON_EXPORT_CONNECTION_HISTORY_FAILED = 'export_connection_history_failed'
-export const REASON_EXPORT_POLICY_RECORDS_FAILED = 'export_policy_records_failed'
-export const REASON_READ_USB_STATUS_FAILED = 'read_usb_status'
-export const REASON_READ_USB_STORAGE_POLICY_FAILED = 'read_usb_storage_policy'
-export const REASON_READ_USB_WHITELIST_FAILED = 'read_usb_whitelist'
-export const REASON_READ_USB_BLACKLIST_FAILED = 'read_usb_blacklist'
-export const REASON_PRECHECK_BLACKLIST_CONFLICT = 'precheck_blacklist_conflict'
-export const REASON_PRECHECK_WHITELIST_CONFLICT = 'precheck_whitelist_conflict'
-export const REASON_INFER_BLACKLIST_TYPE_FAILED = 'infer_blacklist_type'
-export const REASON_SET_USB_INTERFACE_CONFLICT = 'set_usb_interface'
-export const REASON_SET_USB_STORAGE_POLICY_CONFLICT = 'set_usb_storage_policy'
-
 export class PeripheralViewModelReasons {
-  static readonly REASON_INIT_FAILED: string = REASON_INIT_FAILED
-  static readonly REASON_ADMIN_REQUIRED: string = REASON_ADMIN_REQUIRED
-  static readonly REASON_INVALID_DEVICE_ID: string = REASON_INVALID_DEVICE_ID
-  static readonly REASON_EXPORT_ENV_NOT_READY: string = REASON_EXPORT_ENV_NOT_READY
-  static readonly REASON_EMPTY_CONNECTION_HISTORY: string = REASON_EMPTY_CONNECTION_HISTORY
-  static readonly REASON_EMPTY_POLICY_RECORDS: string = REASON_EMPTY_POLICY_RECORDS
-  static readonly REASON_TOGGLE_INTERFACE_FAILED: string = REASON_TOGGLE_INTERFACE_FAILED
-  static readonly REASON_USB_STORAGE_POLICY_FAILED: string = REASON_USB_STORAGE_POLICY_FAILED
-  static readonly REASON_POLICY_CHANGE_FAILED: string = REASON_POLICY_CHANGE_FAILED
-  static readonly REASON_EXPORT_CONNECTION_HISTORY_FAILED: string = REASON_EXPORT_CONNECTION_HISTORY_FAILED
-  static readonly REASON_EXPORT_POLICY_RECORDS_FAILED: string = REASON_EXPORT_POLICY_RECORDS_FAILED
-  static readonly REASON_READ_USB_STATUS_FAILED: string = REASON_READ_USB_STATUS_FAILED
-  static readonly REASON_READ_USB_STORAGE_POLICY_FAILED: string = REASON_READ_USB_STORAGE_POLICY_FAILED
-  static readonly REASON_READ_USB_WHITELIST_FAILED: string = REASON_READ_USB_WHITELIST_FAILED
-  static readonly REASON_READ_USB_BLACKLIST_FAILED: string = REASON_READ_USB_BLACKLIST_FAILED
-  static readonly REASON_PRECHECK_BLACKLIST_CONFLICT: string = REASON_PRECHECK_BLACKLIST_CONFLICT
-  static readonly REASON_PRECHECK_WHITELIST_CONFLICT: string = REASON_PRECHECK_WHITELIST_CONFLICT
-  static readonly REASON_INFER_BLACKLIST_TYPE_FAILED: string = REASON_INFER_BLACKLIST_TYPE_FAILED
-  static readonly REASON_SET_USB_INTERFACE_CONFLICT: string = REASON_SET_USB_INTERFACE_CONFLICT
-  static readonly REASON_SET_USB_STORAGE_POLICY_CONFLICT: string = REASON_SET_USB_STORAGE_POLICY_CONFLICT
+  static readonly REASON_INIT_FAILED: string = 'init_failed'
+  static readonly REASON_ADMIN_REQUIRED: string = 'admin_required'
+  static readonly REASON_INVALID_DEVICE_ID: string = 'invalid_device_id'
+  static readonly REASON_EXPORT_ENV_NOT_READY: string = 'export_env_not_ready'
+  static readonly REASON_EMPTY_CONNECTION_HISTORY: string = 'empty_connection_history'
+  static readonly REASON_EMPTY_POLICY_RECORDS: string = 'empty_policy_records'
+  static readonly REASON_TOGGLE_INTERFACE_FAILED: string = 'toggle_interface_failed'
+  static readonly REASON_USB_STORAGE_POLICY_FAILED: string = 'usb_storage_policy_failed'
+  static readonly REASON_POLICY_CHANGE_FAILED: string = 'policy_change_failed'
+  static readonly REASON_EXPORT_CONNECTION_HISTORY_FAILED: string = 'export_connection_history_failed'
+  static readonly REASON_EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
+  static readonly REASON_READ_USB_STATUS_FAILED: string = 'read_usb_status'
+  static readonly REASON_READ_USB_STORAGE_POLICY_FAILED: string = 'read_usb_storage_policy'
+  static readonly REASON_READ_USB_WHITELIST_FAILED: string = 'read_usb_whitelist'
+  static readonly REASON_READ_USB_BLACKLIST_FAILED: string = 'read_usb_blacklist'
+  static readonly REASON_PRECHECK_BLACKLIST_CONFLICT: string = 'precheck_blacklist_conflict'
+  static readonly REASON_PRECHECK_WHITELIST_CONFLICT: string = 'precheck_whitelist_conflict'
+  static readonly REASON_INFER_BLACKLIST_TYPE_FAILED: string = 'infer_blacklist_type'
+  static readonly REASON_SET_USB_INTERFACE_CONFLICT: string = 'set_usb_interface'
+  static readonly REASON_SET_USB_STORAGE_POLICY_CONFLICT: string = 'set_usb_storage_policy'
 }
 
 export class PeripheralPageConstant {
@@ -86,45 +65,45 @@ export class PeripheralPageConstant {
 
 export function resolvePeripheralReason(reason?: string | null): string {
   switch (reason) {
-    case REASON_ADMIN_REQUIRED:
+    case PeripheralViewModelReasons.REASON_ADMIN_REQUIRED:
       return '请先激活企业管理员权限'
-    case REASON_INIT_FAILED:
+    case PeripheralViewModelReasons.REASON_INIT_FAILED:
       return '外设管理初始化失败，请稍后重试'
-    case REASON_INVALID_DEVICE_ID:
+    case PeripheralViewModelReasons.REASON_INVALID_DEVICE_ID:
       return '无法识别当前设备标识'
-    case REASON_EXPORT_ENV_NOT_READY:
+    case PeripheralViewModelReasons.REASON_EXPORT_ENV_NOT_READY:
       return '导出环境尚未初始化，请稍后重试'
-    case REASON_EMPTY_CONNECTION_HISTORY:
+    case PeripheralViewModelReasons.REASON_EMPTY_CONNECTION_HISTORY:
       return '没有可导出的设备连接记录'
-    case REASON_EMPTY_POLICY_RECORDS:
+    case PeripheralViewModelReasons.REASON_EMPTY_POLICY_RECORDS:
       return '暂无可导出的设备策略记录'
-    case REASON_TOGGLE_INTERFACE_FAILED:
+    case PeripheralViewModelReasons.REASON_TOGGLE_INTERFACE_FAILED:
       return '接口管控设置失败，请稍后重试'
-    case REASON_USB_STORAGE_POLICY_FAILED:
+    case PeripheralViewModelReasons.REASON_USB_STORAGE_POLICY_FAILED:
       return '设置 USB 存储策略失败，请稍后重试'
-    case REASON_POLICY_CHANGE_FAILED:
+    case PeripheralViewModelReasons.REASON_POLICY_CHANGE_FAILED:
       return '修改设备策略失败，请稍后重试'
-    case REASON_EXPORT_CONNECTION_HISTORY_FAILED:
+    case PeripheralViewModelReasons.REASON_EXPORT_CONNECTION_HISTORY_FAILED:
       return '导出历史记录失败，请稍后重试'
-    case REASON_EXPORT_POLICY_RECORDS_FAILED:
+    case PeripheralViewModelReasons.REASON_EXPORT_POLICY_RECORDS_FAILED:
       return '导出策略记录失败，请稍后重试'
-    case REASON_READ_USB_STATUS_FAILED:
+    case PeripheralViewModelReasons.REASON_READ_USB_STATUS_FAILED:
       return '读取 USB 状态失败，请稍后重试'
-    case REASON_READ_USB_STORAGE_POLICY_FAILED:
+    case PeripheralViewModelReasons.REASON_READ_USB_STORAGE_POLICY_FAILED:
       return '读取 USB 存储策略失败，请稍后重试'
-    case REASON_READ_USB_WHITELIST_FAILED:
+    case PeripheralViewModelReasons.REASON_READ_USB_WHITELIST_FAILED:
       return '读取 USB 白名单失败，请稍后重试'
-    case REASON_READ_USB_BLACKLIST_FAILED:
+    case PeripheralViewModelReasons.REASON_READ_USB_BLACKLIST_FAILED:
       return '读取 USB 黑名单失败，请稍后重试'
-    case REASON_PRECHECK_BLACKLIST_CONFLICT:
+    case PeripheralViewModelReasons.REASON_PRECHECK_BLACKLIST_CONFLICT:
       return '当前存在 USB 禁止访问规则冲突，请先清理后再设置允许接入'
-    case REASON_PRECHECK_WHITELIST_CONFLICT:
+    case PeripheralViewModelReasons.REASON_PRECHECK_WHITELIST_CONFLICT:
       return '当前存在 USB 允许接入规则冲突，请先清理后再设置禁止访问'
-    case REASON_INFER_BLACKLIST_TYPE_FAILED:
+    case PeripheralViewModelReasons.REASON_INFER_BLACKLIST_TYPE_FAILED:
       return '当前设备类型暂不支持设置为禁止访问'
-    case REASON_SET_USB_INTERFACE_CONFLICT:
+    case PeripheralViewModelReasons.REASON_SET_USB_INTERFACE_CONFLICT:
       return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
-    case REASON_SET_USB_STORAGE_POLICY_CONFLICT:
+    case PeripheralViewModelReasons.REASON_SET_USB_STORAGE_POLICY_CONFLICT:
       return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
     default:
       return reason && reason.trim().length > 0 ? reason : '请稍后重试'

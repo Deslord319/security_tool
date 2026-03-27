@@ -10,10 +10,7 @@ import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository
 import { InterfaceControlViewModel } from './InterfaceControlViewModel'
 import { PeripheralPolicyViewModel } from './PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from './PeripheralRecordViewModel'
-import {
-  REASON_ADMIN_REQUIRED,
-  REASON_INIT_FAILED
-} from './PeripheralViewModelReasons'
+import { PeripheralViewModelReasons } from './PeripheralViewModelReasons'
 
 const TAG = 'PeripheralViewModel'
 const DOMAIN = 0x0013
@@ -51,7 +48,7 @@ export class PeripheralViewModel {
       })
       this.reasonCode = null
     } catch (err) {
-      this.reasonCode = REASON_INIT_FAILED
+      this.reasonCode = PeripheralViewModelReasons.REASON_INIT_FAILED
       hilog.error(DOMAIN, TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
@@ -87,7 +84,7 @@ export class PeripheralViewModel {
     if (this.adminState.activated) {
       return true
     }
-    this.reasonCode = REASON_ADMIN_REQUIRED
+    this.reasonCode = PeripheralViewModelReasons.REASON_ADMIN_REQUIRED
     return false
   }
 

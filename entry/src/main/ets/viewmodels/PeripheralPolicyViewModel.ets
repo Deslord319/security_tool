@@ -12,16 +12,7 @@ import {
 import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralService } from '../services/PeripheralService'
 import { buildPeripheralPolicyRecords } from '../utils/PeripheralRecordViewDataUtils'
-import {
-  REASON_EMPTY_POLICY_RECORDS,
-  REASON_EXPORT_ENV_NOT_READY,
-  REASON_EXPORT_POLICY_RECORDS_FAILED,
-  REASON_INFER_BLACKLIST_TYPE_FAILED,
-  REASON_INVALID_DEVICE_ID,
-  REASON_POLICY_CHANGE_FAILED,
-  REASON_PRECHECK_BLACKLIST_CONFLICT,
-  REASON_PRECHECK_WHITELIST_CONFLICT
-} from './PeripheralViewModelReasons'
+import { PeripheralViewModelReasons } from './PeripheralViewModelReasons'
 
 const TAG = 'PeripheralPolicyViewModel'
 const DOMAIN = 0x0013
@@ -73,7 +64,7 @@ export class PeripheralPolicyViewModel {
   async changePolicy(deviceId: string, deviceType: PeripheralType, policyIndex: number): Promise<string | null> {
     const parsed = parseUsbDeviceId(deviceId)
     if (!parsed) {
-      return REASON_INVALID_DEVICE_ID
+      return PeripheralViewModelReasons.REASON_INVALID_DEVICE_ID
     }
 
     const deviceKey = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
@@ -87,7 +78,7 @@ export class PeripheralPolicyViewModel {
       return result.success ? null : this.normalizeReason(result.stage)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `changePolicy failed: ${JSON.stringify(err)}`)
-      return REASON_POLICY_CHANGE_FAILED
+      return PeripheralViewModelReasons.REASON_POLICY_CHANGE_FAILED
     } finally {
       this.endUpdate(deviceKey)
     }
@@ -95,10 +86,10 @@ export class PeripheralPolicyViewModel {
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<string | null> {
     if (this.records.length === 0) {
-      return REASON_EMPTY_POLICY_RECORDS
+      return PeripheralViewModelReasons.REASON_EMPTY_POLICY_RECORDS
     }
     if (!context) {
-      return REASON_EXPORT_ENV_NOT_READY
+      return PeripheralViewModelReasons.REASON_EXPORT_ENV_NOT_READY
     }
 
     try {
@@ -108,10 +99,10 @@ export class PeripheralPolicyViewModel {
         csvContent,
         fileNamePrefix: 'peripheral_policy_list'
       })
-      return result.success ? null : REASON_EXPORT_POLICY_RECORDS_FAILED
+      return result.success ? null : PeripheralViewModelReasons.REASON_EXPORT_POLICY_RECORDS_FAILED
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportRecords failed: ${JSON.stringify(err)}`)
-      return REASON_EXPORT_POLICY_RECORDS_FAILED
+      return PeripheralViewModelReasons.REASON_EXPORT_POLICY_RECORDS_FAILED
     }
   }
 
@@ -127,14 +118,14 @@ export class PeripheralPolicyViewModel {
 
   private normalizeReason(stage: string | undefined): string {
     switch (stage) {
-      case REASON_PRECHECK_BLACKLIST_CONFLICT:
-        return REASON_PRECHECK_BLACKLIST_CONFLICT
-      case REASON_PRECHECK_WHITELIST_CONFLICT:
-        return REASON_PRECHECK_WHITELIST_CONFLICT
-      case REASON_INFER_BLACKLIST_TYPE_FAILED:
-        return REASON_INFER_BLACKLIST_TYPE_FAILED
+      case PeripheralViewModelReasons.REASON_PRECHECK_BLACKLIST_CONFLICT:
+        return PeripheralViewModelReasons.REASON_PRECHECK_BLACKLIST_CONFLICT
+      case PeripheralViewModelReasons.REASON_PRECHECK_WHITELIST_CONFLICT:
+        return PeripheralViewModelReasons.REASON_PRECHECK_WHITELIST_CONFLICT
+      case PeripheralViewModelReasons.REASON_INFER_BLACKLIST_TYPE_FAILED:
+        return PeripheralViewModelReasons.REASON_INFER_BLACKLIST_TYPE_FAILED
       default:
-        return stage || REASON_POLICY_CHANGE_FAILED
+        return stage || PeripheralViewModelReasons.REASON_POLICY_CHANGE_FAILED
     }
   }
 

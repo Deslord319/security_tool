@@ -17,11 +17,7 @@ import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel
 } from '../utils/PeripheralRecordDisplayUtils'
-import {
-  REASON_EMPTY_CONNECTION_HISTORY,
-  REASON_EXPORT_CONNECTION_HISTORY_FAILED,
-  REASON_EXPORT_ENV_NOT_READY
-} from './PeripheralViewModelReasons'
+import { PeripheralViewModelReasons } from './PeripheralViewModelReasons'
 
 const TAG = 'PeripheralRecordViewModel'
 const DOMAIN = 0x0013
@@ -68,10 +64,10 @@ export class PeripheralRecordViewModel {
 
   async exportConnectionHistory(context: common.UIAbilityContext | null): Promise<string | null> {
     if (this.records.length === 0) {
-      return REASON_EMPTY_CONNECTION_HISTORY
+      return PeripheralViewModelReasons.REASON_EMPTY_CONNECTION_HISTORY
     }
     if (!context) {
-      return REASON_EXPORT_ENV_NOT_READY
+      return PeripheralViewModelReasons.REASON_EXPORT_ENV_NOT_READY
     }
 
     try {
@@ -81,10 +77,10 @@ export class PeripheralRecordViewModel {
         csvContent,
         fileNamePrefix: 'peripheral_connection_history'
       })
-      return result.success ? null : REASON_EXPORT_CONNECTION_HISTORY_FAILED
+      return result.success ? null : PeripheralViewModelReasons.REASON_EXPORT_CONNECTION_HISTORY_FAILED
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
-      return REASON_EXPORT_CONNECTION_HISTORY_FAILED
+      return PeripheralViewModelReasons.REASON_EXPORT_CONNECTION_HISTORY_FAILED
     }
   }
 
