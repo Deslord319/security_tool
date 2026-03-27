@@ -7,10 +7,10 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BackNavButton } from '../components/BackNavButton'
-import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { SettingsSectionCard } from '../components/SettingsSectionCard'
 import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
 const TAG = 'ToolSettings.Page'
@@ -20,7 +20,6 @@ const DOMAIN = 0x0014
 export struct ToolSettingsPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
-  @State hoveredCardIndex: number = -1
   @State viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private resultDialogController: CustomDialogController = new CustomDialogController({
     builder: ResultMessageBox({
@@ -86,25 +85,19 @@ export struct ToolSettingsPage {
       primaryButton: {
         value: ToolSettingsStrings.continueSave,
         action: () => {
-          void this.handleConfirmSave()
+          void this.handleSave(true)
         }
       },
       secondaryButton: {
         value: CommonStrings.actionCancel,
         action: () => {
-          this.viewModel.cancelPendingSave()
         }
       }
     })
   }
 
-  private async handleSave(): Promise<void> {
-    let request = await this.viewModel.requestSave(this.getPageContext())
-    this.handleActionRequest(request)
-  }
-
-  private async handleConfirmSave(): Promise<void> {
-    let request = await this.viewModel.confirmSaveWithUnavailableAuth(this.getPageContext())
+  private async handleSave(allowUnsupportedAuthMethod: boolean = false): Promise<void> {
+    let request = await this.viewModel.requestSave(this.getPageContext(), allowUnsupportedAuthMethod)
     this.handleActionRequest(request)
   }
 
@@ -140,15 +133,7 @@ export struct ToolSettingsPage {
         .layoutWeight(1)
         .alignItems(VerticalAlign.Top)
 
-        this.headerActionButton(
-          ToolSettingsStrings.saveButton,
-          $r('app.media.save'),
-          Color.White,
-          AppColors.BRAND_PRIMARY,
-          () => {
-            void this.handleSave()
-          }
-        )
+        this.saveButton()
       }
       .width('100%')
       .padding({
@@ -159,7 +144,10 @@ export struct ToolSettingsPage {
 
       Scroll() {
         Column({ space: 24 }) {
-          this.startupAuthBuilder()
+          SettingsSectionCard({
+            title: ToolSettingsStrings.sectionStartupAuth,
+            content: this.startupAuthContent.bind(this)
+          })
         }
         .width('100%')
         .padding({
@@ -181,164 +169,141 @@ export struct ToolSettingsPage {
   }
 
   @Builder
-  startupAuthBuilder() {
-    Column({ space: 0 }) {
-      Row() {
-        Text(ToolSettingsStrings.sectionStartupAuth)
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Blank()
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
+  startupAuthContent() {
+    this.startupAuthSwitchRow()
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+    Divider()
+      .color(AppColors.getColors(this.currentTheme).BORDER)
+      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      Row() {
-        Column({ space: 2 }) {
-          Text(ToolSettingsStrings.startupAuthTitle)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text(ToolSettingsStrings.startupAuthDesc)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
+    this.authMethodRow()
 
-        Toggle({ type: ToggleType.Switch, isOn: this.viewModel.state.config.startupAuthEnabled })
-          .selectedColor(AppColors.BRAND_PRIMARY)
-          .onChange((value: boolean) => {
-            this.viewModel.setStartupAuthEnabled(value)
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    Divider()
+      .color(AppColors.getColors(this.currentTheme).BORDER)
+      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Column({ space: 2 }) {
-          Text(ToolSettingsStrings.authMethodTitle)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text(ToolSettingsStrings.authMethodDesc)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Select(this.authMethodOptions)
-          .selected(this.viewModel.selectedAuthMethodIndex)
-          .value(this.getSelectedAuthMethodLabel())
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(140)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => {
-            if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
-              this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
-            }
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Column({ space: 2 }) {
-          Text(ToolSettingsStrings.changePasswordLabel)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text(ToolSettingsStrings.changePasswordDesc)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Button(ToolSettingsStrings.changePasswordLabel)
-          .type(ButtonType.Normal)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(Color.White)
-          .backgroundColor(AppColors.BRAND_PRIMARY)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .height(36)
-          .padding({ left: 14, right: 14 })
-          .onClick(() => {
-            void this.handlePasswordSettings()
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    }
-    .width('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .clip(true)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredCardIndex = isHover ? 0 : -1
-      })
-    })
+    this.changePasswordRow()
   }
 
   @Builder
-  headerActionButton(
-    label: string,
-    icon: Resource,
-    textColor: ResourceColor,
-    backgroundColor: ResourceColor,
-    onTap: () => void
-  ) {
+  private saveButton() {
     Button() {
       Row({ space: 6 }) {
-        Image(icon)
+        Image($r('app.media.save'))
           .width(14)
           .height(14)
-          .fillColor(textColor)
+          .fillColor(Color.White)
           .draggable(false)
 
-        Text(label)
+        Text(ToolSettingsStrings.saveButton)
           .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(textColor)
+          .fontColor(Color.White)
       }
       .alignItems(VerticalAlign.Center)
     }
     .type(ButtonType.Normal)
-    .backgroundColor(backgroundColor)
+    .backgroundColor(AppColors.BRAND_PRIMARY)
     .borderRadius(AppStyles.RADIUS_SM)
     .height(32)
     .padding({ left: 10, right: 10 })
     .onClick(() => {
-      onTap()
+      void this.handleSave()
     })
+  }
+
+  @Builder
+  private startupAuthSwitchRow() {
+    Row() {
+      Column({ space: 2 }) {
+        Text(ToolSettingsStrings.startupAuthTitle)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        Text(ToolSettingsStrings.startupAuthDesc)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Toggle({ type: ToggleType.Switch, isOn: this.viewModel.state.config.startupAuthEnabled })
+        .selectedColor(AppColors.BRAND_PRIMARY)
+        .onChange((value: boolean) => {
+          this.viewModel.setStartupAuthEnabled(value)
+        })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+  }
+
+  @Builder
+  private authMethodRow() {
+    Row() {
+      Column({ space: 2 }) {
+        Text(ToolSettingsStrings.authMethodTitle)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        Text(ToolSettingsStrings.authMethodDesc)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Select(this.authMethodOptions)
+        .selected(this.viewModel.selectedAuthMethodIndex)
+        .value(this.getSelectedAuthMethodLabel())
+        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .fontColor(FormControlUtils.text(this.currentTheme))
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .width(140)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .onSelect((index: number) => {
+          if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
+            this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
+          }
+        })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+  }
+
+  @Builder
+  private changePasswordRow() {
+    Row() {
+      Column({ space: 2 }) {
+        Text(ToolSettingsStrings.changePasswordLabel)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        Text(ToolSettingsStrings.changePasswordDesc)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Button(ToolSettingsStrings.changePasswordLabel)
+        .type(ButtonType.Normal)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(Color.White)
+        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .height(36)
+        .padding({ left: 14, right: 14 })
+        .onClick(() => {
+          void this.handlePasswordSettings()
+        })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
   }
 }

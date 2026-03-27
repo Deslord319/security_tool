@@ -15,6 +15,7 @@ import {
 
 const TAG = 'ToolSettings.ViewModel'
 const DOMAIN = 0x0014
+const UNKNOWN_TOOL_SETTINGS_ERROR_CODE = -1
 
 interface ToolSettingsLoggableError {
   code?: number
@@ -25,13 +26,6 @@ export interface ToolSettingsUiState {
   config: ToolSettingsConfig
   initialConfig: ToolSettingsConfig
   hasChanges: boolean
-  isLoading: boolean
-  isSaving: boolean
-  pendingConfirmVisible: boolean
-  pendingConfirmTitle: string
-  pendingConfirmMessage: string
-  resultStatus: ResultMessageStatus | null
-  resultMessage: string
 }
 
 export type ToolSettingsActionKind = 'none' | 'result' | 'confirm'
@@ -48,6 +42,8 @@ export class ToolSettingsViewModel {
   state: ToolSettingsUiState = this.createInitialState()
   private repository: ToolSettingsRepository
   private runtimeGateway: ToolSettingsRuntimeGateway
+  private isInitializing: boolean = false
+  private isSaving: boolean = false
 
   constructor(
     repository: ToolSettingsRepository = new PreferencesToolSettingsRepository(),
@@ -63,32 +59,14 @@ export class ToolSettingsViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
-    this.commitState({
-      config: this.cloneConfig(this.state.config),
-      initialConfig: this.cloneConfig(this.state.initialConfig),
-      hasChanges: this.state.hasChanges,
-      isLoading: true,
-      isSaving: false,
-      pendingConfirmVisible: false,
-      pendingConfirmTitle: '',
-      pendingConfirmMessage: '',
-      resultStatus: null,
-      resultMessage: ''
-    })
+    this.isInitializing = true
     hilog.info(DOMAIN, TAG, '[LOAD_START] initialize | source=ToolSettingsPage')
     try {
       let config = await this.repository.loadConfig(context)
       this.commitState({
         config: this.cloneConfig(config),
         initialConfig: this.cloneConfig(config),
-        hasChanges: false,
-        isLoading: false,
-        isSaving: false,
-        pendingConfirmVisible: false,
-        pendingConfirmTitle: '',
-        pendingConfirmMessage: '',
-        resultStatus: null,
-        resultMessage: ''
+        hasChanges: false
       })
       hilog.info(
         DOMAIN,
@@ -102,16 +80,11 @@ export class ToolSettingsViewModel {
       this.commitState({
         config: fallbackConfig,
         initialConfig: this.cloneConfig(fallbackConfig),
-        hasChanges: false,
-        isLoading: false,
-        isSaving: false,
-        pendingConfirmVisible: false,
-        pendingConfirmTitle: '',
-        pendingConfirmMessage: '',
-        resultStatus: null,
-        resultMessage: ''
+        hasChanges: false
       })
       hilog.error(DOMAIN, TAG, `[LOAD_FAIL] initialize | code=${errorCode}, message=${errorMessage}`)
+    } finally {
+      this.isInitializing = false
     }
   }
 
@@ -143,8 +116,11 @@ export class ToolSettingsViewModel {
     )
   }
 
-  async requestSave(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
-    if (this.state.isLoading || this.state.isSaving) {
+  async requestSave(
+    context: common.UIAbilityContext,
+    allowUnsupportedAuthMethod: boolean = false
+  ): Promise<ToolSettingsActionRequest> {
+    if (this.isInitializing || this.isSaving) {
       return { kind: 'none' }
     }
     hilog.info(
@@ -153,10 +129,14 @@ export class ToolSettingsViewModel {
       `[USER_SAVE_CLICK] requestSave | hasChanges=${this.state.hasChanges}, startupAuthEnabled=${this.state.config.startupAuthEnabled}, authMethod=${this.state.config.authMethod}`
     )
     if (!this.state.hasChanges) {
-      return this.prepareResult('failure', CommonStrings.messageNoChanges)
+      return {
+        kind: 'result',
+        status: 'failure',
+        message: CommonStrings.messageNoChanges
+      }
     }
 
-    if (this.state.config.startupAuthEnabled) {
+    if (this.state.config.startupAuthEnabled && !allowUnsupportedAuthMethod) {
       let availability = this.runtimeGateway.checkAuthAvailability(this.state.config.authMethod)
       hilog.info(
         DOMAIN,
@@ -165,18 +145,6 @@ export class ToolSettingsViewModel {
       )
       if (!availability.available) {
         let confirmMessage = `${availability.message}\n\n${ToolSettingsStrings.authMethodUnavailableMessage}`
-        this.commitState({
-          config: this.cloneConfig(this.state.config),
-          initialConfig: this.cloneConfig(this.state.initialConfig),
-          hasChanges: this.state.hasChanges,
-          isLoading: this.state.isLoading,
-          isSaving: false,
-          pendingConfirmVisible: true,
-          pendingConfirmTitle: ToolSettingsStrings.authMethodUnavailableTitle,
-          pendingConfirmMessage: confirmMessage,
-          resultStatus: null,
-          resultMessage: ''
-        })
         hilog.warn(
           DOMAIN,
           TAG,
@@ -190,34 +158,7 @@ export class ToolSettingsViewModel {
       }
     }
 
-    return this.performSave(context)
-  }
-
-  async confirmSaveWithUnavailableAuth(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
-    if (!this.state.pendingConfirmVisible || this.state.isSaving) {
-      return { kind: 'none' }
-    }
-    // The user is allowed to keep an unavailable auth method so saved settings and
-    // startup behavior stay aligned with the current product rule.
-    return this.performSave(context)
-  }
-
-  cancelPendingSave(): void {
-    if (!this.state.pendingConfirmVisible) {
-      return
-    }
-    this.commitState({
-      config: this.cloneConfig(this.state.config),
-      initialConfig: this.cloneConfig(this.state.initialConfig),
-      hasChanges: this.state.hasChanges,
-      isLoading: this.state.isLoading,
-      isSaving: false,
-      pendingConfirmVisible: false,
-      pendingConfirmTitle: '',
-      pendingConfirmMessage: '',
-      resultStatus: this.state.resultStatus,
-      resultMessage: this.state.resultMessage
-    })
+    return this.saveCurrentConfig(context)
   }
 
   async openPasswordSettings(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
@@ -225,25 +166,18 @@ export class ToolSettingsViewModel {
     let opened = await this.runtimeGateway.openPasswordSettings(context)
     hilog.info(DOMAIN, TAG, `[SYSNAV_RESULT] openPasswordSettings | opened=${opened}`)
     if (!opened) {
-      return this.prepareResult('failure', ToolSettingsStrings.openPasswordSettingsFailed)
+      return {
+        kind: 'result',
+        status: 'failure',
+        message: ToolSettingsStrings.openPasswordSettingsFailed
+      }
     }
     return { kind: 'none' }
   }
 
-  private async performSave(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
+  private async saveCurrentConfig(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
     let configToSave = this.cloneConfig(this.state.config)
-    this.commitState({
-      config: configToSave,
-      initialConfig: this.cloneConfig(this.state.initialConfig),
-      hasChanges: this.state.hasChanges,
-      isLoading: this.state.isLoading,
-      isSaving: true,
-      pendingConfirmVisible: false,
-      pendingConfirmTitle: '',
-      pendingConfirmMessage: '',
-      resultStatus: null,
-      resultMessage: ''
-    })
+    this.isSaving = true
     hilog.info(
       DOMAIN,
       TAG,
@@ -254,14 +188,7 @@ export class ToolSettingsViewModel {
       this.commitState({
         config: this.cloneConfig(configToSave),
         initialConfig: this.cloneConfig(configToSave),
-        hasChanges: false,
-        isLoading: this.state.isLoading,
-        isSaving: false,
-        pendingConfirmVisible: false,
-        pendingConfirmTitle: '',
-        pendingConfirmMessage: '',
-        resultStatus: 'success',
-        resultMessage: ToolSettingsStrings.saveSuccess
+        hasChanges: false
       })
       hilog.info(
         DOMAIN,
@@ -279,14 +206,7 @@ export class ToolSettingsViewModel {
       this.commitState({
         config: this.cloneConfig(this.state.config),
         initialConfig: this.cloneConfig(this.state.initialConfig),
-        hasChanges: this.hasChanges(this.state.config, this.state.initialConfig),
-        isLoading: this.state.isLoading,
-        isSaving: false,
-        pendingConfirmVisible: false,
-        pendingConfirmTitle: '',
-        pendingConfirmMessage: '',
-        resultStatus: 'failure',
-        resultMessage: CommonStrings.messageSaveFailed
+        hasChanges: this.hasChanges(this.state.config, this.state.initialConfig)
       })
       hilog.error(DOMAIN, TAG, `[SAVE_FAIL] saveConfig | code=${errorCode}, message=${errorMessage}`)
       return {
@@ -294,26 +214,8 @@ export class ToolSettingsViewModel {
         status: 'failure',
         message: CommonStrings.messageSaveFailed
       }
-    }
-  }
-
-  private prepareResult(status: ResultMessageStatus, message: string): ToolSettingsActionRequest {
-    this.commitState({
-      config: this.cloneConfig(this.state.config),
-      initialConfig: this.cloneConfig(this.state.initialConfig),
-      hasChanges: this.state.hasChanges,
-      isLoading: this.state.isLoading,
-      isSaving: false,
-      pendingConfirmVisible: false,
-      pendingConfirmTitle: '',
-      pendingConfirmMessage: '',
-      resultStatus: status,
-      resultMessage: message
-    })
-    return {
-      kind: 'result',
-      status: status,
-      message: message
+    } finally {
+      this.isSaving = false
     }
   }
 
@@ -321,14 +223,7 @@ export class ToolSettingsViewModel {
     this.commitState({
       config: this.cloneConfig(nextConfig),
       initialConfig: this.cloneConfig(this.state.initialConfig),
-      hasChanges: this.hasChanges(nextConfig, this.state.initialConfig),
-      isLoading: this.state.isLoading,
-      isSaving: this.state.isSaving,
-      pendingConfirmVisible: false,
-      pendingConfirmTitle: '',
-      pendingConfirmMessage: '',
-      resultStatus: null,
-      resultMessage: ''
+      hasChanges: this.hasChanges(nextConfig, this.state.initialConfig)
     })
   }
 
@@ -341,14 +236,7 @@ export class ToolSettingsViewModel {
     return {
       config: defaultConfig,
       initialConfig: this.cloneConfig(defaultConfig),
-      hasChanges: false,
-      isLoading: false,
-      isSaving: false,
-      pendingConfirmVisible: false,
-      pendingConfirmTitle: '',
-      pendingConfirmMessage: '',
-      resultStatus: null,
-      resultMessage: ''
+      hasChanges: false
     }
   }
 
@@ -363,12 +251,12 @@ export class ToolSettingsViewModel {
     this.state = nextState
   }
 
-  private getErrorCode(err: Object): number | string {
+  private getErrorCode(err: Object): number {
     let error = err as ToolSettingsLoggableError
     if (typeof error?.code === 'number') {
       return error.code
     }
-    return 'unknown'
+    return UNKNOWN_TOOL_SETTINGS_ERROR_CODE
   }
 
   private getErrorMessage(err: Object): string {

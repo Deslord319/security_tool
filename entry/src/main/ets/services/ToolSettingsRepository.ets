@@ -12,6 +12,7 @@ import {
 
 const TAG = 'ToolSettings.Repository'
 const DOMAIN = 0x0014
+const UNKNOWN_TOOL_SETTINGS_ERROR_CODE = -1
 
 interface ToolSettingsLoggableError {
   code?: number
@@ -43,11 +44,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
     } catch (err) {
       let errorCode = this.getErrorCode(err)
       let errorMessage = this.getErrorMessage(err)
-      hilog.error(
-        DOMAIN,
-        TAG,
-        `[LOAD_FAIL] loadConfig | code=${errorCode}, message=${errorMessage}, fallback=default`
-      )
+      hilog.error(DOMAIN, TAG, `[LOAD_FAIL] loadConfig | code=${errorCode}, message=${errorMessage}, fallback=default`)
       return this.cloneConfig(DEFAULT_TOOL_SETTINGS)
     }
   }
@@ -72,11 +69,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
     } catch (err) {
       let errorCode = this.getErrorCode(err)
       let errorMessage = this.getErrorMessage(err)
-      hilog.error(
-        DOMAIN,
-        TAG,
-        `[SAVE_FAIL] saveConfig | code=${errorCode}, message=${errorMessage}`
-      )
+      hilog.error(DOMAIN, TAG, `[SAVE_FAIL] saveConfig | code=${errorCode}, message=${errorMessage}`)
       throw new Error(errorMessage)
     }
   }
@@ -117,12 +110,12 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
     return DEFAULT_TOOL_SETTINGS.authMethod
   }
 
-  private getErrorCode(err: Object): number | string {
+  private getErrorCode(err: Object): number {
     let error = err as ToolSettingsLoggableError
     if (typeof error?.code === 'number') {
       return error.code
     }
-    return 'unknown'
+    return UNKNOWN_TOOL_SETTINGS_ERROR_CODE
   }
 
   private getErrorMessage(err: Object): string {
