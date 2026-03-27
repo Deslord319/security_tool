@@ -152,12 +152,12 @@ export struct FirewallPage {
   private getModeAccent(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return '#0A84FF'
+        return FirewallStrings.publicModeAccent
       case 'private':
-        return '#34C759'
+        return FirewallStrings.privateModeAccent
       case 'custom':
       default:
-        return '#FF9500'
+        return FirewallStrings.customModeAccent
     }
   }
 
@@ -179,7 +179,7 @@ export struct FirewallPage {
 
   private getModeCardBackground(mode: FirewallPresetMode): string {
     if (this.isModeSelected(mode)) {
-      return this.currentTheme === ThemeMode.DARK ? '#243140' : '#EEF6FF'
+      return this.currentTheme === ThemeMode.DARK ? FirewallStrings.selectedCardBgDark : FirewallStrings.selectedCardBgLight
     }
     return this.getThemeColors().BG_CARD
   }
@@ -200,7 +200,7 @@ export struct FirewallPage {
     }
     return {
       width: 3,
-      color: this.currentTheme === ThemeMode.DARK ? '#0F1720' : '#FFFFFF'
+      color: this.currentTheme === ThemeMode.DARK ? FirewallStrings.selectedIconBorderDark : FirewallStrings.selectedIconBorderLight
     }
   }
 
@@ -210,7 +210,7 @@ export struct FirewallPage {
     }
     return {
       radius: 16,
-      color: this.currentTheme === ThemeMode.DARK ? '#66000000' : '#22000000',
+      color: this.currentTheme === ThemeMode.DARK ? FirewallStrings.selectedShadowDark : FirewallStrings.selectedShadowLight,
       offsetX: 0,
       offsetY: 6
     }
@@ -233,7 +233,7 @@ export struct FirewallPage {
   }
 
   private getModeStatusTextColor(mode: FirewallPresetMode): string {
-    return this.currentTheme === ThemeMode.DARK ? this.getModeAccent(mode) : '#FFFFFF'
+    return this.currentTheme === ThemeMode.DARK ? this.getModeAccent(mode) : FirewallStrings.lightStatusText
   }
 
   private getModeStatusBorder(mode: FirewallPresetMode): BorderOptions {

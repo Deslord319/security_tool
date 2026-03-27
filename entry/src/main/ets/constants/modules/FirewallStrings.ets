@@ -63,6 +63,17 @@ export class FirewallStrings {
   static readonly actionAllow: string = '允许'
   static readonly actionDeny: string = '阻止'
 
+  static readonly publicModeAccent: string = '#0A84FF'
+  static readonly privateModeAccent: string = '#34C759'
+  static readonly customModeAccent: string = '#FF9500'
+  static readonly selectedCardBgDark: string = '#243140'
+  static readonly selectedCardBgLight: string = '#EEF6FF'
+  static readonly selectedIconBorderDark: string = '#0F1720'
+  static readonly selectedIconBorderLight: string = '#FFFFFF'
+  static readonly selectedShadowDark: string = '#66000000'
+  static readonly selectedShadowLight: string = '#22000000'
+  static readonly lightStatusText: string = '#FFFFFF'
+
   static getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':

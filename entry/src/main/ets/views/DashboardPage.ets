@@ -215,8 +215,8 @@ export struct DashboardPage {
             StatCard({
               label: DashboardStrings.statFirewallStatus,
               value: this.firewallEnabled ? DashboardStrings.statFirewallEnabled : DashboardStrings.statFirewallDisabled,
-              gradientStart: '#0A84FF',
-              gradientEnd: '#00C6FF',
+              gradientStart: DashboardStrings.firewallGradient.start,
+              gradientEnd: DashboardStrings.firewallGradient.end,
               icon: $r('app.media.firewall')
             })
           }
@@ -228,8 +228,8 @@ export struct DashboardPage {
             StatCard({
               label: DashboardStrings.statTodayAuditEvents,
               value: this.todayAuditCount.toString(),
-              gradientStart: '#34C759',
-              gradientEnd: '#30D158',
+              gradientStart: DashboardStrings.logManageGradient.start,
+              gradientEnd: DashboardStrings.logManageGradient.end,
               icon: $r('app.media.log')
             })
           }
@@ -241,8 +241,8 @@ export struct DashboardPage {
             StatCard({
               label: DashboardStrings.statBlockedEvents,
               value: this.blockedAuditCount.toString(),
-              gradientStart: '#5856D6',
-              gradientEnd: '#AF52DE',
+              gradientStart: DashboardStrings.peripheralGradient.start,
+              gradientEnd: DashboardStrings.peripheralGradient.end,
               icon: $r('app.media.alert')
             })
           }
@@ -254,8 +254,8 @@ export struct DashboardPage {
             StatCard({
               label: DashboardStrings.statTotalLogs,
               value: this.totalLogCount.toString(),
-              gradientStart: '#FF9500',
-              gradientEnd: '#FFCC00',
+              gradientStart: DashboardStrings.identityGradient.start,
+              gradientEnd: DashboardStrings.identityGradient.end,
               icon: $r('app.media.folder')
             })
           }
@@ -277,8 +277,8 @@ export struct DashboardPage {
             ToolCard({
               label: CommonStrings.moduleFirewall,
               icon: $r('app.media.firewall'),
-              gradientStart: '#0A84FF',
-              gradientEnd: '#00C6FF',
+              gradientStart: DashboardStrings.firewallGradient.start,
+              gradientEnd: DashboardStrings.firewallGradient.end,
               onPress: () => { this.onNavigate(Routes.FIREWALL) }
             })
           }
@@ -290,8 +290,8 @@ export struct DashboardPage {
             ToolCard({
               label: CommonStrings.moduleLogManage,
               icon: $r('app.media.log'),
-              gradientStart: '#34C759',
-              gradientEnd: '#30D158',
+              gradientStart: DashboardStrings.logManageGradient.start,
+              gradientEnd: DashboardStrings.logManageGradient.end,
               onPress: () => { this.onNavigate(Routes.LOG_MANAGE) }
             })
           }
@@ -303,8 +303,8 @@ export struct DashboardPage {
             ToolCard({
               label: CommonStrings.modulePeripheralManage,
               icon: $r('app.media.peripheral'),
-              gradientStart: '#5856D6',
-              gradientEnd: '#AF52DE',
+              gradientStart: DashboardStrings.peripheralGradient.start,
+              gradientEnd: DashboardStrings.peripheralGradient.end,
               onPress: () => { this.onNavigate(Routes.PERIPHERAL_MANAGE) }
             })
           }
@@ -316,8 +316,8 @@ export struct DashboardPage {
             ToolCard({
               label: CommonStrings.moduleIdentity,
               icon: $r('app.media.identity'),
-              gradientStart: '#FF9500',
-              gradientEnd: '#FFCC00',
+              gradientStart: DashboardStrings.identityGradient.start,
+              gradientEnd: DashboardStrings.identityGradient.end,
               onPress: () => { this.onNavigate(Routes.IDENTITY) }
             })
           }
@@ -329,8 +329,8 @@ export struct DashboardPage {
             ToolCard({
               label: CommonStrings.moduleToolSettings,
               icon: $r('app.media.settings'),
-              gradientStart: '#9095A1',
-              gradientEnd: '#D8DCE3',
+              gradientStart: DashboardStrings.toolSettingsGradient.start,
+              gradientEnd: DashboardStrings.toolSettingsGradient.end,
               onPress: () => { this.onNavigate(Routes.TOOL_SETTINGS) }
             })
           }
@@ -342,8 +342,8 @@ export struct DashboardPage {
             ToolCard({
               label: CommonStrings.moduleHelpFeedback,
               icon: $r('app.media.help'),
-              gradientStart: '#FF8A80',
-              gradientEnd: '#FFB4A8',
+              gradientStart: DashboardStrings.helpFeedbackGradient.start,
+              gradientEnd: DashboardStrings.helpFeedbackGradient.end,
               onPress: () => { this.onNavigate(Routes.HELP_FEEDBACK) }
             })
           }

@@ -44,6 +44,7 @@ export class AppColors {
   static readonly TAG_ORANGE_TEXT: string = '#E65100'
   static readonly TAG_GRAY_BG: string = '#ECEFF1'
   static readonly TAG_GRAY_TEXT: string = '#546E7A'
+  static readonly TEXT_MUTED: string = '#9E9E9E'
 }
 
 export class AppStyles {

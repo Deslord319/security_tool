@@ -1,5 +1,7 @@
 
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
+import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import {
@@ -71,7 +73,7 @@ struct LogDetailTextBlock {
         .width('100%')
 
       if (this.shouldCollapse()) {
-        Text(this.expanded ? '收起' : '展开')
+        Text(this.expanded ? LogManageStrings.collapse : LogManageStrings.expand)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.BRAND_PRIMARY)
           .onClick(() => {
@@ -142,7 +144,7 @@ struct LogDetailInfoRow {
         .width('100%')
 
       if (this.shouldCollapse()) {
-        Text(this.expanded ? '收起' : '展开')
+        Text(this.expanded ? LogManageStrings.collapse : LogManageStrings.expand)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.BRAND_PRIMARY)
           .onClick(() => {
@@ -202,7 +204,7 @@ struct LogDetailDialog {
   private getMetricFields(): LogDetailField[] {
     let fields: LogDetailField[] = []
     if (this.hasValue(this.entry.processName)) {
-      fields.push({ key: 'process', label: '进程', value: this.displayValue(this.entry.processName) } as LogDetailField)
+      fields.push({ key: 'process', label: LogManageStrings.processLabel, value: this.displayValue(this.entry.processName) } as LogDetailField)
     }
     if (this.hasValue(this.entry.pid)) {
       fields.push({ key: 'pid', label: 'PID', value: this.displayValue(this.entry.pid) } as LogDetailField)
@@ -216,10 +218,10 @@ struct LogDetailDialog {
   private getInfoFields(): LogDetailField[] {
     let fields: LogDetailField[] = []
     if (this.hasValue(this.entry.filePath)) {
-      fields.push({ key: 'file_path', label: '文件路径', value: this.displayValue(this.entry.filePath) } as LogDetailField)
+      fields.push({ key: 'file_path', label: LogManageStrings.filePathLabel, value: this.displayValue(this.entry.filePath) } as LogDetailField)
     }
     if (this.hasValue(this.entry.remoteAddr)) {
-      fields.push({ key: 'remote_addr', label: '远端地址', value: this.displayValue(this.entry.remoteAddr) } as LogDetailField)
+      fields.push({ key: 'remote_addr', label: LogManageStrings.remoteAddressLabel, value: this.displayValue(this.entry.remoteAddr) } as LogDetailField)
     }
     return fields
   }
@@ -232,7 +234,7 @@ struct LogDetailDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         Blank()
-        Button('关闭')
+        Button(LogManageStrings.close)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -278,13 +280,13 @@ struct LogDetailDialog {
           .alignItems(VerticalAlign.Center)
 
           LogDetailTextBlock({
-            title: '详情',
-            value: this.entry.detail.trim().length > 0 ? this.entry.detail : '暂无详情'
+            title: LogManageStrings.detailTitle,
+            value: this.entry.detail.trim().length > 0 ? this.entry.detail : LogManageStrings.detailEmpty
           })
 
           if (this.getMetricFields().length > 0 || this.getInfoFields().length > 0) {
             Column({ space: 8 }) {
-              Text('附加信息')
+              Text(LogManageStrings.additionalInfo)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontWeight(FontWeight.Medium)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -394,14 +396,14 @@ export struct LogManagePage {
 
 
   private eventTypeFilterOptions: SelectOption[] = [
-    { value: '全部类型' } as SelectOption,
+    { value: LogManageStrings.allEventTypes } as SelectOption,
     ...LOG_EVENT_TYPE_OPTIONS.map((opt) => ({ value: opt.label } as SelectOption))
   ]
   private resultFilterOptions: SelectOption[] = [
-    { value: '全部结果' } as SelectOption,
-    { value: '成功' } as SelectOption,
-    { value: '已阻止' } as SelectOption,
-    { value: '失败' } as SelectOption
+    { value: LogManageStrings.allResults } as SelectOption,
+    { value: LogManageStrings.successOption } as SelectOption,
+    { value: LogManageStrings.statBlocked } as SelectOption,
+    { value: LogManageStrings.failedOption } as SelectOption
   ]
 
   aboutToAppear() {
@@ -634,39 +636,39 @@ export struct LogManagePage {
   }
 
   private getDiagMetricLabel(type: LogEventType): string {
-    return '首页数量'
+    return LogManageStrings.homeMetricLabel
   }
 
   private getDiagCardSummaryText(type: LogEventType): string {
     let diag = this.getDiagByType(type)
     if (diag.failedEventIds.length > 0) {
       let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
-      return `订阅异常：eventId ${diag.failedEventIds.join(',')}${codeText}`
+      return LogManageStrings.buildSubscriptionErrorText(diag.failedEventIds.join(','), codeText)
     }
     if (type === LogEventType.FILE) {
       let unsupported = diag.preFilterUnsupportedEventIds || []
       let preFilterFailed = diag.preFilterFailedEventIds || []
       if (unsupported.length > 0) {
-        return `前置路径过滤已回退：eventId ${unsupported.join(',')}`
+        return LogManageStrings.buildPreFilterRollbackText(unsupported.join(','))
       }
       if (preFilterFailed.length > 0) {
         let codeText = diag.preFilterLastErrorCode !== undefined ? `，错误码 ${diag.preFilterLastErrorCode}` : ''
-        return `前置路径过滤异常：eventId ${preFilterFailed.join(',')}${codeText}`
+        return LogManageStrings.buildPreFilterFailedText(preFilterFailed.join(','), codeText)
       }
       let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
       if (dropped > 0) {
-        return `已丢弃 ${dropped} 条非用户文件事件`
+        return LogManageStrings.buildDroppedNonUserFileText(dropped)
       }
     }
     if (!diag.subscribed) {
-      return '当前未订阅该类型'
+      return LogManageStrings.notSubscribedForType
     }
     return this.getDiagRecentTimeText(type)
   }
 
   async exportLogs() {
     if (this.logEntries.length === 0) {
-      this.showResultDialog('failure', '没有可导出的日志')
+      this.showResultDialog('failure', LogManageStrings.noExportableLogs)
       return
     }
 
@@ -674,13 +676,13 @@ export struct LogManagePage {
       csvContent: LogStorageService.buildCsvContent(this.logEntries)
     })
     if (result.success) {
-      this.showResultDialog('success', `日志已导出，文件名：${result.fileName}`)
+      this.showResultDialog('success', LogManageStrings.buildExportSuccessText(result.fileName ?? '-'))
       return
     }
 
     this.showResultDialog(
       'failure',
-      `日志导出失败，${ResultDialogHelper.displayReason(result.errorMessage, '请稍后重试')}`
+      LogManageStrings.buildExportFailedText(ResultDialogHelper.displayReason(result.errorMessage, CommonStrings.messageRetryLater))
     )
   }
 
@@ -688,7 +690,7 @@ export struct LogManagePage {
     this.detailDialogController = new CustomDialogController({
       builder: LogDetailDialog({
         controller: this.detailDialogController as CustomDialogController,
-        title: '日志详情',
+        title: LogManageStrings.detailDialogTitle,
         entry: entry
       }),
       autoCancel: true,
@@ -700,17 +702,17 @@ export struct LogManagePage {
 
   clearLogs() {
     void this.getUIContext().showAlertDialog({
-      title: '确认清空',
-      message: `将清除所有 ${this.statistics.totalCount} 条日志记录，此操作不可撤销。`,
+      title: LogManageStrings.clearConfirmTitle,
+      message: LogManageStrings.buildClearConfirmMessage(this.statistics.totalCount),
       primaryButton: {
-        value: '确认清空',
+        value: LogManageStrings.clearConfirmAction,
         action: async () => {
           await LogStorageService.clearAll()
           this.refreshAll()
-          this.showResultDialog('success', '日志已清空')
+          this.showResultDialog('success', LogManageStrings.clearSuccess)
         }
       },
-      secondaryButton: { value: '取消', action: () => {} }
+      secondaryButton: { value: CommonStrings.actionCancel, action: () => {} }
     })
   }
 
@@ -723,19 +725,19 @@ export struct LogManagePage {
 
     if (previousConfig.maxLocalEntries === config.maxLocalEntries &&
       previousConfig.retentionDays === config.retentionDays) {
-      this.showResultDialog('failure', '当前没有需要保存的更改')
+      this.showResultDialog('failure', CommonStrings.messageNoChanges)
       return
     }
 
     let success = await LogStorageService.updateConfig(config)
     if (!success) {
-      this.showResultDialog('failure', '保存设置失败，请稍后重试')
+      this.showResultDialog('failure', LogManageStrings.saveSettingsFailed)
       return
     }
 
     this.applyStorageConfig(LogStorageService.getConfig())
     this.refreshAll()
-    this.showResultDialog('success', '日志存储设置已保存')
+    this.showResultDialog('success', LogManageStrings.saveSettingsSuccess)
   }
   applyStorageConfig(config: LogStorageConfig): void {
     this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
@@ -777,15 +779,15 @@ export struct LogManagePage {
         if (selectedType === LogEventType.FILE) {
           let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
           if (dropped > 0) {
-            return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，已过滤 ${dropped} 条系统或未知路径事件。`
+            return LogManageStrings.buildViewingFilteredText(typeLabel, dropped)
           }
         }
         if (diag.seenCount > 0) {
-          return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，本次会话命中 ${diag.seenCount} 条。`
+          return LogManageStrings.buildViewingWithHitsText(typeLabel, diag.seenCount)
         }
-        return `当前正在查看【${typeLabel}】采集事件，该类型暂无命中事件。`
+        return LogManageStrings.buildViewingWithoutHitsText(typeLabel)
       }
-      return `当前正在查看【${typeLabel}】采集事件，共 ${this.logEntries.length} 条。`
+      return LogManageStrings.buildViewingTotalText(typeLabel, this.logEntries.length)
     }
 
     if (this.filterEventType < 0) {
@@ -795,7 +797,7 @@ export struct LogManagePage {
     let selectedType = this.filterEventType as LogEventType
     let totalByType = this.statistics.byType.get(selectedType) || 0
     if (totalByType > 0 && this.logEntries.length === 0) {
-      return '当前筛选结果为 0，可尝试清空关键词或结果筛选。'
+      return LogManageStrings.emptyFilteredResult
     }
 
     let diag = this.getCurrentTypeDiag()
@@ -804,22 +806,22 @@ export struct LogManagePage {
     }
     if (diag.failedEventIds.length > 0) {
       if (selectedType === LogEventType.ACCOUNT && diag.lastErrorCode === 401) {
-        return '用户认证日志在当前设备受系统策略限制（401），并非应用权限缺失。'
+        return LogManageStrings.accountLogRestricted
       }
       let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
-      return `该类型订阅失败：eventId ${diag.failedEventIds.join(',')}${codeText}。${this.getTypeTriggerHint(selectedType)}`
+      return LogManageStrings.buildTypeFailedText(diag.failedEventIds.join(','), codeText, this.getTypeTriggerHint(selectedType))
     }
     if (selectedType === LogEventType.FILE) {
       let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
       if (dropped > 0) {
-        return `当前文件日志仅保留用户文件操作，已过滤 ${dropped} 条系统或未知路径事件。`
+        return LogManageStrings.buildFilteredFileEventText(dropped)
       }
     }
     if (diag.subscribed && totalByType === 0) {
       return ''
     }
     if (!diag.subscribed) {
-      return '该类型当前未订阅。'
+      return LogManageStrings.buildNotSubscribedSentence()
     }
     return ''
   }
@@ -827,15 +829,15 @@ export struct LogManagePage {
   private getTypeTriggerHint(type: LogEventType): string {
     switch (type) {
       case LogEventType.CRASH:
-        return '提示：需等待系统上报 APP_CRASH 或 APP_FREEZE。'
+        return LogManageStrings.crashTriggerHint
       case LogEventType.FILE:
-        return '提示：只记录用户公共目录或公共媒体文件操作。'
+        return LogManageStrings.fileTriggerHint
       case LogEventType.PERMISSION:
-        return '提示：需触发权限授予/撤销等系统权限变更行为。'
+        return LogManageStrings.permissionTriggerHint
       case LogEventType.ACCOUNT:
-        return '提示：该类型在部分设备上可能受策略限制。'
+        return LogManageStrings.accountTriggerHint
       default:
-        return '提示：可先触发对应系统安全操作后再刷新查看。'
+        return LogManageStrings.triggerHint
     }
   }
 
@@ -859,9 +861,9 @@ export struct LogManagePage {
   private getDiagStatusText(type: LogEventType): string {
     let diag = this.getDiagByType(type)
     if (diag.failedEventIds.length > 0) {
-      return '订阅失败'
+      return LogManageStrings.subscribeFailed
     }
-    return diag.subscribed ? '已订阅' : '未订阅'
+    return diag.subscribed ? LogManageStrings.subscribed : LogManageStrings.notSubscribed
   }
 
   private getDiagStatusColor(type: LogEventType): string {
@@ -882,16 +884,16 @@ export struct LogManagePage {
     if (current === 'legacy') {
       return 'Legacy'
     }
-    return '未订阅'
+    return LogManageStrings.notSubscribed
   }
 
   private getFallbackReasonText(reason?: AuditFallbackReason): string {
     let current = reason || this.diagnostics.fallbackReason
     if (current === 'new_api_unavailable') {
-      return '新订阅 API 不可用，已自动切换到兼容模式。'
+      return LogManageStrings.newApiUnavailableFallback
     }
     if (current === 'new_api_init_failed') {
-      return '新订阅 API 初始化失败，已自动切换到兼容模式。'
+      return LogManageStrings.newApiInitFailedFallback
     }
     return ''
   }
@@ -911,10 +913,10 @@ export struct LogManagePage {
     if (type === LogEventType.FILE) {
       let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
       if (dropped > 0) {
-        return `本次会话命中 ${diag.seenCount} / 过滤 ${dropped}`
+        return LogManageStrings.buildSessionHitWithDropText(diag.seenCount, dropped)
       }
     }
-    return `本次会话命中 ${diag.seenCount}`
+    return LogManageStrings.buildSessionHitText(diag.seenCount)
   }
 
   private getDiagRecentTimeText(type: LogEventType): string {
@@ -934,12 +936,12 @@ export struct LogManagePage {
           })
 
           Column({ space: 4 }) {
-            Text(this.showSettings ? '日志存储设置' : '日志管理')
+            Text(this.showSettings ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle)
               .fontSize(AppStyles.FONT_SIZE_TITLE)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text(this.showSettings ? '配置日志留存与采集诊断' : '监控崩溃与关键安全日志')
+            Text(this.showSettings ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -953,8 +955,8 @@ export struct LogManagePage {
         Column({ space: 8 }) {
           Row({ space: 6 }) {
             Circle({ width: 8, height: 8 })
-              .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
-            Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
+              .fill(this.isSubscribed ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
+            Text(this.isSubscribed ? LogManageStrings.buildSubscribedText(this.getSubscribeModeText()) : LogManageStrings.subscribeFailed)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -963,7 +965,7 @@ export struct LogManagePage {
           Row({ space: 8 }) {
             if (!this.showSettings) {
               this.headerActionButton(
-                '导出日志',
+                LogManageStrings.exportLogsButton,
                 $r('app.media.save'),
                 AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT,
                 AppColors.getColors(this.currentTheme).TAG_BLUE_BG,
@@ -973,7 +975,7 @@ export struct LogManagePage {
               )
 
               this.headerActionButton(
-                '清空日志',
+                LogManageStrings.clearLogsButton,
                 $r('app.media.trash'),
                 AppColors.getColors(this.currentTheme).TAG_RED_TEXT,
                 AppColors.getColors(this.currentTheme).TAG_RED_BG,
@@ -984,7 +986,7 @@ export struct LogManagePage {
             }
 
             if (!this.showSettings) {
-              Button('进入存储设置')
+              Button(LogManageStrings.openStorageSettingsButton)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
                 .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
@@ -996,7 +998,7 @@ export struct LogManagePage {
                 })
             } else {
               this.headerActionButton(
-                '保存设置',
+                LogManageStrings.saveSettingsButton,
                 $r('app.media.save'),
                 Color.White,
                 AppColors.BRAND_PRIMARY,
@@ -1005,7 +1007,7 @@ export struct LogManagePage {
                 }
               )
 
-              Button('返回日志列表')
+              Button(LogManageStrings.backToLogListButton)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
                 .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
@@ -1023,28 +1025,6 @@ export struct LogManagePage {
         .margin({ left: 12 })
         .alignItems(HorizontalAlign.End)
 
-        if (false) {
-          Row({ space: 6 }) {
-            Circle({ width: 8, height: 8 })
-              .fill(this.isSubscribed ? AppColors.SUCCESS : '#9E9E9E')
-          Text(this.isSubscribed ? `已订阅(${this.getSubscribeModeText()})` : '订阅失败')
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        }
-
-        Button(this.showSettings ? '返回日志列表' : '进入存储设置')
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .height(32)
-          .padding({ left: 12, right: 12 })
-          .margin({ left: 12 })
-          .onClick(() => {
-            this.showSettings = !this.showSettings
-          })
-        }
       }
       .width('100%')
       .padding({
@@ -1071,10 +1051,10 @@ export struct LogManagePage {
   @Builder
   statisticsBar() {
     Row({ space: 12 }) {
-      this.statItem(0, '总计', this.statistics.totalCount.toString(), AppColors.BRAND_PRIMARY)
-      this.statItem(1, '今日', this.statistics.todayCount.toString(), AppColors.SUCCESS)
-      this.statItem(2, '已阻止', this.statistics.blockedCount.toString(), AppColors.WARNING)
-      this.statItem(3, '当前显示', this.pagedLogEntries.length.toString(), '#9E9E9E')
+      this.statItem(0, LogManageStrings.statTotal, this.statistics.totalCount.toString(), AppColors.BRAND_PRIMARY)
+      this.statItem(1, LogManageStrings.statToday, this.statistics.todayCount.toString(), AppColors.SUCCESS)
+      this.statItem(2, LogManageStrings.statBlocked, this.statistics.blockedCount.toString(), AppColors.WARNING)
+      this.statItem(3, LogManageStrings.statCurrentShown, this.pagedLogEntries.length.toString(), AppColors.TEXT_MUTED)
     }
     .width('100%')
     .padding({
@@ -1119,7 +1099,7 @@ export struct LogManagePage {
     Row({ space: 8 }) {
       Select(this.eventTypeFilterOptions)
         .selected(this.filterEventType + 1)
-        .value(this.filterEventType < 0 ? '全部类型' :
+        .value(this.filterEventType < 0 ? LogManageStrings.allEventTypes :
           getLogEventTypeLabel(this.filterEventType as LogEventType))
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
@@ -1137,7 +1117,7 @@ export struct LogManagePage {
 
       Select(this.resultFilterOptions)
         .selected(this.filterResult + 1)
-        .value(this.filterResult < 0 ? '全部结果' :
+        .value(this.filterResult < 0 ? LogManageStrings.allResults :
           getLogEventResultLabel(this.filterResult as LogEventResult))
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
@@ -1153,7 +1133,7 @@ export struct LogManagePage {
           this.applyManualFilterChange()
         })
 
-      TextInput({ placeholder: '搜索日志内容...', text: this.filterKeyword })
+      TextInput({ placeholder: LogManageStrings.searchPlaceholder, text: this.filterKeyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(FormControlUtils.text(this.currentTheme))
         .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -1167,7 +1147,7 @@ export struct LogManagePage {
           this.applyManualFilterChange()
         })
 
-      Button('刷新')
+      Button(LogManageStrings.refreshButton)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -1198,7 +1178,7 @@ export struct LogManagePage {
           .layoutWeight(1)
 
         if (this.fromAuditDiagnostics) {
-          Button('清除筛选')
+          Button(LogManageStrings.clearFilterButton)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
             .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
@@ -1209,7 +1189,7 @@ export struct LogManagePage {
               this.clearAuditDiagnosticsFilter()
             })
 
-          Button('返回采集诊断')
+          Button(LogManageStrings.backToDiagnosticsButton)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -1238,7 +1218,7 @@ export struct LogManagePage {
     if (this.isLoading) {
       Column() {
         LoadingProgress().width(48).height(48)
-        Text('加载中...')
+        Text(LogManageStrings.loading)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1249,11 +1229,11 @@ export struct LogManagePage {
       .justifyContent(FlexAlign.Center)
     } else if (this.logEntries.length === 0) {
       Column({ space: 8 }) {
-        Text('暂无日志记录')
+        Text(LogManageStrings.emptyTitle)
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Text('安全事件与崩溃日志将实时显示在此处')
+        Text(LogManageStrings.emptyDescription)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1284,7 +1264,7 @@ export struct LogManagePage {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row({ space: 12 }) {
-        Text(`显示 ${this.getCurrentRangeText()} / 共 ${this.logEntries.length} 条`)
+        Text(LogManageStrings.buildPageRangeText(this.getCurrentRangeText(), this.logEntries.length))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -1292,7 +1272,7 @@ export struct LogManagePage {
 
         Select(this.getPageSizeOptions())
           .selected(this.pageSizeIndex)
-          .value(`${this.getCurrentPageSize()} 条/页`)
+          .value(LogManageStrings.buildPageSizeText(this.getCurrentPageSize()))
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
@@ -1308,7 +1288,7 @@ export struct LogManagePage {
             this.updatePagedEntries()
           })
 
-        Button('上一页')
+        Button(LogManageStrings.previousPageButton)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(this.currentPage > 1 ? AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY : 0.4)
@@ -1326,7 +1306,7 @@ export struct LogManagePage {
           .width(52)
           .textAlign(TextAlign.Center)
 
-        TextInput({ text: this.pageInputValue, placeholder: '页码' })
+        TextInput({ text: this.pageInputValue, placeholder: LogManageStrings.pageInputPlaceholder })
           .type(InputType.Number)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(FormControlUtils.text(this.currentTheme))
@@ -1340,7 +1320,7 @@ export struct LogManagePage {
             this.pageInputValue = this.sanitizePageInput(value)
           })
 
-        Button('跳转')
+        Button(LogManageStrings.jumpButton)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -1352,7 +1332,7 @@ export struct LogManagePage {
             this.jumpToInputPage()
           })
 
-        Button('下一页')
+        Button(LogManageStrings.nextPageButton)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(this.currentPage < this.getTotalPages() ? AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY : 0.4)
@@ -1397,7 +1377,7 @@ export struct LogManagePage {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         if (entry.processName) {
-          Text(`进程: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
+          Text(`${LogManageStrings.processPrefix}: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1432,11 +1412,11 @@ export struct LogManagePage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     Row({ space: 12 }) {
-      Button('导出日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
+      Button(LogManageStrings.exportLogsButton).fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG).borderRadius(AppStyles.RADIUS_SM)
         .height(36).layoutWeight(1).onClick(() => { this.exportLogs() })
 
-      Button('清空日志').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
+      Button(LogManageStrings.clearLogsButton).fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
         .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG).borderRadius(AppStyles.RADIUS_SM)
         .height(36).layoutWeight(1).onClick(() => { this.clearLogs() })
     }
@@ -1497,34 +1477,6 @@ export struct LogManagePage {
       .scrollBar(BarState.Auto)
       .align(Alignment.Top)
 
-      if (false) {
-        Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-        Column({ space: 16 }) {
-        Row() {
-          Blank()
-
-          Row({ space: 12 }) {
-            Button('恢复默认').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY).backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-              .borderRadius(AppStyles.RADIUS_MD).height(36).width(120)
-              .onClick(() => {
-                this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
-                this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
-                this.showResultDialog('success', '已恢复默认，请保存以生效')
-              })
-
-            Button('保存设置').fontSize(AppStyles.FONT_SIZE_BODY).fontColor(Color.White).backgroundColor(AppColors.BRAND_PRIMARY)
-              .borderRadius(AppStyles.RADIUS_MD).height(36).width(132).onClick(() => { this.saveStorageSettings() })
-          }
-        }
-        .width('100%')
-        .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
-      }
     }
     .width('100%')
     .layoutWeight(1)
@@ -1534,7 +1486,7 @@ export struct LogManagePage {
   @Builder
   storageConfigCard() {
     Column({ space: 0 }) {
-      Text('日志存储配置')
+      Text(LogManageStrings.storageConfigTitle)
         .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1543,7 +1495,7 @@ export struct LogManagePage {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row() {
-        Text('最大存储条数')
+        Text(LogManageStrings.maxEntriesLabel)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
@@ -1569,7 +1521,7 @@ export struct LogManagePage {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Row() {
-        Text('日志保留天数')
+        Text(LogManageStrings.retentionDaysLabel)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
@@ -1614,7 +1566,7 @@ export struct LogManagePage {
   auditDiagnosticsCard() {
     Column({ space: 12 }) {
       Row() {
-        Text('采集诊断').fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
+        Text(LogManageStrings.diagnosticsTitle).fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
       }
       .width('100%')
@@ -1690,7 +1642,7 @@ export struct LogManagePage {
               .alignItems(HorizontalAlign.Start)
 
               Column({ space: 4 }) {
-                Text('最近命中')
+                Text(LogManageStrings.recentHitLabel)
                   .fontSize(AppStyles.FONT_SIZE_CAPTION)
                   .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
