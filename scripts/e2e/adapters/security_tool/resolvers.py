@@ -55,7 +55,7 @@ def find_page_marker_node(ui_tree: dict[str, Any], *, marker_text: str, page_tex
         text = str(node.get("text", "")).strip()
         if text not in candidate_texts:
             continue
-        if (node.get("left") or 0) < 800:
+        if (node.get("left") or 0) < 380:
             continue
         return node
     return None
@@ -76,7 +76,7 @@ def pick_sidebar_entry(ui_tree: dict[str, Any], page_id: str, *, nodes_by_type: 
     target_text = get_page_text(page_id)
     sidebar_nodes = [
         node for node in nodes_by_type(ui_tree, "Text")
-        if (node.get("left") or 0) <= 700 and 450 <= (node.get("top") or 0) <= 1100
+        if (node.get("left") or 0) <= 700 and 120 <= (node.get("top") or 0) <= 900
     ]
     exact_matches = [node for node in sidebar_nodes if node.get("text") == target_text]
     if exact_matches:

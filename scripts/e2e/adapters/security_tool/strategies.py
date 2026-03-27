@@ -3,8 +3,8 @@ from __future__ import annotations
 
 PAGE_STRATEGIES = {
     "dashboard": {"page_text": "安全总览", "marker_text": "安全总览"},
-    "firewall": {"page_text": "防火墙管理", "marker_text": "规则类型"},
-    "firewall-rules": {"page_text": "防火墙规则", "marker_text": "+ 添加规则"},
+    "firewall": {"page_text": "防火墙管理", "marker_text": "模式切换"},
+    "firewall-rules": {"page_text": "自定义规则", "marker_text": "+ 新增规则"},
     "log-manage": {"page_text": "日志管理", "marker_text": "日志管理"},
     "peripheral-manage": {"page_text": "外设管理", "marker_text": "外设管理"},
     "identity": {"page_text": "身份鉴别", "marker_text": "口令复杂度策略"},
@@ -17,8 +17,9 @@ TOOL_SETTINGS_SAVE_TEXT = "保存设置"
 TOOL_SETTINGS_STARTUP_AUTH_TEXT = "启动时身份校验"
 
 FIREWALL_PAGE_TEXT = "防火墙管理"
-FIREWALL_DIALOG_TITLE = "添加防火墙规则"
-FIREWALL_ADD_RULE_TEXTS = ["+ 添加规则", "添加规则", "新增规则"]
+FIREWALL_CUSTOM_RULE_TEXT = "自定义规则"
+FIREWALL_DIALOG_TITLE = "新增规则"
+FIREWALL_ADD_RULE_TEXTS = ["+ 新增规则", "新增规则", "+ 添加规则", "添加规则"]
 
 DIALOG_REGION_PRESETS = {
     "firewall": {
@@ -32,7 +33,7 @@ DIALOG_REGION_PRESETS = {
 FIREWALL_DIALOG_REGION = DIALOG_REGION_PRESETS["firewall"]
 
 DELETE_ACTION_LABELS = ["删除", "移除"]
-CONFIRM_DIALOG_LABELS = ["确定", "确认", "保存", "提交", "添加"]
+CONFIRM_DIALOG_LABELS = ["确定", "确认", "保存", "提交", "添加", "新增"]
 CONFIRM_DELETE_LABELS = ["确定", "确认", "删除", "移除"]
 
 FIREWALL_RULE_TYPE_LABELS = {
@@ -42,7 +43,7 @@ FIREWALL_RULE_TYPE_LABELS = {
 }
 
 FIREWALL_POLICY_OPTION_LABELS = {
-    "deny": ["拒绝", "禁止"],
+    "deny": ["阻止", "拒绝", "禁止"],
     "allow": ["允许", "放行"],
 }
 

@@ -1,11 +1,13 @@
 {
-  "updated_at": "2026-03-20T09:52:50+00:00",
+  "updated_at": "2026-03-26T10:26:35+00:00",
   "total_cases": 17,
   "status_stats": {
     "implemented": 17
   },
   "result_stats": {
-    "NOT_RUN": 17
+    "PASS": 3,
+    "NOT_RUN": 13,
+    "UNKNOWN": 1
   },
   "module_stats": {
     "bootstrap": {

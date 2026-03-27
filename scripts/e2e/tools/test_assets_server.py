@@ -25,6 +25,7 @@ from scripts.e2e.tools.test_asset_common import (
     import_excel_workbook,
     load_catalog,
     load_json,
+    refresh_catalog_result_status,
     save_catalog,
     transform_catalog_records,
     upsert_record,
@@ -75,7 +76,7 @@ class TestAssetHandler(BaseHTTPRequestHandler):
                 )
             return
         if parsed.path == "/api/catalog":
-            catalog = load_catalog()
+            catalog = refresh_catalog_result_status(load_catalog(), persist=True)
             coverage = build_coverage_snapshot(catalog)
             self._write_json(
                 {

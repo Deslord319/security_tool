@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-03-20T09:33:22+00:00",
+  "updated_at": "2026-03-26T09:38:01+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -47,7 +47,7 @@
       },
       "case_path": "scripts/e2e/cases/smoke/admin_enable.json",
       "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "approved",
       "review_notes": [
         "tmp test",
@@ -131,7 +131,7 @@
       },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
       "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -210,7 +210,7 @@
       },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
       "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -882,7 +882,7 @@
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
       "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "UNKNOWN",
       "review_status": "unreviewed",
       "review_notes": []
     },

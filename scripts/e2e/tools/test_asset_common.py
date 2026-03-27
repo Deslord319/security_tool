@@ -275,6 +275,23 @@ def load_result_status_map() -> dict[str, dict[str, str]]:
     return status_map
 
 
+def refresh_catalog_result_status(catalog: dict[str, Any] | None = None, *, persist: bool = False) -> dict[str, Any]:
+    working_catalog = copy.deepcopy(catalog or load_catalog())
+    result_status_map = load_result_status_map()
+    changed = False
+
+    for record in working_catalog.get("records", []):
+        case_id = record.get("case_id", "")
+        latest_status = result_status_map.get(case_id, {}).get("status", "NOT_RUN")
+        if record.get("last_result_status", "NOT_RUN") != latest_status:
+            record["last_result_status"] = latest_status
+            changed = True
+
+    if persist and changed:
+        return save_catalog(working_catalog)
+    return working_catalog
+
+
 def infer_suite_membership(case_relative_path: str) -> list[str]:
     memberships: list[str] = []
     for suite_name, suite_cases in SUITES.items():

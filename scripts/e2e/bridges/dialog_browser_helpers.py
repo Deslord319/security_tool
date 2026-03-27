@@ -11,7 +11,34 @@ from scripts.e2e.adapters.security_tool.strategies import FIREWALL_DIALOG_REGION
 class DialogBrowserHelpersMixin:
     async def _firewall_dialog_visible(self) -> bool:
         ui_tree = await self._get_ui_tree()
-        return any(str(node.get("text", "")).strip() == FIREWALL_DIALOG_TITLE for node in self._nodes_by_type(ui_tree, "Text"))
+        title_nodes = [
+            node
+            for node in self._dialog_nodes_by_type(ui_tree, "Text")
+            if str(node.get("text", "")).strip() == FIREWALL_DIALOG_TITLE
+        ]
+        if title_nodes:
+            return True
+
+        dialog_inputs = self._dialog_nodes_by_type(ui_tree, "TextInput")
+        dialog_selects = self._dialog_nodes_by_type(ui_tree, "Select")
+        dialog_buttons = [
+            node
+            for node in self._dialog_nodes_by_type(ui_tree, "Button")
+            if str(node.get("text", "")).strip() in {"新增", "保存", "取消"}
+        ]
+        return bool(dialog_inputs and dialog_selects and dialog_buttons)
+
+    async def _wait_for_firewall_dialog_closed(self, *, timeout_sec: float = 5.0) -> dict[str, Any]:
+        deadline = time.time() + timeout_sec
+        while time.time() < deadline:
+            if not await self._firewall_dialog_visible():
+                return self._pass("Firewall dialog closed", {"title": FIREWALL_DIALOG_TITLE})
+            await asyncio.sleep(0.3)
+        return self._unknown(
+            {"action": "wait_for_firewall_dialog_closed", "params": {"timeout_sec": timeout_sec}},
+            "MCP_ACTION_PENDING",
+            "Firewall dialog is still visible",
+        )
 
     def _dialog_nodes_by_type(self, ui_tree: dict[str, Any], node_type: str) -> list[dict[str, Any]]:
         region = FIREWALL_DIALOG_REGION
@@ -89,7 +116,10 @@ class DialogBrowserHelpersMixin:
             tree = await self._get_ui_tree_for_bundle("com.huawei.hmos.browser")
             inputs = [
                 node for node in self._nodes_by_type(tree, "TextInput")
-                if node.get("clickable") and (node.get("top") or 0) <= 320 and (node.get("left") or 0) >= 1000 and (node.get("width") or 0) >= 800
+                if node.get("clickable")
+                and (node.get("top") or 0) <= 520
+                and (node.get("left") or 0) >= 800
+                and (node.get("width") or 0) >= 900
             ]
             if inputs:
                 return max(inputs, key=lambda node: node.get("width") or 0)
