@@ -299,19 +299,6 @@ export interface PeripheralPolicyRecord {
   policyIndex: number
 }
 
-export interface UsbWhitelistItem {
-  vendorId: number
-  productId: number
-  remark: string
-}
-
-export interface UsbBlacklistItem {
-  baseClass: number
-  subClass: number
-  protocol: number
-  description: string
-}
-
 export interface InterfaceControlConfig {
   feature: string
   label: string

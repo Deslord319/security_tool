@@ -70,11 +70,6 @@ export class PeripheralService {
     }
   }
 
-  // 设置接口禁用策略 (feature: 'usb' | 'bluetooth' | 'wifi' | 'hdc')
-  static setInterfaceDisabled(feature: string, disallow: boolean): boolean {
-    return PeripheralService.setInterfaceDisabledWithResult(feature, disallow).success
-  }
-
   static getInterfaceDisabledWithResult(feature: string): OperationResult<boolean> {
     if (feature === PeripheralService.FEATURE_NETWORK) {
       return PeripheralService.getNetworkInterfaceDisabledWithResult()
@@ -114,11 +109,6 @@ export class PeripheralService {
     }
   }
 
-  // 获取接口禁用状态
-  static getInterfaceDisabled(feature: string): boolean {
-    return PeripheralService.getInterfaceDisabledWithResult(feature).data ?? false
-  }
-
   // ========== USB 存储策略 ==========
 
   static setUsbStoragePolicyWithResult(policy: usbManager.UsbPolicy): OperationResult<void> {
@@ -130,11 +120,6 @@ export class PeripheralService {
       hilog.error(DOMAIN, TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('设置 USB 存储策略', err as Object)
     }
-  }
-
-  // 设置 USB 存储设备访问策略
-  static setUsbStoragePolicy(policy: usbManager.UsbPolicy): boolean {
-    return PeripheralService.setUsbStoragePolicyWithResult(policy).success
   }
 
   static getUsbStoragePolicyWithResult(): OperationResult<usbManager.UsbPolicy> {
@@ -153,11 +138,6 @@ export class PeripheralService {
     }
   }
 
-  // 获取 USB 存储设备访问策略
-  static getUsbStoragePolicy(): usbManager.UsbPolicy {
-    return PeripheralService.getUsbStoragePolicyWithResult().data ?? usbManager.UsbPolicy.READ_WRITE
-  }
-
   // ========== USB 白名单 (按 VID/PID) ==========
 
   static addUsbWhitelistWithResult(devices: usbManager.UsbDeviceId[]): OperationResult<void> {
@@ -171,11 +151,6 @@ export class PeripheralService {
     }
   }
 
-  // 添加 USB 设备到白名单
-  static addUsbWhitelist(devices: usbManager.UsbDeviceId[]): boolean {
-    return PeripheralService.addUsbWhitelistWithResult(devices).success
-  }
-
   static removeUsbWhitelistWithResult(devices: usbManager.UsbDeviceId[]): OperationResult<void> {
     try {
       usbManager.removeAllowedUsbDevices(ADMIN_WANT, devices)
@@ -185,11 +160,6 @@ export class PeripheralService {
       hilog.error(DOMAIN, TAG, `removeUsbWhitelist failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('移除 USB 白名单', err as Object)
     }
-  }
-
-  // 从白名单移除 USB 设备
-  static removeUsbWhitelist(devices: usbManager.UsbDeviceId[]): boolean {
-    return PeripheralService.removeUsbWhitelistWithResult(devices).success
   }
 
   static getUsbWhitelistWithResult(): OperationResult<usbManager.UsbDeviceId[]> {
@@ -202,11 +172,6 @@ export class PeripheralService {
       hilog.error(DOMAIN, TAG, `getUsbWhitelist failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<usbManager.UsbDeviceId[]>('读取 USB 白名单', err as Object, [])
     }
-  }
-
-  // 获取 USB 白名单
-  static getUsbWhitelist(): usbManager.UsbDeviceId[] {
-    return PeripheralService.getUsbWhitelistWithResult().data ?? []
   }
 
   // ========== USB 黑名单 (按设备类型) ==========
@@ -222,11 +187,6 @@ export class PeripheralService {
     }
   }
 
-  // 添加 USB 设备类型到黑名单
-  static addUsbBlacklist(types: usbManager.UsbDeviceType[]): boolean {
-    return PeripheralService.addUsbBlacklistWithResult(types).success
-  }
-
   static removeUsbBlacklistWithResult(types: usbManager.UsbDeviceType[]): OperationResult<void> {
     try {
       usbManager.removeDisallowedUsbDevices(ADMIN_WANT, types)
@@ -236,11 +196,6 @@ export class PeripheralService {
       hilog.error(DOMAIN, TAG, `removeUsbBlacklist failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('移除 USB 黑名单', err as Object)
     }
-  }
-
-  // 从黑名单移除 USB 设备类型
-  static removeUsbBlacklist(types: usbManager.UsbDeviceType[]): boolean {
-    return PeripheralService.removeUsbBlacklistWithResult(types).success
   }
 
   static getUsbBlacklistWithResult(): OperationResult<usbManager.UsbDeviceType[]> {
@@ -253,11 +208,6 @@ export class PeripheralService {
       hilog.error(DOMAIN, TAG, `getUsbBlacklist failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<usbManager.UsbDeviceType[]>('读取 USB 黑名单', err as Object, [])
     }
-  }
-
-  // 获取 USB 黑名单
-  static getUsbBlacklist(): usbManager.UsbDeviceType[] {
-    return PeripheralService.getUsbBlacklistWithResult().data ?? []
   }
 
   static switchUsbDevicePolicyWithResult(
