@@ -4,54 +4,27 @@ const TAG = 'LogPathUtils'
 const DOMAIN = 0x0006
 
 export class LogPathUtils {
+  static buildHmdfsAccountFilesPrefix(userId: number): string {
+    return `/data/service/el2/${userId}/hmdfs/account/files/`
+  }
+
   static normalizePathCandidate(pathOrUri: string | undefined): string | undefined {
-    if (!pathOrUri) {
-      return undefined
-    }
-    let normalized = pathOrUri.trim()
+    let normalized = LogPathUtils.sanitizeRawPathCandidate(pathOrUri)
     if (normalized.length === 0) {
       return undefined
     }
-    try {
-      normalized = decodeURIComponent(normalized)
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
-    }
-    normalized = LogPathUtils.cutPathSuffix(normalized.replace(/\\/g, '/'))
-    if (normalized.length === 0) {
-      return undefined
-    }
-    normalized = LogPathUtils.remapUserDocsAuditPath(normalized)
+    normalized = LogPathUtils.remapUserAuditPath(normalized)
     normalized = normalized.replace(/\/+$/, '')
     return normalized.length > 0 ? normalized : undefined
   }
 
-  static extractPathFromRawText(raw: string | undefined): string | undefined {
-    if (!raw) {
-      return undefined
-    }
-    let source = raw.trim().replace(/\\/g, '/')
-    if (source.length === 0) {
-      return undefined
-    }
-    let uriMatch = source.match(/file:\/\/[^\s"',}\]]+/i)
-    if (uriMatch && uriMatch.length > 0) {
-      return LogPathUtils.normalizePathCandidate(uriMatch[0])
-    }
-    let pathMatch = source.match(/\/(?:storage|data|mnt)\/[^\s"',}\]]+/)
-    if (pathMatch && pathMatch.length > 0) {
-      return LogPathUtils.normalizePathCandidate(pathMatch[0])
-    }
-    return undefined
-  }
-
-  static resolveAuditFilePath(structuredCandidate: string | undefined, rawTexts: Array<string | undefined>): string | undefined {
-    let normalized = LogPathUtils.normalizePathCandidate(structuredCandidate)
-    if (normalized) {
-      return normalized
+  static extractRawAuditPath(structuredCandidate: string | undefined, rawTexts: Array<string | undefined>): string | undefined {
+    let structured = LogPathUtils.sanitizeRawPathCandidate(structuredCandidate)
+    if (structured) {
+      return structured
     }
     for (let raw of rawTexts) {
-      let fallback = LogPathUtils.extractPathFromRawText(raw)
+      let fallback = LogPathUtils.extractRawPathFromRawText(raw)
       if (fallback) {
         return fallback
       }
@@ -59,41 +32,15 @@ export class LogPathUtils {
     return undefined
   }
 
-  static buildFileFilterPrefixes(basePrefixes: string[], envDirs: Array<string | undefined>): string[] {
-    let prefixes = [...basePrefixes]
-    for (let dir of envDirs) {
-      let normalized = LogPathUtils.normalizePathCandidate(dir)
-      if (!normalized) {
-        continue
-      }
-      let prefix = `${normalized}/`
-      if (!prefixes.includes(prefix)) {
-        prefixes.push(prefix)
-      }
-    }
-    return prefixes
-  }
-
-  static hasAllowedPrefix(candidatePath: string | undefined, prefixes: string[]): boolean {
-    let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
-    if (!normalized) {
-      return false
-    }
-    for (let prefix of prefixes) {
-      if (normalized.startsWith(prefix)) {
-        return true
-      }
-    }
-    return false
+  static extractPathFromRawText(raw: string | undefined): string | undefined {
+    let extracted = LogPathUtils.extractRawPathFromRawText(raw)
+    return LogPathUtils.normalizePathCandidate(extracted)
   }
 
   static describePathKind(candidatePath: string | undefined): string {
     let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
     if (!normalized) {
       return 'unknown'
-    }
-    if (normalized.startsWith('file://media/')) {
-      return 'public_media'
     }
     if (LogPathUtils.isUserDirectoryPath(normalized, 'Download')) {
       return 'user_download'
@@ -104,6 +51,12 @@ export class LogPathUtils {
     if (LogPathUtils.isUserDirectoryPath(normalized, 'Desktop')) {
       return 'user_desktop'
     }
+    if (normalized.startsWith('/storage/Users/currentUser/')) {
+      return 'user_directory'
+    }
+    if (normalized.startsWith('file://media/')) {
+      return 'public_media'
+    }
     if (normalized.startsWith('/data/storage/')) {
       return 'app_sandbox'
     }
@@ -111,6 +64,25 @@ export class LogPathUtils {
       return 'system_internal'
     }
     return 'other'
+  }
+
+  private static extractRawPathFromRawText(raw: string | undefined): string | undefined {
+    if (!raw) {
+      return undefined
+    }
+    let source = raw.trim().replace(/\\/g, '/')
+    if (source.length === 0) {
+      return undefined
+    }
+    let uriMatch = source.match(/file:\/\/[^\s"',}\]]+/i)
+    if (uriMatch && uriMatch.length > 0) {
+      return LogPathUtils.sanitizeRawPathCandidate(uriMatch[0])
+    }
+    let pathMatch = source.match(/\/(?:storage|data|mnt)\/[^\s"',}\]]+/)
+    if (pathMatch && pathMatch.length > 0) {
+      return LogPathUtils.sanitizeRawPathCandidate(pathMatch[0])
+    }
+    return undefined
   }
 
   private static cutPathSuffix(path: string): string {
@@ -124,18 +96,47 @@ export class LogPathUtils {
     return cutIndex >= 0 ? path.substring(0, cutIndex) : path
   }
 
-  private static remapUserDocsAuditPath(path: string): string {
-    let matched = path.match(/^\/data\/service\/el2\/\d+\/hmdfs\/account\/files\/Docs\/(Download|Documents|Desktop)(?:\/(.*))?$/)
-    if (!matched) {
+  private static sanitizeRawPathCandidate(pathOrUri: string | undefined): string {
+    if (!pathOrUri) {
+      return ''
+    }
+    let normalized = pathOrUri.trim()
+    if (normalized.length === 0) {
+      return ''
+    }
+    try {
+      normalized = decodeURIComponent(normalized)
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
+    }
+    return LogPathUtils.cutPathSuffix(normalized.replace(/\\/g, '/'))
+  }
+
+  private static remapUserAuditPath(path: string): string {
+    let docsMatched = path.match(/^\/data\/service\/el2\/\d+\/hmdfs\/account\/files\/Docs\/(Download|Documents|Desktop)(?:\/(.*))?$/)
+    if (docsMatched) {
+      let baseDir = docsMatched[1]
+      let remainder = docsMatched[2] ? `/${docsMatched[2]}` : ''
+      let remapped = `/storage/Users/currentUser/${baseDir}${remainder}`
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `remap audit path by rule=hmdfs_docs_${baseDir.toLowerCase()}, rawPath=${path}, normalizedPath=${remapped}`
+      )
+      return remapped
+    }
+
+    let rootMatched = path.match(/^\/data\/service\/el2\/\d+\/hmdfs\/account\/files(?:\/(.*))?$/)
+    if (!rootMatched) {
       return path
     }
-    let baseDir = matched[1]
-    let remainder = matched[2] ? `/${matched[2]}` : ''
-    let remapped = `/storage/Users/currentUser/${baseDir}${remainder}`
+
+    let remainder = rootMatched[1] ? `/${rootMatched[1]}` : ''
+    let remapped = `/storage/Users/currentUser${remainder}`
     hilog.info(
       DOMAIN,
       TAG,
-      `remap audit path by rule=hmdfs_docs_${baseDir.toLowerCase()}, rawPath=${path}, normalizedPath=${remapped}`
+      `remap audit path by rule=hmdfs_account_files_root, rawPath=${path}, normalizedPath=${remapped}`
     )
     return remapped
   }

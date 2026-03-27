@@ -1,4 +1,4 @@
-﻿
+
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
@@ -391,11 +391,13 @@ export struct LogManagePage {
   ]
 
   aboutToAppear() {
+    hilog.info(DOMAIN, TAG, `aboutToAppear: showSettings=${this.showSettings}, filterEventType=${this.filterEventType}`)
     this.initServices()
     this.startRefreshTimer()
   }
 
   aboutToDisappear() {
+    hilog.info(DOMAIN, TAG, `aboutToDisappear: showSettings=${this.showSettings}, filterEventType=${this.filterEventType}`)
     if (this.refreshTimerId >= 0) {
       clearInterval(this.refreshTimerId)
       this.refreshTimerId = -1
@@ -586,6 +588,9 @@ export struct LogManagePage {
     }
 
     let selectedType = this.filterEventType as LogEventType
+    if (selectedType === LogEventType.FILE) {
+      return this.logEntries.length > 0 ? LogManageStrings.fileFilterHint : LogManageStrings.fileFilterEmptyHint
+    }
     let totalByType = this.statistics.byType.get(selectedType) || 0
     if (totalByType > 0 && this.logEntries.length === 0) {
       return LogManageStrings.emptyDescription

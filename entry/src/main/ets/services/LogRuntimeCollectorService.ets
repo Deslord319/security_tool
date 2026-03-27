@@ -32,8 +32,8 @@ export class LogRuntimeCollectorService {
   private static persistEntriesFn: (entries: LogEntry[]) => Promise<boolean> =
     (entries: LogEntry[]): Promise<boolean> => LogStorageService.addEntries(entries)
   private static subscribeAuditFn:
-    (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]) => boolean =
-      (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]): boolean =>
+    (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]) => Promise<boolean> =
+      (cb: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<boolean> =>
         LogAuditService.subscribe(cb, eventTypes)
   private static subscribeCrashFn: (cb: (entry: LogEntry) => void) => boolean =
     (cb: (entry: LogEntry) => void): boolean => LogCrashService.subscribe(cb)
@@ -87,7 +87,7 @@ export class LogRuntimeCollectorService {
     let auditEnabled = auditTypes === undefined || auditTypes.length > 0
 
     let auditStarted = auditEnabled ?
-      LogRuntimeCollectorService.subscribeAuditFn((entry: LogEntry) => {
+      await LogRuntimeCollectorService.subscribeAuditFn((entry: LogEntry) => {
         LogRuntimeCollectorService.handleIncomingEntry(entry)
       }, auditTypes) :
       true

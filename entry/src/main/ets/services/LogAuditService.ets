@@ -1,6 +1,6 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
-import { Environment } from '@kit.CoreFileKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import osAccount from '@ohos.account.osAccount'
 import { LogPathUtils } from '../utils/LogPathUtils'
 import {
   LogEntry,
@@ -13,6 +13,7 @@ import {
 const TAG = 'LogAuditService'
 const DOMAIN = 0x0006
 const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
+const DEFAULT_FOREGROUND_USER_ID = 100
 const FILE_EVENT_IDS: number[] = [
   securityAudit.NotifyEvent.FILE,
   securityAudit.NotifyEvent.FILE_INTERCEPTED,
@@ -51,11 +52,17 @@ interface ParsedAuditPayload {
   result: LogEventResult
   processName?: string
   pid?: number
+  rawFilePath?: string
   filePath?: string
   remoteAddr?: string
   rawEventName?: string
   rawOutcome?: string
   rawAction?: string
+}
+
+interface FileFilterContext {
+  foregroundUserId: number
+  prefix: string
 }
 
 export class LogAuditService {
@@ -74,9 +81,7 @@ export class LogAuditService {
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]]
   ])
   private static readonly EVENT_TYPE_BY_ID: Map<number, LogEventType> = LogAuditService.buildEventTypeById()
-  private static readonly FILE_FILTER_PREFIXES: string[] = LogAuditService.buildFileFilterPrefixes()
-
-  static subscribe(onLogEntry: LogEntryCallback, eventTypes?: LogEventType[]): boolean {
+  static async subscribe(onLogEntry: LogEntryCallback, eventTypes?: LogEventType[]): Promise<boolean> {
     if (LogAuditService.isSubscribed) {
       LogAuditService.callback = onLogEntry
       hilog.warn(DOMAIN, TAG, 'Already subscribed to audit events')
@@ -95,10 +100,14 @@ export class LogAuditService {
         return false
       }
 
-      let clientResult = LogAuditService.subscribeWithClient(eventIds)
+      let clientResult = await LogAuditService.subscribeWithClient(eventIds)
       if (clientResult.shouldFallback) {
-        let legacyResult = LogAuditService.subscribeWithLegacyOnOff(eventIds)
-        LogAuditService.lastSubscribeFailedEventIds = legacyResult.failedEventIds
+        let legacyEventIds = eventIds.filter((eventId: number) => !FILE_EVENT_IDS.includes(eventId))
+        let legacyResult = LogAuditService.subscribeWithLegacyOnOff(legacyEventIds)
+        LogAuditService.lastSubscribeFailedEventIds = Array.from(new Set([
+          ...clientResult.failedEventIds,
+          ...legacyResult.failedEventIds
+        ]))
         LogAuditService.isSubscribed = legacyResult.successCount > 0
         if (!LogAuditService.isSubscribed) {
           LogAuditService.callback = null
@@ -151,21 +160,28 @@ export class LogAuditService {
     return [...LogAuditService.lastSubscribeFailedEventIds]
   }
 
-  private static subscribeWithClient(eventIds: number[]): SubscribePathResult {
+  private static async subscribeWithClient(eventIds: number[]): Promise<SubscribePathResult> {
     let createResult = LogAuditService.tryCreateClient(LogAuditService.createAuditEventCallback())
     if (!createResult.client) {
-      return { successCount: 0, failedEventIds: [], shouldFallback: true, fallbackReason: createResult.fallbackReason }
+      let failedEventIds = eventIds.filter((eventId: number) => FILE_EVENT_IDS.includes(eventId))
+      return { successCount: 0, failedEventIds, shouldFallback: true, fallbackReason: createResult.fallbackReason }
     }
 
+    let fileFilterContext = await LogAuditService.prepareFileFilterContext(eventIds)
     let successCount = 0
     let failedEventIds: number[] = []
     let subscribedIds: number[] = []
     for (let eventId of eventIds) {
       try {
         createResult.client.subscribe([eventId])
+        let filterAttached = LogAuditService.tryAttachFilePrefixFilter(createResult.client, eventId, fileFilterContext)
+        if (!filterAttached) {
+          LogAuditService.unsubscribeClientEvent(createResult.client, eventId)
+          failedEventIds.push(eventId)
+          continue
+        }
         subscribedIds.push(eventId)
         successCount += 1
-        LogAuditService.tryAttachFilePrefixFilter(createResult.client, eventId)
       } catch (err) {
         let code = LogAuditService.extractErrorCode(err as Object)
         if (LogAuditService.lastSubscribeErrorCode === undefined) {
@@ -241,8 +257,12 @@ export class LogAuditService {
     }
 
     let parsed = LogAuditService.parseAuditPayload(event.content || '', event.metadata)
-    if (mappedType === LogEventType.FILE && !LogAuditService.isAllowedUserFileEvent(parsed.filePath)) {
-      return undefined
+    if (mappedType === LogEventType.FILE) {
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `FILE event accepted: eventId=${event.eventId}, eventName=${parsed.rawEventName || '-'}, action=${parsed.rawAction || '-'}, result=${parsed.result}, rawPath=${parsed.rawFilePath || '-'}, normalizedPath=${parsed.filePath || '-'}`
+      )
     }
 
     return {
@@ -268,6 +288,8 @@ export class LogAuditService {
     let metadataJson = LogAuditService.safeParseJson(metadata)
     let sources = LogAuditService.collectJsonSources(contentJson, metadataJson)
     let rawOutcome = LogAuditService.pickFirstString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result'])
+    let rawFilePath = LogAuditService.resolveAuditRawFilePath(content, metadata, sources)
+    let normalizedFilePath = LogPathUtils.normalizePathCandidate(rawFilePath)
 
     return {
       detail: LogAuditService.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
@@ -275,7 +297,8 @@ export class LogAuditService {
       result: LogAuditService.mapResult(rawOutcome),
       processName: LogAuditService.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
       pid: LogAuditService.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
-      filePath: LogAuditService.resolveAuditFilePath(content, metadata, sources),
+      rawFilePath: rawFilePath,
+      filePath: normalizedFilePath,
       remoteAddr: LogAuditService.pickFirstString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
       rawEventName: LogAuditService.pickFirstString(sources, ['event_name', 'eventName', 'name']),
       rawOutcome: rawOutcome,
@@ -283,58 +306,94 @@ export class LogAuditService {
     }
   }
 
-  private static resolveAuditFilePath(content: string, metadata: string | undefined, sources: JsonMap[]): string | undefined {
+  private static resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: JsonMap[]): string | undefined {
     let structured = LogAuditService.pickFirstString(sources, [
       'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
       'filePath', 'file_path', 'path', 'srcPath', 'src_path'
     ])
-    return LogPathUtils.resolveAuditFilePath(structured, [content, metadata])
+    return LogPathUtils.extractRawAuditPath(structured, [content, metadata])
   }
 
-  private static tryAttachFilePrefixFilter(client: AuditClientCompat, eventId: number): void {
+  private static tryAttachFilePrefixFilter(
+    client: AuditClientCompat,
+    eventId: number,
+    fileFilterContext?: FileFilterContext
+  ): boolean {
     if (!FILE_EVENT_IDS.includes(eventId)) {
-      return
+      return true
+    }
+    if (!fileFilterContext) {
+      hilog.warn(DOMAIN, TAG, `skip FILE prefilter: eventId=${eventId}, reason=file_filter_context_unavailable`)
+      return false
     }
     if (typeof client.addFilter !== 'function') {
-      return
+      hilog.warn(DOMAIN, TAG, `skip FILE prefilter: eventId=${eventId}, reason=addFilter_unavailable`)
+      return false
     }
 
     let filter: securityAudit.Filter = {
       isInclude: true,
       type: securityAudit.FilterType.FILE_PATH_PREFIX,
-      values: [...LogAuditService.FILE_FILTER_PREFIXES]
+      values: [fileFilterContext.prefix]
     }
     try {
       client.addFilter(eventId, filter)
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `FILE prefilter attached: eventId=${eventId}, foregroundUserId=${fileFilterContext.foregroundUserId}, prefix=${fileFilterContext.prefix}`
+      )
+      return true
     } catch (err) {
       let code = LogAuditService.extractErrorCode(err as Object)
-      if (code === FILE_FILTER_UNSUPPORTED_CODE) {
-        return
+      if (LogAuditService.lastSubscribeErrorCode === undefined) {
+        LogAuditService.lastSubscribeErrorCode = code
       }
+      hilog.warn(
+        DOMAIN,
+        TAG,
+        `FILE prefilter attach failed: eventId=${eventId}, foregroundUserId=${fileFilterContext.foregroundUserId}, prefix=${fileFilterContext.prefix}, code=${code}, err=${JSON.stringify(err)}`
+      )
+      if (code === FILE_FILTER_UNSUPPORTED_CODE) {
+        return false
+      }
+      return false
     }
   }
 
-  private static isAllowedUserFileEvent(candidatePath?: string): boolean {
-    if (!candidatePath) {
-      return false
+  private static async prepareFileFilterContext(eventIds: number[]): Promise<FileFilterContext | undefined> {
+    if (!eventIds.some((eventId: number) => FILE_EVENT_IDS.includes(eventId))) {
+      return undefined
     }
-    let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
-    if (!normalized) {
-      return false
-    }
-    return LogPathUtils.hasAllowedPrefix(normalized, LogAuditService.FILE_FILTER_PREFIXES)
+
+    let foregroundUserId = await LogAuditService.resolveForegroundUserId()
+    let prefix = LogPathUtils.buildHmdfsAccountFilesPrefix(foregroundUserId)
+    hilog.info(DOMAIN, TAG, `prepare FILE prefilter: foregroundUserId=${foregroundUserId}, prefix=${prefix}`)
+    return { foregroundUserId, prefix }
   }
 
-  private static buildFileFilterPrefixes(): string[] {
-    return LogPathUtils.buildFileFilterPrefixes([
-      'file://docs/storage/Users/currentUser/',
-      'file://media/',
-      '/storage/Users/currentUser/'
-    ], [
-      Environment.getUserDownloadDir(),
-      Environment.getUserDocumentDir(),
-      Environment.getUserDesktopDir()
-    ])
+  private static async resolveForegroundUserId(): Promise<number> {
+    try {
+      let accountManager = osAccount.getAccountManager()
+      let foregroundUserId = await accountManager.getForegroundOsAccountLocalId()
+      hilog.info(DOMAIN, TAG, `resolved foreground userId=${foregroundUserId}`)
+      return foregroundUserId
+    } catch (err) {
+      hilog.warn(
+        DOMAIN,
+        TAG,
+        `resolve foreground userId failed, fallback=${DEFAULT_FOREGROUND_USER_ID}, err=${JSON.stringify(err)}`
+      )
+      return DEFAULT_FOREGROUND_USER_ID
+    }
+  }
+
+  private static unsubscribeClientEvent(client: AuditClientCompat, eventId: number): void {
+    try {
+      client.unsubscribe([eventId])
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `unsubscribe event failed: eventId=${eventId}, err=${JSON.stringify(err)}`)
+    }
   }
 
   private static parseTimestamp(ts: string): number {

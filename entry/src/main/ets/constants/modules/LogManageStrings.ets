@@ -42,6 +42,8 @@ export class LogManageStrings {
   static readonly loading: string = '加载中...'
   static readonly emptyTitle: string = '暂无日志记录'
   static readonly emptyDescription: string = '可以稍后刷新，或检查采集与筛选配置。'
+  static readonly fileFilterHint: string = '提示：通过系统前置过滤记录当前前台用户目录文件操作。'
+  static readonly fileFilterEmptyHint: string = '当前文件日志通过系统前置过滤，仅记录当前前台用户目录文件操作。'
 
   static readonly pageInputPlaceholder: string = '页码'
   static readonly previousPageButton: string = '上一页'

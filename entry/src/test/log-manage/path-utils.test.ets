@@ -13,17 +13,9 @@ export default function logPathUtilsTest() {
       expect(path).assertEqual('file://media/Photo/test.png')
     })
 
-    it('should build prefixes from base paths and environment dirs', 0, () => {
-      let prefixes = LogPathUtils.buildFileFilterPrefixes(['file://media/'], ['/storage/Users/currentUser/Desktop'])
-      expect(prefixes.includes('file://media/')).assertTrue()
-      expect(prefixes.includes('/storage/Users/currentUser/Desktop/')).assertTrue()
-    })
-
-    it('should match normalized candidate against allowed prefixes', 0, () => {
-      let matched = LogPathUtils.hasAllowedPrefix('/storage/Users/currentUser/Documents/report.txt', [
-        '/storage/Users/currentUser/Documents/'
-      ])
-      expect(matched).assertTrue()
+    it('should build hmdfs account files prefix with dynamic user id', 0, () => {
+      let prefix = LogPathUtils.buildHmdfsAccountFilesPrefix(100)
+      expect(prefix).assertEqual('/data/service/el2/100/hmdfs/account/files/')
     })
 
     it('should remap hmdfs docs audit paths into user directory paths', 0, () => {
@@ -38,6 +30,13 @@ export default function logPathUtilsTest() {
         '/data/service/el2/100/hmdfs/account/files/Docs/Download/oh-kia-samples/probe.txt'
       )
       expect(kind).assertEqual('user_download')
+    })
+
+    it('should remap generic hmdfs account files path into current user path', 0, () => {
+      let normalized = LogPathUtils.normalizePathCandidate(
+        '/data/service/el2/100/hmdfs/account/files/Shared/report.txt'
+      )
+      expect(normalized).assertEqual('/storage/Users/currentUser/Shared/report.txt')
     })
   })
 }
