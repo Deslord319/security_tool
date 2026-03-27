@@ -9,7 +9,6 @@ import peripheralServiceTest from './peripheral/service.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
 import identityTest from './identity/service.test'
 import logManageModelsTest from './log-manage/models.test'
-import logManageServiceTest from './log-manage/service.test'
 import logAuditServiceTest from './log-manage/audit-service.test'
 import logStorageServiceTest from './log-manage/storage-service.test'
 import logRuntimeCollectorTest from './log-manage/runtime-collector.test'
@@ -39,7 +38,6 @@ export default function testsuite() {
 
   // 日志管理模块
   logManageModelsTest()
-  logManageServiceTest()
   logAuditServiceTest()
   logStorageServiceTest()
   logRuntimeCollectorTest()

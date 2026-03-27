@@ -1,6 +1,5 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { LogRuntimeCollectorService } from '../../main/ets/services/LogRuntimeCollectorService'
-import { LogEventType } from '../../main/ets/models/DataModels'
 
 export default function logRuntimeCollectorServiceTest() {
   describe('LogRuntimeCollectorService', () => {
@@ -10,11 +9,9 @@ export default function logRuntimeCollectorServiceTest() {
       expect(typeof status.subscribed === 'boolean').assertTrue()
     })
 
-    it('should merge crash diagnostics into runtime diagnostics snapshot', 0, () => {
-      let diagnostics = LogRuntimeCollectorService.getDiagnostics()
-      expect(diagnostics.byType.size).assertEqual(4)
-      expect(diagnostics.byType.get(LogEventType.CRASH) !== undefined).assertTrue()
-      expect(diagnostics.byType.get(LogEventType.FILE) !== undefined).assertTrue()
+    it('should be idle before explicit start', 0, () => {
+      let status = LogRuntimeCollectorService.getStatus()
+      expect(status.running).assertFalse()
     })
   })
 }

@@ -22,7 +22,7 @@ export default function logManageModelsTest() {
       expect(ALL_LOG_EVENT_TYPES[3]).assertEqual(LogEventType.PERMISSION)
     })
 
-    it('should return updated labels for final event types', 0, () => {
+    it('should return stable labels for final event types', 0, () => {
       expect(getLogEventTypeLabel(LogEventType.CRASH)).assertEqual('崩溃日志')
       expect(getLogEventTypeLabel(LogEventType.FILE)).assertEqual('文件操作')
       expect(getLogEventTypeLabel(LogEventType.ACCOUNT)).assertEqual('用户认证')
