@@ -1,18 +1,25 @@
 import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { preferences } from '@kit.ArkData';
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
 import { ThemeOption } from '../theme/ThemeColors';
 import { AuthService } from '../services/AuthService';
-import { AuthMethod, PREF_KEY_STARTUP_AUTH, PREF_KEY_AUTH_METHOD, PREF_STORE_NAME_TOOL, DEFAULT_TOOL_SETTINGS } from '../models/DataModels';
+import { AuthMethod } from '../models/DataModels';
 import { ResultDialogHelper } from '../utils/ResultDialogHelper';
+import { PreferencesToolSettingsRepository } from '../services/ToolSettingsRepository';
 
 const DOMAIN = 0x0000;
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
+const TOOL_SETTINGS_TAG = 'ToolSettings.Entry'
+
+interface EntryLoggableError {
+  code?: number
+  message?: string
+}
 
 export default class EntryAbility extends UIAbility {
   private startupWant?: Want
+  private toolSettingsRepository: PreferencesToolSettingsRepository = new PreferencesToolSettingsRepository()
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     this.startupWant = want
@@ -52,33 +59,28 @@ export default class EntryAbility extends UIAbility {
     }
 
     try {
-      let prefs = await preferences.getPreferences(this.context, PREF_STORE_NAME_TOOL);
-      let startupAuthEnabled = await prefs.get(
-        PREF_KEY_STARTUP_AUTH,
-        DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-      ) as boolean
-      let authMethodValue = await prefs.get(
-        PREF_KEY_AUTH_METHOD,
-        DEFAULT_TOOL_SETTINGS.authMethod
-      ) as number
+      let config = await this.toolSettingsRepository.loadConfig(this.context)
+      hilog.info(
+        DOMAIN,
+        TOOL_SETTINGS_TAG,
+        `[STARTUP_AUTH_READ] load startup auth config | enabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
+      )
 
-      // 统一持久化当前生效配置，避免运行默认与设置页默认长期分叉。
-      await prefs.put(PREF_KEY_STARTUP_AUTH, startupAuthEnabled)
-      await prefs.put(PREF_KEY_AUTH_METHOD, authMethodValue)
-      await prefs.flush()
-
-      hilog.info(DOMAIN, 'testTag', `Startup auth config: enabled=${startupAuthEnabled}, method=${authMethodValue}`);
-
-      if (!startupAuthEnabled) {
-        hilog.info(DOMAIN, 'testTag', 'Startup auth disabled, loading MainPage directly');
+      if (!config.startupAuthEnabled) {
+        hilog.info(DOMAIN, TOOL_SETTINGS_TAG, '[STARTUP_AUTH_RESULT] startup auth disabled | fallback=false')
         this.loadMainPage(windowStage);
         return;
       }
 
       // 启用了启动校验，执行认证
-      await this.performStartupAuth(windowStage, authMethodValue as AuthMethod);
+      await this.performStartupAuth(windowStage, config.authMethod as AuthMethod);
     } catch (err) {
-      hilog.error(DOMAIN, 'testTag', `checkStartupAuth failed: ${JSON.stringify(err)}, fallback to load MainPage`);
+      let error = err as EntryLoggableError
+      hilog.error(
+        DOMAIN,
+        TOOL_SETTINGS_TAG,
+        `[STARTUP_AUTH_READ] load startup auth config failed | code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}, fallback=true`
+      )
       // 异常时降级：直接加载主页面
       this.loadMainPage(windowStage);
     }
@@ -151,26 +153,40 @@ export default class EntryAbility extends UIAbility {
   private async performStartupAuth(windowStage: window.WindowStage, authMethod: AuthMethod): Promise<void> {
     // 先检查认证方式是否可用
     let checkResult = AuthService.checkAuthMethodAvailability(authMethod);
+    hilog.info(
+      DOMAIN,
+      TOOL_SETTINGS_TAG,
+      `[STARTUP_AUTH_RESULT] check availability | authMethod=${authMethod}, available=${checkResult.available}, errorCode=${checkResult.errorCode ?? 0}`
+    )
 
     if (!checkResult.available) {
       // 认证方式不可用时优雅降级：直接加载主页面，不阻断启动
-      hilog.warn(DOMAIN, 'testTag', `Startup auth method unavailable: ${checkResult.message}, fallback to load MainPage`);
+      hilog.warn(
+        DOMAIN,
+        TOOL_SETTINGS_TAG,
+        `[STARTUP_AUTH_RESULT] auth unavailable | authMethod=${authMethod}, errorCode=${checkResult.errorCode ?? 0}, fallback=true`
+      )
       this.loadMainPage(windowStage, `启动校验跳过：${checkResult.message}`);
       return;
     }
 
     // 认证方式可用，执行认证
     let authResult = await AuthService.authenticate(authMethod);
+    hilog.info(
+      DOMAIN,
+      TOOL_SETTINGS_TAG,
+      `[STARTUP_AUTH_RESULT] authenticate | authMethod=${authMethod}, success=${authResult.success}, reason=${authResult.reason ?? 'success'}, errorCode=${authResult.errorCode ?? 0}`
+    )
 
     if (authResult.success) {
-      hilog.info(DOMAIN, 'testTag', 'Startup auth succeeded, loading MainPage');
+      hilog.info(DOMAIN, TOOL_SETTINGS_TAG, '[STARTUP_AUTH_RESULT] authenticate success | fallback=false');
       this.loadMainPage(windowStage);
     } else if (authResult.reason === 'unavailable') {
-      hilog.warn(DOMAIN, 'testTag', `Startup auth unavailable: ${authResult.message}, fallback to load MainPage`);
+      hilog.warn(DOMAIN, TOOL_SETTINGS_TAG, '[STARTUP_AUTH_RESULT] authenticate unavailable | fallback=true');
       this.loadMainPage(windowStage, authResult.message);
     } else {
-      // 认证失败或取消，直接退出应用
-      hilog.warn(DOMAIN, 'testTag', 'Startup auth failed or cancelled, terminating');
+      // 认证失败时直接退出应用，避免绕过启动校验。
+      hilog.warn(DOMAIN, TOOL_SETTINGS_TAG, '[STARTUP_AUTH_RESULT] authenticate failed | terminate=true');
       this.context.terminateSelf();
     }
   }

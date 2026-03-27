@@ -12,7 +12,7 @@ export interface AuthAvailabilityResult {
   errorCode?: number
 }
 
-export type AuthExecutionReason = 'failed' | 'cancelled' | 'unavailable'
+export type AuthExecutionReason = 'failed' | 'unavailable'
 
 export interface AuthExecutionResult {
   success: boolean

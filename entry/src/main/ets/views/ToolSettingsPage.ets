@@ -1,17 +1,8 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { ToolSettingsStrings } from '../constants/modules/ToolSettingsStrings'
-import { AuthService } from '../services/AuthService'
-import { SystemSettingsService } from '../services/SystemSettingsService'
-import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
-import {
-  AUTH_METHOD_OPTIONS,
-  PREF_KEY_STARTUP_AUTH,
-  PREF_KEY_AUTH_METHOD,
-  DEFAULT_TOOL_SETTINGS,
-  PREF_STORE_NAME_TOOL
-} from '../models/DataModels'
+import { AUTH_METHOD_OPTIONS } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -20,8 +11,9 @@ import { HoverUtils } from '../utils/HoverUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
-const TAG = 'ToolSettingsPage'
+const TAG = 'ToolSettings.Page'
 const DOMAIN = 0x0014
 
 @Component
@@ -29,8 +21,7 @@ export struct ToolSettingsPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @State hoveredCardIndex: number = -1
-  @State startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-  @State authMethodIndex: number = 0
+  @State viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private resultDialogController: CustomDialogController = new CustomDialogController({
     builder: ResultMessageBox({
       onConfirm: () => {
@@ -40,114 +31,86 @@ export struct ToolSettingsPage {
     autoCancel: false,
     customStyle: true
   })
-
-  private initialStartupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-  private initialAuthMethodIndex: number = 0
   private authMethodOptions: SelectOption[] =
     AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
 
   aboutToAppear() {
-    this.loadSettings()
+    hilog.info(DOMAIN, TAG, '[PAGE_ENTER] aboutToAppear | route=tool-settings')
+    void this.initializeViewModel()
+  }
+
+  aboutToDisappear() {
+    hilog.info(DOMAIN, TAG, '[PAGE_EXIT] aboutToDisappear | route=tool-settings')
+    try {
+      this.resultDialogController.close()
+    } catch (_err) {
+    }
   }
 
   private showResultDialog(status: ResultMessageStatus, message: string): void {
     ResultDialogHelper.prepareResultDialog(status, message)
     try {
       this.resultDialogController.close()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
+    } catch (_err) {
     }
     this.resultDialogController.open()
   }
 
-  async loadSettings() {
-    try {
-      let prefs = await preferences.getPreferences(this.getUIContext().getHostContext() as common.UIAbilityContext, PREF_STORE_NAME_TOOL)
-      let startupAuth = await prefs.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
-      this.startupAuthEnabled = startupAuth as boolean
-
-      let authMethod = await prefs.get(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
-      let methodValue = authMethod as number
-      let idx = AUTH_METHOD_OPTIONS.findIndex((opt) => opt.value === methodValue)
-      if (idx >= 0) {
-        this.authMethodIndex = idx
-      }
-
-      this.initialStartupAuthEnabled = this.startupAuthEnabled
-      this.initialAuthMethodIndex = this.authMethodIndex
-      hilog.info(0x0004, TAG, `Settings loaded: startupAuth=${this.startupAuthEnabled}, authMethod=${methodValue}`)
-    } catch (err) {
-      hilog.error(0x0004, TAG, `loadSettings failed: ${JSON.stringify(err)}`)
-    }
+  private async initializeViewModel(): Promise<void> {
+    await this.viewModel.initialize(this.getPageContext())
   }
 
-  async saveSettings() {
-    try {
-      if (this.startupAuthEnabled) {
-        let authMethod = AUTH_METHOD_OPTIONS[this.authMethodIndex].value
-        let checkResult = AuthService.checkAuthMethodAvailability(authMethod)
-        if (!checkResult.available) {
-          void this.getUIContext().showAlertDialog({
-            title: ToolSettingsStrings.authMethodUnavailableTitle,
-            message: `${checkResult.message}\n\n${ToolSettingsStrings.authMethodUnavailableMessage}`,
-            primaryButton: {
-              value: ToolSettingsStrings.continueSave,
-              action: async () => {
-                await this.doSaveSettings()
-              }
-            },
-            secondaryButton: {
-              value: CommonStrings.actionCancel,
-              action: () => {}
-            }
-          })
-          return
+  private getPageContext(): common.UIAbilityContext {
+    return this.getUIContext().getHostContext() as common.UIAbilityContext
+  }
+
+  private getSelectedAuthMethodLabel(): string {
+    let selectedIndex = this.viewModel.selectedAuthMethodIndex
+    if (selectedIndex < 0 || selectedIndex >= this.authMethodOptions.length) {
+      return this.authMethodOptions[0].value as string
+    }
+    return this.authMethodOptions[selectedIndex].value as string
+  }
+
+  private handleActionRequest(request: ToolSettingsActionRequest): void {
+    if (request.kind === 'result' && request.status && request.message) {
+      this.showResultDialog(request.status, request.message)
+      return
+    }
+    if (request.kind !== 'confirm' || !request.title || !request.message) {
+      return
+    }
+    void this.getUIContext().showAlertDialog({
+      title: request.title,
+      message: request.message,
+      primaryButton: {
+        value: ToolSettingsStrings.continueSave,
+        action: () => {
+          void this.handleConfirmSave()
+        }
+      },
+      secondaryButton: {
+        value: CommonStrings.actionCancel,
+        action: () => {
+          this.viewModel.cancelPendingSave()
         }
       }
-
-      await this.doSaveSettings()
-    } catch (err) {
-      hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', CommonStrings.messageSaveFailed)
-    }
+    })
   }
 
-  private async doSaveSettings() {
-    try {
-      let hasAuthConfigChanged = this.startupAuthEnabled !== this.initialStartupAuthEnabled ||
-        this.authMethodIndex !== this.initialAuthMethodIndex
-
-      if (!hasAuthConfigChanged) {
-        this.showResultDialog('failure', CommonStrings.messageNoChanges)
-        return
-      }
-
-      let prefs = await preferences.getPreferences(this.getUIContext().getHostContext() as common.UIAbilityContext, PREF_STORE_NAME_TOOL)
-      await prefs.put(PREF_KEY_STARTUP_AUTH, this.startupAuthEnabled)
-      await prefs.put(PREF_KEY_AUTH_METHOD, AUTH_METHOD_OPTIONS[this.authMethodIndex].value)
-      await prefs.flush()
-
-      this.initialStartupAuthEnabled = this.startupAuthEnabled
-      this.initialAuthMethodIndex = this.authMethodIndex
-      hilog.info(0x0004, TAG, 'Startup auth settings saved')
-      this.showResultDialog('success', ToolSettingsStrings.saveSuccess)
-    } catch (err) {
-      hilog.error(0x0004, TAG, `saveSettings failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', CommonStrings.messageSaveFailed)
-    }
+  private async handleSave(): Promise<void> {
+    let request = await this.viewModel.requestSave(this.getPageContext())
+    this.handleActionRequest(request)
   }
 
-  private async openPasswordSettings() {
-    try {
-      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      const opened = await SystemSettingsService.openPasswordSettings(context)
-      if (!opened) {
-        this.showResultDialog('failure', ToolSettingsStrings.openPasswordSettingsFailed)
-      }
-    } catch (err) {
-      hilog.error(0x0004, TAG, `openPasswordSettings failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', ToolSettingsStrings.openPasswordSettingsFailed)
-    }
+  private async handleConfirmSave(): Promise<void> {
+    let request = await this.viewModel.confirmSaveWithUnavailableAuth(this.getPageContext())
+    this.handleActionRequest(request)
+  }
+
+  private async handlePasswordSettings(): Promise<void> {
+    let request = await this.viewModel.openPasswordSettings(this.getPageContext())
+    this.handleActionRequest(request)
   }
 
   build() {
@@ -183,7 +146,7 @@ export struct ToolSettingsPage {
           Color.White,
           AppColors.BRAND_PRIMARY,
           () => {
-            this.saveSettings()
+            void this.handleSave()
           }
         )
       }
@@ -249,10 +212,10 @@ export struct ToolSettingsPage {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        Toggle({ type: ToggleType.Switch, isOn: this.startupAuthEnabled })
+        Toggle({ type: ToggleType.Switch, isOn: this.viewModel.state.config.startupAuthEnabled })
           .selectedColor(AppColors.BRAND_PRIMARY)
           .onChange((value: boolean) => {
-            this.startupAuthEnabled = value
+            this.viewModel.setStartupAuthEnabled(value)
           })
       }
       .width('100%')
@@ -277,8 +240,8 @@ export struct ToolSettingsPage {
         .layoutWeight(1)
 
         Select(this.authMethodOptions)
-          .selected(this.authMethodIndex)
-          .value(this.authMethodOptions[this.authMethodIndex].value as string)
+          .selected(this.viewModel.selectedAuthMethodIndex)
+          .value(this.getSelectedAuthMethodLabel())
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
@@ -289,7 +252,9 @@ export struct ToolSettingsPage {
           .borderRadius(AppStyles.RADIUS_SM)
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
-            this.authMethodIndex = index
+            if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
+              this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
+            }
           })
       }
       .width('100%')
@@ -322,7 +287,7 @@ export struct ToolSettingsPage {
           .height(36)
           .padding({ left: 14, right: 14 })
           .onClick(() => {
-            void this.openPasswordSettings()
+            void this.handlePasswordSettings()
           })
       }
       .width('100%')

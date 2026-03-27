@@ -3,6 +3,11 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const TAG = 'SystemSettingsService'
 
+interface SystemSettingsLoggableError {
+  code?: number
+  message?: string
+}
+
 export class SystemSettingsService {
   static async openPasswordSettings(context: common.UIAbilityContext): Promise<boolean> {
     try {
@@ -22,7 +27,8 @@ export class SystemSettingsService {
       await context.startAbility(want)
       return true
     } catch (err) {
-      hilog.error(0x0004, TAG, `openPasswordSettings failed: ${JSON.stringify(err)}`)
+      let error = err as SystemSettingsLoggableError
+      hilog.error(0x0004, TAG, `openPasswordSettings failed: code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}`)
       return false
     }
   }
