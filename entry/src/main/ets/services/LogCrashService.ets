@@ -4,7 +4,6 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType,
-  LogEventTypeDiag,
   generateLogEntryId
 } from '../models/DataModels'
 
@@ -21,7 +20,6 @@ export class LogCrashService {
   private static callback: CrashEntryCallback | null = null
   private static subscribed: boolean = false
   private static lastErrorCode: number | undefined = undefined
-  private static diagnostics: LogEventTypeDiag = LogCrashService.createDiag()
   private static readonly watcher: hiAppEvent.Watcher = {
     name: WATCHER_NAME,
     appEventFilters: [{
@@ -43,13 +41,10 @@ export class LogCrashService {
       LogCrashService.callback = onCrashEntry
       hiAppEvent.addWatcher(LogCrashService.watcher)
       LogCrashService.subscribed = true
-      LogCrashService.diagnostics.subscribed = true
       LogCrashService.lastErrorCode = undefined
       return true
     } catch (err) {
       LogCrashService.lastErrorCode = LogCrashService.extractErrorCode(err as Object)
-      LogCrashService.diagnostics.subscribed = false
-      LogCrashService.diagnostics.lastErrorCode = LogCrashService.lastErrorCode
       hilog.error(DOMAIN, TAG, `addWatcher failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -64,7 +59,6 @@ export class LogCrashService {
       hiAppEvent.removeWatcher(LogCrashService.watcher)
       LogCrashService.subscribed = false
       LogCrashService.callback = null
-      LogCrashService.diagnostics.subscribed = false
       return true
     } catch (err) {
       hilog.warn(DOMAIN, TAG, `removeWatcher failed: ${JSON.stringify(err)}`)
@@ -76,23 +70,10 @@ export class LogCrashService {
     return LogCrashService.subscribed
   }
 
-  static getDiagnostics(): LogEventTypeDiag {
-    return {
-      type: LogCrashService.diagnostics.type,
-      subscribed: LogCrashService.diagnostics.subscribed,
-      failedEventIds: [],
-      lastSeenAt: LogCrashService.diagnostics.lastSeenAt,
-      seenCount: LogCrashService.diagnostics.seenCount,
-      lastErrorCode: LogCrashService.diagnostics.lastErrorCode
-    }
-  }
-
   private static handleReceive(appEventGroups: Array<hiAppEvent.AppEventGroup>): void {
     for (let group of appEventGroups) {
       for (let info of group.appEventInfos) {
         let entry = LogCrashService.mapCrashInfo(info)
-        LogCrashService.diagnostics.seenCount += 1
-        LogCrashService.diagnostics.lastSeenAt = Date.now()
         if (LogCrashService.callback) {
           LogCrashService.callback(entry)
         }
@@ -173,14 +154,5 @@ export class LogCrashService {
       return Number.isNaN(parsed) ? undefined : parsed
     }
     return undefined
-  }
-
-  private static createDiag(): LogEventTypeDiag {
-    return {
-      type: LogEventType.CRASH,
-      subscribed: false,
-      failedEventIds: [],
-      seenCount: 0
-    }
   }
 }

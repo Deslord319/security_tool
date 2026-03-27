@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppInfo } from '../constants/AppConstants'
-import { LogAuditDiagnostics, LogEntry, LogEventType, LogEventTypeDiag } from '../models/DataModels'
+import { LogEntry, LogEventType } from '../models/DataModels'
 import { LogAuditService } from './LogAuditService'
 import { LogCrashService } from './LogCrashService'
 import { LogStorageService } from './LogStorageService'
@@ -102,11 +102,7 @@ export class LogRuntimeCollectorService {
 
     if (success) {
       let failed = LogAuditService.getLastSubscribeFailedEventIds()
-      hilog.info(
-        DOMAIN,
-        TAG,
-        `auditMode=${LogAuditService.getSubscribeMode()}, fallback=${LogAuditService.getFallbackReason()}, crash=${crashStarted}`
-      )
+      hilog.info(DOMAIN, TAG, `collector started: audit=${auditStarted}, crash=${crashStarted}`)
       if (failed.length > 0) {
         hilog.warn(DOMAIN, TAG, `start with partial subscribe success, failed eventIds=${failed.join(',')}`)
       }
@@ -139,24 +135,6 @@ export class LogRuntimeCollectorService {
       running: LogRuntimeCollectorService.running,
       subscribed: LogAuditService.getSubscriptionStatus() || LogCrashService.getSubscriptionStatus()
     } as LogRuntimeCollectorStatus
-  }
-
-  static getDiagnostics(): LogAuditDiagnostics {
-    let diagnostics = LogAuditService.getDiagnostics()
-    let crashDiag = LogCrashService.getDiagnostics()
-    let mergedByType = new Map<LogEventType, LogEventTypeDiag>()
-    diagnostics.byType.forEach((value: LogEventTypeDiag, key: LogEventType) => {
-      mergedByType.set(key, value)
-    })
-    mergedByType.set(LogEventType.CRASH, crashDiag)
-    return {
-      byType: mergedByType,
-      unknownEventIds: diagnostics.unknownEventIds,
-      subscribeMode: diagnostics.subscribeMode,
-      fallbackReason: diagnostics.fallbackReason,
-      lastModeSwitchAt: diagnostics.lastModeSwitchAt,
-      lastUpdatedAt: Math.max(diagnostics.lastUpdatedAt, crashDiag.lastSeenAt || 0)
-    } as LogAuditDiagnostics
   }
 
   private static handleIncomingEntry(entry: LogEntry): void {

@@ -1,4 +1,4 @@
-
+﻿
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
@@ -11,15 +11,10 @@ import {
   LogFilter,
   LogStatistics,
   LogStorageConfig,
-  LogAuditDiagnostics,
-  LogEventTypeDiag,
-  AuditSubscribeMode,
-  AuditFallbackReason,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_RETENTION_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   DEFAULT_LOG_STORAGE_CONFIG,
-  ALL_LOG_EVENT_TYPES,
   getLogEventTypeLabel,
   getLogEventResultLabel,
   getLogEventResultColor,
@@ -342,7 +337,6 @@ export struct LogManagePage {
   onBack: () => void = () => {}
   @State hoveredStatIndex: number = -1
   @State hoveredSettingsCardIndex: number = -1
-  @State hoveredDiagType: number = -1
 
   @State logEntries: LogEntry[] = []
   @State pagedLogEntries: LogEntry[] = []
@@ -355,14 +349,6 @@ export struct LogManagePage {
     blockedCount: 0,
     byType: new Map<LogEventType, number>()
   }
-  @State diagnostics: LogAuditDiagnostics = {
-    byType: new Map<LogEventType, LogEventTypeDiag>(),
-    unknownEventIds: [],
-    subscribeMode: 'none',
-    fallbackReason: 'none',
-    lastModeSwitchAt: undefined,
-    lastUpdatedAt: 0
-  }
 
   @State filterEventType: number = -1
   @State filterResult: number = -1
@@ -374,8 +360,6 @@ export struct LogManagePage {
 
   @State showSettings: boolean = false
   @State isLoading: boolean = false
-  @State fromAuditDiagnostics: boolean = false
-  @State selectedDiagType: number = -1
 
   private refreshTimerId: number = -1
   private readonly REFRESH_INTERVAL_MS: number = 1500
@@ -455,16 +439,11 @@ export struct LogManagePage {
   private refreshAll() {
     this.refreshData()
     this.refreshRuntimeStatus()
-    this.refreshDiagnostics()
   }
 
   private refreshRuntimeStatus() {
     let status = LogRuntimeCollectorService.getStatus()
     this.isSubscribed = status.subscribed
-  }
-
-  private refreshDiagnostics() {
-    this.diagnostics = LogRuntimeCollectorService.getDiagnostics()
   }
 
   refreshData() {
@@ -509,43 +488,13 @@ export struct LogManagePage {
     this.refreshData()
   }
 
-  private exitAuditDiagnosticsView(clearTypeFilter: boolean = false): void {
-    this.fromAuditDiagnostics = false
-    this.selectedDiagType = -1
-    if (clearTypeFilter) {
-      this.filterEventType = -1
-      this.filterResult = -1
-      this.filterKeyword = ''
-    }
-  }
-
   private applyManualFilterChange(): void {
-    if (this.fromAuditDiagnostics) {
-      this.exitAuditDiagnosticsView(false)
-    }
-    this.resetToFirstPageAndRefresh()
-  }
-
-  private openEventsByDiagType(type: LogEventType): void {
-    this.selectedDiagType = type as number
-    this.fromAuditDiagnostics = true
-    this.showSettings = false
-    this.filterEventType = type as number
-    this.filterResult = -1
-    this.filterKeyword = ''
     this.resetToFirstPageAndRefresh()
   }
 
   private openSettingsFromList(): void {
-    this.exitAuditDiagnosticsView(true)
     this.showSettings = true
     this.refreshData()
-  }
-
-  private clearAuditDiagnosticsFilter(): void {
-    this.exitAuditDiagnosticsView(true)
-    this.showSettings = false
-    this.resetToFirstPageAndRefresh()
   }
 
   private goToPreviousPage(): void {
@@ -631,30 +580,17 @@ export struct LogManagePage {
     return hasFilter ? filter : undefined
   }
 
-  private getDiagMetricValue(type: LogEventType): string {
-    return `${this.getStoredCountByType(type)}`
-  }
+  private getFilterHintMessage(): string {
+    if (this.filterEventType < 0) {
+      return ''
+    }
 
-  private getDiagMetricLabel(type: LogEventType): string {
-    return LogManageStrings.homeMetricLabel
-  }
-
-  private getDiagCardSummaryText(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    if (diag.failedEventIds.length > 0) {
-      let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
-      return LogManageStrings.buildSubscriptionErrorText(diag.failedEventIds.join(','), codeText)
+    let selectedType = this.filterEventType as LogEventType
+    let totalByType = this.statistics.byType.get(selectedType) || 0
+    if (totalByType > 0 && this.logEntries.length === 0) {
+      return LogManageStrings.emptyDescription
     }
-    if (type === LogEventType.FILE) {
-      let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
-      if (dropped > 0) {
-        return LogManageStrings.buildDroppedNonUserFileText(dropped)
-      }
-    }
-    if (!diag.subscribed) {
-      return LogManageStrings.notSubscribedForType
-    }
-    return this.getDiagRecentTimeText(type)
+    return ''
   }
 
   async exportLogs() {
@@ -747,175 +683,6 @@ export struct LogManagePage {
       this.retentionIndex = 0
     }
   }
-  private getCurrentTypeDiag(): LogEventTypeDiag | undefined {
-    if (this.filterEventType < 0) {
-      return undefined
-    }
-    return this.diagnostics.byType.get(this.filterEventType as LogEventType)
-  }
-
-  private getSelectedDiagTypeLabel(): string {
-    if (this.selectedDiagType < 0) {
-      return ''
-    }
-    return getLogEventTypeLabel(this.selectedDiagType as LogEventType)
-  }
-
-  private getFilterHintMessage(): string {
-    if (this.fromAuditDiagnostics && this.selectedDiagType >= 0) {
-      let typeLabel = this.getSelectedDiagTypeLabel()
-      let selectedType = this.selectedDiagType as LogEventType
-      let diag = this.getDiagByType(selectedType)
-      if (this.logEntries.length === 0) {
-        if (selectedType === LogEventType.FILE) {
-          let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
-          if (dropped > 0) {
-            return LogManageStrings.buildViewingFilteredText(typeLabel, dropped)
-          }
-        }
-        if (diag.seenCount > 0) {
-          return LogManageStrings.buildViewingWithHitsText(typeLabel, diag.seenCount)
-        }
-        return LogManageStrings.buildViewingWithoutHitsText(typeLabel)
-      }
-      return LogManageStrings.buildViewingTotalText(typeLabel, this.logEntries.length)
-    }
-
-    if (this.filterEventType < 0) {
-      return ''
-    }
-
-    let selectedType = this.filterEventType as LogEventType
-    let totalByType = this.statistics.byType.get(selectedType) || 0
-    if (totalByType > 0 && this.logEntries.length === 0) {
-      return LogManageStrings.emptyFilteredResult
-    }
-
-    let diag = this.getCurrentTypeDiag()
-    if (!diag) {
-      return ''
-    }
-    if (diag.failedEventIds.length > 0) {
-      if (selectedType === LogEventType.ACCOUNT && diag.lastErrorCode === 401) {
-        return LogManageStrings.accountLogRestricted
-      }
-      let codeText = diag.lastErrorCode !== undefined ? `，错误码 ${diag.lastErrorCode}` : ''
-      return LogManageStrings.buildTypeFailedText(diag.failedEventIds.join(','), codeText, this.getTypeTriggerHint(selectedType))
-    }
-    if (selectedType === LogEventType.FILE) {
-      let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
-      if (dropped > 0) {
-        return LogManageStrings.buildFilteredFileEventText(dropped)
-      }
-    }
-    if (diag.subscribed && totalByType === 0) {
-      return ''
-    }
-    if (!diag.subscribed) {
-      return LogManageStrings.buildNotSubscribedSentence()
-    }
-    return ''
-  }
-
-  private getTypeTriggerHint(type: LogEventType): string {
-    switch (type) {
-      case LogEventType.CRASH:
-        return LogManageStrings.crashTriggerHint
-      case LogEventType.FILE:
-        return LogManageStrings.fileTriggerHint
-      case LogEventType.PERMISSION:
-        return LogManageStrings.permissionTriggerHint
-      case LogEventType.ACCOUNT:
-        return LogManageStrings.accountTriggerHint
-      default:
-        return LogManageStrings.triggerHint
-    }
-  }
-
-  private getDiagByType(type: LogEventType): LogEventTypeDiag {
-    let diag = this.diagnostics.byType.get(type)
-    if (diag) {
-      return diag
-    }
-    return {
-      type: type,
-      subscribed: false,
-      failedEventIds: [],
-      seenCount: 0
-    }
-  }
-
-  private getStoredCountByType(type: LogEventType): number {
-    return this.statistics.byType.get(type) || 0
-  }
-
-  private getDiagStatusText(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    if (diag.failedEventIds.length > 0) {
-      return LogManageStrings.subscribeFailed
-    }
-    return diag.subscribed ? LogManageStrings.subscribed : LogManageStrings.notSubscribed
-  }
-
-  private getDiagStatusColor(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    if (diag.failedEventIds.length > 0) {
-      return AppColors.getColors(this.currentTheme).TAG_RED_TEXT
-    }
-    return diag.subscribed ?
-      AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT :
-      AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
-  }
-
-  private getSubscribeModeText(mode?: AuditSubscribeMode): string {
-    let current = mode || this.diagnostics.subscribeMode
-    if (current === 'client') {
-      return 'Client'
-    }
-    if (current === 'legacy') {
-      return 'Legacy'
-    }
-    return LogManageStrings.notSubscribed
-  }
-
-  private getFallbackReasonText(reason?: AuditFallbackReason): string {
-    let current = reason || this.diagnostics.fallbackReason
-    if (current === 'new_api_unavailable') {
-      return LogManageStrings.newApiUnavailableFallback
-    }
-    if (current === 'new_api_init_failed') {
-      return LogManageStrings.newApiInitFailedFallback
-    }
-    return ''
-  }
-
-  private getDiagStatusBgColor(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    if (diag.failedEventIds.length > 0) {
-      return AppColors.getColors(this.currentTheme).TAG_RED_BG
-    }
-    return diag.subscribed ?
-      AppColors.getColors(this.currentTheme).TAG_GREEN_BG :
-      AppColors.getColors(this.currentTheme).TAG_GRAY_BG
-  }
-
-  private getDiagCountText(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    if (type === LogEventType.FILE) {
-      let dropped = (diag.droppedNoPathCount || 0) + (diag.droppedPrefixMismatchCount || 0)
-      if (dropped > 0) {
-        return LogManageStrings.buildSessionHitWithDropText(diag.seenCount, dropped)
-      }
-    }
-    return LogManageStrings.buildSessionHitText(diag.seenCount)
-  }
-
-  private getDiagRecentTimeText(type: LogEventType): string {
-    let diag = this.getDiagByType(type)
-    let lastSeen = diag.lastSeenAt ? formatLogTimestamp(diag.lastSeenAt) : '-'
-    return LogManageStrings.buildRecentSeenText(lastSeen)
-  }
-
   build() {
     Column() {
       Row() {
@@ -947,7 +714,7 @@ export struct LogManagePage {
           Row({ space: 6 }) {
             Circle({ width: 8, height: 8 })
               .fill(this.isSubscribed ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
-            Text(this.isSubscribed ? LogManageStrings.buildSubscribedText(this.getSubscribeModeText()) : LogManageStrings.subscribeFailed)
+            Text(this.isSubscribed ? LogManageStrings.subscribed : LogManageStrings.subscribeFailed)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -1006,7 +773,6 @@ export struct LogManagePage {
                 .height(32)
                 .padding({ left: 12, right: 12 })
                 .onClick(() => {
-                  this.exitAuditDiagnosticsView(true)
                   this.showSettings = false
                   this.refreshData()
                 })
@@ -1167,32 +933,6 @@ export struct LogManagePage {
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
-
-        if (this.fromAuditDiagnostics) {
-          Button(LogManageStrings.clearFilterButton)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-            .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .height(28)
-            .padding({ left: 10, right: 10 })
-            .onClick(() => {
-              this.clearAuditDiagnosticsFilter()
-            })
-
-          Button(LogManageStrings.backToDiagnosticsButton)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-            .borderRadius(AppStyles.RADIUS_SM)
-            .height(28)
-            .padding({ left: 10, right: 10 })
-            .onClick(() => {
-              this.showSettings = true
-              this.exitAuditDiagnosticsView(true)
-              this.refreshData()
-            })
-        }
       }
       .width('100%')
       .padding({
@@ -1454,7 +1194,6 @@ export struct LogManagePage {
         Row() {
           Column({ space: 16 }) {
             this.storageConfigCard()
-            this.auditDiagnosticsCard()
           }
           .width('100%')
           .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
@@ -1552,160 +1291,4 @@ export struct LogManagePage {
         this.hoveredSettingsCardIndex = isHover ? 0 : -1
       })
     })
-  }
-
-  @Builder
-  auditDiagnosticsCard() {
-    Column({ space: 12 }) {
-      Row() {
-        Text(LogManageStrings.diagnosticsTitle).fontSize(AppStyles.FONT_SIZE_SUBTITLE).fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      }
-      .width('100%')
-
-      Text(LogManageStrings.buildModeSwitchTimeText(
-        this.diagnostics.lastModeSwitchAt !== undefined ?
-          formatLogTimestamp(this.diagnostics.lastModeSwitchAt as number) :
-          '-'
-      ))
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-
-      if (this.getFallbackReasonText().length > 0) {
-        Row() {
-          Text(this.getFallbackReasonText())
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-        }
-        .width('100%')
-        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
-        .borderRadius(AppStyles.RADIUS_SM)
-      }
-
-      if (this.diagnostics.unknownEventIds.length > 0) {
-        Row() {
-          Text(LogManageStrings.buildUnknownEventIdsText(this.diagnostics.unknownEventIds.join(',')))
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
-        }
-        .width('100%')
-        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_BG)
-        .borderRadius(AppStyles.RADIUS_SM)
-      }
-
-      Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.SpaceBetween, alignItems: ItemAlign.Start }) {
-        ForEach(ALL_LOG_EVENT_TYPES, (type: LogEventType) => {
-          Column({ space: 12 }) {
-            Row() {
-              Text(getLogEventTypeLabel(type))
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .layoutWeight(1)
-              Text(this.getDiagStatusText(type))
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(this.getDiagStatusColor(type))
-                .backgroundColor(this.getDiagStatusBgColor(type))
-                .borderRadius(AppStyles.RADIUS_SM)
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
-            Column({ space: 4 }) {
-              Text(this.getDiagMetricValue(type))
-                .fontSize(28)
-                .fontWeight(FontWeight.Bold)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              Text(this.getDiagMetricLabel(type))
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            }
-            .alignItems(HorizontalAlign.Start)
-
-            Row({ space: 12 }) {
-              Column({ space: 4 }) {
-                Text(this.getDiagCountText(type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-
-              Column({ space: 4 }) {
-                Text(LogManageStrings.recentHitLabel)
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-                Text(this.getDiagRecentTimeText(type))
-                  .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.End)
-            }
-            .width('100%')
-
-            Row() {
-              Text(this.getDiagCardSummaryText(type))
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                .maxLines(2)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .layoutWeight(1)
-            }
-            .width('100%')
-          }
-          .width('49%')
-          .constraintSize({ minHeight: 168 })
-          .padding({ left: 14, right: 14, top: 14, bottom: 14 })
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({
-            width: 1,
-            color: this.hoveredDiagType === (type as number) ?
-              AppColors.BRAND_PRIMARY :
-              AppColors.getColors(this.currentTheme).BORDER
-          })
-          .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredDiagType === (type as number)))
-          .translate({ y: HoverUtils.getTranslateY(this.hoveredDiagType === (type as number), 4) })
-          .onHover((isHover: boolean) => {
-            HoverUtils.animate(() => {
-              this.hoveredDiagType = isHover ? (type as number) : -1
-            })
-          })
-          .onClick(() => {
-            this.openEventsByDiagType(type)
-          })
-        }, (type: LogEventType) => type.toString())
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .constraintSize({ minHeight: 360 })
-    .padding(16)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .alignItems(HorizontalAlign.Start)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredSettingsCardIndex === 1, true))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredSettingsCardIndex === 1, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredSettingsCardIndex = isHover ? 1 : -1
-      })
-    })
-  }
-}
+  }}

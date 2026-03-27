@@ -618,31 +618,6 @@ export interface LogStatistics {
   byType: Map<LogEventType, number>
 }
 
-export interface LogEventTypeDiag {
-  type: LogEventType
-  subscribed: boolean
-  failedEventIds: number[]
-  lastSeenAt?: number
-  seenCount: number
-  lastErrorCode?: number
-  droppedNoPathCount?: number
-  droppedPrefixMismatchCount?: number
-  lastDropReason?: string
-}
-
-export type AuditSubscribeMode = 'client' | 'legacy' | 'none'
-
-export type AuditFallbackReason = 'new_api_unavailable' | 'new_api_init_failed' | 'none'
-
-export interface LogAuditDiagnostics {
-  byType: Map<LogEventType, LogEventTypeDiag>
-  unknownEventIds: number[]
-  subscribeMode: AuditSubscribeMode
-  fallbackReason: AuditFallbackReason
-  lastModeSwitchAt?: number
-  lastUpdatedAt: number
-}
-
 export interface LogExportResult {
   success: boolean
   timestamp: number
