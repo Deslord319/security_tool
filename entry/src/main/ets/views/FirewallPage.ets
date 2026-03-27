@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { BackNavButton } from '../components/BackNavButton'
 import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
 import { FirewallService } from '../services/FirewallService'
@@ -26,7 +27,7 @@ struct FirewallModeLoadingDialog {
       LoadingProgress()
         .width(44)
         .height(44)
-      Text('正在切换防火墙模式，请稍候')
+      Text(FirewallStrings.modeLoadingMessage)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -111,11 +112,10 @@ export struct FirewallPage {
         'failure',
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
-
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '防火墙开关切换失败')
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.toggleFailed)
       hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -126,42 +126,15 @@ export struct FirewallPage {
     reason: FirewallToggleRejectReason | undefined,
     lockRemainingSec: number | undefined
   ): string {
-    switch (reason) {
-      case 'lockout':
-        return `PIN 校验失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
-      case 'pin_unavailable':
-        return '当前设备未配置 PIN'
-      case 'pin_failed':
-        return 'PIN 校验失败'
-      case 'policy_apply_failed':
-        return '防火墙状态写入失败'
-      default:
-        return '防火墙状态切换失败'
-    }
+    return FirewallStrings.buildToggleFailedMessage(reason, lockRemainingSec)
   }
 
   private getModeTitle(mode: FirewallPresetMode): string {
-    switch (mode) {
-      case 'public':
-        return '公用网络'
-      case 'private':
-        return '专用网络'
-      case 'custom':
-      default:
-        return '自定义规则'
-    }
+    return FirewallStrings.getModeTitle(mode)
   }
 
   private getModeDescription(mode: FirewallPresetMode): string {
-    switch (mode) {
-      case 'public':
-        return '下发公用网络预置策略，成功后仅保留公用模式规则。'
-      case 'private':
-        return '下发专用网络预置策略，成功后仅保留专用模式规则。'
-      case 'custom':
-      default:
-        return '切换为自定义模式并进入规则页，重新下发已保存的自定义策略。'
-    }
+    return FirewallStrings.getModeDescription(mode)
   }
 
   private getModeIcon(mode: FirewallPresetMode): Resource {
@@ -368,7 +341,7 @@ export struct FirewallPage {
   }
 
   private showModeChangeFailedDialog(): void {
-    ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '策略下发失败，当前模式未切换')
+    ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.modeApplyFailed)
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
@@ -435,7 +408,7 @@ export struct FirewallPage {
               .width(12)
               .height(12)
               .fillColor(this.getModeStatusTextColor(mode))
-            Text('当前模式')
+            Text(FirewallStrings.currentMode)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getModeStatusTextColor(mode))
@@ -465,7 +438,7 @@ export struct FirewallPage {
       Column({ space: 8 }) {
         if (mode === 'custom') {
           Row({ space: 4 }) {
-            Text('规则页')
+            Text(FirewallStrings.rulesPage)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -478,7 +451,7 @@ export struct FirewallPage {
           }
         } else if (this.isModeSelected(mode)) {
           Row({ space: 4 }) {
-            Text('已生效')
+            Text(FirewallStrings.effective)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -549,12 +522,12 @@ export struct FirewallPage {
             })
 
             Column({ space: 4 }) {
-              Text('防火墙管理')
+              Text(FirewallStrings.pageTitle)
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text('统一配置网络访问规则，精准控制应用与设备的通信行为，降低未授权连接带来的安全风险。')
+              Text(FirewallStrings.pageSubtitle)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(this.getThemeColors().TEXT_PRIMARY)
                 .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
@@ -566,7 +539,7 @@ export struct FirewallPage {
           .alignItems(VerticalAlign.Top)
 
           Row({ space: 12 }) {
-            Button('按用户ID控制')
+            Button(FirewallStrings.userIdControlButton)
               .type(ButtonType.Normal)
               .height(36)
               .padding({ left: 14, right: 14 })
@@ -599,7 +572,7 @@ export struct FirewallPage {
         .alignItems(VerticalAlign.Top)
 
         Column({ space: 12 }) {
-          Text('模式切换')
+          Text(FirewallStrings.modeSectionTitle)
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.getThemeColors().TEXT_PRIMARY)

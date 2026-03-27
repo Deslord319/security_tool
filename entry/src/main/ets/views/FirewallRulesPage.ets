@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
 import { FirewallModeService } from '../services/FirewallModeService'
@@ -14,6 +15,7 @@ import { FirewallPresetMode } from '../models/DataModels'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 const TAG = 'FirewallRulesPage'
+
 @Component
 export struct FirewallRulesPage {
   @Prop currentMode: FirewallPresetMode = 'custom'
@@ -40,7 +42,7 @@ export struct FirewallRulesPage {
 
   aboutToAppear() {
     if (this.currentMode !== 'custom') {
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '仅自定义模式可进入规则页')
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.rulesOnlyCustomMode)
       this.onBack()
       return
     }
@@ -63,7 +65,7 @@ export struct FirewallRulesPage {
       ResultDialogHelper.openAlertDialog(
         this.getUIContext(),
         'failure',
-        result.errorMessage?.length ? result.errorMessage : '自定义规则下发失败'
+        result.errorMessage?.length ? result.errorMessage : FirewallStrings.customRulesApplyFailed
       )
       return
     }
@@ -71,41 +73,37 @@ export struct FirewallRulesPage {
     if (!saved) {
       let rollbackResult = await FirewallModeService.applyCustomRules(context, previousRules)
       if (!rollbackResult.success) {
-        ResultDialogHelper.openAlertDialog(
-          this.getUIContext(),
-          'failure',
-          '规则已下发，但本地保存失败，请重新进入页面确认'
-        )
+        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.customRulesLocalSaveFailed)
         return
       }
       await this.loadRules()
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '自定义规则保存失败，已恢复原策略')
+      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.customRulesRollbackSuccess)
       return
     }
     await this.loadRules()
-    hilog.info(0x0001, TAG, 'persistRules success')
+    hilog.info(0x0001, TAG, `persistRules success: ${successMessage}`)
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
     let conflict = FirewallService.findRuleConflict(this.rules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '存在重复规则')
+        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
         void this.getUIContext().showAlertDialog({
-          title: '存在冲突规则',
-          message: '发现动作相反的同类规则，是否用新规则覆盖旧规则？',
+          title: FirewallStrings.conflictRuleTitle,
+          message: FirewallStrings.conflictRuleReplaceMessage,
           primaryButton: {
-            value: '覆盖',
+            value: FirewallStrings.actionOverride,
             action: () => {
               this.replaceConflictRule(conflictRule, rule, false)
             }
           },
           secondaryButton: {
-            value: '取消',
+            value: FirewallStrings.actionCancel,
             action: () => {}
           }
         })
@@ -113,16 +111,16 @@ export struct FirewallRulesPage {
       }
       if (conflict.kind === 'overlap_conflict') {
         void this.getUIContext().showAlertDialog({
-          title: '规则范围重叠',
-          message: '新规则与现有规则有重叠，仍然继续保存并重新下发吗？',
+          title: FirewallStrings.overlapRuleTitle,
+          message: FirewallStrings.overlapRuleAddMessage,
           primaryButton: {
-            value: '继续',
+            value: FirewallStrings.actionContinue,
             action: () => {
               this.addRuleDirectly(rule)
             }
           },
           secondaryButton: {
-            value: '取消',
+            value: FirewallStrings.actionCancel,
             action: () => {}
           }
         })
@@ -134,7 +132,7 @@ export struct FirewallRulesPage {
 
   private async addRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
     let nextRules = [...this.rules, rule]
-    await this.persistRules(nextRules, '自定义规则已新增')
+    await this.persistRules(nextRules, FirewallStrings.addRuleSuccess)
   }
 
   private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
@@ -162,22 +160,22 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(comparableRules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '存在重复规则')
+        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
         void this.getUIContext().showAlertDialog({
-          title: '存在冲突规则',
-          message: '发现动作相反的同类规则，是否删除旧规则并保存本次修改？',
+          title: FirewallStrings.conflictRuleTitle,
+          message: FirewallStrings.conflictRuleReplaceAndSaveMessage,
           primaryButton: {
-            value: '覆盖',
+            value: FirewallStrings.actionOverride,
             action: () => {
               this.replaceConflictRule(conflictRule, rule, true)
             }
           },
           secondaryButton: {
-            value: '取消',
+            value: FirewallStrings.actionCancel,
             action: () => {}
           }
         })
@@ -185,16 +183,16 @@ export struct FirewallRulesPage {
       }
       if (conflict.kind === 'overlap_conflict') {
         void this.getUIContext().showAlertDialog({
-          title: '规则范围重叠',
-          message: '修改后的规则与现有规则有重叠，是否继续保存？',
+          title: FirewallStrings.overlapRuleTitle,
+          message: FirewallStrings.overlapRuleEditMessage,
           primaryButton: {
-            value: '继续',
+            value: FirewallStrings.actionContinue,
             action: () => {
               this.updateRuleDirectly(rule)
             }
           },
           secondaryButton: {
-            value: '取消',
+            value: FirewallStrings.actionCancel,
             action: () => {}
           }
         })
@@ -209,7 +207,7 @@ export struct FirewallRulesPage {
     let nextRules = this.rules.map((item: netFirewall.NetFirewallRule) =>
       this.getLocalRuleId(item) === localRuleId ? rule : item
     )
-    await this.persistRules(nextRules, '自定义规则已更新')
+    await this.persistRules(nextRules, FirewallStrings.updateRuleSuccess)
   }
 
   private async replaceConflictRule(
@@ -227,21 +225,21 @@ export struct FirewallRulesPage {
     } else {
       nextRules.push(nextRule)
     }
-    await this.persistRules(nextRules, isEditMode ? '冲突规则已替换并保存' : '冲突规则已覆盖')
+    await this.persistRules(nextRules, isEditMode ? FirewallStrings.replaceRuleSuccess : FirewallStrings.overwriteRuleSuccess)
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
     void this.getUIContext().showAlertDialog({
-      title: '删除规则',
-      message: '删除后会立即重新下发当前自定义策略，是否继续？',
+      title: FirewallStrings.deleteRuleTitle,
+      message: FirewallStrings.deleteRuleMessage,
       primaryButton: {
-        value: '删除',
+        value: FirewallStrings.actionDelete,
         action: () => {
           this.deleteRuleDirectly(rule)
         }
       },
       secondaryButton: {
-        value: '取消',
+        value: FirewallStrings.actionCancel,
         action: () => {}
       }
     })
@@ -250,7 +248,7 @@ export struct FirewallRulesPage {
   private async deleteRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
     let localRuleId = this.getLocalRuleId(rule)
     let nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== localRuleId)
-    await this.persistRules(nextRules, '自定义规则已删除')
+    await this.persistRules(nextRules, FirewallStrings.deleteRuleSuccess)
   }
 
   private getLocalRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
@@ -277,7 +275,6 @@ export struct FirewallRulesPage {
       return this.rules
     }
 
-    // 根据 Tab 索引确定要过滤的规则类型
     const targetType = (() => {
       switch (this.currentTab) {
         case 1: return netFirewall.NetFirewallRuleType.RULE_IP
@@ -287,7 +284,9 @@ export struct FirewallRulesPage {
       }
     })()
 
-    if (!targetType) return this.rules
+    if (!targetType) {
+      return this.rules
+    }
     return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === targetType)
   }
 
@@ -304,11 +303,11 @@ export struct FirewallRulesPage {
       case netFirewall.NetFirewallRuleType.RULE_IP:
         return 'IP'
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return '域名'
+        return FirewallStrings.typeDomain
       case netFirewall.NetFirewallRuleType.RULE_DNS:
         return 'DNS'
       default:
-        return '未知'
+        return FirewallStrings.typeUnknown
     }
   }
 
@@ -352,11 +351,11 @@ export struct FirewallRulesPage {
   }
 
   getDirectionLabel(dir: netFirewall.NetFirewallRuleDirection): string {
-    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? '入站' : '出站'
+    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? FirewallStrings.directionInbound : FirewallStrings.directionOutbound
   }
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? '允许' : '阻止'
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? FirewallStrings.actionAllow : FirewallStrings.actionDeny
   }
 
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
@@ -469,13 +468,13 @@ export struct FirewallRulesPage {
                   this.onBack()
                 }
               })
-              Text('自定义规则')
+              Text(FirewallStrings.customRulesTitle)
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             }
 
-            Text('当前页面只维护自定义模式规则。保存后会重新下发整套自定义策略。')
+            Text(FirewallStrings.customRulesSubtitle)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -483,7 +482,7 @@ export struct FirewallRulesPage {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          Button('+ 新增规则')
+          Button(FirewallStrings.addRuleButton)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(Color.White)
             .backgroundColor(AppColors.BRAND_PRIMARY)
@@ -497,7 +496,7 @@ export struct FirewallRulesPage {
 
         if (this.conflictNotice.length > 0) {
           Row({ space: 8 }) {
-            Text('注意')
+            Text(FirewallStrings.conflictWarningLabel)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontWeight(FontWeight.Medium)
               .fontColor('#8A5200')
@@ -519,7 +518,7 @@ export struct FirewallRulesPage {
 
         Row({ space: 16 }) {
           DirectionCard({
-            label: '入站规则',
+            label: FirewallStrings.inboundRules,
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
             gradientStart: '#FF9500',
             gradientEnd: '#FFCC00',
@@ -528,7 +527,7 @@ export struct FirewallRulesPage {
             .layoutWeight(1)
 
           DirectionCard({
-            label: '出站规则',
+            label: FirewallStrings.outboundRules,
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
             gradientStart: '#0A84FF',
             gradientEnd: '#00C6FF',
@@ -541,19 +540,19 @@ export struct FirewallRulesPage {
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('全部规则', 0))
+          }.tabBar(this.tabBuilder(FirewallStrings.tabAllRules, 0))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('IP规则', 1))
+          }.tabBar(this.tabBuilder(FirewallStrings.tabIpRules, 1))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('域名规则', 2))
+          }.tabBar(this.tabBuilder(FirewallStrings.tabDomainRules, 2))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder('DNS规则', 3))
+          }.tabBar(this.tabBuilder(FirewallStrings.tabDnsRules, 3))
         }
         .barMode(BarMode.Scrollable)
         .barBackgroundColor(Color.Transparent)
@@ -579,7 +578,7 @@ export struct FirewallRulesPage {
           LoadingProgress()
             .width(42)
             .height(42)
-          Text('正在加载自定义规则...')
+          Text(FirewallStrings.loadingRules)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -589,7 +588,7 @@ export struct FirewallRulesPage {
         .justifyContent(FlexAlign.Center)
       } else if (this.getFilteredRules().length === 0) {
         Column({ space: 10 }) {
-          Text('当前没有自定义规则')
+          Text(FirewallStrings.emptyRules)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -652,7 +651,7 @@ export struct FirewallRulesPage {
                   .alignItems(HorizontalAlign.Start)
 
                   Row({ space: 8 }) {
-                    Button('删除')
+                    Button(FirewallStrings.actionDelete)
                       .fontSize(AppStyles.FONT_SIZE_CAPTION)
                       .fontColor(AppColors.DANGER)
                       .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
@@ -666,10 +665,10 @@ export struct FirewallRulesPage {
                 .width('100%')
 
                 Column({ space: 10 }) {
-                  this.detailRow('远端地址', this.getRuleAddress(rule))
-                  this.detailRow('本地端口', this.getRuleLocalPort(rule))
-                  this.detailRow('远端端口', this.getRuleRemotePort(rule))
-                  this.detailRow('协议', this.getProtocolLabel(rule))
+                  this.detailRow(FirewallStrings.detailRemoteAddress, this.getRuleAddress(rule))
+                  this.detailRow(FirewallStrings.detailLocalPort, this.getRuleLocalPort(rule))
+                  this.detailRow(FirewallStrings.detailRemotePort, this.getRuleRemotePort(rule))
+                  this.detailRow(FirewallStrings.detailProtocol, this.getProtocolLabel(rule))
                 }
                 .width('100%')
               }
