@@ -1,4 +1,6 @@
 import { AppColors, AppStyles, Routes } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
+import { DashboardStrings } from '../constants/modules/DashboardStrings'
 import { StatCard } from '../components/StatCard'
 import { ToolCard } from '../components/ToolCard'
 import { LogStorageService } from '../services/LogStorageService'
@@ -171,13 +173,13 @@ export struct DashboardPage {
     Scroll() {
       Column({ space: 20 }) {
         Column({ space: 4 }) {
-          Text('安全总览')
+          Text(DashboardStrings.pageTitle)
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-          Text('HarmonyOS 安全管理中心，提供企业级设备安全管控能力。')
+          Text(DashboardStrings.pageSubtitle)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -188,11 +190,19 @@ export struct DashboardPage {
         .translate({ y: this.titleEnterOffset })
 
         Row({ space: 10 }) {
-          this.healthTag('管理员', this.adminActivated ? '已激活' : '未激活', this.adminActivated)
-          this.healthTag('日志管理', this.logManageListening ? '监听中' : '未监听', this.logManageListening)
           this.healthTag(
-            '外设管理',
-            this.peripheralRuntimeListening ? '监听中' : '未监听',
+            DashboardStrings.healthAdminLabel,
+            this.adminActivated ? CommonStrings.statusActivated : CommonStrings.statusNotActivated,
+            this.adminActivated
+          )
+          this.healthTag(
+            DashboardStrings.healthLogLabel,
+            this.logManageListening ? CommonStrings.statusListening : CommonStrings.statusNotListening,
+            this.logManageListening
+          )
+          this.healthTag(
+            DashboardStrings.healthPeripheralLabel,
+            this.peripheralRuntimeListening ? CommonStrings.statusListening : CommonStrings.statusNotListening,
             this.peripheralRuntimeListening
           )
         }
@@ -203,8 +213,8 @@ export struct DashboardPage {
         GridRow({ columns: 4, gutter: 16 }) {
           GridCol() {
             StatCard({
-              label: '防火墙状态',
-              value: this.firewallEnabled ? '已开启' : '已关闭',
+              label: DashboardStrings.statFirewallStatus,
+              value: this.firewallEnabled ? DashboardStrings.statFirewallEnabled : DashboardStrings.statFirewallDisabled,
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
               icon: $r('app.media.firewall')
@@ -216,7 +226,7 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '今日审计事件',
+              label: DashboardStrings.statTodayAuditEvents,
               value: this.todayAuditCount.toString(),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
@@ -229,7 +239,7 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '已阻止事件',
+              label: DashboardStrings.statBlockedEvents,
               value: this.blockedAuditCount.toString(),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
@@ -242,7 +252,7 @@ export struct DashboardPage {
 
           GridCol() {
             StatCard({
-              label: '日志总量',
+              label: DashboardStrings.statTotalLogs,
               value: this.totalLogCount.toString(),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
@@ -255,7 +265,7 @@ export struct DashboardPage {
         }
         .width('100%')
 
-        Text('快捷功能')
+        Text(DashboardStrings.quickActionsTitle)
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -265,7 +275,7 @@ export struct DashboardPage {
         GridRow({ columns: 3, gutter: 16 }) {
           GridCol() {
             ToolCard({
-              label: '防火墙管理',
+              label: CommonStrings.moduleFirewall,
               icon: $r('app.media.firewall'),
               gradientStart: '#0A84FF',
               gradientEnd: '#00C6FF',
@@ -278,7 +288,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '日志管理',
+              label: CommonStrings.moduleLogManage,
               icon: $r('app.media.log'),
               gradientStart: '#34C759',
               gradientEnd: '#30D158',
@@ -291,7 +301,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '外设管理',
+              label: CommonStrings.modulePeripheralManage,
               icon: $r('app.media.peripheral'),
               gradientStart: '#5856D6',
               gradientEnd: '#AF52DE',
@@ -304,7 +314,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '身份鉴别',
+              label: CommonStrings.moduleIdentity,
               icon: $r('app.media.identity'),
               gradientStart: '#FF9500',
               gradientEnd: '#FFCC00',
@@ -317,7 +327,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '工具设置',
+              label: CommonStrings.moduleToolSettings,
               icon: $r('app.media.settings'),
               gradientStart: '#9095A1',
               gradientEnd: '#D8DCE3',
@@ -330,7 +340,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: '帮助与反馈',
+              label: DashboardStrings.actionHelpFeedback,
               icon: $r('app.media.help'),
               gradientStart: '#FF8A80',
               gradientEnd: '#FFB4A8',

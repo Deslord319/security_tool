@@ -1,4 +1,5 @@
 import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
+import { CommonStrings } from './CommonStrings'
 
 export class AppColors {
   static getColors(theme: ThemeMode): ThemeColorSet {
@@ -77,7 +78,7 @@ export class Routes {
 }
 
 export class AppInfo {
-  static readonly APP_NAME: string = '安全管理中心'
+  static readonly APP_NAME: string = CommonStrings.appName
   static readonly APP_VERSION: string = '1.0.0'
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
 }
@@ -89,10 +90,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: Routes.DASHBOARD, label: '安全总览', icon: $r('app.media.dashboard') },
-  { id: Routes.FIREWALL, label: '防火墙管理', icon: $r('app.media.firewall') },
-  { id: Routes.LOG_MANAGE, label: '日志管理', icon: $r('app.media.log') },
-  { id: Routes.PERIPHERAL_MANAGE, label: '外设管理', icon: $r('app.media.peripheral') },
-  { id: Routes.IDENTITY, label: '身份鉴别', icon: $r('app.media.identity') },
-  { id: Routes.TOOL_SETTINGS, label: '工具设置', icon: $r('app.media.settings') }
+  { id: Routes.DASHBOARD, label: CommonStrings.moduleDashboard, icon: $r('app.media.dashboard') },
+  { id: Routes.FIREWALL, label: CommonStrings.moduleFirewall, icon: $r('app.media.firewall') },
+  { id: Routes.LOG_MANAGE, label: CommonStrings.moduleLogManage, icon: $r('app.media.log') },
+  { id: Routes.PERIPHERAL_MANAGE, label: CommonStrings.modulePeripheralManage, icon: $r('app.media.peripheral') },
+  { id: Routes.IDENTITY, label: CommonStrings.moduleIdentity, icon: $r('app.media.identity') },
+  { id: Routes.TOOL_SETTINGS, label: CommonStrings.moduleToolSettings, icon: $r('app.media.settings') }
 ]
