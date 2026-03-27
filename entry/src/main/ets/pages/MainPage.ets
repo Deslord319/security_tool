@@ -40,20 +40,17 @@ struct MainPage {
 
   aboutToAppear(): void {
     this.applyUiTestRouteOverride()
-    hilog.info(0x0000, 'testTag', '[DIAG] MainPage aboutToAppear, currentTheme=%{public}s, AppStorage=%{public}s',
-      this.currentTheme, AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined')
     this.loadFirewallState().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `[DIAG] loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
+      hilog.error(0x0000, 'testTag', `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
     this.ensureRuntimeServices().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `[DIAG] ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
+      hilog.error(0x0000, 'testTag', `ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
   }
 
   private applyUiTestRouteOverride(): void {
     const route = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? ''
-    hilog.info(0x0000, 'testTag', '[DIAG] applyUiTestRouteOverride route=%{public}s', route)
     if (route.length === 0) {
       return
     }
@@ -77,10 +74,10 @@ struct MainPage {
   onPageShow(): void {
     this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `[DIAG] loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
+      hilog.error(0x0000, 'testTag', `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
     })
     this.ensureRuntimeServices().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `[DIAG] ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
+      hilog.error(0x0000, 'testTag', `ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
   }
@@ -102,12 +99,12 @@ struct MainPage {
         mainWindow.setDecorButtonStyle(decorButtonStyle)
       } catch (err) {
         hilog.warn(0x0000, 'testTag',
-          '[DIAG] setDecorButtonStyle skipped for theme=%{public}s: %{public}s',
+          'setDecorButtonStyle skipped for theme=%{public}s: %{public}s',
           this.currentTheme, JSON.stringify(err))
       }
     }).catch((err: Error) => {
       hilog.warn(0x0000, 'testTag',
-        '[DIAG] getLastWindow failed, skip decor button style sync for theme=%{public}s: %{public}s',
+        'getLastWindow failed, skip decor button style sync for theme=%{public}s: %{public}s',
         this.currentTheme, JSON.stringify(err))
     })
   }
@@ -117,21 +114,19 @@ struct MainPage {
     await FirewallModeService.initialize(context)
     let policy = await FirewallService.getFirewallPolicy()
     if (policy === null) {
-      hilog.warn(0x0000, 'testTag', '[DIAG] skip firewall state sync because getFirewallPolicy returned null')
+      hilog.warn(0x0000, 'testTag', 'skip firewall state sync because getFirewallPolicy returned null')
       return
     }
 
     this.firewallEnabled = policy.isOpen
     this.firewallPresetMode = await FirewallModeService.getCurrentMode(context)
-    hilog.info(0x0000, 'testTag',
-      `[DIAG] firewall state synced from system: enabled=${this.firewallEnabled}, mode=${this.firewallPresetMode}`)
   }
 
   private async ensureRuntimeServices(): Promise<void> {
     if (!this.runtimeInitialized) {
       await this.initRuntimeServices()
       if (!this.runtimeInitialized) {
-        hilog.warn(0x0000, 'testTag', '[DIAG] runtime services not initialized, skip start')
+        hilog.warn(0x0000, 'testTag', 'runtime services not initialized, skip start')
         return
       }
     }
@@ -140,7 +135,7 @@ struct MainPage {
     if (!status.running) {
       let collectorStarted = await LogRuntimeCollectorService.start()
       if (!collectorStarted) {
-        hilog.warn(0x0000, 'testTag', '[DIAG] LogRuntimeCollectorService restart failed')
+        hilog.warn(0x0000, 'testTag', 'LogRuntimeCollectorService restart failed')
       }
     }
 
@@ -148,7 +143,7 @@ struct MainPage {
     if (!runtimeStatus.running) {
       let runtimeStarted = await PeripheralRuntimeEventService.start()
       if (!runtimeStarted) {
-        hilog.warn(0x0000, 'testTag', '[DIAG] PeripheralRuntimeEventService start failed')
+        hilog.warn(0x0000, 'testTag', 'PeripheralRuntimeEventService start failed')
       }
     }
   }
@@ -163,40 +158,39 @@ struct MainPage {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let storageOk = await LogStorageService.init(context)
       if (!storageOk) {
-        hilog.error(0x0000, 'testTag', '[DIAG] LogStorageService init failed')
+        hilog.error(0x0000, 'testTag', 'LogStorageService init failed')
         return
       }
 
       let collectorInited = await LogRuntimeCollectorService.init(context)
       if (!collectorInited) {
-        hilog.error(0x0000, 'testTag', '[DIAG] LogRuntimeCollectorService init failed')
+        hilog.error(0x0000, 'testTag', 'LogRuntimeCollectorService init failed')
         return
       }
 
       let traceRepoInited = await PeripheralTraceRepository.init(context)
       if (!traceRepoInited) {
-        hilog.error(0x0000, 'testTag', '[DIAG] PeripheralTraceRepository init failed')
+        hilog.error(0x0000, 'testTag', 'PeripheralTraceRepository init failed')
         return
       }
       await PeripheralTraceRepository.configure(180, 200000)
 
       let runtimeCollectorInited = await PeripheralRuntimeEventService.init(context)
       if (!runtimeCollectorInited) {
-        hilog.error(0x0000, 'testTag', '[DIAG] PeripheralRuntimeEventService init failed')
+        hilog.error(0x0000, 'testTag', 'PeripheralRuntimeEventService init failed')
         return
       }
 
       this.runtimeInitialized = true
     } catch (err) {
       this.runtimeInitialized = false
-      hilog.error(0x0000, 'testTag', `[DIAG] initRuntimeServices failed: ${JSON.stringify(err)}`)
+      hilog.error(0x0000, 'testTag', `initRuntimeServices failed: ${JSON.stringify(err)}`)
     } finally {
       this.runtimeInitInProgress = false
     }
   }
 
   onFirewallStatusChange() {
-    hilog.info(0x0000, 'testTag', `[DIAG] firewallEnabled changed: ${this.firewallEnabled}`)
   }
 
   onPageRouteChange(): void {

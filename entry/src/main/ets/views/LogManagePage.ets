@@ -1291,4 +1291,5 @@ export struct LogManagePage {
         this.hoveredSettingsCardIndex = isHover ? 0 : -1
       })
     })
-  }}
+  }
+}

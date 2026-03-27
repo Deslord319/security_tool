@@ -32,7 +32,6 @@ export struct UserFirewallControlDialog {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   aboutToAppear(): void {
-    hilog.info(DOMAIN, TAG, '[DIAG][UserFirewall] dialog appear')
     this.loadUsers()
   }
 
@@ -61,13 +60,6 @@ export struct UserFirewallControlDialog {
     let selectedIndex = result.users.findIndex((item: UserFirewallOption): boolean => item.userId === selectedUserId)
     this.selectedIndex = selectedIndex >= 0 ? selectedIndex : 0
     this.selectedUserId = result.users[this.selectedIndex].userId
-    hilog.info(
-      DOMAIN,
-      TAG,
-      '[DIAG][UserFirewall] loadUsers completed count=%{public}d selectedUserId=%{public}d',
-      this.users.length,
-      this.selectedUserId
-    )
     await this.loadPolicyForSelectedUser()
   }
 
@@ -85,13 +77,6 @@ export struct UserFirewallControlDialog {
     this.isLoadingPolicy = false
 
     if (result.errorCode !== undefined) {
-      hilog.warn(
-        DOMAIN,
-        TAG,
-        '[DIAG][UserFirewall] loadPolicyForSelectedUser failed userId=%{public}d errorCode=%{public}s',
-        this.selectedUserId,
-        String(result.errorCode)
-      )
       this.statusHintText = result.message ?? '无法获取该用户当前防火墙状态'
       ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', this.statusHintText)
       return
@@ -231,13 +216,6 @@ export struct UserFirewallControlDialog {
             .onSelect((index: number) => {
               this.selectedIndex = index
               this.selectedUserId = this.users[index].userId
-              hilog.info(
-                DOMAIN,
-                TAG,
-                '[DIAG][UserFirewall] select user index=%{public}d userId=%{public}d',
-                index,
-                this.selectedUserId
-              )
               this.loadPolicyForSelectedUser()
             })
         }

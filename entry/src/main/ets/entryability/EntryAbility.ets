@@ -16,22 +16,12 @@ export default class EntryAbility extends UIAbility {
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     this.startupWant = want
-    hilog.info(DOMAIN, 'testTag', '[DIAG] onCreate start, colorMode=%{public}d, DARK=%{public}d, LIGHT=%{public}d, NOT_SET=%{public}d',
-      this.context.config?.colorMode ?? -999,
-      ConfigurationConstant.ColorMode.COLOR_MODE_DARK,
-      ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT,
-      ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
     // 初始化主题管理器
     ThemeManager.getInstance().init(this.context);
     this.applyUiTestLaunchOverrides();
-    hilog.info(DOMAIN, 'testTag', '[DIAG] after init, colorMode=%{public}d, AppStorage_theme=%{public}s',
-      this.context.config?.colorMode ?? -999,
-      AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
 
     try {
-      hilog.info(DOMAIN, 'testTag', '[DIAG] before setColorMode(NOT_SET)');
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
-      hilog.info(DOMAIN, 'testTag', '[DIAG] after setColorMode, colorMode=%{public}d', this.context.config?.colorMode ?? -999);
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
@@ -49,9 +39,6 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    hilog.info(DOMAIN, 'testTag', '[DIAG] onWindowStageCreate, AppStorage_theme=%{public}s',
-      AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
-
     // 异步检查启动认证
     this.checkStartupAuth(windowStage);
   }
@@ -199,8 +186,6 @@ export default class EntryAbility extends UIAbility {
       // 需要在此重新应用正确的主题
       ThemeManager.getInstance().reapplyTheme();
       this.applyUiTestLaunchOverrides();
-      hilog.info(DOMAIN, 'testTag', '[DIAG] loadContent done, AppStorage_theme=%{public}s',
-        AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
 
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {
@@ -231,8 +216,6 @@ export default class EntryAbility extends UIAbility {
 
   onForeground(): void {
     // Ability has brought to foreground
-    hilog.info(DOMAIN, 'testTag', '[DIAG] onForeground, AppStorage_theme=%{public}s',
-      AppStorage.get<string>(STORAGE_KEY_THEME) ?? 'undefined');
   }
 
   onBackground(): void {
@@ -243,8 +226,6 @@ export default class EntryAbility extends UIAbility {
   onConfigurationUpdate(newConfig: Configuration): void {
     // 系统配置变化时（包括深色模式切换），传入最新的 colorMode
     const newColorMode = newConfig?.colorMode;
-    hilog.info(DOMAIN, 'testTag', '[DIAG] onConfigurationUpdate, newConfig.colorMode=%{public}d, context.colorMode=%{public}d',
-      newColorMode ?? -999, this.context.config?.colorMode ?? -999);
     ThemeManager.getInstance().onConfigurationUpdate(newColorMode);
   }
 }
