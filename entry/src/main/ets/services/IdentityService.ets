@@ -4,6 +4,7 @@ import { Want } from '@kit.AbilityKit'
 import { OperationResult, PasswordComplexityConfig } from '../models/DataModels'
 import { AppInfo } from '../constants/AppConstants'
 import { EnterpriseAdminService } from './EnterpriseAdminService'
+import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'IdentityService'
 const DOMAIN = 0x0003
@@ -102,7 +103,7 @@ export class IdentityService {
   }
 
   private static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
-    let code = EnterpriseAdminService.extractErrorCode(err)
+    let code = CommonErrorUtils.extractErrorCode(err)
     let isAdminMissing = EnterpriseAdminService.isAdminMissingError(err)
     let message = isAdminMissing ? '企业管理员未激活，无法执行身份策略操作。' : `${action}失败`
     let suggestion = isAdminMissing ?

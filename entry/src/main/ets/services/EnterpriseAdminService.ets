@@ -5,6 +5,7 @@ import { adminManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppInfo } from '../constants/AppConstants'
 import { AdminActivationState, EnterpriseAdminType, OperationResult } from '../models/DataModels'
+import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'EnterpriseAdminService'
 const DOMAIN = 0x0007
@@ -41,7 +42,7 @@ export class EnterpriseAdminService {
         success: true
       } as OperationResult<void>
     } catch (err) {
-      let code = EnterpriseAdminService.extractErrorCode(err as Object)
+      let code = CommonErrorUtils.extractErrorCode(err as Object)
       let message = code !== undefined ? `管理员激活拉起失败（错误码 ${code}）` : '管理员激活拉起失败'
       hilog.error(DOMAIN, TAG, `activateAdminWithResult failed: ${JSON.stringify(err)}`)
       return {
@@ -53,7 +54,7 @@ export class EnterpriseAdminService {
   }
 
   static isAdminMissingError(err: Object): boolean {
-    return EnterpriseAdminService.extractErrorCode(err) === ADMIN_MISSING_ERROR_CODE
+    return CommonErrorUtils.extractErrorCode(err) === ADMIN_MISSING_ERROR_CODE
   }
 
   static probeActivation(adminType: EnterpriseAdminType = EnterpriseAdminService.DEFAULT_ADMIN_TYPE): AdminActivationState {
@@ -67,7 +68,7 @@ export class EnterpriseAdminService {
         adminType: adminType
       } as AdminActivationState
     } catch (err) {
-      let code = EnterpriseAdminService.extractErrorCode(err as Object)
+      let code = CommonErrorUtils.extractErrorCode(err as Object)
       let message = EnterpriseAdminService.isAdminMissingError(err as Object) ?
         '企业管理员未激活' :
         (code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : '管理员状态检查失败')
@@ -80,17 +81,5 @@ export class EnterpriseAdminService {
         adminType: adminType
       } as AdminActivationState
     }
-  }
-
-  static extractErrorCode(err: Object): number | undefined {
-    let codeValue = (err as Record<string, Object>)['code']
-    if (typeof codeValue === 'number') {
-      return codeValue
-    }
-    if (typeof codeValue === 'string') {
-      let parsed = Number(codeValue)
-      return Number.isNaN(parsed) ? undefined : parsed
-    }
-    return undefined
   }
 }
