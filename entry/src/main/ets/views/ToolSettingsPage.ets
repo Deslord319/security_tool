@@ -301,7 +301,7 @@ export struct ToolSettingsPage {
 
       Row() {
         Column({ space: 2 }) {
-          Text(ToolSettingsStrings.changePasswordTitle)
+          Text(ToolSettingsStrings.changePasswordLabel)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
@@ -313,7 +313,7 @@ export struct ToolSettingsPage {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        Button(ToolSettingsStrings.changePasswordButton)
+        Button(ToolSettingsStrings.changePasswordLabel)
           .type(ButtonType.Normal)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(Color.White)

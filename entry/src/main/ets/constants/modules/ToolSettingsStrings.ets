@@ -12,9 +12,8 @@ export class ToolSettingsStrings {
   static readonly startupAuthDesc: string = '开启后，进入工具前需要先完成系统认证'
   static readonly authMethodTitle: string = '认证方式'
   static readonly authMethodDesc: string = '选择启动时身份校验使用的系统认证方式'
-  static readonly changePasswordTitle: string = '修改密码'
+  static readonly changePasswordLabel: string = '修改密码'
   static readonly changePasswordDesc: string = '打开系统设置中的“生物识别和密码”，修改系统 PIN/密码'
-  static readonly changePasswordButton: string = '修改密码'
 
   static readonly authMethodUnavailableTitle: string = '认证方式不可用'
   static readonly authMethodUnavailableMessage: string = '继续保存后，启动时身份校验可能无法正常工作，请确认是否仍要保存设置。'

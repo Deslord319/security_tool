@@ -6,8 +6,6 @@ export class DashboardStrings {
   static readonly quickActionsTitle: string = '快捷功能'
 
   static readonly healthAdminLabel: string = '管理员'
-  static readonly healthLogLabel: string = CommonStrings.moduleLogManage
-  static readonly healthPeripheralLabel: string = CommonStrings.modulePeripheralManage
 
   static readonly statFirewallStatus: string = '防火墙状态'
   static readonly statFirewallEnabled: string = '已开启'
@@ -15,6 +13,4 @@ export class DashboardStrings {
   static readonly statTodayAuditEvents: string = '今日审计事件'
   static readonly statBlockedEvents: string = '已阻止事件'
   static readonly statTotalLogs: string = '日志总量'
-
-  static readonly actionHelpFeedback: string = CommonStrings.moduleHelpFeedback
 }

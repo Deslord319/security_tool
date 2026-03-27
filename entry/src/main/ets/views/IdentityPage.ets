@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { IdentityStrings } from '../constants/modules/IdentityStrings'
 import { IdentityService } from '../services/IdentityService'
 import {
   AdminActivationState,
@@ -51,14 +52,14 @@ export struct IdentityPage {
   })
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
-    value: `${value} 位`
+    value: `${value} ${IdentityStrings.byteUnitSuffix}`
   } as SelectOption))
 
   private validityOptions: SelectOption[] = [
     ...PASSWORD_VALIDITY_OPTIONS.map((value: number): SelectOption => ({
-      value: value === 0 ? '永久' : `${value} 天`
+      value: value === 0 ? IdentityStrings.permanentOption : `${value} ${IdentityStrings.dayUnit}`
     } as SelectOption)),
-    { value: '自定义' } as SelectOption
+    { value: IdentityStrings.customOption } as SelectOption
   ]
 
   aboutToAppear() {
@@ -87,15 +88,18 @@ export struct IdentityPage {
     }
     this.showResultDialog(
       'failure',
-      ResultDialogHelper.displayReason(this.adminState.errorMessage, `${action}未完成，请先激活企业管理员`)
+      ResultDialogHelper.displayReason(
+        this.adminState.errorMessage,
+        `${action}${IdentityStrings.adminRequiredWithActionSuffix}`
+      )
     )
     return false
   }
 
   private showFailureDialog<T>(action: string, result: OperationResult<T>): void {
     let dialogMessage = result.isAdminMissing
-      ? ResultDialogHelper.displayReason(result.errorMessage, '企业管理员未激活')
-      : ResultDialogHelper.displayReason(result.errorMessage, `${action}未完成，请稍后重试`)
+      ? ResultDialogHelper.displayReason(result.errorMessage, IdentityStrings.adminRequired)
+      : ResultDialogHelper.displayReason(result.errorMessage, `${action}${IdentityStrings.actionRetrySuffix}`)
     this.showResultDialog('failure', dialogMessage)
   }
 
@@ -168,7 +172,7 @@ export struct IdentityPage {
   private buildConfig(): PasswordComplexityConfig | null {
     let validityPeriod = this.resolveValidityPeriod()
     if (validityPeriod === null) {
-      this.showResultDialog('failure', '请输入非负整数天数，0 表示永久有效')
+      this.showResultDialog('failure', IdentityStrings.invalidValidityDays)
       return null
     }
 
@@ -183,7 +187,7 @@ export struct IdentityPage {
   }
 
   private saveConfig(): void {
-    if (!this.ensureAdminReady('保存身份鉴别配置')) {
+    if (!this.ensureAdminReady(IdentityStrings.saveAction)) {
       return
     }
 
@@ -203,10 +207,10 @@ export struct IdentityPage {
 
     let pwdResult = IdentityService.setPasswordPolicyWithResult(config)
     if (pwdResult.success) {
-      this.showResultDialog('success', '身份鉴别配置已保存')
+      this.showResultDialog('success', IdentityStrings.saveSuccess)
       return
     }
-    this.showFailureDialog('设置口令策略', pwdResult)
+    this.showFailureDialog(IdentityStrings.passwordPolicyAction, pwdResult)
   }
 
   build() {
@@ -220,12 +224,12 @@ export struct IdentityPage {
           })
 
           Column({ space: 4 }) {
-            Text('身份鉴别')
+            Text(IdentityStrings.pageTitle)
               .fontSize(AppStyles.FONT_SIZE_TITLE)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text('配置账户口令复杂度和密码有效期，保障系统访问安全。')
+            Text(IdentityStrings.pageSubtitle)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -237,7 +241,7 @@ export struct IdentityPage {
         .alignItems(VerticalAlign.Top)
 
         this.headerActionButton(
-          '保存配置',
+          IdentityStrings.saveButton,
           $r('app.media.save'),
           Color.White,
           AppColors.BRAND_PRIMARY,
@@ -311,7 +315,7 @@ export struct IdentityPage {
   passwordComplexityBuilder() {
     Column({ space: 0 }) {
       Row() {
-        Text('口令复杂度策略')
+        Text(IdentityStrings.sectionPasswordComplexity)
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -327,11 +331,11 @@ export struct IdentityPage {
 
       Row() {
         Column({ space: 2 }) {
-          Text('最小密码长度')
+          Text(IdentityStrings.minPasswordLength)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('设置用户密码的最少字符数要求。')
+          Text(IdentityStrings.minPasswordLengthDesc)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -365,8 +369,8 @@ export struct IdentityPage {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       this.toggleRowBuilder(
-        '要求包含大写字母',
-        '密码中必须包含至少一个大写英文字母 (A-Z)。',
+        IdentityStrings.requireUppercase,
+        IdentityStrings.requireUppercaseDesc,
         this.requireUppercase,
         (value: boolean) => {
           this.requireUppercase = value
@@ -378,8 +382,8 @@ export struct IdentityPage {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       this.toggleRowBuilder(
-        '要求包含小写字母',
-        '密码中必须包含至少一个小写英文字母 (a-z)。',
+        IdentityStrings.requireLowercase,
+        IdentityStrings.requireLowercaseDesc,
         this.requireLowercase,
         (value: boolean) => {
           this.requireLowercase = value
@@ -391,8 +395,8 @@ export struct IdentityPage {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       this.toggleRowBuilder(
-        '要求包含数字',
-        '密码中必须包含至少一个数字 (0-9)。',
+        IdentityStrings.requireDigit,
+        IdentityStrings.requireDigitDesc,
         this.requireDigit,
         (value: boolean) => {
           this.requireDigit = value
@@ -404,8 +408,8 @@ export struct IdentityPage {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       this.toggleRowBuilder(
-        '要求包含特殊字符',
-        '密码中必须包含至少一个特殊字符 (!@#$%^&*)。',
+        IdentityStrings.requireSpecialChar,
+        IdentityStrings.requireSpecialCharDesc,
         this.requireSpecialChar,
         (value: boolean) => {
           this.requireSpecialChar = value
@@ -418,11 +422,11 @@ export struct IdentityPage {
 
       Row() {
         Column({ space: 2 }) {
-          Text('密码有效期')
+          Text(IdentityStrings.passwordValidityPeriod)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text('设置密码需要变更的周期。固定选项保持不变，也支持自定义输入，0 表示永久有效。')
+          Text(IdentityStrings.passwordValidityPeriodDesc)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -454,7 +458,7 @@ export struct IdentityPage {
 
           if (this.isCustomValiditySelected()) {
             Row({ space: 6 }) {
-              TextInput({ placeholder: '输入天数', text: this.customValidityPeriodText })
+              TextInput({ placeholder: IdentityStrings.customDaysPlaceholder, text: this.customValidityPeriodText })
                 .type(InputType.Number)
                 .width(112)
                 .height(36)
@@ -467,7 +471,7 @@ export struct IdentityPage {
                 .onChange((value: string) => {
                   this.customValidityPeriodText = value.replace(/[^0-9]/g, '')
                 })
-              Text('天')
+              Text(IdentityStrings.dayUnit)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)

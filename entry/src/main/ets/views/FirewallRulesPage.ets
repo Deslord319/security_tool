@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
@@ -97,13 +98,13 @@ export struct FirewallRulesPage {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceMessage,
           primaryButton: {
-            value: FirewallStrings.actionOverride,
+            value: CommonStrings.actionOverride,
             action: () => {
               this.replaceConflictRule(conflictRule, rule, false)
             }
           },
           secondaryButton: {
-            value: FirewallStrings.actionCancel,
+            value: CommonStrings.actionCancel,
             action: () => {}
           }
         })
@@ -114,13 +115,13 @@ export struct FirewallRulesPage {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleAddMessage,
           primaryButton: {
-            value: FirewallStrings.actionContinue,
+            value: CommonStrings.actionContinue,
             action: () => {
               this.addRuleDirectly(rule)
             }
           },
           secondaryButton: {
-            value: FirewallStrings.actionCancel,
+            value: CommonStrings.actionCancel,
             action: () => {}
           }
         })
@@ -169,13 +170,13 @@ export struct FirewallRulesPage {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceAndSaveMessage,
           primaryButton: {
-            value: FirewallStrings.actionOverride,
+            value: CommonStrings.actionOverride,
             action: () => {
               this.replaceConflictRule(conflictRule, rule, true)
             }
           },
           secondaryButton: {
-            value: FirewallStrings.actionCancel,
+            value: CommonStrings.actionCancel,
             action: () => {}
           }
         })
@@ -186,13 +187,13 @@ export struct FirewallRulesPage {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleEditMessage,
           primaryButton: {
-            value: FirewallStrings.actionContinue,
+            value: CommonStrings.actionContinue,
             action: () => {
               this.updateRuleDirectly(rule)
             }
           },
           secondaryButton: {
-            value: FirewallStrings.actionCancel,
+            value: CommonStrings.actionCancel,
             action: () => {}
           }
         })
@@ -233,13 +234,13 @@ export struct FirewallRulesPage {
       title: FirewallStrings.deleteRuleTitle,
       message: FirewallStrings.deleteRuleMessage,
       primaryButton: {
-        value: FirewallStrings.actionDelete,
+        value: CommonStrings.actionDelete,
         action: () => {
           this.deleteRuleDirectly(rule)
         }
       },
       secondaryButton: {
-        value: FirewallStrings.actionCancel,
+        value: CommonStrings.actionCancel,
         action: () => {}
       }
     })
@@ -651,7 +652,7 @@ export struct FirewallRulesPage {
                   .alignItems(HorizontalAlign.Start)
 
                   Row({ space: 8 }) {
-                    Button(FirewallStrings.actionDelete)
+                    Button(CommonStrings.actionDelete)
                       .fontSize(AppStyles.FONT_SIZE_CAPTION)
                       .fontColor(AppColors.DANGER)
                       .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)

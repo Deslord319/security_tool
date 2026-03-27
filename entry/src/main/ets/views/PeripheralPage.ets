@@ -12,6 +12,7 @@ import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
@@ -433,8 +434,8 @@ export struct PeripheralPage {
     void this.getUIContext().showAlertDialog({
       title: PeripheralStrings.clearHistoryLabel,
       message: PeripheralStrings.clearHistoryMessage,
-      primaryButton: { value: PeripheralStrings.cancelLabel, action: () => {} },
-      secondaryButton: { value: PeripheralStrings.clearLabel, action: () => void this.clearConnectionHistory() }
+      primaryButton: { value: CommonStrings.actionCancel, action: () => {} },
+      secondaryButton: { value: CommonStrings.actionClear, action: () => void this.clearConnectionHistory() }
     })
   }
 
@@ -446,8 +447,8 @@ export struct PeripheralPage {
     void this.getUIContext().showAlertDialog({
       title: PeripheralStrings.clearPolicyLabel,
       message: PeripheralStrings.clearPolicyMessage,
-      primaryButton: { value: PeripheralStrings.cancelLabel, action: () => {} },
-      secondaryButton: { value: PeripheralStrings.deleteLabel, action: () => void this.clearPolicyRecords() }
+      primaryButton: { value: CommonStrings.actionCancel, action: () => {} },
+      secondaryButton: { value: CommonStrings.actionDelete, action: () => void this.clearPolicyRecords() }
     })
   }
 

@@ -1,3 +1,4 @@
+import { CommonStrings } from '../CommonStrings'
 import { PeripheralReasons } from './PeripheralReasons'
 
 export class PeripheralStrings {
@@ -7,7 +8,7 @@ export class PeripheralStrings {
   static readonly usbInterfaceLoadingMessage: string = '正在设置 USB 接口策略，请稍候...'
   static readonly usbStorageLoadingMessage: string = '正在设置 USB 存储策略，请稍候...'
 
-  static readonly pageTitle: string = '外设管理'
+  static readonly pageTitle: string = CommonStrings.modulePeripheralManage
   static readonly pageSubtitle: string = '管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备访问策略'
 
   static readonly interfaceTabTitle: string = '接口管控'
@@ -25,10 +26,6 @@ export class PeripheralStrings {
 
   static readonly clearHistoryMessage: string = '将清空当前设备连接历史记录，且无法恢复。是否继续？'
   static readonly clearPolicyMessage: string = '将清空当前策略记录列表，且无法恢复。是否继续？'
-
-  static readonly cancelLabel: string = '取消'
-  static readonly clearLabel: string = '清理'
-  static readonly deleteLabel: string = '删除'
 
   static readonly emptyHistoryToClear: string = '暂无可清理的历史记录'
   static readonly emptyPolicyToClear: string = '暂无可清理的策略记录'

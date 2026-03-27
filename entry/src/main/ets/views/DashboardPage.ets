@@ -196,12 +196,12 @@ export struct DashboardPage {
             this.adminActivated
           )
           this.healthTag(
-            DashboardStrings.healthLogLabel,
+            CommonStrings.moduleLogManage,
             this.logManageListening ? CommonStrings.statusListening : CommonStrings.statusNotListening,
             this.logManageListening
           )
           this.healthTag(
-            DashboardStrings.healthPeripheralLabel,
+            CommonStrings.modulePeripheralManage,
             this.peripheralRuntimeListening ? CommonStrings.statusListening : CommonStrings.statusNotListening,
             this.peripheralRuntimeListening
           )
@@ -340,7 +340,7 @@ export struct DashboardPage {
 
           GridCol() {
             ToolCard({
-              label: DashboardStrings.actionHelpFeedback,
+              label: CommonStrings.moduleHelpFeedback,
               icon: $r('app.media.help'),
               gradientStart: '#FF8A80',
               gradientEnd: '#FFB4A8',

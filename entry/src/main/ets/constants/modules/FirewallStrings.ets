@@ -41,7 +41,7 @@ export class FirewallStrings {
   static readonly deleteRuleMessage: string = '删除后会立即重新下发当前自定义策略，是否继续？'
   static readonly deleteRuleSuccess: string = '自定义规则已删除'
   static readonly conflictWarningLabel: string = '注意'
-  static readonly customRulesTitle: string = '自定义规则'
+  static readonly customRulesTitle: string = FirewallStrings.customModeTitle
   static readonly customRulesSubtitle: string = '当前页面只维护自定义模式规则。保存后会重新下发整套自定义策略。'
   static readonly addRuleButton: string = '+ 新增规则'
   static readonly inboundRules: string = '入站规则'
@@ -62,10 +62,6 @@ export class FirewallStrings {
   static readonly directionOutbound: string = '出站'
   static readonly actionAllow: string = '允许'
   static readonly actionDeny: string = '阻止'
-  static readonly actionDelete: string = CommonStrings.actionDelete
-  static readonly actionCancel: string = CommonStrings.actionCancel
-  static readonly actionContinue: string = CommonStrings.actionContinue
-  static readonly actionOverride: string = CommonStrings.actionOverride
 
   static getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
