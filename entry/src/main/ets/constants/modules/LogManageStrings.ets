@@ -15,75 +15,71 @@ export class LogManageStrings {
   static readonly detailEmpty: string = '暂无详情'
   static readonly additionalInfo: string = '附加信息'
   static readonly processLabel: string = '进程'
-  static readonly processPrefix: string = '进程'
   static readonly filePathLabel: string = '文件路径'
   static readonly remoteAddressLabel: string = '远端地址'
 
   static readonly subscribeFailed: string = '订阅失败'
   static readonly subscribed: string = '已订阅'
   static readonly notSubscribed: string = '未订阅'
-  static readonly notSubscribedForType: string = '当前未订阅该类型'
+  static readonly notSubscribedForType: string = '当前类型未订阅'
+
   static readonly allEventTypes: string = '全部类型'
   static readonly allResults: string = '全部结果'
   static readonly successOption: string = '成功'
-  static readonly blockedOption: string = '已阻止'
   static readonly failedOption: string = '失败'
 
   static readonly exportLogsButton: string = '导出日志'
   static readonly clearLogsButton: string = '清空日志'
-  static readonly openStorageSettingsButton: string = '进入存储设置'
-  static readonly saveSettingsButton: string = CommonStrings.actionSaveSettings
+  static readonly openStorageSettingsButton: string = '存储设置'
   static readonly backToLogListButton: string = '返回日志列表'
   static readonly refreshButton: string = '刷新'
   static readonly clearFilterButton: string = '清除筛选'
-  static readonly backToDiagnosticsButton: string = '返回采集诊断'
+  static readonly backToDiagnosticsButton: string = '返回诊断视图'
 
   static readonly statTotal: string = '总计'
   static readonly statToday: string = '今日'
   static readonly statBlocked: string = '已阻止'
   static readonly statCurrentShown: string = '当前显示'
-  static readonly homeMetricLabel: string = '首页数量'
+  static readonly homeMetricLabel: string = '累计命中'
   static readonly recentHitLabel: string = '最近命中'
 
   static readonly searchPlaceholder: string = '搜索日志内容...'
   static readonly loading: string = '加载中...'
   static readonly emptyTitle: string = '暂无日志记录'
-  static readonly emptyDescription: string = '安全事件与崩溃日志将实时显示在此处'
+  static readonly emptyDescription: string = '可以稍后刷新，或检查采集与筛选配置。'
+  static readonly emptyFilteredResult: string = '当前筛选条件下没有匹配结果'
+  static readonly accountLogRestricted: string = '账户类事件仅在系统支持时可采集'
 
   static readonly pageInputPlaceholder: string = '页码'
   static readonly previousPageButton: string = '上一页'
   static readonly nextPageButton: string = '下一页'
   static readonly jumpButton: string = '跳转'
 
-  static readonly storageConfigTitle: string = '日志存储配置'
   static readonly maxEntriesLabel: string = '最大存储条数'
   static readonly retentionDaysLabel: string = '日志保留天数'
   static readonly diagnosticsTitle: string = '采集诊断'
 
-  static readonly noExportableLogs: string = '没有可导出的日志'
-  static readonly exportFailedPrefix: string = '日志导出失败'
-  static readonly exportSuccessPrefix: string = '日志已导出，文件名：'
+  static readonly noExportableLogs: string = '当前没有可导出的日志'
   static readonly clearConfirmTitle: string = '确认清空'
-  static readonly clearConfirmAction: string = '确认清空'
+  static readonly clearConfirmAction: string = CommonStrings.actionClear
   static readonly clearSuccess: string = '日志已清空'
-  static readonly saveSettingsFailed: string = '保存设置失败，请稍后重试'
-  static readonly saveSettingsSuccess: string = '日志存储设置已保存'
-  static readonly emptyFilteredResult: string = '当前筛选结果为 0，可尝试清空关键词或结果筛选。'
-  static readonly accountLogRestricted: string = '用户认证日志在当前设备受系统策略限制（401），并非应用权限缺失。'
-  static readonly triggerHint: string = '提示：可先触发对应系统安全操作后再刷新查看。'
-  static readonly crashTriggerHint: string = '提示：需等待系统上报 APP_CRASH 或 APP_FREEZE。'
-  static readonly fileTriggerHint: string = '提示：只记录用户公共目录或公共媒体文件操作。'
-  static readonly permissionTriggerHint: string = '提示：需触发权限授予/撤销等系统权限变更行为。'
-  static readonly accountTriggerHint: string = '提示：该类型在部分设备上可能受策略限制。'
-  static readonly newApiUnavailableFallback: string = '新订阅 API 不可用，已自动切换到兼容模式。'
-  static readonly newApiInitFailedFallback: string = '新订阅 API 初始化失败，已自动切换到兼容模式。'
+  static readonly saveSettingsFailed: string = '保存设置失败'
+  static readonly saveSettingsSuccess: string = '设置已保存'
+
+  static readonly triggerHint: string = '请触发对应安全事件后再查看诊断结果'
+  static readonly crashTriggerHint: string = '请触发一次应用崩溃或异常退出以生成崩溃日志'
+  static readonly fileTriggerHint: string = '请执行一次文件访问操作以触发文件审计事件'
+  static readonly permissionTriggerHint: string = '请触发一次权限申请或拒绝行为以生成权限事件'
+  static readonly accountTriggerHint: string = '请进行一次账户登录、切换或访问行为以生成账户事件'
+  static readonly newApiUnavailableFallback: string = '当前设备不支持新版审计接口，已回退到兼容模式'
+  static readonly newApiInitFailedFallback: string = '新版审计接口初始化失败，已回退到兼容模式'
 
   static buildSubscribedText(modeText: string): string {
-    return `${LogManageStrings.subscribed}(${modeText})`
+    return `已订阅（${modeText}）`
   }
 
   static buildPageRangeText(rangeText: string, totalCount: number): string {
-    return `显示 ${rangeText} / 共 ${totalCount} 条`
+    return `${rangeText} / 共 ${totalCount} 条`
   }
 
   static buildPageSizeText(pageSize: number): string {
@@ -91,70 +87,78 @@ export class LogManageStrings {
   }
 
   static buildExportSuccessText(fileName: string): string {
-    return `${LogManageStrings.exportSuccessPrefix}${fileName}`
+    return `导出成功：${fileName}`
   }
 
   static buildExportFailedText(reasonText: string): string {
-    return `${LogManageStrings.exportFailedPrefix}，${reasonText}`
+    return `导出失败：${reasonText}`
   }
 
   static buildClearConfirmMessage(totalCount: number): string {
-    return `将清除所有 ${totalCount} 条日志记录，此操作不可撤销。`
+    return `确认清空当前全部 ${totalCount} 条日志吗？该操作不可恢复。`
   }
 
   static buildSubscriptionErrorText(eventIds: string, codeText: string): string {
-    return `订阅异常：eventId ${eventIds}${codeText}`
+    return `订阅事件 ${eventIds} 失败${codeText}`
   }
 
   static buildTypeFailedText(eventIds: string, codeText: string, triggerHint: string): string {
-    return `该类型订阅失败：eventId ${eventIds}${codeText}。${triggerHint}`
+    return `当前类型订阅失败，事件 ID：${eventIds}${codeText}。${triggerHint}`
   }
 
   static buildSessionHitText(seenCount: number): string {
-    return `本次会话命中 ${seenCount}`
+    return `本次会话命中 ${seenCount} 次`
   }
 
   static buildSessionHitWithDropText(seenCount: number, droppedCount: number): string {
-    return `本次会话命中 ${seenCount} / 过滤 ${droppedCount}`
+    return `本次会话命中 ${seenCount} 次，过滤 ${droppedCount} 次`
   }
 
   static buildFilteredFileEventText(droppedCount: number): string {
-    return `当前文件日志仅保留用户文件操作，已过滤 ${droppedCount} 条系统或未知路径事件。`
+    return `文件事件中过滤了 ${droppedCount} 条非用户目录记录`
   }
 
   static buildPreFilterRollbackText(eventIds: string): string {
-    return `前置路径过滤已回退：eventId ${eventIds}`
+    return `事件 ${eventIds} 不支持前置路径过滤，已回退到兼容订阅模式`
   }
 
   static buildPreFilterFailedText(eventIds: string, codeText: string): string {
-    return `前置路径过滤异常：eventId ${eventIds}${codeText}`
+    return `事件 ${eventIds} 的前置路径过滤设置失败${codeText}`
   }
 
   static buildDroppedNonUserFileText(droppedCount: number): string {
-    return `已丢弃 ${droppedCount} 条非用户文件事件`
+    return `已丢弃 ${droppedCount} 条非用户目录的文件事件`
   }
 
   static buildViewingWithHitsText(typeLabel: string, seenCount: number): string {
-    return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，本次会话命中 ${seenCount} 条。`
+    return `当前查看 ${typeLabel}，本次会话命中 ${seenCount} 次`
   }
 
   static buildViewingWithoutHitsText(typeLabel: string): string {
-    return `当前正在查看【${typeLabel}】采集事件，该类型暂无命中事件。`
+    return `当前查看 ${typeLabel}，尚未命中事件`
   }
 
   static buildViewingFilteredText(typeLabel: string, droppedCount: number): string {
-    return `当前正在查看【${typeLabel}】采集事件，首页当前可见 0 条，已过滤 ${droppedCount} 条系统或未知路径事件。`
+    return `当前查看 ${typeLabel}，已过滤 ${droppedCount} 条无效记录`
   }
 
   static buildViewingTotalText(typeLabel: string, totalCount: number): string {
-    return `当前正在查看【${typeLabel}】采集事件，共 ${totalCount} 条。`
+    return `当前查看 ${typeLabel}，共展示 ${totalCount} 条记录`
   }
 
   static buildNotSubscribedSentence(): string {
-    return `${LogManageStrings.notSubscribedForType}。`
+    return '当前未建立有效订阅，请检查采集配置'
   }
 
   static buildRecentSeenText(lastSeen: string): string {
     return `最近：${lastSeen}`
+  }
+
+  static buildModeSwitchTimeText(timeText: string): string {
+    return `模式切换时间：${timeText}`
+  }
+
+  static buildUnknownEventIdsText(eventIds: string): string {
+    return `未识别事件 ID：${eventIds}`
   }
 }

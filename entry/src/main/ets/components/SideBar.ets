@@ -10,10 +10,6 @@ export struct SideBar {
   @State hoveredNavId: string = ''
   @State themeToggleHovered: boolean = false
 
-  private getBrandTileBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.18)' : 'rgba(10,132,255,0.12)'
-  }
-
   private getNavIconBackground(itemId: string): string {
     if (this.selectedId === itemId) {
       return AppColors.SIDEBAR_SELECTED_TILE
@@ -47,18 +43,10 @@ export struct SideBar {
   build() {
     Column() {
       Row({ space: 8 }) {
-        Column() {
-          Image($r('app.media.shield'))
-            .width(20)
-            .height(20)
-            .fillColor(AppColors.BRAND_PRIMARY)
-        }
-        .width(28)
-        .height(28)
-        .borderRadius(8)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(this.getBrandTileBackground())
+        Image($r('app.media.startIcon_about'))
+          .width(20)
+          .height(20)
+          .fillColor(AppColors.BRAND_PRIMARY)
 
         Text(AppInfo.APP_NAME)
           .fontSize(16)

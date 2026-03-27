@@ -258,17 +258,11 @@ export struct FirewallRulesPage {
 
   private updateConflictNotice(): void {
     let summary = FirewallService.summarizeConflicts(this.rules)
-    let parts: string[] = []
-    if (summary.duplicates > 0) {
-      parts.push(`重复 ${summary.duplicates} 条`)
-    }
-    if (summary.hardConflicts > 0) {
-      parts.push(`硬冲突 ${summary.hardConflicts} 条`)
-    }
-    if (summary.overlapConflicts > 0) {
-      parts.push(`范围重叠 ${summary.overlapConflicts} 条`)
-    }
-    this.conflictNotice = parts.length > 0 ? `当前自定义规则集中存在：${parts.join('，')}` : ''
+    this.conflictNotice = FirewallStrings.buildConflictNotice(
+      summary.duplicates,
+      summary.hardConflicts,
+      summary.overlapConflicts
+    )
   }
 
   getFilteredRules(): netFirewall.NetFirewallRule[] {
@@ -469,7 +463,7 @@ export struct FirewallRulesPage {
                   this.onBack()
                 }
               })
-              Text(FirewallStrings.customRulesTitle)
+              Text(FirewallStrings.customModeTitle)
                 .fontSize(AppStyles.FONT_SIZE_TITLE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

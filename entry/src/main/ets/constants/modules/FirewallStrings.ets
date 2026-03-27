@@ -1,57 +1,51 @@
-import { CommonStrings } from '../CommonStrings'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/DataModels'
+import { CommonStrings } from '../CommonStrings'
 
 export class FirewallStrings {
   static readonly pageTitle: string = CommonStrings.moduleFirewall
-  static readonly pageSubtitle: string = '统一配置网络访问规则，精准控制应用与设备的通信行为，降低未授权连接带来的安全风险。'
+  static readonly pageSubtitle: string = '统一管理系统防火墙开关、预设策略与自定义规则。'
+  static readonly modeLoadingMessage: string = '正在应用防火墙模式...'
+  static readonly modeSectionTitle: string = '预设模式'
 
-  static readonly modeLoadingMessage: string = '正在切换防火墙模式，请稍候'
-  static readonly modeSectionTitle: string = '模式切换'
   static readonly currentMode: string = CommonStrings.statusCurrentMode
   static readonly rulesPage: string = '规则页'
   static readonly effective: string = CommonStrings.statusEffective
-  static readonly userIdControlButton: string = '按用户ID控制'
+  static readonly userIdControlButton: string = '按用户 ID 控制'
   static readonly toggleFailed: string = '防火墙开关切换失败'
   static readonly modeApplyFailed: string = '策略下发失败，当前模式未切换'
 
-  static readonly publicModeTitle: string = '公用网络'
-  static readonly privateModeTitle: string = '专用网络'
-  static readonly customModeTitle: string = '自定义规则'
-
-  static readonly publicModeDescription: string = '下发公用网络预置策略，成功后仅保留公用模式规则。'
-  static readonly privateModeDescription: string = '下发专用网络预置策略，成功后仅保留专用模式规则。'
-  static readonly customModeDescription: string = '切换为自定义模式并进入规则页，重新下发已保存的自定义策略。'
-
-  static readonly rulesOnlyCustomMode: string = '仅自定义模式可进入规则页'
+  static readonly rulesOnlyCustomMode: string = '只有自定义模式支持维护规则'
   static readonly customRulesApplyFailed: string = '自定义规则下发失败'
-  static readonly customRulesLocalSaveFailed: string = '规则已下发，但本地保存失败，请重新进入页面确认'
-  static readonly customRulesRollbackSuccess: string = '自定义规则保存失败，已恢复原策略'
-  static readonly duplicateRule: string = '存在重复规则'
-  static readonly conflictRuleTitle: string = '存在冲突规则'
-  static readonly conflictRuleReplaceMessage: string = '发现动作相反的同类规则，是否用新规则覆盖旧规则？'
-  static readonly conflictRuleReplaceAndSaveMessage: string = '发现动作相反的同类规则，是否删除旧规则并保存本次修改？'
-  static readonly overlapRuleTitle: string = '规则范围重叠'
-  static readonly overlapRuleAddMessage: string = '新规则与现有规则有重叠，仍然继续保存并重新下发吗？'
-  static readonly overlapRuleEditMessage: string = '修改后的规则与现有规则有重叠，是否继续保存？'
-  static readonly addRuleSuccess: string = '自定义规则已新增'
-  static readonly updateRuleSuccess: string = '自定义规则已更新'
+  static readonly customRulesLocalSaveFailed: string = '本地规则保存失败，且回滚远端规则失败'
+  static readonly customRulesRollbackSuccess: string = '本地规则保存失败，已回滚远端规则'
+  static readonly duplicateRule: string = '已存在完全相同的规则'
+  static readonly conflictRuleTitle: string = '规则冲突'
+  static readonly conflictRuleReplaceMessage: string = '发现与现有规则冲突的记录，是否使用新规则覆盖？'
+  static readonly conflictRuleReplaceAndSaveMessage: string = '修改后的规则与现有规则冲突，是否覆盖冲突规则并保存？'
+  static readonly overlapRuleTitle: string = '规则重叠'
+  static readonly overlapRuleAddMessage: string = '检测到规则范围存在重叠，仍要继续添加吗？'
+  static readonly overlapRuleEditMessage: string = '检测到规则范围存在重叠，仍要继续保存吗？'
+  static readonly addRuleSuccess: string = '规则添加成功'
+  static readonly updateRuleSuccess: string = '规则更新成功'
   static readonly replaceRuleSuccess: string = '冲突规则已替换并保存'
   static readonly overwriteRuleSuccess: string = '冲突规则已覆盖'
   static readonly deleteRuleTitle: string = '删除规则'
-  static readonly deleteRuleMessage: string = '删除后会立即重新下发当前自定义策略，是否继续？'
-  static readonly deleteRuleSuccess: string = '自定义规则已删除'
+  static readonly deleteRuleMessage: string = '确认删除这条规则吗？'
+  static readonly deleteRuleSuccess: string = '规则删除成功'
   static readonly conflictWarningLabel: string = '注意'
-  static readonly customRulesTitle: string = FirewallStrings.customModeTitle
+
+  static readonly customModeTitle: string = '自定义模式'
   static readonly customRulesSubtitle: string = '当前页面只维护自定义模式规则。保存后会重新下发整套自定义策略。'
   static readonly addRuleButton: string = '+ 新增规则'
   static readonly inboundRules: string = '入站规则'
   static readonly outboundRules: string = '出站规则'
-  static readonly tabAllRules: string = '全部规则'
-  static readonly tabIpRules: string = 'IP规则'
-  static readonly tabDomainRules: string = '域名规则'
-  static readonly tabDnsRules: string = 'DNS规则'
-  static readonly loadingRules: string = '正在加载自定义规则...'
-  static readonly emptyRules: string = '当前没有自定义规则'
+  static readonly tabAllRules: string = '全部'
+  static readonly tabIpRules: string = 'IP'
+  static readonly tabDomainRules: string = '域名'
+  static readonly tabDnsRules: string = 'DNS'
+  static readonly loadingRules: string = '正在加载规则...'
+  static readonly emptyRules: string = '暂无自定义规则'
+
   static readonly detailRemoteAddress: string = '远端地址'
   static readonly detailLocalPort: string = '本地端口'
   static readonly detailRemotePort: string = '远端端口'
@@ -61,7 +55,7 @@ export class FirewallStrings {
   static readonly directionInbound: string = '入站'
   static readonly directionOutbound: string = '出站'
   static readonly actionAllow: string = '允许'
-  static readonly actionDeny: string = '阻止'
+  static readonly actionDeny: string = '禁止'
 
   static readonly publicModeAccent: string = '#0A84FF'
   static readonly privateModeAccent: string = '#34C759'
@@ -77,9 +71,9 @@ export class FirewallStrings {
   static getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return FirewallStrings.publicModeTitle
+        return '公共网络模式'
       case 'private':
-        return FirewallStrings.privateModeTitle
+        return '私有网络模式'
       case 'custom':
       default:
         return FirewallStrings.customModeTitle
@@ -89,16 +83,19 @@ export class FirewallStrings {
   static getModeDescription(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return FirewallStrings.publicModeDescription
+        return '适用于开放网络环境，默认采用更严格的访问控制策略。'
       case 'private':
-        return FirewallStrings.privateModeDescription
+        return '适用于可信网络环境，优先保证局域网互通与常规办公访问。'
       case 'custom':
       default:
-        return FirewallStrings.customModeDescription
+        return '根据业务需要自定义入站、出站与域名访问规则。'
     }
   }
 
-  static buildToggleFailedMessage(reason: FirewallToggleRejectReason | undefined, lockRemainingSec: number | undefined): string {
+  static buildToggleFailedMessage(
+    reason: FirewallToggleRejectReason | undefined,
+    lockRemainingSec: number | undefined
+  ): string {
     switch (reason) {
       case 'lockout':
         return `PIN 校验失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
@@ -111,5 +108,19 @@ export class FirewallStrings {
       default:
         return '防火墙状态切换失败'
     }
+  }
+
+  static buildConflictNotice(duplicates: number, hardConflicts: number, overlapConflicts: number): string {
+    let parts: string[] = []
+    if (duplicates > 0) {
+      parts.push(`重复 ${duplicates} 条`)
+    }
+    if (hardConflicts > 0) {
+      parts.push(`硬冲突 ${hardConflicts} 条`)
+    }
+    if (overlapConflicts > 0) {
+      parts.push(`范围重叠 ${overlapConflicts} 条`)
+    }
+    return parts.length > 0 ? `当前自定义规则集中存在：${parts.join('，')}` : ''
   }
 }

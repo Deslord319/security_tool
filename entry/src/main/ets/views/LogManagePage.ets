@@ -922,7 +922,7 @@ export struct LogManagePage {
   private getDiagRecentTimeText(type: LogEventType): string {
     let diag = this.getDiagByType(type)
     let lastSeen = diag.lastSeenAt ? formatLogTimestamp(diag.lastSeenAt) : '-'
-    return `最近 ${lastSeen}`
+    return LogManageStrings.buildRecentSeenText(lastSeen)
   }
 
   build() {
@@ -998,7 +998,7 @@ export struct LogManagePage {
                 })
             } else {
               this.headerActionButton(
-                LogManageStrings.saveSettingsButton,
+                CommonStrings.actionSaveSettings,
                 $r('app.media.save'),
                 Color.White,
                 AppColors.BRAND_PRIMARY,
@@ -1377,7 +1377,7 @@ export struct LogManagePage {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         if (entry.processName) {
-          Text(`${LogManageStrings.processPrefix}: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
+          Text(`${LogManageStrings.processLabel}: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1486,7 +1486,7 @@ export struct LogManagePage {
   @Builder
   storageConfigCard() {
     Column({ space: 0 }) {
-      Text(LogManageStrings.storageConfigTitle)
+      Text(LogManageStrings.settingsTitle)
         .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -1571,7 +1571,11 @@ export struct LogManagePage {
       }
       .width('100%')
 
-      Text(`模式切换时间: ${this.diagnostics.lastModeSwitchAt !== undefined ? formatLogTimestamp(this.diagnostics.lastModeSwitchAt as number) : '-'}`)
+      Text(LogManageStrings.buildModeSwitchTimeText(
+        this.diagnostics.lastModeSwitchAt !== undefined ?
+          formatLogTimestamp(this.diagnostics.lastModeSwitchAt as number) :
+          '-'
+      ))
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -1590,7 +1594,7 @@ export struct LogManagePage {
 
       if (this.diagnostics.unknownEventIds.length > 0) {
         Row() {
-          Text(`未识别事件ID: ${this.diagnostics.unknownEventIds.join(',')}`)
+          Text(LogManageStrings.buildUnknownEventIdsText(this.diagnostics.unknownEventIds.join(',')))
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT)
         }
