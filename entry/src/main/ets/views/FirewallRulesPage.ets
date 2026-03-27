@@ -603,6 +603,7 @@ export struct FirewallRulesPage {
                       .width(18)
                       .height(18)
                       .fillColor(Color.White)
+                      .draggable(false)
                   }
                   .width(40)
                   .height(40)

@@ -235,6 +235,7 @@ struct MainPage {
                 .width(18)
                 .height(18)
                 .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .draggable(false)
             }
             .type(ButtonType.Normal)
             .id('top-menu-trigger')

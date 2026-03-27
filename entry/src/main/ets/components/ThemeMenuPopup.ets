@@ -12,6 +12,7 @@ struct AboutDialog {
       Image($r('app.media.startIcon_about'))
         .width(80)
         .height(80)
+        .draggable(false)
 
       Text(AppInfo.APP_NAME)
         .fontSize(18)
@@ -145,6 +146,7 @@ export struct ThemeMenuPopup {
           .width(18)
           .height(18)
           .fillColor(this.resolveMenuIconFillColor())
+          .draggable(false)
       }
       .width(30)
       .height(30)
@@ -188,6 +190,7 @@ export struct ThemeMenuPopup {
           .width(18)
           .height(18)
           .fillColor(this.resolveMenuIconFillColor())
+          .draggable(false)
       }
       .width(30)
       .height(30)
@@ -232,6 +235,7 @@ export struct ThemeMenuPopup {
           .width(18)
           .height(18)
           .fillColor(this.resolveMenuIconFillColor())
+          .draggable(false)
       }
       .width(30)
       .height(30)

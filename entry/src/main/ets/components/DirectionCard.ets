@@ -26,6 +26,7 @@ export struct DirectionCard {
             .width(24)
             .height(24)
             .objectFit(ImageFit.Contain)
+            .draggable(false)
         } else {
           Text(this.iconText)
             .fontSize(18)

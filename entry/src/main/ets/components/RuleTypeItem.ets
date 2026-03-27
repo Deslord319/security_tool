@@ -22,6 +22,7 @@ export struct RuleTypeItem {
             .width(18)
             .height(18)
             .fillColor(this.iconColor)
+            .draggable(false)
         } else {
           Text(this.iconText)
             .fontSize(16)

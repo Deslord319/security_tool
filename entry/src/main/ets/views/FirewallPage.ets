@@ -387,6 +387,7 @@ export struct FirewallPage {
           .width(22)
           .height(22)
           .fillColor(Color.White)
+          .draggable(false)
       }
       .width(48)
       .height(48)

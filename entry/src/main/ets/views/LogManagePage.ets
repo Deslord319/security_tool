@@ -1438,6 +1438,7 @@ export struct LogManagePage {
           .width(14)
           .height(14)
           .fillColor(textColor)
+          .draggable(false)
 
         Text(label)
           .fontSize(AppStyles.FONT_SIZE_BODY)

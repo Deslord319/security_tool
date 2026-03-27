@@ -46,7 +46,7 @@ export struct SideBar {
         Image($r('app.media.startIcon_about'))
           .width(20)
           .height(20)
-          .fillColor(AppColors.BRAND_PRIMARY)
+          .draggable(false)
 
         Text(AppInfo.APP_NAME)
           .fontSize(16)
@@ -73,6 +73,7 @@ export struct SideBar {
                   .width(16)
                   .height(16)
                   .fillColor(this.selectedId === item.id ? AppColors.SIDEBAR_SELECTED_ICON : AppColors.BRAND_PRIMARY)
+                  .draggable(false)
               }
               .width(28)
               .height(28)
@@ -116,6 +117,7 @@ export struct SideBar {
             .width(16)
             .height(16)
             .fillColor(this.getThemeModeIconColor())
+            .draggable(false)
         }
         .width(28)
         .height(28)

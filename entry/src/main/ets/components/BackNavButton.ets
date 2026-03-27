@@ -28,6 +28,7 @@ export struct BackNavButton {
         .width(22)
         .height(22)
         .fillColor(this.getIconColor())
+        .draggable(false)
     }
     .type(ButtonType.Normal)
     .width(36)

@@ -39,6 +39,7 @@ export struct StatCard {
             .width(24)
             .height(24)
             .fillColor(Color.White)
+            .draggable(false)
         }
         .width(52)
         .height(52)

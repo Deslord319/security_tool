@@ -38,6 +38,7 @@ export struct ToolCard {
             .width(28)
             .height(28)
             .fillColor(Color.White)
+            .draggable(false)
         }
         .width(56)
         .height(56)
