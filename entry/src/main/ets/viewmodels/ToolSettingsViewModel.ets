@@ -8,19 +8,11 @@ import {
   PreferencesToolSettingsRepository,
   ToolSettingsRepository
 } from '../services/ToolSettingsRepository'
-import {
-  DefaultToolSettingsRuntimeGateway,
-  ToolSettingsRuntimeGateway
-} from '../services/ToolSettingsRuntimeGateway'
+import { AuthService } from '../services/AuthService'
+import { SystemSettingsService } from '../services/SystemSettingsService'
 
 const TAG = 'ToolSettings.ViewModel'
 const DOMAIN = 0x0014
-const UNKNOWN_TOOL_SETTINGS_ERROR_CODE = -1
-
-interface ToolSettingsLoggableError {
-  code?: number
-  message?: string
-}
 
 export interface ToolSettingsUiState {
   config: ToolSettingsConfig
@@ -39,18 +31,22 @@ export interface ToolSettingsActionRequest {
 
 @Observed
 export class ToolSettingsViewModel {
-  state: ToolSettingsUiState = this.createInitialState()
+  state: ToolSettingsUiState = {
+    config: {
+      startupAuthEnabled: DEFAULT_TOOL_SETTINGS.startupAuthEnabled,
+      authMethod: DEFAULT_TOOL_SETTINGS.authMethod
+    },
+    initialConfig: {
+      startupAuthEnabled: DEFAULT_TOOL_SETTINGS.startupAuthEnabled,
+      authMethod: DEFAULT_TOOL_SETTINGS.authMethod
+    },
+    hasChanges: false
+  }
   private repository: ToolSettingsRepository
-  private runtimeGateway: ToolSettingsRuntimeGateway
-  private isInitializing: boolean = false
   private isSaving: boolean = false
 
-  constructor(
-    repository: ToolSettingsRepository = new PreferencesToolSettingsRepository(),
-    runtimeGateway: ToolSettingsRuntimeGateway = new DefaultToolSettingsRuntimeGateway()
-  ) {
+  constructor(repository: ToolSettingsRepository = new PreferencesToolSettingsRepository()) {
     this.repository = repository
-    this.runtimeGateway = runtimeGateway
   }
 
   get selectedAuthMethodIndex(): number {
@@ -59,42 +55,28 @@ export class ToolSettingsViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
-    this.isInitializing = true
     hilog.info(DOMAIN, TAG, '[LOAD_START] initialize | source=ToolSettingsPage')
-    try {
-      let config = await this.repository.loadConfig(context)
-      this.commitState({
-        config: this.cloneConfig(config),
-        initialConfig: this.cloneConfig(config),
-        hasChanges: false
-      })
-      hilog.info(
-        DOMAIN,
-        TAG,
-        `[LOAD_SUCCESS] initialize | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
-      )
-    } catch (err) {
-      let fallbackConfig = this.cloneConfig(DEFAULT_TOOL_SETTINGS)
-      let errorCode = this.getErrorCode(err)
-      let errorMessage = this.getErrorMessage(err)
-      this.commitState({
-        config: fallbackConfig,
-        initialConfig: this.cloneConfig(fallbackConfig),
-        hasChanges: false
-      })
-      hilog.error(DOMAIN, TAG, `[LOAD_FAIL] initialize | code=${errorCode}, message=${errorMessage}`)
-    } finally {
-      this.isInitializing = false
+    let config = await this.repository.loadConfig(context)
+    this.state = {
+      config: this.createConfig(config.startupAuthEnabled, config.authMethod),
+      initialConfig: this.createConfig(config.startupAuthEnabled, config.authMethod),
+      hasChanges: false
     }
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `[LOAD_SUCCESS] initialize | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
+    )
   }
 
   setStartupAuthEnabled(enabled: boolean): void {
     if (enabled === this.state.config.startupAuthEnabled) {
       return
     }
-    let nextConfig = this.cloneConfig(this.state.config)
-    nextConfig.startupAuthEnabled = enabled
-    this.commitConfig(nextConfig)
+    this.updateConfig({
+      startupAuthEnabled: enabled,
+      authMethod: this.state.config.authMethod
+    })
     hilog.info(
       DOMAIN,
       TAG,
@@ -106,9 +88,10 @@ export class ToolSettingsViewModel {
     if (authMethod === this.state.config.authMethod) {
       return
     }
-    let nextConfig = this.cloneConfig(this.state.config)
-    nextConfig.authMethod = authMethod
-    this.commitConfig(nextConfig)
+    this.updateConfig({
+      startupAuthEnabled: this.state.config.startupAuthEnabled,
+      authMethod: authMethod
+    })
     hilog.info(
       DOMAIN,
       TAG,
@@ -120,7 +103,8 @@ export class ToolSettingsViewModel {
     context: common.UIAbilityContext,
     allowUnsupportedAuthMethod: boolean = false
   ): Promise<ToolSettingsActionRequest> {
-    if (this.isInitializing || this.isSaving) {
+    if (this.isSaving) {
+      hilog.warn(DOMAIN, TAG, '[SAVE_SKIP] requestSave | reason=saving')
       return { kind: 'none' }
     }
     hilog.info(
@@ -129,6 +113,7 @@ export class ToolSettingsViewModel {
       `[USER_SAVE_CLICK] requestSave | hasChanges=${this.state.hasChanges}, startupAuthEnabled=${this.state.config.startupAuthEnabled}, authMethod=${this.state.config.authMethod}`
     )
     if (!this.state.hasChanges) {
+      hilog.warn(DOMAIN, TAG, '[SAVE_SKIP] requestSave | reason=no_changes')
       return {
         kind: 'result',
         status: 'failure',
@@ -137,7 +122,7 @@ export class ToolSettingsViewModel {
     }
 
     if (this.state.config.startupAuthEnabled && !allowUnsupportedAuthMethod) {
-      let availability = this.runtimeGateway.checkAuthAvailability(this.state.config.authMethod)
+      let availability = AuthService.checkAuthMethodAvailability(this.state.config.authMethod)
       hilog.info(
         DOMAIN,
         TAG,
@@ -162,10 +147,9 @@ export class ToolSettingsViewModel {
   }
 
   async openPasswordSettings(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
-    hilog.info(DOMAIN, TAG, '[SYSNAV_START] openPasswordSettings | target=system_password_settings')
-    let opened = await this.runtimeGateway.openPasswordSettings(context)
-    hilog.info(DOMAIN, TAG, `[SYSNAV_RESULT] openPasswordSettings | opened=${opened}`)
+    let opened = await SystemSettingsService.openPasswordSettings(context)
     if (!opened) {
+      hilog.warn(DOMAIN, TAG, '[SYSNAV_FAIL] openPasswordSettings | opened=false')
       return {
         kind: 'result',
         status: 'failure',
@@ -176,20 +160,23 @@ export class ToolSettingsViewModel {
   }
 
   private async saveCurrentConfig(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
-    let configToSave = this.cloneConfig(this.state.config)
+    let configToSave = this.state.config
     this.isSaving = true
-    hilog.info(
-      DOMAIN,
-      TAG,
-      `[SAVE_START] saveConfig | startupAuthEnabled=${configToSave.startupAuthEnabled}, authMethod=${configToSave.authMethod}`
-    )
     try {
-      await this.repository.saveConfig(context, configToSave)
-      this.commitState({
-        config: this.cloneConfig(configToSave),
-        initialConfig: this.cloneConfig(configToSave),
+      let saved = await this.repository.saveConfig(context, configToSave)
+      if (!saved) {
+        hilog.error(DOMAIN, TAG, '[SAVE_FAIL] saveConfig | repository returned false')
+        return {
+          kind: 'result',
+          status: 'failure',
+          message: CommonStrings.messageSaveFailed
+        }
+      }
+      this.state = {
+        config: this.createConfig(configToSave.startupAuthEnabled, configToSave.authMethod),
+        initialConfig: this.createConfig(configToSave.startupAuthEnabled, configToSave.authMethod),
         hasChanges: false
-      })
+      }
       hilog.info(
         DOMAIN,
         TAG,
@@ -200,70 +187,25 @@ export class ToolSettingsViewModel {
         status: 'success',
         message: ToolSettingsStrings.saveSuccess
       }
-    } catch (err) {
-      let errorCode = this.getErrorCode(err)
-      let errorMessage = this.getErrorMessage(err)
-      this.commitState({
-        config: this.cloneConfig(this.state.config),
-        initialConfig: this.cloneConfig(this.state.initialConfig),
-        hasChanges: this.hasChanges(this.state.config, this.state.initialConfig)
-      })
-      hilog.error(DOMAIN, TAG, `[SAVE_FAIL] saveConfig | code=${errorCode}, message=${errorMessage}`)
-      return {
-        kind: 'result',
-        status: 'failure',
-        message: CommonStrings.messageSaveFailed
-      }
     } finally {
       this.isSaving = false
     }
   }
 
-  private commitConfig(nextConfig: ToolSettingsConfig): void {
-    this.commitState({
-      config: this.cloneConfig(nextConfig),
-      initialConfig: this.cloneConfig(this.state.initialConfig),
-      hasChanges: this.hasChanges(nextConfig, this.state.initialConfig)
-    })
+  private updateConfig(config: ToolSettingsConfig): void {
+    this.state = {
+      config: this.createConfig(config.startupAuthEnabled, config.authMethod),
+      initialConfig: this.state.initialConfig,
+      hasChanges:
+        config.startupAuthEnabled !== this.state.initialConfig.startupAuthEnabled ||
+        config.authMethod !== this.state.initialConfig.authMethod
+    }
   }
 
-  private hasChanges(left: ToolSettingsConfig, right: ToolSettingsConfig): boolean {
-    return left.startupAuthEnabled !== right.startupAuthEnabled || left.authMethod !== right.authMethod
-  }
-
-  private createInitialState(): ToolSettingsUiState {
-    let defaultConfig = this.cloneConfig(DEFAULT_TOOL_SETTINGS)
+  private createConfig(startupAuthEnabled: boolean, authMethod: AuthMethod): ToolSettingsConfig {
     return {
-      config: defaultConfig,
-      initialConfig: this.cloneConfig(defaultConfig),
-      hasChanges: false
+      startupAuthEnabled: startupAuthEnabled,
+      authMethod: authMethod
     }
-  }
-
-  private cloneConfig(config: ToolSettingsConfig): ToolSettingsConfig {
-    return {
-      startupAuthEnabled: config.startupAuthEnabled,
-      authMethod: config.authMethod
-    }
-  }
-
-  private commitState(nextState: ToolSettingsUiState): void {
-    this.state = nextState
-  }
-
-  private getErrorCode(err: Object): number {
-    let error = err as ToolSettingsLoggableError
-    if (typeof error?.code === 'number') {
-      return error.code
-    }
-    return UNKNOWN_TOOL_SETTINGS_ERROR_CODE
-  }
-
-  private getErrorMessage(err: Object): string {
-    let error = err as ToolSettingsLoggableError
-    if (typeof error?.message === 'string' && error.message.length > 0) {
-      return error.message
-    }
-    return 'unknown'
   }
 }

@@ -21,6 +21,7 @@ export struct ToolSettingsPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @State viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
+  @State initialized: boolean = false
   private resultDialogController: CustomDialogController = new CustomDialogController({
     builder: ResultMessageBox({
       onConfirm: () => {
@@ -56,7 +57,9 @@ export struct ToolSettingsPage {
   }
 
   private async initializeViewModel(): Promise<void> {
+    this.initialized = false
     await this.viewModel.initialize(this.getPageContext())
+    this.initialized = true
   }
 
   private getPageContext(): common.UIAbilityContext {
@@ -144,10 +147,18 @@ export struct ToolSettingsPage {
 
       Scroll() {
         Column({ space: 24 }) {
-          SettingsSectionCard({
-            title: ToolSettingsStrings.sectionStartupAuth,
-            content: this.startupAuthContent.bind(this)
-          })
+          if (this.initialized) {
+            SettingsSectionCard({
+              title: ToolSettingsStrings.sectionStartupAuth,
+              content: () => {
+                this.startupAuthContent()
+              }
+            })
+          } else {
+            Blank()
+              .width('100%')
+              .height(1)
+          }
         }
         .width('100%')
         .padding({
