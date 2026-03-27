@@ -29,15 +29,13 @@ const DOMAIN = 0x0013
 export interface WhitelistBlacklistState {
   usbWhitelist: edmUsbManager.UsbDeviceId[]
   usbBlacklist: edmUsbManager.UsbDeviceType[]
-  btWhitelist: string[]
 }
 
 @Observed
 export class PeripheralPolicyViewModel {
   whitelistBlacklistState: WhitelistBlacklistState = {
     usbWhitelist: [],
-    usbBlacklist: [],
-    btWhitelist: []
+    usbBlacklist: []
   }
 
   records: PeripheralPolicyRecord[] = []
@@ -47,13 +45,11 @@ export class PeripheralPolicyViewModel {
     try {
       this.whitelistBlacklistState.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
       this.whitelistBlacklistState.usbBlacklist = PeripheralService.getUsbBlacklistWithResult().data ?? []
-      this.whitelistBlacklistState.btWhitelist = PeripheralService.getBluetoothWhitelistWithResult().data ?? []
     } catch (err) {
       hilog.error(DOMAIN, TAG, `reloadWhitelistBlacklist failed: ${JSON.stringify(err)}`)
       this.whitelistBlacklistState = {
         usbWhitelist: [],
-        usbBlacklist: [],
-        btWhitelist: []
+        usbBlacklist: []
       }
     }
   }

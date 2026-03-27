@@ -1,6 +1,5 @@
 import restrictions from '@ohos.enterprise.restrictions'
 import { usbManager } from '@kit.MDMKit'
-import { bluetoothManager } from '@kit.MDMKit'
 import { networkManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { Want } from '@kit.AbilityKit'
@@ -436,48 +435,78 @@ export class PeripheralService {
     } as OperationResult<void>
   }
 
-  // ========== 蓝牙白名单 (按 MAC 地址) ==========
-
-  static addBluetoothWhitelistWithResult(deviceIds: string[]): OperationResult<void> {
-    try {
-      bluetoothManager.addAllowedBluetoothDevices(ADMIN_WANT, deviceIds)
-      hilog.info(DOMAIN, TAG, `addBluetoothWhitelist: ${deviceIds.length} devices`)
-      return { success: true } as OperationResult<void>
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `addBluetoothWhitelist failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('添加蓝牙白名单', err as Object)
+  private static setUsbInterfaceDisabledWithCleanup(disallow: boolean): OperationResult<void> {
+    let snapshotResult = PeripheralService.getUsbConflictSnapshot()
+    if (!snapshotResult.success) {
+      hilog.error(DOMAIN, TAG, 'setUsbInterfaceDisabled failed at read_conflict_snapshot')
+      return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_conflict_snapshot')
     }
-  }
 
-  // 添加蓝牙设备到白名单
-  static addBluetoothWhitelist(deviceIds: string[]): boolean {
-    return PeripheralService.addBluetoothWhitelistWithResult(deviceIds).success
-  }
+    let snapshot = snapshotResult.data!
+    hilog.info(DOMAIN, TAG,
+      `setUsbInterfaceDisabled precheck: target=${disallow}, whitelist=${snapshot.whitelist.length}, blacklist=${snapshot.blacklist.length}, storagePolicy=${snapshot.storagePolicy}`)
 
-  static removeBluetoothWhitelistWithResult(deviceIds: string[]): OperationResult<void> {
-    try {
-      bluetoothManager.removeAllowedBluetoothDevices(ADMIN_WANT, deviceIds)
-      hilog.info(DOMAIN, TAG, `removeBluetoothWhitelist: ${deviceIds.length} devices`)
-      return { success: true } as OperationResult<void>
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `removeBluetoothWhitelist failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('移除蓝牙白名单', err as Object)
+    if (snapshot.whitelist.length > 0 || snapshot.blacklist.length > 0 ||
+      snapshot.storagePolicy !== usbManager.UsbPolicy.READ_WRITE) {
+      let cleanupResult = PeripheralService.clearUsbPolicyConflicts(true, snapshot)
+      if (!cleanupResult.success) {
+        return cleanupResult
+      }
     }
-  }
 
-  // 从白名单移除蓝牙设备
-  static removeBluetoothWhitelist(deviceIds: string[]): boolean {
-    return PeripheralService.removeBluetoothWhitelistWithResult(deviceIds).success
-  }
-
-  static getBluetoothWhitelistWithResult(): OperationResult<string[]> {
     try {
+      restrictions.setDisallowedPolicy(ADMIN_WANT, PeripheralService.FEATURE_USB, disallow)
+      hilog.info(DOMAIN, TAG, `setUsbInterfaceDisabled success: ${disallow}`)
       return {
         success: true,
-        data: bluetoothManager.getAllowedBluetoothDevices(ADMIN_WANT)
-      } as OperationResult<string[]>
+        userMessage: snapshot.whitelist.length > 0 || snapshot.blacklist.length > 0 ||
+          snapshot.storagePolicy !== usbManager.UsbPolicy.READ_WRITE ?
+          '已自动清理冲突规则并完成 USB 接口设置' :
+          'USB 接口设置成功',
+        stage: 'completed'
+      } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setBluetoothPolicy failed: ${JSON.stringify(err)}`)
+      hilog.error(DOMAIN, TAG, `setUsbInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      if (CommonErrorUtils.extractErrorCode(err as Object) === 9200010) {
+        return PeripheralService.buildUserFailureResult<void>(
+          'set_usb_interface',
+          '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
+        )
+      }
+      return PeripheralService.buildFailureResult<void>('设置 USB 接口失败', err as Object)
+    }
+  }
+
+  static setUsbStoragePolicyWithCleanupResult(policy: usbManager.UsbPolicy): OperationResult<void> {
+    let snapshotResult = PeripheralService.getUsbConflictSnapshot()
+    if (!snapshotResult.success) {
+      hilog.error(DOMAIN, TAG, 'setUsbStoragePolicy failed at read_conflict_snapshot')
+      return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_conflict_snapshot')
+    }
+
+    let snapshot = snapshotResult.data!
+    hilog.info(DOMAIN, TAG,
+      `setUsbStoragePolicy precheck: target=${policy}, whitelist=${snapshot.whitelist.length}, blacklist=${snapshot.blacklist.length}, storagePolicy=${snapshot.storagePolicy}`)
+
+    if (snapshot.whitelist.length > 0 || snapshot.blacklist.length > 0) {
+      let cleanupResult = PeripheralService.clearUsbPolicyConflicts(false, snapshot)
+      if (!cleanupResult.success) {
+        return cleanupResult
+      }
+    }
+
+    try {
+      usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
+      hilog.info(DOMAIN, TAG, `setUsbStoragePolicy success: ${policy}`)
+      return {
+        success: true,
+        userMessage: snapshot.whitelist.length > 0 || snapshot.blacklist.length > 0 ?
+          '已自动清理冲突规则并完成 USB 存储策略设置' :
+          'USB 存储策略设置成功',
+        stage: 'completed'
+      } as OperationResult<void>
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       if (CommonErrorUtils.extractErrorCode(err as Object) === 9200010) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_storage_policy',

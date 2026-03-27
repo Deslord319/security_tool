@@ -312,11 +312,6 @@ export interface UsbBlacklistItem {
   description: string
 }
 
-export interface BluetoothWhitelistItem {
-  deviceId: string
-  remark: string
-}
-
 export interface InterfaceControlConfig {
   feature: string
   label: string
