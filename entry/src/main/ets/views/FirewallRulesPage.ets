@@ -427,18 +427,19 @@ export struct FirewallRulesPage {
   }
 
   build() {
-    Scroll() {
-      Column({ space: 18 }) {
-        SubPageHeader({
-          title: FirewallStrings.customModeTitle,
-          subtitle: FirewallStrings.customRulesSubtitle,
-          currentTheme: this.currentTheme,
-          onBack: () => this.onBack(),
-          actions: () => {
-            this.headerActions()
-          }
-        })
+    Column() {
+      SubPageHeader({
+        title: FirewallStrings.customModeTitle,
+        subtitle: FirewallStrings.customRulesSubtitle,
+        currentTheme: this.currentTheme,
+        onBack: () => this.onBack(),
+        actions: () => {
+          this.headerActions()
+        }
+      })
 
+      Scroll() {
+        Column({ space: 18 }) {
         if (this.conflictNotice.length > 0) {
           Row({ space: 8 }) {
             Text(FirewallStrings.conflictWarningLabel)
@@ -506,9 +507,17 @@ export struct FirewallRulesPage {
           this.currentTab = index
         })
         .layoutWeight(1)
+        }
+        .padding({
+          left: AppStyles.PADDING_LG,
+          right: AppStyles.PADDING_LG,
+          top: AppStyles.PADDING_MD,
+          bottom: AppStyles.PADDING_LG
+        })
+        .width('100%')
       }
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG, bottom: AppStyles.PADDING_LG })
       .width('100%')
+      .layoutWeight(1)
     }
     .width('100%')
     .height('100%')

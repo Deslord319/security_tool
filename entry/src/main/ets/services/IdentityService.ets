@@ -4,6 +4,7 @@ import { Want } from '@kit.AbilityKit'
 import { OperationResult, PasswordComplexityConfig } from '../models/DataModels'
 import { AppInfo } from '../constants/AppConstants'
 import { EnterpriseAdminService } from './EnterpriseAdminService'
+import { PeripheralService } from './PeripheralService'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'IdentityService'
@@ -71,7 +72,7 @@ export class IdentityService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return IdentityService.buildFailureResult<void>('设置口令策略', err as Object)
+      return PeripheralService.buildFailureResult<void>('设置口令策略', err as Object)
     }
   }
 
@@ -85,24 +86,7 @@ export class IdentityService {
       } as OperationResult<securityManager.PasswordPolicy | null>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return IdentityService.buildFailureResult<securityManager.PasswordPolicy | null>('读取口令策略', err as Object, null)
+      return PeripheralService.buildFailureResult<securityManager.PasswordPolicy | null>('读取口令策略', err as Object, null)
     }
-  }
-
-  private static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
-    let code = CommonErrorUtils.extractErrorCode(err)
-    let isAdminMissing = EnterpriseAdminService.isAdminMissingError(err)
-    let message = isAdminMissing ? '企业管理员未激活，无法执行身份策略操作。' : `${action}失败`
-    let suggestion = isAdminMissing ?
-      `请先在设备执行：${EnterpriseAdminService.buildEnableCommand()}` :
-      '请检查权限声明、签名模板和设备策略状态后重试。'
-    return {
-      success: false,
-      data: fallbackData,
-      errorCode: code,
-      errorMessage: message,
-      isAdminMissing: isAdminMissing,
-      suggestion: suggestion
-    } as OperationResult<T>
   }
 }

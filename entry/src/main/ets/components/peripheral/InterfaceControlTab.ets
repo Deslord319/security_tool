@@ -21,7 +21,6 @@ export struct InterfaceControlTab {
   @Prop usbStoragePolicyIndex: number = 0
   @Prop interfaceControlProcessingKey: string = ''
   @Prop usbStorageControlKey: string = ''
-  @Prop interfaceControlSyncToken: number = 0
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop hoveredPanelIndex: number = -1
   onInterfaceToggle?: (feature: string, disallow: boolean) => void
@@ -109,12 +108,6 @@ export struct InterfaceControlTab {
     onSelect: (index: number) => void
   ) {
     Row() {
-      Text(`${this.interfaceControlSyncToken}`)
-        .fontSize(0)
-        .width(0)
-        .height(0)
-        .opacity(0)
-
       Column({ space: 4 }) {
         Text(label)
           .fontSize(AppStyles.FONT_SIZE_BODY)

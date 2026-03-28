@@ -1,6 +1,7 @@
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../models/DataModels'
+import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'FirewallService'
 const DOMAIN = 0x0001
@@ -93,12 +94,6 @@ export class FirewallService {
     return undefined
   }
 
-  static clearLastError(): void {
-    FirewallService.lastErrorCode = undefined
-    FirewallService.lastErrorMessage = ''
-    FirewallService.lastErrorKind = 'unknown'
-  }
-
   static getLastErrorText(): string {
     if (FirewallService.lastErrorMessage.length === 0) {
       return ''
@@ -118,35 +113,11 @@ export class FirewallService {
   }
 
   private static recordError(action: string, err: Object): void {
-    let code = FirewallService.extractErrorCode(err)
-    let message = FirewallService.extractErrorMessage(err)
+    let code = CommonErrorUtils.extractErrorCode(err)
+    let message = CommonErrorUtils.extractErrorMessage(err)
     FirewallService.lastErrorCode = code
     FirewallService.lastErrorKind = FirewallService.classifyError(code, message)
     FirewallService.lastErrorMessage = message.length > 0 ? message : `${action}失败`
-  }
-
-  private static extractErrorCode(err: Object): number | undefined {
-    let codeValue = (err as Record<string, Object>)['code']
-    if (typeof codeValue === 'number') {
-      return codeValue
-    }
-    if (typeof codeValue === 'string') {
-      let parsed = Number(codeValue)
-      return Number.isNaN(parsed) ? undefined : parsed
-    }
-    return undefined
-  }
-
-  private static extractErrorMessage(err: Object): string {
-    let messageValue = (err as Record<string, Object>)['message']
-    if (typeof messageValue === 'string') {
-      return messageValue
-    }
-    let dataValue = (err as Record<string, Object>)['data']
-    if (typeof dataValue === 'string') {
-      return dataValue
-    }
-    return ''
   }
 
   private static classifyError(code: number | undefined, message: string): FirewallErrorKind {
@@ -170,7 +141,10 @@ export class FirewallService {
 
   // 获取防火墙策略（含开关状态）
   static async getFirewallPolicy(): Promise<netFirewall.NetFirewallPolicy | null> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({
+      lastErrorCode: FirewallService.lastErrorCode,
+      lastErrorMessage: FirewallService.lastErrorMessage
+    })
     try {
       let policy = await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
       return policy
@@ -189,7 +163,7 @@ export class FirewallService {
 
   // 启用/禁用防火墙
   static async setFirewallEnabled(enabled: boolean): Promise<boolean> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       let existingPolicy = await FirewallService.getFirewallPolicy()
       let policy: netFirewall.NetFirewallPolicy = {
@@ -208,7 +182,7 @@ export class FirewallService {
   }
 
   static async setFirewallPolicy(policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
       hilog.info(DOMAIN, TAG, `setFirewallPolicy success: ${JSON.stringify(policy)}`)
@@ -222,7 +196,7 @@ export class FirewallService {
 
   // 获取所有防火墙规则（分页获取全部）
   static async getAllRules(): Promise<netFirewall.NetFirewallRule[]> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       let allRules: netFirewall.NetFirewallRule[] = []
       let page = 1
@@ -251,7 +225,7 @@ export class FirewallService {
 
   // 添加防火墙规则
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       let preparedRule = FirewallService.normalizeRuleForCreate(rule)
       FirewallService.logRulePayload('addRule payload', preparedRule)
@@ -269,7 +243,7 @@ export class FirewallService {
 
   // 删除防火墙规则
   static async removeRule(ruleId: number): Promise<boolean> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       await netFirewall.removeNetFirewallRule(DEFAULT_USER_ID, ruleId)
       hilog.info(DOMAIN, TAG, `removeRule success, ruleId: ${ruleId}`)
@@ -283,7 +257,7 @@ export class FirewallService {
 
   // 更新防火墙规则
   static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       FirewallService.logRulePayload('updateRule payload', rule)
       await netFirewall.updateNetFirewallRule(rule)
@@ -298,7 +272,7 @@ export class FirewallService {
   }
 
   static async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<number> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     let removed = await FirewallService.removeRule(oldRuleId)
     if (!removed) {
       return -1
@@ -579,7 +553,7 @@ export class FirewallService {
     rules: netFirewall.NetFirewallRule[],
     mode: FirewallPresetMode
   ): Promise<boolean> {
-    FirewallService.clearLastError()
+    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     let snapshotPolicy = await FirewallService.getFirewallPolicy()
     if (snapshotPolicy === null) {
       return false

@@ -7,6 +7,7 @@ import {
   UserFirewallOption,
   UserFirewallPolicyResult
 } from '../models/DataModels'
+import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'UserFirewallPolicyService'
 const DOMAIN = 0x0001
@@ -14,11 +15,6 @@ const DOMAIN = 0x0001
 export class UserFirewallPolicyService {
   private static lastErrorCode: number | undefined = undefined
   private static lastErrorMessage: string = ''
-
-  private static clearLastError(): void {
-    UserFirewallPolicyService.lastErrorCode = undefined
-    UserFirewallPolicyService.lastErrorMessage = ''
-  }
 
   static getLastErrorCode(): number | undefined {
     return UserFirewallPolicyService.lastErrorCode
@@ -29,54 +25,16 @@ export class UserFirewallPolicyService {
   }
 
   private static recordError(action: string, err: Object): void {
-    let code = UserFirewallPolicyService.extractErrorCode(err)
+    let code = CommonErrorUtils.extractErrorCode(err)
     UserFirewallPolicyService.lastErrorCode = code
-    UserFirewallPolicyService.lastErrorMessage = UserFirewallPolicyService.resolveErrorMessage(action, code)
-  }
-
-  private static extractErrorCode(err: Object): number | undefined {
-    let codeValue = (err as Record<string, Object>)['code']
-    if (typeof codeValue === 'number') {
-      return codeValue
-    }
-    if (typeof codeValue === 'string') {
-      let parsed = Number(codeValue)
-      return Number.isNaN(parsed) ? undefined : parsed
-    }
-    return undefined
-  }
-
-  private static resolveErrorMessage(action: string, code: number | undefined): string {
-    if (action === '读取用户列表') {
-      switch (code) {
-        case 201:
-          return '缺少系统用户列表读取权限'
-        case 12300001:
-        case 2100002:
-          return '系统账号服务连接失败'
-        default:
-          return `${action}失败`
-      }
-    }
-    switch (code) {
-      case 201:
-        return '缺少账户或防火墙管理权限'
-      case 401:
-      case 2100001:
-        return '用户 ID 参数不合法'
-      case 2100002:
-        return '系统服务连接失败'
-      case 2100003:
-        return '系统内部错误'
-      case 29400000:
-        return '目标用户不存在或已失效'
-      default:
-        return `${action}失败`
-    }
+    UserFirewallPolicyService.lastErrorMessage = CommonErrorUtils.resolveErrorMessage(action, code)
   }
 
   static async loadAvailableUserIds(): Promise<UserFirewallListResult> {
-    UserFirewallPolicyService.clearLastError()
+    CommonErrorUtils.clearLastError({
+      lastErrorCode: UserFirewallPolicyService.lastErrorCode,
+      lastErrorMessage: UserFirewallPolicyService.lastErrorMessage
+    })
     try {
       let accountManager = osAccount.getAccountManager()
       let ids = await accountManager.getActivatedOsAccountLocalIds()
@@ -122,7 +80,10 @@ export class UserFirewallPolicyService {
   }
 
   static async getPolicy(userId: number): Promise<UserFirewallPolicyResult> {
-    UserFirewallPolicyService.clearLastError()
+    CommonErrorUtils.clearLastError({
+      lastErrorCode: UserFirewallPolicyService.lastErrorCode,
+      lastErrorMessage: UserFirewallPolicyService.lastErrorMessage
+    })
     try {
       let policy = await netFirewall.getNetFirewallPolicy(userId)
       return {
@@ -146,7 +107,10 @@ export class UserFirewallPolicyService {
   }
 
   static async setEnabled(userId: number, enabled: boolean): Promise<UserFirewallActionResult> {
-    UserFirewallPolicyService.clearLastError()
+    CommonErrorUtils.clearLastError({
+      lastErrorCode: UserFirewallPolicyService.lastErrorCode,
+      lastErrorMessage: UserFirewallPolicyService.lastErrorMessage
+    })
     try {
       let policy: netFirewall.NetFirewallPolicy = {
         isOpen: enabled,

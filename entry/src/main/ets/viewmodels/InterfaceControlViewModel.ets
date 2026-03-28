@@ -33,7 +33,6 @@ export class InterfaceControlViewModel {
   }
 
   processingKey: string = ''
-  syncVersion: number = 0
 
   reloadState(): void {
     try {
@@ -67,7 +66,6 @@ export class InterfaceControlViewModel {
 
   async toggleInterface(feature: string, disallow: boolean): Promise<string | null> {
     this.processingKey = feature
-    this.syncVersion++
     try {
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
@@ -81,13 +79,11 @@ export class InterfaceControlViewModel {
       return PeripheralReasons.TOGGLE_INTERFACE_FAILED
     } finally {
       this.processingKey = ''
-      this.syncVersion++
     }
   }
 
   async setUsbStoragePolicy(index: number): Promise<string | null> {
     this.processingKey = 'usb-storage-policy'
-    this.syncVersion++
     try {
       const policy = index === 0
         ? edmUsbManager.UsbPolicy.READ_ONLY
@@ -116,7 +112,6 @@ export class InterfaceControlViewModel {
       return PeripheralReasons.USB_STORAGE_POLICY_FAILED
     } finally {
       this.processingKey = ''
-      this.syncVersion++
     }
   }
 
@@ -136,7 +131,6 @@ export class InterfaceControlViewModel {
 
   private commitState(nextState: InterfaceControlState): void {
     this.state = nextState
-    this.syncVersion++
   }
 
   private getUsbStoragePolicyIndex(policy: edmUsbManager.UsbPolicy): number {

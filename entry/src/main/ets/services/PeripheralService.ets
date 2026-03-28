@@ -571,7 +571,7 @@ export class PeripheralService {
     } as OperationResult<void>
   }
 
-  private static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
+  public static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
     let code = CommonErrorUtils.extractErrorCode(err)
     let isAdminMissing = EnterpriseAdminService.isAdminMissingError(err)
     let message = isAdminMissing ?
