@@ -2,11 +2,11 @@ import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
-import { promptAction } from '@kit.ArkUI'
 import {
   ConnectionDetailDialog,
   ConnectionHistoryItem
 } from '../components/peripheral/ConnectionDetailDialog'
+import { LoadingDialog } from '../components/UserFirewallControlDialog'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
@@ -34,6 +34,7 @@ export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @State viewModel: PeripheralViewModel = new PeripheralViewModel()
+  @State currentTabIndex: number = 0
   @State hoveredPanelIndex: number = -1
   @State renderVersion: number = 0
   @State detailVisible: boolean = false
@@ -46,7 +47,7 @@ export struct PeripheralPage {
     { value: PeripheralStrings.policyOptions[1] }
   ]
   private usbLoadingOpenedAt: number = 0
-  private usbLoadingDialogId: number = -1
+  private usbLoadingDialogController?: CustomDialogController
 
   aboutToAppear() {
     void this.initViewModel()
@@ -68,6 +69,7 @@ export struct PeripheralPage {
       await PeripheralRuntimeEventService.init(context)
       await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(context)
+      this.currentTabIndex = this.viewModel.currentTab
       this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
@@ -75,57 +77,38 @@ export struct PeripheralPage {
     }
   } 
 
-  @Builder
-  private usbLoadingDialogContent(message: string) {
-    Column({ space: 14 }) {
-      LoadingProgress().width(44).height(44)
-      Text(message)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .textAlign(TextAlign.Center)
-    }
-    .width(280)
-    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .shadow({
-      radius: 18,
-      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)',
-      offsetX: 0,
-      offsetY: 8
-    })
-  }
-
   private async openUsbLoadingDialog(message: string): Promise<void> {
-    this.closeUsbLoadingDialog()
+    if (this.usbLoadingDialogController) {
+      return
+    }
     this.usbLoadingOpenedAt = Date.now()
     try {
-      this.usbLoadingDialogId = await promptAction.openCustomDialog({
-        builder: () => {
-          this.usbLoadingDialogContent(message)
-        },
+      this.usbLoadingDialogController = new CustomDialogController({
+        builder: LoadingDialog({
+          controller: this.usbLoadingDialogController,
+          message: message
+        }),
         alignment: DialogAlignment.Center,
-        autoCancel: false
+        autoCancel: false,
+        customStyle: true
       })
+      this.usbLoadingDialogController.open()
     } catch (err) {
       hilog.warn(DOMAIN, TAG, `openUsbLoadingDialog failed: ${JSON.stringify(err)}`)
-      this.usbLoadingDialogId = -1
+      this.usbLoadingDialogController = undefined
     }
   }
 
   private closeUsbLoadingDialog(): void {
-    if (this.usbLoadingDialogId < 0) {
+    if (!this.usbLoadingDialogController) {
       this.usbLoadingOpenedAt = 0
       return
     }
     try {
-      promptAction.closeCustomDialog(this.usbLoadingDialogId)
+      this.usbLoadingDialogController.close()
     } catch (_err) {
     } finally {
-      this.usbLoadingDialogId = -1
+      this.usbLoadingDialogController = undefined
     }
     this.usbLoadingOpenedAt = 0
   }
@@ -151,8 +134,8 @@ export struct PeripheralPage {
   }
 
   private handleTabChange(index: number): void {
+    this.currentTabIndex = index
     this.viewModel.switchToTab(index)
-    this.renderVersion++
   }
 
   private openDetailDialog(record: PeripheralConnectionRecord): void {
@@ -173,7 +156,7 @@ export struct PeripheralPage {
 
   @Builder
   private tabBarBuilder(title: string, index: number) {
-    TabBuilder({ title: title, index: index, currentTab: this.viewModel.currentTab, currentTheme: this.currentTheme })
+    TabBuilder({ title: title, index: index, currentTab: this.currentTabIndex, currentTheme: this.currentTheme })
   }
 
   build() {
@@ -222,14 +205,14 @@ export struct PeripheralPage {
 
   @Builder
   private headerRightActions() {
-    if (this.viewModel.currentTab === 1) {
+    if (this.currentTabIndex === 1) {
       this.headerActions(
         PeripheralStrings.exportHistoryLabel,
         PeripheralStrings.clearHistoryLabel,
         () => void this.handleExportConnectionHistory(),
         () => this.showClearHistoryConfirmDialog()
       )
-    } else if (this.viewModel.currentTab === 2) {
+    } else if (this.currentTabIndex === 2) {
       this.headerActions(
         PeripheralStrings.exportPolicyLabel,
         PeripheralStrings.clearPolicyLabel,
@@ -267,7 +250,6 @@ export struct PeripheralPage {
         usbStoragePolicyIndex: this.viewModel.interfaceControl.state.usbStoragePolicyIndex,
         interfaceControlProcessingKey: this.viewModel.interfaceControl.processingKey,
         usbStorageControlKey: 'usb-storage-policy',
-        interfaceControlSyncToken: this.viewModel.interfaceControl.syncVersion,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
