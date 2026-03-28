@@ -34,36 +34,18 @@ export struct IconTextActionButton {
     }
   }
 
-  private getIconTileColor(): ResourceColor {
-    let colors = AppColors.getColors(this.currentTheme)
-    switch (this.kind) {
-      case 'danger':
-        return this.isHovered ? colors.TAG_RED_BG : colors.BG_COMPONENT
-      default:
-        return this.isHovered ? colors.TAG_BLUE_BG : colors.BG_COMPONENT
-    }
-  }
-
   build() {
     Button() {
       Row({ space: 8 }) {
-        Row() {
-          Image(this.icon)
-            .width(18)
-            .height(18)
-            .draggable(false)
-        }
-        .width(26)
-        .height(26)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
-        .backgroundColor(this.getIconTileColor())
-        .borderRadius(AppStyles.RADIUS_SM)
+        Image(this.icon)
+          .width(20)
+          .height(20)
+          .draggable(false)
 
         Text(this.label)
           .fontSize(15)
           .fontColor(this.getForegroundColor())
-          .fontWeight(FontWeight.Bold)
+          .fontWeight(FontWeight.Medium)
       }
       .alignItems(VerticalAlign.Center)
     }

@@ -1,13 +1,13 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { BackNavButton } from '../components/BackNavButton'
+import { IconTextActionButton } from '../components/IconTextActionButton'
 import {
   ConnectionDetailDialog,
   ConnectionHistoryItem
 } from '../components/peripheral/ConnectionDetailDialog'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
-import { PageHeaderActions } from '../components/peripheral/PageHeaderActions'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
@@ -37,7 +37,7 @@ struct PeripheralUsbLoadingOverlay {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('rgba(0,0,0,0.18)')
+        .backgroundColor('rgba(0,0,0,0.24)')
 
       Column({ space: 14 }) {
         LoadingProgress().width(44).height(44)
@@ -53,7 +53,12 @@ struct PeripheralUsbLoadingOverlay {
       .justifyContent(FlexAlign.Center)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
       .borderRadius(AppStyles.RADIUS_LG)
-      .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+      .shadow({
+        radius: 18,
+        color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)',
+        offsetX: 0,
+        offsetY: 8
+      })
     }
     .width('100%')
     .height('100%')
@@ -230,21 +235,19 @@ export struct PeripheralPage {
       .alignItems(VerticalAlign.Top)
 
       if (this.viewModel.currentTab === 1) {
-        PageHeaderActions({
-          exportLabel: PeripheralStrings.exportHistoryLabel,
-          clearLabel: PeripheralStrings.clearHistoryLabel,
-          onExport: () => void this.handleExportConnectionHistory(),
-          onClear: () => this.showClearHistoryConfirmDialog(),
-          showClear: true
-        })
+        this.headerActions(
+          PeripheralStrings.exportHistoryLabel,
+          PeripheralStrings.clearHistoryLabel,
+          () => void this.handleExportConnectionHistory(),
+          () => this.showClearHistoryConfirmDialog()
+        )
       } else if (this.viewModel.currentTab === 2) {
-        PageHeaderActions({
-          exportLabel: PeripheralStrings.exportPolicyLabel,
-          clearLabel: PeripheralStrings.clearPolicyLabel,
-          onExport: () => void this.handleExportPeripheralPolicyRecords(),
-          onClear: () => this.showClearPolicyRecordsConfirmDialog(),
-          showClear: true
-        })
+        this.headerActions(
+          PeripheralStrings.exportPolicyLabel,
+          PeripheralStrings.clearPolicyLabel,
+          () => void this.handleExportPeripheralPolicyRecords(),
+          () => this.showClearPolicyRecordsConfirmDialog()
+        )
       }
     }
     .width('100%')
@@ -387,6 +390,30 @@ export struct PeripheralPage {
       this.showResultDialog('success', PeripheralStrings.exportHistorySuccess)
     } else {
       this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+    }
+  }
+
+  @Builder
+  private headerActions(
+    exportLabel: string,
+    clearLabel: string,
+    onExport: () => void,
+    onClear: () => void
+  ) {
+    Row({ space: 8 }) {
+      IconTextActionButton({
+        label: exportLabel,
+        icon: $r('app.media.save'),
+        kind: 'primary',
+        onTap: onExport
+      })
+
+      IconTextActionButton({
+        label: clearLabel,
+        icon: $r('app.media.trash'),
+        kind: 'danger',
+        onTap: onClear
+      })
     }
   }
 
