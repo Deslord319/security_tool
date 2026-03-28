@@ -8,10 +8,10 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BackNavButton } from '../components/BackNavButton'
 import { FormControlUtils } from '../utils/FormControlUtils'
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
+import { IconTextActionButton } from '../components/IconTextActionButton'
+import { DialogService } from '../utils/DialogService'
 import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
 const TAG = 'ToolSettings.Page'
@@ -23,15 +23,6 @@ export struct ToolSettingsPage {
   onBack: () => void = () => {}
   @State viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   @State initialized: boolean = false
-  private resultDialogController: CustomDialogController = new CustomDialogController({
-    builder: ResultMessageBox({
-      onConfirm: () => {
-      }
-    }),
-    alignment: DialogAlignment.Center,
-    autoCancel: false,
-    customStyle: true
-  })
   private authMethodOptions: SelectOption[] =
     AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
 
@@ -42,19 +33,6 @@ export struct ToolSettingsPage {
 
   aboutToDisappear() {
     hilog.info(DOMAIN, TAG, '[PAGE_EXIT] aboutToDisappear | route=tool-settings')
-    try {
-      this.resultDialogController.close()
-    } catch (_err) {
-    }
-  }
-
-  private showResultDialog(status: ResultMessageStatus, message: string): void {
-    ResultDialogHelper.prepareResultDialog(status, message)
-    try {
-      this.resultDialogController.close()
-    } catch (_err) {
-    }
-    this.resultDialogController.open()
   }
 
   private async initializeViewModel(): Promise<void> {
@@ -77,25 +55,22 @@ export struct ToolSettingsPage {
 
   private handleActionRequest(request: ToolSettingsActionRequest): void {
     if (request.kind === 'result' && request.status && request.message) {
-      this.showResultDialog(request.status, request.message)
+      void DialogService.openResult(this.getUIContext(), {
+        status: request.status,
+        message: request.message
+      })
       return
     }
     if (request.kind !== 'confirm' || !request.title || !request.message) {
       return
     }
-    void this.getUIContext().showAlertDialog({
+    void DialogService.openConfirm(this.getUIContext(), {
       title: request.title,
       message: request.message,
-      primaryButton: {
-        value: ToolSettingsStrings.continueSave,
-        action: () => {
-          void this.handleSave(true)
-        }
-      },
-      secondaryButton: {
-        value: CommonStrings.actionCancel,
-        action: () => {
-        }
+      confirmText: ToolSettingsStrings.continueSave,
+      cancelText: CommonStrings.actionCancel,
+      onConfirm: () => {
+        void this.handleSave(true)
       }
     })
   }
@@ -199,27 +174,13 @@ export struct ToolSettingsPage {
 
   @Builder
   private saveButton() {
-    Button() {
-      Row({ space: 6 }) {
-        Image($r('app.media.save'))
-          .width(14)
-          .height(14)
-          .fillColor(Color.White)
-          .draggable(false)
-
-        Text(ToolSettingsStrings.saveButton)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(Color.White)
+    IconTextActionButton({
+      label: ToolSettingsStrings.saveButton,
+      icon: $r('app.media.save'),
+      kind: 'primary',
+      onTap: () => {
+        void this.handleSave()
       }
-      .alignItems(VerticalAlign.Center)
-    }
-    .type(ButtonType.Normal)
-    .backgroundColor(AppColors.BRAND_PRIMARY)
-    .borderRadius(AppStyles.RADIUS_SM)
-    .height(32)
-    .padding({ left: 10, right: 10 })
-    .onClick(() => {
-      void this.handleSave()
     })
   }
 

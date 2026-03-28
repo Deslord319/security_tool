@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { ResultMessageStatus } from '../components/ResultMessageBox'
+import { ActionDialogStatus } from '../utils/DialogService'
 import { CommonStrings } from '../constants/CommonStrings'
 import { ToolSettingsStrings } from '../constants/modules/ToolSettingsStrings'
 import { AUTH_METHOD_OPTIONS, AuthMethod, DEFAULT_TOOL_SETTINGS, ToolSettingsConfig } from '../models/DataModels'
@@ -24,7 +24,7 @@ export type ToolSettingsActionKind = 'none' | 'result' | 'confirm'
 
 export interface ToolSettingsActionRequest {
   kind: ToolSettingsActionKind
-  status?: ResultMessageStatus
+  status?: ActionDialogStatus
   title?: string
   message?: string
 }

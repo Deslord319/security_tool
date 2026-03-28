@@ -27,4 +27,7 @@ export class CommonStrings {
   static readonly messageNoChanges: string = '当前没有需要保存的更改'
   static readonly messageSaveFailed: string = '保存失败，请稍后重试'
   static readonly messageRetryLater: string = '请稍后重试'
+  static readonly dialogSuccessTitle: string = '操作成功'
+  static readonly dialogFailureTitle: string = '操作失败'
+  static readonly actionAcknowledge: string = '我知道了'
 }

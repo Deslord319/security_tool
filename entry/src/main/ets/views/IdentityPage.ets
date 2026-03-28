@@ -13,8 +13,8 @@ import { IdentityService } from '../services/IdentityService'
 import { BackNavButton } from '../components/BackNavButton'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { IconTextActionButton } from '../components/IconTextActionButton'
+import { DialogService } from '../utils/DialogService'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
@@ -33,15 +33,6 @@ export struct IdentityPage {
     adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
   }
   @State viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
-  private resultDialogController: CustomDialogController = new CustomDialogController({
-    builder: ResultMessageBox({
-      onConfirm: () => {
-      }
-    }),
-    alignment: DialogAlignment.Center,
-    autoCancel: false,
-    customStyle: true
-  })
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
     value: `${value} ${IdentityStrings.byteUnitSuffix}`
@@ -59,16 +50,6 @@ export struct IdentityPage {
     this.loadCurrentPolicy()
   }
 
-  private showResultDialog(status: ResultMessageStatus, message: string): void {
-    ResultDialogHelper.prepareResultDialog(status, message)
-    try {
-      this.resultDialogController.close()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
-    }
-    this.resultDialogController.open()
-  }
-
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
   }
@@ -78,12 +59,9 @@ export struct IdentityPage {
     if (this.adminState.activated) {
       return true
     }
-    this.showResultDialog(
-      'failure',
-      ResultDialogHelper.displayReason(
-        this.adminState.errorMessage,
-        `${action}${IdentityStrings.adminRequiredWithActionSuffix}`
-      )
+    void DialogService.openFailure(
+      this.getUIContext(),
+      this.adminState.errorMessage?.trim().length ? this.adminState.errorMessage : `${action}${IdentityStrings.adminRequiredWithActionSuffix}`
     )
     return false
   }
@@ -108,7 +86,10 @@ export struct IdentityPage {
     }
 
     let result = this.viewModel.save()
-    this.showResultDialog(result.success ? 'success' : 'failure', result.message)
+    void DialogService.openResult(this.getUIContext(), {
+      status: result.success ? 'success' : 'failure',
+      message: result.message
+    })
   }
 
   private getSelectedMinLengthLabel(): string {
@@ -185,27 +166,13 @@ export struct IdentityPage {
 
   @Builder
   private saveButton() {
-    Button() {
-      Row({ space: 6 }) {
-        Image($r('app.media.save'))
-          .width(14)
-          .height(14)
-          .fillColor(Color.White)
-          .draggable(false)
-
-        Text(IdentityStrings.saveButton)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(Color.White)
+    IconTextActionButton({
+      label: IdentityStrings.saveButton,
+      icon: $r('app.media.save'),
+      kind: 'primary',
+      onTap: () => {
+        this.saveConfig()
       }
-      .alignItems(VerticalAlign.Center)
-    }
-    .type(ButtonType.Normal)
-    .backgroundColor(AppColors.BRAND_PRIMARY)
-    .borderRadius(AppStyles.RADIUS_SM)
-    .height(32)
-    .padding({ left: 10, right: 10 })
-    .onClick(() => {
-      this.saveConfig()
     })
   }
 
