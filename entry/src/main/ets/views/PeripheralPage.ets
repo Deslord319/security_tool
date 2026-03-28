@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
+import { promptAction } from '@kit.ArkUI'
 import {
   ConnectionDetailDialog,
   ConnectionHistoryItem
@@ -28,44 +29,6 @@ const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
 
 @Component
-struct PeripheralUsbLoadingOverlay {
-  message: string = PeripheralStrings.usbLoadingMessage
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-
-  build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor('rgba(0,0,0,0.24)')
-
-      Column({ space: 14 }) {
-        LoadingProgress().width(44).height(44)
-        Text(this.message)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .textAlign(TextAlign.Center)
-      }
-      .width(280)
-      .padding({ left: 24, right: 24, top: 28, bottom: 28 })
-      .alignItems(HorizontalAlign.Center)
-      .justifyContent(FlexAlign.Center)
-      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-      .borderRadius(AppStyles.RADIUS_LG)
-      .shadow({
-        radius: 18,
-        color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)',
-        offsetX: 0,
-        offsetY: 8
-      })
-    }
-    .width('100%')
-    .height('100%')
-  }
-}
-
-@Component
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
@@ -81,16 +44,15 @@ export struct PeripheralPage {
     { value: PeripheralStrings.policyOptions[0] },
     { value: PeripheralStrings.policyOptions[1] }
   ]
-  @State usbLoadingVisible: boolean = false
-  @State usbLoadingMessage: string = PeripheralStrings.usbLoadingMessage
   private usbLoadingOpenedAt: number = 0
+  private usbLoadingDialogId: number = -1
 
   aboutToAppear() {
     void this.initViewModel()
   }
 
   aboutToDisappear() {
-    this.closeUsbLoadingOverlay()
+    this.closeUsbLoadingDialog()
     this.closeDetailDialog()
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
@@ -112,19 +74,63 @@ export struct PeripheralPage {
     }
   } 
 
-  private openUsbLoadingOverlay(message: string): void {
-    this.usbLoadingMessage = message
-    this.usbLoadingOpenedAt = Date.now()
-    this.usbLoadingVisible = true
+  @Builder
+  private usbLoadingDialogContent(message: string) {
+    Column({ space: 14 }) {
+      LoadingProgress().width(44).height(44)
+      Text(message)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+    }
+    .width(280)
+    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .shadow({
+      radius: 18,
+      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)',
+      offsetX: 0,
+      offsetY: 8
+    })
   }
 
-  private closeUsbLoadingOverlay(): void {
-    this.usbLoadingVisible = false
+  private async openUsbLoadingDialog(message: string): Promise<void> {
+    this.closeUsbLoadingDialog()
+    this.usbLoadingOpenedAt = Date.now()
+    try {
+      this.usbLoadingDialogId = await promptAction.openCustomDialog({
+        builder: () => {
+          this.usbLoadingDialogContent(message)
+        },
+        alignment: DialogAlignment.Center,
+        autoCancel: false
+      })
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `openUsbLoadingDialog failed: ${JSON.stringify(err)}`)
+      this.usbLoadingDialogId = -1
+    }
+  }
+
+  private closeUsbLoadingDialog(): void {
+    if (this.usbLoadingDialogId < 0) {
+      this.usbLoadingOpenedAt = 0
+      return
+    }
+    try {
+      promptAction.closeCustomDialog(this.usbLoadingDialogId)
+    } catch (_err) {
+    } finally {
+      this.usbLoadingDialogId = -1
+    }
     this.usbLoadingOpenedAt = 0
   }
 
   private async runUsbOperationWithLoading(message: string, operation: () => Promise<boolean>): Promise<boolean> {
-    this.openUsbLoadingOverlay(message)
+    await this.openUsbLoadingDialog(message)
     try {
       await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), 120))
       return await operation()
@@ -133,7 +139,7 @@ export struct PeripheralPage {
       if (remaining > 0) {
         await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), remaining))
       }
-      this.closeUsbLoadingOverlay()
+      this.closeUsbLoadingDialog()
     }
   }
 
@@ -193,12 +199,6 @@ export struct PeripheralPage {
           historyItems: this.detailHistoryItems,
           currentTheme: this.currentTheme,
           onClose: () => this.closeDetailDialog()
-        })
-      }
-
-      if (this.usbLoadingVisible) {
-        PeripheralUsbLoadingOverlay({
-          message: this.usbLoadingMessage
         })
       }
     }

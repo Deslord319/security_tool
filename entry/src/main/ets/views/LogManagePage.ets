@@ -1065,7 +1065,7 @@ export struct LogManagePage {
             icon: $r('app.media.save'),
             kind: 'primary',
             onTap: () => {
-              void this.saveStorageSettings()
+              this.saveStorageSettings()
             }
           })
 

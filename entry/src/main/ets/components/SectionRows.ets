@@ -129,7 +129,7 @@ export struct SectionActionRow {
 
       Button(this.actionLabel)
         .type(ButtonType.Normal)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.getActionForeground())
         .backgroundColor(this.getActionBackground())

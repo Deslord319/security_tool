@@ -152,7 +152,7 @@ export struct DeviceRecordList {
 
       Row() {
         Text('详情')
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.getDetailButtonForeground())
         }

@@ -69,7 +69,7 @@ export class AppStyles {
 
 export class ActionButtonStyles {
   static readonly HEIGHT: number = 36
-  static readonly ICON_SIZE: number = 18
+  static readonly ICON_SIZE: number = 20
   static readonly FONT_SIZE: number = 14
   static readonly HORIZONTAL_PADDING_START: number = 10
   static readonly HORIZONTAL_PADDING_END: number = 14
@@ -79,7 +79,7 @@ export class ActionButtonStyles {
 
   static getPrimaryBackground(theme: ThemeMode, isHovered: boolean): ResourceColor {
     if (theme === ThemeMode.DARK) {
-      return isHovered ? 'rgba(94,161,255,0.32)' : 'rgba(94,161,255,0.22)'
+      return isHovered ? 'rgba(94,161,255,0.18)' : 'rgba(44, 103, 185, 0.48)'
     }
     let colors = AppColors.getColors(theme)
     return isHovered ? colors.BG_HOVER : colors.TAG_BLUE_BG
@@ -87,7 +87,7 @@ export class ActionButtonStyles {
 
   static getDangerBackground(theme: ThemeMode, isHovered: boolean): ResourceColor {
     if (theme === ThemeMode.DARK) {
-      return isHovered ? 'rgba(255,59,48,0.32)' : 'rgba(255,59,48,0.22)'
+      return isHovered ? 'rgba(255,59,48,0.18)' : 'rgba(185, 54, 47, 0.67)'
     }
     let colors = AppColors.getColors(theme)
     return isHovered ? colors.BG_HOVER : colors.TAG_RED_BG
@@ -97,14 +97,14 @@ export class ActionButtonStyles {
     if (theme === ThemeMode.DARK) {
       return Color.White
     }
-    return AppColors.getColors(theme).TAG_BLUE_TEXT
+    return AppColors.getColors(theme).TEXT_PRIMARY
   }
 
   static getDangerForeground(theme: ThemeMode): ResourceColor {
     if (theme === ThemeMode.DARK) {
       return Color.White
     }
-    return AppColors.getColors(theme).TAG_RED_TEXT
+    return AppColors.getColors(theme).TEXT_PRIMARY
   }
 }
 

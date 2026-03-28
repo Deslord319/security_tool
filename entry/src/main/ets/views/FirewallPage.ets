@@ -4,6 +4,7 @@ import { SubPageHeader } from '../components/SubPageHeader'
 import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
+import { promptAction } from '@kit.ArkUI'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
@@ -16,41 +17,6 @@ const TAG = 'FirewallPage'
 const DOMAIN = 0x0010
 const MIN_MODE_LOADING_DIALOG_DURATION_MS = 500
 const DEFAULT_FIREWALL_USER_ID = 100
-
-@CustomDialog
-struct FirewallModeLoadingDialog {
-  controller: CustomDialogController
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-
-  build() {
-    Column({ space: 14 }) {
-      LoadingProgress()
-        .width(44)
-        .height(44)
-      Text(FirewallStrings.modeLoadingMessage)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .textAlign(TextAlign.Center)
-    }
-    .width(280)
-    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow({
-      radius: 20,
-      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.36)' : 'rgba(0,0,0,0.14)',
-      offsetX: 0,
-      offsetY: 10
-    })
-  }
-}
 
 @Component
 export struct FirewallPage {
@@ -65,14 +31,8 @@ export struct FirewallPage {
   onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
   onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
-  private isModeLoadingDialogOpen: boolean = false
+  private modeLoadingDialogId: number = -1
   private modeLoadingDialogOpenedAt: number = 0
-  private modeLoadingDialogController: CustomDialogController = new CustomDialogController({
-    builder: FirewallModeLoadingDialog(),
-    alignment: DialogAlignment.Center,
-    autoCancel: false,
-    customStyle: true
-  })
   private userFirewallDialogController?: CustomDialogController
 
   aboutToAppear() {
@@ -299,32 +259,68 @@ export struct FirewallPage {
     this.onFirewallToggle(nextEnabled)
   }
 
-  private openModeLoadingDialog(): void {
-    if (this.isModeLoadingDialogOpen) {
+  @Builder
+  private modeLoadingDialogContent() {
+    Column({ space: 14 }) {
+      LoadingProgress()
+        .width(44)
+        .height(44)
+      Text(FirewallStrings.modeLoadingMessage)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+    }
+    .width(280)
+    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .shadow({
+      radius: 20,
+      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.36)' : 'rgba(0,0,0,0.14)',
+      offsetX: 0,
+      offsetY: 10
+    })
+  }
+
+  private async openModeLoadingDialog(): Promise<void> {
+    if (this.modeLoadingDialogId >= 0) {
       return
     }
     this.modeLoadingDialogOpenedAt = Date.now()
-    this.modeLoadingDialogController.open()
-    this.isModeLoadingDialogOpen = true
+    try {
+      this.modeLoadingDialogId = await promptAction.openCustomDialog({
+        builder: () => {
+          this.modeLoadingDialogContent()
+        },
+        alignment: DialogAlignment.Center,
+        autoCancel: false
+      })
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `Failed to open mode loading dialog: ${JSON.stringify(err)}`)
+      this.modeLoadingDialogId = -1
+    }
   }
 
   private closeModeLoadingDialog(): void {
-    if (!this.isModeLoadingDialogOpen) {
+    if (this.modeLoadingDialogId < 0) {
       this.modeLoadingDialogOpenedAt = 0
       return
     }
     try {
-      this.modeLoadingDialogController.close()
+      promptAction.closeCustomDialog(this.modeLoadingDialogId)
     } catch (err) {
       hilog.warn(DOMAIN, TAG, `Failed to close mode loading dialog: ${JSON.stringify(err)}`)
     } finally {
-      this.isModeLoadingDialogOpen = false
+      this.modeLoadingDialogId = -1
       this.modeLoadingDialogOpenedAt = 0
     }
   }
 
   private async waitForModeLoadingDialogMinimumDuration(): Promise<void> {
-    if (!this.isModeLoadingDialogOpen) {
+    if (this.modeLoadingDialogId < 0) {
       return
     }
     let elapsed = Date.now() - this.modeLoadingDialogOpenedAt
@@ -357,7 +353,7 @@ export struct FirewallPage {
       return
     }
     this.isModeProcessing = true
-    this.openModeLoadingDialog()
+    await this.openModeLoadingDialog()
     let success = false
     try {
       success = await this.onModeChange(mode)

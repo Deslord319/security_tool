@@ -5,7 +5,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 export struct SubPageHeader {
   title: string = ''
   subtitle: string = ''
-  currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @BuilderParam actions?: () => void
   @State private hovered: boolean = false
