@@ -77,20 +77,30 @@ export class ActionButtonStyles {
   static readonly CHIP_HEIGHT: number = 32
   static readonly CHIP_HORIZONTAL_PADDING: number = 12
 
-  static getPrimaryBackground(theme: ThemeMode, isHovered: boolean): ResourceColor {
+  static getPrimaryBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (theme === ThemeMode.DARK) {
-      return isHovered ? 'rgba(94,161,255,0.18)' : 'rgba(44, 103, 185, 0.48)'
+      if (isPressed) {
+        return 'rgba(94,161,255,0.24)'
+      }
+      return isHovered ? 'rgba(94,161,255,0.18)' : 'rgba(44,103,185,0.48)'
     }
-    let colors = AppColors.getColors(theme)
-    return isHovered ? colors.BG_HOVER : colors.TAG_BLUE_BG
+    if (isPressed) {
+      return 'rgba(10,132,255,0.20)'
+    }
+    return isHovered ? 'rgba(10,132,255,0.14)' : AppColors.getColors(theme).TAG_BLUE_BG
   }
 
-  static getDangerBackground(theme: ThemeMode, isHovered: boolean): ResourceColor {
+  static getDangerBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (theme === ThemeMode.DARK) {
-      return isHovered ? 'rgba(255,59,48,0.18)' : 'rgba(185, 54, 47, 0.67)'
+      if (isPressed) {
+        return 'rgba(255,59,48,0.24)'
+      }
+      return isHovered ? 'rgba(255,59,48,0.18)' : 'rgba(185,54,47,0.67)'
     }
-    let colors = AppColors.getColors(theme)
-    return isHovered ? colors.BG_HOVER : colors.TAG_RED_BG
+    if (isPressed) {
+      return 'rgba(255,59,48,0.20)'
+    }
+    return isHovered ? 'rgba(255,59,48,0.14)' : AppColors.getColors(theme).TAG_RED_BG
   }
 
   static getPrimaryForeground(theme: ThemeMode): ResourceColor {
@@ -105,6 +115,71 @@ export class ActionButtonStyles {
       return Color.White
     }
     return AppColors.getColors(theme).TEXT_PRIMARY
+  }
+}
+
+export class InteractiveItemStyles {
+  static readonly ITEM_HEIGHT: number = 44
+  static readonly ITEM_RADIUS: number = 12
+  static readonly ITEM_HORIZONTAL_PADDING_START: number = 8
+  static readonly ITEM_HORIZONTAL_PADDING_END: number = 10
+  static readonly ICON_TILE_SIZE: number = 30
+  static readonly ICON_TILE_RADIUS: number = 10
+  static readonly ICON_SIZE: number = 18
+
+  static getMenuItemBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): string {
+    if (!isHovered && !isPressed) {
+      return 'rgba(0,0,0,0)'
+    }
+    if (theme === ThemeMode.DARK) {
+      return isPressed ? 'rgba(94,94,98,0.92)' : 'rgba(84,84,88,0.78)'
+    }
+    return isPressed ? 'rgba(209,209,214,0.95)' : 'rgba(229,229,234,0.92)'
+  }
+
+  static getMenuIconColor(theme: ThemeMode): ResourceColor {
+    return theme === ThemeMode.DARK ? '#A9C7FF' : AppColors.BRAND_PRIMARY
+  }
+
+  static getMenuIconTileBackground(theme: ThemeMode): string {
+    return theme === ThemeMode.DARK ? AppColors.MENU_ICON_TILE_DARK : AppColors.MENU_ICON_TILE_LIGHT
+  }
+
+  static getBackButtonBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): string {
+    return InteractiveItemStyles.getMenuItemBackground(theme, isHovered, isPressed)
+  }
+
+  static getSidebarItemBackground(theme: ThemeMode, isSelected: boolean, isHovered: boolean, isPressed: boolean = false): string {
+    if (isSelected) {
+      if (theme === ThemeMode.DARK) {
+        return isPressed ? 'rgba(94,161,255,0.90)' : (isHovered ? 'rgba(94,161,255,0.82)' : AppColors.BRAND_PRIMARY)
+      }
+      return isPressed ? 'rgba(10,132,255,0.92)' : (isHovered ? 'rgba(10,132,255,0.84)' : AppColors.BRAND_PRIMARY)
+    }
+    return InteractiveItemStyles.getMenuItemBackground(theme, isHovered, isPressed)
+  }
+
+  static getSidebarIconTileBackground(theme: ThemeMode, isSelected: boolean): string {
+    if (isSelected) {
+      return AppColors.SIDEBAR_SELECTED_TILE
+    }
+    return theme === ThemeMode.DARK ? 'rgba(10,132,255,0.14)' : 'rgba(10,132,255,0.08)'
+  }
+
+  static getSidebarIconColor(theme: ThemeMode, isSelected: boolean): ResourceColor {
+    return isSelected ? AppColors.SIDEBAR_SELECTED_ICON : InteractiveItemStyles.getMenuIconColor(theme)
+  }
+
+  static getSidebarTextColor(theme: ThemeMode, isSelected: boolean): ResourceColor {
+    return isSelected ? Color.White : AppColors.getColors(theme).TEXT_PRIMARY
+  }
+
+  static getThemeModeIconColor(theme: ThemeMode): string {
+    return theme === ThemeMode.DARK ? '#8E8E93' : '#FFD60A'
+  }
+
+  static getThemeModeIconTileBackground(theme: ThemeMode): string {
+    return theme === ThemeMode.DARK ? 'rgba(142,142,147,0.18)' : 'rgba(255,214,10,0.14)'
   }
 }
 

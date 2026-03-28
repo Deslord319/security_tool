@@ -74,10 +74,6 @@ export class LogManageStrings {
     return `${pageSize} 条/页`
   }
 
-  static buildExportSuccessText(fileName: string): string {
-    return `导出成功：${fileName}`
-  }
-
   static buildExportFailedText(reasonText: string): string {
     return `导出失败：${reasonText}`
   }

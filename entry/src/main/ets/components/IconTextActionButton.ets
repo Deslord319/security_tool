@@ -13,13 +13,14 @@ export struct IconTextActionButton {
   onTap: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State private isHovered: boolean = false
+  @State private isPressed: boolean = false
 
   private getBackgroundColor(): ResourceColor {
     switch (this.kind) {
       case 'danger':
-        return ActionButtonStyles.getDangerBackground(this.currentTheme, this.isHovered)
+        return ActionButtonStyles.getDangerBackground(this.currentTheme, this.isHovered, this.isPressed)
       default:
-        return ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isHovered)
+        return ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isHovered, this.isPressed)
     }
   }
 
@@ -43,7 +44,7 @@ export struct IconTextActionButton {
         Text(this.label)
           .fontSize(ActionButtonStyles.FONT_SIZE)
           .fontColor(this.getForegroundColor())
-          .fontWeight(FontWeight.Medium)
+          .fontWeight(FontWeight.Regular)
       }
       .alignItems(VerticalAlign.Center)
     }
@@ -61,7 +62,20 @@ export struct IconTextActionButton {
     .onHover((isHover: boolean) => {
       this.isHovered = this.isEnabled && isHover
     })
+    .onTouch((event: TouchEvent) => {
+      if (!this.isEnabled) {
+        return
+      }
+      if (event.type === TouchType.Down) {
+        this.isPressed = true
+        return
+      }
+      if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.isPressed = false
+      }
+    })
     .onClick(() => {
+      this.isPressed = false
       if (this.isEnabled) {
         this.onTap()
       }

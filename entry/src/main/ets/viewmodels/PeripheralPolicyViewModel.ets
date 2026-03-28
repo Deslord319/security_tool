@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
+  ExportActionResult,
   formatUsbDeviceId,
   getPeripheralTypeLabel,
   parseUsbDeviceId,
@@ -84,12 +85,12 @@ export class PeripheralPolicyViewModel {
     }
   }
 
-  async exportRecords(context: common.UIAbilityContext | null): Promise<string | null> {
+  async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     if (this.records.length === 0) {
-      return PeripheralReasons.EMPTY_POLICY_RECORDS
+      return { success: false, reason: PeripheralReasons.EMPTY_POLICY_RECORDS } as ExportActionResult
     }
     if (!context) {
-      return PeripheralReasons.EXPORT_ENV_NOT_READY
+      return { success: false, reason: PeripheralReasons.EXPORT_ENV_NOT_READY } as ExportActionResult
     }
 
     try {
@@ -99,10 +100,12 @@ export class PeripheralPolicyViewModel {
         csvContent,
         fileNamePrefix: 'peripheral_policy_list'
       })
-      return result.success ? null : PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED
+      return result.success ?
+        { success: true, fileName: result.fileName } as ExportActionResult :
+        { success: false, reason: PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportRecords failed: ${JSON.stringify(err)}`)
-      return PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED
+      return { success: false, reason: PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     }
   }
 

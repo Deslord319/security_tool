@@ -1,4 +1,4 @@
-import { AppColors, AppStyles, NavItem, NAV_ITEMS, AppInfo } from '../constants/AppConstants'
+import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS, AppInfo } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -9,19 +9,20 @@ export struct SideBar {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State hoveredNavId: string = ''
   @State themeToggleHovered: boolean = false
+  @State activeNavId: string = ''
+  @State themeTogglePressed: boolean = false
 
   private getNavIconBackground(itemId: string): string {
-    if (this.selectedId === itemId) {
-      return AppColors.SIDEBAR_SELECTED_TILE
-    }
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(10,132,255,0.14)' : 'rgba(10,132,255,0.08)'
+    return InteractiveItemStyles.getSidebarIconTileBackground(this.currentTheme, this.selectedId === itemId)
   }
 
   private getNavItemBackground(itemId: string): string {
-    if (this.selectedId === itemId) {
-      return AppColors.BRAND_PRIMARY
-    }
-    return this.hoveredNavId === itemId ? (this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT) : 'rgba(0,0,0,0)'
+    return InteractiveItemStyles.getSidebarItemBackground(
+      this.currentTheme,
+      this.selectedId === itemId,
+      this.hoveredNavId === itemId,
+      this.activeNavId === itemId
+    )
   }
 
   private getThemeModeIcon(): Resource {
@@ -33,11 +34,11 @@ export struct SideBar {
   }
 
   private getThemeModeIconColor(): string {
-    return this.currentTheme === ThemeMode.DARK ? '#8E8E93' : '#FFD60A'
+    return InteractiveItemStyles.getThemeModeIconColor(this.currentTheme)
   }
 
   private getThemeModeIconBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(142,142,147,0.18)' : 'rgba(255,214,10,0.14)'
+    return InteractiveItemStyles.getThemeModeIconTileBackground(this.currentTheme)
   }
 
   build() {
@@ -70,14 +71,14 @@ export struct SideBar {
             Row({ space: 12 }) {
               Column() {
                 Image(item.icon)
-                  .width(16)
-                  .height(16)
-                  .fillColor(this.selectedId === item.id ? AppColors.SIDEBAR_SELECTED_ICON : AppColors.BRAND_PRIMARY)
+                  .width(InteractiveItemStyles.ICON_SIZE)
+                  .height(InteractiveItemStyles.ICON_SIZE)
+                  .fillColor(InteractiveItemStyles.getSidebarIconColor(this.currentTheme, this.selectedId === item.id))
                   .draggable(false)
               }
-              .width(28)
-              .height(28)
-              .borderRadius(6)
+              .width(InteractiveItemStyles.ICON_TILE_SIZE)
+              .height(InteractiveItemStyles.ICON_TILE_SIZE)
+              .borderRadius(InteractiveItemStyles.ICON_TILE_RADIUS)
               .justifyContent(FlexAlign.Center)
               .alignItems(HorizontalAlign.Center)
               .backgroundColor(this.getNavIconBackground(item.id))
@@ -85,19 +86,32 @@ export struct SideBar {
               Text(item.label)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontWeight(this.selectedId === item.id ? FontWeight.Medium : (this.hoveredNavId === item.id ? FontWeight.Bold : FontWeight.Normal))
-                .fontColor(this.selectedId === item.id ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .fontColor(InteractiveItemStyles.getSidebarTextColor(this.currentTheme, this.selectedId === item.id))
                 .opacity(this.selectedId === item.id ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             }
             .width('100%')
-            .height(44)
+            .height(InteractiveItemStyles.ITEM_HEIGHT)
             .id(`sidebar-nav-${item.id}`)
-            .padding({ left: 12, right: 12 })
-            .borderRadius(AppStyles.RADIUS_MD)
+            .padding({
+              left: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_START,
+              right: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_END
+            })
+            .borderRadius(InteractiveItemStyles.ITEM_RADIUS)
             .backgroundColor(this.getNavItemBackground(item.id))
             .onHover((isHover: boolean) => {
               this.hoveredNavId = isHover ? item.id : ''
             })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.activeNavId = item.id
+                return
+              }
+              if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.activeNavId = ''
+              }
+            })
             .onClick(() => {
+              this.activeNavId = ''
               this.onItemSelect(item.id)
             })
           }
@@ -114,14 +128,14 @@ export struct SideBar {
       Row({ space: 12 }) {
         Column() {
           Image(this.getThemeModeIcon())
-            .width(16)
-            .height(16)
+            .width(InteractiveItemStyles.ICON_SIZE)
+            .height(InteractiveItemStyles.ICON_SIZE)
             .fillColor(this.getThemeModeIconColor())
             .draggable(false)
         }
-        .width(28)
-        .height(28)
-        .borderRadius(6)
+        .width(InteractiveItemStyles.ICON_TILE_SIZE)
+        .height(InteractiveItemStyles.ICON_TILE_SIZE)
+        .borderRadius(InteractiveItemStyles.ICON_TILE_RADIUS)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
         .backgroundColor(this.getThemeModeIconBackground())
@@ -133,15 +147,28 @@ export struct SideBar {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       }
       .width('100%')
-      .height(48)
+      .height(InteractiveItemStyles.ITEM_HEIGHT)
       .id('sidebar-theme-toggle')
-      .padding({ left: 20, right: 20 })
-      .borderRadius(AppStyles.RADIUS_MD)
-      .backgroundColor(this.themeToggleHovered ? (this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT) : Color.Transparent)
+      .padding({
+        left: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_START,
+        right: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_END
+      })
+      .borderRadius(InteractiveItemStyles.ITEM_RADIUS)
+      .backgroundColor(InteractiveItemStyles.getMenuItemBackground(this.currentTheme, this.themeToggleHovered, this.themeTogglePressed))
       .onHover((isHover: boolean) => {
         this.themeToggleHovered = isHover
       })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.themeTogglePressed = true
+          return
+        }
+        if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.themeTogglePressed = false
+        }
+      })
       .onClick(() => {
+        this.themeTogglePressed = false
         ThemeManager.getInstance().toggleTheme()
       })
     }

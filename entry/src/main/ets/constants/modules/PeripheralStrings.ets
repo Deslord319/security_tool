@@ -32,8 +32,6 @@ export class PeripheralStrings {
   static readonly clearFailed: string = '清理未完成，请稍后重试'
   static readonly clearHistorySuccess: string = '历史记录已清理'
   static readonly clearPolicySuccess: string = '策略记录已清理'
-  static readonly exportHistorySuccess: string = '历史记录已导出，保存位置：下载/安全管理中心'
-  static readonly exportPolicySuccess: string = '策略记录已导出，保存位置：下载/安全管理中心'
   static readonly minUsbLoadingDuration: number = 500
 
   static readonly adminRequiredActionSuffix: string = '未完成，请先激活企业管理员权限'

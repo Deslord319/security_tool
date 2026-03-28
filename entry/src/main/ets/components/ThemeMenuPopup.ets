@@ -1,6 +1,6 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { ThemeManager, STORAGE_KEY_THEME, STORAGE_KEY_OPTION } from '../theme/ThemeManager'
-import { AppColors, AppStyles, AppInfo } from '../constants/AppConstants'
+import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
 
 @CustomDialog
 struct AboutDialog {
@@ -58,6 +58,9 @@ export struct ThemeMenuPopup {
   @State hoveredThemeKey: string = ''
   @State hoveredActionKey: string = ''
   @State aboutHovered: boolean = false
+  @State activeThemeKey: string = ''
+  @State activeActionKey: string = ''
+  @State aboutPressed: boolean = false
   @State menuHoverArmed: boolean = false
 
   private aboutDialogController: CustomDialogController = new CustomDialogController({
@@ -124,18 +127,19 @@ export struct ThemeMenuPopup {
   }
 
   private resolveMenuHoverBackground(isHovered: boolean): string {
-    if (!isHovered) {
-      return 'rgba(0,0,0,0)'
-    }
-    return this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT
+    return InteractiveItemStyles.getMenuItemBackground(this.currentTheme, isHovered)
+  }
+
+  private resolveMenuBackground(isHovered: boolean, isPressed: boolean): string {
+    return InteractiveItemStyles.getMenuItemBackground(this.currentTheme, isHovered, isPressed)
   }
 
   private resolveMenuIconFillColor(): ResourceColor {
-    return this.currentTheme === ThemeMode.DARK ? '#A9C7FF' : AppColors.BRAND_PRIMARY
+    return InteractiveItemStyles.getMenuIconColor(this.currentTheme)
   }
 
   private resolveMenuIconTileBackground(): string {
-    return this.currentTheme === ThemeMode.DARK ? 'rgba(255,255,255,0.08)' : 'rgba(60,60,67,0.06)'
+    return InteractiveItemStyles.getMenuIconTileBackground(this.currentTheme)
   }
 
   @Builder
@@ -169,14 +173,24 @@ export struct ThemeMenuPopup {
       .justifyContent(FlexAlign.Start)
       .alignItems(VerticalAlign.Center)
       .borderRadius(12)
-      .backgroundColor(this.resolveMenuHoverBackground(this.hoveredThemeKey === option))
+      .backgroundColor(this.resolveMenuBackground(this.hoveredThemeKey === option, this.activeThemeKey === option))
       .onHover((hover: boolean) => {
         if (!this.menuHoverArmed) {
           return
         }
         this.hoveredThemeKey = hover ? option : ''
       })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.activeThemeKey = option
+          return
+        }
+        if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.activeThemeKey = ''
+        }
+      })
       .onClick(() => {
+        this.activeThemeKey = ''
         ThemeManager.getInstance().setOption(option)
         this.showMenu = false
       })
@@ -211,7 +225,7 @@ export struct ThemeMenuPopup {
     .padding({ left: 8, right: 10 })
     .justifyContent(FlexAlign.Start)
     .alignItems(VerticalAlign.Center)
-    .backgroundColor(this.resolveMenuHoverBackground(this.hoveredActionKey === route))
+    .backgroundColor(this.resolveMenuBackground(this.hoveredActionKey === route, this.activeActionKey === route))
     .borderRadius(12)
     .onHover((hover: boolean) => {
       if (!this.menuHoverArmed) {
@@ -219,7 +233,17 @@ export struct ThemeMenuPopup {
       }
       this.hoveredActionKey = hover ? route : ''
     })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.activeActionKey = route
+        return
+      }
+      if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.activeActionKey = ''
+      }
+    })
     .onClick(() => {
+      this.activeActionKey = ''
       this.showMenu = false
       if (route && this.onNavigate) {
         this.onNavigate(route)
@@ -256,7 +280,7 @@ export struct ThemeMenuPopup {
     .padding({ left: 8, right: 10 })
     .justifyContent(FlexAlign.Start)
     .alignItems(VerticalAlign.Center)
-    .backgroundColor(this.resolveMenuHoverBackground(this.aboutHovered))
+    .backgroundColor(this.resolveMenuBackground(this.aboutHovered, this.aboutPressed))
     .borderRadius(12)
     .onHover((isHover: boolean) => {
       if (!this.menuHoverArmed) {
@@ -264,7 +288,17 @@ export struct ThemeMenuPopup {
       }
       this.aboutHovered = isHover
     })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.aboutPressed = true
+        return
+      }
+      if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.aboutPressed = false
+      }
+    })
     .onClick(() => {
+      this.aboutPressed = false
       this.showMenu = false
       this.aboutDialogController.open()
     })

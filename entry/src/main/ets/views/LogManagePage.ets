@@ -23,6 +23,7 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { ExportMessageUtils } from '../utils/ExportMessageUtils'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
@@ -586,7 +587,10 @@ export struct LogManagePage {
       csvContent: LogStorageService.buildCsvContent(this.logEntries)
     })
     if (result.success) {
-      DialogService.openSuccess(this.getUIContext(), LogManageStrings.buildExportSuccessText(result.fileName ?? '-'))
+        DialogService.openSuccess(
+        this.getUIContext(),
+        ExportMessageUtils.buildExportSuccessText(result.fileName ?? 'security_log.csv')
+      )
       return
     }
 

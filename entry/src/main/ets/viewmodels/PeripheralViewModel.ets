@@ -4,7 +4,7 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
-import { AdminActivationState, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
+import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
@@ -148,14 +148,16 @@ export class PeripheralViewModel {
     return true
   }
 
-  async exportConnectionHistory(): Promise<boolean> {
-    this.reasonCode = await this.records.exportConnectionHistory(this.appContext)
-    return this.reasonCode === null
+  async exportConnectionHistory(): Promise<ExportActionResult> {
+    let result = await this.records.exportConnectionHistory(this.appContext)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasons.EXPORT_CONNECTION_HISTORY_FAILED)
+    return result
   }
 
-  async exportPeripheralPolicyRecords(): Promise<boolean> {
-    this.reasonCode = await this.policy.exportRecords(this.appContext)
-    return this.reasonCode === null
+  async exportPeripheralPolicyRecords(): Promise<ExportActionResult> {
+    let result = await this.policy.exportRecords(this.appContext)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED)
+    return result
   }
 
   async clearPeripheralPolicyRecords(): Promise<boolean> {

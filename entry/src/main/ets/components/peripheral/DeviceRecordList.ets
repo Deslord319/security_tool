@@ -19,9 +19,15 @@ export struct DeviceRecordList {
   @Prop refreshVersion: number = 0
   onRecordClick?: (record: PeripheralConnectionRecord) => void
   onPanelHover?: (isHover: boolean) => void
+  @State private activeDetailId: string = ''
+  @State private hoveredDetailId: string = ''
 
-  private getDetailButtonBackground(): ResourceColor {
-    return ActionButtonStyles.getPrimaryBackground(this.currentTheme, false)
+  private getDetailButtonBackground(recordId: string): ResourceColor {
+    return ActionButtonStyles.getPrimaryBackground(
+      this.currentTheme,
+      this.hoveredDetailId === recordId,
+      this.activeDetailId === recordId
+    )
   }
 
   private getDetailButtonForeground(): ResourceColor {
@@ -153,19 +159,34 @@ export struct DeviceRecordList {
       Row() {
         Text('详情')
           .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
+          .fontWeight(FontWeight.Regular)
           .fontColor(this.getDetailButtonForeground())
         }
         .height(ActionButtonStyles.CHIP_HEIGHT)
-      .padding({
-        left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
-        right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
-      })
+        .padding({
+          left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
+          right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
+        })
         .justifyContent(FlexAlign.Center)
         .borderRadius(8)
-      .backgroundColor(this.getDetailButtonBackground())
+        .backgroundColor(this.getDetailButtonBackground(record.id))
         .layoutWeight(1.0)
-        .onClick(() => this.onRecordClick && this.onRecordClick(record))
+        .onHover((isHover: boolean) => {
+          this.hoveredDetailId = isHover ? record.id : ''
+        })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.activeDetailId = record.id
+            return
+          }
+          if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.activeDetailId = ''
+          }
+        })
+        .onClick(() => {
+          this.activeDetailId = ''
+          this.onRecordClick && this.onRecordClick(record)
+        })
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })

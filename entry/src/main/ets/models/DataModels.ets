@@ -629,6 +629,12 @@ export interface LogExportResult {
   errorMessage?: string
 }
 
+export interface ExportActionResult {
+  success: boolean
+  fileName?: string
+  reason?: string
+}
+
 export interface LogEventTypeOption {
   label: string
   value: LogEventType

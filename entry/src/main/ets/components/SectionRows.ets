@@ -100,9 +100,11 @@ export struct SectionActionRow {
   actionLabel: string = ''
   onTap: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State private isHovered: boolean = false
+  @State private isPressed: boolean = false
 
   private getActionBackground(): ResourceColor {
-    return ActionButtonStyles.getPrimaryBackground(this.currentTheme, false)
+    return ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isHovered, this.isPressed)
   }
 
   private getActionForeground(): ResourceColor {
@@ -130,7 +132,7 @@ export struct SectionActionRow {
       Button(this.actionLabel)
         .type(ButtonType.Normal)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
+        .fontWeight(FontWeight.Regular)
         .fontColor(this.getActionForeground())
         .backgroundColor(this.getActionBackground())
         .borderRadius(AppStyles.RADIUS_SM)
@@ -140,7 +142,20 @@ export struct SectionActionRow {
           right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
         })
         .stateEffect(false)
+        .onHover((isHover: boolean) => {
+          this.isHovered = isHover
+        })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.isPressed = true
+            return
+          }
+          if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.isPressed = false
+          }
+        })
         .onClick(() => {
+          this.isPressed = false
           this.onTap()
         })
     }

@@ -1,4 +1,4 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 
 @Component
@@ -9,38 +9,46 @@ export struct SubPageHeader {
   onBack: () => void = () => {}
   @BuilderParam actions?: () => void
   @State private hovered: boolean = false
+  @State private pressed: boolean = false
 
   private getIconColor(): string {
     return AppColors.getColors(this.currentTheme).TEXT_PRIMARY
   }
 
   private getButtonBackground(): string {
-    return Color.Transparent.toString()
-  }
-
-  private getButtonHoverBackground(): string {
-    return Color.Transparent.toString()
+    return InteractiveItemStyles.getBackButtonBackground(this.currentTheme, this.hovered, this.pressed)
   }
 
   build() {
     Row() {
       Row({ space: 8 }) {
-        Button() {
+        Row() {
           Image($r('app.media.arrow_left'))
-            .width(22)
-            .height(22)
+            .width(InteractiveItemStyles.ICON_SIZE)
+            .height(InteractiveItemStyles.ICON_SIZE)
             .fillColor(this.getIconColor())
             .draggable(false)
         }
-        .type(ButtonType.Normal)
-        .width(36)
-        .height(36)
-        .borderRadius(AppStyles.RADIUS_MD)
-        .backgroundColor(this.hovered ? this.getButtonHoverBackground() : this.getButtonBackground())
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .width(InteractiveItemStyles.ITEM_HEIGHT)
+        .height(InteractiveItemStyles.ITEM_HEIGHT)
+        .borderRadius(InteractiveItemStyles.ITEM_RADIUS)
+        .backgroundColor(this.getButtonBackground())
         .onHover((isHover: boolean) => {
           this.hovered = isHover
         })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.pressed = true
+            return
+          }
+          if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.pressed = false
+          }
+        })
         .onClick(() => {
+          this.pressed = false
           this.onBack()
         })
 

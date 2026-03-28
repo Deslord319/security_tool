@@ -22,6 +22,7 @@ import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEven
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { ExportMessageUtils } from '../utils/ExportMessageUtils'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 import { DialogService } from '../utils/DialogService'
 
@@ -369,9 +370,12 @@ export struct PeripheralPage {
   }
 
   private async handleExportConnectionHistory(): Promise<void> {
-    const success = await this.viewModel.exportConnectionHistory()
-    if (success) {
-      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.exportHistorySuccess)
+    const result = await this.viewModel.exportConnectionHistory()
+    if (result.success) {
+      DialogService.openSuccess(
+        this.getUIContext(),
+        ExportMessageUtils.buildExportSuccessText(result.fileName ?? 'peripheral_connection_history.csv')
+      )
     } else {
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
@@ -402,9 +406,12 @@ export struct PeripheralPage {
   }
 
   private async handleExportPeripheralPolicyRecords(): Promise<void> {
-    const success = await this.viewModel.exportPeripheralPolicyRecords()
-    if (success) {
-      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.exportPolicySuccess)
+    const result = await this.viewModel.exportPeripheralPolicyRecords()
+    if (result.success) {
+      DialogService.openSuccess(
+        this.getUIContext(),
+        ExportMessageUtils.buildExportSuccessText(result.fileName ?? 'peripheral_policy_list.csv')
+      )
     } else {
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
