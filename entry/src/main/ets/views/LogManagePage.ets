@@ -10,11 +10,9 @@ import {
   LogEventResult,
   LogFilter,
   LogStatistics,
-  LogStorageConfig,
-  LOG_EVENT_TYPE_OPTIONS,
   LOG_RETENTION_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
-  DEFAULT_LOG_STORAGE_CONFIG,
+  LOG_EVENT_TYPE_OPTIONS,
   getLogEventTypeLabel,
   getLogEventResultLabel,
   getLogEventResultColor,
@@ -32,6 +30,7 @@ import { SectionSelectRow } from '../components/SectionRows'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { LogStorageSettingsViewModel } from '../viewmodels/LogStorageSettingsViewModel'
 
 const TAG = 'LogManagePage'
 const DOMAIN = 0x0012
@@ -335,6 +334,10 @@ struct LogDetailDialog {
 
 @Component
 export struct LogManagePage {
+  private static readonly STORAGE_MAX_ENTRY_OPTIONS: SelectOption[] =
+    LOG_MAX_ENTRIES_OPTIONS.map((value: number): SelectOption => ({ value: `${value}` } as SelectOption))
+  private static readonly STORAGE_RETENTION_OPTIONS: SelectOption[] =
+    LOG_RETENTION_OPTIONS.map((value: number): SelectOption => ({ value: `${value}` } as SelectOption))
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
   @State hoveredStatIndex: number = -1
@@ -355,16 +358,13 @@ export struct LogManagePage {
   @State filterKeyword: string = ''
   @State isSubscribed: boolean = false
 
-  @State maxEntriesIndex: number = 1
-  @State retentionIndex: number = 2
-
   @State showSettings: boolean = false
   @State isLoading: boolean = false
+  @State storageSettingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
 
   private refreshTimerId: number = -1
   private readonly REFRESH_INTERVAL_MS: number = 1500
-  private readonly SETTINGS_CONTENT_MAX_WIDTH: number = 1280
-  private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 220
+  private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 140
   private readonly pageSizeOptions: number[] = [20, 50, 100]
   private detailDialogController?: CustomDialogController
   private resultDialogController: CustomDialogController = new CustomDialogController({
@@ -428,7 +428,7 @@ export struct LogManagePage {
     try {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await LogStorageService.init(context)
-      this.applyStorageConfig(LogStorageService.getConfig())
+      this.storageSettingsViewModel.initialize(LogStorageService.getConfig())
 
       this.refreshAll()
       hilog.info(0x0006, TAG, 'Services initialized')
@@ -495,6 +495,7 @@ export struct LogManagePage {
   }
 
   private openSettingsFromList(): void {
+    this.storageSettingsViewModel.initialize(LogStorageService.getConfig())
     this.showSettings = true
     this.refreshData()
   }
@@ -649,44 +650,14 @@ export struct LogManagePage {
   }
 
   async saveStorageSettings() {
-    let previousConfig = LogStorageService.getConfig()
-    let config: LogStorageConfig = {
-      maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex],
-      retentionDays: LOG_RETENTION_OPTIONS[this.retentionIndex]
-    }
-
-    if (previousConfig.maxLocalEntries === config.maxLocalEntries &&
-      previousConfig.retentionDays === config.retentionDays) {
-      this.showResultDialog('failure', CommonStrings.messageNoChanges)
+    let result = await this.storageSettingsViewModel.save()
+    if (!result.success) {
+      this.showResultDialog('failure', result.message)
       return
     }
 
-    let success = await LogStorageService.updateConfig(config)
-    if (!success) {
-      this.showResultDialog('failure', LogManageStrings.saveSettingsFailed)
-      return
-    }
-
-    this.applyStorageConfig(LogStorageService.getConfig())
     this.refreshAll()
-    this.showResultDialog('success', LogManageStrings.saveSettingsSuccess)
-  }
-  applyStorageConfig(config: LogStorageConfig): void {
-    this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(config.maxLocalEntries)
-    if (this.maxEntriesIndex < 0) {
-      this.maxEntriesIndex = LOG_MAX_ENTRIES_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
-    }
-    if (this.maxEntriesIndex < 0) {
-      this.maxEntriesIndex = 0
-    }
-
-    this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(config.retentionDays)
-    if (this.retentionIndex < 0) {
-      this.retentionIndex = LOG_RETENTION_OPTIONS.indexOf(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
-    }
-    if (this.retentionIndex < 0) {
-      this.retentionIndex = 0
-    }
+    this.showResultDialog('success', result.message)
   }
   build() {
     Column() {
@@ -1196,17 +1167,12 @@ export struct LogManagePage {
   storageSettingsView() {
     Column() {
       Scroll() {
-        Row() {
-          Column({ space: 16 }) {
-            this.storageConfigCard()
-          }
-          .width('100%')
-          .constraintSize({ maxWidth: this.SETTINGS_CONTENT_MAX_WIDTH })
-          .alignItems(HorizontalAlign.Start)
+        Column({ space: 24 }) {
+          this.storageConfigCard()
         }
         .width('100%')
-        .justifyContent(FlexAlign.Center)
         .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
+        .justifyContent(FlexAlign.Start)
       }
       .width('100%')
       .layoutWeight(1)
@@ -1221,7 +1187,7 @@ export struct LogManagePage {
 
   @Builder
   storageConfigCard() {
-          SectionCard({
+    SectionCard({
       title: LogManageStrings.settingsTitle,
       content: () => {
         this.storageConfigRows()
@@ -1233,12 +1199,13 @@ export struct LogManagePage {
   storageConfigRows() {
     SectionSelectRow({
       title: LogManageStrings.maxEntriesLabel,
-      options: LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v}` } as SelectOption)),
-      selectedIndex: this.maxEntriesIndex,
-      value: `${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]}`,
+      description: LogManageStrings.maxEntriesDescription,
+      options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
+      selectedIndex: this.storageSettingsViewModel.state.maxEntriesIndex,
+      value: `${LOG_MAX_ENTRIES_OPTIONS[this.storageSettingsViewModel.state.maxEntriesIndex]}`,
       selectWidth: this.SETTINGS_FORM_CONTROL_WIDTH,
       onSelect: (index: number) => {
-        this.maxEntriesIndex = index
+        this.storageSettingsViewModel.setMaxEntriesIndex(index)
       }
     })
 
@@ -1246,69 +1213,14 @@ export struct LogManagePage {
 
     SectionSelectRow({
       title: LogManageStrings.retentionDaysLabel,
-      options: LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v}` } as SelectOption)),
-      selectedIndex: this.retentionIndex,
-      value: `${LOG_RETENTION_OPTIONS[this.retentionIndex]}`,
+      description: LogManageStrings.retentionDaysDescription,
+      options: LogManagePage.STORAGE_RETENTION_OPTIONS,
+      selectedIndex: this.storageSettingsViewModel.state.retentionIndex,
+      value: `${LOG_RETENTION_OPTIONS[this.storageSettingsViewModel.state.retentionIndex]}`,
       selectWidth: this.SETTINGS_FORM_CONTROL_WIDTH,
       onSelect: (index: number) => {
-        this.retentionIndex = index
+        this.storageSettingsViewModel.setRetentionIndex(index)
       }
     })
-  }
-
-  @Builder
-  storageConfigContent() {
-
-      Row() {
-        Text(LogManageStrings.maxEntriesLabel)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-
-        Select(LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v} 条` } as SelectOption)))
-          .selected(this.maxEntriesIndex)
-          .value(`${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]} 条`)
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.maxEntriesIndex = index })
-      }
-      .width('100%')
-      .height(56)
-      .padding({ left: 16, right: 16 })
-      .alignItems(VerticalAlign.Center)
-
-      Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Row() {
-        Text(LogManageStrings.retentionDaysLabel)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-
-        Select(LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v} 天` } as SelectOption)))
-          .selected(this.retentionIndex)
-          .value(`${LOG_RETENTION_OPTIONS[this.retentionIndex]} 天`)
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(this.SETTINGS_FORM_CONTROL_WIDTH)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.retentionIndex = index })
-      }
-      .width('100%')
-      .height(56)
-      .padding({ left: 16, right: 16, bottom: 16 })
-      .alignItems(VerticalAlign.Center)
   }
 }

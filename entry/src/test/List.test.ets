@@ -11,6 +11,7 @@ import identityTest from './identity/service.test'
 import logManageModelsTest from './log-manage/models.test'
 import logAuditServiceTest from './log-manage/audit-service.test'
 import logStorageServiceTest from './log-manage/storage-service.test'
+import logStorageSettingsViewModelTest from './log-manage/storage-settings-viewmodel.test'
 import logRuntimeCollectorTest from './log-manage/runtime-collector.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import dataModelsTest from './models/data-models.test'
@@ -40,6 +41,7 @@ export default function testsuite() {
   logManageModelsTest()
   logAuditServiceTest()
   logStorageServiceTest()
+  logStorageSettingsViewModelTest()
   logRuntimeCollectorTest()
 
   // 企业管理员模块
