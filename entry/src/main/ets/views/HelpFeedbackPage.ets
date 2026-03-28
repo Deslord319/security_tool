@@ -1,6 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../constants/modules/HelpFeedbackStrings'
-import { BackNavButton } from '../components/BackNavButton'
+import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -71,59 +71,52 @@ export struct HelpFeedbackPage {
   private faqItems: FaqItemString[] = HelpFeedbackStrings.faqItems
 
   build() {
-    Scroll() {
-      Column({ space: 20 }) {
-        Row({ space: 8 }) {
-          BackNavButton({
-            onBack: () => {
-              this.onBack()
+    Column() {
+      SubPageHeader({
+        title: HelpFeedbackStrings.pageTitle,
+        subtitle: HelpFeedbackStrings.pageSubtitle,
+        currentTheme: this.currentTheme,
+        onBack: () => this.onBack()
+      })
+
+      Scroll() {
+        Column({ space: 20 }) {
+          SectionCard({
+            title: HelpFeedbackStrings.guideSectionTitle,
+            content: () => {
+              this.guideSectionContent()
             }
           })
 
-          Column({ space: 4 }) {
-            Text(HelpFeedbackStrings.pageTitle)
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          SectionCard({
+            title: HelpFeedbackStrings.faqSectionTitle,
+            content: () => {
+              this.faqSectionContent()
+            }
+          })
 
-            Text(HelpFeedbackStrings.pageSubtitle)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+          SectionCard({
+            title: HelpFeedbackStrings.contactSectionTitle,
+            content: () => {
+              this.contactSectionContent()
+            }
+          })
         }
         .width('100%')
-        .alignItems(VerticalAlign.Top)
-
-        SectionCard({
-          title: HelpFeedbackStrings.guideSectionTitle,
-          content: () => {
-            this.guideSectionContent()
-          }
-        })
-
-        SectionCard({
-          title: HelpFeedbackStrings.faqSectionTitle,
-          content: () => {
-            this.faqSectionContent()
-          }
-        })
-
-        SectionCard({
-          title: HelpFeedbackStrings.contactSectionTitle,
-          content: () => {
-            this.contactSectionContent()
-          }
+        .padding({
+          left: AppStyles.PADDING_LG,
+          right: AppStyles.PADDING_LG,
+          top: AppStyles.PADDING_MD,
+          bottom: AppStyles.PADDING_LG
         })
       }
-      .padding(AppStyles.PADDING_LG)
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
     }
     .width('100%')
     .height('100%')
-    .scrollBar(BarState.Auto)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 

@@ -1,6 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
-import { BackNavButton } from '../components/BackNavButton'
+import { SubPageHeader } from '../components/SubPageHeader'
 import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
@@ -511,90 +511,84 @@ export struct FirewallPage {
   }
 
   build() {
-    Scroll() {
-      Column({ space: 24 }) {
-        Row() {
-          Row({ space: 8 }) {
-            BackNavButton({
-              onBack: () => {
-                this.onBack()
-              }
-            })
-
-            Column({ space: 4 }) {
-              Text(FirewallStrings.pageTitle)
-                .fontSize(AppStyles.FONT_SIZE_TITLE)
-                .fontWeight(FontWeight.Bold)
-                .fontColor(this.getThemeColors().TEXT_PRIMARY)
-                .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-              Text(FirewallStrings.pageSubtitle)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(this.getThemeColors().TEXT_PRIMARY)
-                .opacity(this.getThemeColors().TEXT_TERTIARY_OPACITY)
-            }
-            .alignItems(HorizontalAlign.Start)
-            .layoutWeight(1)
-          }
-          .layoutWeight(1)
-          .alignItems(VerticalAlign.Top)
-
-          Row({ space: 12 }) {
-            Button(FirewallStrings.userIdControlButton)
-              .type(ButtonType.Normal)
-              .height(36)
-              .padding({ left: 14, right: 14 })
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.BRAND_PRIMARY)
-              .backgroundColor(this.getThemeColors().BG_CARD)
-              .borderRadius(AppStyles.RADIUS_MD)
-              .border({
-                width: 1,
-                color: this.getThemeColors().BORDER
-              })
-              .enabled(!this.isToggleProcessing && !this.isModeProcessing)
-              .opacity(!this.isToggleProcessing && !this.isModeProcessing ? 1 : 0.5)
-              .onClick(() => {
-                this.openUserFirewallDialog()
-              })
-
-            Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
-              .selectedColor(AppColors.BRAND_PRIMARY)
-              .switchPointColor(Color.White)
-              .enabled(!this.isToggleProcessing)
-              .onChange((isOn: boolean) => {
-                this.handleToggleWithAuth(isOn)
-              })
-          }
-          .alignItems(VerticalAlign.Center)
+    Column() {
+      SubPageHeader({
+        title: FirewallStrings.pageTitle,
+        subtitle: FirewallStrings.pageSubtitle,
+        currentTheme: this.currentTheme,
+        onBack: () => this.onBack(),
+        actions: () => {
+          this.headerActions()
         }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
+      })
 
-        Column({ space: 12 }) {
-          Text(FirewallStrings.modeSectionTitle)
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.getThemeColors().TEXT_PRIMARY)
-            .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-
+      Scroll() {
+        Column({ space: 24 }) {
           Column({ space: 12 }) {
-            this.modeCard('public')
-            this.modeCard('private')
-            this.modeCard('custom')
+            Text(FirewallStrings.modeSectionTitle)
+              .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.getThemeColors().TEXT_PRIMARY)
+              .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
+
+            Column({ space: 12 }) {
+              this.modeCard('public')
+              this.modeCard('private')
+              this.modeCard('custom')
+            }
+            .width('100%')
           }
           .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
+        .padding({
+          left: AppStyles.PADDING_LG,
+          right: AppStyles.PADDING_LG,
+          top: AppStyles.PADDING_MD,
+          bottom: AppStyles.PADDING_LG
+        })
         .width('100%')
-        .alignItems(HorizontalAlign.Start)
       }
-      .padding(AppStyles.PADDING_LG)
       .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
     }
-    .align(Alignment.Top)
     .width('100%')
     .height('100%')
-    .scrollBar(BarState.Auto)
     .backgroundColor(this.getThemeColors().BG_PAGE)
+  }
+
+  @Builder
+  private headerActions() {
+    Row({ space: 12 }) {
+      Button(FirewallStrings.userIdControlButton)
+        .type(ButtonType.Normal)
+        .height(36)
+        .padding({ left: 14, right: 14 })
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.BRAND_PRIMARY)
+        .backgroundColor(this.getThemeColors().BG_CARD)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .border({
+          width: 1,
+          color: this.getThemeColors().BORDER
+        })
+        .enabled(!this.isToggleProcessing && !this.isModeProcessing)
+        .opacity(!this.isToggleProcessing && !this.isModeProcessing ? 1 : 0.5)
+        .onClick(() => {
+          this.openUserFirewallDialog()
+        })
+
+      Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
+        .selectedColor(AppColors.BRAND_PRIMARY)
+        .switchPointColor(Color.White)
+        .enabled(!this.isToggleProcessing)
+        .onChange((isOn: boolean) => {
+          this.handleToggleWithAuth(isOn)
+        })
+    }
+    .alignItems(VerticalAlign.Center)
   }
 }

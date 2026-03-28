@@ -10,11 +10,11 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { IdentityService } from '../services/IdentityService'
-import { BackNavButton } from '../components/BackNavButton'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { DialogService } from '../utils/DialogService'
+import { SubPageHeader } from '../components/SubPageHeader'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
@@ -102,38 +102,14 @@ export struct IdentityPage {
 
   build() {
     Column() {
-      Row() {
-        Row({ space: 8 }) {
-          BackNavButton({
-            onBack: () => {
-              this.onBack()
-            }
-          })
-
-          Column({ space: 4 }) {
-            Text(IdentityStrings.pageTitle)
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text(IdentityStrings.pageSubtitle)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+      SubPageHeader({
+        title: IdentityStrings.pageTitle,
+        subtitle: IdentityStrings.pageSubtitle,
+        currentTheme: this.currentTheme,
+        onBack: () => this.onBack(),
+        actions: () => {
+          this.headerActions()
         }
-        .layoutWeight(1)
-        .alignItems(VerticalAlign.Top)
-
-        this.saveButton()
-      }
-      .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_LG
       })
 
       Scroll() {
@@ -162,6 +138,11 @@ export struct IdentityPage {
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+  }
+
+  @Builder
+  private headerActions() {
+    this.saveButton()
   }
 
   @Builder

@@ -5,7 +5,7 @@ import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
 import { FirewallModeService } from '../services/FirewallModeService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
-import { BackNavButton } from '../components/BackNavButton'
+import { SubPageHeader } from '../components/SubPageHeader'
 import { DirectionCard } from '../components/DirectionCard'
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
@@ -429,39 +429,15 @@ export struct FirewallRulesPage {
   build() {
     Scroll() {
       Column({ space: 18 }) {
-        Row() {
-          Column({ space: 4 }) {
-            Row({ space: 8 }) {
-              BackNavButton({
-                onBack: () => {
-                  this.onBack()
-                }
-              })
-              Text(FirewallStrings.customModeTitle)
-                .fontSize(AppStyles.FONT_SIZE_TITLE)
-                .fontWeight(FontWeight.Bold)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            }
-
-            Text(FirewallStrings.customRulesSubtitle)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        SubPageHeader({
+          title: FirewallStrings.customModeTitle,
+          subtitle: FirewallStrings.customRulesSubtitle,
+          currentTheme: this.currentTheme,
+          onBack: () => this.onBack(),
+          actions: () => {
+            this.headerActions()
           }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-
-          Button(FirewallStrings.addRuleButton)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(Color.White)
-            .backgroundColor(AppColors.BRAND_PRIMARY)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .height(36)
-            .onClick(() => {
-              this.addRuleDialogController.open()
-            })
-        }
-        .width('100%')
+        })
 
         if (this.conflictNotice.length > 0) {
           Row({ space: 8 }) {
@@ -685,5 +661,18 @@ export struct FirewallRulesPage {
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private headerActions() {
+    Button(FirewallStrings.addRuleButton)
+      .fontSize(AppStyles.FONT_SIZE_BODY)
+      .fontColor(Color.White)
+      .backgroundColor(AppColors.BRAND_PRIMARY)
+      .borderRadius(AppStyles.RADIUS_MD)
+      .height(36)
+      .onClick(() => {
+        this.addRuleDialogController.open()
+      })
   }
 }

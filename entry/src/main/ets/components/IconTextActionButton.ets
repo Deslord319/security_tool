@@ -1,4 +1,4 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ActionButtonStyles, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -15,35 +15,33 @@ export struct IconTextActionButton {
   @State private isHovered: boolean = false
 
   private getBackgroundColor(): ResourceColor {
-    let colors = AppColors.getColors(this.currentTheme)
     switch (this.kind) {
       case 'danger':
-        return this.isHovered ? colors.BG_HOVER : colors.TAG_RED_BG
+        return ActionButtonStyles.getDangerBackground(this.currentTheme, this.isHovered)
       default:
-        return this.isHovered ? colors.BG_HOVER : colors.TAG_BLUE_BG
+        return ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isHovered)
     }
   }
 
   private getForegroundColor(): ResourceColor {
-    let colors = AppColors.getColors(this.currentTheme)
     switch (this.kind) {
       case 'danger':
-        return colors.TAG_RED_TEXT
+        return ActionButtonStyles.getDangerForeground(this.currentTheme)
       default:
-        return colors.TAG_BLUE_TEXT
+        return ActionButtonStyles.getPrimaryForeground(this.currentTheme)
     }
   }
 
   build() {
     Button() {
-      Row({ space: 8 }) {
+      Row({ space: 6 }) {
         Image(this.icon)
-          .width(20)
-          .height(20)
+          .width(ActionButtonStyles.ICON_SIZE)
+          .height(ActionButtonStyles.ICON_SIZE)
           .draggable(false)
 
         Text(this.label)
-          .fontSize(15)
+          .fontSize(ActionButtonStyles.FONT_SIZE)
           .fontColor(this.getForegroundColor())
           .fontWeight(FontWeight.Medium)
       }
@@ -54,8 +52,11 @@ export struct IconTextActionButton {
     .opacity(this.isEnabled ? 1 : 0.5)
     .backgroundColor(this.getBackgroundColor())
     .borderRadius(AppStyles.RADIUS_SM)
-    .height(40)
-    .padding({ left: 12, right: 16 })
+    .height(ActionButtonStyles.HEIGHT)
+    .padding({
+      left: ActionButtonStyles.HORIZONTAL_PADDING_START,
+      right: ActionButtonStyles.HORIZONTAL_PADDING_END
+    })
     .stateEffect(false)
     .onHover((isHover: boolean) => {
       this.isHovered = this.isEnabled && isHover

@@ -6,12 +6,12 @@ import { AUTH_METHOD_OPTIONS } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { BackNavButton } from '../components/BackNavButton'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { DialogService } from '../utils/DialogService'
+import { SubPageHeader } from '../components/SubPageHeader'
 import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
 const TAG = 'ToolSettings.Page'
@@ -87,38 +87,14 @@ export struct ToolSettingsPage {
 
   build() {
     Column() {
-      Row() {
-        Row({ space: 8 }) {
-          BackNavButton({
-            onBack: () => {
-              this.onBack()
-            }
-          })
-
-          Column({ space: 4 }) {
-            Text(ToolSettingsStrings.pageTitle)
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text(ToolSettingsStrings.pageSubtitle)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+      SubPageHeader({
+        title: ToolSettingsStrings.pageTitle,
+        subtitle: ToolSettingsStrings.pageSubtitle,
+        currentTheme: this.currentTheme,
+        onBack: () => this.onBack(),
+        actions: () => {
+          this.headerActions()
         }
-        .layoutWeight(1)
-        .alignItems(VerticalAlign.Top)
-
-        this.saveButton()
-      }
-      .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_LG
       })
 
       Scroll() {
@@ -156,6 +132,18 @@ export struct ToolSettingsPage {
   }
 
   @Builder
+  private headerActions() {
+    IconTextActionButton({
+      label: ToolSettingsStrings.saveButton,
+      icon: $r('app.media.save'),
+      kind: 'primary',
+      onTap: () => {
+        void this.handleSave()
+      }
+    })
+  }
+
+  @Builder
   startupAuthContent() {
     this.startupAuthSwitchRow()
 
@@ -170,18 +158,6 @@ export struct ToolSettingsPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     this.changePasswordRow()
-  }
-
-  @Builder
-  private saveButton() {
-    IconTextActionButton({
-      label: ToolSettingsStrings.saveButton,
-      icon: $r('app.media.save'),
-      kind: 'primary',
-      onTap: () => {
-        void this.handleSave()
-      }
-    })
   }
 
   @Builder

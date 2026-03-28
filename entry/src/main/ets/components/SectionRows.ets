@@ -1,5 +1,5 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
@@ -101,6 +101,14 @@ export struct SectionActionRow {
   onTap: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
+  private getActionBackground(): ResourceColor {
+    return ActionButtonStyles.getPrimaryBackground(this.currentTheme, false)
+  }
+
+  private getActionForeground(): ResourceColor {
+    return ActionButtonStyles.getPrimaryForeground(this.currentTheme)
+  }
+
   build() {
     Row() {
       Column({ space: 2 }) {
@@ -121,12 +129,17 @@ export struct SectionActionRow {
 
       Button(this.actionLabel)
         .type(ButtonType.Normal)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(Color.White)
-        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.getActionForeground())
+        .backgroundColor(this.getActionBackground())
         .borderRadius(AppStyles.RADIUS_SM)
-        .height(36)
-        .padding({ left: 14, right: 14 })
+        .height(ActionButtonStyles.CHIP_HEIGHT)
+        .padding({
+          left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
+          right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
+        })
+        .stateEffect(false)
         .onClick(() => {
           this.onTap()
         })

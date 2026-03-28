@@ -23,7 +23,7 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
-import { BackNavButton } from '../components/BackNavButton'
+import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
 import { FormControlUtils } from '../utils/FormControlUtils'
@@ -643,102 +643,14 @@ export struct LogManagePage {
   }
   build() {
     Column() {
-      Row() {
-        Row({ space: 8 }) {
-          BackNavButton({
-            onBack: () => {
-              this.onBack()
-            }
-          })
-
-          Column({ space: 4 }) {
-            Text(this.showSettings ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle)
-              .fontSize(AppStyles.FONT_SIZE_TITLE)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-            Text(this.showSettings ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+      SubPageHeader({
+        title: this.showSettings ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
+        subtitle: this.showSettings ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
+        currentTheme: this.currentTheme,
+        onBack: () => this.onBack(),
+        actions: () => {
+          this.headerActions()
         }
-        .layoutWeight(1)
-        .alignItems(VerticalAlign.Top)
-
-        Column({ space: 8 }) {
-          Row({ space: 6 }) {
-            Circle({ width: 8, height: 8 })
-              .fill(this.isSubscribed ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
-            Text(this.isSubscribed ? LogManageStrings.subscribed : LogManageStrings.subscribeFailed)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          }
-
-          Row({ space: 8 }) {
-            if (!this.showSettings) {
-              IconTextActionButton({
-                label: LogManageStrings.exportLogsButton,
-                icon: $r('app.media.save'),
-                kind: 'primary',
-                onTap: () => {
-                  this.exportLogs()
-                }
-              })
-
-              IconTextActionButton({
-                label: LogManageStrings.clearLogsButton,
-                icon: $r('app.media.trash'),
-                kind: 'danger',
-                onTap: () => {
-                  this.clearLogs()
-                }
-              })
-            }
-
-            if (!this.showSettings) {
-              IconTextActionButton({
-                label: LogManageStrings.openStorageSettingsButton,
-                icon: $r('app.media.settings'),
-                kind: 'primary',
-                onTap: () => {
-                  this.openSettingsFromList()
-                }
-              })
-            } else {
-              IconTextActionButton({
-                label: CommonStrings.actionSaveSettings,
-                icon: $r('app.media.save'),
-                kind: 'primary',
-                onTap: () => {
-                  void this.saveStorageSettings()
-                }
-              })
-
-              IconTextActionButton({
-                label: LogManageStrings.backToLogListButton,
-                icon: $r('app.media.log'),
-                kind: 'primary',
-                onTap: () => {
-                  this.showSettings = false
-                  this.refreshData()
-                }
-              })
-            }
-          }
-        }
-        .margin({ left: 12 })
-        .alignItems(HorizontalAlign.End)
-
-      }
-      .width('100%')
-      .padding({
-        left: AppStyles.PADDING_LG,
-        right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_LG
       })
 
       if (this.showSettings) {
@@ -1110,6 +1022,74 @@ export struct LogManagePage {
     }
     .width('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
+  }
+
+  @Builder
+  private headerActions() {
+    Column({ space: 8 }) {
+      Row({ space: 6 }) {
+        Circle({ width: 8, height: 8 })
+          .fill(this.isSubscribed ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
+        Text(this.isSubscribed ? LogManageStrings.subscribed : LogManageStrings.subscribeFailed)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      }
+
+      Row({ space: 8 }) {
+        if (!this.showSettings) {
+          IconTextActionButton({
+            label: LogManageStrings.exportLogsButton,
+            icon: $r('app.media.save'),
+            kind: 'primary',
+            onTap: () => {
+              this.exportLogs()
+            }
+          })
+
+          IconTextActionButton({
+            label: LogManageStrings.clearLogsButton,
+            icon: $r('app.media.trash'),
+            kind: 'danger',
+            onTap: () => {
+              this.clearLogs()
+            }
+          })
+        }
+
+        if (!this.showSettings) {
+          IconTextActionButton({
+            label: LogManageStrings.openStorageSettingsButton,
+            icon: $r('app.media.settings'),
+            kind: 'primary',
+            onTap: () => {
+              this.openSettingsFromList()
+            }
+          })
+        } else {
+          IconTextActionButton({
+            label: CommonStrings.actionSaveSettings,
+            icon: $r('app.media.save'),
+            kind: 'primary',
+            onTap: () => {
+              void this.saveStorageSettings()
+            }
+          })
+
+          IconTextActionButton({
+            label: LogManageStrings.backToLogListButton,
+            icon: $r('app.media.log'),
+            kind: 'primary',
+            onTap: () => {
+              this.showSettings = false
+              this.refreshData()
+            }
+          })
+        }
+      }
+    }
+    .margin({ left: 12 })
+    .alignItems(HorizontalAlign.End)
   }
 
   @Builder

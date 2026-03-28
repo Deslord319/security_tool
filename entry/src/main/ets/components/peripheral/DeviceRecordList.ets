@@ -1,4 +1,4 @@
-import { AppColors, AppStyles } from '../../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
 import {
   getPeripheralRecordActionLabel,
   getPeripheralTypeLabel,
@@ -19,6 +19,14 @@ export struct DeviceRecordList {
   @Prop refreshVersion: number = 0
   onRecordClick?: (record: PeripheralConnectionRecord) => void
   onPanelHover?: (isHover: boolean) => void
+
+  private getDetailButtonBackground(): ResourceColor {
+    return ActionButtonStyles.getPrimaryBackground(this.currentTheme, false)
+  }
+
+  private getDetailButtonForeground(): ResourceColor {
+    return ActionButtonStyles.getPrimaryForeground(this.currentTheme)
+  }
 
   build() {
     Scroll() {
@@ -146,15 +154,18 @@ export struct DeviceRecordList {
         Text('详情')
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontWeight(FontWeight.Medium)
-          .fontColor(Color.White)
-      }
-      .height(32)
-      .padding({ left: 16, right: 16 })
-      .justifyContent(FlexAlign.Center)
-      .borderRadius(8)
-      .backgroundColor(AppColors.BRAND_PRIMARY)
-      .layoutWeight(1.0)
-      .onClick(() => this.onRecordClick && this.onRecordClick(record))
+          .fontColor(this.getDetailButtonForeground())
+        }
+        .height(ActionButtonStyles.CHIP_HEIGHT)
+      .padding({
+        left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
+        right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
+      })
+        .justifyContent(FlexAlign.Center)
+        .borderRadius(8)
+      .backgroundColor(this.getDetailButtonBackground())
+        .layoutWeight(1.0)
+        .onClick(() => this.onRecordClick && this.onRecordClick(record))
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })

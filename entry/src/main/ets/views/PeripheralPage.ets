@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { BackNavButton } from '../components/BackNavButton'
 import { IconTextActionButton } from '../components/IconTextActionButton'
+import { SubPageHeader } from '../components/SubPageHeader'
 import {
   ConnectionDetailDialog,
   ConnectionHistoryItem
@@ -215,43 +215,34 @@ export struct PeripheralPage {
 
   @Builder
   private header() {
-    Row() {
-      Row({ space: 8 }) {
-        BackNavButton({ onBack: () => this.onBack() })
-        Column({ space: 4 }) {
-          Text(PeripheralStrings.pageTitle)
-            .fontSize(AppStyles.FONT_SIZE_TITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Text(PeripheralStrings.pageSubtitle)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
+    SubPageHeader({
+      title: PeripheralStrings.pageTitle,
+      subtitle: PeripheralStrings.pageSubtitle,
+      currentTheme: this.currentTheme,
+      onBack: () => this.onBack(),
+      actions: () => {
+        this.headerRightActions()
       }
-      .layoutWeight(1)
-      .alignItems(VerticalAlign.Top)
+    })
+  }
 
-      if (this.viewModel.currentTab === 1) {
-        this.headerActions(
-          PeripheralStrings.exportHistoryLabel,
-          PeripheralStrings.clearHistoryLabel,
-          () => void this.handleExportConnectionHistory(),
-          () => this.showClearHistoryConfirmDialog()
-        )
-      } else if (this.viewModel.currentTab === 2) {
-        this.headerActions(
-          PeripheralStrings.exportPolicyLabel,
-          PeripheralStrings.clearPolicyLabel,
-          () => void this.handleExportPeripheralPolicyRecords(),
-          () => this.showClearPolicyRecordsConfirmDialog()
-        )
-      }
+  @Builder
+  private headerRightActions() {
+    if (this.viewModel.currentTab === 1) {
+      this.headerActions(
+        PeripheralStrings.exportHistoryLabel,
+        PeripheralStrings.clearHistoryLabel,
+        () => void this.handleExportConnectionHistory(),
+        () => this.showClearHistoryConfirmDialog()
+      )
+    } else if (this.viewModel.currentTab === 2) {
+      this.headerActions(
+        PeripheralStrings.exportPolicyLabel,
+        PeripheralStrings.clearPolicyLabel,
+        () => void this.handleExportPeripheralPolicyRecords(),
+        () => this.showClearPolicyRecordsConfirmDialog()
+      )
     }
-    .width('100%')
-    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_LG })
   }
 
   @Builder

@@ -67,6 +67,47 @@ export class AppStyles {
   static readonly FONT_SIZE_CAPTION: number = 12
 }
 
+export class ActionButtonStyles {
+  static readonly HEIGHT: number = 36
+  static readonly ICON_SIZE: number = 18
+  static readonly FONT_SIZE: number = 14
+  static readonly HORIZONTAL_PADDING_START: number = 10
+  static readonly HORIZONTAL_PADDING_END: number = 14
+
+  static readonly CHIP_HEIGHT: number = 32
+  static readonly CHIP_HORIZONTAL_PADDING: number = 12
+
+  static getPrimaryBackground(theme: ThemeMode, isHovered: boolean): ResourceColor {
+    if (theme === ThemeMode.DARK) {
+      return isHovered ? 'rgba(94,161,255,0.32)' : 'rgba(94,161,255,0.22)'
+    }
+    let colors = AppColors.getColors(theme)
+    return isHovered ? colors.BG_HOVER : colors.TAG_BLUE_BG
+  }
+
+  static getDangerBackground(theme: ThemeMode, isHovered: boolean): ResourceColor {
+    if (theme === ThemeMode.DARK) {
+      return isHovered ? 'rgba(255,59,48,0.32)' : 'rgba(255,59,48,0.22)'
+    }
+    let colors = AppColors.getColors(theme)
+    return isHovered ? colors.BG_HOVER : colors.TAG_RED_BG
+  }
+
+  static getPrimaryForeground(theme: ThemeMode): ResourceColor {
+    if (theme === ThemeMode.DARK) {
+      return Color.White
+    }
+    return AppColors.getColors(theme).TAG_BLUE_TEXT
+  }
+
+  static getDangerForeground(theme: ThemeMode): ResourceColor {
+    if (theme === ThemeMode.DARK) {
+      return Color.White
+    }
+    return AppColors.getColors(theme).TAG_RED_TEXT
+  }
+}
+
 export class Routes {
   static readonly DASHBOARD: string = 'dashboard'
   static readonly FIREWALL: string = 'firewall'
