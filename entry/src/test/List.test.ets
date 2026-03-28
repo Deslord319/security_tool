@@ -8,6 +8,7 @@ import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
 import identityTest from './identity/service.test'
+import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
 import logManageModelsTest from './log-manage/models.test'
 import logAuditServiceTest from './log-manage/audit-service.test'
 import logStorageServiceTest from './log-manage/storage-service.test'
@@ -36,6 +37,7 @@ export default function testsuite() {
 
   // 身份鉴别模块
   identityTest()
+  identitySettingsViewModelTest()
 
   // 日志管理模块
   logManageModelsTest()

@@ -80,10 +80,6 @@ export class IdentityService {
     }
   }
 
-  static setPasswordPolicy(config: PasswordComplexityConfig): boolean {
-    return IdentityService.setPasswordPolicyWithResult(config).success
-  }
-
   static getPasswordPolicyWithResult(): OperationResult<securityManager.PasswordPolicy | null> {
     try {
       let result = securityManager.getPasswordPolicy(ADMIN_WANT)
@@ -96,10 +92,6 @@ export class IdentityService {
       hilog.error(DOMAIN, TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
       return IdentityService.buildFailureResult<securityManager.PasswordPolicy | null>('读取口令策略', err as Object, null)
     }
-  }
-
-  static getPasswordPolicy(): securityManager.PasswordPolicy | null {
-    return IdentityService.getPasswordPolicyWithResult().data ?? null
   }
 
   private static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
