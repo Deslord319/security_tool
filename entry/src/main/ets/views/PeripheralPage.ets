@@ -108,16 +108,9 @@ export struct PeripheralPage {
       this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', PeripheralStrings.resolveReason(PeripheralReasons.INIT_FAILED))
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralReasons.INIT_FAILED))
     }
   } 
-
-  private showResultDialog(status: 'success' | 'failure', message: string): void {
-    void DialogService.openResult(this.getUIContext(), {
-      status: status,
-      message: message
-    })
-  }
 
   private openUsbLoadingOverlay(message: string): void {
     this.usbLoadingMessage = message
@@ -338,9 +331,9 @@ export struct PeripheralPage {
       : await toggle()
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showResultDialog('failure', `${PeripheralStrings.setInterfaceAction}${PeripheralStrings.adminRequiredActionSuffix}`)
+        DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setInterfaceAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
-        this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -353,9 +346,9 @@ export struct PeripheralPage {
     })
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showResultDialog('failure', `${PeripheralStrings.setUsbStorageAction}${PeripheralStrings.adminRequiredActionSuffix}`)
+        DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setUsbStorageAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
-        this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -366,9 +359,9 @@ export struct PeripheralPage {
     const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showResultDialog('failure', `${PeripheralStrings.updatePolicyAction}${PeripheralStrings.adminRequiredActionSuffix}`)
+        DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.updatePolicyAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
-        this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
       return
     }
@@ -378,9 +371,9 @@ export struct PeripheralPage {
   private async handleExportConnectionHistory(): Promise<void> {
     const success = await this.viewModel.exportConnectionHistory()
     if (success) {
-      this.showResultDialog('success', PeripheralStrings.exportHistorySuccess)
+      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.exportHistorySuccess)
     } else {
-      this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
   }
 
@@ -411,18 +404,18 @@ export struct PeripheralPage {
   private async handleExportPeripheralPolicyRecords(): Promise<void> {
     const success = await this.viewModel.exportPeripheralPolicyRecords()
     if (success) {
-      this.showResultDialog('success', PeripheralStrings.exportPolicySuccess)
+      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.exportPolicySuccess)
     } else {
-      this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
   }
 
   private showClearHistoryConfirmDialog(): void {
     if (this.viewModel.records.records.length === 0) {
-      this.showResultDialog('failure', PeripheralStrings.emptyHistoryToClear)
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.emptyHistoryToClear)
       return
     }
-    void DialogService.openConfirm(this.getUIContext(), {
+    DialogService.openConfirm(this.getUIContext(), {
       title: PeripheralStrings.clearHistoryLabel,
       message: PeripheralStrings.clearHistoryMessage,
       confirmText: CommonStrings.actionClear,
@@ -433,10 +426,10 @@ export struct PeripheralPage {
 
   private showClearPolicyRecordsConfirmDialog(): void {
     if (this.viewModel.policy.records.length === 0) {
-      this.showResultDialog('failure', PeripheralStrings.emptyPolicyToClear)
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.emptyPolicyToClear)
       return
     }
-    void DialogService.openConfirm(this.getUIContext(), {
+    DialogService.openConfirm(this.getUIContext(), {
       title: PeripheralStrings.clearPolicyLabel,
       message: PeripheralStrings.clearPolicyMessage,
       confirmText: CommonStrings.actionDelete,
@@ -450,27 +443,27 @@ export struct PeripheralPage {
       await PeripheralTraceRepository.init(this.getUIContext().getHostContext() as common.UIAbilityContext)
       const success = await PeripheralTraceRepository.clearAll()
       if (!success) {
-        this.showResultDialog('failure', PeripheralStrings.clearFailed)
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
         return
       }
       this.closeDetailDialog()
       this.viewModel.reloadDeviceRecords()
       this.renderVersion++
-      this.showResultDialog('success', PeripheralStrings.clearHistorySuccess)
+      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
-      this.showResultDialog('failure', PeripheralStrings.clearFailed)
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
     }
   }
 
   private async clearPolicyRecords(): Promise<void> {
     const success = await this.viewModel.clearPeripheralPolicyRecords()
     if (!success) {
-      this.showResultDialog('failure', PeripheralStrings.clearFailed)
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
       return
     }
     this.closeDetailDialog()
     this.renderVersion++
-    this.showResultDialog('success', PeripheralStrings.clearPolicySuccess)
+      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }

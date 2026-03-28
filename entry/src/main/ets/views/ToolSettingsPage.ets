@@ -53,9 +53,10 @@ export struct ToolSettingsPage {
     return this.authMethodOptions[selectedIndex].value as string
   }
 
-  private handleActionRequest(request: ToolSettingsActionRequest): void {
+  private async handleSave(allowUnsupportedAuthMethod: boolean = false): Promise<void> {
+    let request = await this.viewModel.requestSave(this.getPageContext(), allowUnsupportedAuthMethod)
     if (request.kind === 'result' && request.status && request.message) {
-      void DialogService.openResult(this.getUIContext(), {
+      DialogService.openResult(this.getUIContext(), {
         status: request.status,
         message: request.message
       })
@@ -64,7 +65,7 @@ export struct ToolSettingsPage {
     if (request.kind !== 'confirm' || !request.title || !request.message) {
       return
     }
-    void DialogService.openConfirm(this.getUIContext(), {
+    DialogService.openConfirm(this.getUIContext(), {
       title: request.title,
       message: request.message,
       confirmText: ToolSettingsStrings.continueSave,
@@ -73,16 +74,6 @@ export struct ToolSettingsPage {
         void this.handleSave(true)
       }
     })
-  }
-
-  private async handleSave(allowUnsupportedAuthMethod: boolean = false): Promise<void> {
-    let request = await this.viewModel.requestSave(this.getPageContext(), allowUnsupportedAuthMethod)
-    this.handleActionRequest(request)
-  }
-
-  private async handlePasswordSettings(): Promise<void> {
-    let request = await this.viewModel.openPasswordSettings(this.getPageContext())
-    this.handleActionRequest(request)
   }
 
   build() {
@@ -138,7 +129,7 @@ export struct ToolSettingsPage {
       icon: $r('app.media.save'),
       kind: 'primary',
       onTap: () => {
-        void this.handleSave()
+        this.handleSave()
       }
     })
   }
@@ -194,10 +185,17 @@ export struct ToolSettingsPage {
     SectionActionRow({
       title: ToolSettingsStrings.changePasswordLabel,
       description: ToolSettingsStrings.changePasswordDesc,
-      actionLabel: ToolSettingsStrings.changePasswordLabel,
-      onTap: () => {
-        void this.handlePasswordSettings()
-      }
-    })
+        actionLabel: ToolSettingsStrings.changePasswordLabel,
+        onTap: () => {
+          this.viewModel.openPasswordSettings(this.getPageContext()).then((request: ToolSettingsActionRequest) => {
+            if (request.kind === 'result' && request.status && request.message) {
+              DialogService.openResult(this.getUIContext(), {
+                status: request.status,
+                message: request.message
+              })
+            }
+          })
+        }
+      })
   }
 }

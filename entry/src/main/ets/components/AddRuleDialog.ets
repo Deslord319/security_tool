@@ -164,7 +164,7 @@ export struct AddRuleDialog {
   private handleSubmit(): void {
     let validationMessage = this.validateForm()
     if (validationMessage.length > 0) {
-      void DialogService.openFailure(this.getUIContext(), validationMessage)
+      DialogService.openFailure(this.getUIContext(), validationMessage)
       return
     }
 

@@ -32,7 +32,7 @@ export struct UserFirewallControlDialog {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   aboutToAppear(): void {
-    void this.loadUsers()
+    this.loadUsers()
   }
 
   private async loadUsers(): Promise<void> {
@@ -50,7 +50,7 @@ export struct UserFirewallControlDialog {
       this.selectedUserId = -1
       this.statusHintText = result.message ?? '未找到可用用户'
       if (this.statusHintText.length > 0) {
-        void DialogService.openFailure(this.getUIContext(), this.statusHintText)
+        DialogService.openFailure(this.getUIContext(), this.statusHintText)
       }
       return
     }
@@ -78,7 +78,7 @@ export struct UserFirewallControlDialog {
 
     if (result.errorCode !== undefined) {
       this.statusHintText = result.message ?? '无法获取该用户当前防火墙状态'
-      void DialogService.openFailure(this.getUIContext(), this.statusHintText)
+      DialogService.openFailure(this.getUIContext(), this.statusHintText)
       return
     }
 
@@ -91,7 +91,7 @@ export struct UserFirewallControlDialog {
 
   private async handleSetEnabled(enabled: boolean): Promise<void> {
     if (this.selectedUserId < 0 || !this.statusReady) {
-      void DialogService.openFailure(this.getUIContext(), '请先选择并读取有效用户状态')
+      DialogService.openFailure(this.getUIContext(), '请先选择并读取有效用户状态')
       return
     }
 
@@ -106,7 +106,7 @@ export struct UserFirewallControlDialog {
     this.isSubmitting = false
 
     if (!result.success) {
-      void DialogService.openFailure(
+      DialogService.openFailure(
         this.getUIContext(),
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
@@ -215,7 +215,7 @@ export struct UserFirewallControlDialog {
             .onSelect((index: number) => {
               this.selectedIndex = index
               this.selectedUserId = this.users[index].userId
-              void this.loadPolicyForSelectedUser()
+              this.loadPolicyForSelectedUser()
             })
         }
         .width('100%')
@@ -265,7 +265,7 @@ export struct UserFirewallControlDialog {
             .enabled(!this.isSubmitting && this.statusReady)
             .opacity(!this.isSubmitting && this.statusReady ? 1 : 0.5)
             .onClick(() => {
-              void this.handleSetEnabled(true)
+              this.handleSetEnabled(true)
             })
 
           Button('关闭防火墙')
@@ -278,7 +278,7 @@ export struct UserFirewallControlDialog {
             .enabled(!this.isSubmitting && this.statusReady)
             .opacity(!this.isSubmitting && this.statusReady ? 1 : 0.5)
             .onClick(() => {
-              void this.handleSetEnabled(false)
+              this.handleSetEnabled(false)
             })
         }
         .width('100%')

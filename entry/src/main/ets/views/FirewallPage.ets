@@ -107,14 +107,14 @@ export struct FirewallPage {
 
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      void DialogService.openFailure(
+      DialogService.openFailure(
         this.getUIContext(),
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      void DialogService.openFailure(this.getUIContext(), FirewallStrings.toggleFailed)
+      DialogService.openFailure(this.getUIContext(), FirewallStrings.toggleFailed)
       hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -340,7 +340,7 @@ export struct FirewallPage {
   }
 
   private showModeChangeFailedDialog(): void {
-    void DialogService.openFailure(this.getUIContext(), FirewallStrings.modeApplyFailed)
+    DialogService.openFailure(this.getUIContext(), FirewallStrings.modeApplyFailed)
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {

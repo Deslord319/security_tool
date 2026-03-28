@@ -54,18 +54,6 @@ export struct IdentityPage {
     this.adminState = EnterpriseAdminService.probeActivation()
   }
 
-  private ensureAdminReady(action: string): boolean {
-    this.refreshAdminActivationState()
-    if (this.adminState.activated) {
-      return true
-    }
-    void DialogService.openFailure(
-      this.getUIContext(),
-      this.adminState.errorMessage?.trim().length ? this.adminState.errorMessage : `${action}${IdentityStrings.adminRequiredWithActionSuffix}`
-    )
-    return false
-  }
-
   private loadCurrentPolicy(): void {
     if (!this.adminState.activated) {
       this.viewModel.reset()
@@ -81,12 +69,17 @@ export struct IdentityPage {
   }
 
   private saveConfig(): void {
-    if (!this.ensureAdminReady(IdentityStrings.saveAction)) {
+    this.refreshAdminActivationState()
+    if (!this.adminState.activated) {
+      DialogService.openFailure(
+        this.getUIContext(),
+        this.adminState.errorMessage?.trim().length ? this.adminState.errorMessage : `${IdentityStrings.saveAction}${IdentityStrings.adminRequiredWithActionSuffix}`
+      )
       return
     }
 
     let result = this.viewModel.save()
-    void DialogService.openResult(this.getUIContext(), {
+    DialogService.openResult(this.getUIContext(), {
       status: result.success ? 'success' : 'failure',
       message: result.message
     })
@@ -142,11 +135,6 @@ export struct IdentityPage {
 
   @Builder
   private headerActions() {
-    this.saveButton()
-  }
-
-  @Builder
-  private saveButton() {
     IconTextActionButton({
       label: IdentityStrings.saveButton,
       icon: $r('app.media.save'),

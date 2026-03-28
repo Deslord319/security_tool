@@ -1,5 +1,5 @@
 
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import { LogStorageService } from '../services/LogStorageService'
@@ -186,14 +186,14 @@ struct LogDetailDialog {
     return getLogEventResultColor(this.entry.result)
   }
 
-  private getResultTagBgColor(): string {
+  private getResultTagBgColor(): ResourceColor {
     if (this.entry.result === LogEventResult.SUCCESS) {
       return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
     }
     if (this.entry.result === LogEventResult.BLOCKED) {
       return AppColors.getColors(this.currentTheme).TAG_ORANGE_BG
     }
-    return AppColors.getColors(this.currentTheme).TAG_RED_BG
+    return ActionButtonStyles.getDangerBackground(this.currentTheme, false)
   }
 
   private getMetricFields(): LogDetailField[] {
@@ -259,8 +259,8 @@ struct LogDetailDialog {
 
             Text(getLogEventTypeLabel(this.entry.eventType))
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-              .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+              .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
+              .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
               .borderRadius(AppStyles.RADIUS_SM)
               .padding({ left: 8, right: 8, top: 4, bottom: 4 })
 
@@ -389,13 +389,6 @@ export struct LogManagePage {
       clearInterval(this.refreshTimerId)
       this.refreshTimerId = -1
     }
-  }
-
-  private showResultDialog(status: 'success' | 'failure', message: string): void {
-    void DialogService.openResult(this.getUIContext(), {
-      status: status,
-      message: message
-    })
   }
 
   private startRefreshTimer(): void {
@@ -585,7 +578,7 @@ export struct LogManagePage {
 
   async exportLogs() {
     if (this.logEntries.length === 0) {
-      this.showResultDialog('failure', LogManageStrings.noExportableLogs)
+      DialogService.openFailure(this.getUIContext(), LogManageStrings.noExportableLogs)
       return
     }
 
@@ -593,13 +586,13 @@ export struct LogManagePage {
       csvContent: LogStorageService.buildCsvContent(this.logEntries)
     })
     if (result.success) {
-      this.showResultDialog('success', LogManageStrings.buildExportSuccessText(result.fileName ?? '-'))
+      DialogService.openSuccess(this.getUIContext(), LogManageStrings.buildExportSuccessText(result.fileName ?? '-'))
       return
     }
 
-    this.showResultDialog(
-      'failure',
-        LogManageStrings.buildExportFailedText(DialogService.displayReason(result.errorMessage, CommonStrings.messageRetryLater))
+    DialogService.openFailure(
+      this.getUIContext(),
+      LogManageStrings.buildExportFailedText(DialogService.displayReason(result.errorMessage, CommonStrings.messageRetryLater))
     )
   }
 
@@ -618,7 +611,7 @@ export struct LogManagePage {
   }
 
   clearLogs() {
-    void DialogService.openConfirm(this.getUIContext(), {
+    DialogService.openConfirm(this.getUIContext(), {
       title: LogManageStrings.clearConfirmTitle,
       message: LogManageStrings.buildClearConfirmMessage(this.statistics.totalCount),
       confirmText: LogManageStrings.clearConfirmAction,
@@ -626,7 +619,7 @@ export struct LogManagePage {
       onConfirm: async () => {
         await LogStorageService.clearAll()
         this.refreshAll()
-        this.showResultDialog('success', LogManageStrings.clearSuccess)
+        DialogService.openSuccess(this.getUIContext(), LogManageStrings.clearSuccess)
       }
     })
   }
@@ -634,12 +627,12 @@ export struct LogManagePage {
   async saveStorageSettings() {
     let result = await this.storageSettingsViewModel.save()
     if (!result.success) {
-      this.showResultDialog('failure', result.message)
+      DialogService.openFailure(this.getUIContext(), result.message)
       return
     }
 
     this.refreshAll()
-    this.showResultDialog('success', result.message)
+    DialogService.openSuccess(this.getUIContext(), result.message)
   }
   build() {
     Column() {
@@ -956,8 +949,8 @@ export struct LogManagePage {
 
       Text(getLogEventTypeLabel(entry.eventType))
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+        .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
+        .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
         .borderRadius(4)
         .padding({ left: 6, right: 6, top: 2, bottom: 2 })
         .width(72)

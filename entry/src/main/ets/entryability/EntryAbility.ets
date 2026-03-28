@@ -206,7 +206,7 @@ export default class EntryAbility extends UIAbility {
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {
         windowStage.getMainWindow().then((mainWindow: window.Window) => {
-          void DialogService.openFailure(mainWindow.getUIContext(), toastMessage);
+          DialogService.openFailure(mainWindow.getUIContext(), toastMessage);
         }).catch((dialogErr: Error) => {
           hilog.error(DOMAIN, 'testTag', 'Failed to show startup dialog: %{public}s', JSON.stringify(dialogErr));
         });

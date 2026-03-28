@@ -1,4 +1,4 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { FirewallService } from '../services/FirewallService'
@@ -43,7 +43,7 @@ export struct FirewallRulesPage {
 
   aboutToAppear() {
     if (this.currentMode !== 'custom') {
-      void DialogService.openFailure(this.getUIContext(), FirewallStrings.rulesOnlyCustomMode)
+      DialogService.openFailure(this.getUIContext(), FirewallStrings.rulesOnlyCustomMode)
       this.onBack()
       return
     }
@@ -63,7 +63,7 @@ export struct FirewallRulesPage {
     let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
     let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {
-      void DialogService.openFailure(
+      DialogService.openFailure(
         this.getUIContext(),
         result.errorMessage?.length ? result.errorMessage : FirewallStrings.customRulesApplyFailed
       )
@@ -73,11 +73,11 @@ export struct FirewallRulesPage {
     if (!saved) {
       let rollbackResult = await FirewallModeService.applyCustomRules(context, previousRules)
       if (!rollbackResult.success) {
-        void DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesLocalSaveFailed)
+      DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesLocalSaveFailed)
         return
       }
       await this.loadRules()
-      void DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesRollbackSuccess)
+      DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesRollbackSuccess)
       return
     }
     await this.loadRules()
@@ -88,12 +88,12 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(this.rules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        void DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
+      DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-        void DialogService.openConfirm(this.getUIContext(), {
+      DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceMessage,
           confirmText: CommonStrings.actionOverride,
@@ -105,7 +105,7 @@ export struct FirewallRulesPage {
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        void DialogService.openConfirm(this.getUIContext(), {
+      DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleAddMessage,
           confirmText: CommonStrings.actionContinue,
@@ -150,12 +150,12 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(comparableRules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        void DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
+      DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-        void DialogService.openConfirm(this.getUIContext(), {
+      DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceAndSaveMessage,
           confirmText: CommonStrings.actionOverride,
@@ -167,7 +167,7 @@ export struct FirewallRulesPage {
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        void DialogService.openConfirm(this.getUIContext(), {
+      DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleEditMessage,
           confirmText: CommonStrings.actionContinue,
@@ -209,7 +209,7 @@ export struct FirewallRulesPage {
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
-    void DialogService.openConfirm(this.getUIContext(), {
+      DialogService.openConfirm(this.getUIContext(), {
       title: FirewallStrings.deleteRuleTitle,
       message: FirewallStrings.deleteRuleMessage,
       confirmText: CommonStrings.actionDelete,
@@ -283,7 +283,7 @@ export struct FirewallRulesPage {
   getRuleTypeBgColor(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return AppColors.getColors(this.currentTheme).TAG_BLUE_BG
+        return ActionButtonStyles.getPrimaryBackground(this.currentTheme, false) as string
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
         return AppColors.getColors(this.currentTheme).TAG_PURPLE_BG
       case netFirewall.NetFirewallRuleType.RULE_DNS:
@@ -330,7 +330,7 @@ export struct FirewallRulesPage {
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
     return action === netFirewall.FirewallRuleAction.RULE_ALLOW
       ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG
-      : AppColors.getColors(this.currentTheme).TAG_RED_BG
+      : ActionButtonStyles.getDangerBackground(this.currentTheme, false) as string
   }
 
   getActionTextColor(action: netFirewall.FirewallRuleAction): string {
@@ -580,8 +580,8 @@ export struct FirewallRulesPage {
 
                       Text(this.getDirectionLabel(rule.direction))
                         .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                        .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-                        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+                        .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
+                        .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
                         .borderRadius(10)
                         .padding({ left: 8, right: 8, top: 4, bottom: 4 })
 
@@ -600,7 +600,7 @@ export struct FirewallRulesPage {
                     Button(CommonStrings.actionDelete)
                       .fontSize(AppStyles.FONT_SIZE_CAPTION)
                       .fontColor(AppColors.DANGER)
-                      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
+                      .backgroundColor(ActionButtonStyles.getDangerBackground(this.currentTheme, false))
                       .borderRadius(AppStyles.RADIUS_SM)
                       .height(30)
                       .onClick(() => {
