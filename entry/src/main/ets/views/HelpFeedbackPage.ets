@@ -1,9 +1,9 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../constants/modules/HelpFeedbackStrings'
 import { BackNavButton } from '../components/BackNavButton'
+import { SectionCard } from '../components/SettingsSectionCard'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { HoverUtils } from '../utils/HoverUtils'
 
 @Component
 export struct HelpFeedbackPage {
@@ -11,7 +11,6 @@ export struct HelpFeedbackPage {
   onBack: () => void = () => {}
   @State expandedGuide: number = -1
   @State expandedFaq: number = -1
-  @State hoveredCardIndex: number = -1
 
   private guideItems: GuideItemString[] = HelpFeedbackStrings.guideItems
   private faqItems: FaqItemString[] = HelpFeedbackStrings.faqItems
@@ -44,165 +43,25 @@ export struct HelpFeedbackPage {
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
-        Column({ space: 12 }) {
-          Text(HelpFeedbackStrings.guideSectionTitle)
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-          ForEach(this.guideItems, (item: GuideItemString, index: number) => {
-            Column({ space: 0 }) {
-              Row() {
-                Text(item.title)
-                  .fontSize(AppStyles.FONT_SIZE_BODY)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                  .layoutWeight(1)
-
-                Text(this.expandedGuide === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
-                  .fontSize(10)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-              }
-              .width('100%')
-              .padding(12)
-              .onClick(() => {
-                this.expandedGuide = this.expandedGuide === index ? -1 : index
-              })
-
-              if (this.expandedGuide === index) {
-                Text(item.description)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .lineHeight(20)
-                  .padding({ left: 12, right: 12, bottom: 12 })
-                  .width('100%')
-              }
-            }
-            .width('100%')
-            .borderRadius(AppStyles.RADIUS_MD)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-          })
-        }
-        .width('100%')
-        .padding(20)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .alignItems(HorizontalAlign.Start)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
-        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 0, true))
-        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 0, 4) })
-        .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredCardIndex = isHover ? 0 : -1
-          })
-        })
-
-        Column({ space: 12 }) {
-          Text(HelpFeedbackStrings.faqSectionTitle)
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-          ForEach(this.faqItems, (item: FaqItemString, index: number) => {
-            Column({ space: 0 }) {
-              Row() {
-                Text(item.question)
-                  .fontSize(AppStyles.FONT_SIZE_BODY)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                  .layoutWeight(1)
-
-                Text(this.expandedFaq === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
-                  .fontSize(10)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-              }
-              .width('100%')
-              .padding(12)
-              .onClick(() => {
-                this.expandedFaq = this.expandedFaq === index ? -1 : index
-              })
-
-              if (this.expandedFaq === index) {
-                Text(item.answer)
-                  .fontSize(AppStyles.FONT_SIZE_SMALL)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-                  .lineHeight(20)
-                  .padding({ left: 12, right: 12, bottom: 12 })
-                  .width('100%')
-              }
-            }
-            .width('100%')
-            .borderRadius(AppStyles.RADIUS_MD)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-          })
-        }
-        .width('100%')
-        .padding(20)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .alignItems(HorizontalAlign.Start)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
-        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 1, true))
-        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 1, 4) })
-        .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredCardIndex = isHover ? 1 : -1
-          })
-        })
-
-        Column({ space: 8 }) {
-          Text(HelpFeedbackStrings.contactSectionTitle)
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-          Text(HelpFeedbackStrings.contactDescription)
-            .fontSize(AppStyles.FONT_SIZE_SMALL)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            .lineHeight(20)
-
-          Row({ space: 8 }) {
-            Text(HelpFeedbackStrings.feedbackEmailLabel)
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-
-            Text(HelpFeedbackStrings.feedbackEmail)
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.BRAND_PRIMARY)
+        SectionCard({
+          title: HelpFeedbackStrings.guideSectionTitle,
+          content: () => {
+            this.guideSectionContent()
           }
-        }
-        .width('100%')
-        .padding(20)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .alignItems(HorizontalAlign.Start)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
         })
-        .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredCardIndex === 2, true))
-        .translate({ y: HoverUtils.getTranslateY(this.hoveredCardIndex === 2, 4) })
-        .onHover((isHover: boolean) => {
-          HoverUtils.animate(() => {
-            this.hoveredCardIndex = isHover ? 2 : -1
-          })
+
+        SectionCard({
+          title: HelpFeedbackStrings.faqSectionTitle,
+          content: () => {
+            this.faqSectionContent()
+          }
+        })
+
+        SectionCard({
+          title: HelpFeedbackStrings.contactSectionTitle,
+          content: () => {
+            this.contactSectionContent()
+          }
         })
       }
       .padding(AppStyles.PADDING_LG)
@@ -211,5 +70,116 @@ export struct HelpFeedbackPage {
     .height('100%')
     .scrollBar(BarState.Auto)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+  }
+
+  @Builder
+  private guideSectionContent() {
+    Column({ space: 12 }) {
+      ForEach(this.guideItems, (item: GuideItemString, index: number) => {
+        Column({ space: 0 }) {
+          Row() {
+            Text(item.title)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+              .layoutWeight(1)
+
+            Text(this.expandedGuide === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
+              .fontSize(10)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .width('100%')
+          .padding(12)
+          .onClick(() => {
+            this.expandedGuide = this.expandedGuide === index ? -1 : index
+          })
+
+          if (this.expandedGuide === index) {
+            Text(item.description)
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .lineHeight(20)
+              .padding({ left: 12, right: 12, bottom: 12 })
+              .width('100%')
+          }
+        }
+        .width('100%')
+        .borderRadius(AppStyles.RADIUS_MD)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+      })
+    }
+    .width('100%')
+    .padding(20)
+  }
+
+  @Builder
+  private faqSectionContent() {
+    Column({ space: 12 }) {
+      ForEach(this.faqItems, (item: FaqItemString, index: number) => {
+        Column({ space: 0 }) {
+          Row() {
+            Text(item.question)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+              .layoutWeight(1)
+
+            Text(this.expandedFaq === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
+              .fontSize(10)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .width('100%')
+          .padding(12)
+          .onClick(() => {
+            this.expandedFaq = this.expandedFaq === index ? -1 : index
+          })
+
+          if (this.expandedFaq === index) {
+            Text(item.answer)
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .lineHeight(20)
+              .padding({ left: 12, right: 12, bottom: 12 })
+              .width('100%')
+          }
+        }
+        .width('100%')
+        .borderRadius(AppStyles.RADIUS_MD)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+      })
+    }
+    .width('100%')
+    .padding(20)
+  }
+
+  @Builder
+  private contactSectionContent() {
+    Column({ space: 8 }) {
+      Text(HelpFeedbackStrings.contactDescription)
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .lineHeight(20)
+
+      Row({ space: 8 }) {
+        Text(HelpFeedbackStrings.feedbackEmailLabel)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+
+        Text(HelpFeedbackStrings.feedbackEmail)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontColor(AppColors.BRAND_PRIMARY)
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .padding(20)
   }
 }

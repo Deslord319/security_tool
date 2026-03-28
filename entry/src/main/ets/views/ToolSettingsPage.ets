@@ -10,7 +10,7 @@ import { BackNavButton } from '../components/BackNavButton'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
-import { SettingsSectionCard } from '../components/SettingsSectionCard'
+import { SectionCard } from '../components/SettingsSectionCard'
 import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
 const TAG = 'ToolSettings.Page'
@@ -148,7 +148,7 @@ export struct ToolSettingsPage {
       Scroll() {
         Column({ space: 24 }) {
           if (this.initialized) {
-            SettingsSectionCard({
+            SectionCard({
               title: ToolSettingsStrings.sectionStartupAuth,
               content: () => {
                 this.startupAuthContent()

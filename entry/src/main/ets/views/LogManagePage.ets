@@ -27,7 +27,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { BackNavButton } from '../components/BackNavButton'
-import { SettingsSectionCard } from '../components/SettingsSectionCard'
+import { SectionCard } from '../components/SettingsSectionCard'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -1220,7 +1220,7 @@ export struct LogManagePage {
 
   @Builder
   storageConfigCard() {
-    SettingsSectionCard({
+          SectionCard({
       title: LogManageStrings.settingsTitle,
       content: () => {
         this.storageConfigContent()

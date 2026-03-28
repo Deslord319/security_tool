@@ -14,7 +14,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { BackNavButton } from '../components/BackNavButton'
-import { SettingsSectionCard } from '../components/SettingsSectionCard'
+import { SectionCard } from '../components/SettingsSectionCard'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -258,7 +258,7 @@ export struct IdentityPage {
 
       Scroll() {
         Column({ space: 24 }) {
-          SettingsSectionCard({
+          SectionCard({
             title: IdentityStrings.sectionPasswordComplexity,
             content: () => {
               this.passwordComplexityContent()

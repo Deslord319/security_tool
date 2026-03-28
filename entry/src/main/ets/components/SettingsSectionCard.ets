@@ -4,7 +4,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
 @Component
-export struct SettingsSectionCard {
+export struct SectionCard {
   title: string = ''
   @BuilderParam content: () => void
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
