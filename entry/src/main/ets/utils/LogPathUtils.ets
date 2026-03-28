@@ -32,40 +32,6 @@ export class LogPathUtils {
     return undefined
   }
 
-  static extractPathFromRawText(raw: string | undefined): string | undefined {
-    let extracted = LogPathUtils.extractRawPathFromRawText(raw)
-    return LogPathUtils.normalizePathCandidate(extracted)
-  }
-
-  static describePathKind(candidatePath: string | undefined): string {
-    let normalized = LogPathUtils.normalizePathCandidate(candidatePath)
-    if (!normalized) {
-      return 'unknown'
-    }
-    if (LogPathUtils.isUserDirectoryPath(normalized, 'Download')) {
-      return 'user_download'
-    }
-    if (LogPathUtils.isUserDirectoryPath(normalized, 'Documents')) {
-      return 'user_documents'
-    }
-    if (LogPathUtils.isUserDirectoryPath(normalized, 'Desktop')) {
-      return 'user_desktop'
-    }
-    if (normalized.startsWith('/storage/Users/currentUser/')) {
-      return 'user_directory'
-    }
-    if (normalized.startsWith('file://media/')) {
-      return 'public_media'
-    }
-    if (normalized.startsWith('/data/storage/')) {
-      return 'app_sandbox'
-    }
-    if (normalized.startsWith('/data/')) {
-      return 'system_internal'
-    }
-    return 'other'
-  }
-
   private static extractRawPathFromRawText(raw: string | undefined): string | undefined {
     if (!raw) {
       return undefined
@@ -141,10 +107,4 @@ export class LogPathUtils {
     return remapped
   }
 
-  private static isUserDirectoryPath(normalizedPath: string, dirName: string): boolean {
-    return normalizedPath === `/storage/Users/currentUser/${dirName}` ||
-      normalizedPath.startsWith(`/storage/Users/currentUser/${dirName}/`) ||
-      normalizedPath === `file://docs/storage/Users/currentUser/${dirName}` ||
-      normalizedPath.startsWith(`file://docs/storage/Users/currentUser/${dirName}/`)
-  }
 }

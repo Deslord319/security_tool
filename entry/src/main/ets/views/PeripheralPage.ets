@@ -10,7 +10,6 @@ import { LoadingDialog } from '../components/UserFirewallControlDialog'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
-import { TabBuilder } from '../components/peripheral/TabBuilder'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
@@ -156,7 +155,13 @@ export struct PeripheralPage {
 
   @Builder
   private tabBarBuilder(title: string, index: number) {
-    TabBuilder({ title: title, index: index, currentTab: this.currentTabIndex, currentTheme: this.currentTheme })
+    Column() {
+      Text(title)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(index === this.currentTabIndex ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(index === this.currentTabIndex ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+    }
+    .padding({ left: 16, right: 16, top: 10, bottom: 10 })
   }
 
   build() {

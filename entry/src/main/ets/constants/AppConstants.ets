@@ -32,18 +32,6 @@ export class AppColors {
   static readonly BORDER: string = '#000000'
   static readonly BORDER_OPACITY: number = 0.1
 
-  static readonly TAG_BLUE_BG: string = '#E3F2FD'
-  static readonly TAG_BLUE_TEXT: string = '#1565C0'
-  static readonly TAG_GREEN_BG: string = '#E8F5E9'
-  static readonly TAG_GREEN_TEXT: string = '#2E7D32'
-  static readonly TAG_RED_BG: string = '#FFEBEE'
-  static readonly TAG_RED_TEXT: string = '#C62828'
-  static readonly TAG_PURPLE_BG: string = '#F3E5F5'
-  static readonly TAG_PURPLE_TEXT: string = '#6A1B9A'
-  static readonly TAG_ORANGE_BG: string = '#FFF3E0'
-  static readonly TAG_ORANGE_TEXT: string = '#E65100'
-  static readonly TAG_GRAY_BG: string = '#ECEFF1'
-  static readonly TAG_GRAY_TEXT: string = '#546E7A'
   static readonly TEXT_MUTED: string = '#9E9E9E'
 }
 

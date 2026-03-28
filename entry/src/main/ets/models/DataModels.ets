@@ -1,4 +1,6 @@
 
+import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
+
 export enum RuleType {
   IP = 1,
   DOMAIN = 2,
@@ -57,35 +59,34 @@ export interface RuleTypeData {
   count: number
   iconColor: string
 }
-
 export function getRuleTypeLabel(type: RuleType): string {
   switch (type) {
     case RuleType.IP:
-      return 'IP'
+      return SharedLabels.LABEL_IP
     case RuleType.DOMAIN:
-      return '域名'
+      return SharedLabels.LABEL_DOMAIN
     case RuleType.DNS:
-      return 'DNS'
+      return SharedLabels.LABEL_DNS
     default:
-      return '未知'
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
 export function getDirectionLabel(dir: RuleDirection): string {
   switch (dir) {
     case RuleDirection.IN:
-      return '入站'
+      return SharedLabels.LABEL_INBOUND
     case RuleDirection.OUT:
-      return '出站'
+      return SharedLabels.LABEL_OUTBOUND
     default:
-      return '未知'
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
 export function getProtocolLabel(proto: ProtocolType): string {
   switch (proto) {
     case ProtocolType.ALL:
-      return 'ALL'
+      return SharedLabels.LABEL_ALL
     case ProtocolType.TCP:
       return 'TCP'
     case ProtocolType.UDP:
@@ -93,7 +94,7 @@ export function getProtocolLabel(proto: ProtocolType): string {
     case ProtocolType.ICMP:
       return 'ICMP'
     default:
-      return 'ALL'
+      return SharedLabels.LABEL_ALL
   }
 }
 

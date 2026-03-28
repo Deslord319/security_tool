@@ -21,8 +21,4 @@ export class FormControlUtils {
   static placeholder(theme: ThemeMode): string {
     return AppColors.getColors(theme).FORM_PLACEHOLDER
   }
-
-  static focusBorder(theme: ThemeMode): string {
-    return AppColors.getColors(theme).FORM_FOCUS_BORDER
-  }
 }

@@ -4,12 +4,10 @@ import {
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
 } from '../../models/DataModels'
-import { ThemeMode } from '../../theme/ThemeColors'
+import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
-import { getPeripheralConnectionPolicyLabel } from '../../utils/PeripheralRecordDisplayUtils'
+import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../EmptyStatePanel'
-import { PeripheralTableHeaderCell } from './PeripheralTableHeaderCell'
-import { PeripheralTypeTag } from './PeripheralTypeTag'
 
 @Component
 export struct DeviceRecordList {
@@ -87,12 +85,12 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      PeripheralTableHeaderCell({ label: '设备名称', weight: 2.6, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '设备类型', weight: 1.5, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '连接事件', weight: 1.3, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '策略', weight: 1.2, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '连接时间', weight: 1.9, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '操作', weight: 1.0, currentTheme: this.currentTheme })
+      this.headerCell('设备名称', 2.6)
+      this.headerCell('设备类型', 1.5)
+      this.headerCell('连接事件', 1.3)
+      this.headerCell('策略', 1.2)
+      this.headerCell('连接时间', 1.9)
+      this.headerCell('操作', 1.0)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -119,11 +117,7 @@ export struct DeviceRecordList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      PeripheralTypeTag({
-        label: getPeripheralTypeLabel(record.deviceType),
-        weight: 1.5,
-        currentTheme: this.currentTheme
-      })
+      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
 
       Row() {
         Text(getPeripheralRecordActionLabel(record.action))
@@ -161,36 +155,66 @@ export struct DeviceRecordList {
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
           .fontColor(this.getDetailButtonForeground())
+      }
+      .height(ActionButtonStyles.CHIP_HEIGHT)
+      .padding({
+        left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
+        right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
+      })
+      .justifyContent(FlexAlign.Center)
+      .borderRadius(8)
+      .backgroundColor(this.getDetailButtonBackground(record.id))
+      .layoutWeight(1.0)
+      .onHover((isHover: boolean) => {
+        this.hoveredDetailId = isHover ? record.id : ''
+      })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.activeDetailId = record.id
+          return
         }
-        .height(ActionButtonStyles.CHIP_HEIGHT)
-        .padding({
-          left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
-          right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
-        })
-        .justifyContent(FlexAlign.Center)
-        .borderRadius(8)
-        .backgroundColor(this.getDetailButtonBackground(record.id))
-        .layoutWeight(1.0)
-        .onHover((isHover: boolean) => {
-          this.hoveredDetailId = isHover ? record.id : ''
-        })
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Down) {
-            this.activeDetailId = record.id
-            return
-          }
-          if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-            this.activeDetailId = ''
-          }
-        })
-        .onClick(() => {
+        if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
           this.activeDetailId = ''
-          this.onRecordClick && this.onRecordClick(record)
-        })
+        }
+      })
+      .onClick(() => {
+        this.activeDetailId = ''
+        this.onRecordClick && this.onRecordClick(record)
+      })
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private headerCell(label: string, weight: number, textAlign: TextAlign = TextAlign.Center) {
+    Text(label)
+      .fontSize(AppStyles.FONT_SIZE_SMALL)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .layoutWeight(weight)
+      .textAlign(textAlign)
+  }
+
+  @Builder
+  private typeTag(label: string, weight: number) {
+    Row() {
+      Row() {
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .borderRadius(6)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+    }
+    .layoutWeight(weight)
+    .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
   }
 
@@ -208,11 +232,11 @@ export struct DeviceRecordList {
 
   private eventTextColor(record: PeripheralConnectionRecord): ResourceColor {
     if (record.action === 'connect') {
-      return AppColors.TAG_GREEN_TEXT
+      return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
     }
     if (record.action === 'disconnect') {
-      return AppColors.TAG_ORANGE_TEXT
+      return AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT
     }
-    return AppColors.TAG_RED_TEXT
+    return AppColors.getColors(this.currentTheme).TAG_RED_TEXT
   }
 }

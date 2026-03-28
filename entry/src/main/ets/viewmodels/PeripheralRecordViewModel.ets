@@ -13,12 +13,10 @@ import { PeripheralConnectionRecordService } from '../services/PeripheralConnect
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp,
-  PeripheralConnectionHistoryItem
-} from '../utils/PeripheralRecordViewDataUtils'
-import {
   getPeripheralConnectionPolicyLabel,
-  getPeripheralConnectionResultLabel
-} from '../utils/PeripheralRecordDisplayUtils'
+  getPeripheralConnectionResultLabel,
+  PeripheralConnectionHistoryItem
+} from './PeripheralRecordPresentationMapper'
 
 const TAG = 'PeripheralRecordViewModel'
 const DOMAIN = 0x0013

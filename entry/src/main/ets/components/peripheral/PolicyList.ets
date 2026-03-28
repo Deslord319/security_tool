@@ -1,10 +1,8 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
-import { ThemeMode } from '../../theme/ThemeColors'
+import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
-import { PeripheralTableHeaderCell } from './PeripheralTableHeaderCell'
-import { PeripheralTypeTag } from './PeripheralTypeTag'
 
 export interface PolicyOption {
   value: string
@@ -101,11 +99,11 @@ export struct PolicyList {
   @Builder
   private tableHeader() {
     Row() {
-      PeripheralTableHeaderCell({ label: '设备名称', weight: 2.6, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '设备类型', weight: 1.5, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '当前策略', weight: 1.5, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '最近连接时间', weight: 1.8, currentTheme: this.currentTheme })
-      PeripheralTableHeaderCell({ label: '操作', weight: 1.4, currentTheme: this.currentTheme })
+      this.headerCell('设备名称', 2.6)
+      this.headerCell('设备类型', 1.5)
+      this.headerCell('当前策略', 1.5)
+      this.headerCell('最近连接时间', 1.8)
+      this.headerCell('操作', 1.4)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -132,11 +130,7 @@ export struct PolicyList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      PeripheralTypeTag({
-        label: getPeripheralTypeLabel(record.deviceType),
-        weight: 1.5,
-        currentTheme: this.currentTheme
-      })
+      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
 
       Row() {
         Text(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
@@ -182,6 +176,36 @@ export struct PolicyList {
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private headerCell(label: string, weight: number, textAlign: TextAlign = TextAlign.Center) {
+    Text(label)
+      .fontSize(AppStyles.FONT_SIZE_SMALL)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .layoutWeight(weight)
+      .textAlign(textAlign)
+  }
+
+  @Builder
+  private typeTag(label: string, weight: number) {
+    Row() {
+      Row() {
+        Text(label)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .borderRadius(6)
+      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
+    }
+    .layoutWeight(weight)
+    .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
   }
 }

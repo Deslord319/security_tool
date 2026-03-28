@@ -1,5 +1,6 @@
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/DataModels'
 import { CommonStrings } from '../CommonStrings'
+import { SharedLabels } from './FirewallSharedLabels'
 
 export class FirewallStrings {
   static readonly pageTitle: string = CommonStrings.moduleFirewall
@@ -39,10 +40,10 @@ export class FirewallStrings {
   static readonly addRuleButton: string = '+ 新增规则'
   static readonly inboundRules: string = '入站规则'
   static readonly outboundRules: string = '出站规则'
-  static readonly tabAllRules: string = '全部'
-  static readonly tabIpRules: string = 'IP'
-  static readonly tabDomainRules: string = '域名'
-  static readonly tabDnsRules: string = 'DNS'
+  static readonly tabAllRules: string = SharedLabels.LABEL_ALL
+  static readonly tabIpRules: string = SharedLabels.LABEL_IP
+  static readonly tabDomainRules: string = SharedLabels.LABEL_DOMAIN
+  static readonly tabDnsRules: string = SharedLabels.LABEL_DNS
   static readonly loadingRules: string = '正在加载规则...'
   static readonly emptyRules: string = '暂无自定义规则'
 
@@ -50,10 +51,10 @@ export class FirewallStrings {
   static readonly detailLocalPort: string = '本地端口'
   static readonly detailRemotePort: string = '远端端口'
   static readonly detailProtocol: string = '协议'
-  static readonly typeDomain: string = '域名'
-  static readonly typeUnknown: string = '未知'
-  static readonly directionInbound: string = '入站'
-  static readonly directionOutbound: string = '出站'
+  static readonly typeDomain: string = SharedLabels.LABEL_DOMAIN
+  static readonly typeUnknown: string = SharedLabels.LABEL_UNKNOWN
+  static readonly directionInbound: string = SharedLabels.LABEL_INBOUND
+  static readonly directionOutbound: string = SharedLabels.LABEL_OUTBOUND
   static readonly actionAllow: string = '允许'
   static readonly actionDeny: string = '禁止'
 

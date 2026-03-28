@@ -9,8 +9,7 @@ import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel
-} from '../../utils/PeripheralRecordDisplayUtils'
-import { ConnectionDetailMetricField } from './ConnectionDetailMetricField'
+} from '../../viewmodels/PeripheralRecordPresentationMapper'
 
 export interface ConnectionHistoryItem {
   time: string
@@ -88,26 +87,26 @@ export struct ConnectionDetailDialog {
         .fontWeight(FontWeight.Medium)
 
       Row({ space: 10 }) {
-        ConnectionDetailMetricField({ label: '设备标识', value: record.deviceId, currentTheme: this.currentTheme })
-        ConnectionDetailMetricField({ label: '最近时间', value: this.formatConnectionTime(record), currentTheme: this.currentTheme })
+        this.metricField('设备标识', record.deviceId)
+        this.metricField('最近时间', this.formatConnectionTime(record))
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        ConnectionDetailMetricField({ label: '连接事件', value: getPeripheralRecordActionLabel(record.action), currentTheme: this.currentTheme })
-        ConnectionDetailMetricField({ label: '事件来源', value: getPeripheralRecordSourceLabel(record.source), currentTheme: this.currentTheme })
+        this.metricField('连接事件', getPeripheralRecordActionLabel(record.action))
+        this.metricField('事件来源', getPeripheralRecordSourceLabel(record.source))
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        ConnectionDetailMetricField({ label: '策略结论', value: getPeripheralConnectionPolicyLabel(record), currentTheme: this.currentTheme })
-        ConnectionDetailMetricField({ label: '执行策略', value: record.effectivePolicyLabel ?? '--', currentTheme: this.currentTheme })
+        this.metricField('策略结论', getPeripheralConnectionPolicyLabel(record))
+        this.metricField('执行策略', record.effectivePolicyLabel ?? '--')
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        ConnectionDetailMetricField({ label: '命中类型', value: getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind), currentTheme: this.currentTheme })
-        ConnectionDetailMetricField({ label: '结果状态', value: getPeripheralConnectionResultLabel(record), currentTheme: this.currentTheme })
+        this.metricField('命中类型', getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind))
+        this.metricField('结果状态', getPeripheralConnectionResultLabel(record))
       }
       .width('100%')
     }
@@ -115,6 +114,25 @@ export struct ConnectionDetailDialog {
     .padding(12)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     .borderRadius(AppStyles.RADIUS_LG)
+  }
+
+  @Builder
+  private metricField(label: string, value: string) {
+    Column({ space: 4 }) {
+      Text(label)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      Text(value)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder

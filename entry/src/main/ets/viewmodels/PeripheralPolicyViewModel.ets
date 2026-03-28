@@ -13,7 +13,7 @@ import {
 import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralService } from '../services/PeripheralService'
-import { buildPeripheralPolicyRecords } from '../utils/PeripheralRecordViewDataUtils'
+import { buildPeripheralPolicyRecords } from './PeripheralRecordPresentationMapper'
 
 const TAG = 'PeripheralPolicyViewModel'
 const DOMAIN = 0x0013
