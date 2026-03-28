@@ -28,6 +28,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { BackNavButton } from '../components/BackNavButton'
 import { SectionCard } from '../components/SettingsSectionCard'
+import { SectionSelectRow } from '../components/SectionRows'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -1223,7 +1224,34 @@ export struct LogManagePage {
           SectionCard({
       title: LogManageStrings.settingsTitle,
       content: () => {
-        this.storageConfigContent()
+        this.storageConfigRows()
+      }
+    })
+  }
+
+  @Builder
+  storageConfigRows() {
+    SectionSelectRow({
+      title: LogManageStrings.maxEntriesLabel,
+      options: LOG_MAX_ENTRIES_OPTIONS.map((v): SelectOption => ({ value: `${v}` } as SelectOption)),
+      selectedIndex: this.maxEntriesIndex,
+      value: `${LOG_MAX_ENTRIES_OPTIONS[this.maxEntriesIndex]}`,
+      selectWidth: this.SETTINGS_FORM_CONTROL_WIDTH,
+      onSelect: (index: number) => {
+        this.maxEntriesIndex = index
+      }
+    })
+
+    Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+    SectionSelectRow({
+      title: LogManageStrings.retentionDaysLabel,
+      options: LOG_RETENTION_OPTIONS.map((v): SelectOption => ({ value: `${v}` } as SelectOption)),
+      selectedIndex: this.retentionIndex,
+      value: `${LOG_RETENTION_OPTIONS[this.retentionIndex]}`,
+      selectWidth: this.SETTINGS_FORM_CONTROL_WIDTH,
+      onSelect: (index: number) => {
+        this.retentionIndex = index
       }
     })
   }

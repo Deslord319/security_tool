@@ -11,6 +11,7 @@ import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { SectionCard } from '../components/SettingsSectionCard'
+import { SectionActionRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
 import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
 const TAG = 'ToolSettings.Page'
@@ -224,97 +225,42 @@ export struct ToolSettingsPage {
 
   @Builder
   private startupAuthSwitchRow() {
-    Row() {
-      Column({ space: 2 }) {
-        Text(ToolSettingsStrings.startupAuthTitle)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(ToolSettingsStrings.startupAuthDesc)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+    SectionToggleRow({
+      title: ToolSettingsStrings.startupAuthTitle,
+      description: ToolSettingsStrings.startupAuthDesc,
+      isOn: this.viewModel.state.config.startupAuthEnabled,
+      onChange: (value: boolean) => {
+        this.viewModel.setStartupAuthEnabled(value)
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Toggle({ type: ToggleType.Switch, isOn: this.viewModel.state.config.startupAuthEnabled })
-        .selectedColor(AppColors.BRAND_PRIMARY)
-        .onChange((value: boolean) => {
-          this.viewModel.setStartupAuthEnabled(value)
-        })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    })
   }
 
   @Builder
   private authMethodRow() {
-    Row() {
-      Column({ space: 2 }) {
-        Text(ToolSettingsStrings.authMethodTitle)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(ToolSettingsStrings.authMethodDesc)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+    SectionSelectRow({
+      title: ToolSettingsStrings.authMethodTitle,
+      description: ToolSettingsStrings.authMethodDesc,
+      options: this.authMethodOptions,
+      selectedIndex: this.viewModel.selectedAuthMethodIndex,
+      value: this.getSelectedAuthMethodLabel(),
+      selectWidth: 140,
+      onSelect: (index: number) => {
+        if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
+          this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
+        }
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Select(this.authMethodOptions)
-        .selected(this.viewModel.selectedAuthMethodIndex)
-        .value(this.getSelectedAuthMethodLabel())
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(140)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => {
-          if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
-            this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
-          }
-        })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    })
   }
 
   @Builder
   private changePasswordRow() {
-    Row() {
-      Column({ space: 2 }) {
-        Text(ToolSettingsStrings.changePasswordLabel)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(ToolSettingsStrings.changePasswordDesc)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+    SectionActionRow({
+      title: ToolSettingsStrings.changePasswordLabel,
+      description: ToolSettingsStrings.changePasswordDesc,
+      actionLabel: ToolSettingsStrings.changePasswordLabel,
+      onTap: () => {
+        void this.handlePasswordSettings()
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Button(ToolSettingsStrings.changePasswordLabel)
-        .type(ButtonType.Normal)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(Color.White)
-        .backgroundColor(AppColors.BRAND_PRIMARY)
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .onClick(() => {
-          void this.handlePasswordSettings()
-        })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    })
   }
 }

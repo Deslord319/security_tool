@@ -15,6 +15,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { BackNavButton } from '../components/BackNavButton'
 import { SectionCard } from '../components/SettingsSectionCard'
+import { SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
@@ -317,92 +318,69 @@ export struct IdentityPage {
 
   @Builder
   passwordComplexityContent() {
-      Row() {
-        Column({ space: 2 }) {
-          Text(IdentityStrings.minPasswordLength)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          Text(IdentityStrings.minPasswordLengthDesc)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      SectionSelectRow({
+        title: IdentityStrings.minPasswordLength,
+        description: IdentityStrings.minPasswordLengthDesc,
+        options: this.lengthOptions,
+        selectedIndex: this.minLengthIndex,
+        value: this.lengthOptions[this.minLengthIndex].value as string,
+        selectWidth: 120,
+        onSelect: (index: number) => {
+          this.minLengthIndex = index
         }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Select(this.lengthOptions)
-          .selected(this.minLengthIndex)
-          .value(this.lengthOptions[this.minLengthIndex].value as string)
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(120)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => {
-            this.minLengthIndex = index
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+      })
 
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      this.toggleRowBuilder(
-        IdentityStrings.requireUppercase,
-        IdentityStrings.requireUppercaseDesc,
-        this.requireUppercase,
-        (value: boolean) => {
+      SectionToggleRow({
+        title: IdentityStrings.requireUppercase,
+        description: IdentityStrings.requireUppercaseDesc,
+        isOn: this.requireUppercase,
+        onChange: (value: boolean) => {
           this.requireUppercase = value
         }
-      )
+      })
 
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      this.toggleRowBuilder(
-        IdentityStrings.requireLowercase,
-        IdentityStrings.requireLowercaseDesc,
-        this.requireLowercase,
-        (value: boolean) => {
+      SectionToggleRow({
+        title: IdentityStrings.requireLowercase,
+        description: IdentityStrings.requireLowercaseDesc,
+        isOn: this.requireLowercase,
+        onChange: (value: boolean) => {
           this.requireLowercase = value
         }
-      )
+      })
 
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      this.toggleRowBuilder(
-        IdentityStrings.requireDigit,
-        IdentityStrings.requireDigitDesc,
-        this.requireDigit,
-        (value: boolean) => {
+      SectionToggleRow({
+        title: IdentityStrings.requireDigit,
+        description: IdentityStrings.requireDigitDesc,
+        isOn: this.requireDigit,
+        onChange: (value: boolean) => {
           this.requireDigit = value
         }
-      )
+      })
 
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      this.toggleRowBuilder(
-        IdentityStrings.requireSpecialChar,
-        IdentityStrings.requireSpecialCharDesc,
-        this.requireSpecialChar,
-        (value: boolean) => {
+      SectionToggleRow({
+        title: IdentityStrings.requireSpecialChar,
+        description: IdentityStrings.requireSpecialCharDesc,
+        isOn: this.requireSpecialChar,
+        onChange: (value: boolean) => {
           this.requireSpecialChar = value
         }
-      )
+      })
 
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
@@ -470,31 +448,5 @@ export struct IdentityPage {
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 14, bottom: 16 })
-  }
-
-  @Builder
-  toggleRowBuilder(label: string, desc: string, isOn: boolean, onChange: (value: boolean) => void) {
-    Row() {
-      Column({ space: 2 }) {
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(desc)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Toggle({ type: ToggleType.Switch, isOn: isOn })
-        .selectedColor(AppColors.BRAND_PRIMARY)
-        .onChange((value: boolean) => {
-          onChange(value)
-        })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
   }
 }
