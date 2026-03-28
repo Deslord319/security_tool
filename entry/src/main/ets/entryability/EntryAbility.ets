@@ -5,7 +5,7 @@ import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
 import { ThemeOption } from '../theme/ThemeColors';
 import { AuthService } from '../services/AuthService';
 import { AuthMethod } from '../models/DataModels';
-import { ResultDialogHelper } from '../utils/ResultDialogHelper';
+import { DialogService } from '../utils/DialogService';
 import { PreferencesToolSettingsRepository } from '../services/ToolSettingsRepository';
 
 const DOMAIN = 0x0000;
@@ -206,7 +206,7 @@ export default class EntryAbility extends UIAbility {
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {
         windowStage.getMainWindow().then((mainWindow: window.Window) => {
-          ResultDialogHelper.openAlertDialog(mainWindow.getUIContext(), 'failure', toastMessage);
+          void DialogService.openFailure(mainWindow.getUIContext(), toastMessage);
         }).catch((dialogErr: Error) => {
           hilog.error(DOMAIN, 'testTag', 'Failed to show startup dialog: %{public}s', JSON.stringify(dialogErr));
         });

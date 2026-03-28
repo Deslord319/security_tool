@@ -1,4 +1,3 @@
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppColors, AppStyles } from '../constants/AppConstants'
@@ -11,6 +10,7 @@ import { UserFirewallPolicyService } from '../services/UserFirewallPolicyService
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
+import { DialogService } from '../utils/DialogService'
 
 const TAG = 'UserFirewallDialog'
 const DOMAIN = 0x0001
@@ -32,7 +32,7 @@ export struct UserFirewallControlDialog {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   aboutToAppear(): void {
-    this.loadUsers()
+    void this.loadUsers()
   }
 
   private async loadUsers(): Promise<void> {
@@ -50,15 +50,15 @@ export struct UserFirewallControlDialog {
       this.selectedUserId = -1
       this.statusHintText = result.message ?? '未找到可用用户'
       if (this.statusHintText.length > 0) {
-        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', this.statusHintText)
+        void DialogService.openFailure(this.getUIContext(), this.statusHintText)
       }
       return
     }
 
     this.users = result.users
-    let selectedUserId = result.selectedUserId ?? result.users[0].userId
-    let selectedIndex = result.users.findIndex((item: UserFirewallOption): boolean => item.userId === selectedUserId)
-    this.selectedIndex = selectedIndex >= 0 ? selectedIndex : 0
+    let targetUserId = result.selectedUserId ?? result.users[0].userId
+    let targetIndex = result.users.findIndex((item: UserFirewallOption): boolean => item.userId === targetUserId)
+    this.selectedIndex = targetIndex >= 0 ? targetIndex : 0
     this.selectedUserId = result.users[this.selectedIndex].userId
     await this.loadPolicyForSelectedUser()
   }
@@ -78,20 +78,20 @@ export struct UserFirewallControlDialog {
 
     if (result.errorCode !== undefined) {
       this.statusHintText = result.message ?? '无法获取该用户当前防火墙状态'
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', this.statusHintText)
+      void DialogService.openFailure(this.getUIContext(), this.statusHintText)
       return
     }
 
     this.statusReady = true
     this.currentStatusText = result.isOpen ? '已开启' : '已关闭'
-    this.statusHintText = result.isOpen ?
-      '当前用户的主防火墙策略处于启用状态' :
-      '当前用户的主防火墙策略处于关闭状态'
+    this.statusHintText = result.isOpen
+      ? '当前用户的主防火墙策略处于启用状态'
+      : '当前用户的主防火墙策略处于关闭状态'
   }
 
   private async handleSetEnabled(enabled: boolean): Promise<void> {
     if (this.selectedUserId < 0 || !this.statusReady) {
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', '请先选择并读取有效用户状态')
+      void DialogService.openFailure(this.getUIContext(), '请先选择并读取有效用户状态')
       return
     }
 
@@ -106,9 +106,8 @@ export struct UserFirewallControlDialog {
     this.isSubmitting = false
 
     if (!result.success) {
-      ResultDialogHelper.openAlertDialog(
+      void DialogService.openFailure(
         this.getUIContext(),
-        'failure',
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
       return
@@ -145,7 +144,7 @@ export struct UserFirewallControlDialog {
   build() {
     Column({ space: 16 }) {
       Row() {
-        Text('按用户ID控制主防火墙')
+        Text('按用户 ID 控制主防火墙')
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -161,7 +160,7 @@ export struct UserFirewallControlDialog {
       }
       .width('100%')
 
-      Text('从系统已激活的用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需完成 PIN 验证。')
+      Text('从系统已激活的用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需要完成 PIN 认证。')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -216,7 +215,7 @@ export struct UserFirewallControlDialog {
             .onSelect((index: number) => {
               this.selectedIndex = index
               this.selectedUserId = this.users[index].userId
-              this.loadPolicyForSelectedUser()
+              void this.loadPolicyForSelectedUser()
             })
         }
         .width('100%')
@@ -266,7 +265,7 @@ export struct UserFirewallControlDialog {
             .enabled(!this.isSubmitting && this.statusReady)
             .opacity(!this.isSubmitting && this.statusReady ? 1 : 0.5)
             .onClick(() => {
-              this.handleSetEnabled(true)
+              void this.handleSetEnabled(true)
             })
 
           Button('关闭防火墙')
@@ -279,7 +278,7 @@ export struct UserFirewallControlDialog {
             .enabled(!this.isSubmitting && this.statusReady)
             .opacity(!this.isSubmitting && this.statusReady ? 1 : 0.5)
             .onClick(() => {
-              this.handleSetEnabled(false)
+              void this.handleSetEnabled(false)
             })
         }
         .width('100%')

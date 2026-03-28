@@ -13,7 +13,7 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FirewallPresetMode } from '../models/DataModels'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { DialogService } from '../utils/DialogService'
 
 const TAG = 'FirewallRulesPage'
 
@@ -43,7 +43,7 @@ export struct FirewallRulesPage {
 
   aboutToAppear() {
     if (this.currentMode !== 'custom') {
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.rulesOnlyCustomMode)
+      void DialogService.openFailure(this.getUIContext(), FirewallStrings.rulesOnlyCustomMode)
       this.onBack()
       return
     }
@@ -63,9 +63,8 @@ export struct FirewallRulesPage {
     let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
     let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {
-      ResultDialogHelper.openAlertDialog(
+      void DialogService.openFailure(
         this.getUIContext(),
-        'failure',
         result.errorMessage?.length ? result.errorMessage : FirewallStrings.customRulesApplyFailed
       )
       return
@@ -74,11 +73,11 @@ export struct FirewallRulesPage {
     if (!saved) {
       let rollbackResult = await FirewallModeService.applyCustomRules(context, previousRules)
       if (!rollbackResult.success) {
-        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.customRulesLocalSaveFailed)
+        void DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesLocalSaveFailed)
         return
       }
       await this.loadRules()
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.customRulesRollbackSuccess)
+      void DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesRollbackSuccess)
       return
     }
     await this.loadRules()
@@ -89,40 +88,30 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(this.rules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.duplicateRule)
+        void DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-        void this.getUIContext().showAlertDialog({
+        void DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceMessage,
-          primaryButton: {
-            value: CommonStrings.actionOverride,
-            action: () => {
-              this.replaceConflictRule(conflictRule, rule, false)
-            }
-          },
-          secondaryButton: {
-            value: CommonStrings.actionCancel,
-            action: () => {}
+          confirmText: CommonStrings.actionOverride,
+          cancelText: CommonStrings.actionCancel,
+          onConfirm: () => {
+            this.replaceConflictRule(conflictRule, rule, false)
           }
         })
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        void this.getUIContext().showAlertDialog({
+        void DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleAddMessage,
-          primaryButton: {
-            value: CommonStrings.actionContinue,
-            action: () => {
-              this.addRuleDirectly(rule)
-            }
-          },
-          secondaryButton: {
-            value: CommonStrings.actionCancel,
-            action: () => {}
+          confirmText: CommonStrings.actionContinue,
+          cancelText: CommonStrings.actionCancel,
+          onConfirm: () => {
+            this.addRuleDirectly(rule)
           }
         })
         return
@@ -161,40 +150,30 @@ export struct FirewallRulesPage {
     let conflict = FirewallService.findRuleConflict(comparableRules, rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.duplicateRule)
+        void DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-        void this.getUIContext().showAlertDialog({
+        void DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceAndSaveMessage,
-          primaryButton: {
-            value: CommonStrings.actionOverride,
-            action: () => {
-              this.replaceConflictRule(conflictRule, rule, true)
-            }
-          },
-          secondaryButton: {
-            value: CommonStrings.actionCancel,
-            action: () => {}
+          confirmText: CommonStrings.actionOverride,
+          cancelText: CommonStrings.actionCancel,
+          onConfirm: () => {
+            this.replaceConflictRule(conflictRule, rule, true)
           }
         })
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-        void this.getUIContext().showAlertDialog({
+        void DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleEditMessage,
-          primaryButton: {
-            value: CommonStrings.actionContinue,
-            action: () => {
-              this.updateRuleDirectly(rule)
-            }
-          },
-          secondaryButton: {
-            value: CommonStrings.actionCancel,
-            action: () => {}
+          confirmText: CommonStrings.actionContinue,
+          cancelText: CommonStrings.actionCancel,
+          onConfirm: () => {
+            this.updateRuleDirectly(rule)
           }
         })
         return
@@ -230,18 +209,13 @@ export struct FirewallRulesPage {
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
-    void this.getUIContext().showAlertDialog({
+    void DialogService.openConfirm(this.getUIContext(), {
       title: FirewallStrings.deleteRuleTitle,
       message: FirewallStrings.deleteRuleMessage,
-      primaryButton: {
-        value: CommonStrings.actionDelete,
-        action: () => {
-          this.deleteRuleDirectly(rule)
-        }
-      },
-      secondaryButton: {
-        value: CommonStrings.actionCancel,
-        action: () => {}
+      confirmText: CommonStrings.actionDelete,
+      cancelText: CommonStrings.actionCancel,
+      onConfirm: () => {
+        this.deleteRuleDirectly(rule)
       }
     })
   }

@@ -19,7 +19,6 @@ import {
   formatLogTimestamp
 } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -28,9 +27,9 @@ import { BackNavButton } from '../components/BackNavButton'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
 import { FormControlUtils } from '../utils/FormControlUtils'
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { LogStorageSettingsViewModel } from '../viewmodels/LogStorageSettingsViewModel'
+import { IconTextActionButton } from '../components/IconTextActionButton'
+import { DialogService } from '../utils/DialogService'
 
 const TAG = 'LogManagePage'
 const DOMAIN = 0x0012
@@ -367,18 +366,6 @@ export struct LogManagePage {
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 140
   private readonly pageSizeOptions: number[] = [20, 50, 100]
   private detailDialogController?: CustomDialogController
-  private resultDialogController: CustomDialogController = new CustomDialogController({
-    builder: ResultMessageBox({
-      onConfirm: () => {
-      }
-    }),
-    alignment: DialogAlignment.Center,
-    autoCancel: false,
-    customStyle: true
-  })
-
-
-
   private eventTypeFilterOptions: SelectOption[] = [
     { value: LogManageStrings.allEventTypes } as SelectOption,
     ...LOG_EVENT_TYPE_OPTIONS.map((opt) => ({ value: opt.label } as SelectOption))
@@ -404,14 +391,11 @@ export struct LogManagePage {
     }
   }
 
-  private showResultDialog(status: ResultMessageStatus, message: string): void {
-    ResultDialogHelper.prepareResultDialog(status, message)
-    try {
-      this.resultDialogController.close()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to close result dialog: ${JSON.stringify(err)}`)
-    }
-    this.resultDialogController.open()
+  private showResultDialog(status: 'success' | 'failure', message: string): void {
+    void DialogService.openResult(this.getUIContext(), {
+      status: status,
+      message: message
+    })
   }
 
   private startRefreshTimer(): void {
@@ -615,7 +599,7 @@ export struct LogManagePage {
 
     this.showResultDialog(
       'failure',
-      LogManageStrings.buildExportFailedText(ResultDialogHelper.displayReason(result.errorMessage, CommonStrings.messageRetryLater))
+        LogManageStrings.buildExportFailedText(DialogService.displayReason(result.errorMessage, CommonStrings.messageRetryLater))
     )
   }
 
@@ -634,18 +618,16 @@ export struct LogManagePage {
   }
 
   clearLogs() {
-    void this.getUIContext().showAlertDialog({
+    void DialogService.openConfirm(this.getUIContext(), {
       title: LogManageStrings.clearConfirmTitle,
       message: LogManageStrings.buildClearConfirmMessage(this.statistics.totalCount),
-      primaryButton: {
-        value: LogManageStrings.clearConfirmAction,
-        action: async () => {
-          await LogStorageService.clearAll()
-          this.refreshAll()
-          this.showResultDialog('success', LogManageStrings.clearSuccess)
-        }
-      },
-      secondaryButton: { value: CommonStrings.actionCancel, action: () => {} }
+      confirmText: LogManageStrings.clearConfirmAction,
+      cancelText: CommonStrings.actionCancel,
+      onConfirm: async () => {
+        await LogStorageService.clearAll()
+        this.refreshAll()
+        this.showResultDialog('success', LogManageStrings.clearSuccess)
+      }
     })
   }
 
@@ -698,60 +680,53 @@ export struct LogManagePage {
 
           Row({ space: 8 }) {
             if (!this.showSettings) {
-              this.headerActionButton(
-                LogManageStrings.exportLogsButton,
-                $r('app.media.save'),
-                AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT,
-                AppColors.getColors(this.currentTheme).TAG_BLUE_BG,
-                () => {
+              IconTextActionButton({
+                label: LogManageStrings.exportLogsButton,
+                icon: $r('app.media.save'),
+                kind: 'primary',
+                onTap: () => {
                   this.exportLogs()
                 }
-              )
+              })
 
-              this.headerActionButton(
-                LogManageStrings.clearLogsButton,
-                $r('app.media.trash'),
-                AppColors.getColors(this.currentTheme).TAG_RED_TEXT,
-                AppColors.getColors(this.currentTheme).TAG_RED_BG,
-                () => {
+              IconTextActionButton({
+                label: LogManageStrings.clearLogsButton,
+                icon: $r('app.media.trash'),
+                kind: 'danger',
+                onTap: () => {
                   this.clearLogs()
                 }
-              )
+              })
             }
 
             if (!this.showSettings) {
-              Button(LogManageStrings.openStorageSettingsButton)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-                .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-                .borderRadius(AppStyles.RADIUS_SM)
-                .height(32)
-                .padding({ left: 12, right: 12 })
-                .onClick(() => {
+              IconTextActionButton({
+                label: LogManageStrings.openStorageSettingsButton,
+                icon: $r('app.media.settings'),
+                kind: 'primary',
+                onTap: () => {
                   this.openSettingsFromList()
-                })
+                }
+              })
             } else {
-              this.headerActionButton(
-                CommonStrings.actionSaveSettings,
-                $r('app.media.save'),
-                Color.White,
-                AppColors.BRAND_PRIMARY,
-                () => {
+              IconTextActionButton({
+                label: CommonStrings.actionSaveSettings,
+                icon: $r('app.media.save'),
+                kind: 'primary',
+                onTap: () => {
                   void this.saveStorageSettings()
                 }
-              )
+              })
 
-              Button(LogManageStrings.backToLogListButton)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-                .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-                .borderRadius(AppStyles.RADIUS_SM)
-                .height(32)
-                .padding({ left: 12, right: 12 })
-                .onClick(() => {
+              IconTextActionButton({
+                label: LogManageStrings.backToLogListButton,
+                icon: $r('app.media.log'),
+                kind: 'primary',
+                onTap: () => {
                   this.showSettings = false
                   this.refreshData()
-                })
+                }
+              })
             }
           }
         }
@@ -1119,48 +1094,22 @@ export struct LogManagePage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     Row({ space: 12 }) {
-      Button(LogManageStrings.exportLogsButton).fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.exportLogs() })
+      IconTextActionButton({
+        label: LogManageStrings.exportLogsButton,
+        icon: $r('app.media.save'),
+        kind: 'primary',
+        onTap: () => { this.exportLogs() }
+      })
 
-      Button(LogManageStrings.clearLogsButton).fontSize(AppStyles.FONT_SIZE_BODY).fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG).borderRadius(AppStyles.RADIUS_SM)
-        .height(36).layoutWeight(1).onClick(() => { this.clearLogs() })
+      IconTextActionButton({
+        label: LogManageStrings.clearLogsButton,
+        icon: $r('app.media.trash'),
+        kind: 'danger',
+        onTap: () => { this.clearLogs() }
+      })
     }
     .width('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
-  }
-
-  @Builder
-  headerActionButton(
-    label: string,
-    icon: Resource,
-    textColor: ResourceColor,
-    backgroundColor: ResourceColor,
-    onTap: () => void
-  ) {
-    Button() {
-      Row({ space: 6 }) {
-        Image(icon)
-          .width(14)
-          .height(14)
-          .fillColor(textColor)
-          .draggable(false)
-
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(textColor)
-      }
-      .alignItems(VerticalAlign.Center)
-    }
-    .type(ButtonType.Normal)
-    .backgroundColor(backgroundColor)
-    .borderRadius(AppStyles.RADIUS_SM)
-    .height(32)
-    .padding({ left: 10, right: 10 })
-    .onClick(() => {
-      onTap()
-    })
   }
 
   @Builder

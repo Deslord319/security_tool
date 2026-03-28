@@ -25,6 +25,16 @@ export interface ResultDialogOptions {
 }
 
 export class DialogService {
+  static displayLocation(directory?: string): string {
+    let value = directory?.trim() ?? ''
+    return value.length > 0 ? value : CommonStrings.messageRetryLater
+  }
+
+  static displayReason(reason?: string, fallback: string = CommonStrings.messageRetryLater): string {
+    let value = reason?.trim() ?? ''
+    return value.length > 0 ? value : fallback
+  }
+
   static async openConfirm(uiContext: UIContext, options: ConfirmDialogOptions): Promise<void> {
     try {
       await uiContext.showAlertDialog({

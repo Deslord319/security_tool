@@ -5,12 +5,12 @@ import { UserFirewallControlDialog } from '../components/UserFirewallControlDial
 import { FirewallService } from '../services/FirewallService'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
+import { DialogService } from '../utils/DialogService'
 
 const TAG = 'FirewallPage'
 const DOMAIN = 0x0010
@@ -107,15 +107,14 @@ export struct FirewallPage {
 
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      ResultDialogHelper.openAlertDialog(
+      void DialogService.openFailure(
         this.getUIContext(),
-        'failure',
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
-      ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.toggleFailed)
+      void DialogService.openFailure(this.getUIContext(), FirewallStrings.toggleFailed)
       hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -341,7 +340,7 @@ export struct FirewallPage {
   }
 
   private showModeChangeFailedDialog(): void {
-    ResultDialogHelper.openAlertDialog(this.getUIContext(), 'failure', FirewallStrings.modeApplyFailed)
+    void DialogService.openFailure(this.getUIContext(), FirewallStrings.modeApplyFailed)
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {

@@ -1,9 +1,7 @@
-import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { ThemeMode } from '../../theme/ThemeColors'
+import { IconTextActionButton } from '../IconTextActionButton'
 
 @Component
 export struct PageHeaderActions {
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop exportLabel: string = '导出历史记录'
   @Prop clearLabel: string = '清理历史记录'
   @Prop showClear: boolean = true
@@ -12,24 +10,20 @@ export struct PageHeaderActions {
 
   build() {
     Row({ space: 8 }) {
-      Button(this.exportLabel)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT)
-        .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(32)
-        .padding({ left: 10, right: 10 })
-        .onClick(() => this.onExport && this.onExport())
+      IconTextActionButton({
+        label: this.exportLabel,
+        icon: $r('app.media.save'),
+        kind: 'primary',
+        onTap: () => this.onExport && this.onExport()
+      })
 
       if (this.showClear) {
-        Button(this.clearLabel)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_RED_TEXT)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_RED_BG)
-          .borderRadius(AppStyles.RADIUS_SM)
-          .height(32)
-          .padding({ left: 10, right: 10 })
-          .onClick(() => this.onClear && this.onClear())
+        IconTextActionButton({
+          label: this.clearLabel,
+          icon: $r('app.media.trash'),
+          kind: 'danger',
+          onTap: () => this.onClear && this.onClear()
+        })
       }
     }
   }

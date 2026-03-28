@@ -1,7 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { BackNavButton } from '../components/BackNavButton'
-import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import {
   ConnectionDetailDialog,
   ConnectionHistoryItem
@@ -22,34 +21,42 @@ import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEven
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
+import { DialogService } from '../utils/DialogService'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
 
-@CustomDialog
-struct PeripheralUsbLoadingDialog {
-  controller: CustomDialogController
+@Component
+struct PeripheralUsbLoadingOverlay {
   message: string = PeripheralStrings.usbLoadingMessage
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
-    Column({ space: 14 }) {
-      LoadingProgress().width(44).height(44)
-      Text(this.message)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .textAlign(TextAlign.Center)
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.18)')
+
+      Column({ space: 14 }) {
+        LoadingProgress().width(44).height(44)
+        Text(this.message)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .textAlign(TextAlign.Center)
+      }
+      .width(280)
+      .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+      .alignItems(HorizontalAlign.Center)
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+      .borderRadius(AppStyles.RADIUS_LG)
+      .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
     }
-    .width(280)
-    .padding({ left: 24, right: 24, top: 28, bottom: 28 })
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+    .width('100%')
+    .height('100%')
   }
 }
 
@@ -69,22 +76,16 @@ export struct PeripheralPage {
     { value: PeripheralStrings.policyOptions[0] },
     { value: PeripheralStrings.policyOptions[1] }
   ]
-  private resultDialogController: CustomDialogController = new CustomDialogController({
-    builder: ResultMessageBox({ onConfirm: () => {} }),
-    alignment: DialogAlignment.Center,
-    autoCancel: false,
-    customStyle: true
-  })
-  private usbLoadingDialogController?: CustomDialogController
-  private isUsbLoadingDialogOpen: boolean = false
-  private usbLoadingDialogOpenedAt: number = 0
+  @State usbLoadingVisible: boolean = false
+  @State usbLoadingMessage: string = PeripheralStrings.usbLoadingMessage
+  private usbLoadingOpenedAt: number = 0
 
   aboutToAppear() {
     void this.initViewModel()
   }
 
   aboutToDisappear() {
-    this.closeUsbLoadingDialog()
+    this.closeUsbLoadingOverlay()
     this.closeDetailDialog()
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
@@ -106,67 +107,35 @@ export struct PeripheralPage {
     }
   } 
 
-  private showResultDialog(status: ResultMessageStatus, message: string): void {
-    ResultDialogHelper.prepareResultDialog(status, message)
-    try {
-      this.resultDialogController.close()
-    } catch (_err) {
-    }
-    this.resultDialogController.open()
-  }
-
-  private showAdminRequiredDialog(action: string): void {
-    this.showResultDialog('failure', `${action}${PeripheralStrings.adminRequiredActionSuffix}`)
-  }
-
-  private showConnectionHistoryExportSuccessDialog(): void {
-    this.showResultDialog('success', PeripheralStrings.exportHistorySuccess)
-  }
-
-  private showPolicyRecordExportSuccessDialog(): void {
-    this.showResultDialog('success', PeripheralStrings.exportPolicySuccess)
-  }
-
-  private openUsbLoadingDialog(message: string): void {
-    this.closeUsbLoadingDialog()
-    this.usbLoadingDialogController = new CustomDialogController({
-      builder: PeripheralUsbLoadingDialog({ message: message }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
+  private showResultDialog(status: 'success' | 'failure', message: string): void {
+    void DialogService.openResult(this.getUIContext(), {
+      status: status,
+      message: message
     })
-    this.usbLoadingDialogOpenedAt = Date.now()
-    this.usbLoadingDialogController.open()
-    this.isUsbLoadingDialogOpen = true
   }
 
-  private closeUsbLoadingDialog(): void {
-    if (!this.isUsbLoadingDialogOpen) {
-      this.usbLoadingDialogController = undefined
-      this.usbLoadingDialogOpenedAt = 0
-      return
-    }
-    try {
-      this.usbLoadingDialogController?.close()
-    } catch (_err) {
-    } finally {
-      this.usbLoadingDialogController = undefined
-      this.usbLoadingDialogOpenedAt = 0
-      this.isUsbLoadingDialogOpen = false
-    }
+  private openUsbLoadingOverlay(message: string): void {
+    this.usbLoadingMessage = message
+    this.usbLoadingOpenedAt = Date.now()
+    this.usbLoadingVisible = true
+  }
+
+  private closeUsbLoadingOverlay(): void {
+    this.usbLoadingVisible = false
+    this.usbLoadingOpenedAt = 0
   }
 
   private async runUsbOperationWithLoading(message: string, operation: () => Promise<boolean>): Promise<boolean> {
-    this.openUsbLoadingDialog(message)
+    this.openUsbLoadingOverlay(message)
     try {
       await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), 120))
       return await operation()
     } finally {
-      const remaining = PeripheralStrings.minUsbLoadingDuration - (Date.now() - this.usbLoadingDialogOpenedAt)
+      const remaining = PeripheralStrings.minUsbLoadingDuration - (Date.now() - this.usbLoadingOpenedAt)
       if (remaining > 0) {
         await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), remaining))
       }
-      this.closeUsbLoadingDialog()
+      this.closeUsbLoadingOverlay()
     }
   }
 
@@ -228,6 +197,12 @@ export struct PeripheralPage {
           onClose: () => this.closeDetailDialog()
         })
       }
+
+      if (this.usbLoadingVisible) {
+        PeripheralUsbLoadingOverlay({
+          message: this.usbLoadingMessage
+        })
+      }
     }
     .width('100%')
     .height('100%')
@@ -256,7 +231,6 @@ export struct PeripheralPage {
 
       if (this.viewModel.currentTab === 1) {
         PageHeaderActions({
-          currentTheme: this.currentTheme,
           exportLabel: PeripheralStrings.exportHistoryLabel,
           clearLabel: PeripheralStrings.clearHistoryLabel,
           onExport: () => void this.handleExportConnectionHistory(),
@@ -265,7 +239,6 @@ export struct PeripheralPage {
         })
       } else if (this.viewModel.currentTab === 2) {
         PageHeaderActions({
-          currentTheme: this.currentTheme,
           exportLabel: PeripheralStrings.exportPolicyLabel,
           clearLabel: PeripheralStrings.clearPolicyLabel,
           onExport: () => void this.handleExportPeripheralPolicyRecords(),
@@ -371,7 +344,7 @@ export struct PeripheralPage {
       : await toggle()
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog(PeripheralStrings.setInterfaceAction)
+        this.showResultDialog('failure', `${PeripheralStrings.setInterfaceAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
         this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
@@ -386,7 +359,7 @@ export struct PeripheralPage {
     })
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog(PeripheralStrings.setUsbStorageAction)
+        this.showResultDialog('failure', `${PeripheralStrings.setUsbStorageAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
         this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
@@ -399,7 +372,7 @@ export struct PeripheralPage {
     const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
     if (!success) {
       if (!this.viewModel.adminState.activated) {
-        this.showAdminRequiredDialog(PeripheralStrings.updatePolicyAction)
+        this.showResultDialog('failure', `${PeripheralStrings.updatePolicyAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
         this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
@@ -411,7 +384,7 @@ export struct PeripheralPage {
   private async handleExportConnectionHistory(): Promise<void> {
     const success = await this.viewModel.exportConnectionHistory()
     if (success) {
-      this.showConnectionHistoryExportSuccessDialog()
+      this.showResultDialog('success', PeripheralStrings.exportHistorySuccess)
     } else {
       this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
@@ -420,7 +393,7 @@ export struct PeripheralPage {
   private async handleExportPeripheralPolicyRecords(): Promise<void> {
     const success = await this.viewModel.exportPeripheralPolicyRecords()
     if (success) {
-      this.showPolicyRecordExportSuccessDialog()
+      this.showResultDialog('success', PeripheralStrings.exportPolicySuccess)
     } else {
       this.showResultDialog('failure', PeripheralStrings.resolveReason(this.viewModel.reasonCode))
     }
@@ -431,11 +404,12 @@ export struct PeripheralPage {
       this.showResultDialog('failure', PeripheralStrings.emptyHistoryToClear)
       return
     }
-    void this.getUIContext().showAlertDialog({
+    void DialogService.openConfirm(this.getUIContext(), {
       title: PeripheralStrings.clearHistoryLabel,
       message: PeripheralStrings.clearHistoryMessage,
-      primaryButton: { value: CommonStrings.actionCancel, action: () => {} },
-      secondaryButton: { value: CommonStrings.actionClear, action: () => void this.clearConnectionHistory() }
+      confirmText: CommonStrings.actionClear,
+      cancelText: CommonStrings.actionCancel,
+      onConfirm: () => void this.clearConnectionHistory()
     })
   }
 
@@ -444,11 +418,12 @@ export struct PeripheralPage {
       this.showResultDialog('failure', PeripheralStrings.emptyPolicyToClear)
       return
     }
-    void this.getUIContext().showAlertDialog({
+    void DialogService.openConfirm(this.getUIContext(), {
       title: PeripheralStrings.clearPolicyLabel,
       message: PeripheralStrings.clearPolicyMessage,
-      primaryButton: { value: CommonStrings.actionCancel, action: () => {} },
-      secondaryButton: { value: CommonStrings.actionDelete, action: () => void this.clearPolicyRecords() }
+      confirmText: CommonStrings.actionDelete,
+      cancelText: CommonStrings.actionCancel,
+      onConfirm: () => void this.clearPolicyRecords()
     })
   }
 

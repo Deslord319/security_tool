@@ -7,7 +7,7 @@ import {
   PasswordComplexityConfig
 } from '../models/DataModels'
 import { IdentityService } from '../services/IdentityService'
-import { ResultDialogHelper } from '../utils/ResultDialogHelper'
+import { DialogService } from '../utils/DialogService'
 
 export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
@@ -112,8 +112,8 @@ export class IdentitySettingsViewModel {
     let result = IdentityService.setPasswordPolicyWithResult(config)
     if (!result.success) {
       let message = result.isAdminMissing
-        ? ResultDialogHelper.displayReason(result.errorMessage, IdentityStrings.adminRequired)
-        : ResultDialogHelper.displayReason(result.errorMessage, `${IdentityStrings.passwordPolicyAction}${IdentityStrings.actionRetrySuffix}`)
+        ? DialogService.displayReason(result.errorMessage, IdentityStrings.adminRequired)
+        : DialogService.displayReason(result.errorMessage, `${IdentityStrings.passwordPolicyAction}${IdentityStrings.actionRetrySuffix}`)
       return { success: false, message }
     }
 
