@@ -1,6 +1,8 @@
 import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS, AppInfo } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { ThemeMode } from '../theme/ThemeColors'
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { InteractiveMenuRow } from './ThemeMenuPopup'
 
 @Component
 export struct SideBar {
@@ -30,7 +32,7 @@ export struct SideBar {
   }
 
   private getThemeModeLabel(): string {
-    return this.currentTheme === ThemeMode.DARK ? '深色模式' : '浅色模式'
+    return this.currentTheme === ThemeMode.DARK ? CommonStrings.themeDarkMode : CommonStrings.themeLightMode
   }
 
   private getThemeModeIconColor(): string {
@@ -68,51 +70,27 @@ export struct SideBar {
       List({ space: 4 }) {
         ForEach(NAV_ITEMS, (item: NavItem) => {
           ListItem() {
-            Row({ space: 12 }) {
-              Column() {
-                Image(item.icon)
-                  .width(InteractiveItemStyles.ICON_SIZE)
-                  .height(InteractiveItemStyles.ICON_SIZE)
-                  .fillColor(InteractiveItemStyles.getSidebarIconColor(this.currentTheme, this.selectedId === item.id))
-                  .draggable(false)
-              }
-              .width(InteractiveItemStyles.ICON_TILE_SIZE)
-              .height(InteractiveItemStyles.ICON_TILE_SIZE)
-              .borderRadius(InteractiveItemStyles.ICON_TILE_RADIUS)
-              .justifyContent(FlexAlign.Center)
-              .alignItems(HorizontalAlign.Center)
-              .backgroundColor(this.getNavIconBackground(item.id))
-
-              Text(item.label)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontWeight(this.selectedId === item.id ? FontWeight.Medium : (this.hoveredNavId === item.id ? FontWeight.Bold : FontWeight.Normal))
-                .fontColor(InteractiveItemStyles.getSidebarTextColor(this.currentTheme, this.selectedId === item.id))
-                .opacity(this.selectedId === item.id ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            }
-            .width('100%')
-            .height(InteractiveItemStyles.ITEM_HEIGHT)
-            .id(`sidebar-nav-${item.id}`)
-            .padding({
-              left: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_START,
-              right: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_END
-            })
-            .borderRadius(InteractiveItemStyles.ITEM_RADIUS)
-            .backgroundColor(this.getNavItemBackground(item.id))
-            .onHover((isHover: boolean) => {
-              this.hoveredNavId = isHover ? item.id : ''
-            })
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.activeNavId = item.id
-                return
-              }
-              if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            InteractiveMenuRow({
+              icon: item.icon,
+              label: item.label,
+              itemId: `sidebar-nav-${item.id}`,
+              currentTheme: this.currentTheme,
+              itemBackground: this.getNavItemBackground(item.id),
+              iconTileBackground: this.getNavIconBackground(item.id),
+              iconColor: InteractiveItemStyles.getSidebarIconColor(this.currentTheme, this.selectedId === item.id),
+              textColor: InteractiveItemStyles.getSidebarTextColor(this.currentTheme, this.selectedId === item.id),
+              textOpacity: this.selectedId === item.id ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY,
+              fontWeight: this.selectedId === item.id ? FontWeight.Medium : (this.hoveredNavId === item.id ? FontWeight.Bold : FontWeight.Normal),
+              onHoverChange: (isHover: boolean) => {
+                this.hoveredNavId = isHover ? item.id : ''
+              },
+              onPressedChange: (isPressed: boolean) => {
+                this.activeNavId = isPressed ? item.id : ''
+              },
+              onTap: () => {
                 this.activeNavId = ''
+                this.onItemSelect(item.id)
               }
-            })
-            .onClick(() => {
-              this.activeNavId = ''
-              this.onItemSelect(item.id)
             })
           }
         })
@@ -125,51 +103,26 @@ export struct SideBar {
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      Row({ space: 12 }) {
-        Column() {
-          Image(this.getThemeModeIcon())
-            .width(InteractiveItemStyles.ICON_SIZE)
-            .height(InteractiveItemStyles.ICON_SIZE)
-            .fillColor(this.getThemeModeIconColor())
-            .draggable(false)
-        }
-        .width(InteractiveItemStyles.ICON_TILE_SIZE)
-        .height(InteractiveItemStyles.ICON_TILE_SIZE)
-        .borderRadius(InteractiveItemStyles.ICON_TILE_RADIUS)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(this.getThemeModeIconBackground())
-
-        Text(this.getThemeModeLabel())
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .id(this.currentTheme === ThemeMode.DARK ? 'theme-mode-dark' : 'theme-mode-light')
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      }
-      .width('100%')
-      .height(InteractiveItemStyles.ITEM_HEIGHT)
-      .id('sidebar-theme-toggle')
-      .padding({
-        left: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_START,
-        right: InteractiveItemStyles.ITEM_HORIZONTAL_PADDING_END
-      })
-      .borderRadius(InteractiveItemStyles.ITEM_RADIUS)
-      .backgroundColor(InteractiveItemStyles.getMenuItemBackground(this.currentTheme, this.themeToggleHovered, this.themeTogglePressed))
-      .onHover((isHover: boolean) => {
-        this.themeToggleHovered = isHover
-      })
-      .onTouch((event: TouchEvent) => {
-        if (event.type === TouchType.Down) {
-          this.themeTogglePressed = true
-          return
-        }
-        if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+      InteractiveMenuRow({
+        icon: this.getThemeModeIcon(),
+        label: this.getThemeModeLabel(),
+        itemId: this.currentTheme === ThemeMode.DARK ? 'theme-mode-dark' : 'theme-mode-light',
+        currentTheme: this.currentTheme,
+        itemBackground: InteractiveItemStyles.getMenuItemBackground(this.currentTheme, this.themeToggleHovered, this.themeTogglePressed),
+        iconTileBackground: this.getThemeModeIconBackground(),
+        iconColor: this.getThemeModeIconColor(),
+        textColor: AppColors.getColors(this.currentTheme).TEXT_PRIMARY,
+        textOpacity: AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY,
+        onHoverChange: (isHover: boolean) => {
+          this.themeToggleHovered = isHover
+        },
+        onPressedChange: (isPressed: boolean) => {
+          this.themeTogglePressed = isPressed
+        },
+        onTap: () => {
           this.themeTogglePressed = false
+          ThemeManager.getInstance().toggleTheme()
         }
-      })
-      .onClick(() => {
-        this.themeTogglePressed = false
-        ThemeManager.getInstance().toggleTheme()
       })
     }
     .width(AppStyles.SIDEBAR_WIDTH)

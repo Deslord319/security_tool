@@ -1,5 +1,6 @@
 import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
+import { InteractiveMenuRow } from './ThemeMenuPopup'
 
 @Component
 export struct SubPageHeader {
@@ -11,45 +12,28 @@ export struct SubPageHeader {
   @State private hovered: boolean = false
   @State private pressed: boolean = false
 
-  private getIconColor(): string {
-    return AppColors.getColors(this.currentTheme).TEXT_PRIMARY
-  }
-
-  private getButtonBackground(): string {
-    return InteractiveItemStyles.getBackButtonBackground(this.currentTheme, this.hovered, this.pressed)
-  }
-
   build() {
     Row() {
       Row({ space: 8 }) {
-        Row() {
-          Image($r('app.media.arrow_left'))
-            .width(InteractiveItemStyles.ICON_SIZE)
-            .height(InteractiveItemStyles.ICON_SIZE)
-            .fillColor(this.getIconColor())
-            .draggable(false)
-        }
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
-        .width(InteractiveItemStyles.ITEM_HEIGHT)
-        .height(InteractiveItemStyles.ITEM_HEIGHT)
-        .borderRadius(InteractiveItemStyles.ITEM_RADIUS)
-        .backgroundColor(this.getButtonBackground())
-        .onHover((isHover: boolean) => {
-          this.hovered = isHover
-        })
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Down) {
-            this.pressed = true
-            return
-          }
-          if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        InteractiveMenuRow({
+          icon: $r('app.media.arrow_left'),
+          itemId: 'sub-page-back',
+          currentTheme: this.currentTheme,
+          showLabel: false,
+          fixedWidth: InteractiveItemStyles.ITEM_HEIGHT,
+          itemBackground: InteractiveItemStyles.getBackButtonBackground(this.currentTheme, this.hovered, this.pressed),
+          iconTileBackground: Color.Transparent,
+          iconColor: AppColors.getColors(this.currentTheme).TEXT_PRIMARY,
+          onHoverChange: (isHover: boolean) => {
+            this.hovered = isHover
+          },
+          onPressedChange: (isPressed: boolean) => {
+            this.pressed = isPressed
+          },
+          onTap: () => {
             this.pressed = false
+            this.onBack()
           }
-        })
-        .onClick(() => {
-          this.pressed = false
-          this.onBack()
         })
 
         Column({ space: 4 }) {

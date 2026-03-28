@@ -30,4 +30,11 @@ export class CommonStrings {
   static readonly dialogSuccessTitle: string = '操作成功'
   static readonly dialogFailureTitle: string = '操作失败'
   static readonly actionAcknowledge: string = '我知道了'
+  static readonly actionConfirm: string = '确定'
+  static readonly themeSectionTitle: string = '显示模式'
+  static readonly themeFollowSystem: string = '跟随系统'
+  static readonly themeLightMode: string = '浅色模式'
+  static readonly themeDarkMode: string = '深色模式'
+  static readonly aboutLabel: string = '关于'
+  static readonly versionLabel: string = '版本'
 }
