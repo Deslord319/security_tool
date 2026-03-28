@@ -5,6 +5,61 @@ import { SectionCard } from '../components/SettingsSectionCard'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
+interface ExpandableInfoItem {
+  title: string
+  content: string
+}
+
+@Component
+struct ExpandableInfoList {
+  items: ExpandableInfoItem[] = []
+  @Prop expandedIndex: number = -1
+  onToggle: (index: number) => void = () => {}
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  build() {
+    Column({ space: 12 }) {
+      ForEach(this.items, (item: ExpandableInfoItem, index: number) => {
+        Column({ space: 0 }) {
+          Row() {
+            Text(item.title)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+              .layoutWeight(1)
+
+            Text(this.expandedIndex === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
+              .fontSize(10)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .width('100%')
+          .padding(12)
+          .onClick(() => {
+            this.onToggle(index)
+          })
+
+          if (this.expandedIndex === index) {
+            Text(item.content)
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .lineHeight(20)
+              .padding({ left: 12, right: 12, bottom: 12 })
+              .width('100%')
+          }
+        }
+        .width('100%')
+        .borderRadius(AppStyles.RADIUS_MD)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+      })
+    }
+    .width('100%')
+    .padding(20)
+  }
+}
+
 @Component
 export struct HelpFeedbackPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -74,88 +129,30 @@ export struct HelpFeedbackPage {
 
   @Builder
   private guideSectionContent() {
-    Column({ space: 12 }) {
-      ForEach(this.guideItems, (item: GuideItemString, index: number) => {
-        Column({ space: 0 }) {
-          Row() {
-            Text(item.title)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-              .layoutWeight(1)
-
-            Text(this.expandedGuide === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
-              .fontSize(10)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .width('100%')
-          .padding(12)
-          .onClick(() => {
-            this.expandedGuide = this.expandedGuide === index ? -1 : index
-          })
-
-          if (this.expandedGuide === index) {
-            Text(item.description)
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .lineHeight(20)
-              .padding({ left: 12, right: 12, bottom: 12 })
-              .width('100%')
-          }
-        }
-        .width('100%')
-        .borderRadius(AppStyles.RADIUS_MD)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-      })
-    }
-    .width('100%')
-    .padding(20)
+    ExpandableInfoList({
+      items: this.guideItems.map((item: GuideItemString): ExpandableInfoItem => ({
+        title: item.title,
+        content: item.description
+      } as ExpandableInfoItem)),
+      expandedIndex: this.expandedGuide,
+      onToggle: (index: number) => {
+        this.expandedGuide = this.expandedGuide === index ? -1 : index
+      }
+    })
   }
 
   @Builder
   private faqSectionContent() {
-    Column({ space: 12 }) {
-      ForEach(this.faqItems, (item: FaqItemString, index: number) => {
-        Column({ space: 0 }) {
-          Row() {
-            Text(item.question)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-              .layoutWeight(1)
-
-            Text(this.expandedFaq === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
-              .fontSize(10)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-          .width('100%')
-          .padding(12)
-          .onClick(() => {
-            this.expandedFaq = this.expandedFaq === index ? -1 : index
-          })
-
-          if (this.expandedFaq === index) {
-            Text(item.answer)
-              .fontSize(AppStyles.FONT_SIZE_SMALL)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .lineHeight(20)
-              .padding({ left: 12, right: 12, bottom: 12 })
-              .width('100%')
-          }
-        }
-        .width('100%')
-        .borderRadius(AppStyles.RADIUS_MD)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-      })
-    }
-    .width('100%')
-    .padding(20)
+    ExpandableInfoList({
+      items: this.faqItems.map((item: FaqItemString): ExpandableInfoItem => ({
+        title: item.question,
+        content: item.answer
+      } as ExpandableInfoItem)),
+      expandedIndex: this.expandedFaq,
+      onToggle: (index: number) => {
+        this.expandedFaq = this.expandedFaq === index ? -1 : index
+      }
+    })
   }
 
   @Builder

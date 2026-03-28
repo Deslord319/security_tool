@@ -61,11 +61,6 @@ export class IdentityService {
     try {
       let regex = IdentityService.buildComplexityRegex(config)
       let description = IdentityService.buildDescription(config)
-      hilog.info(
-        DOMAIN,
-        TAG,
-        `Applying password policy: minLength=${config.minLength}, upper=${config.requireUppercase}, lower=${config.requireLowercase}, digit=${config.requireDigit}, special=${config.requireSpecialChar}, validityPeriod=${config.validityPeriod}, regex=${regex}`
-      )
       let policy: securityManager.PasswordPolicy = {
         complexityRegex: regex,
         validityPeriod: config.validityPeriod,

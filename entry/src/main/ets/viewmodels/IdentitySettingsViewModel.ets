@@ -10,6 +10,7 @@ import { IdentityService } from '../services/IdentityService'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 
 export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length
+type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
 
 export interface IdentitySettingsState {
   minLengthIndex: number
@@ -37,8 +38,9 @@ export class IdentitySettingsViewModel {
       nextState = this.applyRegex(nextState, policy.complexityRegex)
     }
     nextState = this.applyValidityPeriod(nextState, policy?.validityPeriod)
+    nextState.hasChanges = false
     this.initialState = IdentitySettingsViewModel.snapshot(nextState)
-    this.state = IdentitySettingsViewModel.withHasChanges(nextState, false)
+    this.state = nextState
   }
 
   reset(): void {
@@ -50,52 +52,47 @@ export class IdentitySettingsViewModel {
   }
 
   setMinLengthIndex(index: number): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    if (index >= 0 && index < PASSWORD_LENGTH_OPTIONS.length) {
-      nextState.minLengthIndex = index
-    }
-    this.updateState(nextState)
+    this.updateState((nextState: IdentitySettingsState) => {
+      if (index >= 0 && index < PASSWORD_LENGTH_OPTIONS.length) {
+        nextState.minLengthIndex = index
+      }
+    })
   }
 
-  setRequireUppercase(value: boolean): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    nextState.requireUppercase = value
-    this.updateState(nextState)
-  }
-
-  setRequireLowercase(value: boolean): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    nextState.requireLowercase = value
-    this.updateState(nextState)
-  }
-
-  setRequireDigit(value: boolean): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    nextState.requireDigit = value
-    this.updateState(nextState)
-  }
-
-  setRequireSpecialChar(value: boolean): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    nextState.requireSpecialChar = value
-    this.updateState(nextState)
+  setRequirement(key: PasswordRequirementKey, value: boolean): void {
+    this.updateState((nextState: IdentitySettingsState) => {
+      switch (key) {
+        case 'requireUppercase':
+          nextState.requireUppercase = value
+          break
+        case 'requireLowercase':
+          nextState.requireLowercase = value
+          break
+        case 'requireDigit':
+          nextState.requireDigit = value
+          break
+        case 'requireSpecialChar':
+          nextState.requireSpecialChar = value
+          break
+      }
+    })
   }
 
   setValidityPeriodIndex(index: number): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    if (index >= 0 && index <= CUSTOM_VALIDITY_OPTION_INDEX) {
-      nextState.validityPeriodIndex = index
-    }
-    if (nextState.validityPeriodIndex !== CUSTOM_VALIDITY_OPTION_INDEX) {
-      nextState.customValidityPeriodText = ''
-    }
-    this.updateState(nextState)
+    this.updateState((nextState: IdentitySettingsState) => {
+      if (index >= 0 && index <= CUSTOM_VALIDITY_OPTION_INDEX) {
+        nextState.validityPeriodIndex = index
+      }
+      if (nextState.validityPeriodIndex !== CUSTOM_VALIDITY_OPTION_INDEX) {
+        nextState.customValidityPeriodText = ''
+      }
+    })
   }
 
   setCustomValidityPeriodText(value: string): void {
-    let nextState = IdentitySettingsViewModel.snapshot(this.state)
-    nextState.customValidityPeriodText = value.replace(/[^0-9]/g, '')
-    this.updateState(nextState)
+    this.updateState((nextState: IdentitySettingsState) => {
+      nextState.customValidityPeriodText = value.replace(/[^0-9]/g, '')
+    })
   }
 
   save(): IdentitySettingsSaveResult {
@@ -121,7 +118,7 @@ export class IdentitySettingsViewModel {
     }
 
     this.initialState = IdentitySettingsViewModel.snapshot(this.state)
-    this.state = IdentitySettingsViewModel.withHasChanges(this.state, false)
+    this.state.hasChanges = false
     return { success: true, message: IdentityStrings.saveSuccess }
   }
 
@@ -188,11 +185,11 @@ export class IdentitySettingsViewModel {
     return nextState
   }
 
-  private updateState(nextState: IdentitySettingsState): void {
-    this.state = IdentitySettingsViewModel.withHasChanges(
-      nextState,
-      !IdentitySettingsViewModel.areStatesEqual(this.initialState, nextState)
-    )
+  private updateState(editor: (nextState: IdentitySettingsState) => void): void {
+    let nextState = IdentitySettingsViewModel.snapshot(this.state)
+    editor(nextState)
+    nextState.hasChanges = !IdentitySettingsViewModel.areStatesEqual(this.initialState, nextState)
+    this.state = nextState
   }
 
   private static buildDefaultState(): IdentitySettingsState {
@@ -218,19 +215,6 @@ export class IdentitySettingsViewModel {
       validityPeriodIndex: state.validityPeriodIndex,
       customValidityPeriodText: state.customValidityPeriodText,
       hasChanges: state.hasChanges
-    }
-  }
-
-  private static withHasChanges(state: IdentitySettingsState, hasChanges: boolean): IdentitySettingsState {
-    return {
-      minLengthIndex: state.minLengthIndex,
-      requireUppercase: state.requireUppercase,
-      requireLowercase: state.requireLowercase,
-      requireDigit: state.requireDigit,
-      requireSpecialChar: state.requireSpecialChar,
-      validityPeriodIndex: state.validityPeriodIndex,
-      customValidityPeriodText: state.customValidityPeriodText,
-      hasChanges
     }
   }
 

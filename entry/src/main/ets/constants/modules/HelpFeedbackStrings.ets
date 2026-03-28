@@ -48,14 +48,6 @@ export class HelpFeedbackStrings {
 
   static readonly faqItems: FaqItemString[] = [
     {
-      question: '日志导出目录有哪些限制？',
-      answer: '日志导出统一使用下载目录。首次导出时系统会引导授权，后续导出会复用该授权目录。'
-    },
-    {
-      question: '导出目录不可写时会怎么样？',
-      answer: '当选定目录不可写时，系统会自动回退到默认导出目录。你可以在日志管理页查看最终落盘路径和导出结果提示。'
-    },
-    {
       question: '审计诊断中的不同事件类型如何触发？',
       answer: '网络连接、流量、权限变更和账户事件依赖系统上报能力。建议先触发对应的系统安全操作，再返回日志管理页刷新查看。'
     },

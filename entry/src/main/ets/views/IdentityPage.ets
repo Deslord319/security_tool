@@ -6,15 +6,13 @@ import {
   PASSWORD_VALIDITY_OPTIONS
 } from '../models/DataModels'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { IdentityService } from '../services/IdentityService'
 import { BackNavButton } from '../components/BackNavButton'
 import { SectionCard } from '../components/SettingsSectionCard'
-import { SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
-import { FormControlUtils } from '../utils/FormControlUtils'
+import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
 import { ResultMessageBox, ResultMessageStatus } from '../components/ResultMessageBox'
 import { ResultDialogHelper } from '../utils/ResultDialogHelper'
 import {
@@ -234,7 +232,7 @@ export struct IdentityPage {
       description: IdentityStrings.requireUppercaseDesc,
       isOn: this.viewModel.state.requireUppercase,
       onChange: (value: boolean) => {
-        this.viewModel.setRequireUppercase(value)
+        this.viewModel.setRequirement('requireUppercase', value)
       }
     })
 
@@ -247,7 +245,7 @@ export struct IdentityPage {
       description: IdentityStrings.requireLowercaseDesc,
       isOn: this.viewModel.state.requireLowercase,
       onChange: (value: boolean) => {
-        this.viewModel.setRequireLowercase(value)
+        this.viewModel.setRequirement('requireLowercase', value)
       }
     })
 
@@ -260,7 +258,7 @@ export struct IdentityPage {
       description: IdentityStrings.requireDigitDesc,
       isOn: this.viewModel.state.requireDigit,
       onChange: (value: boolean) => {
-        this.viewModel.setRequireDigit(value)
+        this.viewModel.setRequirement('requireDigit', value)
       }
     })
 
@@ -273,7 +271,7 @@ export struct IdentityPage {
       description: IdentityStrings.requireSpecialCharDesc,
       isOn: this.viewModel.state.requireSpecialChar,
       onChange: (value: boolean) => {
-        this.viewModel.setRequireSpecialChar(value)
+        this.viewModel.setRequirement('requireSpecialChar', value)
       }
     })
 
@@ -281,67 +279,24 @@ export struct IdentityPage {
       .color(AppColors.getColors(this.currentTheme).BORDER)
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-    Row() {
-      Column({ space: 2 }) {
-        Text(IdentityStrings.passwordValidityPeriod)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(IdentityStrings.passwordValidityPeriodDesc)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+    SectionSelectInputRow({
+      title: IdentityStrings.passwordValidityPeriod,
+      description: IdentityStrings.passwordValidityPeriodDesc,
+      options: this.validityOptions,
+      selectedIndex: this.viewModel.state.validityPeriodIndex,
+      value: this.getSelectedValidityLabel(),
+      selectWidth: 140,
+      showInput: this.viewModel.state.validityPeriodIndex === CUSTOM_VALIDITY_OPTION_INDEX,
+      inputText: this.viewModel.state.customValidityPeriodText,
+      inputPlaceholder: IdentityStrings.customDaysPlaceholder,
+      inputWidth: 112,
+      inputSuffix: IdentityStrings.dayUnit,
+      onSelect: (index: number) => {
+        this.viewModel.setValidityPeriodIndex(index)
+      },
+      onInputChange: (value: string) => {
+        this.viewModel.setCustomValidityPeriodText(value)
       }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Row({ space: 8 }) {
-        Select(this.validityOptions)
-          .selected(this.viewModel.state.validityPeriodIndex)
-          .value(this.getSelectedValidityLabel())
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(140)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => {
-            this.viewModel.setValidityPeriodIndex(index)
-          })
-
-        if (this.viewModel.state.validityPeriodIndex === CUSTOM_VALIDITY_OPTION_INDEX) {
-          Row({ space: 6 }) {
-            TextInput({
-              placeholder: IdentityStrings.customDaysPlaceholder,
-              text: this.viewModel.state.customValidityPeriodText
-            })
-              .type(InputType.Number)
-              .width(112)
-              .height(36)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(FormControlUtils.text(this.currentTheme))
-              .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-              .backgroundColor(FormControlUtils.background(this.currentTheme))
-              .borderRadius(AppStyles.RADIUS_SM)
-              .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-              .onChange((value: string) => {
-                this.viewModel.setCustomValidityPeriodText(value)
-              })
-            Text(IdentityStrings.dayUnit)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          }
-        }
-      }
-      .alignItems(VerticalAlign.Center)
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 16 })
+    })
   }
 }
