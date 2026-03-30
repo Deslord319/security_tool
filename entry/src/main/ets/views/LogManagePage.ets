@@ -23,6 +23,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
+import { DetailDialogShell, DetailDialogOverlay } from '../components/DetailDialogShell'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
@@ -155,9 +156,8 @@ struct LogDetailInfoRow {
   }
 }
 
-@CustomDialog
-struct LogDetailDialog {
-  controller: CustomDialogController
+@Component
+struct LogDetailDialogPanel {
   title: string = ''
   entry: LogEntry = {
     id: '',
@@ -167,6 +167,7 @@ struct LogDetailDialog {
     result: LogEventResult.SUCCESS
   } as LogEntry
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  onClose: () => void = () => {}
 
   private hasValue(value?: string | number): boolean {
     if (value === undefined || value === null) {
@@ -221,112 +222,83 @@ struct LogDetailDialog {
     return fields
   }
 
-  build() {
-    Column({ space: 0 }) {
-      Row() {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        Blank()
-        Button(LogManageStrings.close)
+  @Builder
+  private shellContent() {
+    Column({ space: 12 }) {
+      Row({ space: 8 }) {
+        Text(formatLogTimestamp(this.entry.timestamp))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .fontFamily('monospace')
+          .layoutWeight(1)
+
+        Text(getLogEventTypeLabel(this.entry.eventType))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
+          .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
           .borderRadius(AppStyles.RADIUS_SM)
-          .height(30)
-          .onClick(() => {
-            this.controller.close()
-          })
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+
+        Text(getLogEventResultLabel(this.entry.result))
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(this.getResultTagTextColor())
+          .backgroundColor(this.getResultTagBgColor())
+          .borderRadius(AppStyles.RADIUS_SM)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-        .margin({ top: 10, bottom: 10 })
+      LogDetailTextBlock({
+        title: LogManageStrings.detailTitle,
+        value: this.entry.detail.trim().length > 0 ? this.entry.detail : LogManageStrings.detailEmpty
+      })
 
-      Scroll() {
-        Column({ space: 12 }) {
-          Row({ space: 8 }) {
-            Text(formatLogTimestamp(this.entry.timestamp))
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-              .fontFamily('monospace')
-              .layoutWeight(1)
+      if (this.getMetricFields().length > 0 || this.getInfoFields().length > 0) {
+        Column({ space: 8 }) {
+          Text(LogManageStrings.additionalInfo)
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-            Text(getLogEventTypeLabel(this.entry.eventType))
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
-              .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
-              .borderRadius(AppStyles.RADIUS_SM)
-              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-
-            Text(getLogEventResultLabel(this.entry.result))
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(this.getResultTagTextColor())
-              .backgroundColor(this.getResultTagBgColor())
-              .borderRadius(AppStyles.RADIUS_SM)
-              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          if (this.getMetricFields().length > 0) {
+            Row({ space: 8 }) {
+              ForEach(this.getMetricFields(), (field: LogDetailField) => {
+                LogDetailMetricCard({
+                  label: field.label,
+                  value: field.value
+                })
+              }, (field: LogDetailField) => field.key)
+            }
+            .width('100%')
           }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
 
-          LogDetailTextBlock({
-            title: LogManageStrings.detailTitle,
-            value: this.entry.detail.trim().length > 0 ? this.entry.detail : LogManageStrings.detailEmpty
-          })
-
-          if (this.getMetricFields().length > 0 || this.getInfoFields().length > 0) {
+          if (this.getInfoFields().length > 0) {
             Column({ space: 8 }) {
-              Text(LogManageStrings.additionalInfo)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-              if (this.getMetricFields().length > 0) {
-                Row({ space: 8 }) {
-                  ForEach(this.getMetricFields(), (field: LogDetailField) => {
-                    LogDetailMetricCard({
-                      label: field.label,
-                      value: field.value
-                    })
-                  }, (field: LogDetailField) => field.key)
-                }
-                .width('100%')
-              }
-
-              if (this.getInfoFields().length > 0) {
-                Column({ space: 8 }) {
-                  ForEach(this.getInfoFields(), (field: LogDetailField) => {
-                    LogDetailInfoRow({
-                      field: field
-                    })
-                  }, (field: LogDetailField) => field.key)
-                }
-                .width('100%')
-              }
+              ForEach(this.getInfoFields(), (field: LogDetailField) => {
+                LogDetailInfoRow({
+                  field: field
+                })
+              }, (field: LogDetailField) => field.key)
             }
             .width('100%')
           }
         }
         .width('100%')
       }
-      .width('100%')
-      .constraintSize({ maxHeight: 420 })
-      .scrollBar(BarState.Auto)
     }
-    .width(560)
-    .padding(18)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
+    .width('100%')
+  }
+
+  build() {
+    DetailDialogShell({
+      title: this.title,
+      dialogWidth: 560,
+      maxBodyHeight: 420,
+      onClose: this.onClose,
+      content: this.shellContent
     })
   }
 }
@@ -351,11 +323,11 @@ export struct LogManagePage {
     blockedCount: 0,
     byType: new Map<LogEventType, number>()
   }
-  @State statsRenderVersion: number = 0
 
   @State filterEventType: number = -1
   @State filterResult: number = -1
   @State filterKeyword: string = ''
+  @State detailEntry: LogEntry | null = null
 
   @State showSettings: boolean = false
   @State isLoading: boolean = false
@@ -365,7 +337,6 @@ export struct LogManagePage {
   private readonly REFRESH_INTERVAL_MS: number = 1500
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 140
   private readonly pageSizeOptions: number[] = [20, 50, 100]
-  private detailDialogController?: CustomDialogController
   private eventTypeFilterOptions: SelectOption[] = [
     { value: LogManageStrings.allEventTypes } as SelectOption,
     ...LOG_EVENT_TYPE_OPTIONS.map((opt) => ({ value: opt.label } as SelectOption))
@@ -389,6 +360,7 @@ export struct LogManagePage {
       clearInterval(this.refreshTimerId)
       this.refreshTimerId = -1
     }
+    this.closeLogDetailDialog()
   }
 
   private startRefreshTimer(): void {
@@ -424,11 +396,15 @@ export struct LogManagePage {
     this.logEntries = LogStorageService.queryEntries(filter)
     this.statistics = LogStorageService.getStatistics()
     this.updatePagedEntries()
-    this.statsRenderVersion = this.statsRenderVersion + 1
-    hilog.info(DOMAIN, TAG,
-      `refreshData complete: filterEventType=${this.filterEventType}, entries=${this.logEntries.length}, ` +
-      `paged=${this.pagedLogEntries.length}, total=${this.statistics.totalCount}, today=${this.statistics.todayCount}, ` +
-      `blocked=${this.statistics.blockedCount}, statsRenderVersion=${this.statsRenderVersion}`)
+    this.syncDetailEntry()
+  }
+
+  private syncDetailEntry(): void {
+    if (!this.detailEntry) {
+      return
+    }
+    const nextEntry: LogEntry | undefined = this.logEntries.find((entry: LogEntry) => entry.id === this.detailEntry!.id)
+    this.detailEntry = nextEntry ?? null
   }
 
   private getCurrentPageSize(): number {
@@ -473,6 +449,7 @@ export struct LogManagePage {
   private openSettingsFromList(): void {
     this.storageSettingsViewModel.initialize(LogStorageService.getConfig())
     this.showSettings = true
+    this.closeLogDetailDialog()
     this.refreshData()
   }
 
@@ -524,7 +501,7 @@ export struct LogManagePage {
 
   private getPageSizeOptions(): SelectOption[] {
     return this.pageSizeOptions.map((size: number): SelectOption => {
-      return { value: `${size} 条/页` } as SelectOption
+      return { value: LogManageStrings.buildPageSizeText(size) } as SelectOption
     })
   }
 
@@ -599,17 +576,28 @@ export struct LogManagePage {
   }
 
   private openLogDetailTableDialog(entry: LogEntry): void {
-    this.detailDialogController = new CustomDialogController({
-      builder: LogDetailDialog({
-        controller: this.detailDialogController as CustomDialogController,
-        title: LogManageStrings.detailDialogTitle,
-        entry: entry
-      }),
-      autoCancel: true,
-      customStyle: true,
-      alignment: DialogAlignment.Center
-    })
-    this.detailDialogController.open()
+    this.detailEntry = entry
+  }
+
+  private closeLogDetailDialog(): void {
+    this.detailEntry = null
+  }
+
+  @Builder
+  private detailDialogLayer() {
+    if (this.detailEntry) {
+      DetailDialogOverlay({
+        onDismiss: () => this.closeLogDetailDialog(),
+        content: () => {
+          LogDetailDialogPanel({
+            title: LogManageStrings.detailDialogTitle,
+            entry: this.detailEntry as LogEntry,
+            currentTheme: this.currentTheme,
+            onClose: () => this.closeLogDetailDialog()
+          })
+        }
+      })
+    }
   }
 
   clearLogs() {
@@ -620,6 +608,7 @@ export struct LogManagePage {
       cancelText: CommonStrings.actionCancel,
       onConfirm: async () => {
         await LogStorageService.clearAll()
+        this.closeLogDetailDialog()
         this.refreshAll()
         DialogService.openSuccess(this.getUIContext(), LogManageStrings.clearSuccess)
       }
@@ -637,32 +626,36 @@ export struct LogManagePage {
     DialogService.openSuccess(this.getUIContext(), result.message)
   }
   build() {
-    Column() {
-      SubPageHeader({
-        title: this.showSettings ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
-        subtitle: this.showSettings ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
-        currentTheme: this.currentTheme,
-        onBack: () => this.onBack(),
-        actions: () => {
-          this.headerActions()
-        }
-      })
+    Stack({ alignContent: Alignment.TopStart }) {
+      Column() {
+        SubPageHeader({
+          title: this.showSettings ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
+          subtitle: this.showSettings ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
+          currentTheme: this.currentTheme,
+          onBack: () => this.onBack(),
+          actions: () => {
+            this.headerActions()
+          }
+        })
 
-      if (this.showSettings) {
-        this.storageSettingsView()
-      } else {
-        ForEach([this.statsRenderVersion], (version: number) => {
+        if (this.showSettings) {
+          this.storageSettingsView()
+        } else {
           this.statisticsBar()
-        }, (version: number) => `statistics-bar-${version}`)
-        this.filterToolbar()
-        this.filterHintView()
-        this.logListView()
-        this.paginationToolbar()
+          this.filterToolbar()
+          this.filterHintView()
+          this.logListView()
+          this.paginationToolbar()
+        }
       }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+
+      this.detailDialogLayer()
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
   @Builder

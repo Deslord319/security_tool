@@ -51,9 +51,9 @@ export class LogManageStrings {
   static readonly jumpButton: string = '跳转'
 
   static readonly maxEntriesLabel: string = '最大存储条数'
-  static readonly maxEntriesDescription: string = '选择本地最多保留的日志数量，达到上限后会按时间清理旧日志'
+  static readonly maxEntriesDescription: string = '选择本地最多保留的日志数量，达到上限后会按时间清理旧日志。'
   static readonly retentionDaysLabel: string = '日志保留天数'
-  static readonly retentionDaysDescription: string = '选择日志在本地保存的时间，到期后会自动清理历史日志'
+  static readonly retentionDaysDescription: string = '选择日志在本地保留的时间，到期后会自动清理历史日志。'
 
   static readonly noExportableLogs: string = '当前没有可导出的日志'
   static readonly clearConfirmTitle: string = '确认清空'

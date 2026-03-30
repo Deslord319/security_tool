@@ -10,7 +10,6 @@ export struct DeviceRecordList {
   @Prop deviceRecords: PeripheralConnectionRecord[] = []
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop hoveredPanelIndex: number = -1
-  @Prop refreshVersion: number = 0
   onRecordClick?: (record: PeripheralConnectionRecord) => void
   onPanelHover?: (isHover: boolean) => void
   @State private activeDetailId: string = ''
@@ -31,12 +30,6 @@ export struct DeviceRecordList {
   build() {
     Scroll() {
       Column({ space: 0 }) {
-        Text(`${this.refreshVersion}`)
-          .fontSize(0)
-          .width(0)
-          .height(0)
-          .opacity(0)
-
         if (this.deviceRecords.length === 0) {
           EmptyStatePanel({
             title: '暂无设备连接记录',
@@ -57,7 +50,7 @@ export struct DeviceRecordList {
                     .margin({ left: 20, right: 20 })
                 }
               }
-            }, (record: PeripheralConnectionRecord) => `${this.refreshVersion}-${record.id}`)
+            }, (record: PeripheralConnectionRecord) => record.id)
           }
           .width('100%')
           .borderRadius(AppStyles.RADIUS_LG)

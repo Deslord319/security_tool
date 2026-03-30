@@ -1,5 +1,6 @@
 ﻿import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { DetailDialogOverlay } from '../components/DetailDialogShell'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
 import {
@@ -34,10 +35,8 @@ export struct PeripheralPage {
   @State viewModel: PeripheralViewModel = new PeripheralViewModel()
   @State currentTabIndex: number = 0
   @State hoveredPanelIndex: number = -1
-  @State renderVersion: number = 0
-  @State detailVisible: boolean = false
   @State detailRecord: PeripheralConnectionRecord | null = null
-  @State detailHistoryItems: ConnectionHistoryItem[] = []
+  @State detailHistoryItems: ConnectionHistoryItem[] = [] 
 
   private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [
@@ -60,15 +59,12 @@ export struct PeripheralPage {
 
   private async initViewModel(): Promise<void> {
     try {
-      this.viewModel.onRefresh = () => {
-        this.renderVersion++
-      }
+      this.viewModel.onRefresh = () => this.syncDetailDialogState()
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await PeripheralRuntimeEventService.init(context)
       await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(context)
       this.currentTabIndex = this.viewModel.currentTab
-      this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.INIT_FAILED))
@@ -146,20 +142,37 @@ export struct PeripheralPage {
     this.viewModel.switchToTab(index)
   }
 
-  private openDetailDialog(record: PeripheralConnectionRecord): void {
-    this.viewModel.openConnectionDetailDialog(record)
+  private syncDetailDialogState(): void {
     this.detailRecord = this.viewModel.records.connectionDetailDialog.record
     this.detailHistoryItems = [...this.viewModel.records.connectionDetailDialog.historyItems]
-    this.detailVisible = this.detailRecord !== null
-    this.renderVersion++
+  }
+
+  private openDetailDialog(record: PeripheralConnectionRecord): void {
+    this.viewModel.openConnectionDetailDialog(record)
+    this.syncDetailDialogState()
   }
 
   private closeDetailDialog(): void {
     this.viewModel.closeConnectionDetailDialog()
-    this.detailVisible = false
     this.detailRecord = null
     this.detailHistoryItems = []
-    this.renderVersion++
+  }
+
+  @Builder
+  private detailDialogLayer() {
+    if (this.detailRecord) {
+      DetailDialogOverlay({
+        onDismiss: () => this.closeDetailDialog(),
+        content: () => {
+          ConnectionDetailDialog({
+            selectedRecord: this.detailRecord,
+            historyItems: this.detailHistoryItems,
+            currentTheme: this.currentTheme,
+            onClose: () => this.closeDetailDialog()
+          })
+        }
+      })
+    }
   }
 
   @Builder
@@ -175,12 +188,6 @@ export struct PeripheralPage {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Text(`${this.renderVersion}`)
-        .fontSize(0)
-        .width(0)
-        .height(0)
-        .opacity(0)
-
       Column() {
         this.header()
         this.tabs()
@@ -191,14 +198,7 @@ export struct PeripheralPage {
       .alignItems(HorizontalAlign.Start)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
-      if (this.detailVisible && this.detailRecord) {
-        ConnectionDetailDialog({
-          selectedRecord: this.detailRecord,
-          historyItems: this.detailHistoryItems,
-          currentTheme: this.currentTheme,
-          onClose: () => this.closeDetailDialog()
-        })
-      }
+      this.detailDialogLayer()
     }
     .width('100%')
     .height('100%')
@@ -284,7 +284,6 @@ export struct PeripheralPage {
         deviceRecords: this.viewModel.records.records,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
-        refreshVersion: this.renderVersion,
         onRecordClick: (record: PeripheralConnectionRecord) => this.openDetailDialog(record),
         onPanelHover: (isHover: boolean) => this.setPanelHover(1, isHover)
       })
@@ -303,7 +302,6 @@ export struct PeripheralPage {
         policyListOptions: this.policyListOptions,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
-        refreshVersion: this.renderVersion,
         onPolicyChange: (index: number, policyIndex: number) => {
           const record: PeripheralPolicyRecord | undefined = this.viewModel.policy.records[index]
           if (record) {
@@ -453,7 +451,6 @@ export struct PeripheralPage {
       }
       this.closeDetailDialog()
       this.viewModel.reloadDeviceRecords()
-      this.renderVersion++
       DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
@@ -468,8 +465,7 @@ export struct PeripheralPage {
       return
     }
     this.closeDetailDialog()
-    this.renderVersion++
-      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
+    DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }
 

@@ -1,12 +1,28 @@
-﻿import { AppColors, AppStyles } from '../../constants/AppConstants'
+import { DetailDialogShell } from '../DetailDialogShell'
+import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { PeripheralConnectionRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
+import { STORAGE_KEY_THEME } from '../../theme/ThemeManager'
 import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel
 } from '../../viewmodels/PeripheralRecordPresentationMapper'
-import { DeviceDetailStrings } from '../../constants/modules/DialogStrings'
+
+const DEVICE_DETAIL_TITLE = '设备详情'
+const DEVICE_DETAIL_EMPTY = '当前没有可展示的连接记录。'
+const DEVICE_DETAIL_KEY_INFO = '关键信息'
+const DEVICE_DETAIL_HISTORY_TITLE = '历史连接记录'
+const DEVICE_DETAIL_HISTORY_EMPTY = '暂无历史连接记录'
+const DEVICE_DETAIL_HISTORY_SUFFIX = '条'
+const DEVICE_DETAIL_DEVICE_ID = '设备标识'
+const DEVICE_DETAIL_RECENT_TIME = '最近时间'
+const DEVICE_DETAIL_CONNECTION_EVENT = '连接事件'
+const DEVICE_DETAIL_EVENT_SOURCE = '事件来源'
+const DEVICE_DETAIL_POLICY_RESULT = '策略结论'
+const DEVICE_DETAIL_EFFECTIVE_POLICY = '执行策略'
+const DEVICE_DETAIL_MATCH_TYPE = '命中类型'
+const DEVICE_DETAIL_RESULT_STATUS = '结果状态'
 
 export interface ConnectionHistoryItem {
   time: string
@@ -16,94 +32,55 @@ export interface ConnectionHistoryItem {
 
 @Component
 export struct ConnectionDetailDialog {
-  @Prop selectedRecord: PeripheralConnectionRecord | null = null
-  @Prop historyItems: ConnectionHistoryItem[] = []
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  onClose?: () => void
+  selectedRecord: PeripheralConnectionRecord | null = null
+  historyItems: ConnectionHistoryItem[] = []
+  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  onClose: () => void = () => {}
 
-  build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(AppColors.OVERLAY_BACKGROUND)
-        .onClick(() => this.onClose && this.onClose())
-
+  @Builder
+  private shellContent() {
+    if (this.selectedRecord) {
       Column({ space: 12 }) {
-        Row() {
-          Text(DeviceDetailStrings.TITLE)
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          Blank()
-          Button(DeviceDetailStrings.CLOSE_BUTTON)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(this.currentTheme === ThemeMode.DARK ? Color.White : Color.Black)
-            .height(32)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-            .onClick(() => this.onClose && this.onClose())
-        }
-        .width('100%')
-
-        if (this.selectedRecord) {
-          Scroll() {
-            Column({ space: 12 }) {
-              this.metricCard(this.selectedRecord)
-              this.historyCard()
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .constraintSize({ maxHeight: 460 })
-          .scrollBar(BarState.Auto)
-        } else {
-          Text(DeviceDetailStrings.NO_RECORDS)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        }
+        this.metricCard(this.selectedRecord)
+        this.historyCard()
       }
       .width('100%')
-      .constraintSize({ maxWidth: 760, maxHeight: 580 })
-      .padding(18)
-      .margin(16)
-      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-      .borderRadius(AppStyles.RADIUS_XL)
-      .onClick(() => {})
+    } else {
+      Text(DEVICE_DETAIL_EMPTY)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }
-    .width('100%')
-    .height('100%')
   }
 
   @Builder
   private metricCard(record: PeripheralConnectionRecord) {
     Column({ space: 10 }) {
-      Text('关键信息')
+      Text(DEVICE_DETAIL_KEY_INFO)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
 
       Row({ space: 10 }) {
-        this.metricField('设备标识', record.deviceId)
-        this.metricField('最近时间', this.formatConnectionTime(record))
+        this.metricField(DEVICE_DETAIL_DEVICE_ID, record.deviceId)
+        this.metricField(DEVICE_DETAIL_RECENT_TIME, this.formatConnectionTime(record))
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField('连接事件', this.getActionLabel(record))
-        this.metricField('事件来源', this.getSourceLabel(record))
+        this.metricField(DEVICE_DETAIL_CONNECTION_EVENT, this.getActionLabel(record))
+        this.metricField(DEVICE_DETAIL_EVENT_SOURCE, this.getSourceLabel(record))
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField('策略结论', getPeripheralConnectionPolicyLabel(record))
-        this.metricField('执行策略', record.effectivePolicyLabel ?? '--')
+        this.metricField(DEVICE_DETAIL_POLICY_RESULT, getPeripheralConnectionPolicyLabel(record))
+        this.metricField(DEVICE_DETAIL_EFFECTIVE_POLICY, record.effectivePolicyLabel ?? '--')
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField('命中类型', getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind))
-        this.metricField('结果状态', getPeripheralConnectionResultLabel(record))
+        this.metricField(DEVICE_DETAIL_MATCH_TYPE, getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind))
+        this.metricField(DEVICE_DETAIL_RESULT_STATUS, getPeripheralConnectionResultLabel(record))
       }
       .width('100%')
     }
@@ -136,18 +113,18 @@ export struct ConnectionDetailDialog {
   private historyCard() {
     Column({ space: AppStyles.PADDING_SM }) {
       Row() {
-        Text(DeviceDetailStrings.HISTORY_TITLE)
+        Text(DEVICE_DETAIL_HISTORY_TITLE)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
         Blank()
-        Text(`${this.historyItems.length} ${DeviceDetailStrings.HISTORY_COUNT_SUFFIX}`)
+        Text(`${this.historyItems.length} ${DEVICE_DETAIL_HISTORY_SUFFIX}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
       }
       .width('100%')
 
       if (this.historyItems.length === 0) {
-        Text(DeviceDetailStrings.NO_HISTORY)
+        Text(DEVICE_DETAIL_HISTORY_EMPTY)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       } else {
@@ -214,5 +191,15 @@ export struct ConnectionDetailDialog {
   private formatConnectionTime(record: PeripheralConnectionRecord): string {
     const date = new Date(record.timestamp)
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  }
+
+  build() {
+    DetailDialogShell({
+      title: DEVICE_DETAIL_TITLE,
+      dialogWidth: 760,
+      maxBodyHeight: 460,
+      onClose: this.onClose,
+      content: this.shellContent
+    })
   }
 }
