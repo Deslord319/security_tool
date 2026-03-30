@@ -47,6 +47,14 @@ export interface LogCsvExportPayload {
   fileNamePrefix?: string
 }
 
+export interface LogStorageChangeEvent {
+  totalCount: number
+  addedCount: number
+  timestamp: number
+}
+
+type LogStorageChangeListener = (event: LogStorageChangeEvent) => void
+
 // Log storage service for persistence, querying, filtering, and export.
 export class LogStorageService {
 
@@ -59,6 +67,18 @@ export class LogStorageService {
   private static isInitialized: boolean = false
   private static initializedContextDir: string = ''
   private static initPromise: Promise<boolean> | null = null
+  private static nextListenerId: number = 1
+  private static listeners: Map<number, LogStorageChangeListener> = new Map()
+
+  static addChangeListener(listener: LogStorageChangeListener): number {
+    let id = LogStorageService.nextListenerId++
+    LogStorageService.listeners.set(id, listener)
+    return id
+  }
+
+  static removeChangeListener(listenerId: number): void {
+    LogStorageService.listeners.delete(listenerId)
+  }
 
   // Initialize with a UIAbilityContext for Preferences access.
   static async init(context: common.UIAbilityContext): Promise<boolean> {
@@ -133,6 +153,7 @@ export class LogStorageService {
       if (LogStorageService.logEntries.length > maxEntries) {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
       }
+      LogStorageService.notifyChanged(normalizedBatch.length)
 
       void LogStorageService.saveEntries().catch((err: Object) => {
         hilog.error(DOMAIN, TAG, `saveEntries async failed: ${JSON.stringify(err)}`)
@@ -246,6 +267,7 @@ export class LogStorageService {
   static async clearAll(): Promise<boolean> {
     try {
       LogStorageService.logEntries = []
+      LogStorageService.notifyChanged(0)
       await LogStorageService.saveEntries()
       hilog.info(DOMAIN, TAG, 'All log entries cleared')
       return true
@@ -394,6 +416,26 @@ export class LogStorageService {
       }
     }
     return result
+  }
+
+  private static notifyChanged(addedCount: number): void {
+    if (LogStorageService.listeners.size <= 0) {
+      return
+    }
+
+    let event: LogStorageChangeEvent = {
+      totalCount: LogStorageService.logEntries.length,
+      addedCount: addedCount,
+      timestamp: LogStorageService.nowProvider()
+    }
+
+    LogStorageService.listeners.forEach((listener: LogStorageChangeListener) => {
+      try {
+        listener(event)
+      } catch (err) {
+        hilog.warn(DOMAIN, TAG, `listener failed: ${JSON.stringify(err)}`)
+      }
+    })
   }
 
   private static normalizeStorageConfig(config: LogStorageConfig): LogStorageConfig {
@@ -691,6 +733,7 @@ export class LogStorageService {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
       }
       LogStorageService.cleanExpiredEntries()
+      LogStorageService.notifyChanged(0)
       await LogStorageService.saveEntries()
       await LogStorageService.saveConfig()
       hilog.info(DOMAIN, TAG, 'Storage config updated')

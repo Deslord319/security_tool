@@ -256,7 +256,6 @@ struct MainPage {
             if (this.currentPage === Routes.DASHBOARD) {
               Column() {
                 DashboardPage({
-                  firewallEnabled: this.firewallEnabled,
                   onNavigate: (route: string) => {
                     this.currentPage = route
                   }
