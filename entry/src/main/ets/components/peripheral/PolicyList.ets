@@ -1,5 +1,5 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
+import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { FormControlUtils } from '../../utils/FormControlUtils'
@@ -72,13 +72,13 @@ export struct PolicyList {
   @Builder
   private emptyCard() {
     Column({ space: 10 }) {
-      Text(PeripheralStrings.emptyPolicyTitle)
+      Text(EmptyStateStrings.NO_DEVICES)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .textAlign(TextAlign.Center)
 
-      Text(PeripheralStrings.emptyPolicyDescription)
+      Text(EmptyStateStrings.CHECK_PERMISSIONS)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

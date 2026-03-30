@@ -47,6 +47,7 @@ export struct PeripheralPage {
   private usbLoadingOpenedAt: number = 0
   private usbLoadingDialogController?: CustomDialogController
   private detailDialogController?: CustomDialogController
+  private readonly USB_LOADING_DIALOG_RENDER_DELAY_MS: number = 32
 
   aboutToAppear() {
     void this.initViewModel()
@@ -78,7 +79,7 @@ export struct PeripheralPage {
     if (this.usbLoadingDialogController) {
       return
     }
-    this.usbLoadingOpenedAt = Date.now()
+    this.usbLoadingOpenedAt = 0
     try {
       this.usbLoadingDialogController = new CustomDialogController({
         builder: LoadingDialog({
@@ -90,9 +91,12 @@ export struct PeripheralPage {
         customStyle: true
       })
       this.usbLoadingDialogController.open()
+      await this.waitForUsbLoadingDialogRender()
+      this.usbLoadingOpenedAt = Date.now()
     } catch (err) {
       hilog.warn(DOMAIN, TAG, `openUsbLoadingDialog failed: ${JSON.stringify(err)}`)
       this.usbLoadingDialogController = undefined
+      this.usbLoadingOpenedAt = 0
     }
   }
 
@@ -121,6 +125,12 @@ export struct PeripheralPage {
     }
     await new Promise<void>((resolve: () => void) => {
       setTimeout(() => resolve(), remainingDuration)
+    })
+  }
+
+  private async waitForUsbLoadingDialogRender(): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), this.USB_LOADING_DIALOG_RENDER_DELAY_MS)
     })
   }
 
@@ -494,6 +504,7 @@ export struct PeripheralPage {
       return
     }
     this.closeDetailDialog()
+    this.syncViewState()
     DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }
