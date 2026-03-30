@@ -2,6 +2,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
+import { LogExportErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
 import {
   LogEntry,
   LogFilter,
@@ -265,7 +266,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: now,
-        errorMessage: '无日志可导出'
+        errorMessage: LogExportErrors.NO_LOGS_TO_EXPORT
       }
     }
 
@@ -283,7 +284,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: timestamp,
-        errorMessage: 'UI 上下文不可用'
+        errorMessage: LogExportErrors.UI_CONTEXT_UNAVAILABLE
       }
     }
 
@@ -297,7 +298,7 @@ export class LogStorageService {
         return {
           success: false,
           timestamp: timestamp,
-          errorMessage: '用户取消保存'
+          errorMessage: LogExportErrors.USER_CANCELED_SAVE
         }
       }
       
