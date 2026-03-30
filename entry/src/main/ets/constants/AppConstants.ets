@@ -89,11 +89,6 @@ export class AppStyles {
   // 圆角常量
   static readonly RADIUS_CHIP: number = 10
   
-  // 字体大小常量
-  static readonly FONT_SIZE_XS: number = 10
-  static readonly FONT_SIZE_LG: number = 15
-  static readonly FONT_SIZE_XXL: number = 20
-  
   // 分隔线
   static readonly DIVIDER_HEIGHT: number = 1
 }
