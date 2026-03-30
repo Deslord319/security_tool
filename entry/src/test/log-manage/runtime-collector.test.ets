@@ -13,5 +13,10 @@ export default function logRuntimeCollectorServiceTest() {
       let status = LogRuntimeCollectorService.getStatus()
       expect(status.running).assertFalse()
     })
+
+    it('should only report collecting when running and subscribed are both true', 0, () => {
+      let status = LogRuntimeCollectorService.getStatus()
+      expect(LogRuntimeCollectorService.isCollecting()).assertEqual(status.running && status.subscribed)
+    })
   })
 }

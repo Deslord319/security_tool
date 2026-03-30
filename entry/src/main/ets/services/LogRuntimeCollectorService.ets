@@ -137,6 +137,11 @@ export class LogRuntimeCollectorService {
     } as LogRuntimeCollectorStatus
   }
 
+  static isCollecting(): boolean {
+    let status = LogRuntimeCollectorService.getStatus()
+    return status.running && status.subscribed
+  }
+
   private static handleIncomingEntry(entry: LogEntry): void {
     if (!LogRuntimeCollectorService.running) {
       return

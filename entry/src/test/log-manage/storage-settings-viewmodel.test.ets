@@ -59,5 +59,15 @@ export default function logStorageSettingsViewModelTest() {
       await LogStorageService.updateConfig(originalConfig)
       done()
     })
+
+    it('should reject save when there are no changes', 0, async (done: Function) => {
+      let viewModel = new LogStorageSettingsViewModel()
+      viewModel.initialize(DEFAULT_LOG_STORAGE_CONFIG)
+
+      let result = await viewModel.save()
+      expect(result.success).assertFalse()
+      expect(result.message.length > 0).assertTrue()
+      done()
+    })
   })
 }

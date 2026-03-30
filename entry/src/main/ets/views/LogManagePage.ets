@@ -3,7 +3,6 @@ import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConsta
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import { LogStorageService } from '../services/LogStorageService'
-import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import {
   LogEntry,
   LogEventType,
@@ -356,7 +355,6 @@ export struct LogManagePage {
   @State filterEventType: number = -1
   @State filterResult: number = -1
   @State filterKeyword: string = ''
-  @State isSubscribed: boolean = false
 
   @State showSettings: boolean = false
   @State isLoading: boolean = false
@@ -418,12 +416,6 @@ export struct LogManagePage {
 
   private refreshAll() {
     this.refreshData()
-    this.refreshRuntimeStatus()
-  }
-
-  private refreshRuntimeStatus() {
-    let status = LogRuntimeCollectorService.getStatus()
-    this.isSubscribed = status.subscribed
   }
 
   refreshData() {
@@ -1023,16 +1015,7 @@ export struct LogManagePage {
 
   @Builder
   private headerActions() {
-    Column({ space: 8 }) {
-      Row({ space: 6 }) {
-        Circle({ width: 8, height: 8 })
-          .fill(this.isSubscribed ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
-        Text(this.isSubscribed ? LogManageStrings.subscribed : LogManageStrings.subscribeFailed)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      }
-
+    Column() {
       Row({ space: 8 }) {
         if (!this.showSettings) {
           IconTextActionButton({

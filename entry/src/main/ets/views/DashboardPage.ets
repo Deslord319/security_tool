@@ -162,8 +162,7 @@ export struct DashboardPage {
   private refreshHealthStatus(): void {
     let adminState = EnterpriseAdminService.probeActivation()
     this.adminActivated = adminState.activated
-    let logRuntimeStatus = LogRuntimeCollectorService.getStatus()
-    this.logManageListening = logRuntimeStatus.running && logRuntimeStatus.subscribed
+    this.logManageListening = LogRuntimeCollectorService.isCollecting()
     let peripheralRuntimeStatus = PeripheralRuntimeEventService.getStatus()
     this.peripheralRuntimeListening = peripheralRuntimeStatus.running &&
       peripheralRuntimeStatus.capabilities.usbRuntimeEvents

@@ -23,6 +23,7 @@ temp_*.txt
 
 # Signing files (sensitive)
 hapsigner/*.hap
+hapsigner/*.app
 hapsigner/*.p7b
 hapsigner/*.p12
 hapsigner/ci/
