@@ -48,9 +48,9 @@ export class PeripheralPolicyService {
       policyMap.set(normalizedDeviceId, policy)
     }
 
-    const items: PeripheralPolicyRecord[] = Array.from(latestConnectionMap.entries()).map((
-      [deviceKey, latestConnection]: [string, PeripheralConnectionRecord]
-    ) => {
+    const items: PeripheralPolicyRecord[] = Array.from(latestConnectionMap.entries()).map((entry) => {
+      const deviceKey = entry[0]
+      const latestConnection = entry[1] as PeripheralConnectionRecord
       const policy = policyMap.get(deviceKey)
       const lastSeenAt = latestConnection.timestamp
       return {
