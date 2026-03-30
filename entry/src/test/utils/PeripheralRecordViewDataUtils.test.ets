@@ -6,9 +6,9 @@ import {
 } from '../../main/ets/models/DataModels'
 import {
   buildConnectionHistoryItems,
-  buildPeripheralPolicyRecords,
   formatPeripheralTimestamp
-} from '../../main/ets/utils/PeripheralRecordViewDataUtils'
+} from '../../main/ets/viewmodels/PeripheralRecordPresentationMapper'
+import { PeripheralPolicyService } from '../../main/ets/services/PeripheralPolicyService'
 
 describe('PeripheralRecordViewDataUtils', () => {
   it('should format invalid timestamps as placeholder', 0, () => {
@@ -31,7 +31,6 @@ describe('PeripheralRecordViewDataUtils', () => {
     }
 
     const history = buildConnectionHistoryItems([record, { ...record, id: 'record-2' }], record)
-
     expect(history.length).assertEqual(1)
   })
 
@@ -75,10 +74,14 @@ describe('PeripheralRecordViewDataUtils', () => {
       }
     ]
 
-    const policyRecords = buildPeripheralPolicyRecords(records, [{ vendorId: 0x1234, productId: 0x5678 }], [])
+    const policyRecords = PeripheralPolicyService.buildPolicyRecords(records, [{
+      deviceId: 'VID:1234 PID:5678',
+      policy: 'deny',
+      updatedAt: Date.now()
+    }])
 
     expect(policyRecords.length).assertEqual(1)
     expect(policyRecords[0].deviceName).assertEqual('Latest USB Device')
-    expect(policyRecords[0].policyIndex).assertEqual(0)
+    expect(policyRecords[0].policyIndex).assertEqual(1)
   })
 })

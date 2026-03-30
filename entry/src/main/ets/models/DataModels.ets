@@ -172,11 +172,20 @@ export type PeripheralMatchedPolicyKind =
   'usb_disabled' |
   'usb_storage_disabled' |
   'usb_storage_read_only' |
-  'usb_whitelist' |
-  'usb_blacklist' |
+  'device_deny' |
   'default_allow' |
   'disconnect_event' |
   'unknown'
+
+export type PeripheralDevicePolicy = 'allow' | 'deny'
+
+export interface PeripheralDevicePolicyRecord {
+  deviceId: string
+  policy: PeripheralDevicePolicy
+  updatedAt: number
+  deviceName?: string
+  deviceType?: PeripheralType
+}
 
 export interface PeripheralConnectionRecord {
   id: string
@@ -202,31 +211,6 @@ export interface PeripheralConnectionRecord {
   usbPolicy?: UsbStoragePolicy
   effectivePolicyLabel?: string
   matchedPolicyKind?: PeripheralMatchedPolicyKind
-}
-
-export interface PeripheralWhitelistCandidate {
-  id: string
-  deviceName: string
-  deviceType: PeripheralType
-  deviceId: string
-  timestamp: number
-  source: PeripheralCandidateSource
-  vendorId?: number
-  productId?: number
-  mac?: string
-  isConnected?: boolean
-  disabled: boolean
-}
-
-export interface PeripheralBlacklistTemplate {
-  id: string
-  title: string
-  description: string
-  baseClass: number
-  subClass: number
-  protocol: number
-  fromConnectedDevice?: boolean
-  disabled: boolean
 }
 
 export interface PeripheralConnectionFilter {

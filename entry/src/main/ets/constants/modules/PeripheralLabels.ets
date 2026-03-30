@@ -51,11 +51,10 @@ export class UsbPolicyResultLabels {
   static readonly USB_DISABLED: string = 'USB 接口禁用'
   static readonly USB_STORAGE_DISABLED: string = 'USB 存储已禁用'
   static readonly USB_STORAGE_READ_ONLY: string = 'USB 存储只读'
-  static readonly HIT_USB_WHITELIST: string = '命中 USB 白名单'
-  static readonly HIT_USB_BLACKLIST: string = '命中 USB 黑名单'
-  static readonly DEFAULT_ALLOW: string = '默认允许'
+  static readonly DEVICE_DENY: string = '命中单设备禁止接入'
+  static readonly DEFAULT_ALLOW: string = '默认允许接入'
   static readonly DISCONNECT_EVENT: string = '断开事件'
-  static readonly UNSAUDITED: string = '未审计？'
+  static readonly UNSAUDITED: string = '待判定'
   static readonly SNAPSHOT: string = '快照'
 }
 

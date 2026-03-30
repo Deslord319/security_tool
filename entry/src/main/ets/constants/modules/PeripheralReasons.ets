@@ -12,11 +12,6 @@ export class PeripheralReasons {
   static readonly EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
   static readonly READ_USB_STATUS_FAILED: string = 'read_usb_status'
   static readonly READ_USB_STORAGE_POLICY_FAILED: string = 'read_usb_storage_policy'
-  static readonly READ_USB_WHITELIST_FAILED: string = 'read_usb_whitelist'
-  static readonly READ_USB_BLACKLIST_FAILED: string = 'read_usb_blacklist'
-  static readonly PRECHECK_BLACKLIST_CONFLICT: string = 'precheck_blacklist_conflict'
-  static readonly PRECHECK_WHITELIST_CONFLICT: string = 'precheck_whitelist_conflict'
-  static readonly INFER_BLACKLIST_TYPE_FAILED: string = 'infer_blacklist_type'
   static readonly SET_USB_INTERFACE_CONFLICT: string = 'set_usb_interface'
   static readonly SET_USB_STORAGE_POLICY_CONFLICT: string = 'set_usb_storage_policy'
 }

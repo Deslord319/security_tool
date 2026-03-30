@@ -3,10 +3,10 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import {
   ExportActionResult,
-  getPeripheralRecordActionLabel,
-  getPeripheralRecordSourceLabel,
-  getPeripheralTypeLabel,
-  PeripheralConnectionRecord
+  PeripheralConnectionRecord,
+  PeripheralRecordAction,
+  PeripheralRecordSource,
+  PeripheralType
 } from '../models/DataModels'
 import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
@@ -100,15 +100,60 @@ export class PeripheralRecordViewModel {
       return [
         formatPeripheralTimestamp(record.timestamp),
         record.deviceName,
-        getPeripheralTypeLabel(record.deviceType),
+        this.getDeviceTypeLabel(record.deviceType),
         record.deviceId,
-        getPeripheralRecordActionLabel(record.action),
+        this.getActionLabel(record.action),
         getPeripheralConnectionPolicyLabel(record),
         getPeripheralConnectionResultLabel(record),
-        getPeripheralRecordSourceLabel(record.source)
+        this.getSourceLabel(record.source)
       ].map((value: string) => this.escapeCsvValue(value)).join(',')
     })
     return `\uFEFF${headers.map((value: string) => this.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
+  }
+
+  private getDeviceTypeLabel(deviceType: PeripheralType): string {
+    switch (deviceType) {
+      case PeripheralType.USB_STORAGE:
+        return 'USB 存储设备'
+      case PeripheralType.USB_CAMERA:
+        return 'USB 摄像头'
+      case PeripheralType.USB_PRINTER:
+        return 'USB 打印机'
+      case PeripheralType.USB_HID:
+        return 'USB 人机输入设备'
+      case PeripheralType.USB_OTHER:
+        return 'USB 其他设备'
+      case PeripheralType.BLUETOOTH:
+        return '蓝牙设备'
+      default:
+        return '未知设备'
+    }
+  }
+
+  private getActionLabel(action: PeripheralRecordAction): string {
+    switch (action) {
+      case 'connect':
+        return '连接'
+      case 'disconnect':
+        return '断开'
+      case 'intercept':
+        return '拦截'
+      default:
+        return '未知动作'
+    }
+  }
+
+  private getSourceLabel(source: PeripheralRecordSource): string {
+    switch (source) {
+      case 'runtime_event':
+        return '运行时事件'
+      case 'audit_event':
+        return '审计事件'
+      case 'policy_snapshot':
+        return '策略快照'
+      default:
+        return '未知来源'
+    }
   }
 
   private escapeCsvValue(value: string): string {

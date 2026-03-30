@@ -344,7 +344,12 @@ export struct PeripheralPage {
   }
 
   private async handlePolicyChange(record: PeripheralPolicyRecord, policyIndex: number): Promise<void> {
-    const success = await this.viewModel.handlePeripheralPolicyChange(record.deviceId, record.deviceType, policyIndex)
+    const success = await this.viewModel.handlePeripheralPolicyChange(
+      record.deviceId,
+      record.deviceType,
+      record.deviceName,
+      policyIndex
+    )
     if (!success) {
       if (!this.viewModel.adminState.activated) {
         DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.updatePolicyAction}${PeripheralStrings.adminRequiredActionSuffix}`)

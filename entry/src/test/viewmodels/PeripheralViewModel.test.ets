@@ -1,8 +1,7 @@
-/**
- * PeripheralViewModel coordinator tests.
- */
 import { beforeEach, describe, expect, it } from '@ohos/hypium'
 import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
+import { PeripheralDevicePolicyRepository } from '../../main/ets/services/PeripheralDevicePolicyRepository'
+import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/PeripheralViewModel'
 
 describe('PeripheralViewModel', () => {
@@ -10,6 +9,8 @@ describe('PeripheralViewModel', () => {
 
   beforeEach(() => {
     viewModel = new PeripheralViewModel()
+    PeripheralTraceRepository.resetForTest()
+    PeripheralDevicePolicyRepository.resetForTest()
   })
 
   it('should initialize nested view models with expected defaults', 0, () => {
@@ -60,5 +61,35 @@ describe('PeripheralViewModel', () => {
     viewModel.closeConnectionDetailDialog()
     expect(viewModel.records.connectionDetailDialog.visible).assertFalse()
     expect(refreshCount).assertEqual(2)
+  })
+
+  it('should clear explicit policies without deleting connection records', 0, async (done: Function) => {
+    PeripheralTraceRepository.setRecordsForTest([{
+      recordId: 'runtime_1',
+      occurAt: 200,
+      collectAt: 201,
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      deviceId: 'VID:1234 PID:5678',
+      action: 'connect',
+      decision: 'allow',
+      result: LogEventResult.SUCCESS,
+      source: 'runtime_event',
+      summary: 'connected'
+    }])
+    await PeripheralDevicePolicyRepository.set({
+      deviceId: 'VID:1234 PID:5678',
+      policy: 'deny',
+      updatedAt: Date.now()
+    })
+
+    viewModel.reloadDeviceRecords()
+    expect(viewModel.policy.records[0].policyIndex).assertEqual(1)
+
+    const success = await viewModel.clearPeripheralPolicyRecords()
+    expect(success).assertTrue()
+    expect(viewModel.records.records.length).assertEqual(1)
+    expect(viewModel.policy.records[0].policyIndex).assertEqual(0)
+    done()
   })
 })

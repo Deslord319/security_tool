@@ -1,12 +1,9 @@
-/**
- * Peripheral page coordinator ViewModel.
- */
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
-import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
+import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { InterfaceControlViewModel } from './InterfaceControlViewModel'
 import { PeripheralPolicyViewModel } from './PeripheralPolicyViewModel'
@@ -32,19 +29,20 @@ export class PeripheralViewModel {
   policy: PeripheralPolicyViewModel = new PeripheralPolicyViewModel()
 
   private traceStorageListenerId: number = -1
-  private runtimeEventListenerId: number = -1
+  private devicePolicyListenerId: number = -1
   private appContext: common.UIAbilityContext | null = null
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.isLoading = true
     this.appContext = context
     try {
+      await this.policy.initialize(context)
       await this.reloadAllData()
       this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {
         this.refreshTraceDrivenData()
       })
-      this.runtimeEventListenerId = PeripheralRuntimeEventService.addUsbEventListener(() => {
-        this.refreshTraceDrivenData()
+      this.devicePolicyListenerId = PeripheralDevicePolicyRepository.addChangeListener(() => {
+        this.refreshPolicyDrivenData()
       })
       this.reasonCode = null
     } catch (err) {
@@ -60,18 +58,17 @@ export class PeripheralViewModel {
       PeripheralTraceRepository.removeChangeListener(this.traceStorageListenerId)
       this.traceStorageListenerId = -1
     }
-    if (this.runtimeEventListenerId > 0) {
-      PeripheralRuntimeEventService.removeUsbEventListener(this.runtimeEventListenerId)
-      this.runtimeEventListenerId = -1
+    if (this.devicePolicyListenerId > 0) {
+      PeripheralDevicePolicyRepository.removeChangeListener(this.devicePolicyListenerId)
+      this.devicePolicyListenerId = -1
     }
   }
 
   async reloadAllData(): Promise<void> {
     this.refreshAdminActivationState()
     this.interfaceControl.reloadState()
-    this.policy.reloadWhitelistBlacklist()
     this.records.reloadRecords()
-    this.policy.rebuildRecords(this.records.records)
+    this.policy.reloadRecords(this.records.records)
     this.notifyRefresh('reloadAllData')
   }
 
@@ -90,15 +87,19 @@ export class PeripheralViewModel {
 
   reloadDeviceRecords(): void {
     this.records.reloadRecords()
-    this.policy.rebuildRecords(this.records.records)
+    this.policy.reloadRecords(this.records.records)
     this.notifyRefresh('reloadDeviceRecords')
   }
 
   private refreshTraceDrivenData(): void {
     this.records.reloadRecords()
-    this.policy.reloadWhitelistBlacklist()
-    this.policy.rebuildRecords(this.records.records)
+    this.policy.reloadRecords(this.records.records)
     this.notifyRefresh('refreshTraceDrivenData')
+  }
+
+  private refreshPolicyDrivenData(): void {
+    this.policy.reloadRecords(this.records.records)
+    this.notifyRefresh('refreshPolicyDrivenData')
   }
 
   private notifyRefresh(source: string): void {
@@ -130,24 +131,28 @@ export class PeripheralViewModel {
     if (this.reasonCode !== null) {
       return false
     }
-    this.policy.reloadWhitelistBlacklist()
-    this.policy.rebuildRecords(this.records.records)
     this.notifyRefresh('setUsbStoragePolicy')
     return true
   }
 
-  async handlePeripheralPolicyChange(deviceId: string, deviceType: PeripheralType, policyIndex: number): Promise<boolean> {
+  async handlePeripheralPolicyChange(
+    deviceId: string,
+    deviceType: PeripheralType,
+    deviceName: string,
+    policyIndex: number
+  ): Promise<boolean> {
     if (!this.ensureAdminReady()) {
       return false
     }
     this.policy.startUpdate(deviceId)
     this.notifyRefresh('policyChangeStart')
     try {
-      this.reasonCode = await this.policy.changePolicy(deviceId, deviceType, policyIndex)
+      this.reasonCode = await this.policy.setDevicePolicy(deviceId, deviceName, deviceType, policyIndex)
       if (this.reasonCode !== null) {
         return false
       }
-      await this.reloadAllData()
+      this.policy.reloadRecords(this.records.records)
+      this.notifyRefresh('policyChangeSuccess')
       return true
     } finally {
       this.policy.endUpdate(deviceId)
@@ -156,29 +161,26 @@ export class PeripheralViewModel {
   }
 
   async exportConnectionHistory(): Promise<ExportActionResult> {
-    let result = await this.records.exportConnectionHistory(this.appContext)
+    const result = await this.records.exportConnectionHistory(this.appContext)
     this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasons.EXPORT_CONNECTION_HISTORY_FAILED)
     return result
   }
 
   async exportPeripheralPolicyRecords(): Promise<ExportActionResult> {
-    let result = await this.policy.exportRecords(this.appContext)
+    const result = await this.policy.exportRecords(this.appContext)
     this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED)
     return result
   }
 
   async clearPeripheralPolicyRecords(): Promise<boolean> {
-    if (!this.appContext) {
-      return false
-    }
     try {
-      await PeripheralTraceRepository.init(this.appContext)
-      const success = await PeripheralTraceRepository.clearAll()
+      const success = await this.policy.clearAllPolicies()
       if (!success) {
         return false
       }
       this.policy.resetUpdatingState()
-      await this.reloadAllData()
+      this.policy.reloadRecords(this.records.records)
+      this.notifyRefresh('clearPeripheralPolicyRecords')
       return true
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
