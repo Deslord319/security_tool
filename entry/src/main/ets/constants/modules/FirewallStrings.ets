@@ -1,6 +1,7 @@
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/DataModels'
 import { CommonStrings } from '../CommonStrings'
 import { SharedLabels } from './FirewallSharedLabels'
+import { AppColors } from '../AppConstants'
 
 export class FirewallStrings {
   static readonly pageTitle: string = CommonStrings.moduleFirewall
@@ -58,9 +59,9 @@ export class FirewallStrings {
   static readonly actionAllow: string = '允许'
   static readonly actionDeny: string = '禁止'
 
-  static readonly publicModeAccent: string = '#0A84FF'
-  static readonly privateModeAccent: string = '#34C759'
-  static readonly customModeAccent: string = '#FF9500'
+  static readonly publicModeAccent: string = AppColors.BRAND_PRIMARY
+  static readonly privateModeAccent: string = AppColors.SUCCESS
+  static readonly customModeAccent: string = AppColors.WARNING
   static readonly selectedCardBgDark: string = '#243140'
   static readonly selectedCardBgLight: string = '#EEF6FF'
   static readonly selectedIconBorderDark: string = '#0F1720'

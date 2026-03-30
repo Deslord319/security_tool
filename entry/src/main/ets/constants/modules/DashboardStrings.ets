@@ -1,4 +1,5 @@
 import { CommonStrings } from '../CommonStrings'
+import { AppColors } from '../AppConstants'
 
 export interface DashboardGradient {
   start: string
@@ -19,10 +20,10 @@ export class DashboardStrings {
   static readonly statBlockedEvents: string = '已阻止事件'
   static readonly statTotalLogs: string = '日志总量'
 
-  static readonly firewallGradient: DashboardGradient = { start: '#0A84FF', end: '#00C6FF' }
-  static readonly logManageGradient: DashboardGradient = { start: '#34C759', end: '#30D158' }
+  static readonly firewallGradient: DashboardGradient = { start: AppColors.BRAND_PRIMARY, end: '#00C6FF' }
+  static readonly logManageGradient: DashboardGradient = { start: AppColors.SUCCESS, end: '#30D158' }
   static readonly peripheralGradient: DashboardGradient = { start: '#5856D6', end: '#AF52DE' }
-  static readonly identityGradient: DashboardGradient = { start: '#FF9500', end: '#FFCC00' }
+  static readonly identityGradient: DashboardGradient = { start: AppColors.WARNING, end: '#FFCC00' }
   static readonly toolSettingsGradient: DashboardGradient = { start: '#9095A1', end: '#D8DCE3' }
   static readonly helpFeedbackGradient: DashboardGradient = { start: '#FF8A80', end: '#FFB4A8' }
 }

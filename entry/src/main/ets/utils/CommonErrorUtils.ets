@@ -2,6 +2,8 @@
  * 通用错误处理工具类
  * 提供统一的错误处理相关方法
  */
+import { PermissionErrors, SystemServiceErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
+
 export interface ErrorRecorder {
   lastErrorCode: number | undefined
   lastErrorMessage: string
@@ -50,31 +52,31 @@ export class CommonErrorUtils {
    * 根据操作和错误码解析错误消息
    */
   static resolveErrorMessage(action: string, code: number | undefined): string {
-    if (action === '读取用户列表') {
+    if (action === PermissionErrors.READ_USER_LIST) {
       switch (code) {
         case 201:
-          return '缺少系统用户列表读取权限'
+          return PermissionErrors.MISSING_USER_LIST_PERMISSION
         case 12300001:
         case 2100002:
-          return '系统账号服务连接失败'
+          return SystemServiceErrors.ACCOUNT_SERVICE_CONNECTION_FAILED
         default:
-          return `${action}失败`
+          return ErrorTemplates.ACTION_FAILED_TEMPLATE.replace('${action}', action)
       }
     }
     switch (code) {
       case 201:
-        return '缺少账户或防火墙管理权限'
+        return PermissionErrors.MISSING_ACCOUNT_OR_FIREWALL_PERMISSION
       case 401:
       case 2100001:
-        return '用户 ID 参数不合法'
+        return PermissionErrors.INVALID_USER_ID_PARAM
       case 2100002:
-        return '系统服务连接失败'
+        return SystemServiceErrors.SERVICE_CONNECTION_FAILED
       case 2100003:
-        return '系统内部错误'
+        return SystemServiceErrors.INTERNAL_ERROR
       case 29400000:
-        return '目标用户不存在或已失效'
+        return SystemServiceErrors.USER_NOT_EXIST_OR_INVALID
       default:
-        return `${action}失败`
+        return ErrorTemplates.ACTION_FAILED_TEMPLATE.replace('${action}', action)
     }
   }
 }

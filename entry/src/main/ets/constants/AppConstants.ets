@@ -7,6 +7,10 @@ export class AppColors {
   }
 
   static readonly BRAND_PRIMARY: string = '#0A84FF'
+  static readonly MENU_ICON_COLOR_DARK: string = '#A9C7FF'
+  static readonly THEME_MODE_ICON_COLOR_DARK: string = '#8E8E93'
+  static readonly THEME_MODE_ICON_COLOR_LIGHT: string = '#FFD60A'
+  static readonly OVERLAY_BACKGROUND: string = '#66000000'
   static readonly BRAND_LIGHT: string = '#5EA1FF'
 
   static readonly SUCCESS: string = '#34C759'
@@ -126,7 +130,7 @@ export class InteractiveItemStyles {
   }
 
   static getMenuIconColor(theme: ThemeMode): ResourceColor {
-    return theme === ThemeMode.DARK ? '#A9C7FF' : AppColors.BRAND_PRIMARY
+    return theme === ThemeMode.DARK ? AppColors.MENU_ICON_COLOR_DARK : AppColors.BRAND_PRIMARY
   }
 
   static getMenuIconTileBackground(theme: ThemeMode): string {
@@ -163,7 +167,7 @@ export class InteractiveItemStyles {
   }
 
   static getThemeModeIconColor(theme: ThemeMode): string {
-    return theme === ThemeMode.DARK ? '#8E8E93' : '#FFD60A'
+    return theme === ThemeMode.DARK ? AppColors.THEME_MODE_ICON_COLOR_DARK : AppColors.THEME_MODE_ICON_COLOR_LIGHT
   }
 
   static getThemeModeIconTileBackground(theme: ThemeMode): string {
