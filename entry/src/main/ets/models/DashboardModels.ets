@@ -8,8 +8,6 @@ export interface DashboardModuleCardState {
   accentStart: string
   accentEnd: string
   icon: Resource
-  route?: string
-  clickable: boolean
 }
 
 export interface DashboardQuickEntryState {
@@ -19,26 +17,4 @@ export interface DashboardQuickEntryState {
   accentStart: string
   accentEnd: string
   route: string
-}
-
-export interface DashboardAdminSnapshot {
-  activated: boolean
-}
-
-export interface DashboardFirewallSnapshot {
-  enabled: boolean
-  modeText: string
-}
-
-export interface DashboardLogSnapshot {
-  todayCount: number
-  totalCount: number
-  collecting: boolean
-}
-
-export interface DashboardPeripheralSnapshot {
-  totalCount: number
-  connectCount: number
-  disconnectCount: number
-  listening: boolean
 }

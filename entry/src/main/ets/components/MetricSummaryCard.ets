@@ -2,6 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BaseCard } from './BaseCard'
+import { HoverUtils } from '../utils/HoverUtils'
 
 @Component
 export struct MetricSummaryCard {
@@ -16,20 +17,24 @@ export struct MetricSummaryCard {
   @Prop disabled: boolean = false
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onPress: () => void = () => {}
+  @State isHovered: boolean = false
 
   build() {
     BaseCard({
-      cardHeight: 144,
+      cardHeight: 108,
       clickable: this.clickable,
       hoverable: this.hoverable,
       disabled: this.disabled,
-      onPress: this.onPress
+      onPress: this.onPress,
+      onHoverChange: (isHovered: boolean) => {
+        this.isHovered = isHovered
+      }
     }) {
       Row({ space: 16 }) {
         Column() {
           Image(this.icon)
-            .width(30)
-            .height(30)
+            .width(this.isHovered ? 40 : 36)
+            .height(this.isHovered ? 40 : 36)
             .fillColor(Color.White)
             .draggable(false)
         }
@@ -38,6 +43,10 @@ export struct MetricSummaryCard {
         .borderRadius(20)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
+        .scale({
+          x: HoverUtils.getScale(this.isHovered, 1.06),
+          y: HoverUtils.getScale(this.isHovered, 1.06)
+        })
         .linearGradient({
           angle: 135,
           colors: [
@@ -50,9 +59,10 @@ export struct MetricSummaryCard {
           Row() {
             Text(this.title)
               .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
+              .fontWeight(this.isHovered ? FontWeight.Bold : FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .opacity(this.isHovered ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY :
+                AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
             Blank()
 
@@ -71,14 +81,15 @@ export struct MetricSummaryCard {
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .opacity(this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
 
           Text(this.secondaryText)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+            .opacity(this.isHovered ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY :
+              AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
             .maxLines(3)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }

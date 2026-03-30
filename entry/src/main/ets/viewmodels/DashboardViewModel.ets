@@ -1,29 +1,21 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { AppColors, Routes } from '../constants/AppConstants'
+import { DashboardStrings } from '../constants/modules/DashboardStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
-import {
-  DashboardAdminSnapshot,
-  DashboardFirewallSnapshot,
-  DashboardLogSnapshot,
-  DashboardModuleCardState,
-  DashboardPeripheralSnapshot,
-  DashboardQuickEntryState
-} from '../models/DashboardModels'
+import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/DashboardModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { FirewallModeService } from '../services/FirewallModeService'
 import { FirewallService } from '../services/FirewallService'
 import { LogStorageChangeEvent, LogStorageService } from '../services/LogStorageService'
-import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
-import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
-import { DashboardPresentationMapper } from './DashboardPresentationMapper'
 
 const TAG = 'DashboardViewModel'
 const DOMAIN = 0x0014
+type DashboardQuickEntryId = 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
 
 @Observed
 export class DashboardViewModel {
-  loading: boolean = false
   moduleCards: DashboardModuleCardState[] = []
   quickEntries: DashboardQuickEntryState[] = []
 
@@ -33,14 +25,9 @@ export class DashboardViewModel {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
-    this.quickEntries = DashboardPresentationMapper.buildQuickEntries()
-    this.loading = true
-    try {
-      await this.refreshAll()
-      this.registerListeners()
-    } finally {
-      this.loading = false
-    }
+    this.quickEntries = this.buildQuickEntries()
+    await this.refreshAll()
+    this.registerListeners()
   }
 
   destroy(): void {
@@ -55,46 +42,49 @@ export class DashboardViewModel {
   }
 
   async refreshAll(): Promise<void> {
-    this.moduleCards = await this.loadModuleCards()
+    this.moduleCards = await this.buildModuleCards()
   }
 
   async refreshStaticStatuses(): Promise<void> {
-    this.moduleCards = await this.loadModuleCards()
+    await this.refreshAll()
   }
 
   private registerListeners(): void {
     if (this.logListenerId <= 0) {
       this.logListenerId = LogStorageService.addChangeListener((_event: LogStorageChangeEvent) => {
-        void this.refreshLogAndPeripheralCards(false, true)
+        void this.refreshLiveCards(false, true)
       })
     }
     if (this.peripheralTraceListenerId <= 0) {
       this.peripheralTraceListenerId = PeripheralTraceRepository.addChangeListener(() => {
-        void this.refreshLogAndPeripheralCards(true, false)
+        void this.refreshLiveCards(true, false)
       })
     }
   }
 
-  private async loadModuleCards(): Promise<DashboardModuleCardState[]> {
-    let adminSnapshot = this.loadAdminSnapshot()
-    let firewallSnapshot = await this.loadFirewallSnapshot()
-    let logSnapshot = this.loadLogSnapshot()
-    let peripheralSnapshot = this.loadPeripheralSnapshot()
-    return DashboardPresentationMapper.buildModuleCards(
-      adminSnapshot,
-      firewallSnapshot,
-      logSnapshot,
-      peripheralSnapshot
+  private async buildModuleCards(): Promise<DashboardModuleCardState[]> {
+    return [
+      this.buildAdminCard(),
+      await this.buildFirewallCard(),
+      this.buildLogCard(),
+      this.buildPeripheralCard()
+    ]
+  }
+
+  private buildAdminCard(): DashboardModuleCardState {
+    let activated = EnterpriseAdminService.probeActivation().activated
+    return this.createModuleCard(
+      'admin',
+      DashboardStrings.adminTitle,
+      activated ? DashboardStrings.adminReady : DashboardStrings.adminPending,
+      activated ? DashboardStrings.adminReadyDetail : DashboardStrings.adminPendingDetail,
+      AppColors.WARNING,
+      AppColors.GRADIENT_IDENTITY_END,
+      $r('app.media.identity')
     )
   }
 
-  private loadAdminSnapshot(): DashboardAdminSnapshot {
-    return {
-      activated: EnterpriseAdminService.probeActivation().activated
-    }
-  }
-
-  private async loadFirewallSnapshot(): Promise<DashboardFirewallSnapshot> {
+  private async buildFirewallCard(): Promise<DashboardModuleCardState> {
     let enabled = false
     let modeText = FirewallStrings.getModeTitle('custom')
     try {
@@ -104,51 +94,151 @@ export class DashboardViewModel {
         modeText = FirewallStrings.getModeTitle(await FirewallModeService.getCurrentMode(this.context))
       }
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `loadFirewallSnapshot failed: ${JSON.stringify(err)}`)
+      hilog.warn(DOMAIN, TAG, `buildFirewallCard failed: ${JSON.stringify(err)}`)
     }
-    return {
-      enabled: enabled,
-      modeText: modeText
-    }
+
+    return this.createModuleCard(
+      'firewall',
+      DashboardStrings.firewallTitle,
+      enabled ? DashboardStrings.firewallEnabled : DashboardStrings.firewallDisabled,
+      modeText,
+      DashboardStrings.firewallGradient.start,
+      DashboardStrings.firewallGradient.end,
+      $r('app.media.firewall')
+    )
   }
 
-  private loadLogSnapshot(): DashboardLogSnapshot {
+  private buildLogCard(): DashboardModuleCardState {
     let statistics = LogStorageService.getStatistics()
-    return {
-      todayCount: statistics.todayCount,
-      totalCount: statistics.totalCount,
-      collecting: LogRuntimeCollectorService.isCollecting()
-    }
+    return this.createModuleCard(
+      'log',
+      DashboardStrings.logTitle,
+      `${statistics.todayCount}`,
+      `${DashboardStrings.logTodayDetailPrefix}${statistics.totalCount}${DashboardStrings.logTodayDetailSuffix}`,
+      DashboardStrings.logManageGradient.start,
+      DashboardStrings.logManageGradient.end,
+      $r('app.media.log')
+    )
   }
 
-  private loadPeripheralSnapshot(): DashboardPeripheralSnapshot {
+  private buildPeripheralCard(): DashboardModuleCardState {
     let stats = PeripheralTraceRepository.getStats()
-    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
-    return {
-      totalCount: stats.total,
-      connectCount: stats.connects,
-      disconnectCount: stats.disconnects,
-      listening: runtimeStatus.running && runtimeStatus.capabilities.usbRuntimeEvents
-    }
+    return this.createModuleCard(
+      'peripheral',
+      DashboardStrings.peripheralTitle,
+      `${stats.total}`,
+      `${DashboardStrings.peripheralDetailPrefix}${stats.connects}${DashboardStrings.peripheralDetailMiddle}${stats.disconnects}${DashboardStrings.peripheralDetailSuffix}`,
+      DashboardStrings.peripheralGradient.start,
+      DashboardStrings.peripheralGradient.end,
+      $r('app.media.peripheral')
+    )
   }
 
-  private async refreshLogAndPeripheralCards(
-    refreshPeripheral: boolean,
-    refreshLog: boolean
-  ): Promise<void> {
+  private async refreshLiveCards(refreshPeripheral: boolean, refreshLog: boolean): Promise<void> {
     try {
-      let cards = [...this.moduleCards]
-      for (let index = 0; index < cards.length; index++) {
-        let card = cards[index]
+      let nextCards = [...this.moduleCards]
+      for (let index = 0; index < nextCards.length; index++) {
+        let card = nextCards[index]
         if (refreshLog && card.id === 'log') {
-          cards[index] = DashboardPresentationMapper.buildLogCard(this.loadLogSnapshot())
+          nextCards[index] = this.buildLogCard()
         } else if (refreshPeripheral && card.id === 'peripheral') {
-          cards[index] = DashboardPresentationMapper.buildPeripheralCard(this.loadPeripheralSnapshot())
+          nextCards[index] = this.buildPeripheralCard()
         }
       }
-      this.moduleCards = cards
+      this.moduleCards = nextCards
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `refreshLogAndPeripheralCards failed: ${JSON.stringify(err)}`)
+      hilog.warn(DOMAIN, TAG, `refreshLiveCards failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private buildQuickEntries(): DashboardQuickEntryState[] {
+    return [
+      this.createQuickEntry(
+        'firewall',
+        DashboardStrings.firewallTitle,
+        $r('app.media.firewall'),
+        DashboardStrings.firewallGradient.start,
+        DashboardStrings.firewallGradient.end,
+        Routes.FIREWALL
+      ),
+      this.createQuickEntry(
+        'log',
+        DashboardStrings.logTitle,
+        $r('app.media.log'),
+        DashboardStrings.logManageGradient.start,
+        DashboardStrings.logManageGradient.end,
+        Routes.LOG_MANAGE
+      ),
+      this.createQuickEntry(
+        'peripheral',
+        DashboardStrings.peripheralTitle,
+        $r('app.media.peripheral'),
+        DashboardStrings.peripheralGradient.start,
+        DashboardStrings.peripheralGradient.end,
+        Routes.PERIPHERAL_MANAGE
+      ),
+      this.createQuickEntry(
+        'identity',
+        DashboardStrings.identityTitle,
+        $r('app.media.identity'),
+        DashboardStrings.identityGradient.start,
+        DashboardStrings.identityGradient.end,
+        Routes.IDENTITY
+      ),
+      this.createQuickEntry(
+        'tool-settings',
+        DashboardStrings.toolSettingsTitle,
+        $r('app.media.settings'),
+        DashboardStrings.toolSettingsGradient.start,
+        DashboardStrings.toolSettingsGradient.end,
+        Routes.TOOL_SETTINGS
+      ),
+      this.createQuickEntry(
+        'help-feedback',
+        DashboardStrings.helpFeedbackTitle,
+        $r('app.media.help'),
+        DashboardStrings.helpFeedbackGradient.start,
+        DashboardStrings.helpFeedbackGradient.end,
+        Routes.HELP_FEEDBACK
+      )
+    ]
+  }
+
+  private createModuleCard(
+    id: 'admin' | 'firewall' | 'log' | 'peripheral',
+    title: string,
+    primaryText: string,
+    secondaryText: string,
+    accentStart: string,
+    accentEnd: string,
+    icon: Resource
+  ): DashboardModuleCardState {
+    return {
+      id: id,
+      title: title,
+      primaryText: primaryText,
+      secondaryText: secondaryText,
+      accentStart: accentStart,
+      accentEnd: accentEnd,
+      icon: icon
+    }
+  }
+
+  private createQuickEntry(
+    id: DashboardQuickEntryId,
+    title: string,
+    icon: Resource,
+    accentStart: string,
+    accentEnd: string,
+    route: string
+  ): DashboardQuickEntryState {
+    return {
+      id: id,
+      title: title,
+      icon: icon,
+      accentStart: accentStart,
+      accentEnd: accentEnd,
+      route: route
     }
   }
 }

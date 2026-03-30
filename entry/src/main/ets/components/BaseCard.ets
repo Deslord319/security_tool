@@ -14,6 +14,7 @@ export struct BaseCard {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @BuilderParam content: () => void
   onPress: () => void = () => {}
+  onHoverChange: (isHovered: boolean) => void = () => {}
   @State isHovered: boolean = false
 
   private canInteract(): boolean {
@@ -28,12 +29,14 @@ export struct BaseCard {
     if (!this.canHover()) {
       if (this.isHovered) {
         this.isHovered = false
+        this.onHoverChange(false)
       }
       return
     }
     HoverUtils.animate(() => {
       this.isHovered = isHovered
     })
+    this.onHoverChange(isHovered)
   }
 
   build() {
