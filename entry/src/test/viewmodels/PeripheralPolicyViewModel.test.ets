@@ -50,6 +50,24 @@ describe('PeripheralPolicyViewModel', () => {
     done()
   })
 
+  it('should expose connected devices as default allow when no explicit policy exists', 0, () => {
+    viewModel.reloadRecords([{
+      id: 'record-2',
+      timestamp: 300,
+      deviceId: 'VID:1234 PID:5678',
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      source: 'runtime_event',
+      action: 'connect',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'allow',
+      summary: 'connected'
+    }])
+
+    expect(viewModel.records.length).assertEqual(1)
+    expect(viewModel.records[0].policyIndex).assertEqual(0)
+  })
+
   it('should reject invalid device ids when changing policy', 0, async (done: Function) => {
     const reason = await viewModel.setDevicePolicy('', 'USB Device', PeripheralType.USB_STORAGE, 0)
     expect(reason).assertEqual('invalid_device_id')

@@ -92,4 +92,37 @@ describe('PeripheralViewModel', () => {
     expect(viewModel.policy.records[0].policyIndex).assertEqual(0)
     done()
   })
+
+  it('should clear policy candidates when connection records are removed', 0, async (done: Function) => {
+    PeripheralTraceRepository.setRecordsForTest([{
+      recordId: 'runtime_2',
+      occurAt: 300,
+      collectAt: 301,
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      deviceId: 'VID:1234 PID:5678',
+      action: 'connect',
+      decision: 'allow',
+      result: LogEventResult.SUCCESS,
+      source: 'runtime_event',
+      summary: 'connected'
+    }])
+    await PeripheralDevicePolicyRepository.set({
+      deviceId: 'VID:1234 PID:5678',
+      policy: 'deny',
+      updatedAt: Date.now()
+    })
+
+    viewModel.reloadDeviceRecords()
+    expect(viewModel.records.records.length).assertEqual(1)
+    expect(viewModel.policy.records.length).assertEqual(1)
+    expect(viewModel.policy.records[0].policyIndex).assertEqual(1)
+
+    PeripheralTraceRepository.setRecordsForTest([])
+    viewModel.reloadDeviceRecords()
+
+    expect(viewModel.records.records.length).assertEqual(0)
+    expect(viewModel.policy.records.length).assertEqual(0)
+    done()
+  })
 })

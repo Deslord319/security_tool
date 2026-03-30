@@ -34,7 +34,7 @@ describe('PeripheralRecordViewDataUtils', () => {
     expect(history.length).assertEqual(1)
   })
 
-  it('should build latest usb policy records only', 0, () => {
+  it('should build latest usb policy records from connection candidates by default', 0, () => {
     const records: PeripheralConnectionRecord[] = [
       {
         id: 'record-1',
@@ -73,6 +73,11 @@ describe('PeripheralRecordViewDataUtils', () => {
         summary: 'bt'
       }
     ]
+
+    const defaultPolicyRecords = PeripheralPolicyService.buildPolicyRecords(records, [])
+    expect(defaultPolicyRecords.length).assertEqual(1)
+    expect(defaultPolicyRecords[0].deviceName).assertEqual('Latest USB Device')
+    expect(defaultPolicyRecords[0].policyIndex).assertEqual(0)
 
     const policyRecords = PeripheralPolicyService.buildPolicyRecords(records, [{
       deviceId: 'VID:1234 PID:5678',
