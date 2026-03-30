@@ -298,7 +298,9 @@ struct LogDetailDialogPanel {
       dialogWidth: 560,
       maxBodyHeight: 420,
       onClose: this.onClose,
-      content: this.shellContent
+      content: () => {
+        this.shellContent()
+      }
     })
   }
 }
@@ -584,17 +586,23 @@ export struct LogManagePage {
   }
 
   @Builder
+  private detailDialogContent() {
+    if (this.detailEntry) {
+      LogDetailDialogPanel({
+        title: LogManageStrings.detailDialogTitle,
+        entry: this.detailEntry as LogEntry,
+        onClose: () => this.closeLogDetailDialog()
+      })
+    }
+  }
+
+  @Builder
   private detailDialogLayer() {
     if (this.detailEntry) {
       DetailDialogOverlay({
         onDismiss: () => this.closeLogDetailDialog(),
         content: () => {
-          LogDetailDialogPanel({
-            title: LogManageStrings.detailDialogTitle,
-            entry: this.detailEntry as LogEntry,
-            currentTheme: this.currentTheme,
-            onClose: () => this.closeLogDetailDialog()
-          })
+          this.detailDialogContent()
         }
       })
     }

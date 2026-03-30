@@ -185,7 +185,9 @@ export struct ConnectionDetailDialog {
       dialogWidth: 760,
       maxBodyHeight: 460,
       onClose: this.onClose,
-      content: this.shellContent
+      content: () => {
+        this.shellContent()
+      }
     })
   }
 }

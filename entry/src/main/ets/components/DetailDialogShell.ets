@@ -1,4 +1,4 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -10,6 +10,8 @@ export struct DetailDialogShell {
   @BuilderParam content: () => void
   onClose: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State private isCloseHovered: boolean = false
+  @State private isClosePressed: boolean = false
 
   build() {
     Column({ space: 0 }) {
@@ -20,13 +22,32 @@ export struct DetailDialogShell {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         Blank()
         Button('关闭')
+          .type(ButtonType.Normal)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
+          .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isCloseHovered, this.isClosePressed))
           .borderRadius(AppStyles.RADIUS_SM)
-          .height(30)
+          .height(ActionButtonStyles.CHIP_HEIGHT)
+          .padding({
+            left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
+            right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
+          })
+          .stateEffect(false)
+          .onHover((isHover: boolean) => {
+            this.isCloseHovered = isHover
+          })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.isClosePressed = true
+              return
+            }
+            if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.isClosePressed = false
+            }
+          })
           .onClick(() => {
+            this.isClosePressed = false
             this.onClose()
           })
       }
@@ -52,11 +73,16 @@ export struct DetailDialogShell {
     .alignItems(HorizontalAlign.Start)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
   }
 }
 
 @Component
 export struct DetailDialogOverlay {
+  onDismiss: () => void = () => {}
   @BuilderParam content: () => void
 
   build() {
@@ -64,7 +90,10 @@ export struct DetailDialogOverlay {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('#66000000')
+        .backgroundColor(AppColors.OVERLAY_BACKGROUND)
+        .onClick(() => {
+          this.onDismiss()
+        })
 
       Column() {
         this.content()

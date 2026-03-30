@@ -1,4 +1,4 @@
-﻿import { common } from '@kit.AbilityKit'
+import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { DetailDialogOverlay } from '../components/DetailDialogShell'
 import { IconTextActionButton } from '../components/IconTextActionButton'
@@ -159,17 +159,23 @@ export struct PeripheralPage {
   }
 
   @Builder
+  private detailDialogContent() {
+    if (this.detailRecord) {
+      ConnectionDetailDialog({
+        selectedRecord: this.detailRecord as PeripheralConnectionRecord,
+        historyItems: this.detailHistoryItems,
+        onClose: () => this.closeDetailDialog()
+      })
+    }
+  }
+
+  @Builder
   private detailDialogLayer() {
     if (this.detailRecord) {
       DetailDialogOverlay({
         onDismiss: () => this.closeDetailDialog(),
         content: () => {
-          ConnectionDetailDialog({
-            selectedRecord: this.detailRecord,
-            historyItems: this.detailHistoryItems,
-            currentTheme: this.currentTheme,
-            onClose: () => this.closeDetailDialog()
-          })
+          this.detailDialogContent()
         }
       })
     }
