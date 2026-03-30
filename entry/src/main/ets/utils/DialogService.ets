@@ -38,6 +38,7 @@ export class DialogService {
   static async openConfirm(uiContext: UIContext, options: ConfirmDialogOptions): Promise<void> {
     try {
       await uiContext.showAlertDialog({
+        autoCancel: false,
         title: options.title,
         message: options.message,
         primaryButton: {
@@ -63,6 +64,7 @@ export class DialogService {
   static async openResult(uiContext: UIContext, options: ResultDialogOptions): Promise<void> {
     try {
       await uiContext.showAlertDialog({
+        autoCancel: false,
         title: options.title ?? (options.status === 'success' ? CommonStrings.dialogSuccessTitle : CommonStrings.dialogFailureTitle),
         message: options.message,
         primaryButton: {
