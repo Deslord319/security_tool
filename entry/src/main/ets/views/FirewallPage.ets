@@ -108,15 +108,7 @@ export struct FirewallPage {
   }
 
   private getModeAccent(mode: FirewallPresetMode): string {
-    switch (mode) {
-      case 'public':
-        return FirewallStrings.publicModeAccent
-      case 'private':
-        return FirewallStrings.privateModeAccent
-      case 'custom':
-      default:
-        return FirewallStrings.customModeAccent
-    }
+    return FirewallStrings.getModeAccent(mode)
   }
 
   private getThemeColors() {
@@ -137,7 +129,7 @@ export struct FirewallPage {
 
   private getModeCardBackground(mode: FirewallPresetMode): string {
     if (this.isModeSelected(mode)) {
-      return this.currentTheme === ThemeMode.DARK ? FirewallStrings.selectedCardBgDark : FirewallStrings.selectedCardBgLight
+      return this.currentTheme === ThemeMode.DARK ? AppColors.FIREWALL_SELECTED_CARD_BG_DARK : AppColors.FIREWALL_SELECTED_CARD_BG_LIGHT
     }
     return this.getThemeColors().BG_CARD
   }
@@ -158,7 +150,7 @@ export struct FirewallPage {
     }
     return {
       width: 3,
-      color: this.currentTheme === ThemeMode.DARK ? FirewallStrings.selectedIconBorderDark : FirewallStrings.selectedIconBorderLight
+      color: this.currentTheme === ThemeMode.DARK ? AppColors.FIREWALL_SELECTED_ICON_BORDER_DARK : AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
     }
   }
 
@@ -168,7 +160,7 @@ export struct FirewallPage {
     }
     return {
       radius: 16,
-      color: this.currentTheme === ThemeMode.DARK ? FirewallStrings.selectedShadowDark : FirewallStrings.selectedShadowLight,
+      color: this.currentTheme === ThemeMode.DARK ? AppColors.FIREWALL_SELECTED_SHADOW_DARK : AppColors.FIREWALL_SELECTED_SHADOW_LIGHT,
       offsetX: 0,
       offsetY: 6
     }
@@ -191,7 +183,7 @@ export struct FirewallPage {
   }
 
   private getModeStatusTextColor(mode: FirewallPresetMode): string {
-    return this.currentTheme === ThemeMode.DARK ? this.getModeAccent(mode) : FirewallStrings.lightStatusText
+    return this.currentTheme === ThemeMode.DARK ? this.getModeAccent(mode) : AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
   }
 
   private getModeStatusBorder(mode: FirewallPresetMode): BorderOptions {

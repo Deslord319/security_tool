@@ -59,16 +59,17 @@ export class FirewallStrings {
   static readonly actionAllow: string = '允许'
   static readonly actionDeny: string = '禁止'
 
-  static readonly publicModeAccent: string = AppColors.BRAND_PRIMARY
-  static readonly privateModeAccent: string = AppColors.SUCCESS
-  static readonly customModeAccent: string = AppColors.WARNING
-  static readonly selectedCardBgDark: string = AppColors.FIREWALL_SELECTED_CARD_BG_DARK
-  static readonly selectedCardBgLight: string = AppColors.FIREWALL_SELECTED_CARD_BG_LIGHT
-  static readonly selectedIconBorderDark: string = AppColors.FIREWALL_SELECTED_ICON_BORDER_DARK
-  static readonly selectedIconBorderLight: string = AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
-  static readonly selectedShadowDark: string = AppColors.FIREWALL_SELECTED_SHADOW_DARK
-  static readonly selectedShadowLight: string = AppColors.FIREWALL_SELECTED_SHADOW_LIGHT
-  static readonly lightStatusText: string = AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
+  static getModeAccent(mode: FirewallPresetMode): string {
+    switch (mode) {
+      case 'public':
+        return AppColors.BRAND_PRIMARY
+      case 'private':
+        return AppColors.SUCCESS
+      case 'custom':
+      default:
+        return AppColors.WARNING
+    }
+  }
 
   static getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
