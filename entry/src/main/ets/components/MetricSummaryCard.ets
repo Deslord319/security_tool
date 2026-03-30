@@ -2,7 +2,7 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { DashboardStatusKind } from '../models/DashboardModels'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { HoverUtils } from '../utils/HoverUtils'
+import { BaseCard } from './BaseCard'
 
 @Component
 export struct MetricSummaryCard {
@@ -15,26 +15,10 @@ export struct MetricSummaryCard {
   @Prop accentStart: string = AppColors.BRAND_PRIMARY
   @Prop accentEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Prop clickable: boolean = true
+  @Prop hoverable: boolean = true
   @Prop disabled: boolean = false
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onPress: () => void = () => {}
-  @State isHovered: boolean = false
-
-  private canInteract(): boolean {
-    return this.clickable && !this.disabled
-  }
-
-  private setHoverState(isHovered: boolean): void {
-    if (!this.canInteract()) {
-      if (this.isHovered) {
-        this.isHovered = false
-      }
-      return
-    }
-    HoverUtils.animate(() => {
-      this.isHovered = isHovered
-    })
-  }
 
   private getStatusTextColor(): string {
     switch (this.statusKind) {
@@ -61,18 +45,13 @@ export struct MetricSummaryCard {
   }
 
   build() {
-    Stack() {
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          angle: 24,
-          colors: [
-            [this.isHovered ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.03)', 0],
-            ['rgba(255,255,255,0.00)', 1]
-          ]
-        })
-
+    BaseCard({
+      cardHeight: 164,
+      clickable: this.clickable,
+      hoverable: this.hoverable,
+      disabled: this.disabled,
+      onPress: this.onPress
+    }) {
       Column({ space: 18 }) {
         Row() {
           Text(this.title)
@@ -153,29 +132,5 @@ export struct MetricSummaryCard {
       .padding(20)
       .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .height(172)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))
-    .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })
-    .scale({
-      x: HoverUtils.getScale(this.isHovered),
-      y: HoverUtils.getScale(this.isHovered)
-    })
-    .opacity(this.disabled ? 0.6 : 1)
-    .clip(true)
-    .onHover((isHover: boolean) => {
-      this.setHoverState(isHover)
-    })
-    .onClick(() => {
-      if (this.canInteract()) {
-        this.onPress()
-      }
-    })
   }
 }

@@ -17,10 +17,32 @@ export interface DashboardModuleCardState {
 }
 
 export interface DashboardQuickEntryState {
-  id: 'identity' | 'tool-settings' | 'help-feedback'
+  id: 'firewall' | 'log' | 'peripheral'
   title: string
   icon: Resource
   accentStart: string
   accentEnd: string
   route: string
+}
+
+export interface DashboardAdminSnapshot {
+  activated: boolean
+}
+
+export interface DashboardFirewallSnapshot {
+  enabled: boolean
+  modeText: string
+}
+
+export interface DashboardLogSnapshot {
+  todayCount: number
+  totalCount: number
+  collecting: boolean
+}
+
+export interface DashboardPeripheralSnapshot {
+  totalCount: number
+  connectCount: number
+  disconnectCount: number
+  listening: boolean
 }

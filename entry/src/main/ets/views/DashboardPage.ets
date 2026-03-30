@@ -154,12 +154,8 @@ export struct DashboardPage {
                 icon: card.icon,
                 accentStart: card.accentStart,
                 accentEnd: card.accentEnd,
-                clickable: card.clickable,
-                onPress: () => {
-                  if (card.route) {
-                    this.onNavigate(card.route)
-                  }
-                }
+                clickable: false,
+                hoverable: false
               })
             }
             .opacity(this.moduleEnterOpacity[index] ?? 1)
@@ -169,7 +165,7 @@ export struct DashboardPage {
         }
         .width('100%')
 
-        Text('更多功能')
+        Text(DashboardStrings.quickActionsTitle)
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
