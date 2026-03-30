@@ -17,12 +17,10 @@ export struct DashboardPage {
   @State titleEnterOffset: number = 20
   @State moduleEnterOpacity: number[] = [0, 0, 0, 0]
   @State moduleEnterOffset: number[] = [18, 18, 18, 18]
-  @State moduleEnterScale: number[] = [0.97, 0.97, 0.97, 0.97]
   @State sectionTitleEnterOpacity: number = 0
   @State sectionTitleEnterOffset: number = 16
-  @State quickEnterOpacity: number[] = [0, 0, 0]
-  @State quickEnterOffset: number[] = [18, 18, 18]
-  @State quickEnterScale: number[] = [0.97, 0.97, 0.97]
+  @State quickEnterOpacity: number[] = [0, 0, 0, 0, 0, 0]
+  @State quickEnterOffset: number[] = [18, 18, 18, 18, 18, 18]
   private enterTimerIds: number[] = []
   private initialized: boolean = false
 
@@ -56,12 +54,10 @@ export struct DashboardPage {
     this.titleEnterOffset = 20
     this.moduleEnterOpacity = [0, 0, 0, 0]
     this.moduleEnterOffset = [18, 18, 18, 18]
-    this.moduleEnterScale = [0.97, 0.97, 0.97, 0.97]
     this.sectionTitleEnterOpacity = 0
     this.sectionTitleEnterOffset = 16
-    this.quickEnterOpacity = [0, 0, 0]
-    this.quickEnterOffset = [18, 18, 18]
-    this.quickEnterScale = [0.97, 0.97, 0.97]
+    this.quickEnterOpacity = [0, 0, 0, 0, 0, 0]
+    this.quickEnterOffset = [18, 18, 18, 18, 18, 18]
   }
 
   private clearEnterTimers(): void {
@@ -92,13 +88,10 @@ export struct DashboardPage {
       this.scheduleEnter(140 + index * 70, () => {
         let nextOpacity = [...this.moduleEnterOpacity]
         let nextOffset = [...this.moduleEnterOffset]
-        let nextScale = [...this.moduleEnterScale]
         nextOpacity[index] = 1
         nextOffset[index] = 0
-        nextScale[index] = 1
         this.moduleEnterOpacity = nextOpacity
         this.moduleEnterOffset = nextOffset
-        this.moduleEnterScale = nextScale
       })
     }
 
@@ -107,17 +100,14 @@ export struct DashboardPage {
       this.sectionTitleEnterOffset = 0
     })
 
-    for (let index = 0; index < 3; index++) {
-      this.scheduleEnter(520 + index * 70, () => {
+    for (let index = 0; index < 6; index++) {
+      this.scheduleEnter(520 + index * 55, () => {
         let nextOpacity = [...this.quickEnterOpacity]
         let nextOffset = [...this.quickEnterOffset]
-        let nextScale = [...this.quickEnterScale]
         nextOpacity[index] = 1
         nextOffset[index] = 0
-        nextScale[index] = 1
         this.quickEnterOpacity = nextOpacity
         this.quickEnterOffset = nextOffset
-        this.quickEnterScale = nextScale
       })
     }
   }
@@ -142,25 +132,22 @@ export struct DashboardPage {
         .opacity(this.titleEnterOpacity)
         .translate({ y: this.titleEnterOffset })
 
-        GridRow({ columns: 4, gutter: 16 }) {
+        GridRow({ columns: 4, gutter: 22 }) {
           ForEach(this.viewModel.moduleCards, (card: DashboardModuleCardState, index: number) => {
             GridCol() {
               MetricSummaryCard({
                 title: card.title,
                 primaryText: card.primaryText,
                 secondaryText: card.secondaryText,
-                statusText: card.statusText,
-                statusKind: card.statusKind,
                 icon: card.icon,
                 accentStart: card.accentStart,
                 accentEnd: card.accentEnd,
                 clickable: false,
-                hoverable: false
+                hoverable: true
               })
             }
             .opacity(this.moduleEnterOpacity[index] ?? 1)
             .translate({ y: this.moduleEnterOffset[index] ?? 0 })
-            .scale({ x: this.moduleEnterScale[index] ?? 1, y: this.moduleEnterScale[index] ?? 1 })
           })
         }
         .width('100%')
@@ -186,12 +173,11 @@ export struct DashboardPage {
             }
             .opacity(this.quickEnterOpacity[index] ?? 1)
             .translate({ y: this.quickEnterOffset[index] ?? 0 })
-            .scale({ x: this.quickEnterScale[index] ?? 1, y: this.quickEnterScale[index] ?? 1 })
           })
         }
         .width('100%')
       }
-      .padding({ left: 32, right: 32, top: 16, bottom: 24 })
+      .padding({ left: 48, right: 48, top: 16, bottom: 24 })
       .width('100%')
     }
     .align(Alignment.Top)

@@ -1,5 +1,4 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import { DashboardStatusKind } from '../models/DashboardModels'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BaseCard } from './BaseCard'
@@ -9,8 +8,6 @@ export struct MetricSummaryCard {
   @Prop title: string = ''
   @Prop primaryText: string = ''
   @Prop secondaryText: string = ''
-  @Prop statusText: string = ''
-  @Prop statusKind: DashboardStatusKind = 'neutral'
   @Prop icon: Resource = $r('app.media.shield')
   @Prop accentStart: string = AppColors.BRAND_PRIMARY
   @Prop accentEnd: string = AppColors.GRADIENT_FIREWALL_END
@@ -20,72 +17,56 @@ export struct MetricSummaryCard {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onPress: () => void = () => {}
 
-  private getStatusTextColor(): string {
-    switch (this.statusKind) {
-      case 'success':
-        return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
-      case 'warning':
-        return AppColors.getColors(this.currentTheme).TAG_ORANGE_TEXT
-      case 'neutral':
-      default:
-        return AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT
-    }
-  }
-
-  private getStatusBackground(): ResourceColor {
-    switch (this.statusKind) {
-      case 'success':
-        return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
-      case 'warning':
-        return AppColors.getColors(this.currentTheme).TAG_ORANGE_BG
-      case 'neutral':
-      default:
-        return AppColors.getColors(this.currentTheme).TAG_BLUE_BG
-    }
-  }
-
   build() {
     BaseCard({
-      cardHeight: 164,
+      cardHeight: 144,
       clickable: this.clickable,
       hoverable: this.hoverable,
       disabled: this.disabled,
       onPress: this.onPress
     }) {
-      Column({ space: 18 }) {
-        Row() {
-          Text(this.title)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-
-          Blank()
-
-          Column() {
-            Image(this.icon)
-              .width(22)
-              .height(22)
-              .fillColor(Color.White)
-              .draggable(false)
-          }
-          .width(42)
-          .height(42)
-          .borderRadius(14)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [this.accentStart, 0],
-              [this.accentEnd, 1]
-            ]
-          })
+      Row({ space: 16 }) {
+        Column() {
+          Image(this.icon)
+            .width(30)
+            .height(30)
+            .fillColor(Color.White)
+            .draggable(false)
         }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
+        .width(60)
+        .height(60)
+        .borderRadius(20)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .linearGradient({
+          angle: 135,
+          colors: [
+            [this.accentStart, 0],
+            [this.accentEnd, 1]
+          ]
+        })
 
         Column({ space: 6 }) {
+          Row() {
+            Text(this.title)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+
+            Blank()
+
+            if (this.clickable && !this.disabled) {
+              Image($r('app.media.chevron_right'))
+                .width(16)
+                .height(16)
+                .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            }
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+
           Text(this.primaryText)
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
@@ -98,39 +79,16 @@ export struct MetricSummaryCard {
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            .maxLines(2)
+            .maxLines(3)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
-        .width('100%')
+        .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-
-        Row() {
-          Text(this.statusText)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.getStatusTextColor())
-            .backgroundColor(this.getStatusBackground())
-            .padding({ left: 8, right: 8, top: 5, bottom: 5 })
-            .borderRadius(999)
-            .maxLines(1)
-
-          Blank()
-
-          if (this.clickable && !this.disabled) {
-            Image($r('app.media.chevron_right'))
-              .width(16)
-              .height(16)
-              .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          }
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
       }
       .width('100%')
       .height('100%')
-      .padding(20)
-      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+      .alignItems(VerticalAlign.Center)
     }
   }
 }

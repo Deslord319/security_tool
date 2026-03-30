@@ -31,7 +31,6 @@ import { LogStorageSettingsViewModel } from '../viewmodels/LogStorageSettingsVie
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { DialogService } from '../utils/DialogService'
 import { MetricSummaryCard } from '../components/MetricSummaryCard'
-import { DashboardStatusKind } from '../models/DashboardModels'
 
 const TAG = 'LogManagePage'
 const DOMAIN = 0x0012
@@ -685,7 +684,6 @@ export struct LogManagePage {
           LogManageStrings.statTotal,
           this.statistics.totalCount.toString(),
           '全部日志数量',
-          'neutral',
           AppColors.BRAND_PRIMARY,
           AppColors.GRADIENT_FIREWALL_END,
           $r('app.media.folder')
@@ -697,7 +695,6 @@ export struct LogManagePage {
           LogManageStrings.statToday,
           this.statistics.todayCount.toString(),
           '今日新增日志',
-          'success',
           AppColors.SUCCESS,
           AppColors.GRADIENT_LOG_END,
           $r('app.media.log')
@@ -709,7 +706,6 @@ export struct LogManagePage {
           LogManageStrings.statBlocked,
           this.statistics.blockedCount.toString(),
           '拦截结果事件',
-          'warning',
           AppColors.WARNING,
           AppColors.GRADIENT_IDENTITY_END,
           $r('app.media.alert')
@@ -721,7 +717,6 @@ export struct LogManagePage {
           LogManageStrings.statCurrentShown,
           this.pagedLogEntries.length.toString(),
           '当前页显示数量',
-          'neutral',
           AppColors.TEXT_MUTED,
           AppColors.GRADIENT_TOOL_END,
           $r('app.media.dashboard')
@@ -741,7 +736,6 @@ export struct LogManagePage {
     title: string,
     primaryText: string,
     secondaryText: string,
-    statusKind: DashboardStatusKind,
     accentStart: string,
     accentEnd: string,
     icon: Resource
@@ -750,8 +744,6 @@ export struct LogManagePage {
       title: title,
       primaryText: primaryText,
       secondaryText: secondaryText,
-      statusText: title,
-      statusKind: statusKind,
       accentStart: accentStart,
       accentEnd: accentEnd,
       icon: icon,

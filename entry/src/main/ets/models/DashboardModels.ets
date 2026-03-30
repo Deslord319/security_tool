@@ -1,14 +1,10 @@
 export type DashboardModuleCardId = 'admin' | 'firewall' | 'log' | 'peripheral'
 
-export type DashboardStatusKind = 'success' | 'warning' | 'neutral'
-
 export interface DashboardModuleCardState {
   id: DashboardModuleCardId
   title: string
   primaryText: string
   secondaryText: string
-  statusText: string
-  statusKind: DashboardStatusKind
   accentStart: string
   accentEnd: string
   icon: Resource
@@ -17,7 +13,7 @@ export interface DashboardModuleCardState {
 }
 
 export interface DashboardQuickEntryState {
-  id: 'firewall' | 'log' | 'peripheral'
+  id: 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
   title: string
   icon: Resource
   accentStart: string
