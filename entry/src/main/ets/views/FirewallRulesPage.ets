@@ -36,7 +36,7 @@ export struct FirewallRulesPage {
         this.handleAddRule(rule)
       }
     }),
-    autoCancel: true,
+    autoCancel: false,
     customStyle: true,
     alignment: DialogAlignment.Center
   })
@@ -137,7 +137,7 @@ export struct FirewallRulesPage {
           this.handleEditRule(updatedRule)
         }
       }),
-      autoCancel: true,
+      autoCancel: false,
       customStyle: true,
       alignment: DialogAlignment.Center
     })

@@ -144,13 +144,6 @@ export struct ThemeMenuPopup {
     customStyle: true
   })
 
-  aboutToDisappear(): void {
-    try {
-      this.aboutDialogController.close()
-    } catch (_err) {
-    }
-  }
-
   build() {
     Column({ space: 6 }) {
       Column({ space: 6 }) {
