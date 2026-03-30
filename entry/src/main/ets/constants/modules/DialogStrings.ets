@@ -123,6 +123,8 @@ export class FirewallDialogStrings {
   static readonly ERROR_INVALID_IP: string = '远端 IP 或 CIDR 格式不正确'
   static readonly ERROR_INVALID_LOCAL_PORT: string = '本地端口范围必须为 1-65535'
   static readonly ERROR_INVALID_REMOTE_PORT: string = '远端端口范围必须为 1-65535'
+  static readonly ERROR_INVALID_DOMAIN: string = '域名格式不正确'
+  static readonly ERROR_INVALID_DNS: string = 'DNS 地址格式不正确'
   static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙状态'
   static readonly ERROR_PLEASE_READ_STATUS: string = '请先选择并读取有效用户状态'
   
@@ -158,4 +160,24 @@ export class HintStrings {
   static readonly PLEASE_ENTER: string = '请输入'
   static readonly CONFIRM_DELETE: string = '确认删除吗？'
   static readonly CONFIRM_ACTION: string = '确认执行此操作吗？'
+}
+
+// ==================== 设备列表相关 ====================
+export class DeviceEmptyStates {
+  static readonly NO_DEVICE_RECORDS: string = '暂无设备连接记录'
+  static readonly DEVICE_RECORDS_EMPTY_DESC: string = '重新连接设备后，可在这里查看最新的接入历史。'
+  static readonly NO_MANAGEABLE_USB_DEVICES: string = '暂无可管理的 USB 设备记录'
+  static readonly USB_DEVICES_EMPTY_DESC: string = '设备接入后会显示在这里，可直接设置允许接入或禁止接入。'
+}
+
+export class DeviceTypeLabels {
+  static readonly USB_STORAGE: string = 'USB 存储设备'
+  static readonly USB_CAMERA: string = 'USB 摄像头'
+  static readonly USB_PRINTER: string = 'USB 打印机'
+  static readonly USB_HID: string = 'USB 人机输入设备'
+  static readonly USB_OTHER: string = 'USB 其他设备'
+}
+
+export class PinErrorStrings {
+  static readonly PIN_VERIFICATION_FAILED: string = 'PIN 验证失败，已取消本次变更'
 }

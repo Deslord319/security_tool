@@ -11,6 +11,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { DialogService } from '../utils/DialogService'
+import { FirewallDialogStrings, LoadingStrings, EmptyStateStrings, ValidationErrorStrings, PinErrorStrings } from '../constants/modules/DialogStrings'
 
 const TAG = 'UserFirewallDialog'
 const DOMAIN = 0x0001
@@ -164,20 +165,20 @@ export struct UserFirewallControlDialog {
       case 'lockout':
         return `PIN 认证失败次数过多，请在 ${lockRemainingSec ?? 60} 秒后重试`
       case 'pin_unavailable':
-        return '系统 PIN 认证暂不可用'
+        return ValidationErrorStrings.PIN_UNAVAILABLE
       case 'pin_failed':
-        return 'PIN 验证失败，已取消本次变更'
+        return PinErrorStrings.PIN_VERIFICATION_FAILED
       case 'policy_apply_failed':
-        return '防火墙状态更新失败'
+        return ValidationErrorStrings.POLICY_FAILED
       default:
-        return '防火墙状态更新失败'
+        return ValidationErrorStrings.POLICY_FAILED
     }
   }
 
   build() {
     Column({ space: 16 }) {
       Row() {
-        Text('按用户 ID 控制主防火墙')
+        Text(FirewallDialogStrings.USER_FIREWALL_TITLE)
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -193,7 +194,7 @@ export struct UserFirewallControlDialog {
       }
       .width('100%')
 
-      Text('从系统已激活的用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需要完成 PIN 认证。')
+      Text(FirewallDialogStrings.USER_FIREWALL_DESCRIPTION)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -204,7 +205,7 @@ export struct UserFirewallControlDialog {
           LoadingProgress()
             .width(36)
             .height(36)
-          Text('正在加载用户列表...')
+          Text(LoadingStrings.LOADING_USERS)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -213,12 +214,12 @@ export struct UserFirewallControlDialog {
         .padding({ top: 20, bottom: 20 })
       } else if (this.users.length === 0) {
         Column({ space: 10 }) {
-          Text('暂无可选用户')
+          Text(EmptyStateStrings.NO_USERS)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-          Text(this.statusHintText.length > 0 ? this.statusHintText : '请检查账户权限或系统账户状态')
+          Text(this.statusHintText.length > 0 ? this.statusHintText : EmptyStateStrings.CHECK_PERMISSIONS)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -227,7 +228,7 @@ export struct UserFirewallControlDialog {
         .padding({ top: 20, bottom: 20 })
       } else {
         Column({ space: 6 }) {
-          Text('目标用户')
+          Text(FirewallDialogStrings.TARGET_USER)
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -255,19 +256,19 @@ export struct UserFirewallControlDialog {
         .alignItems(HorizontalAlign.Start)
 
         Column({ space: 8 }) {
-          Text('当前状态')
+          Text(FirewallDialogStrings.CURRENT_STATUS)
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
           if (this.isLoadingPolicy) {
-            Text('正在读取防火墙状态...')
+            Text(LoadingStrings.LOADING_POLICY)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           } else {
-            Text(this.currentStatusText.length > 0 ? this.currentStatusText : '状态未知')
+            Text(this.currentStatusText.length > 0 ? this.currentStatusText : ValidationErrorStrings.STATUS_UNKNOWN)
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
               .fontColor(
@@ -276,7 +277,7 @@ export struct UserFirewallControlDialog {
                   : AppColors.getColors(this.currentTheme).TEXT_PRIMARY
               )
 
-            Text(this.statusHintText.length > 0 ? this.statusHintText : '请先读取状态')
+            Text(this.statusHintText.length > 0 ? this.statusHintText : ValidationErrorStrings.PLEASE_READ_STATUS_FIRST)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -288,7 +289,7 @@ export struct UserFirewallControlDialog {
         .borderRadius(AppStyles.RADIUS_MD)
 
         Row({ space: 12 }) {
-          Button('开启防火墙')
+          Button(FirewallDialogStrings.ENABLE_FIREWALL)
             .layoutWeight(1)
             .height(40)
             .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -301,7 +302,7 @@ export struct UserFirewallControlDialog {
               this.handleSetEnabled(true)
             })
 
-          Button('关闭防火墙')
+          Button(FirewallDialogStrings.DISABLE_FIREWALL)
             .layoutWeight(1)
             .height(40)
             .fontSize(AppStyles.FONT_SIZE_BODY)

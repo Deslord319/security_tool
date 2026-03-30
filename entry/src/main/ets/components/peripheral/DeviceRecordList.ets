@@ -1,9 +1,13 @@
-﻿import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
-import { PeripheralConnectionRecord } from '../../models/DataModels'
-import { ThemeMode } from '../../theme/ThemeColors'
+import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
+import {
+  getPeripheralTypeLabel,
+  PeripheralConnectionRecord
+} from '../../models/DataModels'
+import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../EmptyStatePanel'
+import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
 
 @Component
 export struct DeviceRecordList {
@@ -32,8 +36,8 @@ export struct DeviceRecordList {
       Column({ space: 0 }) {
         if (this.deviceRecords.length === 0) {
           EmptyStatePanel({
-            title: '暂无设备连接记录',
-            description: '重新连接设备后，可在这里查看最新的接入历史。',
+            title: EmptyStateStrings.NO_RECORDS,
+            description: EmptyStateStrings.CHECK_PERMISSIONS,
             radius: AppStyles.RADIUS_LG,
             verticalPadding: 24
           })
@@ -208,20 +212,7 @@ export struct DeviceRecordList {
   }
 
   private getDeviceTypeLabel(record: PeripheralConnectionRecord): string {
-    switch (record.deviceType) {
-      case 'usb_storage':
-        return 'USB 存储设备'
-      case 'usb_camera':
-        return 'USB 摄像头'
-      case 'usb_printer':
-        return 'USB 打印机'
-      case 'usb_hid':
-        return 'USB 人机输入设备'
-      case 'bluetooth':
-        return '蓝牙设备'
-      default:
-        return 'USB 其他设备'
-    }
+    return getPeripheralTypeLabel(record.deviceType)
   }
 
   private getActionLabel(record: PeripheralConnectionRecord): string {

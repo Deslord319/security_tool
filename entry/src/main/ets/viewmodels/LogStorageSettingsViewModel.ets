@@ -8,7 +8,7 @@ import {
 } from '../models/DataModels'
 import { LogStorageService } from '../services/LogStorageService'
 
-export interface LogStorageSettingsState {
+interface LogStorageSettingsState {
   maxEntriesIndex: number
   retentionIndex: number
   initialMaxEntriesIndex: number

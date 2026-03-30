@@ -4,6 +4,7 @@ import { DialogService } from '../utils/DialogService'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
+import { FirewallDialogStrings, DialogButtonStrings, ValidationErrorStrings } from '../constants/modules/DialogStrings'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
@@ -125,37 +126,37 @@ export struct AddRuleDialog {
     let remotePort = this.remotePort.trim()
 
     if (ruleName.length === 0) {
-      return '请输入规则名称'
+      return FirewallDialogStrings.ERROR_RULE_NAME_REQUIRED
     }
 
     if (remoteAddress.length === 0) {
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-        return '请输入域名'
+        return FirewallDialogStrings.ERROR_DOMAIN_REQUIRED
       }
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-        return '请输入 DNS 地址'
+        return FirewallDialogStrings.ERROR_DNS_REQUIRED
       }
-      return '请输入远端 IP 或 CIDR'
+      return FirewallDialogStrings.ERROR_IP_REQUIRED
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && !this.isValidIpv4OrCidr(remoteAddress)) {
-      return '远端 IP 或 CIDR 格式不正确'
+      return FirewallDialogStrings.ERROR_INVALID_IP
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && localPort.length > 0 && !this.isValidPort(localPort)) {
-      return '本地端口范围必须为 1-65535'
+      return FirewallDialogStrings.ERROR_INVALID_LOCAL_PORT
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && remotePort.length > 0 && !this.isValidPort(remotePort)) {
-      return '远端端口范围必须为 1-65535'
+      return FirewallDialogStrings.ERROR_INVALID_REMOTE_PORT
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN && !this.isValidDomain(remoteAddress)) {
-      return '域名格式不正确'
+      return FirewallDialogStrings.ERROR_INVALID_DOMAIN
     }
 
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS && !this.isValidIpv4Address(remoteAddress)) {
-      return 'DNS 地址格式不正确'
+      return FirewallDialogStrings.ERROR_INVALID_DNS
     }
 
     return ''
@@ -264,27 +265,27 @@ export struct AddRuleDialog {
   }
 
   private getPrimaryButtonText(): string {
-    return this.isEditMode ? '保存' : '新增'
+    return this.isEditMode ? DialogButtonStrings.SAVE : DialogButtonStrings.ADD
   }
 
   private getRuleTypeLabel(): string {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return '域名'
+      return FirewallDialogStrings.RULE_TYPE_DOMAIN
     }
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return 'DNS 地址'
+      return FirewallDialogStrings.RULE_TYPE_DNS
     }
-    return '远端地址'
+    return FirewallDialogStrings.REMOTE_ADDRESS
   }
 
   private getRuleTypePlaceholder(): string {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return '例如 *.example.com'
+      return FirewallDialogStrings.DOMAIN_PLACEHOLDER
     }
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return '例如 8.8.8.8'
+      return FirewallDialogStrings.DNS_PLACEHOLDER
     }
-    return '例如 0.0.0.0/0'
+    return FirewallDialogStrings.IP_PLACEHOLDER
   }
 
   build() {
@@ -307,12 +308,12 @@ export struct AddRuleDialog {
       .width('100%')
 
       Column({ space: 6 }) {
-        Text('规则名称')
+        Text(FirewallDialogStrings.RULE_NAME)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        TextInput({ text: this.ruleName, placeholder: '请输入规则名称' })
+        TextInput({ text: this.ruleName, placeholder: FirewallDialogStrings.RULE_NAME_PLACEHOLDER })
           .height(40)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -325,7 +326,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Column({ space: 6 }) {
-        Text('规则类型')
+        Text(FirewallDialogStrings.RULE_TYPE)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -351,7 +352,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Column({ space: 6 }) {
-        Text('方向')
+        Text(FirewallDialogStrings.RULE_DIRECTION)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -376,7 +377,7 @@ export struct AddRuleDialog {
 
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
-          Text('协议')
+          Text(FirewallDialogStrings.PROTOCOL)
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -427,12 +428,12 @@ export struct AddRuleDialog {
 
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {
-          Text('本地端口')
+          Text(FirewallDialogStrings.LOCAL_PORT)
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          TextInput({ text: this.localPort, placeholder: '例如 443' })
+          TextInput({ text: this.localPort, placeholder: FirewallDialogStrings.PORT_PLACEHOLDER })
             .height(40)
             .fontColor(FormControlUtils.text(this.currentTheme))
             .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -446,7 +447,7 @@ export struct AddRuleDialog {
         .alignItems(HorizontalAlign.Start)
 
         Column({ space: 6 }) {
-          Text('远端端口')
+          Text(FirewallDialogStrings.REMOTE_PORT)
             .fontSize(AppStyles.FONT_SIZE_SMALL)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -466,7 +467,7 @@ export struct AddRuleDialog {
       }
 
       Column({ space: 6 }) {
-        Text('动作')
+        Text(FirewallDialogStrings.ACTION)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -490,7 +491,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Row({ space: 16 }) {
-        Button('取消')
+        Button(DialogButtonStrings.CANCEL)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)

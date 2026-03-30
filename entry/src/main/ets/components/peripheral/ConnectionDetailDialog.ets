@@ -8,21 +8,7 @@ import {
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel
 } from '../../viewmodels/PeripheralRecordPresentationMapper'
-
-const DEVICE_DETAIL_TITLE = '设备详情'
-const DEVICE_DETAIL_EMPTY = '当前没有可展示的连接记录。'
-const DEVICE_DETAIL_KEY_INFO = '关键信息'
-const DEVICE_DETAIL_HISTORY_TITLE = '历史连接记录'
-const DEVICE_DETAIL_HISTORY_EMPTY = '暂无历史连接记录'
-const DEVICE_DETAIL_HISTORY_SUFFIX = '条'
-const DEVICE_DETAIL_DEVICE_ID = '设备标识'
-const DEVICE_DETAIL_RECENT_TIME = '最近时间'
-const DEVICE_DETAIL_CONNECTION_EVENT = '连接事件'
-const DEVICE_DETAIL_EVENT_SOURCE = '事件来源'
-const DEVICE_DETAIL_POLICY_RESULT = '策略结论'
-const DEVICE_DETAIL_EFFECTIVE_POLICY = '执行策略'
-const DEVICE_DETAIL_MATCH_TYPE = '命中类型'
-const DEVICE_DETAIL_RESULT_STATUS = '结果状态'
+import { DeviceDetailStrings } from '../../constants/modules/DialogStrings'
 
 export interface ConnectionHistoryItem {
   time: string
@@ -46,7 +32,7 @@ export struct ConnectionDetailDialog {
       }
       .width('100%')
     } else {
-      Text(DEVICE_DETAIL_EMPTY)
+      Text(DeviceDetailStrings.NO_RECORDS)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -56,31 +42,31 @@ export struct ConnectionDetailDialog {
   @Builder
   private metricCard(record: PeripheralConnectionRecord) {
     Column({ space: 10 }) {
-      Text(DEVICE_DETAIL_KEY_INFO)
+      Text(DeviceDetailStrings.KEY_INFO)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
 
       Row({ space: 10 }) {
-        this.metricField(DEVICE_DETAIL_DEVICE_ID, record.deviceId)
-        this.metricField(DEVICE_DETAIL_RECENT_TIME, this.formatConnectionTime(record))
+        this.metricField(DeviceDetailStrings.DEVICE_ID, record.deviceId)
+        this.metricField(DeviceDetailStrings.RECENT_TIME, this.formatConnectionTime(record))
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField(DEVICE_DETAIL_CONNECTION_EVENT, this.getActionLabel(record))
-        this.metricField(DEVICE_DETAIL_EVENT_SOURCE, this.getSourceLabel(record))
+        this.metricField(DeviceDetailStrings.CONNECTION_EVENT, this.getActionLabel(record))
+        this.metricField(DeviceDetailStrings.EVENT_SOURCE, this.getSourceLabel(record))
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField(DEVICE_DETAIL_POLICY_RESULT, getPeripheralConnectionPolicyLabel(record))
-        this.metricField(DEVICE_DETAIL_EFFECTIVE_POLICY, record.effectivePolicyLabel ?? '--')
+        this.metricField(DeviceDetailStrings.POLICY_RESULT, getPeripheralConnectionPolicyLabel(record))
+        this.metricField(DeviceDetailStrings.EFFECTIVE_POLICY, record.effectivePolicyLabel ?? '--')
       }
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField(DEVICE_DETAIL_MATCH_TYPE, getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind))
-        this.metricField(DEVICE_DETAIL_RESULT_STATUS, getPeripheralConnectionResultLabel(record))
+        this.metricField(DeviceDetailStrings.MATCH_TYPE, getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind))
+        this.metricField(DeviceDetailStrings.RESULT_STATUS, getPeripheralConnectionResultLabel(record))
       }
       .width('100%')
     }
@@ -113,18 +99,18 @@ export struct ConnectionDetailDialog {
   private historyCard() {
     Column({ space: AppStyles.PADDING_SM }) {
       Row() {
-        Text(DEVICE_DETAIL_HISTORY_TITLE)
+        Text(DeviceDetailStrings.HISTORY_TITLE)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
         Blank()
-        Text(`${this.historyItems.length} ${DEVICE_DETAIL_HISTORY_SUFFIX}`)
+        Text(`${this.historyItems.length} ${DeviceDetailStrings.HISTORY_COUNT_SUFFIX}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
       }
       .width('100%')
 
       if (this.historyItems.length === 0) {
-        Text(DEVICE_DETAIL_HISTORY_EMPTY)
+        Text(DeviceDetailStrings.NO_HISTORY)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       } else {
@@ -195,7 +181,7 @@ export struct ConnectionDetailDialog {
 
   build() {
     DetailDialogShell({
-      title: DEVICE_DETAIL_TITLE,
+      title: DeviceDetailStrings.TITLE,
       dialogWidth: 760,
       maxBodyHeight: 460,
       onClose: this.onClose,

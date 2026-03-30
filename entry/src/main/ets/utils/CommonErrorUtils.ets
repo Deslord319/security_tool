@@ -4,7 +4,7 @@
  */
 import { PermissionErrors, SystemServiceErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
 
-export interface ErrorRecorder {
+interface ErrorRecorder {
   lastErrorCode: number | undefined
   lastErrorMessage: string
 }

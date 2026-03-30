@@ -8,12 +8,6 @@
  * - 业务逻辑错误
  */
 
-// ==================== 通用错误前缀/后缀 ====================
-export class ErrorPrefixes {
-  static readonly ACTION_FAILED: string = '失败'
-  static readonly ERROR_CODE_LABEL: string = '（错误码'
-}
-
 // ==================== 权限相关错误 ====================
 export class PermissionErrors {
   // 用户列表读取
@@ -40,33 +34,12 @@ export class SystemServiceErrors {
   static readonly USER_NOT_EXIST_OR_INVALID: string = '目标用户不存在或已失效'
 }
 
-// ==================== 防火墙相关错误 ====================
-export class FirewallErrors {
-  // 操作动作
-  static readonly READ_FIREWALL_POLICY: string = '读取防火墙策略'
-  static readonly SET_FIREWALL_STATE: string = '设置防火墙状态'
-  static readonly READ_FIREWALL_RULES: string = '读取防火墙规则'
-  static readonly ADD_FIREWALL_RULE: string = '新增防火墙规则'
-  static readonly DELETE_FIREWALL_RULE: string = '删除防火墙规则'
-  static readonly UPDATE_FIREWALL_RULE: string = '更新防火墙规则'
-  
-  // 英文错误（兼容旧代码）
-  static readonly SET_FIREWALL_POLICY_FAILED_EN: string = 'set firewall policy failed'
-}
-
 // ==================== 日志导出错误 ====================
 export class LogExportErrors {
   static readonly NO_LOGS_TO_EXPORT: string = '无日志可导出'
   static readonly UI_CONTEXT_UNAVAILABLE: string = 'UI 上下文不可用'
   static readonly USER_CANCELED_SAVE: string = '用户取消保存'
   static readonly EXPORT_FAILED_PREFIX: string = '导出失败：'
-}
-
-// ==================== 下载路径相关 ====================
-export class DownloadPathStrings {
-  static readonly DOWNLOAD_PREFIX: string = '下载'
-  static readonly EXPORT_SUCCESS_PREFIX: string = '导出成功：'
-  static readonly PATH_SEPARATOR: string = '/'
 }
 
 // ==================== 通用错误模板 ====================

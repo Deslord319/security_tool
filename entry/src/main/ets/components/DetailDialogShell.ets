@@ -52,16 +52,11 @@ export struct DetailDialogShell {
     .alignItems(HorizontalAlign.Start)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
   }
 }
 
 @Component
 export struct DetailDialogOverlay {
-  onDismiss: () => void = () => {}
   @BuilderParam content: () => void
 
   build() {
@@ -70,9 +65,6 @@ export struct DetailDialogOverlay {
         .width('100%')
         .height('100%')
         .backgroundColor('#66000000')
-        .onClick(() => {
-          this.onDismiss()
-        })
 
       Column() {
         this.content()

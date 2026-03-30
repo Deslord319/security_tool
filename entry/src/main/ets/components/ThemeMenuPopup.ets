@@ -140,9 +140,16 @@ export struct ThemeMenuPopup {
   private aboutDialogController: CustomDialogController = new CustomDialogController({
     builder: AboutDialog(),
     alignment: DialogAlignment.Center,
-    autoCancel: true,
+    autoCancel: false,
     customStyle: true
   })
+
+  aboutToDisappear(): void {
+    try {
+      this.aboutDialogController.close()
+    } catch (_err) {
+    }
+  }
 
   build() {
     Column({ space: 6 }) {
