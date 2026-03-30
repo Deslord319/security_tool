@@ -24,7 +24,7 @@ export class PeripheralStrings {
   static readonly usbStorageLoadingMessage: string = '正在设置 USB 存储策略，请稍候...'
 
   static readonly pageTitle: string = CommonStrings.modulePeripheralManage
-  static readonly pageSubtitle: string = '管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单'
+  static readonly pageSubtitle: string = '管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备访问策略'
 
   static readonly interfaceTabTitle: string = '接口管控'
   static readonly deviceTabTitle: string = '设备连接记录'

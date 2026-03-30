@@ -19,7 +19,7 @@ export struct MetricSummaryCard {
   @Prop paddingVertical: number = 18
   @Prop iconTileSize: number = 60
   @Prop iconTileRadius: number = 20
-  @Prop iconSize: number = 36
+  @Prop iconSize: number = 28
   @Prop iconHoverScale: number = 1.06
   @Prop titleFontSize: number = AppStyles.FONT_SIZE_BODY
   @Prop primaryFontSize: number = 24
@@ -46,8 +46,8 @@ export struct MetricSummaryCard {
       Row({ space: this.horizontalSpace }) {
         Column() {
           Image(this.icon)
-            .width(this.contentHoverable && this.isHovered ? this.iconSize + 4 : this.iconSize)
-            .height(this.contentHoverable && this.isHovered ? this.iconSize + 4 : this.iconSize)
+            .width(this.contentHoverable && this.isHovered ? this.iconSize + 2 : this.iconSize)
+            .height(this.contentHoverable && this.isHovered ? this.iconSize + 2 : this.iconSize)
             .fillColor(Color.White)
             .draggable(false)
         }
