@@ -1,3 +1,4 @@
+import { CommonStrings } from '../CommonStrings'
 import { AppColors } from '../AppConstants'
 
 export interface DashboardGradient {
@@ -6,7 +7,7 @@ export interface DashboardGradient {
 }
 
 export class DashboardStrings {
-  static readonly pageTitle: string = '安全总览'
+  static readonly pageTitle: string = CommonStrings.moduleDashboard
   static readonly pageSubtitle: string = '集中查看管理员、防火墙、日志和外设状态'
   static readonly quickActionsTitle: string = '快捷方式'
 
@@ -29,9 +30,12 @@ export class DashboardStrings {
   static readonly peripheralDetailMiddle: string = ' 次，断开 '
   static readonly peripheralDetailSuffix: string = ' 次'
 
-  static readonly identityTitle: string = '身份鉴别'
-  static readonly toolSettingsTitle: string = '工具设置'
-  static readonly helpFeedbackTitle: string = '帮助反馈'
+  static readonly firewallEntryTitle: string = CommonStrings.moduleFirewall
+  static readonly logEntryTitle: string = CommonStrings.moduleLogManage
+  static readonly peripheralEntryTitle: string = CommonStrings.modulePeripheralManage
+  static readonly identityTitle: string = CommonStrings.moduleIdentity
+  static readonly toolSettingsTitle: string = CommonStrings.moduleToolSettings
+  static readonly helpFeedbackTitle: string = CommonStrings.moduleHelpFeedback
 
   static readonly firewallGradient: DashboardGradient = { start: AppColors.BRAND_PRIMARY, end: AppColors.GRADIENT_FIREWALL_END }
   static readonly logManageGradient: DashboardGradient = { start: AppColors.SUCCESS, end: AppColors.GRADIENT_LOG_END }

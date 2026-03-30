@@ -155,7 +155,7 @@ export class DashboardViewModel {
     return [
       this.createQuickEntry(
         'firewall',
-        DashboardStrings.firewallTitle,
+        DashboardStrings.firewallEntryTitle,
         $r('app.media.firewall'),
         DashboardStrings.firewallGradient.start,
         DashboardStrings.firewallGradient.end,
@@ -163,7 +163,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         'log',
-        DashboardStrings.logTitle,
+        DashboardStrings.logEntryTitle,
         $r('app.media.log'),
         DashboardStrings.logManageGradient.start,
         DashboardStrings.logManageGradient.end,
@@ -171,7 +171,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         'peripheral',
-        DashboardStrings.peripheralTitle,
+        DashboardStrings.peripheralEntryTitle,
         $r('app.media.peripheral'),
         DashboardStrings.peripheralGradient.start,
         DashboardStrings.peripheralGradient.end,

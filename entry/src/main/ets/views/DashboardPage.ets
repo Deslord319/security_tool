@@ -142,6 +142,12 @@ export struct DashboardPage {
                 icon: card.icon,
                 accentStart: card.accentStart,
                 accentEnd: card.accentEnd,
+                cardHeight: 108,
+                iconTileSize: 58,
+                iconTileRadius: 18,
+                iconSize: 34,
+                primaryFontSize: 24,
+                secondaryMaxLines: 3,
                 clickable: false,
                 hoverable: true
               })

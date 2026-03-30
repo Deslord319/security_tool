@@ -747,6 +747,12 @@ export struct LogManagePage {
       accentStart: accentStart,
       accentEnd: accentEnd,
       icon: icon,
+      cardHeight: 116,
+      iconTileSize: 62,
+      iconTileRadius: 20,
+      iconSize: 36,
+      primaryFontSize: 26,
+      secondaryMaxLines: 2,
       clickable: false
     })
   }

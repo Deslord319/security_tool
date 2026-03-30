@@ -12,6 +12,19 @@ export struct MetricSummaryCard {
   @Prop icon: Resource = $r('app.media.shield')
   @Prop accentStart: string = AppColors.BRAND_PRIMARY
   @Prop accentEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Prop cardHeight: number = 108
+  @Prop horizontalSpace: number = 16
+  @Prop textSpace: number = 6
+  @Prop paddingHorizontal: number = 18
+  @Prop paddingVertical: number = 18
+  @Prop iconTileSize: number = 60
+  @Prop iconTileRadius: number = 20
+  @Prop iconSize: number = 36
+  @Prop iconHoverScale: number = 1.06
+  @Prop titleFontSize: number = AppStyles.FONT_SIZE_BODY
+  @Prop primaryFontSize: number = 24
+  @Prop secondaryMaxLines: number = 3
+  @Prop contentHoverable: boolean = true
   @Prop clickable: boolean = true
   @Prop hoverable: boolean = true
   @Prop disabled: boolean = false
@@ -21,7 +34,7 @@ export struct MetricSummaryCard {
 
   build() {
     BaseCard({
-      cardHeight: 108,
+      cardHeight: this.cardHeight,
       clickable: this.clickable,
       hoverable: this.hoverable,
       disabled: this.disabled,
@@ -30,22 +43,22 @@ export struct MetricSummaryCard {
         this.isHovered = isHovered
       }
     }) {
-      Row({ space: 16 }) {
+      Row({ space: this.horizontalSpace }) {
         Column() {
           Image(this.icon)
-            .width(this.isHovered ? 40 : 36)
-            .height(this.isHovered ? 40 : 36)
+            .width(this.contentHoverable && this.isHovered ? this.iconSize + 4 : this.iconSize)
+            .height(this.contentHoverable && this.isHovered ? this.iconSize + 4 : this.iconSize)
             .fillColor(Color.White)
             .draggable(false)
         }
-        .width(60)
-        .height(60)
-        .borderRadius(20)
+        .width(this.iconTileSize)
+        .height(this.iconTileSize)
+        .borderRadius(this.iconTileRadius)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
         .scale({
-          x: HoverUtils.getScale(this.isHovered, 1.06),
-          y: HoverUtils.getScale(this.isHovered, 1.06)
+          x: HoverUtils.getScale(this.contentHoverable && this.isHovered, this.iconHoverScale),
+          y: HoverUtils.getScale(this.contentHoverable && this.isHovered, this.iconHoverScale)
         })
         .linearGradient({
           angle: 135,
@@ -55,14 +68,13 @@ export struct MetricSummaryCard {
           ]
         })
 
-        Column({ space: 6 }) {
+        Column({ space: this.textSpace }) {
           Row() {
             Text(this.title)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(this.isHovered ? FontWeight.Bold : FontWeight.Medium)
+              .fontSize(this.titleFontSize)
+              .fontWeight(this.contentHoverable && this.isHovered ? FontWeight.Bold : FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(this.isHovered ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY :
-                AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .opacity(this.contentHoverable && this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
             Blank()
 
@@ -78,19 +90,19 @@ export struct MetricSummaryCard {
           .alignItems(VerticalAlign.Center)
 
           Text(this.primaryText)
-            .fontSize(24)
+            .fontSize(this.primaryFontSize)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .opacity(this.contentHoverable && this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
 
           Text(this.secondaryText)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(this.isHovered ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY :
+            .opacity(this.contentHoverable && this.isHovered ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY :
               AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-            .maxLines(3)
+            .maxLines(this.secondaryMaxLines)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .layoutWeight(1)
@@ -98,7 +110,12 @@ export struct MetricSummaryCard {
       }
       .width('100%')
       .height('100%')
-      .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+      .padding({
+        left: this.paddingHorizontal,
+        right: this.paddingHorizontal,
+        top: this.paddingVertical,
+        bottom: this.paddingVertical
+      })
       .alignItems(VerticalAlign.Center)
     }
   }
