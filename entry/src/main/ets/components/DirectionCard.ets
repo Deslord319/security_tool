@@ -7,8 +7,8 @@ import { HoverUtils } from '../utils/HoverUtils'
 export struct DirectionCard {
   @Prop label: string = ''
   @Prop count: number = 0
-  @Prop gradientStart: string = '#0A84FF'
-  @Prop gradientEnd: string = '#00C6FF'
+  @Prop gradientStart: string = AppColors.BRAND_PRIMARY
+  @Prop gradientEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Prop iconText: string = ''
   @Prop icon: Resource | undefined = undefined
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT

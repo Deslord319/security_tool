@@ -10,6 +10,7 @@ import {
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel
 } from '../../viewmodels/PeripheralRecordPresentationMapper'
+import { DeviceDetailStrings } from '../../constants/modules/DialogStrings'
 
 export interface ConnectionHistoryItem {
   time: string
@@ -29,17 +30,17 @@ export struct ConnectionDetailDialog {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('#66000000')
+        .backgroundColor(AppColors.OVERLAY_BACKGROUND)
         .onClick(() => this.onClose && this.onClose())
 
       Column({ space: 12 }) {
         Row() {
-          Text('设备详情')
+          Text(DeviceDetailStrings.TITLE)
             .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           Blank()
-          Button('关闭')
+          Button(DeviceDetailStrings.CLOSE_BUTTON)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(this.currentTheme === ThemeMode.DARK ? Color.White : Color.Black)
             .height(32)
@@ -61,7 +62,7 @@ export struct ConnectionDetailDialog {
           .constraintSize({ maxHeight: 460 })
           .scrollBar(BarState.Auto)
         } else {
-          Text('当前没有可展示的连接记录。')
+          Text(DeviceDetailStrings.NO_RECORDS)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -137,26 +138,26 @@ export struct ConnectionDetailDialog {
 
   @Builder
   private historyCard() {
-    Column({ space: 8 }) {
+    Column({ space: AppStyles.PADDING_SM }) {
       Row() {
-        Text('历史连接记录')
+        Text(DeviceDetailStrings.HISTORY_TITLE)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
         Blank()
-        Text(`${this.historyItems.length} 条`)
+        Text(`${this.historyItems.length} ${DeviceDetailStrings.HISTORY_COUNT_SUFFIX}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
       }
       .width('100%')
 
       if (this.historyItems.length === 0) {
-        Text('暂无历史连接记录')
+        Text(DeviceDetailStrings.NO_HISTORY)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       } else {
-        Column({ space: 8 }) {
+        Column({ space: AppStyles.PADDING_SM }) {
           ForEach(this.historyItems, (item: ConnectionHistoryItem, index: number) => {
-            Row({ space: 10 }) {
+            Row({ space: AppStyles.PADDING_SM }) {
               Text(`${index + 1}`)
                 .fontSize(AppStyles.FONT_SIZE_CAPTION)
                 .fontWeight(FontWeight.Medium)

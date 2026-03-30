@@ -250,7 +250,7 @@ struct MainPage {
           .height(56)
           .padding({ left: AppStyles.PADDING_LG, right: 140 })
           .alignItems(VerticalAlign.Center)
-          .backgroundColor(this.currentTheme === ThemeMode.DARK ? '#2C2C2E' : Color.Transparent)
+          .backgroundColor(this.currentTheme === ThemeMode.DARK ? AppColors.getColors(this.currentTheme).BG_COMPONENT : Color.Transparent)
 
           Column() {
             if (this.currentPage === Routes.DASHBOARD) {

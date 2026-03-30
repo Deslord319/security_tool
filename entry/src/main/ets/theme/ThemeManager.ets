@@ -38,7 +38,7 @@ export class ThemeManager {
   init(context: common.UIAbilityContext): void {
     this.initSync(context)
     this.initAsync().catch((err: Error) => {
-      console.error('ThemeManager initAsync failed:', JSON.stringify(err))
+      hilog.error(DOMAIN, TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     })
   }
 

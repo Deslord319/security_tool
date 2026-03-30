@@ -445,29 +445,29 @@ export struct FirewallRulesPage {
             Text(FirewallStrings.conflictWarningLabel)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#8A5200')
+              .fontColor(AppColors.WARNING)
               .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-              .backgroundColor('#FFE8B3')
-              .borderRadius(10)
+              .backgroundColor(AppColors.FIREWALL_CONFLICT_BG)
+              .borderRadius(AppStyles.RADIUS_CHIP)
 
             Text(this.conflictNotice)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor('#8A5200')
+              .fontColor(AppColors.WARNING)
               .layoutWeight(1)
           }
           .width('100%')
           .padding(AppStyles.PADDING_MD)
-          .backgroundColor('#FFF7E6')
+          .backgroundColor(AppColors.FIREWALL_CONFLICT_PANEL_BG)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: '#FFD591' })
+          .border({ width: 1, color: AppColors.FIREWALL_CONFLICT_BORDER })
         }
 
-        Row({ space: 16 }) {
+        Row({ space: AppStyles.PADDING_LG }) {
           DirectionCard({
             label: FirewallStrings.inboundRules,
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
-            gradientStart: '#FF9500',
-            gradientEnd: '#FFCC00',
+            gradientStart: AppColors.WARNING,
+            gradientEnd: AppColors.GRADIENT_IDENTITY_END,
             icon: $r('app.media.arrow_down')
           })
             .layoutWeight(1)
@@ -475,8 +475,8 @@ export struct FirewallRulesPage {
           DirectionCard({
             label: FirewallStrings.outboundRules,
             count: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
-            gradientStart: '#0A84FF',
-            gradientEnd: '#00C6FF',
+            gradientStart: AppColors.BRAND_PRIMARY,
+            gradientEnd: AppColors.GRADIENT_FIREWALL_END,
             icon: $r('app.media.arrow_up')
           })
             .layoutWeight(1)

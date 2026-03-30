@@ -7,8 +7,8 @@ import { HoverUtils } from '../utils/HoverUtils'
 export struct StatCard {
   @Prop label: string = ''
   @Prop value: string = ''
-  @Prop gradientStart: string = '#0A84FF'
-  @Prop gradientEnd: string = '#00C6FF'
+  @Prop gradientStart: string = AppColors.BRAND_PRIMARY
+  @Prop gradientEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Prop icon: Resource = $r('app.media.shield')
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   @State isHovered: boolean = false

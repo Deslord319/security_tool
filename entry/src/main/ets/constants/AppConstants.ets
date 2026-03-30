@@ -56,6 +56,11 @@ export class AppColors {
   static readonly FIREWALL_SELECTED_ICON_BORDER_LIGHT: string = '#FFFFFF'
   static readonly FIREWALL_SELECTED_SHADOW_DARK: string = '#66000000'
   static readonly FIREWALL_SELECTED_SHADOW_LIGHT: string = '#22000000'
+  
+  // Firewall 规则冲突 UI 颜色
+  static readonly FIREWALL_CONFLICT_BG: string = '#FFE8B3'
+  static readonly FIREWALL_CONFLICT_PANEL_BG: string = '#FFF7E6'
+  static readonly FIREWALL_CONFLICT_BORDER: string = '#FFD591'
 }
 
 export class AppStyles {
