@@ -21,12 +21,7 @@ export class PeripheralPolicyService {
     connectionRecords: PeripheralConnectionRecord[],
     devicePolicies: PeripheralDevicePolicyRecord[]
   ): PeripheralPolicyRecord[] {
-    const policyMap: Map<string, PeripheralDevicePolicyRecord> = new Map()
-    devicePolicies.forEach((item: PeripheralDevicePolicyRecord) => {
-      policyMap.set(item.deviceId.toUpperCase(), item)
-    })
-
-    const items: Map<string, PeripheralPolicyRecord> = new Map()
+    const latestConnectionMap: Map<string, PeripheralConnectionRecord> = new Map()
     for (const record of connectionRecords) {
       if (!USB_RECORD_TYPES.includes(record.deviceType)) {
         continue
@@ -37,23 +32,38 @@ export class PeripheralPolicyService {
       }
       const deviceId = formatUsbDeviceId(parsed.vendorId, parsed.productId)
       const deviceKey = deviceId.toUpperCase()
-      const existing = items.get(deviceKey)
-      if (existing && existing.lastSeenAt >= record.timestamp) {
+      const existing = latestConnectionMap.get(deviceKey)
+      if (existing && existing.timestamp >= record.timestamp) {
         continue
       }
-      const policy = policyMap.get(deviceKey)
-      items.set(deviceKey, {
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        deviceId: deviceId,
-        lastSeenAt: record.timestamp,
-        lastSeenLabel: formatPeripheralTimestamp(record.timestamp),
-        policyIndex: policy?.policy === 'deny' ? 1 : 0
-      })
+      latestConnectionMap.set(deviceKey, record)
     }
 
-    return Array.from(items.values()).sort((left: PeripheralPolicyRecord, right: PeripheralPolicyRecord) => {
+    const items: PeripheralPolicyRecord[] = devicePolicies.map((policy: PeripheralDevicePolicyRecord) => {
+      const normalizedDeviceId = PeripheralPolicyService.normalizeUsbDeviceId(policy.deviceId)
+      const latestConnection = normalizedDeviceId.length > 0 ? latestConnectionMap.get(normalizedDeviceId) : undefined
+      const lastSeenAt = latestConnection?.timestamp ?? policy.updatedAt
+      const item: PeripheralPolicyRecord = {
+        deviceName: latestConnection?.deviceName ?? (policy.deviceName?.trim().length ? policy.deviceName : normalizedDeviceId),
+        deviceType: latestConnection?.deviceType ?? policy.deviceType ?? PeripheralType.USB_OTHER,
+        deviceId: normalizedDeviceId.length > 0 ? normalizedDeviceId : policy.deviceId,
+        lastSeenAt: lastSeenAt,
+        lastSeenLabel: formatPeripheralTimestamp(lastSeenAt),
+        policyIndex: policy.policy === 'deny' ? 1 : 0
+      } as PeripheralPolicyRecord
+      return item
+    })
+
+    return items.sort((left: PeripheralPolicyRecord, right: PeripheralPolicyRecord) => {
       return right.lastSeenAt - left.lastSeenAt
     })
+  }
+
+  private static normalizeUsbDeviceId(deviceId: string): string {
+    const parsed = parseUsbDeviceId(deviceId)
+    if (!parsed) {
+      return (deviceId || '').trim().replace(/\s+/g, ' ').toUpperCase()
+    }
+    return formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
   }
 }

@@ -1,6 +1,5 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { DetailDialogOverlay } from '../components/DetailDialogShell'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
 import {
@@ -35,6 +34,8 @@ export struct PeripheralPage {
   @State viewModel: PeripheralViewModel = new PeripheralViewModel()
   @State currentTabIndex: number = 0
   @State hoveredPanelIndex: number = -1
+  @State deviceRecords: PeripheralConnectionRecord[] = []
+  @State policyRecords: PeripheralPolicyRecord[] = []
   @State detailRecord: PeripheralConnectionRecord | null = null
   @State detailHistoryItems: ConnectionHistoryItem[] = [] 
 
@@ -45,6 +46,7 @@ export struct PeripheralPage {
   ]
   private usbLoadingOpenedAt: number = 0
   private usbLoadingDialogController?: CustomDialogController
+  private detailDialogController?: CustomDialogController
 
   aboutToAppear() {
     void this.initViewModel()
@@ -59,12 +61,13 @@ export struct PeripheralPage {
 
   private async initViewModel(): Promise<void> {
     try {
-      this.viewModel.onRefresh = () => this.syncDetailDialogState()
+      this.viewModel.onRefresh = () => this.syncViewState()
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await PeripheralRuntimeEventService.init(context)
       await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(context)
       this.currentTabIndex = this.viewModel.currentTab
+      this.syncViewState()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.INIT_FAILED))
@@ -147,38 +150,60 @@ export struct PeripheralPage {
     this.detailHistoryItems = [...this.viewModel.records.connectionDetailDialog.historyItems]
   }
 
-  private openDetailDialog(record: PeripheralConnectionRecord): void {
-    this.viewModel.openConnectionDetailDialog(record)
+  private syncViewState(): void {
+    this.deviceRecords = [...this.viewModel.records.records]
+    this.policyRecords = [...this.viewModel.policy.records]
     this.syncDetailDialogState()
   }
 
+  private openDetailDialog(record: PeripheralConnectionRecord): void {
+    this.closeDetailDialogController()
+    this.viewModel.openConnectionDetailDialog(record)
+    this.syncViewState()
+    if (!this.detailRecord) {
+      return
+    }
+    try {
+      this.detailDialogController = new CustomDialogController({
+        builder: ConnectionDetailDialog({
+          controller: this.detailDialogController,
+          selectedRecord: this.detailRecord as PeripheralConnectionRecord,
+          historyItems: this.detailHistoryItems,
+          onClose: () => this.closeDetailDialog()
+        }),
+        alignment: DialogAlignment.Center,
+        autoCancel: true,
+        customStyle: true,
+        isModal: true,
+        maskColor: AppColors.OVERLAY_BACKGROUND,
+        cancel: () => {
+          this.detailDialogController = undefined
+          this.detailRecord = null
+          this.detailHistoryItems = []
+          this.viewModel.closeConnectionDetailDialog()
+        }
+      })
+      this.detailDialogController.open()
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `openDetailDialog failed: ${JSON.stringify(err)}`)
+      this.closeDetailDialog()
+    }
+  }
+
+  private closeDetailDialogController(): void {
+    try {
+      this.detailDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.detailDialogController = undefined
+    }
+  }
+
   private closeDetailDialog(): void {
+    this.closeDetailDialogController()
     this.viewModel.closeConnectionDetailDialog()
     this.detailRecord = null
     this.detailHistoryItems = []
-  }
-
-  @Builder
-  private detailDialogContent() {
-    if (this.detailRecord) {
-      ConnectionDetailDialog({
-        selectedRecord: this.detailRecord as PeripheralConnectionRecord,
-        historyItems: this.detailHistoryItems,
-        onClose: () => this.closeDetailDialog()
-      })
-    }
-  }
-
-  @Builder
-  private detailDialogLayer() {
-    if (this.detailRecord) {
-      DetailDialogOverlay({
-        onDismiss: () => this.closeDetailDialog(),
-        content: () => {
-          this.detailDialogContent()
-        }
-      })
-    }
   }
 
   @Builder
@@ -203,8 +228,6 @@ export struct PeripheralPage {
       .justifyContent(FlexAlign.Start)
       .alignItems(HorizontalAlign.Start)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-
-      this.detailDialogLayer()
     }
     .width('100%')
     .height('100%')
@@ -287,7 +310,7 @@ export struct PeripheralPage {
   private deviceTab() {
     Column() {
       DeviceRecordList({
-        deviceRecords: this.viewModel.records.records,
+        deviceRecords: this.deviceRecords,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onRecordClick: (record: PeripheralConnectionRecord) => this.openDetailDialog(record),
@@ -304,12 +327,12 @@ export struct PeripheralPage {
   private policyTab() {
     Column() {
       PolicyList({
-        policyRecords: this.viewModel.policy.records,
+        policyRecords: this.policyRecords,
         policyListOptions: this.policyListOptions,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onPolicyChange: (index: number, policyIndex: number) => {
-          const record: PeripheralPolicyRecord | undefined = this.viewModel.policy.records[index]
+          const record: PeripheralPolicyRecord | undefined = this.policyRecords[index]
           if (record) {
             void this.handlePolicyChange(record, policyIndex)
           }
@@ -420,7 +443,7 @@ export struct PeripheralPage {
   }
 
   private showClearHistoryConfirmDialog(): void {
-    if (this.viewModel.records.records.length === 0) {
+    if (this.deviceRecords.length === 0) {
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.emptyHistoryToClear)
       return
     }
@@ -434,7 +457,7 @@ export struct PeripheralPage {
   }
 
   private showClearPolicyRecordsConfirmDialog(): void {
-    if (this.viewModel.policy.records.length === 0) {
+    if (this.policyRecords.length === 0) {
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.emptyPolicyToClear)
       return
     }

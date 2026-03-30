@@ -16,8 +16,9 @@ export interface ConnectionHistoryItem {
   result: string
 }
 
-@Component
+@CustomDialog
 export struct ConnectionDetailDialog {
+  controller: CustomDialogController
   selectedRecord: PeripheralConnectionRecord | null = null
   historyItems: ConnectionHistoryItem[] = []
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT

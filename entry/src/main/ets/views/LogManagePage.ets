@@ -23,7 +23,7 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
-import { DetailDialogShell, DetailDialogOverlay } from '../components/DetailDialogShell'
+import { DetailDialogShell } from '../components/DetailDialogShell'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
@@ -156,8 +156,9 @@ struct LogDetailInfoRow {
   }
 }
 
-@Component
+@CustomDialog
 struct LogDetailDialogPanel {
+  controller: CustomDialogController
   title: string = ''
   entry: LogEntry = {
     id: '',
@@ -336,6 +337,7 @@ export struct LogManagePage {
   @State storageSettingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
 
   private refreshTimerId: number = -1
+  private detailDialogController?: CustomDialogController
   private readonly REFRESH_INTERVAL_MS: number = 1500
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 140
   private readonly pageSizeOptions: number[] = [20, 50, 100]
@@ -406,7 +408,11 @@ export struct LogManagePage {
       return
     }
     const nextEntry: LogEntry | undefined = this.logEntries.find((entry: LogEntry) => entry.id === this.detailEntry!.id)
-    this.detailEntry = nextEntry ?? null
+    if (!nextEntry) {
+      this.closeLogDetailDialog()
+      return
+    }
+    this.detailEntry = nextEntry
   }
 
   private getCurrentPageSize(): number {
@@ -578,33 +584,41 @@ export struct LogManagePage {
   }
 
   private openLogDetailTableDialog(entry: LogEntry): void {
+    this.closeLogDetailDialog()
     this.detailEntry = entry
-  }
-
-  private closeLogDetailDialog(): void {
-    this.detailEntry = null
-  }
-
-  @Builder
-  private detailDialogContent() {
-    if (this.detailEntry) {
-      LogDetailDialogPanel({
-        title: LogManageStrings.detailDialogTitle,
-        entry: this.detailEntry as LogEntry,
-        onClose: () => this.closeLogDetailDialog()
+    try {
+      this.detailDialogController = new CustomDialogController({
+        builder: LogDetailDialogPanel({
+          controller: this.detailDialogController,
+          title: LogManageStrings.detailDialogTitle,
+          entry: entry,
+          onClose: () => this.closeLogDetailDialog()
+        }),
+        alignment: DialogAlignment.Center,
+        autoCancel: true,
+        customStyle: true,
+        isModal: true,
+        maskColor: AppColors.OVERLAY_BACKGROUND,
+        cancel: () => {
+          this.detailDialogController = undefined
+          this.detailEntry = null
+        }
       })
+      this.detailDialogController.open()
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, `openLogDetailDialog failed: ${JSON.stringify(err)}`)
+      this.detailDialogController = undefined
+      this.detailEntry = null
     }
   }
 
-  @Builder
-  private detailDialogLayer() {
-    if (this.detailEntry) {
-      DetailDialogOverlay({
-        onDismiss: () => this.closeLogDetailDialog(),
-        content: () => {
-          this.detailDialogContent()
-        }
-      })
+  private closeLogDetailDialog(): void {
+    try {
+      this.detailDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.detailDialogController = undefined
+      this.detailEntry = null
     }
   }
 
@@ -659,8 +673,6 @@ export struct LogManagePage {
       .width('100%')
       .height('100%')
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-
-      this.detailDialogLayer()
     }
     .width('100%')
     .height('100%')

@@ -40,13 +40,15 @@ export class PeripheralStrings {
   static readonly updatePolicyAction: string = '修改设备策略'
 
   static readonly clearHistoryMessage: string = '将清空当前设备连接记录，且无法恢复。是否继续？'
-  static readonly clearPolicyMessage: string = '将清空当前所有设备策略，并恢复为默认允许接入。是否继续？'
+  static readonly clearPolicyMessage: string = '将清空当前所有设备策略列表，且无法恢复。是否继续？'
 
   static readonly emptyHistoryToClear: string = '暂无可清理的记录'
   static readonly emptyPolicyToClear: string = '暂无可清空的设备策略'
   static readonly clearFailed: string = '清理未完成，请稍后重试'
   static readonly clearHistorySuccess: string = '记录已清理'
-  static readonly clearPolicySuccess: string = '设备策略已恢复为默认允许'
+  static readonly clearPolicySuccess: string = '设备策略已清空'
+  static readonly emptyPolicyTitle: string = '暂无设备策略'
+  static readonly emptyPolicyDescription: string = '策略配置后会显示在这里。'
   static readonly minUsbLoadingDuration: number = 500
 
   static readonly adminRequiredActionSuffix: string = '未完成，请先激活企业管理员权限'
