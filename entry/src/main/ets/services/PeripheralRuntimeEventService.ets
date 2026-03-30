@@ -1,4 +1,4 @@
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
@@ -10,7 +10,6 @@ import {
   PeripheralType,
   UsbStoragePolicy,
   formatUsbDeviceId,
-  getUsbStoragePolicyLabel,
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
 import { PeripheralDevicePolicyRepository } from './PeripheralDevicePolicyRepository'
@@ -68,6 +67,7 @@ interface UsbEventPolicyEvaluation {
 }
 
 type UsbEventAction = 'connect' | 'disconnect' | 'unknown'
+type EventPayloadRecord = Record<string, Object>
 
 export class PeripheralRuntimeEventService {
   private static context: common.UIAbilityContext | null = null
@@ -164,43 +164,19 @@ export class PeripheralRuntimeEventService {
   }
 
   private static async registerUsbRuntimeEvents(): Promise<boolean> {
-    try {
+    return new Promise((resolve, reject) => {
       const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
         events: [
           commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
           commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED
         ]
       }
-      const subscriber = await PeripheralRuntimeEventService.createSubscriber(subscribeInfo)
-      const ok = await PeripheralRuntimeEventService.subscribe(subscriber)
-      if (!ok) {
-        return false
-      }
-      PeripheralRuntimeEventService.subscriber = subscriber
-      return true
-    } catch (err) {
-      hilog.error(DOMAIN, TAG, `registerUsbRuntimeEvents failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  private static createSubscriber(
-    subscribeInfo: commonEventManager.CommonEventSubscribeInfo
-  ): Promise<commonEventManager.CommonEventSubscriber> {
-    return new Promise((resolve, reject) => {
       commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
         if (err) {
+          hilog.error(DOMAIN, TAG, `createSubscriber failed: code=${err.code}, message=${err.message}`)
           reject(err)
           return
         }
-        resolve(subscriber)
-      })
-    })
-  }
-
-  private static subscribe(subscriber: commonEventManager.CommonEventSubscriber): Promise<boolean> {
-    return new Promise((resolve) => {
-      try {
         commonEventManager.subscribe(subscriber, (err: BusinessError, data: commonEventManager.CommonEventData) => {
           if (err) {
             hilog.error(DOMAIN, TAG, `common event callback failed: code=${err.code}, message=${err.message}`)
@@ -208,11 +184,9 @@ export class PeripheralRuntimeEventService {
           }
           PeripheralRuntimeEventService.consumeUsbCommonEvent(data)
         })
+        PeripheralRuntimeEventService.subscriber = subscriber
         resolve(true)
-      } catch (err) {
-        hilog.error(DOMAIN, TAG, `subscribe failed: ${JSON.stringify(err)}`)
-        resolve(false)
-      }
+      })
     })
   }
 
@@ -223,13 +197,13 @@ export class PeripheralRuntimeEventService {
       return
     }
     const info = PeripheralRuntimeEventService.resolveUsbEventInfo(data)
+    const evaluation = PeripheralRuntimeEventService.evaluateUsbEventPolicy(info, action)
     let rawPayload = ''
     try {
       rawPayload = JSON.stringify(data)
     } catch (_err) {
       rawPayload = ''
     }
-    const evaluation = PeripheralRuntimeEventService.evaluateUsbEventPolicy(info, action)
     PeripheralRuntimeEventService.persistRuntimeRecord({
       recordId: `runtime_usb_${info.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
       occurAt: info.occurAt,
@@ -292,7 +266,7 @@ export class PeripheralRuntimeEventService {
           summary: 'USB 存储已禁用',
           detail: 'USB 存储策略为禁止访问，设备接入被阻止。',
           usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
+          effectivePolicyLabel: PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
           matchedPolicyKind: 'usb_storage_disabled'
         }
       }
@@ -303,7 +277,7 @@ export class PeripheralRuntimeEventService {
           summary: 'USB 存储只读',
           detail: 'USB 存储策略为只读模式。',
           usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
+          effectivePolicyLabel: PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
           matchedPolicyKind: 'usb_storage_read_only'
         }
       }
@@ -379,7 +353,7 @@ export class PeripheralRuntimeEventService {
       return '已禁用'
     }
     if (deviceType === PeripheralType.USB_STORAGE) {
-      return getUsbStoragePolicyLabel(snapshot.usbStoragePolicy)
+      return PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy)
     }
     return '已启用'
   }
@@ -388,30 +362,34 @@ export class PeripheralRuntimeEventService {
     return `${info.deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
   }
 
+  private static getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
+    switch (policy) {
+      case UsbStoragePolicy.READ_WRITE:
+        return '读写'
+      case UsbStoragePolicy.READ_ONLY:
+        return '只读'
+      case UsbStoragePolicy.DISABLED:
+        return '禁止访问'
+      default:
+        return '未知'
+    }
+  }
+
   private static resolveUsbEventInfo(data: commonEventManager.CommonEventData): ResolvedUsbEventInfo {
     const payloads = PeripheralRuntimeEventService.collectPayloadSources(data)
-    const vendorId = PeripheralRuntimeEventService.pickNumber(payloads, ['vendorId', 'vid', 'vendor_id'])
-    const productId = PeripheralRuntimeEventService.pickNumber(payloads, ['productId', 'pid', 'product_id'])
-    const resolvedOccurAt = PeripheralRuntimeEventService.pickNumber(payloads, ['timestamp', 'time', 'occurAt'])
+    const vendorId = PeripheralRuntimeEventService.resolveVendorId(payloads)
+    const productId = PeripheralRuntimeEventService.resolveProductId(payloads)
+    const resolvedOccurAt = PeripheralRuntimeEventService.resolveOccurAt(payloads)
     const occurAt = Number.isFinite(resolvedOccurAt) && resolvedOccurAt > 0 ? resolvedOccurAt : Date.now()
-    const deviceNameField = PeripheralRuntimeEventService.pickString(
-      payloads,
-      ['deviceName', 'name', 'productName', 'product', 'manufacturerName']
-    )
-    const productName = PeripheralRuntimeEventService.pickString(
-      payloads,
-      ['productName', 'product', 'deviceName', 'name']
-    )
-    const manufacturerName = PeripheralRuntimeEventService.pickString(
-      payloads,
-      ['manufacturerName', 'manufacturer', 'vendorName']
-    )
-    let baseClass = PeripheralRuntimeEventService.pickNumber(payloads, ['baseClass', 'classCode', 'deviceClass', 'clazz'])
+    const deviceNameField = PeripheralRuntimeEventService.resolveRawDeviceName(payloads)
+    const productName = PeripheralRuntimeEventService.resolveProductName(payloads)
+    const manufacturerName = PeripheralRuntimeEventService.resolveManufacturerName(payloads)
+    let baseClass = PeripheralRuntimeEventService.resolveBaseClass(payloads)
     if (!Number.isFinite(baseClass) || baseClass <= 0) {
       baseClass = PeripheralRuntimeEventService.pickInterfaceClass(payloads)
     }
-    const resolvedSubClass = PeripheralRuntimeEventService.pickNumber(payloads, ['subClass', 'subclass', 'usbSubClass'])
-    const resolvedProtocol = PeripheralRuntimeEventService.pickNumber(payloads, ['protocol', 'usbProtocol'])
+    const resolvedSubClass = PeripheralRuntimeEventService.resolveSubClass(payloads)
+    const resolvedProtocol = PeripheralRuntimeEventService.resolveProtocol(payloads)
     const subClass = Number.isFinite(resolvedSubClass) ? resolvedSubClass : 0
     const protocol = Number.isFinite(resolvedProtocol) ? resolvedProtocol : 0
 
@@ -424,8 +402,7 @@ export class PeripheralRuntimeEventService {
       deviceName = deviceNameField || (hasVidPid ? 'USB 设备' : '未识别 USB 设备')
     }
 
-    const detail = PeripheralRuntimeEventService.pickString(payloads, ['detail', 'message', 'description']) ||
-      (manufacturerName.length > 0 ? `manufacturer=${manufacturerName}` : '')
+    const detail = PeripheralRuntimeEventService.resolveDetail(payloads, manufacturerName)
 
     return {
       vendorId: hasVidPid ? vendorId : Number.NaN,
@@ -462,8 +439,7 @@ export class PeripheralRuntimeEventService {
       return
     }
     PeripheralRuntimeEventService.lastSeenByKey.set(dedupeKey, now)
-    const appendPromise = PeripheralTraceRepository.append(record)
-    appendPromise.then((ok: boolean) => {
+    void PeripheralTraceRepository.append(record).then((ok: boolean) => {
       if (!ok) {
         hilog.warn(DOMAIN, TAG, `append runtime record failed, deviceId=${record.deviceId}`)
       }
@@ -490,27 +466,76 @@ export class PeripheralRuntimeEventService {
     })
   }
 
-  private static collectPayloadSources(data: commonEventManager.CommonEventData): Record<string, Object>[] {
-    const sources: Record<string, Object>[] = []
+  private static collectPayloadSources(data: commonEventManager.CommonEventData): EventPayloadRecord[] {
+    const sources: EventPayloadRecord[] = []
     const root = PeripheralRuntimeEventService.toRecord(data as Object)
+    const parameters = PeripheralRuntimeEventService.toRecord(data.parameters as Object)
+    const want = PeripheralRuntimeEventService.readObjectField(root, 'want')
+    const wantParameters = PeripheralRuntimeEventService.readObjectField(want, 'parameters')
+    const rootData = PeripheralRuntimeEventService.parseJsonObjectField(root, 'data')
+    const wantData = PeripheralRuntimeEventService.parseJsonObjectField(want, 'data')
+
     PeripheralRuntimeEventService.pushRecord(sources, root)
-    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.toRecord(data.parameters as Object))
-
-    const want = PeripheralRuntimeEventService.readNestedRecord(root, 'want')
+    PeripheralRuntimeEventService.pushRecord(sources, parameters)
     PeripheralRuntimeEventService.pushRecord(sources, want)
-    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readNestedRecord(want, 'parameters'))
+    PeripheralRuntimeEventService.pushRecord(sources, wantParameters)
+    PeripheralRuntimeEventService.pushRecord(sources, rootData)
+    PeripheralRuntimeEventService.pushRecord(sources, wantData)
 
-    for (let index = 0; index < sources.length; index++) {
-      const source = sources[index]
-      PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.parseJsonObjectRecord(source['data']))
-      PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readNestedRecord(source, 'device'))
-      PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readNestedRecord(source, 'usbDevice'))
-      PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readNestedRecord(source, 'usb_device'))
-    }
+    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readUsbDeviceField(root))
+    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readUsbDeviceField(parameters))
+    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readUsbDeviceField(want))
+    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readUsbDeviceField(wantParameters))
+    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readUsbDeviceField(rootData))
+    PeripheralRuntimeEventService.pushRecord(sources, PeripheralRuntimeEventService.readUsbDeviceField(wantData))
     return sources
   }
 
-  private static pickNumber(sources: Record<string, Object>[], keys: string[]): number {
+  private static resolveVendorId(sources: EventPayloadRecord[]): number {
+    return PeripheralRuntimeEventService.pickNumber(sources, ['vendorId', 'vid', 'vendor_id'])
+  }
+
+  private static resolveProductId(sources: EventPayloadRecord[]): number {
+    return PeripheralRuntimeEventService.pickNumber(sources, ['productId', 'pid', 'product_id'])
+  }
+
+  private static resolveOccurAt(sources: EventPayloadRecord[]): number {
+    return PeripheralRuntimeEventService.pickNumber(sources, ['timestamp', 'time', 'occurAt'])
+  }
+
+  private static resolveRawDeviceName(sources: EventPayloadRecord[]): string {
+    return PeripheralRuntimeEventService.pickString(
+      sources,
+      ['deviceName', 'name', 'productName', 'product', 'manufacturerName']
+    )
+  }
+
+  private static resolveProductName(sources: EventPayloadRecord[]): string {
+    return PeripheralRuntimeEventService.pickString(sources, ['productName', 'product', 'deviceName', 'name'])
+  }
+
+  private static resolveManufacturerName(sources: EventPayloadRecord[]): string {
+    return PeripheralRuntimeEventService.pickString(sources, ['manufacturerName', 'manufacturer', 'vendorName'])
+  }
+
+  private static resolveBaseClass(sources: EventPayloadRecord[]): number {
+    return PeripheralRuntimeEventService.pickNumber(sources, ['baseClass', 'classCode', 'deviceClass', 'clazz'])
+  }
+
+  private static resolveSubClass(sources: EventPayloadRecord[]): number {
+    return PeripheralRuntimeEventService.pickNumber(sources, ['subClass', 'subclass', 'usbSubClass'])
+  }
+
+  private static resolveProtocol(sources: EventPayloadRecord[]): number {
+    return PeripheralRuntimeEventService.pickNumber(sources, ['protocol', 'usbProtocol'])
+  }
+
+  private static resolveDetail(sources: EventPayloadRecord[], manufacturerName: string): string {
+    return PeripheralRuntimeEventService.pickString(sources, ['detail', 'message', 'description']) ||
+      (manufacturerName.length > 0 ? `manufacturer=${manufacturerName}` : '')
+  }
+
+  private static pickNumber(sources: EventPayloadRecord[], keys: string[]): number {
     for (const source of sources) {
       for (const key of keys) {
         const value = source[key]
@@ -533,7 +558,7 @@ export class PeripheralRuntimeEventService {
     return Number.NaN
   }
 
-  private static pickString(sources: Record<string, Object>[], keys: string[]): string {
+  private static pickString(sources: EventPayloadRecord[], keys: string[]): string {
     for (const source of sources) {
       for (const key of keys) {
         const value = source[key]
@@ -545,7 +570,7 @@ export class PeripheralRuntimeEventService {
     return ''
   }
 
-  private static pickInterfaceClass(sources: Record<string, Object>[]): number {
+  private static pickInterfaceClass(sources: EventPayloadRecord[]): number {
     for (const source of sources) {
       const configs = PeripheralRuntimeEventService.toRecordArray(source['configs'])
       for (const config of configs) {
@@ -576,31 +601,41 @@ export class PeripheralRuntimeEventService {
     return ''
   }
 
-  private static pushRecord(target: Record<string, Object>[], value: Record<string, Object> | undefined): void {
+  private static pushRecord(target: EventPayloadRecord[], value: EventPayloadRecord | undefined): void {
     if (value === undefined) {
+      return
+    }
+    if (target.some((item: EventPayloadRecord) => item === value)) {
       return
     }
     target.push(value)
   }
 
-  private static toRecord(value: Object | undefined | null): Record<string, Object> | undefined {
+  private static toRecord(value: Object | undefined | null): EventPayloadRecord | undefined {
     if (!value || typeof value !== 'object') {
       return undefined
     }
-    return value as Record<string, Object>
+    return value as EventPayloadRecord
   }
 
-  private static readNestedRecord(
-    source: Record<string, Object> | undefined,
+  private static readObjectField(
+    source: EventPayloadRecord | undefined,
     key: string
-  ): Record<string, Object> | undefined {
+  ): EventPayloadRecord | undefined {
     if (source === undefined) {
       return undefined
     }
     return PeripheralRuntimeEventService.toRecord(source[key])
   }
 
-  private static parseJsonObjectRecord(value: Object | undefined | null): Record<string, Object> | undefined {
+  private static parseJsonObjectField(
+    source: EventPayloadRecord | undefined,
+    key: string
+  ): EventPayloadRecord | undefined {
+    if (source === undefined) {
+      return undefined
+    }
+    const value = source[key]
     if (typeof value !== 'string') {
       return undefined
     }
@@ -615,11 +650,20 @@ export class PeripheralRuntimeEventService {
     }
   }
 
-  private static toRecordArray(value: Object | undefined | null): Record<string, Object>[] {
+  private static readUsbDeviceField(source: EventPayloadRecord | undefined): EventPayloadRecord | undefined {
+    if (source === undefined) {
+      return undefined
+    }
+    return PeripheralRuntimeEventService.readObjectField(source, 'device') ||
+      PeripheralRuntimeEventService.readObjectField(source, 'usbDevice') ||
+      PeripheralRuntimeEventService.readObjectField(source, 'usb_device')
+  }
+
+  private static toRecordArray(value: Object | undefined | null): EventPayloadRecord[] {
     if (!Array.isArray(value)) {
       return []
     }
-    const result: Record<string, Object>[] = []
+    const result: EventPayloadRecord[] = []
     for (const item of value as Object[]) {
       const record = PeripheralRuntimeEventService.toRecord(item)
       if (record) {
@@ -628,4 +672,6 @@ export class PeripheralRuntimeEventService {
     }
     return result
   }
+
 }
+

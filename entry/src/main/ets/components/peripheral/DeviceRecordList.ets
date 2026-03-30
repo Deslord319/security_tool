@@ -1,10 +1,6 @@
-import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
-import {
-  getPeripheralRecordActionLabel,
-  getPeripheralTypeLabel,
-  PeripheralConnectionRecord
-} from '../../models/DataModels'
-import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
+﻿import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
+import { PeripheralConnectionRecord } from '../../models/DataModels'
+import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../EmptyStatePanel'
@@ -117,10 +113,10 @@ export struct DeviceRecordList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
+      this.typeTag(this.getDeviceTypeLabel(record), 1.5)
 
       Row() {
-        Text(getPeripheralRecordActionLabel(record.action))
+        Text(this.getActionLabel(record))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.eventTextColor(record))
@@ -216,6 +212,36 @@ export struct DeviceRecordList {
     .layoutWeight(weight)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
+  }
+
+  private getDeviceTypeLabel(record: PeripheralConnectionRecord): string {
+    switch (record.deviceType) {
+      case 'usb_storage':
+        return 'USB 存储设备'
+      case 'usb_camera':
+        return 'USB 摄像头'
+      case 'usb_printer':
+        return 'USB 打印机'
+      case 'usb_hid':
+        return 'USB 人机输入设备'
+      case 'bluetooth':
+        return '蓝牙设备'
+      default:
+        return 'USB 其他设备'
+    }
+  }
+
+  private getActionLabel(record: PeripheralConnectionRecord): string {
+    switch (record.action) {
+      case 'connect':
+        return '连接'
+      case 'disconnect':
+        return '断开'
+      case 'intercept':
+        return '拦截'
+      default:
+        return '未知动作'
+    }
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {

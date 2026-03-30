@@ -1,6 +1,6 @@
-import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
-import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
+﻿import { AppColors, AppStyles } from '../../constants/AppConstants'
+import { PeripheralPolicyRecord } from '../../models/DataModels'
+import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
 
@@ -78,7 +78,7 @@ export struct PolicyList {
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .textAlign(TextAlign.Center)
-      Text('设备接入后会显示在这里，可直接设置允许接入或禁止访问。')
+      Text('设备接入后会显示在这里，可直接设置允许接入或禁止接入。')
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -130,7 +130,7 @@ export struct PolicyList {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
 
-      this.typeTag(getPeripheralTypeLabel(record.deviceType), 1.5)
+      this.typeTag(this.getDeviceTypeLabel(record), 1.5)
 
       Row() {
         Text(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
@@ -207,5 +207,22 @@ export struct PolicyList {
     .layoutWeight(weight)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
+  }
+
+  private getDeviceTypeLabel(record: PeripheralPolicyRecord): string {
+    switch (record.deviceType) {
+      case 'usb_storage':
+        return 'USB 存储设备'
+      case 'usb_camera':
+        return 'USB 摄像头'
+      case 'usb_printer':
+        return 'USB 打印机'
+      case 'usb_hid':
+        return 'USB 人机输入设备'
+      case 'bluetooth':
+        return '蓝牙设备'
+      default:
+        return 'USB 其他设备'
+    }
   }
 }

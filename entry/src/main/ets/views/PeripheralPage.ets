@@ -1,4 +1,4 @@
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
@@ -12,7 +12,6 @@ import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTa
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
-import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralService } from '../services/PeripheralService'
@@ -72,7 +71,7 @@ export struct PeripheralPage {
       this.renderVersion++
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
-      DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralReasons.INIT_FAILED))
+      DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.INIT_FAILED))
     }
   } 
 
@@ -108,20 +107,30 @@ export struct PeripheralPage {
     } catch (_err) {
     } finally {
       this.usbLoadingDialogController = undefined
+      this.usbLoadingOpenedAt = 0
     }
-    this.usbLoadingOpenedAt = 0
+  }
+
+  private async waitForUsbLoadingDialogMinimumDuration(): Promise<void> {
+    if (!this.usbLoadingDialogController) {
+      return
+    }
+    const elapsed = Date.now() - this.usbLoadingOpenedAt
+    const remainingDuration = PeripheralStrings.minUsbLoadingDuration - elapsed
+    if (remainingDuration <= 0) {
+      return
+    }
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), remainingDuration)
+    })
   }
 
   private async runUsbOperationWithLoading(message: string, operation: () => Promise<boolean>): Promise<boolean> {
     await this.openUsbLoadingDialog(message)
     try {
-      await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), 120))
       return await operation()
     } finally {
-      const remaining = PeripheralStrings.minUsbLoadingDuration - (Date.now() - this.usbLoadingOpenedAt)
-      if (remaining > 0) {
-        await new Promise<void>((resolve: () => void) => setTimeout(() => resolve(), remaining))
-      }
+      await this.waitForUsbLoadingDialogMinimumDuration()
       this.closeUsbLoadingDialog()
     }
   }
@@ -325,7 +334,6 @@ export struct PeripheralPage {
       }
       return
     }
-    this.renderVersion++
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
@@ -340,7 +348,6 @@ export struct PeripheralPage {
       }
       return
     }
-    this.renderVersion++
   }
 
   private async handlePolicyChange(record: PeripheralPolicyRecord, policyIndex: number): Promise<void> {
@@ -358,7 +365,6 @@ export struct PeripheralPage {
       }
       return
     }
-    this.renderVersion++
   }
 
   private async handleExportConnectionHistory(): Promise<void> {
@@ -466,3 +472,5 @@ export struct PeripheralPage {
       DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }
+
+

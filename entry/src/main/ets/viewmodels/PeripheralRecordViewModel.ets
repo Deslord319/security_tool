@@ -1,6 +1,6 @@
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
   PeripheralConnectionRecord,
@@ -63,10 +63,10 @@ export class PeripheralRecordViewModel {
 
   async exportConnectionHistory(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     if (this.records.length === 0) {
-      return { success: false, reason: PeripheralReasons.EMPTY_CONNECTION_HISTORY } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.EMPTY_CONNECTION_HISTORY } as ExportActionResult
     }
     if (!context) {
-      return { success: false, reason: PeripheralReasons.EXPORT_ENV_NOT_READY } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.EXPORT_ENV_NOT_READY } as ExportActionResult
     }
 
     try {
@@ -78,10 +78,10 @@ export class PeripheralRecordViewModel {
       })
       return result.success ?
         { success: true, fileName: result.fileName } as ExportActionResult :
-        { success: false, reason: PeripheralReasons.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
+        { success: false, reason: PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
-      return { success: false, reason: PeripheralReasons.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
     }
   }
 
@@ -164,3 +164,4 @@ export class PeripheralRecordViewModel {
     return normalized
   }
 }
+

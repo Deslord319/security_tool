@@ -1,6 +1,6 @@
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
@@ -46,7 +46,7 @@ export class PeripheralViewModel {
       })
       this.reasonCode = null
     } catch (err) {
-      this.reasonCode = PeripheralReasons.INIT_FAILED
+      this.reasonCode = PeripheralStrings.INIT_FAILED
       hilog.error(DOMAIN, TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
@@ -81,7 +81,7 @@ export class PeripheralViewModel {
     if (this.adminState.activated) {
       return true
     }
-    this.reasonCode = PeripheralReasons.ADMIN_REQUIRED
+    this.reasonCode = PeripheralStrings.ADMIN_REQUIRED
     return false
   }
 
@@ -162,13 +162,13 @@ export class PeripheralViewModel {
 
   async exportConnectionHistory(): Promise<ExportActionResult> {
     const result = await this.records.exportConnectionHistory(this.appContext)
-    this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasons.EXPORT_CONNECTION_HISTORY_FAILED)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED)
     return result
   }
 
   async exportPeripheralPolicyRecords(): Promise<ExportActionResult> {
     const result = await this.policy.exportRecords(this.appContext)
-    this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED)
     return result
   }
 
@@ -205,3 +205,4 @@ export class PeripheralViewModel {
     this.currentTab = index
   }
 }
+

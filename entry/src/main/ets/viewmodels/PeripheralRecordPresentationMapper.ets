@@ -1,9 +1,9 @@
-import {
+﻿import {
   formatLogTimestamp,
-  getPeripheralRecordPolicyHitLabel,
   PeripheralConnectionRecord,
   LogEventResult,
-  PeripheralMatchedPolicyKind
+  PeripheralMatchedPolicyKind,
+  PeripheralRecordPolicyHit
 } from '../models/DataModels'
 
 export interface PeripheralConnectionHistoryItem {
@@ -31,6 +31,17 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
   }
 }
 
+function getPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
+  switch (policyHit) {
+    case 'allow':
+      return '允许'
+    case 'deny':
+      return '阻止'
+    default:
+      return '未知'
+  }
+}
+
 export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
     return '待判定'
@@ -38,7 +49,7 @@ export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionR
   if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
     return getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)
   }
-  return getPeripheralRecordPolicyHitLabel(record.policyHit)
+  return getPolicyHitLabel(record.policyHit)
 }
 
 export function getPeripheralConnectionResultLabel(record: PeripheralConnectionRecord): string {

@@ -1,7 +1,22 @@
-import { CommonStrings } from '../CommonStrings'
-import { PeripheralReasons } from './PeripheralReasons'
+﻿import { CommonStrings } from '../CommonStrings'
 
 export class PeripheralStrings {
+  static readonly INIT_FAILED: string = 'init_failed'
+  static readonly ADMIN_REQUIRED: string = 'admin_required'
+  static readonly INVALID_DEVICE_ID: string = 'invalid_device_id'
+  static readonly EXPORT_ENV_NOT_READY: string = 'export_env_not_ready'
+  static readonly EMPTY_CONNECTION_HISTORY: string = 'empty_connection_history'
+  static readonly EMPTY_POLICY_RECORDS: string = 'empty_policy_records'
+  static readonly TOGGLE_INTERFACE_FAILED: string = 'toggle_interface_failed'
+  static readonly USB_STORAGE_POLICY_FAILED: string = 'usb_storage_policy_failed'
+  static readonly POLICY_CHANGE_FAILED: string = 'policy_change_failed'
+  static readonly EXPORT_CONNECTION_HISTORY_FAILED: string = 'export_connection_history_failed'
+  static readonly EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
+  static readonly READ_USB_STATUS_FAILED: string = 'read_usb_status'
+  static readonly READ_USB_STORAGE_POLICY_FAILED: string = 'read_usb_storage_policy'
+  static readonly SET_USB_INTERFACE_CONFLICT: string = 'set_usb_interface'
+  static readonly SET_USB_STORAGE_POLICY_CONFLICT: string = 'set_usb_storage_policy'
+
   static readonly policyOptions: string[] = ['允许接入', '禁止接入']
 
   static readonly usbLoadingMessage: string = '正在更新 USB 策略，请稍候...'
@@ -38,35 +53,35 @@ export class PeripheralStrings {
 
   static resolveReason(reason?: string | null): string {
     switch (reason) {
-      case PeripheralReasons.ADMIN_REQUIRED:
+      case PeripheralStrings.ADMIN_REQUIRED:
         return '请先激活企业管理员权限'
-      case PeripheralReasons.INIT_FAILED:
+      case PeripheralStrings.INIT_FAILED:
         return '外设管理初始化失败，请稍后重试'
-      case PeripheralReasons.INVALID_DEVICE_ID:
+      case PeripheralStrings.INVALID_DEVICE_ID:
         return '无法识别当前设备标识'
-      case PeripheralReasons.EXPORT_ENV_NOT_READY:
+      case PeripheralStrings.EXPORT_ENV_NOT_READY:
         return '导出环境尚未初始化，请稍后重试'
-      case PeripheralReasons.EMPTY_CONNECTION_HISTORY:
-        return '没有可导出的设备连接'
-      case PeripheralReasons.EMPTY_POLICY_RECORDS:
+      case PeripheralStrings.EMPTY_CONNECTION_HISTORY:
+        return '没有可导出的设备连接记录'
+      case PeripheralStrings.EMPTY_POLICY_RECORDS:
         return '暂无可导出的设备策略'
-      case PeripheralReasons.TOGGLE_INTERFACE_FAILED:
+      case PeripheralStrings.TOGGLE_INTERFACE_FAILED:
         return '接口管控设置失败，请稍后重试'
-      case PeripheralReasons.USB_STORAGE_POLICY_FAILED:
+      case PeripheralStrings.USB_STORAGE_POLICY_FAILED:
         return '设置 USB 存储策略失败，请稍后重试'
-      case PeripheralReasons.POLICY_CHANGE_FAILED:
+      case PeripheralStrings.POLICY_CHANGE_FAILED:
         return '修改设备策略失败，请稍后重试'
-      case PeripheralReasons.EXPORT_CONNECTION_HISTORY_FAILED:
+      case PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED:
         return '导出记录失败，请稍后重试'
-      case PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED:
+      case PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED:
         return '导出策略失败，请稍后重试'
-      case PeripheralReasons.READ_USB_STATUS_FAILED:
+      case PeripheralStrings.READ_USB_STATUS_FAILED:
         return '读取 USB 状态失败，请稍后重试'
-      case PeripheralReasons.READ_USB_STORAGE_POLICY_FAILED:
+      case PeripheralStrings.READ_USB_STORAGE_POLICY_FAILED:
         return '读取 USB 存储策略失败，请稍后重试'
-      case PeripheralReasons.SET_USB_INTERFACE_CONFLICT:
+      case PeripheralStrings.SET_USB_INTERFACE_CONFLICT:
         return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
-      case PeripheralReasons.SET_USB_STORAGE_POLICY_CONFLICT:
+      case PeripheralStrings.SET_USB_STORAGE_POLICY_CONFLICT:
         return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
       default:
         return reason && reason.trim().length > 0 ? reason : '请稍后重试'

@@ -1,5 +1,6 @@
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
   PeripheralConnectionRecord,
@@ -7,7 +8,6 @@ import {
   PeripheralPolicyRecord,
   PeripheralType
 } from '../models/DataModels'
-import { PeripheralReasons } from '../constants/modules/PeripheralReasons'
 import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
 import { PeripheralPolicyService } from '../services/PeripheralPolicyService'
@@ -59,7 +59,7 @@ export class PeripheralPolicyViewModel {
   ): Promise<string | null> {
     const normalizedDeviceId = this.normalizeDeviceKey(deviceId)
     if (normalizedDeviceId.length === 0) {
-      return PeripheralReasons.INVALID_DEVICE_ID
+      return PeripheralStrings.INVALID_DEVICE_ID
     }
 
     try {
@@ -71,10 +71,10 @@ export class PeripheralPolicyViewModel {
         updatedAt: Date.now()
       }
       const success = await PeripheralDevicePolicyRepository.set(record)
-      return success ? null : PeripheralReasons.POLICY_CHANGE_FAILED
+      return success ? null : PeripheralStrings.POLICY_CHANGE_FAILED
     } catch (err) {
       hilog.error(DOMAIN, TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralReasons.POLICY_CHANGE_FAILED
+      return PeripheralStrings.POLICY_CHANGE_FAILED
     }
   }
 
@@ -84,10 +84,10 @@ export class PeripheralPolicyViewModel {
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     if (this.records.length === 0) {
-      return { success: false, reason: PeripheralReasons.EMPTY_POLICY_RECORDS } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.EMPTY_POLICY_RECORDS } as ExportActionResult
     }
     if (!context) {
-      return { success: false, reason: PeripheralReasons.EXPORT_ENV_NOT_READY } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.EXPORT_ENV_NOT_READY } as ExportActionResult
     }
 
     try {
@@ -99,10 +99,10 @@ export class PeripheralPolicyViewModel {
       })
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult
-        : { success: false, reason: PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
+        : { success: false, reason: PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     } catch (err) {
       hilog.error(DOMAIN, TAG, `exportRecords failed: ${JSON.stringify(err)}`)
-      return { success: false, reason: PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     }
   }
 
@@ -161,3 +161,4 @@ export class PeripheralPolicyViewModel {
     return normalized
   }
 }
+
