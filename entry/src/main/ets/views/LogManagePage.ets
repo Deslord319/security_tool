@@ -351,6 +351,7 @@ export struct LogManagePage {
     blockedCount: 0,
     byType: new Map<LogEventType, number>()
   }
+  @State statsRenderVersion: number = 0
 
   @State filterEventType: number = -1
   @State filterResult: number = -1
@@ -423,6 +424,11 @@ export struct LogManagePage {
     this.logEntries = LogStorageService.queryEntries(filter)
     this.statistics = LogStorageService.getStatistics()
     this.updatePagedEntries()
+    this.statsRenderVersion = this.statsRenderVersion + 1
+    hilog.info(DOMAIN, TAG,
+      `refreshData complete: filterEventType=${this.filterEventType}, entries=${this.logEntries.length}, ` +
+      `paged=${this.pagedLogEntries.length}, total=${this.statistics.totalCount}, today=${this.statistics.todayCount}, ` +
+      `blocked=${this.statistics.blockedCount}, statsRenderVersion=${this.statsRenderVersion}`)
   }
 
   private getCurrentPageSize(): number {
@@ -645,7 +651,9 @@ export struct LogManagePage {
       if (this.showSettings) {
         this.storageSettingsView()
       } else {
-        this.statisticsBar()
+        ForEach([this.statsRenderVersion], (version: number) => {
+          this.statisticsBar()
+        }, (version: number) => `statistics-bar-${version}`)
         this.filterToolbar()
         this.filterHintView()
         this.logListView()
