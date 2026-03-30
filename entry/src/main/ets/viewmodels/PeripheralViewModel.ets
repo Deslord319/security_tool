@@ -140,12 +140,19 @@ export class PeripheralViewModel {
     if (!this.ensureAdminReady()) {
       return false
     }
-    this.reasonCode = await this.policy.changePolicy(deviceId, deviceType, policyIndex)
-    if (this.reasonCode !== null) {
-      return false
+    this.policy.startUpdate(deviceId)
+    this.notifyRefresh('policyChangeStart')
+    try {
+      this.reasonCode = await this.policy.changePolicy(deviceId, deviceType, policyIndex)
+      if (this.reasonCode !== null) {
+        return false
+      }
+      await this.reloadAllData()
+      return true
+    } finally {
+      this.policy.endUpdate(deviceId)
+      this.notifyRefresh('policyChangeFinish')
     }
-    await this.reloadAllData()
-    return true
   }
 
   async exportConnectionHistory(): Promise<ExportActionResult> {

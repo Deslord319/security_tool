@@ -37,6 +37,25 @@ export class AppColors {
   static readonly BORDER_OPACITY: number = 0.1
 
   static readonly TEXT_MUTED: string = '#9E9E9E'
+  
+  // Dashboard 渐变色 end 值
+  static readonly GRADIENT_FIREWALL_END: string = '#00C6FF'
+  static readonly GRADIENT_LOG_END: string = '#30D158'
+  static readonly GRADIENT_PERIPHERAL_START: string = '#5856D6'
+  static readonly GRADIENT_PERIPHERAL_END: string = '#AF52DE'
+  static readonly GRADIENT_IDENTITY_END: string = '#FFCC00'
+  static readonly GRADIENT_TOOL_START: string = '#9095A1'
+  static readonly GRADIENT_TOOL_END: string = '#D8DCE3'
+  static readonly GRADIENT_HELP_START: string = '#FF8A80'
+  static readonly GRADIENT_HELP_END: string = '#FFB4A8'
+  
+  // Firewall 主题颜色
+  static readonly FIREWALL_SELECTED_CARD_BG_DARK: string = '#243140'
+  static readonly FIREWALL_SELECTED_CARD_BG_LIGHT: string = '#EEF6FF'
+  static readonly FIREWALL_SELECTED_ICON_BORDER_DARK: string = '#0F1720'
+  static readonly FIREWALL_SELECTED_ICON_BORDER_LIGHT: string = '#FFFFFF'
+  static readonly FIREWALL_SELECTED_SHADOW_DARK: string = '#66000000'
+  static readonly FIREWALL_SELECTED_SHADOW_LIGHT: string = '#22000000'
 }
 
 export class AppStyles {

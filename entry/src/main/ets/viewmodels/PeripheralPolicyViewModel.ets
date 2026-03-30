@@ -33,6 +33,14 @@ export class PeripheralPolicyViewModel {
   records: PeripheralPolicyRecord[] = []
   updatingKeys: string[] = []
 
+  resolveDeviceKey(deviceId: string): string | null {
+    const parsed = parseUsbDeviceId(deviceId)
+    if (!parsed) {
+      return null
+    }
+    return formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
+  }
+
   reloadWhitelistBlacklist(): void {
     try {
       this.whitelistBlacklistState.usbWhitelist = PeripheralService.getUsbWhitelistWithResult().data ?? []
@@ -58,6 +66,18 @@ export class PeripheralPolicyViewModel {
     return this.updatingKeys.includes(deviceId) || this.updatingKeys.includes(deviceId.toUpperCase())
   }
 
+  startUpdate(deviceId: string): void {
+    const deviceKey = this.resolveDeviceKey(deviceId) ?? deviceId.toUpperCase()
+    if (!this.updatingKeys.includes(deviceKey)) {
+      this.updatingKeys = [...this.updatingKeys, deviceKey]
+    }
+  }
+
+  endUpdate(deviceId: string): void {
+    const deviceKey = this.resolveDeviceKey(deviceId) ?? deviceId.toUpperCase()
+    this.updatingKeys = this.updatingKeys.filter((item: string) => item !== deviceKey)
+  }
+
   resetUpdatingState(): void {
     this.updatingKeys = []
   }
@@ -68,10 +88,8 @@ export class PeripheralPolicyViewModel {
       return PeripheralReasons.INVALID_DEVICE_ID
     }
 
-    const deviceKey = formatUsbDeviceId(parsed.vendorId, parsed.productId).toUpperCase()
-    this.startUpdate(deviceKey)
     try {
-      const result = PeripheralService.switchUsbDevicePolicyWithResult(
+      const result = await PeripheralService.switchUsbDevicePolicyWithResult(
         { vendorId: parsed.vendorId, productId: parsed.productId },
         deviceType,
         policyIndex === 0 ? PeripheralService.USB_DEVICE_POLICY_ALLOW : PeripheralService.USB_DEVICE_POLICY_DENY
@@ -80,8 +98,6 @@ export class PeripheralPolicyViewModel {
     } catch (err) {
       hilog.error(DOMAIN, TAG, `changePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralReasons.POLICY_CHANGE_FAILED
-    } finally {
-      this.endUpdate(deviceKey)
     }
   }
 
@@ -107,16 +123,6 @@ export class PeripheralPolicyViewModel {
       hilog.error(DOMAIN, TAG, `exportRecords failed: ${JSON.stringify(err)}`)
       return { success: false, reason: PeripheralReasons.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     }
-  }
-
-  private startUpdate(deviceId: string): void {
-    if (!this.updatingKeys.includes(deviceId)) {
-      this.updatingKeys = [...this.updatingKeys, deviceId]
-    }
-  }
-
-  private endUpdate(deviceId: string): void {
-    this.updatingKeys = this.updatingKeys.filter((item: string) => item !== deviceId)
   }
 
   private normalizeReason(stage: string | undefined): string {

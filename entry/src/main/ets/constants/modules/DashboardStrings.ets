@@ -20,10 +20,10 @@ export class DashboardStrings {
   static readonly statBlockedEvents: string = '已阻止事件'
   static readonly statTotalLogs: string = '日志总量'
 
-  static readonly firewallGradient: DashboardGradient = { start: AppColors.BRAND_PRIMARY, end: '#00C6FF' }
-  static readonly logManageGradient: DashboardGradient = { start: AppColors.SUCCESS, end: '#30D158' }
-  static readonly peripheralGradient: DashboardGradient = { start: '#5856D6', end: '#AF52DE' }
-  static readonly identityGradient: DashboardGradient = { start: AppColors.WARNING, end: '#FFCC00' }
-  static readonly toolSettingsGradient: DashboardGradient = { start: '#9095A1', end: '#D8DCE3' }
-  static readonly helpFeedbackGradient: DashboardGradient = { start: '#FF8A80', end: '#FFB4A8' }
+  static readonly firewallGradient: DashboardGradient = { start: AppColors.BRAND_PRIMARY, end: AppColors.GRADIENT_FIREWALL_END }
+  static readonly logManageGradient: DashboardGradient = { start: AppColors.SUCCESS, end: AppColors.GRADIENT_LOG_END }
+  static readonly peripheralGradient: DashboardGradient = { start: AppColors.GRADIENT_PERIPHERAL_START, end: AppColors.GRADIENT_PERIPHERAL_END }
+  static readonly identityGradient: DashboardGradient = { start: AppColors.WARNING, end: AppColors.GRADIENT_IDENTITY_END }
+  static readonly toolSettingsGradient: DashboardGradient = { start: AppColors.GRADIENT_TOOL_START, end: AppColors.GRADIENT_TOOL_END }
+  static readonly helpFeedbackGradient: DashboardGradient = { start: AppColors.GRADIENT_HELP_START, end: AppColors.GRADIENT_HELP_END }
 }

@@ -62,13 +62,13 @@ export class FirewallStrings {
   static readonly publicModeAccent: string = AppColors.BRAND_PRIMARY
   static readonly privateModeAccent: string = AppColors.SUCCESS
   static readonly customModeAccent: string = AppColors.WARNING
-  static readonly selectedCardBgDark: string = '#243140'
-  static readonly selectedCardBgLight: string = '#EEF6FF'
-  static readonly selectedIconBorderDark: string = '#0F1720'
-  static readonly selectedIconBorderLight: string = '#FFFFFF'
-  static readonly selectedShadowDark: string = '#66000000'
-  static readonly selectedShadowLight: string = '#22000000'
-  static readonly lightStatusText: string = '#FFFFFF'
+  static readonly selectedCardBgDark: string = AppColors.FIREWALL_SELECTED_CARD_BG_DARK
+  static readonly selectedCardBgLight: string = AppColors.FIREWALL_SELECTED_CARD_BG_LIGHT
+  static readonly selectedIconBorderDark: string = AppColors.FIREWALL_SELECTED_ICON_BORDER_DARK
+  static readonly selectedIconBorderLight: string = AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
+  static readonly selectedShadowDark: string = AppColors.FIREWALL_SELECTED_SHADOW_DARK
+  static readonly selectedShadowLight: string = AppColors.FIREWALL_SELECTED_SHADOW_LIGHT
+  static readonly lightStatusText: string = AppColors.FIREWALL_SELECTED_ICON_BORDER_LIGHT
 
   static getModeTitle(mode: FirewallPresetMode): string {
     switch (mode) {
