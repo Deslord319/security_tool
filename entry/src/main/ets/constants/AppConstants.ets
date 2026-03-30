@@ -76,6 +76,26 @@ export class AppStyles {
   static readonly FONT_SIZE_BODY: number = 14
   static readonly FONT_SIZE_SMALL: number = 13
   static readonly FONT_SIZE_CAPTION: number = 12
+  
+  // 间距常量（按需定义）
+  static readonly SPACING_TAB_BAR_ITEM_HORIZONTAL: number = 16
+  static readonly SPACING_TAB_BAR_ITEM_VERTICAL: number = 10
+  static readonly SPACING_TAB_BAR_PADDING: number = 14
+  static readonly SPACING_CHIP: number = 4
+  static readonly SPACING_LIST_ITEM: number = 18
+  static readonly SPACING_DIALOG: number = 24
+  static readonly SPACING_CARD: number = 20
+  
+  // 圆角常量
+  static readonly RADIUS_CHIP: number = 10
+  
+  // 字体大小常量
+  static readonly FONT_SIZE_XS: number = 10
+  static readonly FONT_SIZE_LG: number = 15
+  static readonly FONT_SIZE_XXL: number = 20
+  
+  // 分隔线
+  static readonly DIVIDER_HEIGHT: number = 1
 }
 
 export class ActionButtonStyles {

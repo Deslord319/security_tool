@@ -161,7 +161,7 @@ export struct PeripheralPage {
         .fontColor(index === this.currentTabIndex ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(index === this.currentTabIndex ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }
-    .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+    .padding({ left: AppStyles.SPACING_TAB_BAR_ITEM_HORIZONTAL, right: AppStyles.SPACING_TAB_BAR_ITEM_HORIZONTAL, top: AppStyles.SPACING_TAB_BAR_ITEM_VERTICAL, bottom: AppStyles.SPACING_TAB_BAR_ITEM_VERTICAL })
   }
 
   build() {

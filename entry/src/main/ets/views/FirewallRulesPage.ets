@@ -417,11 +417,11 @@ export struct FirewallRulesPage {
         .fontWeight(FontWeight.Medium)
         .fontColor(this.currentTab === index ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(this.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.SPACING_CHIP / 2, bottom: AppStyles.SPACING_CHIP / 2 })
         .backgroundColor(this.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BG_COMPONENT)
         .borderRadius(10)
     }
-    .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+    .padding({ left: AppStyles.SPACING_TAB_BAR_PADDING, right: AppStyles.SPACING_TAB_BAR_PADDING, top: AppStyles.SPACING_CHIP, bottom: AppStyles.SPACING_CHIP })
     .backgroundColor(this.currentTab === index ? AppColors.getColors(this.currentTheme).BG_CARD : Color.Transparent)
     .borderRadius(AppStyles.RADIUS_MD)
   }
@@ -446,7 +446,7 @@ export struct FirewallRulesPage {
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontWeight(FontWeight.Medium)
               .fontColor('#8A5200')
-              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
               .backgroundColor('#FFE8B3')
               .borderRadius(10)
 
@@ -456,7 +456,7 @@ export struct FirewallRulesPage {
               .layoutWeight(1)
           }
           .width('100%')
-          .padding(12)
+          .padding(AppStyles.PADDING_MD)
           .backgroundColor('#FFF7E6')
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: 1, color: '#FFD591' })
@@ -585,21 +585,21 @@ export struct FirewallRulesPage {
                         .fontColor(this.getRuleTypeTextColor(rule.type))
                         .backgroundColor(this.getRuleTypeBgColor(rule.type))
                         .borderRadius(10)
-                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
 
                       Text(this.getDirectionLabel(rule.direction))
                         .fontSize(AppStyles.FONT_SIZE_CAPTION)
                         .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
                         .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
                         .borderRadius(10)
-                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
 
                       Text(this.getActionLabel(rule.action))
                         .fontSize(AppStyles.FONT_SIZE_CAPTION)
                         .fontColor(this.getActionTextColor(rule.action))
                         .backgroundColor(this.getActionBgColor(rule.action))
                         .borderRadius(10)
-                        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
                     }
                   }
                   .layoutWeight(1)
@@ -628,7 +628,7 @@ export struct FirewallRulesPage {
                 .width('100%')
               }
               .width('100%')
-              .padding(18)
+              .padding(AppStyles.PADDING_XL)
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               .borderRadius(AppStyles.RADIUS_LG)
               .border({
