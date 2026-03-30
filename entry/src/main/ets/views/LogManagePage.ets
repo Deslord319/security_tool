@@ -21,7 +21,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { HoverUtils } from '../utils/HoverUtils'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
 import { DetailDialogShell } from '../components/DetailDialogShell'
 import { SubPageHeader } from '../components/SubPageHeader'
@@ -31,6 +30,8 @@ import { FormControlUtils } from '../utils/FormControlUtils'
 import { LogStorageSettingsViewModel } from '../viewmodels/LogStorageSettingsViewModel'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { DialogService } from '../utils/DialogService'
+import { MetricSummaryCard } from '../components/MetricSummaryCard'
+import { DashboardStatusKind } from '../models/DashboardModels'
 
 const TAG = 'LogManagePage'
 const DOMAIN = 0x0012
@@ -314,7 +315,6 @@ export struct LogManagePage {
     LOG_RETENTION_OPTIONS.map((value: number): SelectOption => ({ value: `${value}` } as SelectOption))
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
-  @State hoveredStatIndex: number = -1
   @State logEntries: LogEntry[] = []
   @State pagedLogEntries: LogEntry[] = []
   @State currentPage: number = 1
@@ -336,9 +336,8 @@ export struct LogManagePage {
   @State isLoading: boolean = false
   @State storageSettingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
 
-  private refreshTimerId: number = -1
+  private logStorageListenerId: number = -1
   private detailDialogController?: CustomDialogController
-  private readonly REFRESH_INTERVAL_MS: number = 1500
   private readonly SETTINGS_FORM_CONTROL_WIDTH: number = 140
   private readonly pageSizeOptions: number[] = [20, 50, 100]
   private eventTypeFilterOptions: SelectOption[] = [
@@ -354,26 +353,16 @@ export struct LogManagePage {
 
   aboutToAppear() {
     hilog.info(DOMAIN, TAG, `aboutToAppear: showSettings=${this.showSettings}, filterEventType=${this.filterEventType}`)
-    this.initServices()
-    this.startRefreshTimer()
+    void this.initServices()
   }
 
   aboutToDisappear() {
     hilog.info(DOMAIN, TAG, `aboutToDisappear: showSettings=${this.showSettings}, filterEventType=${this.filterEventType}`)
-    if (this.refreshTimerId >= 0) {
-      clearInterval(this.refreshTimerId)
-      this.refreshTimerId = -1
+    if (this.logStorageListenerId > 0) {
+      LogStorageService.removeChangeListener(this.logStorageListenerId)
+      this.logStorageListenerId = -1
     }
     this.closeLogDetailDialog()
-  }
-
-  private startRefreshTimer(): void {
-    if (this.refreshTimerId >= 0) {
-      return
-    }
-    this.refreshTimerId = setInterval(() => {
-      this.refreshAll()
-    }, this.REFRESH_INTERVAL_MS)
   }
 
   async initServices() {
@@ -384,6 +373,7 @@ export struct LogManagePage {
       this.storageSettingsViewModel.initialize(LogStorageService.getConfig())
 
       this.refreshAll()
+      this.registerLogStorageListener()
       hilog.info(0x0006, TAG, 'Services initialized')
     } catch (err) {
       hilog.error(0x0006, TAG, `initServices failed: ${JSON.stringify(err)}`)
@@ -393,6 +383,15 @@ export struct LogManagePage {
 
   private refreshAll() {
     this.refreshData()
+  }
+
+  private registerLogStorageListener(): void {
+    if (this.logStorageListenerId > 0) {
+      return
+    }
+    this.logStorageListenerId = LogStorageService.addChangeListener(() => {
+      this.refreshAll()
+    })
   }
 
   refreshData() {
@@ -680,11 +679,54 @@ export struct LogManagePage {
 
   @Builder
   statisticsBar() {
-    Row({ space: 12 }) {
-      this.statItem(0, LogManageStrings.statTotal, this.statistics.totalCount.toString(), AppColors.BRAND_PRIMARY)
-      this.statItem(1, LogManageStrings.statToday, this.statistics.todayCount.toString(), AppColors.SUCCESS)
-      this.statItem(2, LogManageStrings.statBlocked, this.statistics.blockedCount.toString(), AppColors.WARNING)
-      this.statItem(3, LogManageStrings.statCurrentShown, this.pagedLogEntries.length.toString(), AppColors.TEXT_MUTED)
+    GridRow({ columns: 4, gutter: 12 }) {
+      GridCol() {
+        this.metricStatCard(
+          LogManageStrings.statTotal,
+          this.statistics.totalCount.toString(),
+          '全部日志数量',
+          'neutral',
+          AppColors.BRAND_PRIMARY,
+          AppColors.GRADIENT_FIREWALL_END,
+          $r('app.media.folder')
+        )
+      }
+
+      GridCol() {
+        this.metricStatCard(
+          LogManageStrings.statToday,
+          this.statistics.todayCount.toString(),
+          '今日新增日志',
+          'success',
+          AppColors.SUCCESS,
+          AppColors.GRADIENT_LOG_END,
+          $r('app.media.log')
+        )
+      }
+
+      GridCol() {
+        this.metricStatCard(
+          LogManageStrings.statBlocked,
+          this.statistics.blockedCount.toString(),
+          '拦截结果事件',
+          'warning',
+          AppColors.WARNING,
+          AppColors.GRADIENT_IDENTITY_END,
+          $r('app.media.alert')
+        )
+      }
+
+      GridCol() {
+        this.metricStatCard(
+          LogManageStrings.statCurrentShown,
+          this.pagedLogEntries.length.toString(),
+          '当前页显示数量',
+          'neutral',
+          AppColors.TEXT_MUTED,
+          AppColors.GRADIENT_TOOL_END,
+          $r('app.media.dashboard')
+        )
+      }
     }
     .width('100%')
     .padding({
@@ -695,32 +737,25 @@ export struct LogManagePage {
   }
 
   @Builder
-  statItem(index: number, label: string, value: string, color: string) {
-    Column({ space: 4 }) {
-      Text(value)
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(color)
-      Text(label)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-    }
-    .layoutWeight(1)
-    .padding({ top: 12, bottom: 12 })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_MD)
-    .alignItems(HorizontalAlign.Center)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-    .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredStatIndex === index))
-    .translate({ y: HoverUtils.getTranslateY(this.hoveredStatIndex === index, 4) })
-    .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
-        this.hoveredStatIndex = isHover ? index : -1
-      })
+  private metricStatCard(
+    title: string,
+    primaryText: string,
+    secondaryText: string,
+    statusKind: DashboardStatusKind,
+    accentStart: string,
+    accentEnd: string,
+    icon: Resource
+  ) {
+    MetricSummaryCard({
+      title: title,
+      primaryText: primaryText,
+      secondaryText: secondaryText,
+      statusText: title,
+      statusKind: statusKind,
+      accentStart: accentStart,
+      accentEnd: accentEnd,
+      icon: icon,
+      clickable: false
     })
   }
 

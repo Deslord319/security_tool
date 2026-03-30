@@ -8,8 +8,7 @@ export struct CompactSummaryCard {
   @Prop title: string = ''
   @Prop valueText: string = ''
   @Prop description: string = ''
-  @Prop icon?: Resource
-  @Prop iconText: string = ''
+  @Prop icon: Resource = $r('app.media.shield')
   @Prop accentStart: string = AppColors.BRAND_PRIMARY
   @Prop accentEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Prop clickable: boolean = false
@@ -37,18 +36,11 @@ export struct CompactSummaryCard {
   build() {
     Row({ space: 12 }) {
       Column() {
-        if (this.icon !== undefined) {
-          Image(this.icon)
-            .width(18)
-            .height(18)
-            .fillColor(Color.White)
-            .draggable(false)
-        } else {
-          Text(this.iconText)
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-        }
+        Image(this.icon)
+          .width(18)
+          .height(18)
+          .fillColor(Color.White)
+          .draggable(false)
       }
       .width(36)
       .height(36)
