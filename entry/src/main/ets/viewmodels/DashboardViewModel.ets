@@ -15,7 +15,7 @@ import { RouteIds } from '../constants/RouteIds'
 
 const TAG = 'DashboardViewModel'
 const DOMAIN = LogDomains.DASHBOARD
-type DashboardQuickEntryId = typeof RouteIds.ENTRY_FIREWALL | typeof RouteIds.ENTRY_LOG | typeof RouteIds.ENTRY_PERIPHERAL | typeof RouteIds.ENTRY_IDENTITY | typeof RouteIds.ENTRY_TOOL_SETTINGS | typeof RouteIds.ENTRY_HELP_FEEDBACK
+type DashboardQuickEntryId = 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
 
 @Observed
 export class DashboardViewModel {

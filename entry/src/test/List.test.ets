@@ -15,6 +15,7 @@ import logAuditServiceTest from './log-manage/audit-service.test'
 import logStorageServiceTest from './log-manage/storage-service.test'
 import logStorageSettingsViewModelTest from './log-manage/storage-settings-viewmodel.test'
 import logRuntimeCollectorTest from './log-manage/runtime-collector.test'
+import logManageViewModelTest from './log-manage/viewmodel.test'
 import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import dataModelsTest from './models/data-models.test'
@@ -51,6 +52,7 @@ export default function testsuite() {
   logStorageServiceTest()
   logStorageSettingsViewModelTest()
   logRuntimeCollectorTest()
+  logManageViewModelTest()
 
   // Tool settings
   toolSettingsViewModelTest()
