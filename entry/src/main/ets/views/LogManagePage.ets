@@ -12,12 +12,13 @@ import {
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS,
   formatLogTimestamp,
-  getLogEventResultColor
+  getLogEventResultColor,
+  getLogEventResultLabel,
+  getLogEventTypeLabel
 } from '../models/DataModels'
 import { EmptyStatePanel } from '../components/EmptyStatePanel'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { MetricSummaryCard } from '../components/MetricSummaryCard'
-import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { DetailDialogShell } from '../components/DetailDialogShell'
@@ -128,14 +129,14 @@ struct LogDetailDialogPanel {
           .fontFamily('monospace')
           .layoutWeight(1)
 
-        Text(getPageLogEventTypeLabel(this.entry.eventType))
+        Text(getLogEventTypeLabel(this.entry.eventType))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
           .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
           .borderRadius(AppStyles.RADIUS_SM)
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
 
-        Text(getPageLogEventResultLabel(this.entry.result))
+        Text(getLogEventResultLabel(this.entry.result))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(getLogEventResultColor(this.entry.result))
           .backgroundColor(this.getResultBackground())
@@ -243,9 +244,6 @@ export struct LogManagePage {
   }
 
   private async initializeViewModel(): Promise<void> {
-    this.viewModel.onRefresh = () => {
-      this.syncDetailDialogState()
-    }
     try {
       let context = this.getUIContext().getHostContext() as common.UIAbilityContext
       if (!this.initialized) {
@@ -255,7 +253,6 @@ export struct LogManagePage {
         this.viewModel.refreshAll()
       }
       this.viewModel.activate()
-      this.syncDetailDialogState()
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initializeViewModel failed: ${JSON.stringify(err)}`)
     }
@@ -270,12 +267,7 @@ export struct LogManagePage {
     }
   }
 
-  private syncDetailDialogState(): void {
-    let entry = this.viewModel.getCurrentDetailEntry()
-    if (!this.viewModel.state.detail.visible || !entry) {
-      this.dismissLogDetailDialog()
-      return
-    }
+  private openLogDetailDialog(entry: LogEntry): void {
     if (this.detailDialogController) {
       return
     }
@@ -387,7 +379,7 @@ export struct LogManagePage {
           AppColors.WARNING, AppColors.GRADIENT_IDENTITY_END, $r('app.media.alert'))
       }
       GridCol() {
-        this.buildMetricCard(LogManageStrings.statCurrentShown, `${this.viewModel.state.summary.currentShownCount}`, LogManageStrings.statCurrentShownDescription,
+        this.buildMetricCard(LogManageStrings.statCurrentShown, `${this.viewModel.state.list.pagedEntries.length}`, LogManageStrings.statCurrentShownDescription,
           AppColors.TEXT_MUTED, AppColors.GRADIENT_TOOL_END, $r('app.media.dashboard'))
       }
     }
@@ -474,7 +466,7 @@ export struct LogManagePage {
         .width(140)
         .fontFamily('monospace')
 
-      Text(getPageLogEventTypeLabel(entry.eventType))
+      Text(getLogEventTypeLabel(entry.eventType))
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
         .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
@@ -501,7 +493,7 @@ export struct LogManagePage {
       .alignItems(HorizontalAlign.Start)
       .margin({ left: 8 })
 
-      Text(getPageLogEventResultLabel(entry.result))
+      Text(getLogEventResultLabel(entry.result))
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(getLogEventResultColor(entry.result))
         .fontWeight(FontWeight.Medium)
@@ -514,7 +506,7 @@ export struct LogManagePage {
     .borderRadius(AppStyles.RADIUS_SM)
     .onClick(() => {
       this.viewModel.openDetail(entry.id)
-      this.syncDetailDialogState()
+      this.openLogDetailDialog(entry)
     })
   }
 
@@ -636,32 +628,7 @@ export struct LogManagePage {
   private storageSettingsView() {
     Scroll() {
       Column({ space: 24 }) {
-        SectionCard({
-          title: LogManageStrings.settingsTitle,
-          content: () => {
-            SectionSelectRow({
-              title: LogManageStrings.maxEntriesLabel,
-              description: LogManageStrings.maxEntriesDescription,
-              options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
-              selectedIndex: this.viewModel.state.settings.maxEntriesIndex,
-              value: `${LOG_MAX_ENTRIES_OPTIONS[this.viewModel.state.settings.maxEntriesIndex]}`,
-              selectWidth: this.settingsFormControlWidth,
-              onSelect: (index: number) => this.viewModel.setStorageMaxEntriesIndex(index)
-            })
-
-            Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-            SectionSelectRow({
-              title: LogManageStrings.retentionDaysLabel,
-              description: LogManageStrings.retentionDaysDescription,
-              options: LogManagePage.STORAGE_RETENTION_OPTIONS,
-              selectedIndex: this.viewModel.state.settings.retentionIndex,
-              value: `${LOG_RETENTION_OPTIONS[this.viewModel.state.settings.retentionIndex]}`,
-              selectWidth: this.settingsFormControlWidth,
-              onSelect: (index: number) => this.viewModel.setStorageRetentionIndex(index)
-            })
-          }
-        })
+        this.storageSettingsCard()
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
@@ -669,6 +636,62 @@ export struct LogManagePage {
     .width('100%')
     .layoutWeight(1)
     .scrollBar(BarState.Auto)
+  }
+
+  @Builder
+  private storageSettingsCard() {
+    Column({ space: 0 }) {
+      Row() {
+        Text(LogManageStrings.settingsTitle)
+          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        Blank()
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
+
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      Column({ space: 0 }) {
+        SectionSelectRow({
+          title: LogManageStrings.maxEntriesLabel,
+          description: LogManageStrings.maxEntriesDescription,
+          options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
+          selectedIndex: this.viewModel.state.settings.maxEntriesIndex,
+          value: `${LOG_MAX_ENTRIES_OPTIONS[this.viewModel.state.settings.maxEntriesIndex]}`,
+          selectWidth: this.settingsFormControlWidth,
+          onSelect: (index: number) => this.viewModel.setStorageMaxEntriesIndex(index)
+        })
+
+        Divider()
+          .color(AppColors.getColors(this.currentTheme).BORDER)
+          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+        SectionSelectRow({
+          title: LogManageStrings.retentionDaysLabel,
+          description: LogManageStrings.retentionDaysDescription,
+          options: LogManagePage.STORAGE_RETENTION_OPTIONS,
+          selectedIndex: this.viewModel.state.settings.retentionIndex,
+          value: `${LOG_RETENTION_OPTIONS[this.viewModel.state.settings.retentionIndex]}`,
+          selectWidth: this.settingsFormControlWidth,
+          onSelect: (index: number) => this.viewModel.setStorageRetentionIndex(index)
+        })
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .clip(true)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
   }
 
   build() {

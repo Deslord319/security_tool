@@ -3,54 +3,60 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
+  DEFAULT_LOG_STORAGE_CONFIG,
   ExportActionResult,
   LogEntry,
   LogEventResult,
   LogEventType,
   LogFilter,
   LogStatistics,
-  LOG_EVENT_TYPE_OPTIONS
+  LOG_EVENT_TYPE_OPTIONS,
+  LOG_MAX_ENTRIES_OPTIONS,
+  LOG_RETENTION_OPTIONS,
+  LogStorageConfig
 } from '../models/DataModels'
 import {
-  LogCollectorState,
-  LogDetailState,
-  LogFilterState,
-  LogListState,
   LogManageMode,
   LogManageState,
-  LogPaginationState,
+  LogStorageSettingsState,
   LogSummaryState
 } from '../models/LogManageModels'
-import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import { LogStorageService } from '../services/LogStorageService'
-import {
-  LogStorageSettingsSaveResult,
-  LogStorageSettingsState,
-  LogStorageSettingsViewModel
-} from './LogStorageSettingsViewModel'
 
 const TAG = 'LogManageViewModel'
 const DOMAIN = 0x0012
 
+export interface LogStorageSettingsSaveResult {
+  success: boolean
+  message: string
+}
+
 @Observed
 export class LogManageViewModel {
   private static readonly PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
+  private static readonly DEFAULT_MAX_ENTRIES_INDEX: number = LogManageViewModel.findOptionIndex(
+    LOG_MAX_ENTRIES_OPTIONS,
+    DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries,
+    0
+  )
+  private static readonly DEFAULT_RETENTION_INDEX: number = LogManageViewModel.findOptionIndex(
+    LOG_RETENTION_OPTIONS,
+    DEFAULT_LOG_STORAGE_CONFIG.retentionDays,
+    0
+  )
 
   state: LogManageState = LogManageViewModel.buildDefaultState()
-  readonly storageSettingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
-  onRefresh?: () => void
 
   private logStorageListenerId: number = -1
   private statisticsCache: LogStatistics = LogManageViewModel.buildEmptyStatistics()
+  private active: boolean = false
+  private autoRefreshEnabled: boolean = true
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.setLoading(true)
     try {
       await LogStorageService.init(context)
-      await LogRuntimeCollectorService.init(context)
-      this.storageSettingsViewModel.initialize(LogStorageService.getConfig())
-      this.syncSettingsState()
-      this.rebuildCollectorState()
+      this.loadStorageSettings(LogStorageService.getConfig())
       this.refreshAll()
       this.registerStorageListener()
     } catch (err) {
@@ -61,15 +67,11 @@ export class LogManageViewModel {
   }
 
   activate(): void {
-    this.updateState((state: LogManageState) => {
-      state.active = true
-    })
+    this.active = true
   }
 
   deactivate(): void {
-    this.updateState((state: LogManageState) => {
-      state.active = false
-    })
+    this.active = false
   }
 
   destroy(): void {
@@ -84,13 +86,11 @@ export class LogManageViewModel {
     this.statisticsCache = LogStorageService.getStatistics()
     this.reloadEntries()
     this.rebuildSummary()
-    this.rebuildCollectorState()
     this.syncDetailState()
-    this.notifyRefresh()
   }
 
   refreshIfActive(): void {
-    if (!this.state.active || !this.state.autoRefreshEnabled) {
+    if (!this.active || !this.autoRefreshEnabled) {
       return
     }
     this.refreshAll()
@@ -101,12 +101,11 @@ export class LogManageViewModel {
       return
     }
     if (mode === 'settings') {
-      this.storageSettingsViewModel.initialize(LogStorageService.getConfig())
-      this.syncSettingsState()
+      this.loadStorageSettings(LogStorageService.getConfig())
     }
+    this.autoRefreshEnabled = mode === 'list'
     this.updateState((state: LogManageState) => {
       state.mode = mode
-      state.autoRefreshEnabled = mode === 'list'
     })
     if (mode === 'list') {
       this.refreshAll()
@@ -120,7 +119,7 @@ export class LogManageViewModel {
       state.pagination.currentPage = 1
       state.pagination.pageInputText = '1'
     })
-    this.refreshAll()
+    this.refreshListState()
   }
 
   setResultIndex(index: number): void {
@@ -130,7 +129,7 @@ export class LogManageViewModel {
       state.pagination.currentPage = 1
       state.pagination.pageInputText = '1'
     })
-    this.refreshAll()
+    this.refreshListState()
   }
 
   setKeyword(keyword: string): void {
@@ -139,7 +138,7 @@ export class LogManageViewModel {
       state.pagination.currentPage = 1
       state.pagination.pageInputText = '1'
     })
-    this.refreshAll()
+    this.refreshListState()
   }
 
   setPageSizeIndex(index: number): void {
@@ -151,8 +150,6 @@ export class LogManageViewModel {
     })
     this.rebuildPagination()
     this.rebuildPagedEntries()
-    this.rebuildSummary()
-    this.notifyRefresh()
   }
 
   setPageInputText(text: string): void {
@@ -170,8 +167,6 @@ export class LogManageViewModel {
       state.pagination.pageInputText = `${state.pagination.currentPage}`
     })
     this.rebuildPagedEntries()
-    this.rebuildSummary()
-    this.notifyRefresh()
   }
 
   goToNextPage(): void {
@@ -183,8 +178,6 @@ export class LogManageViewModel {
       state.pagination.pageInputText = `${state.pagination.currentPage}`
     })
     this.rebuildPagedEntries()
-    this.rebuildSummary()
-    this.notifyRefresh()
   }
 
   jumpToInputPage(): void {
@@ -205,8 +198,6 @@ export class LogManageViewModel {
       state.pagination.pageInputText = `${targetPage}`
     })
     this.rebuildPagedEntries()
-    this.rebuildSummary()
-    this.notifyRefresh()
   }
 
   openDetail(entryId: string): void {
@@ -214,7 +205,6 @@ export class LogManageViewModel {
       state.detail.visible = true
       state.detail.entryId = entryId
     })
-    this.notifyRefresh()
   }
 
   closeDetail(): void {
@@ -225,15 +215,6 @@ export class LogManageViewModel {
       state.detail.visible = false
       state.detail.entryId = ''
     })
-    this.notifyRefresh()
-  }
-
-  getCurrentDetailEntry(): LogEntry | null {
-    if (!this.state.detail.visible || this.state.detail.entryId.length === 0) {
-      return null
-    }
-    let entry = this.state.list.allEntries.find((item: LogEntry) => item.id === this.state.detail.entryId)
-    return entry ?? null
   }
 
   async exportLogs(): Promise<ExportActionResult> {
@@ -272,22 +253,51 @@ export class LogManageViewModel {
   }
 
   setStorageMaxEntriesIndex(index: number): void {
-    this.storageSettingsViewModel.setMaxEntriesIndex(index)
-    this.syncSettingsState()
+    let normalizedIndex = LogManageViewModel.normalizeSettingsIndex(
+      index,
+      LOG_MAX_ENTRIES_OPTIONS.length,
+      LogManageViewModel.DEFAULT_MAX_ENTRIES_INDEX
+    )
+    this.updateState((state: LogManageState) => {
+      state.settings.maxEntriesIndex = normalizedIndex
+      state.settings.hasChanges = LogManageViewModel.hasStorageSettingsChanges(state.settings)
+    })
   }
 
   setStorageRetentionIndex(index: number): void {
-    this.storageSettingsViewModel.setRetentionIndex(index)
-    this.syncSettingsState()
+    let normalizedIndex = LogManageViewModel.normalizeSettingsIndex(
+      index,
+      LOG_RETENTION_OPTIONS.length,
+      LogManageViewModel.DEFAULT_RETENTION_INDEX
+    )
+    this.updateState((state: LogManageState) => {
+      state.settings.retentionIndex = normalizedIndex
+      state.settings.hasChanges = LogManageViewModel.hasStorageSettingsChanges(state.settings)
+    })
   }
 
   async saveStorageSettings(): Promise<LogStorageSettingsSaveResult> {
-    let result = await this.storageSettingsViewModel.save()
-    this.syncSettingsState()
-    if (result.success) {
-      this.refreshAll()
+    if (!this.state.settings.hasChanges) {
+      return {
+        success: false,
+        message: CommonStrings.messageNoChanges
+      }
     }
-    return result
+
+    let success = await LogStorageService.updateConfig(this.buildStorageConfig())
+    if (!success) {
+      return {
+        success: false,
+        message: LogManageStrings.saveSettingsFailed
+      }
+    }
+
+    this.loadStorageSettings(LogStorageService.getConfig())
+    this.refreshAll()
+    return {
+      success: true,
+      message: LogManageStrings.saveSettingsSuccess
+    }
   }
 
   getCurrentPageSize(): number {
@@ -328,6 +338,11 @@ export class LogManageViewModel {
     this.rebuildFilterHint()
   }
 
+  private refreshListState(): void {
+    this.reloadEntries()
+    this.syncDetailState()
+  }
+
   private buildFilter(): LogFilter | undefined {
     let filter: LogFilter = {}
     let hasFilter = false
@@ -352,29 +367,13 @@ export class LogManageViewModel {
   }
 
   private rebuildSummary(): void {
-    let currentShownCount = this.state.list.pagedEntries.length
     let nextSummary: LogSummaryState = {
       totalCount: this.statisticsCache.totalCount,
       todayCount: this.statisticsCache.todayCount,
-      blockedCount: this.statisticsCache.blockedCount,
-      currentShownCount: currentShownCount
+      blockedCount: this.statisticsCache.blockedCount
     }
     this.updateState((state: LogManageState) => {
       state.summary = nextSummary
-    })
-  }
-
-  private rebuildCollectorState(): void {
-    let status = LogRuntimeCollectorService.getStatus()
-    let nextCollector: LogCollectorState = {
-      running: status.running,
-      crashSubscribed: status.subscribed,
-      fileSubscribed: status.subscribed,
-      accountSubscribed: status.subscribed,
-      permissionSubscribed: status.subscribed
-    }
-    this.updateState((state: LogManageState) => {
-      state.collector = nextCollector
     })
   }
 
@@ -434,17 +433,39 @@ export class LogManageViewModel {
     }
   }
 
-  private syncSettingsState(): void {
+  private loadStorageSettings(config: LogStorageConfig): void {
+    let maxEntriesIndex = LogManageViewModel.findOptionIndex(
+      LOG_MAX_ENTRIES_OPTIONS,
+      config.maxLocalEntries,
+      LogManageViewModel.DEFAULT_MAX_ENTRIES_INDEX
+    )
+    let retentionIndex = LogManageViewModel.findOptionIndex(
+      LOG_RETENTION_OPTIONS,
+      config.retentionDays,
+      LogManageViewModel.DEFAULT_RETENTION_INDEX
+    )
     this.updateState((state: LogManageState) => {
-      state.settings = LogManageViewModel.cloneSettingsState(this.storageSettingsViewModel.state)
+      state.settings = {
+        maxEntriesIndex,
+        retentionIndex,
+        initialMaxEntriesIndex: maxEntriesIndex,
+        initialRetentionIndex: retentionIndex,
+        hasChanges: false
+      }
     })
+  }
+
+  private buildStorageConfig(): LogStorageConfig {
+    return {
+      maxLocalEntries: LOG_MAX_ENTRIES_OPTIONS[this.state.settings.maxEntriesIndex],
+      retentionDays: LOG_RETENTION_OPTIONS[this.state.settings.retentionIndex]
+    }
   }
 
   private syncPageInput(): void {
     this.updateState((state: LogManageState) => {
       state.pagination.pageInputText = `${state.pagination.currentPage}`
     })
-    this.notifyRefresh()
   }
 
   private setLoading(loading: boolean): void {
@@ -497,30 +518,14 @@ export class LogManageViewModel {
     this.state = nextState
   }
 
-  private notifyRefresh(): void {
-    if (this.onRefresh) {
-      this.onRefresh()
-    }
-  }
-
   private static buildDefaultState(): LogManageState {
     return {
       loading: false,
-      active: false,
-      autoRefreshEnabled: true,
       mode: 'list',
       summary: {
         totalCount: 0,
         todayCount: 0,
-        blockedCount: 0,
-        currentShownCount: 0
-      },
-      collector: {
-        running: false,
-        crashSubscribed: false,
-        fileSubscribed: false,
-        accountSubscribed: false,
-        permissionSubscribed: false
+        blockedCount: 0
       },
       filter: {
         eventTypeIndex: 0,
@@ -543,10 +548,10 @@ export class LogManageViewModel {
         entryId: ''
       },
       settings: {
-        maxEntriesIndex: 0,
-        retentionIndex: 0,
-        initialMaxEntriesIndex: 0,
-        initialRetentionIndex: 0,
+        maxEntriesIndex: LogManageViewModel.DEFAULT_MAX_ENTRIES_INDEX,
+        retentionIndex: LogManageViewModel.DEFAULT_RETENTION_INDEX,
+        initialMaxEntriesIndex: LogManageViewModel.DEFAULT_MAX_ENTRIES_INDEX,
+        initialRetentionIndex: LogManageViewModel.DEFAULT_RETENTION_INDEX,
         hasChanges: false
       }
     }
@@ -564,21 +569,11 @@ export class LogManageViewModel {
   private static cloneState(state: LogManageState): LogManageState {
     return {
       loading: state.loading,
-      active: state.active,
-      autoRefreshEnabled: state.autoRefreshEnabled,
       mode: state.mode,
       summary: {
         totalCount: state.summary.totalCount,
         todayCount: state.summary.todayCount,
-        blockedCount: state.summary.blockedCount,
-        currentShownCount: state.summary.currentShownCount
-      },
-      collector: {
-        running: state.collector.running,
-        crashSubscribed: state.collector.crashSubscribed,
-        fileSubscribed: state.collector.fileSubscribed,
-        accountSubscribed: state.collector.accountSubscribed,
-        permissionSubscribed: state.collector.permissionSubscribed
+        blockedCount: state.summary.blockedCount
       },
       filter: {
         eventTypeIndex: state.filter.eventTypeIndex,
@@ -600,17 +595,30 @@ export class LogManageViewModel {
         visible: state.detail.visible,
         entryId: state.detail.entryId
       },
-      settings: LogManageViewModel.cloneSettingsState(state.settings)
+      settings: {
+        maxEntriesIndex: state.settings.maxEntriesIndex,
+        retentionIndex: state.settings.retentionIndex,
+        initialMaxEntriesIndex: state.settings.initialMaxEntriesIndex,
+        initialRetentionIndex: state.settings.initialRetentionIndex,
+        hasChanges: state.settings.hasChanges
+      }
     }
   }
 
-  private static cloneSettingsState(state: LogStorageSettingsState): LogStorageSettingsState {
-    return {
-      maxEntriesIndex: state.maxEntriesIndex,
-      retentionIndex: state.retentionIndex,
-      initialMaxEntriesIndex: state.initialMaxEntriesIndex,
-      initialRetentionIndex: state.initialRetentionIndex,
-      hasChanges: state.hasChanges
+  private static findOptionIndex(options: number[], value: number, fallbackIndex: number): number {
+    let index = options.indexOf(value)
+    return LogManageViewModel.normalizeSettingsIndex(index, options.length, fallbackIndex)
+  }
+
+  private static normalizeSettingsIndex(index: number, optionCount: number, fallbackIndex: number): number {
+    if (index >= 0 && index < optionCount) {
+      return index
     }
+    return fallbackIndex
+  }
+
+  private static hasStorageSettingsChanges(state: LogStorageSettingsState): boolean {
+    return state.maxEntriesIndex !== state.initialMaxEntriesIndex ||
+      state.retentionIndex !== state.initialRetentionIndex
   }
 }

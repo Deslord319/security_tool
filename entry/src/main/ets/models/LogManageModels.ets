@@ -1,5 +1,4 @@
 import { LogEntry } from './DataModels'
-import { LogStorageSettingsState } from '../viewmodels/LogStorageSettingsViewModel'
 
 export type LogManageMode = 'list' | 'settings'
 
@@ -7,15 +6,6 @@ export interface LogSummaryState {
   totalCount: number
   todayCount: number
   blockedCount: number
-  currentShownCount: number
-}
-
-export interface LogCollectorState {
-  running: boolean
-  crashSubscribed: boolean
-  fileSubscribed: boolean
-  accountSubscribed: boolean
-  permissionSubscribed: boolean
 }
 
 export interface LogFilterState {
@@ -42,17 +32,21 @@ export interface LogListState {
   pagedEntries: LogEntry[]
 }
 
+export interface LogStorageSettingsState {
+  maxEntriesIndex: number
+  retentionIndex: number
+  initialMaxEntriesIndex: number
+  initialRetentionIndex: number
+  hasChanges: boolean
+}
+
 export interface LogManageState {
   loading: boolean
-  active: boolean
-  autoRefreshEnabled: boolean
   mode: LogManageMode
   summary: LogSummaryState
-  collector: LogCollectorState
   filter: LogFilterState
   pagination: LogPaginationState
   list: LogListState
   detail: LogDetailState
   settings: LogStorageSettingsState
 }
-

@@ -13,7 +13,6 @@ import helpFeedbackStringsTest from './help/strings.test'
 import logManageModelsTest from './log-manage/models.test'
 import logAuditServiceTest from './log-manage/audit-service.test'
 import logStorageServiceTest from './log-manage/storage-service.test'
-import logStorageSettingsViewModelTest from './log-manage/storage-settings-viewmodel.test'
 import logRuntimeCollectorTest from './log-manage/runtime-collector.test'
 import logManageViewModelTest from './log-manage/viewmodel.test'
 import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
@@ -50,7 +49,6 @@ export default function testsuite() {
   logManageModelsTest()
   logAuditServiceTest()
   logStorageServiceTest()
-  logStorageSettingsViewModelTest()
   logRuntimeCollectorTest()
   logManageViewModelTest()
 

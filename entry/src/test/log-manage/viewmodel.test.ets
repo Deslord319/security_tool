@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import {
   DEFAULT_LOG_STORAGE_CONFIG,
-  LogExportResult,
   LogEntry,
   LogEventResult,
   LogEventType,
@@ -11,7 +10,7 @@ import {
   LogStatistics
 } from '../../main/ets/models/DataModels'
 import { LogManageViewModel } from '../../main/ets/viewmodels/LogManageViewModel'
-import { LogRuntimeCollectorService, LogRuntimeCollectorStatus } from '../../main/ets/services/LogRuntimeCollectorService'
+import { LogExportResult } from '../../main/ets/models/DataModels'
 import { LogCsvExportPayload, LogStorageChangeEvent, LogStorageService } from '../../main/ets/services/LogStorageService'
 
 function createEntry(id: string, eventType: LogEventType, result: LogEventResult, detail: string): LogEntry {
@@ -53,8 +52,6 @@ export default function logManageViewModelTest() {
     let originalClearAll: () => Promise<boolean>
     let originalBuildCsvContent: (entries: LogEntry[]) => string
     let originalExportToCsvFile: (payload: LogCsvExportPayload) => Promise<LogExportResult>
-    let originalCollectorInit: (context: common.UIAbilityContext) => Promise<boolean>
-    let originalCollectorGetStatus: () => LogRuntimeCollectorStatus
     let originalUpdateConfig: (config: LogStorageConfig) => Promise<boolean>
 
     beforeEach(() => {
@@ -81,8 +78,6 @@ export default function logManageViewModelTest() {
       originalClearAll = LogStorageService.clearAll
       originalBuildCsvContent = LogStorageService.buildCsvContent
       originalExportToCsvFile = LogStorageService.exportToCsvFile
-      originalCollectorInit = LogRuntimeCollectorService.init
-      originalCollectorGetStatus = LogRuntimeCollectorService.getStatus
       originalUpdateConfig = LogStorageService.updateConfig
 
       LogStorageService.init = async (_context: common.UIAbilityContext): Promise<boolean> => true
@@ -122,11 +117,6 @@ export default function logManageViewModelTest() {
         }
       }
       LogStorageService.updateConfig = async (_config: LogStorageConfig): Promise<boolean> => true
-      LogRuntimeCollectorService.init = async (_context: common.UIAbilityContext): Promise<boolean> => true
-      LogRuntimeCollectorService.getStatus = (): LogRuntimeCollectorStatus => ({
-        running: true,
-        subscribed: true
-      })
     })
 
     afterEach(() => {
@@ -140,21 +130,16 @@ export default function logManageViewModelTest() {
       LogStorageService.buildCsvContent = originalBuildCsvContent
       LogStorageService.exportToCsvFile = originalExportToCsvFile
       LogStorageService.updateConfig = originalUpdateConfig
-      LogRuntimeCollectorService.init = originalCollectorInit
-      LogRuntimeCollectorService.getStatus = originalCollectorGetStatus
     })
 
-    it('should initialize aggregated state from storage and collector', 0, async (done: Function) => {
+    it('should initialize aggregated state from storage', 0, async (done: Function) => {
       await viewModel.initialize(context)
 
       expect(viewModel.state.summary.totalCount).assertEqual(2)
       expect(viewModel.state.summary.todayCount).assertEqual(2)
       expect(viewModel.state.summary.blockedCount).assertEqual(1)
-      expect(viewModel.state.summary.currentShownCount).assertEqual(2)
       expect(viewModel.state.list.allEntries.length).assertEqual(2)
       expect(viewModel.state.list.pagedEntries.length).assertEqual(2)
-      expect(viewModel.state.collector.running).assertTrue()
-      expect(viewModel.state.collector.fileSubscribed).assertTrue()
       done()
     })
 
