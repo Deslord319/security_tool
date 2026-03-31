@@ -1,6 +1,10 @@
 import { DetailDialogShell } from '../DetailDialogShell'
 import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { PeripheralConnectionRecord } from '../../models/DataModels'
+import {
+  PeripheralConnectionRecord,
+  getPeripheralRecordActionLabel,
+  getPeripheralRecordSourceLabel
+} from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../../theme/ThemeManager'
 import {
@@ -54,8 +58,8 @@ export struct ConnectionDetailDialog {
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField(DeviceDetailStrings.CONNECTION_EVENT, this.getActionLabel(record))
-        this.metricField(DeviceDetailStrings.EVENT_SOURCE, this.getSourceLabel(record))
+        this.metricField(DeviceDetailStrings.CONNECTION_EVENT, getPeripheralRecordActionLabel(record.action))
+        this.metricField(DeviceDetailStrings.EVENT_SOURCE, getPeripheralRecordSourceLabel(record.source))
       }
       .width('100%')
 
@@ -147,32 +151,6 @@ export struct ConnectionDetailDialog {
     .padding(12)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     .borderRadius(AppStyles.RADIUS_LG)
-  }
-
-  private getActionLabel(record: PeripheralConnectionRecord): string {
-    switch (record.action) {
-      case 'connect':
-        return '连接'
-      case 'disconnect':
-        return '断开'
-      case 'intercept':
-        return '拦截'
-      default:
-        return '未知动作'
-    }
-  }
-
-  private getSourceLabel(record: PeripheralConnectionRecord): string {
-    switch (record.source) {
-      case 'runtime_event':
-        return '运行时事件'
-      case 'audit_event':
-        return '审计事件'
-      case 'policy_snapshot':
-        return '策略快照'
-      default:
-        return '未知来源'
-    }
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {

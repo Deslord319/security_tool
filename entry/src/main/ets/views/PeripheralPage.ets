@@ -50,7 +50,12 @@ export struct PeripheralPage {
   private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG, DOMAIN)
 
   aboutToAppear() {
-    hilog.info(DOMAIN, TAG, `page enter: tab=${this.currentTabIndex}`)
+    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `page enter: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}, runtimeRunning=${runtimeStatus.running}, usbRuntime=${runtimeStatus.capabilities.usbRuntimeEvents}, bluetoothRuntime=${runtimeStatus.capabilities.bluetoothRuntimeEvents}`
+    )
     void this.initViewModel()
   }
 
@@ -59,7 +64,12 @@ export struct PeripheralPage {
     this.closeDetailDialog()
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
-    hilog.info(DOMAIN, TAG, `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}`)
+    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}, runtimeRunning=${runtimeStatus.running}, usbRuntime=${runtimeStatus.capabilities.usbRuntimeEvents}, bluetoothRuntime=${runtimeStatus.capabilities.bluetoothRuntimeEvents}`
+    )
   }
 
   private async initViewModel(): Promise<void> {

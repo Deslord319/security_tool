@@ -3,6 +3,10 @@
  * 测试 DataModels.ets 中的枚举、接口和工具函数
  */
 import { describe, it, expect } from '@ohos/hypium'
+import {
+  formatBluetoothDeviceId,
+  getPeripheralRecordActionLabel
+} from '../../main/ets/models/DataModels'
 
 // 枚举定义（与 DataModels.ets 保持一致）
 enum RuleType {
@@ -311,6 +315,16 @@ export default function dataModelsTest() {
         const result2 = getRuleTypeLabel(RuleType.IP)
         
         expect(result1).assertEqual(result2)
+      })
+    })
+
+    describe('Peripheral Labels', () => {
+      it('should return discover label for bluetooth discovery action', 0, () => {
+        expect(getPeripheralRecordActionLabel('discover')).assertEqual('发现')
+      })
+
+      it('should normalize bluetooth device id with MAC prefix', 0, () => {
+        expect(formatBluetoothDeviceId('aa-bb-cc-dd-ee-ff')).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
       })
     })
   })

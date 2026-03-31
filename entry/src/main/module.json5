@@ -30,6 +30,26 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH"
       },
       {
+        "name": "ohos.permission.ACCESS_BLUETOOTH",
+        "reason": "$string:bluetooth_access_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.PERSISTENT_BLUETOOTH_PEERS_MAC",
+        "reason": "$string:bluetooth_persistent_mac_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "always"
+        }
+      },
+      {
         "name": "ohos.permission.ENTERPRISE_GET_DEVICE_INFO"
       },
       {

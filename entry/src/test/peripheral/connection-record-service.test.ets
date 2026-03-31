@@ -40,4 +40,30 @@ describe('PeripheralConnectionRecordService', () => {
     expect(records[0].deviceName).assertEqual('Newer Device')
     expect(records[1].deviceName).assertEqual('Older Device')
   })
+
+  it('should map bluetooth discovery runtime records', 0, () => {
+    PeripheralTraceRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([
+      {
+        recordId: 'runtime_bt_1',
+        occurAt: 300,
+        collectAt: 301,
+        deviceName: 'Bluetooth Mouse',
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+        action: 'discover',
+        decision: 'unknown',
+        result: LogEventResult.SUCCESS,
+        source: 'runtime_event',
+        summary: '发现蓝牙设备',
+        matchedPolicyKind: 'bluetooth_discovery'
+      }
+    ])
+
+    const records = PeripheralConnectionRecordService.queryRecords()
+    expect(records.length).assertEqual(1)
+    expect(records[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
+    expect(records[0].action).assertEqual('discover')
+    expect(records[0].matchedPolicyKind).assertEqual('bluetooth_discovery')
+  })
 })

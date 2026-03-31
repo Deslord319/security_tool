@@ -11,6 +11,14 @@
     {
       "name": "EntryAbility_label",
       "value": "安全管理中心"
+    },
+    {
+      "name": "bluetooth_access_reason",
+      "value": "用于监听蓝牙设备发现事件并记录外设连接信息"
+    },
+    {
+      "name": "bluetooth_persistent_mac_reason",
+      "value": "用于持久化保存蓝牙设备虚拟地址，确保连接记录可追踪"
     }
   ]
 }

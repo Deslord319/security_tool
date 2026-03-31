@@ -65,4 +65,30 @@ describe('PeripheralRecordViewModel', () => {
     expect(result.success).assertTrue()
     done()
   })
+
+  it('should export discover label for bluetooth records', 0, async (done: Function) => {
+    viewModel.records = [{
+      id: 'bt-1',
+      timestamp: Date.now(),
+      deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+      deviceName: 'Bluetooth Keyboard',
+      deviceType: PeripheralType.BLUETOOTH,
+      source: 'runtime_event',
+      action: 'discover',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'unknown',
+      summary: '发现蓝牙设备'
+    }]
+    let exportedCsv = ''
+    LogStorageService.init = async (_context: common.UIAbilityContext): Promise<boolean> => true
+    LogStorageService.exportToCsvFile = async (payload: Object): Promise<Object> => {
+      exportedCsv = (payload as Record<string, string>).csvContent ?? ''
+      return { success: true, fileName: 'mock.csv' }
+    }
+
+    const result = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
+    expect(result.success).assertTrue()
+    expect(exportedCsv.indexOf('发现')).toBeGreaterThan(-1)
+    done()
+  })
 })

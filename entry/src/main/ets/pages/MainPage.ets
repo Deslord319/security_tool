@@ -134,6 +134,7 @@ struct MainPage {
     let status = LogRuntimeCollectorService.getStatus()
     if (!status.running) {
       let collectorStarted = await LogRuntimeCollectorService.start()
+      hilog.info(0x0000, 'testTag', `ensureRuntimeServices collector start result: started=${collectorStarted}`)
       if (!collectorStarted) {
         hilog.warn(0x0000, 'testTag', 'LogRuntimeCollectorService restart failed')
       }
@@ -142,6 +143,12 @@ struct MainPage {
     let runtimeStatus = PeripheralRuntimeEventService.getStatus()
     if (!runtimeStatus.running) {
       let runtimeStarted = await PeripheralRuntimeEventService.start()
+      let latestStatus = PeripheralRuntimeEventService.getStatus()
+      hilog.info(
+        0x0000,
+        'testTag',
+        `ensureRuntimeServices peripheral runtime start result: started=${runtimeStarted}, usb=${latestStatus.capabilities.usbRuntimeEvents}, bluetooth=${latestStatus.capabilities.bluetoothRuntimeEvents}, reason=${latestStatus.capabilities.degradedReason ?? 'none'}`
+      )
       if (!runtimeStarted) {
         hilog.warn(0x0000, 'testTag', 'PeripheralRuntimeEventService start failed')
       }
@@ -180,6 +187,7 @@ struct MainPage {
         hilog.error(0x0000, 'testTag', 'PeripheralRuntimeEventService init failed')
         return
       }
+      hilog.info(0x0000, 'testTag', 'initRuntimeServices success')
 
       this.runtimeInitialized = true
     } catch (err) {

@@ -164,7 +164,7 @@ export type PeripheralRecordSource = 'runtime_event' | 'audit_event' | 'policy_s
 
 export type PeripheralCandidateSource = PeripheralRecordSource | 'connected_usb'
 
-export type PeripheralRecordAction = 'connect' | 'disconnect' | 'intercept' | 'unknown'
+export type PeripheralRecordAction = 'connect' | 'disconnect' | 'discover' | 'intercept' | 'unknown'
 
 export type PeripheralRecordPolicyHit = 'allow' | 'deny' | 'unknown'
 
@@ -173,6 +173,7 @@ export type PeripheralMatchedPolicyKind =
   'usb_storage_disabled' |
   'usb_storage_read_only' |
   'device_deny' |
+  'bluetooth_discovery' |
   'default_allow' |
   'disconnect_event' |
   'unknown'
@@ -343,6 +344,8 @@ export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): 
       return '连接'
     case 'disconnect':
       return '断开'
+    case 'discover':
+      return '发现'
     case 'intercept':
       return '拦截'
     default:
@@ -393,6 +396,11 @@ export function parseBluetoothMac(deviceId: string): string | null {
 
 export function formatUsbDeviceId(vendorId: number, productId: number): string {
   return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
+}
+
+export function formatBluetoothDeviceId(deviceId: string): string {
+  const normalized = deviceId.trim().replace(/-/g, ':').toUpperCase()
+  return `MAC: ${normalized}`
 }
 
 export function inferUsbBaseClass(type: PeripheralType): number {

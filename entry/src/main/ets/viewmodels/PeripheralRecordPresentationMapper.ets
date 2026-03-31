@@ -22,6 +22,8 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
       return 'USB 存储只读'
     case 'device_deny':
       return '命中单设备禁止接入'
+    case 'bluetooth_discovery':
+      return '蓝牙运行期发现'
     case 'default_allow':
       return '默认允许接入'
     case 'disconnect_event':
