@@ -72,7 +72,7 @@ export class FirewallDialogStrings {
   // 标题
   static readonly ADD_RULE_TITLE: string = '新增规则'
   static readonly EDIT_RULE_TITLE: string = '编辑规则'
-  static readonly USER_FIREWALL_TITLE: string = '按用户 ID 控制主防火墙'
+  static readonly USER_FIREWALL_TITLE: string = '模式下发'
   
   // 标签
   static readonly RULE_NAME: string = '规则名称'
@@ -84,7 +84,9 @@ export class FirewallDialogStrings {
   static readonly PROTOCOL: string = '协议'
   static readonly ACTION: string = '动作'
   static readonly TARGET_USER: string = '目标用户'
-  static readonly CURRENT_STATUS: string = '当前状态'
+  static readonly CURRENT_STATUS: string = '当前策略'
+  static readonly CURRENT_MODE: string = '当前模式'
+  static readonly TARGET_MODE: string = '目标模式'
   
   // 占位符
   static readonly IP_PLACEHOLDER: string = '例如 0.0.0.0/0'
@@ -106,14 +108,13 @@ export class FirewallDialogStrings {
   static readonly ACTION_DENY: string = '阻止'
   
   // 按钮
-  static readonly ENABLE_FIREWALL: string = '开启防火墙'
-  static readonly DISABLE_FIREWALL: string = '关闭防火墙'
+  static readonly APPLY_MODE: string = '下发策略'
   
   // 状态文本
-  static readonly STATUS_ENABLED: string = '已开启'
-  static readonly STATUS_DISABLED: string = '已关闭'
-  static readonly STATUS_DESCRIPTION_ENABLED: string = '当前用户的主防火墙策略处于启用状态'
-  static readonly STATUS_DESCRIPTION_DISABLED: string = '当前用户的主防火墙策略处于关闭状态'
+  static readonly MODE_ALLOWLIST: string = '白名单模式'
+  static readonly MODE_DENYLIST: string = '黑名单模式'
+  static readonly MODE_NON_STANDARD: string = '非标准模式'
+  static readonly MODE_UNMANAGED: string = '未纳管'
   
   // 验证错误
   static readonly ERROR_RULE_NAME_REQUIRED: string = '请输入规则名称'
@@ -125,11 +126,11 @@ export class FirewallDialogStrings {
   static readonly ERROR_INVALID_REMOTE_PORT: string = '远端端口范围必须为 1-65535'
   static readonly ERROR_INVALID_DOMAIN: string = '域名格式不正确'
   static readonly ERROR_INVALID_DNS: string = 'DNS 地址格式不正确'
-  static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙状态'
+  static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙策略'
   static readonly ERROR_PLEASE_READ_STATUS: string = '请先选择并读取有效用户状态'
   
   // 描述文本
-  static readonly USER_FIREWALL_DESCRIPTION: string = '从系统已激活的用户列表中选择目标 userId，仅切换该用户的主防火墙开关状态，不会修改当前模式规则。执行前需要完成 PIN 认证。'
+  static readonly USER_FIREWALL_DESCRIPTION: string = '选择目标 userId 后，为该用户下发自定义模式。白名单模式默认双向拒绝，只放行允许规则；黑名单模式默认双向允许，只阻止禁止规则；非标准模式只下发手动维护的规则，不修改默认入/出站策略。执行前需要完成 PIN 认证。'
 }
 
 // ==================== 设备详情对话框文本 ====================

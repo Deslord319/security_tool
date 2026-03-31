@@ -7,12 +7,15 @@ import { LogStorageService } from './LogStorageService'
 import { UserFirewallPolicyService } from './UserFirewallPolicyService'
 import {
   AuthMethod,
+  FirewallUserApplyMode,
+  UserFirewallModeApplyResult,
   FirewallToggleResult,
   LogEntry,
   LogEventResult,
   LogEventType,
   generateLogEntryId
 } from '../models/DataModels'
+import { UserFirewallModeService } from './UserFirewallModeService'
 
 const TAG = 'FirewallToggleAuthService'
 const DOMAIN = 0x000a
@@ -32,22 +35,48 @@ export class FirewallToggleAuthService {
     )
   }
 
-  static async executeToggleForUser(
+  static async executeUserModeApply(
     context: common.UIAbilityContext,
     userId: number,
-    currentEnabled: boolean,
-    targetEnabled: boolean
-  ): Promise<FirewallToggleResult> {
-    return FirewallToggleAuthService.executeToggleInternal(
+    mode: FirewallUserApplyMode,
+    applyAction: () => Promise<UserFirewallModeApplyResult>
+  ): Promise<UserFirewallModeApplyResult> {
+    let authResult = await FirewallToggleAuthService.authenticateProtectedAction(
       context,
-      currentEnabled,
-      targetEnabled,
-      async (enabled: boolean): Promise<boolean> => {
-        let result = await UserFirewallPolicyService.setEnabled(userId, enabled)
-        return result.success
-      },
-      `firewall toggle user ${userId}`
+      `firewall user mode apply ${userId} ${mode}`
     )
+    if (!authResult.success) {
+      return {
+        success: false,
+        userId: userId,
+        mode: mode,
+        appliedRuleCount: 0,
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.errorMessage
+      }
+    }
+    let applyResult = await applyAction()
+    if (!applyResult.success) {
+      let errorCode = applyResult.errorCode ?? UserFirewallModeService.getLastErrorCode()
+      await FirewallToggleAuthService.appendGenericAuditEntry(
+        LogEventResult.FAILED,
+        `firewall user mode apply ${userId} ${mode} failed`,
+        errorCode
+      )
+      return {
+        success: false,
+        userId: applyResult.userId,
+        mode: applyResult.mode,
+        appliedRuleCount: applyResult.appliedRuleCount,
+        errorCode: errorCode,
+        errorMessage: applyResult.errorMessage ?? UserFirewallModeService.getLastErrorMessage()
+      }
+    }
+    await FirewallToggleAuthService.appendGenericAuditEntry(
+      LogEventResult.SUCCESS,
+      `firewall user mode apply ${userId} ${mode} success`
+    )
+    return applyResult
   }
 
   private static async executeToggleInternal(
@@ -57,68 +86,17 @@ export class FirewallToggleAuthService {
     applyPolicy: (enabled: boolean) => Promise<boolean>,
     auditPrefix: string
   ): Promise<FirewallToggleResult> {
-    let lockState = await FirewallAuthStateRepository.getLockState(context)
-    if (lockState.locked) {
-      let blockedResult: FirewallToggleResult = {
-        success: false,
-        targetEnabled: targetEnabled,
-        reason: 'lockout',
-        lockRemainingSec: lockState.remainingSec,
-        errorMessage: `PIN 认证失败次数过多，请在 ${lockState.remainingSec ?? 60} 秒后重试`
-      }
-      await FirewallToggleAuthService.appendAuditEntry(
-        currentEnabled,
-        targetEnabled,
-        LogEventResult.BLOCKED,
-        `${auditPrefix} blocked: locked ${lockState.remainingSec}s`
-      )
-      return blockedResult
-    }
-
-    let authResult = await AuthService.authenticate(AuthMethod.PIN)
-    if (!authResult.success && authResult.reason === 'unavailable') {
-      let unavailableResult: FirewallToggleResult = {
-        success: false,
-        targetEnabled: targetEnabled,
-        reason: 'pin_unavailable',
-        errorCode: authResult.errorCode,
-        errorMessage: authResult.message
-      }
-      await FirewallToggleAuthService.appendAuditEntry(
-        currentEnabled,
-        targetEnabled,
-        LogEventResult.BLOCKED,
-        `${auditPrefix} blocked: pin unavailable`,
-        authResult.errorCode
-      )
-      return unavailableResult
-    }
-
+    let authResult = await FirewallToggleAuthService.authenticateProtectedAction(context, auditPrefix, currentEnabled, targetEnabled)
     if (!authResult.success) {
-      let failureUpdate = await FirewallAuthStateRepository.recordFailure(context)
-      let failedResult: FirewallToggleResult = {
+      return {
         success: false,
         targetEnabled: targetEnabled,
-        reason: 'pin_failed',
+        reason: authResult.reason,
+        lockRemainingSec: authResult.lockRemainingSec,
         errorCode: authResult.errorCode,
-        errorMessage: authResult.message ?? 'PIN 验证失败，已取消本次变更'
+        errorMessage: authResult.errorMessage
       }
-      if (failureUpdate.locked) {
-        failedResult.lockRemainingSec = failureUpdate.remainingSec
-      }
-      await FirewallToggleAuthService.appendAuditEntry(
-        currentEnabled,
-        targetEnabled,
-        LogEventResult.BLOCKED,
-        failureUpdate.locked ?
-          `${auditPrefix} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
-          `${auditPrefix} blocked: pin failed`,
-        authResult.errorCode
-      )
-      return failedResult
     }
-
-    await FirewallAuthStateRepository.clearFailures(context)
 
     let applySuccess = await applyPolicy(targetEnabled)
     if (!applySuccess) {
@@ -160,6 +138,105 @@ export class FirewallToggleAuthService {
     return successResult
   }
 
+  private static async authenticateProtectedAction(
+    context: common.UIAbilityContext,
+    auditPrefix: string,
+    currentEnabled?: boolean,
+    targetEnabled?: boolean
+  ): Promise<FirewallToggleResult> {
+    let lockState = await FirewallAuthStateRepository.getLockState(context)
+    if (lockState.locked) {
+      let blockedResult: FirewallToggleResult = {
+        success: false,
+        targetEnabled: targetEnabled ?? false,
+        reason: 'lockout',
+        lockRemainingSec: lockState.remainingSec,
+        errorMessage: `PIN 认证失败次数过多，请在 ${lockState.remainingSec ?? 60} 秒后重试`
+      }
+      if (currentEnabled !== undefined && targetEnabled !== undefined) {
+        await FirewallToggleAuthService.appendAuditEntry(
+          currentEnabled,
+          targetEnabled,
+          LogEventResult.BLOCKED,
+          `${auditPrefix} blocked: locked ${lockState.remainingSec}s`
+        )
+      } else {
+        await FirewallToggleAuthService.appendGenericAuditEntry(
+          LogEventResult.BLOCKED,
+          `${auditPrefix} blocked: locked ${lockState.remainingSec}s`
+        )
+      }
+      return blockedResult
+    }
+
+    let authResult = await AuthService.authenticate(AuthMethod.PIN)
+    if (!authResult.success && authResult.reason === 'unavailable') {
+      let unavailableResult: FirewallToggleResult = {
+        success: false,
+        targetEnabled: targetEnabled ?? false,
+        reason: 'pin_unavailable',
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.message
+      }
+      if (currentEnabled !== undefined && targetEnabled !== undefined) {
+        await FirewallToggleAuthService.appendAuditEntry(
+          currentEnabled,
+          targetEnabled,
+          LogEventResult.BLOCKED,
+          `${auditPrefix} blocked: pin unavailable`,
+          authResult.errorCode
+        )
+      } else {
+        await FirewallToggleAuthService.appendGenericAuditEntry(
+          LogEventResult.BLOCKED,
+          `${auditPrefix} blocked: pin unavailable`,
+          authResult.errorCode
+        )
+      }
+      return unavailableResult
+    }
+
+    if (!authResult.success) {
+      let failureUpdate = await FirewallAuthStateRepository.recordFailure(context)
+      let failedResult: FirewallToggleResult = {
+        success: false,
+        targetEnabled: targetEnabled ?? false,
+        reason: 'pin_failed',
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.message ?? 'PIN 验证失败，已取消本次变更'
+      }
+      if (failureUpdate.locked) {
+        failedResult.lockRemainingSec = failureUpdate.remainingSec
+      }
+      if (currentEnabled !== undefined && targetEnabled !== undefined) {
+        await FirewallToggleAuthService.appendAuditEntry(
+          currentEnabled,
+          targetEnabled,
+          LogEventResult.BLOCKED,
+          failureUpdate.locked ?
+            `${auditPrefix} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
+            `${auditPrefix} blocked: pin failed`,
+          authResult.errorCode
+        )
+      } else {
+        await FirewallToggleAuthService.appendGenericAuditEntry(
+          LogEventResult.BLOCKED,
+          failureUpdate.locked ?
+            `${auditPrefix} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
+            `${auditPrefix} blocked: pin failed`,
+          authResult.errorCode
+        )
+      }
+      return failedResult
+    }
+
+    await FirewallAuthStateRepository.clearFailures(context)
+    return {
+      success: true,
+      targetEnabled: targetEnabled ?? false
+    }
+  }
+
   private static async appendAuditEntry(
     beforeEnabled: boolean,
     afterEnabled: boolean,
@@ -184,6 +261,31 @@ export class FirewallToggleAuthService {
     let saved = await LogStorageService.addEntry(entry)
     if (!saved) {
       hilog.warn(DOMAIN, TAG, `appendAuditEntry failed: ${detail}`)
+    }
+  }
+
+  private static async appendGenericAuditEntry(
+    result: LogEventResult,
+    detail: string,
+    errorCode?: number
+  ): Promise<void> {
+    let normalizedDetail = detail
+    if (errorCode !== undefined) {
+      normalizedDetail = `${detail}, errorCode=${errorCode}`
+    }
+    let entry: LogEntry = {
+      id: generateLogEntryId(),
+      timestamp: Date.now(),
+      eventType: LogEventType.ACCOUNT,
+      detail: normalizedDetail,
+      processName: 'firewall-user-mode-auth',
+      result: result,
+      rawEventName: 'firewall_user_mode_apply',
+      rawOutcome: result === LogEventResult.SUCCESS ? 'success' : 'blocked_or_failed'
+    }
+    let saved = await LogStorageService.addEntry(entry)
+    if (!saved) {
+      hilog.warn(DOMAIN, TAG, `appendGenericAuditEntry failed: ${detail}`)
     }
   }
 }

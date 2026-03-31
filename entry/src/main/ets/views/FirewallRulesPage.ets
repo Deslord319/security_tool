@@ -5,6 +5,7 @@ import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
 import { FirewallModeService } from '../services/FirewallModeService'
 import { AddRuleDialog } from '../components/AddRuleDialog'
+import { UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { CompactSummaryCard } from '../components/CompactSummaryCard'
 import { netFirewall } from '@kit.NetworkKit'
@@ -12,8 +13,9 @@ import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { FirewallPresetMode } from '../models/DataModels'
+import { FirewallPresetMode, FirewallUserApplyMode } from '../models/DataModels'
 import { DialogService } from '../utils/DialogService'
+import { UserFirewallModeService } from '../services/UserFirewallModeService'
 
 const TAG = 'FirewallRulesPage'
 
@@ -26,6 +28,7 @@ export struct FirewallRulesPage {
   @State isLoading: boolean = false
   onBack: () => void = () => {}
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  private userFirewallDialogController?: CustomDialogController
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
@@ -42,6 +45,7 @@ export struct FirewallRulesPage {
   })
 
   aboutToAppear() {
+    hilog.info(0x0001, TAG, 'aboutToAppear')
     if (this.currentMode !== 'custom') {
       DialogService.openFailure(this.getUIContext(), FirewallStrings.rulesOnlyCustomMode)
       this.onBack()
@@ -50,17 +54,24 @@ export struct FirewallRulesPage {
     this.loadRules()
   }
 
+  aboutToDisappear(): void {
+    hilog.info(0x0001, TAG, 'aboutToDisappear')
+    this.closeUserFirewallDialog()
+  }
+
   async loadRules() {
     this.isLoading = true
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     this.rules = await FirewallCustomRuleService.listRules(context)
     this.updateConflictNotice()
+    hilog.info(0x0001, TAG, `loadRules finished: count=${this.rules.length}`)
     this.isLoading = false
   }
 
   private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
+    hilog.info(0x0001, TAG, `persistRules start: nextCount=${nextRules.length}, previousCount=${previousRules.length}`)
     let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {
       DialogService.openFailure(
@@ -80,8 +91,21 @@ export struct FirewallRulesPage {
       DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesRollbackSuccess)
       return
     }
+    hilog.info(0x0001, TAG, `persistRules local template saved: count=${nextRules.length}`)
+    let reapplySummary = await UserFirewallModeService.reapplyBindings(context, nextRules)
     await this.loadRules()
-    hilog.info(0x0001, TAG, `persistRules success: ${successMessage}`)
+    hilog.info(
+      0x0001,
+      TAG,
+      `persistRules success: ${successMessage}, reapply total=${reapplySummary.totalUsers}, success=${reapplySummary.successCount}, failed=${reapplySummary.failedCount}`
+    )
+    if (reapplySummary.failedCount > 0) {
+      await DialogService.openFailure(
+        this.getUIContext(),
+        `${FirewallStrings.rulesReapplyPartialFailed}（成功 ${reapplySummary.successCount} 个，失败 ${reapplySummary.failedCount} 个）`
+      )
+      return
+    }
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
@@ -676,14 +700,59 @@ export struct FirewallRulesPage {
 
   @Builder
   private headerActions() {
-    Button(FirewallStrings.addRuleButton)
-      .fontSize(AppStyles.FONT_SIZE_BODY)
-      .fontColor(Color.White)
-      .backgroundColor(AppColors.BRAND_PRIMARY)
-      .borderRadius(AppStyles.RADIUS_MD)
-      .height(36)
-      .onClick(() => {
-        this.addRuleDialogController.open()
-      })
+    Row({ space: 12 }) {
+      Button(FirewallStrings.userIdControlButton)
+        .type(ButtonType.Normal)
+        .height(36)
+        .padding({ left: 14, right: 14 })
+        .fontSize(AppStyles.FONT_SIZE_SMALL)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.BRAND_PRIMARY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .border({
+          width: 1,
+          color: AppColors.getColors(this.currentTheme).BORDER
+        })
+        .onClick(() => {
+          this.openUserFirewallDialog()
+        })
+
+      Button(FirewallStrings.addRuleButton)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(Color.White)
+        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .height(36)
+        .onClick(() => {
+          this.addRuleDialogController.open()
+        })
+    }
+  }
+
+  private openUserFirewallDialog(): void {
+    hilog.info(0x0001, TAG, 'openUserFirewallDialog')
+    this.closeUserFirewallDialog()
+    this.userFirewallDialogController = new CustomDialogController({
+      builder: UserFirewallControlDialog({
+        controller: this.userFirewallDialogController,
+        onActionCompleted: async (_userId: number, _mode: FirewallUserApplyMode): Promise<void> => {
+          await this.loadRules()
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: true,
+      customStyle: true
+    })
+    this.userFirewallDialogController.open()
+  }
+
+  private closeUserFirewallDialog(): void {
+    try {
+      this.userFirewallDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.userFirewallDialogController = undefined
+    }
   }
 }

@@ -537,6 +537,40 @@ export interface UserFirewallActionResult {
   message?: string
 }
 
+export type FirewallUserApplyMode = 'allowlist' | 'denylist' | 'non_standard'
+
+export interface UserFirewallModeBinding {
+  userId: number
+  mode: FirewallUserApplyMode
+}
+
+export interface UserFirewallModeState {
+  userId: number
+  bindingMode?: FirewallUserApplyMode
+  isManaged: boolean
+  isOpen: boolean
+  inAction: number
+  outAction: number
+  errorCode?: number
+  message?: string
+}
+
+export interface UserFirewallModeApplyResult {
+  success: boolean
+  userId: number
+  mode: FirewallUserApplyMode
+  appliedRuleCount: number
+  errorCode?: number
+  errorMessage?: string
+}
+
+export interface UserFirewallModeReapplySummary {
+  totalUsers: number
+  successCount: number
+  failedCount: number
+  failedUsers: number[]
+}
+
 export const PREF_STORE_NAME_FIREWALL_AUTH = 'firewall_auth'
 export const PREF_KEY_FIREWALL_PIN_FAILED_COUNT = 'firewall_pin_failed_count'
 export const PREF_KEY_FIREWALL_PIN_LOCK_UNTIL = 'firewall_pin_lock_until'
@@ -546,6 +580,8 @@ export const PREF_STORE_NAME_FIREWALL_MODE = 'firewall_mode'
 export const PREF_KEY_FIREWALL_ACTIVE_MODE = 'firewall_active_mode'
 export const PREF_STORE_NAME_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules'
 export const PREF_KEY_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules_payload'
+export const PREF_STORE_NAME_FIREWALL_USER_BINDINGS = 'firewall_user_bindings'
+export const PREF_KEY_FIREWALL_USER_BINDINGS = 'firewall_user_bindings_payload'
 
 export enum LogEventType {
   CRASH = 0,

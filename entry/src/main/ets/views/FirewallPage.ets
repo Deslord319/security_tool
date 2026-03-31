@@ -1,8 +1,7 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../components/SubPageHeader'
-import { LoadingDialog, UserFirewallControlDialog } from '../components/UserFirewallControlDialog'
-import { FirewallService } from '../services/FirewallService'
+import { LoadingDialog } from '../components/UserFirewallControlDialog'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
@@ -15,7 +14,6 @@ import { DialogService } from '../utils/DialogService'
 const TAG = 'FirewallPage'
 const DOMAIN = 0x0010
 const MIN_MODE_LOADING_DIALOG_DURATION_MS = 500
-const DEFAULT_FIREWALL_USER_ID = 100
 
 @Component
 export struct FirewallPage {
@@ -32,7 +30,6 @@ export struct FirewallPage {
   onBack: () => void = () => {}
   private modeLoadingDialogOpenedAt: number = 0
   private modeLoadingDialogController?: CustomDialogController
-  private userFirewallDialogController?: CustomDialogController
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled
@@ -40,7 +37,6 @@ export struct FirewallPage {
 
   aboutToDisappear() {
     this.closeModeLoadingDialog()
-    this.closeUserFirewallDialog()
   }
 
   async handleToggleWithAuth(isOn: boolean) {
@@ -208,46 +204,6 @@ export struct FirewallPage {
 
   private getModeCardScale(mode: FirewallPresetMode): number {
     return HoverUtils.getScale(this.isModeHovered(mode))
-  }
-
-  private openUserFirewallDialog(): void {
-    this.closeUserFirewallDialog()
-    this.userFirewallDialogController = new CustomDialogController({
-      builder: UserFirewallControlDialog({
-        controller: this.userFirewallDialogController,
-        onActionCompleted: async (userId: number, enabled: boolean): Promise<void> => {
-          await this.handleUserFirewallActionCompleted(userId, enabled)
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: true,
-      customStyle: true
-    })
-    this.userFirewallDialogController.open()
-  }
-
-  private closeUserFirewallDialog(): void {
-    try {
-      this.userFirewallDialogController?.close()
-    } catch (_err) {
-    } finally {
-      this.userFirewallDialogController = undefined
-    }
-  }
-
-  private async handleUserFirewallActionCompleted(userId: number, enabled: boolean): Promise<void> {
-    if (userId !== DEFAULT_FIREWALL_USER_ID) {
-      return
-    }
-    let nextEnabled = enabled
-    let policy = await FirewallService.getFirewallPolicy()
-    if (policy !== null) {
-      nextEnabled = policy.isOpen
-    } else {
-      hilog.warn(DOMAIN, TAG, 'sync default firewall state fallback to requested value after user-specific update')
-    }
-    this.firewallSwitchValue = nextEnabled
-    this.onFirewallToggle(nextEnabled)
   }
 
   private async openModeLoadingDialog(): Promise<void> {
@@ -525,34 +481,12 @@ export struct FirewallPage {
 
   @Builder
   private headerActions() {
-    Row({ space: 12 }) {
-      Button(FirewallStrings.userIdControlButton)
-        .type(ButtonType.Normal)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.BRAND_PRIMARY)
-        .backgroundColor(this.getThemeColors().BG_CARD)
-        .borderRadius(AppStyles.RADIUS_MD)
-        .border({
-          width: 1,
-          color: this.getThemeColors().BORDER
-        })
-        .enabled(!this.isToggleProcessing && !this.isModeProcessing)
-        .opacity(!this.isToggleProcessing && !this.isModeProcessing ? 1 : 0.5)
-        .onClick(() => {
-          this.openUserFirewallDialog()
-        })
-
-      Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
-        .selectedColor(AppColors.BRAND_PRIMARY)
-        .switchPointColor(Color.White)
-        .enabled(!this.isToggleProcessing)
-        .onChange((isOn: boolean) => {
-          this.handleToggleWithAuth(isOn)
-        })
-    }
-    .alignItems(VerticalAlign.Center)
+    Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
+      .selectedColor(AppColors.BRAND_PRIMARY)
+      .switchPointColor(Color.White)
+      .enabled(!this.isToggleProcessing)
+      .onChange((isOn: boolean) => {
+        this.handleToggleWithAuth(isOn)
+      })
   }
 }

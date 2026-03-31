@@ -1,12 +1,7 @@
 import { netFirewall } from '@kit.NetworkKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import osAccount from '@ohos.account.osAccount'
-import {
-  UserFirewallActionResult,
-  UserFirewallListResult,
-  UserFirewallOption,
-  UserFirewallPolicyResult
-} from '../models/DataModels'
+import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'UserFirewallPolicyService'
@@ -63,6 +58,7 @@ export class UserFirewallPolicyService {
       })
 
       let selectedUserId = foregroundId !== undefined && sortedIds.includes(foregroundId) ? foregroundId : sortedIds[0]
+      hilog.info(DOMAIN, TAG, 'loadAvailableUserIds success: count=%{public}d, selectedUserId=%{public}d', users.length, selectedUserId)
 
       return {
         users: users,
@@ -86,6 +82,15 @@ export class UserFirewallPolicyService {
     })
     try {
       let policy = await netFirewall.getNetFirewallPolicy(userId)
+      hilog.info(
+        DOMAIN,
+        TAG,
+        'getPolicy success: userId=%{public}d, isOpen=%{public}s, inAction=%{public}d, outAction=%{public}d',
+        userId,
+        String(policy.isOpen),
+        policy.inAction,
+        policy.outAction
+      )
       return {
         userId: userId,
         isOpen: policy.isOpen,
@@ -103,35 +108,6 @@ export class UserFirewallPolicyService {
         errorCode: UserFirewallPolicyService.getLastErrorCode(),
         message: UserFirewallPolicyService.getLastErrorMessage()
       } as UserFirewallPolicyResult
-    }
-  }
-
-  static async setEnabled(userId: number, enabled: boolean): Promise<UserFirewallActionResult> {
-    CommonErrorUtils.clearLastError({
-      lastErrorCode: UserFirewallPolicyService.lastErrorCode,
-      lastErrorMessage: UserFirewallPolicyService.lastErrorMessage
-    })
-    try {
-      let policy: netFirewall.NetFirewallPolicy = {
-        isOpen: enabled,
-        inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
-        outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
-      }
-      await netFirewall.setNetFirewallPolicy(userId, policy)
-      hilog.info(DOMAIN, TAG, `setEnabled success, userId=${userId}, enabled=${enabled}`)
-      return {
-        success: true,
-        userId: userId
-      } as UserFirewallActionResult
-    } catch (err) {
-      UserFirewallPolicyService.recordError('设置用户防火墙状态', err as Object)
-      hilog.error(DOMAIN, TAG, `setEnabled failed, userId=${userId}, enabled=${enabled}, err=${JSON.stringify(err)}`)
-      return {
-        success: false,
-        userId: userId,
-        errorCode: UserFirewallPolicyService.getLastErrorCode(),
-        message: UserFirewallPolicyService.getLastErrorMessage()
-      } as UserFirewallActionResult
     }
   }
 }
