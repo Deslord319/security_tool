@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppColors, Routes } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { DashboardStrings } from '../constants/modules/DashboardStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/DashboardModels'
@@ -9,10 +10,12 @@ import { FirewallModeService } from '../services/FirewallModeService'
 import { FirewallService } from '../services/FirewallService'
 import { LogStorageChangeEvent, LogStorageService } from '../services/LogStorageService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
+import { LogDomains } from '../constants/LogDomains'
+import { RouteIds } from '../constants/RouteIds'
 
 const TAG = 'DashboardViewModel'
-const DOMAIN = 0x0014
-type DashboardQuickEntryId = 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
+const DOMAIN = LogDomains.DASHBOARD
+type DashboardQuickEntryId = typeof RouteIds.ENTRY_FIREWALL | typeof RouteIds.ENTRY_LOG | typeof RouteIds.ENTRY_PERIPHERAL | typeof RouteIds.ENTRY_IDENTITY | typeof RouteIds.ENTRY_TOOL_SETTINGS | typeof RouteIds.ENTRY_HELP_FEEDBACK
 
 @Observed
 export class DashboardViewModel {
@@ -74,13 +77,13 @@ export class DashboardViewModel {
   private buildAdminCard(): DashboardModuleCardState {
     let activated = EnterpriseAdminService.probeActivation().activated
     return this.createModuleCard(
-      'admin',
+      RouteIds.MODULE_ADMIN,
       DashboardStrings.adminTitle,
       activated ? DashboardStrings.adminReady : DashboardStrings.adminPending,
       activated ? DashboardStrings.adminReadyDetail : DashboardStrings.adminPendingDetail,
       AppColors.WARNING,
       AppColors.GRADIENT_IDENTITY_END,
-      $r('app.media.identity')
+      AppResources.IDENTITY_ICON
     )
   }
 
@@ -98,39 +101,39 @@ export class DashboardViewModel {
     }
 
     return this.createModuleCard(
-      'firewall',
+      RouteIds.MODULE_FIREWALL,
       DashboardStrings.firewallTitle,
       enabled ? DashboardStrings.firewallEnabled : DashboardStrings.firewallDisabled,
       modeText,
       DashboardStrings.firewallGradient.start,
       DashboardStrings.firewallGradient.end,
-      $r('app.media.firewall')
+      AppResources.FIREWALL_ICON
     )
   }
 
   private buildLogCard(): DashboardModuleCardState {
     let statistics = LogStorageService.getStatistics()
     return this.createModuleCard(
-      'log',
+      RouteIds.MODULE_LOG,
       DashboardStrings.logTitle,
       `${statistics.todayCount}`,
       `${DashboardStrings.logTodayDetailPrefix}${statistics.totalCount}${DashboardStrings.logTodayDetailSuffix}`,
       DashboardStrings.logManageGradient.start,
       DashboardStrings.logManageGradient.end,
-      $r('app.media.log')
+      AppResources.LOG_ICON
     )
   }
 
   private buildPeripheralCard(): DashboardModuleCardState {
     let stats = PeripheralTraceRepository.getStats()
     return this.createModuleCard(
-      'peripheral',
+      RouteIds.MODULE_PERIPHERAL,
       DashboardStrings.peripheralTitle,
       `${stats.total}`,
       `${DashboardStrings.peripheralDetailPrefix}${stats.connects}${DashboardStrings.peripheralDetailMiddle}${stats.disconnects}${DashboardStrings.peripheralDetailSuffix}`,
       DashboardStrings.peripheralGradient.start,
       DashboardStrings.peripheralGradient.end,
-      $r('app.media.peripheral')
+      AppResources.PERIPHERAL_ICON
     )
   }
 
@@ -154,49 +157,49 @@ export class DashboardViewModel {
   private buildQuickEntries(): DashboardQuickEntryState[] {
     return [
       this.createQuickEntry(
-        'firewall',
+        RouteIds.ENTRY_FIREWALL,
         DashboardStrings.firewallEntryTitle,
-        $r('app.media.firewall'),
+        AppResources.FIREWALL_ICON,
         DashboardStrings.firewallGradient.start,
         DashboardStrings.firewallGradient.end,
         Routes.FIREWALL
       ),
       this.createQuickEntry(
-        'log',
+        RouteIds.ENTRY_LOG,
         DashboardStrings.logEntryTitle,
-        $r('app.media.log'),
+        AppResources.LOG_ICON,
         DashboardStrings.logManageGradient.start,
         DashboardStrings.logManageGradient.end,
         Routes.LOG_MANAGE
       ),
       this.createQuickEntry(
-        'peripheral',
+        RouteIds.ENTRY_PERIPHERAL,
         DashboardStrings.peripheralEntryTitle,
-        $r('app.media.peripheral'),
+        AppResources.PERIPHERAL_ICON,
         DashboardStrings.peripheralGradient.start,
         DashboardStrings.peripheralGradient.end,
         Routes.PERIPHERAL_MANAGE
       ),
       this.createQuickEntry(
-        'identity',
+        RouteIds.ENTRY_IDENTITY,
         DashboardStrings.identityTitle,
-        $r('app.media.identity'),
+        AppResources.IDENTITY_ICON,
         DashboardStrings.identityGradient.start,
         DashboardStrings.identityGradient.end,
         Routes.IDENTITY
       ),
       this.createQuickEntry(
-        'tool-settings',
+        RouteIds.ENTRY_TOOL_SETTINGS,
         DashboardStrings.toolSettingsTitle,
-        $r('app.media.settings'),
+        AppResources.SETTINGS_ICON,
         DashboardStrings.toolSettingsGradient.start,
         DashboardStrings.toolSettingsGradient.end,
         Routes.TOOL_SETTINGS
       ),
       this.createQuickEntry(
-        'help-feedback',
+        RouteIds.ENTRY_HELP_FEEDBACK,
         DashboardStrings.helpFeedbackTitle,
-        $r('app.media.help'),
+        AppResources.HELP_ICON,
         DashboardStrings.helpFeedbackGradient.start,
         DashboardStrings.helpFeedbackGradient.end,
         Routes.HELP_FEEDBACK
