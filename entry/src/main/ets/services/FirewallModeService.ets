@@ -42,6 +42,7 @@ export class FirewallModeService {
     let targetRules = targetMode === 'custom'
       ? await FirewallCustomRuleService.buildRulesForApply(context)
       : await FirewallPresetService.buildRules(context, targetMode)
+    hilog.info(DOMAIN, TAG, `switchMode prepared: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
     return FirewallModeService.applyModeRules(context, targetMode, targetRules)
   }
 
@@ -79,8 +80,14 @@ export class FirewallModeService {
     targetMode: FirewallPresetMode,
     targetRules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallModeSwitchResult> {
+    hilog.info(DOMAIN, TAG, `applyModeRules start: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
     let applied = await FirewallService.applyRuleSet(targetRules, targetMode)
     if (!applied) {
+      hilog.error(
+        DOMAIN,
+        TAG,
+        `applyModeRules failed: targetMode=${targetMode}, errorCode=${FirewallService.getLastErrorCode() ?? -1}`
+      )
       return {
         success: false,
         mode: targetMode,
@@ -90,6 +97,7 @@ export class FirewallModeService {
       }
     }
     await FirewallModeService.saveCurrentMode(context, targetMode)
+    hilog.info(DOMAIN, TAG, `applyModeRules success: targetMode=${targetMode}, appliedRuleCount=${targetRules.length}`)
     return {
       success: true,
       mode: targetMode,

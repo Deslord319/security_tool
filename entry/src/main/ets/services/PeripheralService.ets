@@ -54,9 +54,11 @@ export class PeripheralService {
     }
 
     try {
+      const disabled = restrictions.getDisallowedPolicy(ADMIN_WANT, feature)
+      hilog.info(DOMAIN, TAG, `getInterfaceDisabledWithResult success: feature=${feature}, disabled=${disabled}`)
       return {
         success: true,
-        data: restrictions.getDisallowedPolicy(ADMIN_WANT, feature)
+        data: disabled
       } as OperationResult<boolean>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `getInterfaceDisabled failed: ${JSON.stringify(err)}`)
@@ -77,9 +79,11 @@ export class PeripheralService {
 
   static getUsbStoragePolicyWithResult(): OperationResult<usbManager.UsbPolicy> {
     try {
+      const policy = usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)
+      hilog.info(DOMAIN, TAG, `getUsbStoragePolicyWithResult success: policy=${policy}`)
       return {
         success: true,
-        data: usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)
+        data: policy
       } as OperationResult<usbManager.UsbPolicy>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `getUsbStoragePolicy failed: ${JSON.stringify(err)}`)
@@ -98,6 +102,11 @@ export class PeripheralService {
     }
 
     try {
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `setUsbStoragePolicyWithCleanupResult start: targetPolicy=${policy}, currentStoragePolicy=${snapshotResult.data?.storagePolicy}`
+      )
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
       hilog.info(DOMAIN, TAG, `setUsbStoragePolicyWithCleanupResult success: ${policy}`)
       return {
@@ -134,6 +143,7 @@ export class PeripheralService {
     try {
       const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
       if (interfaces.length === 0) {
+        hilog.info(DOMAIN, TAG, 'getNetworkInterfaceDisabledWithResult success: interfaceCount=0, allDisabled=false')
         return { success: true, data: false } as OperationResult<boolean>
       }
       let allDisabled = true
@@ -143,6 +153,11 @@ export class PeripheralService {
           break
         }
       }
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `getNetworkInterfaceDisabledWithResult success: interfaceCount=${interfaces.length}, allDisabled=${allDisabled}`
+      )
       return { success: true, data: allDisabled } as OperationResult<boolean>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
@@ -156,6 +171,11 @@ export class PeripheralService {
       return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_usb_storage_policy')
     }
     const snapshot = snapshotResult.data!
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `setUsbInterfaceDisabledWithCleanup start: disallow=${disallow}, storagePolicy=${snapshot.storagePolicy}`
+    )
 
     if (snapshot.storagePolicy !== usbManager.UsbPolicy.READ_WRITE) {
       const resetResult = PeripheralService.resetUsbStoragePolicyToReadWrite()
@@ -166,6 +186,7 @@ export class PeripheralService {
 
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, PeripheralService.FEATURE_USB, disallow)
+      hilog.info(DOMAIN, TAG, `setUsbInterfaceDisabledWithCleanup success: disallow=${disallow}`)
       return {
         success: true,
         userMessage: 'usb interface policy updated',
@@ -197,6 +218,11 @@ export class PeripheralService {
       } as OperationResult<UsbConflictSnapshot>
     }
 
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `getUsbConflictSnapshot success: storagePolicy=${storagePolicyResult.data ?? usbManager.UsbPolicy.READ_WRITE}`
+    )
     return {
       success: true,
       data: {
@@ -208,6 +234,7 @@ export class PeripheralService {
   private static resetUsbStoragePolicyToReadWrite(): OperationResult<void> {
     try {
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, usbManager.UsbPolicy.READ_WRITE)
+      hilog.info(DOMAIN, TAG, 'resetUsbStoragePolicyToReadWrite success')
       return { success: true } as OperationResult<void>
     } catch (err) {
       hilog.error(DOMAIN, TAG, `resetUsbStoragePolicyToReadWrite failed: ${JSON.stringify(err)}`)

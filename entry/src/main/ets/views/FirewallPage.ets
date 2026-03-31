@@ -1,7 +1,6 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../components/SubPageHeader'
-import { LoadingDialog } from '../components/UserFirewallControlDialog'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { common } from '@kit.AbilityKit'
@@ -10,10 +9,11 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { DialogService } from '../utils/DialogService'
+import { TimedLoadingDialogRunner } from '../utils/TimedLoadingDialogRunner'
+import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'FirewallPage'
 const DOMAIN = 0x0010
-const MIN_MODE_LOADING_DIALOG_DURATION_MS = 500
 
 @Component
 export struct FirewallPage {
@@ -28,15 +28,16 @@ export struct FirewallPage {
   onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
   onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
-  private modeLoadingDialogOpenedAt: number = 0
-  private modeLoadingDialogController?: CustomDialogController
+  private readonly modeLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG, DOMAIN)
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled
+    hilog.info(DOMAIN, TAG, `page enter: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
   }
 
   aboutToDisappear() {
-    this.closeModeLoadingDialog()
+    this.modeLoadingRunner.closeIfOpen('page-disappear')
+    hilog.info(DOMAIN, TAG, `page exit: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
   }
 
   async handleToggleWithAuth(isOn: boolean) {
@@ -206,61 +207,19 @@ export struct FirewallPage {
     return HoverUtils.getScale(this.isModeHovered(mode))
   }
 
-  private async openModeLoadingDialog(): Promise<void> {
-    if (this.modeLoadingDialogController) {
-      return
-    }
-    this.modeLoadingDialogOpenedAt = Date.now()
-    try {
-      this.modeLoadingDialogController = new CustomDialogController({
-        builder: LoadingDialog({
-          controller: this.modeLoadingDialogController,
-          message: FirewallStrings.modeLoadingMessage
-        }),
-        alignment: DialogAlignment.Center,
-        autoCancel: false,
-        customStyle: true
-      })
-      this.modeLoadingDialogController.open()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to open mode loading dialog: ${JSON.stringify(err)}`)
-      this.modeLoadingDialogController = undefined
-    }
-  }
-
-  private closeModeLoadingDialog(): void {
-    if (!this.modeLoadingDialogController) {
-      this.modeLoadingDialogOpenedAt = 0
-      return
-    }
-    try {
-      this.modeLoadingDialogController.close()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `Failed to close mode loading dialog: ${JSON.stringify(err)}`)
-    } finally {
-      this.modeLoadingDialogController = undefined
-      this.modeLoadingDialogOpenedAt = 0
-    }
-  }
-
-  private async waitForModeLoadingDialogMinimumDuration(): Promise<void> {
-    if (!this.modeLoadingDialogController) {
-      return
-    }
-    let elapsed = Date.now() - this.modeLoadingDialogOpenedAt
-    let remainingDuration = MIN_MODE_LOADING_DIALOG_DURATION_MS - elapsed
-    if (remainingDuration <= 0) {
-      return
-    }
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => {
-        resolve()
-      }, remainingDuration)
-    })
-  }
-
   private showModeChangeFailedDialog(): void {
     DialogService.openFailure(this.getUIContext(), FirewallStrings.modeApplyFailed)
+  }
+
+  private createModeLoadingDialogController(message: string): CustomDialogController {
+    return new CustomDialogController({
+      builder: CommonLoadingDialog({
+        message: message
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
   }
 
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
@@ -277,22 +236,27 @@ export struct FirewallPage {
       return
     }
     this.isModeProcessing = true
-    await this.openModeLoadingDialog()
     let success = false
     try {
-      success = await this.onModeChange(mode)
+      hilog.info(DOMAIN, TAG, `mode switch start: current=${this.currentMode}, target=${mode}`)
+      success = await this.modeLoadingRunner.run(
+        'firewall-mode-switch',
+        FirewallStrings.modeLoadingMessage,
+        async (): Promise<boolean> => {
+          return await this.onModeChange(mode)
+        },
+        (dialogMessage: string): CustomDialogController => this.createModeLoadingDialogController(dialogMessage)
+      )
     } catch (err) {
       hilog.error(0x0001, TAG, `handleModeSelect failed: ${JSON.stringify(err)}`)
     } finally {
-      await this.waitForModeLoadingDialogMinimumDuration()
-      this.closeModeLoadingDialog()
       this.isModeProcessing = false
     }
     if (!success) {
       this.showModeChangeFailedDialog()
       return
     }
-    hilog.info(0x0001, TAG, 'mode changed successfully')
+    hilog.info(0x0001, TAG, `mode switch success: target=${mode}`)
     if (mode === 'custom') {
       this.onNavigateToRules()
     }

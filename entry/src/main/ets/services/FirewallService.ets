@@ -147,6 +147,11 @@ export class FirewallService {
     })
     try {
       let policy = await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `getFirewallPolicy success: isOpen=${policy.isOpen}, inAction=${policy.inAction}, outAction=${policy.outAction}`
+      )
       return policy
     } catch (err) {
       FirewallService.recordError('读取防火墙策略', err as Object)
@@ -559,6 +564,11 @@ export class FirewallService {
       return false
     }
     let snapshotRules = await FirewallService.getAllRules()
+    hilog.info(
+      DOMAIN,
+      TAG,
+      `applyRuleSet start: mode=${mode}, snapshotRuleCount=${snapshotRules.length}, targetRuleCount=${rules.length}`
+    )
     let targetPolicy: netFirewall.NetFirewallPolicy = {
       isOpen: snapshotPolicy.isOpen,
       inAction: netFirewall.FirewallRuleAction.RULE_DENY,
@@ -576,6 +586,7 @@ export class FirewallService {
       await FirewallService.restoreRuleSet(snapshotPolicy, snapshotRules)
       return false
     }
+    hilog.info(DOMAIN, TAG, `applyRuleSet success: mode=${mode}, appliedRuleCount=${rules.length}`)
     return true
   }
 

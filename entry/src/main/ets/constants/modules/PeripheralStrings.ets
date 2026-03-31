@@ -49,7 +49,6 @@ export class PeripheralStrings {
   static readonly clearPolicySuccess: string = '黑白名单已清空，设备已恢复默认允许接入'
   static readonly emptyPolicyTitle: string = '暂无黑白名单设备'
   static readonly emptyPolicyDescription: string = '设备连接后会出现在这里，可按需设置允许或禁止接入。'
-  static readonly minUsbLoadingDuration: number = 500
 
   static readonly adminRequiredActionSuffix: string = '未完成，请先激活企业管理员权限'
 

@@ -6,7 +6,6 @@ import {
   ConnectionDetailDialog,
   ConnectionHistoryItem
 } from '../components/peripheral/ConnectionDetailDialog'
-import { LoadingDialog } from '../components/UserFirewallControlDialog'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
@@ -23,6 +22,8 @@ import { HoverUtils } from '../utils/HoverUtils'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
 import { DialogService } from '../utils/DialogService'
+import { TimedLoadingDialogRunner } from '../utils/TimedLoadingDialogRunner'
+import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
@@ -44,20 +45,20 @@ export struct PeripheralPage {
     { value: PeripheralStrings.policyOptions[0] },
     { value: PeripheralStrings.policyOptions[1] }
   ]
-  private usbLoadingOpenedAt: number = 0
-  private usbLoadingDialogController?: CustomDialogController
   private detailDialogController?: CustomDialogController
-  private readonly USB_LOADING_DIALOG_RENDER_DELAY_MS: number = 32
+  private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG, DOMAIN)
 
   aboutToAppear() {
+    hilog.info(DOMAIN, TAG, `page enter: tab=${this.currentTabIndex}`)
     void this.initViewModel()
   }
 
   aboutToDisappear() {
-    this.closeUsbLoadingDialog()
+    this.usbLoadingRunner.closeIfOpen('page-disappear')
     this.closeDetailDialog()
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
+    hilog.info(DOMAIN, TAG, `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}`)
   }
 
   private async initViewModel(): Promise<void> {
@@ -72,75 +73,6 @@ export struct PeripheralPage {
     } catch (err) {
       hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.INIT_FAILED))
-    }
-  } 
-
-  private async openUsbLoadingDialog(message: string): Promise<void> {
-    if (this.usbLoadingDialogController) {
-      return
-    }
-    this.usbLoadingOpenedAt = 0
-    try {
-      this.usbLoadingDialogController = new CustomDialogController({
-        builder: LoadingDialog({
-          controller: this.usbLoadingDialogController,
-          message: message
-        }),
-        alignment: DialogAlignment.Center,
-        autoCancel: false,
-        customStyle: true
-      })
-      this.usbLoadingDialogController.open()
-      await this.waitForUsbLoadingDialogRender()
-      this.usbLoadingOpenedAt = Date.now()
-    } catch (err) {
-      hilog.warn(DOMAIN, TAG, `openUsbLoadingDialog failed: ${JSON.stringify(err)}`)
-      this.usbLoadingDialogController = undefined
-      this.usbLoadingOpenedAt = 0
-    }
-  }
-
-  private closeUsbLoadingDialog(): void {
-    if (!this.usbLoadingDialogController) {
-      this.usbLoadingOpenedAt = 0
-      return
-    }
-    try {
-      this.usbLoadingDialogController.close()
-    } catch (_err) {
-    } finally {
-      this.usbLoadingDialogController = undefined
-      this.usbLoadingOpenedAt = 0
-    }
-  }
-
-  private async waitForUsbLoadingDialogMinimumDuration(): Promise<void> {
-    if (!this.usbLoadingDialogController) {
-      return
-    }
-    const elapsed = Date.now() - this.usbLoadingOpenedAt
-    const remainingDuration = PeripheralStrings.minUsbLoadingDuration - elapsed
-    if (remainingDuration <= 0) {
-      return
-    }
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => resolve(), remainingDuration)
-    })
-  }
-
-  private async waitForUsbLoadingDialogRender(): Promise<void> {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => resolve(), this.USB_LOADING_DIALOG_RENDER_DELAY_MS)
-    })
-  }
-
-  private async runUsbOperationWithLoading(message: string, operation: () => Promise<boolean>): Promise<boolean> {
-    await this.openUsbLoadingDialog(message)
-    try {
-      return await operation()
-    } finally {
-      await this.waitForUsbLoadingDialogMinimumDuration()
-      this.closeUsbLoadingDialog()
     }
   }
 
@@ -214,6 +146,17 @@ export struct PeripheralPage {
     this.viewModel.closeConnectionDetailDialog()
     this.detailRecord = null
     this.detailHistoryItems = []
+  }
+
+  private createUsbLoadingDialogController(message: string): CustomDialogController {
+    return new CustomDialogController({
+      builder: CommonLoadingDialog({
+        message: message
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
   }
 
   @Builder
@@ -361,7 +304,15 @@ export struct PeripheralPage {
   private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
     const toggle = async (): Promise<boolean> => this.viewModel.toggleInterface(feature, disallow)
     const success = feature === PeripheralService.FEATURE_USB
-      ? await this.runUsbOperationWithLoading(PeripheralStrings.usbInterfaceLoadingMessage, toggle)
+      ? await this.usbLoadingRunner.run(
+        'peripheral-usb-interface',
+        PeripheralStrings.usbInterfaceLoadingMessage,
+        async (): Promise<boolean> => {
+          hilog.info(DOMAIN, TAG, `usb interface switch start: disallow=${disallow}`)
+          return await toggle()
+        },
+        (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
+      )
       : await toggle()
     if (!success) {
       if (!this.viewModel.adminState.activated) {
@@ -371,12 +322,21 @@ export struct PeripheralPage {
       }
       return
     }
+    if (feature === PeripheralService.FEATURE_USB) {
+      hilog.info(DOMAIN, TAG, `usb interface switch success: disallow=${disallow}`)
+    }
   }
 
   private async handleUsbStoragePolicyChange(index: number): Promise<void> {
-    const success = await this.runUsbOperationWithLoading(PeripheralStrings.usbStorageLoadingMessage, async () => {
-      return await this.viewModel.setUsbStoragePolicy(index)
-    })
+    const success = await this.usbLoadingRunner.run(
+      'peripheral-usb-storage',
+      PeripheralStrings.usbStorageLoadingMessage,
+      async (): Promise<boolean> => {
+        hilog.info(DOMAIN, TAG, `usb storage policy switch start: index=${index}`)
+        return await this.viewModel.setUsbStoragePolicy(index)
+      },
+      (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
+    )
     if (!success) {
       if (!this.viewModel.adminState.activated) {
         DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setUsbStorageAction}${PeripheralStrings.adminRequiredActionSuffix}`)
@@ -385,6 +345,7 @@ export struct PeripheralPage {
       }
       return
     }
+    hilog.info(DOMAIN, TAG, `usb storage policy switch success: index=${index}`)
   }
 
   private async handlePolicyChange(record: PeripheralPolicyRecord, policyIndex: number): Promise<void> {
