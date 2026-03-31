@@ -1,14 +1,21 @@
 # SecurityTool 可复用 UI 组件说明
 
-## 1. 文档目的
+## 1. 文档定位
 
-本文档用于沉淀当前项目内已经落地、可在多个页面或模块中复用的 UI 组件，统一说明组件职责、适用场景和使用约束，避免重复造轮子和样式漂移。
+本文档用于沉淀当前项目内已经落地、可在多个页面或模块中复用的 UI 组件，统一记录以下内容：
+
+- 组件定位与分层
+- 设计目标与适用场景
+- 交互约束与使用方式
+- 已接入页面与维护注意事项
+
+这份文档不再只做“组件名单”，而是作为可持续维护的“组件档案库”。后续每新增一个可复用组件，应同步在这里补齐一份标准条目。
 
 统计范围：
 
 - `entry/src/main/ets/components`
 - `entry/src/main/ets/components/peripheral`
-- 与等待弹窗配套的调用封装：`entry/src/main/ets/utils/TimedLoadingDialogRunner.ets`
+- 与组件强绑定、用于统一调用或状态编排的 UI 工具封装
 
 不纳入本清单的内容：
 
@@ -16,21 +23,81 @@
 - 仅服务于单个页面、且未沉淀为独立组件的临时 UI 结构
 - 纯业务 service、viewmodel、model
 
-## 2. 通用基础组件
+## 2. 维护规则
 
-| 组件 | 文件 | 作用 | 典型场景 |
-| --- | --- | --- | --- |
-| BaseCard | `entry/src/main/ets/components/BaseCard.ets` | 卡片基础容器，统一圆角、边框、阴影、悬浮动效和点击行为 | 首页功能卡、摘要卡、模块入口卡 |
-| ToolCard | `entry/src/main/ets/components/ToolCard.ets` | 基于 `BaseCard` 的功能入口卡，支持图标、标题、悬浮态 | 首页模块导航入口 |
-| MetricSummaryCard | `entry/src/main/ets/components/MetricSummaryCard.ets` | 图标 + 主指标 + 辅助说明的摘要卡 | 总览指标、防火墙或日志状态摘要 |
-| CompactSummaryCard | `entry/src/main/ets/components/CompactSummaryCard.ets` | `MetricSummaryCard` 的紧凑版 | 页面头部二级摘要、紧凑信息卡 |
-| SectionCard | `entry/src/main/ets/components/SettingsSectionCard.ets` | 带标题和内容区的分组卡片容器 | 设置分区、配置项集合 |
-| EmptyStatePanel | `entry/src/main/ets/components/EmptyStatePanel.ets` | 空状态提示面板 | 无数据、无记录、权限不足提示 |
-| SubPageHeader | `entry/src/main/ets/components/SubPageHeader.ets` | 子页面统一头部，包含返回、标题、副标题和可选操作区 | 二级详情页、设置页、帮助页 |
+### 2.1 何时需要更新本文档
 
-### 2.1 组合式表单/配置行
+出现以下任一情况时，需要同步更新本文档：
 
-这些组件统一沉淀在 `entry/src/main/ets/components/SectionRows.ets`：
+- 新增了一个可复用 UI 组件
+- 现有组件的视觉规范、交互规则或适用边界发生变化
+- 组件的推荐接入方式、依赖关系或使用限制发生变化
+- 组件从“模块内复用”升级为“跨模块通用”
+
+### 2.2 每次新增组件时至少补齐的信息
+
+每个新组件至少需要补齐以下字段：
+
+- 组件名称
+- 组件分层
+- 文件位置
+- 组件职责
+- 适用场景 / 不适用场景
+- 设计规则
+- 使用方式
+- 已接入页面或模块
+- 维护注意事项
+
+### 2.3 推荐录入流程
+
+新增一个可复用组件后，按以下顺序维护本文档：
+
+1. 先在“组件索引”里登记一条摘要记录。
+2. 再在“组件档案”里新增完整条目。
+3. 若组件依赖调用封装、控制器或辅助工具，需要一并写明。
+4. 若组件只适合模块内复用，要明确标注，避免误当成全局通用组件。
+
+## 3. 组件分层约定
+
+为了方便持续扩展，本文档将组件分为三层：
+
+| 分层 | 含义 | 放置建议 |
+| --- | --- | --- |
+| 全局通用组件 | 可跨页面、跨模块复用，主要承载统一视觉或统一交互模式 | `entry/src/main/ets/components` |
+| 模块复用组件 | 在单个业务域内可复用，具备明确模块语义 | `entry/src/main/ets/components/<module>` |
+| 组件配套封装 | 不直接渲染 UI，但与某个可复用组件强绑定，用于统一控制打开、关闭、状态编排或日志 | `entry/src/main/ets/utils` 等 |
+
+说明：
+
+- “组件配套封装”不是独立视觉组件，但如果没有它就无法形成稳定复用能力，也需要纳入组件档案。
+- 如果一个组件同时包含视觉层和调用层，应在同一个组件条目中说明二者职责分工。
+
+## 4. 组件索引
+
+这部分用于快速查找已有组件。详细设计和使用说明统一放在“组件档案”章节。
+
+### 4.1 全局通用组件
+
+| 组件 | 文件 | 类型 | 作用 | 典型场景 |
+| --- | --- | --- | --- | --- |
+| BaseCard | `entry/src/main/ets/components/BaseCard.ets` | 视觉容器 | 卡片基础容器，统一圆角、边框、阴影、悬浮动效和点击行为 | 首页功能卡、摘要卡、模块入口卡 |
+| ToolCard | `entry/src/main/ets/components/ToolCard.ets` | 业务入口卡 | 基于 `BaseCard` 的功能入口卡，支持图标、标题、悬浮态 | 首页模块导航入口 |
+| MetricSummaryCard | `entry/src/main/ets/components/MetricSummaryCard.ets` | 摘要卡 | 图标 + 主指标 + 辅助说明的摘要卡 | 总览指标、防火墙或日志状态摘要 |
+| CompactSummaryCard | `entry/src/main/ets/components/CompactSummaryCard.ets` | 摘要卡 | `MetricSummaryCard` 的紧凑版 | 页面头部二级摘要、紧凑信息卡 |
+| SectionCard | `entry/src/main/ets/components/SettingsSectionCard.ets` | 分组容器 | 带标题和内容区的分组卡片容器 | 设置分区、配置项集合 |
+| EmptyStatePanel | `entry/src/main/ets/components/EmptyStatePanel.ets` | 状态反馈 | 空状态提示面板 | 无数据、无记录、权限不足提示 |
+| SubPageHeader | `entry/src/main/ets/components/SubPageHeader.ets` | 导航头部 | 子页面统一头部，包含返回、标题、副标题和可选操作区 | 二级详情页、设置页、帮助页 |
+| SideBar | `entry/src/main/ets/components/SideBar.ets` | 导航组件 | 左侧主导航栏 | 主框架页导航 |
+| InteractiveMenuRow | `entry/src/main/ets/components/ThemeMenuPopup.ets` | 菜单行 | 图标 + 文本的交互菜单行 | 侧边栏项、弹出菜单项、返回按钮 |
+| ThemeMenuPopup | `entry/src/main/ets/components/ThemeMenuPopup.ets` | 菜单弹层 | 主题切换与帮助/关于菜单 | 顶部主题菜单 |
+| IconTextActionButton | `entry/src/main/ets/components/IconTextActionButton.ets` | 操作按钮 | 图标 + 文本按钮，支持主按钮和危险按钮风格 | 保存、删除、执行类操作 |
+| CommonLoadingDialog | `entry/src/main/ets/components/CommonLoadingDialog.ets` | 反馈弹层 | 统一等待弹窗视觉 | 异步提交、模式切换、策略切换 |
+| DetailDialogShell | `entry/src/main/ets/components/DetailDialogShell.ets` | 弹层壳组件 | 标准详情弹层内容壳，带标题、关闭和滚动区 | 详情查看、信息确认 |
+| DetailDialogOverlay | `entry/src/main/ets/components/DetailDialogShell.ets` | 遮罩层 | 全屏遮罩承载层 | 自定义详情弹层 |
+
+### 4.2 组合式表单 / 配置行
+
+这组组件统一沉淀在 `entry/src/main/ets/components/SectionRows.ets`：
 
 | 组件 | 作用 | 典型场景 |
 | --- | --- | --- |
@@ -41,62 +108,120 @@
 
 使用建议：
 
-- 优先用于“设置项列表”而不是复杂业务表格。
+- 优先用于“设置项列表”，而不是复杂业务表格。
 - 标题和说明文案应短句化，避免在行内放过长解释。
 
-## 3. 交互与导航组件
+### 4.3 模块复用组件
 
-| 组件 | 文件 | 作用 | 典型场景 |
-| --- | --- | --- | --- |
-| SideBar | `entry/src/main/ets/components/SideBar.ets` | 左侧主导航栏 | 主框架页导航 |
-| InteractiveMenuRow | `entry/src/main/ets/components/ThemeMenuPopup.ets` | 图标 + 文本的交互菜单行 | 侧边栏项、弹出菜单项、返回按钮 |
-| ThemeMenuPopup | `entry/src/main/ets/components/ThemeMenuPopup.ets` | 主题切换与帮助/关于菜单 | 顶部主题菜单 |
-| IconTextActionButton | `entry/src/main/ets/components/IconTextActionButton.ets` | 图标 + 文本按钮，支持主按钮和危险按钮风格 | 保存、删除、执行类操作 |
-
-## 4. 弹层与反馈组件
-
-| 组件 | 文件 | 作用 | 典型场景 |
-| --- | --- | --- | --- |
-| CommonLoadingDialog | `entry/src/main/ets/components/CommonLoadingDialog.ets` | 统一等待弹窗视觉 | 异步提交、模式切换、策略切换 |
-| DetailDialogShell | `entry/src/main/ets/components/DetailDialogShell.ets` | 标准详情弹层内容壳，带标题、关闭和滚动区 | 详情查看、信息确认 |
-| DetailDialogOverlay | `entry/src/main/ets/components/DetailDialogShell.ets` | 全屏遮罩承载层 | 自定义详情弹层 |
-| AddRuleDialog | `entry/src/main/ets/components/AddRuleDialog.ets` | 防火墙规则新增/编辑弹窗 | 自定义规则维护 |
-| UserFirewallControlDialog | `entry/src/main/ets/components/UserFirewallControlDialog.ets` | 按用户维度下发防火墙策略的业务弹窗 | 防火墙按用户控制 |
+| 组件 | 文件 | 所属模块 | 作用 | 典型场景 |
+| --- | --- | --- | --- | --- |
+| AddRuleDialog | `entry/src/main/ets/components/AddRuleDialog.ets` | 防火墙 | 防火墙规则新增/编辑弹窗 | 自定义规则维护 |
+| UserFirewallControlDialog | `entry/src/main/ets/components/UserFirewallControlDialog.ets` | 防火墙 | 按用户维度下发防火墙策略的业务弹窗 | 防火墙按用户控制 |
+| InterfaceControlTab | `entry/src/main/ets/components/peripheral/InterfaceControlTab.ets` | 外设管理 | 外设接口管控页主体，封装接口启停和 USB 存储策略选择 | 外设管理 > 接口管控 |
+| DeviceRecordList | `entry/src/main/ets/components/peripheral/DeviceRecordList.ets` | 外设管理 | 连接记录列表和“详情”入口 | 外设管理 > 连接记录 |
+| PolicyList | `entry/src/main/ets/components/peripheral/PolicyList.ets` | 外设管理 | 设备策略表格和策略变更操作 | 外设管理 > 策略列表 |
+| ConnectionDetailDialog | `entry/src/main/ets/components/peripheral/ConnectionDetailDialog.ets` | 外设管理 | 连接记录详情弹层 | 外设管理 > 记录详情 |
 
 说明：
 
-- `CommonLoadingDialog` 是通用反馈组件。
-- `AddRuleDialog`、`UserFirewallControlDialog` 属于业务复用组件，适合在同模块内复用，不建议直接当作全局通用组件使用。
+- 模块复用组件可以在同一业务域内反复复用，但默认不视为全局通用资产。
+- 若其它模块只想复用“壳子”或“基础交互模式”，优先复用基础组件，不直接搬用业务语义过重的模块组件。
 
-## 5. 外设管理模块内可复用组件
+### 4.4 组件配套封装
 
-| 组件 | 文件 | 作用 | 典型场景 |
+| 名称 | 文件 | 绑定组件 | 作用 |
 | --- | --- | --- | --- |
-| InterfaceControlTab | `entry/src/main/ets/components/peripheral/InterfaceControlTab.ets` | 外设接口管控页主体，封装接口启停和 USB 存储策略选择 | 外设管理 > 接口管控 |
-| DeviceRecordList | `entry/src/main/ets/components/peripheral/DeviceRecordList.ets` | 连接记录列表和“详情”入口 | 外设管理 > 连接记录 |
-| PolicyList | `entry/src/main/ets/components/peripheral/PolicyList.ets` | 设备策略表格和策略变更操作 | 外设管理 > 策略列表 |
-| ConnectionDetailDialog | `entry/src/main/ets/components/peripheral/ConnectionDetailDialog.ets` | 连接记录详情弹层 | 外设管理 > 记录详情 |
+| TimedLoadingDialogRunner | `entry/src/main/ets/utils/TimedLoadingDialogRunner.ets` | CommonLoadingDialog | 统一控制等待弹窗打开、最短展示时长、关闭和日志输出 |
 
-说明：
+## 5. 新增组件录入模板
 
-- 这一组组件当前围绕外设管理沉淀，具有明确模块语义。
-- 若其它模块只想复用“表格壳子”或“详情壳子”，优先复用 `DetailDialogShell`、`EmptyStatePanel` 等更基础组件，不直接搬用外设模块业务组件。
+后续每新增一个可复用组件，建议直接复制以下模板追加到“组件档案”章节。
 
-## 6. 等待弹窗设计说明
+````md
+## X. 组件名称
 
-### 6.1 组件定义
+### X.1 基本信息
 
-等待弹窗由两部分组成：
+| 字段 | 内容 |
+| --- | --- |
+| 组件名称 |  |
+| 分层 | 全局通用组件 / 模块复用组件 / 组件配套封装 |
+| 文件 |  |
+| 配套封装 | 无 / 相关文件路径 |
+| 当前状态 | 已接入 / 待接入 / 待替换 |
 
-- 视觉组件：`entry/src/main/ets/components/CommonLoadingDialog.ets`
-- 调用封装：`entry/src/main/ets/utils/TimedLoadingDialogRunner.ets`
+### X.2 组件职责
 
-其中：
+- 说明这个组件解决什么问题。
+- 说明它与页面代码、业务逻辑的边界。
 
-- `CommonLoadingDialog` 负责统一视觉表现
-- `TimedLoadingDialogRunner` 负责统一打开、最短展示时长、关闭和日志输出
+### X.3 设计规则
 
-### 6.2 设计规范
+- 视觉结构
+- 核心交互
+- 文案规范
+- 主题 / 尺寸 / 状态规则
+
+### X.4 适用场景
+
+- 
+
+### X.5 不适用场景
+
+- 
+
+### X.6 使用方式
+
+```ts
+// 推荐接入示例
+```
+
+接入要求：
+
+- 
+
+### X.7 已接入页面
+
+| 页面 / 模块 | 场景 | 备注 |
+| --- | --- | --- |
+|  |  |  |
+
+### X.8 维护注意事项
+
+- 
+````
+
+## 6. 组件档案
+
+本章节用于沉淀重点组件的完整设计与使用说明。后续新增组件时，直接按统一模板在这里追加新条目。
+
+### 6.1 等待弹窗组件
+
+#### 6.1.1 基本信息
+
+| 字段 | 内容 |
+| --- | --- |
+| 组件名称 | CommonLoadingDialog |
+| 分层 | 全局通用组件 |
+| 文件 | `entry/src/main/ets/components/CommonLoadingDialog.ets` |
+| 配套封装 | `entry/src/main/ets/utils/TimedLoadingDialogRunner.ets` |
+| 当前状态 | 已接入 |
+
+#### 6.1.2 组件职责
+
+等待弹窗组件由两部分组成：
+
+- 视觉组件：`CommonLoadingDialog`
+- 调用封装：`TimedLoadingDialogRunner`
+
+职责分工如下：
+
+- `CommonLoadingDialog` 负责统一视觉表现，保证不同页面的等待反馈样式一致。
+- `TimedLoadingDialogRunner` 负责统一打开、最短展示时长、关闭和日志输出，避免各页面重复写弹窗时序控制代码。
+
+这个组件解决的是“用户已经触发动作，但结果尚未返回”的短等待反馈问题，不负责确认、结果提示或错误解释。
+
+#### 6.1.3 设计规则
 
 当前等待弹窗采用以下统一设计：
 
@@ -105,9 +230,10 @@
 - 内边距：左右 `24`，上下 `28`
 - 视觉主体：`44 x 44` 的 `LoadingProgress`
 - 文案布局：单行或短句，居中显示
+- 组件间距：`14`
 - 背景：跟随主题的卡片背景色
 - 圆角：`AppStyles.RADIUS_LG`
-- 阴影：浅色/深色主题分别使用轻阴影和深阴影
+- 阴影：浅色 / 深色主题分别使用轻阴影和深阴影
 
 设计目标：
 
@@ -115,7 +241,7 @@
 - 避免切换动作过快时完全无感知
 - 避免各模块各自实现等待层，导致样式和节奏不一致
 
-### 6.3 交互规则
+#### 6.1.4 交互规则
 
 等待弹窗当前统一遵循以下规则：
 
@@ -124,29 +250,23 @@
 - 同一时刻同一 runner 只允许存在一个等待弹窗
 - 页面组件负责创建 `CustomDialogController`
 - runner 负责执行任务、补足最短展示时长、关闭弹窗和输出日志
+- 对“弹窗打开后立即进入同步重任务”的场景，runner 可按场景启用可选的渲染让步时间，先让弹窗稳定显示，再执行业务任务
 
 注意：
 
 - `CustomDialogController` 必须在页面组件上下文内创建，不能在普通工具类中直接构造后期望其稳定挂载到页面
 - 等待弹窗只负责“处理中”反馈，不承担确认、结果提示或错误解释
+- 渲染让步时间不是全局固定延时，默认值应保持为 `0`，只允许在已确认存在首帧可见性问题的场景按需开启，避免扩大修改面
 
-### 6.4 当前已接入场景
-
-当前项目中已接入统一等待弹窗的场景如下：
-
-| 页面 | 场景 | 等待文案 |
-| --- | --- | --- |
-| 防火墙管理首页 | 公共网络模式 / 私有网络模式 / 自定义模式切换 | `正在应用防火墙模式...` |
-| 外设管理 > 接口管控 | `USB 接口` 启用/禁用切换 | `正在设置 USB 接口策略，请稍候...` |
-| 外设管理 > 接口管控 | `USB 存储设备` 策略切换 | `正在设置 USB 存储策略，请稍候...` |
-
-### 6.5 推荐使用场景
+#### 6.1.5 适用场景
 
 建议使用等待弹窗的场景：
 
 - 触发系统接口调用，用户需要明确感知“已开始处理”
 - 操作可能在 `100ms` 到数秒之间完成，直接静默切换会造成“没反应”的误解
 - 模式、策略、权限或设备状态切换类操作
+
+#### 6.1.6 不适用场景
 
 不建议使用等待弹窗的场景：
 
@@ -155,7 +275,7 @@
 - 需要展示百分比、进度条、步骤状态的长任务
 - 需要在等待过程中允许取消、重试或查看详情的复杂任务
 
-### 6.6 使用方式
+#### 6.1.7 使用方式
 
 页面内推荐按以下模式接入：
 
@@ -183,13 +303,41 @@ await this.loadingRunner.run(
 )
 ```
 
+若当前场景存在“弹窗刚打开就进入同步系统调用，导致首帧可见时间被压缩”的问题，可按场景启用可选渲染让步：
+
+```ts
+await this.loadingRunner.run(
+  'peripheral-usb-interface',
+  '正在设置 USB 接口策略，请稍候...',
+  async () => {
+    await this.executeBusinessTask()
+  },
+  (dialogMessage: string): CustomDialogController =>
+    this.createLoadingDialogController(dialogMessage),
+  500,
+  180
+)
+```
+
 接入要求：
 
 - `scene-tag` 需要是明确、可搜索的业务场景标识
 - 等待文案只描述当前动作，不写结果承诺
 - 业务成功和失败提示仍由原有结果链路负责
+- 页面销毁或离开时，若存在未关闭实例，应显式调用 `closeIfOpen`
+- 若启用了渲染让步，必须在接入说明或场景备注中标明原因，避免后续误以为是通用默认行为
 
-### 6.7 日志要求
+#### 6.1.8 已接入页面
+
+当前项目中已接入统一等待弹窗的场景如下：
+
+| 页面 / 模块 | 场景 | 备注 |
+| --- | --- | --- |
+| 防火墙管理首页 | 公共网络模式 / 私有网络模式 / 自定义模式切换 | 等待文案：`正在应用防火墙模式...` |
+| 外设管理 > 接口管控 | `USB 接口` 启用 / 禁用切换 | 等待文案：`正在设置 USB 接口策略，请稍候...` |
+| 外设管理 > 接口管控 | `USB 存储设备` 策略切换 | 等待文案：`正在设置 USB 存储策略，请稍候...` |
+
+#### 6.1.9 日志要求
 
 等待弹窗相关链路应输出以下非敏感日志：
 
@@ -213,6 +361,37 @@ await this.loadingRunner.run(
 - 规则明细全文
 - 用户输入的敏感文本
 
+#### 6.1.10 维护注意事项
+
+- 若后续出现第二类等待反馈样式，例如带进度百分比或可取消任务，应作为新组件类型单独定义，不与当前 `CommonLoadingDialog` 混用。
+- 若等待弹窗的视觉规范变化，需要同时评估所有接入页面的感知一致性。
+- 若未来出现跨页面统一的 loading service，可在本条目下补充“调用层升级方案”，而不是另起一套未归档实现。
+
+#### 6.1.11 当前实现状态与待完成项
+
+当前等待弹窗方案已经统一了以下内容：
+
+- 统一视觉样式：居中卡片、`44 x 44` 圆形加载动画、统一宽度和阴影
+- 统一时序控制：打开、最短展示 `500ms`、关闭、重复打开保护
+- 统一日志输出：打开、关闭、最短时长补齐、异常摘要
+
+当前已确认的已知限制：
+
+- 在“外设管理 > 接口管控 > USB 接口启用/禁用”场景中，等待弹窗打开后会很快进入同步系统接口调用
+- 该类同步调用可能占用 UI 渲染线程，导致弹窗虽然可见，但中间 `LoadingProgress` 动画不够流畅，甚至出现“圆圈不转”的体感
+- 为改善首帧可见性，当前仅对 `USB 接口` 场景启用了按场景的渲染让步时间；这只能改善“先看见弹窗”，不能从根本上保证后续动画持续流畅
+
+待完成项：
+
+- 需要进一步评估并推进“将重型同步系统调用搬离 UI 线程”的方案，优先针对 `USB 接口` 场景验证可行性
+- 若 `MDMKit / restrictions / usbManager` 相关调用允许在后台线程执行，应将 USB 接口切换链路迁移到后台执行，再由 UI 线程只负责更新状态和结果提示
+- 若相关系统接口受限，必须保留在 UI 线程执行，则应在组件说明和场景说明中明确：该场景的等待弹窗主要保证“处理中可见反馈”，不承诺加载动画全程流畅
+
+结论：
+
+- 当前等待弹窗组件设计可继续复用
+- “调用搬离 UI 线程”属于等待弹窗能力的后续完善项，应继续在配套封装和具体场景链路上推进，而不是通过修改视觉组件规避问题
+
 ## 7. 复用原则
 
 - 优先复用现有基础组件，再决定是否新增新组件。
@@ -222,5 +401,6 @@ await this.loadingRunner.run(
 
 ## 8. 后续维护建议
 
-- 后续若日志管理、身份鉴别、工具设置模块继续沉淀出可跨模块复用的弹层、表格或配置组件，应增补到本清单。
-- 若后续出现第二类等待反馈样式，例如带进度百分比或可取消任务，应作为新组件类型单独定义，不与当前 `CommonLoadingDialog` 混用。
+- 后续若日志管理、身份鉴别、工具设置模块继续沉淀出可跨模块复用的弹层、表格或配置组件，应先补“组件索引”，再补“组件档案”。
+- 如果某个组件开始承载较重的业务语义，应从“全局通用组件”下沉到“模块复用组件”，避免通用层失真。
+- 如果后续有多个组件开始采用一致的录入字段，可继续在本文档顶部增加“字段约定”或“命名约定”，但不要为单个组件再单独发明章节结构。

@@ -18,9 +18,11 @@ export class TimedLoadingDialogRunner {
     message: string,
     task: () => Promise<T>,
     createController: DialogControllerFactory,
-    minDurationMs: number = 500
+    minDurationMs: number = 500,
+    renderReadyDelayMs: number = 0
   ): Promise<T> {
     await this.open(sceneTag, message, createController, minDurationMs)
+    await this.waitRenderReady(sceneTag, renderReadyDelayMs)
     try {
       return await task()
     } finally {
@@ -100,6 +102,21 @@ export class TimedLoadingDialogRunner {
     )
     await new Promise<void>((resolve: () => void) => {
       setTimeout(() => resolve(), remaining)
+    })
+  }
+
+  private async waitRenderReady(sceneTag: string, renderReadyDelayMs: number): Promise<void> {
+    if (!this.controller || renderReadyDelayMs <= 0) {
+      return
+    }
+
+    hilog.info(
+      this.logDomain,
+      this.logTag,
+      `loading dialog waiting render ready: scene=${sceneTag}, delayMs=${renderReadyDelayMs}`
+    )
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), renderReadyDelayMs)
     })
   }
 }

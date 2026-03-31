@@ -27,6 +27,7 @@ import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
+const USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS = 180
 
 @Component
 export struct PeripheralPage {
@@ -311,7 +312,9 @@ export struct PeripheralPage {
           hilog.info(DOMAIN, TAG, `usb interface switch start: disallow=${disallow}`)
           return await toggle()
         },
-        (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
+        (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage),
+        500,
+        USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS
       )
       : await toggle()
     if (!success) {
