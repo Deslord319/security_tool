@@ -1,3 +1,4 @@
+import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralTraceRecord } from '../../../models/DataModels'
 import { PeripheralTraceRepository } from '../../PeripheralTraceRepository'
@@ -15,14 +16,25 @@ const USB_DEDUPE_WINDOW_MS = 1500
 export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnectionRecordPipeline {
   private producerListenerId: number = 0
   private lastSeenByKey: Map<string, number> = new Map()
+  private context: common.UIAbilityContext | null = null
+  private traceRepositoryReady: boolean = false
+  private producer: PeripheralConnectionRecordProducer | null
+  private consumers: PeripheralConnectionRecordConsumer[]
 
-  constructor(
-    private readonly producer: PeripheralConnectionRecordProducer,
-    private readonly consumers: PeripheralConnectionRecordConsumer[]
-  ) {
+  constructor(producer: PeripheralConnectionRecordProducer | null, consumers: PeripheralConnectionRecordConsumer[]) {
+    this.producer = producer
+    this.consumers = consumers
+  }
+
+  async bindContext(context: common.UIAbilityContext): Promise<boolean> {
+    this.context = context
+    return this.ensureTraceRepositoryReady()
   }
 
   async start(): Promise<boolean> {
+    if (!this.producer) {
+      return true
+    }
     if (this.producerListenerId > 0) {
       return true
     }
@@ -38,6 +50,9 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   }
 
   stop(): void {
+    if (!this.producer) {
+      return
+    }
     if (this.producerListenerId > 0) {
       this.producer.unsubscribe(this.producerListenerId)
       this.producerListenerId = 0
@@ -46,7 +61,12 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   }
 
   async push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean> {
-    let handled: boolean = false
+    const traceReady = await this.ensureTraceRepositoryReady()
+    if (!traceReady) {
+      hilog.warn(DOMAIN, TAG, `skip push: trace repository not ready, channel=${event.channel}`)
+      return false
+    }
+    let processed: boolean = false
     for (let index = 0; index < this.consumers.length; index++) {
       const consumer = this.consumers[index]
       if (!consumer.canHandle(event)) {
@@ -56,16 +76,16 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       if (!record) {
         continue
       }
-      handled = true
       if (this.shouldSkipByDedupe(event, record)) {
         continue
       }
+      processed = true
       const appended = await PeripheralTraceRepository.append(record)
       if (!appended) {
         hilog.warn(DOMAIN, TAG, `append failed: channel=${event.channel}, deviceId=${record.deviceId}`)
       }
     }
-    return handled
+    return processed
   }
 
   private shouldSkipByDedupe(event: PeripheralConnectionRecordProducerEvent, record: PeripheralTraceRecord): boolean {
@@ -80,5 +100,17 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
     }
     this.lastSeenByKey.set(dedupeKey, now)
     return false
+  }
+
+  private async ensureTraceRepositoryReady(): Promise<boolean> {
+    if (this.traceRepositoryReady) {
+      return true
+    }
+    if (!this.context) {
+      return false
+    }
+    const initialized = await PeripheralTraceRepository.init(this.context)
+    this.traceRepositoryReady = initialized
+    return initialized
   }
 }

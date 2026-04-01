@@ -7,6 +7,7 @@ import {
   LogEventResult,
   PeripheralDevicePolicy,
   PeripheralMatchedPolicyKind,
+  PeripheralRecordAction,
   PeripheralRecordPolicyHit,
   PeripheralTraceRecord,
   PeripheralType,
@@ -16,8 +17,11 @@ import {
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
 import { PeripheralDevicePolicyRepository } from './PeripheralDevicePolicyRepository'
-import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 import { PeripheralService } from './PeripheralService'
+import { PeripheralConnectionRecordBluetoothAclConsumer } from './peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
+import { PeripheralConnectionRecordPipelineImpl } from './peripheral/connection-record/peripheral_connection_record_pipeline'
+import { PeripheralConnectionRecordProducerEvent } from './peripheral/connection-record/peripheral_connection_record_producer_contract'
+import { PeripheralConnectionRecordUsbConsumer } from './peripheral/connection-record/peripheral_connection_record_usb_consumer'
 
 const TAG = 'PeripheralRuntimeEvent'
 const DOMAIN = 0x000A
@@ -113,7 +117,7 @@ export class PeripheralRuntimeEventService {
     bluetoothRuntimeEvents: false,
     degradedReason: 'not_started'
   }
-  private static lastSeenByKey: Map<string, number> = new Map()
+  private static runtimePipeline: PeripheralConnectionRecordPipelineImpl | null = null
   private static nextListenerId: number = 1
   private static listeners: Map<number, (event: UsbRuntimeEvent) => void> = new Map()
   private static nextRuntimeCommonListenerId: number = 1
@@ -127,7 +131,7 @@ export class PeripheralRuntimeEventService {
 
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     PeripheralRuntimeEventService.context = context
-    const traceInited = await PeripheralTraceRepository.init(context)
+    const traceInited = await PeripheralRuntimeEventService.getRuntimePipeline().bindContext(context)
     const policyInited = await PeripheralDevicePolicyRepository.init(context)
     PeripheralRuntimeEventService.initialized = traceInited && policyInited
     if (!PeripheralRuntimeEventService.initialized) {
@@ -293,11 +297,19 @@ export class PeripheralRuntimeEventService {
   }
 
   private static consumeUsbCommonEvent(data: commonEventManager.CommonEventData): void {
-    const record = PeripheralRuntimeEventService.mapUsbCommonEventToTraceRecord(data)
-    if (!record) {
+    const action = PeripheralRuntimeEventService.resolveAction(data.event)
+    if (action === 'unknown') {
+      hilog.warn(DOMAIN, TAG, `ignored unsupported usb event: ${data.event}`)
       return
     }
-    PeripheralRuntimeEventService.persistRuntimeRecord(record, true)
+    const event = PeripheralRuntimeEventService.buildProducerEvent('usb', data)
+    const usbRuntimeEvent = PeripheralRuntimeEventService.resolveUsbListenerEvent(data, action)
+    void PeripheralRuntimeEventService.getRuntimePipeline().push(event).then((processed: boolean) => {
+      if (!processed || !usbRuntimeEvent) {
+        return
+      }
+      PeripheralRuntimeEventService.notifyUsbEventListeners(usbRuntimeEvent)
+    })
   }
 
   static mapUsbCommonEventToTraceRecord(data: commonEventManager.CommonEventData): PeripheralTraceRecord | null {
@@ -541,36 +553,6 @@ export class PeripheralRuntimeEventService {
     }
   }
 
-  private static persistRuntimeRecord(
-    record: PeripheralTraceRecord,
-    notifyUsbListeners: boolean = false,
-    applyDedupe: boolean = true
-  ): void {
-    if (applyDedupe) {
-      const now = Date.now()
-      const dedupeKey = `${record.deviceId}|${record.action}|${record.rawEventName || ''}`
-      const lastSeen = PeripheralRuntimeEventService.lastSeenByKey.get(dedupeKey) || 0
-      if (now - lastSeen < 1500) {
-        return
-      }
-      PeripheralRuntimeEventService.lastSeenByKey.set(dedupeKey, now)
-    }
-    void PeripheralTraceRepository.append(record).then((ok: boolean) => {
-      if (!ok) {
-        hilog.warn(DOMAIN, TAG, `append runtime record failed, deviceId=${record.deviceId}`)
-      }
-    })
-    if (notifyUsbListeners) {
-      PeripheralRuntimeEventService.notifyUsbEventListeners({
-        action: record.action as UsbEventAction,
-        deviceId: record.deviceId,
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        occurAt: record.occurAt
-      })
-    }
-  }
-
   private static notifyUsbEventListeners(event: UsbRuntimeEvent): void {
     if (PeripheralRuntimeEventService.listeners.size <= 0) {
       return
@@ -784,30 +766,62 @@ export class PeripheralRuntimeEventService {
       return
     }
 
-    PeripheralRuntimeEventService.persistRuntimeRecord({
-      recordId: `runtime_bt_acl_${eventInfo.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
-      occurAt: eventInfo.occurAt,
-      collectAt: Date.now(),
-      deviceName: eventInfo.deviceName,
-      deviceType: PeripheralType.BLUETOOTH,
-      deviceId: eventInfo.deviceId,
-      action: eventInfo.action,
-      decision: 'unknown',
-      result: LogEventResult.SUCCESS,
-      source: 'runtime_event',
-      summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
-      rawEventName: data.event,
-      rawAction: eventInfo.action,
-      rawPayload: eventInfo.rawPayload,
-      detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
-      effectivePolicyLabel: '--',
-      matchedPolicyKind: 'bluetooth_connection_event'
-    }, false, false)
-    hilog.info(
-      DOMAIN,
-      TAG,
-      `bluetooth acl event persisted: action=${eventInfo.action}, deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(eventInfo.rawDeviceId)}, state=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
-    )
+    const event = PeripheralRuntimeEventService.buildProducerEvent('bluetooth_acl', data)
+    const processed = await PeripheralRuntimeEventService.getRuntimePipeline().push(event)
+    if (processed) {
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `bluetooth acl event persisted: action=${eventInfo.action}, deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(eventInfo.rawDeviceId)}, state=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
+      )
+    }
+  }
+
+  private static buildProducerEvent(
+    channel: 'usb' | 'bluetooth_acl',
+    data: commonEventManager.CommonEventData
+  ): PeripheralConnectionRecordProducerEvent {
+    const event: PeripheralConnectionRecordProducerEvent = {
+      source: 'runtime',
+      channel: channel,
+      eventName: data.event ?? '',
+      rawData: data
+    }
+    const payload = data.parameters as Object | undefined
+    if (payload !== undefined) {
+      event.payload = payload
+    }
+    return event
+  }
+
+  private static resolveUsbListenerEvent(
+    data: commonEventManager.CommonEventData,
+    action: PeripheralRecordAction
+  ): UsbRuntimeEvent | null {
+    if (action !== 'connect' && action !== 'disconnect') {
+      return null
+    }
+    const info = PeripheralRuntimeEventService.resolveUsbEventInfo(data)
+    return {
+      action: action,
+      deviceId: info.deviceId,
+      deviceName: info.deviceName,
+      deviceType: info.deviceType,
+      occurAt: info.occurAt
+    }
+  }
+
+  private static getRuntimePipeline(): PeripheralConnectionRecordPipelineImpl {
+    if (!PeripheralRuntimeEventService.runtimePipeline) {
+      PeripheralRuntimeEventService.runtimePipeline = new PeripheralConnectionRecordPipelineImpl(
+        null,
+        [
+          new PeripheralConnectionRecordUsbConsumer(),
+          new PeripheralConnectionRecordBluetoothAclConsumer()
+        ]
+      )
+    }
+    return PeripheralRuntimeEventService.runtimePipeline
   }
 
   private static async resolveBluetoothAclEventInfo(
