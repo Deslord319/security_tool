@@ -29,7 +29,9 @@ export interface PeripheralConnectionRecordProducer {
   getStatus(): PeripheralConnectionRecordProducerStatus
 }
 
+export type PeripheralConnectionRecordConsumeResult = PeripheralTraceRecord | null
+
 export interface PeripheralConnectionRecordConsumer {
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean
-  consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralTraceRecord | null>
+  consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralConnectionRecordConsumeResult>
 }
