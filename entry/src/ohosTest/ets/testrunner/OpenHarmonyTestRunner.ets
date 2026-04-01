@@ -1,6 +1,5 @@
 /**
- * OpenHarmony 测试运行器
- * 负责初始化测试环境并执行测试用例
+ * OpenHarmony test runner.
  */
 import { TestRunner, abilityDelegatorRegistry } from '@kit.TestKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'

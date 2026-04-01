@@ -39,7 +39,6 @@ export class PeripheralService {
 
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, feature, disallow)
-      LogUtils.info(TAG, `setInterfaceDisabled: ${feature} = ${disallow}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
@@ -54,7 +53,6 @@ export class PeripheralService {
 
     try {
       const disabled = restrictions.getDisallowedPolicy(ADMIN_WANT, feature)
-      LogUtils.info(TAG, `getInterfaceDisabledWithResult success: feature=${feature}, disabled=${disabled}`)
       return {
         success: true,
         data: disabled
@@ -68,7 +66,6 @@ export class PeripheralService {
   static setUsbStoragePolicyWithResult(policy: usbManager.UsbPolicy): OperationResult<void> {
     try {
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
-      LogUtils.info(TAG, `setUsbStoragePolicy: ${policy}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
@@ -79,7 +76,6 @@ export class PeripheralService {
   static getUsbStoragePolicyWithResult(): OperationResult<usbManager.UsbPolicy> {
     try {
       const policy: usbManager.UsbPolicy = usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)
-      LogUtils.info(TAG, `getUsbStoragePolicyWithResult success: policy=${policy}`)
       return {
         success: true,
         data: policy
@@ -101,11 +97,7 @@ export class PeripheralService {
     }
 
     try {
-      LogUtils.info(TAG,
-        `setUsbStoragePolicyWithCleanupResult start: targetPolicy=${policy}, currentStoragePolicy=${snapshotResult.data?.storagePolicy}`
-      )
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
-      LogUtils.info(TAG, `setUsbStoragePolicyWithCleanupResult success: ${policy}`)
       return {
         success: true,
         userMessage: 'USB storage policy updated',
@@ -140,7 +132,6 @@ export class PeripheralService {
     try {
       const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
       if (interfaces.length === 0) {
-        LogUtils.info(TAG, 'getNetworkInterfaceDisabledWithResult success: interfaceCount=0, allDisabled=false')
         return { success: true, data: false } as OperationResult<boolean>
       }
       let allDisabled = true
@@ -150,9 +141,6 @@ export class PeripheralService {
           break
         }
       }
-      LogUtils.info(TAG,
-        `getNetworkInterfaceDisabledWithResult success: interfaceCount=${interfaces.length}, allDisabled=${allDisabled}`
-      )
       return { success: true, data: allDisabled } as OperationResult<boolean>
     } catch (err) {
       LogUtils.error(TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
@@ -166,10 +154,6 @@ export class PeripheralService {
       return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_usb_storage_policy')
     }
     const snapshot = snapshotResult.data!
-    LogUtils.info(TAG,
-      `setUsbInterfaceDisabledWithCleanup start: disallow=${disallow}, storagePolicy=${snapshot.storagePolicy}`
-    )
-
     if (snapshot.storagePolicy !== usbManager.UsbPolicy.READ_WRITE) {
       const resetResult = PeripheralService.resetUsbStoragePolicyToReadWrite()
       if (!resetResult.success) {
@@ -179,7 +163,6 @@ export class PeripheralService {
 
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, PeripheralService.FEATURE_USB, disallow)
-      LogUtils.info(TAG, `setUsbInterfaceDisabledWithCleanup success: disallow=${disallow}`)
       return {
         success: true,
         userMessage: 'usb interface policy updated',
@@ -211,9 +194,6 @@ export class PeripheralService {
       } as OperationResult<UsbConflictSnapshot>
     }
 
-    LogUtils.info(TAG,
-      `getUsbConflictSnapshot success: storagePolicy=${storagePolicyResult.data ?? usbManager.UsbPolicy.READ_WRITE}`
-    )
     return {
       success: true,
       data: {
@@ -225,7 +205,6 @@ export class PeripheralService {
   private static resetUsbStoragePolicyToReadWrite(): OperationResult<void> {
     try {
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, usbManager.UsbPolicy.READ_WRITE)
-      LogUtils.info(TAG, 'resetUsbStoragePolicyToReadWrite success')
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `resetUsbStoragePolicyToReadWrite failed: ${JSON.stringify(err)}`)

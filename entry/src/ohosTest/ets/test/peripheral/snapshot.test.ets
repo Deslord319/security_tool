@@ -1,5 +1,5 @@
 /**
- * 外设模块 - 页面快照测试
+ * Peripheral page smoke snapshot test.
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
@@ -27,7 +27,7 @@ export default function peripheralSnapshotTest() {
     })
 
     afterAll(async () => {
-      const dashboardNav = await driver.findComponent(ON.text('总览'))
+      const dashboardNav = await driver.findComponent(ON.text('安全总览'))
       if (dashboardNav) {
         await dashboardNav.click()
         await driver.delayMs(500)
@@ -35,13 +35,12 @@ export default function peripheralSnapshotTest() {
       hilog.info(DOMAIN, TAG, 'Peripheral snapshot tests completed')
     })
 
-    describe('Peripheral Page Snapshot', () => {
-      it('should render peripheral page correctly', 0, async () => {
-        const peripheralNav = await driver.findComponent(ON.text('外设管理'))
-        expect(peripheralNav !== null).assertTrue()
-        await peripheralNav.click()
-        await driver.delayMs(500)
-      })
+    it('should render peripheral page correctly', 0, async () => {
+      const peripheralNav = await driver.findComponent(ON.text('外设管理'))
+      expect(peripheralNav !== null).assertTrue()
+      await peripheralNav!.click()
+      await driver.delayMs(500)
+      await driver.assertComponentExist(ON.text('外设管理'))
     })
   })
 }

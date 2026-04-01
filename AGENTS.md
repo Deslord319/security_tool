@@ -107,6 +107,19 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 
 **修改 `UnsgnedDebugProfileTemplate.json` 后，必须重新执行步骤 2（生成 p7b），再执行步骤 3（签名）。**
 
+## 日志约定
+
+- 主线业务代码统一通过 `entry/src/main/ets/utils/LogUtils.ets` 输出日志，不要在业务文件中直接引入或调用 `hilog`
+- 每个文件只定义一个 `TAG`，`domain` 由 `LogUtils` 统一封装；不要再在业务文件里声明独立 `DOMAIN`
+- 新增日志优先保留错误、告警和关键流程结论，避免重复的 start/success/info 噪音日志
+- 如果后续需要对测试日志做统一封装，沿用同样思路，不要继续扩散裸 `hilog`
+
+## 编码约定
+
+- 含中文的代码、测试、文档文件必须按 UTF-8 处理；修改后必须回读验证，禁止提交乱码、`?`、`�`、异常转码文本
+- 在 Windows / PowerShell 环境中，禁止使用默认编码不明确的批量文本链路改写含中文文件，例如裸 `Get-Content` / `Set-Content`、`Out-File`、重定向 `>` / `>>`、管道拼接整文件内容
+- 需要批量修改含中文文件时，必须显式指定 UTF-8 读写，且先抽样校验再全量执行；如果链路不能证明编码安全，优先改用 `apply_patch` 或放弃批量改写
+
 ## 签名密钥别名速查
 
 | 用途 | Key Alias |

@@ -54,16 +54,12 @@ export class ToolSettingsViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
-    LogUtils.info(TAG, '[LOAD_START] initialize | source=ToolSettingsPage')
     let config = await this.repository.loadConfig(context)
     this.state = {
       config: this.createConfig(config.startupAuthEnabled, config.authMethod),
       initialConfig: this.createConfig(config.startupAuthEnabled, config.authMethod),
       hasChanges: false
     }
-    LogUtils.info(TAG,
-      `[LOAD_SUCCESS] initialize | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
-    )
   }
 
   setStartupAuthEnabled(enabled: boolean): void {
@@ -74,9 +70,6 @@ export class ToolSettingsViewModel {
       startupAuthEnabled: enabled,
       authMethod: this.state.config.authMethod
     })
-    LogUtils.info(TAG,
-      `[USER_CHANGE] startupAuthEnabled | value=${enabled}, hasChanges=${this.state.hasChanges}`
-    )
   }
 
   setAuthMethod(authMethod: AuthMethod): void {
@@ -87,9 +80,6 @@ export class ToolSettingsViewModel {
       startupAuthEnabled: this.state.config.startupAuthEnabled,
       authMethod: authMethod
     })
-    LogUtils.info(TAG,
-      `[USER_CHANGE] authMethod | value=${authMethod}, hasChanges=${this.state.hasChanges}`
-    )
   }
 
   async requestSave(
@@ -100,9 +90,6 @@ export class ToolSettingsViewModel {
       LogUtils.warn(TAG, '[SAVE_SKIP] requestSave | reason=saving')
       return { kind: 'none' }
     }
-    LogUtils.info(TAG,
-      `[USER_SAVE_CLICK] requestSave | hasChanges=${this.state.hasChanges}, startupAuthEnabled=${this.state.config.startupAuthEnabled}, authMethod=${this.state.config.authMethod}`
-    )
     if (!this.state.hasChanges) {
       LogUtils.warn(TAG, '[SAVE_SKIP] requestSave | reason=no_changes')
       return {
@@ -114,9 +101,6 @@ export class ToolSettingsViewModel {
 
     if (this.state.config.startupAuthEnabled && !allowUnsupportedAuthMethod) {
       let availability = AuthService.checkAuthMethodAvailability(this.state.config.authMethod)
-      LogUtils.info(TAG,
-        `[STARTUP_AUTH_RESULT] availability | authMethod=${this.state.config.authMethod}, available=${availability.available}, errorCode=${availability.errorCode ?? 0}`
-      )
       if (!availability.available) {
         let confirmMessage = `${availability.message}\n\n${ToolSettingsStrings.authMethodUnavailableMessage}`
         LogUtils.warn(TAG,
@@ -164,9 +148,6 @@ export class ToolSettingsViewModel {
         initialConfig: this.createConfig(configToSave.startupAuthEnabled, configToSave.authMethod),
         hasChanges: false
       }
-      LogUtils.info(TAG,
-        `[SAVE_SUCCESS] saveConfig | startupAuthEnabled=${configToSave.startupAuthEnabled}, authMethod=${configToSave.authMethod}`
-      )
       return {
         kind: 'result',
         status: 'success',

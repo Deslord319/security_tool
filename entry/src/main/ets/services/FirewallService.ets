@@ -145,11 +145,7 @@ export class FirewallService {
       lastErrorMessage: FirewallService.lastErrorMessage
     })
     try {
-      let policy = await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
-      LogUtils.info(TAG,
-        `getFirewallPolicy success: isOpen=${policy.isOpen}, inAction=${policy.inAction}, outAction=${policy.outAction}`
-      )
-      return policy
+      return await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
     } catch (err) {
       FirewallService.recordError('读取防火墙策略', err as Object)
       LogUtils.error(TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
@@ -174,7 +170,6 @@ export class FirewallService {
         outAction: existingPolicy?.outAction ?? netFirewall.FirewallRuleAction.RULE_ALLOW
       }
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
-      LogUtils.info(TAG, `setFirewallEnabled: ${enabled}`)
       return true
     } catch (err) {
       FirewallService.recordError('设置防火墙状态', err as Object)
@@ -187,7 +182,6 @@ export class FirewallService {
     CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
-      LogUtils.info(TAG, `setFirewallPolicy success: ${JSON.stringify(policy)}`)
       return true
     } catch (err) {
       FirewallService.recordError('set firewall policy failed', err as Object)
@@ -230,9 +224,7 @@ export class FirewallService {
     CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       let preparedRule = FirewallService.normalizeRuleForCreate(rule)
-      FirewallService.logRulePayload('addRule payload', preparedRule)
       let ruleId = await netFirewall.addNetFirewallRule(preparedRule)
-      LogUtils.info(TAG, `addRule success, ruleId: ${ruleId}`)
       return ruleId
     } catch (err) {
       FirewallService.recordError('新增防火墙规则', err as Object)
@@ -248,7 +240,6 @@ export class FirewallService {
     CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       await netFirewall.removeNetFirewallRule(DEFAULT_USER_ID, ruleId)
-      LogUtils.info(TAG, `removeRule success, ruleId: ${ruleId}`)
       return true
     } catch (err) {
       FirewallService.recordError('删除防火墙规则', err as Object)
@@ -261,9 +252,7 @@ export class FirewallService {
   static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
     CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
-      FirewallService.logRulePayload('updateRule payload', rule)
       await netFirewall.updateNetFirewallRule(rule)
-      LogUtils.info(TAG, `updateRule success`)
       return true
     } catch (err) {
       FirewallService.recordError('更新防火墙规则', err as Object)
@@ -561,9 +550,6 @@ export class FirewallService {
       return false
     }
     let snapshotRules = await FirewallService.getAllRules()
-    LogUtils.info(TAG,
-      `applyRuleSet start: mode=${mode}, snapshotRuleCount=${snapshotRules.length}, targetRuleCount=${rules.length}`
-    )
     let targetPolicy: netFirewall.NetFirewallPolicy = {
       isOpen: snapshotPolicy.isOpen,
       inAction: netFirewall.FirewallRuleAction.RULE_DENY,
@@ -581,7 +567,6 @@ export class FirewallService {
       await FirewallService.restoreRuleSet(snapshotPolicy, snapshotRules)
       return false
     }
-    LogUtils.info(TAG, `applyRuleSet success: mode=${mode}, appliedRuleCount=${rules.length}`)
     return true
   }
 
@@ -914,7 +899,7 @@ export class FirewallService {
       dns: FirewallService.cloneDnsParams(rule.dns),
       dnsStandbyState: FirewallService.getDnsStandbyState(rule.dns)
     }
-    LogUtils.info(TAG, `${prefix}: ${JSON.stringify(summary)}`)
+    LogUtils.debug(TAG, `${prefix}: ${JSON.stringify(summary)}`)
   }
 
   private static sanitizeLogIpParams(

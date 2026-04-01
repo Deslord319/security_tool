@@ -1,6 +1,5 @@
 /**
- * TestAbility - 测试专用 Ability
- * 用于执行 ohosTest 测试用例
+ * Test ability used by ohosTest.
  */
 import { UIAbility, Want, AbilityConstant } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
@@ -34,7 +33,7 @@ export default class TestAbility extends UIAbility {
 
     hilog.info(DOMAIN, TAG, 'start run testcase!!!')
 
-    // 使用 Hypium 框架正确执行测试
+    // Run the test suite through Hypium.
     const abilityDelegator = abilityDelegatorRegistry.getAbilityDelegator()
     const abilityDelegatorArguments = abilityDelegatorRegistry.getArguments()
 
