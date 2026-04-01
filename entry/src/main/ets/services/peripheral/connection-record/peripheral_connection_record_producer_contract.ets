@@ -11,7 +11,10 @@ export interface PeripheralConnectionRecordProducerStatus {
 
 export interface PeripheralConnectionRecordProducerEvent {
   source: 'runtime'
-  payload: Object
+  channel: 'usb' | 'bluetooth_acl'
+  eventName: string
+  payload?: Object
+  rawData: Object
 }
 
 export type PeripheralConnectionRecordProducerListener = (event: PeripheralConnectionRecordProducerEvent) => void

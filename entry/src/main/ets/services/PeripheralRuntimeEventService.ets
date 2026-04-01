@@ -44,6 +44,13 @@ export interface UsbRuntimeEvent {
   occurAt: number
 }
 
+export interface PeripheralRuntimeCommonEvent {
+  channel: 'usb' | 'bluetooth_acl'
+  eventName: string
+  payload?: Object
+  rawData: commonEventManager.CommonEventData
+}
+
 interface ResolvedUsbEventInfo {
   vendorId: number
   productId: number
@@ -109,6 +116,8 @@ export class PeripheralRuntimeEventService {
   private static lastSeenByKey: Map<string, number> = new Map()
   private static nextListenerId: number = 1
   private static listeners: Map<number, (event: UsbRuntimeEvent) => void> = new Map()
+  private static nextRuntimeCommonListenerId: number = 1
+  private static runtimeCommonListeners: Map<number, (event: PeripheralRuntimeCommonEvent) => void> = new Map()
   private static bluetoothStateListener: BluetoothStateCallback | undefined
   private static bluetoothBondStateListener: BluetoothBondStateCallback | undefined
   private static bluetoothCurrentState: access.BluetoothState = access.BluetoothState.STATE_OFF
@@ -192,6 +201,16 @@ export class PeripheralRuntimeEventService {
     PeripheralRuntimeEventService.listeners.delete(listenerId)
   }
 
+  static addRuntimeCommonEventListener(listener: (event: PeripheralRuntimeCommonEvent) => void): number {
+    const id = PeripheralRuntimeEventService.nextRuntimeCommonListenerId++
+    PeripheralRuntimeEventService.runtimeCommonListeners.set(id, listener)
+    return id
+  }
+
+  static removeRuntimeCommonEventListener(listenerId: number): void {
+    PeripheralRuntimeEventService.runtimeCommonListeners.delete(listenerId)
+  }
+
   static getStatus(): PeripheralRuntimeStatus {
     return {
       running: PeripheralRuntimeEventService.running,
@@ -227,6 +246,7 @@ export class PeripheralRuntimeEventService {
               hilog.error(DOMAIN, TAG, `common event callback failed: code=${callbackErr.code}, message=${callbackErr.message}`)
               return
             }
+            PeripheralRuntimeEventService.notifyRuntimeCommonEventListeners('usb', data)
             PeripheralRuntimeEventService.consumeUsbCommonEvent(data)
           })
           PeripheralRuntimeEventService.usbSubscriber = subscriber
@@ -556,6 +576,32 @@ export class PeripheralRuntimeEventService {
     })
   }
 
+  private static notifyRuntimeCommonEventListeners(
+    channel: 'usb' | 'bluetooth_acl',
+    data: commonEventManager.CommonEventData
+  ): void {
+    if (PeripheralRuntimeEventService.runtimeCommonListeners.size <= 0) {
+      return
+    }
+    const commonEvent: PeripheralRuntimeCommonEvent = {
+      channel: channel,
+      eventName: data.event ?? '',
+      rawData: data
+    }
+    const payload = data.parameters as Object | undefined
+    if (payload !== undefined) {
+      commonEvent.payload = payload
+    }
+    PeripheralRuntimeEventService.runtimeCommonListeners.forEach(
+      (listener: (event: PeripheralRuntimeCommonEvent) => void) => {
+        try {
+          listener(commonEvent)
+        } catch (_err) {
+        }
+      }
+    )
+  }
+
   private static cleanupBluetoothRuntimeEvents(): void {
     PeripheralRuntimeEventService.cleanupBluetoothAclSubscriber('service-stop')
     if (PeripheralRuntimeEventService.bluetoothStateListener) {
@@ -641,6 +687,7 @@ export class PeripheralRuntimeEventService {
                 )
                 return
               }
+              PeripheralRuntimeEventService.notifyRuntimeCommonEventListeners('bluetooth_acl', data)
               void PeripheralRuntimeEventService.consumeBluetoothAclCommonEvent(data)
             }
           )
