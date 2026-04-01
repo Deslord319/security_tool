@@ -39,7 +39,7 @@ export class EnterpriseAdminService {
       const error: Object = err as Object
       const code: number | undefined = CommonErrorUtils.extractErrorCode(error)
       const message: string = EnterpriseAdminService.isAdminMissingError(error)
-        ? AdminErrorStrings.NOT_ACTIVATED
+        ? AdminErrorStrings.notActivated
         : AdminErrorStrings.buildCheckFailed(code)
       LogUtils.warn(TAG, `probeActivation failed: ${JSON.stringify(err)}`)
       return {

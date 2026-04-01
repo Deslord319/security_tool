@@ -78,7 +78,7 @@ export struct PeripheralPage {
       this.syncViewState()
     } catch (err) {
       LogUtils.error(TAG, `initViewModel failed: ${JSON.stringify(err)}`)
-      DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.INIT_FAILED))
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.initFailed))
     }
   }
 
@@ -479,4 +479,3 @@ export struct PeripheralPage {
     DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }
-

@@ -52,31 +52,31 @@ export class CommonErrorUtils {
    * 根据操作和错误码解析错误消息
    */
   static resolveErrorMessage(action: string, code: number | undefined): string {
-    if (action === PermissionErrors.READ_USER_LIST) {
+    if (action === PermissionErrors.readUserListAction) {
       switch (code) {
         case 201:
-          return PermissionErrors.MISSING_USER_LIST_PERMISSION
+          return PermissionErrors.missingUserListPermission
         case 12300001:
         case 2100002:
-          return SystemServiceErrors.ACCOUNT_SERVICE_CONNECTION_FAILED
+          return SystemServiceErrors.accountServiceConnectionFailed
         default:
-          return ErrorTemplates.ACTION_FAILED_TEMPLATE.replace('${action}', action)
+          return ErrorTemplates.actionFailedTemplate.replace('${action}', action)
       }
     }
     switch (code) {
       case 201:
-        return PermissionErrors.MISSING_ACCOUNT_OR_FIREWALL_PERMISSION
+        return PermissionErrors.missingAccountOrFirewallPermission
       case 401:
       case 2100001:
-        return PermissionErrors.INVALID_USER_ID_PARAM
+        return PermissionErrors.invalidUserIdParam
       case 2100002:
-        return SystemServiceErrors.SERVICE_CONNECTION_FAILED
+        return SystemServiceErrors.serviceConnectionFailed
       case 2100003:
-        return SystemServiceErrors.INTERNAL_ERROR
+        return SystemServiceErrors.internalError
       case 29400000:
-        return SystemServiceErrors.USER_NOT_EXIST_OR_INVALID
+        return SystemServiceErrors.userNotExistOrInvalid
       default:
-        return ErrorTemplates.ACTION_FAILED_TEMPLATE.replace('${action}', action)
+        return ErrorTemplates.actionFailedTemplate.replace('${action}', action)
     }
   }
 }

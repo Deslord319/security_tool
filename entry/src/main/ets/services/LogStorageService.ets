@@ -289,7 +289,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: now,
-        errorMessage: LogExportErrors.NO_LOGS_TO_EXPORT
+        errorMessage: LogExportErrors.noLogsToExport
       }
     }
 
@@ -307,7 +307,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: timestamp,
-        errorMessage: LogExportErrors.UI_CONTEXT_UNAVAILABLE
+        errorMessage: LogExportErrors.uiContextUnavailable
       }
     }
 
@@ -321,7 +321,7 @@ export class LogStorageService {
         return {
           success: false,
           timestamp: timestamp,
-          errorMessage: LogExportErrors.USER_CANCELED_SAVE
+          errorMessage: LogExportErrors.userCanceledSave
         }
       }
       

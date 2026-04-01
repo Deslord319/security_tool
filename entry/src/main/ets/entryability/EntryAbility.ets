@@ -149,7 +149,11 @@ export default class EntryAbility extends UIAbility {
       this.loadMainPage(windowStage, authResult.message);
     } else {
       // 认证失败时直接退出应用，避免绕过启动校验。
-      this.context.terminateSelf();
+      try {
+        this.context.terminateSelf();
+      } catch (err) {
+        LogUtils.error(ENTRYABILITY_TAG, 'terminateSelf failed: %{public}s', JSON.stringify(err));
+      }
     }
   }
 

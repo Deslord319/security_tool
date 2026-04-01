@@ -69,13 +69,13 @@ export class InterfaceControlViewModel {
     try {
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
-        return this.normalizeReason(result.stage, PeripheralStrings.TOGGLE_INTERFACE_FAILED)
+      return this.normalizeReason(result.stage, PeripheralStrings.toggleInterfaceFailed)
       }
       this.updateInterfaceState(feature, disallow)
       return null
     } catch (err) {
       LogUtils.error(TAG, `toggleInterface failed: ${JSON.stringify(err)}`)
-      return PeripheralStrings.TOGGLE_INTERFACE_FAILED
+      return PeripheralStrings.toggleInterfaceFailed
     } finally {
       this.processingKey = ''
     }
@@ -91,7 +91,7 @@ export class InterfaceControlViewModel {
           : edmUsbManager.UsbPolicy.DISABLED
       const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policy)
       if (!result.success) {
-        return this.normalizeReason(result.stage, PeripheralStrings.USB_STORAGE_POLICY_FAILED)
+      return this.normalizeReason(result.stage, PeripheralStrings.usbStoragePolicyFailed)
       }
       this.commitState({
         usbDisabled: this.state.usbDisabled,
@@ -107,7 +107,7 @@ export class InterfaceControlViewModel {
       return null
     } catch (err) {
       LogUtils.error(TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralStrings.USB_STORAGE_POLICY_FAILED
+      return PeripheralStrings.usbStoragePolicyFailed
     } finally {
       this.processingKey = ''
     }
@@ -143,14 +143,14 @@ export class InterfaceControlViewModel {
 
   private normalizeReason(stage: string | undefined, fallbackReason: string): string {
     switch (stage) {
-      case PeripheralStrings.READ_USB_STATUS_FAILED:
-        return PeripheralStrings.READ_USB_STATUS_FAILED
-      case PeripheralStrings.READ_USB_STORAGE_POLICY_FAILED:
-        return PeripheralStrings.READ_USB_STORAGE_POLICY_FAILED
-      case PeripheralStrings.SET_USB_INTERFACE_CONFLICT:
-        return PeripheralStrings.SET_USB_INTERFACE_CONFLICT
-      case PeripheralStrings.SET_USB_STORAGE_POLICY_CONFLICT:
-        return PeripheralStrings.SET_USB_STORAGE_POLICY_CONFLICT
+      case PeripheralStrings.readUsbStatusFailed:
+        return PeripheralStrings.readUsbStatusFailed
+      case PeripheralStrings.readUsbStoragePolicyFailed:
+        return PeripheralStrings.readUsbStoragePolicyFailed
+      case PeripheralStrings.setUsbInterfaceConflict:
+        return PeripheralStrings.setUsbInterfaceConflict
+      case PeripheralStrings.setUsbStoragePolicyConflict:
+        return PeripheralStrings.setUsbStoragePolicyConflict
       default:
         return stage || fallbackReason
     }

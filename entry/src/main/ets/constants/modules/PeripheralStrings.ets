@@ -3,21 +3,21 @@ import { DeviceDetailStrings, DeviceTypeLabels, FirewallDialogStrings } from './
 import { LogManageStrings } from './LogManageStrings'
 
 export class PeripheralStrings {
-  static readonly INIT_FAILED: string = 'init_failed'
-  static readonly ADMIN_REQUIRED: string = 'admin_required'
-  static readonly INVALID_DEVICE_ID: string = 'invalid_device_id'
-  static readonly EXPORT_ENV_NOT_READY: string = 'export_env_not_ready'
-  static readonly EMPTY_CONNECTION_HISTORY: string = 'empty_connection_history'
-  static readonly EMPTY_POLICY_RECORDS: string = 'empty_policy_records'
-  static readonly TOGGLE_INTERFACE_FAILED: string = 'toggle_interface_failed'
-  static readonly USB_STORAGE_POLICY_FAILED: string = 'usb_storage_policy_failed'
-  static readonly POLICY_CHANGE_FAILED: string = 'policy_change_failed'
-  static readonly EXPORT_CONNECTION_HISTORY_FAILED: string = 'export_connection_history_failed'
-  static readonly EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
-  static readonly READ_USB_STATUS_FAILED: string = 'read_usb_status'
-  static readonly READ_USB_STORAGE_POLICY_FAILED: string = 'read_usb_storage_policy'
-  static readonly SET_USB_INTERFACE_CONFLICT: string = 'set_usb_interface'
-  static readonly SET_USB_STORAGE_POLICY_CONFLICT: string = 'set_usb_storage_policy'
+  static readonly initFailed: string = 'init_failed'
+  static readonly adminRequired: string = 'admin_required'
+  static readonly invalidDeviceId: string = 'invalid_device_id'
+  static readonly exportEnvNotReady: string = 'export_env_not_ready'
+  static readonly emptyConnectionHistory: string = 'empty_connection_history'
+  static readonly emptyPolicyRecords: string = 'empty_policy_records'
+  static readonly toggleInterfaceFailed: string = 'toggle_interface_failed'
+  static readonly usbStoragePolicyFailed: string = 'usb_storage_policy_failed'
+  static readonly policyChangeFailed: string = 'policy_change_failed'
+  static readonly exportConnectionHistoryFailed: string = 'export_connection_history_failed'
+  static readonly exportPolicyRecordsFailed: string = 'export_policy_records_failed'
+  static readonly readUsbStatusFailed: string = 'read_usb_status'
+  static readonly readUsbStoragePolicyFailed: string = 'read_usb_storage_policy'
+  static readonly setUsbInterfaceConflict: string = 'set_usb_interface'
+  static readonly setUsbStoragePolicyConflict: string = 'set_usb_storage_policy'
 
   static readonly policyOptions: string[] = ['允许接入', '禁止接入']
   static readonly interfaceToggleOptions: string[] = ['启用', '禁用']
@@ -108,35 +108,35 @@ export class PeripheralStrings {
 
   static resolveReason(reason?: string | null): string {
     switch (reason) {
-      case PeripheralStrings.ADMIN_REQUIRED:
+      case PeripheralStrings.adminRequired:
         return '请先激活企业管理员权限'
-      case PeripheralStrings.INIT_FAILED:
+      case PeripheralStrings.initFailed:
         return '外设管理初始化失败，请稍后重试'
-      case PeripheralStrings.INVALID_DEVICE_ID:
+      case PeripheralStrings.invalidDeviceId:
         return '无法识别当前设备标识'
-      case PeripheralStrings.EXPORT_ENV_NOT_READY:
+      case PeripheralStrings.exportEnvNotReady:
         return '导出环境尚未初始化，请稍后重试'
-      case PeripheralStrings.EMPTY_CONNECTION_HISTORY:
+      case PeripheralStrings.emptyConnectionHistory:
         return '没有可导出的设备连接记录'
-      case PeripheralStrings.EMPTY_POLICY_RECORDS:
+      case PeripheralStrings.emptyPolicyRecords:
         return '暂无可导出的黑白名单配置'
-      case PeripheralStrings.TOGGLE_INTERFACE_FAILED:
+      case PeripheralStrings.toggleInterfaceFailed:
         return '接口管控设置失败，请稍后重试'
-      case PeripheralStrings.USB_STORAGE_POLICY_FAILED:
+      case PeripheralStrings.usbStoragePolicyFailed:
         return '设置 USB 存储策略失败，请稍后重试'
-      case PeripheralStrings.POLICY_CHANGE_FAILED:
+      case PeripheralStrings.policyChangeFailed:
         return '修改黑白名单失败，请稍后重试'
-      case PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED:
+      case PeripheralStrings.exportConnectionHistoryFailed:
         return '导出记录失败，请稍后重试'
-      case PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED:
+      case PeripheralStrings.exportPolicyRecordsFailed:
         return '导出策略失败，请稍后重试'
-      case PeripheralStrings.READ_USB_STATUS_FAILED:
+      case PeripheralStrings.readUsbStatusFailed:
         return '读取 USB 状态失败，请稍后重试'
-      case PeripheralStrings.READ_USB_STORAGE_POLICY_FAILED:
+      case PeripheralStrings.readUsbStoragePolicyFailed:
         return '读取 USB 存储策略失败，请稍后重试'
-      case PeripheralStrings.SET_USB_INTERFACE_CONFLICT:
+      case PeripheralStrings.setUsbInterfaceConflict:
         return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
-      case PeripheralStrings.SET_USB_STORAGE_POLICY_CONFLICT:
+      case PeripheralStrings.setUsbStoragePolicyConflict:
         return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
       default:
         return reason && reason.trim().length > 0 ? reason : '请稍后重试'

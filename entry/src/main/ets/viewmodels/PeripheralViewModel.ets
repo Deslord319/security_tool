@@ -45,7 +45,7 @@ export class PeripheralViewModel {
       })
       this.reasonCode = null
     } catch (err) {
-      this.reasonCode = PeripheralStrings.INIT_FAILED
+      this.reasonCode = PeripheralStrings.initFailed
       LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
@@ -80,7 +80,7 @@ export class PeripheralViewModel {
     if (this.adminState.activated) {
       return true
     }
-    this.reasonCode = PeripheralStrings.ADMIN_REQUIRED
+      this.reasonCode = PeripheralStrings.adminRequired
     return false
   }
 
@@ -157,13 +157,13 @@ export class PeripheralViewModel {
 
   async exportConnectionHistory(): Promise<ExportActionResult> {
     const result = await this.records.exportConnectionHistory(this.appContext)
-    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.exportConnectionHistoryFailed)
     return result
   }
 
   async exportPeripheralPolicyRecords(): Promise<ExportActionResult> {
     const result = await this.policy.exportRecords(this.appContext)
-    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.exportPolicyRecordsFailed)
     return result
   }
 

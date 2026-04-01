@@ -60,7 +60,7 @@ export class PeripheralPolicyViewModel {
   ): Promise<string | null> {
     const normalizedDeviceId = this.normalizeDeviceKey(deviceId)
     if (normalizedDeviceId.length === 0) {
-      return PeripheralStrings.INVALID_DEVICE_ID
+      return PeripheralStrings.invalidDeviceId
     }
 
     try {
@@ -72,10 +72,10 @@ export class PeripheralPolicyViewModel {
         updatedAt: Date.now()
       }
       const success = await PeripheralDevicePolicyRepository.set(record)
-      return success ? null : PeripheralStrings.POLICY_CHANGE_FAILED
+      return success ? null : PeripheralStrings.policyChangeFailed
     } catch (err) {
       LogUtils.error(TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralStrings.POLICY_CHANGE_FAILED
+      return PeripheralStrings.policyChangeFailed
     }
   }
 
@@ -85,10 +85,10 @@ export class PeripheralPolicyViewModel {
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     if (this.records.length === 0) {
-      return { success: false, reason: PeripheralStrings.EMPTY_POLICY_RECORDS } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.emptyPolicyRecords } as ExportActionResult
     }
     if (!context) {
-      return { success: false, reason: PeripheralStrings.EXPORT_ENV_NOT_READY } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.exportEnvNotReady } as ExportActionResult
     }
 
     try {
@@ -100,10 +100,10 @@ export class PeripheralPolicyViewModel {
       })
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult
-        : { success: false, reason: PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
+        : { success: false, reason: PeripheralStrings.exportPolicyRecordsFailed } as ExportActionResult
     } catch (err) {
       LogUtils.error(TAG, `exportRecords failed: ${JSON.stringify(err)}`)
-      return { success: false, reason: PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
+      return { success: false, reason: PeripheralStrings.exportPolicyRecordsFailed } as ExportActionResult
     }
   }
 

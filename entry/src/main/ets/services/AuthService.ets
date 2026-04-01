@@ -92,35 +92,51 @@ export class AuthService {
       let userAuthInstance = userAuth.getUserAuthInstance(authParam, widgetParam)
 
       return new Promise<AuthExecutionResult>((resolve) => {
-        userAuthInstance.on('result', {
-          onResult(result: userAuth.UserAuthResult) {
-            LogUtils.info(TAG, `Auth result code: ${result.result}, SUCCESS code: ${userAuth.UserAuthResultCode.SUCCESS}`)
-            userAuthInstance.off('result')
-            if (result.result === userAuth.UserAuthResultCode.SUCCESS) {
-              resolve({ success: true })
-              return
-            }
+        try {
+          userAuthInstance.on('result', {
+            onResult(result: userAuth.UserAuthResult) {
+              LogUtils.info(TAG, `Auth result code: ${result.result}, SUCCESS code: ${userAuth.UserAuthResultCode.SUCCESS}`)
+              try {
+                userAuthInstance.off('result')
+              } catch (offErr) {
+                LogUtils.warn(TAG, `userAuthInstance.off failed: ${JSON.stringify(offErr)}`)
+              }
+              if (result.result === userAuth.UserAuthResultCode.SUCCESS) {
+                resolve({ success: true })
+                return
+              }
 
-            if (AuthService.isUnavailableErrorCode(result.result)) {
-              let mapped = AuthService.mapAuthError(authMethod, result.result)
+              if (AuthService.isUnavailableErrorCode(result.result)) {
+                let mapped = AuthService.mapAuthError(authMethod, result.result)
+                resolve({
+                  success: false,
+                  reason: 'unavailable',
+                  errorCode: mapped.errorCode,
+                  message: mapped.message
+                })
+                return
+              }
+
               resolve({
                 success: false,
-                reason: 'unavailable',
-                errorCode: mapped.errorCode,
-                message: mapped.message
+                reason: 'failed',
+                errorCode: result.result,
+                message: IdentityStrings.authFailedOrCanceled
               })
-              return
             }
-
-            resolve({
-              success: false,
-              reason: 'failed',
-              errorCode: result.result,
-              message: IdentityStrings.authFailedOrCanceled
-            })
-          }
-        })
-        userAuthInstance.start()
+          })
+          userAuthInstance.start()
+        } catch (err) {
+          let e = err as BusinessError
+          LogUtils.error(TAG, `userAuthInstance.start failed: code=${e.code}, message=${e.message}`)
+          let mapped = AuthService.mapAuthError(authMethod, e.code, e.message)
+          resolve({
+            success: false,
+            reason: AuthService.isUnavailableErrorCode(e.code) ? 'unavailable' : 'failed',
+            errorCode: mapped.errorCode,
+            message: mapped.message
+          })
+        }
       })
     } catch (err) {
       let e = err as BusinessError
