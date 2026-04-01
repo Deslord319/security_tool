@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallUserApplyMode, UserFirewallOption } from '../models/DataModels'
@@ -45,12 +45,12 @@ export struct UserFirewallControlDialog {
   ]
 
   aboutToAppear(): void {
-    hilog.info(DOMAIN, TAG, 'aboutToAppear')
+    LogUtils.info(TAG, 'aboutToAppear')
     this.loadUsers()
   }
 
   aboutToDisappear(): void {
-    hilog.info(DOMAIN, TAG, 'aboutToDisappear')
+    LogUtils.info(TAG, 'aboutToDisappear')
   }
 
   private async loadUsers(): Promise<void> {
@@ -58,9 +58,7 @@ export struct UserFirewallControlDialog {
     this.statusHintText = ''
     let result = await UserFirewallPolicyService.loadAvailableUserIds()
     this.isLoadingUsers = false
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'loadUsers finished: count=%{public}d, selectedUserId=%{public}d',
       result.users.length,
       result.selectedUserId ?? -1
@@ -96,9 +94,7 @@ export struct UserFirewallControlDialog {
     let result = await UserFirewallModeService.getModeState(context, this.selectedUserId)
     this.isLoadingPolicy = false
 
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'loadStateForSelectedUser finished: userId=%{public}d, managed=%{public}s, isOpen=%{public}s, inAction=%{public}d, outAction=%{public}d',
       this.selectedUserId,
       String(result.isManaged),
@@ -155,9 +151,7 @@ export struct UserFirewallControlDialog {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     let targetMode = this.modeOptions[this.selectedModeIndex].mode
     let sharedRules = await FirewallCustomRuleService.buildRulesForApply(context)
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'handleApplyMode start: userId=%{public}d, mode=%{public}s, ruleCount=%{public}d',
       this.selectedUserId,
       targetMode,
@@ -182,7 +176,7 @@ export struct UserFirewallControlDialog {
     try {
       await this.onActionCompleted(this.selectedUserId, targetMode)
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, 'onActionCompleted failed: %{public}s', JSON.stringify(err))
+      LogUtils.warn(TAG, 'onActionCompleted failed: %{public}s', JSON.stringify(err))
     }
     await this.loadStateForSelectedUser()
     await DialogService.openSuccess(this.getUIContext(), `策略下发成功，本次下发 ${result.appliedRuleCount} 条规则`)

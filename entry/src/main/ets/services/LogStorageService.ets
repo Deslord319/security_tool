@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 ﻿import { preferences } from '@kit.ArkData'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { common } from '@kit.AbilityKit'
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
 import { LogExportErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
@@ -113,12 +114,12 @@ export class LogStorageService {
 
       LogStorageService.isInitialized = true
       LogStorageService.initializedContextDir = contextDir
-      hilog.info(DOMAIN, TAG, `Initialized with ${LogStorageService.logEntries.length} entries`)
+      LogUtils.info(TAG, `Initialized with ${LogStorageService.logEntries.length} entries`)
       return true
     } catch (err) {
       LogStorageService.isInitialized = false
       LogStorageService.initializedContextDir = ''
-      hilog.error(DOMAIN, TAG, `init failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -156,11 +157,11 @@ export class LogStorageService {
       LogStorageService.notifyChanged(normalizedBatch.length)
 
       void LogStorageService.saveEntries().catch((err: Object) => {
-        hilog.error(DOMAIN, TAG, `saveEntries async failed: ${JSON.stringify(err)}`)
+        LogUtils.error(TAG, `saveEntries async failed: ${JSON.stringify(err)}`)
       })
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `addEntries failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `addEntries failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -269,10 +270,10 @@ export class LogStorageService {
       LogStorageService.logEntries = []
       LogStorageService.notifyChanged(0)
       await LogStorageService.saveEntries()
-      hilog.info(DOMAIN, TAG, 'All log entries cleared')
+      LogUtils.info(TAG, 'All log entries cleared')
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `clearAll failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -334,7 +335,7 @@ export class LogStorageService {
       try {
         sizeBytes = fileIo.statSync(targetPath).size
       } catch (statErr) {
-        hilog.warn(DOMAIN, TAG, `Export stat failed: ${JSON.stringify(statErr)}`)
+        LogUtils.warn(TAG, `Export stat failed: ${JSON.stringify(statErr)}`)
       }
       
       return {
@@ -381,7 +382,7 @@ export class LogStorageService {
       try {
         parsedTypes = JSON.parse(rawTypes) as number[]
       } catch {
-        hilog.warn(DOMAIN, TAG, 'loadSubscriptionConfig: invalid subscribedTypes, fallback to default')
+        LogUtils.warn(TAG, 'loadSubscriptionConfig: invalid subscribedTypes, fallback to default')
       }
 
       let subscribedTypes = subscribeAll
@@ -396,7 +397,7 @@ export class LogStorageService {
         subscribedTypes: subscribedTypes
       }
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `loadSubscriptionConfig failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadSubscriptionConfig failed: ${JSON.stringify(err)}`)
       return {
         subscribeAll: DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll,
         subscribedTypes: [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
@@ -433,7 +434,7 @@ export class LogStorageService {
       try {
         listener(event)
       } catch (err) {
-        hilog.warn(DOMAIN, TAG, `listener failed: ${JSON.stringify(err)}`)
+        LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
       }
     })
   }
@@ -473,7 +474,7 @@ export class LogStorageService {
       return DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
     }
     if (maxEntries > MAX_IN_MEMORY_ENTRIES) {
-      hilog.warn(DOMAIN, TAG, `maxLocalEntries too large (${maxEntries}), clamp to ${MAX_IN_MEMORY_ENTRIES}`)
+      LogUtils.warn(TAG, `maxLocalEntries too large (${maxEntries}), clamp to ${MAX_IN_MEMORY_ENTRIES}`)
       return MAX_IN_MEMORY_ENTRIES
     }
     return Math.floor(maxEntries)
@@ -490,7 +491,7 @@ export class LogStorageService {
     }
 
     if (normalized > 3650) {
-      hilog.warn(DOMAIN, TAG, `retentionDays too large (${normalized}), clamp to 3650`)
+      LogUtils.warn(TAG, `retentionDays too large (${normalized}), clamp to 3650`)
       return 3650
     }
 
@@ -608,7 +609,7 @@ export class LogStorageService {
     }
 
     if (payload.length > MAX_PERSIST_PAYLOAD_CHARS) {
-      hilog.warn(DOMAIN, TAG, 'Persist payload too large, fallback to empty list')
+      LogUtils.warn(TAG, 'Persist payload too large, fallback to empty list')
       return '[]'
     }
 
@@ -625,7 +626,7 @@ export class LogStorageService {
       return
     }
     LogStorageService.lastPersistTruncateWarnAt = now
-    hilog.warn(DOMAIN, TAG, `Persist entries truncated: memory=${memoryCount}, saved=${savedCount}`)
+    LogUtils.warn(TAG, `Persist entries truncated: memory=${memoryCount}, saved=${savedCount}`)
   }
 
   // Load entries from Preferences.
@@ -638,7 +639,7 @@ export class LogStorageService {
       let store = await preferences.getPreferences(LogStorageService.context, PREF_STORE_NAME_LOG)
       let rawData = await store.get(LOG_DATA_KEY, '[]') as string
       if (rawData.length > MAX_PERSIST_PAYLOAD_CHARS * 4) {
-        hilog.warn(DOMAIN, TAG, `Persisted log payload too large (${rawData.length}), reset to empty`)
+        LogUtils.warn(TAG, `Persisted log payload too large (${rawData.length}), reset to empty`)
         LogStorageService.logEntries = []
         await store.put(LOG_DATA_KEY, '[]')
         await store.flush()
@@ -651,7 +652,7 @@ export class LogStorageService {
         LogStorageService.logEntries = LogStorageService.logEntries.slice(0, maxEntries)
       }
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `loadEntries failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadEntries failed: ${JSON.stringify(err)}`)
       LogStorageService.logEntries = []
     }
   }
@@ -668,7 +669,7 @@ export class LogStorageService {
       await store.put(LOG_DATA_KEY, payload)
       await store.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveEntries failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `saveEntries failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -696,7 +697,7 @@ export class LogStorageService {
         retentionDays: LogStorageService.normalizeRetentionDays(retentionDaysNumber)
       })
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `loadConfig failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadConfig failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -712,7 +713,7 @@ export class LogStorageService {
       await store.put(PREF_KEY_LOG_RETENTION_DAYS, LogStorageService.storageConfig.retentionDays)
       await store.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveConfig failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `saveConfig failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -736,10 +737,10 @@ export class LogStorageService {
       LogStorageService.notifyChanged(0)
       await LogStorageService.saveEntries()
       await LogStorageService.saveConfig()
-      hilog.info(DOMAIN, TAG, 'Storage config updated')
+      LogUtils.info(TAG, 'Storage config updated')
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `updateConfig failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `updateConfig failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -757,7 +758,7 @@ export class LogStorageService {
 
     let removed = before - LogStorageService.logEntries.length
     if (removed > 0) {
-      hilog.info(DOMAIN, TAG, `Cleaned ${removed} expired entries`)
+      LogUtils.info(TAG, `Cleaned ${removed} expired entries`)
     }
     return removed
   }

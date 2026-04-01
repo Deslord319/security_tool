@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
@@ -64,7 +64,7 @@ export class LogManageViewModel {
       this.refreshAll()
       this.registerStorageListener()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `initialize failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.setLoading(false)
     }

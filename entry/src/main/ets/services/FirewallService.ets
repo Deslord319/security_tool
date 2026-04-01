@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
@@ -147,15 +147,13 @@ export class FirewallService {
     })
     try {
       let policy = await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `getFirewallPolicy success: isOpen=${policy.isOpen}, inAction=${policy.inAction}, outAction=${policy.outAction}`
       )
       return policy
     } catch (err) {
       FirewallService.recordError('读取防火墙策略', err as Object)
-      hilog.error(DOMAIN, TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
       return null
     }
   }
@@ -177,11 +175,11 @@ export class FirewallService {
         outAction: existingPolicy?.outAction ?? netFirewall.FirewallRuleAction.RULE_ALLOW
       }
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
-      hilog.info(DOMAIN, TAG, `setFirewallEnabled: ${enabled}`)
+      LogUtils.info(TAG, `setFirewallEnabled: ${enabled}`)
       return true
     } catch (err) {
       FirewallService.recordError('设置防火墙状态', err as Object)
-      hilog.error(DOMAIN, TAG, `setFirewallEnabled failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setFirewallEnabled failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -190,11 +188,11 @@ export class FirewallService {
     CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
-      hilog.info(DOMAIN, TAG, `setFirewallPolicy success: ${JSON.stringify(policy)}`)
+      LogUtils.info(TAG, `setFirewallPolicy success: ${JSON.stringify(policy)}`)
       return true
     } catch (err) {
       FirewallService.recordError('set firewall policy failed', err as Object)
-      hilog.error(DOMAIN, TAG, `setFirewallPolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setFirewallPolicy failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -223,7 +221,7 @@ export class FirewallService {
       return allRules
     } catch (err) {
       FirewallService.recordError('读取防火墙规则', err as Object)
-      hilog.error(DOMAIN, TAG, `getAllRules failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getAllRules failed: ${JSON.stringify(err)}`)
       return []
     }
   }
@@ -235,13 +233,13 @@ export class FirewallService {
       let preparedRule = FirewallService.normalizeRuleForCreate(rule)
       FirewallService.logRulePayload('addRule payload', preparedRule)
       let ruleId = await netFirewall.addNetFirewallRule(preparedRule)
-      hilog.info(DOMAIN, TAG, `addRule success, ruleId: ${ruleId}`)
+      LogUtils.info(TAG, `addRule success, ruleId: ${ruleId}`)
       return ruleId
     } catch (err) {
       FirewallService.recordError('新增防火墙规则', err as Object)
       let preparedRule = FirewallService.normalizeRuleForCreate(rule)
       FirewallService.logRulePayload('addRule failed payload', preparedRule)
-      hilog.error(DOMAIN, TAG, `addRule failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `addRule failed: ${JSON.stringify(err)}`)
       return -1
     }
   }
@@ -251,11 +249,11 @@ export class FirewallService {
     CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
     try {
       await netFirewall.removeNetFirewallRule(DEFAULT_USER_ID, ruleId)
-      hilog.info(DOMAIN, TAG, `removeRule success, ruleId: ${ruleId}`)
+      LogUtils.info(TAG, `removeRule success, ruleId: ${ruleId}`)
       return true
     } catch (err) {
       FirewallService.recordError('删除防火墙规则', err as Object)
-      hilog.error(DOMAIN, TAG, `removeRule failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `removeRule failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -266,12 +264,12 @@ export class FirewallService {
     try {
       FirewallService.logRulePayload('updateRule payload', rule)
       await netFirewall.updateNetFirewallRule(rule)
-      hilog.info(DOMAIN, TAG, `updateRule success`)
+      LogUtils.info(TAG, `updateRule success`)
       return true
     } catch (err) {
       FirewallService.recordError('更新防火墙规则', err as Object)
       FirewallService.logRulePayload('updateRule failed payload', rule)
-      hilog.error(DOMAIN, TAG, `updateRule failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `updateRule failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -286,7 +284,7 @@ export class FirewallService {
     if (newRuleId > 0) {
       return newRuleId
     }
-    hilog.error(DOMAIN, TAG, `replaceRule failed after removing old rule, oldRuleId=${oldRuleId}`)
+    LogUtils.error(TAG, `replaceRule failed after removing old rule, oldRuleId=${oldRuleId}`)
     return -1
   }
 
@@ -564,9 +562,7 @@ export class FirewallService {
       return false
     }
     let snapshotRules = await FirewallService.getAllRules()
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `applyRuleSet start: mode=${mode}, snapshotRuleCount=${snapshotRules.length}, targetRuleCount=${rules.length}`
     )
     let targetPolicy: netFirewall.NetFirewallPolicy = {
@@ -582,11 +578,11 @@ export class FirewallService {
       return false
     }
     if (!await FirewallService.addRules(rules)) {
-      hilog.error(DOMAIN, TAG, `applyRuleSet failed while applying mode=${mode}`)
+      LogUtils.error(TAG, `applyRuleSet failed while applying mode=${mode}`)
       await FirewallService.restoreRuleSet(snapshotPolicy, snapshotRules)
       return false
     }
-    hilog.info(DOMAIN, TAG, `applyRuleSet success: mode=${mode}, appliedRuleCount=${rules.length}`)
+    LogUtils.info(TAG, `applyRuleSet success: mode=${mode}, appliedRuleCount=${rules.length}`)
     return true
   }
 
@@ -919,7 +915,7 @@ export class FirewallService {
       dns: FirewallService.cloneDnsParams(rule.dns),
       dnsStandbyState: FirewallService.getDnsStandbyState(rule.dns)
     }
-    hilog.info(DOMAIN, TAG, `${prefix}: ${JSON.stringify(summary)}`)
+    LogUtils.info(TAG, `${prefix}: ${JSON.stringify(summary)}`)
   }
 
   private static sanitizeLogIpParams(

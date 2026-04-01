@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   LogEntry,
   LogEventResult,
@@ -45,7 +46,7 @@ export class LogCrashService {
       return true
     } catch (err) {
       LogCrashService.lastErrorCode = LogCrashService.extractErrorCode(err as Object)
-      hilog.error(DOMAIN, TAG, `addWatcher failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `addWatcher failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -61,7 +62,7 @@ export class LogCrashService {
       LogCrashService.callback = null
       return true
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `removeWatcher failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `removeWatcher failed: ${JSON.stringify(err)}`)
       return false
     }
   }

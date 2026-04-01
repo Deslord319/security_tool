@@ -1,6 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { PeripheralDevicePolicyRecord } from '../models/DataModels'
 
 const TAG = 'PeripheralDevicePolicyRepo'
@@ -77,7 +78,7 @@ export class PeripheralDevicePolicyRepository {
       PeripheralDevicePolicyRepository.notifyChanged()
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `set failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `set failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -92,7 +93,7 @@ export class PeripheralDevicePolicyRepository {
       PeripheralDevicePolicyRepository.notifyChanged()
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `remove failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `remove failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -104,7 +105,7 @@ export class PeripheralDevicePolicyRepository {
       PeripheralDevicePolicyRepository.notifyChanged()
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `clearAll failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -141,7 +142,7 @@ export class PeripheralDevicePolicyRepository {
     } catch (err) {
       PeripheralDevicePolicyRepository.records = []
       PeripheralDevicePolicyRepository.initialized = false
-      hilog.error(DOMAIN, TAG, `init failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -155,7 +156,7 @@ export class PeripheralDevicePolicyRepository {
       await store.put(PREF_KEY_DEVICE_POLICIES, JSON.stringify(PeripheralDevicePolicyRepository.records))
       await store.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -198,7 +199,7 @@ export class PeripheralDevicePolicyRepository {
       try {
         listener(event)
       } catch (err) {
-        hilog.warn(DOMAIN, TAG, `listener failed: ${JSON.stringify(err)}`)
+        LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
       }
     })
   }

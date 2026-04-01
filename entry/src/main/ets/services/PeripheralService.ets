@@ -1,7 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
-import { usbManager } from '@kit.MDMKit'
 import { networkManager } from '@kit.MDMKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { Want } from '@kit.AbilityKit'
 import { AppInfo } from '../constants/AppConstants'
 import { OperationResult } from '../models/DataModels'
@@ -40,10 +40,10 @@ export class PeripheralService {
 
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, feature, disallow)
-      hilog.info(DOMAIN, TAG, `setInterfaceDisabled: ${feature} = ${disallow}`)
+      LogUtils.info(TAG, `setInterfaceDisabled: ${feature} = ${disallow}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('set interface disabled policy', err as Object)
     }
   }
@@ -55,13 +55,13 @@ export class PeripheralService {
 
     try {
       const disabled = restrictions.getDisallowedPolicy(ADMIN_WANT, feature)
-      hilog.info(DOMAIN, TAG, `getInterfaceDisabledWithResult success: feature=${feature}, disabled=${disabled}`)
+      LogUtils.info(TAG, `getInterfaceDisabledWithResult success: feature=${feature}, disabled=${disabled}`)
       return {
         success: true,
         data: disabled
       } as OperationResult<boolean>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `getInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<boolean>('get interface disabled status', err as Object, false)
     }
   }
@@ -69,10 +69,10 @@ export class PeripheralService {
   static setUsbStoragePolicyWithResult(policy: usbManager.UsbPolicy): OperationResult<void> {
     try {
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
-      hilog.info(DOMAIN, TAG, `setUsbStoragePolicy: ${policy}`)
+      LogUtils.info(TAG, `setUsbStoragePolicy: ${policy}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('set usb storage policy', err as Object)
     }
   }
@@ -80,13 +80,13 @@ export class PeripheralService {
   static getUsbStoragePolicyWithResult(): OperationResult<usbManager.UsbPolicy> {
     try {
       const policy = usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)
-      hilog.info(DOMAIN, TAG, `getUsbStoragePolicyWithResult success: policy=${policy}`)
+      LogUtils.info(TAG, `getUsbStoragePolicyWithResult success: policy=${policy}`)
       return {
         success: true,
         data: policy
       } as OperationResult<usbManager.UsbPolicy>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `getUsbStoragePolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<usbManager.UsbPolicy>(
         'get usb storage policy',
         err as Object,
@@ -102,20 +102,18 @@ export class PeripheralService {
     }
 
     try {
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `setUsbStoragePolicyWithCleanupResult start: targetPolicy=${policy}, currentStoragePolicy=${snapshotResult.data?.storagePolicy}`
       )
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
-      hilog.info(DOMAIN, TAG, `setUsbStoragePolicyWithCleanupResult success: ${policy}`)
+      LogUtils.info(TAG, `setUsbStoragePolicyWithCleanupResult success: ${policy}`)
       return {
         success: true,
         userMessage: 'USB storage policy updated',
         stage: 'completed'
       } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setUsbStoragePolicyWithCleanupResult failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setUsbStoragePolicyWithCleanupResult failed: ${JSON.stringify(err)}`)
       if (CommonErrorUtils.extractErrorCode(err as Object) === 9200010) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_storage_policy',
@@ -134,7 +132,7 @@ export class PeripheralService {
       }
       return { success: true } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('set network interface status', err as Object)
     }
   }
@@ -143,7 +141,7 @@ export class PeripheralService {
     try {
       const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
       if (interfaces.length === 0) {
-        hilog.info(DOMAIN, TAG, 'getNetworkInterfaceDisabledWithResult success: interfaceCount=0, allDisabled=false')
+        LogUtils.info(TAG, 'getNetworkInterfaceDisabledWithResult success: interfaceCount=0, allDisabled=false')
         return { success: true, data: false } as OperationResult<boolean>
       }
       let allDisabled = true
@@ -153,14 +151,12 @@ export class PeripheralService {
           break
         }
       }
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `getNetworkInterfaceDisabledWithResult success: interfaceCount=${interfaces.length}, allDisabled=${allDisabled}`
       )
       return { success: true, data: allDisabled } as OperationResult<boolean>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<boolean>('get network interface status', err as Object, false)
     }
   }
@@ -171,9 +167,7 @@ export class PeripheralService {
       return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_usb_storage_policy')
     }
     const snapshot = snapshotResult.data!
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `setUsbInterfaceDisabledWithCleanup start: disallow=${disallow}, storagePolicy=${snapshot.storagePolicy}`
     )
 
@@ -186,14 +180,14 @@ export class PeripheralService {
 
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, PeripheralService.FEATURE_USB, disallow)
-      hilog.info(DOMAIN, TAG, `setUsbInterfaceDisabledWithCleanup success: disallow=${disallow}`)
+      LogUtils.info(TAG, `setUsbInterfaceDisabledWithCleanup success: disallow=${disallow}`)
       return {
         success: true,
         userMessage: 'usb interface policy updated',
         stage: 'completed'
       } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setUsbInterfaceDisabledWithCleanup failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setUsbInterfaceDisabledWithCleanup failed: ${JSON.stringify(err)}`)
       if (CommonErrorUtils.extractErrorCode(err as Object) === 9200010) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_interface',
@@ -218,9 +212,7 @@ export class PeripheralService {
       } as OperationResult<UsbConflictSnapshot>
     }
 
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `getUsbConflictSnapshot success: storagePolicy=${storagePolicyResult.data ?? usbManager.UsbPolicy.READ_WRITE}`
     )
     return {
@@ -234,10 +226,10 @@ export class PeripheralService {
   private static resetUsbStoragePolicyToReadWrite(): OperationResult<void> {
     try {
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, usbManager.UsbPolicy.READ_WRITE)
-      hilog.info(DOMAIN, TAG, 'resetUsbStoragePolicyToReadWrite success')
+      LogUtils.info(TAG, 'resetUsbStoragePolicyToReadWrite success')
       return { success: true } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `resetUsbStoragePolicyToReadWrite failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `resetUsbStoragePolicyToReadWrite failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildUserFailureResult<void>(
         'reset_usb_storage_policy',
         'failed to restore usb storage policy to read-write'

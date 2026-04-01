@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { AuthService } from './AuthService'
 import { FirewallService } from './FirewallService'
 import { FirewallAuthStateRepository } from './FirewallAuthStateRepository'
@@ -260,7 +261,7 @@ export class FirewallToggleAuthService {
     }
     let saved = await LogStorageService.addEntry(entry)
     if (!saved) {
-      hilog.warn(DOMAIN, TAG, `appendAuditEntry failed: ${detail}`)
+      LogUtils.warn(TAG, `appendAuditEntry failed: ${detail}`)
     }
   }
 
@@ -285,7 +286,7 @@ export class FirewallToggleAuthService {
     }
     let saved = await LogStorageService.addEntry(entry)
     if (!saved) {
-      hilog.warn(DOMAIN, TAG, `appendGenericAuditEntry failed: ${detail}`)
+      LogUtils.warn(TAG, `appendGenericAuditEntry failed: ${detail}`)
     }
   }
 }

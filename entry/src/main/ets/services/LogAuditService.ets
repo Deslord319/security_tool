@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { securityAudit } from '@kit.DeviceSecurityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import osAccount from '@ohos.account.osAccount'
 import { LogPathUtils } from '../utils/LogPathUtils'
 import {
@@ -84,7 +84,7 @@ export class LogAuditService {
   static async subscribe(onLogEntry: LogEntryCallback, eventTypes?: LogEventType[]): Promise<boolean> {
     if (LogAuditService.isSubscribed) {
       LogAuditService.callback = onLogEntry
-      hilog.warn(DOMAIN, TAG, 'Already subscribed to audit events')
+      LogUtils.warn(TAG, 'Already subscribed to audit events')
       return true
     }
 
@@ -127,7 +127,7 @@ export class LogAuditService {
       LogAuditService.lastSubscribeErrorCode = LogAuditService.extractErrorCode(err as Object)
       LogAuditService.unsubscribeInternal()
       LogAuditService.callback = null
-      hilog.error(DOMAIN, TAG, `subscribe failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `subscribe failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -143,7 +143,7 @@ export class LogAuditService {
       LogAuditService.lastSubscribeFailedEventIds = []
       return ok
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -258,9 +258,7 @@ export class LogAuditService {
 
     let parsed = LogAuditService.parseAuditPayload(event.content || '', event.metadata)
     if (mappedType === LogEventType.FILE) {
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `FILE event accepted: eventId=${event.eventId}, eventName=${parsed.rawEventName || '-'}, action=${parsed.rawAction || '-'}, result=${parsed.result}, rawPath=${parsed.rawFilePath || '-'}, normalizedPath=${parsed.filePath || '-'}`
       )
     }
@@ -323,11 +321,11 @@ export class LogAuditService {
       return true
     }
     if (!fileFilterContext) {
-      hilog.warn(DOMAIN, TAG, `skip FILE prefilter: eventId=${eventId}, reason=file_filter_context_unavailable`)
+      LogUtils.warn(TAG, `skip FILE prefilter: eventId=${eventId}, reason=file_filter_context_unavailable`)
       return false
     }
     if (typeof client.addFilter !== 'function') {
-      hilog.warn(DOMAIN, TAG, `skip FILE prefilter: eventId=${eventId}, reason=addFilter_unavailable`)
+      LogUtils.warn(TAG, `skip FILE prefilter: eventId=${eventId}, reason=addFilter_unavailable`)
       return false
     }
 
@@ -338,9 +336,7 @@ export class LogAuditService {
     }
     try {
       client.addFilter(eventId, filter)
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `FILE prefilter attached: eventId=${eventId}, foregroundUserId=${fileFilterContext.foregroundUserId}, prefix=${fileFilterContext.prefix}`
       )
       return true
@@ -349,9 +345,7 @@ export class LogAuditService {
       if (LogAuditService.lastSubscribeErrorCode === undefined) {
         LogAuditService.lastSubscribeErrorCode = code
       }
-      hilog.warn(
-        DOMAIN,
-        TAG,
+      LogUtils.warn(TAG,
         `FILE prefilter attach failed: eventId=${eventId}, foregroundUserId=${fileFilterContext.foregroundUserId}, prefix=${fileFilterContext.prefix}, code=${code}, err=${JSON.stringify(err)}`
       )
       if (code === FILE_FILTER_UNSUPPORTED_CODE) {
@@ -368,7 +362,7 @@ export class LogAuditService {
 
     let foregroundUserId = await LogAuditService.resolveForegroundUserId()
     let prefix = LogPathUtils.buildHmdfsAccountFilesPrefix(foregroundUserId)
-    hilog.info(DOMAIN, TAG, `prepare FILE prefilter: foregroundUserId=${foregroundUserId}, prefix=${prefix}`)
+    LogUtils.info(TAG, `prepare FILE prefilter: foregroundUserId=${foregroundUserId}, prefix=${prefix}`)
     return { foregroundUserId, prefix }
   }
 
@@ -376,12 +370,10 @@ export class LogAuditService {
     try {
       let accountManager = osAccount.getAccountManager()
       let foregroundUserId = await accountManager.getForegroundOsAccountLocalId()
-      hilog.info(DOMAIN, TAG, `resolved foreground userId=${foregroundUserId}`)
+      LogUtils.info(TAG, `resolved foreground userId=${foregroundUserId}`)
       return foregroundUserId
     } catch (err) {
-      hilog.warn(
-        DOMAIN,
-        TAG,
+      LogUtils.warn(TAG,
         `resolve foreground userId failed, fallback=${DEFAULT_FOREGROUND_USER_ID}, err=${JSON.stringify(err)}`
       )
       return DEFAULT_FOREGROUND_USER_ID
@@ -392,7 +384,7 @@ export class LogAuditService {
     try {
       client.unsubscribe([eventId])
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `unsubscribe event failed: eventId=${eventId}, err=${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `unsubscribe event failed: eventId=${eventId}, err=${JSON.stringify(err)}`)
     }
   }
 
@@ -585,13 +577,13 @@ export class LogAuditService {
         client.unsubscribe(subscribedEventIds)
       }
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
     }
     try {
       let deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
       deleteClient(client)
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `deleteClient failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `deleteClient failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -618,14 +610,14 @@ export class LogAuditService {
       }
     } catch (err) {
       ok = false
-      hilog.warn(DOMAIN, TAG, `client unsubscribe failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `client unsubscribe failed: ${JSON.stringify(err)}`)
     }
     try {
       let deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
       deleteClient(LogAuditService.client)
     } catch (err) {
       ok = false
-      hilog.warn(DOMAIN, TAG, `deleteClient failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `deleteClient failed: ${JSON.stringify(err)}`)
     }
     return ok
   }
@@ -637,7 +629,7 @@ export class LogAuditService {
         securityAudit.off('auditEventOccur', { eventId }, callback)
       } catch (err) {
         ok = false
-        hilog.warn(DOMAIN, TAG, `legacy off failed eventId=${eventId}: ${JSON.stringify(err)}`)
+        LogUtils.warn(TAG, `legacy off failed eventId=${eventId}: ${JSON.stringify(err)}`)
       }
     })
     return ok

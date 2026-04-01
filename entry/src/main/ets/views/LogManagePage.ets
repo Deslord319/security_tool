@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
@@ -256,7 +257,7 @@ export struct LogManagePage {
       }
       this.viewModel.activate()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `initializeViewModel failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `initializeViewModel failed: ${JSON.stringify(err)}`)
     }
   }
 

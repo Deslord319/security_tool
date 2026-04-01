@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { userAuth } from '@kit.UserAuthenticationKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { BusinessError } from '@kit.BasicServicesKit'
 import { AuthMethod } from '../models/DataModels'
 
@@ -40,7 +41,7 @@ export class AuthService {
     } catch (err) {
       let e = err as BusinessError
       let mapped = AuthService.mapAuthError(authMethod, e.code, e.message)
-      hilog.warn(DOMAIN, TAG, `Auth method ${authMethod} unavailable: code=${mapped.errorCode}, msg=${mapped.message}`)
+      LogUtils.warn(TAG, `Auth method ${authMethod} unavailable: code=${mapped.errorCode}, msg=${mapped.message}`)
       return mapped
     }
   }
@@ -60,7 +61,7 @@ export class AuthService {
     try {
       let authType = AuthService.convertAuthMethod(authMethod)
       if (authType === null) {
-        hilog.error(DOMAIN, TAG, `Unsupported auth method: ${authMethod}`)
+        LogUtils.error(TAG, `Unsupported auth method: ${authMethod}`)
         return {
           success: false,
           reason: 'unavailable',
@@ -93,7 +94,7 @@ export class AuthService {
       return new Promise<AuthExecutionResult>((resolve) => {
         userAuthInstance.on('result', {
           onResult(result: userAuth.UserAuthResult) {
-            hilog.info(DOMAIN, TAG, `Auth result code: ${result.result}, SUCCESS code: ${userAuth.UserAuthResultCode.SUCCESS}`)
+            LogUtils.info(TAG, `Auth result code: ${result.result}, SUCCESS code: ${userAuth.UserAuthResultCode.SUCCESS}`)
             userAuthInstance.off('result')
             if (result.result === userAuth.UserAuthResultCode.SUCCESS) {
               resolve({ success: true })
@@ -123,7 +124,7 @@ export class AuthService {
       })
     } catch (err) {
       let e = err as BusinessError
-      hilog.error(DOMAIN, TAG, `authenticate failed: code=${e.code}, message=${e.message}`)
+      LogUtils.error(TAG, `authenticate failed: code=${e.code}, message=${e.message}`)
       let mapped = AuthService.mapAuthError(authMethod, e.code, e.message)
       return {
         success: false,

@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -100,9 +100,7 @@ export struct SectionSelectRow {
     if (this.optimistic) {
       this.displayIndex = nextIndex
     }
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'select async start: title=%{public}s, previousIndex=%{public}d, nextIndex=%{public}d',
       this.title,
       previousIndex,
@@ -113,12 +111,12 @@ export struct SectionSelectRow {
     try {
       success = await this.onSelectAsync(nextIndex, previousIndex)
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'select async exception: title=%{public}s, error=%{public}s', this.title, JSON.stringify(err))
+      LogUtils.error(TAG, 'select async exception: title=%{public}s, error=%{public}s', this.title, JSON.stringify(err))
     }
 
     this.isAsyncPending = false
     if (success) {
-      hilog.info(DOMAIN, TAG, 'select async success: title=%{public}s, nextIndex=%{public}d', this.title, nextIndex)
+      LogUtils.info(TAG, 'select async success: title=%{public}s, nextIndex=%{public}d', this.title, nextIndex)
       if (!this.optimistic) {
         this.displayIndex = previousIndex
       }
@@ -126,9 +124,7 @@ export struct SectionSelectRow {
     }
 
     this.displayIndex = previousIndex
-    hilog.warn(
-      DOMAIN,
-      TAG,
+    LogUtils.warn(TAG,
       'select async rollback: title=%{public}s, rollbackIndex=%{public}d, failedIndex=%{public}d',
       this.title,
       previousIndex,

@@ -1,9 +1,10 @@
+import { LogUtils } from './utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { ToolSettingsStrings } from '../constants/modules/ToolSettingsStrings'
 import { common } from '@kit.AbilityKit'
 import { AUTH_METHOD_OPTIONS } from '../models/DataModels'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
@@ -27,12 +28,12 @@ export struct ToolSettingsPage {
     AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
 
   aboutToAppear() {
-    hilog.info(DOMAIN, TAG, '[PAGE_ENTER] aboutToAppear | route=tool-settings')
+    LogUtils.info(TAG, '[PAGE_ENTER] aboutToAppear | route=tool-settings')
     void this.initializeViewModel()
   }
 
   aboutToDisappear() {
-    hilog.info(DOMAIN, TAG, '[PAGE_EXIT] aboutToDisappear | route=tool-settings')
+    LogUtils.info(TAG, '[PAGE_EXIT] aboutToDisappear | route=tool-settings')
   }
 
   private async initializeViewModel(): Promise<void> {

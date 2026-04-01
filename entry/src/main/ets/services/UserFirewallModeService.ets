@@ -1,7 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
-import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   FirewallUserApplyMode,
   PREF_KEY_FIREWALL_USER_BINDINGS,
@@ -125,9 +125,7 @@ export class UserFirewallModeService {
       summary.failedCount++
       summary.failedUsers.push(binding.userId)
     }
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'reapplyBindings finished: total=%{public}d, success=%{public}d, failed=%{public}d',
       summary.totalUsers,
       summary.successCount,
@@ -151,7 +149,7 @@ export class UserFirewallModeService {
       })
     } catch (err) {
       UserFirewallModeService.recordError('读取用户模式绑定', err as Object)
-      hilog.error(DOMAIN, TAG, 'loadBindings failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'loadBindings failed: %{public}s', JSON.stringify(err))
       return []
     }
   }
@@ -181,7 +179,7 @@ export class UserFirewallModeService {
       return true
     } catch (err) {
       UserFirewallModeService.recordError('保存用户模式绑定', err as Object)
-      hilog.error(DOMAIN, TAG, 'saveBindings failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'saveBindings failed: %{public}s', JSON.stringify(err))
       return false
     }
   }
@@ -209,9 +207,7 @@ export class UserFirewallModeService {
 
     let snapshotRules = await UserFirewallModeService.getManagedRules(userId)
     let targetRules = UserFirewallModeService.buildRulesForMode(userId, mode, sharedRules)
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'applyMode start: userId=%{public}d, mode=%{public}s, totalRules=%{public}d',
       userId,
       mode,
@@ -252,9 +248,7 @@ export class UserFirewallModeService {
       return UserFirewallModeService.buildFailedResult(userId, mode, 0)
     }
 
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       'applyMode success: userId=%{public}d, mode=%{public}s, applied=%{public}d',
       userId,
       mode,
@@ -320,11 +314,11 @@ export class UserFirewallModeService {
         }
         page++
       }
-      hilog.info(DOMAIN, TAG, 'getRules success: userId=%{public}d, count=%{public}d', userId, allRules.length)
+      LogUtils.info(TAG, 'getRules success: userId=%{public}d, count=%{public}d', userId, allRules.length)
       return allRules
     } catch (err) {
       UserFirewallModeService.recordError('读取用户防火墙规则', err as Object)
-      hilog.error(DOMAIN, TAG, 'getRules failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
+      LogUtils.error(TAG, 'getRules failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return []
     }
   }
@@ -338,7 +332,7 @@ export class UserFirewallModeService {
     if (managedRules.length === 0 && UserFirewallModeService.lastErrorMessage.length > 0) {
       return false
     }
-    hilog.info(DOMAIN, TAG, 'clearManagedRules start: userId=%{public}d, count=%{public}d', userId, managedRules.length)
+    LogUtils.info(TAG, 'clearManagedRules start: userId=%{public}d, count=%{public}d', userId, managedRules.length)
     for (let i = 0; i < managedRules.length; i++) {
       let ruleId = FirewallService.getRulePrimaryKey(managedRules[i])
       if (ruleId === undefined) {
@@ -348,9 +342,7 @@ export class UserFirewallModeService {
         await netFirewall.removeNetFirewallRule(userId, ruleId)
       } catch (err) {
         UserFirewallModeService.recordError('删除用户防火墙规则', err as Object)
-        hilog.error(
-          DOMAIN,
-          TAG,
+        LogUtils.error(TAG,
           'clearManagedRules failed, userId=%{public}d, ruleId=%{public}d, err=%{public}s',
           userId,
           ruleId,
@@ -365,9 +357,7 @@ export class UserFirewallModeService {
   private static async setPolicy(userId: number, policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
     try {
       await netFirewall.setNetFirewallPolicy(userId, policy)
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         'setPolicy success: userId=%{public}d, isOpen=%{public}s, inAction=%{public}d, outAction=%{public}d',
         userId,
         String(policy.isOpen),
@@ -377,7 +367,7 @@ export class UserFirewallModeService {
       return true
     } catch (err) {
       UserFirewallModeService.recordError('写入用户防火墙策略', err as Object)
-      hilog.error(DOMAIN, TAG, 'setPolicy failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
+      LogUtils.error(TAG, 'setPolicy failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return false
     }
   }
@@ -402,13 +392,13 @@ export class UserFirewallModeService {
     await UserFirewallModeService.clearManagedRules(userId)
     await UserFirewallModeService.setPolicy(userId, policy)
     await UserFirewallModeService.addRules(snapshotRules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule)))
-    hilog.info(DOMAIN, TAG, 'restoreManagedRulesAndPolicy finished: userId=%{public}d, rules=%{public}d', userId, snapshotRules.length)
+    LogUtils.info(TAG, 'restoreManagedRulesAndPolicy finished: userId=%{public}d, rules=%{public}d', userId, snapshotRules.length)
   }
 
   private static async restoreManagedRules(userId: number, snapshotRules: netFirewall.NetFirewallRule[]): Promise<void> {
     await UserFirewallModeService.clearManagedRules(userId)
     await UserFirewallModeService.addRules(snapshotRules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule)))
-    hilog.info(DOMAIN, TAG, 'restoreManagedRules finished: userId=%{public}d, rules=%{public}d', userId, snapshotRules.length)
+    LogUtils.info(TAG, 'restoreManagedRules finished: userId=%{public}d, rules=%{public}d', userId, snapshotRules.length)
   }
 
   private static buildFailedResult(

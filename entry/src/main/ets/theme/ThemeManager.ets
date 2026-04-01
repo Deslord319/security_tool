@@ -1,6 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { ThemeMode, ThemePreference, ThemeOption } from './ThemeColors'
 
 const DOMAIN = 0x0000
@@ -38,7 +39,7 @@ export class ThemeManager {
   init(context: common.UIAbilityContext): void {
     this.initSync(context)
     this.initAsync().catch((err: Error) => {
-      hilog.error(DOMAIN, TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     })
   }
 
@@ -54,7 +55,7 @@ export class ThemeManager {
     // 同步获取系统主题（无异步操作）
     const systemTheme = this.getSystemTheme()
     this.lastDetectedSystemTheme = systemTheme
-    hilog.info(DOMAIN, 'ThemeManager', 'initSync: systemTheme=%{public}s', systemTheme)
+    LogUtils.info('ThemeManager', 'initSync: systemTheme=%{public}s', systemTheme)
 
     // 用系统主题作为初始值（而非硬编码 LIGHT）
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, systemTheme)
@@ -90,42 +91,42 @@ export class ThemeManager {
 
       this.initialized = true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }
   }
 
   // 获取系统当前主题
   private getSystemTheme(): ThemeMode {
     if (!this.context) {
-      hilog.warn(DOMAIN, 'ThemeManager', 'getSystemTheme: context is null, returning LIGHT')
+      LogUtils.warn('ThemeManager', 'getSystemTheme: context is null, returning LIGHT')
       return ThemeMode.LIGHT
     }
 
     try {
       const config = this.context.config
       const colorMode = config?.colorMode
-      hilog.info(DOMAIN, 'ThemeManager', 'getSystemTheme: colorMode=%{public}d, COLOR_MODE_DARK=%{public}d, COLOR_MODE_LIGHT=%{public}d, COLOR_MODE_NOT_SET=%{public}d',
+      LogUtils.info('ThemeManager', 'getSystemTheme: colorMode=%{public}d, COLOR_MODE_DARK=%{public}d, COLOR_MODE_LIGHT=%{public}d, COLOR_MODE_NOT_SET=%{public}d',
         colorMode ?? -999,
         ConfigurationConstant.ColorMode.COLOR_MODE_DARK,
         ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT,
         ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
       if (config && config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK) {
-        hilog.info(DOMAIN, 'ThemeManager', 'getSystemTheme: detected DARK mode')
+        LogUtils.info('ThemeManager', 'getSystemTheme: detected DARK mode')
         return ThemeMode.DARK
       }
       if (config && config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT) {
-        hilog.info(DOMAIN, 'ThemeManager', 'getSystemTheme: detected LIGHT mode')
+        LogUtils.info('ThemeManager', 'getSystemTheme: detected LIGHT mode')
         return ThemeMode.LIGHT
       }
       // COLOR_MODE_NOT_SET 或其他未知值：使用上次检测到的系统主题
       // 这避免了 setColorMode(NOT_SET) 触发的瞬态状态导致误判
-      hilog.info(DOMAIN, 'ThemeManager', 'getSystemTheme: colorMode is NOT_SET or unknown, fallback to lastDetected=%{public}s', this.lastDetectedSystemTheme)
+      LogUtils.info('ThemeManager', 'getSystemTheme: colorMode is NOT_SET or unknown, fallback to lastDetected=%{public}s', this.lastDetectedSystemTheme)
       return this.lastDetectedSystemTheme
     } catch (err) {
-      hilog.error(DOMAIN, 'ThemeManager', 'getSystemTheme failed: %{public}s', JSON.stringify(err))
+      LogUtils.error('ThemeManager', 'getSystemTheme failed: %{public}s', JSON.stringify(err))
     }
 
-    hilog.info(DOMAIN, 'ThemeManager', 'getSystemTheme: returning lastDetected=%{public}s (exception fallback)', this.lastDetectedSystemTheme)
+    LogUtils.info('ThemeManager', 'getSystemTheme: returning lastDetected=%{public}s (exception fallback)', this.lastDetectedSystemTheme)
     return this.lastDetectedSystemTheme
   }
 
@@ -146,7 +147,7 @@ export class ThemeManager {
         systemTheme = this.getSystemTheme()
       }
       AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, systemTheme)
-      hilog.info(DOMAIN, 'ThemeManager', 'onConfigurationUpdate: colorMode=%{public}d, applied theme=%{public}s',
+      LogUtils.info('ThemeManager', 'onConfigurationUpdate: colorMode=%{public}d, applied theme=%{public}s',
         colorMode ?? -999, systemTheme)
     }
   }
@@ -167,7 +168,7 @@ export class ThemeManager {
     }
 
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, themeToApply)
-    hilog.info(DOMAIN, 'ThemeManager', 'reapplyTheme: preference=%{public}s, applied=%{public}s', preference, themeToApply)
+    LogUtils.info('ThemeManager', 'reapplyTheme: preference=%{public}s, applied=%{public}s', preference, themeToApply)
   }
 
   // 设置主题（手动切换）
@@ -240,7 +241,7 @@ export class ThemeManager {
 
     // 持久化
     await this.saveOption(option)
-    hilog.info(DOMAIN, 'ThemeManager', 'setOption: option=%{public}s', option)
+    LogUtils.info('ThemeManager', 'setOption: option=%{public}s', option)
   }
 
   // 保存选项到 Preferences
@@ -253,7 +254,7 @@ export class ThemeManager {
       await this.dataPreferences.put(KEY_THEME_OPTION, option)
       await this.dataPreferences.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'savePreferences failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'savePreferences failed: %{public}s', JSON.stringify(err))
     }
   }
 
@@ -268,7 +269,7 @@ export class ThemeManager {
       await this.dataPreferences.put(KEY_THEME_PREFERENCE, preference)
       await this.dataPreferences.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }
   }
 }

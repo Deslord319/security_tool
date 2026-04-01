@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { securityManager } from '@kit.MDMKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { Want } from '@kit.AbilityKit'
 import { OperationResult, PasswordComplexityConfig } from '../models/DataModels'
 import { AppInfo } from '../constants/AppConstants'
@@ -68,10 +69,10 @@ export class IdentityService {
         additionalDescription: description
       }
       securityManager.setPasswordPolicy(ADMIN_WANT, policy)
-      hilog.info(DOMAIN, TAG, `setPasswordPolicy success, regex=${regex}, validityPeriod=${config.validityPeriod}`)
+      LogUtils.info(TAG, `setPasswordPolicy success, regex=${regex}, validityPeriod=${config.validityPeriod}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<void>('设置口令策略', err as Object)
     }
   }
@@ -79,13 +80,13 @@ export class IdentityService {
   static getPasswordPolicyWithResult(): OperationResult<securityManager.PasswordPolicy | null> {
     try {
       let result = securityManager.getPasswordPolicy(ADMIN_WANT)
-      hilog.info(DOMAIN, TAG, `getPasswordPolicy: ${JSON.stringify(result)}`)
+      LogUtils.info(TAG, `getPasswordPolicy: ${JSON.stringify(result)}`)
       return {
         success: true,
         data: result
       } as OperationResult<securityManager.PasswordPolicy | null>
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<securityManager.PasswordPolicy | null>('读取口令策略', err as Object, null)
     }
   }

@@ -1,12 +1,11 @@
 /**
  * 日志 DOMAIN 常量
- * 统一管理各模块的 hilog DOMAIN 值
  * 
  * 使用示例:
  * ```ets
  * import { LogDomains } from '../constants/LogDomains'
  * const DOMAIN = LogDomains.TOOL_SETTINGS
- * hilog.info(DOMAIN, TAG, 'message')
+ * LogUtils.info(TAG, 'message')
  * ```
  */
 export class LogDomains {

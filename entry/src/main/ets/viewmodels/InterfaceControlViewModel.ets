@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 ﻿import { usbManager as edmUsbManager } from '@kit.MDMKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../services/PeripheralService'
 
@@ -60,7 +61,7 @@ export class InterfaceControlViewModel {
         )
       })
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `reloadState failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `reloadState failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -74,7 +75,7 @@ export class InterfaceControlViewModel {
       this.updateInterfaceState(feature, disallow)
       return null
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `toggleInterface failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `toggleInterface failed: ${JSON.stringify(err)}`)
       return PeripheralStrings.TOGGLE_INTERFACE_FAILED
     } finally {
       this.processingKey = ''
@@ -106,7 +107,7 @@ export class InterfaceControlViewModel {
       })
       return null
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralStrings.USB_STORAGE_POLICY_FAILED
     } finally {
       this.processingKey = ''

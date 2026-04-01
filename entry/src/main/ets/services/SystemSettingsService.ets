@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { bundleManager, common, Want } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 
 const TAG = 'SystemSettingsService'
 
@@ -28,7 +29,7 @@ export class SystemSettingsService {
       return true
     } catch (err) {
       let error = err as SystemSettingsLoggableError
-      hilog.error(0x0004, TAG, `openPasswordSettings failed: code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}`)
+      LogUtils.error(TAG, `openPasswordSettings failed: code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}`)
       return false
     }
   }

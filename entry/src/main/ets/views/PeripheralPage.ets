@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
 import {
@@ -51,9 +51,7 @@ export struct PeripheralPage {
 
   aboutToAppear() {
     let runtimeStatus = PeripheralRuntimeEventService.getStatus()
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `page enter: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}, runtimeRunning=${runtimeStatus.running}, usbRuntime=${runtimeStatus.capabilities.usbRuntimeEvents}, bluetoothRuntime=${runtimeStatus.capabilities.bluetoothRuntimeEvents}`
     )
     void this.initViewModel()
@@ -65,9 +63,7 @@ export struct PeripheralPage {
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
     let runtimeStatus = PeripheralRuntimeEventService.getStatus()
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}, runtimeRunning=${runtimeStatus.running}, usbRuntime=${runtimeStatus.capabilities.usbRuntimeEvents}, bluetoothRuntime=${runtimeStatus.capabilities.bluetoothRuntimeEvents}`
     )
   }
@@ -82,7 +78,7 @@ export struct PeripheralPage {
       this.currentTabIndex = this.viewModel.currentTab
       this.syncViewState()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `initViewModel failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.INIT_FAILED))
     }
   }
@@ -138,7 +134,7 @@ export struct PeripheralPage {
       })
       this.detailDialogController.open()
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `openDetailDialog failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `openDetailDialog failed: ${JSON.stringify(err)}`)
       this.closeDetailDialog()
     }
   }
@@ -319,7 +315,7 @@ export struct PeripheralPage {
         'peripheral-usb-interface',
         PeripheralStrings.usbInterfaceLoadingMessage,
         async (): Promise<boolean> => {
-          hilog.info(DOMAIN, TAG, `usb interface switch start: disallow=${disallow}`)
+          LogUtils.info(TAG, `usb interface switch start: disallow=${disallow}`)
           return await toggle()
         },
         (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage),
@@ -336,7 +332,7 @@ export struct PeripheralPage {
       return
     }
     if (feature === PeripheralService.FEATURE_USB) {
-      hilog.info(DOMAIN, TAG, `usb interface switch success: disallow=${disallow}`)
+      LogUtils.info(TAG, `usb interface switch success: disallow=${disallow}`)
     }
   }
 
@@ -345,13 +341,13 @@ export struct PeripheralPage {
       'peripheral-usb-storage',
       PeripheralStrings.usbStorageLoadingMessage,
       async (): Promise<boolean> => {
-        hilog.info(DOMAIN, TAG, `usb storage policy switch start: index=${index}`)
+        LogUtils.info(TAG, `usb storage policy switch start: index=${index}`)
         return await this.viewModel.setUsbStoragePolicy(index)
       },
       (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
     )
     if (!success) {
-      hilog.warn(DOMAIN, TAG, `usb storage policy switch failed: index=${index}, reason=${this.viewModel.reasonCode ?? 'unknown'}`)
+      LogUtils.warn(TAG, `usb storage policy switch failed: index=${index}, reason=${this.viewModel.reasonCode ?? 'unknown'}`)
       if (!this.viewModel.adminState.activated) {
         DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setUsbStorageAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
@@ -359,7 +355,7 @@ export struct PeripheralPage {
       }
       return false
     }
-    hilog.info(DOMAIN, TAG, `usb storage policy switch success: index=${index}`)
+    LogUtils.info(TAG, `usb storage policy switch success: index=${index}`)
     return true
   }
 
@@ -468,7 +464,7 @@ export struct PeripheralPage {
       this.viewModel.reloadDeviceRecords()
       DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
     }
   }

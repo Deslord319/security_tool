@@ -1,4 +1,5 @@
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { LogUtils } from './utils/LogUtils'
+
 import {
   PeripheralConnectionFilter,
   PeripheralConnectionRecord,
@@ -26,7 +27,7 @@ export class PeripheralConnectionRecordService {
         .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapRuntimeRecord(record))
         .sort((a: PeripheralConnectionRecord, b: PeripheralConnectionRecord) => b.timestamp - a.timestamp)
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `queryRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `queryRecords failed: ${JSON.stringify(err)}`)
       return []
     }
   }

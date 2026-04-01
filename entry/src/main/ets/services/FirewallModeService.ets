@@ -1,7 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
-import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   FirewallModeSwitchResult,
   FirewallPresetMode,
@@ -42,7 +42,7 @@ export class FirewallModeService {
     let targetRules = targetMode === 'custom'
       ? await FirewallCustomRuleService.buildRulesForApply(context)
       : await FirewallPresetService.buildRules(context, targetMode)
-    hilog.info(DOMAIN, TAG, `switchMode prepared: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
+    LogUtils.info(TAG, `switchMode prepared: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
     return FirewallModeService.applyModeRules(context, targetMode, targetRules)
   }
 
@@ -60,7 +60,7 @@ export class FirewallModeService {
       let rawValue = await store.get(PREF_KEY_FIREWALL_ACTIVE_MODE, '')
       return typeof rawValue === 'string' ? rawValue : ''
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `getStoredModeValue failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getStoredModeValue failed: ${JSON.stringify(err)}`)
       return ''
     }
   }
@@ -71,7 +71,7 @@ export class FirewallModeService {
       await store.put(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
       await store.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -80,12 +80,10 @@ export class FirewallModeService {
     targetMode: FirewallPresetMode,
     targetRules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallModeSwitchResult> {
-    hilog.info(DOMAIN, TAG, `applyModeRules start: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
+    LogUtils.info(TAG, `applyModeRules start: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
     let applied = await FirewallService.applyRuleSet(targetRules, targetMode)
     if (!applied) {
-      hilog.error(
-        DOMAIN,
-        TAG,
+      LogUtils.error(TAG,
         `applyModeRules failed: targetMode=${targetMode}, errorCode=${FirewallService.getLastErrorCode() ?? -1}`
       )
       return {
@@ -97,7 +95,7 @@ export class FirewallModeService {
       }
     }
     await FirewallModeService.saveCurrentMode(context, targetMode)
-    hilog.info(DOMAIN, TAG, `applyModeRules success: targetMode=${targetMode}, appliedRuleCount=${targetRules.length}`)
+    LogUtils.info(TAG, `applyModeRules success: targetMode=${targetMode}, appliedRuleCount=${targetRules.length}`)
     return {
       success: true,
       mode: targetMode,

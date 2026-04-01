@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { AppInfo } from '../constants/AppConstants'
 import { LogEntry, LogEventType } from '../models/DataModels'
 import { LogAuditService } from './LogAuditService'
@@ -56,7 +57,7 @@ export class LogRuntimeCollectorService {
 
     let ready = await LogStorageService.init(context)
     if (!ready) {
-      hilog.error(DOMAIN, TAG, 'init failed: storage init failed')
+      LogUtils.error(TAG, 'init failed: storage init failed')
       return false
     }
 
@@ -71,7 +72,7 @@ export class LogRuntimeCollectorService {
 
     if (!LogRuntimeCollectorService.initialized) {
       if (!LogRuntimeCollectorService.context) {
-        hilog.error(DOMAIN, TAG, 'start failed: collector not initialized')
+        LogUtils.error(TAG, 'start failed: collector not initialized')
         return false
       }
       let ready = await LogRuntimeCollectorService.init(LogRuntimeCollectorService.context)
@@ -102,9 +103,9 @@ export class LogRuntimeCollectorService {
 
     if (success) {
       let failed = LogAuditService.getLastSubscribeFailedEventIds()
-      hilog.info(DOMAIN, TAG, `collector started: audit=${auditStarted}, crash=${crashStarted}`)
+      LogUtils.info(TAG, `collector started: audit=${auditStarted}, crash=${crashStarted}`)
       if (failed.length > 0) {
-        hilog.warn(DOMAIN, TAG, `start with partial subscribe success, failed eventIds=${failed.join(',')}`)
+        LogUtils.warn(TAG, `start with partial subscribe success, failed eventIds=${failed.join(',')}`)
       }
       if (LogRuntimeCollectorService.pendingEntries.length > 0) {
         LogRuntimeCollectorService.scheduleFlushPendingEntries()
@@ -113,7 +114,7 @@ export class LogRuntimeCollectorService {
     }
 
     let code = LogAuditService.getLastSubscribeErrorCode()
-    hilog.error(DOMAIN, TAG, `start failed: audit=${auditStarted}, crash=${crashStarted}, code=${code}`)
+    LogUtils.error(TAG, `start failed: audit=${auditStarted}, crash=${crashStarted}, code=${code}`)
     return false
   }
 
@@ -156,7 +157,7 @@ export class LogRuntimeCollectorService {
       let dropped = LogRuntimeCollectorService.pendingEntries.length -
         LogRuntimeCollectorService.MAX_PENDING_ENTRIES
       LogRuntimeCollectorService.pendingEntries.splice(0, dropped)
-      hilog.warn(DOMAIN, TAG, `Dropped ${dropped} queued log entries due to burst traffic`)
+      LogUtils.warn(TAG, `Dropped ${dropped} queued log entries due to burst traffic`)
     }
 
     LogRuntimeCollectorService.scheduleFlushPendingEntries()
@@ -189,7 +190,7 @@ export class LogRuntimeCollectorService {
     LogRuntimeCollectorService.flushTimerId = LogRuntimeCollectorService.setTimerFn(() => {
       LogRuntimeCollectorService.flushTimerId = -1
       LogRuntimeCollectorService.flushPendingEntries().catch((err: Object) => {
-        hilog.error(DOMAIN, TAG, `flushPendingEntries timer failed: ${JSON.stringify(err)}`)
+        LogUtils.error(TAG, `flushPendingEntries timer failed: ${JSON.stringify(err)}`)
       })
     }, LogRuntimeCollectorService.BATCH_FLUSH_INTERVAL_MS)
   }
@@ -210,7 +211,7 @@ export class LogRuntimeCollectorService {
       }
     } catch (err) {
       LogRuntimeCollectorService.requeueFailedBatch(batch, 'flushPendingEntries exception')
-      hilog.error(DOMAIN, TAG, `flushPendingEntries exception: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `flushPendingEntries exception: ${JSON.stringify(err)}`)
     } finally {
       LogRuntimeCollectorService.isFlushingEntries = false
     }
@@ -230,8 +231,8 @@ export class LogRuntimeCollectorService {
       let dropped = LogRuntimeCollectorService.pendingEntries.length -
         LogRuntimeCollectorService.MAX_PENDING_ENTRIES
       LogRuntimeCollectorService.pendingEntries = LogRuntimeCollectorService.pendingEntries.slice(dropped)
-      hilog.warn(DOMAIN, TAG, `${reason} dropped ${dropped} queued entries`)
+      LogUtils.warn(TAG, `${reason} dropped ${dropped} queued entries`)
     }
-    hilog.warn(DOMAIN, TAG, `${reason}, batch=${batch.length}`)
+    LogUtils.warn(TAG, `${reason}, batch=${batch.length}`)
   }
 }

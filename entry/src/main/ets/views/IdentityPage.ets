@@ -1,3 +1,4 @@
+import { LogUtils } from './utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { IdentityStrings } from '../constants/modules/IdentityStrings'
 import {
@@ -5,7 +6,7 @@ import {
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_VALIDITY_OPTIONS
 } from '../models/DataModels'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'

@@ -1,8 +1,9 @@
+import { LogUtils } from './utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -32,12 +33,12 @@ export struct FirewallPage {
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled
-    hilog.info(DOMAIN, TAG, `page enter: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
+    LogUtils.info(TAG, `page enter: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
   }
 
   aboutToDisappear() {
     this.modeLoadingRunner.closeIfOpen('page-disappear')
-    hilog.info(DOMAIN, TAG, `page exit: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
+    LogUtils.info(TAG, `page exit: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
   }
 
   async handleToggleWithAuth(isOn: boolean) {
@@ -71,7 +72,7 @@ export struct FirewallPage {
       this.firewallSwitchValue = currentEnabled
       this.onFirewallToggle(currentEnabled)
       DialogService.openFailure(this.getUIContext(), FirewallStrings.toggleFailed)
-      hilog.error(0x0001, TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
     }
@@ -238,7 +239,7 @@ export struct FirewallPage {
     this.isModeProcessing = true
     let success = false
     try {
-      hilog.info(DOMAIN, TAG, `mode switch start: current=${this.currentMode}, target=${mode}`)
+      LogUtils.info(TAG, `mode switch start: current=${this.currentMode}, target=${mode}`)
       success = await this.modeLoadingRunner.run(
         'firewall-mode-switch',
         FirewallStrings.modeLoadingMessage,
@@ -248,7 +249,7 @@ export struct FirewallPage {
         (dialogMessage: string): CustomDialogController => this.createModeLoadingDialogController(dialogMessage)
       )
     } catch (err) {
-      hilog.error(0x0001, TAG, `handleModeSelect failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `handleModeSelect failed: ${JSON.stringify(err)}`)
     } finally {
       this.isModeProcessing = false
     }
@@ -256,7 +257,7 @@ export struct FirewallPage {
       this.showModeChangeFailedDialog()
       return
     }
-    hilog.info(0x0001, TAG, `mode switch success: target=${mode}`)
+    LogUtils.info(TAG, `mode switch success: target=${mode}`)
     if (mode === 'custom') {
       this.onNavigateToRules()
     }

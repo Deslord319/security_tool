@@ -1,4 +1,5 @@
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { LogUtils } from './utils/LogUtils'
+
 import { AppColors } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 
@@ -57,7 +58,7 @@ export class DialogService {
         }
       })
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `openConfirm failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `openConfirm failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -76,7 +77,7 @@ export class DialogService {
         }
       })
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `openResult failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `openResult failed: ${JSON.stringify(err)}`)
     }
   }
 

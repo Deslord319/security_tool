@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { SideBar } from '../components/SideBar'
-import { ThemeMenuPopup } from '../components/ThemeMenuPopup'
 import { DashboardPage } from '../views/DashboardPage'
 import { FirewallPage } from '../views/FirewallPage'
 import { FirewallRulesPage } from '../views/FirewallRulesPage'
@@ -11,7 +11,7 @@ import { LogManagePage } from '../views/LogManagePage'
 import { Routes, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { LogStorageService } from '../services/LogStorageService'
@@ -41,10 +41,10 @@ struct MainPage {
   aboutToAppear(): void {
     this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
+      LogUtils.error('testTag', `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
     this.ensureRuntimeServices().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
+      LogUtils.error('testTag', `ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
   }
@@ -74,10 +74,10 @@ struct MainPage {
   onPageShow(): void {
     this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
+      LogUtils.error('testTag', `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
     })
     this.ensureRuntimeServices().catch((err: Object) => {
-      hilog.error(0x0000, 'testTag', `ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
+      LogUtils.error('testTag', `ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
   }
@@ -98,12 +98,12 @@ struct MainPage {
       try {
         mainWindow.setDecorButtonStyle(decorButtonStyle)
       } catch (err) {
-        hilog.warn(0x0000, 'testTag',
+        LogUtils.warn('testTag', 
           'setDecorButtonStyle skipped for theme=%{public}s: %{public}s',
           this.currentTheme, JSON.stringify(err))
       }
     }).catch((err: Error) => {
-      hilog.warn(0x0000, 'testTag',
+      LogUtils.warn('testTag', 
         'getLastWindow failed, skip decor button style sync for theme=%{public}s: %{public}s',
         this.currentTheme, JSON.stringify(err))
     })
@@ -114,7 +114,7 @@ struct MainPage {
     await FirewallModeService.initialize(context)
     let policy = await FirewallService.getFirewallPolicy()
     if (policy === null) {
-      hilog.warn(0x0000, 'testTag', 'skip firewall state sync because getFirewallPolicy returned null')
+      LogUtils.warn('testTag', 'skip firewall state sync because getFirewallPolicy returned null')
       return
     }
 
@@ -126,7 +126,7 @@ struct MainPage {
     if (!this.runtimeInitialized) {
       await this.initRuntimeServices()
       if (!this.runtimeInitialized) {
-        hilog.warn(0x0000, 'testTag', 'runtime services not initialized, skip start')
+        LogUtils.warn('testTag', 'runtime services not initialized, skip start')
         return
       }
     }
@@ -134,9 +134,9 @@ struct MainPage {
     let status = LogRuntimeCollectorService.getStatus()
     if (!status.running) {
       let collectorStarted = await LogRuntimeCollectorService.start()
-      hilog.info(0x0000, 'testTag', `ensureRuntimeServices collector start result: started=${collectorStarted}`)
+      LogUtils.info('testTag', `ensureRuntimeServices collector start result: started=${collectorStarted}`)
       if (!collectorStarted) {
-        hilog.warn(0x0000, 'testTag', 'LogRuntimeCollectorService restart failed')
+        LogUtils.warn('testTag', 'LogRuntimeCollectorService restart failed')
       }
     }
 
@@ -144,13 +144,11 @@ struct MainPage {
     if (!runtimeStatus.running) {
       let runtimeStarted = await PeripheralRuntimeEventService.start()
       let latestStatus = PeripheralRuntimeEventService.getStatus()
-      hilog.info(
-        0x0000,
-        'testTag',
+      LogUtils.info('testTag',
         `ensureRuntimeServices peripheral runtime start result: started=${runtimeStarted}, usb=${latestStatus.capabilities.usbRuntimeEvents}, bluetooth=${latestStatus.capabilities.bluetoothRuntimeEvents}, reason=${latestStatus.capabilities.degradedReason ?? 'none'}`
       )
       if (!runtimeStarted) {
-        hilog.warn(0x0000, 'testTag', 'PeripheralRuntimeEventService start failed')
+        LogUtils.warn('testTag', 'PeripheralRuntimeEventService start failed')
       }
     }
   }
@@ -165,34 +163,34 @@ struct MainPage {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let storageOk = await LogStorageService.init(context)
       if (!storageOk) {
-        hilog.error(0x0000, 'testTag', 'LogStorageService init failed')
+        LogUtils.error('testTag', 'LogStorageService init failed')
         return
       }
 
       let collectorInited = await LogRuntimeCollectorService.init(context)
       if (!collectorInited) {
-        hilog.error(0x0000, 'testTag', 'LogRuntimeCollectorService init failed')
+        LogUtils.error('testTag', 'LogRuntimeCollectorService init failed')
         return
       }
 
       let traceRepoInited = await PeripheralTraceRepository.init(context)
       if (!traceRepoInited) {
-        hilog.error(0x0000, 'testTag', 'PeripheralTraceRepository init failed')
+        LogUtils.error('testTag', 'PeripheralTraceRepository init failed')
         return
       }
       await PeripheralTraceRepository.configure(180, 200000)
 
       let runtimeCollectorInited = await PeripheralRuntimeEventService.init(context)
       if (!runtimeCollectorInited) {
-        hilog.error(0x0000, 'testTag', 'PeripheralRuntimeEventService init failed')
+        LogUtils.error('testTag', 'PeripheralRuntimeEventService init failed')
         return
       }
-      hilog.info(0x0000, 'testTag', 'initRuntimeServices success')
+      LogUtils.info('testTag', 'initRuntimeServices success')
 
       this.runtimeInitialized = true
     } catch (err) {
       this.runtimeInitialized = false
-      hilog.error(0x0000, 'testTag', `initRuntimeServices failed: ${JSON.stringify(err)}`)
+      LogUtils.error('testTag', `initRuntimeServices failed: ${JSON.stringify(err)}`)
     } finally {
       this.runtimeInitInProgress = false
     }

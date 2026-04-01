@@ -1,8 +1,9 @@
+import { LogUtils } from './utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
 import common from '@ohos.app.ability.common'
 import { Want } from '@kit.AbilityKit'
 import { adminManager } from '@kit.MDMKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { AppInfo } from '../constants/AppConstants'
 import { AdminActivationState, EnterpriseAdminType, OperationResult } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
@@ -44,7 +45,7 @@ export class EnterpriseAdminService {
     } catch (err) {
       let code = CommonErrorUtils.extractErrorCode(err as Object)
       let message = code !== undefined ? `管理员激活拉起失败（错误码 ${code}）` : '管理员激活拉起失败'
-      hilog.error(DOMAIN, TAG, `activateAdminWithResult failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `activateAdminWithResult failed: ${JSON.stringify(err)}`)
       return {
         success: false,
         errorCode: code,
@@ -72,7 +73,7 @@ export class EnterpriseAdminService {
       let message = EnterpriseAdminService.isAdminMissingError(err as Object) ?
         '企业管理员未激活' :
         (code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : '管理员状态检查失败')
-      hilog.warn(DOMAIN, TAG, `probeActivation failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `probeActivation failed: ${JSON.stringify(err)}`)
       return {
         activated: false,
         errorCode: code,

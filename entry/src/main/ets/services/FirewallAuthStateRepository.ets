@@ -1,6 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   FIREWALL_PIN_LOCK_DURATION_MS,
   FIREWALL_PIN_LOCK_MAX_ATTEMPTS,
@@ -42,7 +43,7 @@ export class FirewallAuthStateRepository {
         lockUntil: lockUntil
       }
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `getState failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getState failed: ${JSON.stringify(err)}`)
       return { failedCount: 0, lockUntil: 0 }
     }
   }
@@ -89,7 +90,7 @@ export class FirewallAuthStateRepository {
         remainingSec: remainingSec
       }
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `recordFailure failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `recordFailure failed: ${JSON.stringify(err)}`)
       return {
         failedCount: 0,
         locked: false,
@@ -105,7 +106,7 @@ export class FirewallAuthStateRepository {
       await store.put(PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, 0)
       await store.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `clearFailures failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearFailures failed: ${JSON.stringify(err)}`)
     }
   }
 

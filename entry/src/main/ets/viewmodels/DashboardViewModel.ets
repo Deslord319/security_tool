@@ -1,5 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppColors, Routes } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { CommonStrings } from '../constants/CommonStrings'
@@ -11,11 +10,9 @@ import { FirewallModeService } from '../services/FirewallModeService'
 import { FirewallService } from '../services/FirewallService'
 import { LogStorageChangeEvent, LogStorageService } from '../services/LogStorageService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
-import { LogDomains } from '../constants/LogDomains'
-import { RouteIds } from '../constants/RouteIds'
+import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
-const DOMAIN = LogDomains.DASHBOARD
 type DashboardQuickEntryId = 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
 
 @Observed
@@ -98,7 +95,7 @@ export class DashboardViewModel {
         modeText = FirewallStrings.getModeTitle(await FirewallModeService.getCurrentMode(this.context))
       }
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `buildFirewallCard failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `buildFirewallCard failed: ${JSON.stringify(err)}`)
     }
 
     return this.createModuleCard(
@@ -151,7 +148,7 @@ export class DashboardViewModel {
       }
       this.moduleCards = nextCards
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `refreshLiveCards failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `refreshLiveCards failed: ${JSON.stringify(err)}`)
     }
   }
 

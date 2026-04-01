@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 ﻿import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
@@ -73,7 +74,7 @@ export class PeripheralPolicyViewModel {
       const success = await PeripheralDevicePolicyRepository.set(record)
       return success ? null : PeripheralStrings.POLICY_CHANGE_FAILED
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralStrings.POLICY_CHANGE_FAILED
     }
   }
@@ -101,7 +102,7 @@ export class PeripheralPolicyViewModel {
         ? { success: true, fileName: result.fileName } as ExportActionResult
         : { success: false, reason: PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `exportRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `exportRecords failed: ${JSON.stringify(err)}`)
       return { success: false, reason: PeripheralStrings.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     }
   }

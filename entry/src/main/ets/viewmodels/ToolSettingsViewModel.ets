@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ActionDialogStatus } from '../utils/DialogService'
 import { CommonStrings } from '../constants/CommonStrings'
 import { ToolSettingsStrings } from '../constants/modules/ToolSettingsStrings'
@@ -55,16 +55,14 @@ export class ToolSettingsViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
-    hilog.info(DOMAIN, TAG, '[LOAD_START] initialize | source=ToolSettingsPage')
+    LogUtils.info(TAG, '[LOAD_START] initialize | source=ToolSettingsPage')
     let config = await this.repository.loadConfig(context)
     this.state = {
       config: this.createConfig(config.startupAuthEnabled, config.authMethod),
       initialConfig: this.createConfig(config.startupAuthEnabled, config.authMethod),
       hasChanges: false
     }
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `[LOAD_SUCCESS] initialize | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
     )
   }
@@ -77,9 +75,7 @@ export class ToolSettingsViewModel {
       startupAuthEnabled: enabled,
       authMethod: this.state.config.authMethod
     })
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `[USER_CHANGE] startupAuthEnabled | value=${enabled}, hasChanges=${this.state.hasChanges}`
     )
   }
@@ -92,9 +88,7 @@ export class ToolSettingsViewModel {
       startupAuthEnabled: this.state.config.startupAuthEnabled,
       authMethod: authMethod
     })
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `[USER_CHANGE] authMethod | value=${authMethod}, hasChanges=${this.state.hasChanges}`
     )
   }
@@ -104,16 +98,14 @@ export class ToolSettingsViewModel {
     allowUnsupportedAuthMethod: boolean = false
   ): Promise<ToolSettingsActionRequest> {
     if (this.isSaving) {
-      hilog.warn(DOMAIN, TAG, '[SAVE_SKIP] requestSave | reason=saving')
+      LogUtils.warn(TAG, '[SAVE_SKIP] requestSave | reason=saving')
       return { kind: 'none' }
     }
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `[USER_SAVE_CLICK] requestSave | hasChanges=${this.state.hasChanges}, startupAuthEnabled=${this.state.config.startupAuthEnabled}, authMethod=${this.state.config.authMethod}`
     )
     if (!this.state.hasChanges) {
-      hilog.warn(DOMAIN, TAG, '[SAVE_SKIP] requestSave | reason=no_changes')
+      LogUtils.warn(TAG, '[SAVE_SKIP] requestSave | reason=no_changes')
       return {
         kind: 'result',
         status: 'failure',
@@ -123,16 +115,12 @@ export class ToolSettingsViewModel {
 
     if (this.state.config.startupAuthEnabled && !allowUnsupportedAuthMethod) {
       let availability = AuthService.checkAuthMethodAvailability(this.state.config.authMethod)
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `[STARTUP_AUTH_RESULT] availability | authMethod=${this.state.config.authMethod}, available=${availability.available}, errorCode=${availability.errorCode ?? 0}`
       )
       if (!availability.available) {
         let confirmMessage = `${availability.message}\n\n${ToolSettingsStrings.authMethodUnavailableMessage}`
-        hilog.warn(
-          DOMAIN,
-          TAG,
+        LogUtils.warn(TAG,
           `[CONFIRM_REQUIRED] requestSave | authMethod=${this.state.config.authMethod}, errorCode=${availability.errorCode ?? 0}`
         )
         return {
@@ -149,7 +137,7 @@ export class ToolSettingsViewModel {
   async openPasswordSettings(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
     let opened = await SystemSettingsService.openPasswordSettings(context)
     if (!opened) {
-      hilog.warn(DOMAIN, TAG, '[SYSNAV_FAIL] openPasswordSettings | opened=false')
+      LogUtils.warn(TAG, '[SYSNAV_FAIL] openPasswordSettings | opened=false')
       return {
         kind: 'result',
         status: 'failure',
@@ -165,7 +153,7 @@ export class ToolSettingsViewModel {
     try {
       let saved = await this.repository.saveConfig(context, configToSave)
       if (!saved) {
-        hilog.error(DOMAIN, TAG, '[SAVE_FAIL] saveConfig | repository returned false')
+        LogUtils.error(TAG, '[SAVE_FAIL] saveConfig | repository returned false')
         return {
           kind: 'result',
           status: 'failure',
@@ -177,9 +165,7 @@ export class ToolSettingsViewModel {
         initialConfig: this.createConfig(configToSave.startupAuthEnabled, configToSave.authMethod),
         hasChanges: false
       }
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `[SAVE_SUCCESS] saveConfig | startupAuthEnabled=${configToSave.startupAuthEnabled}, authMethod=${configToSave.authMethod}`
       )
       return {

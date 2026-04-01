@@ -1,6 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   LogEventResult,
   PeripheralRecordAction,
@@ -110,7 +111,7 @@ export class PeripheralTraceRepository {
       await PeripheralTraceRepository.saveRecords()
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `appendBatch failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `appendBatch failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -254,10 +255,10 @@ export class PeripheralTraceRepository {
       PeripheralTraceRepository.records = []
       await PeripheralTraceRepository.saveRecords()
       PeripheralTraceRepository.notifyChanged(0)
-      hilog.info(DOMAIN, TAG, 'clearAll success')
+      LogUtils.info(TAG, 'clearAll success')
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `clearAll failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -289,12 +290,12 @@ export class PeripheralTraceRepository {
       PeripheralTraceRepository.records = PeripheralTraceRepository.sanitizeRecords(parsed)
       PeripheralTraceRepository.cleanupInMemory()
       PeripheralTraceRepository.initialized = true
-      hilog.info(DOMAIN, TAG, `init complete, records=${PeripheralTraceRepository.records.length}`)
+      LogUtils.info(TAG, `init complete, records=${PeripheralTraceRepository.records.length}`)
       return true
     } catch (err) {
       PeripheralTraceRepository.initialized = false
       PeripheralTraceRepository.records = []
-      hilog.error(DOMAIN, TAG, `init failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
     }
   }
@@ -438,7 +439,7 @@ export class PeripheralTraceRepository {
       await store.put(PREF_KEY_TRACE_RECORDS, payload)
       await store.flush()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
     }
   }
 
@@ -455,7 +456,7 @@ export class PeripheralTraceRepository {
       try {
         listener(event)
       } catch (err) {
-        hilog.warn(DOMAIN, TAG, `listener failed: ${JSON.stringify(err)}`)
+        LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
       }
     })
   }

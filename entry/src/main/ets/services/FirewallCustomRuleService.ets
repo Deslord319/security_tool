@@ -1,7 +1,8 @@
+import { LogUtils } from './utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   PREF_KEY_FIREWALL_CUSTOM_RULES,
   PREF_STORE_NAME_FIREWALL_CUSTOM_RULES
@@ -119,7 +120,7 @@ export class FirewallCustomRuleService {
       })
       return records
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `loadRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadRecords failed: ${JSON.stringify(err)}`)
       return []
     }
   }
@@ -134,7 +135,7 @@ export class FirewallCustomRuleService {
       await store.flush()
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `saveRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
       return false
     }
   }

@@ -1,6 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 ﻿import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
@@ -47,7 +46,7 @@ export class PeripheralViewModel {
       this.reasonCode = null
     } catch (err) {
       this.reasonCode = PeripheralStrings.INIT_FAILED
-      hilog.error(DOMAIN, TAG, `initialize failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
     }
@@ -106,11 +105,9 @@ export class PeripheralViewModel {
     try {
       this.onRefresh && this.onRefresh()
     } catch (err) {
-      hilog.warn(DOMAIN, TAG, `onRefresh callback failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `onRefresh callback failed: ${JSON.stringify(err)}`)
     }
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `source=${source}, records=${this.records.records.length}, policyRecords=${this.policy.records.length}`
     )
   }
@@ -183,7 +180,7 @@ export class PeripheralViewModel {
       this.notifyRefresh('clearPeripheralPolicyRecords')
       return true
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `clearPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
       return false
     }
   }

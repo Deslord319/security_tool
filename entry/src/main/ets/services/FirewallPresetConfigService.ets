@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { FirewallPresetConfig } from '../models/DataModels'
 
 const TAG = 'FirewallPresetConfigService'
@@ -21,7 +22,7 @@ export class FirewallPresetConfigService {
       let parsed = JSON.parse(jsonText) as Partial<FirewallPresetConfig>
       return FirewallPresetConfigService.normalizeConfig(parsed)
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `loadConfig failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadConfig failed: ${JSON.stringify(err)}`)
       return FirewallPresetConfigService.cloneDefaultConfig()
     }
   }

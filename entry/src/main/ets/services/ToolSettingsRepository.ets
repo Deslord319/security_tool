@@ -1,7 +1,7 @@
+import { LogUtils } from './utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { preferences } from '@kit.ArkData'
 import { BusinessError } from '@kit.BasicServicesKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import {
   AuthMethod,
   DEFAULT_TOOL_SETTINGS,
@@ -21,7 +21,7 @@ export interface ToolSettingsRepository {
 
 export class PreferencesToolSettingsRepository implements ToolSettingsRepository {
   async loadConfig(context: common.UIAbilityContext): Promise<ToolSettingsConfig> {
-    hilog.info(DOMAIN, TAG, `[LOAD_START] loadConfig | store=${PREF_STORE_NAME_TOOL}`)
+    LogUtils.info(TAG, `[LOAD_START] loadConfig | store=${PREF_STORE_NAME_TOOL}`)
     try {
       let store = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
       let startupAuthRaw = await store.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
@@ -30,9 +30,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
         startupAuthEnabled: this.normalizeStartupAuthEnabled(startupAuthRaw),
         authMethod: this.normalizeAuthMethod(authMethodRaw)
       }
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `[LOAD_SUCCESS] loadConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
       )
       return config
@@ -40,7 +38,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
       let error = err as Error
       let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
       let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      hilog.error(DOMAIN, TAG, `[LOAD_FAIL] loadConfig | code=${errorCode}, message=${errorMessage}, fallback=default`)
+      LogUtils.error(TAG, `[LOAD_FAIL] loadConfig | code=${errorCode}, message=${errorMessage}, fallback=default`)
       return {
         startupAuthEnabled: DEFAULT_TOOL_SETTINGS.startupAuthEnabled,
         authMethod: DEFAULT_TOOL_SETTINGS.authMethod
@@ -49,9 +47,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
   }
 
   async saveConfig(context: common.UIAbilityContext, config: ToolSettingsConfig): Promise<boolean> {
-    hilog.info(
-      DOMAIN,
-      TAG,
+    LogUtils.info(TAG,
       `[SAVE_START] saveConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
     )
     try {
@@ -59,9 +55,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
       await store.put(PREF_KEY_STARTUP_AUTH, config.startupAuthEnabled)
       await store.put(PREF_KEY_AUTH_METHOD, config.authMethod)
       await store.flush()
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         `[SAVE_SUCCESS] saveConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
       )
       return true
@@ -69,7 +63,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
       let error = err as Error
       let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
       let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      hilog.error(DOMAIN, TAG, `[SAVE_FAIL] saveConfig | code=${errorCode}, message=${errorMessage}`)
+      LogUtils.error(TAG, `[SAVE_FAIL] saveConfig | code=${errorCode}, message=${errorMessage}`)
       return false
     }
   }

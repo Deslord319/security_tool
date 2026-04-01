@@ -1,5 +1,6 @@
+import { LogUtils } from './utils/LogUtils'
 ﻿import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
@@ -40,7 +41,7 @@ export class PeripheralRecordViewModel {
     try {
       this.records = PeripheralConnectionRecordService.queryRecords()
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `reloadRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `reloadRecords failed: ${JSON.stringify(err)}`)
       this.records = []
     }
   }
@@ -80,7 +81,7 @@ export class PeripheralRecordViewModel {
         { success: true, fileName: result.fileName } as ExportActionResult :
         { success: false, reason: PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
     } catch (err) {
-      hilog.error(DOMAIN, TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
       return { success: false, reason: PeripheralStrings.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
     }
   }

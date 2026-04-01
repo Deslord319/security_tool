@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import osAccount from '@ohos.account.osAccount'
 import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
@@ -45,7 +45,7 @@ export class UserFirewallPolicyService {
       try {
         foregroundId = await accountManager.getForegroundOsAccountLocalId()
       } catch (err) {
-        hilog.warn(DOMAIN, TAG, 'getForegroundOsAccountLocalId failed: %{public}s', JSON.stringify(err))
+        LogUtils.warn(TAG, 'getForegroundOsAccountLocalId failed: %{public}s', JSON.stringify(err))
       }
 
       let users: UserFirewallOption[] = sortedIds.map((userId: number): UserFirewallOption => {
@@ -58,7 +58,7 @@ export class UserFirewallPolicyService {
       })
 
       let selectedUserId = foregroundId !== undefined && sortedIds.includes(foregroundId) ? foregroundId : sortedIds[0]
-      hilog.info(DOMAIN, TAG, 'loadAvailableUserIds success: count=%{public}d, selectedUserId=%{public}d', users.length, selectedUserId)
+      LogUtils.info(TAG, 'loadAvailableUserIds success: count=%{public}d, selectedUserId=%{public}d', users.length, selectedUserId)
 
       return {
         users: users,
@@ -66,7 +66,7 @@ export class UserFirewallPolicyService {
       } as UserFirewallListResult
     } catch (err) {
       UserFirewallPolicyService.recordError('读取用户列表', err as Object)
-      hilog.error(DOMAIN, TAG, `loadAvailableUserIds failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadAvailableUserIds failed: ${JSON.stringify(err)}`)
       return {
         users: [],
         errorCode: UserFirewallPolicyService.getLastErrorCode(),
@@ -82,9 +82,7 @@ export class UserFirewallPolicyService {
     })
     try {
       let policy = await netFirewall.getNetFirewallPolicy(userId)
-      hilog.info(
-        DOMAIN,
-        TAG,
+      LogUtils.info(TAG,
         'getPolicy success: userId=%{public}d, isOpen=%{public}s, inAction=%{public}d, outAction=%{public}d',
         userId,
         String(policy.isOpen),
@@ -99,7 +97,7 @@ export class UserFirewallPolicyService {
       } as UserFirewallPolicyResult
     } catch (err) {
       UserFirewallPolicyService.recordError('读取用户防火墙状态', err as Object)
-      hilog.error(DOMAIN, TAG, `getPolicy failed, userId=${userId}, err=${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `getPolicy failed, userId=${userId}, err=${JSON.stringify(err)}`)
       return {
         userId: userId,
         isOpen: false,

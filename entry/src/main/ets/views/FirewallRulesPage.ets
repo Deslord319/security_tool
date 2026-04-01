@@ -1,5 +1,5 @@
+import { LogUtils } from './utils/LogUtils'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
@@ -9,7 +9,7 @@ import { UserFirewallControlDialog } from '../components/UserFirewallControlDial
 import { SubPageHeader } from '../components/SubPageHeader'
 import { CompactSummaryCard } from '../components/CompactSummaryCard'
 import { netFirewall } from '@kit.NetworkKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -45,7 +45,7 @@ export struct FirewallRulesPage {
   })
 
   aboutToAppear() {
-    hilog.info(0x0001, TAG, 'aboutToAppear')
+    LogUtils.info(TAG, 'aboutToAppear')
     if (this.currentMode !== 'custom') {
       DialogService.openFailure(this.getUIContext(), FirewallStrings.rulesOnlyCustomMode)
       this.onBack()
@@ -55,7 +55,7 @@ export struct FirewallRulesPage {
   }
 
   aboutToDisappear(): void {
-    hilog.info(0x0001, TAG, 'aboutToDisappear')
+    LogUtils.info(TAG, 'aboutToDisappear')
     this.closeUserFirewallDialog()
   }
 
@@ -64,14 +64,14 @@ export struct FirewallRulesPage {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     this.rules = await FirewallCustomRuleService.listRules(context)
     this.updateConflictNotice()
-    hilog.info(0x0001, TAG, `loadRules finished: count=${this.rules.length}`)
+    LogUtils.info(TAG, `loadRules finished: count=${this.rules.length}`)
     this.isLoading = false
   }
 
   private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
-    hilog.info(0x0001, TAG, `persistRules start: nextCount=${nextRules.length}, previousCount=${previousRules.length}`)
+    LogUtils.info(TAG, `persistRules start: nextCount=${nextRules.length}, previousCount=${previousRules.length}`)
     let result = await FirewallModeService.applyCustomRules(context, nextRules)
     if (!result.success) {
       DialogService.openFailure(
@@ -91,12 +91,10 @@ export struct FirewallRulesPage {
       DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesRollbackSuccess)
       return
     }
-    hilog.info(0x0001, TAG, `persistRules local template saved: count=${nextRules.length}`)
+    LogUtils.info(TAG, `persistRules local template saved: count=${nextRules.length}`)
     let reapplySummary = await UserFirewallModeService.reapplyBindings(context, nextRules)
     await this.loadRules()
-    hilog.info(
-      0x0001,
-      TAG,
+    LogUtils.info(TAG,
       `persistRules success: ${successMessage}, reapply total=${reapplySummary.totalUsers}, success=${reapplySummary.successCount}, failed=${reapplySummary.failedCount}`
     )
     if (reapplySummary.failedCount > 0) {
@@ -731,7 +729,7 @@ export struct FirewallRulesPage {
   }
 
   private openUserFirewallDialog(): void {
-    hilog.info(0x0001, TAG, 'openUserFirewallDialog')
+    LogUtils.info(TAG, 'openUserFirewallDialog')
     this.closeUserFirewallDialog()
     this.userFirewallDialogController = new CustomDialogController({
       builder: UserFirewallControlDialog({
