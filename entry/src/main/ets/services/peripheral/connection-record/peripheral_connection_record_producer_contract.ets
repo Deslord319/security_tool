@@ -1,3 +1,5 @@
+import type { PeripheralTraceRecord } from '../../../models/DataModels'
+
 export interface PeripheralConnectionRecordProducerCapabilities {
   usbRuntimeEvents: boolean
   bluetoothRuntimeEvents: boolean
@@ -25,4 +27,9 @@ export interface PeripheralConnectionRecordProducer {
   subscribe(listener: PeripheralConnectionRecordProducerListener): number
   unsubscribe(listenerId: number): void
   getStatus(): PeripheralConnectionRecordProducerStatus
+}
+
+export interface PeripheralConnectionRecordConsumer {
+  canHandle(event: PeripheralConnectionRecordProducerEvent): boolean
+  consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralTraceRecord | null>
 }

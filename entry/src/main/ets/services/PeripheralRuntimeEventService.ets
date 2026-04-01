@@ -293,10 +293,18 @@ export class PeripheralRuntimeEventService {
   }
 
   private static consumeUsbCommonEvent(data: commonEventManager.CommonEventData): void {
+    const record = PeripheralRuntimeEventService.mapUsbCommonEventToTraceRecord(data)
+    if (!record) {
+      return
+    }
+    PeripheralRuntimeEventService.persistRuntimeRecord(record, true)
+  }
+
+  static mapUsbCommonEventToTraceRecord(data: commonEventManager.CommonEventData): PeripheralTraceRecord | null {
     const action = PeripheralRuntimeEventService.resolveAction(data.event)
     if (action === 'unknown') {
       hilog.warn(DOMAIN, TAG, `ignored unsupported usb event: ${data.event}`)
-      return
+      return null
     }
     const info = PeripheralRuntimeEventService.resolveUsbEventInfo(data)
     const evaluation = PeripheralRuntimeEventService.evaluateUsbEventPolicy(info, action)
@@ -306,7 +314,7 @@ export class PeripheralRuntimeEventService {
     } catch (_err) {
       rawPayload = ''
     }
-    PeripheralRuntimeEventService.persistRuntimeRecord({
+    return {
       recordId: `runtime_usb_${info.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
       occurAt: info.occurAt,
       collectAt: Date.now(),
@@ -325,7 +333,7 @@ export class PeripheralRuntimeEventService {
       usbPolicy: evaluation.usbPolicy,
       effectivePolicyLabel: evaluation.effectivePolicyLabel,
       matchedPolicyKind: evaluation.matchedPolicyKind
-    }, true)
+    }
   }
 
   private static evaluateUsbEventPolicy(
@@ -728,6 +736,37 @@ export class PeripheralRuntimeEventService {
       }
       hilog.info(DOMAIN, TAG, `bluetooth acl subscriber cleaned: reason=${reason}`)
     })
+  }
+
+  static async mapBluetoothAclCommonEventToTraceRecord(
+    data: commonEventManager.CommonEventData
+  ): Promise<PeripheralTraceRecord | null> {
+    const eventInfo = await PeripheralRuntimeEventService.resolveBluetoothAclEventInfo(data)
+    if (!eventInfo) {
+      return null
+    }
+    if (eventInfo.action === 'unknown') {
+      return null
+    }
+    return {
+      recordId: `runtime_bt_acl_${eventInfo.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
+      occurAt: eventInfo.occurAt,
+      collectAt: Date.now(),
+      deviceName: eventInfo.deviceName,
+      deviceType: PeripheralType.BLUETOOTH,
+      deviceId: eventInfo.deviceId,
+      action: eventInfo.action,
+      decision: 'unknown',
+      result: LogEventResult.SUCCESS,
+      source: 'runtime_event',
+      summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
+      rawEventName: data.event,
+      rawAction: eventInfo.action,
+      rawPayload: eventInfo.rawPayload,
+      detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
+      effectivePolicyLabel: '--',
+      matchedPolicyKind: 'bluetooth_connection_event'
+    }
   }
 
   private static async consumeBluetoothAclCommonEvent(data: commonEventManager.CommonEventData): Promise<void> {
