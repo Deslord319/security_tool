@@ -1,7 +1,9 @@
 import { LogUtils } from '../utils/LogUtils'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
+import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from '../constants/modules/DialogStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
+import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
 import { FirewallModeService } from '../services/FirewallModeService'
@@ -295,11 +297,11 @@ export struct FirewallRulesPage {
       case netFirewall.NetFirewallRuleType.RULE_IP:
         return 'IP'
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return FirewallStrings.typeDomain
+        return SharedLabels.LABEL_DOMAIN
       case netFirewall.NetFirewallRuleType.RULE_DNS:
         return 'DNS'
       default:
-        return FirewallStrings.typeUnknown
+        return SharedLabels.LABEL_UNKNOWN
     }
   }
 
@@ -343,11 +345,11 @@ export struct FirewallRulesPage {
   }
 
   getDirectionLabel(dir: netFirewall.NetFirewallRuleDirection): string {
-    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? FirewallStrings.directionInbound : FirewallStrings.directionOutbound
+    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? SharedLabels.LABEL_INBOUND : SharedLabels.LABEL_OUTBOUND
   }
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? FirewallStrings.actionAllow : FirewallStrings.actionDeny
+    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? FirewallDialogStrings.ACTION_ALLOW : FirewallDialogStrings.ACTION_DENY
   }
 
   getActionBgColor(action: netFirewall.FirewallRuleAction): string {
@@ -511,19 +513,19 @@ export struct FirewallRulesPage {
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallStrings.tabAllRules, 0))
+          }.tabBar(this.tabBuilder(SharedLabels.LABEL_ALL, 0))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallStrings.tabIpRules, 1))
+          }.tabBar(this.tabBuilder(SharedLabels.LABEL_IP, 1))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallStrings.tabDomainRules, 2))
+          }.tabBar(this.tabBuilder(SharedLabels.LABEL_DOMAIN, 2))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallStrings.tabDnsRules, 3))
+          }.tabBar(this.tabBuilder(SharedLabels.LABEL_DNS, 3))
         }
         .barMode(BarMode.Scrollable)
         .barBackgroundColor(Color.Transparent)
@@ -557,7 +559,7 @@ export struct FirewallRulesPage {
           LoadingProgress()
             .width(42)
             .height(42)
-          Text(FirewallStrings.loadingRules)
+          Text(LoadingStrings.LOADING_RULES)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -567,7 +569,7 @@ export struct FirewallRulesPage {
         .justifyContent(FlexAlign.Center)
       } else if (this.getFilteredRules().length === 0) {
         Column({ space: 10 }) {
-          Text(FirewallStrings.emptyRules)
+          Text(EmptyStateStrings.NO_RULES)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -645,10 +647,10 @@ export struct FirewallRulesPage {
                 .width('100%')
 
                 Column({ space: 10 }) {
-                  this.detailRow(FirewallStrings.detailRemoteAddress, this.getRuleAddress(rule))
-                  this.detailRow(FirewallStrings.detailLocalPort, this.getRuleLocalPort(rule))
-                  this.detailRow(FirewallStrings.detailRemotePort, this.getRuleRemotePort(rule))
-                  this.detailRow(FirewallStrings.detailProtocol, this.getProtocolLabel(rule))
+                  this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule))
+                  this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule))
+                  this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule))
+                  this.detailRow(FirewallDialogStrings.PROTOCOL, this.getProtocolLabel(rule))
                 }
                 .width('100%')
               }

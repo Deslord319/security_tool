@@ -3,6 +3,7 @@ import { netFirewall } from '@kit.NetworkKit'
 import osAccount from '@ohos.account.osAccount'
 import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
+import { FirewallStrings } from '../constants/modules/FirewallStrings'
 
 const TAG = 'UserFirewallPolicyService'
 
@@ -35,7 +36,7 @@ export class UserFirewallPolicyService {
       if (ids.length === 0) {
         return {
           users: [],
-          message: '未找到已激活用户'
+          message: FirewallStrings.noActivatedUsers
         } as UserFirewallListResult
       }
 
@@ -51,7 +52,7 @@ export class UserFirewallPolicyService {
         let isForeground = foregroundId === userId
         return {
           userId: userId,
-          label: isForeground ? `用户 ${userId}（当前）` : `用户 ${userId}`,
+          label: FirewallStrings.buildUserLabel(userId, isForeground),
           isForeground: isForeground
         } as UserFirewallOption
       })
@@ -64,7 +65,7 @@ export class UserFirewallPolicyService {
         selectedUserId: selectedUserId
       } as UserFirewallListResult
     } catch (err) {
-      UserFirewallPolicyService.recordError('读取用户列表', err as Object)
+      UserFirewallPolicyService.recordError(FirewallStrings.readUserListAction, err as Object)
       LogUtils.error(TAG, `loadAvailableUserIds failed: ${JSON.stringify(err)}`)
       return {
         users: [],
@@ -95,7 +96,7 @@ export class UserFirewallPolicyService {
         outAction: policy.outAction
       } as UserFirewallPolicyResult
     } catch (err) {
-      UserFirewallPolicyService.recordError('读取用户防火墙状态', err as Object)
+      UserFirewallPolicyService.recordError(FirewallStrings.readUserPolicyAction, err as Object)
       LogUtils.error(TAG, `getPolicy failed, userId=${userId}, err=${JSON.stringify(err)}`)
       return {
         userId: userId,

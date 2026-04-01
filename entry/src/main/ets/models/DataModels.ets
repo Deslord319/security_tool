@@ -1,6 +1,8 @@
 
 import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 import { DataModelStrings } from '../constants/modules/DataModelStrings'
+import { DeviceTypeLabels, FirewallDialogStrings, ResultStrings } from '../constants/modules/DialogStrings'
+import { IdentityStrings } from '../constants/modules/IdentityStrings'
 
 export enum RuleType {
   IP = 1,
@@ -102,11 +104,11 @@ export function getProtocolLabel(proto: ProtocolType): string {
 export function getActionLabel(action: RuleAction): string {
   switch (action) {
     case RuleAction.ALLOW:
-      return DataModelStrings.actionAllow
+      return FirewallDialogStrings.ACTION_ALLOW
     case RuleAction.DENY:
       return DataModelStrings.actionDeny
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
@@ -298,19 +300,19 @@ export interface InterfaceControlConfig {
 export function getPeripheralTypeLabel(type: PeripheralType): string {
   switch (type) {
     case PeripheralType.USB_STORAGE:
-      return DataModelStrings.peripheralUsbStorage
+      return DeviceTypeLabels.USB_STORAGE
     case PeripheralType.USB_CAMERA:
-      return DataModelStrings.peripheralUsbCamera
+      return DeviceTypeLabels.USB_CAMERA
     case PeripheralType.USB_PRINTER:
-      return DataModelStrings.peripheralUsbPrinter
+      return DeviceTypeLabels.USB_PRINTER
     case PeripheralType.USB_HID:
-      return DataModelStrings.peripheralUsbHid
+      return DeviceTypeLabels.USB_HID
     case PeripheralType.USB_OTHER:
       return DataModelStrings.peripheralUsbOther
     case PeripheralType.BLUETOOTH:
       return DataModelStrings.peripheralBluetooth
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
@@ -323,7 +325,7 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
     case UsbStoragePolicy.DISABLED:
       return DataModelStrings.usbStorageDisabled
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
@@ -357,11 +359,11 @@ export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): 
 export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
   switch (policyHit) {
     case 'allow':
-      return DataModelStrings.policyHitAllow
+      return FirewallDialogStrings.ACTION_ALLOW
     case 'deny':
-      return DataModelStrings.policyHitDeny
+      return FirewallDialogStrings.ACTION_DENY
     default:
-      return DataModelStrings.policyHitUnknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
@@ -469,7 +471,7 @@ export interface AuthMethodOption {
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
   { label: 'PIN', value: AuthMethod.PIN } as AuthMethodOption,
-  { label: '指纹', value: AuthMethod.FINGERPRINT } as AuthMethodOption
+  { label: IdentityStrings.authMethodFingerprint, value: AuthMethod.FINGERPRINT } as AuthMethodOption
 ]
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
@@ -710,20 +712,20 @@ export function getLogEventTypeLabel(type: LogEventType): string {
     case LogEventType.PERMISSION:
       return DataModelStrings.logEventPermission
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
 export function getLogEventResultLabel(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
-      return DataModelStrings.logResultSuccess
+      return ResultStrings.SUCCESS
     case LogEventResult.BLOCKED:
       return DataModelStrings.logResultBlocked
     case LogEventResult.FAILED:
-      return DataModelStrings.logResultFailed
+      return ResultStrings.FAILED
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 

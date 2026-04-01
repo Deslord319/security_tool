@@ -7,6 +7,7 @@ export class IdentityStrings {
   static readonly saveButton: string = CommonStrings.actionSaveConfig
   static readonly saveAction: string = '保存身份鉴别配置'
   static readonly passwordPolicyAction: string = '设置口令策略'
+  static readonly readPasswordPolicyAction: string = '读取口令策略'
   static readonly saveSuccess: string = '身份鉴别配置已保存'
   static readonly adminRequired: string = '企业管理员未激活'
   static readonly adminRequiredWithActionSuffix: string = '未完成，请先激活企业管理员'
@@ -32,4 +33,30 @@ export class IdentityStrings {
   static readonly permanentOption: string = '永久'
   static readonly customOption: string = '自定义'
   static readonly byteUnitSuffix: string = '位'
+  static readonly authMethodFingerprint: string = '指纹'
+  static readonly authMethodGeneric: string = '认证方式'
+  static readonly authMethodUnsupported: string = '当前设备不支持该认证方式'
+  static readonly authSystemAvailable: string = '系统认证可用'
+  static readonly authDialogTitle: string = '身份验证'
+  static readonly authFailedOrCanceled: string = '验证失败或已取消'
+  static readonly authTrustLevelInsufficient: string = '当前系统认证等级不满足要求'
+  static readonly authPinExpired: string = '系统 PIN 已过期，请先在系统设置中更新'
+  static readonly authPermissionDenied: string = '认证权限不足，无法调用系统认证'
+  static readonly authInvalidParams: string = '认证参数错误'
+  static readonly passwordRequirementUppercase: string = '包含大写字母'
+  static readonly passwordRequirementLowercase: string = '包含小写字母'
+  static readonly passwordRequirementDigit: string = '包含数字'
+  static readonly passwordRequirementSpecial: string = '包含特殊字符(!@#$%^&*)'
+
+  static buildPasswordMinLengthRequirement(minLength: number): string {
+    return `至少${minLength}个字符`
+  }
+
+  static buildAuthNotEnrolled(authLabel: string): string {
+    return `系统未录入${authLabel}或凭据不满足要求`
+  }
+
+  static buildAuthUnavailable(authLabel: string): string {
+    return `系统${authLabel}认证暂不可用`
+  }
 }

@@ -1,5 +1,5 @@
 import { LogUtils } from '../utils/LogUtils'
-﻿import { common } from '@kit.AbilityKit'
+import { common } from '@kit.AbilityKit'
 import { abilityAccessCtrl, bundleManager, Permissions } from '@kit.AbilityKit'
 import { access, connection } from '@kit.ConnectivityKit'
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
@@ -19,9 +19,12 @@ import {
 import { PeripheralDevicePolicyRepository } from './PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 import { PeripheralService } from './PeripheralService'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
+import { DataModelStrings } from '../constants/modules/DataModelStrings'
+import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 
 const TAG = 'PeripheralRuntimeEvent'
-const FALLBACK_BLUETOOTH_NAME = '未命名蓝牙设备'
+const FALLBACK_BLUETOOTH_NAME = PeripheralStrings.unnamedBluetoothDevice
 const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETOOTH'
 const BLUETOOTH_ACL_EVENT = commonEventManager.Support.COMMON_EVENT_BLUETOOTH_REMOTEDEVICE_ACL_STATE_CHANGE
 
@@ -314,7 +317,7 @@ export class PeripheralRuntimeEventService {
       return {
         policyHit: 'unknown',
         result: LogEventResult.SUCCESS,
-        summary: '设备已断开',
+        summary: PeripheralStrings.runtimeDeviceDisconnected,
         detail: PeripheralRuntimeEventService.buildDisconnectDetail(info, effectivePolicyLabel),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: effectivePolicyLabel,
@@ -326,10 +329,10 @@ export class PeripheralRuntimeEventService {
       return {
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
-        summary: 'USB 接口已禁用',
-        detail: 'USB 接口已被总控禁用，设备接入被阻止。',
+        summary: PeripheralStrings.runtimeUsbInterfaceDisabledSummary,
+        detail: PeripheralStrings.runtimeUsbInterfaceDisabledDetail,
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
-        effectivePolicyLabel: '已禁用',
+        effectivePolicyLabel: PeripheralStrings.runtimeDisabledPolicyLabel,
         matchedPolicyKind: 'usb_disabled'
       }
     }
@@ -339,8 +342,8 @@ export class PeripheralRuntimeEventService {
         return {
           policyHit: 'deny',
           result: LogEventResult.BLOCKED,
-          summary: 'USB 存储已禁用',
-          detail: 'USB 存储策略为禁止访问，设备接入被阻止。',
+          summary: PeripheralStrings.runtimeUsbStorageDisabledSummary,
+          detail: PeripheralStrings.runtimeUsbStorageDisabledDetail,
           usbPolicy: snapshot.usbStoragePolicy,
           effectivePolicyLabel: PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
           matchedPolicyKind: 'usb_storage_disabled'
@@ -350,8 +353,8 @@ export class PeripheralRuntimeEventService {
         return {
           policyHit: 'allow',
           result: LogEventResult.SUCCESS,
-          summary: 'USB 存储只读',
-          detail: 'USB 存储策略为只读模式。',
+          summary: PeripheralStrings.runtimeUsbStorageReadOnlySummary,
+          detail: PeripheralStrings.runtimeUsbStorageReadOnlyDetail,
           usbPolicy: snapshot.usbStoragePolicy,
           effectivePolicyLabel: PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
           matchedPolicyKind: 'usb_storage_read_only'
@@ -363,8 +366,8 @@ export class PeripheralRuntimeEventService {
       return {
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
-        summary: '命中单设备禁止接入',
-        detail: `设备 ${info.deviceId} 命中禁止接入策略，已被阻止。`,
+        summary: PeripheralStrings.runtimeDeviceDenySummary,
+        detail: PeripheralStrings.buildRuntimeDeviceDenyDetail(info.deviceId),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: effectivePolicyLabel,
         matchedPolicyKind: 'device_deny'
@@ -374,8 +377,8 @@ export class PeripheralRuntimeEventService {
     return {
       policyHit: 'allow',
       result: LogEventResult.SUCCESS,
-      summary: '按当前策略允许接入',
-      detail: '未命中更高优先级的阻断策略，按默认规则允许接入。',
+      summary: PeripheralStrings.runtimeDefaultAllowSummary,
+      detail: PeripheralStrings.runtimeDefaultAllowDetail,
       usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
       effectivePolicyLabel: effectivePolicyLabel,
       matchedPolicyKind: 'default_allow'
@@ -424,28 +427,28 @@ export class PeripheralRuntimeEventService {
     snapshot: UsbPolicySnapshot
   ): string {
     if (snapshot.usbDisabled) {
-      return '已禁用'
+      return PeripheralStrings.runtimeDisabledPolicyLabel
     }
     if (deviceType === PeripheralType.USB_STORAGE) {
       return PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy)
     }
-    return '已启用'
+    return PeripheralStrings.runtimeEnabledPolicyLabel
   }
 
   private static buildDisconnectDetail(info: ResolvedUsbEventInfo, effectivePolicyLabel: string): string {
-    return `${info.deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
+    return PeripheralStrings.buildDisconnectDetail(info.deviceName, effectivePolicyLabel)
   }
 
   private static getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
     switch (policy) {
       case UsbStoragePolicy.READ_WRITE:
-        return '读写'
+        return DataModelStrings.usbStorageReadWrite
       case UsbStoragePolicy.READ_ONLY:
-        return '只读'
+        return DataModelStrings.usbStorageReadOnly
       case UsbStoragePolicy.DISABLED:
-        return '禁止访问'
+        return DataModelStrings.usbStorageDisabled
       default:
-        return '未知'
+        return SharedLabels.LABEL_UNKNOWN
     }
   }
 
@@ -473,7 +476,7 @@ export class PeripheralRuntimeEventService {
       : `UNKNOWN-USB-${occurAt}`
     let deviceName = PeripheralRuntimeEventService.buildUsbDisplayName(manufacturerName, productName)
     if (deviceName.length === 0) {
-      deviceName = deviceNameField || (hasVidPid ? 'USB 设备' : '未识别 USB 设备')
+      deviceName = deviceNameField || (hasVidPid ? PeripheralStrings.runtimeUsbDeviceName : PeripheralStrings.runtimeUnknownUsbDeviceName)
     }
 
     const detail = PeripheralRuntimeEventService.resolveDetail(payloads, manufacturerName)
@@ -689,7 +692,7 @@ export class PeripheralRuntimeEventService {
       decision: 'unknown',
       result: LogEventResult.SUCCESS,
       source: 'runtime_event',
-      summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
+      summary: eventInfo.action === 'connect' ? PeripheralStrings.runtimeBluetoothConnected : PeripheralStrings.runtimeBluetoothDisconnected,
       rawEventName: data.event,
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,

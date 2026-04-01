@@ -21,6 +21,15 @@ export class PermissionErrors {
   static readonly INVALID_USER_ID_PARAM: string = '用户 ID 参数不合法'
 }
 
+export class AdminErrorStrings {
+  static readonly NOT_ACTIVATED: string = '企业管理员未激活'
+  static readonly CHECK_FAILED: string = '管理员状态检查失败'
+
+  static buildCheckFailed(code?: number): string {
+    return code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : AdminErrorStrings.CHECK_FAILED
+  }
+}
+
 // ==================== 系统服务错误 ====================
 export class SystemServiceErrors {
   // 账号服务

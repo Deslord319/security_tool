@@ -2,6 +2,7 @@ import { LogUtils } from '../utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
+import { FirewallStrings } from '../constants/modules/FirewallStrings'
 
 const TAG = 'FirewallService'
 const DEFAULT_USER_ID = 100
@@ -147,7 +148,7 @@ export class FirewallService {
     try {
       return await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
     } catch (err) {
-      FirewallService.recordError('读取防火墙策略', err as Object)
+      FirewallService.recordError(FirewallStrings.readPolicyAction, err as Object)
       LogUtils.error(TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
       return null
     }
@@ -172,7 +173,7 @@ export class FirewallService {
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
       return true
     } catch (err) {
-      FirewallService.recordError('设置防火墙状态', err as Object)
+      FirewallService.recordError(FirewallStrings.setStatusAction, err as Object)
       LogUtils.error(TAG, `setFirewallEnabled failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -213,7 +214,7 @@ export class FirewallService {
       }
       return allRules
     } catch (err) {
-      FirewallService.recordError('读取防火墙规则', err as Object)
+      FirewallService.recordError(FirewallStrings.readRulesAction, err as Object)
       LogUtils.error(TAG, `getAllRules failed: ${JSON.stringify(err)}`)
       return []
     }
@@ -227,7 +228,7 @@ export class FirewallService {
       let ruleId = await netFirewall.addNetFirewallRule(preparedRule)
       return ruleId
     } catch (err) {
-      FirewallService.recordError('新增防火墙规则', err as Object)
+      FirewallService.recordError(FirewallStrings.addRuleAction, err as Object)
       let preparedRule = FirewallService.normalizeRuleForCreate(rule)
       FirewallService.logRulePayload('addRule failed payload', preparedRule)
       LogUtils.error(TAG, `addRule failed: ${JSON.stringify(err)}`)
@@ -242,7 +243,7 @@ export class FirewallService {
       await netFirewall.removeNetFirewallRule(DEFAULT_USER_ID, ruleId)
       return true
     } catch (err) {
-      FirewallService.recordError('删除防火墙规则', err as Object)
+      FirewallService.recordError(FirewallStrings.deleteRuleAction, err as Object)
       LogUtils.error(TAG, `removeRule failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -255,7 +256,7 @@ export class FirewallService {
       await netFirewall.updateNetFirewallRule(rule)
       return true
     } catch (err) {
-      FirewallService.recordError('更新防火墙规则', err as Object)
+      FirewallService.recordError(FirewallStrings.updateRuleAction, err as Object)
       FirewallService.logRulePayload('updateRule failed payload', rule)
       LogUtils.error(TAG, `updateRule failed: ${JSON.stringify(err)}`)
       return false

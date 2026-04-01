@@ -2,6 +2,7 @@ import { LogUtils } from '../utils/LogUtils'
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import osAccount from '@ohos.account.osAccount'
 import { LogPathUtils } from '../utils/LogPathUtils'
+import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
   LogEntry,
   LogEventType,
@@ -290,7 +291,7 @@ export class LogAuditService {
 
     return {
       detail: LogAuditService.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-        content || metadata || '安全审计事件',
+        content || metadata || LogManageStrings.auditEventFallbackDetail,
       result: LogAuditService.mapResult(rawOutcome),
       processName: LogAuditService.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
       pid: LogAuditService.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),

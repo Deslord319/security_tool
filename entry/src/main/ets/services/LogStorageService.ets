@@ -1,9 +1,10 @@
 import { LogUtils } from '../utils/LogUtils'
-﻿import { preferences } from '@kit.ArkData'
+import { preferences } from '@kit.ArkData'
 
 import { common } from '@kit.AbilityKit'
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
 import { LogExportErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
+import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
   LogEntry,
   LogFilter,
@@ -351,7 +352,7 @@ export class LogStorageService {
         success: false,
         timestamp: timestamp,
         errorCode: code,
-        errorMessage: `导出失败：${JSON.stringify(err)}`
+        errorMessage: LogManageStrings.buildExportFailedText(JSON.stringify(err))
       }
     }
   }
@@ -764,7 +765,7 @@ export class LogStorageService {
 
   // Convert to CSV format.
   private static toCsv(entries: LogEntry[]): string {
-    let header = '时间,事件类型,详情,进程名,PID,结果'
+    let header = LogManageStrings.buildCsvHeader()
     let lines: string[] = [header]
 
     for (let entry of entries) {

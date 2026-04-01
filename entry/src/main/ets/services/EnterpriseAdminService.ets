@@ -4,6 +4,7 @@ import { Want } from '@kit.AbilityKit'
 import { AppInfo } from '../constants/AppConstants'
 import { AdminActivationState, EnterpriseAdminType } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
+import { AdminErrorStrings } from '../constants/modules/ErrorStrings'
 
 const TAG = 'EnterpriseAdminService'
 const ADMIN_ABILITY_NAME = 'EnterpriseAdminAbility'
@@ -38,8 +39,8 @@ export class EnterpriseAdminService {
       const error: Object = err as Object
       const code: number | undefined = CommonErrorUtils.extractErrorCode(error)
       const message: string = EnterpriseAdminService.isAdminMissingError(error)
-        ? '企业管理员未激活'
-        : (code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : '管理员状态检查失败')
+        ? AdminErrorStrings.NOT_ACTIVATED
+        : AdminErrorStrings.buildCheckFailed(code)
       LogUtils.warn(TAG, `probeActivation failed: ${JSON.stringify(err)}`)
       return {
         activated: false,

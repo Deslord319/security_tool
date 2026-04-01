@@ -161,4 +161,30 @@ export class PeripheralStrings {
     PeripheralStrings.latestSeenTimeLabel,
     PeripheralStrings.currentPolicyLabel
   ]
+
+  static readonly unnamedBluetoothDevice: string = '未命名蓝牙设备'
+  static readonly runtimeDeviceDisconnected: string = '设备已断开'
+  static readonly runtimeUsbInterfaceDisabledSummary: string = 'USB 接口已禁用'
+  static readonly runtimeUsbInterfaceDisabledDetail: string = 'USB 接口已被总控禁用，设备接入被阻止。'
+  static readonly runtimeUsbStorageDisabledSummary: string = 'USB 存储已禁用'
+  static readonly runtimeUsbStorageDisabledDetail: string = 'USB 存储策略为禁止访问，设备接入被阻止。'
+  static readonly runtimeUsbStorageReadOnlySummary: string = 'USB 存储只读'
+  static readonly runtimeUsbStorageReadOnlyDetail: string = 'USB 存储策略为只读模式。'
+  static readonly runtimeDeviceDenySummary: string = '命中单设备禁止接入'
+  static readonly runtimeDefaultAllowSummary: string = '按当前策略允许接入'
+  static readonly runtimeDefaultAllowDetail: string = '未命中更高优先级的阻断策略，按默认规则允许接入。'
+  static readonly runtimeEnabledPolicyLabel: string = '已启用'
+  static readonly runtimeDisabledPolicyLabel: string = '已禁用'
+  static readonly runtimeUsbDeviceName: string = 'USB 设备'
+  static readonly runtimeUnknownUsbDeviceName: string = '未识别 USB 设备'
+  static readonly runtimeBluetoothConnected: string = '蓝牙设备已连接'
+  static readonly runtimeBluetoothDisconnected: string = '蓝牙设备已断开'
+
+  static buildRuntimeDeviceDenyDetail(deviceId: string): string {
+    return `设备 ${deviceId} 命中禁止接入策略，已被阻止。`
+  }
+
+  static buildDisconnectDetail(deviceName: string, effectivePolicyLabel: string): string {
+    return `${deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
+  }
 }

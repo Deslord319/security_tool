@@ -45,24 +45,6 @@ export class FirewallStrings {
   static readonly outboundRules: string = '出站规则'
   static readonly inboundCustomRulesDescription: string = '自定义入站规则'
   static readonly outboundCustomRulesDescription: string = '自定义出站规则'
-  static readonly tabAllRules: string = SharedLabels.LABEL_ALL
-  static readonly tabIpRules: string = SharedLabels.LABEL_IP
-  static readonly tabDomainRules: string = SharedLabels.LABEL_DOMAIN
-  static readonly tabDnsRules: string = SharedLabels.LABEL_DNS
-  static readonly loadingRules: string = LoadingStrings.LOADING_RULES
-  static readonly emptyRules: string = EmptyStateStrings.NO_RULES
-
-  static readonly detailRemoteAddress: string = FirewallDialogStrings.REMOTE_ADDRESS
-  static readonly detailLocalPort: string = FirewallDialogStrings.LOCAL_PORT
-  static readonly detailRemotePort: string = FirewallDialogStrings.REMOTE_PORT
-  static readonly detailProtocol: string = FirewallDialogStrings.PROTOCOL
-  static readonly typeDomain: string = SharedLabels.LABEL_DOMAIN
-  static readonly typeUnknown: string = SharedLabels.LABEL_UNKNOWN
-  static readonly directionInbound: string = SharedLabels.LABEL_INBOUND
-  static readonly directionOutbound: string = SharedLabels.LABEL_OUTBOUND
-  static readonly actionAllow: string = FirewallDialogStrings.ACTION_ALLOW
-  static readonly actionDeny: string = FirewallDialogStrings.ACTION_DENY
-
   static getModeAccent(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
@@ -137,5 +119,23 @@ export class FirewallStrings {
 
   static buildRuleCountText(count: number): string {
     return `${count} 条`
+  }
+  static readonly readPolicyAction: string = '读取防火墙策略'
+  static readonly setStatusAction: string = '设置防火墙状态'
+  static readonly readRulesAction: string = '读取防火墙规则'
+  static readonly addRuleAction: string = '新增防火墙规则'
+  static readonly deleteRuleAction: string = '删除防火墙规则'
+  static readonly updateRuleAction: string = '更新防火墙规则'
+  static readonly readUserListAction: string = '读取用户列表'
+  static readonly readUserPolicyAction: string = '读取用户防火墙状态'
+  static readonly readUserModeBindingsAction: string = '读取用户模式绑定'
+  static readonly saveUserModeBindingsAction: string = '保存用户模式绑定'
+  static readonly readUserRulesAction: string = '读取用户防火墙规则'
+  static readonly deleteUserRulesAction: string = '删除用户防火墙规则'
+  static readonly writeUserPolicyAction: string = '写入用户防火墙策略'
+  static readonly noActivatedUsers: string = '未找到已激活用户'
+
+  static buildUserLabel(userId: number, isForeground: boolean): string {
+    return isForeground ? `用户 ${userId}（当前）` : `用户 ${userId}`
   }
 }

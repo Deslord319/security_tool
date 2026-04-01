@@ -6,6 +6,8 @@ import {
   PeripheralRecordPolicyHit
 } from '../models/DataModels'
 import { DataModelStrings } from '../constants/modules/DataModelStrings'
+import { FirewallDialogStrings, ResultStrings } from '../constants/modules/DialogStrings'
+import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 
 export interface PeripheralConnectionHistoryItem {
@@ -40,11 +42,11 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
 function getPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
   switch (policyHit) {
     case 'allow':
-      return DataModelStrings.policyHitAllow
+      return FirewallDialogStrings.ACTION_ALLOW
     case 'deny':
-      return DataModelStrings.policyHitDeny
+      return FirewallDialogStrings.ACTION_DENY
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 
@@ -64,13 +66,13 @@ export function getPeripheralConnectionResultLabel(record: PeripheralConnectionR
   }
   switch (record.result) {
     case LogEventResult.SUCCESS:
-      return DataModelStrings.logResultSuccess
+      return ResultStrings.SUCCESS
     case LogEventResult.BLOCKED:
       return DataModelStrings.logResultBlocked
     case LogEventResult.FAILED:
-      return DataModelStrings.logResultFailed
+      return ResultStrings.FAILED
     default:
-      return DataModelStrings.unknown
+      return SharedLabels.LABEL_UNKNOWN
   }
 }
 

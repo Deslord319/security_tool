@@ -88,4 +88,22 @@ export class LogManageStrings {
   static buildClearConfirmMessage(totalCount: number): string {
     return `确认清空当前全部 ${totalCount} 条日志吗？该操作不可恢复。`
   }
+  static readonly auditEventFallbackDetail: string = '安全审计事件'
+  static readonly csvHeaderTime: string = '时间'
+  static readonly csvHeaderEventType: string = '事件类型'
+  static readonly csvHeaderDetail: string = '详情'
+  static readonly csvHeaderProcessName: string = '进程名'
+  static readonly csvHeaderPid: string = 'PID'
+  static readonly csvHeaderResult: string = '结果'
+
+  static buildCsvHeader(): string {
+    return [
+      LogManageStrings.csvHeaderTime,
+      LogManageStrings.csvHeaderEventType,
+      LogManageStrings.csvHeaderDetail,
+      LogManageStrings.csvHeaderProcessName,
+      LogManageStrings.csvHeaderPid,
+      LogManageStrings.csvHeaderResult
+    ].join(',')
+  }
 }

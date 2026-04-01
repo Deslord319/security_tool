@@ -7,6 +7,7 @@ import { AppInfo } from '../constants/AppConstants'
 import { EnterpriseAdminService } from './EnterpriseAdminService'
 import { PeripheralService } from './PeripheralService'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
+import { IdentityStrings } from '../constants/modules/IdentityStrings'
 
 const TAG = 'IdentityService'
 
@@ -42,18 +43,18 @@ export class IdentityService {
   }
 
   static buildDescription(config: PasswordComplexityConfig): string {
-    let parts: string[] = [`至少${config.minLength}个字符`]
+    let parts: string[] = [IdentityService.buildMinLengthRequirement(config.minLength)]
     if (config.requireUppercase) {
-      parts.push('包含大写字母')
+      parts.push(IdentityStrings.passwordRequirementUppercase)
     }
     if (config.requireLowercase) {
-      parts.push('包含小写字母')
+      parts.push(IdentityStrings.passwordRequirementLowercase)
     }
     if (config.requireDigit) {
-      parts.push('包含数字')
+      parts.push(IdentityStrings.passwordRequirementDigit)
     }
     if (config.requireSpecialChar) {
-      parts.push('包含特殊字符(!@#$%^&*)')
+      parts.push(IdentityStrings.passwordRequirementSpecial)
     }
     return parts.join('，')
   }
@@ -71,7 +72,7 @@ export class IdentityService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('设置口令策略', err as Object)
+      return PeripheralService.buildFailureResult<void>(IdentityStrings.passwordPolicyAction, err as Object)
     }
   }
 
@@ -84,7 +85,15 @@ export class IdentityService {
       } as OperationResult<securityManager.PasswordPolicy | null>
     } catch (err) {
       LogUtils.error(TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<securityManager.PasswordPolicy | null>('读取口令策略', err as Object, null)
+      return PeripheralService.buildFailureResult<securityManager.PasswordPolicy | null>(
+        IdentityStrings.readPasswordPolicyAction,
+        err as Object,
+        null
+      )
     }
+  }
+
+  private static buildMinLengthRequirement(minLength: number): string {
+    return IdentityStrings.buildPasswordMinLengthRequirement(minLength)
   }
 }

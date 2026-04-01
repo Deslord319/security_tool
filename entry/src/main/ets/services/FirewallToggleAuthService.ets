@@ -17,6 +17,7 @@ import {
   generateLogEntryId
 } from '../models/DataModels'
 import { UserFirewallModeService } from './UserFirewallModeService'
+import { FirewallStrings } from '../constants/modules/FirewallStrings'
 
 const TAG = 'FirewallToggleAuthService'
 
@@ -101,7 +102,7 @@ export class FirewallToggleAuthService {
     let applySuccess = await applyPolicy(targetEnabled)
     if (!applySuccess) {
       let errorCode = FirewallService.getLastErrorCode()
-      let errorMessage = '防火墙状态更新失败'
+      let errorMessage = FirewallStrings.buildToggleFailedMessage('policy_apply_failed', undefined)
       if (errorCode === undefined) {
         errorCode = UserFirewallPolicyService.getLastErrorCode()
       }
@@ -151,7 +152,7 @@ export class FirewallToggleAuthService {
         targetEnabled: targetEnabled ?? false,
         reason: 'lockout',
         lockRemainingSec: lockState.remainingSec,
-        errorMessage: `PIN 认证失败次数过多，请在 ${lockState.remainingSec ?? 60} 秒后重试`
+        errorMessage: FirewallStrings.buildToggleFailedMessage('lockout', lockState.remainingSec)
       }
       if (currentEnabled !== undefined && targetEnabled !== undefined) {
         await FirewallToggleAuthService.appendAuditEntry(
@@ -203,7 +204,7 @@ export class FirewallToggleAuthService {
         targetEnabled: targetEnabled ?? false,
         reason: 'pin_failed',
         errorCode: authResult.errorCode,
-        errorMessage: authResult.message ?? 'PIN 验证失败，已取消本次变更'
+        errorMessage: authResult.message ?? FirewallStrings.buildToggleFailedMessage('pin_failed', undefined)
       }
       if (failureUpdate.locked) {
         failedResult.lockRemainingSec = failureUpdate.remainingSec

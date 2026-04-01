@@ -3,6 +3,7 @@ import { userAuth } from '@kit.UserAuthenticationKit'
 
 import { BusinessError } from '@kit.BasicServicesKit'
 import { AuthMethod } from '../models/DataModels'
+import { IdentityStrings } from '../constants/modules/IdentityStrings'
 
 const TAG = 'AuthService'
 
@@ -27,7 +28,7 @@ export class AuthService {
     if (authType === null) {
       return {
         available: false,
-        message: '当前设备不支持该认证方式'
+        message: IdentityStrings.authMethodUnsupported
       }
     }
 
@@ -35,7 +36,7 @@ export class AuthService {
       userAuth.getAvailableStatus(authType, userAuth.AuthTrustLevel.ATL1)
       return {
         available: true,
-        message: '系统认证可用'
+        message: IdentityStrings.authSystemAvailable
       }
     } catch (err) {
       let e = err as BusinessError
@@ -50,9 +51,9 @@ export class AuthService {
       case AuthMethod.PIN:
         return 'PIN'
       case AuthMethod.FINGERPRINT:
-        return '指纹'
+        return IdentityStrings.authMethodFingerprint
       default:
-        return '认证方式'
+        return IdentityStrings.authMethodGeneric
     }
   }
 
@@ -64,7 +65,7 @@ export class AuthService {
         return {
           success: false,
           reason: 'unavailable',
-          message: '当前设备不支持该认证方式'
+          message: IdentityStrings.authMethodUnsupported
         }
       }
 
@@ -85,7 +86,7 @@ export class AuthService {
       }
 
       let widgetParam: userAuth.WidgetParam = {
-        title: '身份验证'
+        title: IdentityStrings.authDialogTitle
       }
 
       let userAuthInstance = userAuth.getUserAuthInstance(authParam, widgetParam)
@@ -115,7 +116,7 @@ export class AuthService {
               success: false,
               reason: 'failed',
               errorCode: result.result,
-              message: '验证失败或已取消'
+              message: IdentityStrings.authFailedOrCanceled
             })
           }
         })
@@ -145,31 +146,31 @@ export class AuthService {
         return {
           available: false,
           errorCode: errorCode,
-          message: `系统未录入${authLabel}或凭据不满足要求`
+          message: IdentityStrings.buildAuthNotEnrolled(authLabel)
         }
       case 12500006:
         return {
           available: false,
           errorCode: errorCode,
-          message: '当前系统认证等级不满足要求'
+          message: IdentityStrings.authTrustLevelInsufficient
         }
       case 12500013:
         return {
           available: false,
           errorCode: errorCode,
-          message: '系统 PIN 已过期，请先在系统设置中更新'
+          message: IdentityStrings.authPinExpired
         }
       case 201:
         return {
           available: false,
           errorCode: errorCode,
-          message: '认证权限不足，无法调用系统认证'
+          message: IdentityStrings.authPermissionDenied
         }
       case 401:
         return {
           available: false,
           errorCode: errorCode,
-          message: '认证参数错误'
+          message: IdentityStrings.authInvalidParams
         }
       default:
         return {
@@ -177,7 +178,7 @@ export class AuthService {
           errorCode: errorCode,
           message: fallbackMessage && fallbackMessage.length > 0 ?
             fallbackMessage :
-            `系统${authLabel}认证暂不可用`
+            IdentityStrings.buildAuthUnavailable(authLabel)
         }
     }
   }

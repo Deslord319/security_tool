@@ -2,11 +2,6 @@
  * 路由 ID 常量
  * 避免在代码中硬编码路由字符串
  * 
- * 使用示例:
- * ```ets
- * import { RouteIds } from '../constants/RouteIds'
- * router.pushUrl({ url: RouteIds.DASHBOARD })
- * ```
  */
 export class RouteIds {
   // ==================== 主路由 ====================

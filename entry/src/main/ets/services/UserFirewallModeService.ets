@@ -15,6 +15,7 @@ import {
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 import { FirewallService } from './FirewallService'
 import { UserFirewallPolicyService } from './UserFirewallPolicyService'
+import { FirewallStrings } from '../constants/modules/FirewallStrings'
 
 const TAG = 'UserFirewallModeService'
 
@@ -148,7 +149,7 @@ export class UserFirewallModeService {
           (item.mode === 'allowlist' || item.mode === 'denylist' || item.mode === 'non_standard')
       })
     } catch (err) {
-      UserFirewallModeService.recordError('读取用户模式绑定', err as Object)
+      UserFirewallModeService.recordError(FirewallStrings.readUserModeBindingsAction, err as Object)
       LogUtils.error(TAG, 'loadBindings failed: %{public}s', JSON.stringify(err))
       return []
     }
@@ -178,7 +179,7 @@ export class UserFirewallModeService {
       await store.flush()
       return true
     } catch (err) {
-      UserFirewallModeService.recordError('保存用户模式绑定', err as Object)
+      UserFirewallModeService.recordError(FirewallStrings.saveUserModeBindingsAction, err as Object)
       LogUtils.error(TAG, 'saveBindings failed: %{public}s', JSON.stringify(err))
       return false
     }
@@ -317,7 +318,7 @@ export class UserFirewallModeService {
       LogUtils.info(TAG, 'getRules success: userId=%{public}d, count=%{public}d', userId, allRules.length)
       return allRules
     } catch (err) {
-      UserFirewallModeService.recordError('读取用户防火墙规则', err as Object)
+      UserFirewallModeService.recordError(FirewallStrings.readUserRulesAction, err as Object)
       LogUtils.error(TAG, 'getRules failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return []
     }
@@ -341,7 +342,7 @@ export class UserFirewallModeService {
       try {
         await netFirewall.removeNetFirewallRule(userId, ruleId)
       } catch (err) {
-        UserFirewallModeService.recordError('删除用户防火墙规则', err as Object)
+        UserFirewallModeService.recordError(FirewallStrings.deleteUserRulesAction, err as Object)
         LogUtils.error(TAG,
           'clearManagedRules failed, userId=%{public}d, ruleId=%{public}d, err=%{public}s',
           userId,
@@ -366,7 +367,7 @@ export class UserFirewallModeService {
       )
       return true
     } catch (err) {
-      UserFirewallModeService.recordError('写入用户防火墙策略', err as Object)
+      UserFirewallModeService.recordError(FirewallStrings.writeUserPolicyAction, err as Object)
       LogUtils.error(TAG, 'setPolicy failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return false
     }
