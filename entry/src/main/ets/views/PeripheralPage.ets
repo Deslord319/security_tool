@@ -14,7 +14,6 @@ import { CommonStrings } from '../constants/CommonStrings'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralService } from '../services/PeripheralService'
-import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -458,14 +457,12 @@ export struct PeripheralPage {
 
   private async clearConnectionHistory(): Promise<void> {
     try {
-      await PeripheralTraceRepository.init(this.getUIContext().getHostContext() as common.UIAbilityContext)
-      const success = await PeripheralTraceRepository.clearAll()
+      const success = await this.viewModel.clearConnectionHistory()
       if (!success) {
         DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
         return
       }
       this.closeDetailDialog()
-      this.viewModel.reloadDeviceRecords()
       DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
