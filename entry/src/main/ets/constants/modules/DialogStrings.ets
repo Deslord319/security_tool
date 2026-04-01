@@ -55,11 +55,13 @@ export class ResultStrings {
   static readonly UPDATE_SUCCESS: string = '更新成功'
 }
 
+// Shared labels reused across multiple modules.
 export class CommonLabelStrings {
   static readonly ALL: string = '全部'
   static readonly UNKNOWN: string = '未知'
 }
 
+// Firewall rule type labels reused by filters and dialogs.
 export class FirewallRuleLabelStrings {
   static readonly ALL_RULES: string = '全部规则'
   static readonly IP_RULE: string = 'IP规则'
@@ -82,6 +84,7 @@ export class ValidationErrorStrings {
 
 // ==================== 防火墙相关文本 ====================
 export class FirewallDialogStrings {
+  // Titles
   // 标题
   static readonly ADD_RULE_TITLE: string = '新增规则'
   static readonly EDIT_RULE_TITLE: string = '编辑规则'
@@ -109,9 +112,6 @@ export class FirewallDialogStrings {
   static readonly RULE_NAME_PLACEHOLDER: string = '请输入规则名称'
   
   // 规则类型标签
-  static readonly RULE_TYPE_IP: string = FirewallRuleLabelStrings.IP_RULE
-  static readonly RULE_TYPE_DOMAIN: string = FirewallRuleLabelStrings.DOMAIN_RULE
-  static readonly RULE_TYPE_DNS: string = FirewallRuleLabelStrings.DNS_RULE
   static readonly DIRECTION_INBOUND: string = '入站'
   static readonly DIRECTION_OUTBOUND: string = '出站'
   static readonly PROTOCOL_TCP: string = 'TCP'
@@ -133,7 +133,6 @@ export class FirewallDialogStrings {
   static readonly MODE_UNMANAGED: string = '未纳管'
   
   // 验证错误
-  static readonly ERROR_RULE_NAME_REQUIRED: string = FirewallDialogStrings.RULE_NAME_PLACEHOLDER
   static readonly ERROR_DOMAIN_REQUIRED: string = '请输入域名'
   static readonly ERROR_DNS_REQUIRED: string = '请输入 DNS 地址'
   static readonly ERROR_IP_REQUIRED: string = '请输入远端 IP 或 CIDR'
@@ -160,8 +159,8 @@ export class FirewallDialogStrings {
 
 // ==================== 设备详情对话框文本 ====================
 export class DeviceDetailStrings {
+  // Dialog structure
   static readonly TITLE: string = '设备详情'
-  static readonly CLOSE_BUTTON: string = DialogButtonStrings.CLOSE
   static readonly KEY_INFO: string = '关键信息'
   static readonly HISTORY_TITLE: string = '历史连接记录'
   static readonly NO_HISTORY: string = '暂无历史连接记录'
@@ -179,10 +178,12 @@ export class DeviceDetailStrings {
   static readonly RESULT_STATUS: string = '结果状态'
 }
 
+// Shared device type labels reused by records and policy views.
 export class DeviceTypeLabels {
   static readonly USB_STORAGE: string = 'USB 存储设备'
   static readonly USB_CAMERA: string = 'USB 摄像头'
   static readonly USB_PRINTER: string = 'USB 打印机'
   static readonly USB_HID: string = 'USB 人机输入设备'
   static readonly USB_OTHER: string = 'USB 其他设备'
+  static readonly BLUETOOTH: string = '蓝牙设备'
 }

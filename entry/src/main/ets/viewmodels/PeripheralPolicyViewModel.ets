@@ -1,6 +1,7 @@
 import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
+import { DeviceTypeLabels } from '../constants/modules/DialogStrings'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
@@ -130,7 +131,7 @@ export class PeripheralPolicyViewModel {
   }
 
   private getDeviceTypeLabel(deviceType: PeripheralType): string {
-    return deviceType === PeripheralType.USB_OTHER ? PeripheralStrings.usbOtherDevice :
+    return deviceType === PeripheralType.USB_OTHER ? DeviceTypeLabels.USB_OTHER :
       (deviceType ? getPeripheralTypeLabel(deviceType) : PeripheralStrings.unknownDevice)
   }
 

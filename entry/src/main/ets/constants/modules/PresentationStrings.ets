@@ -1,10 +1,5 @@
-import { DeviceTypeLabels, FirewallDialogStrings, ResultStrings } from './DialogStrings'
-
-export class DataModelStrings {
+export class PresentationStrings {
   static readonly actionDeny: string = '拒绝'
-
-  static readonly peripheralUsbOther: string = 'USB 其他'
-  static readonly peripheralBluetooth: string = '蓝牙设备'
 
   static readonly usbStorageReadWrite: string = '读写'
   static readonly usbStorageReadOnly: string = '只读'

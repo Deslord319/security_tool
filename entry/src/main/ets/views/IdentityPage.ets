@@ -1,5 +1,6 @@
 import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { IdentityStrings } from '../constants/modules/IdentityStrings'
 import {
   AdminActivationState,
@@ -96,7 +97,7 @@ export struct IdentityPage {
   build() {
     Column() {
       SubPageHeader({
-        title: IdentityStrings.pageTitle,
+        title: CommonStrings.moduleIdentity,
         subtitle: IdentityStrings.pageSubtitle,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
@@ -136,7 +137,7 @@ export struct IdentityPage {
   @Builder
   private headerActions() {
     IconTextActionButton({
-      label: IdentityStrings.saveButton,
+      label: CommonStrings.actionSaveConfig,
       icon: $r('app.media.save'),
       kind: 'primary',
       onTap: () => {

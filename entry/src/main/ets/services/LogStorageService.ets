@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData'
 
 import { common } from '@kit.AbilityKit'
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
-import { LogExportErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
+import { LogExportErrorStrings, ErrorTemplates } from '../constants/modules/ErrorStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
   LogEntry,
@@ -289,7 +289,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: now,
-        errorMessage: LogExportErrors.noLogsToExport
+        errorMessage: LogExportErrorStrings.noLogsToExport
       }
     }
 
@@ -307,7 +307,7 @@ export class LogStorageService {
       return {
         success: false,
         timestamp: timestamp,
-        errorMessage: LogExportErrors.uiContextUnavailable
+        errorMessage: LogExportErrorStrings.uiContextUnavailable
       }
     }
 
@@ -321,7 +321,7 @@ export class LogStorageService {
         return {
           success: false,
           timestamp: timestamp,
-          errorMessage: LogExportErrors.userCanceledSave
+        errorMessage: LogExportErrorStrings.userCanceledSave
         }
       }
       

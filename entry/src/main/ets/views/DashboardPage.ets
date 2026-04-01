@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { DashboardStrings } from '../constants/modules/DashboardStrings'
 import { MetricSummaryCard } from '../components/MetricSummaryCard'
 import { ToolCard } from '../components/ToolCard'
@@ -116,7 +117,7 @@ export struct DashboardPage {
     Scroll() {
       Column({ space: 22 }) {
         Column({ space: 4 }) {
-          Text(DashboardStrings.pageTitle)
+          Text(CommonStrings.moduleDashboard)
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

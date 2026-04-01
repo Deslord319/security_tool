@@ -1,5 +1,7 @@
 import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
+import { FirewallDialogStrings, LoadingStrings } from '../constants/modules/DialogStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService'
@@ -241,7 +243,7 @@ export struct FirewallPage {
       LogUtils.info(TAG, `mode switch start: current=${this.currentMode}, target=${mode}`)
       success = await this.modeLoadingRunner.run(
         'firewall-mode-switch',
-        FirewallStrings.modeLoadingMessage,
+        LoadingStrings.APPLYING_MODE,
         async (): Promise<boolean> => {
           return await this.onModeChange(mode)
         },
@@ -292,7 +294,7 @@ export struct FirewallPage {
               .width(12)
               .height(12)
               .fillColor(this.getModeStatusTextColor(mode))
-            Text(FirewallStrings.currentMode)
+            Text(CommonStrings.statusCurrentMode)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getModeStatusTextColor(mode))
@@ -335,7 +337,7 @@ export struct FirewallPage {
           }
         } else if (this.isModeSelected(mode)) {
           Row({ space: 4 }) {
-            Text(FirewallStrings.effective)
+            Text(CommonStrings.statusEffective)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -397,7 +399,7 @@ export struct FirewallPage {
   build() {
     Column() {
       SubPageHeader({
-        title: FirewallStrings.pageTitle,
+        title: CommonStrings.moduleFirewall,
         subtitle: FirewallStrings.pageSubtitle,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),

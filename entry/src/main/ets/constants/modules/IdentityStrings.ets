@@ -1,10 +1,8 @@
 import { CommonStrings } from '../CommonStrings'
 
 export class IdentityStrings {
-  static readonly pageTitle: string = CommonStrings.moduleIdentity
   static readonly pageSubtitle: string = '配置账户口令复杂度和密码有效期，保障系统访问安全。'
 
-  static readonly saveButton: string = CommonStrings.actionSaveConfig
   static readonly saveAction: string = '保存身份鉴别配置'
   static readonly passwordPolicyAction: string = '设置口令策略'
   static readonly readPasswordPolicyAction: string = '读取口令策略'

@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../constants/modules/HelpFeedbackStrings'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
@@ -73,7 +74,7 @@ export struct HelpFeedbackPage {
   build() {
     Column() {
       SubPageHeader({
-        title: HelpFeedbackStrings.pageTitle,
+        title: CommonStrings.moduleHelpFeedback,
         subtitle: HelpFeedbackStrings.pageSubtitle,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack()

@@ -195,7 +195,7 @@ export struct PeripheralPage {
   @Builder
   private header() {
     SubPageHeader({
-      title: PeripheralStrings.pageTitle,
+      title: CommonStrings.modulePeripheralManage,
       subtitle: PeripheralStrings.pageSubtitle,
       currentTheme: this.currentTheme,
       onBack: () => this.onBack(),

@@ -2,7 +2,7 @@
  * 通用错误处理工具类
  * 提供统一的错误处理相关方法
  */
-import { PermissionErrors, SystemServiceErrors, ErrorTemplates } from '../constants/modules/ErrorStrings'
+import { PermissionErrorStrings, SystemServiceErrorStrings, ErrorTemplates } from '../constants/modules/ErrorStrings'
 
 interface ErrorRecorder {
   lastErrorCode: number | undefined
@@ -52,29 +52,29 @@ export class CommonErrorUtils {
    * 根据操作和错误码解析错误消息
    */
   static resolveErrorMessage(action: string, code: number | undefined): string {
-    if (action === PermissionErrors.readUserListAction) {
+    if (action === PermissionErrorStrings.readUserListAction) {
       switch (code) {
         case 201:
-          return PermissionErrors.missingUserListPermission
+      return PermissionErrorStrings.missingUserListPermission
         case 12300001:
         case 2100002:
-          return SystemServiceErrors.accountServiceConnectionFailed
+      return SystemServiceErrorStrings.accountServiceConnectionFailed
         default:
           return ErrorTemplates.actionFailedTemplate.replace('${action}', action)
       }
     }
     switch (code) {
       case 201:
-        return PermissionErrors.missingAccountOrFirewallPermission
+      return PermissionErrorStrings.missingAccountOrFirewallPermission
       case 401:
       case 2100001:
-        return PermissionErrors.invalidUserIdParam
+      return PermissionErrorStrings.invalidUserIdParam
       case 2100002:
-        return SystemServiceErrors.serviceConnectionFailed
+      return SystemServiceErrorStrings.serviceConnectionFailed
       case 2100003:
-        return SystemServiceErrors.internalError
+      return SystemServiceErrorStrings.internalError
       case 29400000:
-        return SystemServiceErrors.userNotExistOrInvalid
+      return SystemServiceErrorStrings.userNotExistOrInvalid
       default:
         return ErrorTemplates.actionFailedTemplate.replace('${action}', action)
     }

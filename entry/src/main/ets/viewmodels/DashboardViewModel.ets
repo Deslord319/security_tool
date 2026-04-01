@@ -4,6 +4,7 @@ import { AppResources } from '../constants/AppResources'
 import { CommonStrings } from '../constants/CommonStrings'
 import { RouteIds } from '../constants/RouteIds'
 import { DashboardStrings } from '../constants/modules/DashboardStrings'
+import { FirewallDialogStrings } from '../constants/modules/DialogStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/DashboardModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
@@ -102,7 +103,7 @@ export class DashboardViewModel {
     return this.createModuleCard(
       RouteIds.FIREWALL,
       DashboardStrings.firewallTitle,
-      enabled ? DashboardStrings.firewallEnabled : DashboardStrings.firewallDisabled,
+      enabled ? FirewallDialogStrings.SWITCH_ENABLED : FirewallDialogStrings.SWITCH_DISABLED,
       modeText,
       DashboardStrings.firewallGradient.start,
       DashboardStrings.firewallGradient.end,

@@ -1,5 +1,5 @@
 
-import { DataModelStrings } from '../constants/modules/DataModelStrings'
+import { PresentationStrings } from '../constants/modules/PresentationStrings'
 import { CommonLabelStrings, DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings, ResultStrings } from '../constants/modules/DialogStrings'
 import { IdentityStrings } from '../constants/modules/IdentityStrings'
 
@@ -70,7 +70,7 @@ export function getActionLabel(action: RuleAction): string {
     case RuleAction.ALLOW:
       return FirewallDialogStrings.ACTION_ALLOW
     case RuleAction.DENY:
-      return DataModelStrings.actionDeny
+      return PresentationStrings.actionDeny
     default:
       return CommonLabelStrings.UNKNOWN
   }
@@ -249,9 +249,9 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
     case PeripheralType.USB_HID:
       return DeviceTypeLabels.USB_HID
     case PeripheralType.USB_OTHER:
-      return DataModelStrings.peripheralUsbOther
+      return DeviceTypeLabels.USB_OTHER
     case PeripheralType.BLUETOOTH:
-      return DataModelStrings.peripheralBluetooth
+      return DeviceTypeLabels.BLUETOOTH
     default:
       return CommonLabelStrings.UNKNOWN
   }
@@ -260,11 +260,11 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
 export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   switch (policy) {
     case UsbStoragePolicy.READ_WRITE:
-      return DataModelStrings.usbStorageReadWrite
+      return PresentationStrings.usbStorageReadWrite
     case UsbStoragePolicy.READ_ONLY:
-      return DataModelStrings.usbStorageReadOnly
+      return PresentationStrings.usbStorageReadOnly
     case UsbStoragePolicy.DISABLED:
-      return DataModelStrings.usbStorageDisabled
+      return PresentationStrings.usbStorageDisabled
     default:
       return CommonLabelStrings.UNKNOWN
   }
@@ -273,28 +273,28 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
 export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
   switch (source) {
     case 'runtime_event':
-      return DataModelStrings.sourceRuntimeEvent
+      return PresentationStrings.sourceRuntimeEvent
     case 'audit_event':
-      return DataModelStrings.sourceAuditEvent
+      return PresentationStrings.sourceAuditEvent
     case 'policy_snapshot':
-      return DataModelStrings.sourcePolicySnapshot
+      return PresentationStrings.sourcePolicySnapshot
     default:
-      return DataModelStrings.sourceUnknown
+      return PresentationStrings.sourceUnknown
   }
 }
 
 export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
   switch (action) {
     case 'connect':
-      return DataModelStrings.recordActionConnect
+      return PresentationStrings.recordActionConnect
     case 'disconnect':
-      return DataModelStrings.recordActionDisconnect
+      return PresentationStrings.recordActionDisconnect
     case 'discover':
-      return DataModelStrings.recordActionDiscover
+      return PresentationStrings.recordActionDiscover
     case 'intercept':
-      return DataModelStrings.recordActionIntercept
+      return PresentationStrings.recordActionIntercept
     default:
-      return DataModelStrings.recordActionUnknown
+      return PresentationStrings.recordActionUnknown
   }
 }
 
@@ -601,13 +601,13 @@ export const PREF_STORE_NAME_LOG = 'log_settings'
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
     case LogEventType.CRASH:
-      return DataModelStrings.logEventCrash
+      return PresentationStrings.logEventCrash
     case LogEventType.FILE:
-      return DataModelStrings.logEventFile
+      return PresentationStrings.logEventFile
     case LogEventType.ACCOUNT:
-      return DataModelStrings.logEventAccount
+      return PresentationStrings.logEventAccount
     case LogEventType.PERMISSION:
-      return DataModelStrings.logEventPermission
+      return PresentationStrings.logEventPermission
     default:
       return CommonLabelStrings.UNKNOWN
   }
@@ -618,7 +618,7 @@ export function getLogEventResultLabel(result: LogEventResult): string {
     case LogEventResult.SUCCESS:
       return ResultStrings.SUCCESS
     case LogEventResult.BLOCKED:
-      return DataModelStrings.logResultBlocked
+      return PresentationStrings.logResultBlocked
     case LogEventResult.FAILED:
       return ResultStrings.FAILED
     default:
@@ -640,10 +640,10 @@ export function getLogEventResultColor(result: LogEventResult): string {
 }
 
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: DataModelStrings.logEventCrash, value: LogEventType.CRASH },
-  { label: DataModelStrings.logEventFile, value: LogEventType.FILE },
-  { label: DataModelStrings.logEventAccount, value: LogEventType.ACCOUNT },
-  { label: DataModelStrings.logEventPermission, value: LogEventType.PERMISSION }
+  { label: PresentationStrings.logEventCrash, value: LogEventType.CRASH },
+  { label: PresentationStrings.logEventFile, value: LogEventType.FILE },
+  { label: PresentationStrings.logEventAccount, value: LogEventType.ACCOUNT },
+  { label: PresentationStrings.logEventPermission, value: LogEventType.PERMISSION }
 ]
 
 export function formatLogTimestamp(timestamp: number): string {

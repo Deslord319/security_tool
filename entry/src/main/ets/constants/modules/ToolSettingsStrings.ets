@@ -1,9 +1,7 @@
 import { CommonStrings } from '../CommonStrings'
 
 export class ToolSettingsStrings {
-  static readonly pageTitle: string = CommonStrings.moduleToolSettings
   static readonly pageSubtitle: string = '配置启动认证与系统密码修改入口等工具级安全能力'
-  static readonly saveButton: string = CommonStrings.actionSaveSettings
   static readonly saveSuccess: string = '工具设置已保存'
   static readonly openPasswordSettingsFailed: string = '无法打开系统密码设置，请手动前往系统设置修改'
 

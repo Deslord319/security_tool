@@ -11,7 +11,6 @@ export interface GuideItemString {
 }
 
 export class HelpFeedbackStrings {
-  static readonly pageTitle: string = CommonStrings.moduleHelpFeedback
   static readonly pageSubtitle: string = '使用指南、常见问题和反馈渠道'
 
   static readonly guideSectionTitle: string = '使用指南'

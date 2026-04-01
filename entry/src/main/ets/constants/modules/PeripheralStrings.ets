@@ -3,6 +3,7 @@ import { DeviceDetailStrings, DeviceTypeLabels, FirewallDialogStrings } from './
 import { LogManageStrings } from './LogManageStrings'
 
 export class PeripheralStrings {
+  // Reason keys used across services, viewmodels and dialogs.
   static readonly initFailed: string = 'init_failed'
   static readonly adminRequired: string = 'admin_required'
   static readonly invalidDeviceId: string = 'invalid_device_id'
@@ -19,6 +20,7 @@ export class PeripheralStrings {
   static readonly setUsbInterfaceConflict: string = 'set_usb_interface'
   static readonly setUsbStoragePolicyConflict: string = 'set_usb_storage_policy'
 
+  // Control options and loading text.
   static readonly policyOptions: string[] = ['允许接入', '禁止接入']
   static readonly interfaceToggleOptions: string[] = ['启用', '禁用']
   static readonly usbStorageOptions: string[] = ['只读', '读写', '禁止访问']
@@ -27,28 +29,23 @@ export class PeripheralStrings {
   static readonly usbInterfaceLoadingMessage: string = '正在设置 USB 接口策略，请稍候...'
   static readonly usbStorageLoadingMessage: string = '正在设置 USB 存储策略，请稍候...'
 
-  static readonly pageTitle: string = CommonStrings.modulePeripheralManage
+  // Page-level copy.
   static readonly pageSubtitle: string = '管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备访问策略'
 
   static readonly interfaceTabTitle: string = '接口管控'
   static readonly deviceTabTitle: string = '设备连接记录'
   static readonly policyTabTitle: string = '黑白名单'
-  static readonly detailAction: string = LogManageStrings.detailTitle
   static readonly actionLabel: string = '操作'
   static readonly policyLabel: string = '策略'
-  static readonly currentPolicyLabel: string = FirewallDialogStrings.CURRENT_STATUS
   static readonly deviceNameLabel: string = '设备名称'
   static readonly deviceTypeLabel: string = '设备类型'
-  static readonly deviceIdLabel: string = DeviceDetailStrings.DEVICE_ID
-  static readonly connectionEventLabel: string = DeviceDetailStrings.CONNECTION_EVENT
   static readonly connectionTimeLabel: string = '连接时间'
   static readonly latestConnectionTimeLabel: string = '最近连接时间'
   static readonly latestSeenTimeLabel: string = '最近出现时间'
   static readonly timeLabel: string = '时间'
   static readonly policyHitLabel: string = '策略命中'
-  static readonly resultStatusLabel: string = DeviceDetailStrings.RESULT_STATUS
-  static readonly eventSourceLabel: string = DeviceDetailStrings.EVENT_SOURCE
 
+  // Interface cards.
   static readonly usbInterfaceTitle: string = 'USB 接口'
   static readonly usbInterfaceDescription: string = '启用或禁用 USB 接口。禁用后，USB 接口相关外设将无法接入。'
   static readonly bluetoothTitle: string = '蓝牙'
@@ -65,9 +62,9 @@ export class PeripheralStrings {
   static readonly microphoneDescription: string = '启用或禁用麦克风接口。'
   static readonly cameraTitle: string = '摄像头'
   static readonly cameraDescription: string = '启用或禁用摄像头接口。'
-  static readonly usbStorageTitle: string = DeviceTypeLabels.USB_STORAGE
   static readonly usbStorageDescription: string = '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。'
 
+  // Policy/export state labels.
   static readonly matchedPolicyUsbDisabled: string = 'USB 接口已禁用'
   static readonly matchedPolicyUsbStorageDisabled: string = 'USB 存储已禁用'
   static readonly matchedPolicyUsbStorageReadOnly: string = 'USB 存储只读'
@@ -78,12 +75,12 @@ export class PeripheralStrings {
   static readonly matchedPolicyDisconnectEvent: string = '设备断开连接'
   static readonly policyPending: string = '待判定'
   static readonly unknownDevice: string = '未知设备'
-  static readonly usbOtherDevice: string = DeviceTypeLabels.USB_OTHER
   static readonly csvConnectionHistoryFilePrefix: string = 'peripheral_connection_history'
   static readonly csvPolicyListFilePrefix: string = 'peripheral_policy_list'
   static readonly exportDownloadPathPrefix: string = '下载'
   static readonly exportSuccessPrefix: string = '导出成功：'
 
+  // Toolbar actions and confirmation copy.
   static readonly exportHistoryLabel: string = '导出记录'
   static readonly clearHistoryLabel: string = '清理记录'
   static readonly exportPolicyLabel: string = '导出名单'
@@ -104,6 +101,7 @@ export class PeripheralStrings {
   static readonly emptyPolicyTitle: string = '暂无黑白名单设备'
   static readonly emptyPolicyDescription: string = '设备连接后会出现在这里，可按需设置允许或禁止接入。'
 
+  // Shared suffixes and reason-to-message mapping.
   static readonly adminRequiredActionSuffix: string = '未完成，请先激活企业管理员权限'
 
   static resolveReason(reason?: string | null): string {
@@ -147,21 +145,22 @@ export class PeripheralStrings {
     PeripheralStrings.timeLabel,
     PeripheralStrings.deviceNameLabel,
     PeripheralStrings.deviceTypeLabel,
-    PeripheralStrings.deviceIdLabel,
-    PeripheralStrings.connectionEventLabel,
+    DeviceDetailStrings.DEVICE_ID,
+    DeviceDetailStrings.CONNECTION_EVENT,
     PeripheralStrings.policyHitLabel,
-    PeripheralStrings.resultStatusLabel,
-    PeripheralStrings.eventSourceLabel
+    DeviceDetailStrings.RESULT_STATUS,
+    DeviceDetailStrings.EVENT_SOURCE
   ]
 
   static readonly policyListCsvHeaders: string[] = [
     PeripheralStrings.deviceNameLabel,
     PeripheralStrings.deviceTypeLabel,
-    PeripheralStrings.deviceIdLabel,
+    DeviceDetailStrings.DEVICE_ID,
     PeripheralStrings.latestSeenTimeLabel,
-    PeripheralStrings.currentPolicyLabel
+    FirewallDialogStrings.CURRENT_STATUS
   ]
 
+  // Runtime summaries and detail copy.
   static readonly unnamedBluetoothDevice: string = '未命名蓝牙设备'
   static readonly runtimeDeviceDisconnected: string = '设备已断开'
   static readonly runtimeUsbInterfaceDisabledSummary: string = 'USB 接口已禁用'

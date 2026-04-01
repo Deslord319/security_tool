@@ -1,17 +1,13 @@
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/DataModels'
 import { CommonStrings } from '../CommonStrings'
 import { AppColors } from '../AppConstants'
-import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from './DialogStrings'
+import { EmptyStateStrings, FirewallDialogStrings } from './DialogStrings'
 
 export class FirewallStrings {
-  static readonly pageTitle: string = CommonStrings.moduleFirewall
   static readonly pageSubtitle: string = '统一管理系统防火墙开关、预设策略与自定义规则。'
-  static readonly modeLoadingMessage: string = LoadingStrings.APPLYING_MODE
   static readonly modeSectionTitle: string = '预设模式'
 
-  static readonly currentMode: string = CommonStrings.statusCurrentMode
   static readonly rulesPage: string = '规则页'
-  static readonly effective: string = CommonStrings.statusEffective
   static readonly userIdControlButton: string = '按用户 ID 控制'
   static readonly toggleFailed: string = '防火墙开关切换失败'
   static readonly modeApplyFailed: string = '策略下发失败，当前模式未切换'

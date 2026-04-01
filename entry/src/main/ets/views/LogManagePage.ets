@@ -17,6 +17,7 @@ import {
   getLogEventResultLabel,
   getLogEventTypeLabel
 } from '../models/DataModels'
+import { PresentationStrings } from '../constants/modules/PresentationStrings'
 import { EmptyStatePanel } from '../components/EmptyStatePanel'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { MetricSummaryCard } from '../components/MetricSummaryCard'
@@ -24,7 +25,7 @@ import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { DetailDialogShell } from '../components/DetailDialogShell'
-import { EmptyStateStrings } from '../constants/modules/DialogStrings'
+import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings, ResultStrings } from '../constants/modules/DialogStrings'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
@@ -78,7 +79,7 @@ struct LogDetailDialogPanel {
     this.pushNumberField(fields, 'pid', 'PID', this.entry.pid)
     this.pushNumberField(fields, 'uid', 'UID', this.entry.uid)
     this.pushTextField(fields, 'filePath', LogManageStrings.filePathLabel, this.entry.filePath)
-    this.pushTextField(fields, 'remoteAddr', LogManageStrings.remoteAddressLabel, this.entry.remoteAddr)
+    this.pushTextField(fields, 'remoteAddr', FirewallDialogStrings.REMOTE_ADDRESS, this.entry.remoteAddr)
     return fields
   }
 
@@ -201,9 +202,9 @@ export struct LogManagePage {
   ]
   private resultFilterOptions: SelectOption[] = [
     { value: LogManageStrings.allResults } as SelectOption,
-    { value: LogManageStrings.successOption } as SelectOption,
-    { value: LogManageStrings.statBlocked } as SelectOption,
-    { value: LogManageStrings.failedOption } as SelectOption
+    { value: ResultStrings.SUCCESS } as SelectOption,
+    { value: PresentationStrings.logResultBlocked } as SelectOption,
+    { value: ResultStrings.FAILED } as SelectOption
   ]
 
   aboutToAppear() {
@@ -281,7 +282,7 @@ export struct LogManagePage {
     DialogService.openConfirm(this.getUIContext(), {
       title: LogManageStrings.clearConfirmTitle,
       message: LogManageStrings.buildClearConfirmMessage(this.viewModel.state.summary.totalCount),
-      confirmText: LogManageStrings.clearConfirmAction,
+      confirmText: CommonStrings.actionClear,
       cancelText: CommonStrings.actionCancel,
       onConfirm: async () => {
         let success = await this.viewModel.clearLogs()
@@ -349,7 +350,7 @@ export struct LogManagePage {
           AppColors.SUCCESS, AppColors.GRADIENT_LOG_END, $r('app.media.log'))
       }
       GridCol() {
-        this.buildMetricCard(LogManageStrings.statBlocked, `${this.viewModel.state.summary.blockedCount}`, LogManageStrings.statBlockedDescription,
+        this.buildMetricCard(PresentationStrings.logResultBlocked, `${this.viewModel.state.summary.blockedCount}`, LogManageStrings.statBlockedDescription,
           AppColors.WARNING, AppColors.GRADIENT_IDENTITY_END, $r('app.media.alert'))
       }
       GridCol() {
@@ -489,7 +490,7 @@ export struct LogManagePage {
     if (this.viewModel.state.loading) {
       Column() {
         LoadingProgress().width(48).height(48)
-        Text(LogManageStrings.loading).fontSize(AppStyles.FONT_SIZE_BODY).margin({ top: 8 })
+        Text(LoadingStrings.LOADING).fontSize(AppStyles.FONT_SIZE_BODY).margin({ top: 8 })
       }
       .width('100%')
       .layoutWeight(1)

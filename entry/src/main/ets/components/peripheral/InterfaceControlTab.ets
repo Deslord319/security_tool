@@ -1,6 +1,7 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { SectionSelectRow } from '../SectionRows'
 import { AppColors, AppStyles } from '../../constants/AppConstants'
+import { DeviceTypeLabels } from '../../constants/modules/DialogStrings'
 import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../services/PeripheralService'
 import { ThemeMode } from '../../theme/ThemeColors'
@@ -88,7 +89,7 @@ export struct InterfaceControlTab {
   @Builder
   private storageItem() {
     SectionSelectRow({
-      title: PeripheralStrings.usbStorageTitle,
+      title: DeviceTypeLabels.USB_STORAGE,
       description: PeripheralStrings.usbStorageDescription,
       options: PeripheralStrings.usbStorageOptions.map((value: string): SelectOption => ({ value: value } as SelectOption)),
       selectedIndex: this.usbStoragePolicyIndex,

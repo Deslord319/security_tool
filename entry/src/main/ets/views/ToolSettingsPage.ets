@@ -79,7 +79,7 @@ export struct ToolSettingsPage {
   build() {
     Column() {
       SubPageHeader({
-        title: ToolSettingsStrings.pageTitle,
+        title: CommonStrings.moduleToolSettings,
         subtitle: ToolSettingsStrings.pageSubtitle,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
@@ -125,7 +125,7 @@ export struct ToolSettingsPage {
   @Builder
   private headerActions() {
     IconTextActionButton({
-      label: ToolSettingsStrings.saveButton,
+      label: CommonStrings.actionSaveSettings,
       icon: $r('app.media.save'),
       kind: 'primary',
       onTap: () => {

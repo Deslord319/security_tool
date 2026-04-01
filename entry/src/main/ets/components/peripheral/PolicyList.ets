@@ -1,5 +1,5 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
+import { EmptyStateStrings, FirewallDialogStrings } from '../../constants/modules/DialogStrings'
 import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
@@ -102,7 +102,7 @@ export struct PolicyList {
     Row() {
       this.headerCell(PeripheralStrings.deviceNameLabel, 2.6)
       this.headerCell(PeripheralStrings.deviceTypeLabel, 1.5)
-      this.headerCell(PeripheralStrings.currentPolicyLabel, 1.5)
+      this.headerCell(FirewallDialogStrings.CURRENT_STATUS, 1.5)
       this.headerCell(PeripheralStrings.latestConnectionTimeLabel, 1.8)
       this.headerCell(PeripheralStrings.actionLabel, 1.4)
     }

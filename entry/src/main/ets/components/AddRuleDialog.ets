@@ -4,7 +4,7 @@ import { DialogService } from '../utils/DialogService'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
-import { FirewallDialogStrings, DialogButtonStrings, ValidationErrorStrings } from '../constants/modules/DialogStrings'
+import { FirewallDialogStrings, DialogButtonStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../constants/modules/DialogStrings'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
@@ -126,7 +126,7 @@ export struct AddRuleDialog {
     let remotePort = this.remotePort.trim()
 
     if (ruleName.length === 0) {
-      return FirewallDialogStrings.ERROR_RULE_NAME_REQUIRED
+      return FirewallDialogStrings.RULE_NAME_PLACEHOLDER
     }
 
     if (remoteAddress.length === 0) {
@@ -270,10 +270,10 @@ export struct AddRuleDialog {
 
   private getRuleTypeLabel(): string {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return FirewallDialogStrings.RULE_TYPE_DOMAIN
+      return FirewallRuleLabelStrings.DOMAIN_RULE
     }
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return FirewallDialogStrings.RULE_TYPE_DNS
+      return FirewallRuleLabelStrings.DNS_RULE
     }
     return FirewallDialogStrings.REMOTE_ADDRESS
   }
@@ -332,14 +332,14 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
-          { value: FirewallDialogStrings.RULE_TYPE_IP },
-          { value: FirewallDialogStrings.RULE_TYPE_DOMAIN },
-          { value: FirewallDialogStrings.RULE_TYPE_DNS }
+          { value: FirewallRuleLabelStrings.IP_RULE },
+          { value: FirewallRuleLabelStrings.DOMAIN_RULE },
+          { value: FirewallRuleLabelStrings.DNS_RULE }
         ])
           .selected(this.ruleType - 1)
-          .value(this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN ? FirewallDialogStrings.RULE_TYPE_DOMAIN :
-            this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? FirewallDialogStrings.RULE_TYPE_DNS :
-            FirewallDialogStrings.RULE_TYPE_IP)
+          .value(this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN ? FirewallRuleLabelStrings.DOMAIN_RULE :
+            this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? FirewallRuleLabelStrings.DNS_RULE :
+            FirewallRuleLabelStrings.IP_RULE)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')

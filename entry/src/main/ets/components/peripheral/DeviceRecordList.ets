@@ -5,6 +5,8 @@ import {
   PeripheralConnectionRecord
 } from '../../models/DataModels'
 import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
+import { DeviceDetailStrings } from '../../constants/modules/DialogStrings'
+import { LogManageStrings } from '../../constants/modules/LogManageStrings'
 import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralRecordPresentationMapper'
@@ -82,7 +84,7 @@ export struct DeviceRecordList {
     Row() {
       this.headerCell(PeripheralStrings.deviceNameLabel, 2.6)
       this.headerCell(PeripheralStrings.deviceTypeLabel, 1.5)
-      this.headerCell(PeripheralStrings.connectionEventLabel, 1.3)
+      this.headerCell(DeviceDetailStrings.CONNECTION_EVENT, 1.3)
       this.headerCell(PeripheralStrings.policyLabel, 1.2)
       this.headerCell(PeripheralStrings.connectionTimeLabel, 1.9)
       this.headerCell(PeripheralStrings.actionLabel, 1.0)
@@ -146,7 +148,7 @@ export struct DeviceRecordList {
       .justifyContent(FlexAlign.Center)
 
       Row() {
-        Text(PeripheralStrings.detailAction)
+        Text(LogManageStrings.detailTitle)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
           .fontColor(this.getDetailButtonForeground())

@@ -5,7 +5,7 @@ import {
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit
 } from '../models/DataModels'
-import { DataModelStrings } from '../constants/modules/DataModelStrings'
+import { PresentationStrings } from '../constants/modules/PresentationStrings'
 import { CommonLabelStrings, FirewallDialogStrings, ResultStrings } from '../constants/modules/DialogStrings'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 
@@ -61,13 +61,13 @@ export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionR
 
 export function getPeripheralConnectionResultLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
-    return DataModelStrings.sourcePolicySnapshot
+      return PresentationStrings.sourcePolicySnapshot
   }
   switch (record.result) {
     case LogEventResult.SUCCESS:
       return ResultStrings.SUCCESS
     case LogEventResult.BLOCKED:
-      return DataModelStrings.logResultBlocked
+      return PresentationStrings.logResultBlocked
     case LogEventResult.FAILED:
       return ResultStrings.FAILED
     default:

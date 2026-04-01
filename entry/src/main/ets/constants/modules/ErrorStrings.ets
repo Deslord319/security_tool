@@ -1,4 +1,4 @@
-export class PermissionErrors {
+export class PermissionErrorStrings {
   static readonly readUserListAction: string = '读取用户列表'
   static readonly missingUserListPermission: string = '缺少系统用户列表读取权限'
   static readonly missingAccountOrFirewallPermission: string = '缺少账户或防火墙管理权限'
@@ -14,14 +14,14 @@ export class AdminErrorStrings {
   }
 }
 
-export class SystemServiceErrors {
+export class SystemServiceErrorStrings {
   static readonly accountServiceConnectionFailed: string = '系统账号服务连接失败'
   static readonly serviceConnectionFailed: string = '系统服务连接失败'
   static readonly internalError: string = '系统内部错误'
   static readonly userNotExistOrInvalid: string = '目标用户不存在或已失效'
 }
 
-export class LogExportErrors {
+export class LogExportErrorStrings {
   static readonly noLogsToExport: string = '无日志可导出'
   static readonly uiContextUnavailable: string = 'UI 上下文不可用'
   static readonly userCanceledSave: string = '用户取消保存'
