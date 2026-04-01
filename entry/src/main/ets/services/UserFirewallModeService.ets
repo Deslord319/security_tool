@@ -23,6 +23,11 @@ export class UserFirewallModeService {
   private static lastErrorCode: number | undefined = undefined
   private static lastErrorMessage: string = ''
 
+  private static clearLastError(): void {
+    UserFirewallModeService.lastErrorCode = undefined
+    UserFirewallModeService.lastErrorMessage = ''
+  }
+
   static getLastErrorCode(): number | undefined {
     return UserFirewallModeService.lastErrorCode
   }
@@ -190,10 +195,7 @@ export class UserFirewallModeService {
     mode: FirewallUserApplyMode,
     sharedRules: netFirewall.NetFirewallRule[]
   ): Promise<UserFirewallModeApplyResult> {
-    CommonErrorUtils.clearLastError({
-      lastErrorCode: UserFirewallModeService.lastErrorCode,
-      lastErrorMessage: UserFirewallModeService.lastErrorMessage
-    })
+    UserFirewallModeService.clearLastError()
     let policy = await UserFirewallPolicyService.getPolicy(userId)
     if (policy.errorCode !== undefined) {
       return {
@@ -325,10 +327,7 @@ export class UserFirewallModeService {
   }
 
   private static async clearManagedRules(userId: number): Promise<boolean> {
-    CommonErrorUtils.clearLastError({
-      lastErrorCode: UserFirewallModeService.lastErrorCode,
-      lastErrorMessage: UserFirewallModeService.lastErrorMessage
-    })
+    UserFirewallModeService.clearLastError()
     let managedRules = await UserFirewallModeService.getManagedRules(userId)
     if (managedRules.length === 0 && UserFirewallModeService.lastErrorMessage.length > 0) {
       return false

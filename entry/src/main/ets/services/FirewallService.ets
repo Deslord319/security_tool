@@ -75,6 +75,12 @@ export class FirewallService {
   private static lastErrorMessage: string = ''
   private static lastErrorKind: FirewallErrorKind = 'unknown'
 
+  private static clearLastError(): void {
+    FirewallService.lastErrorCode = undefined
+    FirewallService.lastErrorMessage = ''
+    FirewallService.lastErrorKind = 'unknown'
+  }
+
   static normalizeRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
     if (rule.type !== netFirewall.NetFirewallRuleType.RULE_IP) {
       return FirewallService.cloneRuleForCreate(rule)
@@ -141,10 +147,7 @@ export class FirewallService {
 
   // 获取防火墙策略（含开关状态）
   static async getFirewallPolicy(): Promise<netFirewall.NetFirewallPolicy | null> {
-    CommonErrorUtils.clearLastError({
-      lastErrorCode: FirewallService.lastErrorCode,
-      lastErrorMessage: FirewallService.lastErrorMessage
-    })
+    FirewallService.clearLastError()
     try {
       return await netFirewall.getNetFirewallPolicy(DEFAULT_USER_ID)
     } catch (err) {
@@ -155,20 +158,18 @@ export class FirewallService {
   }
 
   // 获取防火墙开关状态
-  static async getFirewallStatus(): Promise<boolean> {
-    let policy = await FirewallService.getFirewallPolicy()
-    return policy !== null ? policy.isOpen : false
-  }
-
   // 启用/禁用防火墙
   static async setFirewallEnabled(enabled: boolean): Promise<boolean> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     try {
       let existingPolicy = await FirewallService.getFirewallPolicy()
+      if (existingPolicy === null) {
+        return false
+      }
       let policy: netFirewall.NetFirewallPolicy = {
         isOpen: enabled,
-        inAction: existingPolicy?.inAction ?? netFirewall.FirewallRuleAction.RULE_ALLOW,
-        outAction: existingPolicy?.outAction ?? netFirewall.FirewallRuleAction.RULE_ALLOW
+        inAction: existingPolicy.inAction,
+        outAction: existingPolicy.outAction
       }
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
       return true
@@ -180,7 +181,7 @@ export class FirewallService {
   }
 
   static async setFirewallPolicy(policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     try {
       await netFirewall.setNetFirewallPolicy(DEFAULT_USER_ID, policy)
       return true
@@ -193,7 +194,7 @@ export class FirewallService {
 
   // 获取所有防火墙规则（分页获取全部）
   static async getAllRules(): Promise<netFirewall.NetFirewallRule[]> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     try {
       let allRules: netFirewall.NetFirewallRule[] = []
       let page = 1
@@ -222,7 +223,7 @@ export class FirewallService {
 
   // 添加防火墙规则
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     try {
       let preparedRule = FirewallService.normalizeRuleForCreate(rule)
       let ruleId = await netFirewall.addNetFirewallRule(preparedRule)
@@ -238,7 +239,7 @@ export class FirewallService {
 
   // 删除防火墙规则
   static async removeRule(ruleId: number): Promise<boolean> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     try {
       await netFirewall.removeNetFirewallRule(DEFAULT_USER_ID, ruleId)
       return true
@@ -251,7 +252,7 @@ export class FirewallService {
 
   // 更新防火墙规则
   static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     try {
       await netFirewall.updateNetFirewallRule(rule)
       return true
@@ -264,7 +265,7 @@ export class FirewallService {
   }
 
   static async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<number> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     let removed = await FirewallService.removeRule(oldRuleId)
     if (!removed) {
       return -1
@@ -545,7 +546,7 @@ export class FirewallService {
     rules: netFirewall.NetFirewallRule[],
     mode: FirewallPresetMode
   ): Promise<boolean> {
-    CommonErrorUtils.clearLastError({ lastErrorCode: FirewallService.lastErrorCode, lastErrorMessage: FirewallService.lastErrorMessage })
+    FirewallService.clearLastError()
     let snapshotPolicy = await FirewallService.getFirewallPolicy()
     if (snapshotPolicy === null) {
       return false

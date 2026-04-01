@@ -26,41 +26,6 @@ export enum ProtocolType {
   ICMP = 1
 }
 
-export interface FirewallRuleDisplay {
-  ruleId: number
-  name: string
-  ruleType: RuleType
-  direction: RuleDirection
-  protocol: ProtocolType
-  address: string
-  port: string
-  action: RuleAction
-  isEnabled: boolean
-}
-
-export interface StatCardData {
-  label: string
-  value: string
-  gradientStart: string
-  gradientEnd: string
-  icon: Resource
-}
-
-export interface ToolCardData {
-  label: string
-  icon: Resource
-  route: string
-  gradientStart: string
-  gradientEnd: string
-}
-
-export interface RuleTypeData {
-  label: string
-  description: string
-  ruleType: RuleType
-  count: number
-  iconColor: string
-}
 export function getRuleTypeLabel(type: RuleType): string {
   switch (type) {
     case RuleType.IP:
@@ -120,13 +85,6 @@ export enum PeripheralType {
   BLUETOOTH = 'bluetooth'
 }
 
-export enum InterfaceFeature {
-  USB = 'usb',
-  BLUETOOTH = 'bluetooth',
-  WIFI = 'wifi',
-  HDC = 'hdc'
-}
-
 export enum UsbStoragePolicy {
   READ_WRITE = 0,
   READ_ONLY = 1,
@@ -152,14 +110,6 @@ export interface OperationResult<T = void> {
   isAdminMissing?: boolean
   stage?: string
   suggestion?: string
-}
-
-export interface DeviceRecord {
-  deviceName: string
-  deviceType: PeripheralType
-  deviceId: string
-  connectTime?: string
-  policy?: string
 }
 
 export type PeripheralRecordSource = 'runtime_event' | 'audit_event' | 'policy_snapshot'
@@ -288,14 +238,6 @@ export interface PeripheralPolicyRecord {
   policyIndex: number
 }
 
-export interface InterfaceControlConfig {
-  feature: string
-  label: string
-  description: string
-  options: string[]
-  selectedIndex: number
-}
-
 export function getPeripheralTypeLabel(type: PeripheralType): string {
   switch (type) {
     case PeripheralType.USB_STORAGE:
@@ -355,23 +297,6 @@ export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): 
       return DataModelStrings.recordActionUnknown
   }
 }
-export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
-  switch (policyHit) {
-    case 'allow':
-      return FirewallDialogStrings.ACTION_ALLOW
-    case 'deny':
-      return FirewallDialogStrings.ACTION_DENY
-    default:
-      return CommonLabelStrings.UNKNOWN
-  }
-}
-
-export function getPeripheralCandidateSourceLabel(source: PeripheralCandidateSource): string {
-  if (source === 'connected_usb') {
-    return DataModelStrings.policyCurrentConnection
-  }
-  return getPeripheralRecordSourceLabel(source)
-}
 
 // ==================== 设备 ID 解析工具函数 ====================
 
@@ -392,11 +317,6 @@ export function parseUsbDeviceId(deviceId: string): ParsedUsbId | null {
   return result
 }
 
-export function parseBluetoothMac(deviceId: string): string | null {
-  let match = deviceId.match(/MAC:\s*([0-9A-Fa-f:]+)/)
-  return match ? match[1] : null
-}
-
 export function formatUsbDeviceId(vendorId: number, productId: number): string {
   return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
 }
@@ -404,21 +324,6 @@ export function formatUsbDeviceId(vendorId: number, productId: number): string {
 export function formatBluetoothDeviceId(deviceId: string): string {
   const normalized = deviceId.trim().replace(/-/g, ':').toUpperCase()
   return `MAC: ${normalized}`
-}
-
-export function inferUsbBaseClass(type: PeripheralType): number {
-  switch (type) {
-    case PeripheralType.USB_STORAGE:
-      return 0x08
-    case PeripheralType.USB_CAMERA:
-      return 0x0E
-    case PeripheralType.USB_PRINTER:
-      return 0x07
-    case PeripheralType.USB_HID:
-      return 0x03
-    default:
-      return 0
-  }
 }
 
 export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralType {
@@ -537,13 +442,6 @@ export interface UserFirewallPolicyResult {
   isOpen: boolean
   inAction: number
   outAction: number
-  errorCode?: number
-  message?: string
-}
-
-export interface UserFirewallActionResult {
-  success: boolean
-  userId: number
   errorCode?: number
   message?: string
 }

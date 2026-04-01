@@ -11,6 +11,11 @@ export class UserFirewallPolicyService {
   private static lastErrorCode: number | undefined = undefined
   private static lastErrorMessage: string = ''
 
+  private static clearLastError(): void {
+    UserFirewallPolicyService.lastErrorCode = undefined
+    UserFirewallPolicyService.lastErrorMessage = ''
+  }
+
   static getLastErrorCode(): number | undefined {
     return UserFirewallPolicyService.lastErrorCode
   }
@@ -26,10 +31,7 @@ export class UserFirewallPolicyService {
   }
 
   static async loadAvailableUserIds(): Promise<UserFirewallListResult> {
-    CommonErrorUtils.clearLastError({
-      lastErrorCode: UserFirewallPolicyService.lastErrorCode,
-      lastErrorMessage: UserFirewallPolicyService.lastErrorMessage
-    })
+    UserFirewallPolicyService.clearLastError()
     try {
       let accountManager = osAccount.getAccountManager()
       let ids = await accountManager.getActivatedOsAccountLocalIds()
@@ -76,10 +78,7 @@ export class UserFirewallPolicyService {
   }
 
   static async getPolicy(userId: number): Promise<UserFirewallPolicyResult> {
-    CommonErrorUtils.clearLastError({
-      lastErrorCode: UserFirewallPolicyService.lastErrorCode,
-      lastErrorMessage: UserFirewallPolicyService.lastErrorMessage
-    })
+    UserFirewallPolicyService.clearLastError()
     try {
       let policy = await netFirewall.getNetFirewallPolicy(userId)
       LogUtils.info(TAG,
