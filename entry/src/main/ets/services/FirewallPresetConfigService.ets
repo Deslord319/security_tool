@@ -1,10 +1,9 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
 import { FirewallPresetConfig } from '../models/DataModels'
 
 const TAG = 'FirewallPresetConfigService'
-const DOMAIN = 0x0011
 const CONFIG_RAW_FILE = 'firewall_preset_config.json'
 
 const DEFAULT_CONFIG: FirewallPresetConfig = {

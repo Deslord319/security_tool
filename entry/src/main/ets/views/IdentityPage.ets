@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { IdentityStrings } from '../constants/modules/IdentityStrings'
 import {
@@ -22,7 +22,6 @@ import {
 } from '../viewmodels/IdentitySettingsViewModel'
 
 const TAG = 'IdentityPage'
-const DOMAIN = 0x0011
 
 @Component
 export struct IdentityPage {

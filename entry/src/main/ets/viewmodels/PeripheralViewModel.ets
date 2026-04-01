@@ -1,5 +1,6 @@
-import { LogUtils } from './utils/LogUtils'
-﻿import { common } from '@kit.AbilityKit'
+import { LogUtils } from '../utils/LogUtils'
+import { common } from '@kit.AbilityKit'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../models/DataModels'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
@@ -9,7 +10,6 @@ import { PeripheralPolicyViewModel } from './PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from './PeripheralRecordViewModel'
 
 const TAG = 'PeripheralViewModel'
-const DOMAIN = 0x0013
 
 @Observed
 export class PeripheralViewModel {
@@ -107,9 +107,7 @@ export class PeripheralViewModel {
     } catch (err) {
       LogUtils.warn(TAG, `onRefresh callback failed: ${JSON.stringify(err)}`)
     }
-    LogUtils.info(TAG,
-      `source=${source}, records=${this.records.records.length}, policyRecords=${this.policy.records.length}`
-    )
+    LogUtils.info(TAG, `source=${source}, records=${this.records.records.length}, policyRecords=${this.policy.records.length}`)
   }
 
   async toggleInterface(feature: string, disallow: boolean): Promise<boolean> {
@@ -202,4 +200,3 @@ export class PeripheralViewModel {
     this.currentTab = index
   }
 }
-

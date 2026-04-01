@@ -1,9 +1,8 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
 
 
 const TAG = 'EnterpriseAdminAbility'
-const DOMAIN = 0x0003
 
 export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbility {
   onAdminEnabled(): void {

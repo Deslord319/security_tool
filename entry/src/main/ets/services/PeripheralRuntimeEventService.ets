@@ -1,7 +1,8 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 ﻿import { common } from '@kit.AbilityKit'
 import { abilityAccessCtrl, bundleManager, Permissions } from '@kit.AbilityKit'
 import { access, connection } from '@kit.ConnectivityKit'
+import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 
 import {
   LogEventResult,
@@ -20,7 +21,6 @@ import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 import { PeripheralService } from './PeripheralService'
 
 const TAG = 'PeripheralRuntimeEvent'
-const DOMAIN = 0x000A
 const FALLBACK_BLUETOOTH_NAME = '未命名蓝牙设备'
 const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETOOTH'
 const BLUETOOTH_ACL_EVENT = commonEventManager.Support.COMMON_EVENT_BLUETOOTH_REMOTEDEVICE_ACL_STATE_CHANGE
@@ -206,7 +206,7 @@ export class PeripheralRuntimeEventService {
   }
 
   private static async registerUsbRuntimeEvents(): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve: (value: boolean) => void) => {
       try {
         const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
           events: [
@@ -214,7 +214,7 @@ export class PeripheralRuntimeEventService {
             commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED
           ]
         }
-        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
+        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber: commonEventManager.CommonEventSubscriber) => {
           if (err) {
             LogUtils.error(TAG, `createSubscriber failed: code=${err.code}, message=${err.message}`)
             resolve(false)
@@ -602,12 +602,12 @@ export class PeripheralRuntimeEventService {
     if (PeripheralRuntimeEventService.bluetoothAclSubscriber) {
       return
     }
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve: () => void) => {
       try {
         const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
           events: [BLUETOOTH_ACL_EVENT]
         }
-        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
+        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber: commonEventManager.CommonEventSubscriber) => {
           if (err) {
             if (PeripheralRuntimeEventService.isBluetoothPermissionDeniedError(err)) {
               PeripheralRuntimeEventService.enterBluetoothPermissionBlocked(`acl-subscriber-create-denied:${trigger}`)
@@ -1243,4 +1243,3 @@ export class PeripheralRuntimeEventService {
   }
 
 }
-

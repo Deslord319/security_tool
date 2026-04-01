@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from './LogUtils'
 
 import { AppColors } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
@@ -6,7 +6,6 @@ import { CommonStrings } from '../constants/CommonStrings'
 export type ActionDialogStatus = 'success' | 'failure'
 
 const TAG = 'DialogService'
-const DOMAIN = 0x0018
 
 export interface ConfirmDialogOptions {
   title: string

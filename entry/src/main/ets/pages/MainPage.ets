@@ -1,5 +1,6 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { SideBar } from '../components/SideBar'
+import { ThemeMenuPopup } from '../components/ThemeMenuPopup'
 import { DashboardPage } from '../views/DashboardPage'
 import { FirewallPage } from '../views/FirewallPage'
 import { FirewallRulesPage } from '../views/FirewallRulesPage'

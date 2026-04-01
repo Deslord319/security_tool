@@ -1,11 +1,10 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 
 import { PeripheralDevicePolicyRecord } from '../models/DataModels'
 
 const TAG = 'PeripheralDevicePolicyRepo'
-const DOMAIN = 0x000B
 const PREF_STORE_NAME = 'peripheral_device_policy'
 const PREF_KEY_DEVICE_POLICIES = 'device_policies'
 

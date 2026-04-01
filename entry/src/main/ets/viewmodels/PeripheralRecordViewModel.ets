@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 ﻿import { common } from '@kit.AbilityKit'
 
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
@@ -20,7 +20,6 @@ import {
 } from './PeripheralRecordPresentationMapper'
 
 const TAG = 'PeripheralRecordViewModel'
-const DOMAIN = 0x0013
 
 export interface ConnectionDetailDialogState {
   visible: boolean
@@ -120,4 +119,3 @@ export class PeripheralRecordViewModel {
     return normalized
   }
 }
-

@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
@@ -26,7 +26,6 @@ import { TimedLoadingDialogRunner } from '../utils/TimedLoadingDialogRunner'
 import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'PeripheralPage'
-const DOMAIN = 0x0013
 const USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS = 180
 
 @Component
@@ -47,7 +46,7 @@ export struct PeripheralPage {
     { value: PeripheralStrings.policyOptions[1] }
   ]
   private detailDialogController?: CustomDialogController
-  private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG, DOMAIN)
+  private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
     let runtimeStatus = PeripheralRuntimeEventService.getStatus()
@@ -480,5 +479,4 @@ export struct PeripheralPage {
     DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }
-
 

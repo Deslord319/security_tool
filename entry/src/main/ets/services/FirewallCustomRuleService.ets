@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
@@ -10,7 +10,6 @@ import {
 import { FirewallService } from './FirewallService'
 
 const TAG = 'FirewallCustomRuleService'
-const DOMAIN = 0x0012
 
 interface StoredCustomFirewallRuleRecord {
   customRuleId: string

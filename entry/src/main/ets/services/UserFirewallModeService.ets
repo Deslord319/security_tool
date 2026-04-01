@@ -1,4 +1,5 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
+import { common } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
 
@@ -16,7 +17,6 @@ import { FirewallService } from './FirewallService'
 import { UserFirewallPolicyService } from './UserFirewallPolicyService'
 
 const TAG = 'UserFirewallModeService'
-const DOMAIN = 0x0014
 
 export class UserFirewallModeService {
   private static lastErrorCode: number | undefined = undefined

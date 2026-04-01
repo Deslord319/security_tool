@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { AppColors, AppStyles } from '../constants/AppConstants'
@@ -14,7 +14,6 @@ import { DialogService } from '../utils/DialogService'
 import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from '../constants/modules/DialogStrings'
 
 const TAG = 'UserFirewallDialog'
-const DOMAIN = 0x0001
 
 interface ModeOption {
   mode: FirewallUserApplyMode

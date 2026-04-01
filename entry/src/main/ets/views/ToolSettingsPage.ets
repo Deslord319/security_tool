@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { ToolSettingsStrings } from '../constants/modules/ToolSettingsStrings'
@@ -16,7 +16,6 @@ import { SubPageHeader } from '../components/SubPageHeader'
 import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/ToolSettingsViewModel'
 
 const TAG = 'ToolSettings.Page'
-const DOMAIN = 0x0014
 
 @Component
 export struct ToolSettingsPage {

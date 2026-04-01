@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 
 import {
   PeripheralConnectionFilter,
@@ -9,7 +9,6 @@ import {
 import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 
 const TAG = 'PeripheralConnectionRecordService'
-const DOMAIN = 0x0008
 
 export class PeripheralConnectionRecordService {
   static queryRecords(filter?: PeripheralConnectionFilter): PeripheralConnectionRecord[] {

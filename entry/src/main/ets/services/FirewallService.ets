@@ -1,10 +1,9 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'FirewallService'
-const DOMAIN = 0x0001
 const DEFAULT_USER_ID = 100
 export type FirewallErrorKind = 'invalid_argument' | 'permission' | 'unknown'
 export type FirewallRuleConflictKind = 'none' | 'duplicate' | 'hard_conflict' | 'overlap_conflict'

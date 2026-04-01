@@ -1,11 +1,10 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
 import osAccount from '@ohos.account.osAccount'
 import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../models/DataModels'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'UserFirewallPolicyService'
-const DOMAIN = 0x0001
 
 export class UserFirewallPolicyService {
   private static lastErrorCode: number | undefined = undefined

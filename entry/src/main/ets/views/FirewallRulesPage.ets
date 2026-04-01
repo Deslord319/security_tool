@@ -1,5 +1,6 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
+import { CommonStrings } from '../constants/CommonStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'

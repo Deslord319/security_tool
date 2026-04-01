@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import osAccount from '@ohos.account.osAccount'
 import { LogPathUtils } from '../utils/LogPathUtils'
@@ -11,7 +11,6 @@ import {
 } from '../models/DataModels'
 
 const TAG = 'LogAuditService'
-const DOMAIN = 0x0006
 const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
 const DEFAULT_FOREGROUND_USER_ID = 100
 const FILE_EVENT_IDS: number[] = [

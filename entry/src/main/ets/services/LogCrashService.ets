@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 
 import {
@@ -9,7 +9,6 @@ import {
 } from '../models/DataModels'
 
 const TAG = 'LogCrashService'
-const DOMAIN = 0x0006
 const WATCHER_NAME = 'securityCrashWatcher1'
 
 export type CrashEntryCallback = (entry: LogEntry) => void

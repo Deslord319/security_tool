@@ -1,11 +1,10 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { userAuth } from '@kit.UserAuthenticationKit'
 
 import { BusinessError } from '@kit.BasicServicesKit'
 import { AuthMethod } from '../models/DataModels'
 
 const TAG = 'AuthService'
-const DOMAIN = 0x0004
 
 export interface AuthAvailabilityResult {
   available: boolean

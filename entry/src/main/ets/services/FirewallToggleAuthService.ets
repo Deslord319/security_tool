@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
 import { AuthService } from './AuthService'
@@ -19,7 +19,6 @@ import {
 import { UserFirewallModeService } from './UserFirewallModeService'
 
 const TAG = 'FirewallToggleAuthService'
-const DOMAIN = 0x000a
 
 export class FirewallToggleAuthService {
   static async executeToggle(

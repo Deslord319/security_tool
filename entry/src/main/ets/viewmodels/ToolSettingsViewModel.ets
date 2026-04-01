@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { ActionDialogStatus } from '../utils/DialogService'
 import { CommonStrings } from '../constants/CommonStrings'
@@ -12,7 +12,6 @@ import { AuthService } from '../services/AuthService'
 import { SystemSettingsService } from '../services/SystemSettingsService'
 
 const TAG = 'ToolSettings.ViewModel'
-const DOMAIN = 0x0014
 
 export interface ToolSettingsUiState {
   config: ToolSettingsConfig

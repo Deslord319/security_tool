@@ -1,11 +1,10 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 ﻿import { usbManager as edmUsbManager } from '@kit.MDMKit'
 
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../services/PeripheralService'
 
 const TAG = 'InterfaceControlViewModel'
-const DOMAIN = 0x0013
 
 export interface InterfaceControlState {
   usbDisabled: boolean
@@ -157,4 +156,3 @@ export class InterfaceControlViewModel {
     }
   }
 }
-

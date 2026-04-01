@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -6,7 +6,6 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 
 const TAG = 'SectionRows'
-const DOMAIN = 0x0015
 
 @Component
 export struct SectionToggleRow {

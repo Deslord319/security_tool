@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
 import { AppInfo } from '../constants/AppConstants'
@@ -8,7 +8,6 @@ import { LogCrashService } from './LogCrashService'
 import { LogStorageService } from './LogStorageService'
 
 const TAG = 'LogRuntimeCollector'
-const DOMAIN = 0x0006
 
 export interface LogRuntimeCollectorStatus {
   running: boolean

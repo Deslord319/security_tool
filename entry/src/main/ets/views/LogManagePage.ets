@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
@@ -33,7 +33,6 @@ import { DialogService } from '../utils/DialogService'
 import { LogManageViewModel } from '../viewmodels/LogManageViewModel'
 
 const TAG = 'LogManagePage'
-const DOMAIN = 0x0012
 
 function getPageLogEventTypeLabel(type: LogEventType): string {
   switch (type) {

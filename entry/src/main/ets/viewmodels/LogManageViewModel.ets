@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { CommonStrings } from '../constants/CommonStrings'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
@@ -28,7 +28,6 @@ import {
 import { LogStorageService } from '../services/LogStorageService'
 
 const TAG = 'LogManageViewModel'
-const DOMAIN = 0x0012
 
 export interface LogStorageSettingsSaveResult {
   success: boolean

@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 ﻿import { common } from '@kit.AbilityKit'
 
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
@@ -14,7 +14,6 @@ import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePo
 import { PeripheralPolicyService } from '../services/PeripheralPolicyService'
 
 const TAG = 'PeripheralPolicyViewModel'
-const DOMAIN = 0x0013
 
 @Observed
 export class PeripheralPolicyViewModel {
@@ -162,4 +161,3 @@ export class PeripheralPolicyViewModel {
     return normalized
   }
 }
-

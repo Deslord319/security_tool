@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 ﻿import { preferences } from '@kit.ArkData'
 
 import { common } from '@kit.AbilityKit'
@@ -27,7 +27,6 @@ import {
 } from '../models/DataModels'
 
 const TAG = 'LogStorageService'
-const DOMAIN = 0x0007
 
 // Log data storage key
 const LOG_DATA_KEY = 'log_entries'

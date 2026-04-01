@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../components/SubPageHeader'
@@ -14,7 +14,6 @@ import { TimedLoadingDialogRunner } from '../utils/TimedLoadingDialogRunner'
 import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'FirewallPage'
-const DOMAIN = 0x0010
 
 @Component
 export struct FirewallPage {
@@ -29,7 +28,7 @@ export struct FirewallPage {
   onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
   onNavigateToRules: () => void = () => {}
   onBack: () => void = () => {}
-  private readonly modeLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG, DOMAIN)
+  private readonly modeLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
     this.firewallSwitchValue = this.firewallEnabled

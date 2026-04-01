@@ -1,6 +1,6 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
-import { networkManager } from '@kit.MDMKit'
+import { networkManager, usbManager } from '@kit.MDMKit'
 
 import { Want } from '@kit.AbilityKit'
 import { AppInfo } from '../constants/AppConstants'
@@ -9,7 +9,6 @@ import { EnterpriseAdminService } from './EnterpriseAdminService'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'PeripheralService'
-const DOMAIN = 0x0002
 
 const ADMIN_WANT: Want = {
   bundleName: AppInfo.BUNDLE_NAME,
@@ -79,7 +78,7 @@ export class PeripheralService {
 
   static getUsbStoragePolicyWithResult(): OperationResult<usbManager.UsbPolicy> {
     try {
-      const policy = usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)
+      const policy: usbManager.UsbPolicy = usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)
       LogUtils.info(TAG, `getUsbStoragePolicyWithResult success: policy=${policy}`)
       return {
         success: true,

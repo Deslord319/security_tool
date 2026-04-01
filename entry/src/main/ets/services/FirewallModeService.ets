@@ -1,4 +1,5 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
+import { common } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
 
@@ -13,7 +14,6 @@ import { FirewallPresetService } from './FirewallPresetService'
 import { FirewallService } from './FirewallService'
 
 const TAG = 'FirewallModeService'
-const DOMAIN = 0x0013
 
 export class FirewallModeService {
   static async initialize(context: common.UIAbilityContext): Promise<void> {

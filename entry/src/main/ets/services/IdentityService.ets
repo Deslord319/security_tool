@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { securityManager } from '@kit.MDMKit'
 
 import { Want } from '@kit.AbilityKit'
@@ -9,7 +9,6 @@ import { PeripheralService } from './PeripheralService'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 
 const TAG = 'IdentityService'
-const DOMAIN = 0x0003
 
 const ADMIN_WANT: Want = {
   bundleName: AppInfo.BUNDLE_NAME,

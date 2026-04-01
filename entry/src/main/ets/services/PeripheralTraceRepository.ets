@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 
@@ -14,7 +14,6 @@ import {
 } from '../models/DataModels'
 
 const TAG = 'PeripheralTraceRepo'
-const DOMAIN = 0x0009
 const PREF_STORE_NAME = 'peripheral_trace_settings'
 const PREF_KEY_TRACE_RECORDS = 'peripheral_trace_records'
 const RETENTION_DAYS_DEFAULT = 180

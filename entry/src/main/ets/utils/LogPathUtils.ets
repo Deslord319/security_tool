@@ -1,4 +1,4 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from './LogUtils'
 const TAG = 'LogPathUtils'
 export class LogPathUtils {
   static buildHmdfsAccountFilesPrefix(userId: number): string {

@@ -1,5 +1,6 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
+import { preferences } from '@kit.ArkData'
 import { BusinessError } from '@kit.BasicServicesKit'
 
 import {
@@ -12,7 +13,6 @@ import {
 } from '../models/DataModels'
 
 const TAG = 'ToolSettings.Repository'
-const DOMAIN = 0x0014
 
 export interface ToolSettingsRepository {
   loadConfig(context: common.UIAbilityContext): Promise<ToolSettingsConfig>
@@ -23,9 +23,9 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
   async loadConfig(context: common.UIAbilityContext): Promise<ToolSettingsConfig> {
     LogUtils.info(TAG, `[LOAD_START] loadConfig | store=${PREF_STORE_NAME_TOOL}`)
     try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
-      let startupAuthRaw = await store.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
-      let authMethodRaw = await store.get(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
+      let store: preferences.Preferences = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
+      let startupAuthRaw: Object = await store.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
+      let authMethodRaw: Object = await store.get(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
       let config: ToolSettingsConfig = {
         startupAuthEnabled: this.normalizeStartupAuthEnabled(startupAuthRaw),
         authMethod: this.normalizeAuthMethod(authMethodRaw)
@@ -51,7 +51,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
       `[SAVE_START] saveConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
     )
     try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
+      let store: preferences.Preferences = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
       await store.put(PREF_KEY_STARTUP_AUTH, config.startupAuthEnabled)
       await store.put(PREF_KEY_AUTH_METHOD, config.authMethod)
       await store.flush()

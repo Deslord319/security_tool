@@ -1,10 +1,9 @@
-import { LogUtils } from './utils/LogUtils'
+import { LogUtils } from '../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 
 import { ThemeMode, ThemePreference, ThemeOption } from './ThemeColors'
 
-const DOMAIN = 0x0000
 const TAG = 'ThemeManager'
 
 const PREFERENCES_NAME = 'theme_preferences'
