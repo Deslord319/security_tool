@@ -34,7 +34,6 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
-    LogUtils.info(ENTRYABILITY_TAG, '%{public}s', 'Ability onDestroy');
   }
 
   onNewWant(want: Want): void {
@@ -76,24 +75,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   private shouldSkipStartupAuth(): boolean {
-    try {
-      const params = this.startupWant?.parameters
-      if (!params) {
-        return false
-      }
-
-      const raw = params['skip_startup_auth']
-      if (raw === true || raw === 1) {
-        return true
-      }
-      if (typeof raw === 'string') {
-        const normalized = raw.toLowerCase()
-        return normalized === 'true' || normalized === '1' || normalized === 'yes'
-      }
-    } catch (err) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'shouldSkipStartupAuth read failed: %{public}s', JSON.stringify(err))
-    }
-    return false
+    return this.getLaunchParamBoolean('skip_startup_auth')
   }
 
   private getLaunchParamString(name: string): string {
@@ -103,22 +85,24 @@ export default class EntryAbility extends UIAbility {
         return ''
       }
       const raw = params[name]
-      if (typeof raw === 'string') {
-        return raw
+      if (raw === undefined || raw === null) {
+        return ''
       }
-      if (typeof raw === 'number' || typeof raw === 'boolean') {
-        return `${raw}`
-      }
-    } catch (_err) {
-      // ignore
+      return `${raw}`.trim()
+    } catch (err) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'getLaunchParamString failed: name=%{public}s, err=%{public}s', name, JSON.stringify(err))
     }
     return ''
+  }
+
+  private getLaunchParamBoolean(name: string): boolean {
+    const normalized = this.getLaunchParamString(name).toLowerCase()
+    return normalized === 'true' || normalized === '1' || normalized === 'yes'
   }
 
   private applyUiTestLaunchOverrides(): void {
     const route = this.getLaunchParamString('ui_route')
     const theme = this.getLaunchParamString('ui_theme').toLowerCase()
-    LogUtils.info(ENTRYABILITY_TAG, 'applyUiTestLaunchOverrides route=%{public}s theme=%{public}s', route, theme)
     if (route.length > 0) {
       AppStorage.setOrCreate<string>(UI_TEST_ROUTE_KEY, route)
     }
@@ -204,7 +188,6 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageDestroy(): void {
     // Main window is destroyed, release UI related resources
-    LogUtils.info(ENTRYABILITY_TAG, '%{public}s', 'Ability onWindowStageDestroy');
   }
 
   onForeground(): void {
@@ -213,7 +196,6 @@ export default class EntryAbility extends UIAbility {
 
   onBackground(): void {
     // Ability has back to background
-    LogUtils.info(ENTRYABILITY_TAG, '%{public}s', 'Ability onBackground');
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {

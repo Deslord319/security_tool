@@ -42,7 +42,6 @@ export class FirewallModeService {
     let targetRules = targetMode === 'custom'
       ? await FirewallCustomRuleService.buildRulesForApply(context)
       : await FirewallPresetService.buildRules(context, targetMode)
-    LogUtils.info(TAG, `switchMode prepared: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
     return FirewallModeService.applyModeRules(context, targetMode, targetRules)
   }
 
@@ -80,7 +79,6 @@ export class FirewallModeService {
     targetMode: FirewallPresetMode,
     targetRules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallModeSwitchResult> {
-    LogUtils.info(TAG, `applyModeRules start: targetMode=${targetMode}, ruleCount=${targetRules.length}`)
     let applied = await FirewallService.applyRuleSet(targetRules, targetMode)
     if (!applied) {
       LogUtils.error(TAG,
@@ -95,7 +93,6 @@ export class FirewallModeService {
       }
     }
     await FirewallModeService.saveCurrentMode(context, targetMode)
-    LogUtils.info(TAG, `applyModeRules success: targetMode=${targetMode}, appliedRuleCount=${targetRules.length}`)
     return {
       success: true,
       mode: targetMode,

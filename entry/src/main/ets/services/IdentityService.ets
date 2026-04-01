@@ -68,7 +68,6 @@ export class IdentityService {
         additionalDescription: description
       }
       securityManager.setPasswordPolicy(ADMIN_WANT, policy)
-      LogUtils.info(TAG, `setPasswordPolicy success, regex=${regex}, validityPeriod=${config.validityPeriod}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
@@ -79,7 +78,6 @@ export class IdentityService {
   static getPasswordPolicyWithResult(): OperationResult<securityManager.PasswordPolicy | null> {
     try {
       let result = securityManager.getPasswordPolicy(ADMIN_WANT)
-      LogUtils.info(TAG, `getPasswordPolicy: ${JSON.stringify(result)}`)
       return {
         success: true,
         data: result

@@ -54,7 +54,6 @@ export class ThemeManager {
     // 同步获取系统主题（无异步操作）
     const systemTheme = this.getSystemTheme()
     this.lastDetectedSystemTheme = systemTheme
-    LogUtils.info('ThemeManager', 'initSync: systemTheme=%{public}s', systemTheme)
 
     // 用系统主题作为初始值（而非硬编码 LIGHT）
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, systemTheme)
@@ -104,17 +103,10 @@ export class ThemeManager {
     try {
       const config = this.context.config
       const colorMode = config?.colorMode
-      LogUtils.info('ThemeManager', 'getSystemTheme: colorMode=%{public}d, COLOR_MODE_DARK=%{public}d, COLOR_MODE_LIGHT=%{public}d, COLOR_MODE_NOT_SET=%{public}d',
-        colorMode ?? -999,
-        ConfigurationConstant.ColorMode.COLOR_MODE_DARK,
-        ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT,
-        ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
       if (config && config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK) {
-        LogUtils.info('ThemeManager', 'getSystemTheme: detected DARK mode')
         return ThemeMode.DARK
       }
       if (config && config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT) {
-        LogUtils.info('ThemeManager', 'getSystemTheme: detected LIGHT mode')
         return ThemeMode.LIGHT
       }
       // COLOR_MODE_NOT_SET 或其他未知值：使用上次检测到的系统主题
@@ -125,7 +117,6 @@ export class ThemeManager {
       LogUtils.error('ThemeManager', 'getSystemTheme failed: %{public}s', JSON.stringify(err))
     }
 
-    LogUtils.info('ThemeManager', 'getSystemTheme: returning lastDetected=%{public}s (exception fallback)', this.lastDetectedSystemTheme)
     return this.lastDetectedSystemTheme
   }
 
@@ -146,8 +137,6 @@ export class ThemeManager {
         systemTheme = this.getSystemTheme()
       }
       AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, systemTheme)
-      LogUtils.info('ThemeManager', 'onConfigurationUpdate: colorMode=%{public}d, applied theme=%{public}s',
-        colorMode ?? -999, systemTheme)
     }
   }
 
@@ -167,7 +156,6 @@ export class ThemeManager {
     }
 
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, themeToApply)
-    LogUtils.info('ThemeManager', 'reapplyTheme: preference=%{public}s, applied=%{public}s', preference, themeToApply)
   }
 
   // 设置主题（手动切换）
@@ -240,7 +228,6 @@ export class ThemeManager {
 
     // 持久化
     await this.saveOption(option)
-    LogUtils.info('ThemeManager', 'setOption: option=%{public}s', option)
   }
 
   // 保存选项到 Preferences
