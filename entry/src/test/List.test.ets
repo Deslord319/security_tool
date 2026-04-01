@@ -7,6 +7,9 @@ import authTest from './auth/service.test'
 import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
+import peripheralConnectionRecordUsbConsumerTest from './peripheral/connection-record-usb-consumer.test'
+import peripheralConnectionRecordBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
+import peripheralConnectionRecordPipelineTest from './peripheral/connection-record-pipeline.test'
 import identityTest from './identity/service.test'
 import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
 import helpFeedbackStringsTest from './help/strings.test'
@@ -37,6 +40,9 @@ export default function testsuite() {
   peripheralModelsTest()
   peripheralServiceTest()
   peripheralConnectionRecordServiceTest()
+  peripheralConnectionRecordUsbConsumerTest()
+  peripheralConnectionRecordBluetoothAclConsumerTest()
+  peripheralConnectionRecordPipelineTest()
 
   // Identity
   identityTest()
