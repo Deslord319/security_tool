@@ -16,8 +16,12 @@ import {
   LogStorageConfig
 } from '../models/DataModels'
 import {
+  LogDetailState,
+  LogFilterState,
+  LogListState,
   LogManageMode,
   LogManageState,
+  LogPaginationState,
   LogStorageSettingsState,
   LogSummaryState
 } from '../models/LogManageModels'
@@ -83,9 +87,14 @@ export class LogManageViewModel {
   }
 
   refreshAll(): void {
+    // 1. 先更新 statisticsCache 和 summary（卡片数据优先刷新）
     this.statisticsCache = LogStorageService.getStatistics()
-    this.reloadEntries()
     this.rebuildSummary()
+    
+    // 2. 再更新列表数据
+    this.reloadEntries()
+    
+    // 3. 同步详情状态
     this.syncDetailState()
   }
 
@@ -331,6 +340,8 @@ export class LogManageViewModel {
     let filter = this.buildFilter()
     let allEntries = LogStorageService.queryEntries(filter)
     this.updateState((state: LogManageState) => {
+      // 替换整个 list 对象以确保触发响应式更新
+      state.list = new LogListState()
       state.list.allEntries = allEntries
     })
     this.rebuildPagination()
@@ -398,6 +409,9 @@ export class LogManageViewModel {
     let start = (this.state.pagination.currentPage - 1) * pageSize
     let pagedEntries = this.state.list.allEntries.slice(start, start + pageSize)
     this.updateState((state: LogManageState) => {
+      // 替换整个 list 对象以确保触发响应式更新
+      state.list = new LogListState()
+      state.list.allEntries = [...this.state.list.allEntries]
       state.list.pagedEntries = pagedEntries
     })
   }
@@ -522,38 +536,12 @@ export class LogManageViewModel {
     return {
       loading: false,
       mode: 'list',
-      summary: {
-        totalCount: 0,
-        todayCount: 0,
-        blockedCount: 0
-      },
-      filter: {
-        eventTypeIndex: 0,
-        resultIndex: 0,
-        keyword: '',
-        hintMessage: ''
-      },
-      pagination: {
-        currentPage: 1,
-        pageSizeIndex: 1,
-        pageInputText: '1',
-        totalPages: 1
-      },
-      list: {
-        allEntries: [],
-        pagedEntries: []
-      },
-      detail: {
-        visible: false,
-        entryId: ''
-      },
-      settings: {
-        maxEntriesIndex: LogManageViewModel.DEFAULT_MAX_ENTRIES_INDEX,
-        retentionIndex: LogManageViewModel.DEFAULT_RETENTION_INDEX,
-        initialMaxEntriesIndex: LogManageViewModel.DEFAULT_MAX_ENTRIES_INDEX,
-        initialRetentionIndex: LogManageViewModel.DEFAULT_RETENTION_INDEX,
-        hasChanges: false
-      }
+      summary: new LogSummaryState(),
+      filter: new LogFilterState(),
+      pagination: new LogPaginationState(),
+      list: new LogListState(),
+      detail: new LogDetailState(),
+      settings: new LogStorageSettingsState()
     }
   }
 
@@ -567,42 +555,30 @@ export class LogManageViewModel {
   }
 
   private static cloneState(state: LogManageState): LogManageState {
-    return {
-      loading: state.loading,
-      mode: state.mode,
-      summary: {
-        totalCount: state.summary.totalCount,
-        todayCount: state.summary.todayCount,
-        blockedCount: state.summary.blockedCount
-      },
-      filter: {
-        eventTypeIndex: state.filter.eventTypeIndex,
-        resultIndex: state.filter.resultIndex,
-        keyword: state.filter.keyword,
-        hintMessage: state.filter.hintMessage
-      },
-      pagination: {
-        currentPage: state.pagination.currentPage,
-        pageSizeIndex: state.pagination.pageSizeIndex,
-        pageInputText: state.pagination.pageInputText,
-        totalPages: state.pagination.totalPages
-      },
-      list: {
-        allEntries: [...state.list.allEntries],
-        pagedEntries: [...state.list.pagedEntries]
-      },
-      detail: {
-        visible: state.detail.visible,
-        entryId: state.detail.entryId
-      },
-      settings: {
-        maxEntriesIndex: state.settings.maxEntriesIndex,
-        retentionIndex: state.settings.retentionIndex,
-        initialMaxEntriesIndex: state.settings.initialMaxEntriesIndex,
-        initialRetentionIndex: state.settings.initialRetentionIndex,
-        hasChanges: state.settings.hasChanges
-      }
-    }
+    let nextState = new LogManageState()
+    nextState.loading = state.loading
+    nextState.mode = state.mode
+    nextState.summary.totalCount = state.summary.totalCount
+    nextState.summary.todayCount = state.summary.todayCount
+    nextState.summary.blockedCount = state.summary.blockedCount
+    nextState.filter.eventTypeIndex = state.filter.eventTypeIndex
+    nextState.filter.resultIndex = state.filter.resultIndex
+    nextState.filter.keyword = state.filter.keyword
+    nextState.filter.hintMessage = state.filter.hintMessage
+    nextState.pagination.currentPage = state.pagination.currentPage
+    nextState.pagination.pageSizeIndex = state.pagination.pageSizeIndex
+    nextState.pagination.pageInputText = state.pagination.pageInputText
+    nextState.pagination.totalPages = state.pagination.totalPages
+    nextState.list.allEntries = [...state.list.allEntries]
+    nextState.list.pagedEntries = [...state.list.pagedEntries]
+    nextState.detail.visible = state.detail.visible
+    nextState.detail.entryId = state.detail.entryId
+    nextState.settings.maxEntriesIndex = state.settings.maxEntriesIndex
+    nextState.settings.retentionIndex = state.settings.retentionIndex
+    nextState.settings.initialMaxEntriesIndex = state.settings.initialMaxEntriesIndex
+    nextState.settings.initialRetentionIndex = state.settings.initialRetentionIndex
+    nextState.settings.hasChanges = state.settings.hasChanges
+    return nextState
   }
 
   private static findOptionIndex(options: number[], value: number, fallbackIndex: number): number {

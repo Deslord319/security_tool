@@ -46,8 +46,8 @@ export struct MetricSummaryCard {
       Row({ space: this.horizontalSpace }) {
         Column() {
           Image(this.icon)
-            .width(this.contentHoverable && this.isHovered ? this.iconSize + 2 : this.iconSize)
-            .height(this.contentHoverable && this.isHovered ? this.iconSize + 2 : this.iconSize)
+            .width(this.contentHoverable && this.isHovered ? this.iconSize + 1 : this.iconSize)
+            .height(this.contentHoverable && this.isHovered ? this.iconSize + 1 : this.iconSize)
             .fillColor(Color.White)
             .draggable(false)
         }

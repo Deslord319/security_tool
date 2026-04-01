@@ -19,9 +19,11 @@ import {
 import { EmptyStatePanel } from '../components/EmptyStatePanel'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { MetricSummaryCard } from '../components/MetricSummaryCard'
+import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionSelectRow } from '../components/SectionRows'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { DetailDialogShell } from '../components/DetailDialogShell'
+import { EmptyStateStrings } from '../constants/modules/DialogStrings'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
@@ -521,27 +523,37 @@ export struct LogManagePage {
       .layoutWeight(1)
       .justifyContent(FlexAlign.Center)
     } else if (this.viewModel.state.list.allEntries.length === 0) {
-      Column() {
+      Scroll() {
         EmptyStatePanel({
-          title: LogManageStrings.emptyTitle,
-          description: LogManageStrings.emptyDescription
+          title: EmptyStateStrings.NO_RECORDS,
+          description: EmptyStateStrings.CHECK_PERMISSIONS,
+          radius: AppStyles.RADIUS_LG,
+          verticalPadding: 24
         })
       }
       .width('100%')
       .layoutWeight(1)
-      .justifyContent(FlexAlign.Center)
+      .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
     } else {
-      List({ space: 1 }) {
-        ForEach(this.viewModel.state.list.pagedEntries, (entry: LogEntry) => {
-          ListItem() {
-            this.logEntryRow(entry)
+      Scroll() {
+        Column({ space: 0 }) {
+          List({ space: 1 }) {
+            ForEach(this.viewModel.state.list.pagedEntries, (entry: LogEntry) => {
+              ListItem() {
+                this.logEntryRow(entry)
+              }
+            }, (entry: LogEntry) => entry.id)
           }
-        }, (entry: LogEntry) => entry.id)
+          .width('100%')
+          .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM, bottom: AppStyles.PADDING_SM })
+        }
+        .width('100%')
       }
       .width('100%')
       .layoutWeight(1)
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM })
       .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
     }
   }
 
@@ -636,6 +648,33 @@ export struct LogManagePage {
     .margin({ left: 12 })
   }
 
+  @Builder
+  private storageSettingsContent() {
+    SectionSelectRow({
+      title: LogManageStrings.maxEntriesLabel,
+      description: LogManageStrings.maxEntriesDescription,
+      options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
+      selectedIndex: this.viewModel.state.settings.maxEntriesIndex,
+      value: `${LOG_MAX_ENTRIES_OPTIONS[this.viewModel.state.settings.maxEntriesIndex]}`,
+      selectWidth: this.settingsFormControlWidth,
+      onSelect: (index: number) => this.viewModel.setStorageMaxEntriesIndex(index)
+    })
+
+    Divider()
+      .color(AppColors.getColors(this.currentTheme).BORDER)
+      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+    SectionSelectRow({
+      title: LogManageStrings.retentionDaysLabel,
+      description: LogManageStrings.retentionDaysDescription,
+      options: LogManagePage.STORAGE_RETENTION_OPTIONS,
+      selectedIndex: this.viewModel.state.settings.retentionIndex,
+      value: `${LOG_RETENTION_OPTIONS[this.viewModel.state.settings.retentionIndex]}`,
+      selectWidth: this.settingsFormControlWidth,
+      onSelect: (index: number) => this.viewModel.setStorageRetentionIndex(index)
+    })
+  }
+
   build() {
     Column() {
       SubPageHeader({
@@ -651,65 +690,21 @@ export struct LogManagePage {
       if (this.viewModel.state.mode === 'settings') {
         Scroll() {
           Column({ space: 24 }) {
-            Column({ space: 0 }) {
-              Row() {
-                Text(LogManageStrings.settingsTitle)
-                  .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                Blank()
+            SectionCard({
+              title: LogManageStrings.settingsTitle,
+              content: () => {
+                this.storageSettingsContent()
               }
-              .width('100%')
-              .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-
-              Divider()
-                .color(AppColors.getColors(this.currentTheme).BORDER)
-                .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-              Column({ space: 0 }) {
-                SectionSelectRow({
-                  title: LogManageStrings.maxEntriesLabel,
-                  description: LogManageStrings.maxEntriesDescription,
-                  options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
-                  selectedIndex: this.viewModel.state.settings.maxEntriesIndex,
-                  value: `${LOG_MAX_ENTRIES_OPTIONS[this.viewModel.state.settings.maxEntriesIndex]}`,
-                  selectWidth: this.settingsFormControlWidth,
-                  onSelect: (index: number) => this.viewModel.setStorageMaxEntriesIndex(index)
-                })
-
-                Divider()
-                  .color(AppColors.getColors(this.currentTheme).BORDER)
-                  .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-                SectionSelectRow({
-                  title: LogManageStrings.retentionDaysLabel,
-                  description: LogManageStrings.retentionDaysDescription,
-                  options: LogManagePage.STORAGE_RETENTION_OPTIONS,
-                  selectedIndex: this.viewModel.state.settings.retentionIndex,
-                  value: `${LOG_RETENTION_OPTIONS[this.viewModel.state.settings.retentionIndex]}`,
-                  selectWidth: this.settingsFormControlWidth,
-                  onSelect: (index: number) => this.viewModel.setStorageRetentionIndex(index)
-                })
-              }
-              .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-            .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-            .borderRadius(AppStyles.RADIUS_LG)
-            .clip(true)
-            .border({
-              width: 1,
-              color: AppColors.getColors(this.currentTheme).BORDER
             })
           }
           .width('100%')
           .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
+          .justifyContent(FlexAlign.Start)
         }
         .width('100%')
         .layoutWeight(1)
         .scrollBar(BarState.Auto)
+        .align(Alignment.Top)
       } else {
         this.statisticsBar()
         this.filterToolbar()
