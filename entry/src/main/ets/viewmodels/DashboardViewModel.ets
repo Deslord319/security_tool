@@ -1,5 +1,5 @@
 import { common } from '@kit.AbilityKit'
-import { AppColors, Routes } from '../constants/AppConstants'
+import { AppColors } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { CommonStrings } from '../constants/CommonStrings'
 import { RouteIds } from '../constants/RouteIds'
@@ -161,7 +161,7 @@ export class DashboardViewModel {
         AppResources.FIREWALL_ICON,
         DashboardStrings.firewallGradient.start,
         DashboardStrings.firewallGradient.end,
-        Routes.FIREWALL
+        RouteIds.FIREWALL
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_LOG,
@@ -169,7 +169,7 @@ export class DashboardViewModel {
         AppResources.LOG_ICON,
         DashboardStrings.logManageGradient.start,
         DashboardStrings.logManageGradient.end,
-        Routes.LOG_MANAGE
+        RouteIds.LOG_MANAGE
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_PERIPHERAL,
@@ -177,7 +177,7 @@ export class DashboardViewModel {
         AppResources.PERIPHERAL_ICON,
         DashboardStrings.peripheralGradient.start,
         DashboardStrings.peripheralGradient.end,
-        Routes.PERIPHERAL_MANAGE
+        RouteIds.PERIPHERAL_MANAGE
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_IDENTITY,
@@ -185,7 +185,7 @@ export class DashboardViewModel {
         AppResources.IDENTITY_ICON,
         DashboardStrings.identityGradient.start,
         DashboardStrings.identityGradient.end,
-        Routes.IDENTITY
+        RouteIds.IDENTITY
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_TOOL_SETTINGS,
@@ -193,7 +193,7 @@ export class DashboardViewModel {
         AppResources.SETTINGS_ICON,
         DashboardStrings.toolSettingsGradient.start,
         DashboardStrings.toolSettingsGradient.end,
-        Routes.TOOL_SETTINGS
+        RouteIds.TOOL_SETTINGS
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_HELP_FEEDBACK,
@@ -201,7 +201,7 @@ export class DashboardViewModel {
         AppResources.HELP_ICON,
         DashboardStrings.helpFeedbackGradient.start,
         DashboardStrings.helpFeedbackGradient.end,
-        Routes.HELP_FEEDBACK
+        RouteIds.HELP_FEEDBACK
       )
     ]
   }

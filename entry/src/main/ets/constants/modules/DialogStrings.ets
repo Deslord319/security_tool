@@ -106,6 +106,9 @@ export class FirewallDialogStrings {
   static readonly PROTOCOL_ICMP: string = 'ICMP'
   static readonly ACTION_ALLOW: string = '允许'
   static readonly ACTION_DENY: string = '阻止'
+  static readonly SWITCH_ENABLED: string = '已开启'
+  static readonly SWITCH_DISABLED: string = '已关闭'
+  static readonly APPLY_MODE_FAILED: string = '策略下发失败'
   
   // 按钮
   static readonly APPLY_MODE: string = '下发策略'
@@ -131,6 +134,15 @@ export class FirewallDialogStrings {
   
   // 描述文本
   static readonly USER_FIREWALL_DESCRIPTION: string = '选择目标 userId 后，为该用户下发自定义模式。白名单模式默认双向拒绝，只放行允许规则；黑名单模式默认双向允许，只阻止禁止规则；非标准模式只下发手动维护的规则，不修改默认入/出站策略。执行前需要完成 PIN 认证。'
+
+  static buildPolicySummary(isOpen: boolean, inboundAction: string, outboundAction: string): string {
+    let switchStatus = isOpen ? FirewallDialogStrings.SWITCH_ENABLED : FirewallDialogStrings.SWITCH_DISABLED
+    return `主开关${switchStatus}，默认入站${inboundAction}，默认出站${outboundAction}`
+  }
+
+  static buildApplyModeSuccess(ruleCount: number): string {
+    return `策略下发成功，本次下发 ${ruleCount} 条规则`
+  }
 }
 
 // ==================== 设备详情对话框文本 ====================

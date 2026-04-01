@@ -5,7 +5,7 @@
  * 使用示例:
  * ```ets
  * import { RouteIds } from '../constants/RouteIds'
- * router.pushUrl({ url: Routes.DASHBOARD })
+ * router.pushUrl({ url: RouteIds.DASHBOARD })
  * ```
  */
 export class RouteIds {

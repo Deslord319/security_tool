@@ -261,7 +261,7 @@ export struct AddRuleDialog {
   }
 
   private getDialogTitle(): string {
-    return this.isEditMode ? '编辑规则' : '新增规则'
+    return this.isEditMode ? FirewallDialogStrings.EDIT_RULE_TITLE : FirewallDialogStrings.ADD_RULE_TITLE
   }
 
   private getPrimaryButtonText(): string {
@@ -332,13 +332,14 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
-          { value: 'IP 规则' },
-          { value: '域名规则' },
-          { value: 'DNS 规则' }
+          { value: FirewallDialogStrings.RULE_TYPE_IP },
+          { value: FirewallDialogStrings.RULE_TYPE_DOMAIN },
+          { value: FirewallDialogStrings.RULE_TYPE_DNS }
         ])
           .selected(this.ruleType - 1)
-          .value(this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN ? '域名规则' :
-            this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? 'DNS 规则' : 'IP 规则')
+          .value(this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN ? FirewallDialogStrings.RULE_TYPE_DOMAIN :
+            this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? FirewallDialogStrings.RULE_TYPE_DNS :
+            FirewallDialogStrings.RULE_TYPE_IP)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
@@ -358,11 +359,13 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
-          { value: '入站' },
-          { value: '出站' }
+          { value: FirewallDialogStrings.DIRECTION_INBOUND },
+          { value: FirewallDialogStrings.DIRECTION_OUTBOUND }
         ])
           .selected(this.ruleDirection - 1)
-          .value(this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ? '出站' : '入站')
+          .value(this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ?
+            FirewallDialogStrings.DIRECTION_OUTBOUND :
+            FirewallDialogStrings.DIRECTION_INBOUND)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
@@ -452,7 +455,7 @@ export struct AddRuleDialog {
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          TextInput({ text: this.remotePort, placeholder: '例如 443' })
+          TextInput({ text: this.remotePort, placeholder: FirewallDialogStrings.PORT_PLACEHOLDER })
             .height(40)
             .fontColor(FormControlUtils.text(this.currentTheme))
             .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -473,11 +476,13 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         Select([
-          { value: '允许' },
-          { value: '阻止' }
+          { value: FirewallDialogStrings.ACTION_ALLOW },
+          { value: FirewallDialogStrings.ACTION_DENY }
         ])
           .selected(this.action)
-          .value(this.action === netFirewall.FirewallRuleAction.RULE_DENY ? '阻止' : '允许')
+          .value(this.action === netFirewall.FirewallRuleAction.RULE_DENY ?
+            FirewallDialogStrings.ACTION_DENY :
+            FirewallDialogStrings.ACTION_ALLOW)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')

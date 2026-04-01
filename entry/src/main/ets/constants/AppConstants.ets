@@ -1,5 +1,6 @@
 import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
 import { CommonStrings } from './CommonStrings'
+import { RouteIds } from './RouteIds'
 
 export class AppColors {
   static getColors(theme: ThemeMode): ThemeColorSet {
@@ -16,25 +17,10 @@ export class AppColors {
   static readonly SUCCESS: string = '#34C759'
   static readonly WARNING: string = '#FF9500'
   static readonly DANGER: string = '#FF3B30'
-
-  static readonly TEXT_PRIMARY: string = '#000000'
-  static readonly TEXT_PRIMARY_OPACITY: number = 0.9
-  static readonly TEXT_SECONDARY_OPACITY: number = 0.6
-  static readonly TEXT_TERTIARY_OPACITY: number = 0.4
-
-  static readonly BG_PAGE: string = '#F5F5F5'
-  static readonly BG_CARD: string = '#FFFFFF'
-  static readonly BG_COMPONENT: string = '#F0F0F0'
-  static readonly BG_HOVER: string = '#E5E5E5'
-  static readonly MENU_HOVER_LIGHT: string = 'rgba(229,229,234,0.9)'
-  static readonly MENU_HOVER_DARK: string = 'rgba(72,72,74,0.9)'
   static readonly MENU_ICON_TILE_LIGHT: string = 'rgba(242,242,247,1)'
   static readonly MENU_ICON_TILE_DARK: string = 'rgba(58,58,60,1)'
   static readonly SIDEBAR_SELECTED_TILE: string = '#3B9BFF'
   static readonly SIDEBAR_SELECTED_ICON: string = '#EAF4FF'
-
-  static readonly BORDER: string = '#000000'
-  static readonly BORDER_OPACITY: number = 0.1
 
   static readonly TEXT_MUTED: string = '#9E9E9E'
   
@@ -214,17 +200,6 @@ export class InteractiveItemStyles {
   }
 }
 
-export class Routes {
-  static readonly DASHBOARD: string = 'dashboard'
-  static readonly FIREWALL: string = 'firewall'
-  static readonly FIREWALL_RULES: string = 'firewall-rules'
-  static readonly LOG_MANAGE: string = 'log-manage'
-  static readonly PERIPHERAL_MANAGE: string = 'peripheral-manage'
-  static readonly IDENTITY: string = 'identity'
-  static readonly TOOL_SETTINGS: string = 'tool-settings'
-  static readonly HELP_FEEDBACK: string = 'help-feedback'
-}
-
 export class AppInfo {
   static readonly APP_NAME: string = CommonStrings.appName
   static readonly APP_VERSION: string = '1.0.0'
@@ -238,10 +213,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: Routes.DASHBOARD, label: CommonStrings.moduleDashboard, icon: $r('app.media.dashboard') },
-  { id: Routes.FIREWALL, label: CommonStrings.moduleFirewall, icon: $r('app.media.firewall') },
-  { id: Routes.LOG_MANAGE, label: CommonStrings.moduleLogManage, icon: $r('app.media.log') },
-  { id: Routes.PERIPHERAL_MANAGE, label: CommonStrings.modulePeripheralManage, icon: $r('app.media.peripheral') },
-  { id: Routes.IDENTITY, label: CommonStrings.moduleIdentity, icon: $r('app.media.identity') },
-  { id: Routes.TOOL_SETTINGS, label: CommonStrings.moduleToolSettings, icon: $r('app.media.settings') }
+  { id: RouteIds.DASHBOARD, label: CommonStrings.moduleDashboard, icon: $r('app.media.dashboard') },
+  { id: RouteIds.FIREWALL, label: CommonStrings.moduleFirewall, icon: $r('app.media.firewall') },
+  { id: RouteIds.LOG_MANAGE, label: CommonStrings.moduleLogManage, icon: $r('app.media.log') },
+  { id: RouteIds.PERIPHERAL_MANAGE, label: CommonStrings.modulePeripheralManage, icon: $r('app.media.peripheral') },
+  { id: RouteIds.IDENTITY, label: CommonStrings.moduleIdentity, icon: $r('app.media.identity') },
+  { id: RouteIds.TOOL_SETTINGS, label: CommonStrings.moduleToolSettings, icon: $r('app.media.settings') }
 ]

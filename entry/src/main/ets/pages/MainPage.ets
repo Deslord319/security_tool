@@ -9,7 +9,8 @@ import { IdentityPage } from '../views/IdentityPage'
 import { ToolSettingsPage } from '../views/ToolSettingsPage'
 import { HelpFeedbackPage } from '../views/HelpFeedbackPage'
 import { LogManagePage } from '../views/LogManagePage'
-import { Routes, AppColors, AppStyles } from '../constants/AppConstants'
+import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
+import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -28,7 +29,7 @@ const UI_TEST_ROUTE_KEY = 'ui_test_route'
 @Entry
 @Component
 struct MainPage {
-  @State @Watch('onPageRouteChange') currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? Routes.DASHBOARD
+  @State @Watch('onPageRouteChange') currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? RouteIds.DASHBOARD
   @State @Watch('onFirewallStatusChange') firewallEnabled: boolean = false
   @State firewallPresetMode: FirewallPresetMode = 'custom'
   @State showMenu: boolean = false
@@ -56,14 +57,14 @@ struct MainPage {
       return
     }
     switch (route) {
-      case Routes.DASHBOARD:
-      case Routes.FIREWALL:
-      case Routes.FIREWALL_RULES:
-      case Routes.LOG_MANAGE:
-      case Routes.PERIPHERAL_MANAGE:
-      case Routes.IDENTITY:
-      case Routes.TOOL_SETTINGS:
-      case Routes.HELP_FEEDBACK:
+      case RouteIds.DASHBOARD:
+      case RouteIds.FIREWALL:
+      case RouteIds.FIREWALL_RULES:
+      case RouteIds.LOG_MANAGE:
+      case RouteIds.PERIPHERAL_MANAGE:
+      case RouteIds.IDENTITY:
+      case RouteIds.TOOL_SETTINGS:
+      case RouteIds.HELP_FEEDBACK:
         this.currentPage = route
         break
       default:
@@ -202,7 +203,7 @@ struct MainPage {
 
   onPageRouteChange(): void {
     this.pageEnterOpacity = 0.76
-    this.pageEnterOffset = this.currentPage === Routes.DASHBOARD ? 18 : 10
+    this.pageEnterOffset = this.currentPage === RouteIds.DASHBOARD ? 18 : 10
     animateTo({
       duration: 320,
       curve: Curve.Friction
@@ -243,9 +244,7 @@ struct MainPage {
             .width(32)
             .height(32)
             .borderRadius(AppStyles.RADIUS_MD)
-            .backgroundColor(this.menuTriggerHovered ?
-              (this.currentTheme === ThemeMode.DARK ? AppColors.MENU_HOVER_DARK : AppColors.MENU_HOVER_LIGHT) :
-              Color.Transparent)
+            .backgroundColor(InteractiveItemStyles.getMenuItemBackground(this.currentTheme, this.menuTriggerHovered))
             .onHover((isHover: boolean) => {
               this.menuTriggerHovered = isHover
             })
@@ -260,7 +259,7 @@ struct MainPage {
           .backgroundColor(this.currentTheme === ThemeMode.DARK ? AppColors.getColors(this.currentTheme).BG_COMPONENT : Color.Transparent)
 
           Column() {
-            if (this.currentPage === Routes.DASHBOARD) {
+            if (this.currentPage === RouteIds.DASHBOARD) {
               Column() {
                 DashboardPage({
                   onNavigate: (route: string) => {
@@ -271,7 +270,7 @@ struct MainPage {
               .id('route-page-dashboard')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.FIREWALL) {
+            } else if (this.currentPage === RouteIds.FIREWALL) {
               Column() {
                 FirewallPage({
                   firewallEnabled: this.firewallEnabled,
@@ -289,77 +288,77 @@ struct MainPage {
                     return false
                   },
                   onBack: () => {
-                    this.currentPage = Routes.DASHBOARD
+                    this.currentPage = RouteIds.DASHBOARD
                   },
                   onNavigateToRules: () => {
-                    this.currentPage = Routes.FIREWALL_RULES
+                    this.currentPage = RouteIds.FIREWALL_RULES
                   }
                 })
               }
               .id('route-page-firewall')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.FIREWALL_RULES) {
+            } else if (this.currentPage === RouteIds.FIREWALL_RULES) {
               Column() {
                 FirewallRulesPage({
                   currentMode: this.firewallPresetMode,
                   onBack: () => {
-                    this.currentPage = Routes.FIREWALL
+                    this.currentPage = RouteIds.FIREWALL
                   }
                 })
               }
               .id('route-page-firewall-rules')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.LOG_MANAGE) {
+            } else if (this.currentPage === RouteIds.LOG_MANAGE) {
               Column() {
                 LogManagePage({
                   onBack: () => {
-                    this.currentPage = Routes.DASHBOARD
+                    this.currentPage = RouteIds.DASHBOARD
                   }
                 })
               }
               .id('route-page-log-manage')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.PERIPHERAL_MANAGE) {
+            } else if (this.currentPage === RouteIds.PERIPHERAL_MANAGE) {
               Column() {
                 PeripheralPage({
                   onBack: () => {
-                    this.currentPage = Routes.DASHBOARD
+                    this.currentPage = RouteIds.DASHBOARD
                   }
                 })
               }
               .id('route-page-peripheral-manage')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.IDENTITY) {
+            } else if (this.currentPage === RouteIds.IDENTITY) {
               Column() {
                 IdentityPage({
                   onBack: () => {
-                    this.currentPage = Routes.DASHBOARD
+                    this.currentPage = RouteIds.DASHBOARD
                   }
                 })
               }
               .id('route-page-identity')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.TOOL_SETTINGS) {
+            } else if (this.currentPage === RouteIds.TOOL_SETTINGS) {
               Column() {
                 ToolSettingsPage({
                   onBack: () => {
-                    this.currentPage = Routes.DASHBOARD
+                    this.currentPage = RouteIds.DASHBOARD
                   }
                 })
               }
               .id('route-page-tool-settings')
               .width('100%')
               .height('100%')
-            } else if (this.currentPage === Routes.HELP_FEEDBACK) {
+            } else if (this.currentPage === RouteIds.HELP_FEEDBACK) {
               Column() {
                 HelpFeedbackPage({
                   onBack: () => {
-                    this.currentPage = Routes.DASHBOARD
+                    this.currentPage = RouteIds.DASHBOARD
                   }
                 })
               }

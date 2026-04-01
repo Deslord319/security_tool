@@ -1,5 +1,6 @@
 
 import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
+import { DataModelStrings } from '../constants/modules/DataModelStrings'
 
 export enum RuleType {
   IP = 1,
@@ -101,11 +102,11 @@ export function getProtocolLabel(proto: ProtocolType): string {
 export function getActionLabel(action: RuleAction): string {
   switch (action) {
     case RuleAction.ALLOW:
-      return '允许'
+      return DataModelStrings.actionAllow
     case RuleAction.DENY:
-      return '拒绝'
+      return DataModelStrings.actionDeny
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 
@@ -297,76 +298,76 @@ export interface InterfaceControlConfig {
 export function getPeripheralTypeLabel(type: PeripheralType): string {
   switch (type) {
     case PeripheralType.USB_STORAGE:
-      return 'USB 存储设备'
+      return DataModelStrings.peripheralUsbStorage
     case PeripheralType.USB_CAMERA:
-      return 'USB 摄像头'
+      return DataModelStrings.peripheralUsbCamera
     case PeripheralType.USB_PRINTER:
-      return 'USB 打印机'
+      return DataModelStrings.peripheralUsbPrinter
     case PeripheralType.USB_HID:
-      return 'USB 人机输入设备'
+      return DataModelStrings.peripheralUsbHid
     case PeripheralType.USB_OTHER:
-      return 'USB 其他'
+      return DataModelStrings.peripheralUsbOther
     case PeripheralType.BLUETOOTH:
-      return '蓝牙设备'
+      return DataModelStrings.peripheralBluetooth
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 
 export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   switch (policy) {
     case UsbStoragePolicy.READ_WRITE:
-      return '读写'
+      return DataModelStrings.usbStorageReadWrite
     case UsbStoragePolicy.READ_ONLY:
-      return '只读'
+      return DataModelStrings.usbStorageReadOnly
     case UsbStoragePolicy.DISABLED:
-      return '禁止访问'
+      return DataModelStrings.usbStorageDisabled
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 
 export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
   switch (source) {
     case 'runtime_event':
-      return '运行时事件'
+      return DataModelStrings.sourceRuntimeEvent
     case 'audit_event':
-      return '审计事件'
+      return DataModelStrings.sourceAuditEvent
     case 'policy_snapshot':
-      return '策略快照'
+      return DataModelStrings.sourcePolicySnapshot
     default:
-      return '未知来源'
+      return DataModelStrings.sourceUnknown
   }
 }
 
 export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
   switch (action) {
     case 'connect':
-      return '连接'
+      return DataModelStrings.recordActionConnect
     case 'disconnect':
-      return '断开'
+      return DataModelStrings.recordActionDisconnect
     case 'discover':
-      return '发现'
+      return DataModelStrings.recordActionDiscover
     case 'intercept':
-      return '拦截'
+      return DataModelStrings.recordActionIntercept
     default:
-      return '未知动作'
+      return DataModelStrings.recordActionUnknown
   }
 }
 export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
   switch (policyHit) {
     case 'allow':
-      return '允许'
+      return DataModelStrings.policyHitAllow
     case 'deny':
-      return '阻止'
+      return DataModelStrings.policyHitDeny
     default:
-      return '未知'
+      return DataModelStrings.policyHitUnknown
   }
 }
 
 export function getPeripheralCandidateSourceLabel(source: PeripheralCandidateSource): string {
   if (source === 'connected_usb') {
-    return '当前连接'
+    return DataModelStrings.policyCurrentConnection
   }
   return getPeripheralRecordSourceLabel(source)
 }
@@ -701,28 +702,28 @@ export const PREF_STORE_NAME_LOG = 'log_settings'
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
     case LogEventType.CRASH:
-      return '崩溃日志'
+      return DataModelStrings.logEventCrash
     case LogEventType.FILE:
-      return '文件操作'
+      return DataModelStrings.logEventFile
     case LogEventType.ACCOUNT:
-      return '用户认证'
+      return DataModelStrings.logEventAccount
     case LogEventType.PERMISSION:
-      return '权限变更'
+      return DataModelStrings.logEventPermission
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 
 export function getLogEventResultLabel(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
-      return '成功'
+      return DataModelStrings.logResultSuccess
     case LogEventResult.BLOCKED:
-      return '已阻止'
+      return DataModelStrings.logResultBlocked
     case LogEventResult.FAILED:
-      return '失败'
+      return DataModelStrings.logResultFailed
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 
@@ -740,10 +741,10 @@ export function getLogEventResultColor(result: LogEventResult): string {
 }
 
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: '崩溃日志', value: LogEventType.CRASH },
-  { label: '文件操作', value: LogEventType.FILE },
-  { label: '用户认证', value: LogEventType.ACCOUNT },
-  { label: '权限变更', value: LogEventType.PERMISSION }
+  { label: DataModelStrings.logEventCrash, value: LogEventType.CRASH },
+  { label: DataModelStrings.logEventFile, value: LogEventType.FILE },
+  { label: DataModelStrings.logEventAccount, value: LogEventType.ACCOUNT },
+  { label: DataModelStrings.logEventPermission, value: LogEventType.PERMISSION }
 ]
 
 export function formatLogTimestamp(timestamp: number): string {

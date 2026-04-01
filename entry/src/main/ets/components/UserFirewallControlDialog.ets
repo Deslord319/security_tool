@@ -120,7 +120,11 @@ export struct UserFirewallControlDialog {
   }
 
   private buildPolicySummary(isOpen: boolean, inAction: number, outAction: number): string {
-    return `主开关${isOpen ? '已开启' : '已关闭'}，默认入站${this.getActionLabel(inAction)}，默认出站${this.getActionLabel(outAction)}`
+    return FirewallDialogStrings.buildPolicySummary(
+      isOpen,
+      this.getActionLabel(inAction),
+      this.getActionLabel(outAction)
+    )
   }
 
   private getActionLabel(action: number): string {
@@ -167,7 +171,7 @@ export struct UserFirewallControlDialog {
     if (!result.success) {
       DialogService.openFailure(
         this.getUIContext(),
-        result.errorMessage ?? '策略下发失败'
+        result.errorMessage ?? FirewallDialogStrings.APPLY_MODE_FAILED
       )
       return
     }
@@ -178,7 +182,7 @@ export struct UserFirewallControlDialog {
       LogUtils.warn(TAG, 'onActionCompleted failed: %{public}s', JSON.stringify(err))
     }
     await this.loadStateForSelectedUser()
-    await DialogService.openSuccess(this.getUIContext(), `策略下发成功，本次下发 ${result.appliedRuleCount} 条规则`)
+    await DialogService.openSuccess(this.getUIContext(), FirewallDialogStrings.buildApplyModeSuccess(result.appliedRuleCount))
   }
 
   build() {

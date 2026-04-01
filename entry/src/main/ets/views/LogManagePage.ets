@@ -34,34 +34,6 @@ import { LogManageViewModel } from '../viewmodels/LogManageViewModel'
 
 const TAG = 'LogManagePage'
 
-function getPageLogEventTypeLabel(type: LogEventType): string {
-  switch (type) {
-    case LogEventType.CRASH:
-      return '崩溃日志'
-    case LogEventType.FILE:
-      return '文件操作'
-    case LogEventType.ACCOUNT:
-      return '用户认证'
-    case LogEventType.PERMISSION:
-      return '权限变更'
-    default:
-      return '未知'
-  }
-}
-
-function getPageLogEventResultLabel(result: LogEventResult): string {
-  switch (result) {
-    case LogEventResult.SUCCESS:
-      return '成功'
-    case LogEventResult.BLOCKED:
-      return '已阻止'
-    case LogEventResult.FAILED:
-      return '失败'
-    default:
-      return '未知'
-  }
-}
-
 interface LogDetailField {
   key: string
   label: string
