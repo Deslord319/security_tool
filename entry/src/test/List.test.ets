@@ -22,6 +22,7 @@ import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import dataModelsTest from './models/data-models.test'
 import dashboardViewModelTest from './dashboard/viewmodel.test'
+import peripheralPageBoundaryTest from './views/PeripheralPage.test'
 
 export default function testsuite() {
   // Common
@@ -69,4 +70,7 @@ export default function testsuite() {
 
   // Dashboard
   dashboardViewModelTest()
+
+  // Views
+  peripheralPageBoundaryTest()
 }

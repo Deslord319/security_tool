@@ -35,6 +35,10 @@ export class PeripheralViewModel {
   private connectionRecordClearUsecase: PeripheralConnectionRecordClearUsecase =
     new PeripheralConnectionRecordClearUsecase()
 
+  setConnectionRecordClearUsecaseForTest(usecase: PeripheralConnectionRecordClearUsecase): void {
+    this.connectionRecordClearUsecase = usecase
+  }
+
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.isLoading = true
     this.appContext = context

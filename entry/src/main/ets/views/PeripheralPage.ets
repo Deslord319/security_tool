@@ -28,6 +28,22 @@ const TAG = 'PeripheralPage'
 const DOMAIN = 0x0013
 const USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS = 180
 
+export interface PeripheralPageClearHistoryAction {
+  clearByViewModel: () => Promise<boolean>
+  onSuccess: () => void
+  onFailure: () => void
+}
+
+export async function executePeripheralPageClearHistory(action: PeripheralPageClearHistoryAction): Promise<boolean> {
+  const success = await action.clearByViewModel()
+  if (!success) {
+    action.onFailure()
+    return false
+  }
+  action.onSuccess()
+  return true
+}
+
 @Component
 export struct PeripheralPage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -455,15 +471,22 @@ export struct PeripheralPage {
     })
   }
 
+  createClearConnectionHistoryActionForTest(): PeripheralPageClearHistoryAction {
+    return {
+      clearByViewModel: async (): Promise<boolean> => this.viewModel.clearConnectionHistory(),
+      onFailure: (): void => {
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
+      },
+      onSuccess: (): void => {
+        this.closeDetailDialog()
+        DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
+      }
+    }
+  }
+
   private async clearConnectionHistory(): Promise<void> {
     try {
-      const success = await this.viewModel.clearConnectionHistory()
-      if (!success) {
-        DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
-        return
-      }
-      this.closeDetailDialog()
-      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
+      await executePeripheralPageClearHistory(this.createClearConnectionHistoryActionForTest())
     } catch (err) {
       hilog.error(DOMAIN, TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
