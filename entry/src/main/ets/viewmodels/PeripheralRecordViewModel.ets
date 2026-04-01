@@ -1,5 +1,5 @@
 import { LogUtils } from '../utils/LogUtils'
-﻿import { common } from '@kit.AbilityKit'
+import { common } from '@kit.AbilityKit'
 
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
@@ -74,7 +74,7 @@ export class PeripheralRecordViewModel {
       const csvContent = this.buildConnectionHistoryCsv(this.records)
       const result = await LogStorageService.exportToCsvFile({
         csvContent,
-        fileNamePrefix: 'peripheral_connection_history'
+        fileNamePrefix: PeripheralStrings.csvConnectionHistoryFilePrefix
       })
       return result.success ?
         { success: true, fileName: result.fileName } as ExportActionResult :
@@ -86,16 +86,7 @@ export class PeripheralRecordViewModel {
   }
 
   private buildConnectionHistoryCsv(records: PeripheralConnectionRecord[]): string {
-    const headers: string[] = [
-      '时间',
-      '设备名称',
-      '设备类型',
-      '设备标识',
-      '连接事件',
-      '策略命中',
-      '结果状态',
-      '事件来源'
-    ]
+    const headers: string[] = PeripheralStrings.connectionHistoryCsvHeaders
     const rows = records.map((record: PeripheralConnectionRecord) => {
       return [
         formatPeripheralTimestamp(record.timestamp),

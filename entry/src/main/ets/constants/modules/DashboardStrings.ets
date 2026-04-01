@@ -1,5 +1,6 @@
 import { CommonStrings } from '../CommonStrings'
 import { AppColors } from '../AppConstants'
+import { FirewallDialogStrings } from './DialogStrings'
 
 export interface DashboardGradient {
   start: string
@@ -18,8 +19,8 @@ export class DashboardStrings {
   static readonly adminPendingDetail: string = '完成激活后即可执行受控操作'
 
   static readonly firewallTitle: string = '防火墙'
-  static readonly firewallEnabled: string = '已开启'
-  static readonly firewallDisabled: string = '已关闭'
+  static readonly firewallEnabled: string = FirewallDialogStrings.SWITCH_ENABLED
+  static readonly firewallDisabled: string = FirewallDialogStrings.SWITCH_DISABLED
 
   static readonly logTitle: string = '日志'
   static readonly logTodayDetailPrefix: string = '累计 '

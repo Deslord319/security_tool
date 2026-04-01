@@ -1,10 +1,12 @@
-﻿import {
+import {
   formatLogTimestamp,
   PeripheralConnectionRecord,
   LogEventResult,
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit
 } from '../models/DataModels'
+import { DataModelStrings } from '../constants/modules/DataModelStrings'
+import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 
 export interface PeripheralConnectionHistoryItem {
   time: string
@@ -15,21 +17,21 @@ export interface PeripheralConnectionHistoryItem {
 export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPolicyKind): string {
   switch (kind) {
     case 'usb_disabled':
-      return 'USB 接口已禁用'
+      return PeripheralStrings.matchedPolicyUsbDisabled
     case 'usb_storage_disabled':
-      return 'USB 存储已禁用'
+      return PeripheralStrings.matchedPolicyUsbStorageDisabled
     case 'usb_storage_read_only':
-      return 'USB 存储只读'
+      return PeripheralStrings.matchedPolicyUsbStorageReadOnly
     case 'device_deny':
-      return '命中单设备禁止接入'
+      return PeripheralStrings.matchedPolicyDeviceDeny
     case 'bluetooth_connection_event':
-      return '蓝牙连接事件'
+      return PeripheralStrings.matchedPolicyBluetoothConnection
     case 'bluetooth_discovery':
-      return '蓝牙运行期发现'
+      return PeripheralStrings.matchedPolicyBluetoothDiscovery
     case 'default_allow':
-      return '默认允许接入'
+      return PeripheralStrings.matchedPolicyDefaultAllow
     case 'disconnect_event':
-      return '设备断开连接'
+      return PeripheralStrings.matchedPolicyDisconnectEvent
     default:
       return '--'
   }
@@ -38,17 +40,17 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
 function getPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
   switch (policyHit) {
     case 'allow':
-      return '允许'
+      return DataModelStrings.policyHitAllow
     case 'deny':
-      return '阻止'
+      return DataModelStrings.policyHitDeny
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 
 export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
-    return '待判定'
+    return PeripheralStrings.policyPending
   }
   if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
     return getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)
@@ -58,17 +60,17 @@ export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionR
 
 export function getPeripheralConnectionResultLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
-    return '策略快照'
+    return DataModelStrings.sourcePolicySnapshot
   }
   switch (record.result) {
     case LogEventResult.SUCCESS:
-      return '成功'
+      return DataModelStrings.logResultSuccess
     case LogEventResult.BLOCKED:
-      return '已阻止'
+      return DataModelStrings.logResultBlocked
     case LogEventResult.FAILED:
-      return '失败'
+      return DataModelStrings.logResultFailed
     default:
-      return '未知'
+      return DataModelStrings.unknown
   }
 }
 

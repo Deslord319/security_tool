@@ -1,8 +1,10 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
 import {
+  getPeripheralRecordActionLabel,
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
 } from '../../models/DataModels'
+import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
 import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralRecordPresentationMapper'
@@ -78,12 +80,12 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      this.headerCell('设备名称', 2.6)
-      this.headerCell('设备类型', 1.5)
-      this.headerCell('连接事件', 1.3)
-      this.headerCell('策略', 1.2)
-      this.headerCell('连接时间', 1.9)
-      this.headerCell('操作', 1.0)
+      this.headerCell(PeripheralStrings.deviceNameLabel, 2.6)
+      this.headerCell(PeripheralStrings.deviceTypeLabel, 1.5)
+      this.headerCell(PeripheralStrings.connectionEventLabel, 1.3)
+      this.headerCell(PeripheralStrings.policyLabel, 1.2)
+      this.headerCell(PeripheralStrings.connectionTimeLabel, 1.9)
+      this.headerCell(PeripheralStrings.actionLabel, 1.0)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -144,7 +146,7 @@ export struct DeviceRecordList {
       .justifyContent(FlexAlign.Center)
 
       Row() {
-        Text('详情')
+        Text(PeripheralStrings.detailAction)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
           .fontColor(this.getDetailButtonForeground())
@@ -216,16 +218,7 @@ export struct DeviceRecordList {
   }
 
   private getActionLabel(record: PeripheralConnectionRecord): string {
-    switch (record.action) {
-      case 'connect':
-        return '连接'
-      case 'disconnect':
-        return '断开'
-      case 'intercept':
-        return '拦截'
-      default:
-        return '未知动作'
-    }
+    return getPeripheralRecordActionLabel(record.action)
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {

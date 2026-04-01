@@ -2,11 +2,12 @@ import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/Dat
 import { CommonStrings } from '../CommonStrings'
 import { SharedLabels } from './FirewallSharedLabels'
 import { AppColors } from '../AppConstants'
+import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from './DialogStrings'
 
 export class FirewallStrings {
   static readonly pageTitle: string = CommonStrings.moduleFirewall
   static readonly pageSubtitle: string = '统一管理系统防火墙开关、预设策略与自定义规则。'
-  static readonly modeLoadingMessage: string = '正在应用防火墙模式...'
+  static readonly modeLoadingMessage: string = LoadingStrings.APPLYING_MODE
   static readonly modeSectionTitle: string = '预设模式'
 
   static readonly currentMode: string = CommonStrings.statusCurrentMode
@@ -42,23 +43,25 @@ export class FirewallStrings {
   static readonly rulesReapplyPartialFailed: string = '共享规则已保存，但部分已绑定用户重下发失败'
   static readonly inboundRules: string = '入站规则'
   static readonly outboundRules: string = '出站规则'
+  static readonly inboundCustomRulesDescription: string = '自定义入站规则'
+  static readonly outboundCustomRulesDescription: string = '自定义出站规则'
   static readonly tabAllRules: string = SharedLabels.LABEL_ALL
   static readonly tabIpRules: string = SharedLabels.LABEL_IP
   static readonly tabDomainRules: string = SharedLabels.LABEL_DOMAIN
   static readonly tabDnsRules: string = SharedLabels.LABEL_DNS
-  static readonly loadingRules: string = '正在加载规则...'
-  static readonly emptyRules: string = '暂无自定义规则'
+  static readonly loadingRules: string = LoadingStrings.LOADING_RULES
+  static readonly emptyRules: string = EmptyStateStrings.NO_RULES
 
-  static readonly detailRemoteAddress: string = '远端地址'
-  static readonly detailLocalPort: string = '本地端口'
-  static readonly detailRemotePort: string = '远端端口'
-  static readonly detailProtocol: string = '协议'
+  static readonly detailRemoteAddress: string = FirewallDialogStrings.REMOTE_ADDRESS
+  static readonly detailLocalPort: string = FirewallDialogStrings.LOCAL_PORT
+  static readonly detailRemotePort: string = FirewallDialogStrings.REMOTE_PORT
+  static readonly detailProtocol: string = FirewallDialogStrings.PROTOCOL
   static readonly typeDomain: string = SharedLabels.LABEL_DOMAIN
   static readonly typeUnknown: string = SharedLabels.LABEL_UNKNOWN
   static readonly directionInbound: string = SharedLabels.LABEL_INBOUND
   static readonly directionOutbound: string = SharedLabels.LABEL_OUTBOUND
-  static readonly actionAllow: string = '允许'
-  static readonly actionDeny: string = '禁止'
+  static readonly actionAllow: string = FirewallDialogStrings.ACTION_ALLOW
+  static readonly actionDeny: string = FirewallDialogStrings.ACTION_DENY
 
   static getModeAccent(mode: FirewallPresetMode): string {
     switch (mode) {
@@ -126,5 +129,13 @@ export class FirewallStrings {
       parts.push(`范围重叠 ${overlapConflicts} 条`)
     }
     return parts.length > 0 ? `当前自定义规则集中存在：${parts.join('，')}` : ''
+  }
+
+  static buildReapplyPartialFailedMessage(successCount: number, failedCount: number): string {
+    return `${FirewallStrings.rulesReapplyPartialFailed}（成功 ${successCount} 个，失败 ${failedCount} 个）`
+  }
+
+  static buildRuleCountText(count: number): string {
+    return `${count} 条`
   }
 }

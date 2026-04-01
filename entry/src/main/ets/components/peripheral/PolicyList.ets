@@ -1,5 +1,6 @@
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
+import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { FormControlUtils } from '../../utils/FormControlUtils'
@@ -99,11 +100,11 @@ export struct PolicyList {
   @Builder
   private tableHeader() {
     Row() {
-      this.headerCell('设备名称', 2.6)
-      this.headerCell('设备类型', 1.5)
-      this.headerCell('当前策略', 1.5)
-      this.headerCell('最近连接时间', 1.8)
-      this.headerCell('操作', 1.4)
+      this.headerCell(PeripheralStrings.deviceNameLabel, 2.6)
+      this.headerCell(PeripheralStrings.deviceTypeLabel, 1.5)
+      this.headerCell(PeripheralStrings.currentPolicyLabel, 1.5)
+      this.headerCell(PeripheralStrings.latestConnectionTimeLabel, 1.8)
+      this.headerCell(PeripheralStrings.actionLabel, 1.4)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })

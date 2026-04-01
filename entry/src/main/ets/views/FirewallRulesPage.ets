@@ -101,7 +101,7 @@ export struct FirewallRulesPage {
     if (reapplySummary.failedCount > 0) {
       await DialogService.openFailure(
         this.getUIContext(),
-        `${FirewallStrings.rulesReapplyPartialFailed}（成功 ${reapplySummary.successCount} 个，失败 ${reapplySummary.failedCount} 个）`
+        FirewallStrings.buildReapplyPartialFailedMessage(reapplySummary.successCount, reapplySummary.failedCount)
       )
       return
     }
@@ -488,8 +488,8 @@ export struct FirewallRulesPage {
         Row({ space: AppStyles.PADDING_LG }) {
           CompactSummaryCard({
             title: FirewallStrings.inboundRules,
-            valueText: `${this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)} 条`,
-            description: '自定义入站规则',
+            valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
+            description: FirewallStrings.inboundCustomRulesDescription,
             accentStart: AppColors.WARNING,
             accentEnd: AppColors.GRADIENT_IDENTITY_END,
             icon: $r('app.media.arrow_down')
@@ -498,8 +498,8 @@ export struct FirewallRulesPage {
 
           CompactSummaryCard({
             title: FirewallStrings.outboundRules,
-            valueText: `${this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)} 条`,
-            description: '自定义出站规则',
+            valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
+            description: FirewallStrings.outboundCustomRulesDescription,
             accentStart: AppColors.BRAND_PRIMARY,
             accentEnd: AppColors.GRADIENT_FIREWALL_END,
             icon: $r('app.media.arrow_up')

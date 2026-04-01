@@ -1,12 +1,15 @@
-export class DataModelStrings {
-  static readonly actionAllow: string = '允许'
-  static readonly actionDeny: string = '拒绝'
-  static readonly unknown: string = '未知'
+import { SharedLabels } from './FirewallSharedLabels'
+import { DeviceTypeLabels, FirewallDialogStrings, ResultStrings } from './DialogStrings'
 
-  static readonly peripheralUsbStorage: string = 'USB 存储设备'
-  static readonly peripheralUsbCamera: string = 'USB 摄像头'
-  static readonly peripheralUsbPrinter: string = 'USB 打印机'
-  static readonly peripheralUsbHid: string = 'USB 人机输入设备'
+export class DataModelStrings {
+  static readonly actionAllow: string = FirewallDialogStrings.ACTION_ALLOW
+  static readonly actionDeny: string = '拒绝'
+  static readonly unknown: string = SharedLabels.LABEL_UNKNOWN
+
+  static readonly peripheralUsbStorage: string = DeviceTypeLabels.USB_STORAGE
+  static readonly peripheralUsbCamera: string = DeviceTypeLabels.USB_CAMERA
+  static readonly peripheralUsbPrinter: string = DeviceTypeLabels.USB_PRINTER
+  static readonly peripheralUsbHid: string = DeviceTypeLabels.USB_HID
   static readonly peripheralUsbOther: string = 'USB 其他'
   static readonly peripheralBluetooth: string = '蓝牙设备'
 
@@ -25,9 +28,9 @@ export class DataModelStrings {
   static readonly recordActionIntercept: string = '拦截'
   static readonly recordActionUnknown: string = '未知动作'
 
-  static readonly policyHitAllow: string = '允许'
-  static readonly policyHitDeny: string = '阻止'
-  static readonly policyHitUnknown: string = '未知'
+  static readonly policyHitAllow: string = FirewallDialogStrings.ACTION_ALLOW
+  static readonly policyHitDeny: string = FirewallDialogStrings.ACTION_DENY
+  static readonly policyHitUnknown: string = SharedLabels.LABEL_UNKNOWN
   static readonly policyCurrentConnection: string = '当前连接'
 
   static readonly logEventCrash: string = '崩溃日志'
@@ -35,7 +38,7 @@ export class DataModelStrings {
   static readonly logEventAccount: string = '用户认证'
   static readonly logEventPermission: string = '权限变更'
 
-  static readonly logResultSuccess: string = '成功'
+  static readonly logResultSuccess: string = ResultStrings.SUCCESS
   static readonly logResultBlocked: string = '已阻止'
-  static readonly logResultFailed: string = '失败'
+  static readonly logResultFailed: string = ResultStrings.FAILED
 }

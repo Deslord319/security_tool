@@ -1,5 +1,5 @@
 import { LogUtils } from '../utils/LogUtils'
-﻿import { common } from '@kit.AbilityKit'
+import { common } from '@kit.AbilityKit'
 
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import {
@@ -7,6 +7,7 @@ import {
   PeripheralConnectionRecord,
   PeripheralDevicePolicyRecord,
   PeripheralPolicyRecord,
+  getPeripheralTypeLabel,
   PeripheralType
 } from '../models/DataModels'
 import { LogStorageService } from '../services/LogStorageService'
@@ -95,7 +96,7 @@ export class PeripheralPolicyViewModel {
       const csvContent = this.buildPolicyCsv(this.records)
       const result = await LogStorageService.exportToCsvFile({
         csvContent,
-        fileNamePrefix: 'peripheral_policy_list'
+        fileNamePrefix: PeripheralStrings.csvPolicyListFilePrefix
       })
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult
@@ -111,13 +112,7 @@ export class PeripheralPolicyViewModel {
   }
 
   private buildPolicyCsv(records: PeripheralPolicyRecord[]): string {
-    const headers: string[] = [
-      '设备名称',
-      '设备类型',
-      '设备标识',
-      '最近出现时间',
-      '当前策略'
-    ]
+    const headers: string[] = PeripheralStrings.policyListCsvHeaders
     const rows = records.map((record: PeripheralPolicyRecord) => {
       return [
         record.deviceName,
@@ -131,26 +126,12 @@ export class PeripheralPolicyViewModel {
   }
 
   private getPolicyLabel(policyIndex: number): string {
-    return policyIndex === 0 ? '允许接入' : '禁止接入'
+    return PeripheralStrings.policyOptions[policyIndex] ?? PeripheralStrings.policyOptions[0]
   }
 
   private getDeviceTypeLabel(deviceType: PeripheralType): string {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-        return 'USB 存储设备'
-      case PeripheralType.USB_CAMERA:
-        return 'USB 摄像头'
-      case PeripheralType.USB_PRINTER:
-        return 'USB 打印机'
-      case PeripheralType.USB_HID:
-        return 'USB 人机输入设备'
-      case PeripheralType.USB_OTHER:
-        return 'USB 其他设备'
-      case PeripheralType.BLUETOOTH:
-        return '蓝牙设备'
-      default:
-        return '未知设备'
-    }
+    return deviceType === PeripheralType.USB_OTHER ? PeripheralStrings.usbOtherDevice :
+      (deviceType ? getPeripheralTypeLabel(deviceType) : PeripheralStrings.unknownDevice)
   }
 
   private escapeCsvValue(value: string): string {

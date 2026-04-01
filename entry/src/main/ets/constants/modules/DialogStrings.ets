@@ -1,3 +1,5 @@
+import { SharedLabels } from './FirewallSharedLabels'
+
 /**
  * 对话框通用字符串常量
  * 
@@ -99,8 +101,8 @@ export class FirewallDialogStrings {
   static readonly RULE_TYPE_IP: string = 'IP 规则'
   static readonly RULE_TYPE_DOMAIN: string = '域名规则'
   static readonly RULE_TYPE_DNS: string = 'DNS 规则'
-  static readonly DIRECTION_INBOUND: string = '入站'
-  static readonly DIRECTION_OUTBOUND: string = '出站'
+  static readonly DIRECTION_INBOUND: string = SharedLabels.LABEL_INBOUND
+  static readonly DIRECTION_OUTBOUND: string = SharedLabels.LABEL_OUTBOUND
   static readonly PROTOCOL_TCP: string = 'TCP'
   static readonly PROTOCOL_UDP: string = 'UDP'
   static readonly PROTOCOL_ICMP: string = 'ICMP'
@@ -120,7 +122,7 @@ export class FirewallDialogStrings {
   static readonly MODE_UNMANAGED: string = '未纳管'
   
   // 验证错误
-  static readonly ERROR_RULE_NAME_REQUIRED: string = '请输入规则名称'
+  static readonly ERROR_RULE_NAME_REQUIRED: string = FirewallDialogStrings.RULE_NAME_PLACEHOLDER
   static readonly ERROR_DOMAIN_REQUIRED: string = '请输入域名'
   static readonly ERROR_DNS_REQUIRED: string = '请输入 DNS 地址'
   static readonly ERROR_IP_REQUIRED: string = '请输入远端 IP 或 CIDR'
@@ -148,7 +150,7 @@ export class FirewallDialogStrings {
 // ==================== 设备详情对话框文本 ====================
 export class DeviceDetailStrings {
   static readonly TITLE: string = '设备详情'
-  static readonly CLOSE_BUTTON: string = '关闭'
+  static readonly CLOSE_BUTTON: string = DialogButtonStrings.CLOSE
   static readonly KEY_INFO: string = '关键信息'
   static readonly HISTORY_TITLE: string = '历史连接记录'
   static readonly NO_HISTORY: string = '暂无历史连接记录'
@@ -168,7 +170,7 @@ export class DeviceDetailStrings {
 
 // ==================== 通用提示文本 ====================
 export class HintStrings {
-  static readonly CHECK_PERMISSIONS: string = '请检查账户权限或系统账户状态'
+  static readonly CHECK_PERMISSIONS: string = EmptyStateStrings.CHECK_PERMISSIONS
   static readonly PLEASE_SELECT: string = '请选择'
   static readonly PLEASE_ENTER: string = '请输入'
   static readonly CONFIRM_DELETE: string = '确认删除吗？'
@@ -192,5 +194,5 @@ export class DeviceTypeLabels {
 }
 
 export class PinErrorStrings {
-  static readonly PIN_VERIFICATION_FAILED: string = 'PIN 验证失败，已取消本次变更'
+  static readonly PIN_VERIFICATION_FAILED: string = ValidationErrorStrings.PIN_FAILED
 }

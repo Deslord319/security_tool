@@ -1,13 +1,11 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { SectionSelectRow } from '../SectionRows'
 import { AppColors, AppStyles } from '../../constants/AppConstants'
+import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../services/PeripheralService'
 import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
-
-const ENABLE_DISABLE_OPTIONS: string[] = ['启用', '禁用']
-const USB_STORAGE_OPTIONS: string[] = ['只读', '读写', '禁止访问']
 
 @Component
 export struct InterfaceControlTab {
@@ -33,27 +31,27 @@ export struct InterfaceControlTab {
       Column({ space: 0 }) {
         Column() {
           this.toggleItem(
-            'USB 接口',
-            '启用或禁用 USB 接口。禁用后，USB 接口相关外设将无法接入。',
+            PeripheralStrings.usbInterfaceTitle,
+            PeripheralStrings.usbInterfaceDescription,
             PeripheralService.FEATURE_USB,
             this.usbDisabled
           )
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.storageItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('蓝牙', '启用或禁用蓝牙接口。', PeripheralService.FEATURE_BLUETOOTH, this.btDisabled)
+          this.toggleItem(PeripheralStrings.bluetoothTitle, PeripheralStrings.bluetoothDescription, PeripheralService.FEATURE_BLUETOOTH, this.btDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('Wi-Fi', '启用或禁用 Wi-Fi 接口。', PeripheralService.FEATURE_WIFI, this.wifiDisabled)
+          this.toggleItem(PeripheralStrings.wifiTitle, PeripheralStrings.wifiDescription, PeripheralService.FEATURE_WIFI, this.wifiDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('HDC 调试', '启用或禁用 HDC 调试接口。', PeripheralService.FEATURE_HDC, this.hdcDisabled)
+          this.toggleItem(PeripheralStrings.hdcTitle, PeripheralStrings.hdcDescription, PeripheralService.FEATURE_HDC, this.hdcDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('网络共享', '启用或禁用网络共享接口。', PeripheralService.FEATURE_NETWORK, this.networkDisabled)
+          this.toggleItem(PeripheralStrings.networkSharingTitle, PeripheralStrings.networkSharingDescription, PeripheralService.FEATURE_NETWORK, this.networkDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('打印机', '启用或禁用打印机接口。', PeripheralService.FEATURE_PRINTER, this.printerDisabled)
+          this.toggleItem(PeripheralStrings.printerTitle, PeripheralStrings.printerDescription, PeripheralService.FEATURE_PRINTER, this.printerDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('麦克风', '启用或禁用麦克风接口。', PeripheralService.FEATURE_MICROPHONE, this.microphoneDisabled)
+          this.toggleItem(PeripheralStrings.microphoneTitle, PeripheralStrings.microphoneDescription, PeripheralService.FEATURE_MICROPHONE, this.microphoneDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem('摄像头', '启用或禁用摄像头接口。', PeripheralService.FEATURE_CAMERA, this.cameraDisabled)
+          this.toggleItem(PeripheralStrings.cameraTitle, PeripheralStrings.cameraDescription, PeripheralService.FEATURE_CAMERA, this.cameraDisabled)
         }
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
@@ -76,7 +74,7 @@ export struct InterfaceControlTab {
     this.controlRow(
       label,
       description,
-      ENABLE_DISABLE_OPTIONS,
+      PeripheralStrings.interfaceToggleOptions,
       disabled ? 1 : 0,
       this.interfaceControlProcessingKey === feature,
       (index: number) => {
@@ -90,11 +88,11 @@ export struct InterfaceControlTab {
   @Builder
   private storageItem() {
     SectionSelectRow({
-      title: 'USB 存储设备',
-      description: '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
-      options: USB_STORAGE_OPTIONS.map((value: string): SelectOption => ({ value: value } as SelectOption)),
+      title: PeripheralStrings.usbStorageTitle,
+      description: PeripheralStrings.usbStorageDescription,
+      options: PeripheralStrings.usbStorageOptions.map((value: string): SelectOption => ({ value: value } as SelectOption)),
       selectedIndex: this.usbStoragePolicyIndex,
-      value: USB_STORAGE_OPTIONS[this.usbStoragePolicyIndex] ?? '',
+      value: PeripheralStrings.usbStorageOptions[this.usbStoragePolicyIndex] ?? '',
       selectWidth: 150,
       processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
       optimistic: true,

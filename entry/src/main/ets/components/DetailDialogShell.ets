@@ -1,4 +1,5 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
+import { DialogButtonStrings } from '../constants/modules/DialogStrings'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
@@ -21,7 +22,7 @@ export struct DetailDialogShell {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         Blank()
-        Button('关闭')
+        Button(DialogButtonStrings.CLOSE)
           .type(ButtonType.Normal)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontWeight(FontWeight.Medium)

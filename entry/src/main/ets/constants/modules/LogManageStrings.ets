@@ -1,4 +1,7 @@
 import { CommonStrings } from '../CommonStrings'
+import { DialogButtonStrings, FirewallDialogStrings, LoadingStrings, ResultStrings } from './DialogStrings'
+import { DataModelStrings } from './DataModelStrings'
+import { HelpFeedbackStrings } from './HelpFeedbackStrings'
 
 export class LogManageStrings {
   static readonly pageTitle: string = '日志管理'
@@ -6,9 +9,9 @@ export class LogManageStrings {
   static readonly pageSubtitle: string = '监控崩溃与关键安全日志'
   static readonly settingsSubtitle: string = '配置日志留存设置'
 
-  static readonly expand: string = '展开'
-  static readonly collapse: string = '收起'
-  static readonly close: string = '关闭'
+  static readonly expand: string = HelpFeedbackStrings.expandLabel
+  static readonly collapse: string = HelpFeedbackStrings.collapseLabel
+  static readonly close: string = DialogButtonStrings.CLOSE
 
   static readonly detailTitle: string = '详情'
   static readonly detailDialogTitle: string = '日志详情'
@@ -16,7 +19,7 @@ export class LogManageStrings {
   static readonly additionalInfo: string = '附加信息'
   static readonly processLabel: string = '进程'
   static readonly filePathLabel: string = '文件路径'
-  static readonly remoteAddressLabel: string = '远端地址'
+  static readonly remoteAddressLabel: string = FirewallDialogStrings.REMOTE_ADDRESS
 
   static readonly subscribeFailed: string = '订阅失败'
   static readonly subscribed: string = '已订阅'
@@ -24,8 +27,8 @@ export class LogManageStrings {
 
   static readonly allEventTypes: string = '全部类型'
   static readonly allResults: string = '全部结果'
-  static readonly successOption: string = '成功'
-  static readonly failedOption: string = '失败'
+  static readonly successOption: string = ResultStrings.SUCCESS
+  static readonly failedOption: string = ResultStrings.FAILED
 
   static readonly exportLogsButton: string = '导出日志'
   static readonly clearLogsButton: string = '清空日志'
@@ -35,7 +38,7 @@ export class LogManageStrings {
 
   static readonly statTotal: string = '总计'
   static readonly statToday: string = '今日'
-  static readonly statBlocked: string = '已阻止'
+  static readonly statBlocked: string = DataModelStrings.logResultBlocked
   static readonly statCurrentShown: string = '当前显示'
   static readonly statTotalDescription: string = '全部日志数量'
   static readonly statTodayDescription: string = '今日新增日志'
@@ -43,7 +46,7 @@ export class LogManageStrings {
   static readonly statCurrentShownDescription: string = '当前页显示数量'
 
   static readonly searchPlaceholder: string = '搜索日志内容...'
-  static readonly loading: string = '加载中...'
+  static readonly loading: string = LoadingStrings.LOADING
   static readonly emptyTitle: string = '暂无日志记录'
   static readonly emptyDescription: string = '可以稍后刷新，或检查采集与筛选配置。'
   static readonly fileFilterHint: string = '提示：文件日志仅记录当前前台用户目录中的文件操作。'
