@@ -720,37 +720,6 @@ export class PeripheralRuntimeEventService {
     })
   }
 
-  static async mapBluetoothAclCommonEventToTraceRecord(
-    data: commonEventManager.CommonEventData
-  ): Promise<PeripheralTraceRecord | null> {
-    const eventInfo = await PeripheralRuntimeEventService.resolveBluetoothAclEventInfo(data)
-    if (!eventInfo) {
-      return null
-    }
-    if (eventInfo.action === 'unknown') {
-      return null
-    }
-    return {
-      recordId: `runtime_bt_acl_${eventInfo.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
-      occurAt: eventInfo.occurAt,
-      collectAt: Date.now(),
-      deviceName: eventInfo.deviceName,
-      deviceType: PeripheralType.BLUETOOTH,
-      deviceId: eventInfo.deviceId,
-      action: eventInfo.action,
-      decision: 'unknown',
-      result: LogEventResult.SUCCESS,
-      source: 'runtime_event',
-      summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
-      rawEventName: data.event,
-      rawAction: eventInfo.action,
-      rawPayload: eventInfo.rawPayload,
-      detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
-      effectivePolicyLabel: '--',
-      matchedPolicyKind: 'bluetooth_connection_event'
-    }
-  }
-
   private static async consumeBluetoothAclCommonEvent(data: commonEventManager.CommonEventData): Promise<void> {
     const eventInfo = await PeripheralRuntimeEventService.resolveBluetoothAclEventInfo(data)
     if (!eventInfo) {
