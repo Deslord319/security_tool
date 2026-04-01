@@ -1,4 +1,5 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
+import { SectionSelectRow } from '../SectionRows'
 import { AppColors, AppStyles } from '../../constants/AppConstants'
 import { PeripheralService } from '../../services/PeripheralService'
 import { ThemeMode } from '../../theme/ThemeColors'
@@ -24,7 +25,7 @@ export struct InterfaceControlTab {
   @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
   @Prop hoveredPanelIndex: number = -1
   onInterfaceToggle?: (feature: string, disallow: boolean) => void
-  onUsbStoragePolicyChange?: (index: number) => void
+  onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
   onPanelHover?: (isHover: boolean) => void
 
   build() {
@@ -88,14 +89,22 @@ export struct InterfaceControlTab {
 
   @Builder
   private storageItem() {
-    this.controlRow(
-      'USB 存储设备',
-      '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
-      USB_STORAGE_OPTIONS,
-      this.usbStoragePolicyIndex,
-      this.interfaceControlProcessingKey === this.usbStorageControlKey,
-      (index: number) => this.onUsbStoragePolicyChange && this.onUsbStoragePolicyChange(index)
-    )
+    SectionSelectRow({
+      title: 'USB 存储设备',
+      description: '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
+      options: USB_STORAGE_OPTIONS.map((value: string): SelectOption => ({ value: value } as SelectOption)),
+      selectedIndex: this.usbStoragePolicyIndex,
+      value: USB_STORAGE_OPTIONS[this.usbStoragePolicyIndex] ?? '',
+      selectWidth: 150,
+      processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
+      optimistic: true,
+      onSelectAsync: async (nextIndex: number, _previousIndex: number): Promise<boolean> => {
+        if (!this.onUsbStoragePolicyChange) {
+          return false
+        }
+        return await this.onUsbStoragePolicyChange(nextIndex)
+      }
+    })
   }
 
   @Builder

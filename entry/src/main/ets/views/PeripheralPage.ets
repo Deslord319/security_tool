@@ -260,7 +260,7 @@ export struct PeripheralPage {
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
-        onUsbStoragePolicyChange: (index: number) => void this.handleUsbStoragePolicyChange(index),
+        onUsbStoragePolicyChange: async (index: number): Promise<boolean> => this.handleUsbStoragePolicyChange(index),
         onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
       })
     }
@@ -340,7 +340,7 @@ export struct PeripheralPage {
     }
   }
 
-  private async handleUsbStoragePolicyChange(index: number): Promise<void> {
+  private async handleUsbStoragePolicyChange(index: number): Promise<boolean> {
     const success = await this.usbLoadingRunner.run(
       'peripheral-usb-storage',
       PeripheralStrings.usbStorageLoadingMessage,
@@ -351,14 +351,16 @@ export struct PeripheralPage {
       (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
     )
     if (!success) {
+      hilog.warn(DOMAIN, TAG, `usb storage policy switch failed: index=${index}, reason=${this.viewModel.reasonCode ?? 'unknown'}`)
       if (!this.viewModel.adminState.activated) {
         DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setUsbStorageAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
         DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
-      return
+      return false
     }
     hilog.info(DOMAIN, TAG, `usb storage policy switch success: index=${index}`)
+    return true
   }
 
   private async handlePolicyChange(record: PeripheralPolicyRecord, policyIndex: number): Promise<void> {

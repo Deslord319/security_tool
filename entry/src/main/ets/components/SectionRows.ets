@@ -1,8 +1,12 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
+
+const TAG = 'SectionRows'
+const DOMAIN = 0x0015
 
 @Component
 export struct SectionToggleRow {
@@ -46,11 +50,91 @@ export struct SectionSelectRow {
   title: string = ''
   description: string = ''
   options: SelectOption[] = []
-  selectedIndex: number = 0
+  @Prop @Watch('onSelectedIndexChange') selectedIndex: number = 0
   value: string = ''
   selectWidth: number = 140
+  processing: boolean = false
+  optimistic: boolean = false
   onSelect: (index: number) => void = () => {}
+  onSelectAsync?: (nextIndex: number, previousIndex: number) => Promise<boolean>
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @State private displayIndex: number = 0
+  @State private isAsyncPending: boolean = false
+
+  aboutToAppear(): void {
+    this.displayIndex = this.selectedIndex
+  }
+
+  private onSelectedIndexChange(): void {
+    if (this.isAsyncPending) {
+      return
+    }
+    this.displayIndex = this.selectedIndex
+  }
+
+
+
+  private getDisplayValue(): string {
+    const safeIndex = this.displayIndex
+    const selectedOption = this.options[safeIndex]
+    if (selectedOption && typeof selectedOption.value === 'string') {
+      return selectedOption.value
+    }
+    return this.value
+  }
+
+  private async handleSelectChange(index: number): Promise<void> {
+    const nextIndex = index
+    const previousIndex = this.displayIndex
+    if (nextIndex === previousIndex) {
+      return
+    }
+
+    if (!this.onSelectAsync) {
+      this.displayIndex = nextIndex
+      this.onSelect(nextIndex)
+      return
+    }
+
+    this.isAsyncPending = true
+    if (this.optimistic) {
+      this.displayIndex = nextIndex
+    }
+    hilog.info(
+      DOMAIN,
+      TAG,
+      'select async start: title=%{public}s, previousIndex=%{public}d, nextIndex=%{public}d',
+      this.title,
+      previousIndex,
+      nextIndex
+    )
+
+    let success = false
+    try {
+      success = await this.onSelectAsync(nextIndex, previousIndex)
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'select async exception: title=%{public}s, error=%{public}s', this.title, JSON.stringify(err))
+    }
+
+    this.isAsyncPending = false
+    if (success) {
+      hilog.info(DOMAIN, TAG, 'select async success: title=%{public}s, nextIndex=%{public}d', this.title, nextIndex)
+      if (!this.optimistic) {
+        this.displayIndex = previousIndex
+      }
+      return
+    }
+
+    this.displayIndex = previousIndex
+    hilog.warn(
+      DOMAIN,
+      TAG,
+      'select async rollback: title=%{public}s, rollbackIndex=%{public}d, failedIndex=%{public}d',
+      this.title,
+      previousIndex,
+      nextIndex
+    )
+  }
 
   build() {
     Row() {
@@ -71,8 +155,8 @@ export struct SectionSelectRow {
       .layoutWeight(1)
 
       Select(this.options)
-        .selected(this.selectedIndex)
-        .value(this.value)
+        .selected(this.displayIndex)
+        .value(this.getDisplayValue())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
@@ -84,8 +168,10 @@ export struct SectionSelectRow {
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .enabled(!(this.processing || this.isAsyncPending))
+        .opacity(this.processing || this.isAsyncPending ? 0.72 : 1)
         .onSelect((index: number) => {
-          this.onSelect(index)
+          void this.handleSelectChange(index)
         })
     }
     .width('100%')
