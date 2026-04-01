@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { AppColors, Routes } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
+import { CommonStrings } from '../constants/CommonStrings'
 import { DashboardStrings } from '../constants/modules/DashboardStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/DashboardModels'
@@ -158,7 +159,7 @@ export class DashboardViewModel {
     return [
       this.createQuickEntry(
         RouteIds.ENTRY_FIREWALL,
-        DashboardStrings.firewallEntryTitle,
+        CommonStrings.moduleFirewall,
         AppResources.FIREWALL_ICON,
         DashboardStrings.firewallGradient.start,
         DashboardStrings.firewallGradient.end,
@@ -166,7 +167,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_LOG,
-        DashboardStrings.logEntryTitle,
+        CommonStrings.moduleLogManage,
         AppResources.LOG_ICON,
         DashboardStrings.logManageGradient.start,
         DashboardStrings.logManageGradient.end,
@@ -174,7 +175,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_PERIPHERAL,
-        DashboardStrings.peripheralEntryTitle,
+        CommonStrings.modulePeripheralManage,
         AppResources.PERIPHERAL_ICON,
         DashboardStrings.peripheralGradient.start,
         DashboardStrings.peripheralGradient.end,
@@ -182,7 +183,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_IDENTITY,
-        DashboardStrings.identityTitle,
+        CommonStrings.moduleIdentity,
         AppResources.IDENTITY_ICON,
         DashboardStrings.identityGradient.start,
         DashboardStrings.identityGradient.end,
@@ -190,7 +191,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_TOOL_SETTINGS,
-        DashboardStrings.toolSettingsTitle,
+        CommonStrings.moduleToolSettings,
         AppResources.SETTINGS_ICON,
         DashboardStrings.toolSettingsGradient.start,
         DashboardStrings.toolSettingsGradient.end,
@@ -198,7 +199,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.ENTRY_HELP_FEEDBACK,
-        DashboardStrings.helpFeedbackTitle,
+        CommonStrings.moduleHelpFeedback,
         AppResources.HELP_ICON,
         DashboardStrings.helpFeedbackGradient.start,
         DashboardStrings.helpFeedbackGradient.end,

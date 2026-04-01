@@ -30,13 +30,6 @@ export class DashboardStrings {
   static readonly peripheralDetailMiddle: string = ' 次，断开 '
   static readonly peripheralDetailSuffix: string = ' 次'
 
-  static readonly firewallEntryTitle: string = CommonStrings.moduleFirewall
-  static readonly logEntryTitle: string = CommonStrings.moduleLogManage
-  static readonly peripheralEntryTitle: string = CommonStrings.modulePeripheralManage
-  static readonly identityTitle: string = CommonStrings.moduleIdentity
-  static readonly toolSettingsTitle: string = CommonStrings.moduleToolSettings
-  static readonly helpFeedbackTitle: string = CommonStrings.moduleHelpFeedback
-
   static readonly firewallGradient: DashboardGradient = { start: AppColors.BRAND_PRIMARY, end: AppColors.GRADIENT_FIREWALL_END }
   static readonly logManageGradient: DashboardGradient = { start: AppColors.SUCCESS, end: AppColors.GRADIENT_LOG_END }
   static readonly peripheralGradient: DashboardGradient = { start: AppColors.GRADIENT_PERIPHERAL_START, end: AppColors.GRADIENT_PERIPHERAL_END }
