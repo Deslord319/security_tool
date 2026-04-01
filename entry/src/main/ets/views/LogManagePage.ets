@@ -568,9 +568,13 @@ export struct LogManagePage {
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => this.viewModel.setPageSizeIndex(index))
 
-        Button(LogManageStrings.previousPageButton)
-          .height(32)
-          .onClick(() => this.viewModel.goToPreviousPage())
+        IconTextActionButton({
+          label: LogManageStrings.previousPageButton,
+          showIcon: false,
+          kind: 'primary',
+          isEnabled: this.viewModel.state.pagination.currentPage > 1,
+          onTap: () => this.viewModel.goToPreviousPage()
+        })
 
         Text(`${this.viewModel.state.pagination.currentPage}/${this.viewModel.state.pagination.totalPages}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -588,13 +592,21 @@ export struct LogManagePage {
           .width(62)
           .onChange((value: string) => this.viewModel.setPageInputText(value))
 
-        Button(LogManageStrings.jumpButton)
-          .height(32)
-          .onClick(() => this.viewModel.jumpToInputPage())
+        IconTextActionButton({
+          label: LogManageStrings.jumpButton,
+          showIcon: false,
+          kind: 'primary',
+          isEnabled: this.viewModel.state.pagination.pageInputText.trim().length > 0,
+          onTap: () => this.viewModel.jumpToInputPage()
+        })
 
-        Button(LogManageStrings.nextPageButton)
-          .height(32)
-          .onClick(() => this.viewModel.goToNextPage())
+        IconTextActionButton({
+          label: LogManageStrings.nextPageButton,
+          showIcon: false,
+          kind: 'primary',
+          isEnabled: this.viewModel.state.pagination.currentPage < this.viewModel.state.pagination.totalPages,
+          onTap: () => this.viewModel.goToNextPage()
+        })
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: 10, bottom: 10 })
@@ -624,76 +636,6 @@ export struct LogManagePage {
     .margin({ left: 12 })
   }
 
-  @Builder
-  private storageSettingsView() {
-    Scroll() {
-      Column({ space: 24 }) {
-        this.storageSettingsCard()
-      }
-      .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
-    }
-    .width('100%')
-    .layoutWeight(1)
-    .scrollBar(BarState.Auto)
-  }
-
-  @Builder
-  private storageSettingsCard() {
-    Column({ space: 0 }) {
-      Row() {
-        Text(LogManageStrings.settingsTitle)
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Blank()
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 12 })
-
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-      Column({ space: 0 }) {
-        SectionSelectRow({
-          title: LogManageStrings.maxEntriesLabel,
-          description: LogManageStrings.maxEntriesDescription,
-          options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
-          selectedIndex: this.viewModel.state.settings.maxEntriesIndex,
-          value: `${LOG_MAX_ENTRIES_OPTIONS[this.viewModel.state.settings.maxEntriesIndex]}`,
-          selectWidth: this.settingsFormControlWidth,
-          onSelect: (index: number) => this.viewModel.setStorageMaxEntriesIndex(index)
-        })
-
-        Divider()
-          .color(AppColors.getColors(this.currentTheme).BORDER)
-          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-        SectionSelectRow({
-          title: LogManageStrings.retentionDaysLabel,
-          description: LogManageStrings.retentionDaysDescription,
-          options: LogManagePage.STORAGE_RETENTION_OPTIONS,
-          selectedIndex: this.viewModel.state.settings.retentionIndex,
-          value: `${LOG_RETENTION_OPTIONS[this.viewModel.state.settings.retentionIndex]}`,
-          selectWidth: this.settingsFormControlWidth,
-          onSelect: (index: number) => this.viewModel.setStorageRetentionIndex(index)
-        })
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .clip(true)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
-  }
-
   build() {
     Column() {
       SubPageHeader({
@@ -707,7 +649,67 @@ export struct LogManagePage {
       })
 
       if (this.viewModel.state.mode === 'settings') {
-        this.storageSettingsView()
+        Scroll() {
+          Column({ space: 24 }) {
+            Column({ space: 0 }) {
+              Row() {
+                Text(LogManageStrings.settingsTitle)
+                  .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+                Blank()
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 16, bottom: 12 })
+
+              Divider()
+                .color(AppColors.getColors(this.currentTheme).BORDER)
+                .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+              Column({ space: 0 }) {
+                SectionSelectRow({
+                  title: LogManageStrings.maxEntriesLabel,
+                  description: LogManageStrings.maxEntriesDescription,
+                  options: LogManagePage.STORAGE_MAX_ENTRY_OPTIONS,
+                  selectedIndex: this.viewModel.state.settings.maxEntriesIndex,
+                  value: `${LOG_MAX_ENTRIES_OPTIONS[this.viewModel.state.settings.maxEntriesIndex]}`,
+                  selectWidth: this.settingsFormControlWidth,
+                  onSelect: (index: number) => this.viewModel.setStorageMaxEntriesIndex(index)
+                })
+
+                Divider()
+                  .color(AppColors.getColors(this.currentTheme).BORDER)
+                  .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+                SectionSelectRow({
+                  title: LogManageStrings.retentionDaysLabel,
+                  description: LogManageStrings.retentionDaysDescription,
+                  options: LogManagePage.STORAGE_RETENTION_OPTIONS,
+                  selectedIndex: this.viewModel.state.settings.retentionIndex,
+                  value: `${LOG_RETENTION_OPTIONS[this.viewModel.state.settings.retentionIndex]}`,
+                  selectWidth: this.settingsFormControlWidth,
+                  onSelect: (index: number) => this.viewModel.setStorageRetentionIndex(index)
+                })
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+            .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+            .borderRadius(AppStyles.RADIUS_LG)
+            .clip(true)
+            .border({
+              width: 1,
+              color: AppColors.getColors(this.currentTheme).BORDER
+            })
+          }
+          .width('100%')
+          .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_LG })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .scrollBar(BarState.Auto)
       } else {
         this.statisticsBar()
         this.filterToolbar()

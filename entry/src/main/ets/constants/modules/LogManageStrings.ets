@@ -39,7 +39,7 @@ export class LogManageStrings {
   static readonly statCurrentShown: string = '当前显示'
   static readonly statTotalDescription: string = '全部日志数量'
   static readonly statTodayDescription: string = '今日新增日志'
-  static readonly statBlockedDescription: string = '拦截结果事件'
+  static readonly statBlockedDescription: string = '阻止结果事件'
   static readonly statCurrentShownDescription: string = '当前页显示数量'
 
   static readonly searchPlaceholder: string = '搜索日志内容...'

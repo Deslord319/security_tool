@@ -8,6 +8,7 @@ export type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
 export struct IconTextActionButton {
   label: string = ''
   icon: Resource = $r('app.media.save')
+  showIcon: boolean = true
   kind: IconTextActionButtonKind = 'primary'
   isEnabled: boolean = true
   onTap: () => void = () => {}
@@ -36,10 +37,12 @@ export struct IconTextActionButton {
   build() {
     Button() {
       Row({ space: 6 }) {
-        Image(this.icon)
-          .width(ActionButtonStyles.ICON_SIZE)
-          .height(ActionButtonStyles.ICON_SIZE)
-          .draggable(false)
+        if (this.showIcon) {
+          Image(this.icon)
+            .width(ActionButtonStyles.ICON_SIZE)
+            .height(ActionButtonStyles.ICON_SIZE)
+            .draggable(false)
+        }
 
         Text(this.label)
           .fontSize(ActionButtonStyles.FONT_SIZE)
