@@ -22,6 +22,8 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
       return 'USB 存储只读'
     case 'device_deny':
       return '命中单设备禁止接入'
+    case 'bluetooth_connection_event':
+      return '蓝牙连接事件'
     case 'bluetooth_discovery':
       return '蓝牙运行期发现'
     case 'default_allow':
@@ -99,14 +101,7 @@ export function buildConnectionHistoryItems(
       policy: getPeripheralConnectionPolicyLabel(item),
       result: getPeripheralConnectionResultLabel(item)
     }
-    const duplicated = history.some((existing: PeripheralConnectionHistoryItem) => {
-      return existing.time === nextItem.time &&
-        existing.policy === nextItem.policy &&
-        existing.result === nextItem.result
-    })
-    if (!duplicated) {
-      history.push(nextItem)
-    }
+    history.push(nextItem)
   }
   return history
 }

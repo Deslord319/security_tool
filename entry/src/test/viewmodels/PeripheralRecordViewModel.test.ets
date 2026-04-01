@@ -91,4 +91,31 @@ describe('PeripheralRecordViewModel', () => {
     expect(exportedCsv.indexOf('发现')).toBeGreaterThan(-1)
     done()
   })
+
+  it('should export connect label for bluetooth acl records', 0, async (done: Function) => {
+    viewModel.records = [{
+      id: 'bt-acl-1',
+      timestamp: Date.now(),
+      deviceId: 'MAC: 11:22:33:44:55:66',
+      deviceName: 'Bluetooth Mouse',
+      deviceType: PeripheralType.BLUETOOTH,
+      source: 'runtime_event',
+      action: 'connect',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'unknown',
+      summary: '蓝牙设备已连接',
+      matchedPolicyKind: 'bluetooth_connection_event'
+    }]
+    let exportedCsv = ''
+    LogStorageService.init = async (_context: common.UIAbilityContext): Promise<boolean> => true
+    LogStorageService.exportToCsvFile = async (payload: Object): Promise<Object> => {
+      exportedCsv = (payload as Record<string, string>).csvContent ?? ''
+      return { success: true, fileName: 'mock.csv' }
+    }
+
+    const result = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
+    expect(result.success).assertTrue()
+    expect(exportedCsv.indexOf('连接')).toBeGreaterThan(-1)
+    done()
+  })
 })

@@ -46,4 +46,24 @@ describe('PeripheralRecordDisplayUtils', () => {
     expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual('蓝牙运行期发现')
     expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
   })
+
+  it('should render bluetooth acl connection labels', 0, () => {
+    const record: PeripheralConnectionRecord = {
+      id: 'runtime-bt-acl-1',
+      timestamp: Date.now(),
+      deviceName: 'Bluetooth Mouse',
+      deviceType: PeripheralType.BLUETOOTH,
+      deviceId: 'MAC: 11:22:33:44:55:66',
+      action: 'connect',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'unknown',
+      source: 'runtime_event',
+      summary: '蓝牙设备已连接',
+      matchedPolicyKind: 'bluetooth_connection_event'
+    }
+
+    expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('蓝牙连接事件')
+    expect(getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)).assertEqual('蓝牙连接事件')
+    expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
+  })
 })

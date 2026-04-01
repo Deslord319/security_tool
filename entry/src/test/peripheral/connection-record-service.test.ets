@@ -66,4 +66,30 @@ describe('PeripheralConnectionRecordService', () => {
     expect(records[0].action).assertEqual('discover')
     expect(records[0].matchedPolicyKind).assertEqual('bluetooth_discovery')
   })
+
+  it('should map bluetooth acl runtime records', 0, () => {
+    PeripheralTraceRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([
+      {
+        recordId: 'runtime_bt_acl_1',
+        occurAt: 400,
+        collectAt: 401,
+        deviceName: 'Bluetooth Keyboard',
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceId: 'MAC: 11:22:33:44:55:66',
+        action: 'connect',
+        decision: 'unknown',
+        result: LogEventResult.SUCCESS,
+        source: 'runtime_event',
+        summary: '蓝牙设备已连接',
+        matchedPolicyKind: 'bluetooth_connection_event'
+      }
+    ])
+
+    const records = PeripheralConnectionRecordService.queryRecords()
+    expect(records.length).assertEqual(1)
+    expect(records[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
+    expect(records[0].action).assertEqual('connect')
+    expect(records[0].matchedPolicyKind).assertEqual('bluetooth_connection_event')
+  })
 })
