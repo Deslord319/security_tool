@@ -35,3 +35,9 @@ export interface PeripheralConnectionRecordConsumer {
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean
   consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralConnectionRecordConsumeResult>
 }
+
+export interface PeripheralConnectionRecordPipeline {
+  start(): Promise<boolean>
+  stop(): void
+  push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean>
+}

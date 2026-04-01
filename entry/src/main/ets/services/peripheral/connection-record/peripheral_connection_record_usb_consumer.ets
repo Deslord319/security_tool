@@ -1,7 +1,7 @@
 import { commonEventManager } from '@kit.BasicServicesKit'
-import { PeripheralTraceRecord } from '../../../models/DataModels'
 import { PeripheralRuntimeEventService } from '../../PeripheralRuntimeEventService'
 import {
+  PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent
 } from './peripheral_connection_record_producer_contract'
@@ -11,7 +11,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     return event.channel === 'usb'
   }
 
-  async consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralTraceRecord | null> {
+  async consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralConnectionRecordConsumeResult> {
     if (!this.canHandle(event)) {
       return null
     }
