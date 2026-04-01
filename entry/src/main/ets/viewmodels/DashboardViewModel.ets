@@ -14,7 +14,7 @@ import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository
 import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
-type DashboardQuickEntryId = 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
+type DashboardQuickEntryId = 'firewall' | 'log-manage' | 'peripheral-manage' | 'identity' | 'tool-settings' | 'help-feedback'
 
 @Observed
 export class DashboardViewModel {
@@ -76,7 +76,7 @@ export class DashboardViewModel {
   private buildAdminCard(): DashboardModuleCardState {
     let activated = EnterpriseAdminService.probeActivation().activated
     return this.createModuleCard(
-      RouteIds.MODULE_ADMIN,
+      RouteIds.ADMIN,
       DashboardStrings.adminTitle,
       activated ? DashboardStrings.adminReady : DashboardStrings.adminPending,
       activated ? DashboardStrings.adminReadyDetail : DashboardStrings.adminPendingDetail,
@@ -100,7 +100,7 @@ export class DashboardViewModel {
     }
 
     return this.createModuleCard(
-      RouteIds.MODULE_FIREWALL,
+      RouteIds.FIREWALL,
       DashboardStrings.firewallTitle,
       enabled ? DashboardStrings.firewallEnabled : DashboardStrings.firewallDisabled,
       modeText,
@@ -113,7 +113,7 @@ export class DashboardViewModel {
   private buildLogCard(): DashboardModuleCardState {
     let statistics = LogStorageService.getStatistics()
     return this.createModuleCard(
-      RouteIds.MODULE_LOG,
+      RouteIds.LOG_MANAGE,
       DashboardStrings.logTitle,
       `${statistics.todayCount}`,
       `${DashboardStrings.logTodayDetailPrefix}${statistics.totalCount}${DashboardStrings.logTodayDetailSuffix}`,
@@ -126,7 +126,7 @@ export class DashboardViewModel {
   private buildPeripheralCard(): DashboardModuleCardState {
     let stats = PeripheralTraceRepository.getStats()
     return this.createModuleCard(
-      RouteIds.MODULE_PERIPHERAL,
+      RouteIds.PERIPHERAL_MANAGE,
       DashboardStrings.peripheralTitle,
       `${stats.total}`,
       `${DashboardStrings.peripheralDetailPrefix}${stats.connects}${DashboardStrings.peripheralDetailMiddle}${stats.disconnects}${DashboardStrings.peripheralDetailSuffix}`,
@@ -141,9 +141,9 @@ export class DashboardViewModel {
       let nextCards = [...this.moduleCards]
       for (let index = 0; index < nextCards.length; index++) {
         let card = nextCards[index]
-        if (refreshLog && card.id === 'log') {
+        if (refreshLog && card.id === RouteIds.LOG_MANAGE) {
           nextCards[index] = this.buildLogCard()
-        } else if (refreshPeripheral && card.id === 'peripheral') {
+        } else if (refreshPeripheral && card.id === RouteIds.PERIPHERAL_MANAGE) {
           nextCards[index] = this.buildPeripheralCard()
         }
       }
@@ -156,7 +156,7 @@ export class DashboardViewModel {
   private buildQuickEntries(): DashboardQuickEntryState[] {
     return [
       this.createQuickEntry(
-        RouteIds.ENTRY_FIREWALL,
+        RouteIds.FIREWALL,
         CommonStrings.moduleFirewall,
         AppResources.FIREWALL_ICON,
         DashboardStrings.firewallGradient.start,
@@ -164,7 +164,7 @@ export class DashboardViewModel {
         RouteIds.FIREWALL
       ),
       this.createQuickEntry(
-        RouteIds.ENTRY_LOG,
+        RouteIds.LOG_MANAGE,
         CommonStrings.moduleLogManage,
         AppResources.LOG_ICON,
         DashboardStrings.logManageGradient.start,
@@ -172,7 +172,7 @@ export class DashboardViewModel {
         RouteIds.LOG_MANAGE
       ),
       this.createQuickEntry(
-        RouteIds.ENTRY_PERIPHERAL,
+        RouteIds.PERIPHERAL_MANAGE,
         CommonStrings.modulePeripheralManage,
         AppResources.PERIPHERAL_ICON,
         DashboardStrings.peripheralGradient.start,
@@ -180,7 +180,7 @@ export class DashboardViewModel {
         RouteIds.PERIPHERAL_MANAGE
       ),
       this.createQuickEntry(
-        RouteIds.ENTRY_IDENTITY,
+        RouteIds.IDENTITY,
         CommonStrings.moduleIdentity,
         AppResources.IDENTITY_ICON,
         DashboardStrings.identityGradient.start,
@@ -188,7 +188,7 @@ export class DashboardViewModel {
         RouteIds.IDENTITY
       ),
       this.createQuickEntry(
-        RouteIds.ENTRY_TOOL_SETTINGS,
+        RouteIds.TOOL_SETTINGS,
         CommonStrings.moduleToolSettings,
         AppResources.SETTINGS_ICON,
         DashboardStrings.toolSettingsGradient.start,
@@ -196,7 +196,7 @@ export class DashboardViewModel {
         RouteIds.TOOL_SETTINGS
       ),
       this.createQuickEntry(
-        RouteIds.ENTRY_HELP_FEEDBACK,
+        RouteIds.HELP_FEEDBACK,
         CommonStrings.moduleHelpFeedback,
         AppResources.HELP_ICON,
         DashboardStrings.helpFeedbackGradient.start,
@@ -207,7 +207,7 @@ export class DashboardViewModel {
   }
 
   private createModuleCard(
-    id: 'admin' | 'firewall' | 'log' | 'peripheral',
+    id: 'admin' | 'firewall' | 'log-manage' | 'peripheral-manage',
     title: string,
     primaryText: string,
     secondaryText: string,

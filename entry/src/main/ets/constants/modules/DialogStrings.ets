@@ -1,4 +1,3 @@
-import { SharedLabels } from './FirewallSharedLabels'
 
 /**
  * 对话框通用字符串常量
@@ -56,6 +55,18 @@ export class ResultStrings {
   static readonly UPDATE_SUCCESS: string = '更新成功'
 }
 
+export class CommonLabelStrings {
+  static readonly ALL: string = '全部'
+  static readonly UNKNOWN: string = '未知'
+}
+
+export class FirewallRuleLabelStrings {
+  static readonly ALL_RULES: string = '全部规则'
+  static readonly IP_RULE: string = 'IP规则'
+  static readonly DOMAIN_RULE: string = '域名规则'
+  static readonly DNS_RULE: string = 'DNS规则'
+}
+
 // ==================== 验证错误提示 ====================
 export class ValidationErrorStrings {
   static readonly PIN_FAILED: string = 'PIN 验证失败，已取消本次变更'
@@ -98,11 +109,11 @@ export class FirewallDialogStrings {
   static readonly RULE_NAME_PLACEHOLDER: string = '请输入规则名称'
   
   // 规则类型标签
-  static readonly RULE_TYPE_IP: string = 'IP 规则'
-  static readonly RULE_TYPE_DOMAIN: string = '域名规则'
-  static readonly RULE_TYPE_DNS: string = 'DNS 规则'
-  static readonly DIRECTION_INBOUND: string = SharedLabels.LABEL_INBOUND
-  static readonly DIRECTION_OUTBOUND: string = SharedLabels.LABEL_OUTBOUND
+  static readonly RULE_TYPE_IP: string = FirewallRuleLabelStrings.IP_RULE
+  static readonly RULE_TYPE_DOMAIN: string = FirewallRuleLabelStrings.DOMAIN_RULE
+  static readonly RULE_TYPE_DNS: string = FirewallRuleLabelStrings.DNS_RULE
+  static readonly DIRECTION_INBOUND: string = '入站'
+  static readonly DIRECTION_OUTBOUND: string = '出站'
   static readonly PROTOCOL_TCP: string = 'TCP'
   static readonly PROTOCOL_UDP: string = 'UDP'
   static readonly PROTOCOL_ICMP: string = 'ICMP'

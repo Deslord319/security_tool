@@ -1,4 +1,4 @@
-export type DashboardModuleCardId = 'admin' | 'firewall' | 'log' | 'peripheral'
+export type DashboardModuleCardId = 'admin' | 'firewall' | 'log-manage' | 'peripheral-manage'
 
 export interface DashboardModuleCardState {
   id: DashboardModuleCardId
@@ -11,7 +11,7 @@ export interface DashboardModuleCardState {
 }
 
 export interface DashboardQuickEntryState {
-  id: 'firewall' | 'log' | 'peripheral' | 'identity' | 'tool-settings' | 'help-feedback'
+  id: 'firewall' | 'log-manage' | 'peripheral-manage' | 'identity' | 'tool-settings' | 'help-feedback'
   title: string
   icon: Resource
   accentStart: string

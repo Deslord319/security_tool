@@ -19,9 +19,9 @@ import {
 import { PeripheralDevicePolicyRepository } from './PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 import { PeripheralService } from './PeripheralService'
+import { CommonLabelStrings } from '../constants/modules/DialogStrings'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { DataModelStrings } from '../constants/modules/DataModelStrings'
-import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 
 const TAG = 'PeripheralRuntimeEvent'
 const FALLBACK_BLUETOOTH_NAME = PeripheralStrings.unnamedBluetoothDevice
@@ -448,7 +448,7 @@ export class PeripheralRuntimeEventService {
       case UsbStoragePolicy.DISABLED:
         return DataModelStrings.usbStorageDisabled
       default:
-        return SharedLabels.LABEL_UNKNOWN
+        return CommonLabelStrings.UNKNOWN
     }
   }
 

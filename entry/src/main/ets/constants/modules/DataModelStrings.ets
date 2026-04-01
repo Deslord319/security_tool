@@ -1,4 +1,3 @@
-import { SharedLabels } from './FirewallSharedLabels'
 import { DeviceTypeLabels, FirewallDialogStrings, ResultStrings } from './DialogStrings'
 
 export class DataModelStrings {

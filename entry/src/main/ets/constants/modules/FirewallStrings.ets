@@ -1,6 +1,5 @@
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/DataModels'
 import { CommonStrings } from '../CommonStrings'
-import { SharedLabels } from './FirewallSharedLabels'
 import { AppColors } from '../AppConstants'
 import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from './DialogStrings'
 

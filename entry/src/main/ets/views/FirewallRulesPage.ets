@@ -1,9 +1,8 @@
 import { LogUtils } from '../utils/LogUtils'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
-import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from '../constants/modules/DialogStrings'
+import { CommonLabelStrings, EmptyStateStrings, FirewallDialogStrings, FirewallRuleLabelStrings, LoadingStrings } from '../constants/modules/DialogStrings'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
-import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallCustomRuleService } from '../services/FirewallCustomRuleService'
 import { FirewallModeService } from '../services/FirewallModeService'
@@ -295,13 +294,13 @@ export struct FirewallRulesPage {
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
-        return 'IP'
+        return FirewallRuleLabelStrings.IP_RULE
       case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return SharedLabels.LABEL_DOMAIN
+        return FirewallRuleLabelStrings.DOMAIN_RULE
       case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return 'DNS'
+        return FirewallRuleLabelStrings.DNS_RULE
       default:
-        return SharedLabels.LABEL_UNKNOWN
+        return CommonLabelStrings.UNKNOWN
     }
   }
 
@@ -345,7 +344,9 @@ export struct FirewallRulesPage {
   }
 
   getDirectionLabel(dir: netFirewall.NetFirewallRuleDirection): string {
-    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN ? SharedLabels.LABEL_INBOUND : SharedLabels.LABEL_OUTBOUND
+    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN
+      ? FirewallDialogStrings.DIRECTION_INBOUND
+      : FirewallDialogStrings.DIRECTION_OUTBOUND
   }
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
@@ -513,19 +514,19 @@ export struct FirewallRulesPage {
         Tabs({ barPosition: BarPosition.Start }) {
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(SharedLabels.LABEL_ALL, 0))
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(SharedLabels.LABEL_IP, 1))
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.IP_RULE, 1))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(SharedLabels.LABEL_DOMAIN, 2))
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DOMAIN_RULE, 2))
 
           TabContent() {
             this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(SharedLabels.LABEL_DNS, 3))
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DNS_RULE, 3))
         }
         .barMode(BarMode.Scrollable)
         .barBackgroundColor(Color.Transparent)

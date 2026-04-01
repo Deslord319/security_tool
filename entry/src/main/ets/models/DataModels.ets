@@ -1,7 +1,6 @@
 
-import { SharedLabels } from '../constants/modules/FirewallSharedLabels'
 import { DataModelStrings } from '../constants/modules/DataModelStrings'
-import { DeviceTypeLabels, FirewallDialogStrings, ResultStrings } from '../constants/modules/DialogStrings'
+import { CommonLabelStrings, DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings, ResultStrings } from '../constants/modules/DialogStrings'
 import { IdentityStrings } from '../constants/modules/IdentityStrings'
 
 export enum RuleType {
@@ -65,31 +64,31 @@ export interface RuleTypeData {
 export function getRuleTypeLabel(type: RuleType): string {
   switch (type) {
     case RuleType.IP:
-      return SharedLabels.LABEL_IP
+      return FirewallRuleLabelStrings.IP_RULE
     case RuleType.DOMAIN:
-      return SharedLabels.LABEL_DOMAIN
+      return FirewallRuleLabelStrings.DOMAIN_RULE
     case RuleType.DNS:
-      return SharedLabels.LABEL_DNS
+      return FirewallRuleLabelStrings.DNS_RULE
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
 export function getDirectionLabel(dir: RuleDirection): string {
   switch (dir) {
     case RuleDirection.IN:
-      return SharedLabels.LABEL_INBOUND
+      return FirewallDialogStrings.DIRECTION_INBOUND
     case RuleDirection.OUT:
-      return SharedLabels.LABEL_OUTBOUND
+      return FirewallDialogStrings.DIRECTION_OUTBOUND
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
 export function getProtocolLabel(proto: ProtocolType): string {
   switch (proto) {
     case ProtocolType.ALL:
-      return SharedLabels.LABEL_ALL
+      return CommonLabelStrings.ALL
     case ProtocolType.TCP:
       return 'TCP'
     case ProtocolType.UDP:
@@ -97,7 +96,7 @@ export function getProtocolLabel(proto: ProtocolType): string {
     case ProtocolType.ICMP:
       return 'ICMP'
     default:
-      return SharedLabels.LABEL_ALL
+      return CommonLabelStrings.ALL
   }
 }
 
@@ -108,7 +107,7 @@ export function getActionLabel(action: RuleAction): string {
     case RuleAction.DENY:
       return DataModelStrings.actionDeny
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
@@ -312,7 +311,7 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
     case PeripheralType.BLUETOOTH:
       return DataModelStrings.peripheralBluetooth
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
@@ -325,7 +324,7 @@ export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
     case UsbStoragePolicy.DISABLED:
       return DataModelStrings.usbStorageDisabled
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
@@ -363,7 +362,7 @@ export function getPeripheralRecordPolicyHitLabel(policyHit: PeripheralRecordPol
     case 'deny':
       return FirewallDialogStrings.ACTION_DENY
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
@@ -712,7 +711,7 @@ export function getLogEventTypeLabel(type: LogEventType): string {
     case LogEventType.PERMISSION:
       return DataModelStrings.logEventPermission
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
@@ -725,7 +724,7 @@ export function getLogEventResultLabel(result: LogEventResult): string {
     case LogEventResult.FAILED:
       return ResultStrings.FAILED
     default:
-      return SharedLabels.LABEL_UNKNOWN
+      return CommonLabelStrings.UNKNOWN
   }
 }
 
