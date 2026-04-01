@@ -2,17 +2,16 @@
  * OpenHarmony test runner.
  */
 import { TestRunner, abilityDelegatorRegistry } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../utils/TestLogUtils'
 
 const TAG = 'OpenHarmonyTestRunner'
-const DOMAIN = 0x0000
 
 async function onAbilityCreateCallback(): Promise<void> {
-  hilog.info(DOMAIN, TAG, 'onAbilityCreateCallback')
+  TestLogUtils.info(TAG, 'onAbilityCreateCallback')
 }
 
 async function addAbilityMonitorCallback(err: Error): Promise<void> {
-  hilog.info(DOMAIN, TAG, 'addAbilityMonitorCallback: %{public}s', JSON.stringify(err) ?? '')
+  TestLogUtils.info(TAG, 'addAbilityMonitorCallback: %{public}s', JSON.stringify(err) ?? '')
 }
 
 export default class OpenHarmonyTestRunner implements TestRunner {
@@ -20,17 +19,17 @@ export default class OpenHarmonyTestRunner implements TestRunner {
   }
 
   onPrepare(): void {
-    hilog.info(DOMAIN, TAG, 'onPrepare')
+    TestLogUtils.info(TAG, 'onPrepare')
   }
 
   async onRun(): Promise<void> {
-    hilog.info(DOMAIN, TAG, 'onRun start')
+    TestLogUtils.info(TAG, 'onRun start')
 
     let abilityDelegatorArguments = abilityDelegatorRegistry.getArguments()
     let abilityDelegator = abilityDelegatorRegistry.getAbilityDelegator()
 
     let testAbilityName = abilityDelegatorArguments.parameters['-p'] + '.TestAbility'
-    hilog.info(DOMAIN, TAG, 'testAbilityName: %{public}s', testAbilityName)
+    TestLogUtils.info(TAG, 'testAbilityName: %{public}s', testAbilityName)
 
     let lMonitor: abilityDelegatorRegistry.AbilityMonitor = {
       abilityName: testAbilityName,
@@ -39,10 +38,10 @@ export default class OpenHarmonyTestRunner implements TestRunner {
     abilityDelegator.addAbilityMonitor(lMonitor, addAbilityMonitorCallback)
 
     let cmd = 'aa start -a TestAbility -b ' + abilityDelegatorArguments.bundleName
-    hilog.info(DOMAIN, TAG, 'cmd: %{public}s', cmd)
+    TestLogUtils.info(TAG, 'cmd: %{public}s', cmd)
 
     await abilityDelegator.executeShellCommand(cmd, 5000)
 
-    hilog.info(DOMAIN, TAG, 'onRun end')
+    TestLogUtils.info(TAG, 'onRun end')
   }
 }

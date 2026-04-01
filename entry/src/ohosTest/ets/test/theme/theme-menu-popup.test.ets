@@ -3,10 +3,9 @@
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'ThemeMenuPopupTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -15,7 +14,7 @@ export default function themeMenuPopupTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'ThemeMenuPopup tests starting...')
+      TestLogUtils.info(TAG, 'ThemeMenuPopup tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -27,7 +26,7 @@ export default function themeMenuPopupTest() {
     })
 
     afterAll(async () => {
-      hilog.info(DOMAIN, TAG, 'ThemeMenuPopup tests completed')
+      TestLogUtils.info(TAG, 'ThemeMenuPopup tests completed')
     })
 
     it('should open popup when clicking trigger', 0, async () => {

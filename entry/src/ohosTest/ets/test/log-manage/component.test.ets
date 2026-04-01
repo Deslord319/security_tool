@@ -3,10 +3,9 @@
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'LogManageComponentTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -21,7 +20,7 @@ export default function logManageComponentTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'LogManage component tests starting...')
+      TestLogUtils.info(TAG, 'LogManage component tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -33,7 +32,7 @@ export default function logManageComponentTest() {
     })
 
     afterAll(async () => {
-      hilog.info(DOMAIN, TAG, 'LogManage component tests completed')
+      TestLogUtils.info(TAG, 'LogManage component tests completed')
     })
 
     it('should navigate to log manage page via sidebar', 0, async () => {

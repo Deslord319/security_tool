@@ -3,10 +3,9 @@
  */
 import { describe, beforeAll, afterAll, it } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'DashboardComponentTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -15,7 +14,7 @@ export default function dashboardComponentTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'Dashboard component tests starting...')
+      TestLogUtils.info(TAG, 'Dashboard component tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -27,7 +26,7 @@ export default function dashboardComponentTest() {
     })
 
     afterAll(async () => {
-      hilog.info(DOMAIN, TAG, 'Dashboard component tests completed')
+      TestLogUtils.info(TAG, 'Dashboard component tests completed')
     })
 
     it('should display dashboard title and cards', 0, async () => {

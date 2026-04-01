@@ -1,12 +1,11 @@
 /**
- * 防火墙模块 - 组件快照测试
+ * Firewall page component smoke test.
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'FirewallComponentTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -15,7 +14,7 @@ export default function firewallComponentTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'Firewall component tests starting...')
+      TestLogUtils.info(TAG, 'Firewall component tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -27,23 +26,20 @@ export default function firewallComponentTest() {
     })
 
     afterAll(async () => {
-      const dashboardNav = await driver.findComponent(ON.text('总览'))
+      const dashboardNav = await driver.findComponent(ON.text('安全总览'))
       if (dashboardNav) {
         await dashboardNav.click()
         await driver.delayMs(500)
       }
-      hilog.info(DOMAIN, TAG, 'Firewall component tests completed')
+      TestLogUtils.info(TAG, 'Firewall component tests completed')
     })
 
-    describe('Firewall Page Snapshot', () => {
-      it('should render firewall page correctly', 0, async () => {
-        const firewallNav = await driver.findComponent(ON.text('防火墙管理'))
-        expect(firewallNav !== null).assertTrue()
-        await firewallNav.click()
-        await driver.delayMs(500)
-
-        await driver.assertComponentExist(ON.text('防火墙管理'))
-      })
+    it('should render firewall page correctly', 0, async () => {
+      const firewallNav = await driver.findComponent(ON.text('防火墙管理'))
+      expect(firewallNav !== null).assertTrue()
+      await firewallNav!.click()
+      await driver.delayMs(500)
+      await driver.assertComponentExist(ON.text('防火墙管理'))
     })
   })
 }

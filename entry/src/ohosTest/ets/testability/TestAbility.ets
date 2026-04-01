@@ -2,36 +2,35 @@
  * Test ability used by ohosTest.
  */
 import { UIAbility, Want, AbilityConstant } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { Hypium } from '@ohos/hypium'
 import { window } from '@kit.ArkUI'
 import testsuite from '../test/List.test'
+import { TestLogUtils } from '../utils/TestLogUtils'
 
 const TAG = 'TestAbility'
-const DOMAIN = 0x0000
 
 export default class TestAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    hilog.info(DOMAIN, TAG, 'TestAbility onCreate')
+    TestLogUtils.info(TAG, 'TestAbility onCreate')
   }
 
   onDestroy(): void {
-    hilog.info(DOMAIN, TAG, 'TestAbility onDestroy')
+    TestLogUtils.info(TAG, 'TestAbility onDestroy')
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    hilog.info(DOMAIN, TAG, 'TestAbility onWindowStageCreate')
+    TestLogUtils.info(TAG, 'TestAbility onWindowStageCreate')
 
     windowStage.loadContent('testrunner/pages/Index', (err) => {
       if (err.code) {
-        hilog.error(DOMAIN, TAG, 'Failed to load content. Cause: %{public}s', JSON.stringify(err) ?? '')
+        TestLogUtils.error(TAG, 'Failed to load content. Cause: %{public}s', JSON.stringify(err) ?? '')
         return
       }
-      hilog.info(DOMAIN, TAG, 'Succeeded in loading content.')
+      TestLogUtils.info(TAG, 'Succeeded in loading content.')
     })
 
-    hilog.info(DOMAIN, TAG, 'start run testcase!!!')
+    TestLogUtils.info(TAG, 'start run testcase!!!')
 
     // Run the test suite through Hypium.
     const abilityDelegator = abilityDelegatorRegistry.getAbilityDelegator()
@@ -41,14 +40,14 @@ export default class TestAbility extends UIAbility {
   }
 
   onWindowStageDestroy(): void {
-    hilog.info(DOMAIN, TAG, 'TestAbility onWindowStageDestroy')
+    TestLogUtils.info(TAG, 'TestAbility onWindowStageDestroy')
   }
 
   onForeground(): void {
-    hilog.info(DOMAIN, TAG, 'TestAbility onForeground')
+    TestLogUtils.info(TAG, 'TestAbility onForeground')
   }
 
   onBackground(): void {
-    hilog.info(DOMAIN, TAG, 'TestAbility onBackground')
+    TestLogUtils.info(TAG, 'TestAbility onBackground')
   }
 }

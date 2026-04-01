@@ -3,10 +3,9 @@
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'HelpFeedbackPageTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -15,7 +14,7 @@ export default function helpFeedbackPageTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'HelpFeedbackPage tests starting...')
+      TestLogUtils.info(TAG, 'HelpFeedbackPage tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -29,7 +28,7 @@ export default function helpFeedbackPageTest() {
     })
 
     afterAll(async () => {
-      hilog.info(DOMAIN, TAG, 'HelpFeedbackPage tests completed')
+      TestLogUtils.info(TAG, 'HelpFeedbackPage tests completed')
     })
 
     it('should display page header and sections', 0, async () => {

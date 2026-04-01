@@ -3,10 +3,9 @@
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'PeripheralSnapshotTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -15,7 +14,7 @@ export default function peripheralSnapshotTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'Peripheral snapshot tests starting...')
+      TestLogUtils.info(TAG, 'Peripheral snapshot tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -32,7 +31,7 @@ export default function peripheralSnapshotTest() {
         await dashboardNav.click()
         await driver.delayMs(500)
       }
-      hilog.info(DOMAIN, TAG, 'Peripheral snapshot tests completed')
+      TestLogUtils.info(TAG, 'Peripheral snapshot tests completed')
     })
 
     it('should render peripheral page correctly', 0, async () => {

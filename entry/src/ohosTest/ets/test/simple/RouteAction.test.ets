@@ -1,9 +1,8 @@
 import { describe, beforeAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON, Component } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'RouteActionTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -12,17 +11,7 @@ type ThemeId = 'light' | 'dark' | 'system'
 
 function navTextForRoute(route: RouteId): string {
   if (route === 'firewall') {
-    return '防火墙'
-  }
-  if (route === 'peripheral-manage') {
-    return '外设管理'
-  }
-  return '总览'
-}
-
-function pageTitleForRoute(route: RouteId): string {
-  if (route === 'firewall') {
-    return '防火墙'
+    return '防火墙管理'
   }
   if (route === 'peripheral-manage') {
     return '外设管理'
@@ -30,12 +19,25 @@ function pageTitleForRoute(route: RouteId): string {
   return '安全总览'
 }
 
-function getArg(name: string, defaultValue: string): string {
+function pageTitleForRoute(route: RouteId): string {
+  if (route === 'firewall') {
+    return '防火墙管理'
+  }
+  if (route === 'peripheral-manage') {
+    return '外设管理'
+  }
+  return '安全总览'
+}
+
+function getArgString(name: string, defaultValue: string): string {
   try {
     const args = abilityDelegatorRegistry.getArguments()
     const raw = args?.parameters?.[name]
     if (typeof raw === 'string' && raw.length > 0) {
       return raw
+    }
+    if (typeof raw === 'number' || typeof raw === 'boolean') {
+      return `${raw}`
     }
   } catch (_err) {
     // ignore
@@ -102,8 +104,8 @@ async function ensureTheme(driver: Driver, targetTheme: ThemeId): Promise<void> 
 export default function routeActionTest() {
   describe('Route Action Test', () => {
     let driver: Driver
-    const route = parseRoute(getArg('route', 'dashboard'))
-    const theme = parseTheme(getArg('theme', 'dark'))
+    const route = parseRoute(getArgString('route', 'dashboard'))
+    const theme = parseTheme(getArgString('theme', 'dark'))
 
     beforeAll(async () => {
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
@@ -118,7 +120,7 @@ export default function routeActionTest() {
       await sleep(500)
       driver = Driver.create()
       await driver.delayMs(300)
-      hilog.info(DOMAIN, TAG, `route action start, route=${route}, theme=${theme}`)
+      TestLogUtils.info(TAG, 'route action start, route=%{public}s, theme=%{public}s', route, theme)
     })
 
     it('should navigate to target route', 0, async () => {
@@ -132,8 +134,7 @@ export default function routeActionTest() {
       await driver.delayMs(500)
 
       await driver.assertComponentExist(ON.text(titleText))
-      hilog.info(DOMAIN, TAG, `route action done, route=${route}`)
+      TestLogUtils.info(TAG, 'route action done, route=%{public}s', route)
     })
   })
 }
-

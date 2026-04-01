@@ -3,10 +3,9 @@
  */
 import { describe, beforeAll, afterAll, it } from '@ohos/hypium'
 import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'FirewallRulesPageTest'
-const DOMAIN = 0x0000
 const BUNDLE_NAME = 'com.huawei.securitytool'
 const ABILITY_NAME = 'EntryAbility'
 
@@ -15,7 +14,7 @@ export default function firewallRulesPageTest() {
     let driver: Driver
 
     beforeAll(async () => {
-      hilog.info(DOMAIN, TAG, 'FirewallRulesPage tests starting...')
+      TestLogUtils.info(TAG, 'FirewallRulesPage tests starting...')
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
@@ -31,7 +30,7 @@ export default function firewallRulesPageTest() {
     })
 
     afterAll(async () => {
-      hilog.info(DOMAIN, TAG, 'FirewallRulesPage tests completed')
+      TestLogUtils.info(TAG, 'FirewallRulesPage tests completed')
     })
 
     it('should display rules page header', 0, async () => {
