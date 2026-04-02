@@ -1,13 +1,13 @@
-import { LogUtils } from '../utils/LogUtils'
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
+import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { abilityAccessCtrl, bundleManager, Permissions } from '@kit.AbilityKit'
 import { access, connection } from '@kit.ConnectivityKit'
-import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
-
+import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
   LogEventResult,
   PeripheralDevicePolicy,
   PeripheralMatchedPolicyKind,
+  PeripheralRecordAction,
   PeripheralRecordPolicyHit,
   PeripheralTraceRecord,
   PeripheralType,
@@ -17,14 +17,15 @@ import {
   inferPeripheralTypeFromBaseClass
 } from '../models/DataModels'
 import { PeripheralDevicePolicyRepository } from './PeripheralDevicePolicyRepository'
-import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 import { PeripheralService } from './PeripheralService'
-import { CommonLabelStrings } from '../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
-import { PresentationStrings } from '../constants/modules/PresentationStrings'
+import { PeripheralConnectionRecordBluetoothAclConsumer } from './peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
+import { PeripheralConnectionRecordPipelineImpl } from './peripheral/connection-record/peripheral_connection_record_pipeline'
+import { PeripheralConnectionRecordProducerEvent } from './peripheral/connection-record/peripheral_connection_record_producer_contract'
+import { PeripheralConnectionRecordUsbConsumer } from './peripheral/connection-record/peripheral_connection_record_usb_consumer'
 
 const TAG = 'PeripheralRuntimeEvent'
-const FALLBACK_BLUETOOTH_NAME = PeripheralStrings.unnamedBluetoothDevice
+const DOMAIN = 0x000A
+const FALLBACK_BLUETOOTH_NAME = '未命名蓝牙设备'
 const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETOOTH'
 const BLUETOOTH_ACL_EVENT = commonEventManager.Support.COMMON_EVENT_BLUETOOTH_REMOTEDEVICE_ACL_STATE_CHANGE
 
@@ -45,6 +46,13 @@ export interface UsbRuntimeEvent {
   deviceName: string
   deviceType: PeripheralType
   occurAt: number
+}
+
+export interface PeripheralRuntimeCommonEvent {
+  channel: 'usb' | 'bluetooth_acl'
+  eventName: string
+  payload?: Object
+  rawData: commonEventManager.CommonEventData
 }
 
 interface ResolvedUsbEventInfo {
@@ -109,9 +117,11 @@ export class PeripheralRuntimeEventService {
     bluetoothRuntimeEvents: false,
     degradedReason: 'not_started'
   }
-  private static lastSeenByKey: Map<string, number> = new Map()
+  private static runtimePipeline: PeripheralConnectionRecordPipelineImpl | null = null
   private static nextListenerId: number = 1
   private static listeners: Map<number, (event: UsbRuntimeEvent) => void> = new Map()
+  private static nextRuntimeCommonListenerId: number = 1
+  private static runtimeCommonListeners: Map<number, (event: PeripheralRuntimeCommonEvent) => void> = new Map()
   private static bluetoothStateListener: BluetoothStateCallback | undefined
   private static bluetoothBondStateListener: BluetoothBondStateCallback | undefined
   private static bluetoothCurrentState: access.BluetoothState = access.BluetoothState.STATE_OFF
@@ -121,7 +131,7 @@ export class PeripheralRuntimeEventService {
 
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     PeripheralRuntimeEventService.context = context
-    const traceInited = await PeripheralTraceRepository.init(context)
+    const traceInited = await PeripheralRuntimeEventService.getRuntimePipeline().bindContext(context)
     const policyInited = await PeripheralDevicePolicyRepository.init(context)
     PeripheralRuntimeEventService.initialized = traceInited && policyInited
     if (!PeripheralRuntimeEventService.initialized) {
@@ -163,7 +173,9 @@ export class PeripheralRuntimeEventService {
       degradedReason: PeripheralRuntimeEventService.buildDegradedReason(usbReady, bluetoothReady)
     }
     PeripheralRuntimeEventService.running = usbReady || bluetoothReady
-    LogUtils.info(TAG,
+    hilog.info(
+      DOMAIN,
+      TAG,
       `start complete, running=${PeripheralRuntimeEventService.running}, usb=${usbReady}, bluetooth=${bluetoothReady}, degradedReason=${PeripheralRuntimeEventService.capabilities.degradedReason ?? 'none'}`
     )
     return PeripheralRuntimeEventService.running
@@ -176,7 +188,7 @@ export class PeripheralRuntimeEventService {
     if (usbSubscriber) {
       commonEventManager.unsubscribe(usbSubscriber, (err?: BusinessError) => {
         if (err) {
-          LogUtils.warn(TAG, `usb unsubscribe failed: code=${err.code}, message=${err.message}`)
+          hilog.warn(DOMAIN, TAG, `usb unsubscribe failed: code=${err.code}, message=${err.message}`)
         }
       })
     }
@@ -191,6 +203,16 @@ export class PeripheralRuntimeEventService {
 
   static removeUsbEventListener(listenerId: number): void {
     PeripheralRuntimeEventService.listeners.delete(listenerId)
+  }
+
+  static addRuntimeCommonEventListener(listener: (event: PeripheralRuntimeCommonEvent) => void): number {
+    const id = PeripheralRuntimeEventService.nextRuntimeCommonListenerId++
+    PeripheralRuntimeEventService.runtimeCommonListeners.set(id, listener)
+    return id
+  }
+
+  static removeRuntimeCommonEventListener(listenerId: number): void {
+    PeripheralRuntimeEventService.runtimeCommonListeners.delete(listenerId)
   }
 
   static getStatus(): PeripheralRuntimeStatus {
@@ -209,7 +231,7 @@ export class PeripheralRuntimeEventService {
   }
 
   private static async registerUsbRuntimeEvents(): Promise<boolean> {
-    return new Promise<boolean>((resolve: (value: boolean) => void) => {
+    return new Promise((resolve) => {
       try {
         const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
           events: [
@@ -217,17 +239,18 @@ export class PeripheralRuntimeEventService {
             commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED
           ]
         }
-        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber: commonEventManager.CommonEventSubscriber) => {
+        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
           if (err) {
-            LogUtils.error(TAG, `createSubscriber failed: code=${err.code}, message=${err.message}`)
+            hilog.error(DOMAIN, TAG, `createSubscriber failed: code=${err.code}, message=${err.message}`)
             resolve(false)
             return
           }
           commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
             if (callbackErr) {
-              LogUtils.error(TAG, `common event callback failed: code=${callbackErr.code}, message=${callbackErr.message}`)
+              hilog.error(DOMAIN, TAG, `common event callback failed: code=${callbackErr.code}, message=${callbackErr.message}`)
               return
             }
+            PeripheralRuntimeEventService.notifyRuntimeCommonEventListeners('usb', data)
             PeripheralRuntimeEventService.consumeUsbCommonEvent(data)
           })
           PeripheralRuntimeEventService.usbSubscriber = subscriber
@@ -235,7 +258,9 @@ export class PeripheralRuntimeEventService {
         })
       } catch (err) {
         const error = err as BusinessError
-        LogUtils.error(TAG,
+        hilog.error(
+          DOMAIN,
+          TAG,
           `registerUsbRuntimeEvents failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
         )
         resolve(false)
@@ -256,12 +281,14 @@ export class PeripheralRuntimeEventService {
       connection.on('bondStateChange', PeripheralRuntimeEventService.bluetoothBondStateListener)
 
       const currentState = access.getState()
-      LogUtils.info(TAG, `bluetooth state queried: state=${PeripheralRuntimeEventService.getBluetoothStateLabel(currentState)}`)
+      hilog.info(DOMAIN, TAG, `bluetooth state queried: state=${PeripheralRuntimeEventService.getBluetoothStateLabel(currentState)}`)
       await PeripheralRuntimeEventService.handleBluetoothStateChange(currentState)
       return true
     } catch (err) {
       const error = err as BusinessError
-      LogUtils.error(TAG,
+      hilog.error(
+        DOMAIN,
+        TAG,
         `registerBluetoothRuntimeEvents failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
       PeripheralRuntimeEventService.cleanupBluetoothRuntimeEvents()
@@ -272,8 +299,24 @@ export class PeripheralRuntimeEventService {
   private static consumeUsbCommonEvent(data: commonEventManager.CommonEventData): void {
     const action = PeripheralRuntimeEventService.resolveAction(data.event)
     if (action === 'unknown') {
-      LogUtils.warn(TAG, `ignored unsupported usb event: ${data.event}`)
+      hilog.warn(DOMAIN, TAG, `ignored unsupported usb event: ${data.event}`)
       return
+    }
+    const event = PeripheralRuntimeEventService.buildProducerEvent('usb', data)
+    const usbRuntimeEvent = PeripheralRuntimeEventService.resolveUsbListenerEvent(data, action)
+    void PeripheralRuntimeEventService.getRuntimePipeline().push(event).then((processed: boolean) => {
+      if (!processed || !usbRuntimeEvent) {
+        return
+      }
+      PeripheralRuntimeEventService.notifyUsbEventListeners(usbRuntimeEvent)
+    })
+  }
+
+  static mapUsbCommonEventToTraceRecord(data: commonEventManager.CommonEventData): PeripheralTraceRecord | null {
+    const action = PeripheralRuntimeEventService.resolveAction(data.event)
+    if (action === 'unknown') {
+      hilog.warn(DOMAIN, TAG, `ignored unsupported usb event: ${data.event}`)
+      return null
     }
     const info = PeripheralRuntimeEventService.resolveUsbEventInfo(data)
     const evaluation = PeripheralRuntimeEventService.evaluateUsbEventPolicy(info, action)
@@ -283,7 +326,7 @@ export class PeripheralRuntimeEventService {
     } catch (_err) {
       rawPayload = ''
     }
-    PeripheralRuntimeEventService.persistRuntimeRecord({
+    return {
       recordId: `runtime_usb_${info.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
       occurAt: info.occurAt,
       collectAt: Date.now(),
@@ -302,7 +345,7 @@ export class PeripheralRuntimeEventService {
       usbPolicy: evaluation.usbPolicy,
       effectivePolicyLabel: evaluation.effectivePolicyLabel,
       matchedPolicyKind: evaluation.matchedPolicyKind
-    }, true)
+    }
   }
 
   private static evaluateUsbEventPolicy(
@@ -317,7 +360,7 @@ export class PeripheralRuntimeEventService {
       return {
         policyHit: 'unknown',
         result: LogEventResult.SUCCESS,
-        summary: PeripheralStrings.runtimeDeviceDisconnected,
+        summary: '设备已断开',
         detail: PeripheralRuntimeEventService.buildDisconnectDetail(info, effectivePolicyLabel),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: effectivePolicyLabel,
@@ -329,10 +372,10 @@ export class PeripheralRuntimeEventService {
       return {
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
-        summary: PeripheralStrings.runtimeUsbInterfaceDisabledSummary,
-        detail: PeripheralStrings.runtimeUsbInterfaceDisabledDetail,
+        summary: 'USB 接口已禁用',
+        detail: 'USB 接口已被总控禁用，设备接入被阻止。',
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
-        effectivePolicyLabel: PeripheralStrings.runtimeDisabledPolicyLabel,
+        effectivePolicyLabel: '已禁用',
         matchedPolicyKind: 'usb_disabled'
       }
     }
@@ -342,8 +385,8 @@ export class PeripheralRuntimeEventService {
         return {
           policyHit: 'deny',
           result: LogEventResult.BLOCKED,
-          summary: PeripheralStrings.runtimeUsbStorageDisabledSummary,
-          detail: PeripheralStrings.runtimeUsbStorageDisabledDetail,
+          summary: 'USB 存储已禁用',
+          detail: 'USB 存储策略为禁止访问，设备接入被阻止。',
           usbPolicy: snapshot.usbStoragePolicy,
           effectivePolicyLabel: PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
           matchedPolicyKind: 'usb_storage_disabled'
@@ -353,8 +396,8 @@ export class PeripheralRuntimeEventService {
         return {
           policyHit: 'allow',
           result: LogEventResult.SUCCESS,
-          summary: PeripheralStrings.runtimeUsbStorageReadOnlySummary,
-          detail: PeripheralStrings.runtimeUsbStorageReadOnlyDetail,
+          summary: 'USB 存储只读',
+          detail: 'USB 存储策略为只读模式。',
           usbPolicy: snapshot.usbStoragePolicy,
           effectivePolicyLabel: PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
           matchedPolicyKind: 'usb_storage_read_only'
@@ -366,8 +409,8 @@ export class PeripheralRuntimeEventService {
       return {
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
-        summary: PeripheralStrings.runtimeDeviceDenySummary,
-        detail: PeripheralStrings.buildRuntimeDeviceDenyDetail(info.deviceId),
+        summary: '命中单设备禁止接入',
+        detail: `设备 ${info.deviceId} 命中禁止接入策略，已被阻止。`,
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: effectivePolicyLabel,
         matchedPolicyKind: 'device_deny'
@@ -377,8 +420,8 @@ export class PeripheralRuntimeEventService {
     return {
       policyHit: 'allow',
       result: LogEventResult.SUCCESS,
-      summary: PeripheralStrings.runtimeDefaultAllowSummary,
-      detail: PeripheralStrings.runtimeDefaultAllowDetail,
+      summary: '按当前策略允许接入',
+      detail: '未命中更高优先级的阻断策略，按默认规则允许接入。',
       usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
       effectivePolicyLabel: effectivePolicyLabel,
       matchedPolicyKind: 'default_allow'
@@ -417,7 +460,9 @@ export class PeripheralRuntimeEventService {
     snapshot: UsbPolicySnapshot,
     effectivePolicyLabel: string
   ): void {
-    LogUtils.info(TAG,
+    hilog.info(
+      DOMAIN,
+      TAG,
       `usb policy snapshot: action=${action}, deviceId=${info.deviceId}, deviceType=${info.deviceType}, usbDisabled=${snapshot.usbDisabled}, usbStoragePolicy=${snapshot.usbStoragePolicy}, devicePolicyCount=${snapshot.devicePolicies.size}, effectivePolicy=${effectivePolicyLabel}`
     )
   }
@@ -427,28 +472,28 @@ export class PeripheralRuntimeEventService {
     snapshot: UsbPolicySnapshot
   ): string {
     if (snapshot.usbDisabled) {
-      return PeripheralStrings.runtimeDisabledPolicyLabel
+      return '已禁用'
     }
     if (deviceType === PeripheralType.USB_STORAGE) {
       return PeripheralRuntimeEventService.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy)
     }
-    return PeripheralStrings.runtimeEnabledPolicyLabel
+    return '已启用'
   }
 
   private static buildDisconnectDetail(info: ResolvedUsbEventInfo, effectivePolicyLabel: string): string {
-    return PeripheralStrings.buildDisconnectDetail(info.deviceName, effectivePolicyLabel)
+    return `${info.deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
   }
 
   private static getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
     switch (policy) {
       case UsbStoragePolicy.READ_WRITE:
-      return PresentationStrings.usbStorageReadWrite
+        return '读写'
       case UsbStoragePolicy.READ_ONLY:
-      return PresentationStrings.usbStorageReadOnly
+        return '只读'
       case UsbStoragePolicy.DISABLED:
-      return PresentationStrings.usbStorageDisabled
+        return '禁止访问'
       default:
-        return CommonLabelStrings.UNKNOWN
+        return '未知'
     }
   }
 
@@ -476,7 +521,7 @@ export class PeripheralRuntimeEventService {
       : `UNKNOWN-USB-${occurAt}`
     let deviceName = PeripheralRuntimeEventService.buildUsbDisplayName(manufacturerName, productName)
     if (deviceName.length === 0) {
-      deviceName = deviceNameField || (hasVidPid ? PeripheralStrings.runtimeUsbDeviceName : PeripheralStrings.runtimeUnknownUsbDeviceName)
+      deviceName = deviceNameField || (hasVidPid ? 'USB 设备' : '未识别 USB 设备')
     }
 
     const detail = PeripheralRuntimeEventService.resolveDetail(payloads, manufacturerName)
@@ -508,36 +553,6 @@ export class PeripheralRuntimeEventService {
     }
   }
 
-  private static persistRuntimeRecord(
-    record: PeripheralTraceRecord,
-    notifyUsbListeners: boolean = false,
-    applyDedupe: boolean = true
-  ): void {
-    if (applyDedupe) {
-      const now = Date.now()
-      const dedupeKey = `${record.deviceId}|${record.action}|${record.rawEventName || ''}`
-      const lastSeen = PeripheralRuntimeEventService.lastSeenByKey.get(dedupeKey) || 0
-      if (now - lastSeen < 1500) {
-        return
-      }
-      PeripheralRuntimeEventService.lastSeenByKey.set(dedupeKey, now)
-    }
-    void PeripheralTraceRepository.append(record).then((ok: boolean) => {
-      if (!ok) {
-        LogUtils.warn(TAG, `append runtime record failed, deviceId=${record.deviceId}`)
-      }
-    })
-    if (notifyUsbListeners) {
-      PeripheralRuntimeEventService.notifyUsbEventListeners({
-        action: record.action as UsbEventAction,
-        deviceId: record.deviceId,
-        deviceName: record.deviceName,
-        deviceType: record.deviceType,
-        occurAt: record.occurAt
-      })
-    }
-  }
-
   private static notifyUsbEventListeners(event: UsbRuntimeEvent): void {
     if (PeripheralRuntimeEventService.listeners.size <= 0) {
       return
@@ -546,9 +561,35 @@ export class PeripheralRuntimeEventService {
       try {
         listener(event)
       } catch (err) {
-        LogUtils.warn(TAG, `usb event listener failed: ${JSON.stringify(err)}`)
+        hilog.warn(DOMAIN, TAG, `usb event listener failed: ${JSON.stringify(err)}`)
       }
     })
+  }
+
+  private static notifyRuntimeCommonEventListeners(
+    channel: 'usb' | 'bluetooth_acl',
+    data: commonEventManager.CommonEventData
+  ): void {
+    if (PeripheralRuntimeEventService.runtimeCommonListeners.size <= 0) {
+      return
+    }
+    const commonEvent: PeripheralRuntimeCommonEvent = {
+      channel: channel,
+      eventName: data.event ?? '',
+      rawData: data
+    }
+    const payload = data.parameters as Object | undefined
+    if (payload !== undefined) {
+      commonEvent.payload = payload
+    }
+    PeripheralRuntimeEventService.runtimeCommonListeners.forEach(
+      (listener: (event: PeripheralRuntimeCommonEvent) => void) => {
+        try {
+          listener(commonEvent)
+        } catch (_err) {
+        }
+      }
+    )
   }
 
   private static cleanupBluetoothRuntimeEvents(): void {
@@ -573,7 +614,7 @@ export class PeripheralRuntimeEventService {
   private static async handleBluetoothStateChange(state: access.BluetoothState): Promise<void> {
     PeripheralRuntimeEventService.bluetoothCurrentState = state
     const stateLabel = PeripheralRuntimeEventService.getBluetoothStateLabel(state)
-    LogUtils.info(TAG, `bluetooth state change: state=${stateLabel}`)
+    hilog.info(DOMAIN, TAG, `bluetooth state change: state=${stateLabel}`)
     if (state === access.BluetoothState.STATE_ON || state === access.BluetoothState.STATE_BLE_ON) {
       await PeripheralRuntimeEventService.resumeBluetoothAclSubscriptionIfNeeded(`state=${stateLabel}`)
     }
@@ -584,7 +625,9 @@ export class PeripheralRuntimeEventService {
       return
     }
     if (!PeripheralRuntimeEventService.isBluetoothRuntimeActive()) {
-      LogUtils.info(TAG,
+      hilog.info(
+        DOMAIN,
+        TAG,
         `skip resumeBluetoothAclSubscriptionIfNeeded: trigger=${trigger}, state=${PeripheralRuntimeEventService.getBluetoothStateLabel(PeripheralRuntimeEventService.bluetoothCurrentState)}`
       )
       return
@@ -605,17 +648,19 @@ export class PeripheralRuntimeEventService {
     if (PeripheralRuntimeEventService.bluetoothAclSubscriber) {
       return
     }
-    await new Promise<void>((resolve: () => void) => {
+    await new Promise<void>((resolve) => {
       try {
         const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
           events: [BLUETOOTH_ACL_EVENT]
         }
-        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber: commonEventManager.CommonEventSubscriber) => {
+        commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
           if (err) {
             if (PeripheralRuntimeEventService.isBluetoothPermissionDeniedError(err)) {
               PeripheralRuntimeEventService.enterBluetoothPermissionBlocked(`acl-subscriber-create-denied:${trigger}`)
             }
-            LogUtils.warn(TAG,
+            hilog.warn(
+              DOMAIN,
+              TAG,
               `bluetooth acl createSubscriber failed: trigger=${trigger}, code=${err.code}, message=${err.message}`
             )
             resolve()
@@ -625,17 +670,20 @@ export class PeripheralRuntimeEventService {
             subscriber,
             (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
               if (callbackErr) {
-                LogUtils.warn(TAG,
+                hilog.warn(
+                  DOMAIN,
+                  TAG,
                   `bluetooth acl callback failed: code=${callbackErr.code}, message=${callbackErr.message}`
                 )
                 return
               }
+              PeripheralRuntimeEventService.notifyRuntimeCommonEventListeners('bluetooth_acl', data)
               void PeripheralRuntimeEventService.consumeBluetoothAclCommonEvent(data)
             }
           )
           PeripheralRuntimeEventService.bluetoothAclSubscriber = subscriber
           PeripheralRuntimeEventService.bluetoothPermissionBlocked = false
-          LogUtils.info(TAG, `bluetooth acl subscriber ready: trigger=${trigger}`)
+          hilog.info(DOMAIN, TAG, `bluetooth acl subscriber ready: trigger=${trigger}`)
           resolve()
         })
       } catch (err) {
@@ -643,7 +691,9 @@ export class PeripheralRuntimeEventService {
         if (PeripheralRuntimeEventService.isBluetoothPermissionDeniedError(error)) {
           PeripheralRuntimeEventService.enterBluetoothPermissionBlocked(`acl-subscriber-subscribe-denied:${trigger}`)
         }
-        LogUtils.warn(TAG,
+        hilog.warn(
+          DOMAIN,
+          TAG,
           `bluetooth acl subscribe failed: trigger=${trigger}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
         )
         resolve()
@@ -659,29 +709,28 @@ export class PeripheralRuntimeEventService {
     }
     commonEventManager.unsubscribe(subscriber, (err?: BusinessError) => {
       if (err) {
-        LogUtils.warn(TAG,
+        hilog.warn(
+          DOMAIN,
+          TAG,
           `bluetooth acl unsubscribe failed: reason=${reason}, code=${err.code}, message=${err.message}`
         )
         return
       }
-      LogUtils.info(TAG, `bluetooth acl subscriber cleaned: reason=${reason}`)
+      hilog.info(DOMAIN, TAG, `bluetooth acl subscriber cleaned: reason=${reason}`)
     })
   }
 
-  private static async consumeBluetoothAclCommonEvent(data: commonEventManager.CommonEventData): Promise<void> {
+  static async mapBluetoothAclCommonEventToTraceRecord(
+    data: commonEventManager.CommonEventData
+  ): Promise<PeripheralTraceRecord | null> {
     const eventInfo = await PeripheralRuntimeEventService.resolveBluetoothAclEventInfo(data)
     if (!eventInfo) {
-      return
+      return null
     }
-
     if (eventInfo.action === 'unknown') {
-      LogUtils.info(TAG,
-        `skip bluetooth acl event with unsupported state: deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(eventInfo.rawDeviceId)}, state=${eventInfo.stateLabel}`
-      )
-      return
+      return null
     }
-
-    PeripheralRuntimeEventService.persistRuntimeRecord({
+    return {
       recordId: `runtime_bt_acl_${eventInfo.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
       occurAt: eventInfo.occurAt,
       collectAt: Date.now(),
@@ -692,17 +741,87 @@ export class PeripheralRuntimeEventService {
       decision: 'unknown',
       result: LogEventResult.SUCCESS,
       source: 'runtime_event',
-      summary: eventInfo.action === 'connect' ? PeripheralStrings.runtimeBluetoothConnected : PeripheralStrings.runtimeBluetoothDisconnected,
+      summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
       rawEventName: data.event,
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,
       detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
       effectivePolicyLabel: '--',
       matchedPolicyKind: 'bluetooth_connection_event'
-    }, false, false)
-    LogUtils.info(TAG,
-      `bluetooth acl event persisted: action=${eventInfo.action}, deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(eventInfo.rawDeviceId)}, state=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
-    )
+    }
+  }
+
+  private static async consumeBluetoothAclCommonEvent(data: commonEventManager.CommonEventData): Promise<void> {
+    const eventInfo = await PeripheralRuntimeEventService.resolveBluetoothAclEventInfo(data)
+    if (!eventInfo) {
+      return
+    }
+
+    if (eventInfo.action === 'unknown') {
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `skip bluetooth acl event with unsupported state: deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(eventInfo.rawDeviceId)}, state=${eventInfo.stateLabel}`
+      )
+      return
+    }
+
+    const event = PeripheralRuntimeEventService.buildProducerEvent('bluetooth_acl', data)
+    const processed = await PeripheralRuntimeEventService.getRuntimePipeline().push(event)
+    if (processed) {
+      hilog.info(
+        DOMAIN,
+        TAG,
+        `bluetooth acl event persisted: action=${eventInfo.action}, deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(eventInfo.rawDeviceId)}, state=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
+      )
+    }
+  }
+
+  private static buildProducerEvent(
+    channel: 'usb' | 'bluetooth_acl',
+    data: commonEventManager.CommonEventData
+  ): PeripheralConnectionRecordProducerEvent {
+    const event: PeripheralConnectionRecordProducerEvent = {
+      source: 'runtime',
+      channel: channel,
+      eventName: data.event ?? '',
+      rawData: data
+    }
+    const payload = data.parameters as Object | undefined
+    if (payload !== undefined) {
+      event.payload = payload
+    }
+    return event
+  }
+
+  private static resolveUsbListenerEvent(
+    data: commonEventManager.CommonEventData,
+    action: PeripheralRecordAction
+  ): UsbRuntimeEvent | null {
+    if (action !== 'connect' && action !== 'disconnect') {
+      return null
+    }
+    const info = PeripheralRuntimeEventService.resolveUsbEventInfo(data)
+    return {
+      action: action,
+      deviceId: info.deviceId,
+      deviceName: info.deviceName,
+      deviceType: info.deviceType,
+      occurAt: info.occurAt
+    }
+  }
+
+  private static getRuntimePipeline(): PeripheralConnectionRecordPipelineImpl {
+    if (!PeripheralRuntimeEventService.runtimePipeline) {
+      PeripheralRuntimeEventService.runtimePipeline = new PeripheralConnectionRecordPipelineImpl(
+        null,
+        [
+          new PeripheralConnectionRecordUsbConsumer(),
+          new PeripheralConnectionRecordBluetoothAclConsumer()
+        ]
+      )
+    }
+    return PeripheralRuntimeEventService.runtimePipeline
   }
 
   private static async resolveBluetoothAclEventInfo(
@@ -711,7 +830,9 @@ export class PeripheralRuntimeEventService {
     const payloads = PeripheralRuntimeEventService.collectPayloadSources(data)
     const rawDeviceId = PeripheralRuntimeEventService.resolveBluetoothDeviceId(payloads)
     if (rawDeviceId.length === 0) {
-      LogUtils.warn(TAG,
+      hilog.warn(
+        DOMAIN,
+        TAG,
         `skip bluetooth acl event: deviceId missing, keys=${PeripheralRuntimeEventService.describePayloadKeys(payloads)}`
       )
       return null
@@ -853,7 +974,9 @@ export class PeripheralRuntimeEventService {
 
     try {
       const remoteName = connection.getRemoteDeviceName(deviceId, true)?.trim() ?? ''
-      LogUtils.info(TAG,
+      hilog.info(
+        DOMAIN,
+        TAG,
         `getRemoteDeviceName success: deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(deviceId)}, hasName=${remoteName.length > 0}`
       )
       if (remoteName.length > 0) {
@@ -864,7 +987,9 @@ export class PeripheralRuntimeEventService {
       }
     } catch (err) {
       const error = err as BusinessError
-      LogUtils.warn(TAG,
+      hilog.warn(
+        DOMAIN,
+        TAG,
         `getRemoteDeviceName failed: deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(deviceId)}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
     }
@@ -876,7 +1001,9 @@ export class PeripheralRuntimeEventService {
   }
 
   private static logBluetoothBondState(data: connection.BondStateParam): void {
-    LogUtils.info(TAG,
+    hilog.info(
+      DOMAIN,
+      TAG,
       `bondStateChange: deviceId=${PeripheralRuntimeEventService.maskBluetoothIdentifier(data.deviceId)}, state=${data.state}, cause=${data.cause ?? -1}`
     )
   }
@@ -903,7 +1030,9 @@ export class PeripheralRuntimeEventService {
       return grantStatus === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED
     } catch (err) {
       const error = err as BusinessError
-      LogUtils.warn(TAG,
+      hilog.warn(
+        DOMAIN,
+        TAG,
         `checkAccessTokenSync failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
       return false
@@ -914,7 +1043,7 @@ export class PeripheralRuntimeEventService {
     const granted = PeripheralRuntimeEventService.hasBluetoothRuntimePermission()
     if (granted) {
       if (PeripheralRuntimeEventService.bluetoothPermissionBlocked) {
-        LogUtils.info(TAG, `bluetooth permission recovered: trigger=${trigger}`)
+        hilog.info(DOMAIN, TAG, `bluetooth permission recovered: trigger=${trigger}`)
       }
       PeripheralRuntimeEventService.bluetoothPermissionBlocked = false
       return true
@@ -922,19 +1051,19 @@ export class PeripheralRuntimeEventService {
 
     if (PeripheralRuntimeEventService.bluetoothPermissionPrompted) {
       PeripheralRuntimeEventService.enterBluetoothPermissionBlocked(`permission-not-granted:${trigger}`)
-      LogUtils.info(TAG, `skip bluetooth permission request: trigger=${trigger}, prompted=true`)
+      hilog.info(DOMAIN, TAG, `skip bluetooth permission request: trigger=${trigger}, prompted=true`)
       return false
     }
 
     const context = PeripheralRuntimeEventService.context
     if (!context) {
       PeripheralRuntimeEventService.enterBluetoothPermissionBlocked(`permission-context-missing:${trigger}`)
-      LogUtils.warn(TAG, `bluetooth permission request skipped: trigger=${trigger}, context unavailable`)
+      hilog.warn(DOMAIN, TAG, `bluetooth permission request skipped: trigger=${trigger}, context unavailable`)
       return false
     }
 
     if (PeripheralRuntimeEventService.bluetoothPermissionRequestInFlight) {
-      LogUtils.info(TAG, `bluetooth permission request already in flight: trigger=${trigger}`)
+      hilog.info(DOMAIN, TAG, `bluetooth permission request already in flight: trigger=${trigger}`)
       return false
     }
 
@@ -948,7 +1077,9 @@ export class PeripheralRuntimeEventService {
         : abilityAccessCtrl.GrantStatus.PERMISSION_DENIED
       const requestGranted = authResult === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED ||
         PeripheralRuntimeEventService.hasBluetoothRuntimePermission()
-      LogUtils.info(TAG,
+      hilog.info(
+        DOMAIN,
+        TAG,
         `bluetooth permission request result: trigger=${trigger}, granted=${requestGranted}, authResult=${authResult}`
       )
       if (requestGranted) {
@@ -960,7 +1091,9 @@ export class PeripheralRuntimeEventService {
     } catch (err) {
       const error = err as BusinessError
       PeripheralRuntimeEventService.enterBluetoothPermissionBlocked(`permission-request-error:${trigger}`)
-      LogUtils.warn(TAG,
+      hilog.warn(
+        DOMAIN,
+        TAG,
         `requestPermissionsFromUser failed: trigger=${trigger}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
       return false
@@ -972,7 +1105,7 @@ export class PeripheralRuntimeEventService {
   private static enterBluetoothPermissionBlocked(reason: string): void {
     PeripheralRuntimeEventService.bluetoothPermissionBlocked = true
     PeripheralRuntimeEventService.cleanupBluetoothAclSubscriber(reason)
-    LogUtils.warn(TAG, `bluetooth runtime paused: reason=${reason}`)
+    hilog.warn(DOMAIN, TAG, `bluetooth runtime paused: reason=${reason}`)
   }
 
   private static isBluetoothPermissionDeniedError(error: BusinessError): boolean {
@@ -1246,3 +1379,4 @@ export class PeripheralRuntimeEventService {
   }
 
 }
+
