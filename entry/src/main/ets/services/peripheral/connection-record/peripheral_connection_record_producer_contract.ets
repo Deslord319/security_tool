@@ -1,3 +1,4 @@
+import type { common } from '@kit.AbilityKit'
 import type { PeripheralTraceRecord } from '../../../models/DataModels'
 
 export interface PeripheralConnectionRecordProducerCapabilities {
@@ -22,6 +23,7 @@ export interface PeripheralConnectionRecordProducerEvent {
 export type PeripheralConnectionRecordProducerListener = (event: PeripheralConnectionRecordProducerEvent) => void
 
 export interface PeripheralConnectionRecordProducer {
+  bindContext?(context: common.UIAbilityContext): void
   start(): Promise<boolean>
   stop(): void
   subscribe(listener: PeripheralConnectionRecordProducerListener): number
