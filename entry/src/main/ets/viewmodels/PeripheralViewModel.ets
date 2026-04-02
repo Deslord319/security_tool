@@ -6,6 +6,7 @@ import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { InterfaceControlViewModel } from './InterfaceControlViewModel'
+import { PeripheralConnectionRecordClearUsecase } from './peripheral/connection-record/peripheral_connection_record_clear_usecase'
 import { PeripheralPolicyViewModel } from './PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from './PeripheralRecordViewModel'
 
@@ -30,6 +31,12 @@ export class PeripheralViewModel {
   private traceStorageListenerId: number = -1
   private devicePolicyListenerId: number = -1
   private appContext: common.UIAbilityContext | null = null
+  private connectionRecordClearUsecase: PeripheralConnectionRecordClearUsecase =
+    new PeripheralConnectionRecordClearUsecase()
+
+  setConnectionRecordClearUsecaseForTest(usecase: PeripheralConnectionRecordClearUsecase): void {
+    this.connectionRecordClearUsecase = usecase
+  }
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.isLoading = true
@@ -181,6 +188,16 @@ export class PeripheralViewModel {
       LogUtils.error(TAG, `clearPeripheralPolicyRecords failed: ${JSON.stringify(err)}`)
       return false
     }
+  }
+
+  async clearConnectionHistory(): Promise<boolean> {
+    const cleared = await this.connectionRecordClearUsecase.execute(this.appContext)
+    if (!cleared) {
+      return false
+    }
+    this.records.closeConnectionDetailDialog()
+    this.reloadDeviceRecords()
+    return true
   }
 
   openConnectionDetailDialog(record: PeripheralConnectionRecord): void {

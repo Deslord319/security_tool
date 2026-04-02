@@ -14,7 +14,6 @@ import { CommonStrings } from '../constants/CommonStrings'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralService } from '../services/PeripheralService'
-import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
@@ -27,6 +26,22 @@ import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'PeripheralPage'
 const USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS = 180
+
+export interface PeripheralPageClearHistoryAction {
+  clearByViewModel: () => Promise<boolean>
+  onSuccess: () => void
+  onFailure: () => void
+}
+
+export async function executePeripheralPageClearHistory(action: PeripheralPageClearHistoryAction): Promise<boolean> {
+  const success = await action.clearByViewModel()
+  if (!success) {
+    action.onFailure()
+    return false
+  }
+  action.onSuccess()
+  return true
+}
 
 @Component
 export struct PeripheralPage {
@@ -451,17 +466,22 @@ export struct PeripheralPage {
     })
   }
 
+  createClearConnectionHistoryActionForTest(): PeripheralPageClearHistoryAction {
+    return {
+      clearByViewModel: async (): Promise<boolean> => this.viewModel.clearConnectionHistory(),
+      onFailure: (): void => {
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
+      },
+      onSuccess: (): void => {
+        this.closeDetailDialog()
+        DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
+      }
+    }
+  }
+
   private async clearConnectionHistory(): Promise<void> {
     try {
-      await PeripheralTraceRepository.init(this.getUIContext().getHostContext() as common.UIAbilityContext)
-      const success = await PeripheralTraceRepository.clearAll()
-      if (!success) {
-        DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)
-        return
-      }
-      this.closeDetailDialog()
-      this.viewModel.reloadDeviceRecords()
-      DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearHistorySuccess)
+      await executePeripheralPageClearHistory(this.createClearConnectionHistoryActionForTest())
     } catch (err) {
       LogUtils.error(TAG, `clearConnectionHistory failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.clearFailed)

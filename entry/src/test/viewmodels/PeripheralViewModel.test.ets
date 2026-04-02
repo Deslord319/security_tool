@@ -1,8 +1,29 @@
 import { beforeEach, describe, expect, it } from '@ohos/hypium'
+import { common } from '@kit.AbilityKit'
 import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/PeripheralViewModel'
+import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/peripheral_connection_record_clear_usecase'
+
+class SuccessClearUsecase extends PeripheralConnectionRecordClearUsecase {
+  executeCount: number = 0
+
+  async execute(_context: common.UIAbilityContext | null): Promise<boolean> {
+    this.executeCount++
+    PeripheralTraceRepository.setRecordsForTest([])
+    return true
+  }
+}
+
+class FailedClearUsecase extends PeripheralConnectionRecordClearUsecase {
+  executeCount: number = 0
+
+  async execute(_context: common.UIAbilityContext | null): Promise<boolean> {
+    this.executeCount++
+    return false
+  }
+}
 
 describe('PeripheralViewModel', () => {
   let viewModel: PeripheralViewModel
@@ -123,6 +144,74 @@ describe('PeripheralViewModel', () => {
 
     expect(viewModel.records.records.length).assertEqual(0)
     expect(viewModel.policy.records.length).assertEqual(0)
+    done()
+  })
+
+  it('should clear connection history successfully and trigger refresh chain', 0, async (done: Function) => {
+    const usecase = new SuccessClearUsecase()
+    let refreshCount = 0
+    viewModel.setConnectionRecordClearUsecaseForTest(usecase)
+    viewModel.onRefresh = () => {
+      refreshCount++
+    }
+    PeripheralTraceRepository.setRecordsForTest([{
+      recordId: 'runtime_3',
+      occurAt: 400,
+      collectAt: 401,
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      deviceId: 'VID:1111 PID:2222',
+      action: 'connect',
+      decision: 'allow',
+      result: LogEventResult.SUCCESS,
+      source: 'runtime_event',
+      summary: 'connected'
+    }])
+    viewModel.reloadDeviceRecords()
+    expect(viewModel.records.records.length).assertEqual(1)
+    viewModel.openConnectionDetailDialog(viewModel.records.records[0])
+    expect(viewModel.records.connectionDetailDialog.visible).assertTrue()
+
+    const success = await viewModel.clearConnectionHistory()
+    expect(success).assertTrue()
+    expect(usecase.executeCount).assertEqual(1)
+    expect(viewModel.records.connectionDetailDialog.visible).assertFalse()
+    expect(viewModel.records.records.length).assertEqual(0)
+    expect(refreshCount > 0).assertTrue()
+    done()
+  })
+
+  it('should return false when clear connection history usecase fails', 0, async (done: Function) => {
+    const usecase = new FailedClearUsecase()
+    let refreshCount = 0
+    viewModel.setConnectionRecordClearUsecaseForTest(usecase)
+    viewModel.onRefresh = () => {
+      refreshCount++
+    }
+    PeripheralTraceRepository.setRecordsForTest([{
+      recordId: 'runtime_4',
+      occurAt: 500,
+      collectAt: 501,
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      deviceId: 'VID:3333 PID:4444',
+      action: 'connect',
+      decision: 'allow',
+      result: LogEventResult.SUCCESS,
+      source: 'runtime_event',
+      summary: 'connected'
+    }])
+    viewModel.reloadDeviceRecords()
+    viewModel.openConnectionDetailDialog(viewModel.records.records[0])
+    expect(viewModel.records.connectionDetailDialog.visible).assertTrue()
+    const refreshBeforeClear = refreshCount
+
+    const success = await viewModel.clearConnectionHistory()
+    expect(success).assertFalse()
+    expect(usecase.executeCount).assertEqual(1)
+    expect(viewModel.records.connectionDetailDialog.visible).assertTrue()
+    expect(viewModel.records.records.length).assertEqual(1)
+    expect(refreshCount).assertEqual(refreshBeforeClear)
     done()
   })
 })
