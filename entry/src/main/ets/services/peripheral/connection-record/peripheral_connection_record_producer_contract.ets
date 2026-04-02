@@ -39,6 +39,9 @@ export interface PeripheralConnectionRecordConsumer {
 }
 
 export interface PeripheralConnectionRecordPipeline {
+  bindContext(context: common.UIAbilityContext): Promise<boolean>
+  attachProducer(producer: PeripheralConnectionRecordProducer | null): Promise<boolean>
+  detachProducer(): void
   start(): Promise<boolean>
   stop(): void
   push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean>

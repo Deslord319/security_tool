@@ -18,6 +18,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   private lastSeenByKey: Map<string, number> = new Map()
   private context: common.UIAbilityContext | null = null
   private traceRepositoryReady: boolean = false
+  private started: boolean = false
   private producer: PeripheralConnectionRecordProducer | null
   private consumers: PeripheralConnectionRecordConsumer[]
 
@@ -28,19 +29,58 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
 
   async bindContext(context: common.UIAbilityContext): Promise<boolean> {
     this.context = context
+    if (this.producer?.bindContext) {
+      this.producer.bindContext(context)
+    }
     return this.ensureTraceRepositoryReady()
   }
 
+  async attachProducer(producer: PeripheralConnectionRecordProducer | null): Promise<boolean> {
+    if (this.producer === producer) {
+      if (producer?.bindContext && this.context) {
+        producer.bindContext(this.context)
+      }
+      return this.started ? this.start() : true
+    }
+    this.detachProducer()
+    this.producer = producer
+    if (!producer) {
+      return true
+    }
+    if (producer.bindContext && this.context) {
+      producer.bindContext(this.context)
+    }
+    if (!this.started) {
+      return true
+    }
+    return this.start()
+  }
+
+  detachProducer(): void {
+    if (!this.producer) {
+      return
+    }
+    if (this.producerListenerId > 0) {
+      this.producer.unsubscribe(this.producerListenerId)
+      this.producerListenerId = 0
+    }
+    this.producer.stop()
+    this.producer = null
+  }
+
   async start(): Promise<boolean> {
+    this.started = true
     if (!this.producer) {
       return true
     }
-    if (this.producerListenerId > 0) {
-      return true
+    if (this.producer.bindContext && this.context) {
+      this.producer.bindContext(this.context)
     }
-    this.producerListenerId = this.producer.subscribe((event: PeripheralConnectionRecordProducerEvent) => {
-      void this.push(event)
-    })
+    if (this.producerListenerId <= 0) {
+      this.producerListenerId = this.producer.subscribe((event: PeripheralConnectionRecordProducerEvent) => {
+        void this.push(event)
+      })
+    }
     const started = await this.producer.start()
     if (!started) {
       this.producer.unsubscribe(this.producerListenerId)
@@ -50,6 +90,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   }
 
   stop(): void {
+    this.started = false
     if (!this.producer) {
       return
     }

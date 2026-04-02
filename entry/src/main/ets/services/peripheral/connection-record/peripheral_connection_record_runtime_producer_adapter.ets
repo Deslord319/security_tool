@@ -21,6 +21,16 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
 
   bindContext(context: common.UIAbilityContext): void {
     this.context = context
+    if (!this.status.running && this.status.capabilities.degradedReason === 'not_initialized') {
+      this.status = {
+        running: false,
+        capabilities: {
+          usbRuntimeEvents: false,
+          bluetoothRuntimeEvents: false,
+          degradedReason: 'event_source_not_integrated'
+        }
+      }
+    }
   }
 
   async start(): Promise<boolean> {
@@ -87,5 +97,9 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
 
   markStatus(status: PeripheralConnectionRecordProducerStatus): void {
     this.status = status
+  }
+
+  hasBoundContext(): boolean {
+    return this.context !== null
   }
 }
