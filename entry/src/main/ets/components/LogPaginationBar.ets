@@ -2,13 +2,13 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import { IconTextActionButton } from './IconTextActionButton'
 import { FormControlUtils } from '../utils/FormControlUtils'
-import { LogListViewModel } from '../viewmodels/log-manage/LogListViewModel'
+import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @Component
 export struct LogPaginationBar {
-  @ObjectLink viewModel: LogListViewModel
+  @ObjectLink viewModel: LogManageViewModel
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   private getPageSizeOptions(): SelectOption[] {
@@ -16,23 +16,30 @@ export struct LogPaginationBar {
   }
 
   private getSelectedPageSizeIndex(): number {
-    let options = this.viewModel.getPageSizeOptions()
-    let index = options.indexOf(this.viewModel.state.pagination.pageSize)
-    return index >= 0 ? index : 0
+    return this.viewModel.state.pagination.pageSizeIndex
+  }
+
+  private getCurrentRangeText(): string {
+    if (this.viewModel.state.list.allEntries.length === 0 || this.viewModel.state.list.pagedEntries.length === 0) {
+      return '0-0'
+    }
+    let start = (this.viewModel.state.pagination.currentPage - 1) * this.viewModel.getCurrentPageSize() + 1
+    let end = start + this.viewModel.state.list.pagedEntries.length - 1
+    return `${start}-${end}`
   }
 
   build() {
-    if (!this.viewModel.state.loading && this.viewModel.state.entries.length > 0) {
+    if (!this.viewModel.state.loading && this.viewModel.state.list.allEntries.length > 0) {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       Row({ space: 12 }) {
-        Text(LogManageStrings.buildPageRangeText(this.viewModel.getCurrentRangeText(), this.viewModel.state.entries.length))
+        Text(LogManageStrings.buildPageRangeText(this.getCurrentRangeText(), this.viewModel.state.list.allEntries.length))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
         Select(this.getPageSizeOptions())
           .selected(this.getSelectedPageSizeIndex())
-          .value(LogManageStrings.buildPageSizeText(this.viewModel.state.pagination.pageSize))
+          .value(LogManageStrings.buildPageSizeText(this.viewModel.getCurrentPageSize()))
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
@@ -43,8 +50,7 @@ export struct LogPaginationBar {
           .borderRadius(AppStyles.RADIUS_SM)
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
-            let size = this.viewModel.getPageSizeOptions()[index] ?? this.viewModel.getPageSizeOptions()[0]
-            this.viewModel.setPageSize(size)
+            this.viewModel.setPageSizeIndex(index)
           })
 
         IconTextActionButton({
@@ -52,7 +58,7 @@ export struct LogPaginationBar {
           showIcon: false,
           kind: 'primary',
           isEnabled: this.viewModel.state.pagination.currentPage > 1,
-          onTap: () => this.viewModel.goPrev()
+          onTap: () => this.viewModel.goToPreviousPage()
         })
 
         Text(`${this.viewModel.state.pagination.currentPage}/${this.viewModel.state.pagination.totalPages}`)
@@ -71,14 +77,14 @@ export struct LogPaginationBar {
           .height(32)
           .width(62)
           .onChange((value: string) => this.viewModel.setPageInputText(value))
-          .onSubmit(() => this.viewModel.jumpToPage())
+          .onSubmit(() => this.viewModel.jumpToInputPage())
 
         IconTextActionButton({
           label: LogManageStrings.jumpButton,
           showIcon: false,
           kind: 'primary',
           isEnabled: this.viewModel.state.pagination.pageInputText.trim().length > 0,
-          onTap: () => this.viewModel.jumpToPage()
+          onTap: () => this.viewModel.jumpToInputPage()
         })
 
         IconTextActionButton({
@@ -86,7 +92,7 @@ export struct LogPaginationBar {
           showIcon: false,
           kind: 'primary',
           isEnabled: this.viewModel.state.pagination.currentPage < this.viewModel.state.pagination.totalPages,
-          onTap: () => this.viewModel.goNext()
+          onTap: () => this.viewModel.goToNextPage()
         })
       }
       .width('100%')

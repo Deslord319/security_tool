@@ -1,6 +1,6 @@
 import { LogUtils } from '../../utils/LogUtils'
 import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS, LogStorageConfig } from '../../models/DataModels'
-import { LogStorageSettingsState } from '../../models/LogListModels'
+import { LogStorageSettingsState } from '../../models/LogManageModels'
 import {
   LogConfigRepositoryPort,
   LogStorageMaintenancePort,

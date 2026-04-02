@@ -1,7 +1,10 @@
 import { LogEntry } from './DataModels'
 import { CollectorStatus } from '../services/log-manage/common/LogManagePorts'
 
-export class LogCollectorUiStatus implements CollectorStatus {
+export type LogManageMode = 'list' | 'settings'
+
+@Observed
+export class LogCollectorState implements CollectorStatus {
   running: boolean = false
   auditReady: boolean = false
   crashReady: boolean = false
@@ -15,36 +18,49 @@ export class LogSummaryState {
   totalCount: number = 0
   todayCount: number = 0
   blockedCount: number = 0
+  currentShownCount: number = 0
 }
 
 @Observed
-export class LogFilterUiState {
+export class LogFilterState {
   eventTypeIndex: number = 0
   resultIndex: number = 0
-  keywordText: string = ''
+  keyword: string = ''
+  hintMessage: string = ''
 }
 
 @Observed
 export class LogPaginationState {
   currentPage: number = 1
-  totalPages: number = 1
-  pageSize: number = 20
+  pageSizeIndex: number = 0
   pageInputText: string = '1'
+  totalPages: number = 1
 }
 
 @Observed
-export class LogListPageState {
+export class LogListState {
+  allEntries: LogEntry[] = []
+  pagedEntries: LogEntry[] = []
+}
+
+@Observed
+export class LogDetailState {
+  visible: boolean = false
+  entryId: string = ''
+}
+
+@Observed
+export class LogManageState {
   loading: boolean = false
   active: boolean = false
   autoRefreshEnabled: boolean = true
-  collectorStatus: LogCollectorUiStatus = new LogCollectorUiStatus()
+  mode: LogManageMode = 'list'
   summary: LogSummaryState = new LogSummaryState()
-  filter: LogFilterUiState = new LogFilterUiState()
+  collector: LogCollectorState = new LogCollectorState()
+  filter: LogFilterState = new LogFilterState()
   pagination: LogPaginationState = new LogPaginationState()
-  entries: LogEntry[] = []
-  pagedEntries: LogEntry[] = []
-  selectedEntryId: string = ''
-  hintMessage: string = ''
+  list: LogListState = new LogListState()
+  detail: LogDetailState = new LogDetailState()
 }
 
 @Observed

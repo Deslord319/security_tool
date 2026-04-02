@@ -9,13 +9,13 @@ import {
   LogEntry
 } from '../models/DataModels'
 import { EmptyStatePanel } from './EmptyStatePanel'
-import { LogListViewModel } from '../viewmodels/log-manage/LogListViewModel'
+import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { ThemeMode } from '../theme/ThemeColors'
 
 @Component
 export struct LogEntriesPanel {
-  @ObjectLink viewModel: LogListViewModel
+  @ObjectLink viewModel: LogManageViewModel
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onEntryClick: (entry: LogEntry) => void = () => {}
 
@@ -24,8 +24,8 @@ export struct LogEntriesPanel {
   }
 
   private getEmptyStateDescription(): string {
-    if (this.viewModel.state.hintMessage.length > 0) {
-      return this.viewModel.state.hintMessage
+    if (this.viewModel.state.filter.hintMessage.length > 0) {
+      return this.viewModel.state.filter.hintMessage
     }
     return this.viewModel.hasActiveFilters() ? LogManageStrings.emptyDescription : EmptyStateStrings.CHECK_PERMISSIONS
   }
@@ -92,7 +92,7 @@ export struct LogEntriesPanel {
       .width('100%')
       .layoutWeight(1)
       .justifyContent(FlexAlign.Center)
-    } else if (this.viewModel.state.entries.length === 0) {
+    } else if (this.viewModel.state.list.allEntries.length === 0) {
       Scroll() {
         Column() {
           EmptyStatePanel({
@@ -113,7 +113,7 @@ export struct LogEntriesPanel {
       Scroll() {
         Column({ space: 0 }) {
           List({ space: 1 }) {
-            ForEach(this.viewModel.state.pagedEntries, (entry: LogEntry) => {
+            ForEach(this.viewModel.state.list.pagedEntries, (entry: LogEntry) => {
               ListItem() {
                 this.logEntryRow(entry)
               }

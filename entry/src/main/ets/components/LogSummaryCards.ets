@@ -4,11 +4,11 @@ import { PresentationStrings } from '../constants/modules/PresentationStrings'
 import { MetricSummaryCard } from './MetricSummaryCard'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { ThemeMode } from '../theme/ThemeColors'
-import { LogListViewModel } from '../viewmodels/log-manage/LogListViewModel'
+import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
 
 @Component
 export struct LogSummaryCards {
-  @ObjectLink viewModel: LogListViewModel
+  @ObjectLink viewModel: LogManageViewModel
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   @Builder
@@ -65,7 +65,7 @@ export struct LogSummaryCards {
       GridCol() {
         this.buildMetricCard(
           LogManageStrings.statCurrentShown,
-          `${this.viewModel.state.pagedEntries.length}`,
+          `${this.viewModel.state.summary.currentShownCount}`,
           LogManageStrings.statCurrentShownDescription,
           AppColors.TEXT_MUTED,
           AppColors.GRADIENT_TOOL_END,

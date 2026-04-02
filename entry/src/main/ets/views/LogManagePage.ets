@@ -16,8 +16,7 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { DialogService } from '../utils/DialogService'
-import { LogListViewModel } from '../viewmodels/log-manage/LogListViewModel'
-import { LogStorageSettingsViewModel } from '../viewmodels/log-manage/LogStorageSettingsViewModel'
+import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
 import { LogStorageSettingsPanel } from '../components/LogStorageSettingsPanel'
 import { LogDetailDialog } from '../components/LogDetailDialog'
 import { LogUtils } from '../utils/LogUtils'
@@ -31,9 +30,7 @@ const TAG = 'LogManagePage'
 export struct LogManagePage {
   @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   onBack: () => void = () => {}
-  @State showSettings: boolean = false
-  @State listViewModel: LogListViewModel = new LogListViewModel()
-  @State settingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
+  @State viewModel: LogManageViewModel = new LogManageViewModel()
   private detailDialogController?: CustomDialogController
 
   private eventTypeFilterOptions: SelectOption[] = [
@@ -52,25 +49,19 @@ export struct LogManagePage {
   }
 
   aboutToDisappear() {
-    this.listViewModel.deactivate()
-    this.listViewModel.setAutoRefreshEnabled(false)
-    this.listViewModel.destroy()
+    this.viewModel.deactivate()
+    this.viewModel.destroy()
     this.dismissLogDetailDialog()
   }
 
   private async initializeViewModels(): Promise<void> {
     try {
       let context = this.getUIContext().getHostContext() as common.UIAbilityContext
-      let initResult = await this.listViewModel.initialize(context)
-      await this.settingsViewModel.load()
+      let initResult = await this.viewModel.initialize(context)
       if (!initResult.success) {
         LogUtils.warn(TAG, `initializeViewModels list init failed: ${initResult.code}`)
       }
-      if (!this.showSettings) {
-        this.enterListState()
-      } else {
-        this.enterSettingsState()
-      }
+      this.viewModel.activate()
     } catch (err) {
       LogUtils.error(TAG, `initializeViewModels failed: ${JSON.stringify(err)}`)
     }
@@ -78,34 +69,20 @@ export struct LogManagePage {
 
   private async openStorageSettings(): Promise<void> {
     try {
-      await this.settingsViewModel.load()
       this.dismissLogDetailDialog()
-      this.showSettings = true
-      this.enterSettingsState()
+      await this.viewModel.setMode('settings')
     } catch (err) {
       LogUtils.error(TAG, `openStorageSettings failed: ${JSON.stringify(err)}`)
     }
   }
 
   private async backToLogList(): Promise<void> {
-    this.showSettings = false
-    this.enterListState()
-    await this.listViewModel.refresh()
-  }
-
-  private enterListState(): void {
-    this.listViewModel.setAutoRefreshEnabled(true)
-    this.listViewModel.activate()
-  }
-
-  private enterSettingsState(): void {
-    this.listViewModel.setAutoRefreshEnabled(false)
-    this.listViewModel.deactivate()
+    await this.viewModel.setMode('list')
   }
 
   private dismissLogDetailDialog(): void {
     this.closeLogDetailDialogController()
-    this.listViewModel.clearSelectedEntry()
+    this.viewModel.closeDetail()
   }
 
   private closeLogDetailDialogController(): void {
@@ -119,8 +96,8 @@ export struct LogManagePage {
 
   private openLogDetailDialog(entry: LogEntry): void {
     this.closeLogDetailDialogController()
-    this.listViewModel.selectEntry(entry.id)
-    let selectedEntry = this.listViewModel.getSelectedEntry()
+    this.viewModel.openDetail(entry.id)
+    let selectedEntry = this.viewModel.getCurrentDetailEntry()
     if (!selectedEntry) {
       return
     }
@@ -141,7 +118,7 @@ export struct LogManagePage {
         maskColor: AppColors.OVERLAY_BACKGROUND,
         cancel: () => {
           this.detailDialogController = undefined
-          this.listViewModel.clearSelectedEntry()
+          this.viewModel.closeDetail()
         }
       })
       this.detailDialogController.open()
@@ -153,7 +130,7 @@ export struct LogManagePage {
 
   private async handleExportLogs(): Promise<void> {
     let context = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let result: ExportActionResult = await this.listViewModel.exportLogs(context)
+    let result: ExportActionResult = await this.viewModel.exportLogs(context)
     if (result.success) {
       DialogService.openSuccess(this.getUIContext(), ExportMessageUtils.buildExportSuccessText(result.fileName ?? 'security_log.csv'))
       return
@@ -164,11 +141,11 @@ export struct LogManagePage {
   private handleClearLogs(): void {
     DialogService.openConfirm(this.getUIContext(), {
       title: LogManageStrings.clearConfirmTitle,
-      message: LogManageStrings.buildClearConfirmMessage(this.listViewModel.state.summary.totalCount),
+      message: LogManageStrings.buildClearConfirmMessage(this.viewModel.state.summary.totalCount),
       confirmText: CommonStrings.actionClear,
       cancelText: CommonStrings.actionCancel,
       onConfirm: async () => {
-        let result = await this.listViewModel.clearLogs()
+        let result = await this.viewModel.clearLogs()
         this.dismissLogDetailDialog()
         if (result.success) {
           DialogService.openSuccess(this.getUIContext(), LogManageStrings.clearSuccess)
@@ -180,29 +157,28 @@ export struct LogManagePage {
   }
 
   private async handleSaveStorageSettings(): Promise<void> {
-    let result = await this.settingsViewModel.save()
+    let result = await this.viewModel.saveStorageSettings()
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.code === 'no_changes' ? CommonStrings.messageNoChanges : LogManageStrings.saveSettingsFailed)
       return
     }
     DialogService.openSuccess(this.getUIContext(), LogManageStrings.saveSettingsSuccess)
-    await this.backToLogList()
   }
 
   private getSelectedEventTypeLabel(): string {
-    let index = this.listViewModel.state.filter.eventTypeIndex
+    let index = this.viewModel.state.filter.eventTypeIndex
     return index <= 0 ? LogManageStrings.allEventTypes : this.eventTypeFilterOptions[index].value as string
   }
 
   private getSelectedResultLabel(): string {
-    let index = this.listViewModel.state.filter.resultIndex
+    let index = this.viewModel.state.filter.resultIndex
     return index <= 0 ? LogManageStrings.allResults : this.resultFilterOptions[index].value as string
   }
 
   @Builder
   private headerRightActions() {
     Row({ space: 8 }) {
-      if (!this.showSettings) {
+      if (this.viewModel.state.mode === 'list') {
         IconTextActionButton({
           label: LogManageStrings.exportLogsButton,
           icon: $r('app.media.save'),
@@ -242,7 +218,7 @@ export struct LogManagePage {
   private filterToolbar() {
     Row({ space: 8 }) {
       Select(this.eventTypeFilterOptions)
-        .selected(this.listViewModel.state.filter.eventTypeIndex)
+        .selected(this.viewModel.state.filter.eventTypeIndex)
         .value(this.getSelectedEventTypeLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
@@ -253,10 +229,10 @@ export struct LogManagePage {
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.listViewModel.setEventTypeIndex(index) })
+        .onSelect((index: number) => { void this.viewModel.setEventTypeIndex(index) })
 
       Select(this.resultFilterOptions)
-        .selected(this.listViewModel.state.filter.resultIndex)
+        .selected(this.viewModel.state.filter.resultIndex)
         .value(this.getSelectedResultLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
@@ -267,9 +243,9 @@ export struct LogManagePage {
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.listViewModel.setResultIndex(index) })
+        .onSelect((index: number) => { void this.viewModel.setResultIndex(index) })
 
-      TextInput({ placeholder: LogManageStrings.searchPlaceholder, text: this.listViewModel.state.filter.keywordText })
+      TextInput({ placeholder: LogManageStrings.searchPlaceholder, text: this.viewModel.state.filter.keyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(FormControlUtils.text(this.currentTheme))
         .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -278,7 +254,7 @@ export struct LogManagePage {
         .borderRadius(AppStyles.RADIUS_SM)
         .height(36)
         .layoutWeight(1)
-        .onChange((value: string) => { void this.listViewModel.setKeyword(value) })
+        .onChange((value: string) => { void this.viewModel.setKeyword(value) })
 
     }
     .width('100%')
@@ -288,8 +264,8 @@ export struct LogManagePage {
   build() {
     Column() {
       SubPageHeader({
-        title: this.showSettings ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
-        subtitle: this.showSettings ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
+        title: this.viewModel.state.mode === 'settings' ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
+        subtitle: this.viewModel.state.mode === 'settings' ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -297,11 +273,11 @@ export struct LogManagePage {
         }
       })
 
-      if (this.showSettings) {
+      if (this.viewModel.state.mode === 'settings') {
         Scroll() {
           Column({ space: 24 }) {
             LogStorageSettingsPanel({
-              viewModel: this.settingsViewModel
+              viewModel: this.viewModel.settingsViewModel
             })
           }
           .width('100%')
@@ -314,17 +290,17 @@ export struct LogManagePage {
         .align(Alignment.Top)
       } else {
         LogSummaryCards({
-          viewModel: this.listViewModel
+          viewModel: this.viewModel
         })
         this.filterToolbar()
         LogEntriesPanel({
-          viewModel: this.listViewModel,
+          viewModel: this.viewModel,
           onEntryClick: (entry: LogEntry) => {
             this.openLogDetailDialog(entry)
           }
         })
         LogPaginationBar({
-          viewModel: this.listViewModel
+          viewModel: this.viewModel
         })
       }
     }
