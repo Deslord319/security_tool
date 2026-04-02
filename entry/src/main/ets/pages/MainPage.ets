@@ -18,8 +18,12 @@ import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { LogStorageService } from '../services/LogStorageService'
 import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
+import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
-import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
+import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
+import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
+import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
+import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { FirewallService } from '../services/FirewallService'
 import { FirewallPresetMode } from '../models/DataModels'
 import { FirewallModeService } from '../services/FirewallModeService'
@@ -39,6 +43,13 @@ struct MainPage {
   @StorageLink(STORAGE_KEY_THEME) @Watch('onThemeChange') currentTheme: ThemeMode = ThemeMode.LIGHT
   private runtimeInitialized: boolean = false
   private runtimeInitInProgress: boolean = false
+  private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
+    new PeripheralConnectionRecordRuntimeProducerAdapter()
+  private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
+    new PeripheralConnectionRecordPipelineImpl(this.connectionRecordProducer, [
+      new PeripheralConnectionRecordUsbConsumer(),
+      new PeripheralConnectionRecordBluetoothAclConsumer()
+    ])
 
   aboutToAppear(): void {
     this.applyUiTestRouteOverride()
@@ -142,15 +153,15 @@ struct MainPage {
       }
     }
 
-    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
+    let runtimeStatus = this.connectionRecordProducer.getStatus()
     if (!runtimeStatus.running) {
-      let runtimeStarted = await PeripheralRuntimeEventService.start()
-      let latestStatus = PeripheralRuntimeEventService.getStatus()
+      let runtimeStarted = await this.connectionRecordPipeline.start()
+      let latestStatus = this.connectionRecordProducer.getStatus()
       LogUtils.info('testTag',
         `ensureRuntimeServices peripheral runtime start result: started=${runtimeStarted}, usb=${latestStatus.capabilities.usbRuntimeEvents}, bluetooth=${latestStatus.capabilities.bluetoothRuntimeEvents}, reason=${latestStatus.capabilities.degradedReason ?? 'none'}`
       )
       if (!runtimeStarted) {
-        LogUtils.warn('testTag', 'PeripheralRuntimeEventService start failed')
+        LogUtils.warn('testTag', 'connection record runtime start failed')
       }
     }
   }
@@ -175,16 +186,22 @@ struct MainPage {
         return
       }
 
-      let traceRepoInited = await PeripheralTraceRepository.init(context)
+      let traceRepoInited = await this.connectionRecordPipeline.bindContext(context)
       if (!traceRepoInited) {
-        LogUtils.error('testTag', 'PeripheralTraceRepository init failed')
+        LogUtils.error('testTag', 'connection record pipeline bindContext failed')
         return
       }
       await PeripheralTraceRepository.configure(180, 200000)
 
-      let runtimeCollectorInited = await PeripheralRuntimeEventService.init(context)
-      if (!runtimeCollectorInited) {
-        LogUtils.error('testTag', 'PeripheralRuntimeEventService init failed')
+      let devicePolicyInited = await PeripheralDevicePolicyRepository.init(context)
+      if (!devicePolicyInited) {
+        LogUtils.error('testTag', 'PeripheralDevicePolicyRepository init failed')
+        return
+      }
+
+      let producerAttached = await this.connectionRecordPipeline.attachProducer(this.connectionRecordProducer)
+      if (!producerAttached) {
+        LogUtils.error('testTag', 'connection record pipeline attachProducer failed')
         return
       }
       LogUtils.info('testTag', 'initRuntimeServices success')

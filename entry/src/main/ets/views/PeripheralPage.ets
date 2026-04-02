@@ -14,7 +14,6 @@ import { CommonStrings } from '../constants/CommonStrings'
 import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralService } from '../services/PeripheralService'
-import { PeripheralRuntimeEventService } from '../services/PeripheralRuntimeEventService'
 import { ThemeMode } from '../theme/ThemeColors'
 import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
@@ -64,9 +63,8 @@ export struct PeripheralPage {
   private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
-    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
     LogUtils.info(TAG,
-      `page enter: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}, runtimeRunning=${runtimeStatus.running}, usbRuntime=${runtimeStatus.capabilities.usbRuntimeEvents}, bluetoothRuntime=${runtimeStatus.capabilities.bluetoothRuntimeEvents}`
+      `page enter: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}`
     )
     void this.initViewModel()
   }
@@ -76,9 +74,8 @@ export struct PeripheralPage {
     this.closeDetailDialog()
     this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
-    let runtimeStatus = PeripheralRuntimeEventService.getStatus()
     LogUtils.info(TAG,
-      `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}, runtimeRunning=${runtimeStatus.running}, usbRuntime=${runtimeStatus.capabilities.usbRuntimeEvents}, bluetoothRuntime=${runtimeStatus.capabilities.bluetoothRuntimeEvents}`
+      `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}`
     )
   }
 
@@ -86,8 +83,6 @@ export struct PeripheralPage {
     try {
       this.viewModel.onRefresh = () => this.syncViewState()
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      await PeripheralRuntimeEventService.init(context)
-      await PeripheralRuntimeEventService.start()
       await this.viewModel.initialize(context)
       this.currentTabIndex = this.viewModel.currentTab
       this.syncViewState()

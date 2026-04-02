@@ -1,4 +1,4 @@
-# 外设管理-设备连接记录：RuntimeService 迁移收口报告
+# 外设管理-设备连接记录：RuntimeService 删除收口报告
 
 > 日期：2026-04-02  
 > 依据：`docs/refac/peripheral-management/device-connection-record.md`  
@@ -6,183 +6,207 @@
 
 ## 1. 结论
 
-本轮迁移完成后，连接记录主链路已经回到 SSOT 目标形态：
+本轮收口完成后，连接记录主链路已满足 SSOT 目标形态：
 
 - `producer -> consumers -> pipeline -> PeripheralTraceRepository`
 
-`PeripheralRuntimeEventService.ets` 已退出连接记录订阅、事件生产、事件消费、mapping helper 和 pipeline push 直接入口职责。
+`PeripheralRuntimeEventService.ets` 已从生产代码中删除。  
+连接记录运行时不再经由 RuntimeService 代理装配、启停或状态查询。
 
-## 2. PeripheralRuntimeEventService 当前保留职责
+## 2. 删除前 RuntimeService 的职责替代关系
 
-当前 [PeripheralRuntimeEventService.ets](/D:/project/ai/security_tool/entry/src/main/ets/services/PeripheralRuntimeEventService.ets) 仅保留以下职责：
+### 2.1 初始化装配
 
-1. 连接记录链路初始化编排
+删除前职责：
+
 - `init(context)`
-- 负责：
-  - `pipeline.bindContext(context)`
-  - `pipeline.attachProducer(runtimeProducer)`
-  - `PeripheralDevicePolicyRepository.init(context)`
+- `pipeline.bindContext(context)`
+- `pipeline.attachProducer(producer)`
+- `PeripheralDevicePolicyRepository.init(context)`
 
-2. 运行时生命周期外壳
+替代后落点：
+
+- `MainPage.initRuntimeServices()`
+- `PeripheralConnectionRecordPipelineImpl.bindContext(...)`
+- `PeripheralConnectionRecordPipelineImpl.attachProducer(...)`
+- `PeripheralDevicePolicyRepository.init(context)` 由 `MainPage` 唯一启动链路触发
+
+### 2.2 生命周期代理
+
+删除前职责：
+
 - `start()`
 - `stop()`
-- 负责通过 `pipeline.start()/stop()` 驱动 producer 生命周期
 
-3. 状态查询
+替代后落点：
+
+- `MainPage.ensureRuntimeServices()`
+- `PeripheralConnectionRecordPipelineImpl.start()`
+- `PeripheralConnectionRecordPipelineImpl.stop()`
+
+### 2.3 运行状态查询
+
+删除前职责：
+
 - `getStatus()`
 - `probeCapabilities()`
 
-4. 单例装配
+替代后落点：
+
+- `PeripheralConnectionRecordRuntimeProducerAdapter.getStatus()`
+- `MainPage` 直接读取 producer 状态
+
+### 2.4 单例装配
+
+删除前职责：
+
 - `getRuntimeProducer()`
 - `getRuntimePipeline()`
 
-5. 初始化失败原因归一
-- `buildInitDegradedReason(...)`
+替代后落点：
 
-## 3. 从 RuntimeEventService 删除的连接记录职责
+- `MainPage` 私有字段直接持有：
+  - `PeripheralConnectionRecordRuntimeProducerAdapter`
+  - `PeripheralConnectionRecordPipelineImpl`
 
-以下职责已从 `PeripheralRuntimeEventService.ets` 删除：
+## 3. 页面级职责归属结果
 
-1. 连接记录订阅
-- `registerUsbRuntimeEvents(...)`
-- `registerBluetoothRuntimeEvents(...)`
+### 3.1 MainPage
 
-2. 连接记录事件入口
-- `consumeUsbCommonEvent(...)`
-- `consumeBluetoothAclCommonEvent(...)`
+当前职责：
 
-3. 标准事件组装
-- `buildProducerEvent(...)`
+- 应用入口页加载后，作为唯一连接记录监听启动点
+- 初始化：
+  - `LogStorageService`
+  - `LogRuntimeCollectorService`
+  - `PeripheralTraceRepository.configure(...)`
+  - `PeripheralDevicePolicyRepository.init(...)`
+  - connection-record pipeline bind/attach/start
 
-4. USB mapping helper
-- `mapUsbCommonEventToTraceRecord(...)`
-- `resolveUsbEventInfo(...)`
-- `evaluateUsbEventPolicy(...)`
+### 3.2 PeripheralPage
 
-5. Bluetooth ACL mapping helper
-- `mapBluetoothAclCommonEventToTraceRecord(...)`
-- `resolveBluetoothAclEventInfo(...)`
+当前职责：
 
-6. connection-record pipeline glue
-- RuntimeEventService 直接 `pipeline.push(...)` 路径
+- 仅负责：
+  - 视图展示
+  - ViewModel 初始化
+  - 详情、导出、清空等业务交互
 
-## 4. SSOT 目标链路新增/沉淀的函数
+已删除职责：
+
+- 不再 `init/start` 连接记录 runtime
+- 不再读取 `PeripheralRuntimeEventService.getStatus()`
+
+## 4. SSOT 链路新增/沉淀的函数
 
 ### 4.1 Producer 侧
 
 文件：
+
 - [peripheral_connection_record_runtime_producer_adapter.ets](/D:/project/ai/security_tool/entry/src/main/ets/services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter.ets)
 
-本轮沉淀的核心函数：
+核心函数：
 
-1. 订阅与启停
+- `bindContext(...)`
 - `start()`
 - `stop()`
-- `registerUsbRuntimeEvents()`
-- `registerBluetoothRuntimeEvents()`
-- `cleanupBluetoothRuntimeEvents()`
-- `cleanupBluetoothAclSubscriber(...)`
-
-2. 蓝牙 ACL 订阅恢复与权限处理
-- `handleBluetoothStateChange(...)`
-- `resumeBluetoothAclSubscriptionIfNeeded(...)`
-- `subscribeBluetoothAclStateChange(...)`
-- `ensureBluetoothRuntimePermission(...)`
-- `hasBluetoothRuntimePermission()`
-- `enterBluetoothPermissionBlocked(...)`
-- `isBluetoothPermissionDeniedError(...)`
-
-3. 标准事件生产
-- `buildProducerEvent(...)`
-- `emitRuntimeEvent(...)`
-
-4. producer 生命周期与能力
-- `bindContext(...)`
 - `subscribe(...)`
 - `unsubscribe(...)`
 - `getStatus()`
-- `buildDegradedReason(...)`
+- `registerUsbRuntimeEvents()`
+- `registerBluetoothRuntimeEvents()`
+- `buildProducerEvent(...)`
+- `emitRuntimeEvent(...)`
+
+对应环节：
+
+- producer
 
 ### 4.2 USB Consumer 侧
 
 文件：
+
 - [peripheral_connection_record_usb_consumer.ets](/D:/project/ai/security_tool/entry/src/main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer.ets)
 
-已沉淀的核心函数：
+核心函数：
 
-1. 入口
 - `canHandle(...)`
 - `consume(...)`
-
-2. USB mapping / policy
-- `resolveAction(...)`
 - `resolveUsbEventInfo(...)`
 - `evaluateUsbEventPolicy(...)`
-- `readCurrentUsbPolicySnapshot(...)`
-- `readCurrentUsbStoragePolicy(...)`
-- `resolveEffectivePolicyLabel(...)`
+- `mapUsbCommonEventToTraceRecord(...)`
 
-3. USB payload 解析 helper
-- `collectPayloadSources(...)`
-- `resolveVendorId(...)`
-- `resolveProductId(...)`
-- `resolveBaseClass(...)`
-- `resolveSubClass(...)`
-- `resolveProtocol(...)`
+对应环节：
+
+- consumer
 
 ### 4.3 Bluetooth ACL Consumer 侧
 
 文件：
+
 - [peripheral_connection_record_bluetooth_acl_consumer.ets](/D:/project/ai/security_tool/entry/src/main/ets/services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer.ets)
 
-已沉淀的核心函数：
+核心函数：
 
-1. 入口
 - `canHandle(...)`
 - `consume(...)`
-
-2. Bluetooth ACL mapping
 - `resolveBluetoothAclEventInfo(...)`
-- `resolveBluetoothAclAction(...)`
-- `resolveBluetoothAclStateLabel(...)`
-- `resolveBluetoothAclReasonLabel(...)`
-- `resolveBluetoothOccurAt(...)`
-- `resolveBluetoothDeviceName(...)`
+- `mapBluetoothAclCommonEventToTraceRecord(...)`
 
-3. Bluetooth payload 解析 helper
-- `collectPayloadSources(...)`
-- `resolveBluetoothDeviceId(...)`
-- `maskBluetoothIdentifier(...)`
+对应环节：
+
+- consumer
 
 ### 4.4 Pipeline 侧
 
 文件：
+
 - [peripheral_connection_record_pipeline.ets](/D:/project/ai/security_tool/entry/src/main/ets/services/peripheral/connection-record/peripheral_connection_record_pipeline.ets)
 
-已沉淀的核心函数：
+核心函数：
 
-1. producer 装配
-- `attachProducer(...)`
-- `detachProducer(...)`
 - `bindContext(...)`
-
-2. 生命周期
+- `attachProducer(...)`
+- `detachProducer()`
 - `start()`
 - `stop()`
-
-3. 主处理链
 - `push(...)`
-- `shouldSkipByDedupe(...)`
 - `ensureTraceRepositoryReady()`
+- `shouldSkipByDedupe(...)`
 
-## 5. 当前验收状态
+对应环节：
 
-1. `entry/src/main/ets/services/peripheral/connection-record/` 下主代码已不再调用 `PeripheralRuntimeEventService.*`
-2. `PeripheralRuntimeEventService.ets` 中已无连接记录订阅、直接 push、mapping helper
-3. 构建验证通过：
-- `hvigorw assembleHap --mode module -p product=default -p module=entry`
+- pipeline
 
-## 6. 后续注意项
+## 5. 当前架构判断
 
-1. Step 5 删除了 RuntimeService 旧 helper 后，旧测试若仍 monkeypatch 这些 helper，需要同步改到 consumer 侧或 mock 其真实依赖。
-2. 当前项目测试入口仍未统一，`hvigorw :entry:test` 不可用；如需补测试回归，应先确定可执行测试任务。
+### 5.1 SSOT
+
+符合。
+
+原因：
+
+- 运行时订阅与标准事件生产在 producer
+- 记录映射在 consumers
+- 统一持久化在 pipeline -> `PeripheralTraceRepository`
+- `PeripheralRuntimeEventService` 已退出链路
+
+### 5.2 MVVM（按本项目最小改动口径）
+
+可接受。
+
+原因：
+
+- `PeripheralPage` 已退出运行时初始化/启动职责
+- 清空连接记录仍通过 ViewModel/usecase
+- `MainPage` 作为应用入口页承担唯一启动点，属于应用级装配，不再由业务子页承担
+
+## 6. 验收结果
+
+1. `EntryAbility` 仍加载 `pages/MainPage`
+2. `MainPage` 是唯一监听启动点
+3. `PeripheralPage` 不再启动监听
+4. `entry/src/main` 无 `PeripheralRuntimeEventService` 生产引用
+5. `PeripheralRuntimeEventService.ets` 已删除
+6. 构建通过：
+   - `hvigorw assembleHap --mode module -p product=default -p module=entry`
