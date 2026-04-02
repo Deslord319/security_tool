@@ -1,39 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { LogEventResult, PeripheralTraceRecord, PeripheralType } from '../../main/ets/models/DataModels'
-import { PeripheralRuntimeEventService } from '../../main/ets/services/PeripheralRuntimeEventService'
+import { commonEventManager } from '@kit.BasicServicesKit'
+import { PeripheralType, UsbStoragePolicy } from '../../main/ets/models/DataModels'
+import { PeripheralDevicePolicyRepository } from '../../main/ets/services/PeripheralDevicePolicyRepository'
+import { PeripheralService } from '../../main/ets/services/PeripheralService'
 import { PeripheralConnectionRecordUsbConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
 export default function peripheralConnectionRecordUsbConsumerTest() {
   describe('PeripheralConnectionRecordUsbConsumer', () => {
-    let originalMapper: (data: Object) => PeripheralTraceRecord | null
+    let originalGetAll: () => Object[]
+    let originalGetInterfaceDisabledWithResult: (feature: string) => Object
+    let originalGetUsbStoragePolicyWithResult: () => Object
 
     beforeEach(() => {
-      originalMapper = PeripheralRuntimeEventService.mapUsbCommonEventToTraceRecord
-      PeripheralRuntimeEventService.mapUsbCommonEventToTraceRecord = (_data: Object): PeripheralTraceRecord | null => {
-        return {
-          recordId: 'runtime_usb_1',
-          occurAt: 100,
-          collectAt: 101,
-          deviceName: 'USB Storage',
-          deviceType: PeripheralType.USB_STORAGE,
-          deviceId: 'VID:1234 PID:5678',
-          action: 'connect',
-          decision: 'allow',
-          result: LogEventResult.SUCCESS,
-          source: 'runtime_event',
-          summary: 'USB 存储只读',
-          rawEventName: 'usual.event.USB_ATTACHED',
-          rawAction: 'connect',
-          detail: 'USB 存储策略为只读模式。',
-          effectivePolicyLabel: '只读',
-          matchedPolicyKind: 'usb_storage_read_only'
-        }
-      }
+      originalGetAll = PeripheralDevicePolicyRepository.getAll
+      originalGetInterfaceDisabledWithResult = PeripheralService.getInterfaceDisabledWithResult
+      originalGetUsbStoragePolicyWithResult = PeripheralService.getUsbStoragePolicyWithResult
+
+      PeripheralDevicePolicyRepository.getAll = (): Object[] => []
+      PeripheralService.getInterfaceDisabledWithResult = (_feature: string): Object => ({ data: false })
+      PeripheralService.getUsbStoragePolicyWithResult = (): Object => ({ data: UsbStoragePolicy.READ_ONLY })
     })
 
     afterEach(() => {
-      PeripheralRuntimeEventService.mapUsbCommonEventToTraceRecord = originalMapper
+      PeripheralDevicePolicyRepository.getAll = originalGetAll
+      PeripheralService.getInterfaceDisabledWithResult = originalGetInterfaceDisabledWithResult
+      PeripheralService.getUsbStoragePolicyWithResult = originalGetUsbStoragePolicyWithResult
     })
 
     it('should map usb producer event to trace record with key fields', 0, async (done: Function) => {
@@ -41,8 +33,20 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const event: PeripheralConnectionRecordProducerEvent = {
         source: 'runtime',
         channel: 'usb',
-        eventName: 'usual.event.USB_ATTACHED',
-        rawData: {}
+        eventName: commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        rawData: {
+          event: commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+          parameters: {
+            vendorId: 0x1234,
+            productId: 0x5678,
+            deviceName: 'USB Storage',
+            productName: 'USB Storage',
+            manufacturerName: 'ACME',
+            baseClass: 8,
+            class: 8,
+            timestamp: 100
+          }
+        }
       }
 
       const record = await consumer.consume(event)
