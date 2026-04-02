@@ -4,7 +4,6 @@ import { common } from '@kit.AbilityKit'
 import { AuthService } from './AuthService'
 import { FirewallService } from './FirewallService'
 import { FirewallAuthStateRepository } from './FirewallAuthStateRepository'
-import { LogStorageService } from './LogStorageService'
 import { UserFirewallPolicyService } from './UserFirewallPolicyService'
 import {
   AuthMethod,
@@ -18,6 +17,7 @@ import {
 } from '../models/DataModels'
 import { UserFirewallModeService } from './UserFirewallModeService'
 import { FirewallStrings } from '../constants/modules/FirewallStrings'
+import { LogRepository } from './log-manage/repository/LogRepository'
 
 const TAG = 'FirewallToggleAuthService'
 
@@ -259,8 +259,8 @@ export class FirewallToggleAuthService {
       rawEventName: beforeEnabled ? 'firewall_state_on' : 'firewall_state_off',
       rawOutcome: afterEnabled ? 'target_on' : 'target_off'
     }
-    let saved = await LogStorageService.addEntry(entry)
-    if (!saved) {
+    let saved = await LogRepository.addEntry(entry)
+    if (!saved.success) {
       LogUtils.warn(TAG, `appendAuditEntry failed: ${detail}`)
     }
   }
@@ -284,8 +284,8 @@ export class FirewallToggleAuthService {
       rawEventName: 'firewall_user_mode_apply',
       rawOutcome: result === LogEventResult.SUCCESS ? 'success' : 'blocked_or_failed'
     }
-    let saved = await LogStorageService.addEntry(entry)
-    if (!saved) {
+    let saved = await LogRepository.addEntry(entry)
+    if (!saved.success) {
       LogUtils.warn(TAG, `appendGenericAuditEntry failed: ${detail}`)
     }
   }

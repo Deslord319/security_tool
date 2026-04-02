@@ -10,8 +10,8 @@ import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/Da
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { FirewallModeService } from '../services/FirewallModeService'
 import { FirewallService } from '../services/FirewallService'
-import { LogStorageChangeEvent, LogStorageService } from '../services/LogStorageService'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
+import { LogRepository } from '../services/log-manage/repository/LogRepository'
 import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
@@ -35,7 +35,7 @@ export class DashboardViewModel {
 
   destroy(): void {
     if (this.logListenerId > 0) {
-      LogStorageService.removeChangeListener(this.logListenerId)
+      LogRepository.removeChangeListener(this.logListenerId)
       this.logListenerId = -1
     }
     if (this.peripheralTraceListenerId > 0) {
@@ -54,7 +54,7 @@ export class DashboardViewModel {
 
   private registerListeners(): void {
     if (this.logListenerId <= 0) {
-      this.logListenerId = LogStorageService.addChangeListener((_event: LogStorageChangeEvent) => {
+      this.logListenerId = LogRepository.addChangeListener(() => {
         void this.refreshLiveCards(false, true)
       })
     }
@@ -112,7 +112,7 @@ export class DashboardViewModel {
   }
 
   private buildLogCard(): DashboardModuleCardState {
-    let statistics = LogStorageService.getStatistics()
+    let statistics = LogRepository.getStatistics()
     return this.createModuleCard(
       RouteIds.LOG_MANAGE,
       DashboardStrings.logTitle,

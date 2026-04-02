@@ -1,22 +1,21 @@
-import { LogUtils } from '../utils/LogUtils'
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
-
 import {
+  generateLogEntryId,
   LogEntry,
   LogEventResult,
-  LogEventType,
-  generateLogEntryId
-} from '../models/DataModels'
+  LogEventType
+} from '../../../models/DataModels'
+import { LogUtils } from '../../../utils/LogUtils'
+import { CrashSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 
-const TAG = 'LogCrashService'
+const TAG = 'LogCrashSource'
 const WATCHER_NAME = 'securityCrashWatcher1'
 
-export type CrashEntryCallback = (entry: LogEntry) => void
-
+type CrashEntryCallback = (entry: LogEntry) => void
 type CrashParamValue = string | number | boolean | Object | undefined
 type CrashParamMap = Record<string, CrashParamValue>
 
-export class LogCrashService {
+export class LogCrashSource {
   private static callback: CrashEntryCallback | null = null
   private static subscribed: boolean = false
   private static lastErrorCode: number | undefined = undefined
@@ -27,38 +26,38 @@ export class LogCrashService {
       names: [hiAppEvent.event.APP_CRASH, hiAppEvent.event.APP_FREEZE]
     }],
     onReceive: (_domain: string, appEventGroups: Array<hiAppEvent.AppEventGroup>) => {
-      LogCrashService.handleReceive(appEventGroups)
+      LogCrashSource.handleReceive(appEventGroups)
     }
   }
 
-  static subscribe(onCrashEntry: CrashEntryCallback): boolean {
-    if (LogCrashService.subscribed) {
-      LogCrashService.callback = onCrashEntry
-      return true
+  static subscribe(onEntry: (entry: LogEntry) => void): CrashSubscribeResult {
+    if (LogCrashSource.subscribed) {
+      LogCrashSource.callback = onEntry
+      return { success: true, code: 'ok' }
     }
 
     try {
-      LogCrashService.callback = onCrashEntry
-      hiAppEvent.addWatcher(LogCrashService.watcher)
-      LogCrashService.subscribed = true
-      LogCrashService.lastErrorCode = undefined
-      return true
+      LogCrashSource.callback = onEntry
+      hiAppEvent.addWatcher(LogCrashSource.watcher)
+      LogCrashSource.subscribed = true
+      LogCrashSource.lastErrorCode = undefined
+      return { success: true, code: 'ok' }
     } catch (err) {
-      LogCrashService.lastErrorCode = LogCrashService.extractErrorCode(err as Object)
+      LogCrashSource.lastErrorCode = LogCrashSource.extractErrorCode(err as Object)
       LogUtils.error(TAG, `addWatcher failed: ${JSON.stringify(err)}`)
-      return false
+      return { success: false, code: 'unsupported' }
     }
   }
 
   static unsubscribe(): boolean {
-    if (!LogCrashService.subscribed) {
+    if (!LogCrashSource.subscribed) {
       return true
     }
 
     try {
-      hiAppEvent.removeWatcher(LogCrashService.watcher)
-      LogCrashService.subscribed = false
-      LogCrashService.callback = null
+      hiAppEvent.removeWatcher(LogCrashSource.watcher)
+      LogCrashSource.subscribed = false
+      LogCrashSource.callback = null
       return true
     } catch (err) {
       LogUtils.warn(TAG, `removeWatcher failed: ${JSON.stringify(err)}`)
@@ -66,32 +65,35 @@ export class LogCrashService {
     }
   }
 
-  static getSubscriptionStatus(): boolean {
-    return LogCrashService.subscribed
+  static getStatus(): SourceStatus {
+    return {
+      subscribed: LogCrashSource.subscribed,
+      errorCode: LogCrashSource.lastErrorCode
+    }
   }
 
   private static handleReceive(appEventGroups: Array<hiAppEvent.AppEventGroup>): void {
-    for (let group of appEventGroups) {
-      for (let info of group.appEventInfos) {
-        let entry = LogCrashService.mapCrashInfo(info)
-        if (LogCrashService.callback) {
-          LogCrashService.callback(entry)
+    for (const group of appEventGroups) {
+      for (const info of group.appEventInfos) {
+        const entry = LogCrashSource.mapCrashInfo(info)
+        if (LogCrashSource.callback) {
+          LogCrashSource.callback(entry)
         }
       }
     }
   }
 
   private static mapCrashInfo(info: hiAppEvent.AppEventInfo): LogEntry {
-    let params = info.params as CrashParamMap
-    let processName = LogCrashService.pickString(params, [
+    const params = info.params as CrashParamMap
+    const processName = LogCrashSource.pickString(params, [
       'bundleName', 'bundle_name', 'processName', 'process_name', 'moduleName', 'module_name', 'abilityName'
     ])
-    let reason = LogCrashService.pickString(params, [
+    const reason = LogCrashSource.pickString(params, [
       'exception', 'reason', 'message', 'summary', 'errorMessage', 'error_message'
     ])
-    let stack = LogCrashService.pickString(params, ['stackTrace', 'stack_trace', 'stack', 'logPath', 'log_path'])
-    let rawAction = LogCrashService.pickString(params, ['state', 'lifecycle', 'stage'])
-    let detailParts: string[] = []
+    const stack = LogCrashSource.pickString(params, ['stackTrace', 'stack_trace', 'stack', 'logPath', 'log_path'])
+    const rawAction = LogCrashSource.pickString(params, ['state', 'lifecycle', 'stage'])
+    const detailParts: string[] = []
     if (reason) {
       detailParts.push(reason)
     }
@@ -108,8 +110,8 @@ export class LogCrashService {
       eventType: LogEventType.CRASH,
       detail: detailParts.join(' | '),
       processName: processName,
-      pid: LogCrashService.pickNumber(params, ['pid', 'processId', 'process_id']),
-      uid: LogCrashService.pickNumber(params, ['uid', 'userId', 'user_id']),
+      pid: LogCrashSource.pickNumber(params, ['pid', 'processId', 'process_id']),
+      uid: LogCrashSource.pickNumber(params, ['uid', 'userId', 'user_id']),
       sourceEventId: undefined,
       rawEventName: info.name,
       rawOutcome: info.name === hiAppEvent.event.APP_FREEZE ? 'freeze' : 'crash',
@@ -119,8 +121,8 @@ export class LogCrashService {
   }
 
   private static pickString(params: CrashParamMap, keys: string[]): string | undefined {
-    for (let key of keys) {
-      let value = params[key]
+    for (const key of keys) {
+      const value = params[key]
       if (typeof value === 'string' && value.trim().length > 0) {
         return value.trim()
       }
@@ -129,13 +131,13 @@ export class LogCrashService {
   }
 
   private static pickNumber(params: CrashParamMap, keys: string[]): number | undefined {
-    for (let key of keys) {
-      let value = params[key]
+    for (const key of keys) {
+      const value = params[key]
       if (typeof value === 'number' && Number.isFinite(value)) {
         return value
       }
       if (typeof value === 'string') {
-        let parsed = Number(value)
+        const parsed = Number(value)
         if (Number.isFinite(parsed)) {
           return parsed
         }
@@ -145,14 +147,24 @@ export class LogCrashService {
   }
 
   private static extractErrorCode(err: Object): number | undefined {
-    let codeValue = (err as Record<string, Object>)['code']
+    const codeValue = (err as Record<string, Object>)['code']
     if (typeof codeValue === 'number') {
       return codeValue
     }
     if (typeof codeValue === 'string') {
-      let parsed = Number(codeValue)
+      const parsed = Number(codeValue)
       return Number.isNaN(parsed) ? undefined : parsed
     }
     return undefined
+  }
+
+  static mapCrashInfoForTest(info: hiAppEvent.AppEventInfo): LogEntry {
+    return LogCrashSource.mapCrashInfo(info)
+  }
+
+  static resetForTest(): void {
+    LogCrashSource.callback = null
+    LogCrashSource.subscribed = false
+    LogCrashSource.lastErrorCode = undefined
   }
 }

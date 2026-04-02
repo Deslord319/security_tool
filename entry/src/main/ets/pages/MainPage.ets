@@ -16,8 +16,6 @@ import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
-import { LogStorageService } from '../services/LogStorageService'
-import { LogRuntimeCollectorService } from '../services/LogRuntimeCollectorService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
 import { PeripheralTraceRepository } from '../services/PeripheralTraceRepository'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
@@ -27,6 +25,7 @@ import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/co
 import { FirewallService } from '../services/FirewallService'
 import { FirewallPresetMode } from '../models/DataModels'
 import { FirewallModeService } from '../services/FirewallModeService'
+import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 
@@ -144,12 +143,12 @@ struct MainPage {
       }
     }
 
-    let status = LogRuntimeCollectorService.getStatus()
+    let status = LogCollectorService.getStatus()
     if (!status.running) {
-      let collectorStarted = await LogRuntimeCollectorService.start()
-      LogUtils.info('testTag', `ensureRuntimeServices collector start result: started=${collectorStarted}`)
-      if (!collectorStarted) {
-        LogUtils.warn('testTag', 'LogRuntimeCollectorService restart failed')
+      let collectorStarted = await LogCollectorService.start()
+      LogUtils.info('testTag', `ensureRuntimeServices collector start result: started=${collectorStarted.success}, code=${collectorStarted.code}`)
+      if (!collectorStarted.success) {
+        LogUtils.warn('testTag', `LogCollectorService restart failed: ${collectorStarted.code}`)
       }
     }
 
@@ -174,15 +173,9 @@ struct MainPage {
 
     try {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      let storageOk = await LogStorageService.init(context)
-      if (!storageOk) {
-        LogUtils.error('testTag', 'LogStorageService init failed')
-        return
-      }
-
-      let collectorInited = await LogRuntimeCollectorService.init(context)
-      if (!collectorInited) {
-        LogUtils.error('testTag', 'LogRuntimeCollectorService init failed')
+      let collectorInited = await LogCollectorService.init(context)
+      if (!collectorInited.success) {
+        LogUtils.error('testTag', `LogCollectorService init failed: ${collectorInited.code}`)
         return
       }
 

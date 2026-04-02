@@ -1,17 +1,18 @@
-import { LogUtils } from '../utils/LogUtils'
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import osAccount from '@ohos.account.osAccount'
-import { LogPathUtils } from '../utils/LogPathUtils'
-import { LogManageStrings } from '../constants/modules/LogManageStrings'
+import { LogUtils } from '../../../utils/LogUtils'
+import { LogPathUtils } from '../../../utils/LogPathUtils'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import {
-  LogEntry,
-  LogEventType,
-  LogEventResult,
   ALL_LOG_EVENT_TYPES,
-  generateLogEntryId
-} from '../models/DataModels'
+  generateLogEntryId,
+  LogEntry,
+  LogEventResult,
+  LogEventType
+} from '../../../models/DataModels'
+import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 
-const TAG = 'LogAuditService'
+const TAG = 'LogAuditSource'
 const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
 const DEFAULT_FOREGROUND_USER_ID = 100
 const FILE_EVENT_IDS: number[] = [
@@ -23,11 +24,10 @@ const FILE_EVENT_IDS: number[] = [
   securityAudit.NotifyEvent.KIA_INTERCEPT
 ]
 
-export type LogEntryCallback = (entry: LogEntry) => void
-
 type JsonField = string | number | boolean | Object | undefined
 type JsonMap = Record<string, JsonField>
 type AuditFallbackReason = 'new_api_unavailable' | 'new_api_init_failed' | 'none'
+type LogEntryCallback = (entry: LogEntry) => void
 
 interface AuditClientCompat {
   subscribe(eventIds: number[]): void
@@ -65,7 +65,7 @@ interface FileFilterContext {
   prefix: string
 }
 
-export class LogAuditService {
+export class LogAuditSource {
   private static isSubscribed: boolean = false
   private static callback: LogEntryCallback | null = null
   private static subscribedCallbacks: Map<number, (event: securityAudit.AuditEvent) => void> = new Map()
@@ -74,73 +74,83 @@ export class LogAuditService {
   private static lastSubscribeErrorCode: number | undefined = undefined
   private static lastSubscribeFailedEventIds: number[] = []
   private static nowProvider: () => number = () => Date.now()
-
   private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
     [LogEventType.FILE, FILE_EVENT_IDS],
     [LogEventType.ACCOUNT, [securityAudit.NotifyEvent.ACCOUNT]],
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]]
   ])
-  private static readonly EVENT_TYPE_BY_ID: Map<number, LogEventType> = LogAuditService.buildEventTypeById()
-  static async subscribe(onLogEntry: LogEntryCallback, eventTypes?: LogEventType[]): Promise<boolean> {
-    if (LogAuditService.isSubscribed) {
-      LogAuditService.callback = onLogEntry
-      LogUtils.warn(TAG, 'Already subscribed to audit events')
-      return true
+  private static readonly EVENT_TYPE_BY_ID: Map<number, LogEventType> = LogAuditSource.buildEventTypeById()
+
+  static async subscribe(onEntry: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<AuditSubscribeResult> {
+    if (LogAuditSource.isSubscribed) {
+      LogAuditSource.callback = onEntry
+      return LogAuditSource.buildSubscribeResult(true, [], 'ok', [...LogAuditSource.clientSubscribedEventIds])
     }
 
     try {
-      LogAuditService.callback = onLogEntry
-      LogAuditService.lastSubscribeErrorCode = undefined
-      LogAuditService.lastSubscribeFailedEventIds = []
+      LogAuditSource.callback = onEntry
+      LogAuditSource.lastSubscribeErrorCode = undefined
+      LogAuditSource.lastSubscribeFailedEventIds = []
 
-      let eventIds = LogAuditService.mapTypesToIds(LogAuditService.normalizeAuditTypes(eventTypes))
-      if (eventIds.length === 0) {
-        LogAuditService.callback = null
-        LogAuditService.lastSubscribeErrorCode = 401
-        return false
+      const eventIds = LogAuditSource.mapTypesToIds(LogAuditSource.normalizeAuditTypes(eventTypes))
+        if (eventIds.length === 0) {
+          LogAuditSource.callback = null
+          LogAuditSource.lastSubscribeErrorCode = 401
+          return LogAuditSource.buildSubscribeResult(false, [], 'permission_denied', [])
       }
 
-      let clientResult = await LogAuditService.subscribeWithClient(eventIds)
+      const clientResult = await LogAuditSource.subscribeWithClient(eventIds)
       if (clientResult.shouldFallback) {
-        let legacyEventIds = eventIds.filter((eventId: number) => !FILE_EVENT_IDS.includes(eventId))
-        let legacyResult = LogAuditService.subscribeWithLegacyOnOff(legacyEventIds)
-        LogAuditService.lastSubscribeFailedEventIds = Array.from(new Set([
+        const legacyEventIds = eventIds.filter((eventId: number) => !FILE_EVENT_IDS.includes(eventId))
+        const legacyResult = LogAuditSource.subscribeWithLegacyOnOff(legacyEventIds)
+        const failedEventIds = Array.from(new Set([
           ...clientResult.failedEventIds,
           ...legacyResult.failedEventIds
         ]))
-        LogAuditService.isSubscribed = legacyResult.successCount > 0
-        if (!LogAuditService.isSubscribed) {
-          LogAuditService.callback = null
-          return false
+        LogAuditSource.lastSubscribeFailedEventIds = failedEventIds
+        LogAuditSource.isSubscribed = legacyResult.successCount > 0
+        if (!LogAuditSource.isSubscribed) {
+          LogAuditSource.callback = null
+          return LogAuditSource.buildSubscribeResult(false, failedEventIds, 'permission_denied', [])
         }
-        return true
+        return LogAuditSource.buildSubscribeResult(
+          true,
+          failedEventIds,
+          failedEventIds.length > 0 ? 'partial' : 'ok',
+          eventIds.filter((eventId: number) => !failedEventIds.includes(eventId))
+        )
       }
 
-      LogAuditService.lastSubscribeFailedEventIds = clientResult.failedEventIds
-      LogAuditService.isSubscribed = clientResult.successCount > 0
-      if (!LogAuditService.isSubscribed) {
-        LogAuditService.callback = null
-        return false
+      LogAuditSource.lastSubscribeFailedEventIds = clientResult.failedEventIds
+      LogAuditSource.isSubscribed = clientResult.successCount > 0
+      if (!LogAuditSource.isSubscribed) {
+        LogAuditSource.callback = null
+        return LogAuditSource.buildSubscribeResult(false, clientResult.failedEventIds, 'permission_denied', [])
       }
-      return true
+      return LogAuditSource.buildSubscribeResult(
+        true,
+        clientResult.failedEventIds,
+        clientResult.failedEventIds.length > 0 ? 'partial' : 'ok',
+        eventIds.filter((eventId: number) => !clientResult.failedEventIds.includes(eventId))
+      )
     } catch (err) {
-      LogAuditService.lastSubscribeErrorCode = LogAuditService.extractErrorCode(err as Object)
-      LogAuditService.unsubscribeInternal()
-      LogAuditService.callback = null
+      LogAuditSource.lastSubscribeErrorCode = LogAuditSource.extractErrorCode(err as Object)
+      LogAuditSource.unsubscribeInternal()
+      LogAuditSource.callback = null
       LogUtils.error(TAG, `subscribe failed: ${JSON.stringify(err)}`)
-      return false
+      return LogAuditSource.buildSubscribeResult(false, [], 'permission_denied', [])
     }
   }
 
   static unsubscribe(): boolean {
-    if (!LogAuditService.isSubscribed) {
+    if (!LogAuditSource.isSubscribed) {
       return true
     }
     try {
-      let ok = LogAuditService.unsubscribeInternal()
-      LogAuditService.callback = null
-      LogAuditService.lastSubscribeErrorCode = undefined
-      LogAuditService.lastSubscribeFailedEventIds = []
+      const ok = LogAuditSource.unsubscribeInternal()
+      LogAuditSource.callback = null
+      LogAuditSource.lastSubscribeErrorCode = undefined
+      LogAuditSource.lastSubscribeFailedEventIds = []
       return ok
     } catch (err) {
       LogUtils.error(TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
@@ -148,47 +158,56 @@ export class LogAuditService {
     }
   }
 
-  static getSubscriptionStatus(): boolean {
-    return LogAuditService.isSubscribed
+  static getStatus(): SourceStatus {
+    return {
+      subscribed: LogAuditSource.isSubscribed,
+      errorCode: LogAuditSource.lastSubscribeErrorCode
+    }
   }
 
-  static getLastSubscribeErrorCode(): number | undefined {
-    return LogAuditService.lastSubscribeErrorCode
-  }
-
-  static getLastSubscribeFailedEventIds(): number[] {
-    return [...LogAuditService.lastSubscribeFailedEventIds]
+  private static buildSubscribeResult(
+    success: boolean,
+    failedEventIds: number[],
+    code: 'ok' | 'unsupported' | 'permission_denied' | 'partial',
+    subscribedEventIds: number[]
+  ): AuditSubscribeResult {
+    return {
+      success,
+      code,
+      subscribedEventIds: subscribedEventIds,
+      failedEventIds
+    }
   }
 
   private static async subscribeWithClient(eventIds: number[]): Promise<SubscribePathResult> {
-    let createResult = LogAuditService.tryCreateClient(LogAuditService.createAuditEventCallback())
+    const createResult = LogAuditSource.tryCreateClient(LogAuditSource.createAuditEventCallback())
     if (!createResult.client) {
-      let failedEventIds = eventIds.filter((eventId: number) => FILE_EVENT_IDS.includes(eventId))
+      const failedEventIds = eventIds.filter((eventId: number) => FILE_EVENT_IDS.includes(eventId))
       return { successCount: 0, failedEventIds, shouldFallback: true, fallbackReason: createResult.fallbackReason }
     }
 
-    let fileFilterContext = await LogAuditService.prepareFileFilterContext(eventIds)
+    const fileFilterContext = await LogAuditSource.prepareFileFilterContext(eventIds)
     let successCount = 0
-    let failedEventIds: number[] = []
-    let subscribedIds: number[] = []
-    for (let eventId of eventIds) {
+    const failedEventIds: number[] = []
+    const subscribedIds: number[] = []
+    for (const eventId of eventIds) {
       try {
         createResult.client.subscribe([eventId])
-        let filterAttached = LogAuditService.tryAttachFilePrefixFilter(createResult.client, eventId, fileFilterContext)
+        const filterAttached = LogAuditSource.tryAttachFilePrefixFilter(createResult.client, eventId, fileFilterContext)
         if (!filterAttached) {
-          LogAuditService.unsubscribeClientEvent(createResult.client, eventId)
+          LogAuditSource.unsubscribeClientEvent(createResult.client, eventId)
           failedEventIds.push(eventId)
           continue
         }
         subscribedIds.push(eventId)
         successCount += 1
       } catch (err) {
-        let code = LogAuditService.extractErrorCode(err as Object)
-        if (LogAuditService.lastSubscribeErrorCode === undefined) {
-          LogAuditService.lastSubscribeErrorCode = code
+        const code = LogAuditSource.extractErrorCode(err as Object)
+        if (LogAuditSource.lastSubscribeErrorCode === undefined) {
+          LogAuditSource.lastSubscribeErrorCode = code
         }
-        if (LogAuditService.isApiUnavailableError(err as Object)) {
-          LogAuditService.releaseClient(createResult.client, subscribedIds)
+        if (LogAuditSource.isApiUnavailableError(err as Object)) {
+          LogAuditSource.releaseClient(createResult.client, subscribedIds)
           return { successCount: 0, failedEventIds: [], shouldFallback: true, fallbackReason: 'new_api_unavailable' }
         }
         failedEventIds.push(eventId)
@@ -196,29 +215,29 @@ export class LogAuditService {
     }
 
     if (successCount <= 0) {
-      LogAuditService.releaseClient(createResult.client, subscribedIds)
+      LogAuditSource.releaseClient(createResult.client, subscribedIds)
       return { successCount: 0, failedEventIds, shouldFallback: false, fallbackReason: 'none' }
     }
 
-    LogAuditService.client = createResult.client
-    LogAuditService.clientSubscribedEventIds = subscribedIds
+    LogAuditSource.client = createResult.client
+    LogAuditSource.clientSubscribedEventIds = subscribedIds
     return { successCount, failedEventIds, shouldFallback: false, fallbackReason: 'none' }
   }
 
   private static subscribeWithLegacyOnOff(eventIds: number[]): SubscribePathResult {
     let successCount = 0
-    let failedEventIds: number[] = []
-    for (let eventId of eventIds) {
-      let auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
-      let eventCallback = LogAuditService.createAuditEventCallback()
+    const failedEventIds: number[] = []
+    for (const eventId of eventIds) {
+      const auditInfo: securityAudit.AuditEventInfo = { eventId: eventId }
+      const eventCallback = LogAuditSource.createAuditEventCallback()
       try {
         securityAudit.on('auditEventOccur', auditInfo, eventCallback)
-        LogAuditService.subscribedCallbacks.set(eventId, eventCallback)
+        LogAuditSource.subscribedCallbacks.set(eventId, eventCallback)
         successCount += 1
       } catch (err) {
-        let code = LogAuditService.extractErrorCode(err as Object)
-        if (LogAuditService.lastSubscribeErrorCode === undefined) {
-          LogAuditService.lastSubscribeErrorCode = code
+        const code = LogAuditSource.extractErrorCode(err as Object)
+        if (LogAuditSource.lastSubscribeErrorCode === undefined) {
+          LogAuditSource.lastSubscribeErrorCode = code
         }
         failedEventIds.push(eventId)
       }
@@ -227,17 +246,17 @@ export class LogAuditService {
   }
 
   private static createAuditEventCallback(): (event: securityAudit.AuditEvent) => void {
-    return (event: securityAudit.AuditEvent) => {
-      let entry = LogAuditService.parseAuditEvent(event)
-      if (entry && LogAuditService.callback) {
-        LogAuditService.callback(entry)
+    return (event: securityAudit.AuditEvent): void => {
+      const entry = LogAuditSource.parseAuditEvent(event)
+      if (entry && LogAuditSource.callback) {
+        LogAuditSource.callback(entry)
       }
     }
   }
 
   private static tryCreateClient(eventCallback: (event: securityAudit.AuditEvent) => void): ClientCreateResult {
     try {
-      let clientValue = securityAudit.newClient(eventCallback) as AuditClientCompat
+      const clientValue = securityAudit.newClient(eventCallback) as AuditClientCompat
       if (!clientValue || typeof clientValue.subscribe !== 'function' || typeof clientValue.unsubscribe !== 'function') {
         return { client: null, fallbackReason: 'new_api_unavailable' }
       }
@@ -245,18 +264,18 @@ export class LogAuditService {
     } catch (err) {
       return {
         client: null,
-        fallbackReason: LogAuditService.isApiUnavailableError(err as Object) ? 'new_api_unavailable' : 'new_api_init_failed'
+        fallbackReason: LogAuditSource.isApiUnavailableError(err as Object) ? 'new_api_unavailable' : 'new_api_init_failed'
       }
     }
   }
 
   private static parseAuditEvent(event: securityAudit.AuditEvent): LogEntry | undefined {
-    let mappedType = LogAuditService.EVENT_TYPE_BY_ID.get(event.eventId)
+    const mappedType = LogAuditSource.EVENT_TYPE_BY_ID.get(event.eventId)
     if (mappedType === undefined) {
       return undefined
     }
 
-    let parsed = LogAuditService.parseAuditPayload(event.content || '', event.metadata)
+    const parsed = LogAuditSource.parseAuditPayload(event.content || '', event.metadata)
     if (mappedType === LogEventType.FILE) {
       LogUtils.info(TAG,
         `FILE event accepted: eventId=${event.eventId}, eventName=${parsed.rawEventName || '-'}, action=${parsed.rawAction || '-'}, result=${parsed.result}, rawPath=${parsed.rawFilePath || '-'}, normalizedPath=${parsed.filePath || '-'}`
@@ -265,7 +284,7 @@ export class LogAuditService {
 
     return {
       id: generateLogEntryId(),
-      timestamp: LogAuditService.parseTimestamp(event.timestamp || ''),
+      timestamp: LogAuditSource.parseTimestamp(event.timestamp || ''),
       eventType: mappedType,
       detail: parsed.detail,
       processName: parsed.processName,
@@ -282,30 +301,30 @@ export class LogAuditService {
   }
 
   private static parseAuditPayload(content: string, metadata?: string): ParsedAuditPayload {
-    let contentJson = LogAuditService.safeParseJson(content)
-    let metadataJson = LogAuditService.safeParseJson(metadata)
-    let sources = LogAuditService.collectJsonSources(contentJson, metadataJson)
-    let rawOutcome = LogAuditService.pickFirstString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result'])
-    let rawFilePath = LogAuditService.resolveAuditRawFilePath(content, metadata, sources)
-    let normalizedFilePath = LogPathUtils.normalizePathCandidate(rawFilePath)
+    const contentJson = LogAuditSource.safeParseJson(content)
+    const metadataJson = LogAuditSource.safeParseJson(metadata)
+    const sources = LogAuditSource.collectJsonSources(contentJson, metadataJson)
+    const rawOutcome = LogAuditSource.pickFirstString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result'])
+    const rawFilePath = LogAuditSource.resolveAuditRawFilePath(content, metadata, sources)
+    const normalizedFilePath = LogPathUtils.normalizePathCandidate(rawFilePath)
 
     return {
-      detail: LogAuditService.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
+      detail: LogAuditSource.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
         content || metadata || LogManageStrings.auditEventFallbackDetail,
-      result: LogAuditService.mapResult(rawOutcome),
-      processName: LogAuditService.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
-      pid: LogAuditService.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
+      result: LogAuditSource.mapResult(rawOutcome),
+      processName: LogAuditSource.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
+      pid: LogAuditSource.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
       rawFilePath: rawFilePath,
       filePath: normalizedFilePath,
-      remoteAddr: LogAuditService.pickFirstString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
-      rawEventName: LogAuditService.pickFirstString(sources, ['event_name', 'eventName', 'name']),
+      remoteAddr: LogAuditSource.pickFirstString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
+      rawEventName: LogAuditSource.pickFirstString(sources, ['event_name', 'eventName', 'name']),
       rawOutcome: rawOutcome,
-      rawAction: LogAuditService.pickFirstString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
+      rawAction: LogAuditSource.pickFirstString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
     }
   }
 
   private static resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: JsonMap[]): string | undefined {
-    let structured = LogAuditService.pickFirstString(sources, [
+    const structured = LogAuditSource.pickFirstString(sources, [
       'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
       'filePath', 'file_path', 'path', 'srcPath', 'src_path'
     ])
@@ -329,7 +348,7 @@ export class LogAuditService {
       return false
     }
 
-    let filter: securityAudit.Filter = {
+    const filter: securityAudit.Filter = {
       isInclude: true,
       type: securityAudit.FilterType.FILE_PATH_PREFIX,
       values: [fileFilterContext.prefix]
@@ -341,16 +360,16 @@ export class LogAuditService {
       )
       return true
     } catch (err) {
-      let code = LogAuditService.extractErrorCode(err as Object)
-      if (LogAuditService.lastSubscribeErrorCode === undefined) {
-        LogAuditService.lastSubscribeErrorCode = code
+      const code = LogAuditSource.extractErrorCode(err as Object)
+      if (LogAuditSource.lastSubscribeErrorCode === undefined) {
+        LogAuditSource.lastSubscribeErrorCode = code
+      }
+      if (code === FILE_FILTER_UNSUPPORTED_CODE) {
+        return false
       }
       LogUtils.warn(TAG,
         `FILE prefilter attach failed: eventId=${eventId}, foregroundUserId=${fileFilterContext.foregroundUserId}, prefix=${fileFilterContext.prefix}, code=${code}, err=${JSON.stringify(err)}`
       )
-      if (code === FILE_FILTER_UNSUPPORTED_CODE) {
-        return false
-      }
       return false
     }
   }
@@ -359,23 +378,17 @@ export class LogAuditService {
     if (!eventIds.some((eventId: number) => FILE_EVENT_IDS.includes(eventId))) {
       return undefined
     }
-
-    let foregroundUserId = await LogAuditService.resolveForegroundUserId()
-    let prefix = LogPathUtils.buildHmdfsAccountFilesPrefix(foregroundUserId)
-    LogUtils.info(TAG, `prepare FILE prefilter: foregroundUserId=${foregroundUserId}, prefix=${prefix}`)
+    const foregroundUserId = await LogAuditSource.resolveForegroundUserId()
+    const prefix = LogPathUtils.buildHmdfsAccountFilesPrefix(foregroundUserId)
     return { foregroundUserId, prefix }
   }
 
   private static async resolveForegroundUserId(): Promise<number> {
     try {
-      let accountManager = osAccount.getAccountManager()
-      let foregroundUserId = await accountManager.getForegroundOsAccountLocalId()
-      LogUtils.info(TAG, `resolved foreground userId=${foregroundUserId}`)
-      return foregroundUserId
+      const accountManager = osAccount.getAccountManager()
+      return await accountManager.getForegroundOsAccountLocalId()
     } catch (err) {
-      LogUtils.warn(TAG,
-        `resolve foreground userId failed, fallback=${DEFAULT_FOREGROUND_USER_ID}, err=${JSON.stringify(err)}`
-      )
+      LogUtils.warn(TAG, `resolve foreground userId failed, fallback=${DEFAULT_FOREGROUND_USER_ID}, err=${JSON.stringify(err)}`)
       return DEFAULT_FOREGROUND_USER_ID
     }
   }
@@ -390,7 +403,7 @@ export class LogAuditService {
 
   private static parseTimestamp(ts: string): number {
     if (ts.length < 14) {
-      return LogAuditService.nowProvider()
+      return LogAuditSource.nowProvider()
     }
     return new Date(
       parseInt(ts.substring(0, 4)),
@@ -406,7 +419,7 @@ export class LogAuditService {
     if (!rawOutcome) {
       return LogEventResult.SUCCESS
     }
-    let normalized = rawOutcome.toLowerCase()
+    const normalized = rawOutcome.toLowerCase()
     if (normalized.includes('blocked') || normalized.includes('deny') || normalized.includes('intercept')) {
       return LogEventResult.BLOCKED
     }
@@ -417,10 +430,10 @@ export class LogAuditService {
   }
 
   private static normalizeAuditTypes(eventTypes?: LogEventType[]): LogEventType[] {
-    let source = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
-    let result: LogEventType[] = []
-    for (let type of source) {
-      if (LogAuditService.EVENT_IDS_BY_TYPE.has(type) && !result.includes(type)) {
+    const source = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
+    const result: LogEventType[] = []
+    for (const type of source) {
+      if (LogAuditSource.EVENT_IDS_BY_TYPE.has(type) && !result.includes(type)) {
         result.push(type)
       }
     }
@@ -428,10 +441,10 @@ export class LogAuditService {
   }
 
   private static mapTypesToIds(eventTypes?: LogEventType[]): number[] {
-    let ids: number[] = []
-    for (let type of LogAuditService.normalizeAuditTypes(eventTypes)) {
-      let mappedIds = LogAuditService.EVENT_IDS_BY_TYPE.get(type) || []
-      for (let eventId of mappedIds) {
+    const ids: number[] = []
+    for (const type of LogAuditSource.normalizeAuditTypes(eventTypes)) {
+      const mappedIds = LogAuditSource.EVENT_IDS_BY_TYPE.get(type) || []
+      for (const eventId of mappedIds) {
         if (!ids.includes(eventId)) {
           ids.push(eventId)
         }
@@ -441,25 +454,25 @@ export class LogAuditService {
   }
 
   private static buildEventTypeById(): Map<number, LogEventType> {
-    let mapping: Map<number, LogEventType> = new Map()
-    LogAuditService.EVENT_IDS_BY_TYPE.forEach((ids: number[], type: LogEventType) => {
+    const mapping: Map<number, LogEventType> = new Map()
+    LogAuditSource.EVENT_IDS_BY_TYPE.forEach((ids: number[], type: LogEventType) => {
       ids.forEach((eventId: number) => mapping.set(eventId, type))
     })
     return mapping
   }
 
   private static collectJsonSources(contentJson?: JsonMap, metadataJson?: JsonMap): JsonMap[] {
-    let result: JsonMap[] = []
-    let append = (candidate?: JsonMap): void => {
+    const result: JsonMap[] = []
+    const append = (candidate?: JsonMap): void => {
       if (!candidate) {
         return
       }
       result.push(candidate)
-      let extra = LogAuditService.extractNestedJson(candidate, 'extra')
+      const extra = LogAuditSource.extractNestedJson(candidate, 'extra')
       if (extra) {
         result.push(extra)
       }
-      let metadata = LogAuditService.extractNestedJson(candidate, 'metadata')
+      const metadata = LogAuditSource.extractNestedJson(candidate, 'metadata')
       if (metadata) {
         result.push(metadata)
       }
@@ -474,32 +487,28 @@ export class LogAuditService {
       return undefined
     }
     try {
-      let parsed = JSON.parse(value) as Object
-      let record = LogAuditService.toJsonMap(parsed)
-      if (record) {
-        return record
-      }
-      return undefined
+      const parsed = JSON.parse(value) as Object
+      return LogAuditSource.toJsonMap(parsed)
     } catch {
       return undefined
     }
   }
 
   private static extractNestedJson(source: JsonMap, key: string): JsonMap | undefined {
-    let candidate = source[key]
+    const candidate = source[key]
     if (typeof candidate === 'string') {
-      return LogAuditService.safeParseJson(candidate)
+      return LogAuditSource.safeParseJson(candidate)
     }
     if (candidate && typeof candidate === 'object') {
-      return LogAuditService.toJsonMap(candidate)
+      return LogAuditSource.toJsonMap(candidate)
     }
     return undefined
   }
 
   private static pickFirstString(sources: JsonMap[], keys: string[]): string | undefined {
-    for (let source of sources) {
-      for (let key of keys) {
-        let raw = source[key]
+    for (const source of sources) {
+      for (const key of keys) {
+        const raw = source[key]
         if (typeof raw === 'string' && raw.trim().length > 0) {
           return raw.trim()
         }
@@ -509,14 +518,14 @@ export class LogAuditService {
   }
 
   private static pickFirstNumber(sources: JsonMap[], keys: string[]): number | undefined {
-    for (let source of sources) {
-      for (let key of keys) {
-        let raw = source[key]
+    for (const source of sources) {
+      for (const key of keys) {
+        const raw = source[key]
         if (typeof raw === 'number' && Number.isFinite(raw)) {
           return raw
         }
         if (typeof raw === 'string') {
-          let parsed = Number(raw)
+          const parsed = Number(raw)
           if (Number.isFinite(parsed)) {
             return parsed
           }
@@ -534,19 +543,19 @@ export class LogAuditService {
   }
 
   private static extractErrorCode(err: Object): number | undefined {
-    let codeValue = (err as Record<string, Object>)['code']
+    const codeValue = (err as Record<string, Object>)['code']
     if (typeof codeValue === 'number') {
       return codeValue
     }
     if (typeof codeValue === 'string') {
-      let parsed = Number(codeValue)
+      const parsed = Number(codeValue)
       return Number.isNaN(parsed) ? undefined : parsed
     }
     return undefined
   }
 
   private static extractErrorText(err: Object): string {
-    let message = (err as Record<string, Object>)['message']
+    const message = (err as Record<string, Object>)['message']
     if (typeof message === 'string' && message.trim().length > 0) {
       return message.toLowerCase()
     }
@@ -554,11 +563,11 @@ export class LogAuditService {
   }
 
   private static isApiUnavailableError(err: Object): boolean {
-    let code = LogAuditService.extractErrorCode(err)
+    const code = LogAuditSource.extractErrorCode(err)
     if (code === 201 || code === 401) {
       return false
     }
-    let text = LogAuditService.extractErrorText(err)
+    const text = LogAuditSource.extractErrorText(err)
     return text.includes('is not a function') ||
       text.includes('not support') ||
       text.includes('not supported') ||
@@ -580,7 +589,7 @@ export class LogAuditService {
       LogUtils.warn(TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
     }
     try {
-      let deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
+      const deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
       deleteClient(client)
     } catch (err) {
       LogUtils.warn(TAG, `deleteClient failed: ${JSON.stringify(err)}`)
@@ -588,33 +597,33 @@ export class LogAuditService {
   }
 
   private static unsubscribeInternal(): boolean {
-    let ok = LogAuditService.unsubscribeClientInternal()
-    if (!LogAuditService.unsubscribeLegacyInternal()) {
+    let ok = LogAuditSource.unsubscribeClientInternal()
+    if (!LogAuditSource.unsubscribeLegacyInternal()) {
       ok = false
     }
-    LogAuditService.client = null
-    LogAuditService.clientSubscribedEventIds = []
-    LogAuditService.subscribedCallbacks.clear()
-    LogAuditService.isSubscribed = false
+    LogAuditSource.client = null
+    LogAuditSource.clientSubscribedEventIds = []
+    LogAuditSource.subscribedCallbacks.clear()
+    LogAuditSource.isSubscribed = false
     return ok
   }
 
   private static unsubscribeClientInternal(): boolean {
-    if (!LogAuditService.client) {
+    if (!LogAuditSource.client) {
       return true
     }
     let ok = true
     try {
-      if (LogAuditService.clientSubscribedEventIds.length > 0) {
-        LogAuditService.client.unsubscribe(LogAuditService.clientSubscribedEventIds)
+      if (LogAuditSource.clientSubscribedEventIds.length > 0) {
+        LogAuditSource.client.unsubscribe(LogAuditSource.clientSubscribedEventIds)
       }
     } catch (err) {
       ok = false
       LogUtils.warn(TAG, `client unsubscribe failed: ${JSON.stringify(err)}`)
     }
     try {
-      let deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
-      deleteClient(LogAuditService.client)
+      const deleteClient = securityAudit.deleteClient as (target: AuditClientCompat) => void
+      deleteClient(LogAuditSource.client)
     } catch (err) {
       ok = false
       LogUtils.warn(TAG, `deleteClient failed: ${JSON.stringify(err)}`)
@@ -624,7 +633,7 @@ export class LogAuditService {
 
   private static unsubscribeLegacyInternal(): boolean {
     let ok = true
-    LogAuditService.subscribedCallbacks.forEach((callback, eventId) => {
+    LogAuditSource.subscribedCallbacks.forEach((callback, eventId) => {
       try {
         securityAudit.off('auditEventOccur', { eventId }, callback)
       } catch (err) {
@@ -633,5 +642,19 @@ export class LogAuditService {
       }
     })
     return ok
+  }
+
+  static parseAuditEventForTest(event: securityAudit.AuditEvent): LogEntry | undefined {
+    return LogAuditSource.parseAuditEvent(event)
+  }
+
+  static resetForTest(): void {
+    LogAuditSource.callback = null
+    LogAuditSource.isSubscribed = false
+    LogAuditSource.subscribedCallbacks.clear()
+    LogAuditSource.client = null
+    LogAuditSource.clientSubscribedEventIds = []
+    LogAuditSource.lastSubscribeErrorCode = undefined
+    LogAuditSource.lastSubscribeFailedEventIds = []
   }
 }

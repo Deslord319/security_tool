@@ -1,4 +1,4 @@
-import { CommonStrings } from '../CommonStrings'
+﻿import { CommonStrings } from '../CommonStrings'
 import { DialogButtonStrings } from './DialogStrings'
 import { PresentationStrings } from './PresentationStrings'
 
@@ -24,7 +24,6 @@ export class LogManageStrings {
   static readonly clearLogsButton: string = '清空日志'
   static readonly openStorageSettingsButton: string = '存储设置'
   static readonly backToLogListButton: string = '返回日志列表'
-  static readonly refreshButton: string = '刷新'
 
   static readonly statTotal: string = '总计'
   static readonly statToday: string = '今日'

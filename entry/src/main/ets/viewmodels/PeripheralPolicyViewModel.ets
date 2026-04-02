@@ -11,9 +11,9 @@ import {
   getPeripheralTypeLabel,
   PeripheralType
 } from '../models/DataModels'
-import { LogStorageService } from '../services/LogStorageService'
 import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
 import { PeripheralPolicyService } from '../services/PeripheralPolicyService'
+import { LogExportService } from '../services/log-manage/export/LogExportService'
 
 const TAG = 'PeripheralPolicyViewModel'
 
@@ -93,12 +93,8 @@ export class PeripheralPolicyViewModel {
     }
 
     try {
-      await LogStorageService.init(context)
       const csvContent = this.buildPolicyCsv(this.records)
-      const result = await LogStorageService.exportToCsvFile({
-        csvContent,
-        fileNamePrefix: PeripheralStrings.csvPolicyListFilePrefix
-      })
+      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralStrings.csvPolicyListFilePrefix)
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult
         : { success: false, reason: PeripheralStrings.exportPolicyRecordsFailed } as ExportActionResult
