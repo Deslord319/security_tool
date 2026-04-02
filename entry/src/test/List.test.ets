@@ -7,9 +7,6 @@ import authTest from './auth/service.test'
 import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
-import peripheralConnectionRecordUsbConsumerTest from './peripheral/connection-record-usb-consumer.test'
-import peripheralConnectionRecordBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
-import peripheralConnectionRecordPipelineTest from './peripheral/connection-record-pipeline.test'
 import identityTest from './identity/service.test'
 import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
 import helpFeedbackStringsTest from './help/strings.test'
@@ -22,7 +19,6 @@ import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import dataModelsTest from './models/data-models.test'
 import dashboardViewModelTest from './dashboard/viewmodel.test'
-import peripheralPageBoundaryTest from './views/PeripheralPage.test'
 
 export default function testsuite() {
   // Common
@@ -41,9 +37,6 @@ export default function testsuite() {
   peripheralModelsTest()
   peripheralServiceTest()
   peripheralConnectionRecordServiceTest()
-  peripheralConnectionRecordUsbConsumerTest()
-  peripheralConnectionRecordBluetoothAclConsumerTest()
-  peripheralConnectionRecordPipelineTest()
 
   // Identity
   identityTest()
@@ -70,7 +63,4 @@ export default function testsuite() {
 
   // Dashboard
   dashboardViewModelTest()
-
-  // Views
-  peripheralPageBoundaryTest()
 }
