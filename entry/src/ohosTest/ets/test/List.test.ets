@@ -1,6 +1,7 @@
 import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { TestLogUtils } from '../utils/TestLogUtils'
 import abilityTest from './common/Ability.test'
+import peripheralConnectionRecordContractTest from './peripheral/connection-record-contract.test'
 import routeActionTest from './simple/RouteAction.test'
 
 export default function testsuite() {
@@ -17,4 +18,5 @@ export default function testsuite() {
 
   // Keep a minimal smoke case for non-route invocations.
   abilityTest()
+  peripheralConnectionRecordContractTest()
 }
