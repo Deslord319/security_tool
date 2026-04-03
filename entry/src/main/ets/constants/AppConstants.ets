@@ -97,9 +97,9 @@ export class ActionButtonStyles {
   static getPrimaryBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (theme === ThemeMode.DARK) {
       if (isPressed) {
-        return 'rgba(94,161,255,0.24)'
+        return 'rgba(94,161,255,0.42)'
       }
-      return isHovered ? 'rgba(94,161,255,0.18)' : 'rgba(44,103,185,0.48)'
+      return isHovered ? 'rgba(94,161,255,0.32)' : 'rgba(94,161,255,0.24)'
     }
     if (isPressed) {
       return 'rgba(10,132,255,0.20)'
@@ -110,9 +110,9 @@ export class ActionButtonStyles {
   static getDangerBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (theme === ThemeMode.DARK) {
       if (isPressed) {
-        return 'rgba(255,59,48,0.24)'
+        return 'rgba(255,59,48,0.42)'
       }
-      return isHovered ? 'rgba(255,59,48,0.18)' : 'rgba(185,54,47,0.67)'
+      return isHovered ? 'rgba(255,59,48,0.32)' : 'rgba(255,59,48,0.24)'
     }
     if (isPressed) {
       return 'rgba(255,59,48,0.20)'

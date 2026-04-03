@@ -9,30 +9,37 @@ export struct DetailDialogShell {
   @Param dialogWidth: number = 560
   @Param maxBodyHeight: number = 420
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param showHeader: boolean = true
+  @Param showCloseAction: boolean = true
   @BuilderParam content?: () => void
   @Event onClose: () => void = () => {}
 
   build() {
     Column({ space: 0 }) {
-      Row() {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        Blank()
-        IconTextActionButton({
-          label: DialogButtonStrings.CLOSE,
-          showIcon: false,
-          currentTheme: this.currentTheme,
-          onTap: this.onClose
-        })
-      }
-      .width('100%')
+      if (this.showHeader) {
+        Row() {
+          Text(this.title)
+            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          Blank()
+          if (this.showCloseAction) {
+            IconTextActionButton({
+              label: DialogButtonStrings.CLOSE,
+              showIcon: false,
+              currentTheme: this.currentTheme,
+              onTap: this.onClose
+            })
+          }
+        }
+        .width('100%')
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-        .margin({ top: 10, bottom: 10 })
+        Divider()
+          .color(AppColors.getColors(this.currentTheme).BORDER)
+          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+          .margin({ top: 10, bottom: 10 })
+      }
 
       Scroll() {
         Column({ space: 12 }) {

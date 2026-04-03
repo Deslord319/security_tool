@@ -162,6 +162,9 @@ export struct ConnectionDetailDialog {
       title: DeviceDetailStrings.TITLE,
       dialogWidth: 760,
       maxBodyHeight: 460,
+      currentTheme: this.currentTheme,
+      showHeader: false,
+      showCloseAction: false,
       onClose: this.onClose,
       content: () => {
         this.shellContent()
