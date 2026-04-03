@@ -6,10 +6,11 @@ import {
   getPeripheralTypeLabel,
   LogEventResult,
   PeripheralConnectionRecord,
+  PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
 import { PeripheralStrings } from '../../main/ets/constants/modules/PeripheralStrings'
-import { PeripheralConnectionRecordService } from '../../main/ets/services/PeripheralConnectionRecordService'
+import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import {
   formatPeripheralTimestamp,
@@ -17,6 +18,46 @@ import {
   getPeripheralConnectionResultLabel
 } from '../../main/ets/viewmodels/PeripheralRecordPresentationMapper'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/PeripheralRecordViewModel'
+
+class FixedSavePicker {
+  private paths: string[]
+
+  constructor(paths: string[]) {
+    this.paths = paths
+  }
+
+  async save(_options: Object): Promise<string[]> {
+    return this.paths.slice()
+  }
+}
+
+class ThrowingSavePicker {
+  async save(_options: Object): Promise<string[]> {
+    throw new Error('picker failed')
+  }
+}
+
+function createTraceRecord(
+  recordId: string,
+  occurAt: number,
+  deviceId: string = 'VID:1234 PID:5678',
+  deviceName: string = 'USB Device'
+): PeripheralTraceRecord {
+  return {
+    recordId,
+    occurAt,
+    collectAt: occurAt + 1,
+    deviceName,
+    deviceType: PeripheralType.USB_STORAGE,
+    deviceId,
+    action: 'connect',
+    decision: 'allow',
+    result: LogEventResult.SUCCESS,
+    source: 'runtime_event',
+    summary: 'connected',
+    matchedPolicyKind: 'default_allow'
+  }
+}
 
 function createConnectionRecord(
   id: string,
@@ -41,44 +82,33 @@ function createConnectionRecord(
 
 describe('PeripheralRecordViewModel', () => {
   let viewModel: PeripheralRecordViewModel
-  let originalQueryRecords: (filter?: Object) => PeripheralConnectionRecord[]
-  let originalSaveCsvContent: (
-    context: common.UIAbilityContext | null,
-    csvContent: string,
-    fileNamePrefix?: string
-  ) => Promise<Object>
 
   beforeEach(() => {
     viewModel = new PeripheralRecordViewModel()
-    originalQueryRecords = PeripheralConnectionRecordService.queryRecords
-    originalSaveCsvContent = LogExportService.saveCsvContent
+    PeripheralTraceRepository.resetForTest()
     LogExportService.resetForTest()
   })
 
   afterEach(() => {
-    PeripheralConnectionRecordService.queryRecords = originalQueryRecords
-    LogExportService.saveCsvContent = originalSaveCsvContent
+    PeripheralTraceRepository.resetForTest()
     LogExportService.resetForTest()
   })
 
   it('U-RVM-001 should reload records from record service', 0, () => {
-    const records: PeripheralConnectionRecord[] = [
-      createConnectionRecord('record-1', 1700000000000),
-      createConnectionRecord('record-2', 1700000001000, 'VID:1111 PID:2222', 'USB Camera')
-    ]
-    PeripheralConnectionRecordService.queryRecords = (_filter?: Object): PeripheralConnectionRecord[] => records
+    PeripheralTraceRepository.setRecordsForTest([
+      createTraceRecord('record-1', 1700000000000),
+      createTraceRecord('record-2', 1700000001000, 'VID:1111 PID:2222', 'USB Camera')
+    ])
 
     viewModel.reloadRecords()
 
     expect(viewModel.records.length).assertEqual(2)
-    expect(viewModel.records[0].id).assertEqual('record-1')
-    expect(viewModel.records[1].id).assertEqual('record-2')
+    expect(viewModel.records[0].id).assertEqual('peripheral_runtime_record-2')
+    expect(viewModel.records[1].id).assertEqual('peripheral_runtime_record-1')
   })
 
-  it('U-RVM-002 should fall back to empty list when record service throws', 0, () => {
-    PeripheralConnectionRecordService.queryRecords = (_filter?: Object): PeripheralConnectionRecord[] => {
-      throw new Error('query failed')
-    }
+  it('U-RVM-002 should fall back to empty list when query pipeline returns no records', 0, () => {
+    PeripheralTraceRepository.resetForTest()
     viewModel.records = [createConnectionRecord('stale-record', 1700000000000)]
 
     viewModel.reloadRecords()
@@ -114,17 +144,26 @@ describe('PeripheralRecordViewModel', () => {
   })
 
   it('U-RVM-005 should export connection history and return generated file name', 0, async (done: Function) => {
+    let capturedCsv = ''
     viewModel.records = [createConnectionRecord('record-1', 1700000000000)]
-    LogExportService.saveCsvContent = async (
-      _context: common.UIAbilityContext | null,
-      _csvContent: string,
-      _fileNamePrefix?: string
-    ): Promise<Object> => ({ success: true, fileName: 'mock.csv' })
+    LogExportService.setTestDeps({
+      nowProvider: (): number => 1736891400000,
+      pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
+      buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
+      openFileFn: (_path: string) => {
+        return { fd: 1 }
+      },
+      writeFileFn: (_fd: number, content: string): void => {
+        capturedCsv = content
+      },
+      closeFileFn: (_fd: number): void => {}
+    })
 
     const result = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
 
     expect(result.success).assertTrue()
-    expect(result.fileName ?? '').assertEqual('mock.csv')
+    expect(result.fileName ?? '').assertEqual('peripheral_connection_history_20250115_083000.csv')
+    expect(capturedCsv.length > 0).assertTrue()
     done()
   })
 
@@ -150,23 +189,17 @@ describe('PeripheralRecordViewModel', () => {
 
   it('U-RVM-008 should map export service failure and thrown errors to export failure reason', 0, async (done: Function) => {
     viewModel.records = [createConnectionRecord('record-1', 1700000000000)]
-    LogExportService.saveCsvContent = async (
-      _context: common.UIAbilityContext | null,
-      _csvContent: string,
-      _fileNamePrefix?: string
-    ): Promise<Object> => ({ success: false })
+    LogExportService.setTestDeps({
+      pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker([])
+    })
 
     const failedResult = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
     expect(failedResult.success).assertFalse()
     expect(failedResult.reason ?? '').assertEqual(PeripheralStrings.exportConnectionHistoryFailed)
 
-    LogExportService.saveCsvContent = async (
-      _context: common.UIAbilityContext | null,
-      _csvContent: string,
-      _fileNamePrefix?: string
-    ): Promise<Object> => {
-      throw new Error('io failed')
-    }
+    LogExportService.setTestDeps({
+      pickerFactory: (_context: common.UIAbilityContext) => new ThrowingSavePicker()
+    })
     const thrownResult = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
     expect(thrownResult.success).assertFalse()
     expect(thrownResult.reason ?? '').assertEqual(PeripheralStrings.exportConnectionHistoryFailed)
@@ -176,22 +209,22 @@ describe('PeripheralRecordViewModel', () => {
   it('U-RVM-009 should build csv with BOM, expected header order and mapped field values', 0, async (done: Function) => {
     const record = createConnectionRecord('record-1', 1700000000000, 'VID:1234 PID:5678', 'USB Device')
     let capturedCsv = ''
-    let capturedPrefix = ''
     viewModel.records = [record]
-    LogExportService.saveCsvContent = async (
-      _context: common.UIAbilityContext | null,
-      csvContent: string,
-      fileNamePrefix?: string
-    ): Promise<Object> => {
-      capturedCsv = csvContent
-      capturedPrefix = fileNamePrefix ?? ''
-      return { success: true, fileName: 'history.csv' }
-    }
+    LogExportService.setTestDeps({
+      pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
+      buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
+      openFileFn: (_path: string) => {
+        return { fd: 1 }
+      },
+      writeFileFn: (_fd: number, csvContent: string): void => {
+        capturedCsv = csvContent
+      },
+      closeFileFn: (_fd: number): void => {}
+    })
 
     const result = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
 
     expect(result.success).assertTrue()
-    expect(capturedPrefix).assertEqual(PeripheralStrings.csvConnectionHistoryFilePrefix)
     expect(capturedCsv.charCodeAt(0)).assertEqual(0xFEFF)
     const lines = capturedCsv.substring(1).split('\n')
     expect(lines[0]).assertEqual(PeripheralStrings.connectionHistoryCsvHeaders.join(','))
@@ -212,14 +245,17 @@ describe('PeripheralRecordViewModel', () => {
     const record = createConnectionRecord('record-1', 1700000000000, 'VID:1234 PID:5678', 'USB "Special", Device\nLine2')
     let capturedCsv = ''
     viewModel.records = [record]
-    LogExportService.saveCsvContent = async (
-      _context: common.UIAbilityContext | null,
-      csvContent: string,
-      _fileNamePrefix?: string
-    ): Promise<Object> => {
-      capturedCsv = csvContent
-      return { success: true, fileName: 'history.csv' }
-    }
+    LogExportService.setTestDeps({
+      pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
+      buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
+      openFileFn: (_path: string) => {
+        return { fd: 1 }
+      },
+      writeFileFn: (_fd: number, csvContent: string): void => {
+        capturedCsv = csvContent
+      },
+      closeFileFn: (_fd: number): void => {}
+    })
 
     const result = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
 
