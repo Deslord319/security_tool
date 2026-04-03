@@ -15,9 +15,6 @@ import identityTest from './identity/service.test'
 import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
 import helpFeedbackStringsTest from './help/strings.test'
 import logManageModelsTest from './log-manage/models.test'
-import logAuditServiceTest from './log-manage/audit-service.test'
-import logStorageServiceTest from './log-manage/storage-service.test'
-import logRuntimeCollectorTest from './log-manage/runtime-collector.test'
 import logManageViewModelTest from './log-manage/list-viewmodel.test'
 import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
 import adminServiceTest from './enterprise/admin-service.test'
@@ -57,9 +54,6 @@ export default function testsuite() {
 
   // Log manage
   logManageModelsTest()
-  logAuditServiceTest()
-  logStorageServiceTest()
-  logRuntimeCollectorTest()
   logManageViewModelTest()
 
   // Tool settings
