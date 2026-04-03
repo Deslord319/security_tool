@@ -1,39 +1,47 @@
 import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { InteractiveMenuRow } from './ThemeMenuPopup'
 
-@Component
+@ComponentV2
 export struct SubPageHeader {
-  title: string = ''
-  subtitle: string = ''
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  onBack: () => void = () => {}
+  @Param title: string = ''
+  @Param subtitle: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onBack: () => void = () => {}
   @BuilderParam actions?: () => void
-  @State private hovered: boolean = false
-  @State private pressed: boolean = false
+  @Local private hovered: boolean = false
+  @Local private pressed: boolean = false
 
   build() {
     Row() {
       Row({ space: 8 }) {
-        InteractiveMenuRow({
-          icon: $r('app.media.arrow_left'),
-          itemId: 'sub-page-back',
-          currentTheme: this.currentTheme,
-          showLabel: false,
-          fixedWidth: InteractiveItemStyles.ITEM_HEIGHT,
-          itemBackground: InteractiveItemStyles.getBackButtonBackground(this.currentTheme, this.hovered, this.pressed),
-          iconTileBackground: Color.Transparent,
-          iconColor: AppColors.getColors(this.currentTheme).TEXT_PRIMARY,
-          onHoverChange: (isHover: boolean) => {
-            this.hovered = isHover
-          },
-          onPressedChange: (isPressed: boolean) => {
-            this.pressed = isPressed
-          },
-          onTap: () => {
-            this.pressed = false
-            this.onBack()
+        Button() {
+          Image($r('app.media.arrow_left'))
+            .width(18)
+            .height(18)
+            .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .draggable(false)
+        }
+        .type(ButtonType.Normal)
+        .width(InteractiveItemStyles.ITEM_HEIGHT)
+        .height(InteractiveItemStyles.ITEM_HEIGHT)
+        .borderRadius(AppStyles.RADIUS_MD)
+        .backgroundColor(InteractiveItemStyles.getBackButtonBackground(this.currentTheme, this.hovered, this.pressed))
+        .stateEffect(false)
+        .onHover((isHover: boolean) => {
+          this.hovered = isHover
+        })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.pressed = true
+            return
           }
+          if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.pressed = false
+          }
+        })
+        .onClick(() => {
+          this.pressed = false
+          this.onBack()
         })
 
         Column({ space: 4 }) {

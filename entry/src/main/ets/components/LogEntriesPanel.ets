@@ -8,26 +8,32 @@ import {
   getLogEventTypeLabel,
   LogEntry
 } from '../models/DataModels'
-import { EmptyStatePanel } from './EmptyStatePanel'
-import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { LogFilterState, LogListState } from '../models/LogManageModels'
 import { ThemeMode } from '../theme/ThemeColors'
 
-@Component
+@ComponentV2
 export struct LogEntriesPanel {
-  @ObjectLink viewModel: LogManageViewModel
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onEntryClick: (entry: LogEntry) => void = () => {}
+  @Param loading: boolean = false
+  @Param listState: LogListState = new LogListState()
+  @Param filterState: LogFilterState = new LogFilterState()
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onEntryClick: (entry: LogEntry) => void = () => {}
+
+  private hasActiveFilters(): boolean {
+    return this.filterState.eventTypeIndex > 0 ||
+      this.filterState.resultIndex > 0 ||
+      this.filterState.keyword.trim().length > 0
+  }
 
   private getEmptyStateTitle(): string {
-    return this.viewModel.hasActiveFilters() ? EmptyStateStrings.NO_RESULTS : LogManageStrings.emptyTitle
+    return this.hasActiveFilters() ? EmptyStateStrings.NO_RESULTS : LogManageStrings.emptyTitle
   }
 
   private getEmptyStateDescription(): string {
-    if (this.viewModel.state.filter.hintMessage.length > 0) {
-      return this.viewModel.state.filter.hintMessage
+    if (this.filterState.hintMessage.length > 0) {
+      return this.filterState.hintMessage
     }
-    return this.viewModel.hasActiveFilters() ? LogManageStrings.emptyDescription : EmptyStateStrings.CHECK_PERMISSIONS
+    return this.hasActiveFilters() ? LogManageStrings.emptyDescription : EmptyStateStrings.CHECK_PERMISSIONS
   }
 
   @Builder
@@ -83,8 +89,39 @@ export struct LogEntriesPanel {
     })
   }
 
+  @Builder
+  private emptyState() {
+    Column({ space: 10 }) {
+      Text(this.getEmptyStateTitle())
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .textAlign(TextAlign.Center)
+
+      Text(this.getEmptyStateDescription())
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .textAlign(TextAlign.Center)
+    }
+    .width('100%')
+    .padding({
+      left: AppStyles.PADDING_LG,
+      right: AppStyles.PADDING_LG,
+      top: 36,
+      bottom: 36
+    })
+    .alignItems(HorizontalAlign.Center)
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+    .borderRadius(AppStyles.RADIUS_LG)
+    .border({
+      width: 1,
+      color: AppColors.getColors(this.currentTheme).BORDER
+    })
+  }
+
   build() {
-    if (this.viewModel.state.loading) {
+    if (this.loading) {
       Column() {
         LoadingProgress().width(48).height(48)
         Text(LoadingStrings.LOADING).fontSize(AppStyles.FONT_SIZE_BODY).margin({ top: 8 })
@@ -92,15 +129,10 @@ export struct LogEntriesPanel {
       .width('100%')
       .layoutWeight(1)
       .justifyContent(FlexAlign.Center)
-    } else if (this.viewModel.state.list.allEntries.length === 0) {
+    } else if (this.listState.allEntries.length === 0) {
       Scroll() {
         Column() {
-          EmptyStatePanel({
-            title: this.getEmptyStateTitle(),
-            description: this.getEmptyStateDescription(),
-            radius: AppStyles.RADIUS_LG,
-            verticalPadding: 36
-          })
+          this.emptyState()
         }
         .width('100%')
         .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
@@ -113,7 +145,7 @@ export struct LogEntriesPanel {
       Scroll() {
         Column({ space: 0 }) {
           List({ space: 1 }) {
-            ForEach(this.viewModel.state.list.pagedEntries, (entry: LogEntry) => {
+            ForEach(this.listState.pagedEntries, (entry: LogEntry) => {
               ListItem() {
                 this.logEntryRow(entry)
               }

@@ -36,6 +36,7 @@ struct MainPage {
   @State @Watch('onFirewallStatusChange') firewallEnabled: boolean = false
   @State firewallPresetMode: FirewallPresetMode = 'custom'
   @State showMenu: boolean = false
+  @State logManageMounted: boolean = true
   @State pageEnterOpacity: number = 1
   @State pageEnterOffset: number = 0
   @State menuTriggerHovered: boolean = false
@@ -212,6 +213,16 @@ struct MainPage {
   }
 
   onPageRouteChange(): void {
+    if (this.currentPage === RouteIds.LOG_MANAGE) {
+      this.logManageMounted = false
+      setTimeout(() => {
+        if (this.currentPage === RouteIds.LOG_MANAGE) {
+          this.logManageMounted = true
+        }
+      }, 0)
+    } else {
+      this.logManageMounted = true
+    }
     this.pageEnterOpacity = 0.76
     this.pageEnterOffset = this.currentPage === RouteIds.DASHBOARD ? 18 : 10
     animateTo({
@@ -322,11 +333,18 @@ struct MainPage {
               .height('100%')
             } else if (this.currentPage === RouteIds.LOG_MANAGE) {
               Column() {
-                LogManagePage({
-                  onBack: () => {
-                    this.currentPage = RouteIds.DASHBOARD
-                  }
-                })
+                if (this.logManageMounted) {
+                  LogManagePage({
+                    currentTheme: this.currentTheme,
+                    onBack: () => {
+                      this.currentPage = RouteIds.DASHBOARD
+                    }
+                  })
+                } else {
+                  Column()
+                    .width('100%')
+                    .height('100%')
+                }
               }
               .id('route-page-log-manage')
               .width('100%')

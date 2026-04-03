@@ -2,18 +2,17 @@ import { LogUtils } from '../utils/LogUtils'
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 
 const TAG = 'SectionRows'
 
-@Component
+@ComponentV2
 export struct SectionToggleRow {
-  title: string = ''
-  description: string = ''
-  isOn: boolean = false
-  onChange: (value: boolean) => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param title: string = ''
+  @Param description: string = ''
+  @Param isOn: boolean = false
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onChange: (value: boolean) => void = () => {}
 
   build() {
     Row() {
@@ -44,42 +43,36 @@ export struct SectionToggleRow {
   }
 }
 
-@Component
+@ComponentV2
 export struct SectionSelectRow {
-  title: string = ''
-  description: string = ''
-  options: SelectOption[] = []
-  @Prop @Watch('onSelectedIndexChange') selectedIndex: number = 0
-  value: string = ''
-  selectWidth: number = 140
-  processing: boolean = false
-  optimistic: boolean = false
-  onSelect: (index: number) => void = () => {}
-  onSelectAsync?: (nextIndex: number, previousIndex: number) => Promise<boolean>
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State private displayIndex: number = 0
-  @State private isAsyncPending: boolean = false
+  @Param title: string = ''
+  @Param description: string = ''
+  @Param options: SelectOption[] = []
+  @Param selectedIndex: number = 0
+  @Param value: string = ''
+  @Param selectWidth: number = 140
+  @Param processing: boolean = false
+  @Param optimistic: boolean = false
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onSelect: (index: number) => void = () => {}
+  @Param onSelectAsync: ((nextIndex: number, previousIndex: number) => Promise<boolean>) | undefined = undefined
+  @Local private displayIndex: number = 0
+  @Local private isAsyncPending: boolean = false
 
   aboutToAppear(): void {
     this.displayIndex = this.selectedIndex
   }
 
-  private onSelectedIndexChange(): void {
-    if (this.isAsyncPending) {
-      return
-    }
-    this.displayIndex = this.selectedIndex
-  }
-
-
-
   private getDisplayValue(): string {
-    const safeIndex = this.displayIndex
-    const selectedOption = this.options[safeIndex]
+    const selectedOption = this.options[this.displayIndex]
     if (selectedOption && typeof selectedOption.value === 'string') {
       return selectedOption.value
     }
     return this.value
+  }
+
+  private getEffectiveIndex(): number {
+    return this.isAsyncPending ? this.displayIndex : this.selectedIndex
   }
 
   private async handleSelectChange(index: number): Promise<void> {
@@ -150,8 +143,8 @@ export struct SectionSelectRow {
       .layoutWeight(1)
 
       Select(this.options)
-        .selected(this.displayIndex)
-        .value(this.getDisplayValue())
+        .selected(this.getEffectiveIndex())
+        .value(this.isAsyncPending ? this.getDisplayValue() : this.value)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
@@ -174,15 +167,15 @@ export struct SectionSelectRow {
   }
 }
 
-@Component
+@ComponentV2
 export struct SectionActionRow {
-  title: string = ''
-  description: string = ''
-  actionLabel: string = ''
-  onTap: () => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State private isHovered: boolean = false
-  @State private isPressed: boolean = false
+  @Param title: string = ''
+  @Param description: string = ''
+  @Param actionLabel: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onTap: () => void = () => {}
+  @Local private isHovered: boolean = false
+  @Local private isPressed: boolean = false
 
   private getActionBackground(): ResourceColor {
     return ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isHovered, this.isPressed)
@@ -245,22 +238,22 @@ export struct SectionActionRow {
   }
 }
 
-@Component
+@ComponentV2
 export struct SectionSelectInputRow {
-  title: string = ''
-  description: string = ''
-  options: SelectOption[] = []
-  selectedIndex: number = 0
-  value: string = ''
-  selectWidth: number = 140
-  showInput: boolean = false
-  inputText: string = ''
-  inputPlaceholder: string = ''
-  inputWidth: number = 112
-  inputSuffix: string = ''
-  onSelect: (index: number) => void = () => {}
-  onInputChange: (value: string) => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param title: string = ''
+  @Param description: string = ''
+  @Param options: SelectOption[] = []
+  @Param selectedIndex: number = 0
+  @Param value: string = ''
+  @Param selectWidth: number = 140
+  @Param showInput: boolean = false
+  @Param inputText: string = ''
+  @Param inputPlaceholder: string = ''
+  @Param inputWidth: number = 112
+  @Param inputSuffix: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onSelect: (index: number) => void = () => {}
+  @Event onInputChange: (value: string) => void = () => {}
 
   build() {
     Row() {

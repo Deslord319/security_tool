@@ -1,20 +1,19 @@
 import { ActionButtonStyles, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 export type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
 
-@Component
+@ComponentV2
 export struct IconTextActionButton {
-  label: string = ''
-  icon: Resource = $r('app.media.save')
-  showIcon: boolean = true
-  kind: IconTextActionButtonKind = 'primary'
-  isEnabled: boolean = true
-  onTap: () => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State private isHovered: boolean = false
-  @State private isPressed: boolean = false
+  @Param label: string = ''
+  @Param icon: Resource = $r('app.media.save')
+  @Param showIcon: boolean = true
+  @Param kind: IconTextActionButtonKind = 'primary'
+  @Param isEnabled: boolean = true
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onTap: () => void = () => {}
+  @Local private isHovered: boolean = false
+  @Local private isPressed: boolean = false
 
   private getBackgroundColor(): ResourceColor {
     switch (this.kind) {
@@ -52,7 +51,6 @@ export struct IconTextActionButton {
       .alignItems(VerticalAlign.Center)
     }
     .type(ButtonType.Normal)
-    .enabled(this.isEnabled)
     .opacity(this.isEnabled ? 1 : 0.5)
     .backgroundColor(this.getBackgroundColor())
     .borderRadius(AppStyles.RADIUS_SM)

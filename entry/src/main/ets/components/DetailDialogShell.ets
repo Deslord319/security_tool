@@ -1,18 +1,16 @@
-import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
+import { AppColors, AppStyles } from '../constants/AppConstants'
 import { DialogButtonStrings } from '../constants/modules/DialogStrings'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { IconTextActionButton } from './IconTextActionButton'
 
-@Component
+@ComponentV2
 export struct DetailDialogShell {
-  title: string = ''
-  dialogWidth: number = 560
-  maxBodyHeight: number = 420
-  @BuilderParam content: () => void
-  onClose: () => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State private isCloseHovered: boolean = false
-  @State private isClosePressed: boolean = false
+  @Param title: string = ''
+  @Param dialogWidth: number = 560
+  @Param maxBodyHeight: number = 420
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @BuilderParam content?: () => void
+  @Event onClose: () => void = () => {}
 
   build() {
     Column({ space: 0 }) {
@@ -22,35 +20,12 @@ export struct DetailDialogShell {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         Blank()
-        Button(DialogButtonStrings.CLOSE)
-          .type(ButtonType.Normal)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
-          .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isCloseHovered, this.isClosePressed))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .height(ActionButtonStyles.CHIP_HEIGHT)
-          .padding({
-            left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
-            right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
-          })
-          .stateEffect(false)
-          .onHover((isHover: boolean) => {
-            this.isCloseHovered = isHover
-          })
-          .onTouch((event: TouchEvent) => {
-            if (event.type === TouchType.Down) {
-              this.isClosePressed = true
-              return
-            }
-            if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-              this.isClosePressed = false
-            }
-          })
-          .onClick(() => {
-            this.isClosePressed = false
-            this.onClose()
-          })
+        IconTextActionButton({
+          label: DialogButtonStrings.CLOSE,
+          showIcon: false,
+          currentTheme: this.currentTheme,
+          onTap: this.onClose
+        })
       }
       .width('100%')
 
@@ -61,7 +36,9 @@ export struct DetailDialogShell {
 
       Scroll() {
         Column({ space: 12 }) {
-          this.content()
+          if (this.content) {
+            this.content()
+          }
         }
         .width('100%')
       }
@@ -81,10 +58,10 @@ export struct DetailDialogShell {
   }
 }
 
-@Component
+@ComponentV2
 export struct DetailDialogOverlay {
-  onDismiss: () => void = () => {}
-  @BuilderParam content: () => void
+  @Event onDismiss: () => void = () => {}
+  @BuilderParam content?: () => void
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
@@ -97,7 +74,9 @@ export struct DetailDialogOverlay {
         })
 
       Column() {
-        this.content()
+        if (this.content) {
+          this.content()
+        }
       }
       .width('100%')
       .height('100%')

@@ -1,45 +1,60 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { LogManageStrings } from '../constants/modules/LogManageStrings'
-import { IconTextActionButton } from './IconTextActionButton'
-import { FormControlUtils } from '../utils/FormControlUtils'
-import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
+import { LogListState, LogPaginationState } from '../models/LogManageModels'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
+import { FormControlUtils } from '../utils/FormControlUtils'
+import { IconTextActionButton } from './IconTextActionButton'
 
-@Component
+@ComponentV2
 export struct LogPaginationBar {
-  @ObjectLink viewModel: LogManageViewModel
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param loading: boolean = false
+  @Param listState: LogListState = new LogListState()
+  @Param paginationState: LogPaginationState = new LogPaginationState()
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param pageSizeOptions: number[] = []
+  @Param currentPageSize: number = 20
+  @Event onSelectPageSize: (index: number) => void = () => {}
+  @Event onChangePageInput: (value: string) => void = () => {}
+  @Event onJumpPage: () => void = () => {}
+  @Event onPrevPage: () => void = () => {}
+  @Event onNextPage: () => void = () => {}
 
   private getPageSizeOptions(): SelectOption[] {
-    return this.viewModel.getPageSizeOptions().map((size: number): SelectOption => ({ value: LogManageStrings.buildPageSizeText(size) } as SelectOption))
-  }
-
-  private getSelectedPageSizeIndex(): number {
-    return this.viewModel.state.pagination.pageSizeIndex
+    return this.pageSizeOptions.map((size: number): SelectOption => ({ value: LogManageStrings.buildPageSizeText(size) } as SelectOption))
   }
 
   private getCurrentRangeText(): string {
-    if (this.viewModel.state.list.allEntries.length === 0 || this.viewModel.state.list.pagedEntries.length === 0) {
+    if (this.listState.allEntries.length === 0 || this.listState.pagedEntries.length === 0) {
       return '0-0'
     }
-    let start = (this.viewModel.state.pagination.currentPage - 1) * this.viewModel.getCurrentPageSize() + 1
-    let end = start + this.viewModel.state.list.pagedEntries.length - 1
+    let start = (this.paginationState.currentPage - 1) * this.currentPageSize + 1
+    let end = start + this.listState.pagedEntries.length - 1
     return `${start}-${end}`
   }
 
+  @Builder
+  private actionButton(label: string, enabled: boolean, onTap: () => void) {
+    IconTextActionButton({
+      label: label,
+      showIcon: false,
+      isEnabled: enabled,
+      currentTheme: this.currentTheme,
+      onTap: onTap
+    })
+  }
+
   build() {
-    if (!this.viewModel.state.loading && this.viewModel.state.list.allEntries.length > 0) {
+    if (!this.loading && this.listState.allEntries.length > 0) {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       Row({ space: 12 }) {
-        Text(LogManageStrings.buildPageRangeText(this.getCurrentRangeText(), this.viewModel.state.list.allEntries.length))
+        Text(LogManageStrings.buildPageRangeText(this.getCurrentRangeText(), this.listState.allEntries.length))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
         Select(this.getPageSizeOptions())
-          .selected(this.getSelectedPageSizeIndex())
-          .value(LogManageStrings.buildPageSizeText(this.viewModel.getCurrentPageSize()))
+          .selected(this.paginationState.pageSizeIndex)
+          .value(LogManageStrings.buildPageSizeText(this.currentPageSize))
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
@@ -49,25 +64,21 @@ export struct LogPaginationBar {
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_SM)
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => {
-            this.viewModel.setPageSizeIndex(index)
-          })
+          .onSelect((index: number) => this.onSelectPageSize(index))
 
-        IconTextActionButton({
-          label: LogManageStrings.previousPageButton,
-          showIcon: false,
-          kind: 'primary',
-          isEnabled: this.viewModel.state.pagination.currentPage > 1,
-          onTap: () => this.viewModel.goToPreviousPage()
-        })
+        this.actionButton(
+          LogManageStrings.previousPageButton,
+          this.paginationState.currentPage > 1,
+          this.onPrevPage
+        )
 
-        Text(`${this.viewModel.state.pagination.currentPage}/${this.viewModel.state.pagination.totalPages}`)
+        Text(`${this.paginationState.currentPage}/${this.paginationState.totalPages}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .width(52)
           .textAlign(TextAlign.Center)
 
-        TextInput({ text: this.viewModel.state.pagination.pageInputText, placeholder: LogManageStrings.pageInputPlaceholder })
+        TextInput({ text: this.paginationState.pageInputText, placeholder: LogManageStrings.pageInputPlaceholder })
           .type(InputType.Number)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(FormControlUtils.text(this.currentTheme))
@@ -76,24 +87,20 @@ export struct LogPaginationBar {
           .borderRadius(AppStyles.RADIUS_SM)
           .height(32)
           .width(62)
-          .onChange((value: string) => this.viewModel.setPageInputText(value))
-          .onSubmit(() => this.viewModel.jumpToInputPage())
+          .onChange((value: string) => this.onChangePageInput(value))
+          .onSubmit(this.onJumpPage)
 
-        IconTextActionButton({
-          label: LogManageStrings.jumpButton,
-          showIcon: false,
-          kind: 'primary',
-          isEnabled: this.viewModel.state.pagination.pageInputText.trim().length > 0,
-          onTap: () => this.viewModel.jumpToInputPage()
-        })
+        this.actionButton(
+          LogManageStrings.jumpButton,
+          this.paginationState.pageInputText.trim().length > 0,
+          this.onJumpPage
+        )
 
-        IconTextActionButton({
-          label: LogManageStrings.nextPageButton,
-          showIcon: false,
-          kind: 'primary',
-          isEnabled: this.viewModel.state.pagination.currentPage < this.viewModel.state.pagination.totalPages,
-          onTap: () => this.viewModel.goToNextPage()
-        })
+        this.actionButton(
+          LogManageStrings.nextPageButton,
+          this.paginationState.currentPage < this.paginationState.totalPages,
+          this.onNextPage
+        )
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: 10, bottom: 10 })

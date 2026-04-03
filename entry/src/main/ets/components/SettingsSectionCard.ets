@@ -1,14 +1,13 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
-@Component
+@ComponentV2
 export struct SectionCard {
-  title: string = ''
-  @BuilderParam content: () => void
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State hovered: boolean = false
+  @Param title: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @BuilderParam content?: () => void
+  @Local hovered: boolean = false
 
   build() {
     Column({ space: 0 }) {
@@ -28,7 +27,9 @@ export struct SectionCard {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       Column({ space: 0 }) {
-        this.content()
+        if (this.content) {
+          this.content()
+        }
       }
       .width('100%')
     }

@@ -8,16 +8,7 @@ import {
   LogEventResult,
   LOG_EVENT_TYPE_OPTIONS
 } from '../../models/DataModels'
-import {
-  LogCollectorState,
-  LogDetailState,
-  LogFilterState,
-  LogListState,
-  LogManageMode,
-  LogManageState,
-  LogPaginationState,
-  LogSummaryState
-} from '../../models/LogManageModels'
+import { LogManageMode, LogManageState } from '../../models/LogManageModels'
 import {
   ClearLogsResult,
   CollectorStatus,
@@ -80,9 +71,9 @@ class DefaultLogManageCollector implements LogCollectorStatusPort {
   }
 }
 
-@Observed
+@ObservedV2
 export class LogManageViewModel {
-  state: LogManageState = new LogManageState()
+  @Trace state: LogManageState = new LogManageState()
   readonly settingsViewModel: LogStorageSettingsViewModel
   private listenerId: number = -1
   private initialized: boolean = false
@@ -103,7 +94,7 @@ export class LogManageViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<ListViewInitializeResult> {
-    this.setLoading(true)
+    this.state.loading = true
     try {
       if (!this.initialized) {
         let initResult = await this.repository.init(context)
@@ -121,22 +112,23 @@ export class LogManageViewModel {
       LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'storage_init_failed' }
     } finally {
-      this.setLoading(false)
+      this.state.loading = false
     }
   }
 
   activate(): void {
-    this.updatePageState(true, this.state.autoRefreshEnabled)
+    this.state.active = true
   }
 
   deactivate(): void {
-    this.updatePageState(false, this.state.autoRefreshEnabled)
+    this.state.active = false
   }
 
   destroy(): void {
     this.unregisterStorageListener()
     this.initialized = false
-    this.updatePageState(false, false)
+    this.state.active = false
+    this.state.autoRefreshEnabled = false
   }
 
   async refreshAll(): Promise<RefreshResult> {
@@ -160,58 +152,44 @@ export class LogManageViewModel {
     if (mode === 'settings') {
       await this.settingsViewModel.load()
       this.closeDetail()
-      let nextState = this.cloneState()
-      nextState.mode = 'settings'
-      nextState.active = false
-      nextState.autoRefreshEnabled = false
-      this.setState(nextState)
+      this.state.mode = 'settings'
+      this.state.active = false
+      this.state.autoRefreshEnabled = false
       return
     }
 
-    let nextState = this.cloneState()
-    nextState.mode = 'list'
-    nextState.active = true
-    nextState.autoRefreshEnabled = true
-    this.setState(nextState)
+    this.state.mode = 'list'
+    this.state.active = true
+    this.state.autoRefreshEnabled = true
     await this.refreshAll()
   }
 
   async setEventTypeIndex(index: number): Promise<void> {
-    let nextState = this.cloneState()
-    nextState.filter.eventTypeIndex = this.normalizeFilterIndex(index, LOG_EVENT_TYPE_OPTIONS.length + 1)
-    this.applyResetToFirstPage(nextState)
-    this.setState(nextState)
+    this.state.filter.eventTypeIndex = this.normalizeFilterIndex(index, LOG_EVENT_TYPE_OPTIONS.length + 1)
+    this.resetToFirstPage()
     await this.refreshAll()
   }
 
   async setResultIndex(index: number): Promise<void> {
-    let nextState = this.cloneState()
-    nextState.filter.resultIndex = this.normalizeFilterIndex(index, 4)
-    this.applyResetToFirstPage(nextState)
-    this.setState(nextState)
+    this.state.filter.resultIndex = this.normalizeFilterIndex(index, 4)
+    this.resetToFirstPage()
     await this.refreshAll()
   }
 
   async setKeyword(keyword: string): Promise<void> {
-    let nextState = this.cloneState()
-    nextState.filter.keyword = keyword
-    this.applyResetToFirstPage(nextState)
-    this.setState(nextState)
+    this.state.filter.keyword = keyword
+    this.resetToFirstPage()
     await this.refreshAll()
   }
 
   setPageSizeIndex(index: number): void {
-    let nextState = this.cloneState()
-    nextState.pagination.pageSizeIndex = this.normalizePageSizeIndex(index)
-    this.applyResetToFirstPage(nextState)
-    this.setState(nextState)
+    this.state.pagination.pageSizeIndex = this.normalizePageSizeIndex(index)
+    this.resetToFirstPage()
     this.rebuildStateFromSnapshot()
   }
 
   setPageInputText(text: string): void {
-    let nextState = this.cloneState()
-    nextState.pagination.pageInputText = text.replace(/[^0-9]/g, '')
-    this.setState(nextState)
+    this.state.pagination.pageInputText = text.replace(/[^0-9]/g, '')
   }
 
   jumpToInputPage(): void {
@@ -233,20 +211,13 @@ export class LogManageViewModel {
   }
 
   openDetail(entryId: string): void {
-    let nextState = this.cloneState()
-    nextState.detail.visible = true
-    nextState.detail.entryId = entryId
-    this.setState(nextState)
+    this.state.detail.visible = true
+    this.state.detail.entryId = entryId
   }
 
   closeDetail(): void {
-    if (!this.state.detail.visible && this.state.detail.entryId.length === 0) {
-      return
-    }
-    let nextState = this.cloneState()
-    nextState.detail.visible = false
-    nextState.detail.entryId = ''
-    this.setState(nextState)
+    this.state.detail.visible = false
+    this.state.detail.entryId = ''
   }
 
   getCurrentDetailEntry(): LogEntry | null {
@@ -344,17 +315,13 @@ export class LogManageViewModel {
     let currentPage = this.normalizePage(`${this.state.pagination.currentPage}`, totalPages)
     let pageStart = (currentPage - 1) * pageSize
     let pagedEntries = snapshot.entries.slice(pageStart, pageStart + pageSize)
-    let nextState = this.cloneState()
-    nextState.collector = this.buildCollectorState()
-    nextState.summary = this.buildSummary(snapshot, pagedEntries.length)
-    nextState.list.allEntries = snapshot.entries.slice()
-    nextState.list.pagedEntries = pagedEntries
-    nextState.detail = this.syncDetailState(snapshot.entries, nextState.detail)
-    nextState.filter.hintMessage = this.buildFilterHint(snapshot, nextState.collector)
-    nextState.pagination.currentPage = currentPage
-    nextState.pagination.totalPages = totalPages
-    nextState.pagination.pageInputText = `${currentPage}`
-    this.setState(nextState)
+
+    this.applyCollectorState()
+    this.applySummaryState(snapshot, pagedEntries.length)
+    this.applyListState(snapshot, pagedEntries)
+    this.applyPaginationState(currentPage, totalPages)
+    this.rebuildFilterHint(snapshot)
+    this.syncDetailState()
   }
 
   private buildQuery(): LogQuery | undefined {
@@ -376,66 +343,67 @@ export class LogManageViewModel {
     return hasQuery ? query : undefined
   }
 
-  private buildSummary(snapshot: LogSnapshot, currentShownCount: number): LogSummaryState {
-    let summary = new LogSummaryState()
-    summary.totalCount = snapshot.totalCount
-    summary.todayCount = snapshot.todayCount
-    summary.blockedCount = snapshot.blockedCount
-    summary.currentShownCount = currentShownCount
-    return summary
-  }
-
-  private buildCollectorState(): LogCollectorState {
+  private applyCollectorState(): void {
     let source = this.collector.getStatus()
-    let state = new LogCollectorState()
-    state.running = source.running
-    state.auditReady = source.auditReady
-    state.crashReady = source.crashReady
-    state.pendingCount = source.pendingCount
-    state.degraded = source.degraded
-    state.degradedReason = source.degradedReason
-    return state
+    this.state.collector.running = source.running
+    this.state.collector.auditReady = source.auditReady
+    this.state.collector.crashReady = source.crashReady
+    this.state.collector.pendingCount = source.pendingCount
+    this.state.collector.degraded = source.degraded
+    this.state.collector.degradedReason = source.degradedReason
   }
 
-  private updatePageState(active: boolean, autoRefreshEnabled: boolean): void {
-    let nextState = this.cloneState()
-    nextState.active = active
-    nextState.autoRefreshEnabled = autoRefreshEnabled
-    this.setState(nextState)
+  private applySummaryState(snapshot: LogSnapshot, currentShownCount: number): void {
+    this.state.summary.totalCount = snapshot.totalCount
+    this.state.summary.todayCount = snapshot.todayCount
+    this.state.summary.blockedCount = snapshot.blockedCount
+    this.state.summary.currentShownCount = currentShownCount
   }
 
-  private buildFilterHint(snapshot: LogSnapshot, collectorState: LogCollectorState): string {
+  private applyListState(snapshot: LogSnapshot, pagedEntries: LogEntry[]): void {
+    this.state.list.allEntries = snapshot.entries.slice()
+    this.state.list.pagedEntries = pagedEntries
+  }
+
+  private applyPaginationState(currentPage: number, totalPages: number): void {
+    this.state.pagination.currentPage = currentPage
+    this.state.pagination.totalPages = totalPages
+    this.state.pagination.pageInputText = `${currentPage}`
+  }
+
+  private rebuildFilterHint(snapshot: LogSnapshot): void {
     if (snapshot.entries.length > 0) {
-      if (this.state.filter.eventTypeIndex === 1) {
-        return LogManageStrings.fileFilterHint
-      }
-      return ''
+      this.state.filter.hintMessage = this.state.filter.eventTypeIndex === 1 ? LogManageStrings.fileFilterHint : ''
+      return
     }
     if (this.state.filter.eventTypeIndex === 1) {
-      return LogManageStrings.fileFilterEmptyHint
+      this.state.filter.hintMessage = LogManageStrings.fileFilterEmptyHint
+      return
     }
     if (this.hasActiveFilters()) {
-      return LogManageStrings.emptyDescription
+      this.state.filter.hintMessage = LogManageStrings.emptyDescription
+      return
     }
-    if (!collectorState.running || collectorState.degraded) {
-      return EmptyStateStrings.CHECK_PERMISSIONS
-    }
-    return LogManageStrings.emptyDescription
+    this.state.filter.hintMessage = (!this.state.collector.running || this.state.collector.degraded) ?
+      EmptyStateStrings.CHECK_PERMISSIONS :
+      LogManageStrings.emptyDescription
   }
 
-  private syncDetailState(entries: LogEntry[], detailState: LogDetailState): LogDetailState {
-    if (detailState.entryId.length === 0) {
-      return detailState
+  private syncDetailState(): void {
+    if (this.state.detail.entryId.length === 0) {
+      return
     }
-    for (let entry of entries) {
-      if (entry.id === detailState.entryId) {
-        return detailState
+    for (let entry of this.state.list.allEntries) {
+      if (entry.id === this.state.detail.entryId) {
+        return
       }
     }
-    let nextDetail = new LogDetailState()
-    nextDetail.visible = false
-    nextDetail.entryId = ''
-    return nextDetail
+    this.closeDetail()
+  }
+
+  private resetToFirstPage(): void {
+    this.state.pagination.currentPage = 1
+    this.state.pagination.pageInputText = '1'
   }
 
   private normalizeFilterIndex(index: number, optionCount: number): number {
@@ -476,6 +444,13 @@ export class LogManageViewModel {
     return Math.max(1, Math.ceil(totalCount / pageSize))
   }
 
+  private changePage(targetPage: number): void {
+    let currentPage = this.normalizePage(`${targetPage}`, this.state.pagination.totalPages)
+    this.state.pagination.currentPage = currentPage
+    this.state.pagination.pageInputText = `${currentPage}`
+    this.rebuildStateFromSnapshot()
+  }
+
   private mapResultIndexToValue(index: number): LogEventResult {
     switch (index) {
       case 1:
@@ -494,81 +469,5 @@ export class LogManageViewModel {
       return LogManageStrings.noExportableLogs
     }
     return CommonStrings.messageRetryLater
-  }
-
-  private setLoading(loading: boolean): void {
-    let nextState = this.cloneState()
-    nextState.loading = loading
-    this.setState(nextState)
-  }
-
-  private changePage(targetPage: number): void {
-    let nextState = this.cloneState()
-    let currentPage = this.normalizePage(`${targetPage}`, nextState.pagination.totalPages)
-    nextState.pagination.currentPage = currentPage
-    nextState.pagination.pageInputText = `${currentPage}`
-    this.setState(nextState)
-    this.rebuildStateFromSnapshot()
-  }
-
-  private setState(nextState: LogManageState): void {
-    this.state = nextState
-  }
-
-  private applyResetToFirstPage(state: LogManageState): void {
-    state.pagination.currentPage = 1
-    state.pagination.pageInputText = '1'
-  }
-
-  private cloneState(): LogManageState {
-    let nextState = new LogManageState()
-    nextState.loading = this.state.loading
-    nextState.active = this.state.active
-    nextState.autoRefreshEnabled = this.state.autoRefreshEnabled
-    nextState.mode = this.state.mode
-    nextState.collector = this.cloneCollectorState(this.state.collector)
-
-    let summary = new LogSummaryState()
-    summary.totalCount = this.state.summary.totalCount
-    summary.todayCount = this.state.summary.todayCount
-    summary.blockedCount = this.state.summary.blockedCount
-    summary.currentShownCount = this.state.summary.currentShownCount
-    nextState.summary = summary
-
-    let filter = new LogFilterState()
-    filter.eventTypeIndex = this.state.filter.eventTypeIndex
-    filter.resultIndex = this.state.filter.resultIndex
-    filter.keyword = this.state.filter.keyword
-    filter.hintMessage = this.state.filter.hintMessage
-    nextState.filter = filter
-
-    let pagination = new LogPaginationState()
-    pagination.currentPage = this.state.pagination.currentPage
-    pagination.pageSizeIndex = this.state.pagination.pageSizeIndex
-    pagination.pageInputText = this.state.pagination.pageInputText
-    pagination.totalPages = this.state.pagination.totalPages
-    nextState.pagination = pagination
-
-    let list = new LogListState()
-    list.allEntries = this.state.list.allEntries.slice()
-    list.pagedEntries = this.state.list.pagedEntries.slice()
-    nextState.list = list
-
-    let detail = new LogDetailState()
-    detail.visible = this.state.detail.visible
-    detail.entryId = this.state.detail.entryId
-    nextState.detail = detail
-    return nextState
-  }
-
-  private cloneCollectorState(source: LogCollectorState): LogCollectorState {
-    let state = new LogCollectorState()
-    state.running = source.running
-    state.auditReady = source.auditReady
-    state.crashReady = source.crashReady
-    state.pendingCount = source.pendingCount
-    state.degraded = source.degraded
-    state.degradedReason = source.degradedReason
-    return state
   }
 }

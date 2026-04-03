@@ -45,9 +45,9 @@ function buildDefaultDependencies(): LogStorageSettingsDependencies {
   }
 }
 
-@Observed
+@ObservedV2
 export class LogStorageSettingsViewModel {
-  state: LogStorageSettingsState = new LogStorageSettingsState()
+  @Trace state: LogStorageSettingsState = new LogStorageSettingsState()
   private initialConfig: LogStorageConfig = {
     maxLocalEntries: 0,
     retentionDays: 0
@@ -62,12 +62,10 @@ export class LogStorageSettingsViewModel {
     try {
       let config = await this.dependencies.configRepository.loadStorageConfig()
       this.initialConfig = this.cloneConfig(config.maxLocalEntries, config.retentionDays)
-      let nextState = new LogStorageSettingsState()
-      nextState.maxLocalEntries = config.maxLocalEntries
-      nextState.retentionDays = config.retentionDays
-      nextState.dirty = false
-      nextState.saving = false
-      this.setState(nextState)
+      this.state.maxLocalEntries = config.maxLocalEntries
+      this.state.retentionDays = config.retentionDays
+      this.state.dirty = false
+      this.state.saving = false
       return { success: true, code: 'ok' }
     } catch (err) {
       LogUtils.error(TAG, `load failed: ${JSON.stringify(err)}`)
@@ -76,17 +74,13 @@ export class LogStorageSettingsViewModel {
   }
 
   setMaxLocalEntries(value: number): void {
-    let nextState = this.cloneState()
-    nextState.maxLocalEntries = value
-    nextState.dirty = this.isDirty(value, nextState.retentionDays)
-    this.setState(nextState)
+    this.state.maxLocalEntries = value
+    this.state.dirty = this.isDirty(value, this.state.retentionDays)
   }
 
   setRetentionDays(value: number): void {
-    let nextState = this.cloneState()
-    nextState.retentionDays = value
-    nextState.dirty = this.isDirty(nextState.maxLocalEntries, value)
-    this.setState(nextState)
+    this.state.retentionDays = value
+    this.state.dirty = this.isDirty(this.state.maxLocalEntries, value)
   }
 
   async save(): Promise<SaveSettingsResult> {
@@ -99,9 +93,7 @@ export class LogStorageSettingsViewModel {
     if (!LOG_RETENTION_OPTIONS.includes(this.state.retentionDays)) {
       return this.buildSaveResult(false, 'invalid_retention')
     }
-    let savingState = this.cloneState()
-    savingState.saving = true
-    this.setState(savingState)
+    this.state.saving = true
     try {
       let saveResult = await this.dependencies.configRepository.saveStorageConfig(
         this.cloneConfig(this.state.maxLocalEntries, this.state.retentionDays)
@@ -116,10 +108,8 @@ export class LogStorageSettingsViewModel {
         return this.buildSaveResult(false, 'save_failed')
       }
       this.initialConfig = this.cloneConfig(this.state.maxLocalEntries, this.state.retentionDays)
-      let nextState = this.cloneState()
-      nextState.dirty = false
-      nextState.saving = false
-      this.setState(nextState)
+      this.state.dirty = false
+      this.state.saving = false
       return this.buildSaveResult(true, 'ok')
     } catch (err) {
       LogUtils.error(TAG, `save failed: ${JSON.stringify(err)}`)
@@ -129,17 +119,14 @@ export class LogStorageSettingsViewModel {
   }
 
   reset(): void {
-    let nextState = this.cloneState()
-    nextState.maxLocalEntries = this.initialConfig.maxLocalEntries
-    nextState.retentionDays = this.initialConfig.retentionDays
-    nextState.dirty = false
-    this.setState(nextState)
+    this.state.maxLocalEntries = this.initialConfig.maxLocalEntries
+    this.state.retentionDays = this.initialConfig.retentionDays
+    this.state.dirty = false
+    this.state.saving = false
   }
 
   private finishSavingWithFailure(): void {
-    let failedState = this.cloneState()
-    failedState.saving = false
-    this.setState(failedState)
+    this.state.saving = false
   }
 
   private isDirty(maxLocalEntries: number, retentionDays: number): boolean {
@@ -152,19 +139,6 @@ export class LogStorageSettingsViewModel {
       maxLocalEntries: maxLocalEntries,
       retentionDays: retentionDays
     }
-  }
-
-  private cloneState(): LogStorageSettingsState {
-    let nextState = new LogStorageSettingsState()
-    nextState.maxLocalEntries = this.state.maxLocalEntries
-    nextState.retentionDays = this.state.retentionDays
-    nextState.dirty = this.state.dirty
-    nextState.saving = this.state.saving
-    return nextState
-  }
-
-  private setState(nextState: LogStorageSettingsState): void {
-    this.state = nextState
   }
 
   private buildSaveResult(

@@ -3,70 +3,70 @@ import { CollectorStatus } from '../services/log-manage/common/LogManagePorts'
 
 export type LogManageMode = 'list' | 'settings'
 
-@Observed
+@ObservedV2
 export class LogCollectorState implements CollectorStatus {
-  running: boolean = false
-  auditReady: boolean = false
-  crashReady: boolean = false
-  pendingCount: number = 0
-  degraded: boolean = false
-  degradedReason?: 'audit_failed' | 'crash_failed' | 'partial'
+  @Trace running: boolean = false
+  @Trace auditReady: boolean = false
+  @Trace crashReady: boolean = false
+  @Trace pendingCount: number = 0
+  @Trace degraded: boolean = false
+  @Trace degradedReason?: 'audit_failed' | 'crash_failed' | 'partial'
 }
 
-@Observed
+@ObservedV2
 export class LogSummaryState {
-  totalCount: number = 0
-  todayCount: number = 0
-  blockedCount: number = 0
-  currentShownCount: number = 0
+  @Trace totalCount: number = 0
+  @Trace todayCount: number = 0
+  @Trace blockedCount: number = 0
+  @Trace currentShownCount: number = 0
 }
 
-@Observed
+@ObservedV2
 export class LogFilterState {
-  eventTypeIndex: number = 0
-  resultIndex: number = 0
-  keyword: string = ''
-  hintMessage: string = ''
+  @Trace eventTypeIndex: number = 0
+  @Trace resultIndex: number = 0
+  @Trace keyword: string = ''
+  @Trace hintMessage: string = ''
 }
 
-@Observed
+@ObservedV2
 export class LogPaginationState {
-  currentPage: number = 1
-  pageSizeIndex: number = 0
-  pageInputText: string = '1'
-  totalPages: number = 1
+  @Trace currentPage: number = 1
+  @Trace pageSizeIndex: number = 0
+  @Trace pageInputText: string = '1'
+  @Trace totalPages: number = 1
 }
 
-@Observed
+@ObservedV2
 export class LogListState {
-  allEntries: LogEntry[] = []
-  pagedEntries: LogEntry[] = []
+  @Trace allEntries: LogEntry[] = []
+  @Trace pagedEntries: LogEntry[] = []
 }
 
-@Observed
+@ObservedV2
 export class LogDetailState {
-  visible: boolean = false
-  entryId: string = ''
+  @Trace visible: boolean = false
+  @Trace entryId: string = ''
 }
 
-@Observed
+@ObservedV2
 export class LogManageState {
-  loading: boolean = false
-  active: boolean = false
-  autoRefreshEnabled: boolean = true
-  mode: LogManageMode = 'list'
-  summary: LogSummaryState = new LogSummaryState()
-  collector: LogCollectorState = new LogCollectorState()
-  filter: LogFilterState = new LogFilterState()
-  pagination: LogPaginationState = new LogPaginationState()
-  list: LogListState = new LogListState()
-  detail: LogDetailState = new LogDetailState()
+  @Trace loading: boolean = false
+  @Trace active: boolean = false
+  @Trace autoRefreshEnabled: boolean = true
+  @Trace mode: LogManageMode = 'list'
+  @Trace summary: LogSummaryState = new LogSummaryState()
+  @Trace collector: LogCollectorState = new LogCollectorState()
+  @Trace filter: LogFilterState = new LogFilterState()
+  @Trace pagination: LogPaginationState = new LogPaginationState()
+  @Trace list: LogListState = new LogListState()
+  @Trace detail: LogDetailState = new LogDetailState()
 }
 
-@Observed
+@ObservedV2
 export class LogStorageSettingsState {
-  maxLocalEntries: number = 0
-  retentionDays: number = 0
-  dirty: boolean = false
-  saving: boolean = false
+  @Trace maxLocalEntries: number = 0
+  @Trace retentionDays: number = 0
+  @Trace dirty: boolean = false
+  @Trace saving: boolean = false
 }

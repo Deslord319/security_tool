@@ -11,7 +11,6 @@ import {
   getLogEventTypeLabel
 } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { DetailDialogShell } from './DetailDialogShell'
 
 interface LogDetailField {
@@ -20,20 +19,18 @@ interface LogDetailField {
   value: string
 }
 
-@CustomDialog
-@Component
+@ComponentV2
 export struct LogDetailDialog {
-  controller: CustomDialogController
-  title: string = ''
-  entry: LogEntry = {
+  @Param title: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param entry: LogEntry = {
     id: '',
     timestamp: 0,
     eventType: LogEventType.FILE,
     detail: '',
     result: LogEventResult.SUCCESS
   } as LogEntry
-  onClose: () => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onClose: () => void = () => {}
 
   private pushTextField(fields: LogDetailField[], key: string, label: string, value?: string): void {
     if (!value) {
@@ -158,6 +155,7 @@ export struct LogDetailDialog {
       title: this.title,
       dialogWidth: 560,
       maxBodyHeight: 420,
+      currentTheme: this.currentTheme,
       onClose: this.onClose,
       content: () => {
         this.dialogContent()
