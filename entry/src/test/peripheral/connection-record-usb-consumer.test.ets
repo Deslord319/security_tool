@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
+import { beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import {
   LogEventResult,
@@ -7,70 +7,130 @@ import {
   UsbStoragePolicy
 } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/PeripheralDevicePolicyRepository'
-import { PeripheralService } from '../../main/ets/services/PeripheralService'
 import { PeripheralConnectionRecordUsbConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
-type EventField = Object | string | number | boolean
+interface UsbEventParameters {
+  vendorId: number
+  productId: number
+  deviceName: string
+  productName: string
+  manufacturerName: string
+  baseClass: number
+  class: number
+  timestamp: number
+}
+
+interface UsbEventParameterOverrides {
+  vendorId?: number
+  productId?: number
+  deviceName?: string
+  productName?: string
+  manufacturerName?: string
+  baseClass?: number
+  class?: number
+  timestamp?: number
+}
+
+interface UsbEventRawData {
+  event: string
+  parameters: Object
+}
+
+interface UsbEventRawDataOverrides {
+  parameters?: Object
+}
+
+interface UsbTypeCase {
+  baseClass: number
+  expectedType: PeripheralType
+}
+
+class EmptyUsbParameters {
+}
+
+class MissingRawDataUsbEvent implements PeripheralConnectionRecordProducerEvent {
+  source: 'runtime' = 'runtime'
+  channel: 'usb' = 'usb'
+  eventName: string
+  rawData!: Object
+
+  constructor(eventName: string) {
+    this.eventName = eventName
+  }
+}
+
+function buildUsbEventParameters(overrides?: UsbEventParameterOverrides): UsbEventParameters {
+  let parameters: UsbEventParameters = {
+    vendorId: 0x1234,
+    productId: 0x5678,
+    deviceName: 'USB Storage',
+    productName: 'USB Storage',
+    manufacturerName: 'ACME',
+    baseClass: 0x08,
+    class: 0x08,
+    timestamp: 100
+  }
+  if (!overrides) {
+    return parameters
+  }
+  if (overrides.vendorId !== undefined) {
+    parameters.vendorId = overrides.vendorId
+  }
+  if (overrides.productId !== undefined) {
+    parameters.productId = overrides.productId
+  }
+  if (overrides.deviceName !== undefined) {
+    parameters.deviceName = overrides.deviceName
+  }
+  if (overrides.productName !== undefined) {
+    parameters.productName = overrides.productName
+  }
+  if (overrides.manufacturerName !== undefined) {
+    parameters.manufacturerName = overrides.manufacturerName
+  }
+  if (overrides.baseClass !== undefined) {
+    parameters.baseClass = overrides.baseClass
+  }
+  if (overrides.class !== undefined) {
+    parameters.class = overrides.class
+  }
+  if (overrides.timestamp !== undefined) {
+    parameters.timestamp = overrides.timestamp
+  }
+  return parameters
+}
 
 function buildUsbEvent(
   eventName: string = commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
-  parameterOverrides: Record<string, EventField> = {},
-  rawDataOverrides: Record<string, EventField> = {}
+  parameterOverrides?: UsbEventParameterOverrides,
+  rawDataOverrides?: UsbEventRawDataOverrides
 ): PeripheralConnectionRecordProducerEvent {
-  return {
+  let rawData: UsbEventRawData = {
+    event: eventName,
+    parameters: buildUsbEventParameters(parameterOverrides) as Object
+  }
+  if (rawDataOverrides?.parameters !== undefined) {
+    rawData.parameters = rawDataOverrides.parameters
+  }
+  let event: PeripheralConnectionRecordProducerEvent = {
     source: 'runtime',
     channel: 'usb',
     eventName: eventName,
-    rawData: {
-      event: eventName,
-      parameters: {
-        vendorId: 0x1234,
-        productId: 0x5678,
-        deviceName: 'USB Storage',
-        productName: 'USB Storage',
-        manufacturerName: 'ACME',
-        baseClass: 0x08,
-        class: 0x08,
-        timestamp: 100,
-        ...parameterOverrides
-      },
-      ...rawDataOverrides
-    }
+    rawData: rawData as Object
   }
+  return event
 }
 
 export default function peripheralConnectionRecordUsbConsumerTest() {
   describe('PeripheralConnectionRecordUsbConsumer', () => {
-    let originalGetAll: () => PeripheralDevicePolicyRecord[]
-    let originalGetInterfaceDisabledWithResult: (feature: string) => Object
-    let originalGetUsbStoragePolicyWithResult: () => Object
-    let usbDisabledState: boolean
-    let usbStoragePolicyState: UsbStoragePolicy
-    let devicePoliciesState: PeripheralDevicePolicyRecord[]
-
     beforeEach(() => {
-      originalGetAll = PeripheralDevicePolicyRepository.getAll
-      originalGetInterfaceDisabledWithResult = PeripheralService.getInterfaceDisabledWithResult
-      originalGetUsbStoragePolicyWithResult = PeripheralService.getUsbStoragePolicyWithResult
-      usbDisabledState = false
-      usbStoragePolicyState = UsbStoragePolicy.READ_ONLY
-      devicePoliciesState = []
-
-      PeripheralDevicePolicyRepository.getAll = (): PeripheralDevicePolicyRecord[] => devicePoliciesState
-      PeripheralService.getInterfaceDisabledWithResult = (_feature: string): Object => ({ data: usbDisabledState })
-      PeripheralService.getUsbStoragePolicyWithResult = (): Object => ({ data: usbStoragePolicyState })
-    })
-
-    afterEach(() => {
-      PeripheralDevicePolicyRepository.getAll = originalGetAll
-      PeripheralService.getInterfaceDisabledWithResult = originalGetInterfaceDisabledWithResult
-      PeripheralService.getUsbStoragePolicyWithResult = originalGetUsbStoragePolicyWithResult
+      PeripheralDevicePolicyRepository.resetForTest()
+      PeripheralDevicePolicyRepository.setRecordsForTest([])
     })
 
     it('U-USB-001 should map usb attached event to blocked record when usb interface is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbDisabledState = true
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -84,7 +144,6 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-002 should block usb storage event when storage policy is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbStoragePolicyState = UsbStoragePolicy.DISABLED
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -98,7 +157,6 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-003 should map usb storage read only policy to allow record with readonly label', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbStoragePolicyState = UsbStoragePolicy.READ_ONLY
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -112,14 +170,14 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-004 should block usb attach event when device policy is deny', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbStoragePolicyState = UsbStoragePolicy.READ_WRITE
-      devicePoliciesState = [{
+      let deniedPolicy: PeripheralDevicePolicyRecord = {
         deviceId: 'vid:1234 pid:5678',
         policy: 'deny',
         updatedAt: 1,
         deviceName: 'Denied Storage',
         deviceType: PeripheralType.USB_STORAGE
-      }]
+      }
+      PeripheralDevicePolicyRepository.setRecordsForTest([deniedPolicy])
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -132,16 +190,16 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-005 should allow usb attach event when no higher priority policy matches', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbStoragePolicyState = UsbStoragePolicy.READ_WRITE
+      let hidOverrides: UsbEventParameterOverrides = {
+        deviceName: 'USB Keyboard',
+        productName: 'USB Keyboard',
+        baseClass: 0x03,
+        class: 0x03
+      }
 
       const record = await consumer.consume(buildUsbEvent(
         commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
-        {
-          deviceName: 'USB Keyboard',
-          productName: 'USB Keyboard',
-          baseClass: 0x03,
-          class: 0x03
-        }
+        hidOverrides
       ))
 
       expect(record !== null).assertTrue()
@@ -155,7 +213,6 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-006 should map usb detached event to disconnect record without blocked summary', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbStoragePolicyState = UsbStoragePolicy.DISABLED
 
       const record = await consumer.consume(buildUsbEvent(commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED))
 
@@ -178,16 +235,15 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-008 should stay stable for missing or empty raw payloads', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      const missingPayloadEvent = {
-        source: 'runtime',
-        channel: 'usb',
-        eventName: commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
-        rawData: undefined
-      } as PeripheralConnectionRecordProducerEvent
+      const missingPayloadEvent = new MissingRawDataUsbEvent(commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED)
+      let emptyParameters: Object = new EmptyUsbParameters()
+      let rawDataOverrides: UsbEventRawDataOverrides = {
+        parameters: emptyParameters
+      }
       const emptyPayloadEvent = buildUsbEvent(
         commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
-        {},
-        { parameters: {} as Object }
+        undefined,
+        rawDataOverrides
       )
 
       const missingPayloadRecord = await consumer.consume(missingPayloadEvent)
@@ -201,7 +257,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-009 should infer usb device type from baseClass matrix', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      const cases = [
+      const cases: UsbTypeCase[] = [
         { baseClass: 0x08, expectedType: PeripheralType.USB_STORAGE },
         { baseClass: 0x0E, expectedType: PeripheralType.USB_CAMERA },
         { baseClass: 0x07, expectedType: PeripheralType.USB_PRINTER },
@@ -209,12 +265,13 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       ]
 
       for (const testCase of cases) {
+        let typeOverrides: UsbEventParameterOverrides = {
+          baseClass: testCase.baseClass,
+          class: testCase.baseClass
+        }
         const record = await consumer.consume(buildUsbEvent(
           commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
-          {
-            baseClass: testCase.baseClass,
-            class: testCase.baseClass
-          }
+          typeOverrides
         ))
         expect(record !== null).assertTrue()
         expect(record?.deviceType).assertEqual(testCase.expectedType)

@@ -1,49 +1,97 @@
-import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { connection } from '@kit.ConnectivityKit'
+import { describe, expect, it } from '@ohos/hypium'
 import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
-type EventField = Object | string | number | boolean
+interface BluetoothAclParameters {
+  deviceId: string
+  deviceName: string
+  stateName: string
+  reason: string
+  timestamp: number
+  deviceAddr?: string
+  address?: string
+  remoteName?: string
+  alias?: string
+}
+
+interface BluetoothAclParameterOverrides {
+  deviceId?: string
+  deviceName?: string
+  stateName?: string
+  reason?: string
+  timestamp?: number
+  deviceAddr?: string
+  address?: string
+  remoteName?: string
+  alias?: string
+}
+
+class BluetoothAclRawData {
+  event: string
+  parameters: Object
+  constructor(event: string, parameters: Object) {
+    this.event = event
+    this.parameters = parameters
+  }
+}
+
+function buildBluetoothAclParameters(overrides?: BluetoothAclParameterOverrides): BluetoothAclParameters {
+  let parameters: BluetoothAclParameters = {
+    deviceId: '11:22:33:44:55:66',
+    deviceName: 'Bluetooth Keyboard',
+    stateName: 'STATE_CONNECTED',
+    reason: 'SUCCESS',
+    timestamp: 200
+  }
+  if (!overrides) {
+    return parameters
+  }
+  if (overrides.deviceId !== undefined) {
+    parameters.deviceId = overrides.deviceId
+  }
+  if (overrides.deviceName !== undefined) {
+    parameters.deviceName = overrides.deviceName
+  }
+  if (overrides.stateName !== undefined) {
+    parameters.stateName = overrides.stateName
+  }
+  if (overrides.reason !== undefined) {
+    parameters.reason = overrides.reason
+  }
+  if (overrides.timestamp !== undefined) {
+    parameters.timestamp = overrides.timestamp
+  }
+  if (overrides.deviceAddr !== undefined) {
+    parameters.deviceAddr = overrides.deviceAddr
+  }
+  if (overrides.address !== undefined) {
+    parameters.address = overrides.address
+  }
+  if (overrides.remoteName !== undefined) {
+    parameters.remoteName = overrides.remoteName
+  }
+  if (overrides.alias !== undefined) {
+    parameters.alias = overrides.alias
+  }
+  return parameters
+}
 
 function buildBluetoothAclEvent(
-  parameterOverrides: Record<string, EventField> = {},
-  rawDataOverrides: Record<string, EventField> = {}
+  parameterOverrides?: BluetoothAclParameterOverrides
 ): PeripheralConnectionRecordProducerEvent {
-  return {
+  let rawData = new BluetoothAclRawData('usual.event.BLUETOOTH_ACL', buildBluetoothAclParameters(parameterOverrides) as Object)
+  let event: PeripheralConnectionRecordProducerEvent = {
     source: 'runtime',
     channel: 'bluetooth_acl',
     eventName: 'usual.event.BLUETOOTH_ACL',
-    rawData: {
-      event: 'usual.event.BLUETOOTH_ACL',
-      parameters: {
-        deviceId: '11:22:33:44:55:66',
-        deviceName: 'Bluetooth Keyboard',
-        stateName: 'STATE_CONNECTED',
-        reason: 'SUCCESS',
-        timestamp: 200,
-        ...parameterOverrides
-      },
-      ...rawDataOverrides
-    }
+    rawData: rawData as Object
   }
+  return event
 }
 
 export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
   describe('PeripheralConnectionRecordBluetoothAclConsumer', () => {
-    let originalGetRemoteDeviceName: typeof connection.getRemoteDeviceName
-    let remoteDeviceNameResult: string
-
-    beforeEach(() => {
-      originalGetRemoteDeviceName = connection.getRemoteDeviceName
-      remoteDeviceNameResult = ''
-      connection.getRemoteDeviceName = (_deviceId: string, _useCache: boolean): string => remoteDeviceNameResult
-    })
-
-    afterEach(() => {
-      connection.getRemoteDeviceName = originalGetRemoteDeviceName
-    })
-
     it('U-BT-001 should map bluetooth acl connect event to connection record', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
@@ -59,11 +107,12 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
     it('U-BT-002 should map bluetooth acl disconnect event to disconnect record', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-      const record = await consumer.consume(buildBluetoothAclEvent({
+      let disconnectOverrides: BluetoothAclParameterOverrides = {
         stateName: 'STATE_DISCONNECTED',
         reason: 'REMOTE_DISCONNECT'
-      }))
+      }
+
+      const record = await consumer.consume(buildBluetoothAclEvent(disconnectOverrides))
 
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('disconnect')
@@ -74,22 +123,24 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
     it('U-BT-003 should ignore bluetooth acl events with unknown state', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-      const record = await consumer.consume(buildBluetoothAclEvent({
+      let unknownStateOverrides: BluetoothAclParameterOverrides = {
         stateName: 'STATE_IDLE'
-      }))
+      }
+
+      const record = await consumer.consume(buildBluetoothAclEvent(unknownStateOverrides))
 
       expect(record === null).assertTrue()
     })
 
     it('U-BT-004 should ignore bluetooth acl events without deviceId', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      const event = buildBluetoothAclEvent({
+      let missingDeviceIdOverrides: BluetoothAclParameterOverrides = {
         stateName: 'STATE_CONNECTED',
-        deviceId: '' as Object,
-        deviceAddr: '' as Object,
-        address: '' as Object
-      })
+        deviceId: '',
+        deviceAddr: '',
+        address: ''
+      }
+      const event = buildBluetoothAclEvent(missingDeviceIdOverrides)
 
       const record = await consumer.consume(event)
 
@@ -98,11 +149,11 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
     it('U-BT-005 should prefer payload device name over remote lookup result', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      remoteDeviceNameResult = 'Remote Device Name'
-
-      const record = await consumer.consume(buildBluetoothAclEvent({
+      let payloadNameOverrides: BluetoothAclParameterOverrides = {
         deviceName: 'Payload Device Name'
-      }))
+      }
+
+      const record = await consumer.consume(buildBluetoothAclEvent(payloadNameOverrides))
 
       expect(record !== null).assertTrue()
       expect(record?.deviceName).assertEqual('Payload Device Name')
@@ -110,13 +161,13 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
     it('U-BT-006 should use fallback bluetooth name when no name can be resolved', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-      remoteDeviceNameResult = ''
+      let fallbackNameOverrides: BluetoothAclParameterOverrides = {
+        deviceName: '',
+        remoteName: '',
+        alias: ''
+      }
 
-      const record = await consumer.consume(buildBluetoothAclEvent({
-        deviceName: '' as Object,
-        remoteName: '' as Object,
-        alias: '' as Object
-      }))
+      const record = await consumer.consume(buildBluetoothAclEvent(fallbackNameOverrides))
 
       expect(record !== null).assertTrue()
       expect(record?.deviceName).assertEqual('未命名蓝牙设备')
@@ -124,10 +175,11 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
     it('U-BT-007 should normalize bluetooth device id format', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
-
-      const record = await consumer.consume(buildBluetoothAclEvent({
+      let normalizeIdOverrides: BluetoothAclParameterOverrides = {
         deviceId: 'aa-bb-cc-dd-ee-ff'
-      }))
+      }
+
+      const record = await consumer.consume(buildBluetoothAclEvent(normalizeIdOverrides))
 
       expect(record !== null).assertTrue()
       expect(record?.deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
