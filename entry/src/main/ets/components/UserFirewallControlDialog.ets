@@ -186,23 +186,6 @@ export struct UserFirewallControlDialog {
 
   build() {
     Column({ space: 16 }) {
-      Row() {
-        Text(FirewallDialogStrings.USER_FIREWALL_TITLE)
-          .fontSize(18)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .layoutWeight(1)
-
-        Text('×')
-          .fontSize(20)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .onClick(() => {
-            this.controller.close()
-          })
-      }
-      .width('100%')
-
       Text(FirewallDialogStrings.USER_FIREWALL_DESCRIPTION)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

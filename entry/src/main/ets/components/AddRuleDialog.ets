@@ -259,10 +259,6 @@ export struct AddRuleDialog {
     }
   }
 
-  private getDialogTitle(): string {
-    return this.isEditMode ? FirewallDialogStrings.EDIT_RULE_TITLE : FirewallDialogStrings.ADD_RULE_TITLE
-  }
-
   private getPrimaryButtonText(): string {
     return this.isEditMode ? DialogButtonStrings.SAVE : DialogButtonStrings.ADD
   }
@@ -289,23 +285,6 @@ export struct AddRuleDialog {
 
   build() {
     Column({ space: 16 }) {
-      Row() {
-        Text(this.getDialogTitle())
-          .fontSize(18)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-          .layoutWeight(1)
-        Text('×')
-          .fontSize(20)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .onClick(() => {
-            this.closeDialog()
-          })
-      }
-      .width('100%')
-
       Column({ space: 6 }) {
         Text(FirewallDialogStrings.RULE_NAME)
           .fontSize(AppStyles.FONT_SIZE_SMALL)

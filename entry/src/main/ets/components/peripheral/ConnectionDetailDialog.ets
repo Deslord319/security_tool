@@ -163,8 +163,8 @@ export struct ConnectionDetailDialog {
       dialogWidth: 760,
       maxBodyHeight: 460,
       currentTheme: this.currentTheme,
-      showHeader: false,
-      showCloseAction: false,
+      showHeader: true,
+      showCloseAction: true,
       onClose: this.onClose,
       content: () => {
         this.shellContent()

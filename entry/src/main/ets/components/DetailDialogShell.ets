@@ -16,13 +16,15 @@ export struct DetailDialogShell {
 
   build() {
     Column({ space: 0 }) {
-      if (this.showHeader) {
+      if (this.showHeader || this.showCloseAction) {
         Row() {
-          Text(this.title)
-            .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          if (this.showHeader) {
+            Text(this.title)
+              .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          }
           Blank()
           if (this.showCloseAction) {
             IconTextActionButton({
@@ -35,10 +37,12 @@ export struct DetailDialogShell {
         }
         .width('100%')
 
-        Divider()
-          .color(AppColors.getColors(this.currentTheme).BORDER)
-          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          .margin({ top: 10, bottom: 10 })
+        if (this.showHeader) {
+          Divider()
+            .color(AppColors.getColors(this.currentTheme).BORDER)
+            .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+            .margin({ top: 10, bottom: 10 })
+        }
       }
 
       Scroll() {

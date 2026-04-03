@@ -127,6 +127,7 @@ export struct AboutDialogContent {
       dialogWidth: 360,
       maxBodyHeight: 320,
       currentTheme: this.currentTheme,
+      showHeader: false,
       onClose: this.onConfirm,
       content: () => {
         this.aboutContent()

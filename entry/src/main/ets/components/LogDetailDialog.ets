@@ -157,8 +157,8 @@ export struct LogDetailDialog {
       dialogWidth: 560,
       maxBodyHeight: 420,
       currentTheme: this.currentTheme,
-      showHeader: false,
-      showCloseAction: false,
+      showHeader: true,
+      showCloseAction: true,
       onClose: this.onClose,
       content: () => {
         this.dialogContent()
