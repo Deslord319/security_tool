@@ -6,11 +6,11 @@ import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
+  LogEventResult,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
 } from '../models/DataModels'
-import { LogManageState, LogStorageSettingsState } from '../models/LogManageModels'
 import { PresentationStrings } from '../constants/modules/PresentationStrings'
 import { ThemeMode } from '../theme/ThemeColors'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
@@ -18,13 +18,11 @@ import { FormControlUtils } from '../utils/FormControlUtils'
 import { DialogService } from '../utils/DialogService'
 import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
 import { LogUtils } from '../utils/LogUtils'
-import { LogSummaryCards } from '../components/LogSummaryCards'
 import { LogEntriesPanel } from '../components/LogEntriesPanel'
 import { LogPaginationBar } from '../components/LogPaginationBar'
 import { SubPageHeader } from '../components/SubPageHeader'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { LogStorageSettingsPanel } from '../components/LogStorageSettingsPanel'
-import { DetailDialogOverlay } from '../components/DetailDialogShell'
 import { LogDetailDialog } from '../components/LogDetailDialog'
 
 const TAG = 'LogManagePage'
@@ -33,10 +31,10 @@ const TAG = 'LogManagePage'
 export struct LogManagePage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param onBack: () => void = () => {}
-  private viewModel: LogManageViewModel = new LogManageViewModel()
-  @Local state: LogManageState = this.viewModel.state
-  @Local settingsState: LogStorageSettingsState = this.viewModel.settingsViewModel.state
+  @Local viewModel: LogManageViewModel = new LogManageViewModel()
   @Local listReady: boolean = false
+  private detailDialogController?: CustomDialogController
+  private detailEntry: LogEntry | null = null
 
   private eventTypeFilterOptions: SelectOption[] = [
     { value: LogManageStrings.allEventTypes } as SelectOption,
@@ -57,7 +55,7 @@ export struct LogManagePage {
   aboutToDisappear() {
     this.viewModel.deactivate()
     this.viewModel.destroy()
-    this.dismissLogDetailDialog()
+    this.closeDetailDialog()
   }
 
   private async initializeViewModels(): Promise<void> {
@@ -78,7 +76,7 @@ export struct LogManagePage {
 
   private async openStorageSettings(): Promise<void> {
     try {
-      this.dismissLogDetailDialog()
+      this.closeDetailDialog()
       await this.viewModel.setMode('settings')
     } catch (err) {
       LogUtils.error(TAG, `openStorageSettings failed: ${JSON.stringify(err)}`)
@@ -89,20 +87,35 @@ export struct LogManagePage {
     await this.viewModel.setMode('list')
   }
 
-  private dismissLogDetailDialog(): void {
-    this.viewModel.closeDetail()
-  }
-
   private openLogDetailDialog(entry: LogEntry): void {
+    this.closeDetailDialogController()
+    this.detailEntry = entry
     this.viewModel.openDetail(entry.id)
-  }
-
-  private getCurrentDetailEntry(): LogEntry | null {
-    return this.viewModel.getCurrentDetailEntry()
-  }
-
-  private hasCurrentDetailEntry(): boolean {
-    return this.getCurrentDetailEntry() !== null
+    try {
+      this.detailDialogController = new CustomDialogController({
+        builder: LogDetailDialog({
+          controller: this.detailDialogController,
+          title: LogManageStrings.detailDialogTitle,
+          entry: entry,
+          currentTheme: this.currentTheme,
+          onClose: () => this.closeDetailDialog()
+        }),
+        alignment: DialogAlignment.Center,
+        autoCancel: true,
+        customStyle: true,
+        isModal: true,
+        maskColor: AppColors.OVERLAY_BACKGROUND,
+        cancel: () => {
+          this.detailDialogController = undefined
+          this.detailEntry = null
+          this.viewModel.closeDetail()
+        }
+      })
+      this.detailDialogController.open()
+    } catch (err) {
+      LogUtils.warn(TAG, `openLogDetailDialog failed: ${JSON.stringify(err)}`)
+      this.closeDetailDialog()
+    }
   }
 
   private async handleExportLogs(): Promise<void> {
@@ -118,12 +131,12 @@ export struct LogManagePage {
   private handleClearLogs(): void {
     DialogService.openConfirm(this.getUIContext(), {
       title: LogManageStrings.clearConfirmTitle,
-      message: LogManageStrings.buildClearConfirmMessage(this.state.summary.totalCount),
+      message: LogManageStrings.buildClearConfirmMessage(this.viewModel.state.summary.totalCount),
       confirmText: CommonStrings.actionClear,
       cancelText: CommonStrings.actionCancel,
       onConfirm: async () => {
         let result = await this.viewModel.clearLogs()
-        this.dismissLogDetailDialog()
+        this.closeDetailDialog()
         if (result.success) {
           DialogService.openSuccess(this.getUIContext(), LogManageStrings.clearSuccess)
           return
@@ -143,19 +156,251 @@ export struct LogManagePage {
   }
 
   private getSelectedEventTypeLabel(): string {
-    let index = this.state.filter.eventTypeIndex
+    let index = this.viewModel.state.filter.eventTypeIndex
     return index <= 0 ? LogManageStrings.allEventTypes : this.eventTypeFilterOptions[index].value as string
   }
 
   private getSelectedResultLabel(): string {
-    let index = this.state.filter.resultIndex
+    let index = this.viewModel.state.filter.resultIndex
     return index <= 0 ? LogManageStrings.allResults : this.resultFilterOptions[index].value as string
+  }
+
+  @Builder
+  private summaryCards() {
+    GridRow({ columns: 4, gutter: 12 }) {
+      GridCol() {
+        Row({ space: 16 }) {
+          Column() {
+            Image($r('app.media.folder'))
+              .width(36)
+              .height(36)
+              .fillColor(Color.White)
+              .draggable(false)
+          }
+          .width(62)
+          .height(62)
+          .borderRadius(20)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .linearGradient({
+            angle: 135,
+            colors: [
+              [AppColors.BRAND_PRIMARY, 0],
+              [AppColors.GRADIENT_FIREWALL_END, 1]
+            ]
+          })
+
+          Column({ space: 6 }) {
+            Text(LogManageStrings.statTotal)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+
+            Text(`${this.viewModel.state.list.allEntries.length}`)
+              .fontSize(26)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .maxLines(1)
+
+            Text(LogManageStrings.statTotalDescription)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+        .height(116)
+        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+      }
+      GridCol() {
+        Row({ space: 16 }) {
+          Column() {
+            Image($r('app.media.log'))
+              .width(36)
+              .height(36)
+              .fillColor(Color.White)
+              .draggable(false)
+          }
+          .width(62)
+          .height(62)
+          .borderRadius(20)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .linearGradient({
+            angle: 135,
+            colors: [
+              [AppColors.SUCCESS, 0],
+              [AppColors.GRADIENT_LOG_END, 1]
+            ]
+          })
+
+          Column({ space: 6 }) {
+            Text(LogManageStrings.statToday)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+
+            Text(`${this.viewModel.state.list.allEntries.filter((entry: LogEntry) => {
+              let todayStart = new Date()
+              todayStart.setHours(0, 0, 0, 0)
+              return entry.timestamp >= todayStart.getTime()
+            }).length}`)
+              .fontSize(26)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .maxLines(1)
+
+            Text(LogManageStrings.statTodayDescription)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+        .height(116)
+        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+      }
+      GridCol() {
+        Row({ space: 16 }) {
+          Column() {
+            Image($r('app.media.alert'))
+              .width(36)
+              .height(36)
+              .fillColor(Color.White)
+              .draggable(false)
+          }
+          .width(62)
+          .height(62)
+          .borderRadius(20)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .linearGradient({
+            angle: 135,
+            colors: [
+              [AppColors.WARNING, 0],
+              [AppColors.GRADIENT_IDENTITY_END, 1]
+            ]
+          })
+
+          Column({ space: 6 }) {
+            Text(PresentationStrings.logResultBlocked)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+
+            Text(`${this.viewModel.state.list.allEntries.filter((entry: LogEntry) => entry.result === LogEventResult.BLOCKED).length}`)
+              .fontSize(26)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .maxLines(1)
+
+            Text(LogManageStrings.statBlockedDescription)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+        .height(116)
+        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+      }
+      GridCol() {
+        Row({ space: 16 }) {
+          Column() {
+            Image($r('app.media.dashboard'))
+              .width(36)
+              .height(36)
+              .fillColor(Color.White)
+              .draggable(false)
+          }
+          .width(62)
+          .height(62)
+          .borderRadius(20)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .linearGradient({
+            angle: 135,
+            colors: [
+              [AppColors.TEXT_MUTED, 0],
+              [AppColors.GRADIENT_TOOL_END, 1]
+            ]
+          })
+
+          Column({ space: 6 }) {
+            Text(LogManageStrings.statCurrentShown)
+              .fontSize(AppStyles.FONT_SIZE_BODY)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+
+            Text(`${this.viewModel.state.list.pagedEntries.length}`)
+              .fontSize(26)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .maxLines(1)
+
+            Text(LogManageStrings.statCurrentShownDescription)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+        .height(116)
+        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+        .borderRadius(AppStyles.RADIUS_LG)
+        .border({
+          width: 1,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+      }
+    }
+    .width('100%')
+    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
   }
 
   @Builder
   private headerRightActions() {
     Row({ space: 8 }) {
-      if (this.state.mode === 'list') {
+      if (this.viewModel.state.mode === 'list') {
         IconTextActionButton({
           label: LogManageStrings.exportLogsButton,
           icon: $r('app.media.save'),
@@ -184,7 +429,7 @@ export struct LogManagePage {
           label: CommonStrings.actionSaveSettings,
           icon: $r('app.media.save'),
           currentTheme: this.currentTheme,
-          isEnabled: this.settingsState.dirty && !this.settingsState.saving,
+          isEnabled: this.viewModel.settingsViewModel.state.dirty && !this.viewModel.settingsViewModel.state.saving,
           onTap: () => {
             void this.handleSaveStorageSettings()
           }
@@ -204,8 +449,8 @@ export struct LogManagePage {
   @Builder
   private settingsPanel() {
     LogStorageSettingsPanel({
-      maxLocalEntries: this.settingsState.maxLocalEntries,
-      retentionDays: this.settingsState.retentionDays,
+      maxLocalEntries: this.viewModel.settingsViewModel.state.maxLocalEntries,
+      retentionDays: this.viewModel.settingsViewModel.state.retentionDays,
       currentTheme: this.currentTheme,
       onSelectMaxEntries: (index: number) => {
         this.viewModel.settingsViewModel.setMaxLocalEntries(LOG_MAX_ENTRIES_OPTIONS[index] ?? LOG_MAX_ENTRIES_OPTIONS[0])
@@ -216,30 +461,26 @@ export struct LogManagePage {
     })
   }
 
-  @Builder
-  private detailOverlay() {
-    if (this.state.detail.visible && this.hasCurrentDetailEntry()) {
-      DetailDialogOverlay({
-        onDismiss: () => this.dismissLogDetailDialog(),
-        content: () => {
-          if (this.getCurrentDetailEntry()) {
-            LogDetailDialog({
-              title: LogManageStrings.detailDialogTitle,
-              entry: this.getCurrentDetailEntry() as LogEntry,
-              currentTheme: this.currentTheme,
-              onClose: () => this.dismissLogDetailDialog()
-            })
-          }
-        }
-      })
+  private closeDetailDialogController(): void {
+    try {
+      this.detailDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.detailDialogController = undefined
     }
+  }
+
+  private closeDetailDialog(): void {
+    this.closeDetailDialogController()
+    this.detailEntry = null
+    this.viewModel.closeDetail()
   }
 
   @Builder
   private filterToolbar() {
     Row({ space: 8 }) {
       Select(this.eventTypeFilterOptions)
-        .selected(this.state.filter.eventTypeIndex)
+        .selected(this.viewModel.state.filter.eventTypeIndex)
         .value(this.getSelectedEventTypeLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
@@ -253,7 +494,7 @@ export struct LogManagePage {
         .onSelect((index: number) => { void this.viewModel.setEventTypeIndex(index) })
 
       Select(this.resultFilterOptions)
-        .selected(this.state.filter.resultIndex)
+        .selected(this.viewModel.state.filter.resultIndex)
         .value(this.getSelectedResultLabel())
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
@@ -266,7 +507,7 @@ export struct LogManagePage {
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => { void this.viewModel.setResultIndex(index) })
 
-      TextInput({ placeholder: LogManageStrings.searchPlaceholder, text: this.state.filter.keyword })
+      TextInput({ placeholder: LogManageStrings.searchPlaceholder, text: this.viewModel.state.filter.keyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(FormControlUtils.text(this.currentTheme))
         .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -285,8 +526,8 @@ export struct LogManagePage {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         SubPageHeader({
-          title: this.state.mode === 'settings' ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
-          subtitle: this.state.mode === 'settings' ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
+          title: this.viewModel.state.mode === 'settings' ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
+          subtitle: this.viewModel.state.mode === 'settings' ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
           currentTheme: this.currentTheme,
           onBack: this.onBack,
           actions: () => {
@@ -294,7 +535,7 @@ export struct LogManagePage {
           }
         })
 
-        if (this.state.mode === 'settings') {
+        if (this.viewModel.state.mode === 'settings') {
           Scroll() {
             Column({ space: 24 }) {
               this.settingsPanel()
@@ -309,24 +550,21 @@ export struct LogManagePage {
           .align(Alignment.Top)
         } else {
           if (this.listReady) {
-            LogSummaryCards({
-              summary: this.state.summary,
-              currentTheme: this.currentTheme
-            })
+            this.summaryCards()
             this.filterToolbar()
             LogEntriesPanel({
-              loading: this.state.loading,
-              listState: this.state.list,
-              filterState: this.state.filter,
+              loading: this.viewModel.state.loading,
+              listState: this.viewModel.state.list,
+              filterState: this.viewModel.state.filter,
               currentTheme: this.currentTheme,
               onEntryClick: (entry: LogEntry) => {
                 this.openLogDetailDialog(entry)
               }
             })
             LogPaginationBar({
-              loading: this.state.loading,
-              listState: this.state.list,
-              paginationState: this.state.pagination,
+              loading: this.viewModel.state.loading,
+              listState: this.viewModel.state.list,
+              paginationState: this.viewModel.state.pagination,
               currentTheme: this.currentTheme,
               pageSizeOptions: this.viewModel.getPageSizeOptions(),
               currentPageSize: this.viewModel.getCurrentPageSize(),
@@ -355,8 +593,6 @@ export struct LogManagePage {
       .width('100%')
       .height('100%')
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
-
-      this.detailOverlay()
     }
     .width('100%')
     .height('100%')

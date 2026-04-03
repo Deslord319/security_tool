@@ -1,18 +1,18 @@
 import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS, AppInfo } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 import { ThemeMode } from '../theme/ThemeColors'
-import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { InteractiveMenuRow } from './ThemeMenuPopup'
 
-@Component
+@ComponentV2
 export struct SideBar {
-  @Prop selectedId: string = 'dashboard'
-  onItemSelect: (id: string) => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State hoveredNavId: string = ''
-  @State themeToggleHovered: boolean = false
-  @State activeNavId: string = ''
-  @State themeTogglePressed: boolean = false
+  @Param selectedId: string = 'dashboard'
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onItemSelect: (id: string) => void = () => {}
+  @Event onToggleTheme: () => void = () => {}
+  @Local hoveredNavId: string = ''
+  @Local themeToggleHovered: boolean = false
+  @Local activeNavId: string = ''
+  @Local themeTogglePressed: boolean = false
 
   private getNavIconBackground(itemId: string): string {
     return InteractiveItemStyles.getSidebarIconTileBackground(this.currentTheme, this.selectedId === itemId)
@@ -121,7 +121,7 @@ export struct SideBar {
         },
         onTap: () => {
           this.themeTogglePressed = false
-          ThemeManager.getInstance().toggleTheme()
+          this.onToggleTheme()
         }
       })
     }

@@ -19,18 +19,19 @@ interface LogDetailField {
   value: string
 }
 
-@ComponentV2
+@CustomDialog
 export struct LogDetailDialog {
-  @Param title: string = ''
-  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Param entry: LogEntry = {
+  controller: CustomDialogController
+  title: string = ''
+  currentTheme: ThemeMode = ThemeMode.LIGHT
+  entry: LogEntry = {
     id: '',
     timestamp: 0,
     eventType: LogEventType.FILE,
     detail: '',
     result: LogEventResult.SUCCESS
   } as LogEntry
-  @Event onClose: () => void = () => {}
+  onClose: () => void = () => {}
 
   private pushTextField(fields: LogDetailField[], key: string, label: string, value?: string): void {
     if (!value) {

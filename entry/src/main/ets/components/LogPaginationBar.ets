@@ -32,17 +32,6 @@ export struct LogPaginationBar {
     return `${start}-${end}`
   }
 
-  @Builder
-  private actionButton(label: string, enabled: boolean, onTap: () => void) {
-    IconTextActionButton({
-      label: label,
-      showIcon: false,
-      isEnabled: enabled,
-      currentTheme: this.currentTheme,
-      onTap: onTap
-    })
-  }
-
   build() {
     if (!this.loading && this.listState.allEntries.length > 0) {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
@@ -66,11 +55,13 @@ export struct LogPaginationBar {
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => this.onSelectPageSize(index))
 
-        this.actionButton(
-          LogManageStrings.previousPageButton,
-          this.paginationState.currentPage > 1,
-          this.onPrevPage
-        )
+        IconTextActionButton({
+          label: LogManageStrings.previousPageButton,
+          showIcon: false,
+          isEnabled: this.paginationState.currentPage > 1,
+          currentTheme: this.currentTheme,
+          onTap: this.onPrevPage
+        })
 
         Text(`${this.paginationState.currentPage}/${this.paginationState.totalPages}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -90,17 +81,21 @@ export struct LogPaginationBar {
           .onChange((value: string) => this.onChangePageInput(value))
           .onSubmit(this.onJumpPage)
 
-        this.actionButton(
-          LogManageStrings.jumpButton,
-          this.paginationState.pageInputText.trim().length > 0,
-          this.onJumpPage
-        )
+        IconTextActionButton({
+          label: LogManageStrings.jumpButton,
+          showIcon: false,
+          isEnabled: this.paginationState.pageInputText.trim().length > 0,
+          currentTheme: this.currentTheme,
+          onTap: this.onJumpPage
+        })
 
-        this.actionButton(
-          LogManageStrings.nextPageButton,
-          this.paginationState.currentPage < this.paginationState.totalPages,
-          this.onNextPage
-        )
+        IconTextActionButton({
+          label: LogManageStrings.nextPageButton,
+          showIcon: false,
+          isEnabled: this.paginationState.currentPage < this.paginationState.totalPages,
+          currentTheme: this.currentTheme,
+          onTap: this.onNextPage
+        })
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: 10, bottom: 10 })

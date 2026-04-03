@@ -1,25 +1,24 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
-import { ThemeManager, STORAGE_KEY_THEME, STORAGE_KEY_OPTION } from '../theme/ThemeManager'
 import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
 
-@Component
+@ComponentV2
 export struct InteractiveMenuRow {
-  @Prop icon: Resource = $r('app.media.dashboard')
-  @Prop label: string = ''
-  @Prop itemId: string = ''
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Prop showLabel: boolean = true
-  @Prop fixedWidth: number = 0
-  @Prop itemBackground: ResourceColor = Color.Transparent
-  @Prop iconTileBackground: ResourceColor = Color.Transparent
-  @Prop iconColor: ResourceColor = Color.Black
-  @Prop textColor: ResourceColor = Color.Black
-  @Prop textOpacity: number = 1
-  @Prop fontWeight: FontWeight = FontWeight.Normal
-  onTap: () => void = () => {}
-  onHoverChange: (isHover: boolean) => void = () => {}
-  onPressedChange: (isPressed: boolean) => void = () => {}
+  @Param icon: Resource = $r('app.media.dashboard')
+  @Param label: string = ''
+  @Param itemId: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param showLabel: boolean = true
+  @Param fixedWidth: number = 0
+  @Param itemBackground: ResourceColor = Color.Transparent
+  @Param iconTileBackground: ResourceColor = Color.Transparent
+  @Param iconColor: ResourceColor = Color.Black
+  @Param textColor: ResourceColor = Color.Black
+  @Param textOpacity: number = 1
+  @Param fontWeight: FontWeight = FontWeight.Normal
+  @Event onTap: () => void = () => {}
+  @Event onHoverChange: (isHover: boolean) => void = () => {}
+  @Event onPressedChange: (isPressed: boolean) => void = () => {}
 
   build() {
     Row({ space: this.showLabel ? 12 : 0 }) {
@@ -76,10 +75,10 @@ export struct InteractiveMenuRow {
   }
 }
 
-@CustomDialog
-struct AboutDialog {
-  controller: CustomDialogController
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+@ComponentV2
+export struct AboutDialogContent {
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onConfirm: () => void = () => {}
 
   build() {
     Column({ space: 16 }) {
@@ -112,7 +111,7 @@ struct AboutDialog {
         .backgroundColor(AppColors.BRAND_PRIMARY)
         .borderRadius(AppStyles.RADIUS_MD)
         .onClick(() => {
-          this.controller.close()
+          this.onConfirm()
         })
     }
     .width(360)
@@ -123,26 +122,21 @@ struct AboutDialog {
   }
 }
 
-@Component
+@ComponentV2
 export struct ThemeMenuPopup {
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @StorageLink(STORAGE_KEY_OPTION) currentOption: ThemeOption = ThemeOption.SYSTEM
-  @Link showMenu: boolean
-  onNavigate?: (route: string) => void
-  @State hoveredThemeKey: string = ''
-  @State hoveredActionKey: string = ''
-  @State aboutHovered: boolean = false
-  @State activeThemeKey: string = ''
-  @State activeActionKey: string = ''
-  @State aboutPressed: boolean = false
-  @State menuHoverArmed: boolean = false
-
-  private aboutDialogController: CustomDialogController = new CustomDialogController({
-    builder: AboutDialog(),
-    alignment: DialogAlignment.Center,
-    autoCancel: false,
-    customStyle: true
-  })
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param currentOption: ThemeOption = ThemeOption.SYSTEM
+  @Event onDismiss: () => void = () => {}
+  @Event onNavigate: (route: string) => void = () => {}
+  @Event onSelectOption: (option: ThemeOption) => void = () => {}
+  @Event onOpenAbout: () => void = () => {}
+  @Local hoveredThemeKey: string = ''
+  @Local hoveredActionKey: string = ''
+  @Local aboutHovered: boolean = false
+  @Local activeThemeKey: string = ''
+  @Local activeActionKey: string = ''
+  @Local aboutPressed: boolean = false
+  @Local menuHoverArmed: boolean = false
 
   build() {
     Column({ space: 6 }) {
@@ -238,8 +232,8 @@ export struct ThemeMenuPopup {
       },
       onTap: () => {
         this.activeThemeKey = ''
-        ThemeManager.getInstance().setOption(option)
-        this.showMenu = false
+        this.onSelectOption(option)
+        this.onDismiss()
       }
     })
   }
@@ -267,10 +261,8 @@ export struct ThemeMenuPopup {
       },
       onTap: () => {
         this.activeActionKey = ''
-        this.showMenu = false
-        if (route && this.onNavigate) {
-          this.onNavigate(route)
-        }
+        this.onDismiss()
+        this.onNavigate(route)
       }
     })
   }
@@ -298,8 +290,8 @@ export struct ThemeMenuPopup {
       },
       onTap: () => {
         this.aboutPressed = false
-        this.showMenu = false
-        this.aboutDialogController.open()
+        this.onDismiss()
+        this.onOpenAbout()
       }
     })
   }
