@@ -4,7 +4,7 @@ import { AppColors } from '../AppConstants'
 import { EmptyStateStrings, FirewallDialogStrings } from './DialogStrings'
 
 export class FirewallStrings {
-  static readonly pageSubtitle: string = '统一管理系统防火墙开关、预设策略与自定义规则。'
+  static readonly pageSubtitle: string = '点击模式卡片后，后端先执行策略切换，只有成功后当前模式标记才会移动。'
   static readonly modeSectionTitle: string = '预设模式'
 
   static readonly rulesPage: string = '规则页'
@@ -33,7 +33,7 @@ export class FirewallStrings {
   static readonly conflictWarningLabel: string = '注意'
 
   static readonly customModeTitle: string = '自定义模式'
-  static readonly customRulesSubtitle: string = '当前列表为共享自定义规则模板。允许规则用于白名单模式，禁止规则用于黑名单模式；非标准模式下允许和禁止规则都会下发。'
+  static readonly customRulesSubtitle: string = '当前页面只维护自定义模式规则。保存后会重新下发整套自定义策略。'
   static readonly addRuleButton: string = '+ 新增规则'
   static readonly rulesReapplyPartialFailed: string = '共享规则已保存，但部分已绑定用户重下发失败'
   static readonly inboundRules: string = '入站规则'

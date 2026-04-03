@@ -5,8 +5,8 @@ import { PresentationStrings } from './PresentationStrings'
 export class LogManageStrings {
   static readonly pageTitle: string = '日志管理'
   static readonly settingsTitle: string = '日志存储配置'
-  static readonly pageSubtitle: string = '监控崩溃与关键安全日志'
-  static readonly settingsSubtitle: string = '配置日志留存设置'
+  static readonly pageSubtitle: string = '监控和审计系统安全事件日志'
+  static readonly settingsSubtitle: string = '配置日志留存、自动导出与审计诊断'
 
   static readonly detailTitle: string = '详情'
   static readonly detailDialogTitle: string = '日志详情'

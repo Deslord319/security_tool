@@ -7,7 +7,7 @@ export interface DashboardGradient {
 
 export class DashboardStrings {
   // Page copy
-  static readonly pageSubtitle: string = '集中查看管理员、防火墙、日志和外设状态'
+  static readonly pageSubtitle: string = 'HarmonyOS 安全管理中心，提供企业级设备安全管控能力。'
   static readonly quickActionsTitle: string = '快捷方式'
 
   // Summary cards

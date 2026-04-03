@@ -30,7 +30,7 @@ export class PeripheralStrings {
   static readonly usbStorageLoadingMessage: string = '正在设置 USB 存储策略，请稍候...'
 
   // Page-level copy.
-  static readonly pageSubtitle: string = '管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备访问策略'
+  static readonly pageSubtitle: string = '管控 USB、蓝牙、Wi-Fi 等外设接口，配置设备黑白名单策略'
 
   static readonly interfaceTabTitle: string = '接口管控'
   static readonly deviceTabTitle: string = '设备连接记录'
@@ -84,20 +84,20 @@ export class PeripheralStrings {
   static readonly exportHistoryLabel: string = '导出记录'
   static readonly clearHistoryLabel: string = '清理记录'
   static readonly exportPolicyLabel: string = '导出名单'
-  static readonly clearPolicyLabel: string = '清空名单'
+  static readonly clearPolicyLabel: string = '还原名单'
 
   static readonly setInterfaceAction: string = '设置接口策略'
   static readonly setUsbStorageAction: string = '设置 USB 存储策略'
   static readonly updatePolicyAction: string = '修改黑白名单'
 
   static readonly clearHistoryMessage: string = '将清空当前设备连接记录，且无法恢复。是否继续？'
-  static readonly clearPolicyMessage: string = '将清空当前所有黑白名单配置，设备会恢复默认允许接入。是否继续？'
+  static readonly clearPolicyMessage: string = '将还原当前所有黑白名单配置，设备会恢复默认允许接入。是否继续？'
 
   static readonly emptyHistoryToClear: string = '暂无可清理的记录'
-  static readonly emptyPolicyToClear: string = '暂无可清空的黑白名单配置'
+  static readonly emptyPolicyToClear: string = '暂无可还原的黑白名单配置'
   static readonly clearFailed: string = '清理未完成，请稍后重试'
   static readonly clearHistorySuccess: string = '记录已清理'
-  static readonly clearPolicySuccess: string = '黑白名单已清空，设备已恢复默认允许接入'
+  static readonly clearPolicySuccess: string = '黑白名单已还原，设备已恢复默认允许接入'
   static readonly emptyPolicyTitle: string = '暂无黑白名单设备'
   static readonly emptyPolicyDescription: string = '设备连接后会出现在这里，可按需设置允许或禁止接入。'
 
