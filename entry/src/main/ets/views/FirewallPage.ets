@@ -9,7 +9,6 @@ import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService
 import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../models/DataModels'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { DialogService } from '../utils/DialogService'
 import { TimedLoadingDialogRunner } from '../utils/TimedLoadingDialogRunner'
@@ -17,19 +16,19 @@ import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 
 const TAG = 'FirewallPage'
 
-@Component
+@ComponentV2
 export struct FirewallPage {
-  @Prop firewallEnabled: boolean = false
-  @Prop currentMode: FirewallPresetMode = 'custom'
-  @State isToggleProcessing: boolean = false
-  @State isModeProcessing: boolean = false
-  @State firewallSwitchValue: boolean = false
-  @State hoveredMode: string = ''
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onFirewallToggle: (enabled: boolean) => void = () => {}
-  onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
-  onNavigateToRules: () => void = () => {}
-  onBack: () => void = () => {}
+  @Param firewallEnabled: boolean = false
+  @Param currentMode: FirewallPresetMode = 'custom'
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Local isToggleProcessing: boolean = false
+  @Local isModeProcessing: boolean = false
+  @Local firewallSwitchValue: boolean = false
+  @Local hoveredMode: string = ''
+  @Event onFirewallToggle: (enabled: boolean) => void = () => {}
+  @Event onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
+  @Event onNavigateToRules: () => void = () => {}
+  @Event onBack: () => void = () => {}
   private readonly modeLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
@@ -216,7 +215,8 @@ export struct FirewallPage {
   private createModeLoadingDialogController(message: string): CustomDialogController {
     return new CustomDialogController({
       builder: CommonLoadingDialog({
-        message: message
+        message: message,
+        currentTheme: this.currentTheme
       }),
       alignment: DialogAlignment.Center,
       autoCancel: false,

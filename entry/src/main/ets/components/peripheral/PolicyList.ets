@@ -10,16 +10,16 @@ export interface PolicyOption {
   value: string
 }
 
-@Component
+@ComponentV2
 export struct PolicyList {
-  @Prop policyRecords: PeripheralPolicyRecord[] = []
-  @Prop policyListOptions: PolicyOption[] = []
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Prop hoveredPanelIndex: number = -1
-  onPolicyChange?: (index: number, policyIndex: number) => void
-  getPolicyLabel?: (index: number) => string
-  isUpdating?: (deviceId: string) => boolean
-  onPanelHover?: (isHover: boolean) => void
+  @Param policyRecords: PeripheralPolicyRecord[] = []
+  @Param policyListOptions: PolicyOption[] = []
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param hoveredPanelIndex: number = -1
+  @Event onPolicyChange?: (index: number, policyIndex: number) => void = undefined
+  @Param getPolicyLabel?: (index: number) => string = undefined
+  @Param isUpdating?: (deviceId: string) => boolean = undefined
+  @Event onPanelHover?: (isHover: boolean) => void = undefined
 
   build() {
     Scroll() {

@@ -5,23 +5,22 @@ import { DashboardStrings } from '../constants/modules/DashboardStrings'
 import { MetricSummaryCard } from '../components/MetricSummaryCard'
 import { ToolCard } from '../components/ToolCard'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/DashboardModels'
 import { DashboardViewModel } from '../viewmodels/DashboardViewModel'
 
-@Component
+@ComponentV2
 export struct DashboardPage {
-  onNavigate: (route: string) => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State viewModel: DashboardViewModel = new DashboardViewModel()
-  @State titleEnterOpacity: number = 0
-  @State titleEnterOffset: number = 20
-  @State moduleEnterOpacity: number[] = [0, 0, 0, 0]
-  @State moduleEnterOffset: number[] = [18, 18, 18, 18]
-  @State sectionTitleEnterOpacity: number = 0
-  @State sectionTitleEnterOffset: number = 16
-  @State quickEnterOpacity: number[] = [0, 0, 0, 0, 0, 0]
-  @State quickEnterOffset: number[] = [18, 18, 18, 18, 18, 18]
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onNavigate: (route: string) => void = () => {}
+  @Local viewModel: DashboardViewModel = new DashboardViewModel()
+  @Local titleEnterOpacity: number = 0
+  @Local titleEnterOffset: number = 20
+  @Local moduleEnterOpacity: number[] = [0, 0, 0, 0]
+  @Local moduleEnterOffset: number[] = [18, 18, 18, 18]
+  @Local sectionTitleEnterOpacity: number = 0
+  @Local sectionTitleEnterOffset: number = 16
+  @Local quickEnterOpacity: number[] = [0, 0, 0, 0, 0, 0]
+  @Local quickEnterOffset: number[] = [18, 18, 18, 18, 18, 18]
   private enterTimerIds: number[] = []
   private initialized: boolean = false
 
@@ -150,7 +149,8 @@ export struct DashboardPage {
                 primaryFontSize: 24,
                 secondaryMaxLines: 3,
                 clickable: false,
-                hoverable: true
+                hoverable: true,
+                currentTheme: this.currentTheme
               })
             }
             .opacity(this.moduleEnterOpacity[index] ?? 1)
@@ -175,6 +175,7 @@ export struct DashboardPage {
                 icon: entry.icon,
                 gradientStart: entry.accentStart,
                 gradientEnd: entry.accentEnd,
+                currentTheme: this.currentTheme,
                 onPress: () => { this.onNavigate(entry.route) }
               })
             }

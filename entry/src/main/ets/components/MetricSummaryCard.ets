@@ -1,36 +1,35 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BaseCard } from './BaseCard'
 import { HoverUtils } from '../utils/HoverUtils'
 
-@Component
+@ComponentV2
 export struct MetricSummaryCard {
-  @Prop title: string = ''
-  @Prop primaryText: string = ''
-  @Prop secondaryText: string = ''
-  @Prop icon: Resource = $r('app.media.shield')
-  @Prop accentStart: string = AppColors.BRAND_PRIMARY
-  @Prop accentEnd: string = AppColors.GRADIENT_FIREWALL_END
-  @Prop cardHeight: number = 108
-  @Prop horizontalSpace: number = 16
-  @Prop textSpace: number = 6
-  @Prop paddingHorizontal: number = 18
-  @Prop paddingVertical: number = 18
-  @Prop iconTileSize: number = 60
-  @Prop iconTileRadius: number = 20
-  @Prop iconSize: number = 28
-  @Prop iconHoverScale: number = 1.06
-  @Prop titleFontSize: number = AppStyles.FONT_SIZE_BODY
-  @Prop primaryFontSize: number = 24
-  @Prop secondaryMaxLines: number = 3
-  @Prop contentHoverable: boolean = true
-  @Prop clickable: boolean = true
-  @Prop hoverable: boolean = true
-  @Prop disabled: boolean = false
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onPress: () => void = () => {}
-  @State isHovered: boolean = false
+  @Param title: string = ''
+  @Param primaryText: string = ''
+  @Param secondaryText: string = ''
+  @Param icon: Resource = $r('app.media.shield')
+  @Param accentStart: string = AppColors.BRAND_PRIMARY
+  @Param accentEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Param cardHeight: number = 108
+  @Param horizontalSpace: number = 16
+  @Param textSpace: number = 6
+  @Param paddingHorizontal: number = 18
+  @Param paddingVertical: number = 18
+  @Param iconTileSize: number = 60
+  @Param iconTileRadius: number = 20
+  @Param iconSize: number = 28
+  @Param iconHoverScale: number = 1.06
+  @Param titleFontSize: number = AppStyles.FONT_SIZE_BODY
+  @Param primaryFontSize: number = 24
+  @Param secondaryMaxLines: number = 3
+  @Param contentHoverable: boolean = true
+  @Param clickable: boolean = true
+  @Param hoverable: boolean = true
+  @Param disabled: boolean = false
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onPress: () => void = () => {}
+  @Local isHovered: boolean = false
 
   build() {
     BaseCard({
@@ -38,6 +37,7 @@ export struct MetricSummaryCard {
       clickable: this.clickable,
       hoverable: this.hoverable,
       disabled: this.disabled,
+      currentTheme: this.currentTheme,
       onPress: this.onPress,
       onHoverChange: (isHovered: boolean) => {
         this.isHovered = isHovered

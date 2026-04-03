@@ -1,18 +1,20 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { ThemeMode } from '../theme/ThemeColors'
 import { MetricSummaryCard } from './MetricSummaryCard'
 
-@Component
+@ComponentV2
 export struct CompactSummaryCard {
-  @Prop title: string = ''
-  @Prop valueText: string = ''
-  @Prop description: string = ''
-  @Prop icon: Resource = $r('app.media.shield')
-  @Prop accentStart: string = AppColors.BRAND_PRIMARY
-  @Prop accentEnd: string = AppColors.GRADIENT_FIREWALL_END
-  @Prop clickable: boolean = false
-  @Prop hoverable: boolean = true
-  @Prop disabled: boolean = false
-  onPress: () => void = () => {}
+  @Param title: string = ''
+  @Param valueText: string = ''
+  @Param description: string = ''
+  @Param icon: Resource = $r('app.media.shield')
+  @Param accentStart: string = AppColors.BRAND_PRIMARY
+  @Param accentEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Param clickable: boolean = false
+  @Param hoverable: boolean = true
+  @Param disabled: boolean = false
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onPress: () => void = () => {}
 
   build() {
     MetricSummaryCard({
@@ -37,6 +39,7 @@ export struct CompactSummaryCard {
       clickable: this.clickable,
       hoverable: this.hoverable,
       disabled: this.disabled,
+      currentTheme: this.currentTheme,
       onPress: this.onPress
     })
   }

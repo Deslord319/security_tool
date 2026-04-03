@@ -12,24 +12,26 @@ import { DialogService } from '../utils/DialogService'
 export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
 
-export interface IdentitySettingsState {
-  minLengthIndex: number
-  requireUppercase: boolean
-  requireLowercase: boolean
-  requireDigit: boolean
-  requireSpecialChar: boolean
-  validityPeriodIndex: number
-  customValidityPeriodText: string
-  hasChanges: boolean
-}
-
 export interface IdentitySettingsSaveResult {
   success: boolean
   message: string
 }
 
+@ObservedV2
+export class IdentitySettingsState {
+  @Trace minLengthIndex: number = 1
+  @Trace requireUppercase: boolean = true
+  @Trace requireLowercase: boolean = true
+  @Trace requireDigit: boolean = true
+  @Trace requireSpecialChar: boolean = true
+  @Trace validityPeriodIndex: number = 0
+  @Trace customValidityPeriodText: string = ''
+  @Trace hasChanges: boolean = false
+}
+
+@ObservedV2
 export class IdentitySettingsViewModel {
-  state: IdentitySettingsState = IdentitySettingsViewModel.buildDefaultState()
+  @Trace state: IdentitySettingsState = IdentitySettingsViewModel.buildDefaultState()
   private initialState: IdentitySettingsState = IdentitySettingsViewModel.buildDefaultState()
 
   initialize(policy?: securityManager.PasswordPolicy | null): void {
@@ -40,7 +42,7 @@ export class IdentitySettingsViewModel {
     nextState = this.applyValidityPeriod(nextState, policy?.validityPeriod)
     nextState.hasChanges = false
     this.initialState = IdentitySettingsViewModel.snapshot(nextState)
-    this.state = nextState
+    this.copyState(this.state, nextState)
   }
 
   reset(): void {
@@ -189,33 +191,33 @@ export class IdentitySettingsViewModel {
     let nextState = IdentitySettingsViewModel.snapshot(this.state)
     editor(nextState)
     nextState.hasChanges = !IdentitySettingsViewModel.areStatesEqual(this.initialState, nextState)
-    this.state = nextState
+    this.copyState(this.state, nextState)
   }
 
   private static buildDefaultState(): IdentitySettingsState {
-    return {
-      minLengthIndex: 1,
-      requireUppercase: true,
-      requireLowercase: true,
-      requireDigit: true,
-      requireSpecialChar: true,
-      validityPeriodIndex: 0,
-      customValidityPeriodText: '',
-      hasChanges: false
-    }
+    let state = new IdentitySettingsState()
+    state.minLengthIndex = 1
+    state.requireUppercase = true
+    state.requireLowercase = true
+    state.requireDigit = true
+    state.requireSpecialChar = true
+    state.validityPeriodIndex = 0
+    state.customValidityPeriodText = ''
+    state.hasChanges = false
+    return state
   }
 
   private static snapshot(state: IdentitySettingsState): IdentitySettingsState {
-    return {
-      minLengthIndex: state.minLengthIndex,
-      requireUppercase: state.requireUppercase,
-      requireLowercase: state.requireLowercase,
-      requireDigit: state.requireDigit,
-      requireSpecialChar: state.requireSpecialChar,
-      validityPeriodIndex: state.validityPeriodIndex,
-      customValidityPeriodText: state.customValidityPeriodText,
-      hasChanges: state.hasChanges
-    }
+    let snapshot = new IdentitySettingsState()
+    snapshot.minLengthIndex = state.minLengthIndex
+    snapshot.requireUppercase = state.requireUppercase
+    snapshot.requireLowercase = state.requireLowercase
+    snapshot.requireDigit = state.requireDigit
+    snapshot.requireSpecialChar = state.requireSpecialChar
+    snapshot.validityPeriodIndex = state.validityPeriodIndex
+    snapshot.customValidityPeriodText = state.customValidityPeriodText
+    snapshot.hasChanges = state.hasChanges
+    return snapshot
   }
 
   private static areStatesEqual(left: IdentitySettingsState, right: IdentitySettingsState): boolean {
@@ -226,5 +228,16 @@ export class IdentitySettingsViewModel {
       left.requireSpecialChar === right.requireSpecialChar &&
       left.validityPeriodIndex === right.validityPeriodIndex &&
       left.customValidityPeriodText === right.customValidityPeriodText
+  }
+
+  private copyState(target: IdentitySettingsState, source: IdentitySettingsState): void {
+    target.minLengthIndex = source.minLengthIndex
+    target.requireUppercase = source.requireUppercase
+    target.requireLowercase = source.requireLowercase
+    target.requireDigit = source.requireDigit
+    target.requireSpecialChar = source.requireSpecialChar
+    target.validityPeriodIndex = source.validityPeriodIndex
+    target.customValidityPeriodText = source.customValidityPeriodText
+    target.hasChanges = source.hasChanges
   }
 }

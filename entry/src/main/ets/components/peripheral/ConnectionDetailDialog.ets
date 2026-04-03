@@ -6,7 +6,6 @@ import {
   getPeripheralRecordSourceLabel
 } from '../../models/DataModels'
 import { ThemeMode } from '../../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../../theme/ThemeManager'
 import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
@@ -25,7 +24,7 @@ export struct ConnectionDetailDialog {
   controller: CustomDialogController
   selectedRecord: PeripheralConnectionRecord | null = null
   historyItems: ConnectionHistoryItem[] = []
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  currentTheme: ThemeMode = ThemeMode.LIGHT
   onClose: () => void = () => {}
 
   @Builder

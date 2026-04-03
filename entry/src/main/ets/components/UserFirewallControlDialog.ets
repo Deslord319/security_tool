@@ -8,7 +8,6 @@ import { FirewallToggleAuthService } from '../services/FirewallToggleAuthService
 import { UserFirewallModeService } from '../services/UserFirewallModeService'
 import { UserFirewallPolicyService } from '../services/UserFirewallPolicyService'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { DialogService } from '../utils/DialogService'
 import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from '../constants/modules/DialogStrings'
@@ -25,6 +24,7 @@ export struct UserFirewallControlDialog {
   controller: CustomDialogController
   onActionCompleted: (userId: number, mode: FirewallUserApplyMode) => Promise<void> =
     async (_userId: number, _mode: FirewallUserApplyMode) => {}
+  currentTheme: ThemeMode = ThemeMode.LIGHT
 
   @State users: UserFirewallOption[] = []
   @State selectedIndex: number = 0
@@ -36,7 +36,6 @@ export struct UserFirewallControlDialog {
   @State statusHintText: string = ''
   @State currentModeText: string = FirewallDialogStrings.MODE_UNMANAGED
   @State currentPolicyText: string = ''
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
   private modeOptions: ModeOption[] = [
     { mode: 'allowlist', label: FirewallDialogStrings.MODE_ALLOWLIST } as ModeOption,
     { mode: 'denylist', label: FirewallDialogStrings.MODE_DENYLIST } as ModeOption,

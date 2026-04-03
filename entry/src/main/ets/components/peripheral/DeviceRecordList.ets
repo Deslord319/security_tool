@@ -13,15 +13,15 @@ import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralR
 import { EmptyStatePanel } from '../EmptyStatePanel'
 import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
 
-@Component
+@ComponentV2
 export struct DeviceRecordList {
-  @Prop deviceRecords: PeripheralConnectionRecord[] = []
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Prop hoveredPanelIndex: number = -1
-  onRecordClick?: (record: PeripheralConnectionRecord) => void
-  onPanelHover?: (isHover: boolean) => void
-  @State private activeDetailId: string = ''
-  @State private hoveredDetailId: string = ''
+  @Param deviceRecords: PeripheralConnectionRecord[] = []
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param hoveredPanelIndex: number = -1
+  @Event onRecordClick?: (record: PeripheralConnectionRecord) => void
+  @Event onPanelHover?: (isHover: boolean) => void
+  @Local private activeDetailId: string = ''
+  @Local private hoveredDetailId: string = ''
 
   private getDetailButtonBackground(recordId: string): ResourceColor {
     return ActionButtonStyles.getPrimaryBackground(
@@ -43,7 +43,8 @@ export struct DeviceRecordList {
             title: EmptyStateStrings.NO_RECORDS,
             description: EmptyStateStrings.CHECK_PERMISSIONS,
             radius: AppStyles.RADIUS_LG,
-            verticalPadding: 24
+            verticalPadding: 24,
+            currentTheme: this.currentTheme
           })
         } else {
           Column({ space: 0 }) {

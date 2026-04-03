@@ -2,7 +2,6 @@ import { AppColors, AppStyles } from '../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
 import { DialogService } from '../utils/DialogService'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { FirewallDialogStrings, DialogButtonStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../constants/modules/DialogStrings'
 
@@ -18,6 +17,7 @@ export struct AddRuleDialog {
   onClose: () => void = () => {}
   initialRule?: netFirewall.NetFirewallRule
   isEditMode: boolean = false
+  currentTheme: ThemeMode = ThemeMode.LIGHT
 
   @State ruleName: string = ''
   @State ruleType: number = netFirewall.NetFirewallRuleType.RULE_IP
@@ -27,7 +27,6 @@ export struct AddRuleDialog {
   @State localPort: string = ''
   @State remotePort: string = ''
   @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
 
   aboutToAppear(): void {
     this.applyInitialRule()

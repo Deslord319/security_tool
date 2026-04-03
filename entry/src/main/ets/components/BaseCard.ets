@@ -1,21 +1,20 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
-@Component
+@ComponentV2
 export struct BaseCard {
-  @Prop cardHeight: number = 132
-  @Prop clickable: boolean = false
-  @Prop hoverable: boolean = true
-  @Prop disabled: boolean = false
-  @Prop overlayAngle: number = 24
-  @Prop hoverLift: number = 4
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param cardHeight: number = 132
+  @Param clickable: boolean = false
+  @Param hoverable: boolean = true
+  @Param disabled: boolean = false
+  @Param overlayAngle: number = 24
+  @Param hoverLift: number = 4
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @BuilderParam content: () => void
-  onPress: () => void = () => {}
-  onHoverChange: (isHovered: boolean) => void = () => {}
-  @State isHovered: boolean = false
+  @Event onPress: () => void = () => {}
+  @Event onHoverChange: (isHovered: boolean) => void = () => {}
+  @Local isHovered: boolean = false
 
   private canInteract(): boolean {
     return this.clickable && !this.disabled

@@ -1,18 +1,17 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { BaseCard } from './BaseCard'
 import { HoverUtils } from '../utils/HoverUtils'
 
-@Component
+@ComponentV2
 export struct ToolCard {
-  @Prop label: string = ''
-  @Prop icon: Resource = $r('app.media.shield')
-  @Prop gradientStart: string = AppColors.BRAND_PRIMARY
-  @Prop gradientEnd: string = AppColors.GRADIENT_FIREWALL_END
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onPress: () => void = () => {}
-  @State isHovered: boolean = false
+  @Param label: string = ''
+  @Param icon: Resource = $r('app.media.shield')
+  @Param gradientStart: string = AppColors.BRAND_PRIMARY
+  @Param gradientEnd: string = AppColors.GRADIENT_FIREWALL_END
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onPress: () => void = () => {}
+  @Local isHovered: boolean = false
 
   private setHoverState(isHovered: boolean): void {
     HoverUtils.animate(() => {
@@ -26,6 +25,7 @@ export struct ToolCard {
       clickable: true,
       hoverable: true,
       overlayAngle: 180,
+      currentTheme: this.currentTheme,
       onPress: this.onPress,
       onHoverChange: (isHovered: boolean) => {
         this.setHoverState(isHovered)

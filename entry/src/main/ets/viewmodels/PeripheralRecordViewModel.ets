@@ -27,42 +27,46 @@ export interface ConnectionDetailDialogState {
   historyItems: PeripheralConnectionHistoryItem[]
 }
 
-@Observed
+@ObservedV2
+export class ConnectionDetailDialogStateModel {
+  @Trace visible: boolean = false
+  @Trace record: PeripheralConnectionRecord | null = null
+  @Trace historyItems: PeripheralConnectionHistoryItem[] = []
+}
+
+@ObservedV2
+export class PeripheralRecordState {
+  @Trace records: PeripheralConnectionRecord[] = []
+  @Trace connectionDetailDialog: ConnectionDetailDialogStateModel = new ConnectionDetailDialogStateModel()
+}
+
+@ObservedV2
 export class PeripheralRecordViewModel {
-  records: PeripheralConnectionRecord[] = []
-  connectionDetailDialog: ConnectionDetailDialogState = {
-    visible: false,
-    record: null,
-    historyItems: []
-  }
+  @Trace state: PeripheralRecordState = new PeripheralRecordState()
 
   reloadRecords(): void {
     try {
-      this.records = PeripheralConnectionRecordService.queryRecords()
+      this.state.records = PeripheralConnectionRecordService.queryRecords()
     } catch (err) {
       LogUtils.error(TAG, `reloadRecords failed: ${JSON.stringify(err)}`)
-      this.records = []
+      this.state.records = []
     }
   }
 
   openConnectionDetailDialog(record: PeripheralConnectionRecord): void {
-    this.connectionDetailDialog = {
-      visible: true,
-      record: record,
-      historyItems: buildConnectionHistoryItems(this.records, record)
-    }
+    this.state.connectionDetailDialog.visible = true
+    this.state.connectionDetailDialog.record = record
+    this.state.connectionDetailDialog.historyItems = buildConnectionHistoryItems(this.state.records, record)
   }
 
   closeConnectionDetailDialog(): void {
-    this.connectionDetailDialog = {
-      visible: false,
-      record: null,
-      historyItems: []
-    }
+    this.state.connectionDetailDialog.visible = false
+    this.state.connectionDetailDialog.record = null
+    this.state.connectionDetailDialog.historyItems = []
   }
 
   async exportConnectionHistory(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
-    if (this.records.length === 0) {
+    if (this.state.records.length === 0) {
       return { success: false, reason: PeripheralStrings.emptyConnectionHistory } as ExportActionResult
     }
     if (!context) {
@@ -70,7 +74,7 @@ export class PeripheralRecordViewModel {
     }
 
     try {
-      const csvContent = this.buildConnectionHistoryCsv(this.records)
+      const csvContent = this.buildConnectionHistoryCsv(this.state.records)
       const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralStrings.csvConnectionHistoryFilePrefix)
       return result.success ?
         { success: true, fileName: result.fileName } as ExportActionResult :

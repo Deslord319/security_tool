@@ -17,10 +17,10 @@ import { LogUtils } from '../utils/LogUtils'
 const TAG = 'DashboardViewModel'
 type DashboardQuickEntryId = 'firewall' | 'log-manage' | 'peripheral-manage' | 'identity' | 'tool-settings' | 'help-feedback'
 
-@Observed
+@ObservedV2
 export class DashboardViewModel {
-  moduleCards: DashboardModuleCardState[] = []
-  quickEntries: DashboardQuickEntryState[] = []
+  @Trace moduleCards: DashboardModuleCardState[] = []
+  @Trace quickEntries: DashboardQuickEntryState[] = []
 
   private context: common.UIAbilityContext | null = null
   private logListenerId: number = -1

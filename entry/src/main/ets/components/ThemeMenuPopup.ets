@@ -1,6 +1,7 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
+import { DetailDialogShell } from './DetailDialogShell'
 
 @ComponentV2
 export struct InteractiveMenuRow {
@@ -75,12 +76,14 @@ export struct InteractiveMenuRow {
   }
 }
 
-@ComponentV2
+@CustomDialog
 export struct AboutDialogContent {
-  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Event onConfirm: () => void = () => {}
+  controller: CustomDialogController
+  currentTheme: ThemeMode = ThemeMode.LIGHT
+  onConfirm: () => void = () => {}
 
-  build() {
+  @Builder
+  private aboutContent() {
     Column({ space: 16 }) {
       Image($r('app.media.startIcon_about'))
         .width(80)
@@ -114,11 +117,21 @@ export struct AboutDialogContent {
           this.onConfirm()
         })
     }
-    .width(360)
-    .padding(24)
+    .width('100%')
     .alignItems(HorizontalAlign.Center)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
+  }
+
+  build() {
+    DetailDialogShell({
+      title: CommonStrings.aboutLabel,
+      dialogWidth: 360,
+      maxBodyHeight: 320,
+      currentTheme: this.currentTheme,
+      onClose: this.onConfirm,
+      content: () => {
+        this.aboutContent()
+      }
+    })
   }
 }
 

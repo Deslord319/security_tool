@@ -17,40 +17,45 @@ import { LogExportService } from '../services/log-manage/export/LogExportService
 
 const TAG = 'PeripheralPolicyViewModel'
 
-@Observed
+@ObservedV2
+export class PeripheralPolicyState {
+  @Trace records: PeripheralPolicyRecord[] = []
+  @Trace updatingKeys: string[] = []
+}
+
+@ObservedV2
 export class PeripheralPolicyViewModel {
-  records: PeripheralPolicyRecord[] = []
-  updatingKeys: string[] = []
+  @Trace state: PeripheralPolicyState = new PeripheralPolicyState()
 
   async initialize(context: common.UIAbilityContext): Promise<boolean> {
     return PeripheralDevicePolicyRepository.init(context)
   }
 
   reloadRecords(connectionRecords: PeripheralConnectionRecord[]): void {
-    this.records = PeripheralPolicyService.buildPolicyRecords(
+    this.state.records = PeripheralPolicyService.buildPolicyRecords(
       connectionRecords,
       PeripheralDevicePolicyRepository.getAll()
     )
   }
 
   isUpdating(deviceId: string): boolean {
-    return this.updatingKeys.includes(deviceId) || this.updatingKeys.includes(deviceId.toUpperCase())
+    return this.state.updatingKeys.includes(deviceId) || this.state.updatingKeys.includes(deviceId.toUpperCase())
   }
 
   startUpdate(deviceId: string): void {
     const deviceKey = this.normalizeDeviceKey(deviceId)
-    if (!this.updatingKeys.includes(deviceKey)) {
-      this.updatingKeys = [...this.updatingKeys, deviceKey]
+    if (!this.state.updatingKeys.includes(deviceKey)) {
+      this.state.updatingKeys = [...this.state.updatingKeys, deviceKey]
     }
   }
 
   endUpdate(deviceId: string): void {
     const deviceKey = this.normalizeDeviceKey(deviceId)
-    this.updatingKeys = this.updatingKeys.filter((item: string) => item !== deviceKey)
+    this.state.updatingKeys = this.state.updatingKeys.filter((item: string) => item !== deviceKey)
   }
 
   resetUpdatingState(): void {
-    this.updatingKeys = []
+    this.state.updatingKeys = []
   }
 
   async setDevicePolicy(
@@ -85,7 +90,7 @@ export class PeripheralPolicyViewModel {
   }
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
-    if (this.records.length === 0) {
+    if (this.state.records.length === 0) {
       return { success: false, reason: PeripheralStrings.emptyPolicyRecords } as ExportActionResult
     }
     if (!context) {
@@ -93,7 +98,7 @@ export class PeripheralPolicyViewModel {
     }
 
     try {
-      const csvContent = this.buildPolicyCsv(this.records)
+      const csvContent = this.buildPolicyCsv(this.state.records)
       const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralStrings.csvPolicyListFilePrefix)
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult

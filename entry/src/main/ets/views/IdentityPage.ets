@@ -9,7 +9,6 @@ import {
 } from '../models/DataModels'
 
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
 import { IdentityService } from '../services/IdentityService'
 import { SectionCard } from '../components/SettingsSectionCard'
@@ -24,16 +23,16 @@ import {
 
 const TAG = 'IdentityPage'
 
-@Component
+@ComponentV2
 export struct IdentityPage {
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onBack: () => void = () => {}
-  @State adminState: AdminActivationState = {
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onBack: () => void = () => {}
+  @Local adminState: AdminActivationState = {
     activated: false,
     enableCommand: EnterpriseAdminService.buildEnableCommand(),
     adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
   }
-  @State viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
+  @Local viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
     value: `${value} ${IdentityStrings.byteUnitSuffix}`
@@ -110,6 +109,7 @@ export struct IdentityPage {
         Column({ space: 24 }) {
           SectionCard({
             title: IdentityStrings.sectionPasswordComplexity,
+            currentTheme: this.currentTheme,
             content: () => {
               this.passwordComplexityContent()
             }
@@ -140,6 +140,7 @@ export struct IdentityPage {
       label: CommonStrings.actionSaveConfig,
       icon: $r('app.media.save'),
       kind: 'primary',
+      currentTheme: this.currentTheme,
       onTap: () => {
         this.saveConfig()
       }
@@ -155,6 +156,7 @@ export struct IdentityPage {
       selectedIndex: this.viewModel.state.minLengthIndex,
       value: this.getSelectedMinLengthLabel(),
       selectWidth: 140,
+      currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         this.viewModel.setMinLengthIndex(index)
       }
@@ -168,6 +170,7 @@ export struct IdentityPage {
       title: IdentityStrings.requireUppercase,
       description: IdentityStrings.requireUppercaseDesc,
       isOn: this.viewModel.state.requireUppercase,
+      currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
         this.viewModel.setRequirement('requireUppercase', value)
       }
@@ -181,6 +184,7 @@ export struct IdentityPage {
       title: IdentityStrings.requireLowercase,
       description: IdentityStrings.requireLowercaseDesc,
       isOn: this.viewModel.state.requireLowercase,
+      currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
         this.viewModel.setRequirement('requireLowercase', value)
       }
@@ -194,6 +198,7 @@ export struct IdentityPage {
       title: IdentityStrings.requireDigit,
       description: IdentityStrings.requireDigitDesc,
       isOn: this.viewModel.state.requireDigit,
+      currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
         this.viewModel.setRequirement('requireDigit', value)
       }
@@ -207,6 +212,7 @@ export struct IdentityPage {
       title: IdentityStrings.requireSpecialChar,
       description: IdentityStrings.requireSpecialCharDesc,
       isOn: this.viewModel.state.requireSpecialChar,
+      currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
         this.viewModel.setRequirement('requireSpecialChar', value)
       }
@@ -228,6 +234,7 @@ export struct IdentityPage {
       inputPlaceholder: IdentityStrings.customDaysPlaceholder,
       inputWidth: 112,
       inputSuffix: IdentityStrings.dayUnit,
+      currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         this.viewModel.setValidityPeriodIndex(index)
       },

@@ -6,7 +6,6 @@ import { common } from '@kit.AbilityKit'
 import { AUTH_METHOD_OPTIONS } from '../models/DataModels'
 
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
@@ -17,12 +16,11 @@ import { ToolSettingsActionRequest, ToolSettingsViewModel } from '../viewmodels/
 
 const TAG = 'ToolSettings.Page'
 
-@Component
+@ComponentV2
 export struct ToolSettingsPage {
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onBack: () => void = () => {}
-  @State viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
-  @State initialized: boolean = false
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onBack: () => void = () => {}
+  @Local viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private authMethodOptions: SelectOption[] =
     AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
 
@@ -36,9 +34,7 @@ export struct ToolSettingsPage {
   }
 
   private async initializeViewModel(): Promise<void> {
-    this.initialized = false
     await this.viewModel.initialize(this.getPageContext())
-    this.initialized = true
   }
 
   private getPageContext(): common.UIAbilityContext {
@@ -90,9 +86,10 @@ export struct ToolSettingsPage {
 
       Scroll() {
         Column({ space: 24 }) {
-          if (this.initialized) {
+          if (this.viewModel.state.initialized) {
             SectionCard({
               title: ToolSettingsStrings.sectionStartupAuth,
+              currentTheme: this.currentTheme,
               content: () => {
                 this.startupAuthContent()
               }
@@ -128,8 +125,9 @@ export struct ToolSettingsPage {
       label: CommonStrings.actionSaveSettings,
       icon: $r('app.media.save'),
       kind: 'primary',
+      currentTheme: this.currentTheme,
       onTap: () => {
-        this.handleSave()
+        void this.handleSave()
       }
     })
   }
@@ -157,6 +155,7 @@ export struct ToolSettingsPage {
       title: ToolSettingsStrings.startupAuthTitle,
       description: ToolSettingsStrings.startupAuthDesc,
       isOn: this.viewModel.state.config.startupAuthEnabled,
+      currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
         this.viewModel.setStartupAuthEnabled(value)
       }
@@ -172,6 +171,7 @@ export struct ToolSettingsPage {
       selectedIndex: this.viewModel.selectedAuthMethodIndex,
       value: this.getSelectedAuthMethodLabel(),
       selectWidth: 140,
+      currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
           this.viewModel.setAuthMethod(AUTH_METHOD_OPTIONS[index].value)
@@ -185,17 +185,18 @@ export struct ToolSettingsPage {
     SectionActionRow({
       title: ToolSettingsStrings.changePasswordLabel,
       description: ToolSettingsStrings.changePasswordDesc,
-        actionLabel: ToolSettingsStrings.changePasswordLabel,
-        onTap: () => {
-          this.viewModel.openPasswordSettings(this.getPageContext()).then((request: ToolSettingsActionRequest) => {
-            if (request.kind === 'result' && request.status && request.message) {
-              DialogService.openResult(this.getUIContext(), {
-                status: request.status,
-                message: request.message
-              })
-            }
-          })
-        }
-      })
+      actionLabel: ToolSettingsStrings.changePasswordLabel,
+      currentTheme: this.currentTheme,
+      onTap: () => {
+        this.viewModel.openPasswordSettings(this.getPageContext()).then((request: ToolSettingsActionRequest) => {
+          if (request.kind === 'result' && request.status && request.message) {
+            DialogService.openResult(this.getUIContext(), {
+              status: request.status,
+              message: request.message
+            })
+          }
+        })
+      }
+    })
   }
 }

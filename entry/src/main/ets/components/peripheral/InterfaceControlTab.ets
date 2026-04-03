@@ -8,24 +8,24 @@ import { ThemeMode } from '../../theme/ThemeColors'
 import { HoverUtils } from '../../utils/HoverUtils'
 import { FormControlUtils } from '../../utils/FormControlUtils'
 
-@Component
+@ComponentV2
 export struct InterfaceControlTab {
-  @Prop usbDisabled: boolean = false
-  @Prop btDisabled: boolean = false
-  @Prop wifiDisabled: boolean = false
-  @Prop hdcDisabled: boolean = false
-  @Prop networkDisabled: boolean = false
-  @Prop printerDisabled: boolean = false
-  @Prop microphoneDisabled: boolean = false
-  @Prop cameraDisabled: boolean = false
-  @Prop usbStoragePolicyIndex: number = 0
-  @Prop interfaceControlProcessingKey: string = ''
-  @Prop usbStorageControlKey: string = ''
-  @Prop currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Prop hoveredPanelIndex: number = -1
-  onInterfaceToggle?: (feature: string, disallow: boolean) => void
-  onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
-  onPanelHover?: (isHover: boolean) => void
+  @Param usbDisabled: boolean = false
+  @Param btDisabled: boolean = false
+  @Param wifiDisabled: boolean = false
+  @Param hdcDisabled: boolean = false
+  @Param networkDisabled: boolean = false
+  @Param printerDisabled: boolean = false
+  @Param microphoneDisabled: boolean = false
+  @Param cameraDisabled: boolean = false
+  @Param usbStoragePolicyIndex: number = 0
+  @Param interfaceControlProcessingKey: string = ''
+  @Param usbStorageControlKey: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param hoveredPanelIndex: number = -1
+  @Event onInterfaceToggle?: (feature: string, disallow: boolean) => void
+  @Event onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
+  @Event onPanelHover?: (isHover: boolean) => void
 
   build() {
     Scroll() {
@@ -97,6 +97,7 @@ export struct InterfaceControlTab {
       selectWidth: 150,
       processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
       optimistic: true,
+      currentTheme: this.currentTheme,
       onSelectAsync: async (nextIndex: number, _previousIndex: number): Promise<boolean> => {
         if (!this.onUsbStoragePolicyChange) {
           return false

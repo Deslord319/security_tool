@@ -12,21 +12,20 @@ import { PeripheralRecordViewModel } from './PeripheralRecordViewModel'
 
 const TAG = 'PeripheralViewModel'
 
-@Observed
+@ObservedV2
 export class PeripheralViewModel {
-  adminState: AdminActivationState = {
+  @Trace adminState: AdminActivationState = {
     activated: false,
     enableCommand: EnterpriseAdminService.buildEnableCommand(),
     adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
   }
 
-  isLoading: boolean = false
-  reasonCode: string | null = null
-  currentTab: number = 0
-  onRefresh?: () => void
-  interfaceControl: InterfaceControlViewModel = new InterfaceControlViewModel()
-  records: PeripheralRecordViewModel = new PeripheralRecordViewModel()
-  policy: PeripheralPolicyViewModel = new PeripheralPolicyViewModel()
+  @Trace isLoading: boolean = false
+  @Trace reasonCode: string | null = null
+  @Trace currentTab: number = 0
+  @Trace interfaceControl: InterfaceControlViewModel = new InterfaceControlViewModel()
+  @Trace records: PeripheralRecordViewModel = new PeripheralRecordViewModel()
+  @Trace policy: PeripheralPolicyViewModel = new PeripheralPolicyViewModel()
 
   private traceStorageListenerId: number = -1
   private devicePolicyListenerId: number = -1
@@ -70,7 +69,7 @@ export class PeripheralViewModel {
     this.refreshAdminActivationState()
     this.interfaceControl.reloadState()
     this.records.reloadRecords()
-    this.policy.reloadRecords(this.records.records)
+    this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadAllData')
   }
 
@@ -89,28 +88,23 @@ export class PeripheralViewModel {
 
   reloadDeviceRecords(): void {
     this.records.reloadRecords()
-    this.policy.reloadRecords(this.records.records)
+    this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadDeviceRecords')
   }
 
   private refreshTraceDrivenData(): void {
     this.records.reloadRecords()
-    this.policy.reloadRecords(this.records.records)
+    this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('refreshTraceDrivenData')
   }
 
   private refreshPolicyDrivenData(): void {
-    this.policy.reloadRecords(this.records.records)
+    this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('refreshPolicyDrivenData')
   }
 
   private notifyRefresh(source: string): void {
-    try {
-      this.onRefresh && this.onRefresh()
-    } catch (err) {
-      LogUtils.warn(TAG, `onRefresh callback failed: ${JSON.stringify(err)}`)
-    }
-    LogUtils.info(TAG, `source=${source}, records=${this.records.records.length}, policyRecords=${this.policy.records.length}`)
+    LogUtils.info(TAG, `source=${source}, records=${this.records.state.records.length}, policyRecords=${this.policy.state.records.length}`)
   }
 
   async toggleInterface(feature: string, disallow: boolean): Promise<boolean> {
@@ -149,7 +143,7 @@ export class PeripheralViewModel {
       if (this.reasonCode !== null) {
         return false
       }
-      this.policy.reloadRecords(this.records.records)
+      this.policy.reloadRecords(this.records.state.records)
       this.notifyRefresh('policyChangeSuccess')
       return true
     } finally {
@@ -177,7 +171,7 @@ export class PeripheralViewModel {
         return false
       }
       this.policy.resetUpdatingState()
-      this.policy.reloadRecords(this.records.records)
+      this.policy.reloadRecords(this.records.state.records)
       this.notifyRefresh('clearPeripheralPolicyRecords')
       return true
     } catch (err) {

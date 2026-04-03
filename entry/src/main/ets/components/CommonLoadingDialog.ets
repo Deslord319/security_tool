@@ -1,12 +1,11 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 @CustomDialog
 export struct CommonLoadingDialog {
   controller?: CustomDialogController
   message: string = ''
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
     Column({ space: 14 }) {

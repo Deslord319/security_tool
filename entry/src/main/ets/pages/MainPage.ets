@@ -28,6 +28,7 @@ import { FirewallModeService } from '../services/FirewallModeService'
 import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
+const TAG = 'MainPage'
 
 @Entry
 @ComponentV2
@@ -36,13 +37,13 @@ struct MainPage {
   @Local firewallEnabled: boolean = false
   @Local firewallPresetMode: FirewallPresetMode = 'custom'
   @Local showMenu: boolean = false
-  @Local showAboutDialog: boolean = false
   @Local logManageMounted: boolean = true
   @Local pageEnterOpacity: number = 1
   @Local pageEnterOffset: number = 0
   @Local menuTriggerHovered: boolean = false
   @Local currentTheme: ThemeMode = ThemeManager.getInstance().getCurrentTheme()
   @Local currentThemeOption: ThemeOption = ThemeManager.getInstance().getCurrentOption()
+  private aboutDialogController?: CustomDialogController
   private runtimeInitialized: boolean = false
   private runtimeInitInProgress: boolean = false
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
@@ -57,10 +58,10 @@ struct MainPage {
     this.syncThemeState()
     this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
-      LogUtils.error('testTag', `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
     this.ensureRuntimeServices().catch((err: Object) => {
-      LogUtils.error('testTag', `ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
   }
@@ -69,10 +70,10 @@ struct MainPage {
     this.syncThemeState()
     this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
-      LogUtils.error('testTag', `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
     })
     this.ensureRuntimeServices().catch((err: Object) => {
-      LogUtils.error('testTag', `ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
   }
@@ -116,12 +117,12 @@ struct MainPage {
       try {
         mainWindow.setDecorButtonStyle(decorButtonStyle)
       } catch (err) {
-        LogUtils.warn('testTag',
+        LogUtils.warn(TAG,
           'setDecorButtonStyle skipped for theme=%{public}s: %{public}s',
           this.currentTheme, JSON.stringify(err))
       }
     }).catch((err: Error) => {
-      LogUtils.warn('testTag',
+      LogUtils.warn(TAG,
         'getLastWindow failed, skip decor button style sync for theme=%{public}s: %{public}s',
         this.currentTheme, JSON.stringify(err))
     })
@@ -132,7 +133,7 @@ struct MainPage {
     await FirewallModeService.initialize(context)
     let policy = await FirewallService.getFirewallPolicy()
     if (policy === null) {
-      LogUtils.warn('testTag', 'skip firewall state sync because getFirewallPolicy returned null')
+      LogUtils.warn(TAG, 'skip firewall state sync because getFirewallPolicy returned null')
       return
     }
 
@@ -144,7 +145,7 @@ struct MainPage {
     if (!this.runtimeInitialized) {
       await this.initRuntimeServices()
       if (!this.runtimeInitialized) {
-        LogUtils.warn('testTag', 'runtime services not initialized, skip start')
+        LogUtils.warn(TAG, 'runtime services not initialized, skip start')
         return
       }
     }
@@ -152,9 +153,9 @@ struct MainPage {
     let status = LogCollectorService.getStatus()
     if (!status.running) {
       let collectorStarted = await LogCollectorService.start()
-      LogUtils.info('testTag', `ensureRuntimeServices collector start result: started=${collectorStarted.success}, code=${collectorStarted.code}`)
+      LogUtils.info(TAG, `ensureRuntimeServices collector start result: started=${collectorStarted.success}, code=${collectorStarted.code}`)
       if (!collectorStarted.success) {
-        LogUtils.warn('testTag', `LogCollectorService restart failed: ${collectorStarted.code}`)
+        LogUtils.warn(TAG, `LogCollectorService restart failed: ${collectorStarted.code}`)
       }
     }
 
@@ -162,11 +163,11 @@ struct MainPage {
     if (!runtimeStatus.running) {
       let runtimeStarted = await this.connectionRecordPipeline.start()
       let latestStatus = this.connectionRecordProducer.getStatus()
-      LogUtils.info('testTag',
+      LogUtils.info(TAG,
         `ensureRuntimeServices peripheral runtime start result: started=${runtimeStarted}, usb=${latestStatus.capabilities.usbRuntimeEvents}, bluetooth=${latestStatus.capabilities.bluetoothRuntimeEvents}, reason=${latestStatus.capabilities.degradedReason ?? 'none'}`
       )
       if (!runtimeStarted) {
-        LogUtils.warn('testTag', 'connection record runtime start failed')
+        LogUtils.warn(TAG, 'connection record runtime start failed')
       }
     }
   }
@@ -181,34 +182,34 @@ struct MainPage {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let collectorInited = await LogCollectorService.init(context)
       if (!collectorInited.success) {
-        LogUtils.error('testTag', `LogCollectorService init failed: ${collectorInited.code}`)
+        LogUtils.error(TAG, `LogCollectorService init failed: ${collectorInited.code}`)
         return
       }
 
       let traceRepoInited = await this.connectionRecordPipeline.bindContext(context)
       if (!traceRepoInited) {
-        LogUtils.error('testTag', 'connection record pipeline bindContext failed')
+        LogUtils.error(TAG, 'connection record pipeline bindContext failed')
         return
       }
       await PeripheralTraceRepository.configure(180, 200000)
 
       let devicePolicyInited = await PeripheralDevicePolicyRepository.init(context)
       if (!devicePolicyInited) {
-        LogUtils.error('testTag', 'PeripheralDevicePolicyRepository init failed')
+        LogUtils.error(TAG, 'PeripheralDevicePolicyRepository init failed')
         return
       }
 
       let producerAttached = await this.connectionRecordPipeline.attachProducer(this.connectionRecordProducer)
       if (!producerAttached) {
-        LogUtils.error('testTag', 'connection record pipeline attachProducer failed')
+        LogUtils.error(TAG, 'connection record pipeline attachProducer failed')
         return
       }
-      LogUtils.info('testTag', 'initRuntimeServices success')
+      LogUtils.info(TAG, 'initRuntimeServices success')
 
       this.runtimeInitialized = true
     } catch (err) {
       this.runtimeInitialized = false
-      LogUtils.error('testTag', `initRuntimeServices failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `initRuntimeServices failed: ${JSON.stringify(err)}`)
     } finally {
       this.runtimeInitInProgress = false
     }
@@ -253,11 +254,48 @@ struct MainPage {
     this.syncDecorButtonStyle()
   }
 
+  private openAboutDialog(): void {
+    this.closeAboutDialog()
+    try {
+      this.aboutDialogController = new CustomDialogController({
+        builder: AboutDialogContent({
+          controller: this.aboutDialogController,
+          currentTheme: this.currentTheme,
+          onConfirm: () => {
+            this.closeAboutDialog()
+          }
+        }),
+        alignment: DialogAlignment.Center,
+        autoCancel: false,
+        customStyle: true,
+        isModal: true,
+        maskColor: AppColors.OVERLAY_BACKGROUND,
+        cancel: () => {
+          this.aboutDialogController = undefined
+        }
+      })
+      this.aboutDialogController.open()
+    } catch (err) {
+      LogUtils.warn(TAG, `openAboutDialog failed: ${JSON.stringify(err)}`)
+      this.aboutDialogController = undefined
+    }
+  }
+
+  private closeAboutDialog(): void {
+    try {
+      this.aboutDialogController?.close()
+    } catch (_err) {
+    } finally {
+      this.aboutDialogController = undefined
+    }
+  }
+
   @Builder
   private currentRoutePage() {
     if (this.currentPage === RouteIds.DASHBOARD) {
       Column() {
         DashboardPage({
+          currentTheme: this.currentTheme,
           onNavigate: (route: string) => {
             this.setCurrentPage(route)
           }
@@ -271,6 +309,7 @@ struct MainPage {
         FirewallPage({
           firewallEnabled: this.firewallEnabled,
           currentMode: this.firewallPresetMode,
+          currentTheme: this.currentTheme,
           onFirewallToggle: (enabled: boolean) => {
             this.firewallEnabled = enabled
           },
@@ -298,6 +337,7 @@ struct MainPage {
       Column() {
         FirewallRulesPage({
           currentMode: this.firewallPresetMode,
+          currentTheme: this.currentTheme,
           onBack: () => {
             this.setCurrentPage(RouteIds.FIREWALL)
           }
@@ -327,6 +367,7 @@ struct MainPage {
     } else if (this.currentPage === RouteIds.PERIPHERAL_MANAGE) {
       Column() {
         PeripheralPage({
+          currentTheme: this.currentTheme,
           onBack: () => {
             this.setCurrentPage(RouteIds.DASHBOARD)
           }
@@ -338,6 +379,7 @@ struct MainPage {
     } else if (this.currentPage === RouteIds.IDENTITY) {
       Column() {
         IdentityPage({
+          currentTheme: this.currentTheme,
           onBack: () => {
             this.setCurrentPage(RouteIds.DASHBOARD)
           }
@@ -349,6 +391,7 @@ struct MainPage {
     } else if (this.currentPage === RouteIds.TOOL_SETTINGS) {
       Column() {
         ToolSettingsPage({
+          currentTheme: this.currentTheme,
           onBack: () => {
             this.setCurrentPage(RouteIds.DASHBOARD)
           }
@@ -360,6 +403,7 @@ struct MainPage {
     } else if (this.currentPage === RouteIds.HELP_FEEDBACK) {
       Column() {
         HelpFeedbackPage({
+          currentTheme: this.currentTheme,
           onBack: () => {
             this.setCurrentPage(RouteIds.DASHBOARD)
           }
@@ -473,30 +517,11 @@ struct MainPage {
               void this.handleThemeOptionSelect(option)
             },
             onOpenAbout: () => {
-              this.showAboutDialog = true
+              this.openAboutDialog()
             }
           })
         }
         .margin({ top: 56, right: 140 })
-      }
-
-      if (this.showAboutDialog) {
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor(AppColors.OVERLAY_BACKGROUND)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .onClick(() => {
-            this.showAboutDialog = false
-          })
-
-        AboutDialogContent({
-          currentTheme: this.currentTheme,
-          onConfirm: () => {
-            this.showAboutDialog = false
-          }
-        })
       }
     }
     .width('100%')

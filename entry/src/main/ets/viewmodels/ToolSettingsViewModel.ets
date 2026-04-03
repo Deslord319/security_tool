@@ -13,12 +13,6 @@ import { SystemSettingsService } from '../services/SystemSettingsService'
 
 const TAG = 'ToolSettings.ViewModel'
 
-export interface ToolSettingsUiState {
-  config: ToolSettingsConfig
-  initialConfig: ToolSettingsConfig
-  hasChanges: boolean
-}
-
 export type ToolSettingsActionKind = 'none' | 'result' | 'confirm'
 
 export interface ToolSettingsActionRequest {
@@ -28,19 +22,23 @@ export interface ToolSettingsActionRequest {
   message?: string
 }
 
-@Observed
+@ObservedV2
+export class ToolSettingsConfigState {
+  @Trace startupAuthEnabled: boolean = DEFAULT_TOOL_SETTINGS.startupAuthEnabled
+  @Trace authMethod: AuthMethod = DEFAULT_TOOL_SETTINGS.authMethod
+}
+
+@ObservedV2
+export class ToolSettingsUiState {
+  @Trace config: ToolSettingsConfigState = new ToolSettingsConfigState()
+  @Trace initialConfig: ToolSettingsConfigState = new ToolSettingsConfigState()
+  @Trace hasChanges: boolean = false
+  @Trace initialized: boolean = false
+}
+
+@ObservedV2
 export class ToolSettingsViewModel {
-  state: ToolSettingsUiState = {
-    config: {
-      startupAuthEnabled: DEFAULT_TOOL_SETTINGS.startupAuthEnabled,
-      authMethod: DEFAULT_TOOL_SETTINGS.authMethod
-    },
-    initialConfig: {
-      startupAuthEnabled: DEFAULT_TOOL_SETTINGS.startupAuthEnabled,
-      authMethod: DEFAULT_TOOL_SETTINGS.authMethod
-    },
-    hasChanges: false
-  }
+  @Trace state: ToolSettingsUiState = new ToolSettingsUiState()
   private repository: ToolSettingsRepository
   private isSaving: boolean = false
 
@@ -54,12 +52,12 @@ export class ToolSettingsViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
+    this.state.initialized = false
     let config = await this.repository.loadConfig(context)
-    this.state = {
-      config: this.createConfig(config.startupAuthEnabled, config.authMethod),
-      initialConfig: this.createConfig(config.startupAuthEnabled, config.authMethod),
-      hasChanges: false
-    }
+    this.applyConfig(this.state.config, config.startupAuthEnabled, config.authMethod)
+    this.applyConfig(this.state.initialConfig, config.startupAuthEnabled, config.authMethod)
+    this.state.hasChanges = false
+    this.state.initialized = true
   }
 
   setStartupAuthEnabled(enabled: boolean): void {
@@ -131,23 +129,24 @@ export class ToolSettingsViewModel {
   }
 
   private async saveCurrentConfig(context: common.UIAbilityContext): Promise<ToolSettingsActionRequest> {
-    let configToSave = this.state.config
+    let configToSave: ToolSettingsConfig = {
+      startupAuthEnabled: this.state.config.startupAuthEnabled,
+      authMethod: this.state.config.authMethod
+    }
     this.isSaving = true
     try {
       let saved = await this.repository.saveConfig(context, configToSave)
       if (!saved) {
         LogUtils.error(TAG, '[SAVE_FAIL] saveConfig | repository returned false')
-        return {
-          kind: 'result',
-          status: 'failure',
-          message: CommonStrings.messageSaveFailed
-        }
+      return {
+        kind: 'result',
+        status: 'failure',
+        message: CommonStrings.messageSaveFailed
       }
-      this.state = {
-        config: this.createConfig(configToSave.startupAuthEnabled, configToSave.authMethod),
-        initialConfig: this.createConfig(configToSave.startupAuthEnabled, configToSave.authMethod),
-        hasChanges: false
-      }
+    }
+      this.applyConfig(this.state.config, configToSave.startupAuthEnabled, configToSave.authMethod)
+      this.applyConfig(this.state.initialConfig, configToSave.startupAuthEnabled, configToSave.authMethod)
+      this.state.hasChanges = false
       return {
         kind: 'result',
         status: 'success',
@@ -159,19 +158,14 @@ export class ToolSettingsViewModel {
   }
 
   private updateConfig(config: ToolSettingsConfig): void {
-    this.state = {
-      config: this.createConfig(config.startupAuthEnabled, config.authMethod),
-      initialConfig: this.state.initialConfig,
-      hasChanges:
-        config.startupAuthEnabled !== this.state.initialConfig.startupAuthEnabled ||
-        config.authMethod !== this.state.initialConfig.authMethod
-    }
+    this.applyConfig(this.state.config, config.startupAuthEnabled, config.authMethod)
+    this.state.hasChanges =
+      config.startupAuthEnabled !== this.state.initialConfig.startupAuthEnabled ||
+      config.authMethod !== this.state.initialConfig.authMethod
   }
 
-  private createConfig(startupAuthEnabled: boolean, authMethod: AuthMethod): ToolSettingsConfig {
-    return {
-      startupAuthEnabled: startupAuthEnabled,
-      authMethod: authMethod
-    }
+  private applyConfig(target: ToolSettingsConfigState, startupAuthEnabled: boolean, authMethod: AuthMethod): void {
+    target.startupAuthEnabled = startupAuthEnabled
+    target.authMethod = authMethod
   }
 }

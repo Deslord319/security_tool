@@ -18,21 +18,24 @@ export interface InterfaceControlState {
   usbStoragePolicyIndex: number
 }
 
-@Observed
-export class InterfaceControlViewModel {
-  state: InterfaceControlState = {
-    usbDisabled: false,
-    btDisabled: false,
-    wifiDisabled: false,
-    hdcDisabled: false,
-    networkDisabled: false,
-    printerDisabled: false,
-    microphoneDisabled: false,
-    cameraDisabled: false,
-    usbStoragePolicyIndex: 1
-  }
+@ObservedV2
+export class InterfaceControlStateModel {
+  @Trace usbDisabled: boolean = false
+  @Trace btDisabled: boolean = false
+  @Trace wifiDisabled: boolean = false
+  @Trace hdcDisabled: boolean = false
+  @Trace networkDisabled: boolean = false
+  @Trace printerDisabled: boolean = false
+  @Trace microphoneDisabled: boolean = false
+  @Trace cameraDisabled: boolean = false
+  @Trace usbStoragePolicyIndex: number = 1
+}
 
-  processingKey: string = ''
+@ObservedV2
+export class InterfaceControlViewModel {
+  @Trace state: InterfaceControlStateModel = new InterfaceControlStateModel()
+
+  @Trace processingKey: string = ''
 
   reloadState(): void {
     try {
@@ -128,7 +131,15 @@ export class InterfaceControlViewModel {
   }
 
   private commitState(nextState: InterfaceControlState): void {
-    this.state = nextState
+    this.state.usbDisabled = nextState.usbDisabled
+    this.state.btDisabled = nextState.btDisabled
+    this.state.wifiDisabled = nextState.wifiDisabled
+    this.state.hdcDisabled = nextState.hdcDisabled
+    this.state.networkDisabled = nextState.networkDisabled
+    this.state.printerDisabled = nextState.printerDisabled
+    this.state.microphoneDisabled = nextState.microphoneDisabled
+    this.state.cameraDisabled = nextState.cameraDisabled
+    this.state.usbStoragePolicyIndex = nextState.usbStoragePolicyIndex
   }
 
   private getUsbStoragePolicyIndex(policy: edmUsbManager.UsbPolicy): number {

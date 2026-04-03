@@ -14,26 +14,26 @@ import { netFirewall } from '@kit.NetworkKit'
 
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { FirewallPresetMode, FirewallUserApplyMode } from '../models/DataModels'
 import { DialogService } from '../utils/DialogService'
 import { UserFirewallModeService } from '../services/UserFirewallModeService'
 
 const TAG = 'FirewallRulesPage'
 
-@Component
+@ComponentV2
 export struct FirewallRulesPage {
-  @Prop currentMode: FirewallPresetMode = 'custom'
-  @State rules: netFirewall.NetFirewallRule[] = []
-  @State conflictNotice: string = ''
-  @State currentTab: number = 0
-  @State isLoading: boolean = false
-  onBack: () => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param currentMode: FirewallPresetMode = 'custom'
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Local rules: netFirewall.NetFirewallRule[] = []
+  @Local conflictNotice: string = ''
+  @Local currentTab: number = 0
+  @Local isLoading: boolean = false
+  @Event onBack: () => void = () => {}
   private userFirewallDialogController?: CustomDialogController
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
+      currentTheme: this.currentTheme,
       onClose: () => {
         this.addRuleDialogController.close()
       },
@@ -152,6 +152,7 @@ export struct FirewallRulesPage {
   private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
     let dialogController = new CustomDialogController({
       builder: AddRuleDialog({
+        currentTheme: this.currentTheme,
         onClose: () => {
           dialogController.close()
         },
@@ -738,6 +739,7 @@ export struct FirewallRulesPage {
     this.userFirewallDialogController = new CustomDialogController({
       builder: UserFirewallControlDialog({
         controller: this.userFirewallDialogController,
+        currentTheme: this.currentTheme,
         onActionCompleted: async (_userId: number, _mode: FirewallUserApplyMode): Promise<void> => {
           await this.loadRules()
         }

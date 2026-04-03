@@ -2,10 +2,7 @@ import { LogUtils } from '../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { SubPageHeader } from '../components/SubPageHeader'
-import {
-  ConnectionDetailDialog,
-  ConnectionHistoryItem
-} from '../components/peripheral/ConnectionDetailDialog'
+import { ConnectionDetailDialog } from '../components/peripheral/ConnectionDetailDialog'
 import { DeviceRecordList } from '../components/peripheral/DeviceRecordList'
 import { InterfaceControlTab } from '../components/peripheral/InterfaceControlTab'
 import { PolicyList, PolicyOption } from '../components/peripheral/PolicyList'
@@ -15,7 +12,6 @@ import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../models/DataModels'
 import { PeripheralService } from '../services/PeripheralService'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 import { ExportMessageUtils } from '../utils/ExportMessageUtils'
 import { PeripheralViewModel } from '../viewmodels/PeripheralViewModel'
@@ -26,17 +22,13 @@ import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
 const TAG = 'PeripheralPage'
 const USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS = 180
 
-@Component
+@ComponentV2
 export struct PeripheralPage {
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onBack: () => void = () => {}
-  @State viewModel: PeripheralViewModel = new PeripheralViewModel()
-  @State currentTabIndex: number = 0
-  @State hoveredPanelIndex: number = -1
-  @State deviceRecords: PeripheralConnectionRecord[] = []
-  @State policyRecords: PeripheralPolicyRecord[] = []
-  @State detailRecord: PeripheralConnectionRecord | null = null
-  @State detailHistoryItems: ConnectionHistoryItem[] = [] 
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onBack: () => void = () => {}
+  @Local viewModel: PeripheralViewModel = new PeripheralViewModel()
+  @Local currentTabIndex: number = 0
+  @Local hoveredPanelIndex: number = -1
 
   private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [
@@ -48,7 +40,7 @@ export struct PeripheralPage {
 
   aboutToAppear() {
     LogUtils.info(TAG,
-      `page enter: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}`
+      `page enter: tab=${this.currentTabIndex}, records=${this.viewModel.records.state.records.length}, policyRecords=${this.viewModel.policy.state.records.length}`
     )
     void this.initViewModel()
   }
@@ -56,20 +48,17 @@ export struct PeripheralPage {
   aboutToDisappear() {
     this.usbLoadingRunner.closeIfOpen('page-disappear')
     this.closeDetailDialog()
-    this.viewModel.onRefresh = undefined
     this.viewModel.destroy()
     LogUtils.info(TAG,
-      `page exit: tab=${this.currentTabIndex}, records=${this.deviceRecords.length}, policyRecords=${this.policyRecords.length}`
+      `page exit: tab=${this.currentTabIndex}, records=${this.viewModel.records.state.records.length}, policyRecords=${this.viewModel.policy.state.records.length}`
     )
   }
 
   private async initViewModel(): Promise<void> {
     try {
-      this.viewModel.onRefresh = () => this.syncViewState()
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await this.viewModel.initialize(context)
       this.currentTabIndex = this.viewModel.currentTab
-      this.syncViewState()
     } catch (err) {
       LogUtils.error(TAG, `initViewModel failed: ${JSON.stringify(err)}`)
         DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(PeripheralStrings.initFailed))
@@ -87,30 +76,20 @@ export struct PeripheralPage {
     this.viewModel.switchToTab(index)
   }
 
-  private syncDetailDialogState(): void {
-    this.detailRecord = this.viewModel.records.connectionDetailDialog.record
-    this.detailHistoryItems = [...this.viewModel.records.connectionDetailDialog.historyItems]
-  }
-
-  private syncViewState(): void {
-    this.deviceRecords = [...this.viewModel.records.records]
-    this.policyRecords = [...this.viewModel.policy.records]
-    this.syncDetailDialogState()
-  }
-
   private openDetailDialog(record: PeripheralConnectionRecord): void {
     this.closeDetailDialogController()
     this.viewModel.openConnectionDetailDialog(record)
-    this.syncViewState()
-    if (!this.detailRecord) {
+    let detailRecord = this.viewModel.records.state.connectionDetailDialog.record
+    if (!detailRecord) {
       return
     }
     try {
       this.detailDialogController = new CustomDialogController({
         builder: ConnectionDetailDialog({
           controller: this.detailDialogController,
-          selectedRecord: this.detailRecord as PeripheralConnectionRecord,
-          historyItems: this.detailHistoryItems,
+          currentTheme: this.currentTheme,
+          selectedRecord: detailRecord,
+          historyItems: this.viewModel.records.state.connectionDetailDialog.historyItems.slice(),
           onClose: () => this.closeDetailDialog()
         }),
         alignment: DialogAlignment.Center,
@@ -120,8 +99,6 @@ export struct PeripheralPage {
         maskColor: AppColors.OVERLAY_BACKGROUND,
         cancel: () => {
           this.detailDialogController = undefined
-          this.detailRecord = null
-          this.detailHistoryItems = []
           this.viewModel.closeConnectionDetailDialog()
         }
       })
@@ -144,14 +121,13 @@ export struct PeripheralPage {
   private closeDetailDialog(): void {
     this.closeDetailDialogController()
     this.viewModel.closeConnectionDetailDialog()
-    this.detailRecord = null
-    this.detailHistoryItems = []
   }
 
   private createUsbLoadingDialogController(message: string): CustomDialogController {
     return new CustomDialogController({
       builder: CommonLoadingDialog({
-        message: message
+        message: message,
+        currentTheme: this.currentTheme
       }),
       alignment: DialogAlignment.Center,
       autoCancel: false,
@@ -263,7 +239,7 @@ export struct PeripheralPage {
   private deviceTab() {
     Column() {
       DeviceRecordList({
-        deviceRecords: this.deviceRecords,
+        deviceRecords: this.viewModel.records.state.records,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onRecordClick: (record: PeripheralConnectionRecord) => this.openDetailDialog(record),
@@ -280,12 +256,12 @@ export struct PeripheralPage {
   private policyTab() {
     Column() {
       PolicyList({
-        policyRecords: this.policyRecords,
+        policyRecords: this.viewModel.policy.state.records,
         policyListOptions: this.policyListOptions,
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
         onPolicyChange: (index: number, policyIndex: number) => {
-          const record: PeripheralPolicyRecord | undefined = this.policyRecords[index]
+          const record = this.viewModel.policy.state.records[index]
           if (record) {
             void this.handlePolicyChange(record, policyIndex)
           }
@@ -418,7 +394,7 @@ export struct PeripheralPage {
   }
 
   private showClearHistoryConfirmDialog(): void {
-    if (this.deviceRecords.length === 0) {
+    if (this.viewModel.records.state.records.length === 0) {
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.emptyHistoryToClear)
       return
     }
@@ -432,7 +408,7 @@ export struct PeripheralPage {
   }
 
   private showClearPolicyRecordsConfirmDialog(): void {
-    if (this.policyRecords.length === 0) {
+    if (this.viewModel.policy.state.records.length === 0) {
       DialogService.openFailure(this.getUIContext(), PeripheralStrings.emptyPolicyToClear)
       return
     }
@@ -467,7 +443,6 @@ export struct PeripheralPage {
       return
     }
     this.closeDetailDialog()
-    this.syncViewState()
     DialogService.openSuccess(this.getUIContext(), PeripheralStrings.clearPolicySuccess)
   }
 }

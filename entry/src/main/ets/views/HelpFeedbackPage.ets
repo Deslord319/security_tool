@@ -4,19 +4,18 @@ import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../constant
 import { SubPageHeader } from '../components/SubPageHeader'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 
 interface ExpandableInfoItem {
   title: string
   content: string
 }
 
-@Component
+@ComponentV2
 struct ExpandableInfoList {
-  items: ExpandableInfoItem[] = []
-  @Prop expandedIndex: number = -1
-  onToggle: (index: number) => void = () => {}
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param items: ExpandableInfoItem[] = []
+  @Param expandedIndex: number = -1
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onToggle: (index: number) => void = () => {}
 
   build() {
     Column({ space: 12 }) {
@@ -61,12 +60,12 @@ struct ExpandableInfoList {
   }
 }
 
-@Component
+@ComponentV2
 export struct HelpFeedbackPage {
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  onBack: () => void = () => {}
-  @State expandedGuide: number = -1
-  @State expandedFaq: number = -1
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Event onBack: () => void = () => {}
+  @Local expandedGuide: number = -1
+  @Local expandedFaq: number = -1
 
   private guideItems: GuideItemString[] = HelpFeedbackStrings.guideItems
   private faqItems: FaqItemString[] = HelpFeedbackStrings.faqItems
@@ -84,6 +83,7 @@ export struct HelpFeedbackPage {
         Column({ space: 20 }) {
           SectionCard({
             title: HelpFeedbackStrings.guideSectionTitle,
+            currentTheme: this.currentTheme,
             content: () => {
               this.guideSectionContent()
             }
@@ -91,6 +91,7 @@ export struct HelpFeedbackPage {
 
           SectionCard({
             title: HelpFeedbackStrings.faqSectionTitle,
+            currentTheme: this.currentTheme,
             content: () => {
               this.faqSectionContent()
             }
@@ -98,6 +99,7 @@ export struct HelpFeedbackPage {
 
           SectionCard({
             title: HelpFeedbackStrings.contactSectionTitle,
+            currentTheme: this.currentTheme,
             content: () => {
               this.contactSectionContent()
             }
@@ -129,6 +131,7 @@ export struct HelpFeedbackPage {
         content: item.description
       } as ExpandableInfoItem)),
       expandedIndex: this.expandedGuide,
+      currentTheme: this.currentTheme,
       onToggle: (index: number) => {
         this.expandedGuide = this.expandedGuide === index ? -1 : index
       }
@@ -143,6 +146,7 @@ export struct HelpFeedbackPage {
         content: item.answer
       } as ExpandableInfoItem)),
       expandedIndex: this.expandedFaq,
+      currentTheme: this.currentTheme,
       onToggle: (index: number) => {
         this.expandedFaq = this.expandedFaq === index ? -1 : index
       }

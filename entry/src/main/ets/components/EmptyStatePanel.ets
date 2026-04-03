@@ -1,17 +1,16 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { STORAGE_KEY_THEME } from '../theme/ThemeManager'
 import { HoverUtils } from '../utils/HoverUtils'
 
-@Component
+@ComponentV2
 export struct EmptyStatePanel {
-  @Prop title: string = ''
-  @Prop description: string = ''
-  @Prop radius: number = AppStyles.RADIUS_LG
-  @Prop horizontalPadding: number = AppStyles.PADDING_LG
-  @Prop verticalPadding: number = 32
-  @StorageLink(STORAGE_KEY_THEME) currentTheme: ThemeMode = ThemeMode.LIGHT
-  @State isHovered: boolean = false
+  @Param title: string = ''
+  @Param description: string = ''
+  @Param radius: number = AppStyles.RADIUS_LG
+  @Param horizontalPadding: number = AppStyles.PADDING_LG
+  @Param verticalPadding: number = 32
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Local isHovered: boolean = false
 
   build() {
     Column({ space: 10 }) {
