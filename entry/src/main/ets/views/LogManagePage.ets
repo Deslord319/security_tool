@@ -23,6 +23,7 @@ import { SubPageHeader } from '../components/SubPageHeader'
 import { IconTextActionButton } from '../components/IconTextActionButton'
 import { LogStorageSettingsPanel } from '../components/LogStorageSettingsPanel'
 import { LogDetailDialog } from '../components/LogDetailDialog'
+import { CompactSummaryCard } from '../components/CompactSummaryCard'
 
 const TAG = 'LogManagePage'
 const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
@@ -152,223 +153,55 @@ export struct LogManagePage {
   private summaryCards() {
     GridRow({ columns: 4, gutter: 12 }) {
       GridCol() {
-        Row({ space: 16 }) {
-          Column() {
-            Image($r('app.media.folder'))
-              .width(36)
-              .height(36)
-              .fillColor(Color.White)
-              .draggable(false)
-          }
-          .width(62)
-          .height(62)
-          .borderRadius(20)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [AppColors.BRAND_PRIMARY, 0],
-              [AppColors.GRADIENT_FIREWALL_END, 1]
-            ]
-          })
-
-          Column({ space: 6 }) {
-            Text(LogManageStrings.statTotal)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-            Text(`${this.viewModel.state.summary.totalCount}`)
-              .fontSize(26)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .maxLines(1)
-
-            Text(LogManageStrings.statTotalDescription)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
-        }
-        .width('100%')
-        .height(116)
-        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER,
-          style: BorderStyle.Solid
+        CompactSummaryCard({
+          title: LogManageStrings.statTotal,
+          valueText: `${this.viewModel.state.summary.totalCount}`,
+          description: LogManageStrings.statTotalDescription,
+          icon: $r('app.media.folder'),
+          accentStart: AppColors.BRAND_PRIMARY,
+          accentEnd: AppColors.GRADIENT_FIREWALL_END,
+          hoverable: true,
+          clickable: false,
+          currentTheme: this.currentTheme
         })
       }
       GridCol() {
-        Row({ space: 16 }) {
-          Column() {
-            Image($r('app.media.log'))
-              .width(36)
-              .height(36)
-              .fillColor(Color.White)
-              .draggable(false)
-          }
-          .width(62)
-          .height(62)
-          .borderRadius(20)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [AppColors.SUCCESS, 0],
-              [AppColors.GRADIENT_LOG_END, 1]
-            ]
-          })
-
-          Column({ space: 6 }) {
-            Text(LogManageStrings.statToday)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-            Text(`${this.viewModel.state.summary.todayCount}`)
-              .fontSize(26)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .maxLines(1)
-
-            Text(LogManageStrings.statTodayDescription)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
-        }
-        .width('100%')
-        .height(116)
-        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER,
-          style: BorderStyle.Solid
+        CompactSummaryCard({
+          title: LogManageStrings.statToday,
+          valueText: `${this.viewModel.state.summary.todayCount}`,
+          description: LogManageStrings.statTodayDescription,
+          icon: $r('app.media.log'),
+          accentStart: AppColors.SUCCESS,
+          accentEnd: AppColors.GRADIENT_LOG_END,
+          hoverable: true,
+          clickable: false,
+          currentTheme: this.currentTheme
         })
       }
       GridCol() {
-        Row({ space: 16 }) {
-          Column() {
-            Image($r('app.media.alert'))
-              .width(36)
-              .height(36)
-              .fillColor(Color.White)
-              .draggable(false)
-          }
-          .width(62)
-          .height(62)
-          .borderRadius(20)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [AppColors.WARNING, 0],
-              [AppColors.GRADIENT_IDENTITY_END, 1]
-            ]
-          })
-
-          Column({ space: 6 }) {
-            Text(PresentationStrings.logResultBlocked)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-            Text(`${this.viewModel.state.summary.blockedCount}`)
-              .fontSize(26)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .maxLines(1)
-
-            Text(LogManageStrings.statBlockedDescription)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
-        }
-        .width('100%')
-        .height(116)
-        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER,
-          style: BorderStyle.Solid
+        CompactSummaryCard({
+          title: PresentationStrings.logResultBlocked,
+          valueText: `${this.viewModel.state.summary.blockedCount}`,
+          description: LogManageStrings.statBlockedDescription,
+          icon: $r('app.media.alert'),
+          accentStart: AppColors.WARNING,
+          accentEnd: AppColors.GRADIENT_IDENTITY_END,
+          hoverable: true,
+          clickable: false,
+          currentTheme: this.currentTheme
         })
       }
       GridCol() {
-        Row({ space: 16 }) {
-          Column() {
-            Image($r('app.media.dashboard'))
-              .width(36)
-              .height(36)
-              .fillColor(Color.White)
-              .draggable(false)
-          }
-          .width(62)
-          .height(62)
-          .borderRadius(20)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [AppColors.TEXT_MUTED, 0],
-              [AppColors.GRADIENT_TOOL_END, 1]
-            ]
-          })
-
-          Column({ space: 6 }) {
-            Text(LogManageStrings.statCurrentShown)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-            Text(`${this.viewModel.state.summary.currentShownCount}`)
-              .fontSize(26)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .maxLines(1)
-
-            Text(LogManageStrings.statCurrentShownDescription)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
-        }
-        .width('100%')
-        .height(116)
-        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius(AppStyles.RADIUS_LG)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER,
-          style: BorderStyle.Solid
+        CompactSummaryCard({
+          title: LogManageStrings.statCurrentShown,
+          valueText: `${this.viewModel.state.summary.currentShownCount}`,
+          description: LogManageStrings.statCurrentShownDescription,
+          icon: $r('app.media.dashboard'),
+          accentStart: AppColors.TEXT_MUTED,
+          accentEnd: AppColors.GRADIENT_TOOL_END,
+          hoverable: true,
+          clickable: false,
+          currentTheme: this.currentTheme
         })
       }
     }

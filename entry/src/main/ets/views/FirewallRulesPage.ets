@@ -496,7 +496,8 @@ export struct FirewallRulesPage {
             description: FirewallStrings.inboundCustomRulesDescription,
             accentStart: AppColors.WARNING,
             accentEnd: AppColors.GRADIENT_IDENTITY_END,
-            icon: $r('app.media.arrow_down')
+            icon: $r('app.media.arrow_down'),
+            currentTheme: this.currentTheme
           })
             .layoutWeight(1)
 
@@ -506,7 +507,8 @@ export struct FirewallRulesPage {
             description: FirewallStrings.outboundCustomRulesDescription,
             accentStart: AppColors.BRAND_PRIMARY,
             accentEnd: AppColors.GRADIENT_FIREWALL_END,
-            icon: $r('app.media.arrow_up')
+            icon: $r('app.media.arrow_up'),
+            currentTheme: this.currentTheme
           })
             .layoutWeight(1)
         }

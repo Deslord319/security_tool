@@ -21,6 +21,7 @@ export class ThemeManager {
   private context: common.UIAbilityContext | null = null
   private dataPreferences: preferences.Preferences | null = null
   private initialized: boolean = false
+  private listeners: Array<() => void> = []
   // 保存 initSync 时检测到的系统主题，用于后续 reapply 和 NOT_SET fallback
   private lastDetectedSystemTheme: ThemeMode = ThemeMode.LIGHT
 
@@ -88,6 +89,7 @@ export class ThemeManager {
       }
 
       this.initialized = true
+      this.notifyThemeChanged()
     } catch (err) {
       LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }
@@ -137,6 +139,7 @@ export class ThemeManager {
         systemTheme = this.getSystemTheme()
       }
       AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, systemTheme)
+      this.notifyThemeChanged()
     }
   }
 
@@ -156,6 +159,7 @@ export class ThemeManager {
     }
 
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, themeToApply)
+    this.notifyThemeChanged()
   }
 
   // 设置主题（手动切换）
@@ -163,6 +167,7 @@ export class ThemeManager {
     // 切换为手动模式
     AppStorage.setOrCreate<ThemePreference>(STORAGE_KEY_PREFERENCE, ThemePreference.MANUAL)
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, mode)
+    this.notifyThemeChanged()
 
     // 持久化
     await this.savePreferences(mode, ThemePreference.MANUAL)
@@ -177,6 +182,7 @@ export class ThemeManager {
     AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, newTheme)
     AppStorage.setOrCreate<ThemePreference>(STORAGE_KEY_PREFERENCE, ThemePreference.MANUAL)
     AppStorage.setOrCreate<ThemeOption>(STORAGE_KEY_OPTION, newOption)
+    this.notifyThemeChanged()
 
     await this.saveOption(newOption)
   }
@@ -195,6 +201,7 @@ export class ThemeManager {
       const currentTheme = AppStorage.get<ThemeMode>(STORAGE_KEY_THEME) || ThemeMode.LIGHT
       await this.savePreferences(currentTheme, ThemePreference.MANUAL)
     }
+    this.notifyThemeChanged()
   }
 
   // 获取当前主题
@@ -225,9 +232,31 @@ export class ThemeManager {
       const theme = option === ThemeOption.DARK ? ThemeMode.DARK : ThemeMode.LIGHT
       AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, theme)
     }
+    this.notifyThemeChanged()
 
     // 持久化
     await this.saveOption(option)
+  }
+
+  subscribe(listener: () => void): void {
+    if (this.listeners.includes(listener)) {
+      return
+    }
+    this.listeners = [...this.listeners, listener]
+  }
+
+  unsubscribe(listener: () => void): void {
+    this.listeners = this.listeners.filter((item: () => void) => item !== listener)
+  }
+
+  private notifyThemeChanged(): void {
+    this.listeners.forEach((listener: () => void) => {
+      try {
+        listener()
+      } catch (err) {
+        LogUtils.warn(TAG, 'notifyThemeChanged listener failed: %{public}s', JSON.stringify(err))
+      }
+    })
   }
 
   // 保存选项到 Preferences

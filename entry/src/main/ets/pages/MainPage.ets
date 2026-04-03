@@ -46,6 +46,10 @@ struct MainPage {
   private aboutDialogController?: CustomDialogController
   private runtimeInitialized: boolean = false
   private runtimeInitInProgress: boolean = false
+  private readonly themeListener: () => void = () => {
+    this.syncThemeState()
+    this.syncDecorButtonStyle()
+  }
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
   private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
@@ -55,6 +59,7 @@ struct MainPage {
     ])
 
   aboutToAppear(): void {
+    ThemeManager.getInstance().subscribe(this.themeListener)
     this.syncThemeState()
     this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
@@ -81,6 +86,10 @@ struct MainPage {
   private syncThemeState(): void {
     this.currentTheme = ThemeManager.getInstance().getCurrentTheme()
     this.currentThemeOption = ThemeManager.getInstance().getCurrentOption()
+  }
+
+  aboutToDisappear(): void {
+    ThemeManager.getInstance().unsubscribe(this.themeListener)
   }
 
   private applyUiTestRouteOverride(): void {

@@ -10,6 +10,7 @@ import {
 } from '../models/DataModels'
 import { LogFilterState, LogListState } from '../models/LogManageModels'
 import { ThemeMode } from '../theme/ThemeColors'
+import { EmptyStatePanel } from './EmptyStatePanel'
 
 @ComponentV2
 export struct LogEntriesPanel {
@@ -93,32 +94,10 @@ export struct LogEntriesPanel {
 
   @Builder
   private emptyState() {
-    Column({ space: 10 }) {
-      Text(this.getEmptyStateTitle())
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        .textAlign(TextAlign.Center)
-
-      Text(this.getEmptyStateDescription())
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .textAlign(TextAlign.Center)
-    }
-    .width('100%')
-    .padding({
-      left: AppStyles.PADDING_LG,
-      right: AppStyles.PADDING_LG,
-      top: 36,
-      bottom: 36
-    })
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
+    EmptyStatePanel({
+      title: this.getEmptyStateTitle(),
+      description: this.getEmptyStateDescription(),
+      currentTheme: this.currentTheme
     })
   }
 
