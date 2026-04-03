@@ -15,12 +15,22 @@ describe('PeripheralRecordViewDataUtils', () => {
     expect(formatPeripheralTimestamp(0)).assertEqual('--')
   })
 
-  it('should build deduplicated connection history items', 0, () => {
+  it('should return empty history when selected record is missing', 0, () => {
+    expect(buildConnectionHistoryItems([], null).length).assertEqual(0)
+  })
+
+  it('should format valid timestamps with a concrete value', 0, () => {
+    const label = formatPeripheralTimestamp(1712000000000)
+    expect(label === '--').assertFalse()
+    expect(label.length > 0).assertTrue()
+  })
+
+  it('should build connection history items for normalized device ids without deduplication', 0, () => {
     const timestamp = Date.now()
     const record: PeripheralConnectionRecord = {
       id: 'record-1',
       timestamp: timestamp,
-      deviceId: 'VID:1234 PID:5678',
+      deviceId: ' VID:1234  PID:5678 ',
       deviceName: 'USB Device',
       deviceType: PeripheralType.USB_STORAGE,
       action: 'connect',
@@ -30,8 +40,59 @@ describe('PeripheralRecordViewDataUtils', () => {
       summary: 'connected'
     }
 
-    const history = buildConnectionHistoryItems([record, { ...record, id: 'record-2' }], record)
+    const blockedRecord: PeripheralConnectionRecord = {
+      ...record,
+      id: 'record-2',
+      timestamp: timestamp + 1,
+      deviceId: 'VID:1234 PID:5678',
+      result: LogEventResult.BLOCKED,
+      policyHit: 'deny',
+      matchedPolicyKind: 'device_deny',
+      summary: 'blocked'
+    }
+    const differentDeviceRecord: PeripheralConnectionRecord = {
+      ...record,
+      id: 'record-3',
+      timestamp: timestamp + 2,
+      deviceId: 'VID:9999 PID:9999',
+      summary: 'other-device'
+    }
+
+    const history = buildConnectionHistoryItems([record, blockedRecord, differentDeviceRecord], record)
+    expect(history.length).assertEqual(2)
+    expect(history[0].policy).assertEqual('允许')
+    expect(history[0].result).assertEqual('成功')
+    expect(history[1].policy).assertEqual('命中单设备禁止接入')
+    expect(history[1].result).assertEqual('已阻止')
+  })
+
+  it('should skip records with invalid timestamps when building history', 0, () => {
+    const selectedRecord: PeripheralConnectionRecord = {
+      id: 'record-selected',
+      timestamp: 100,
+      deviceId: 'VID:1234 PID:5678',
+      deviceName: 'USB Device',
+      deviceType: PeripheralType.USB_STORAGE,
+      action: 'connect',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'allow',
+      source: 'runtime_event',
+      summary: 'selected'
+    }
+    const invalidTimestampRecord: PeripheralConnectionRecord = {
+      ...selectedRecord,
+      id: 'record-invalid',
+      timestamp: 0
+    }
+    const validTimestampRecord: PeripheralConnectionRecord = {
+      ...selectedRecord,
+      id: 'record-valid',
+      timestamp: 200
+    }
+
+    const history = buildConnectionHistoryItems([invalidTimestampRecord, validTimestampRecord], selectedRecord)
     expect(history.length).assertEqual(1)
+    expect(history[0].time === '--').assertFalse()
   })
 
   it('should build latest usb policy records from connection candidates by default', 0, () => {
