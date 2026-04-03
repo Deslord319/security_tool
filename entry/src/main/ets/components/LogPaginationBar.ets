@@ -12,7 +12,6 @@ export struct LogPaginationBar {
   @Param paginationState: LogPaginationState = new LogPaginationState()
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param pageSizeOptions: number[] = []
-  @Param currentPageSize: number = 20
   @Event onSelectPageSize: (index: number) => void = () => {}
   @Event onChangePageInput: (value: string) => void = () => {}
   @Event onJumpPage: () => void = () => {}
@@ -27,7 +26,8 @@ export struct LogPaginationBar {
     if (this.listState.allEntries.length === 0 || this.listState.pagedEntries.length === 0) {
       return '0-0'
     }
-    let start = (this.paginationState.currentPage - 1) * this.currentPageSize + 1
+    let pageSize = this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20
+    let start = (this.paginationState.currentPage - 1) * pageSize + 1
     let end = start + this.listState.pagedEntries.length - 1
     return `${start}-${end}`
   }
@@ -43,7 +43,7 @@ export struct LogPaginationBar {
 
         Select(this.getPageSizeOptions())
           .selected(this.paginationState.pageSizeIndex)
-          .value(LogManageStrings.buildPageSizeText(this.currentPageSize))
+          .value(LogManageStrings.buildPageSizeText(this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20))
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })

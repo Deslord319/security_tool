@@ -19,21 +19,23 @@ export struct LogEntriesPanel {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onEntryClick: (entry: LogEntry) => void = () => {}
 
-  private hasActiveFilters(): boolean {
-    return this.filterState.eventTypeIndex > 0 ||
-      this.filterState.resultIndex > 0 ||
-      this.filterState.keyword.trim().length > 0
-  }
-
   private getEmptyStateTitle(): string {
-    return this.hasActiveFilters() ? EmptyStateStrings.NO_RESULTS : LogManageStrings.emptyTitle
+    return (this.filterState.eventTypeIndex > 0 ||
+      this.filterState.resultIndex > 0 ||
+      this.filterState.keyword.trim().length > 0) ?
+      EmptyStateStrings.NO_RESULTS :
+      LogManageStrings.emptyTitle
   }
 
   private getEmptyStateDescription(): string {
     if (this.filterState.hintMessage.length > 0) {
       return this.filterState.hintMessage
     }
-    return this.hasActiveFilters() ? LogManageStrings.emptyDescription : EmptyStateStrings.CHECK_PERMISSIONS
+    return (this.filterState.eventTypeIndex > 0 ||
+      this.filterState.resultIndex > 0 ||
+      this.filterState.keyword.trim().length > 0) ?
+      LogManageStrings.emptyDescription :
+      EmptyStateStrings.CHECK_PERMISSIONS
   }
 
   @Builder

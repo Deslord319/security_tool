@@ -51,6 +51,7 @@ export class LogDetailState {
 
 @ObservedV2
 export class LogManageState {
+  @Trace initialized: boolean = false
   @Trace loading: boolean = false
   @Trace active: boolean = false
   @Trace autoRefreshEnabled: boolean = true

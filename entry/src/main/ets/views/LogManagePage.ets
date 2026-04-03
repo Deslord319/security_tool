@@ -6,7 +6,6 @@ import { LogManageStrings } from '../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
-  LogEventResult,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
@@ -26,15 +25,14 @@ import { LogStorageSettingsPanel } from '../components/LogStorageSettingsPanel'
 import { LogDetailDialog } from '../components/LogDetailDialog'
 
 const TAG = 'LogManagePage'
+const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
 @ComponentV2
 export struct LogManagePage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param onBack: () => void = () => {}
   @Local viewModel: LogManageViewModel = new LogManageViewModel()
-  @Local listReady: boolean = false
   private detailDialogController?: CustomDialogController
-  private detailEntry: LogEntry | null = null
 
   private eventTypeFilterOptions: SelectOption[] = [
     { value: LogManageStrings.allEventTypes } as SelectOption,
@@ -48,7 +46,6 @@ export struct LogManagePage {
   ]
 
   aboutToAppear() {
-    this.listReady = false
     void this.initializeViewModels()
   }
 
@@ -67,9 +64,7 @@ export struct LogManagePage {
       }
       this.viewModel.activate()
       await this.viewModel.refreshAll()
-      this.listReady = true
     } catch (err) {
-      this.listReady = true
       LogUtils.error(TAG, `initializeViewModels failed: ${JSON.stringify(err)}`)
     }
   }
@@ -89,7 +84,6 @@ export struct LogManagePage {
 
   private openLogDetailDialog(entry: LogEntry): void {
     this.closeDetailDialogController()
-    this.detailEntry = entry
     this.viewModel.openDetail(entry.id)
     try {
       this.detailDialogController = new CustomDialogController({
@@ -107,7 +101,6 @@ export struct LogManagePage {
         maskColor: AppColors.OVERLAY_BACKGROUND,
         cancel: () => {
           this.detailDialogController = undefined
-          this.detailEntry = null
           this.viewModel.closeDetail()
         }
       })
@@ -155,16 +148,6 @@ export struct LogManagePage {
     DialogService.openSuccess(this.getUIContext(), LogManageStrings.saveSettingsSuccess)
   }
 
-  private getSelectedEventTypeLabel(): string {
-    let index = this.viewModel.state.filter.eventTypeIndex
-    return index <= 0 ? LogManageStrings.allEventTypes : this.eventTypeFilterOptions[index].value as string
-  }
-
-  private getSelectedResultLabel(): string {
-    let index = this.viewModel.state.filter.resultIndex
-    return index <= 0 ? LogManageStrings.allResults : this.resultFilterOptions[index].value as string
-  }
-
   @Builder
   private summaryCards() {
     GridRow({ columns: 4, gutter: 12 }) {
@@ -196,7 +179,7 @@ export struct LogManagePage {
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-            Text(`${this.viewModel.state.list.allEntries.length}`)
+            Text(`${this.viewModel.state.summary.totalCount}`)
               .fontSize(26)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -251,11 +234,7 @@ export struct LogManagePage {
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-            Text(`${this.viewModel.state.list.allEntries.filter((entry: LogEntry) => {
-              let todayStart = new Date()
-              todayStart.setHours(0, 0, 0, 0)
-              return entry.timestamp >= todayStart.getTime()
-            }).length}`)
+            Text(`${this.viewModel.state.summary.todayCount}`)
               .fontSize(26)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -310,7 +289,7 @@ export struct LogManagePage {
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-            Text(`${this.viewModel.state.list.allEntries.filter((entry: LogEntry) => entry.result === LogEventResult.BLOCKED).length}`)
+            Text(`${this.viewModel.state.summary.blockedCount}`)
               .fontSize(26)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -365,7 +344,7 @@ export struct LogManagePage {
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-            Text(`${this.viewModel.state.list.pagedEntries.length}`)
+            Text(`${this.viewModel.state.summary.currentShownCount}`)
               .fontSize(26)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -472,7 +451,6 @@ export struct LogManagePage {
 
   private closeDetailDialog(): void {
     this.closeDetailDialogController()
-    this.detailEntry = null
     this.viewModel.closeDetail()
   }
 
@@ -481,7 +459,7 @@ export struct LogManagePage {
     Row({ space: 8 }) {
       Select(this.eventTypeFilterOptions)
         .selected(this.viewModel.state.filter.eventTypeIndex)
-        .value(this.getSelectedEventTypeLabel())
+        .value((this.eventTypeFilterOptions[this.viewModel.state.filter.eventTypeIndex]?.value as string) ?? LogManageStrings.allEventTypes)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
@@ -495,7 +473,7 @@ export struct LogManagePage {
 
       Select(this.resultFilterOptions)
         .selected(this.viewModel.state.filter.resultIndex)
-        .value(this.getSelectedResultLabel())
+        .value((this.resultFilterOptions[this.viewModel.state.filter.resultIndex]?.value as string) ?? LogManageStrings.allResults)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
@@ -549,7 +527,7 @@ export struct LogManagePage {
           .scrollBar(BarState.Auto)
           .align(Alignment.Top)
         } else {
-          if (this.listReady) {
+          if (this.viewModel.state.initialized) {
             this.summaryCards()
             this.filterToolbar()
             LogEntriesPanel({
@@ -566,8 +544,7 @@ export struct LogManagePage {
               listState: this.viewModel.state.list,
               paginationState: this.viewModel.state.pagination,
               currentTheme: this.currentTheme,
-              pageSizeOptions: this.viewModel.getPageSizeOptions(),
-              currentPageSize: this.viewModel.getCurrentPageSize(),
+              pageSizeOptions: PAGE_SIZE_OPTIONS,
               onSelectPageSize: (index: number) => this.viewModel.setPageSizeIndex(index),
               onChangePageInput: (value: string) => this.viewModel.setPageInputText(value),
               onJumpPage: () => this.viewModel.jumpToInputPage(),

@@ -94,6 +94,7 @@ export class LogManageViewModel {
   }
 
   async initialize(context: common.UIAbilityContext): Promise<ListViewInitializeResult> {
+    this.state.initialized = false
     this.state.loading = true
     try {
       if (!this.initialized) {
@@ -112,6 +113,7 @@ export class LogManageViewModel {
       LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'storage_init_failed' }
     } finally {
+      this.state.initialized = true
       this.state.loading = false
     }
   }
@@ -127,6 +129,7 @@ export class LogManageViewModel {
   destroy(): void {
     this.unregisterStorageListener()
     this.initialized = false
+    this.state.initialized = false
     this.state.active = false
     this.state.autoRefreshEnabled = false
   }
@@ -220,32 +223,6 @@ export class LogManageViewModel {
     this.state.detail.entryId = ''
   }
 
-  getCurrentDetailEntry(): LogEntry | null {
-    if (this.state.detail.entryId.length === 0) {
-      return null
-    }
-    for (let entry of this.state.list.allEntries) {
-      if (entry.id === this.state.detail.entryId) {
-        return entry
-      }
-    }
-    return null
-  }
-
-  getPageSizeOptions(): number[] {
-    return PAGE_SIZE_OPTIONS.slice()
-  }
-
-  getCurrentPageSize(): number {
-    return PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? PAGE_SIZE_OPTIONS[0]
-  }
-
-  hasActiveFilters(): boolean {
-    return this.state.filter.eventTypeIndex > 0 ||
-      this.state.filter.resultIndex > 0 ||
-      this.state.filter.keyword.trim().length > 0
-  }
-
   async clearLogs(): Promise<ClearLogsResult> {
     if (this.state.summary.totalCount <= 0) {
       return { success: false, code: 'already_empty' }
@@ -310,7 +287,7 @@ export class LogManageViewModel {
 
   private rebuildStateFromSnapshot(): void {
     let snapshot = this.repository.snapshot(this.buildQuery())
-    let pageSize = this.getCurrentPageSize()
+    let pageSize = PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? PAGE_SIZE_OPTIONS[0]
     let totalPages = this.calcTotalPages(snapshot.entries.length, pageSize)
     let currentPage = this.normalizePage(`${this.state.pagination.currentPage}`, totalPages)
     let pageStart = (currentPage - 1) * pageSize
@@ -380,7 +357,9 @@ export class LogManageViewModel {
       this.state.filter.hintMessage = LogManageStrings.fileFilterEmptyHint
       return
     }
-    if (this.hasActiveFilters()) {
+    if (this.state.filter.eventTypeIndex > 0 ||
+      this.state.filter.resultIndex > 0 ||
+      this.state.filter.keyword.trim().length > 0) {
       this.state.filter.hintMessage = LogManageStrings.emptyDescription
       return
     }
