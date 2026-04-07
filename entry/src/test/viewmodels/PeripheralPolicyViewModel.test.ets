@@ -87,6 +87,47 @@ describe('PeripheralPolicyViewModel', () => {
     done()
   })
 
+  it('should normalize bluetooth device ids when persisting policy', 0, async (done: Function) => {
+    const reason = await viewModel.setDevicePolicy(
+      'aa-bb-cc-dd-ee-ff',
+      'Bluetooth Device',
+      PeripheralType.BLUETOOTH,
+      1
+    )
+
+    expect(reason).assertNull()
+    expect(PeripheralDevicePolicyRepository.get('MAC: AA:BB:CC:DD:EE:FF')?.policy).assertEqual('deny')
+    done()
+  })
+
+  it('should rebuild bluetooth policy records with normalized ids', 0, async (done: Function) => {
+    await PeripheralDevicePolicyRepository.set({
+      deviceId: 'aa-bb-cc-dd-ee-ff',
+      policy: 'deny',
+      updatedAt: Date.now(),
+      deviceName: 'Bluetooth Device',
+      deviceType: PeripheralType.BLUETOOTH
+    })
+
+    viewModel.reloadRecords([{
+      id: 'record-bt-1',
+      timestamp: 400,
+      deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+      deviceName: 'Bluetooth Device',
+      deviceType: PeripheralType.BLUETOOTH,
+      source: 'runtime_event',
+      action: 'connect',
+      result: LogEventResult.SUCCESS,
+      policyHit: 'allow',
+      summary: 'connected'
+    }])
+
+    expect(viewModel.records.length).assertEqual(1)
+    expect(viewModel.records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
+    expect(viewModel.records[0].policyIndex).assertEqual(1)
+    done()
+  })
+
   it('should clear all explicit device policies', 0, async (done: Function) => {
     await PeripheralDevicePolicyRepository.set({
       deviceId: 'VID:1234 PID:5678',

@@ -64,7 +64,7 @@ export class PeripheralPolicyViewModel {
     deviceType: PeripheralType,
     policyIndex: number
   ): Promise<string | null> {
-    const normalizedDeviceId = this.normalizeDeviceKey(deviceId)
+    const normalizedDeviceId = PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId, deviceType)
     if (normalizedDeviceId.length === 0) {
       return PeripheralStrings.invalidDeviceId
     }
@@ -110,7 +110,7 @@ export class PeripheralPolicyViewModel {
   }
 
   private normalizeDeviceKey(deviceId: string): string {
-    return (deviceId || '').trim().replace(/\s+/g, ' ').toUpperCase()
+    return PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId)
   }
 
   private buildPolicyCsv(records: PeripheralPolicyRecord[]): string {
