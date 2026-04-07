@@ -137,7 +137,6 @@ export class PeripheralPolicyViewModel {
       case PeripheralType.USB_PRINTER:
       case PeripheralType.USB_HID:
       case PeripheralType.USB_OTHER:
-      case PeripheralType.BLUETOOTH:
         return true
       default:
         return false
