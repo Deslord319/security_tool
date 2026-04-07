@@ -4,10 +4,10 @@ import {
   LogEventResult,
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit
-} from '../models/DataModels'
-import { PresentationStrings } from '../constants/modules/PresentationStrings'
-import { CommonLabelStrings, FirewallDialogStrings, ResultStrings } from '../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
+} from '../../../models/DataModels'
+import { PresentationStrings } from '../../../constants/modules/PresentationStrings'
+import { CommonLabelStrings, FirewallDialogStrings, ResultStrings } from '../../../constants/modules/DialogStrings'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
 
 export interface PeripheralConnectionHistoryItem {
   time: string

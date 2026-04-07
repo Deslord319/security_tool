@@ -1,13 +1,13 @@
 import { securityManager } from '@kit.MDMKit'
-import { CommonStrings } from '../constants/CommonStrings'
-import { IdentityStrings } from '../constants/modules/IdentityStrings'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
 import {
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_VALIDITY_OPTIONS,
   PasswordComplexityConfig
-} from '../models/DataModels'
-import { IdentityService } from '../services/IdentityService'
-import { DialogService } from '../utils/DialogService'
+} from '../../../models/DataModels'
+import { IdentityService } from '../../../services/identity/settings/IdentityService'
+import { DialogService } from '../../../utils/DialogService'
 
 export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'

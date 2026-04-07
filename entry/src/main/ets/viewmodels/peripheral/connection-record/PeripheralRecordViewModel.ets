@@ -1,16 +1,16 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
   PeripheralConnectionRecord,
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel
-} from '../models/DataModels'
-import { PeripheralConnectionRecordService } from '../services/PeripheralConnectionRecordService'
-import { LogExportService } from '../services/log-manage/export/LogExportService'
+} from '../../../models/DataModels'
+import { PeripheralConnectionRecordService } from '../../../services/peripheral/connection-record/PeripheralConnectionRecordService'
+import { LogExportService } from '../../../services/log-manage/export/LogExportService'
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp,

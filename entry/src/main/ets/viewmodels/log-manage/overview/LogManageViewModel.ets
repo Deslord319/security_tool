@@ -1,14 +1,14 @@
 import { common } from '@kit.AbilityKit'
-import { CommonStrings } from '../../constants/CommonStrings'
-import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../constants/modules/LogManageStrings'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
   LogEventResult,
   LOG_EVENT_TYPE_OPTIONS
-} from '../../models/DataModels'
-import { LogManageMode, LogManageState } from '../../models/LogManageModels'
+} from '../../../models/DataModels'
+import { LogManageMode, LogManageState } from '../../../models/LogManageModels'
 import {
   ClearLogsResult,
   CollectorStatus,
@@ -23,12 +23,12 @@ import {
   MutationResult,
   RefreshResult,
   SaveSettingsResult
-} from '../../services/log-manage/common/LogManagePorts'
-import { LogCollectorService } from '../../services/log-manage/collector/LogCollectorService'
-import { LogExportService } from '../../services/log-manage/export/LogExportService'
-import { LogRepository } from '../../services/log-manage/repository/LogRepository'
-import { LogUtils } from '../../utils/LogUtils'
-import { LogStorageSettingsViewModel } from './LogStorageSettingsViewModel'
+} from '../../../services/log-manage/common/LogManagePorts'
+import { LogCollectorService } from '../../../services/log-manage/collector/LogCollectorService'
+import { LogExportService } from '../../../services/log-manage/export/LogExportService'
+import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
+import { LogUtils } from '../../../utils/LogUtils'
+import { LogStorageSettingsViewModel } from '../storage-settings/LogStorageSettingsViewModel'
 
 const TAG = 'LogManageViewModel'
 const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]

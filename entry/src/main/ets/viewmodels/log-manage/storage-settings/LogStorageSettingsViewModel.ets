@@ -1,14 +1,14 @@
-import { LogUtils } from '../../utils/LogUtils'
-import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS, LogStorageConfig } from '../../models/DataModels'
-import { LogStorageSettingsState } from '../../models/LogManageModels'
+import { LogUtils } from '../../../utils/LogUtils'
+import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS, LogStorageConfig } from '../../../models/DataModels'
+import { LogStorageSettingsState } from '../../../models/LogManageModels'
 import {
   LogConfigRepositoryPort,
   LogStorageMaintenancePort,
   SaveSettingsResult,
   ServiceResult
-} from '../../services/log-manage/common/LogManagePorts'
-import { LogConfigRepository } from '../../services/log-manage/repository/LogConfigRepository'
-import { LogRepository } from '../../services/log-manage/repository/LogRepository'
+} from '../../../services/log-manage/common/LogManagePorts'
+import { LogConfigRepository } from '../../../services/log-manage/repository/LogConfigRepository'
+import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
 
 const TAG = 'LogStorageSettingsVM'
 

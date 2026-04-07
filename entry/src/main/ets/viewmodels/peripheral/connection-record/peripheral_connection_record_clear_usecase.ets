@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
-import { PeripheralTraceRepository } from '../../../services/PeripheralTraceRepository'
+import { PeripheralTraceRepository } from '../../../services/peripheral/connection-record/PeripheralTraceRepository'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'ConnectionRecordClearUsecase'

@@ -1,8 +1,8 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 ﻿import { usbManager as edmUsbManager } from '@kit.MDMKit'
 
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
-import { PeripheralService } from '../services/PeripheralService'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 
 const TAG = 'InterfaceControlViewModel'
 

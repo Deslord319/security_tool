@@ -1,15 +1,15 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { ActionDialogStatus } from '../utils/DialogService'
-import { CommonStrings } from '../constants/CommonStrings'
-import { ToolSettingsStrings } from '../constants/modules/ToolSettingsStrings'
-import { AUTH_METHOD_OPTIONS, AuthMethod, DEFAULT_TOOL_SETTINGS, ToolSettingsConfig } from '../models/DataModels'
+import { ActionDialogStatus } from '../../../utils/DialogService'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { ToolSettingsStrings } from '../../../constants/modules/ToolSettingsStrings'
+import { AUTH_METHOD_OPTIONS, AuthMethod, DEFAULT_TOOL_SETTINGS, ToolSettingsConfig } from '../../../models/DataModels'
 import {
   PreferencesToolSettingsRepository,
   ToolSettingsRepository
-} from '../services/ToolSettingsRepository'
-import { AuthService } from '../services/AuthService'
-import { SystemSettingsService } from '../services/SystemSettingsService'
+} from '../../../services/tool-settings/system-settings/ToolSettingsRepository'
+import { AuthService } from '../../../services/identity/auth/AuthService'
+import { SystemSettingsService } from '../../../services/tool-settings/system-settings/SystemSettingsService'
 
 const TAG = 'ToolSettings.ViewModel'
 

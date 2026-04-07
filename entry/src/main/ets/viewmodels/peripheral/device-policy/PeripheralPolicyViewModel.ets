@@ -1,8 +1,8 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
-import { DeviceTypeLabels } from '../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
+import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
   PeripheralConnectionRecord,
@@ -10,10 +10,10 @@ import {
   PeripheralPolicyRecord,
   getPeripheralTypeLabel,
   PeripheralType
-} from '../models/DataModels'
-import { PeripheralDevicePolicyRepository } from '../services/PeripheralDevicePolicyRepository'
-import { PeripheralPolicyService } from '../services/PeripheralPolicyService'
-import { LogExportService } from '../services/log-manage/export/LogExportService'
+} from '../../../models/DataModels'
+import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { PeripheralPolicyService } from '../../../services/peripheral/device-policy/PeripheralPolicyService'
+import { LogExportService } from '../../../services/log-manage/export/LogExportService'
 
 const TAG = 'PeripheralPolicyViewModel'
 
