@@ -105,20 +105,43 @@ export class PeripheralDevicePolicyDispatchService {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_conflict_global_disabled')
     }
 
-    if (_request.policy === 'deny') {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('dispatch_not_implemented')
-    }
-
     const bluetoothDeviceId = PeripheralDevicePolicyDispatchService.toBluetoothDeviceId(_request.deviceId)
     if (!bluetoothDeviceId) {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_dispatch_failed')
     }
 
+    if (_request.policy === 'deny') {
+      return PeripheralDevicePolicyDispatchService.dispatchBluetoothDeny(bluetoothDeviceId)
+    }
+    return PeripheralDevicePolicyDispatchService.dispatchBluetoothAllow(bluetoothDeviceId)
+  }
+
+  private static dispatchBluetoothAllow(deviceId: string): PeripheralPolicyDispatchResult {
+    return PeripheralDevicePolicyDispatchService.tryRunBluetoothOperation(
+      () => {
+        const disallowed = bluetoothManager.getDisallowedBluetoothDevices(ADMIN_WANT)
+        if (PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(disallowed, deviceId)) {
+          bluetoothManager.removeDisallowedBluetoothDevices(ADMIN_WANT, [deviceId])
+        }
+        const allowed = bluetoothManager.getAllowedBluetoothDevices(ADMIN_WANT)
+        if (!PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(allowed, deviceId)) {
+          bluetoothManager.addAllowedBluetoothDevices(ADMIN_WANT, [deviceId])
+        }
+      },
+      'bluetooth_dispatch_conflict_unresolved'
+    )
+  }
+
+  private static dispatchBluetoothDeny(deviceId: string): PeripheralPolicyDispatchResult {
     return PeripheralDevicePolicyDispatchService.tryRunBluetoothOperation(
       () => {
         const allowed = bluetoothManager.getAllowedBluetoothDevices(ADMIN_WANT)
-        if (!allowed.includes(bluetoothDeviceId)) {
-          bluetoothManager.addAllowedBluetoothDevices(ADMIN_WANT, [bluetoothDeviceId])
+        if (PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(allowed, deviceId)) {
+          bluetoothManager.removeAllowedBluetoothDevices(ADMIN_WANT, [deviceId])
+        }
+        const disallowed = bluetoothManager.getDisallowedBluetoothDevices(ADMIN_WANT)
+        if (!PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(disallowed, deviceId)) {
+          bluetoothManager.addDisallowedBluetoothDevices(ADMIN_WANT, [deviceId])
         }
       },
       'bluetooth_dispatch_conflict_unresolved'
@@ -283,6 +306,12 @@ export class PeripheralDevicePolicyDispatchService {
         item.subClass === target.subClass &&
         item.protocol === target.protocol &&
         item.descriptor === target.descriptor
+    })
+  }
+
+  private static containsBluetoothDeviceId(items: string[], target: string): boolean {
+    return items.some((item: string) => {
+      return PeripheralDevicePolicyDispatchService.toBluetoothDeviceId(item) === target
     })
   }
 
