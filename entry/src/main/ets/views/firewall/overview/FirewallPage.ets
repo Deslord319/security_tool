@@ -4,10 +4,10 @@ import { CommonStrings } from '../../../constants/CommonStrings'
 import { FirewallDialogStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../../../components/SubPageHeader'
-import { FirewallToggleAuthService } from '../../../services/firewall/auth-state/FirewallToggleAuthService'
 
 import { common } from '@kit.AbilityKit'
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../../models/DataModels'
+import { FirewallOverviewViewModel } from '../../../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { DialogService } from '../../../utils/DialogService'
@@ -18,35 +18,38 @@ const TAG = 'FirewallPage'
 
 @ComponentV2
 export struct FirewallPage {
-  @Param firewallEnabled: boolean = false
-  @Param currentMode: FirewallPresetMode = 'custom'
+  @Param overviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Local isToggleProcessing: boolean = false
   @Local isModeProcessing: boolean = false
   @Local firewallSwitchValue: boolean = false
   @Local hoveredMode: string = ''
-  @Event onFirewallToggle: (enabled: boolean) => void = () => {}
-  @Event onModeChange: (mode: FirewallPresetMode) => Promise<boolean> = async () => false
   @Event onNavigateToRules: () => void = () => {}
   @Event onBack: () => void = () => {}
   private readonly modeLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
-    this.firewallSwitchValue = this.firewallEnabled
-    LogUtils.info(TAG, `page enter: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
+    this.firewallSwitchValue = this.overviewViewModel.state.enabled
+    LogUtils.info(
+      TAG,
+      `page enter: firewallEnabled=${this.overviewViewModel.state.enabled}, currentMode=${this.overviewViewModel.state.currentMode}`
+    )
   }
 
   aboutToDisappear() {
     this.modeLoadingRunner.closeIfOpen('page-disappear')
-    LogUtils.info(TAG, `page exit: firewallEnabled=${this.firewallEnabled}, currentMode=${this.currentMode}`)
+    LogUtils.info(
+      TAG,
+      `page exit: firewallEnabled=${this.overviewViewModel.state.enabled}, currentMode=${this.overviewViewModel.state.currentMode}`
+    )
   }
 
   async handleToggleWithAuth(isOn: boolean) {
     if (this.isToggleProcessing) {
-      this.firewallSwitchValue = this.firewallEnabled
+      this.firewallSwitchValue = this.overviewViewModel.state.enabled
       return
     }
-    let currentEnabled = this.firewallEnabled
+    let currentEnabled = this.overviewViewModel.state.enabled
     if (isOn === currentEnabled) {
       this.firewallSwitchValue = currentEnabled
       return
@@ -55,22 +58,19 @@ export struct FirewallPage {
     this.isToggleProcessing = true
     try {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      let result = await FirewallToggleAuthService.executeToggle(context, currentEnabled, isOn)
+      let result = await this.overviewViewModel.requestToggle(context, isOn)
       if (result.success) {
-        this.firewallSwitchValue = isOn
-        this.onFirewallToggle(isOn)
+        this.firewallSwitchValue = this.overviewViewModel.state.enabled
         return
       }
 
       this.firewallSwitchValue = currentEnabled
-      this.onFirewallToggle(currentEnabled)
       DialogService.openFailure(
         this.getUIContext(),
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
-      this.onFirewallToggle(currentEnabled)
       DialogService.openFailure(this.getUIContext(), FirewallStrings.toggleFailed)
       LogUtils.error(TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
@@ -114,7 +114,7 @@ export struct FirewallPage {
   }
 
   private isModeSelected(mode: FirewallPresetMode): boolean {
-    return this.currentMode === mode
+    return this.overviewViewModel.state.currentMode === mode
   }
 
   private isModeHovered(mode: FirewallPresetMode): boolean {
@@ -122,7 +122,7 @@ export struct FirewallPage {
   }
 
   private canOperateModeCards(): boolean {
-    return this.firewallEnabled && !this.isToggleProcessing && !this.isModeProcessing
+    return this.overviewViewModel.state.enabled && !this.isToggleProcessing && !this.isModeProcessing
   }
 
   private getModeCardBackground(mode: FirewallPresetMode): string {
@@ -231,7 +231,7 @@ export struct FirewallPage {
     if (this.isModeProcessing) {
       return
     }
-    if (mode === this.currentMode) {
+    if (mode === this.overviewViewModel.state.currentMode) {
       if (mode === 'custom') {
         this.onNavigateToRules()
       }
@@ -240,12 +240,14 @@ export struct FirewallPage {
     this.isModeProcessing = true
     let success = false
     try {
-      LogUtils.info(TAG, `mode switch start: current=${this.currentMode}, target=${mode}`)
+      LogUtils.info(TAG, `mode switch start: current=${this.overviewViewModel.state.currentMode}, target=${mode}`)
       success = await this.modeLoadingRunner.run(
         'firewall-mode-switch',
         LoadingStrings.APPLYING_MODE,
         async (): Promise<boolean> => {
-          return await this.onModeChange(mode)
+          let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+          let result = await this.overviewViewModel.requestModeSwitch(context, mode)
+          return result.success
         },
         (dialogMessage: string): CustomDialogController => this.createModeLoadingDialogController(dialogMessage)
       )

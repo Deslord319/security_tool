@@ -3,11 +3,8 @@ import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/App
 import { CommonStrings } from '../../../constants/CommonStrings'
 import { CommonLabelStrings, EmptyStateStrings, FirewallDialogStrings, FirewallRuleLabelStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
-import { FirewallService } from '../../../services/firewall/policy/FirewallService'
-import { FirewallCustomRuleService } from '../../../services/firewall/rule-management/FirewallCustomRuleService'
-import { FirewallModeService } from '../../../services/firewall/mode-control/FirewallModeService'
-import { AddRuleDialog } from '../../../components/firewall/rule-management/AddRuleDialog'
-import { UserFirewallControlDialog } from '../../../components/firewall/policy/UserFirewallControlDialog'
+import { AddRuleDialog } from '../../../components/firewall/rules/AddRuleDialog'
+import { UserFirewallControlDialog } from '../../../components/firewall/user-dispatch/UserFirewallControlDialog'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { netFirewall } from '@kit.NetworkKit'
@@ -16,7 +13,7 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FirewallPresetMode, FirewallUserApplyMode } from '../../../models/DataModels'
 import { DialogService } from '../../../utils/DialogService'
-import { UserFirewallModeService } from '../../../services/firewall/mode-control/UserFirewallModeService'
+import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 
 const TAG = 'FirewallRulesPage'
 
@@ -24,10 +21,7 @@ const TAG = 'FirewallRulesPage'
 export struct FirewallRulesPage {
   @Param currentMode: FirewallPresetMode = 'custom'
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Local rules: netFirewall.NetFirewallRule[] = []
-  @Local conflictNotice: string = ''
-  @Local currentTab: number = 0
-  @Local isLoading: boolean = false
+  @Param rulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   @Event onBack: () => void = () => {}
   private userFirewallDialogController?: CustomDialogController
 
@@ -53,7 +47,8 @@ export struct FirewallRulesPage {
       this.onBack()
       return
     }
-    this.loadRules()
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    void this.rulesViewModel.initialize(context, this.currentMode)
   }
 
   aboutToDisappear(): void {
@@ -62,19 +57,15 @@ export struct FirewallRulesPage {
   }
 
   async loadRules() {
-    this.isLoading = true
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    this.rules = await FirewallCustomRuleService.listRules(context)
-    this.updateConflictNotice()
-    LogUtils.info(TAG, `loadRules finished: count=${this.rules.length}`)
-    this.isLoading = false
+    const result = await this.rulesViewModel.loadRules(context)
+    LogUtils.info(TAG, `loadRules finished: count=${this.rulesViewModel.rules.length}, success=${result.success}`)
   }
 
   private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
-    LogUtils.info(TAG, `persistRules start: nextCount=${nextRules.length}, previousCount=${previousRules.length}`)
-    let result = await FirewallModeService.applyCustomRules(context, nextRules)
+    LogUtils.info(TAG, `persistRules start: nextCount=${nextRules.length}, currentCount=${this.rulesViewModel.rules.length}`)
+    let result = await this.rulesViewModel.saveRules(context, nextRules, successMessage)
     if (!result.success) {
       DialogService.openFailure(
         this.getUIContext(),
@@ -82,54 +73,45 @@ export struct FirewallRulesPage {
       )
       return
     }
-    let saved = await FirewallCustomRuleService.replaceAllRules(context, nextRules)
-    if (!saved) {
-      let rollbackResult = await FirewallModeService.applyCustomRules(context, previousRules)
-      if (!rollbackResult.success) {
-      DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesLocalSaveFailed)
-        return
-      }
-      await this.loadRules()
-      DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesRollbackSuccess)
-      return
-    }
-    LogUtils.info(TAG, `persistRules local template saved: count=${nextRules.length}`)
-    let reapplySummary = await UserFirewallModeService.reapplyBindings(context, nextRules)
-    await this.loadRules()
     LogUtils.info(TAG,
-      `persistRules success: ${successMessage}, reapply total=${reapplySummary.totalUsers}, success=${reapplySummary.successCount}, failed=${reapplySummary.failedCount}`
+      `persistRules success: ${successMessage}, reapply total=${result.reapplyTotalUsers ?? 0}, success=${result.reapplySuccessCount ?? 0}, failed=${result.reapplyFailedCount ?? 0}`
     )
-    if (reapplySummary.failedCount > 0) {
+    if ((result.reapplyFailedCount ?? 0) > 0) {
       await DialogService.openFailure(
         this.getUIContext(),
-        FirewallStrings.buildReapplyPartialFailedMessage(reapplySummary.successCount, reapplySummary.failedCount)
+        FirewallStrings.buildReapplyPartialFailedMessage(result.reapplySuccessCount ?? 0, result.reapplyFailedCount ?? 0)
       )
       return
     }
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
-    let conflict = FirewallService.findRuleConflict(this.rules, rule)
+    let conflict = this.rulesViewModel.findConflict(rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-      DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
+        DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-      DialogService.openConfirm(this.getUIContext(), {
+        if (!conflictRule) {
+          DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesApplyFailed)
+          return
+        }
+        const conflictRuleValue: netFirewall.NetFirewallRule = conflictRule
+        DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceMessage,
           confirmText: CommonStrings.actionOverride,
           cancelText: CommonStrings.actionCancel,
           onConfirm: () => {
-            this.replaceConflictRule(conflictRule, rule, false)
+            this.replaceConflictRule(conflictRuleValue, rule, false)
           }
         })
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-      DialogService.openConfirm(this.getUIContext(), {
+        DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleAddMessage,
           confirmText: CommonStrings.actionContinue,
@@ -145,7 +127,7 @@ export struct FirewallRulesPage {
   }
 
   private async addRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let nextRules = [...this.rules, rule]
+    let nextRules = [...this.rulesViewModel.rules, rule]
     await this.persistRules(nextRules, FirewallStrings.addRuleSuccess)
   }
 
@@ -170,29 +152,34 @@ export struct FirewallRulesPage {
   }
 
   async handleEditRule(rule: netFirewall.NetFirewallRule) {
-    let currentRuleId = this.getLocalRuleId(rule)
-    let comparableRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== currentRuleId)
-    let conflict = FirewallService.findRuleConflict(comparableRules, rule)
+    let currentRuleId = this.rulesViewModel.getLocalRuleId(rule)
+    let comparableRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== currentRuleId)
+    let conflict = this.rulesViewModel.findConflict(rule, comparableRules)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-      DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
+        DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
-      DialogService.openConfirm(this.getUIContext(), {
+        if (!conflictRule) {
+          DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesApplyFailed)
+          return
+        }
+        const conflictRuleValue: netFirewall.NetFirewallRule = conflictRule
+        DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.conflictRuleTitle,
           message: FirewallStrings.conflictRuleReplaceAndSaveMessage,
           confirmText: CommonStrings.actionOverride,
           cancelText: CommonStrings.actionCancel,
           onConfirm: () => {
-            this.replaceConflictRule(conflictRule, rule, true)
+            this.replaceConflictRule(conflictRuleValue, rule, true)
           }
         })
         return
       }
       if (conflict.kind === 'overlap_conflict') {
-      DialogService.openConfirm(this.getUIContext(), {
+        DialogService.openConfirm(this.getUIContext(), {
           title: FirewallStrings.overlapRuleTitle,
           message: FirewallStrings.overlapRuleEditMessage,
           confirmText: CommonStrings.actionContinue,
@@ -208,9 +195,9 @@ export struct FirewallRulesPage {
   }
 
   private async updateRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let localRuleId = this.getLocalRuleId(rule)
-    let nextRules = this.rules.map((item: netFirewall.NetFirewallRule) =>
-      this.getLocalRuleId(item) === localRuleId ? rule : item
+    let localRuleId = this.rulesViewModel.getLocalRuleId(rule)
+    let nextRules = this.rulesViewModel.rules.map((item: netFirewall.NetFirewallRule) =>
+      this.rulesViewModel.getLocalRuleId(item) === localRuleId ? rule : item
     )
     await this.persistRules(nextRules, FirewallStrings.updateRuleSuccess)
   }
@@ -220,12 +207,12 @@ export struct FirewallRulesPage {
     nextRule: netFirewall.NetFirewallRule,
     isEditMode: boolean
   ): Promise<void> {
-    let conflictRuleId = this.getLocalRuleId(conflictRule)
-    let nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== conflictRuleId)
+    let conflictRuleId = this.rulesViewModel.getLocalRuleId(conflictRule)
+    let nextRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== conflictRuleId)
     if (isEditMode) {
-      let currentRuleId = this.getLocalRuleId(nextRule)
+      let currentRuleId = this.rulesViewModel.getLocalRuleId(nextRule)
       nextRules = nextRules.map((item: netFirewall.NetFirewallRule) =>
-        this.getLocalRuleId(item) === currentRuleId ? nextRule : item
+        this.rulesViewModel.getLocalRuleId(item) === currentRuleId ? nextRule : item
       )
     } else {
       nextRules.push(nextRule)
@@ -234,7 +221,7 @@ export struct FirewallRulesPage {
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
-      DialogService.openConfirm(this.getUIContext(), {
+    DialogService.openConfirm(this.getUIContext(), {
       title: FirewallStrings.deleteRuleTitle,
       message: FirewallStrings.deleteRuleMessage,
       confirmText: CommonStrings.actionDelete,
@@ -246,50 +233,21 @@ export struct FirewallRulesPage {
   }
 
   private async deleteRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let localRuleId = this.getLocalRuleId(rule)
-    let nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== localRuleId)
+    let localRuleId = this.rulesViewModel.getLocalRuleId(rule)
+    let nextRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== localRuleId)
     await this.persistRules(nextRules, FirewallStrings.deleteRuleSuccess)
   }
 
-  private getLocalRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
-    return FirewallService.getRulePrimaryKey(rule)
-  }
-
-  private updateConflictNotice(): void {
-    let summary = FirewallService.summarizeConflicts(this.rules)
-    this.conflictNotice = FirewallStrings.buildConflictNotice(
-      summary.duplicates,
-      summary.hardConflicts,
-      summary.overlapConflicts
-    )
-  }
-
   getFilteredRules(): netFirewall.NetFirewallRule[] {
-    if (this.currentTab === 0) {
-      return this.rules
-    }
-
-    const targetType = (() => {
-      switch (this.currentTab) {
-        case 1: return netFirewall.NetFirewallRuleType.RULE_IP
-        case 2: return netFirewall.NetFirewallRuleType.RULE_DOMAIN
-        case 3: return netFirewall.NetFirewallRuleType.RULE_DNS
-        default: return null
-      }
-    })()
-
-    if (!targetType) {
-      return this.rules
-    }
-    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === targetType)
+    return this.rulesViewModel.getFilteredRules()
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
-    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === type).length
+    return this.rulesViewModel.countRulesByType(type)
   }
 
   countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
-    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.direction === direction).length
+    return this.rulesViewModel.countRulesByDirection(direction)
   }
 
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
@@ -416,18 +374,7 @@ export struct FirewallRulesPage {
   }
 
   getTabCount(index: number): number {
-    switch (index) {
-      case 0:
-        return this.rules.length
-      case 1:
-        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP)
-      case 2:
-        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN)
-      case 3:
-        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS)
-      default:
-        return 0
-    }
+    return this.rulesViewModel.getTabCount(index)
   }
 
   @Builder
@@ -435,21 +382,21 @@ export struct FirewallRulesPage {
     Row({ space: 8 }) {
       Text(title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(this.currentTab === index ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(this.currentTab === index ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .fontWeight(this.rulesViewModel.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
+        .fontColor(this.rulesViewModel.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(this.rulesViewModel.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
       Text(`${this.getTabCount(index)}`)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontWeight(this.currentTab === index ? FontWeight.Bold : FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(this.currentTab === index ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.rulesViewModel.currentTab === index ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(this.rulesViewModel.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.SPACING_CHIP / 2, bottom: AppStyles.SPACING_CHIP / 2 })
-        .backgroundColor(this.currentTab === index ? AppColors.getColors(this.currentTheme).BG_COMPONENT : Color.Transparent)
+        .backgroundColor(this.rulesViewModel.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BG_COMPONENT)
         .borderRadius(10)
     }
     .padding({ left: AppStyles.SPACING_TAB_BAR_PADDING, right: AppStyles.SPACING_TAB_BAR_PADDING, top: AppStyles.SPACING_CHIP, bottom: AppStyles.SPACING_CHIP })
-    .backgroundColor(this.currentTab === index ? AppColors.getColors(this.currentTheme).BG_CARD : Color.Transparent)
+    .backgroundColor(this.rulesViewModel.currentTab === index ? AppColors.getColors(this.currentTheme).BG_CARD : Color.Transparent)
     .borderRadius(AppStyles.RADIUS_MD)
   }
 
@@ -467,77 +414,77 @@ export struct FirewallRulesPage {
 
       Scroll() {
         Column({ space: 18 }) {
-        if (this.conflictNotice.length > 0) {
-          Row({ space: 8 }) {
-            Text(FirewallStrings.conflictWarningLabel)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(AppColors.WARNING)
-              .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-              .backgroundColor(AppColors.FIREWALL_CONFLICT_BG)
-              .borderRadius(AppStyles.RADIUS_CHIP)
+          if (this.rulesViewModel.conflictNotice.length > 0) {
+            Row({ space: 8 }) {
+              Text(FirewallStrings.conflictWarningLabel)
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(AppColors.WARNING)
+                .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
+                .backgroundColor(AppColors.FIREWALL_CONFLICT_BG)
+                .borderRadius(AppStyles.RADIUS_CHIP)
 
-            Text(this.conflictNotice)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.WARNING)
+              Text(this.rulesViewModel.conflictNotice)
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.WARNING)
+                .layoutWeight(1)
+            }
+            .width('100%')
+            .padding(AppStyles.PADDING_MD)
+            .backgroundColor(AppColors.FIREWALL_CONFLICT_PANEL_BG)
+            .borderRadius(AppStyles.RADIUS_MD)
+            .border({ width: 1, color: AppColors.FIREWALL_CONFLICT_BORDER })
+          }
+
+          Row({ space: AppStyles.PADDING_LG }) {
+            CompactSummaryCard({
+              title: FirewallStrings.inboundRules,
+              valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
+              description: FirewallStrings.inboundCustomRulesDescription,
+              accentStart: AppColors.WARNING,
+              accentEnd: AppColors.GRADIENT_IDENTITY_END,
+              icon: $r('app.media.arrow_down'),
+              currentTheme: this.currentTheme
+            })
+              .layoutWeight(1)
+
+            CompactSummaryCard({
+              title: FirewallStrings.outboundRules,
+              valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
+              description: FirewallStrings.outboundCustomRulesDescription,
+              accentStart: AppColors.BRAND_PRIMARY,
+              accentEnd: AppColors.GRADIENT_FIREWALL_END,
+              icon: $r('app.media.arrow_up'),
+              currentTheme: this.currentTheme
+            })
               .layoutWeight(1)
           }
           .width('100%')
-          .padding(AppStyles.PADDING_MD)
-          .backgroundColor(AppColors.FIREWALL_CONFLICT_PANEL_BG)
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.FIREWALL_CONFLICT_BORDER })
-        }
 
-        Row({ space: AppStyles.PADDING_LG }) {
-          CompactSummaryCard({
-            title: FirewallStrings.inboundRules,
-            valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
-            description: FirewallStrings.inboundCustomRulesDescription,
-            accentStart: AppColors.WARNING,
-            accentEnd: AppColors.GRADIENT_IDENTITY_END,
-            icon: $r('app.media.arrow_down'),
-            currentTheme: this.currentTheme
+          Tabs({ barPosition: BarPosition.Start }) {
+            TabContent() {
+              this.ruleListBuilder()
+            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))
+
+            TabContent() {
+              this.ruleListBuilder()
+            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.IP_RULE, 1))
+
+            TabContent() {
+              this.ruleListBuilder()
+            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DOMAIN_RULE, 2))
+
+            TabContent() {
+              this.ruleListBuilder()
+            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DNS_RULE, 3))
+          }
+          .barMode(BarMode.Scrollable)
+          .barBackgroundColor(Color.Transparent)
+          .divider(null)
+          .onChange((index: number) => {
+            this.rulesViewModel.setCurrentTab(index)
           })
-            .layoutWeight(1)
-
-          CompactSummaryCard({
-            title: FirewallStrings.outboundRules,
-            valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
-            description: FirewallStrings.outboundCustomRulesDescription,
-            accentStart: AppColors.BRAND_PRIMARY,
-            accentEnd: AppColors.GRADIENT_FIREWALL_END,
-            icon: $r('app.media.arrow_up'),
-            currentTheme: this.currentTheme
-          })
-            .layoutWeight(1)
-        }
-        .width('100%')
-
-        Tabs({ barPosition: BarPosition.Start }) {
-          TabContent() {
-            this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))
-
-          TabContent() {
-            this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.IP_RULE, 1))
-
-          TabContent() {
-            this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DOMAIN_RULE, 2))
-
-          TabContent() {
-            this.ruleListBuilder()
-          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DNS_RULE, 3))
-        }
-        .barMode(BarMode.Scrollable)
-        .barBackgroundColor(Color.Transparent)
-        .divider(null)
-        .onChange((index: number) => {
-          this.currentTab = index
-        })
-        .layoutWeight(1)
+          .layoutWeight(1)
         }
         .padding({
           left: AppStyles.PADDING_LG,
@@ -558,7 +505,7 @@ export struct FirewallRulesPage {
   @Builder
   ruleListBuilder() {
     Column() {
-      if (this.isLoading) {
+      if (this.rulesViewModel.isLoading) {
         Column({ space: 10 }) {
           LoadingProgress()
             .width(42)

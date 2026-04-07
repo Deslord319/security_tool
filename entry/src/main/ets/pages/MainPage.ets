@@ -3,7 +3,7 @@ import { SideBar } from '../components/SideBar'
 import { AboutDialogContent, ThemeMenuPopup } from '../components/ThemeMenuPopup'
 import { DashboardPage } from '../views/dashboard/overview/DashboardPage'
 import { FirewallPage } from '../views/firewall/overview/FirewallPage'
-import { FirewallRulesPage } from '../views/firewall/rule-management/FirewallRulesPage'
+import { FirewallRulesPage } from '../views/firewall/rules/FirewallRulesPage'
 import { PeripheralPage } from '../views/peripheral/overview/PeripheralPage'
 import { IdentityPage } from '../views/identity/settings/IdentityPage'
 import { ToolSettingsPage } from '../views/tool-settings/system-settings/ToolSettingsPage'
@@ -22,9 +22,7 @@ import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peri
 import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
 import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
-import { FirewallService } from '../services/firewall/policy/FirewallService'
-import { FirewallPresetMode } from '../models/DataModels'
-import { FirewallModeService } from '../services/firewall/mode-control/FirewallModeService'
+import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
@@ -34,8 +32,7 @@ const TAG = 'MainPage'
 @ComponentV2
 struct MainPage {
   @Local currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? RouteIds.DASHBOARD
-  @Local firewallEnabled: boolean = false
-  @Local firewallPresetMode: FirewallPresetMode = 'custom'
+  @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Local showMenu: boolean = false
   @Local logManageMounted: boolean = true
   @Local pageEnterOpacity: number = 1
@@ -139,15 +136,7 @@ struct MainPage {
 
   private async loadFirewallState(): Promise<void> {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    await FirewallModeService.initialize(context)
-    let policy = await FirewallService.getFirewallPolicy()
-    if (policy === null) {
-      LogUtils.warn(TAG, 'skip firewall state sync because getFirewallPolicy returned null')
-      return
-    }
-
-    this.firewallEnabled = policy.isOpen
-    this.firewallPresetMode = await FirewallModeService.getCurrentMode(context)
+    await this.firewallOverviewViewModel.initialize(context)
   }
 
   private async ensureRuntimeServices(): Promise<void> {
@@ -451,9 +440,34 @@ struct MainPage {
     if (this.currentPage === RouteIds.DASHBOARD) {
       this.buildDashboardRoute()
     } else if (this.currentPage === RouteIds.FIREWALL) {
-      this.buildFirewallRoute()
+      Column() {
+        FirewallPage({
+          overviewViewModel: this.firewallOverviewViewModel,
+          currentTheme: this.currentTheme,
+          onBack: () => {
+            this.setCurrentPage(RouteIds.DASHBOARD)
+          },
+          onNavigateToRules: () => {
+            this.setCurrentPage(RouteIds.FIREWALL_RULES)
+          }
+        })
+      }
+      .id('route-page-firewall')
+      .width('100%')
+      .height('100%')
     } else if (this.currentPage === RouteIds.FIREWALL_RULES) {
-      this.buildFirewallRulesRoute()
+      Column() {
+        FirewallRulesPage({
+          currentMode: this.firewallOverviewViewModel.state.currentMode,
+          currentTheme: this.currentTheme,
+          onBack: () => {
+            this.setCurrentPage(RouteIds.FIREWALL)
+          }
+        })
+      }
+      .id('route-page-firewall-rules')
+      .width('100%')
+      .height('100%')
     } else if (this.currentPage === RouteIds.LOG_MANAGE) {
       this.buildLogManageRoute()
     } else if (this.currentPage === RouteIds.PERIPHERAL_MANAGE) {

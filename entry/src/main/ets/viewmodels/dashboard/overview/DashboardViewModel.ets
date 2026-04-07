@@ -8,8 +8,7 @@ import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
 import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../models/DashboardModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
-import { FirewallModeService } from '../../../services/firewall/mode-control/FirewallModeService'
-import { FirewallService } from '../../../services/firewall/policy/FirewallService'
+import { FirewallService } from '../../../services/firewall/FirewallService'
 import { PeripheralTraceRepository } from '../../../services/peripheral/connection-record/PeripheralTraceRepository'
 import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -91,10 +90,13 @@ export class DashboardViewModel {
     let enabled = false
     let modeText = FirewallStrings.getModeTitle('custom')
     try {
-      let policy = await FirewallService.getFirewallPolicy()
-      enabled = policy?.isOpen ?? false
       if (this.context) {
-        modeText = FirewallStrings.getModeTitle(await FirewallModeService.getCurrentMode(this.context))
+        let overview = await FirewallService.loadOverviewState(this.context)
+        enabled = overview.enabled
+        modeText = FirewallStrings.getModeTitle(overview.currentMode)
+      } else {
+        let policy = await FirewallService.getFirewallPolicy()
+        enabled = policy?.isOpen ?? false
       }
     } catch (err) {
       LogUtils.warn(TAG, `buildFirewallCard failed: ${JSON.stringify(err)}`)
