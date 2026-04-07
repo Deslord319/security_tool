@@ -44,12 +44,26 @@
       }
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "deleted_domain_rule_not_visible",
+      "type": "assert_text_presence",
+      "value": "www.baidu.com",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": false,
+        "timeout_ms": 2500,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
-    "Delete case self-seeds the target domain rule to avoid cross-case state coupling."
+    "Delete case self-seeds the target domain rule to avoid cross-case state coupling.",
+    "Current primary evidence confirms the deleted domain is no longer visible in the rules list."
   ]
 }

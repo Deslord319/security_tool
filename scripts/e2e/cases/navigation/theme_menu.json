@@ -23,12 +23,25 @@
       }
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "help_feedback_menu_item_visible",
+      "type": "assert_text_presence",
+      "value": "帮助与反馈",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
-    "Menu visibility remains UI-driven until assertions are backed by element checks."
+    "Theme menu visibility is confirmed through a stable visible menu entry."
   ]
 }

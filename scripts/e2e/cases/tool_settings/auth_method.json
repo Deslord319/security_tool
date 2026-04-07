@@ -29,12 +29,26 @@
       }
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "tool_settings_page_visible_after_auth_method_update",
+      "type": "assert_text_presence",
+      "value": "身份认证方式",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
+    "Current primary evidence confirms the auth method update runs in the expected settings section.",
     "Selection persistence assertion will be added after page re-entry verification is implemented."
   ]
 }

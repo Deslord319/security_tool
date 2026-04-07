@@ -1,13 +1,12 @@
 {
-  "updated_at": "2026-03-26T10:26:35+00:00",
-  "total_cases": 17,
+  "updated_at": "2026-04-07T07:43:22+00:00",
+  "total_cases": 20,
   "status_stats": {
-    "implemented": 17
+    "implemented": 20
   },
   "result_stats": {
-    "PASS": 3,
-    "NOT_RUN": 13,
-    "UNKNOWN": 1
+    "NOT_RUN": 14,
+    "UNKNOWN": 6
   },
   "module_stats": {
     "bootstrap": {
@@ -46,8 +45,8 @@
       "deprecated": 0
     },
     "peripheral": {
-      "total": 2,
-      "implemented": 2,
+      "total": 5,
+      "implemented": 5,
       "draft": 0,
       "planned": 0,
       "deprecated": 0
@@ -63,17 +62,17 @@
   "suite_stats": {
     "smoke": 3,
     "navigation": 4,
-    "completeness": 17,
+    "completeness": 20,
     "firewall": 4,
     "identity": 2,
     "logs": 2,
-    "peripheral": 2,
+    "peripheral": 5,
     "tool_settings": 3
   },
   "flow_stats": {
-    "app.launch": 16,
-    "navigation.open_page": 18,
-    "entity.create": 3,
+    "app.launch": 19,
+    "navigation.open_page": 22,
+    "entity.create": 6,
     "browser.open_url": 1,
     "ui.capture_screenshot": 2,
     "entity.delete": 1,
@@ -86,8 +85,8 @@
     "tool_settings.set_password": 1
   },
   "bridge_action_stats": {
-    "navigate_page": 18,
-    "execute_template_action": 13,
+    "navigate_page": 22,
+    "execute_template_action": 16,
     "open_browser_url": 1,
     "capture_screenshot": 2,
     "toggle_firewall": 1,
@@ -97,7 +96,7 @@
     "set_tool_password": 1
   },
   "bridge_coverage": {
-    "covered": 16,
+    "covered": 19,
     "partial": 0,
     "missing": 1
   }

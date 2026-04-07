@@ -23,12 +23,26 @@
       "params": {}
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "log_manage_page_visible",
+      "type": "assert_text_presence",
+      "value": "日志管理",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
+    "Export remains UI-driven, but this case now at least proves the action runs from the correct page context.",
     "Export artifact verification will be attached once filesystem assertions are wired."
   ]
 }

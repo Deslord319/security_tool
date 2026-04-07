@@ -1,6 +1,6 @@
 {
-  "case_id": "PER-USB-001",
-  "case_name": "Peripheral USB Storage Policy",
+  "case_id": "PER-WL-USB-001",
+  "case_name": "Peripheral USB Whitelist Create",
   "module": "peripheral",
   "flow": [
     {
@@ -18,20 +18,21 @@
       }
     },
     {
-      "name": "update_usb_storage_policy",
-      "ref": "entity.update",
+      "name": "create_usb_whitelist_entry",
+      "ref": "entity.create",
       "params": {
         "domain": "peripheral",
-        "entity": "usb_storage_policy",
+        "entity": "whitelist",
+        "variant": "usb",
         "data": {
-          "policy": "read_only"
+          "device_id": "USB-ALLOW-001"
         }
       }
     }
   ],
   "assertions": [
     {
-      "name": "peripheral_policy_tab_visible",
+      "name": "peripheral_whitelist_context_visible",
       "type": "assert_text_presence",
       "value": "黑白名单",
       "level": "primary",
@@ -48,7 +49,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the flow stays within the expected peripheral policy context.",
-    "Getter-backed USB storage policy assertion will be added later."
+    "Current primary evidence confirms the whitelist flow executes in the expected peripheral policy context.",
+    "Device-level whitelist getter assertions will be added after policy readback is wired."
   ]
 }

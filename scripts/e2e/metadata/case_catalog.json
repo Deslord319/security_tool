@@ -1,12 +1,12 @@
 {
   "version": "1.0",
-  "updated_at": "2026-03-26T09:38:01+00:00",
+  "updated_at": "2026-04-07T07:42:49+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
       "case_name": "Enable Enterprise Admin",
       "module_id": "bootstrap",
-      "module_name": "bootstrap",
+      "module_name": "启动初始化",
       "status": "implemented",
       "source": "manual",
       "preconditions_text": "",
@@ -14,8 +14,23 @@
       "checkpoints_text": "",
       "notes": [],
       "structured_flow": [],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "enable_admin_success",
+          "type": "enterprise_admin_enabled",
+          "value": "success",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "ability_name": "{{admin_ability}}",
+            "admin_type": "super",
+            "timeout_sec": 20
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "success"
+      ],
       "suite_membership": [
         "smoke",
         "navigation",
@@ -27,12 +42,14 @@
         "模块未识别，无法自动生成具体 flow",
         "缺少可执行 flow 草稿",
         "Bridge 覆盖未完整",
-        "缺少断言草稿"
+        "缺少断言草稿",
+        "缺少可执行 flow"
       ],
       "capability_gap_breakdown": {
         "flow": [
           "模块未识别，无法自动生成具体 flow",
-          "缺少可执行 flow 草稿"
+          "缺少可执行 flow 草稿",
+          "缺少可执行 flow"
         ],
         "template": [],
         "params": [],
@@ -46,8 +63,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/admin_enable.json",
-      "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "approved",
       "review_notes": [
         "tmp test",
@@ -130,8 +146,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
-      "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -183,14 +198,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "domain_rule_visible_before_browser_verification",
+          "type": "assert_text_presence",
+          "value": "www.baidu.com",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2500,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence proves the deny rule is created before browser-side verification begins.",
+        "www.baidu.com"
+      ],
       "suite_membership": [
         "firewall",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -209,8 +240,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
-      "draft_path": "",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -262,14 +292,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "created_domain_rule_visible",
+          "type": "assert_text_presence",
+          "value": "www.baidu.com",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2500,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the created domain rule is visible in the rules list.",
+        "www.baidu.com"
+      ],
       "suite_membership": [
         "firewall",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -288,7 +334,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_create.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -346,14 +391,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "deleted_domain_rule_not_visible",
+          "type": "assert_text_presence",
+          "value": "www.baidu.com",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": false,
+            "timeout_ms": 2500,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the deleted domain is no longer visible in the rules list.",
+        "www.baidu.com"
+      ],
       "suite_membership": [
         "firewall",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -372,7 +433,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_delete.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -413,14 +473,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "firewall_page_still_visible_after_toggle",
+          "type": "assert_text_presence",
+          "value": "公共网络模式",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the authenticated toggle flow returns to a stable firewall page state.",
+        "公共网络模式"
+      ],
       "suite_membership": [
         "firewall",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "防火墙步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -439,7 +515,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/status_toggle.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -484,14 +559,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "identity_domain_policy_page_marker_visible",
+          "type": "assert_text_presence",
+          "value": "口令有效期",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the update executes in the domain policy section.",
+        "口令有效期"
+      ],
       "suite_membership": [
         "identity",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "身份鉴别步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -510,7 +601,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/domain_policy.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -557,14 +647,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "identity_page_marker_visible",
+          "type": "assert_text_presence",
+          "value": "口令复杂度策略",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the update executes in the expected identity policy context.",
+        "口令复杂度策略"
+      ],
       "suite_membership": [
         "identity",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "身份鉴别步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -583,7 +689,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/password_policy.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -613,9 +718,28 @@
           "params": {
             "preferred_module": "firewall"
           }
+        },
+        {
+          "name": "open_log_manage_after_policy_change",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "log-manage"
+          }
         }
       ],
       "structured_assertions": [
+        {
+          "name": "log_manage_page_visible_after_policy_change",
+          "type": "assert_text_presence",
+          "value": "日志管理",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
         {
           "name": "recent_security_logs_exist",
           "type": "hdc_shell_contains",
@@ -655,7 +779,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/event_after_policy_change.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -692,14 +815,29 @@
           "params": {}
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "log_manage_page_visible",
+          "type": "assert_text_presence",
+          "value": "日志管理",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "日志管理"
+      ],
       "suite_membership": [
         "logs",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "日志步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -718,7 +856,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/export.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -755,14 +892,29 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "help_feedback_menu_item_visible",
+          "type": "assert_text_presence",
+          "value": "帮助与反馈",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "帮助与反馈"
+      ],
       "suite_membership": [
         "navigation",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "缺少可执行 flow 草稿",
         "Bridge 覆盖未完整",
@@ -784,8 +936,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/theme_menu.json",
-      "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "UNKNOWN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -851,15 +1002,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "tool_settings_page_visible",
+          "type": "assert_text_presence",
+          "value": "启动时身份校验",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "启动时身份校验"
+      ],
       "suite_membership": [
         "smoke",
         "navigation",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "缺少可执行 flow 草稿",
         "Bridge 覆盖未完整",
@@ -881,7 +1047,84 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
-      "draft_path": "",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "PER-BL-USB-001",
+      "case_name": "Peripheral USB Blacklist Create",
+      "module_id": "peripheral",
+      "module_name": "外设管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_peripheral_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "peripheral-manage"
+          }
+        },
+        {
+          "name": "create_usb_blacklist_entry",
+          "ref": "entity.create",
+          "params": {
+            "domain": "peripheral",
+            "entity": "blacklist",
+            "variant": "usb",
+            "data": {
+              "device_id": "USB-DENY-001"
+            }
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "peripheral_policy_context_visible_after_usb_blacklist",
+          "type": "assert_text_presence",
+          "value": "黑白名单",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the USB blacklist flow executes in the expected policy context.",
+        "黑白名单"
+      ],
+      "suite_membership": [
+        "peripheral",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
       "last_result_status": "UNKNOWN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -961,14 +1204,29 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "peripheral_interface_page_visible",
+          "type": "assert_text_presence",
+          "value": "USB 接口",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "USB 接口"
+      ],
       "suite_membership": [
         "peripheral",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "外设步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -987,8 +1245,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/interfaces.json",
-      "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "UNKNOWN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1030,14 +1287,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "peripheral_policy_tab_visible",
+          "type": "assert_text_presence",
+          "value": "黑白名单",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the flow stays within the expected peripheral policy context.",
+        "黑白名单"
+      ],
       "suite_membership": [
         "peripheral",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "外设步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -1056,8 +1329,163 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_policy.json",
-      "draft_path": "",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "UNKNOWN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "PER-WL-BT-001",
+      "case_name": "Peripheral Bluetooth Whitelist Create",
+      "module_id": "peripheral",
+      "module_name": "外设管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_peripheral_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "peripheral-manage"
+          }
+        },
+        {
+          "name": "create_bluetooth_whitelist_entry",
+          "ref": "entity.create",
+          "params": {
+            "domain": "peripheral",
+            "entity": "whitelist",
+            "variant": "bluetooth",
+            "data": {
+              "device_id": "BT-ALLOW-001"
+            }
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "peripheral_policy_context_visible_after_bluetooth_whitelist",
+          "type": "assert_text_presence",
+          "value": "黑白名单",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the Bluetooth whitelist flow executes in the expected policy context.",
+        "黑白名单"
+      ],
+      "suite_membership": [
+        "peripheral",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/peripheral/bluetooth_whitelist.json",
+      "last_result_status": "UNKNOWN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "PER-WL-USB-001",
+      "case_name": "Peripheral USB Whitelist Create",
+      "module_id": "peripheral",
+      "module_name": "外设管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_peripheral_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "peripheral-manage"
+          }
+        },
+        {
+          "name": "create_usb_whitelist_entry",
+          "ref": "entity.create",
+          "params": {
+            "domain": "peripheral",
+            "entity": "whitelist",
+            "variant": "usb",
+            "data": {
+              "device_id": "USB-ALLOW-001"
+            }
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "peripheral_whitelist_context_visible",
+          "type": "assert_text_presence",
+          "value": "黑白名单",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the whitelist flow executes in the expected peripheral policy context.",
+        "黑白名单"
+      ],
+      "suite_membership": [
+        "peripheral",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/peripheral/usb_whitelist.json",
+      "last_result_status": "UNKNOWN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1099,14 +1527,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "tool_settings_page_visible_after_auth_method_update",
+          "type": "assert_text_presence",
+          "value": "身份认证方式",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the auth method update runs in the expected settings section.",
+        "身份认证方式"
+      ],
       "suite_membership": [
         "tool_settings",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "工具设置步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -1125,7 +1569,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/auth_method.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -1166,14 +1609,30 @@
           }
         }
       ],
-      "structured_assertions": [],
-      "checkpoint_summary": [],
+      "structured_assertions": [
+        {
+          "name": "tool_password_form_context_visible",
+          "type": "assert_text_presence",
+          "value": "访问密码",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Current primary evidence confirms the password flow executes in the expected form context.",
+        "访问密码"
+      ],
       "suite_membership": [
         "tool_settings",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "工具设置步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -1192,7 +1651,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/password_flow.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -1235,7 +1693,20 @@
           }
         }
       ],
-      "structured_assertions": [],
+      "structured_assertions": [
+        {
+          "name": "tool_settings_page_marker_visible",
+          "type": "assert_text_presence",
+          "value": "启动时身份校验",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
       "checkpoint_summary": [
         "Primary evidence remains UI-level until a stable preference getter is exposed."
       ],
@@ -1244,7 +1715,7 @@
         "completeness"
       ],
       "bridge_coverage_status": "covered",
-      "capability_gap_status": "assertion_gap",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "工具设置步骤未能稳定映射到具体 flow",
         "缺少断言草稿"
@@ -1263,7 +1734,6 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/startup_auth.json",
-      "draft_path": "",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []

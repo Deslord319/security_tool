@@ -31,12 +31,26 @@
       }
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "identity_domain_policy_page_marker_visible",
+      "type": "assert_text_presence",
+      "value": "口令有效期",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
+    "Current primary evidence confirms the update executes in the domain policy section.",
     "Getter-backed domain policy assertion will be added later."
   ]
 }

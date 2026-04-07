@@ -16,9 +16,28 @@
       "params": {
         "preferred_module": "firewall"
       }
+    },
+    {
+      "name": "open_log_manage_after_policy_change",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "log-manage"
+      }
     }
   ],
   "assertions": [
+    {
+      "name": "log_manage_page_visible_after_policy_change",
+      "type": "assert_text_presence",
+      "value": "日志管理",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
     {
       "name": "recent_security_logs_exist",
       "type": "hdc_shell_contains",
@@ -35,6 +54,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "This remains mixed evidence until log page assertions are added."
+    "Current primary evidence confirms policy change flow can return to the log page context.",
+    "This remains mixed evidence until deeper log page assertions are added."
   ]
 }

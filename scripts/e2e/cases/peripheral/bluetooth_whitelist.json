@@ -1,6 +1,6 @@
 {
-  "case_id": "PER-USB-001",
-  "case_name": "Peripheral USB Storage Policy",
+  "case_id": "PER-WL-BT-001",
+  "case_name": "Peripheral Bluetooth Whitelist Create",
   "module": "peripheral",
   "flow": [
     {
@@ -18,20 +18,21 @@
       }
     },
     {
-      "name": "update_usb_storage_policy",
-      "ref": "entity.update",
+      "name": "create_bluetooth_whitelist_entry",
+      "ref": "entity.create",
       "params": {
         "domain": "peripheral",
-        "entity": "usb_storage_policy",
+        "entity": "whitelist",
+        "variant": "bluetooth",
         "data": {
-          "policy": "read_only"
+          "device_id": "BT-ALLOW-001"
         }
       }
     }
   ],
   "assertions": [
     {
-      "name": "peripheral_policy_tab_visible",
+      "name": "peripheral_policy_context_visible_after_bluetooth_whitelist",
       "type": "assert_text_presence",
       "value": "黑白名单",
       "level": "primary",
@@ -48,7 +49,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the flow stays within the expected peripheral policy context.",
-    "Getter-backed USB storage policy assertion will be added later."
+    "Current primary evidence confirms the Bluetooth whitelist flow executes in the expected policy context.",
+    "Device-level whitelist getter assertions will be added after policy readback is wired."
   ]
 }

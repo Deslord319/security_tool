@@ -53,12 +53,25 @@
       }
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "tool_settings_page_visible",
+      "type": "assert_text_presence",
+      "value": "启动时身份校验",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
-    "Navigation remains UNKNOWN until the MCP executor is wired into the runtime."
+    "Primary checkpoint uses the final tool settings page marker to confirm the navigation chain reaches the expected terminal page."
   ]
 }

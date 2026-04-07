@@ -22,6 +22,9 @@ FIREWALL_SUITE = [
 PERIPHERAL_SUITE = [
     "peripheral/interfaces.json",
     "peripheral/usb_policy.json",
+    "peripheral/usb_whitelist.json",
+    "peripheral/bluetooth_whitelist.json",
+    "peripheral/usb_blacklist.json",
 ]
 
 

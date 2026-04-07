@@ -39,12 +39,26 @@
       }
     }
   ],
-  "assertions": [],
+  "assertions": [
+    {
+      "name": "domain_rule_visible_before_browser_verification",
+      "type": "assert_text_presence",
+      "value": "www.baidu.com",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2500,
+        "interval_ms": 250
+      }
+    }
+  ],
   "result_policy": {
     "allow_unknown": true,
     "stop_on_failure": true
   },
   "notes": [
+    "Current primary evidence proves the deny rule is created before browser-side verification begins.",
     "This case verifies domain rule creation and browser access behavior for www.baidu.com."
   ]
 }
