@@ -1,10 +1,9 @@
 import { common } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralTraceRepository } from '../../../services/PeripheralTraceRepository'
+import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'ConnectionRecordClearUsecase'
-const DOMAIN = 0x0013
 
 export class PeripheralConnectionRecordClearUsecase {
   async execute(context: common.UIAbilityContext | null): Promise<boolean> {
@@ -19,7 +18,7 @@ export class PeripheralConnectionRecordClearUsecase {
       return PeripheralTraceRepository.clearAll()
     } catch (err) {
       const error = err as BusinessError
-      hilog.error(DOMAIN, TAG, `execute failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`)
+      LogUtils.error(TAG, `execute failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`)
       return false
     }
   }
