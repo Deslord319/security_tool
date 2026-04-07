@@ -13,6 +13,16 @@ export class PeripheralStrings {
   static readonly toggleInterfaceFailed: string = 'toggle_interface_failed'
   static readonly usbStoragePolicyFailed: string = 'usb_storage_policy_failed'
   static readonly policyChangeFailed: string = 'policy_change_failed'
+  static readonly unsupportedPolicyDispatch: string = 'unsupported_policy'
+  static readonly unsupportedDeviceTypeDispatch: string = 'unsupported_device_type'
+  static readonly devicePolicyDispatchNotImplemented: string = 'device_policy_dispatch_not_implemented'
+  static readonly usbConflictGlobalDisabled: string = 'usb_conflict_global_disabled'
+  static readonly usbConflictAccountStorage: string = 'usb_conflict_account_storage'
+  static readonly usbDispatchFailed: string = 'usb_dispatch_failed'
+  static readonly usbDispatchConflictUnresolved: string = 'usb_dispatch_conflict_unresolved'
+  static readonly bluetoothConflictGlobalDisabled: string = 'bluetooth_conflict_global_disabled'
+  static readonly bluetoothDispatchFailed: string = 'bluetooth_dispatch_failed'
+  static readonly bluetoothDispatchConflictUnresolved: string = 'bluetooth_dispatch_conflict_unresolved'
   static readonly exportConnectionHistoryFailed: string = 'export_connection_history_failed'
   static readonly exportPolicyRecordsFailed: string = 'export_policy_records_failed'
   static readonly readUsbStatusFailed: string = 'read_usb_status'
@@ -124,6 +134,26 @@ export class PeripheralStrings {
         return '设置 USB 存储策略失败，请稍后重试'
       case PeripheralStrings.policyChangeFailed:
         return '修改黑白名单失败，请稍后重试'
+      case PeripheralStrings.unsupportedPolicyDispatch:
+        return '当前策略类型暂不支持下发，请稍后重试'
+      case PeripheralStrings.unsupportedDeviceTypeDispatch:
+        return '当前设备类型暂不支持下发，请稍后重试'
+      case PeripheralStrings.devicePolicyDispatchNotImplemented:
+        return '当前设备策略下发能力尚未接入，请稍后重试'
+      case PeripheralStrings.usbConflictGlobalDisabled:
+        return 'USB 接口当前处于更高层禁用状态，暂时无法修改单设备策略'
+      case PeripheralStrings.usbConflictAccountStorage:
+        return '系统检测到 USB 存储账户级冲突策略，暂时无法修改单设备策略'
+      case PeripheralStrings.usbDispatchFailed:
+        return 'USB 单设备策略下发失败，请稍后重试'
+      case PeripheralStrings.usbDispatchConflictUnresolved:
+        return '系统检测到 USB 冲突规则未完成消解，暂时无法修改单设备策略'
+      case PeripheralStrings.bluetoothConflictGlobalDisabled:
+        return '蓝牙当前处于更高层禁用状态，暂时无法修改单设备策略'
+      case PeripheralStrings.bluetoothDispatchFailed:
+        return '蓝牙单设备策略下发失败，请稍后重试'
+      case PeripheralStrings.bluetoothDispatchConflictUnresolved:
+        return '系统检测到蓝牙冲突规则未完成消解，暂时无法修改单设备策略'
       case PeripheralStrings.exportConnectionHistoryFailed:
         return '导出记录失败，请稍后重试'
       case PeripheralStrings.exportPolicyRecordsFailed:

@@ -6,8 +6,7 @@ const TAG = 'PeripheralDevicePolicyDispatchService'
 export type PeripheralPolicyDispatchReason =
   'unsupported_device_type' |
   'unsupported_policy' |
-  'usb_not_implemented' |
-  'bluetooth_not_implemented' |
+  'dispatch_not_implemented' |
   'usb_conflict_global_disabled' |
   'usb_conflict_account_storage' |
   'usb_dispatch_failed' |
@@ -67,7 +66,7 @@ export class PeripheralDevicePolicyDispatchService {
       TAG,
       `dispatchUsbPolicy not implemented yet: deviceId=${request.deviceId}, deviceType=${request.deviceType}, policy=${request.policy}`
     )
-    return PeripheralDevicePolicyDispatchService.buildFailureResult('usb_not_implemented')
+    return PeripheralDevicePolicyDispatchService.buildFailureResult('dispatch_not_implemented')
   }
 
   private static async dispatchBluetoothPolicy(
@@ -77,7 +76,7 @@ export class PeripheralDevicePolicyDispatchService {
       TAG,
       `dispatchBluetoothPolicy not implemented yet: deviceId=${request.deviceId}, deviceType=${request.deviceType}, policy=${request.policy}`
     )
-    return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_not_implemented')
+    return PeripheralDevicePolicyDispatchService.buildFailureResult('dispatch_not_implemented')
   }
 
   private static buildFailureResult(reason: PeripheralPolicyDispatchReason): PeripheralPolicyDispatchResult {
