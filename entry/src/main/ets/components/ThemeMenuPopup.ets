@@ -1,6 +1,7 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
+import { RouteIds } from '../constants/RouteIds'
 import { DetailDialogShell } from './DetailDialogShell'
 
 @ComponentV2
@@ -175,7 +176,7 @@ export struct ThemeMenuPopup {
         .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
       Column({ space: 2 }) {
-        this.actionMenuItem($r('app.media.help_menu'), CommonStrings.moduleHelpFeedback, 'help-feedback')
+        this.actionMenuItem($r('app.media.help_menu'), CommonStrings.moduleHelpFeedback, RouteIds.HELP_FEEDBACK)
         this.aboutMenuItem()
       }
       .width('100%')

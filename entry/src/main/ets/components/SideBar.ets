@@ -1,11 +1,12 @@
 import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS, AppInfo } from '../constants/AppConstants'
 import { CommonStrings } from '../constants/CommonStrings'
+import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode } from '../theme/ThemeColors'
 import { InteractiveMenuRow } from './ThemeMenuPopup'
 
 @ComponentV2
 export struct SideBar {
-  @Param selectedId: string = 'dashboard'
+  @Param selectedId: string = RouteIds.DASHBOARD
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onItemSelect: (id: string) => void = () => {}
   @Event onToggleTheme: () => void = () => {}
