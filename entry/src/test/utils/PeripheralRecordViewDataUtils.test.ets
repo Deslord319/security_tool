@@ -75,7 +75,7 @@ export default function peripheralRecordViewDataUtilsTest() {
       expect(history[0].time === '--').assertFalse()
     })
 
-    it('should build latest usb policy records from connection candidates by default', 0, () => {
+    it('should build latest usb and bluetooth policy records from connection candidates by default', 0, () => {
       const olderRecord = createConnectionRecord('record-1', 100)
       olderRecord.deviceName = 'Older USB Device'
       olderRecord.summary = 'older'
@@ -87,23 +87,41 @@ export default function peripheralRecordViewDataUtilsTest() {
       bluetoothRecord.deviceName = 'Bluetooth Device'
       bluetoothRecord.deviceType = PeripheralType.BLUETOOTH
       bluetoothRecord.summary = 'bt'
-      const records: PeripheralConnectionRecord[] = [olderRecord, latestRecord, bluetoothRecord]
+      const bluetoothDuplicate = createConnectionRecord('record-4', 250)
+      bluetoothDuplicate.deviceId = 'aa-bb-cc-dd-ee-ff'
+      bluetoothDuplicate.deviceName = 'Bluetooth Device Latest'
+      bluetoothDuplicate.deviceType = PeripheralType.BLUETOOTH
+      bluetoothDuplicate.summary = 'bt-latest'
+      const records: PeripheralConnectionRecord[] = [olderRecord, latestRecord, bluetoothRecord, bluetoothDuplicate]
 
       const defaultPolicyRecords = PeripheralPolicyService.buildPolicyRecords(records, [])
-      expect(defaultPolicyRecords.length).assertEqual(1)
-      expect(defaultPolicyRecords[0].deviceName).assertEqual('Latest USB Device')
+      expect(defaultPolicyRecords.length).assertEqual(2)
+      expect(defaultPolicyRecords[0].deviceName).assertEqual('Bluetooth Device Latest')
+      expect(defaultPolicyRecords[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
       expect(defaultPolicyRecords[0].policyIndex).assertEqual(0)
+      expect(defaultPolicyRecords[1].deviceName).assertEqual('Latest USB Device')
+      expect(defaultPolicyRecords[1].policyIndex).assertEqual(0)
 
-      const policies: PeripheralDevicePolicyRecord[] = [{
-        deviceId: 'VID:1234 PID:5678',
-        policy: 'deny',
-        updatedAt: Date.now()
-      }]
+      const policies: PeripheralDevicePolicyRecord[] = [
+        {
+          deviceId: 'VID:1234 PID:5678',
+          policy: 'deny',
+          updatedAt: Date.now()
+        },
+        {
+          deviceId: 'aa-bb-cc-dd-ee-ff',
+          deviceType: PeripheralType.BLUETOOTH,
+          policy: 'deny',
+          updatedAt: Date.now()
+        }
+      ]
       const policyRecords = PeripheralPolicyService.buildPolicyRecords(records, policies)
 
-      expect(policyRecords.length).assertEqual(1)
-      expect(policyRecords[0].deviceName).assertEqual('Latest USB Device')
+      expect(policyRecords.length).assertEqual(2)
+      expect(policyRecords[0].deviceName).assertEqual('Bluetooth Device Latest')
       expect(policyRecords[0].policyIndex).assertEqual(1)
+      expect(policyRecords[1].deviceName).assertEqual('Latest USB Device')
+      expect(policyRecords[1].policyIndex).assertEqual(1)
     })
   })
 }
