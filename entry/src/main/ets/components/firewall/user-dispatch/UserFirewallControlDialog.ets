@@ -25,8 +25,7 @@ export struct UserFirewallControlDialog {
   viewModel: FirewallUserDispatchViewModel = new FirewallUserDispatchViewModel()
   private modeOptions: ModeOption[] = [
     { mode: 'allowlist', label: FirewallDialogStrings.MODE_ALLOWLIST } as ModeOption,
-    { mode: 'denylist', label: FirewallDialogStrings.MODE_DENYLIST } as ModeOption,
-    { mode: 'non_standard', label: FirewallDialogStrings.MODE_NON_STANDARD } as ModeOption
+    { mode: 'denylist', label: FirewallDialogStrings.MODE_DENYLIST } as ModeOption
   ]
 
   async aboutToAppear(): Promise<void> {

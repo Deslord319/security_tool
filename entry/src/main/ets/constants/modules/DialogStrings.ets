@@ -129,7 +129,6 @@ export class FirewallDialogStrings {
   // 状态文本
   static readonly MODE_ALLOWLIST: string = '白名单模式'
   static readonly MODE_DENYLIST: string = '黑名单模式'
-  static readonly MODE_NON_STANDARD: string = '非标准模式'
   static readonly MODE_UNMANAGED: string = '未纳管'
   
   // 验证错误
@@ -145,7 +144,7 @@ export class FirewallDialogStrings {
   static readonly ERROR_PLEASE_READ_STATUS: string = '请先选择并读取有效用户状态'
   
   // 描述文本
-  static readonly USER_FIREWALL_DESCRIPTION: string = '选择目标 userId 后，为该用户下发自定义模式。白名单模式默认双向拒绝，只放行允许规则；黑名单模式默认双向允许，只阻止禁止规则；非标准模式只下发手动维护的规则，不修改默认入/出站策略。执行前需要完成 PIN 认证。'
+  static readonly USER_FIREWALL_DESCRIPTION: string = '选择目标 userId 后，为该用户下发自定义模式。白名单模式默认双向拒绝，只放行允许规则；黑名单模式默认双向允许，只阻止禁止规则。执行前需要完成 PIN 认证。'
 
   static buildPolicySummary(isOpen: boolean, inboundAction: string, outboundAction: string): string {
     let switchStatus = isOpen ? FirewallDialogStrings.SWITCH_ENABLED : FirewallDialogStrings.SWITCH_DISABLED

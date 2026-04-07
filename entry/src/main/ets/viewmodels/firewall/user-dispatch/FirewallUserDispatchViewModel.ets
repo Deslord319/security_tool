@@ -22,11 +22,11 @@ export class FirewallUserDispatchViewModel {
   @Trace isLoadingPolicy: boolean = false
   @Trace isSubmitting: boolean = false
   @Trace statusHintText: string = ''
-  @Trace currentModeText: string = FirewallDialogStrings.MODE_NON_STANDARD
+  @Trace currentModeText: string = FirewallDialogStrings.MODE_UNMANAGED
   @Trace currentPolicyText: string = ''
   @Trace lastApplyResult: FirewallUserApplyResult | null = null
 
-  private readonly modeOptions: FirewallUserApplyMode[] = ['allowlist', 'denylist', 'non_standard']
+  private readonly modeOptions: FirewallUserApplyMode[] = ['allowlist', 'denylist']
   private context: common.UIAbilityContext | null = null
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
@@ -44,7 +44,7 @@ export class FirewallUserDispatchViewModel {
         this.selectedIndex = 0
         this.selectedUserId = -1
         this.selectedModeIndex = 0
-        this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+        this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
         this.currentPolicyText = ''
         this.statusHintText = FirewallStrings.noActivatedUsers
         return
@@ -60,7 +60,7 @@ export class FirewallUserDispatchViewModel {
       this.selectedIndex = 0
       this.selectedUserId = -1
       this.selectedModeIndex = 0
-      this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+      this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
       this.currentPolicyText = ''
       this.statusHintText = FirewallStrings.noActivatedUsers
       LogUtils.error(TAG, `loadUsers failed: ${JSON.stringify(err)}`)
@@ -96,7 +96,7 @@ export class FirewallUserDispatchViewModel {
       const result = await FirewallService.loadUserModeState(this.context, this.selectedUserId)
       this.applyLoadedUserState(result)
     } catch (err) {
-      this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+      this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
       this.currentPolicyText = ''
       this.statusHintText = FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
       LogUtils.error(TAG, `loadStateForSelectedUser failed: ${JSON.stringify(err)}`)
@@ -142,7 +142,7 @@ export class FirewallUserDispatchViewModel {
 
   private applyLoadedUserState(result: FirewallUserModeStateResult): void {
     if (result.errorCode !== undefined) {
-      this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+      this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
       this.currentPolicyText = result.message ?? FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
       this.statusHintText = this.currentPolicyText
       this.selectedModeIndex = 0
@@ -176,10 +176,8 @@ export class FirewallUserDispatchViewModel {
         return FirewallDialogStrings.MODE_ALLOWLIST
       case 'denylist':
         return FirewallDialogStrings.MODE_DENYLIST
-      case 'non_standard':
-        return FirewallDialogStrings.MODE_NON_STANDARD
       default:
-        return FirewallDialogStrings.MODE_NON_STANDARD
+        return FirewallDialogStrings.MODE_UNMANAGED
     }
   }
 }

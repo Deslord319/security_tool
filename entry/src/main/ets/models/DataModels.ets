@@ -446,7 +446,7 @@ export interface UserFirewallPolicyResult {
   message?: string
 }
 
-export type FirewallUserApplyMode = 'allowlist' | 'denylist' | 'non_standard'
+export type FirewallUserApplyMode = 'allowlist' | 'denylist'
 
 export interface UserFirewallModeBinding {
   userId: number

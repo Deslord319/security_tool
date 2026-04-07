@@ -116,7 +116,7 @@ export class FirewallStore {
       }
       return parsed.filter((item: UserFirewallModeBinding): boolean => {
         return typeof item.userId === 'number' &&
-          (item.mode === 'allowlist' || item.mode === 'denylist' || item.mode === 'non_standard')
+          (item.mode === 'allowlist' || item.mode === 'denylist')
       })
     } catch (err) {
       FirewallStore.recordStoreError(FirewallStrings.readUserModeBindingsAction, err as Object)
@@ -394,33 +394,27 @@ export class FirewallStore {
       return FirewallStore.buildFailedResult(userId, mode, 0)
     }
 
-    if (mode !== 'non_standard') {
-      let targetPolicy: netFirewall.NetFirewallPolicy = {
-        isOpen: policy.isOpen,
-        inAction: mode === 'allowlist'
-          ? netFirewall.FirewallRuleAction.RULE_DENY
-          : netFirewall.FirewallRuleAction.RULE_ALLOW,
-        outAction: mode === 'allowlist'
-          ? netFirewall.FirewallRuleAction.RULE_DENY
-          : netFirewall.FirewallRuleAction.RULE_ALLOW
-      }
-      if (!await FirewallStore.setPolicy(userId, targetPolicy)) {
-        await FirewallStore.restoreManagedRules(userId, snapshotRules)
-        return FirewallStore.buildFailedResult(userId, mode, 0)
-      }
+    let targetPolicy: netFirewall.NetFirewallPolicy = {
+      isOpen: policy.isOpen,
+      inAction: mode === 'allowlist'
+        ? netFirewall.FirewallRuleAction.RULE_DENY
+        : netFirewall.FirewallRuleAction.RULE_ALLOW,
+      outAction: mode === 'allowlist'
+        ? netFirewall.FirewallRuleAction.RULE_DENY
+        : netFirewall.FirewallRuleAction.RULE_ALLOW
+    }
+    if (!await FirewallStore.setPolicy(userId, targetPolicy)) {
+      await FirewallStore.restoreManagedRules(userId, snapshotRules)
+      return FirewallStore.buildFailedResult(userId, mode, 0)
     }
 
     if (!await FirewallStore.addRules(targetRules)) {
-      if (mode !== 'non_standard') {
-        let originalPolicy: netFirewall.NetFirewallPolicy = {
-          isOpen: policy.isOpen,
-          inAction: policy.inAction,
-          outAction: policy.outAction
-        }
-        await FirewallStore.restoreManagedRulesAndPolicy(userId, originalPolicy, snapshotRules)
-      } else {
-        await FirewallStore.restoreManagedRules(userId, snapshotRules)
+      let originalPolicy: netFirewall.NetFirewallPolicy = {
+        isOpen: policy.isOpen,
+        inAction: policy.inAction,
+        outAction: policy.outAction
       }
+      await FirewallStore.restoreManagedRulesAndPolicy(userId, originalPolicy, snapshotRules)
       return FirewallStore.buildFailedResult(userId, mode, 0)
     }
 
@@ -447,10 +441,7 @@ export class FirewallStore {
       if (mode === 'allowlist') {
         return rule.action === netFirewall.FirewallRuleAction.RULE_ALLOW
       }
-      if (mode === 'denylist') {
-        return rule.action === netFirewall.FirewallRuleAction.RULE_DENY
-      }
-      return true
+      return rule.action === netFirewall.FirewallRuleAction.RULE_DENY
     })
     return filteredRules.map((rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule => {
       let clonedRule = FirewallRepository.cloneRuleForCreate(rule)
