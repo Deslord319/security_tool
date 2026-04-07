@@ -166,24 +166,29 @@ export struct DashboardPage {
           .opacity(this.sectionTitleEnterOpacity * AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .translate({ y: this.sectionTitleEnterOffset })
           .width('100%')
+          .textAlign(TextAlign.Center)
 
-        GridRow({ columns: 3, gutter: 16 }) {
-          ForEach(this.viewModel.quickEntries, (entry: DashboardQuickEntryState, index: number) => {
-            GridCol() {
-              ToolCard({
-                label: entry.title,
-                icon: entry.icon,
-                gradientStart: entry.accentStart,
-                gradientEnd: entry.accentEnd,
-                currentTheme: this.currentTheme,
-                onPress: () => { this.onNavigate(entry.route) }
-              })
-            }
-            .opacity(this.quickEnterOpacity[index] ?? 1)
-            .translate({ y: this.quickEnterOffset[index] ?? 0 })
-          })
+        Column() {
+          GridRow({ columns: 3, gutter: 22 }) {
+            ForEach(this.viewModel.quickEntries, (entry: DashboardQuickEntryState, index: number) => {
+              GridCol() {
+                ToolCard({
+                  label: entry.title,
+                  icon: entry.icon,
+                  gradientStart: entry.accentStart,
+                  gradientEnd: entry.accentEnd,
+                  currentTheme: this.currentTheme,
+                  onPress: () => { this.onNavigate(entry.route) }
+                })
+              }
+              .opacity(this.quickEnterOpacity[index] ?? 1)
+              .translate({ y: this.quickEnterOffset[index] ?? 0 })
+            })
+          }
+          .width('100%')
         }
         .width('100%')
+        .alignItems(HorizontalAlign.Center)
       }
       .padding({ left: 48, right: 48, top: 16, bottom: 24 })
       .width('100%')

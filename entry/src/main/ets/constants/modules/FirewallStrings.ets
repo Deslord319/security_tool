@@ -4,8 +4,7 @@ import { AppColors } from '../AppConstants'
 import { EmptyStateStrings, FirewallDialogStrings } from './DialogStrings'
 
 export class FirewallStrings {
-  static readonly pageSubtitle: string = '点击模式卡片后，后端先执行策略切换，只有成功后当前模式标记才会移动。'
-  static readonly modeSectionTitle: string = '预设模式'
+  static readonly pageSubtitle: string = '统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则。'
 
   static readonly rulesPage: string = '规则页'
   static readonly userIdControlButton: string = '按用户 ID 控制'

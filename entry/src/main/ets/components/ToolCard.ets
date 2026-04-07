@@ -62,6 +62,8 @@ export struct ToolCard {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(this.isHovered ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
           .maxLines(1)
+          .width('100%')
+          .textAlign(TextAlign.Center)
       }
       .width('100%')
       .height('100%')

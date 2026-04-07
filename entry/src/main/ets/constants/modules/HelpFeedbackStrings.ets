@@ -11,7 +11,7 @@ export interface GuideItemString {
 }
 
 export class HelpFeedbackStrings {
-  static readonly pageSubtitle: string = '使用指南、常见问题和反馈渠道'
+  static readonly pageSubtitle: string = '产品指南、常见问题与客户支持'
 
   static readonly guideSectionTitle: string = '使用指南'
   static readonly faqSectionTitle: string = '常见问题'
@@ -79,4 +79,5 @@ export class HelpFeedbackStrings {
       answer: '当前版本不支持。公开接口主要提供认证和策略下发能力，不提供在应用内直接修改系统 PIN 码的能力。'
     }
   ]
+
 }

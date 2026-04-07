@@ -7,22 +7,22 @@ export interface DashboardGradient {
 
 export class DashboardStrings {
   // Page copy
-  static readonly pageSubtitle: string = 'HarmonyOS 安全管理中心，提供企业级设备安全管控能力。'
+  static readonly pageSubtitle: string = 'HarmonyOS 安全管理中心，提供企业级设备安全管控能力'
   static readonly quickActionsTitle: string = '快捷方式'
 
   // Summary cards
-  static readonly adminTitle: string = '管理员'
+  static readonly adminTitle: string = '管理员状态'
   static readonly adminReady: string = '已激活'
   static readonly adminPending: string = '待激活'
-  static readonly adminReadyDetail: string = '企业管理能力已就绪'
-  static readonly adminPendingDetail: string = '完成激活后即可执行受控操作'
+  static readonly adminReadyDetail: string = '企业管理能力已激活'
+  static readonly adminPendingDetail: string = '业管理能力未激活'
 
-  static readonly firewallTitle: string = '防火墙'
-  static readonly logTitle: string = '日志'
+  static readonly firewallTitle: string = '防火墙模式'
+  static readonly logTitle: string = '日志记录'
   static readonly logTodayDetailPrefix: string = '累计 '
   static readonly logTodayDetailSuffix: string = ' 条'
 
-  static readonly peripheralTitle: string = '外设'
+  static readonly peripheralTitle: string = '外设连接记录'
   static readonly peripheralDetailPrefix: string = '连接 '
   static readonly peripheralDetailMiddle: string = ' 次，断开 '
   static readonly peripheralDetailSuffix: string = ' 次'

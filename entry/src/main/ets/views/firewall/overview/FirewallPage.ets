@@ -411,21 +411,11 @@ export struct FirewallPage {
       Scroll() {
         Column({ space: 24 }) {
           Column({ space: 12 }) {
-            Text(FirewallStrings.modeSectionTitle)
-              .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.getThemeColors().TEXT_PRIMARY)
-              .opacity(this.getThemeColors().TEXT_PRIMARY_OPACITY)
-
-            Column({ space: 12 }) {
-              this.modeCard('public')
-              this.modeCard('private')
-              this.modeCard('custom')
-            }
-            .width('100%')
+            this.modeCard('public')
+            this.modeCard('private')
+            this.modeCard('custom')
           }
           .width('100%')
-          .alignItems(HorizontalAlign.Start)
         }
         .padding({
           left: AppStyles.PADDING_LG,

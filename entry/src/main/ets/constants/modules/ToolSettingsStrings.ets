@@ -14,6 +14,6 @@ export class ToolSettingsStrings {
   static readonly changePasswordDesc: string = '打开系统设置中的“生物识别和密码”，修改系统 PIN/密码'
 
   static readonly authMethodUnavailableTitle: string = '认证方式不可用'
-  static readonly authMethodUnavailableMessage: string = '继续保存后，启动时身份校验可能无法正常工作，请确认是否仍要保存设置。'
+  static readonly authMethodUnavailableMessage: string = '继续保存后，启动时身份校验可能无法正常工作，请确认是否仍要保存设置'
   static readonly continueSave: string = '仍然保存'
 }
