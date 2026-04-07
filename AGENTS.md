@@ -14,16 +14,19 @@
 
 ### 构建
 
-使用 `build_app` MCP 工具构建项目时，路径参数必须使用正确的大小写：
-
-```
-项目路径：D:\project\ai\security_tool
-```
-
 构建产物位于：
 ```
 entry/build/default/outputs/default/entry-default-unsigned.hap
 ```
+
+本地执行 `build_hap.bat`、`hvigorw assembleHap` 或测试链路中需要调用 `hvigorw` 时，查找规则固定如下：
+
+1. 优先使用环境变量 `DEVECOSTUDIO_HOME`
+2. 若未设置，则优先检查 `C:\Program Files\Huawei\DevEco Studio`
+3. 定位到 IDE 根目录后，统一从 `tools\hvigor\bin\hvigorw.bat` 获取 `hvigorw`
+4. `JAVA_HOME` 仅作为兜底，不应再在脚本或测试命令中写死本机绝对路径
+
+测试、构建或子 agent 验证时，如果出现“找不到 `hvigorw`”，默认先按以上顺序排查，不要直接假设系统全局 `PATH` 已配置。
 
 ### 签名（重要）
 
