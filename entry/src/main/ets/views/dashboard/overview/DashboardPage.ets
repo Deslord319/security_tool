@@ -1,12 +1,12 @@
 import { common } from '@kit.AbilityKit'
-import { AppColors, AppStyles } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
-import { DashboardStrings } from '../constants/modules/DashboardStrings'
-import { MetricSummaryCard } from '../components/MetricSummaryCard'
-import { ToolCard } from '../components/ToolCard'
-import { ThemeMode } from '../theme/ThemeColors'
-import { DashboardModuleCardState, DashboardQuickEntryState } from '../models/DashboardModels'
-import { DashboardViewModel } from '../viewmodels/DashboardViewModel'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { DashboardStrings } from '../../../constants/modules/DashboardStrings'
+import { MetricSummaryCard } from '../../../components/MetricSummaryCard'
+import { ToolCard } from '../../../components/ToolCard'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../models/DashboardModels'
+import { DashboardViewModel } from '../../../viewmodels/dashboard/overview/DashboardViewModel'
 
 @ComponentV2
 export struct DashboardPage {

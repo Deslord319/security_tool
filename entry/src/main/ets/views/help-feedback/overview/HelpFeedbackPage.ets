@@ -1,9 +1,9 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
-import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../constants/modules/HelpFeedbackStrings'
-import { SubPageHeader } from '../components/SubPageHeader'
-import { SectionCard } from '../components/SettingsSectionCard'
-import { ThemeMode } from '../theme/ThemeColors'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../../../constants/modules/HelpFeedbackStrings'
+import { SubPageHeader } from '../../../components/SubPageHeader'
+import { SectionCard } from '../../../components/SettingsSectionCard'
+import { ThemeMode } from '../../../theme/ThemeColors'
 
 interface ExpandableInfoItem {
   title: string

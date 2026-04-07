@@ -1,6 +1,6 @@
-import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
-import { FirewallDialogStrings } from '../constants/modules/DialogStrings'
-import { LogManageStrings } from '../constants/modules/LogManageStrings'
+import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
+import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import {
   LogEntry,
   LogEventResult,
@@ -9,9 +9,9 @@ import {
   getLogEventResultColor,
   getLogEventResultLabel,
   getLogEventTypeLabel
-} from '../models/DataModels'
-import { ThemeMode } from '../theme/ThemeColors'
-import { DetailDialogShell } from './DetailDialogShell'
+} from '../../../models/DataModels'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { DetailDialogShell } from '../../DetailDialogShell'
 
 interface LogDetailField {
   key: string

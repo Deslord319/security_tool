@@ -1,16 +1,16 @@
-import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
-import { EmptyStateStrings, LoadingStrings } from '../constants/modules/DialogStrings'
-import { LogManageStrings } from '../constants/modules/LogManageStrings'
+import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
+import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import {
   formatLogTimestamp,
   getLogEventResultColor,
   getLogEventResultLabel,
   getLogEventTypeLabel,
   LogEntry
-} from '../models/DataModels'
-import { LogFilterState, LogListState } from '../models/LogManageModels'
-import { ThemeMode } from '../theme/ThemeColors'
-import { EmptyStatePanel } from './EmptyStatePanel'
+} from '../../../models/DataModels'
+import { LogFilterState, LogListState } from '../../../models/LogManageModels'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { EmptyStatePanel } from '../../EmptyStatePanel'
 
 @ComponentV2
 export struct LogEntriesPanel {

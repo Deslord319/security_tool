@@ -1,12 +1,12 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
-import { SectionSelectRow } from '../SectionRows'
-import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { DeviceTypeLabels } from '../../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
-import { PeripheralService } from '../../services/PeripheralService'
-import { ThemeMode } from '../../theme/ThemeColors'
-import { HoverUtils } from '../../utils/HoverUtils'
-import { FormControlUtils } from '../../utils/FormControlUtils'
+import { SectionSelectRow } from '../../SectionRows'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { HoverUtils } from '../../../utils/HoverUtils'
+import { FormControlUtils } from '../../../utils/FormControlUtils'
 
 @ComponentV2
 export struct InterfaceControlTab {

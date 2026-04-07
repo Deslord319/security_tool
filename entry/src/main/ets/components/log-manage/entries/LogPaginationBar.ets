@@ -1,9 +1,9 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
-import { LogManageStrings } from '../constants/modules/LogManageStrings'
-import { LogListState, LogPaginationState } from '../models/LogManageModels'
-import { ThemeMode } from '../theme/ThemeColors'
-import { FormControlUtils } from '../utils/FormControlUtils'
-import { IconTextActionButton } from './IconTextActionButton'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { LogListState, LogPaginationState } from '../../../models/LogManageModels'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { FormControlUtils } from '../../../utils/FormControlUtils'
+import { IconTextActionButton } from '../../IconTextActionButton'
 
 @ComponentV2
 export struct LogPaginationBar {

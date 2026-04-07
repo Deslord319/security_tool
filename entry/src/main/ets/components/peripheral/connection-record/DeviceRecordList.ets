@@ -1,17 +1,17 @@
-import { ActionButtonStyles, AppColors, AppStyles } from '../../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   getPeripheralRecordActionLabel,
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
-} from '../../models/DataModels'
-import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
-import { DeviceDetailStrings } from '../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../constants/modules/LogManageStrings'
-import { ThemeMode, getThemeColors } from '../../theme/ThemeColors'
-import { HoverUtils } from '../../utils/HoverUtils'
-import { getPeripheralConnectionPolicyLabel } from '../../viewmodels/PeripheralRecordPresentationMapper'
-import { EmptyStatePanel } from '../EmptyStatePanel'
-import { EmptyStateStrings } from '../../constants/modules/DialogStrings'
+} from '../../../models/DataModels'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { ThemeMode, getThemeColors } from '../../../theme/ThemeColors'
+import { HoverUtils } from '../../../utils/HoverUtils'
+import { getPeripheralConnectionPolicyLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { EmptyStatePanel } from '../../EmptyStatePanel'
+import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 
 @ComponentV2
 export struct DeviceRecordList {

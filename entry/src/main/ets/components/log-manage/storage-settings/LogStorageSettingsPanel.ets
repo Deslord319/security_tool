@@ -1,8 +1,8 @@
-import { LogManageStrings } from '../constants/modules/LogManageStrings'
-import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS } from '../models/DataModels'
-import { ThemeMode } from '../theme/ThemeColors'
-import { SectionCard } from './SettingsSectionCard'
-import { SectionSelectRow } from './SectionRows'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS } from '../../../models/DataModels'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { SectionCard } from '../../SettingsSectionCard'
+import { SectionSelectRow } from '../../SectionRows'
 
 @ComponentV2
 export struct LogStorageSettingsPanel {

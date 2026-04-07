@@ -1,1 +1,1 @@
-export * from '../../PeripheralPage'
+export * from '../overview/PeripheralPage'

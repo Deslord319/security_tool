@@ -1,25 +1,25 @@
-import { LogUtils } from '../utils/LogUtils'
-import { AppColors, AppStyles } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
-import { IdentityStrings } from '../constants/modules/IdentityStrings'
+import { LogUtils } from '../../../utils/LogUtils'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
 import {
   AdminActivationState,
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_VALIDITY_OPTIONS
-} from '../models/DataModels'
+} from '../../../models/DataModels'
 
-import { ThemeMode } from '../theme/ThemeColors'
-import { EnterpriseAdminService } from '../services/EnterpriseAdminService'
-import { IdentityService } from '../services/IdentityService'
-import { SectionCard } from '../components/SettingsSectionCard'
-import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../components/SectionRows'
-import { IconTextActionButton } from '../components/IconTextActionButton'
-import { DialogService } from '../utils/DialogService'
-import { SubPageHeader } from '../components/SubPageHeader'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
+import { IdentityService } from '../../../services/identity/settings/IdentityService'
+import { SectionCard } from '../../../components/SettingsSectionCard'
+import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
+import { IconTextActionButton } from '../../../components/IconTextActionButton'
+import { DialogService } from '../../../utils/DialogService'
+import { SubPageHeader } from '../../../components/SubPageHeader'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
-} from '../viewmodels/IdentitySettingsViewModel'
+} from '../../../viewmodels/identity/settings/IdentitySettingsViewModel'
 
 const TAG = 'IdentityPage'
 

@@ -1,2 +1,2 @@
-export * from '../../DeviceRecordList'
-export * from '../../ConnectionDetailDialog'
+export * from './DeviceRecordList'
+export * from './ConnectionDetailDialog'

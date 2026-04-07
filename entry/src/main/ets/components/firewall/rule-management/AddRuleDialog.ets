@@ -1,9 +1,9 @@
-import { AppColors, AppStyles } from '../constants/AppConstants'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
-import { DialogService } from '../utils/DialogService'
-import { ThemeMode } from '../theme/ThemeColors'
-import { FormControlUtils } from '../utils/FormControlUtils'
-import { FirewallDialogStrings, DialogButtonStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../constants/modules/DialogStrings'
+import { DialogService } from '../../../utils/DialogService'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { FormControlUtils } from '../../../utils/FormControlUtils'
+import { FirewallDialogStrings, DialogButtonStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../../../constants/modules/DialogStrings'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number

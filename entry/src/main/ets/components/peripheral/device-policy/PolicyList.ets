@@ -1,10 +1,10 @@
-import { AppColors, AppStyles } from '../../constants/AppConstants'
-import { EmptyStateStrings, FirewallDialogStrings } from '../../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../../constants/modules/PeripheralStrings'
-import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../models/DataModels'
-import { ThemeMode } from '../../theme/ThemeColors'
-import { FormControlUtils } from '../../utils/FormControlUtils'
-import { HoverUtils } from '../../utils/HoverUtils'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { EmptyStateStrings, FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
+import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../../models/DataModels'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { FormControlUtils } from '../../../utils/FormControlUtils'
+import { HoverUtils } from '../../../utils/HoverUtils'
 
 export interface PolicyOption {
   value: string

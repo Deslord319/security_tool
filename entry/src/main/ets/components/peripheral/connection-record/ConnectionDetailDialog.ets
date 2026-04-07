@@ -1,17 +1,17 @@
-import { DetailDialogShell } from '../DetailDialogShell'
-import { AppColors, AppStyles } from '../../constants/AppConstants'
+import { DetailDialogShell } from '../../DetailDialogShell'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   PeripheralConnectionRecord,
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel
-} from '../../models/DataModels'
-import { ThemeMode } from '../../theme/ThemeColors'
+} from '../../../models/DataModels'
+import { ThemeMode } from '../../../theme/ThemeColors'
 import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel
-} from '../../viewmodels/PeripheralRecordPresentationMapper'
-import { DeviceDetailStrings } from '../../constants/modules/DialogStrings'
+} from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
 
 export interface ConnectionHistoryItem {
   time: string

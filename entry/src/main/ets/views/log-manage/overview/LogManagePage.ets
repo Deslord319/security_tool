@@ -1,29 +1,29 @@
 import { common } from '@kit.AbilityKit'
-import { AppColors, AppStyles } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
-import { LoadingStrings, ResultStrings } from '../constants/modules/DialogStrings'
-import { LogManageStrings } from '../constants/modules/LogManageStrings'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { CommonStrings } from '../../../constants/CommonStrings'
+import { LoadingStrings, ResultStrings } from '../../../constants/modules/DialogStrings'
+import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
-} from '../models/DataModels'
-import { PresentationStrings } from '../constants/modules/PresentationStrings'
-import { ThemeMode } from '../theme/ThemeColors'
-import { ExportMessageUtils } from '../utils/ExportMessageUtils'
-import { FormControlUtils } from '../utils/FormControlUtils'
-import { DialogService } from '../utils/DialogService'
-import { LogManageViewModel } from '../viewmodels/log-manage/LogManageViewModel'
-import { LogUtils } from '../utils/LogUtils'
-import { LogEntriesPanel } from '../components/LogEntriesPanel'
-import { LogPaginationBar } from '../components/LogPaginationBar'
-import { SubPageHeader } from '../components/SubPageHeader'
-import { IconTextActionButton } from '../components/IconTextActionButton'
-import { LogStorageSettingsPanel } from '../components/LogStorageSettingsPanel'
-import { LogDetailDialog } from '../components/LogDetailDialog'
-import { CompactSummaryCard } from '../components/CompactSummaryCard'
+} from '../../../models/DataModels'
+import { PresentationStrings } from '../../../constants/modules/PresentationStrings'
+import { ThemeMode } from '../../../theme/ThemeColors'
+import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
+import { FormControlUtils } from '../../../utils/FormControlUtils'
+import { DialogService } from '../../../utils/DialogService'
+import { LogManageViewModel } from '../../../viewmodels/log-manage/overview/LogManageViewModel'
+import { LogUtils } from '../../../utils/LogUtils'
+import { LogEntriesPanel } from '../../../components/log-manage/entries/LogEntriesPanel'
+import { LogPaginationBar } from '../../../components/log-manage/entries/LogPaginationBar'
+import { SubPageHeader } from '../../../components/SubPageHeader'
+import { IconTextActionButton } from '../../../components/IconTextActionButton'
+import { LogStorageSettingsPanel } from '../../../components/log-manage/storage-settings/LogStorageSettingsPanel'
+import { LogDetailDialog } from '../../../components/log-manage/detail/LogDetailDialog'
+import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 
 const TAG = 'LogManagePage'
 const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
