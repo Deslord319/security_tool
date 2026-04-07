@@ -1,5 +1,4 @@
 import { commonEventManager } from '@kit.BasicServicesKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import {
   LogEventResult,
   PeripheralDevicePolicy,
@@ -18,8 +17,8 @@ import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent
 } from './peripheral_connection_record_producer_contract'
+import { LogUtils } from '../../../utils/LogUtils'
 
-const DOMAIN = 0x000A
 const TAG = 'ConnectionRecordUsbConsumer'
 
 interface ResolvedUsbEventInfo {
@@ -70,7 +69,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
     const action = PeripheralConnectionRecordUsbConsumer.resolveAction(event.eventName)
     if (action === 'unknown') {
-      hilog.warn(DOMAIN, TAG, `ignored unsupported usb event: ${event.eventName}`)
+      LogUtils.warn(TAG, `ignored unsupported usb event: ${event.eventName}`)
       return null
     }
 
