@@ -1,0 +1,185 @@
+import { common } from '@kit.AbilityKit'
+import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
+import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { LogUtils } from '../../../utils/LogUtils'
+import {
+  FirewallUserApplyMode,
+  FirewallUserApplyResult,
+  FirewallUserModeStateResult,
+  UserFirewallOption
+} from '../../../models/firewall/firewall_service_contracts'
+import { FirewallService } from '../../../services/firewall/FirewallService'
+
+const TAG = 'FirewallUserDispatchViewModel'
+
+@ObservedV2
+export class FirewallUserDispatchViewModel {
+  @Trace users: UserFirewallOption[] = []
+  @Trace selectedIndex: number = 0
+  @Trace selectedUserId: number = -1
+  @Trace selectedModeIndex: number = 0
+  @Trace isLoadingUsers: boolean = false
+  @Trace isLoadingPolicy: boolean = false
+  @Trace isSubmitting: boolean = false
+  @Trace statusHintText: string = ''
+  @Trace currentModeText: string = FirewallDialogStrings.MODE_NON_STANDARD
+  @Trace currentPolicyText: string = ''
+  @Trace lastApplyResult: FirewallUserApplyResult | null = null
+
+  private readonly modeOptions: FirewallUserApplyMode[] = ['allowlist', 'denylist', 'non_standard']
+  private context: common.UIAbilityContext | null = null
+
+  async initialize(context: common.UIAbilityContext): Promise<void> {
+    this.context = context
+    await this.loadUsers()
+  }
+
+  async loadUsers(): Promise<void> {
+    this.isLoadingUsers = true
+    this.statusHintText = ''
+    try {
+      const result = await FirewallService.loadUserOptions()
+      if (result.length === 0) {
+        this.users = []
+        this.selectedIndex = 0
+        this.selectedUserId = -1
+        this.selectedModeIndex = 0
+        this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+        this.currentPolicyText = ''
+        this.statusHintText = FirewallStrings.noActivatedUsers
+        return
+      }
+
+      this.users = result
+      this.selectedIndex = 0
+      this.selectedUserId = result[0].userId
+      this.selectedModeIndex = 0
+      await this.loadStateForSelectedUser()
+    } catch (err) {
+      this.users = []
+      this.selectedIndex = 0
+      this.selectedUserId = -1
+      this.selectedModeIndex = 0
+      this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+      this.currentPolicyText = ''
+      this.statusHintText = FirewallStrings.noActivatedUsers
+      LogUtils.error(TAG, `loadUsers failed: ${JSON.stringify(err)}`)
+    } finally {
+      this.isLoadingUsers = false
+    }
+  }
+
+  async selectUser(index: number): Promise<void> {
+    if (index < 0 || index >= this.users.length) {
+      return
+    }
+    this.selectedIndex = index
+    this.selectedUserId = this.users[index].userId
+    await this.loadStateForSelectedUser()
+  }
+
+  async selectMode(index: number): Promise<void> {
+    if (index < 0 || index >= this.modeOptions.length) {
+      return
+    }
+    this.selectedModeIndex = index
+  }
+
+  async loadStateForSelectedUser(): Promise<void> {
+    if (this.selectedUserId < 0 || this.context === null) {
+      return
+    }
+
+    this.isLoadingPolicy = true
+    this.statusHintText = ''
+    try {
+      const result = await FirewallService.loadUserModeState(this.context, this.selectedUserId)
+      this.applyLoadedUserState(result)
+    } catch (err) {
+      this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+      this.currentPolicyText = ''
+      this.statusHintText = FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
+      LogUtils.error(TAG, `loadStateForSelectedUser failed: ${JSON.stringify(err)}`)
+    } finally {
+      this.isLoadingPolicy = false
+    }
+  }
+
+  async applySelectedMode(): Promise<boolean> {
+    if (this.context === null || this.selectedUserId < 0) {
+      return false
+    }
+
+    this.isSubmitting = true
+    try {
+      const targetMode = this.modeOptions[this.selectedModeIndex]
+      const result = await FirewallService.applyUserMode(this.context, this.selectedUserId, targetMode)
+      this.lastApplyResult = result
+      if (!result.success) {
+        this.statusHintText = result.errorMessage ?? FirewallDialogStrings.APPLY_MODE_FAILED
+        return false
+      }
+      this.statusHintText = ''
+      await this.loadStateForSelectedUser()
+      return true
+    } catch (err) {
+      this.statusHintText = FirewallDialogStrings.APPLY_MODE_FAILED
+      this.lastApplyResult = null
+      LogUtils.error(TAG, `applySelectedMode failed: ${JSON.stringify(err)}`)
+      return false
+    } finally {
+      this.isSubmitting = false
+    }
+  }
+
+  getSelectedMode(): FirewallUserApplyMode {
+    return this.modeOptions[this.selectedModeIndex]
+  }
+
+  getSelectedUser(): UserFirewallOption | undefined {
+    return this.users[this.selectedIndex]
+  }
+
+  private applyLoadedUserState(result: FirewallUserModeStateResult): void {
+    if (result.errorCode !== undefined) {
+      this.currentModeText = FirewallDialogStrings.MODE_NON_STANDARD
+      this.currentPolicyText = result.message ?? FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
+      this.statusHintText = this.currentPolicyText
+      this.selectedModeIndex = 0
+      return
+    }
+
+    this.currentModeText = this.getModeLabel(result.bindingMode)
+    this.currentPolicyText = this.buildPolicySummary(result.isOpen, result.inAction, result.outAction)
+    const selectedMode = result.bindingMode ?? this.modeOptions[0]
+    this.selectedModeIndex = this.modeOptions.findIndex((item: FirewallUserApplyMode): boolean => item === selectedMode)
+    if (this.selectedModeIndex < 0) {
+      this.selectedModeIndex = 0
+    }
+  }
+
+  private buildPolicySummary(isOpen: boolean, inAction: number, outAction: number): string {
+    return FirewallDialogStrings.buildPolicySummary(
+      isOpen,
+      this.getActionLabel(inAction),
+      this.getActionLabel(outAction)
+    )
+  }
+
+  private getActionLabel(action: number): string {
+    return action === 1 ? FirewallDialogStrings.ACTION_DENY : FirewallDialogStrings.ACTION_ALLOW
+  }
+
+  private getModeLabel(mode?: FirewallUserApplyMode): string {
+    switch (mode) {
+      case 'allowlist':
+        return FirewallDialogStrings.MODE_ALLOWLIST
+      case 'denylist':
+        return FirewallDialogStrings.MODE_DENYLIST
+      case 'non_standard':
+        return FirewallDialogStrings.MODE_NON_STANDARD
+      default:
+        return FirewallDialogStrings.MODE_NON_STANDARD
+    }
+  }
+}
