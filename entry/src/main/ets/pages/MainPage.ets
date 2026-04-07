@@ -263,6 +263,16 @@ struct MainPage {
     this.syncDecorButtonStyle()
   }
 
+  private async switchFirewallMode(mode: FirewallPresetMode): Promise<boolean> {
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result = await FirewallModeService.switchMode(context, mode)
+    if (result.success) {
+      this.firewallPresetMode = mode
+      return true
+    }
+    return false
+  }
+
   private openAboutDialog(): void {
     this.closeAboutDialog()
     try {
@@ -293,134 +303,169 @@ struct MainPage {
   private closeAboutDialog(): void {
     try {
       this.aboutDialogController?.close()
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `closeAboutDialog failed: ${JSON.stringify(err)}`)
     } finally {
       this.aboutDialogController = undefined
     }
   }
 
   @Builder
+  private buildDashboardRoute() {
+    Column() {
+      DashboardPage({
+        currentTheme: this.currentTheme,
+        onNavigate: (route: string) => {
+          this.setCurrentPage(route)
+        }
+      })
+    }
+    .id('route-page-dashboard')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildFirewallRoute() {
+    Column() {
+      FirewallPage({
+        firewallEnabled: this.firewallEnabled,
+        currentMode: this.firewallPresetMode,
+        currentTheme: this.currentTheme,
+        onFirewallToggle: (enabled: boolean) => {
+          this.firewallEnabled = enabled
+        },
+        onModeChange: async (mode: FirewallPresetMode): Promise<boolean> => this.switchFirewallMode(mode),
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        },
+        onNavigateToRules: () => {
+          this.setCurrentPage(RouteIds.FIREWALL_RULES)
+        }
+      })
+    }
+    .id('route-page-firewall')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildFirewallRulesRoute() {
+    Column() {
+      FirewallRulesPage({
+        currentMode: this.firewallPresetMode,
+        currentTheme: this.currentTheme,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.FIREWALL)
+        }
+      })
+    }
+    .id('route-page-firewall-rules')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildLogManageRoute() {
+    Column() {
+      if (this.logManageMounted) {
+        LogManagePage({
+          currentTheme: this.currentTheme,
+          onBack: () => {
+            this.setCurrentPage(RouteIds.DASHBOARD)
+          }
+        })
+      } else {
+        Column()
+          .width('100%')
+          .height('100%')
+      }
+    }
+    .id('route-page-log-manage')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildPeripheralRoute() {
+    Column() {
+      PeripheralPage({
+        currentTheme: this.currentTheme,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        }
+      })
+    }
+    .id('route-page-peripheral-manage')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildIdentityRoute() {
+    Column() {
+      IdentityPage({
+        currentTheme: this.currentTheme,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        }
+      })
+    }
+    .id('route-page-identity')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildToolSettingsRoute() {
+    Column() {
+      ToolSettingsPage({
+        currentTheme: this.currentTheme,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        }
+      })
+    }
+    .id('route-page-tool-settings')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private buildHelpFeedbackRoute() {
+    Column() {
+      HelpFeedbackPage({
+        currentTheme: this.currentTheme,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        }
+      })
+    }
+    .id('route-page-help-feedback')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
   private currentRoutePage() {
     if (this.currentPage === RouteIds.DASHBOARD) {
-      Column() {
-        DashboardPage({
-          currentTheme: this.currentTheme,
-          onNavigate: (route: string) => {
-            this.setCurrentPage(route)
-          }
-        })
-      }
-      .id('route-page-dashboard')
-      .width('100%')
-      .height('100%')
+      this.buildDashboardRoute()
     } else if (this.currentPage === RouteIds.FIREWALL) {
-      Column() {
-        FirewallPage({
-          firewallEnabled: this.firewallEnabled,
-          currentMode: this.firewallPresetMode,
-          currentTheme: this.currentTheme,
-          onFirewallToggle: (enabled: boolean) => {
-            this.firewallEnabled = enabled
-          },
-          onModeChange: async (mode: FirewallPresetMode): Promise<boolean> => {
-            let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-            let result = await FirewallModeService.switchMode(context, mode)
-            if (result.success) {
-              this.firewallPresetMode = mode
-              return true
-            }
-            return false
-          },
-          onBack: () => {
-            this.setCurrentPage(RouteIds.DASHBOARD)
-          },
-          onNavigateToRules: () => {
-            this.setCurrentPage(RouteIds.FIREWALL_RULES)
-          }
-        })
-      }
-      .id('route-page-firewall')
-      .width('100%')
-      .height('100%')
+      this.buildFirewallRoute()
     } else if (this.currentPage === RouteIds.FIREWALL_RULES) {
-      Column() {
-        FirewallRulesPage({
-          currentMode: this.firewallPresetMode,
-          currentTheme: this.currentTheme,
-          onBack: () => {
-            this.setCurrentPage(RouteIds.FIREWALL)
-          }
-        })
-      }
-      .id('route-page-firewall-rules')
-      .width('100%')
-      .height('100%')
+      this.buildFirewallRulesRoute()
     } else if (this.currentPage === RouteIds.LOG_MANAGE) {
-      Column() {
-        if (this.logManageMounted) {
-          LogManagePage({
-            currentTheme: this.currentTheme,
-            onBack: () => {
-              this.setCurrentPage(RouteIds.DASHBOARD)
-            }
-          })
-        } else {
-          Column()
-            .width('100%')
-            .height('100%')
-        }
-      }
-      .id('route-page-log-manage')
-      .width('100%')
-      .height('100%')
+      this.buildLogManageRoute()
     } else if (this.currentPage === RouteIds.PERIPHERAL_MANAGE) {
-      Column() {
-        PeripheralPage({
-          currentTheme: this.currentTheme,
-          onBack: () => {
-            this.setCurrentPage(RouteIds.DASHBOARD)
-          }
-        })
-      }
-      .id('route-page-peripheral-manage')
-      .width('100%')
-      .height('100%')
+      this.buildPeripheralRoute()
     } else if (this.currentPage === RouteIds.IDENTITY) {
-      Column() {
-        IdentityPage({
-          currentTheme: this.currentTheme,
-          onBack: () => {
-            this.setCurrentPage(RouteIds.DASHBOARD)
-          }
-        })
-      }
-      .id('route-page-identity')
-      .width('100%')
-      .height('100%')
+      this.buildIdentityRoute()
     } else if (this.currentPage === RouteIds.TOOL_SETTINGS) {
-      Column() {
-        ToolSettingsPage({
-          currentTheme: this.currentTheme,
-          onBack: () => {
-            this.setCurrentPage(RouteIds.DASHBOARD)
-          }
-        })
-      }
-      .id('route-page-tool-settings')
-      .width('100%')
-      .height('100%')
+      this.buildToolSettingsRoute()
     } else if (this.currentPage === RouteIds.HELP_FEEDBACK) {
-      Column() {
-        HelpFeedbackPage({
-          currentTheme: this.currentTheme,
-          onBack: () => {
-            this.setCurrentPage(RouteIds.DASHBOARD)
-          }
-        })
-      }
-      .id('route-page-help-feedback')
-      .width('100%')
-      .height('100%')
+      this.buildHelpFeedbackRoute()
+    } else {
+      this.buildDashboardRoute()
     }
   }
 

@@ -10,6 +10,8 @@ import { PreferencesToolSettingsRepository } from '../services/tool-settings/sys
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 const ENTRYABILITY_TAG = 'entryAbility'
+const MIN_WINDOW_WIDTH = 1280
+const MIN_WINDOW_HEIGHT = 800
 
 interface EntryLoggableError {
   code?: number
@@ -178,11 +180,15 @@ export default class EntryAbility extends UIAbility {
       }
 
       // 隐藏系统标题栏（装饰栏），保留三键区和拖拽能力
-      windowStage.getMainWindow().then((mainWindow: window.Window) => {
+      windowStage.getMainWindow().then(async (mainWindow: window.Window) => {
         // Ensure snapshots are allowed for UI regression capture.
         mainWindow.setWindowPrivacyMode(false)
         mainWindow.setWindowDecorVisible(false);
         mainWindow.setWindowDecorHeight(56);
+        await mainWindow.setWindowLimits({
+          minWidth: MIN_WINDOW_WIDTH,
+          minHeight: MIN_WINDOW_HEIGHT
+        })
       }).catch((decErr: Error) => {
         LogUtils.error(ENTRYABILITY_TAG, 'Failed to configure window decor: %{public}s', JSON.stringify(decErr));
       });

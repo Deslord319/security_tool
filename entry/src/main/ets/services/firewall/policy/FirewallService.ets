@@ -503,7 +503,8 @@ export class FirewallService {
         return null
       }
       return payload
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `parseManagedRuleDescription failed: ${JSON.stringify(err)}`)
       return null
     }
   }
