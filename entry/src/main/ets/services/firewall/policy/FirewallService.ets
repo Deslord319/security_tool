@@ -1,8 +1,8 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
-import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../models/DataModels'
-import { CommonErrorUtils } from '../utils/CommonErrorUtils'
-import { FirewallStrings } from '../constants/modules/FirewallStrings'
+import { FirewallManagedRuleMetadata, FirewallPresetMode } from '../../../models/DataModels'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
+import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
 
 const TAG = 'FirewallService'
 const DEFAULT_USER_ID = 100

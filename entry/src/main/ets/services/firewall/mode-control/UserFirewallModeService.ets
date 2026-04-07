@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
@@ -11,11 +11,11 @@ import {
   UserFirewallModeBinding,
   UserFirewallModeReapplySummary,
   UserFirewallModeState
-} from '../models/DataModels'
-import { CommonErrorUtils } from '../utils/CommonErrorUtils'
-import { FirewallService } from './FirewallService'
-import { UserFirewallPolicyService } from './UserFirewallPolicyService'
-import { FirewallStrings } from '../constants/modules/FirewallStrings'
+} from '../../../models/DataModels'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
+import { FirewallService } from '../policy/FirewallService'
+import { UserFirewallPolicyService } from '../policy/UserFirewallPolicyService'
+import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
 
 const TAG = 'UserFirewallModeService'
 

@@ -10,8 +10,8 @@ import {
   formatUsbDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../../../models/DataModels'
-import { PeripheralDevicePolicyRepository } from '../../PeripheralDevicePolicyRepository'
-import { PeripheralService } from '../../PeripheralService'
+import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
+import { PeripheralService } from '../interface-control/PeripheralService'
 import {
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,

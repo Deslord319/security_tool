@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
@@ -8,10 +8,10 @@ import {
   FirewallPresetMode,
   PREF_KEY_FIREWALL_ACTIVE_MODE,
   PREF_STORE_NAME_FIREWALL_MODE
-} from '../models/DataModels'
-import { FirewallCustomRuleService } from './FirewallCustomRuleService'
-import { FirewallPresetService } from './FirewallPresetService'
-import { FirewallService } from './FirewallService'
+} from '../../../models/DataModels'
+import { FirewallCustomRuleService } from '../rule-management/FirewallCustomRuleService'
+import { FirewallPresetService } from '../preset/FirewallPresetService'
+import { FirewallService } from '../policy/FirewallService'
 
 const TAG = 'FirewallModeService'
 

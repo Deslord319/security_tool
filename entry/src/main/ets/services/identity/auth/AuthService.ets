@@ -1,9 +1,9 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { userAuth } from '@kit.UserAuthenticationKit'
 
 import { BusinessError } from '@kit.BasicServicesKit'
-import { AuthMethod } from '../models/DataModels'
-import { IdentityStrings } from '../constants/modules/IdentityStrings'
+import { AuthMethod } from '../../../models/DataModels'
+import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
 
 const TAG = 'AuthService'
 

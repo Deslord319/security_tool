@@ -1,10 +1,10 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
-import { AuthService } from './AuthService'
-import { FirewallService } from './FirewallService'
+import { AuthService } from '../../identity/auth/AuthService'
+import { FirewallService } from '../policy/FirewallService'
 import { FirewallAuthStateRepository } from './FirewallAuthStateRepository'
-import { UserFirewallPolicyService } from './UserFirewallPolicyService'
+import { UserFirewallPolicyService } from '../policy/UserFirewallPolicyService'
 import {
   AuthMethod,
   FirewallUserApplyMode,
@@ -14,10 +14,10 @@ import {
   LogEventResult,
   LogEventType,
   generateLogEntryId
-} from '../models/DataModels'
-import { UserFirewallModeService } from './UserFirewallModeService'
-import { FirewallStrings } from '../constants/modules/FirewallStrings'
-import { LogRepository } from './log-manage/repository/LogRepository'
+} from '../../../models/DataModels'
+import { UserFirewallModeService } from '../mode-control/UserFirewallModeService'
+import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { LogRepository } from '../../log-manage/repository/LogRepository'
 
 const TAG = 'FirewallToggleAuthService'
 

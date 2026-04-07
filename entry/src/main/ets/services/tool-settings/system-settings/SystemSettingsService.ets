@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { bundleManager, common, Want } from '@kit.AbilityKit'
 
 

@@ -3,10 +3,10 @@ import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want 
 import { window } from '@kit.ArkUI';
 import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
 import { ThemeOption } from '../theme/ThemeColors';
-import { AuthService } from '../services/AuthService';
+import { AuthService } from '../services/identity/auth/AuthService';
 import { AuthMethod } from '../models/DataModels';
 import { DialogService } from '../utils/DialogService';
-import { PreferencesToolSettingsRepository } from '../services/ToolSettingsRepository';
+import { PreferencesToolSettingsRepository } from '../services/tool-settings/system-settings/ToolSettingsRepository';
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 const ENTRYABILITY_TAG = 'entryAbility'

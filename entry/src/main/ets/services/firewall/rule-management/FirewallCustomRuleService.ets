@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
@@ -6,8 +6,8 @@ import { netFirewall } from '@kit.NetworkKit'
 import {
   PREF_KEY_FIREWALL_CUSTOM_RULES,
   PREF_STORE_NAME_FIREWALL_CUSTOM_RULES
-} from '../models/DataModels'
-import { FirewallService } from './FirewallService'
+} from '../../../models/DataModels'
+import { FirewallService } from '../policy/FirewallService'
 
 const TAG = 'FirewallCustomRuleService'
 

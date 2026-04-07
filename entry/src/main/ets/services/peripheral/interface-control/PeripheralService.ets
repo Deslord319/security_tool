@@ -1,12 +1,12 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
 import { networkManager, usbManager } from '@kit.MDMKit'
 
 import { Want } from '@kit.AbilityKit'
-import { AppInfo } from '../constants/AppConstants'
-import { OperationResult } from '../models/DataModels'
-import { EnterpriseAdminService } from './EnterpriseAdminService'
-import { CommonErrorUtils } from '../utils/CommonErrorUtils'
+import { AppInfo } from '../../../constants/AppConstants'
+import { OperationResult } from '../../../models/DataModels'
+import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 
 const TAG = 'PeripheralService'
 

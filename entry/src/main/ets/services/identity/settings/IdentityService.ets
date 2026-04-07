@@ -1,13 +1,13 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { securityManager } from '@kit.MDMKit'
 
 import { Want } from '@kit.AbilityKit'
-import { OperationResult, PasswordComplexityConfig } from '../models/DataModels'
-import { AppInfo } from '../constants/AppConstants'
-import { EnterpriseAdminService } from './EnterpriseAdminService'
-import { PeripheralService } from './PeripheralService'
-import { CommonErrorUtils } from '../utils/CommonErrorUtils'
-import { IdentityStrings } from '../constants/modules/IdentityStrings'
+import { OperationResult, PasswordComplexityConfig } from '../../../models/DataModels'
+import { AppInfo } from '../../../constants/AppConstants'
+import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
+import { PeripheralService } from '../../peripheral/interface-control/PeripheralService'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
+import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
 
 const TAG = 'IdentityService'
 

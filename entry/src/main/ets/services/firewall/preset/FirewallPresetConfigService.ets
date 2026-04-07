@@ -1,7 +1,7 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
-import { FirewallPresetConfig } from '../models/DataModels'
+import { FirewallPresetConfig } from '../../../models/DataModels'
 
 const TAG = 'FirewallPresetConfigService'
 const CONFIG_RAW_FILE = 'firewall_preset_config.json'

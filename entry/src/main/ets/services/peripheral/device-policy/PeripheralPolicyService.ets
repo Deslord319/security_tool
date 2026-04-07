@@ -5,8 +5,8 @@ import {
   PeripheralType,
   formatUsbDeviceId,
   parseUsbDeviceId
-} from '../models/DataModels'
-import { formatPeripheralTimestamp } from '../viewmodels/PeripheralRecordPresentationMapper'
+} from '../../../models/DataModels'
+import { formatPeripheralTimestamp } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 
 const USB_RECORD_TYPES: PeripheralType[] = [
   PeripheralType.USB_STORAGE,

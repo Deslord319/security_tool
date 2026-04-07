@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { PeripheralTraceRecord } from '../../../models/DataModels'
-import { PeripheralTraceRepository } from '../../PeripheralTraceRepository'
+import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   PeripheralConnectionRecordConsumer,

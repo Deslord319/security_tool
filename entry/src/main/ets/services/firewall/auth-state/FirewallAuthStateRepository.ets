@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 
@@ -8,7 +8,7 @@ import {
   PREF_KEY_FIREWALL_PIN_FAILED_COUNT,
   PREF_KEY_FIREWALL_PIN_LOCK_UNTIL,
   PREF_STORE_NAME_FIREWALL_AUTH
-} from '../models/DataModels'
+} from '../../../models/DataModels'
 
 const TAG = 'FirewallAuthStateRepository'
 

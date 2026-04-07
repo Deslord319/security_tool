@@ -1,11 +1,11 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 
 import {
   PeripheralConnectionFilter,
   PeripheralConnectionRecord,
   PeripheralTraceQuery,
   PeripheralTraceRecord
-} from '../models/DataModels'
+} from '../../../models/DataModels'
 import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 
 const TAG = 'PeripheralConnectionRecordService'

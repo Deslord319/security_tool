@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 
@@ -11,7 +11,7 @@ import {
   PeripheralTraceRecord,
   PeripheralTraceStats,
   PeripheralType
-} from '../models/DataModels'
+} from '../../../models/DataModels'
 
 const TAG = 'PeripheralTraceRepo'
 const PREF_STORE_NAME = 'peripheral_trace_settings'

@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { FirewallPresetConfig, FirewallPresetMode } from '../models/DataModels'
-import { FirewallService } from './FirewallService'
+import { FirewallPresetConfig, FirewallPresetMode } from '../../../models/DataModels'
+import { FirewallService } from '../policy/FirewallService'
 import { FirewallPresetConfigService } from './FirewallPresetConfigService'
 
 const DEFAULT_USER_ID = 100

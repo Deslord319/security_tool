@@ -1,4 +1,4 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { BusinessError } from '@kit.BasicServicesKit'
@@ -10,7 +10,7 @@ import {
   PREF_KEY_STARTUP_AUTH,
   PREF_STORE_NAME_TOOL,
   ToolSettingsConfig
-} from '../models/DataModels'
+} from '../../../models/DataModels'
 
 const TAG = 'ToolSettings.Repository'
 

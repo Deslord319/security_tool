@@ -1,9 +1,9 @@
-import { LogUtils } from '../utils/LogUtils'
+import { LogUtils } from '../../../utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
 import osAccount from '@ohos.account.osAccount'
-import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../models/DataModels'
-import { CommonErrorUtils } from '../utils/CommonErrorUtils'
-import { FirewallStrings } from '../constants/modules/FirewallStrings'
+import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../../../models/DataModels'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
+import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
 
 const TAG = 'UserFirewallPolicyService'
 
