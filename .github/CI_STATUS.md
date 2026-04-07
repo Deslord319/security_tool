@@ -179,7 +179,7 @@ git push origin master
 hvigorw assembleHap --mode module -p product=default -p module=entry
 
 # 2. 运行所有测试
-hvigorw :entry:test
+hvigorw test --mode module -p product=default -p module=entry@default
 
 # 3. 代码检查
 # DevEco Studio → Code → Inspect Code
@@ -263,3 +263,21 @@ hdc install signApp.hap
 ---
 
 *最后更新：2026-03-09*
+
+## Device-Side Test Baseline
+
+```bash
+# local unit tests
+hvigorw test --mode module -p product=default -p module=entry@default
+
+# compile and package ohosTest
+hvigorw test --mode module -p product=default -p module=entry@ohosTest
+hvigorw assembleHap --mode module -p product=default -p module=entry@ohosTest
+
+# install both signed packages before aa test
+hdc install signApp.hap
+hdc install entry/build/default/outputs/ohosTest/entry-ohosTest-signed.hap
+
+# default device smoke
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -w 60000
+```

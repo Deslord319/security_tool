@@ -378,7 +378,7 @@ STEPS:
 ### 5.6 执行命令
 
 ```powershell
-hvigorw :entry:test
+hvigorw test --mode module -p product=default -p module=entry@default
 ```
 
 ### 5.7 回填追踪表
@@ -548,7 +548,7 @@ STEPS:
 ### 6.6 执行命令
 
 ```powershell
-hvigorw :entry:test
+hvigorw test --mode module -p product=default -p module=entry@default
 ```
 
 ### 6.7 回填追踪表
@@ -791,7 +791,7 @@ STEPS:
 ### 7.6 执行命令
 
 ```powershell
-hvigorw :entry:test
+hvigorw test --mode module -p product=default -p module=entry@default
 ```
 
 ### 7.7 回填追踪表
@@ -967,7 +967,7 @@ STEPS:
 ### 8.6 执行命令
 
 ```powershell
-hvigorw :entry:test
+hvigorw test --mode module -p product=default -p module=entry@default
 ```
 
 ### 8.7 回填追踪表
@@ -1205,7 +1205,7 @@ Output Files:
 - path/to/test1
 - path/to/test2
 Command:
-- hvigorw :entry:test
+- hvigorw test --mode module -p product=default -p module=entry@default
 Result:
 - pass / fail
 Completed IDs:

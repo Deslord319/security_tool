@@ -143,10 +143,10 @@ entry/.test/default/outputs/ohosTest/reports/                   # 测试报告
 **解决**:
 ```bash
 # 本地运行测试查看详细信息
-./hvigorw :entry:test --mode module -p product=default
+./hvigorw test --mode module -p product=default -p module=entry@default
 
 # 检查测试报告
-open entry/.test/default/outputs/ohosTest/reports/index.html
+open entry/.test/default/outputs/test/reports/index.html
 ```
 
 ### 3. SDK 安装失败
@@ -168,3 +168,24 @@ open entry/.test/default/outputs/ohosTest/reports/index.html
 ---
 
 *最后更新：2026-03-09*
+
+## Device-Side Test Baseline
+
+```bash
+# local unit tests
+./hvigorw test --mode module -p product=default -p module=entry@default
+
+# build the device-side test hap
+./hvigorw assembleHap --mode module -p product=default -p module=entry@ohosTest
+
+# install both signed packages before aa test
+hdc install hapsigner/signApp.hap
+hdc install entry/build/default/outputs/ohosTest/entry-ohosTest-signed.hap
+
+# default device smoke
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -w 60000
+
+# optional scenarios
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode route_action -w 60000
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode peripheral_contract -w 60000
+```

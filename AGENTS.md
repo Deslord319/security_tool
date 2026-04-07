@@ -195,7 +195,7 @@ ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY
 - 上传为 Artifact（保留 7 天）
 
 **Job 2: Test** - 组件测试
-- 执行 `hvigorw :entry:test`
+- 执行 `hvigorw test --mode module -p product=default -p module=entry@default`
 - 生成测试报告
 - 测试报告上传为 Artifact
 
@@ -388,3 +388,27 @@ hdc install signApp.hap
 详细使用方式见：
 
 - `docs/01-总体设计/Codex子Agent使用手册.md`
+
+## Test Framework Baseline
+
+```bash
+# local unit tests
+hvigorw test --mode module -p product=default -p module=entry@default
+
+# compile ohosTest
+hvigorw test --mode module -p product=default -p module=entry@ohosTest
+
+# build the device-side test hap
+hvigorw assembleHap --mode module -p product=default -p module=entry@ohosTest
+
+# install both signed packages before aa test
+hdc install hapsigner/signApp.hap
+hdc install entry/build/default/outputs/ohosTest/entry-ohosTest-signed.hap
+
+# default device smoke
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -w 60000
+
+# optional scenarios
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode route_action -w 60000
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode peripheral_contract -w 60000
+```
