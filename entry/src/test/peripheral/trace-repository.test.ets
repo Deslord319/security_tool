@@ -5,7 +5,7 @@ import {
   PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
-import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
+import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 
 interface TraceRecordOverrides {
   collectAt?: number

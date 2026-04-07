@@ -5,6 +5,32 @@
 import { describe, beforeEach, it, expect } from '@ohos/hypium'
 import { PasswordComplexityConfig } from '../../main/ets/models/DataModels'
 
+interface PasswordPolicyLike {
+  complexityRegex: string
+  validityPeriod: number
+  additionalDescription: string
+}
+
+interface DomainAccountPolicyLike {
+  passwordMaxAgeDays: number
+  expirationNotifyDays: number
+  authTokenValidityMinutes: number
+}
+
+interface IdentityServiceLike {
+  buildComplexityRegex: (config: PasswordComplexityConfig) => string
+  buildDescription: (config: PasswordComplexityConfig) => string
+}
+
+class PasswordConfig implements PasswordComplexityConfig {
+  minLength: number = 0
+  requireLowercase: boolean = false
+  requireUppercase: boolean = false
+  requireDigit: boolean = false
+  requireSpecialChar: boolean = false
+  validityPeriod: number = 0
+}
+
 // 辅助函数：创建口令配置
 function createPasswordConfig(
   minLength: number,
@@ -13,15 +39,14 @@ function createPasswordConfig(
   requireDigit: boolean,
   requireSpecialChar: boolean
 ): PasswordComplexityConfig {
-  return {
-    minLength,
-    requireLowercase,
-    requireUppercase,
-    requireDigit,
-    requireSpecialChar,
-    validityPeriod: 0,
-    description: ''
-  }
+  const config = new PasswordConfig()
+  config.minLength = minLength
+  config.requireLowercase = requireLowercase
+  config.requireUppercase = requireUppercase
+  config.requireDigit = requireDigit
+  config.requireSpecialChar = requireSpecialChar
+  config.validityPeriod = 0
+  return config
 }
 
 // 辅助函数：验证正则表达式
@@ -46,7 +71,7 @@ export default function identityServiceTest() {
         // 模拟正则生成
         const regex = '^[a-z]{8,}$'
         
-        expect(regex).toContain('[a-z]')
+        expect(regex.includes('[a-z]')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'abcdefgh')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'ABCdefgh')).assertFalse()
       })
@@ -56,7 +81,7 @@ export default function identityServiceTest() {
         
         const regex = '^[A-Z]{8,}$'
         
-        expect(regex).toContain('[A-Z]')
+        expect(regex.includes('[A-Z]')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'ABCDEFGH')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'abcdefgh')).assertFalse()
       })
@@ -66,7 +91,7 @@ export default function identityServiceTest() {
         
         const regex = '^\\d{8,}$'
         
-        expect(regex).toContain('\\d')
+        expect(regex.includes('\\d')).assertTrue()
         expect(testRegexAgainstPassword(regex, '12345678')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'abcdefgh')).assertFalse()
       })
@@ -76,7 +101,7 @@ export default function identityServiceTest() {
         
         const regex = '^[!@#$%^&*]{8,}$'
         
-        expect(regex).toContain('[!@#$%^&*]')
+        expect(regex.includes('[!@#$%^&*]')).assertTrue()
         expect(testRegexAgainstPassword(regex, '!@#$%^&*')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'abcdefgh')).assertFalse()
       })
@@ -87,10 +112,10 @@ export default function identityServiceTest() {
         // 完整正则：^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[a-zA-Z\d!@#$%^&*]{8,}$
         const regex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$'
         
-        expect(regex).toContain('(?=.*[a-z])')
-        expect(regex).toContain('(?=.*[A-Z])')
-        expect(regex).toContain('(?=.*\\d)')
-        expect(regex).toContain('(?=.*[!@#$%^&*])')
+        expect(regex.includes('(?=.*[a-z])')).assertTrue()
+        expect(regex.includes('(?=.*[A-Z])')).assertTrue()
+        expect(regex.includes('(?=.*\\d)')).assertTrue()
+        expect(regex.includes('(?=.*[!@#$%^&*])')).assertTrue()
         
         // 测试有效密码
         expect(testRegexAgainstPassword(regex, 'Abcd1234!')).assertTrue()
@@ -105,7 +130,7 @@ export default function identityServiceTest() {
         
         const regex = '^[a-z]{12,}$'
         
-        expect(regex).toContain('{12,}')
+        expect(regex.includes('{12,}')).assertTrue()
         expect(testRegexAgainstPassword(regex, 'abcdefgh')).assertFalse() // 8 个字符
         expect(testRegexAgainstPassword(regex, 'abcdefghijkl')).assertTrue() // 12 个字符
       })
@@ -116,7 +141,7 @@ export default function identityServiceTest() {
         // 没有任何要求时，匹配任意字符
         const regex = '^.+$'
         
-        expect(regex).toBeDefined()
+        expect(regex.length > 0).assertTrue()
       })
     })
 
@@ -128,8 +153,8 @@ export default function identityServiceTest() {
         
         const description = '至少 8 个字符，包含小写字母'
         
-        expect(description).toContain('至少 8 个字符')
-        expect(description).toContain('小写字母')
+        expect(description.includes('至少 8 个字符')).assertTrue()
+        expect(description.includes('小写字母')).assertTrue()
       })
 
       it('should generate description for uppercase requirement', 0, () => {
@@ -137,7 +162,7 @@ export default function identityServiceTest() {
         
         const description = '至少 8 个字符，包含大写字母'
         
-        expect(description).toContain('大写字母')
+        expect(description.includes('大写字母')).assertTrue()
       })
 
       it('should generate description for digit requirement', 0, () => {
@@ -145,7 +170,7 @@ export default function identityServiceTest() {
         
         const description = '至少 8 个字符，包含数字'
         
-        expect(description).toContain('数字')
+        expect(description.includes('数字')).assertTrue()
       })
 
       it('should generate description for special char requirement', 0, () => {
@@ -153,7 +178,7 @@ export default function identityServiceTest() {
         
         const description = '至少 8 个字符，包含特殊字符 (!@#$%^&*)'
         
-        expect(description).toContain('特殊字符')
+        expect(description.includes('特殊字符')).assertTrue()
       })
 
       it('should generate complete description for all requirements', 0, () => {
@@ -161,11 +186,11 @@ export default function identityServiceTest() {
         
         const description = '至少 8 个字符，包含大写字母，包含小写字母，包含数字，包含特殊字符 (!@#$%^&*)'
         
-        expect(description).toContain('至少 8 个字符')
-        expect(description).toContain('大写字母')
-        expect(description).toContain('小写字母')
-        expect(description).toContain('数字')
-        expect(description).toContain('特殊字符')
+        expect(description.includes('至少 8 个字符')).assertTrue()
+        expect(description.includes('大写字母')).assertTrue()
+        expect(description.includes('小写字母')).assertTrue()
+        expect(description.includes('数字')).assertTrue()
+        expect(description.includes('特殊字符')).assertTrue()
       })
 
       it('should handle minimum length only', 0, () => {
@@ -185,7 +210,7 @@ export default function identityServiceTest() {
         const regex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$'
         const description = '至少 8 个字符，包含大写字母，包含小写字母，包含数字，包含特殊字符'
         
-        const policy = {
+        const policy: PasswordPolicyLike = {
           complexityRegex: regex,
           validityPeriod: 0,
           additionalDescription: description
@@ -197,13 +222,13 @@ export default function identityServiceTest() {
       })
 
       it('should get current password policy', 0, () => {
-        const currentPolicy = {
+        const currentPolicy: PasswordPolicyLike = {
           complexityRegex: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$',
           validityPeriod: 90,
           additionalDescription: '至少 8 个字符，包含大写字母，包含小写字母，包含数字'
         }
         
-        expect(currentPolicy).toBeDefined()
+        expect(currentPolicy.complexityRegex.length > 0).assertTrue()
         expect(currentPolicy.validityPeriod).assertEqual(90)
       })
 
@@ -271,7 +296,7 @@ export default function identityServiceTest() {
 
     describe('Domain Account Policy', () => {
       it('should set domain account policy', 0, () => {
-        const policy = {
+        const policy: DomainAccountPolicyLike = {
           passwordMaxAgeDays: 90,
           expirationNotifyDays: 14,
           authTokenValidityMinutes: 480
@@ -320,7 +345,7 @@ export default function identityServiceTest() {
           new RegExp(invalidRegex)
           expect(false).assertTrue('Should have thrown error')
         } catch (e) {
-          expect(e).toBeDefined()
+          expect(e !== undefined).assertTrue()
         }
       })
 
@@ -341,13 +366,13 @@ export default function identityServiceTest() {
         const negativeLength = -5
         
         // 应该使用默认值或报错
-        expect(negativeLength).toBeLessThan(0)
+        expect(negativeLength < 0).assertTrue()
       })
 
       it('should handle extremely large minimum length', 0, () => {
         const largeLength = 10000
         
-        expect(largeLength).toBeGreaterThan(100)
+        expect(largeLength > 100).assertTrue()
       })
     })
 
@@ -376,13 +401,13 @@ export default function identityServiceTest() {
       it('should handle unicode characters', 0, () => {
         const password = '密码 Password1!'
         
-        expect(password.length).toBeGreaterThan(0)
+        expect(password.length > 0).assertTrue()
       })
 
       it('should handle emoji characters', 0, () => {
         const password = 'Abcd1234!😀'
         
-        expect(password.length).toBeGreaterThan(8)
+        expect(password.length > 8).assertTrue()
       })
     })
 
@@ -415,16 +440,16 @@ export default function identityServiceTest() {
         const description = IdentityService.buildDescription(config)
         
         // 正则和描述应该一致
-        expect(regex).toBeDefined()
-        expect(description).toBeDefined()
-        expect(description).toContain('至少 8 个字符')
+        expect(regex.length > 0).assertTrue()
+        expect(description.length > 0).assertTrue()
+        expect(description.includes('至少 8 个字符')).assertTrue()
       })
     })
   })
 }
 
 // 模拟 IdentityService 的静态方法（用于测试）
-const IdentityService = {
+const IdentityService: IdentityServiceLike = {
   buildComplexityRegex: (config: PasswordComplexityConfig): string => {
     const lookaheads: string[] = []
     let charSet = ''

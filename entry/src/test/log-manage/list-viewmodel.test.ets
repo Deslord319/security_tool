@@ -20,8 +20,8 @@ import {
   MutationResult,
   SaveSettingsResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
-import { LogManageViewModel } from '../../main/ets/viewmodels/log-manage/LogManageViewModel'
-import { LogStorageSettingsViewModel } from '../../main/ets/viewmodels/log-manage/LogStorageSettingsViewModel'
+import { LogManageViewModel } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
+import { LogStorageSettingsViewModel } from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
 
 function createEntry(id: string, eventType: LogEventType, result: LogEventResult, detail: string): LogEntry {
   return {
@@ -115,10 +115,10 @@ class FakeLogListCollector implements LogCollectorStatusPort {
 }
 
 class FakeLogStorageSettingsViewModel extends LogStorageSettingsViewModel {
-  loadResult = { success: true, code: 'ok' }
+  loadResult: SaveSettingsResult = { success: true, code: 'ok' }
   saveResult: SaveSettingsResult = { success: true, code: 'ok' }
 
-  async load() {
+  async load(): Promise<SaveSettingsResult> {
     return this.loadResult
   }
 
@@ -220,7 +220,7 @@ export default function logManageViewModelTest() {
       await viewModel.initialize(context)
       await viewModel.setKeyword('missing-keyword')
 
-      let result = await viewModel.clearLogs()
+      let result: ClearLogsResult = await viewModel.clearLogs()
 
       expect(result.success).assertTrue()
       expect(viewModel.state.summary.totalCount).assertEqual(0)
@@ -277,7 +277,7 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.mode).assertEqual('settings')
       expect(viewModel.state.autoRefreshEnabled).assertFalse()
 
-      let result = await viewModel.saveStorageSettings()
+      let result: SaveSettingsResult = await viewModel.saveStorageSettings()
 
       expect(result.success).assertTrue()
       expect(viewModel.state.mode).assertEqual('list')

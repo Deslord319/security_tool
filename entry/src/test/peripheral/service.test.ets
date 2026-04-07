@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { PeripheralService } from '../../main/ets/services/PeripheralService'
+import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 
 describe('PeripheralService', () => {
   it('should expose the expected interface feature constants', 0, () => {

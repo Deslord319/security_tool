@@ -6,9 +6,9 @@ import { describe, it, expect } from '@ohos/hypium'
 import {
   PeripheralType, UsbStoragePolicy,
   getPeripheralTypeLabel, getUsbStoragePolicyLabel,
-  parseUsbDeviceId, formatUsbDeviceId, parseBluetoothMac,
-  inferUsbBaseClass, inferPeripheralTypeFromBaseClass
-} from '../../../main/ets/models/DataModels'
+  parseUsbDeviceId, formatUsbDeviceId, formatBluetoothDeviceId,
+  inferPeripheralTypeFromBaseClass
+} from '../../main/ets/models/DataModels'
 
 export default function peripheralModelsTest() {
   describe('Peripheral Models', () => {
@@ -120,47 +120,20 @@ export default function peripheralModelsTest() {
 
     // ==================== 蓝牙 MAC 解析测试 ====================
 
-    describe('parseBluetoothMac', () => {
-      it('should parse valid MAC address with space', 0, () => {
-        let result = parseBluetoothMac('MAC: AA:BB:CC:DD:EE:01')
-        expect(result).assertEqual('AA:BB:CC:DD:EE:01')
+    describe('formatBluetoothDeviceId', () => {
+      it('should normalize valid MAC address with space', 0, () => {
+        let result = formatBluetoothDeviceId('AA:BB:CC:DD:EE:01')
+        expect(result).assertEqual('MAC: AA:BB:CC:DD:EE:01')
       })
 
-      it('should parse valid MAC address without space', 0, () => {
-        let result = parseBluetoothMac('MAC:11:22:33:44:55:66')
-        expect(result).assertEqual('11:22:33:44:55:66')
+      it('should normalize valid MAC address without space', 0, () => {
+        let result = formatBluetoothDeviceId('11:22:33:44:55:66')
+        expect(result).assertEqual('MAC: 11:22:33:44:55:66')
       })
 
-      it('should return null for invalid format', 0, () => {
-        expect(parseBluetoothMac('invalid')).assertNull()
-      })
-
-      it('should return null for empty string', 0, () => {
-        expect(parseBluetoothMac('')).assertNull()
-      })
-    })
-
-    // ==================== USB Base Class 映射测试 ====================
-
-    describe('inferUsbBaseClass', () => {
-      it('should return 0x08 for USB_STORAGE', 0, () => {
-        expect(inferUsbBaseClass(PeripheralType.USB_STORAGE)).assertEqual(0x08)
-      })
-
-      it('should return 0x0E for USB_CAMERA', 0, () => {
-        expect(inferUsbBaseClass(PeripheralType.USB_CAMERA)).assertEqual(0x0E)
-      })
-
-      it('should return 0x07 for USB_PRINTER', 0, () => {
-        expect(inferUsbBaseClass(PeripheralType.USB_PRINTER)).assertEqual(0x07)
-      })
-
-      it('should return 0 for USB_OTHER', 0, () => {
-        expect(inferUsbBaseClass(PeripheralType.USB_OTHER)).assertEqual(0)
-      })
-
-      it('should return 0 for BLUETOOTH', 0, () => {
-        expect(inferUsbBaseClass(PeripheralType.BLUETOOTH)).assertEqual(0)
+      it('should normalize dashed bluetooth ids', 0, () => {
+        let result = formatBluetoothDeviceId('aa-bb-cc-dd-ee-ff')
+        expect(result).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
       })
     })
 
@@ -204,22 +177,19 @@ export default function peripheralModelsTest() {
       })
     })
 
-    describe('USB BaseClass bidirectional mapping', () => {
-      it('should map USB_STORAGE correctly both ways', 0, () => {
-        let baseClass = inferUsbBaseClass(PeripheralType.USB_STORAGE)
-        let peripheralType = inferPeripheralTypeFromBaseClass(baseClass)
+    describe('USB BaseClass mapping table', () => {
+      it('should map USB_STORAGE correctly', 0, () => {
+        let peripheralType = inferPeripheralTypeFromBaseClass(0x08)
         expect(peripheralType).assertEqual(PeripheralType.USB_STORAGE)
       })
 
-      it('should map USB_CAMERA correctly both ways', 0, () => {
-        let baseClass = inferUsbBaseClass(PeripheralType.USB_CAMERA)
-        let peripheralType = inferPeripheralTypeFromBaseClass(baseClass)
+      it('should map USB_CAMERA correctly', 0, () => {
+        let peripheralType = inferPeripheralTypeFromBaseClass(0x0E)
         expect(peripheralType).assertEqual(PeripheralType.USB_CAMERA)
       })
 
-      it('should map USB_PRINTER correctly both ways', 0, () => {
-        let baseClass = inferUsbBaseClass(PeripheralType.USB_PRINTER)
-        let peripheralType = inferPeripheralTypeFromBaseClass(baseClass)
+      it('should map USB_PRINTER correctly', 0, () => {
+        let peripheralType = inferPeripheralTypeFromBaseClass(0x07)
         expect(peripheralType).assertEqual(PeripheralType.USB_PRINTER)
       })
     })

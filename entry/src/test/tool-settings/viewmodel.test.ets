@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { MockKit, when } from '@ohos/hamock'
 import { CommonStrings } from '../../main/ets/constants/CommonStrings'
 import { ToolSettingsStrings } from '../../main/ets/constants/modules/ToolSettingsStrings'
 import { AuthMethod, ToolSettingsConfig } from '../../main/ets/models/DataModels'
-import { AuthAvailabilityResult, AuthService } from '../../main/ets/services/AuthService'
-import { SystemSettingsService } from '../../main/ets/services/SystemSettingsService'
-import { ToolSettingsRepository } from '../../main/ets/services/ToolSettingsRepository'
-import { ToolSettingsViewModel } from '../../main/ets/viewmodels/ToolSettingsViewModel'
+import { AuthAvailabilityResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
+import { SystemSettingsService } from '../../main/ets/services/tool-settings/system-settings/SystemSettingsService'
+import { ToolSettingsRepository } from '../../main/ets/services/tool-settings/system-settings/ToolSettingsRepository'
+import { ToolSettingsViewModel } from '../../main/ets/viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 
 class FakeToolSettingsRepository implements ToolSettingsRepository {
   config: ToolSettingsConfig = {
@@ -33,25 +34,28 @@ class FakeToolSettingsRepository implements ToolSettingsRepository {
   }
 }
 
+class FakeAuthAvailabilityResult implements AuthAvailabilityResult {
+  available: boolean = false
+  message: string = ''
+  errorCode?: number
+}
+
 export default function toolSettingsViewModelTest() {
   describe('ToolSettingsViewModel', () => {
     let repository: FakeToolSettingsRepository
     let viewModel: ToolSettingsViewModel
     let context: common.UIAbilityContext
-    let originalCheckAuthMethodAvailability: (authMethod: AuthMethod) => AuthAvailabilityResult
-    let originalOpenPasswordSettings: (context: common.UIAbilityContext) => Promise<boolean>
+    let mockKit: MockKit
 
     beforeEach(() => {
       repository = new FakeToolSettingsRepository()
       viewModel = new ToolSettingsViewModel(repository)
+      mockKit = new MockKit()
       context = {} as common.UIAbilityContext
-      originalCheckAuthMethodAvailability = AuthService.checkAuthMethodAvailability
-      originalOpenPasswordSettings = SystemSettingsService.openPasswordSettings
     })
 
     afterEach(() => {
-      AuthService.checkAuthMethodAvailability = originalCheckAuthMethodAvailability
-      SystemSettingsService.openPasswordSettings = originalOpenPasswordSettings
+      mockKit.clearAll()
     })
 
     it('should initialize from repository config', 0, async (done: Function) => {
@@ -84,13 +88,12 @@ export default function toolSettingsViewModelTest() {
       await viewModel.initialize(context)
       viewModel.setStartupAuthEnabled(true)
       viewModel.setAuthMethod(AuthMethod.FINGERPRINT)
-      AuthService.checkAuthMethodAvailability = (_authMethod: AuthMethod): AuthAvailabilityResult => {
-        return {
-          available: false,
-          message: 'fingerprint unavailable',
-          errorCode: 401
-        }
-      }
+      let availabilityMock = mockKit.mockFunc(AuthService, AuthService.checkAuthMethodAvailability)
+      let resultValue = new FakeAuthAvailabilityResult()
+      resultValue.available = false
+      resultValue.message = 'fingerprint unavailable'
+      resultValue.errorCode = 401
+      when(availabilityMock)(AuthMethod.FINGERPRINT).afterReturn(resultValue)
 
       let result = await viewModel.requestSave(context)
 
@@ -104,12 +107,11 @@ export default function toolSettingsViewModelTest() {
       await viewModel.initialize(context)
       viewModel.setStartupAuthEnabled(true)
       viewModel.setAuthMethod(AuthMethod.FINGERPRINT)
-      AuthService.checkAuthMethodAvailability = (_authMethod: AuthMethod): AuthAvailabilityResult => {
-        return {
-          available: true,
-          message: 'available'
-        }
-      }
+      let availabilityMock = mockKit.mockFunc(AuthService, AuthService.checkAuthMethodAvailability)
+      let resultValue = new FakeAuthAvailabilityResult()
+      resultValue.available = true
+      resultValue.message = 'available'
+      when(availabilityMock)(AuthMethod.FINGERPRINT).afterReturn(resultValue)
 
       let result = await viewModel.requestSave(context)
 
@@ -123,7 +125,8 @@ export default function toolSettingsViewModelTest() {
     })
 
     it('should return failure when opening password settings fails', 0, async (done: Function) => {
-      SystemSettingsService.openPasswordSettings = async (_context: common.UIAbilityContext): Promise<boolean> => false
+      let openSettingsMock = mockKit.mockFunc(SystemSettingsService, SystemSettingsService.openPasswordSettings)
+      when(openSettingsMock)(context).afterReturn(false)
 
       let result = await viewModel.openPasswordSettings(context)
 

@@ -3,39 +3,65 @@
  * 测试 AuthService 的认证逻辑和可用性检查
  */
 import { describe, beforeEach, it, expect } from '@ohos/hypium'
-import { userAuth } from '@kit.UserAuthenticationKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 
 // Mock userAuth API
-const mockUserAuth = {
-  getAvailableStatus: (authType: number, trustLevel: number) => {},
-  authenticate: (authTypes: number[], challenge: Uint8Array, callback: (err: BusinessError, result: any) => void) => {}
+interface AuthResult {
+  code: number
 }
 
-// 模拟认证类型
-const UserAuthType = {
-  PIN: 1,
-  FINGERPRINT: 2,
-  FACE: 4,
-  PIN_FINGERPRINT: 3
+interface MockUserAuthApi {
+  getAvailableStatus: (authType: number, trustLevel: number) => boolean
+  authenticate: (
+    authTypes: number[],
+    challenge: Uint8Array,
+    callback: (err: BusinessError, result: AuthResult) => void
+  ) => void
 }
 
-const AuthTrustLevel = {
-  ATL1: 1
+interface AvailabilityResult {
+  available: boolean
+  message: string
 }
 
-// 模拟认证结果
-const UserAuthResultCode = {
-  SUCCESS: 12500000,
-  FAIL: 12500001
+interface ErrorWithOptionalCode {
+  code?: number
+  message: string
+}
+
+interface MockBusinessErrorShape {
+  code: number
+  message: string
+}
+
+enum UserAuthType {
+  PIN = 1,
+  FINGERPRINT = 2,
+  FACE = 4,
+  PIN_FINGERPRINT = 3
+}
+
+enum AuthTrustLevel {
+  ATL1 = 1
+}
+
+enum UserAuthResultCode {
+  SUCCESS = 12500000,
+  FAIL = 12500001
+}
+
+const mockUserAuth: MockUserAuthApi = {
+  getAvailableStatus: (_authType: number, _trustLevel: number) => false,
+  authenticate: (_authTypes: number[], _challenge: Uint8Array, _callback: (err: BusinessError, result: AuthResult) => void) => {}
 }
 
 // 辅助函数：创建模拟错误
 function createMockError(code: number, message: string): BusinessError {
-  return {
+  const error: MockBusinessErrorShape = {
     code: code,
     message: message
-  } as BusinessError
+  }
+  return error as BusinessError
 }
 
 export default function authServiceTest() {
@@ -50,11 +76,11 @@ export default function authServiceTest() {
     describe('isAuthAvailable', () => {
       it('should return true when auth type is available', 0, () => {
         // 模拟 PIN 码可用
-        mockUserAuth.getAvailableStatus = (authType: number, trustLevel: number) => {
+        mockUserAuth.getAvailableStatus = (authType: number, _trustLevel: number): boolean => {
           if (authType === UserAuthType.PIN) {
             return true
           }
-          throw createMockError(12500010, 'Auth type not available')
+          throw new Error(JSON.stringify(createMockError(12500010, 'Auth type not available')))
         }
 
         const result = mockUserAuth.getAvailableStatus(UserAuthType.PIN, AuthTrustLevel.ATL1)
@@ -63,15 +89,16 @@ export default function authServiceTest() {
 
       it('should return false when auth type is not registered', 0, () => {
         // 模拟指纹未注册
-        mockUserAuth.getAvailableStatus = (authType: number, trustLevel: number) => {
-          throw createMockError(12500010, 'Auth type not registered')
+        mockUserAuth.getAvailableStatus = (_authType: number, _trustLevel: number): boolean => {
+          throw new Error(JSON.stringify(createMockError(12500010, 'Auth type not registered')))
         }
 
         try {
           mockUserAuth.getAvailableStatus(UserAuthType.FINGERPRINT, AuthTrustLevel.ATL1)
           expect(false).assertTrue('Should have thrown error')
-        } catch (e) {
-          expect((e as BusinessError).code).assertEqual(12500010)
+        } catch (_e) {
+          const error = createMockError(12500010, 'Auth type not registered')
+          expect(error.code).assertEqual(12500010)
         }
       })
     })
@@ -144,7 +171,7 @@ export default function authServiceTest() {
 
     describe('checkAuthMethodAvailability', () => {
       it('should return available when auth method is registered', 0, () => {
-        const result = {
+        const result: AvailabilityResult = {
           available: true,
           message: '认证方式可用'
         }
@@ -157,21 +184,21 @@ export default function authServiceTest() {
         const unavailableMethods = ['PIN 码']
         const message = `设备未注册${unavailableMethods.join('和')}，请在系统设置中配置后重试`
         
-        const result = {
+        const result: AvailabilityResult = {
           available: false,
           message: message
         }
         
         expect(result.available).assertFalse()
-        expect(result.message).toContain('设备未注册')
+        expect(result.message.includes('设备未注册')).assertTrue()
       })
 
       it('should handle multiple unavailable methods', 0, () => {
         const unavailableMethods = ['PIN 码', '指纹']
         const message = `设备未注册${unavailableMethods.join('和')}，请在系统设置中配置后重试`
         
-        expect(message).toContain('PIN 码')
-        expect(message).toContain('指纹')
+        expect(message.includes('PIN 码')).assertTrue()
+        expect(message.includes('指纹')).assertTrue()
       })
     })
 
@@ -182,14 +209,14 @@ export default function authServiceTest() {
         // 模拟成功的认证
         const challenge = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
         expect(challenge.length).assertEqual(8)
-        expect(challenge.length).toBeGreaterThan(0)
+        expect(challenge.length > 0).assertTrue()
       })
 
       it('should fail with invalid challenge', 0, async () => {
         // Challenge 必须至少 8 字节
         const shortChallenge = new Uint8Array([1, 2, 3])
         expect(shortChallenge.length).assertEqual(3)
-        expect(shortChallenge.length).toBeLessThan(8)
+        expect(shortChallenge.length < 8).assertTrue()
       })
 
       it('should handle authentication timeout', 0, async () => {
@@ -239,21 +266,21 @@ export default function authServiceTest() {
       })
 
       it('should extract error code from error object', 0, () => {
-        const errorObject = {
+        const errorObject: ErrorWithOptionalCode = {
           code: 12500001,
           message: 'Authentication failed'
         }
         
-        const code = (errorObject as any).code
+        const code = errorObject.code
         expect(code).assertEqual(12500001)
       })
 
       it('should handle undefined error code', 0, () => {
-        const errorObject = {
+        const errorObject: ErrorWithOptionalCode = {
           message: 'Unknown error'
         }
         
-        const code = (errorObject as any).code
+        const code = errorObject.code
         expect(code).assertEqual(undefined)
       })
     })

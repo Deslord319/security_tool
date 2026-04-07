@@ -4,15 +4,20 @@ import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/Lo
 import { LogConfigRepository } from '../../main/ets/services/log-manage/repository/LogConfigRepository'
 import { LogRepository } from '../../main/ets/services/log-manage/repository/LogRepository'
 
-function createEntry(id: string, detail: string, result: LogEventResult, extra?: Partial<LogEntry>): LogEntry {
-  return {
+function createEntry(
+  id: string,
+  detail: string,
+  result: LogEventResult,
+  eventType: LogEventType = LogEventType.FILE
+): LogEntry {
+  const entry: LogEntry = {
     id,
     timestamp: Date.now(),
-    eventType: LogEventType.FILE,
+    eventType: eventType,
     detail,
-    result,
-    ...extra
+    result
   }
+  return entry
 }
 
 export default function logRepositoryTest() {
@@ -35,7 +40,7 @@ export default function logRepositoryTest() {
     it('should filter query and snapshot with stable totals', 0, (done: Function) => {
       LogRepository.resetForTest([
         createEntry('1', 'file alpha', LogEventResult.SUCCESS),
-        createEntry('2', 'permission beta', LogEventResult.BLOCKED, { eventType: LogEventType.PERMISSION }),
+        createEntry('2', 'permission beta', LogEventResult.BLOCKED, LogEventType.PERMISSION),
         createEntry('3', 'file gamma', LogEventResult.FAILED)
       ])
 
@@ -75,7 +80,7 @@ export default function logRepositoryTest() {
       let longText = 'x'.repeat(1100)
 
       let result = await LogRepository.addEntries([
-        createEntry(' ', longText, 999 as LogEventResult, { eventType: 999 as LogEventType })
+        createEntry(' ', longText, 999 as LogEventResult, 999 as LogEventType)
       ])
       let snapshot = LogRepository.snapshot()
 

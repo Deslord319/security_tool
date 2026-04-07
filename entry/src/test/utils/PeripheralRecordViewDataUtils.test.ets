@@ -9,7 +9,7 @@ import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp
 } from '../../main/ets/viewmodels/PeripheralRecordPresentationMapper'
-import { PeripheralPolicyService } from '../../main/ets/services/PeripheralPolicyService'
+import { PeripheralPolicyService } from '../../main/ets/services/peripheral/device-policy/PeripheralPolicyService'
 
 function createConnectionRecord(id: string, timestamp: number): PeripheralConnectionRecord {
   return {

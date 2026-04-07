@@ -9,6 +9,35 @@ import {
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 
+class FakeSavePicker {
+  private uris: string[]
+
+  constructor(uris: string[]) {
+    this.uris = uris
+  }
+
+  async save(_options: picker.DocumentSaveOptions): Promise<string[]> {
+    return this.uris.slice()
+  }
+}
+
+class FakeExportFileHandle {
+  fd: number
+
+  constructor(fd: number) {
+    this.fd = fd
+  }
+}
+
+class FakeExportDeps {
+  nowProvider?: () => number
+  pickerFactory?: (context: common.UIAbilityContext) => FakeSavePicker
+  buildPathFn?: (directoryUri: string, fileName: string) => string
+  openFileFn?: (path: string) => FakeExportFileHandle
+  writeFileFn?: (fd: number, content: string) => void
+  closeFileFn?: (fd: number) => void
+}
+
 function createLogEntry(
   id: string,
   eventType: LogEventType,
@@ -80,12 +109,10 @@ export default function logExportServiceTest() {
     })
 
     it('should return user_canceled when picker returns empty directory list', 0, async (done: Function) => {
-      LogExportService.setTestDeps({
-        pickerFactory: (_context: common.UIAbilityContext) => ({
-          save: async (_options: picker.DocumentSaveOptions): Promise<string[]> => []
-        }),
-        nowProvider: () => new Date(2026, 0, 15, 8, 30, 0).getTime()
-      })
+      let deps = new FakeExportDeps()
+      deps.pickerFactory = (_context: common.UIAbilityContext) => new FakeSavePicker([])
+      deps.nowProvider = () => new Date(2026, 0, 15, 8, 30, 0).getTime()
+      LogExportService.setTestDeps(deps as Object as never)
 
       let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, 'header\r\nrow')
 
@@ -96,15 +123,13 @@ export default function logExportServiceTest() {
 
     it('should return io_failed when write pipeline throws', 0, async (done: Function) => {
       let closeCalled = false
-      LogExportService.setTestDeps({
-        pickerFactory: (_context: common.UIAbilityContext) => ({
-          save: async (_options: picker.DocumentSaveOptions): Promise<string[]> => ['file://docs/storage']
-        }),
-        buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
-        openFileFn: (_path: string): { fd: number } => ({ fd: 9 }),
-        writeFileFn: (_fd: number, _content: string): void => { throw new Error('write failed') },
-        closeFileFn: (_fd: number): void => { closeCalled = true }
-      })
+      let deps = new FakeExportDeps()
+      deps.pickerFactory = (_context: common.UIAbilityContext) => new FakeSavePicker(['file://docs/storage'])
+      deps.buildPathFn = (_directoryUri: string, fileName: string): string => `/mock/${fileName}`
+      deps.openFileFn = (_path: string): FakeExportFileHandle => new FakeExportFileHandle(9)
+      deps.writeFileFn = (_fd: number, _content: string): void => { throw new Error('write failed') }
+      deps.closeFileFn = (_fd: number): void => { closeCalled = true }
+      LogExportService.setTestDeps(deps as Object as never)
 
       let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, 'header\r\nrow')
 
@@ -116,18 +141,16 @@ export default function logExportServiceTest() {
 
     it('should return ok with file metadata when save pipeline succeeds', 0, async (done: Function) => {
       let wroteContent = ''
-      LogExportService.setTestDeps({
-        nowProvider: () => new Date(2026, 0, 15, 8, 30, 0).getTime(),
-        pickerFactory: (_context: common.UIAbilityContext) => ({
-          save: async (_options: picker.DocumentSaveOptions): Promise<string[]> => ['file://docs/storage']
-        }),
-        buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
-        openFileFn: (_path: string): { fd: number } => ({ fd: 7 }),
-        writeFileFn: (_fd: number, content: string): void => {
-          wroteContent = content
-        },
-        closeFileFn: (_fd: number): void => {}
-      })
+      let deps = new FakeExportDeps()
+      deps.nowProvider = () => new Date(2026, 0, 15, 8, 30, 0).getTime()
+      deps.pickerFactory = (_context: common.UIAbilityContext) => new FakeSavePicker(['file://docs/storage'])
+      deps.buildPathFn = (_directoryUri: string, fileName: string): string => `/mock/${fileName}`
+      deps.openFileFn = (_path: string): FakeExportFileHandle => new FakeExportFileHandle(7)
+      deps.writeFileFn = (_fd: number, content: string): void => {
+        wroteContent = content
+      }
+      deps.closeFileFn = (_fd: number): void => {}
+      LogExportService.setTestDeps(deps as Object as never)
 
       let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, 'header\r\nrow')
 

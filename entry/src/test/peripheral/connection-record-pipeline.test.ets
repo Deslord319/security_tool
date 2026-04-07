@@ -5,7 +5,7 @@ import {
   PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
-import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
+import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 import { PeripheralConnectionRecordPipelineImpl } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import {
   PeripheralConnectionRecordConsumer,
@@ -243,7 +243,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       markTraceRepositoryReady(pipeline)
 
       const processed = await pipeline.push(createUsbEvent())
-      const records = PeripheralTraceRepository.query()
+      const records: PeripheralTraceRecord[] = PeripheralTraceRepository.query()
 
       expect(processed).assertTrue()
       expect(usbConsumer.consumeCalls).assertEqual(1)

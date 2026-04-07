@@ -6,8 +6,8 @@ import {
   PeripheralType,
   UsbStoragePolicy
 } from '../../main/ets/models/DataModels'
-import { PeripheralConnectionRecordService } from '../../main/ets/services/PeripheralConnectionRecordService'
-import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
+import { PeripheralConnectionRecordService } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordService'
+import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 
 function buildTraceRecord(recordId: string, occurAt: number): PeripheralTraceRecord {
   let record: PeripheralTraceRecord = {

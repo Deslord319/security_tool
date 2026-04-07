@@ -9,7 +9,7 @@ import {
 import {
   LogStorageSettingsDependencies,
   LogStorageSettingsViewModel
-} from '../../main/ets/viewmodels/log-manage/LogStorageSettingsViewModel'
+} from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
 
 class FakeLogStorageConfigRepository implements Pick<LogConfigRepositoryPort, 'loadStorageConfig' | 'saveStorageConfig'> {
   config: LogStorageConfig = {
@@ -44,6 +44,19 @@ class FakeLogStorageMaintenanceRepository implements LogStorageMaintenancePort {
   }
 }
 
+class FakeLogStorageSettingsDependencies implements LogStorageSettingsDependencies {
+  configRepository: FakeLogStorageConfigRepository
+  storageMaintenance: FakeLogStorageMaintenanceRepository
+
+  constructor(
+    configRepository: FakeLogStorageConfigRepository,
+    storageMaintenance: FakeLogStorageMaintenanceRepository
+  ) {
+    this.configRepository = configRepository
+    this.storageMaintenance = storageMaintenance
+  }
+}
+
 export default function logStorageSettingsViewModelTest() {
   describe('LogStorageSettingsViewModel', () => {
     let configRepository: FakeLogStorageConfigRepository
@@ -53,15 +66,12 @@ export default function logStorageSettingsViewModelTest() {
     beforeEach(() => {
       configRepository = new FakeLogStorageConfigRepository()
       storageMaintenance = new FakeLogStorageMaintenanceRepository()
-      let dependencies: LogStorageSettingsDependencies = {
-        configRepository: configRepository,
-        storageMaintenance: storageMaintenance
-      }
+      let dependencies: LogStorageSettingsDependencies = new FakeLogStorageSettingsDependencies(configRepository, storageMaintenance)
       viewModel = new LogStorageSettingsViewModel(dependencies)
     })
 
     it('should load real config values instead of select indices', 0, async (done: Function) => {
-      let result = await viewModel.load()
+      let result: ServiceResult = await viewModel.load()
 
       expect(result.success).assertTrue()
       expect(viewModel.state.maxLocalEntries).assertEqual(5000)
@@ -85,7 +95,7 @@ export default function logStorageSettingsViewModelTest() {
       await viewModel.load()
       viewModel.setMaxLocalEntries(2000)
 
-      let result = await viewModel.save()
+      let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertTrue()
       expect(configRepository.config.maxLocalEntries).assertEqual(2000)
@@ -96,7 +106,7 @@ export default function logStorageSettingsViewModelTest() {
     it('should reject save when no changes exist', 0, async (done: Function) => {
       await viewModel.load()
 
-      let result = await viewModel.save()
+      let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('no_changes')

@@ -11,6 +11,34 @@ import {
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import { LogCollectorService } from '../../main/ets/services/log-manage/collector/LogCollectorService'
 
+interface FakeSubscriptionConfig {
+  subscribeAll: boolean
+  subscribedTypes: LogEventType[]
+}
+
+class FakeCollectorDeps {
+  repositoryPort: FakeCollectorRepository
+  configPort: FakeCollectorConfig
+  auditSourcePort: FakeAuditSource
+  crashSourcePort: FakeCrashSource
+  setTimerFn: (task: () => void, delayMs: number) => number
+  clearTimerFn: (timerId: number) => void
+
+  constructor(
+    repositoryPort: FakeCollectorRepository,
+    configPort: FakeCollectorConfig,
+    auditSourcePort: FakeAuditSource,
+    crashSourcePort: FakeCrashSource
+  ) {
+    this.repositoryPort = repositoryPort
+    this.configPort = configPort
+    this.auditSourcePort = auditSourcePort
+    this.crashSourcePort = crashSourcePort
+    this.setTimerFn = (_task: () => void, _delayMs: number): number => 1
+    this.clearTimerFn = (_timerId: number): void => {}
+  }
+}
+
 function createEntry(id: string, detail: string): LogEntry {
   return {
     id,
@@ -45,11 +73,12 @@ class FakeCollectorConfig {
     return this.initResult
   }
 
-  async loadSubscriptionConfig(): Promise<{ subscribeAll: boolean, subscribedTypes: LogEventType[] }> {
-    return {
+  async loadSubscriptionConfig(): Promise<FakeSubscriptionConfig> {
+    let result: FakeSubscriptionConfig = {
       subscribeAll: this.subscribeAll,
       subscribedTypes: this.subscribedTypes.slice()
     }
+    return result
   }
 }
 
@@ -113,14 +142,8 @@ export default function logCollectorServiceTest() {
       config = new FakeCollectorConfig()
       auditSource = new FakeAuditSource()
       crashSource = new FakeCrashSource()
-      LogCollectorService.setTestDeps({
-        repositoryPort: repository,
-        configPort: config,
-        auditSourcePort: auditSource,
-        crashSourcePort: crashSource,
-        setTimerFn: (_task: () => void, _delayMs: number): number => 1,
-        clearTimerFn: (_timerId: number): void => {}
-      })
+      let deps = new FakeCollectorDeps(repository, config, auditSource, crashSource)
+      LogCollectorService.setTestDeps(deps as Object as never)
       context = {} as common.UIAbilityContext
     })
 

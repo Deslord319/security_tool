@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
-import { PeripheralDevicePolicyRepository } from '../../main/ets/services/PeripheralDevicePolicyRepository'
-import { LogStorageService } from '../../main/ets/services/LogStorageService'
+import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { LogRepository } from '../../main/ets/services/log-manage/repository/LogRepository'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/PeripheralPolicyViewModel'
 
 describe('PeripheralPolicyViewModel', () => {

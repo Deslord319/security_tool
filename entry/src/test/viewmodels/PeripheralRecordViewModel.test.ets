@@ -10,7 +10,7 @@ import {
   PeripheralType
 } from '../../main/ets/models/DataModels'
 import { PeripheralStrings } from '../../main/ets/constants/modules/PeripheralStrings'
-import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
+import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import {
   formatPeripheralTimestamp,

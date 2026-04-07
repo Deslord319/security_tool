@@ -7,8 +7,8 @@ import {
   PeripheralType
 } from '../../main/ets/models/DataModels'
 import { PeripheralStrings } from '../../main/ets/constants/modules/PeripheralStrings'
-import { PeripheralDevicePolicyRepository } from '../../main/ets/services/PeripheralDevicePolicyRepository'
-import { PeripheralTraceRepository } from '../../main/ets/services/PeripheralTraceRepository'
+import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/InterfaceControlViewModel'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/PeripheralRecordViewModel'

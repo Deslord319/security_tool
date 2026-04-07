@@ -1,34 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
+import { MockKit, when } from '@ohos/hamock'
 import { CommonStrings } from '../../main/ets/constants/CommonStrings'
 import { IdentityStrings } from '../../main/ets/constants/modules/IdentityStrings'
-import { PASSWORD_VALIDITY_OPTIONS, PasswordComplexityConfig } from '../../main/ets/models/DataModels'
-import { IdentityService } from '../../main/ets/services/IdentityService'
+import { OperationResult, PASSWORD_VALIDITY_OPTIONS, PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
-} from '../../main/ets/viewmodels/IdentitySettingsViewModel'
+} from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { DialogService } from '../../main/ets/utils/DialogService'
+
+interface MockPasswordPolicyResult extends OperationResult<securityManager.PasswordPolicy | null> {
+  data?: securityManager.PasswordPolicy | null
+}
+
+class PasswordPolicyResult implements MockPasswordPolicyResult {
+  success: boolean = true
+  data?: securityManager.PasswordPolicy | null = null
+}
+
+class SavePasswordPolicyResult implements OperationResult<void> {
+  success: boolean = false
+  isAdminMissing?: boolean
+  errorMessage?: string
+}
 
 export default function identitySettingsViewModelTest() {
   describe('IdentitySettingsViewModel', () => {
-    let originalGetPasswordPolicyWithResult: () => Object
-    let originalBuildComplexityRegex: (config: PasswordComplexityConfig) => string
-    let originalSetPasswordPolicyWithResult: (config: PasswordComplexityConfig) => Object
-    let originalDisplayReason: (primaryMessage?: string, fallbackMessage?: string) => string
+    let mockKit: MockKit
 
     beforeEach(() => {
-      originalGetPasswordPolicyWithResult = IdentityService.getPasswordPolicyWithResult
-      originalBuildComplexityRegex = IdentityService.buildComplexityRegex
-      originalSetPasswordPolicyWithResult = IdentityService.setPasswordPolicyWithResult
-      originalDisplayReason = DialogService.displayReason
+      mockKit = new MockKit()
     })
 
     afterEach(() => {
-      IdentityService.getPasswordPolicyWithResult = originalGetPasswordPolicyWithResult
-      IdentityService.buildComplexityRegex = originalBuildComplexityRegex
-      IdentityService.setPasswordPolicyWithResult = originalSetPasswordPolicyWithResult
-      DialogService.displayReason = originalDisplayReason
+      mockKit.clearAll()
     })
 
     it('should initialize from password policy', 0, () => {
@@ -75,16 +82,11 @@ export default function identitySettingsViewModelTest() {
         complexityRegex: 'mock-regex',
         validityPeriod: 30
       } as securityManager.PasswordPolicy)
-      IdentityService.getPasswordPolicyWithResult = (): Object => {
-        return {
-          success: true,
-          data: {
-            complexityRegex: 'mock-regex',
-            validityPeriod: 30
-          }
-        }
-      }
-      IdentityService.buildComplexityRegex = (_config: PasswordComplexityConfig): string => 'mock-regex'
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policyResult = new PasswordPolicyResult()
+      policyResult.success = true
+      policyResult.data = { complexityRegex: 'mock-regex', validityPeriod: 30 } as securityManager.PasswordPolicy
+      when(getPolicyMock)().afterReturn(policyResult)
 
       let result = viewModel.save()
 
@@ -97,19 +99,15 @@ export default function identitySettingsViewModelTest() {
       viewModel.reset()
       viewModel.setRequirement('requireSpecialChar', false)
 
-      IdentityService.getPasswordPolicyWithResult = (): Object => {
-        return {
-          success: true,
-          data: {
-            complexityRegex: 'old-regex',
-            validityPeriod: 0
-          }
-        }
-      }
-      IdentityService.buildComplexityRegex = (_config: PasswordComplexityConfig): string => 'new-regex'
-      IdentityService.setPasswordPolicyWithResult = (_config: PasswordComplexityConfig): Object => {
-        return { success: true }
-      }
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      let policyResult = new PasswordPolicyResult()
+      policyResult.success = true
+      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 0 } as securityManager.PasswordPolicy
+      when(getPolicyMock)().afterReturn(policyResult)
+      let saveResult = new SavePasswordPolicyResult()
+      saveResult.success = true
+      when(setPolicyMock)({} as PasswordComplexityConfig).afterReturn(saveResult)
 
       let result = viewModel.save()
 
@@ -123,31 +121,22 @@ export default function identitySettingsViewModelTest() {
       viewModel.reset()
       viewModel.setRequirement('requireSpecialChar', false)
 
-      IdentityService.getPasswordPolicyWithResult = (): Object => {
-        return {
-          success: true,
-          data: {
-            complexityRegex: 'old-regex',
-            validityPeriod: 0
-          }
-        }
-      }
-      IdentityService.buildComplexityRegex = (_config: PasswordComplexityConfig): string => 'new-regex'
-      IdentityService.setPasswordPolicyWithResult = (_config: PasswordComplexityConfig): Object => {
-        return {
-          success: false,
-          isAdminMissing: true,
-          errorMessage: 'edm missing'
-        }
-      }
-      DialogService.displayReason = (primaryMessage?: string, fallbackMessage?: string): string => {
-        return `${primaryMessage}|${fallbackMessage}`
-      }
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      let policyResult = new PasswordPolicyResult()
+      policyResult.success = true
+      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 0 } as securityManager.PasswordPolicy
+      when(getPolicyMock)().afterReturn(policyResult)
+      let saveResult = new SavePasswordPolicyResult()
+      saveResult.success = false
+      saveResult.isAdminMissing = true
+      saveResult.errorMessage = 'edm missing'
+      when(setPolicyMock)({} as PasswordComplexityConfig).afterReturn(saveResult)
 
       let result = viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(result.message).assertEqual(`edm missing|${IdentityStrings.adminRequired}`)
+      expect(result.message).assertEqual(DialogService.displayReason('edm missing', IdentityStrings.adminRequired))
     })
   })
 }

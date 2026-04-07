@@ -4,6 +4,33 @@
  */
 import { describe, beforeEach, it, expect } from '@ohos/hypium'
 
+interface MockWant {
+  bundleName: string
+  abilityName: string
+}
+
+interface PersistedAdminState {
+  isActive: boolean
+  adminName: string
+  activatedAt: number
+}
+
+interface ActivationOnlyState {
+  isActive: boolean
+  activatedAt: number
+}
+
+interface ServicePermissionState {
+  active: boolean
+  permission: boolean
+}
+
+interface CoordinatedServices {
+  peripheral: ServicePermissionState
+  identity: ServicePermissionState
+  firewall: ServicePermissionState
+}
+
 // Mock 企业管理员状态
 interface MockAdminState {
   isActive: boolean
@@ -120,13 +147,13 @@ export default function enterpriseAdminServiceTest() {
 
     describe('Want Object', () => {
       it('should create valid Want object', 0, () => {
-        const want = {
+        const want: MockWant = {
           bundleName: 'com.huawei.securitytool',
           abilityName: 'EnterpriseAdminAbility'
         }
         
-        expect(want.bundleName).toBeDefined()
-        expect(want.abilityName).toBeDefined()
+        expect(want.bundleName.length > 0).assertTrue()
+        expect(want.abilityName.length > 0).assertTrue()
       })
 
       it('should have correct bundle name', 0, () => {
@@ -142,7 +169,7 @@ export default function enterpriseAdminServiceTest() {
       })
 
       it('should validate Want structure', 0, () => {
-        const want = {
+        const want: MockWant = {
           bundleName: 'com.huawei.securitytool',
           abilityName: 'EnterpriseAdminAbility'
         }
@@ -176,7 +203,7 @@ export default function enterpriseAdminServiceTest() {
       })
 
       it('should handle invalid Want error', 0, () => {
-        const want = {
+        const want: MockWant = {
           bundleName: '',
           abilityName: ''
         }
@@ -189,13 +216,13 @@ export default function enterpriseAdminServiceTest() {
       it('should handle null context', 0, () => {
         const context = null
         
-        expect(context).toBeNull()
+        expect(context === null).assertTrue()
       })
 
       it('should handle undefined context', 0, () => {
         const context = undefined
         
-        expect(context).toBeUndefined()
+        expect(context === undefined).assertTrue()
       })
     })
 
@@ -214,7 +241,7 @@ export default function enterpriseAdminServiceTest() {
       it('should track activation timestamp', 0, () => {
         const activationTime = Date.now()
         
-        expect(activationTime).toBeGreaterThan(0)
+        expect(activationTime > 0).assertTrue()
       })
 
       it('should calculate activation duration', 0, () => {
@@ -222,11 +249,11 @@ export default function enterpriseAdminServiceTest() {
         const now = Date.now()
         const duration = now - activationTime
         
-        expect(duration).toBeGreaterOrEqual(3600000)
+        expect(duration >= 3600000).assertTrue()
       })
 
       it('should reset state on deactivation', 0, () => {
-        const state = {
+        const state: PersistedAdminState = {
           isActive: true,
           adminName: 'Admin',
           activatedAt: Date.now()
@@ -243,7 +270,7 @@ export default function enterpriseAdminServiceTest() {
       })
 
       it('should persist activation state', 0, () => {
-        const persistedState = {
+        const persistedState: ActivationOnlyState = {
           isActive: true,
           activatedAt: Date.now()
         }
@@ -302,7 +329,7 @@ export default function enterpriseAdminServiceTest() {
         const now = Date.now()
         const duration = now - activationTime
         
-        expect(duration).toBeGreaterOrEqual(oneYearMs)
+        expect(duration >= oneYearMs).assertTrue()
       })
     })
 
@@ -312,31 +339,31 @@ export default function enterpriseAdminServiceTest() {
       it('should support USB device management', 0, () => {
         const capability = 'MANAGE_USB'
         
-        expect(capability).toBeDefined()
+        expect(capability.length > 0).assertTrue()
       })
 
       it('should support bluetooth management', 0, () => {
         const capability = 'MANAGE_BLUETOOTH'
         
-        expect(capability).toBeDefined()
+        expect(capability.length > 0).assertTrue()
       })
 
       it('should support network management', 0, () => {
         const capability = 'MANAGE_NETWORK'
         
-        expect(capability).toBeDefined()
+        expect(capability.length > 0).assertTrue()
       })
 
       it('should support WiFi management', 0, () => {
         const capability = 'MANAGE_WIFI'
         
-        expect(capability).toBeDefined()
+        expect(capability.length > 0).assertTrue()
       })
 
       it('should support admin management', 0, () => {
         const capability = 'ENTERPRISE_ADMIN_MANAGE'
         
-        expect(capability).toBeDefined()
+        expect(capability.length > 0).assertTrue()
       })
 
       it('should support all MDM capabilities', 0, () => {
@@ -375,13 +402,13 @@ export default function enterpriseAdminServiceTest() {
       })
 
       it('should coordinate with multiple services', 0, () => {
-        const services = {
+        const services: CoordinatedServices = {
           peripheral: { active: true, permission: true },
           identity: { active: true, permission: true },
           firewall: { active: true, permission: true }
         }
-        
-        const allActive = Object.values(services).every(s => s.active && s.permission)
+        const states: ServicePermissionState[] = [services.peripheral, services.identity, services.firewall]
+        const allActive = states.every((state: ServicePermissionState) => state.active && state.permission)
         
         expect(allActive).assertTrue()
       })

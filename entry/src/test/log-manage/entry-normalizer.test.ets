@@ -6,15 +6,37 @@ import {
 } from '../../main/ets/models/DataModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 
-function createEntry(partial?: Partial<LogEntry>): LogEntry {
-  return {
-    id: 'entry-1',
-    timestamp: Date.now(),
-    eventType: LogEventType.FILE,
-    detail: 'detail',
-    result: LogEventResult.SUCCESS,
-    ...partial
+class InvalidLogEntry implements LogEntry {
+  id: string = '  '
+  timestamp: number = -1
+  eventType: LogEventType = 999 as LogEventType
+  detail: string = 'detail'
+  result: LogEventResult = 999 as LogEventResult
+}
+
+function createEntry(
+  id: string = 'entry-1',
+  detail: string = 'detail',
+  result: LogEventResult = LogEventResult.SUCCESS,
+  eventType: LogEventType = LogEventType.FILE,
+  timestamp: number = Date.now()
+): LogEntry {
+  const entry: LogEntry = {
+    id: id,
+    timestamp: timestamp,
+    eventType: eventType,
+    detail: detail,
+    result: result
   }
+  return entry
+}
+
+function createInvalidLogEntry(): LogEntry {
+  return new InvalidLogEntry()
+}
+
+function createUndefinedEntry(): LogEntry {
+  return undefined as never as LogEntry
 }
 
 export default function entryNormalizerTest() {
@@ -26,12 +48,7 @@ export default function entryNormalizerTest() {
     })
 
     it('should sanitize invalid entry fields into stable business values', 0, () => {
-      let normalized = LogEntryNormalizer.normalizeEntry(createEntry({
-        id: '  ',
-        timestamp: -1,
-        eventType: 999 as LogEventType,
-        result: 999 as LogEventResult
-      }))
+      let normalized = LogEntryNormalizer.normalizeEntry(createInvalidLogEntry())
 
       expect(normalized.id.length > 0).assertTrue()
       expect(normalized.timestamp >= 0).assertTrue()
@@ -40,12 +57,12 @@ export default function entryNormalizerTest() {
     })
 
     it('should reverse append batches and ignore invalid items', 0, () => {
-      let first = createEntry({ id: '1', detail: 'alpha' })
-      let second = createEntry({ id: '2', detail: 'beta' })
+      let first = createEntry('1', 'alpha')
+      let second = createEntry('2', 'beta')
 
       let result = LogEntryNormalizer.normalizeEntriesForAppend([
         first,
-        undefined as unknown as LogEntry,
+        createUndefinedEntry(),
         second
       ])
 
@@ -56,10 +73,10 @@ export default function entryNormalizerTest() {
 
     it('should sanitize persisted entries within max limit', 0, () => {
       let entries: LogEntry[] = [
-        createEntry({ id: '1' }),
-        undefined as unknown as LogEntry,
-        createEntry({ id: '2' }),
-        createEntry({ id: '3' })
+        createEntry('1'),
+        createUndefinedEntry(),
+        createEntry('2'),
+        createEntry('3')
       ]
 
       let result = LogEntryNormalizer.sanitizeEntries(entries, 2)

@@ -12,6 +12,10 @@ interface MockAssetAttributes {
   authType?: number
 }
 
+interface QueryAliasOnly {
+  alias: Uint8Array
+}
+
 // Mock Asset Tag
 enum MockAssetTag {
   ALIAS = 1,
@@ -46,9 +50,20 @@ function createMockAsset(attrs: MockAssetAttributes): MockAssetAttributes {
   return attrs
 }
 
+function encodeInvalidText(_encoder: MockTextEncoder): Uint8Array {
+  throw new Error('invalid input')
+}
+
+function decodeInvalidBytes(_decoder: MockTextDecoder): string {
+  throw new Error('invalid input')
+}
+
 // 辅助函数：模拟 TextEncoder
 class MockTextEncoder {
   encodeInto(str: string): Uint8Array {
+    if (str === null || str === undefined) {
+      throw new Error('invalid input')
+    }
     const bytes = new Uint8Array(str.length)
     for (let i = 0; i < str.length; i++) {
       bytes[i] = str.charCodeAt(i)
@@ -60,6 +75,9 @@ class MockTextEncoder {
 // 辅助函数：模拟 TextDecoder
 class MockTextDecoder {
   decodeToString(bytes: Uint8Array): string {
+    if (bytes === null || bytes === undefined) {
+      throw new Error('invalid input')
+    }
     let str = ''
     for (let i = 0; i < bytes.length; i++) {
       str += String.fromCharCode(bytes[i])
@@ -87,8 +105,8 @@ export default function secureStorageServiceTest() {
           authType: MockAuthType.NONE
         }
         
-        expect(asset.alias).toBeDefined()
-        expect(asset.secret).toBeDefined()
+        expect(asset.alias !== undefined).assertTrue()
+        expect(asset.secret !== undefined).assertTrue()
         expect(asset.accessibility).assertEqual(MockAccessibility.DEVICE_UNLOCKED)
       })
 
@@ -100,8 +118,8 @@ export default function secureStorageServiceTest() {
         const oldData = encoder.encodeInto(oldPassword)
         const newData = encoder.encodeInto(newPassword)
         
-        expect(oldData).toBeDefined()
-        expect(newData).toBeDefined()
+        expect(oldData !== undefined).assertTrue()
+        expect(newData !== undefined).assertTrue()
         
         // 模拟更新操作
         const wasUpdated = true
@@ -129,7 +147,7 @@ export default function secureStorageServiceTest() {
         const encoder = new MockTextEncoder()
         const passwordData = encoder.encodeInto(specialPassword)
         
-        expect(passwordData.length).toBeGreaterThan(0)
+        expect(passwordData.length > 0).assertTrue()
       })
 
       it('should handle unicode characters', 0, () => {
@@ -137,7 +155,7 @@ export default function secureStorageServiceTest() {
         const encoder = new MockTextEncoder()
         const passwordData = encoder.encodeInto(unicodePassword)
         
-        expect(passwordData.length).toBeGreaterThan(0)
+        expect(passwordData.length > 0).assertTrue()
       })
     })
 
@@ -264,7 +282,7 @@ export default function secureStorageServiceTest() {
         const str = 'Hello'
         const bytes = encoder.encodeInto(str)
         
-        expect(bytes).toBeInstanceOf(Uint8Array)
+        expect(bytes instanceof Uint8Array).assertTrue()
         expect(bytes.length).assertEqual(5)
       })
 
@@ -368,10 +386,10 @@ export default function secureStorageServiceTest() {
         const encoder = new MockTextEncoder()
         
         try {
-          const bytes = encoder.encodeInto(null as any)
-          expect(bytes).toBeDefined()
+          const bytes = encodeInvalidText(encoder)
+          expect(bytes !== undefined).assertTrue()
         } catch (e) {
-          expect(e).toBeDefined()
+          expect(e !== undefined).assertTrue()
         }
       })
 
@@ -379,16 +397,16 @@ export default function secureStorageServiceTest() {
         const decoder = new MockTextDecoder()
         
         try {
-          const str = decoder.decodeToString(null as any)
-          expect(str).toBeDefined()
+          const str = decodeInvalidBytes(decoder)
+          expect(str !== undefined).assertTrue()
         } catch (e) {
-          expect(e).toBeDefined()
+          expect(e !== undefined).assertTrue()
         }
       })
 
       it('should handle query error', 0, () => {
         const queryFailed = true
-        const queryResult = queryFailed ? [] : [{ alias: new Uint8Array() }]
+        const queryResult: QueryAliasOnly[] = queryFailed ? [] : [{ alias: new Uint8Array() }]
         
         expect(queryResult.length).assertEqual(0)
       })
@@ -427,7 +445,7 @@ export default function secureStorageServiceTest() {
         const encoder = new MockTextEncoder()
         const bytes = encoder.encodeInto(password)
         
-        expect(bytes.length).toBeGreaterThan(0)
+        expect(bytes.length > 0).assertTrue()
       })
 
       it('should handle password with only numbers', 0, () => {
@@ -443,7 +461,7 @@ export default function secureStorageServiceTest() {
         const encoder = new MockTextEncoder()
         const bytes = encoder.encodeInto(password)
         
-        expect(bytes.length).toBeGreaterThan(0)
+        expect(bytes.length > 0).assertTrue()
       })
     })
 
@@ -502,7 +520,7 @@ export default function secureStorageServiceTest() {
         const endTime = Date.now()
         const elapsed = endTime - startTime + saveTime
         
-        expect(elapsed).toBeLessThan(1000) // 应该小于 1 秒
+        expect(elapsed < 1000).assertTrue() // 应该小于 1 秒
       })
 
       it('should verify password within acceptable time', 0, () => {
@@ -514,7 +532,7 @@ export default function secureStorageServiceTest() {
         const endTime = Date.now()
         const elapsed = endTime - startTime + verifyTime
         
-        expect(elapsed).toBeLessThan(1000) // 应该小于 1 秒
+        expect(elapsed < 1000).assertTrue() // 应该小于 1 秒
       })
     })
   })

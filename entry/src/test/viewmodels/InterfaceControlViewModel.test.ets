@@ -1,41 +1,55 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
+import { MockKit, when } from '@ohos/hamock'
 import { OperationResult } from '../../main/ets/models/DataModels'
-import { PeripheralService } from '../../main/ets/services/PeripheralService'
-import { InterfaceControlViewModel } from '../../main/ets/viewmodels/InterfaceControlViewModel'
+import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
+import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
+
+class VoidOperationResult implements OperationResult<void> {
+  success: boolean = false
+  stage?: string
+}
+
+class BooleanOperationResult implements OperationResult<boolean> {
+  success: boolean = false
+  stage?: string
+  data?: boolean
+}
+
+class UsbPolicyOperationResult implements OperationResult<usbManager.UsbPolicy> {
+  success: boolean = false
+  stage?: string
+  data?: usbManager.UsbPolicy
+}
 
 describe('InterfaceControlViewModel', () => {
   let viewModel: InterfaceControlViewModel
-  let originalSetInterface: (feature: string, disallow: boolean) => OperationResult<void>
-  let originalGetInterface: (feature: string) => OperationResult<boolean>
-  let originalSetUsbStorage: (policy: usbManager.UsbPolicy) => OperationResult<void>
-  let originalGetUsbStorage: () => OperationResult<usbManager.UsbPolicy>
+  let mockKit: MockKit
 
   beforeEach(() => {
     viewModel = new InterfaceControlViewModel()
-    originalSetInterface = PeripheralService.setInterfaceDisabledWithResult
-    originalGetInterface = PeripheralService.getInterfaceDisabledWithResult
-    originalSetUsbStorage = PeripheralService.setUsbStoragePolicyWithCleanupResult
-    originalGetUsbStorage = PeripheralService.getUsbStoragePolicyWithResult
+    mockKit = new MockKit()
   })
 
   afterEach(() => {
-    PeripheralService.setInterfaceDisabledWithResult = originalSetInterface
-    PeripheralService.getInterfaceDisabledWithResult = originalGetInterface
-    PeripheralService.setUsbStoragePolicyWithCleanupResult = originalSetUsbStorage
-    PeripheralService.getUsbStoragePolicyWithResult = originalGetUsbStorage
+    mockKit.clearAll()
   })
 
   it('should toggle interface successfully', 0, async (done: Function) => {
-    PeripheralService.setInterfaceDisabledWithResult = (_feature: string, _disallow: boolean): OperationResult<void> => {
-      return { success: true }
-    }
-    PeripheralService.getInterfaceDisabledWithResult = (_feature: string): OperationResult<boolean> => {
-      return { success: true, data: true }
-    }
-    PeripheralService.getUsbStoragePolicyWithResult = (): OperationResult<usbManager.UsbPolicy> => {
-      return { success: true, data: usbManager.UsbPolicy.READ_WRITE }
-    }
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+    let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = true
+    let getResult = new BooleanOperationResult()
+    getResult.success = true
+    getResult.data = true
+    let usbResult = new UsbPolicyOperationResult()
+    usbResult.success = true
+    usbResult.data = usbManager.UsbPolicy.READ_WRITE
+    when(setInterfaceMock)(PeripheralService.FEATURE_USB, true).afterReturn(setResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(getResult)
+    when(getUsbStorageMock)().afterReturn(usbResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 
@@ -45,9 +59,11 @@ describe('InterfaceControlViewModel', () => {
   })
 
   it('should surface failure stage for interface toggle', 0, async (done: Function) => {
-    PeripheralService.setInterfaceDisabledWithResult = (_feature: string, _disallow: boolean): OperationResult<void> => {
-      return { success: false, stage: 'read_usb_status' }
-    }
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = false
+    setResult.stage = 'read_usb_status'
+    when(setInterfaceMock)(PeripheralService.FEATURE_USB, true).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 
@@ -56,15 +72,20 @@ describe('InterfaceControlViewModel', () => {
   })
 
   it('should update usb storage policy successfully', 0, async (done: Function) => {
-    PeripheralService.setUsbStoragePolicyWithCleanupResult = (_policy: usbManager.UsbPolicy): OperationResult<void> => {
-      return { success: true }
-    }
-    PeripheralService.getInterfaceDisabledWithResult = (_feature: string): OperationResult<boolean> => {
-      return { success: true, data: false }
-    }
-    PeripheralService.getUsbStoragePolicyWithResult = (): OperationResult<usbManager.UsbPolicy> => {
-      return { success: true, data: usbManager.UsbPolicy.DISABLED }
-    }
+    let setUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbStoragePolicyWithCleanupResult)
+    let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+    let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = true
+    let getInterfaceResult = new BooleanOperationResult()
+    getInterfaceResult.success = true
+    getInterfaceResult.data = false
+    let usbResult = new UsbPolicyOperationResult()
+    usbResult.success = true
+    usbResult.data = usbManager.UsbPolicy.DISABLED
+    when(setUsbStorageMock)(usbManager.UsbPolicy.DISABLED).afterReturn(setResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(getInterfaceResult)
+    when(getUsbStorageMock)().afterReturn(usbResult)
 
     const reason = await viewModel.setUsbStoragePolicy(2)
 
@@ -74,9 +95,11 @@ describe('InterfaceControlViewModel', () => {
   })
 
   it('should surface failure stage for usb storage policy change', 0, async (done: Function) => {
-    PeripheralService.setUsbStoragePolicyWithCleanupResult = (_policy: usbManager.UsbPolicy): OperationResult<void> => {
-      return { success: false, stage: 'set_usb_storage_policy' }
-    }
+    let setUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbStoragePolicyWithCleanupResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = false
+    setResult.stage = 'set_usb_storage_policy'
+    when(setUsbStorageMock)(usbManager.UsbPolicy.READ_WRITE).afterReturn(setResult)
 
     const reason = await viewModel.setUsbStoragePolicy(0)
 
