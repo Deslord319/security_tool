@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { PeripheralTraceRecord } from '../../../models/DataModels'
 import { PeripheralTraceRepository } from '../../PeripheralTraceRepository'
+import { LogUtils } from '../../../utils/LogUtils'
 import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordPipeline,
@@ -9,7 +9,6 @@ import {
   PeripheralConnectionRecordProducerEvent
 } from './peripheral_connection_record_producer_contract'
 
-const DOMAIN = 0x000A
 const TAG = 'ConnectionRecordPipeline'
 const USB_DEDUPE_WINDOW_MS = 1500
 
@@ -104,7 +103,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   async push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean> {
     const traceReady = await this.ensureTraceRepositoryReady()
     if (!traceReady) {
-      hilog.warn(DOMAIN, TAG, `skip push: trace repository not ready, channel=${event.channel}`)
+      LogUtils.warn(TAG, `skip push: trace repository not ready, channel=${event.channel}`)
       return false
     }
     let processed: boolean = false
@@ -123,7 +122,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       processed = true
       const appended = await PeripheralTraceRepository.append(record)
       if (!appended) {
-        hilog.warn(DOMAIN, TAG, `append failed: channel=${event.channel}, deviceId=${record.deviceId}`)
+        LogUtils.warn(TAG, `append failed: channel=${event.channel}, deviceId=${record.deviceId}`)
       }
     }
     return processed
