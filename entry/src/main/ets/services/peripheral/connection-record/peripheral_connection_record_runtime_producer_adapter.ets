@@ -1,7 +1,7 @@
 import { abilityAccessCtrl, bundleManager, common, Permissions } from '@kit.AbilityKit'
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { access } from '@kit.ConnectivityKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { LogUtils } from '../../../utils/LogUtils'
 import {
   PeripheralConnectionRecordProducer,
   PeripheralConnectionRecordProducerEvent,
@@ -9,7 +9,6 @@ import {
   PeripheralConnectionRecordProducerStatus
 } from './peripheral_connection_record_producer_contract'
 
-const DOMAIN = 0x000A
 const TAG = 'ConnectionRecordProducer'
 const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETOOTH'
 const BLUETOOTH_ACL_EVENT = commonEventManager.Support.COMMON_EVENT_BLUETOOTH_REMOTEDEVICE_ACL_STATE_CHANGE
@@ -65,8 +64,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
         degradedReason: this.buildDegradedReason(usbReady, bluetoothReady)
       }
     }
-    hilog.info(
-      DOMAIN,
+    LogUtils.info(
       TAG,
       `start complete, running=${this.status.running}, usb=${usbReady}, bluetooth=${bluetoothReady}, degradedReason=${this.status.capabilities.degradedReason ?? 'none'}`
     )
@@ -79,7 +77,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     if (usbSubscriber) {
       commonEventManager.unsubscribe(usbSubscriber, (err?: BusinessError) => {
         if (err) {
-          hilog.warn(DOMAIN, TAG, `usb unsubscribe failed: code=${err.code}, message=${err.message}`)
+          LogUtils.warn(TAG, `usb unsubscribe failed: code=${err.code}, message=${err.message}`)
         }
       })
     }
@@ -119,13 +117,13 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
         }
         commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
           if (err) {
-            hilog.error(DOMAIN, TAG, `create usb subscriber failed: code=${err.code}, message=${err.message}`)
+            LogUtils.error(TAG, `create usb subscriber failed: code=${err.code}, message=${err.message}`)
             resolve(false)
             return
           }
           commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
             if (callbackErr) {
-              hilog.error(DOMAIN, TAG, `usb callback failed: code=${callbackErr.code}, message=${callbackErr.message}`)
+              LogUtils.error(TAG, `usb callback failed: code=${callbackErr.code}, message=${callbackErr.message}`)
               return
             }
             this.emitRuntimeEvent(this.buildProducerEvent('usb', data))
@@ -135,8 +133,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
         })
       } catch (err) {
         const error = err as BusinessError
-        hilog.error(
-          DOMAIN,
+        LogUtils.error(
           TAG,
           `registerUsbRuntimeEvents failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
         )
@@ -153,13 +150,12 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       access.on('stateChange', this.bluetoothStateListener)
 
       const currentState = access.getState()
-      hilog.info(DOMAIN, TAG, `bluetooth state queried: state=${this.getBluetoothStateLabel(currentState)}`)
+      LogUtils.info(TAG, `bluetooth state queried: state=${this.getBluetoothStateLabel(currentState)}`)
       await this.handleBluetoothStateChange(currentState)
       return true
     } catch (err) {
       const error = err as BusinessError
-      hilog.error(
-        DOMAIN,
+      LogUtils.error(
         TAG,
         `registerBluetoothRuntimeEvents failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
@@ -183,7 +179,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   private async handleBluetoothStateChange(state: access.BluetoothState): Promise<void> {
     this.bluetoothCurrentState = state
     const stateLabel = this.getBluetoothStateLabel(state)
-    hilog.info(DOMAIN, TAG, `bluetooth state change: state=${stateLabel}`)
+    LogUtils.info(TAG, `bluetooth state change: state=${stateLabel}`)
     if (state === access.BluetoothState.STATE_ON || state === access.BluetoothState.STATE_BLE_ON) {
       await this.resumeBluetoothAclSubscriptionIfNeeded(`state=${stateLabel}`)
       return
@@ -193,8 +189,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
 
   private async resumeBluetoothAclSubscriptionIfNeeded(trigger: string): Promise<void> {
     if (!this.isBluetoothRuntimeActive()) {
-      hilog.info(
-        DOMAIN,
+      LogUtils.info(
         TAG,
         `skip resumeBluetoothAclSubscriptionIfNeeded: trigger=${trigger}, state=${this.getBluetoothStateLabel(this.bluetoothCurrentState)}`
       )
@@ -224,8 +219,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
             if (this.isBluetoothPermissionDeniedError(err)) {
               this.enterBluetoothPermissionBlocked(`acl-subscriber-create-denied:${trigger}`)
             }
-            hilog.warn(
-              DOMAIN,
+            LogUtils.warn(
               TAG,
               `bluetooth acl createSubscriber failed: trigger=${trigger}, code=${err.code}, message=${err.message}`
             )
@@ -234,8 +228,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
           }
           commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
             if (callbackErr) {
-              hilog.warn(
-                DOMAIN,
+              LogUtils.warn(
                 TAG,
                 `bluetooth acl callback failed: code=${callbackErr.code}, message=${callbackErr.message}`
               )
@@ -245,7 +238,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
           })
           this.bluetoothAclSubscriber = subscriber
           this.bluetoothPermissionBlocked = false
-          hilog.info(DOMAIN, TAG, `bluetooth acl subscriber ready: trigger=${trigger}`)
+          LogUtils.info(TAG, `bluetooth acl subscriber ready: trigger=${trigger}`)
           resolve()
         })
       } catch (err) {
@@ -253,8 +246,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
         if (this.isBluetoothPermissionDeniedError(error)) {
           this.enterBluetoothPermissionBlocked(`acl-subscriber-subscribe-denied:${trigger}`)
         }
-        hilog.warn(
-          DOMAIN,
+        LogUtils.warn(
           TAG,
           `bluetooth acl subscribe failed: trigger=${trigger}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
         )
@@ -271,14 +263,13 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     }
     commonEventManager.unsubscribe(subscriber, (err?: BusinessError) => {
       if (err) {
-        hilog.warn(
-          DOMAIN,
+        LogUtils.warn(
           TAG,
           `bluetooth acl unsubscribe failed: reason=${reason}, code=${err.code}, message=${err.message}`
         )
         return
       }
-      hilog.info(DOMAIN, TAG, `bluetooth acl subscriber cleaned: reason=${reason}`)
+      LogUtils.info(TAG, `bluetooth acl subscriber cleaned: reason=${reason}`)
     })
   }
 
@@ -304,8 +295,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       return grantStatus === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED
     } catch (err) {
       const error = err as BusinessError
-      hilog.warn(
-        DOMAIN,
+      LogUtils.warn(
         TAG,
         `checkAccessTokenSync failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
@@ -317,7 +307,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     const granted = this.hasBluetoothRuntimePermission()
     if (granted) {
       if (this.bluetoothPermissionBlocked) {
-        hilog.info(DOMAIN, TAG, `bluetooth permission recovered: trigger=${trigger}`)
+        LogUtils.info(TAG, `bluetooth permission recovered: trigger=${trigger}`)
       }
       this.bluetoothPermissionBlocked = false
       return true
@@ -325,18 +315,18 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
 
     if (this.bluetoothPermissionPrompted) {
       this.enterBluetoothPermissionBlocked(`permission-not-granted:${trigger}`)
-      hilog.info(DOMAIN, TAG, `skip bluetooth permission request: trigger=${trigger}, prompted=true`)
+      LogUtils.info(TAG, `skip bluetooth permission request: trigger=${trigger}, prompted=true`)
       return false
     }
 
     if (!this.context) {
       this.enterBluetoothPermissionBlocked(`permission-context-missing:${trigger}`)
-      hilog.warn(DOMAIN, TAG, `bluetooth permission request skipped: trigger=${trigger}, context unavailable`)
+      LogUtils.warn(TAG, `bluetooth permission request skipped: trigger=${trigger}, context unavailable`)
       return false
     }
 
     if (this.bluetoothPermissionRequestInFlight) {
-      hilog.info(DOMAIN, TAG, `bluetooth permission request already in flight: trigger=${trigger}`)
+      LogUtils.info(TAG, `bluetooth permission request already in flight: trigger=${trigger}`)
       return false
     }
 
@@ -350,8 +340,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
         : abilityAccessCtrl.GrantStatus.PERMISSION_DENIED
       const requestGranted = authResult === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED ||
         this.hasBluetoothRuntimePermission()
-      hilog.info(
-        DOMAIN,
+      LogUtils.info(
         TAG,
         `bluetooth permission request result: trigger=${trigger}, granted=${requestGranted}, authResult=${authResult}`
       )
@@ -364,8 +353,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     } catch (err) {
       const error = err as BusinessError
       this.enterBluetoothPermissionBlocked(`permission-request-error:${trigger}`)
-      hilog.warn(
-        DOMAIN,
+      LogUtils.warn(
         TAG,
         `requestPermissionsFromUser failed: trigger=${trigger}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
@@ -378,7 +366,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   private enterBluetoothPermissionBlocked(reason: string): void {
     this.bluetoothPermissionBlocked = true
     this.cleanupBluetoothAclSubscriber(reason)
-    hilog.warn(DOMAIN, TAG, `bluetooth runtime paused: reason=${reason}`)
+    LogUtils.warn(TAG, `bluetooth runtime paused: reason=${reason}`)
   }
 
   private isBluetoothPermissionDeniedError(error: BusinessError): boolean {
