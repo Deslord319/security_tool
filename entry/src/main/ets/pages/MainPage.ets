@@ -252,16 +252,6 @@ struct MainPage {
     this.syncDecorButtonStyle()
   }
 
-  private async switchFirewallMode(mode: FirewallPresetMode): Promise<boolean> {
-    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let result = await FirewallModeService.switchMode(context, mode)
-    if (result.success) {
-      this.firewallPresetMode = mode
-      return true
-    }
-    return false
-  }
-
   private openAboutDialog(): void {
     this.closeAboutDialog()
     try {
@@ -310,46 +300,6 @@ struct MainPage {
       })
     }
     .id('route-page-dashboard')
-    .width('100%')
-    .height('100%')
-  }
-
-  @Builder
-  private buildFirewallRoute() {
-    Column() {
-      FirewallPage({
-        firewallEnabled: this.firewallEnabled,
-        currentMode: this.firewallPresetMode,
-        currentTheme: this.currentTheme,
-        onFirewallToggle: (enabled: boolean) => {
-          this.firewallEnabled = enabled
-        },
-        onModeChange: async (mode: FirewallPresetMode): Promise<boolean> => this.switchFirewallMode(mode),
-        onBack: () => {
-          this.setCurrentPage(RouteIds.DASHBOARD)
-        },
-        onNavigateToRules: () => {
-          this.setCurrentPage(RouteIds.FIREWALL_RULES)
-        }
-      })
-    }
-    .id('route-page-firewall')
-    .width('100%')
-    .height('100%')
-  }
-
-  @Builder
-  private buildFirewallRulesRoute() {
-    Column() {
-      FirewallRulesPage({
-        currentMode: this.firewallPresetMode,
-        currentTheme: this.currentTheme,
-        onBack: () => {
-          this.setCurrentPage(RouteIds.FIREWALL)
-        }
-      })
-    }
-    .id('route-page-firewall-rules')
     .width('100%')
     .height('100%')
   }
