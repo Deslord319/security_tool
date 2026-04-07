@@ -84,7 +84,7 @@ export class PeripheralStrings {
   static readonly exportHistoryLabel: string = '导出记录'
   static readonly clearHistoryLabel: string = '清理记录'
   static readonly exportPolicyLabel: string = '导出名单'
-  static readonly clearPolicyLabel: string = '还原名单'
+  static readonly clearPolicyLabel: string = '还原策略'
 
   static readonly setInterfaceAction: string = '设置接口策略'
   static readonly setUsbStorageAction: string = '设置 USB 存储策略'

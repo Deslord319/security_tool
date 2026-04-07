@@ -10,8 +10,6 @@ import { PreferencesToolSettingsRepository } from '../services/tool-settings/sys
 
 const UI_TEST_ROUTE_KEY = 'ui_test_route'
 const ENTRYABILITY_TAG = 'entryAbility'
-const MIN_WINDOW_WIDTH = 1280
-const MIN_WINDOW_HEIGHT = 800
 
 interface EntryLoggableError {
   code?: number
@@ -129,13 +127,13 @@ export default class EntryAbility extends UIAbility {
     // 先检查认证方式是否可用
     let checkResult = AuthService.checkAuthMethodAvailability(authMethod);
     LogUtils.info(ENTRYABILITY_TAG,
-      `[STARTUP_AUTH_RESULT] check availability | authMethod=${authMethod}, available=${checkResult.available}, errorCode=${checkResult.errorCode ?? 0}`
+      `check availability | authMethod=${authMethod}, available=${checkResult.available}, errorCode=${checkResult.errorCode ?? 0}`
     )
 
     if (!checkResult.available) {
       // 认证方式不可用时优雅降级：直接加载主页面，不阻断启动
       LogUtils.warn(ENTRYABILITY_TAG,
-        `[STARTUP_AUTH_RESULT] auth unavailable | authMethod=${authMethod}, errorCode=${checkResult.errorCode ?? 0}, fallback=true`
+        `auth unavailable | authMethod=${authMethod}, errorCode=${checkResult.errorCode ?? 0}, fallback=true`
       )
       this.loadMainPage(windowStage, `启动校验跳过：${checkResult.message}`);
       return;
@@ -147,7 +145,7 @@ export default class EntryAbility extends UIAbility {
     if (authResult.success) {
       this.loadMainPage(windowStage);
     } else if (authResult.reason === 'unavailable') {
-      LogUtils.warn(ENTRYABILITY_TAG, '[STARTUP_AUTH_RESULT] authenticate unavailable | fallback=true');
+      LogUtils.warn(ENTRYABILITY_TAG, 'authenticate unavailable');
       this.loadMainPage(windowStage, authResult.message);
     } else {
       try {
@@ -180,15 +178,11 @@ export default class EntryAbility extends UIAbility {
       }
 
       // 隐藏系统标题栏（装饰栏），保留三键区和拖拽能力
-      windowStage.getMainWindow().then(async (mainWindow: window.Window) => {
+      windowStage.getMainWindow().then((mainWindow: window.Window) => {
         // Ensure snapshots are allowed for UI regression capture.
         mainWindow.setWindowPrivacyMode(false)
         mainWindow.setWindowDecorVisible(false);
         mainWindow.setWindowDecorHeight(56);
-        await mainWindow.setWindowLimits({
-          minWidth: MIN_WINDOW_WIDTH,
-          minHeight: MIN_WINDOW_HEIGHT
-        })
       }).catch((decErr: Error) => {
         LogUtils.error(ENTRYABILITY_TAG, 'Failed to configure window decor: %{public}s', JSON.stringify(decErr));
       });

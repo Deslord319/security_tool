@@ -164,7 +164,7 @@ export class DeviceDetailStrings {
   static readonly KEY_INFO: string = '关键信息'
   static readonly HISTORY_TITLE: string = '历史连接记录'
   static readonly NO_HISTORY: string = '暂无历史连接记录'
-  static readonly NO_RECORDS: string = '当前没有可展示的连接记录。'
+  static readonly NO_RECORDS: string = '当前没有可展示的连接记录'
   static readonly HISTORY_COUNT_SUFFIX: string = '条'
   
   // 指标字段标签
