@@ -89,6 +89,8 @@
         "label": "$string:EntryAbility_label",
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
+        "minWindowWidth": 1280,
+        "minWindowHeight": 760,
         "supportWindowMode": ["fullscreen", "floating"],
         "exported": true,
         "skills": [
