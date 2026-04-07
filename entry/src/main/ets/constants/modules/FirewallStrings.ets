@@ -4,7 +4,7 @@ import { AppColors } from '../AppConstants'
 import { EmptyStateStrings, FirewallDialogStrings } from './DialogStrings'
 
 export class FirewallStrings {
-  static readonly pageSubtitle: string = '统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则。'
+  static readonly pageSubtitle: string = '统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则'
 
   static readonly rulesPage: string = '规则页'
   static readonly userIdControlButton: string = '按用户 ID 控制'
@@ -32,7 +32,7 @@ export class FirewallStrings {
   static readonly conflictWarningLabel: string = '注意'
 
   static readonly customModeTitle: string = '自定义模式'
-  static readonly customRulesSubtitle: string = '当前页面只维护自定义模式规则。保存后会重新下发整套自定义策略。'
+  static readonly customRulesSubtitle: string = '当前页面只维护自定义模式规则，保存后会重新下发整套自定义策略'
   static readonly addRuleButton: string = '+ 新增规则'
   static readonly rulesReapplyPartialFailed: string = '共享规则已保存，但部分已绑定用户重下发失败'
   static readonly inboundRules: string = '入站规则'
@@ -66,12 +66,12 @@ export class FirewallStrings {
   static getModeDescription(mode: FirewallPresetMode): string {
     switch (mode) {
       case 'public':
-        return '适用于开放网络环境，默认采用更严格的访问控制策略。'
+        return '适用于开放网络环境，默认采用更严格的访问控制策略'
       case 'private':
-        return '适用于可信网络环境，优先保证局域网互通与常规办公访问。'
+        return '适用于可信网络环境，优先保证局域网互通与常规办公访问'
       case 'custom':
       default:
-        return '根据业务需要自定义入站、出站与域名访问规则。'
+        return '根据业务需要自定义入站、出站与域名访问规则'
     }
   }
 

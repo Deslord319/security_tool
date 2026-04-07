@@ -148,7 +148,6 @@ export default class EntryAbility extends UIAbility {
       LogUtils.warn(ENTRYABILITY_TAG, '[STARTUP_AUTH_RESULT] authenticate unavailable | fallback=true');
       this.loadMainPage(windowStage, authResult.message);
     } else {
-      // 认证失败时直接退出应用，避免绕过启动校验。
       try {
         this.context.terminateSelf();
       } catch (err) {

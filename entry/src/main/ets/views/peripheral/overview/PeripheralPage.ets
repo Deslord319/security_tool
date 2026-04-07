@@ -140,8 +140,9 @@ export struct PeripheralPage {
     Column() {
       Text(title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(index === this.currentTabIndex ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(index === this.currentTabIndex ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .fontWeight(index === this.currentTabIndex ? FontWeight.Bold : FontWeight.Regular)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(index === this.currentTabIndex ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }
     .padding({ left: AppStyles.SPACING_TAB_BAR_ITEM_HORIZONTAL, right: AppStyles.SPACING_TAB_BAR_ITEM_HORIZONTAL, top: AppStyles.SPACING_TAB_BAR_ITEM_VERTICAL, bottom: AppStyles.SPACING_TAB_BAR_ITEM_VERTICAL })
   }
@@ -369,6 +370,7 @@ export struct PeripheralPage {
         label: exportLabel,
         icon: $r('app.media.save'),
         kind: 'primary',
+        currentTheme: this.currentTheme,
         onTap: onExport
       })
 
@@ -376,6 +378,7 @@ export struct PeripheralPage {
         label: clearLabel,
         icon: $r('app.media.trash'),
         kind: 'danger',
+        currentTheme: this.currentTheme,
         onTap: onClear
       })
     }

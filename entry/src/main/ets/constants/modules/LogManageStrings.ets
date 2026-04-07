@@ -23,7 +23,7 @@ export class LogManageStrings {
   static readonly exportLogsButton: string = '导出日志'
   static readonly clearLogsButton: string = '清空日志'
   static readonly openStorageSettingsButton: string = '存储设置'
-  static readonly backToLogListButton: string = '返回日志列表'
+  static readonly backToLogListButton: string = '日志列表'
 
   static readonly statTotal: string = '总计'
   static readonly statToday: string = '今日'
