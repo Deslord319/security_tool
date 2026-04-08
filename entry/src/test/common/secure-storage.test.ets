@@ -163,8 +163,8 @@ export default function secureStorageServiceTest() {
 
     describe('Password Verification', () => {
       it('should verify correct password', 0, () => {
-        const storedPassword = 'CorrectPassword123'
-        const inputPassword = 'CorrectPassword123'
+        let storedPassword: string = 'CorrectPassword123'
+        let inputPassword: string = 'CorrectPassword123'
         
         const encoder = new MockTextEncoder()
         const storedData = encoder.encodeInto(storedPassword)
@@ -177,8 +177,8 @@ export default function secureStorageServiceTest() {
       })
 
       it('should reject incorrect password', 0, () => {
-        const storedPassword = 'CorrectPassword123'
-        const inputPassword = 'WrongPassword456'
+        let storedPassword: string = 'CorrectPassword123'
+        let inputPassword: string = 'WrongPassword456'
         
         const isMatch = storedPassword === inputPassword
         
@@ -186,31 +186,31 @@ export default function secureStorageServiceTest() {
       })
 
       it('should handle case-sensitive comparison', 0, () => {
-        const storedPassword = 'Password123'
-        const inputPasswordLower = 'password123'
-        const inputPasswordUpper = 'PASSWORD123'
+        let storedPassword: string = 'Password123'
+        let inputPasswordLower: string = 'password123'
+        let inputPasswordUpper: string = 'PASSWORD123'
         
         expect(storedPassword === inputPasswordLower).assertFalse()
         expect(storedPassword === inputPasswordUpper).assertFalse()
       })
 
       it('should handle whitespace sensitivity', 0, () => {
-        const storedPassword = 'Password123'
-        const inputPasswordWithSpace = 'Password123 '
+        let storedPassword: string = 'Password123'
+        let inputPasswordWithSpace: string = 'Password123 '
         
         expect(storedPassword === inputPasswordWithSpace).assertFalse()
       })
 
       it('should handle empty input password', 0, () => {
-        const storedPassword = 'Password123'
-        const emptyInput = ''
+        let storedPassword: string = 'Password123'
+        let emptyInput: string = ''
         
         expect(storedPassword === emptyInput).assertFalse()
       })
 
       it('should handle null stored password', 0, () => {
         const storedPassword = null
-        const inputPassword = 'Password123'
+        let inputPassword: string = 'Password123'
         
         expect(storedPassword === inputPassword).assertFalse()
       })

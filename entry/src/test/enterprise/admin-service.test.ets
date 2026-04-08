@@ -61,8 +61,8 @@ export default function enterpriseAdminServiceTest() {
         ])
         
         expect(adminState.isActive).assertTrue()
-        expect(adminState.adminName.length).toBeGreaterThan(0)
-        expect(adminState.permissions.length).toBeGreaterThan(0)
+        expect(adminState.adminName.length > 0).assertTrue()
+        expect(adminState.permissions.length > 0).assertTrue()
       })
 
       it('should deactivate enterprise admin', 0, () => {
@@ -191,7 +191,7 @@ export default function enterpriseAdminServiceTest() {
         const errorMessage = 'Permission denied - MDM admin not enabled'
         
         expect(errorCode).assertEqual(9200001)
-        expect(errorMessage.length).toBeGreaterThan(0)
+        expect(errorMessage.length > 0).assertTrue()
       })
 
       it('should handle admin not enabled error', 0, () => {
@@ -199,7 +199,7 @@ export default function enterpriseAdminServiceTest() {
         const errorMessage = 'Enterprise admin is not enabled'
         
         expect(isAdminEnabled).assertFalse()
-        expect(errorMessage.length).toBeGreaterThan(0)
+        expect(errorMessage.length > 0).assertTrue()
       })
 
       it('should handle invalid Want error', 0, () => {

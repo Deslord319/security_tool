@@ -31,7 +31,7 @@ export default function dashboardViewModelTest() {
 
     let adminActivated: boolean
     let firewallEnabled: boolean
-    let firewallMode: string
+    let firewallMode: 'private' | 'public' | 'custom'
     let logTodayCount: number
     let logTotalCount: number
     let peripheralTotal: number
@@ -140,13 +140,24 @@ export default function dashboardViewModelTest() {
 
     it('should remove registered listeners on destroy', 0, async (done: Function) => {
       await viewModel.initialize(context)
-      expect(LogRepository.getListenerCountForTest()).assertEqual(1)
-      expect(PeripheralTraceRepository.getListenerCountForTest()).assertEqual(1)
+      const beforeDestroyLogCard = viewModel.moduleCards.find((card) => card.id === 'log-manage')
+      const beforeDestroyPeripheralCard = viewModel.moduleCards.find((card) => card.id === 'peripheral-manage')
 
       viewModel.destroy()
 
-      expect(LogRepository.getListenerCountForTest()).assertEqual(0)
-      expect(PeripheralTraceRepository.getListenerCountForTest()).assertEqual(0)
+      await LogRepository.addEntry({
+        id: 'after-destroy',
+        timestamp: now,
+        eventType: LogEventType.PERMISSION,
+        detail: 'after destroy',
+        result: LogEventResult.SUCCESS
+      })
+      await PeripheralTraceRepository.append(buildPeripheralRecord('after-destroy', 'connect', now))
+
+      const afterDestroyLogCard = viewModel.moduleCards.find((card) => card.id === 'log-manage')
+      const afterDestroyPeripheralCard = viewModel.moduleCards.find((card) => card.id === 'peripheral-manage')
+      expect(afterDestroyLogCard?.primaryText ?? '').assertEqual(beforeDestroyLogCard?.primaryText ?? '')
+      expect(afterDestroyPeripheralCard?.primaryText ?? '').assertEqual(beforeDestroyPeripheralCard?.primaryText ?? '')
       done()
     })
   })

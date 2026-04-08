@@ -16,15 +16,16 @@ class BooleanOperationResult implements OperationResult<boolean> {
   data?: boolean
 }
 
-class UsbPolicyOperationResult implements OperationResult<usbManager.UsbPolicy> {
+class UsbPolicyOperationResult implements OperationResult<edmUsbManager.UsbPolicy> {
   success: boolean = false
   stage?: string
-  data?: usbManager.UsbPolicy
+  data?: edmUsbManager.UsbPolicy
 }
 
-describe('InterfaceControlViewModel', () => {
-  let viewModel: InterfaceControlViewModel
-  let mockKit: MockKit
+export default function interfaceControlViewModelTest() {
+  describe('InterfaceControlViewModel', () => {
+    let viewModel: InterfaceControlViewModel
+    let mockKit: MockKit
 
   beforeEach(() => {
     viewModel = new InterfaceControlViewModel()
@@ -46,8 +47,8 @@ describe('InterfaceControlViewModel', () => {
     getResult.data = true
     let usbResult = new UsbPolicyOperationResult()
     usbResult.success = true
-    usbResult.data = usbManager.UsbPolicy.READ_WRITE
-    when(setInterfaceMock)(PeripheralService.FEATURE_USB, true).afterReturn(setResult)
+    usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
+    when(setInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(setResult)
     when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(getResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
 
@@ -63,7 +64,7 @@ describe('InterfaceControlViewModel', () => {
     let setResult = new VoidOperationResult()
     setResult.success = false
     setResult.stage = 'read_usb_status'
-    when(setInterfaceMock)(PeripheralService.FEATURE_USB, true).afterReturn(setResult)
+    when(setInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 
@@ -82,8 +83,8 @@ describe('InterfaceControlViewModel', () => {
     getInterfaceResult.data = false
     let usbResult = new UsbPolicyOperationResult()
     usbResult.success = true
-    usbResult.data = usbManager.UsbPolicy.DISABLED
-    when(setUsbStorageMock)(usbManager.UsbPolicy.DISABLED).afterReturn(setResult)
+    usbResult.data = edmUsbManager.UsbPolicy.DISABLED
+    when(setUsbStorageMock)(edmUsbManager.UsbPolicy.DISABLED).afterReturn(setResult)
     when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(getInterfaceResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
 
@@ -99,11 +100,12 @@ describe('InterfaceControlViewModel', () => {
     let setResult = new VoidOperationResult()
     setResult.success = false
     setResult.stage = 'set_usb_storage_policy'
-    when(setUsbStorageMock)(usbManager.UsbPolicy.READ_WRITE).afterReturn(setResult)
+    when(setUsbStorageMock)(edmUsbManager.UsbPolicy.READ_ONLY).afterReturn(setResult)
 
     const reason = await viewModel.setUsbStoragePolicy(0)
 
     expect(reason).assertEqual('set_usb_storage_policy')
     done()
   })
-})
+  })
+}

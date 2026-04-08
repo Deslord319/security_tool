@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { CommonStrings } from '../../main/ets/constants/CommonStrings'
 import { IdentityStrings } from '../../main/ets/constants/modules/IdentityStrings'
 import { OperationResult, PASSWORD_VALIDITY_OPTIONS, PasswordComplexityConfig } from '../../main/ets/models/DataModels'
@@ -78,14 +78,15 @@ export default function identitySettingsViewModelTest() {
 
     it('should reject save when nothing changed from current policy', 0, () => {
       let viewModel = new IdentitySettingsViewModel()
+      const currentRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$'
       viewModel.initialize({
-        complexityRegex: 'mock-regex',
+        complexityRegex: currentRegex,
         validityPeriod: 30
       } as securityManager.PasswordPolicy)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let policyResult = new PasswordPolicyResult()
       policyResult.success = true
-      policyResult.data = { complexityRegex: 'mock-regex', validityPeriod: 30 } as securityManager.PasswordPolicy
+      policyResult.data = { complexityRegex: currentRegex, validityPeriod: 30 } as securityManager.PasswordPolicy
       when(getPolicyMock)().afterReturn(policyResult)
 
       let result = viewModel.save()
@@ -107,7 +108,7 @@ export default function identitySettingsViewModelTest() {
       when(getPolicyMock)().afterReturn(policyResult)
       let saveResult = new SavePasswordPolicyResult()
       saveResult.success = true
-      when(setPolicyMock)({} as PasswordComplexityConfig).afterReturn(saveResult)
+      when(setPolicyMock)(ArgumentMatchers.anyObj).afterReturn(saveResult)
 
       let result = viewModel.save()
 
@@ -131,7 +132,7 @@ export default function identitySettingsViewModelTest() {
       saveResult.success = false
       saveResult.isAdminMissing = true
       saveResult.errorMessage = 'edm missing'
-      when(setPolicyMock)({} as PasswordComplexityConfig).afterReturn(saveResult)
+      when(setPolicyMock)(ArgumentMatchers.anyObj).afterReturn(saveResult)
 
       let result = viewModel.save()
 

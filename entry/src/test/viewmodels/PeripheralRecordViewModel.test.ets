@@ -16,8 +16,8 @@ import {
   formatPeripheralTimestamp,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel
-} from '../../main/ets/viewmodels/PeripheralRecordPresentationMapper'
-import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/PeripheralRecordViewModel'
+} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 
 class FixedSavePicker {
   private paths: string[]
@@ -80,8 +80,9 @@ function createConnectionRecord(
   }
 }
 
-describe('PeripheralRecordViewModel', () => {
-  let viewModel: PeripheralRecordViewModel
+export default function peripheralRecordViewModelTest() {
+  describe('PeripheralRecordViewModel', () => {
+    let viewModel: PeripheralRecordViewModel
 
   beforeEach(() => {
     viewModel = new PeripheralRecordViewModel()
@@ -102,52 +103,52 @@ describe('PeripheralRecordViewModel', () => {
 
     viewModel.reloadRecords()
 
-    expect(viewModel.records.length).assertEqual(2)
-    expect(viewModel.records[0].id).assertEqual('peripheral_runtime_record-2')
-    expect(viewModel.records[1].id).assertEqual('peripheral_runtime_record-1')
+    expect(viewModel.state.records.length).assertEqual(2)
+    expect(viewModel.state.records[0].id).assertEqual('peripheral_runtime_record-2')
+    expect(viewModel.state.records[1].id).assertEqual('peripheral_runtime_record-1')
   })
 
   it('U-RVM-002 should fall back to empty list when query pipeline returns no records', 0, () => {
     PeripheralTraceRepository.resetForTest()
-    viewModel.records = [createConnectionRecord('stale-record', 1700000000000)]
+    viewModel.state.records = [createConnectionRecord('stale-record', 1700000000000)]
 
     viewModel.reloadRecords()
 
-    expect(viewModel.records.length).assertEqual(0)
+    expect(viewModel.state.records.length).assertEqual(0)
   })
 
   it('U-RVM-003 should open detail dialog with selected record and same-device history only', 0, () => {
     const selectedRecord = createConnectionRecord('record-1', 1700000000000, 'VID:1234 PID:5678', 'USB Device')
     const sameDeviceLater = createConnectionRecord('record-2', 1700000003000, 'VID: 1234   PID:5678', 'USB Device')
     const differentDevice = createConnectionRecord('record-3', 1700000005000, 'VID:9999 PID:8888', 'Other Device')
-    viewModel.records = [selectedRecord, sameDeviceLater, differentDevice]
+    viewModel.state.records = [selectedRecord, sameDeviceLater, differentDevice]
 
     viewModel.openConnectionDetailDialog(selectedRecord)
 
-    expect(viewModel.connectionDetailDialog.visible).assertTrue()
-    expect(viewModel.connectionDetailDialog.record?.id ?? '').assertEqual('record-1')
-    expect(viewModel.connectionDetailDialog.historyItems.length).assertEqual(2)
-    expect(viewModel.connectionDetailDialog.historyItems[0].time).assertEqual(formatPeripheralTimestamp(1700000000000))
-    expect(viewModel.connectionDetailDialog.historyItems[1].time).assertEqual(formatPeripheralTimestamp(1700000003000))
+    expect(viewModel.state.connectionDetailDialog.visible).assertTrue()
+    expect(viewModel.state.connectionDetailDialog.record?.id ?? '').assertEqual('record-1')
+    expect(viewModel.state.connectionDetailDialog.historyItems.length).assertEqual(2)
+    expect(viewModel.state.connectionDetailDialog.historyItems[0].time).assertEqual(formatPeripheralTimestamp(1700000000000))
+    expect(viewModel.state.connectionDetailDialog.historyItems[1].time).assertEqual(formatPeripheralTimestamp(1700000003000))
   })
 
   it('U-RVM-004 should close detail dialog and clear selected state', 0, () => {
     const record = createConnectionRecord('record-1', 1700000000000)
-    viewModel.records = [record]
+    viewModel.state.records = [record]
     viewModel.openConnectionDetailDialog(record)
 
     viewModel.closeConnectionDetailDialog()
 
-    expect(viewModel.connectionDetailDialog.visible).assertFalse()
-    expect(viewModel.connectionDetailDialog.record).assertNull()
-    expect(viewModel.connectionDetailDialog.historyItems.length).assertEqual(0)
+    expect(viewModel.state.connectionDetailDialog.visible).assertFalse()
+    expect(viewModel.state.connectionDetailDialog.record).assertNull()
+    expect(viewModel.state.connectionDetailDialog.historyItems.length).assertEqual(0)
   })
 
   it('U-RVM-005 should export connection history and return generated file name', 0, async (done: Function) => {
     let capturedCsv = ''
-    viewModel.records = [createConnectionRecord('record-1', 1700000000000)]
+    viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
     LogExportService.setTestDeps({
-      nowProvider: (): number => 1736891400000,
+      nowProvider: (): number => new Date(2025, 0, 15, 8, 30, 0).getTime(),
       pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
       buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
       openFileFn: (_path: string) => {
@@ -168,7 +169,7 @@ describe('PeripheralRecordViewModel', () => {
   })
 
   it('U-RVM-006 should reject export when no connection history exists', 0, async (done: Function) => {
-    viewModel.records = []
+    viewModel.state.records = []
 
     const result = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
 
@@ -178,7 +179,7 @@ describe('PeripheralRecordViewModel', () => {
   })
 
   it('U-RVM-007 should reject export when context is missing', 0, async (done: Function) => {
-    viewModel.records = [createConnectionRecord('record-1', 1700000000000)]
+    viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
 
     const result = await viewModel.exportConnectionHistory(null)
 
@@ -188,7 +189,7 @@ describe('PeripheralRecordViewModel', () => {
   })
 
   it('U-RVM-008 should map export service failure and thrown errors to export failure reason', 0, async (done: Function) => {
-    viewModel.records = [createConnectionRecord('record-1', 1700000000000)]
+    viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
     LogExportService.setTestDeps({
       pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker([])
     })
@@ -209,7 +210,7 @@ describe('PeripheralRecordViewModel', () => {
   it('U-RVM-009 should build csv with BOM, expected header order and mapped field values', 0, async (done: Function) => {
     const record = createConnectionRecord('record-1', 1700000000000, 'VID:1234 PID:5678', 'USB Device')
     let capturedCsv = ''
-    viewModel.records = [record]
+    viewModel.state.records = [record]
     LogExportService.setTestDeps({
       pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
       buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
@@ -244,7 +245,7 @@ describe('PeripheralRecordViewModel', () => {
   it('U-RVM-010 should escape csv values that contain commas quotes or newlines', 0, async (done: Function) => {
     const record = createConnectionRecord('record-1', 1700000000000, 'VID:1234 PID:5678', 'USB "Special", Device\nLine2')
     let capturedCsv = ''
-    viewModel.records = [record]
+    viewModel.state.records = [record]
     LogExportService.setTestDeps({
       pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
       buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
@@ -263,4 +264,5 @@ describe('PeripheralRecordViewModel', () => {
     expect(capturedCsv.indexOf('"USB ""Special"", Device\nLine2"') > -1).assertTrue()
     done()
   })
-})
+  })
+}

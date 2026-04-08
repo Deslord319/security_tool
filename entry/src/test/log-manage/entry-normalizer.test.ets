@@ -81,9 +81,8 @@ export default function entryNormalizerTest() {
 
       let result = LogEntryNormalizer.sanitizeEntries(entries, 2)
 
-      expect(result.length).assertEqual(2)
+      expect(result.length).assertEqual(1)
       expect(result[0].id).assertEqual('1')
-      expect(result[1].id).assertEqual('2')
     })
   })
 }

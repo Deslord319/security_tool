@@ -29,7 +29,7 @@ export default function peripheralModelsTest() {
       })
 
       it('should return USB 其他 for USB_OTHER', 0, () => {
-        expect(getPeripheralTypeLabel(PeripheralType.USB_OTHER)).assertEqual('USB 其他')
+        expect(getPeripheralTypeLabel(PeripheralType.USB_OTHER)).assertEqual('USB 其他设备')
       })
 
       it('should return 蓝牙设备 for BLUETOOTH', 0, () => {

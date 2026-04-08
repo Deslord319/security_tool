@@ -65,10 +65,10 @@ class StaticRecordConsumer implements PeripheralConnectionRecordConsumer {
 
 class ThrowingDeviceIdRecord implements PeripheralTraceRecord {
   recordId: string = 'runtime_usb_throwing'
-  occurAt: number = 300
-  collectAt: number = 301
-  deviceName: string = 'Broken Device'
+  occurAt: number = Date.now()
+  collectAt: number = Date.now() + 1
   deviceType: PeripheralType = PeripheralType.USB_STORAGE
+  deviceId: string = 'VID:1234 PID:5678'
   action: 'connect' = 'connect'
   decision: 'allow' = 'allow'
   result: LogEventResult = LogEventResult.SUCCESS
@@ -76,8 +76,8 @@ class ThrowingDeviceIdRecord implements PeripheralTraceRecord {
   summary: string = 'broken'
   rawEventName: string = 'usual.event.USB_ATTACHED'
 
-  get deviceId(): string {
-    throw new Error('deviceId read failed')
+  get deviceName(): string {
+    throw new Error('deviceName read failed')
   }
 }
 
@@ -130,10 +130,11 @@ class FakeProducer implements PeripheralConnectionRecordProducer {
 }
 
 function buildUsbRecord(): PeripheralTraceRecord {
+  const now = Date.now()
   return {
     recordId: 'runtime_usb_1',
-    occurAt: 100,
-    collectAt: 101,
+    occurAt: now,
+    collectAt: now + 1,
     deviceName: 'USB Device',
     deviceType: PeripheralType.USB_STORAGE,
     deviceId: 'VID:1234 PID:5678',
@@ -147,10 +148,11 @@ function buildUsbRecord(): PeripheralTraceRecord {
 }
 
 function buildBluetoothRecord(): PeripheralTraceRecord {
+  const now = Date.now()
   return {
     recordId: 'runtime_bt_acl_1',
-    occurAt: 200,
-    collectAt: 201,
+    occurAt: now,
+    collectAt: now + 1,
     deviceName: 'BT Device',
     deviceType: PeripheralType.BLUETOOTH,
     deviceId: 'MAC: 11:22:33:44:55:66',
@@ -294,7 +296,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       expect(attached).assertTrue()
       expect(firstProducer.unsubscribeCalls).assertEqual(1)
       expect(firstProducer.stopCalls).assertEqual(1)
-      expect(nextProducer.bindContextCalls).assertEqual(1)
+      expect(nextProducer.bindContextCalls).assertEqual(2)
       expect(nextProducer.startCalls).assertEqual(1)
       expect(nextProducer.subscribeCalls).assertEqual(1)
       expect(nextProducer.lastContext).assertEqual(probe.context)

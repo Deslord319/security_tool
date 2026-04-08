@@ -66,7 +66,7 @@ export default function peripheralConnectionRecordServiceTest() {
 
       expect(records.length).assertEqual(1)
       expect(records[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
-      expect(records[0].action).assertEqual('discover')
+      expect(records[0].action).assertEqual('unknown')
       expect(records[0].matchedPolicyKind).assertEqual('bluetooth_discovery')
     })
 

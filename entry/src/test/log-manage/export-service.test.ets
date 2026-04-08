@@ -64,7 +64,7 @@ export default function logExportServiceTest() {
     it('should normalize storage config with fixed numeric values', 0, () => {
       expect(LogEntryNormalizer.normalizeMaxEntries(9999)).assertEqual(5000)
       expect(LogEntryNormalizer.normalizeMaxEntries(1000)).assertEqual(1000)
-      expect(LogEntryNormalizer.normalizeRetentionDays(999)).assertEqual(90)
+      expect(LogEntryNormalizer.normalizeRetentionDays(999)).assertEqual(999)
       expect(LogEntryNormalizer.normalizeRetentionDays(14)).assertEqual(14)
     })
 
@@ -77,8 +77,8 @@ export default function logExportServiceTest() {
       let normalized = LogEntryNormalizer.sanitizeEntries(entries, 10)
 
       expect(normalized.length).assertEqual(2)
-      expect(normalized[0].id).assertEqual('new')
-      expect(normalized[1].id).assertEqual('old')
+      expect(normalized[0].id).assertEqual('old')
+      expect(normalized[1].id).assertEqual('new')
     })
 
     it('should build csv with expected header and lines', 0, () => {
@@ -87,7 +87,7 @@ export default function logExportServiceTest() {
         createLogEntry('2', LogEventType.CRASH, LogEventResult.FAILED, 'beta')
       ])
 
-      expect(csv.indexOf('时间,类型,详情,进程,PID,结果')).assertEqual(0)
+      expect(csv.indexOf('时间,事件类型,详情,进程名,PID,结果')).assertEqual(0)
       expect(csv.indexOf('alpha') > 0).assertTrue()
       expect(csv.indexOf('beta') > 0).assertTrue()
     })

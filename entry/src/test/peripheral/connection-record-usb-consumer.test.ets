@@ -1,12 +1,15 @@
-import { beforeEach, describe, expect, it } from '@ohos/hypium'
+import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
+import { MockKit, when } from '@ohos/hamock'
 import {
   LogEventResult,
+  OperationResult,
   PeripheralDevicePolicyRecord,
   PeripheralType,
   UsbStoragePolicy
 } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { PeripheralConnectionRecordUsbConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
@@ -53,11 +56,21 @@ class MissingRawDataUsbEvent implements PeripheralConnectionRecordProducerEvent 
   source: 'runtime' = 'runtime'
   channel: 'usb' = 'usb'
   eventName: string
-  rawData!: Object
+  rawData: Object = undefined as never as Object
 
   constructor(eventName: string) {
     this.eventName = eventName
   }
+}
+
+class BooleanOperationResult implements OperationResult<boolean> {
+  success: boolean = true
+  data?: boolean
+}
+
+class UsbPolicyOperationResult implements OperationResult<number> {
+  success: boolean = true
+  data?: number
 }
 
 function buildUsbEventParameters(overrides?: UsbEventParameterOverrides): UsbEventParameters {
@@ -124,13 +137,32 @@ function buildUsbEvent(
 
 export default function peripheralConnectionRecordUsbConsumerTest() {
   describe('PeripheralConnectionRecordUsbConsumer', () => {
+    let mockKit: MockKit
+
     beforeEach(() => {
+      mockKit = new MockKit()
       PeripheralDevicePolicyRepository.resetForTest()
       PeripheralDevicePolicyRepository.setRecordsForTest([])
+      let usbDisabledResult = new BooleanOperationResult()
+      usbDisabledResult.data = false
+      let usbStorageResult = new UsbPolicyOperationResult()
+      usbStorageResult.data = UsbStoragePolicy.READ_WRITE
+      let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
+      when(getUsbStorageMock)().afterReturn(usbStorageResult)
+    })
+
+    afterEach(() => {
+      mockKit.clearAll()
     })
 
     it('U-USB-001 should map usb attached event to blocked record when usb interface is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
+      let usbDisabledResult = new BooleanOperationResult()
+      usbDisabledResult.data = true
+      let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+      when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -144,6 +176,10 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-002 should block usb storage event when storage policy is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
+      let usbStorageResult = new UsbPolicyOperationResult()
+      usbStorageResult.data = UsbStoragePolicy.DISABLED
+      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      when(getUsbStorageMock)().afterReturn(usbStorageResult)
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -157,6 +193,10 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-003 should map usb storage read only policy to allow record with readonly label', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
+      let usbStorageResult = new UsbPolicyOperationResult()
+      usbStorageResult.data = UsbStoragePolicy.READ_ONLY
+      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      when(getUsbStorageMock)().afterReturn(usbStorageResult)
 
       const record = await consumer.consume(buildUsbEvent())
 

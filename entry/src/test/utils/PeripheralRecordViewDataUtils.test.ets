@@ -8,7 +8,7 @@ import {
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp
-} from '../../main/ets/viewmodels/PeripheralRecordPresentationMapper'
+} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralPolicyService } from '../../main/ets/services/peripheral/device-policy/PeripheralPolicyService'
 
 function createConnectionRecord(id: string, timestamp: number): PeripheralConnectionRecord {

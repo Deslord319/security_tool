@@ -343,7 +343,7 @@ export default function identityServiceTest() {
         
         try {
           new RegExp(invalidRegex)
-          expect(false).assertTrue('Should have thrown error')
+          expect(false).assertTrue()
         } catch (e) {
           expect(e !== undefined).assertTrue()
         }
@@ -442,7 +442,7 @@ export default function identityServiceTest() {
         // 正则和描述应该一致
         expect(regex.length > 0).assertTrue()
         expect(description.length > 0).assertTrue()
-        expect(description.includes('至少 8 个字符')).assertTrue()
+        expect(description.includes('至少8个字符')).assertTrue()
       })
     })
   })

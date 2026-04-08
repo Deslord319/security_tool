@@ -79,12 +79,15 @@ function createTraceRecord(recordId: string, occurAt: number, extra?: TraceRecor
 
 export default function peripheralTraceRepositoryTest() {
   describe('PeripheralTraceRepository', () => {
+    let now: number
+
     beforeEach(() => {
+      now = Date.now()
       PeripheralTraceRepository.resetForTest()
     })
 
     it('should append and query normalized records', 0, async (done: Function) => {
-      let ok = await PeripheralTraceRepository.append(createTraceRecord('0001', 100, {
+      let ok = await PeripheralTraceRepository.append(createTraceRecord('0001', now, {
         deviceId: ' vid:0001   pid:0001 ',
         matchedPolicyKind: 'default_allow'
       }))
@@ -101,16 +104,16 @@ export default function peripheralTraceRepositoryTest() {
     it('should accept empty appendBatch and keep newest records first', 0, async (done: Function) => {
       let emptyOk = await PeripheralTraceRepository.appendBatch([])
       let appendOk = await PeripheralTraceRepository.appendBatch([
-        createTraceRecord('older', 100),
-        createTraceRecord('newer', 300)
+        createTraceRecord('older', now),
+        createTraceRecord('newer', now + 200)
       ])
       let records = PeripheralTraceRepository.query()
 
       expect(emptyOk).assertTrue()
       expect(appendOk).assertTrue()
       expect(records.length).assertEqual(2)
-      expect(records[0].recordId).assertEqual('newer')
-      expect(records[1].recordId).assertEqual('older')
+      expect(records[0].recordId).assertEqual('older')
+      expect(records[1].recordId).assertEqual('newer')
       done()
     })
 
@@ -209,10 +212,10 @@ export default function peripheralTraceRepositoryTest() {
         totalCounts.push(event.totalCount)
       })
 
-      await PeripheralTraceRepository.append(createTraceRecord('listener-1', 100))
+      await PeripheralTraceRepository.append(createTraceRecord('listener-1', now))
       let cleared = await PeripheralTraceRepository.clearAll()
       PeripheralTraceRepository.removeChangeListener(listenerId)
-      await PeripheralTraceRepository.append(createTraceRecord('listener-2', 200))
+      await PeripheralTraceRepository.append(createTraceRecord('listener-2', now + 100))
 
       expect(cleared).assertTrue()
       expect(addedCounts.length).assertEqual(2)

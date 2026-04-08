@@ -2,25 +2,34 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
-import { LogRepository } from '../../main/ets/services/log-manage/repository/LogRepository'
-import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/PeripheralPolicyViewModel'
+import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
+import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
 
-describe('PeripheralPolicyViewModel', () => {
-  let viewModel: PeripheralPolicyViewModel
-  let originalInit: (context: common.UIAbilityContext) => Promise<boolean>
-  let originalExportToCsvFile: (payload: Object) => Promise<Object>
+class FixedSavePicker {
+  private readonly paths: string[]
+
+  constructor(paths: string[]) {
+    this.paths = paths
+  }
+
+  async save(_options: Object): Promise<string[]> {
+    return this.paths.slice()
+  }
+}
+
+export default function peripheralPolicyViewModelTest() {
+  describe('PeripheralPolicyViewModel', () => {
+    let viewModel: PeripheralPolicyViewModel
 
   beforeEach(() => {
     viewModel = new PeripheralPolicyViewModel()
     PeripheralDevicePolicyRepository.resetForTest()
-    originalInit = LogStorageService.init
-    originalExportToCsvFile = LogStorageService.exportToCsvFile
+    LogExportService.resetForTest()
   })
 
   afterEach(() => {
     PeripheralDevicePolicyRepository.resetForTest()
-    LogStorageService.init = originalInit
-    LogStorageService.exportToCsvFile = originalExportToCsvFile
+    LogExportService.resetForTest()
   })
 
   it('should rebuild policy records from connection records and explicit device policies', 0, async (done: Function) => {
@@ -45,8 +54,8 @@ describe('PeripheralPolicyViewModel', () => {
       summary: 'connected'
     }])
 
-    expect(viewModel.records.length).assertEqual(1)
-    expect(viewModel.records[0].policyIndex).assertEqual(1)
+    expect(viewModel.state.records.length).assertEqual(1)
+    expect(viewModel.state.records[0].policyIndex).assertEqual(1)
     done()
   })
 
@@ -64,8 +73,8 @@ describe('PeripheralPolicyViewModel', () => {
       summary: 'connected'
     }])
 
-    expect(viewModel.records.length).assertEqual(1)
-    expect(viewModel.records[0].policyIndex).assertEqual(0)
+    expect(viewModel.state.records.length).assertEqual(1)
+    expect(viewModel.state.records[0].policyIndex).assertEqual(0)
   })
 
   it('should reject invalid device ids when changing policy', 0, async (done: Function) => {
@@ -122,9 +131,9 @@ describe('PeripheralPolicyViewModel', () => {
       summary: 'connected'
     }])
 
-    expect(viewModel.records.length).assertEqual(1)
-    expect(viewModel.records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-    expect(viewModel.records[0].policyIndex).assertEqual(1)
+    expect(viewModel.state.records.length).assertEqual(1)
+    expect(viewModel.state.records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
+    expect(viewModel.state.records[0].policyIndex).assertEqual(1)
     done()
   })
 
@@ -142,7 +151,7 @@ describe('PeripheralPolicyViewModel', () => {
   })
 
   it('should export policy records successfully', 0, async (done: Function) => {
-    viewModel.records = [{
+    viewModel.state.records = [{
       deviceName: 'USB Device',
       deviceType: PeripheralType.USB_STORAGE,
       deviceId: 'VID:1234 PID:5678',
@@ -150,13 +159,19 @@ describe('PeripheralPolicyViewModel', () => {
       lastSeenLabel: '2026-03-26 12:00:00',
       policyIndex: 0
     }]
-    LogStorageService.init = async (_context: common.UIAbilityContext): Promise<boolean> => true
-    LogStorageService.exportToCsvFile = async (_payload: Object): Promise<Object> => {
-      return { success: true, fileName: 'mock.csv' }
-    }
+    LogExportService.setTestDeps({
+      pickerFactory: (_context: common.UIAbilityContext) => new FixedSavePicker(['file://mock-dir']),
+      buildPathFn: (_directoryUri: string, fileName: string): string => `/mock/${fileName}`,
+      openFileFn: (_path: string) => {
+        return { fd: 1 }
+      },
+      writeFileFn: (_fd: number, _content: string): void => {},
+      closeFileFn: (_fd: number): void => {}
+    })
 
     const result = await viewModel.exportRecords({} as common.UIAbilityContext)
     expect(result.success).assertTrue()
     done()
   })
-})
+  })
+}

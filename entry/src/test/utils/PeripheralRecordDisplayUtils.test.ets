@@ -4,7 +4,7 @@ import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel
-} from '../../main/ets/viewmodels/PeripheralRecordPresentationMapper'
+} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 
 function createConnectionRecord(): PeripheralConnectionRecord {
   return {
@@ -73,7 +73,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       unknownRecord.summary = 'unknown'
 
       expect(getPeripheralConnectionPolicyLabel(allowRecord)).assertEqual('允许')
-      expect(getPeripheralConnectionPolicyLabel(denyRecord)).assertEqual('禁止')
+      expect(getPeripheralConnectionPolicyLabel(denyRecord)).assertEqual('阻止')
       expect(getPeripheralConnectionPolicyLabel(unknownRecord)).assertEqual('未知')
     })
 
@@ -83,7 +83,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       record.source = 'policy_snapshot'
       record.summary = 'snapshot'
 
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('策略待判定')
+      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('待判定')
       expect(getPeripheralConnectionResultLabel(record)).assertEqual('策略快照')
     })
 

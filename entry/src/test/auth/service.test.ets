@@ -95,7 +95,7 @@ export default function authServiceTest() {
 
         try {
           mockUserAuth.getAvailableStatus(UserAuthType.FINGERPRINT, AuthTrustLevel.ATL1)
-          expect(false).assertTrue('Should have thrown error')
+          expect(false).assertTrue()
         } catch (_e) {
           const error = createMockError(12500010, 'Auth type not registered')
           expect(error.code).assertEqual(12500010)
