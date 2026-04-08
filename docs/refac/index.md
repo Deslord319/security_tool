@@ -17,7 +17,8 @@
 - `log-manage/`
   - 日志管理模块 RFC 目录，聚焦状态收敛、详情快照、导出链路和稳定性补强。
 - `peripheral-management/`
-  - 外设管理模块重构文档目录，现已包含模块总 RFC，并继续覆盖“设备连接记录”链路的重构、测试补齐和死代码清理。
+<<<<<<< Updated upstream
+  - 外设管理模块重构文档目录，现已包含模块总 RFC，并继续覆盖“设备连接记录”链路重构、测试补齐、死代码清理，以及黑白名单单设备策略真实下发方案。
 - `tool-settings/`
   - 工具设置模块 RFC 目录，聚焦启动认证、认证方式可用性和工具级设置边界。
 
@@ -33,6 +34,9 @@
 
 1. 先看 `docs/03-模块设计/安全总览组件设计说明.md`
 2. 再看 `dashboard/dashboard-module-rfc.md`
+=======
+  - 外设管理模块重构文档目录，当前重点覆盖“设备连接记录”链路重构，以及黑白名单单设备策略真实下发方案。
+>>>>>>> Stashed changes
 
 ## firewall
 
@@ -83,12 +87,15 @@
 
 ## peripheral-management
 
-目录用途：记录外设管理模块总 RFC，以及“设备连接记录”链路的重构方案、迁移计划、Mock 测试设计、测试执行追踪和死代码清理计划。
+<<<<<<< Updated upstream
+目录用途：记录外设管理模块总 RFC，以及“设备连接记录”链路的重构方案、迁移计划、Mock 测试设计、测试执行追踪、死代码清理计划，以及黑白名单单设备策略真实下发方案。
+=======
+目录用途：记录外设管理模块下“设备连接记录”链路的重构方案、迁移计划、Mock 测试设计、测试执行追踪、死代码清理计划，以及黑白名单单设备策略真实下发方案。
+>>>>>>> Stashed changes
 
 - `peripheral-management/peripheral-management-module-rfc.md`
   - 外设管理模块执行层总 RFC。
   - 主要内容包括三条子域边界、主从 ViewModel 职责、Story / Round 拆分和与专项文档的挂靠关系。
-
 - `peripheral-management/device-connection-record.md`
   - “设备连接记录”链路的主重构计划，也是该主题的 SSOT。
   - 适合先建立整体背景、边界、目标架构和最小改动策略。
@@ -113,9 +120,13 @@
 - `peripheral-management/device-connection-record-dead-code-cleanup-plan.md`
   - 设备连接记录链路死代码清理计划。
   - 聚焦死代码判定、清理步骤、证据要求和退出条件。
+- `peripheral-management/device-policy-dispatch-plan.md`
+  - 黑白名单单设备策略真实下发改造方案。
+  - 聚焦 USB / 蓝牙设备策略从“仅本地保存”改为“先真实下发、成功后保存”，并定义冲突处理原则。
 
 建议阅读顺序：
 
+<<<<<<< Updated upstream
 1. 先看 `docs/03-模块设计/外设管理组件设计说明.md`
 2. 再看 `peripheral-management-module-rfc.md`
 3. 若要推进设备连接记录专项，再看 `device-connection-record.md`
@@ -123,6 +134,7 @@
 5. 若要处理 RuntimeService 退出，再看 `device-connection-record-runtime-service-migration-plan.md` 和对应 report
 6. 若要补测试，再看 `device-connection-record-mock-test-design.md`、`device-connection-record-mock-test-implementation-plan.md`、`device-connection-record-mock-test-tracker.md`
 7. 若要收尾清理，再看 `device-connection-record-dead-code-cleanup-plan.md`
+8. 若要推进黑白名单真实策略生效，再看 `device-policy-dispatch-plan.md`
 
 ## tool-settings
 
@@ -136,6 +148,14 @@
 
 1. 先看 `docs/03-模块设计/工具设置组件设计说明.md`
 2. 再看 `tool-settings/tool-settings-module-rfc.md`
+=======
+1. 先看 `device-connection-record.md`
+2. 若要落地重构，再看 `device-connection-record-rfc-story-rounds.md`
+3. 若要处理 RuntimeService 退出，再看 `device-connection-record-runtime-service-migration-plan.md` 和对应 report
+4. 若要补测试，再看 `device-connection-record-mock-test-design.md`、`device-connection-record-mock-test-implementation-plan.md`、`device-connection-record-mock-test-tracker.md`
+5. 若要收尾清理，再看 `device-connection-record-dead-code-cleanup-plan.md`
+6. 若要推进黑白名单真实策略生效，再看 `device-policy-dispatch-plan.md`
+>>>>>>> Stashed changes
 
 ## 使用建议
 

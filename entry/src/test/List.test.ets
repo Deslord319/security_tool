@@ -23,6 +23,7 @@ import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
 import peripheralPipelineTest from './peripheral/connection-record-pipeline.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
+import peripheralDevicePolicyDispatchServiceTest from './peripheral/device-policy-dispatch-service.test'
 import peripheralUsbConsumerTest from './peripheral/connection-record-usb-consumer.test'
 import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
@@ -63,6 +64,7 @@ export default function testsuite() {
   peripheralBluetoothAclConsumerTest()
   peripheralPipelineTest()
   peripheralConnectionRecordServiceTest()
+  peripheralDevicePolicyDispatchServiceTest()
   peripheralUsbConsumerTest()
   peripheralModelsTest()
   peripheralServiceTest()

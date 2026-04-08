@@ -2,7 +2,7 @@ import restrictions from '@ohos.enterprise.restrictions'
 import { bluetoothManager, usbManager } from '@kit.MDMKit'
 import { Want } from '@kit.AbilityKit'
 import { AppInfo } from '../../../constants/AppConstants'
-import { OperationResult, PeripheralDevicePolicy, PeripheralType, parseUsbDeviceId } from '../../../models/DataModels'
+import { OperationResult, PeripheralDevicePolicy, PeripheralType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -123,10 +123,6 @@ export class PeripheralDevicePolicyDispatchService {
         if (PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(disallowed, deviceId)) {
           bluetoothManager.removeDisallowedBluetoothDevices(ADMIN_WANT, [deviceId])
         }
-        const allowed = bluetoothManager.getAllowedBluetoothDevices(ADMIN_WANT)
-        if (!PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(allowed, deviceId)) {
-          bluetoothManager.addAllowedBluetoothDevices(ADMIN_WANT, [deviceId])
-        }
       },
       'bluetooth_dispatch_conflict_unresolved'
     )
@@ -135,10 +131,6 @@ export class PeripheralDevicePolicyDispatchService {
   private static dispatchBluetoothDeny(deviceId: string): PeripheralPolicyDispatchResult {
     return PeripheralDevicePolicyDispatchService.tryRunBluetoothOperation(
       () => {
-        const allowed = bluetoothManager.getAllowedBluetoothDevices(ADMIN_WANT)
-        if (PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(allowed, deviceId)) {
-          bluetoothManager.removeAllowedBluetoothDevices(ADMIN_WANT, [deviceId])
-        }
         const disallowed = bluetoothManager.getDisallowedBluetoothDevices(ADMIN_WANT)
         if (!PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(disallowed, deviceId)) {
           bluetoothManager.addDisallowedBluetoothDevices(ADMIN_WANT, [deviceId])
@@ -149,49 +141,26 @@ export class PeripheralDevicePolicyDispatchService {
   }
 
   private static dispatchUsbAllow(request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult {
-    const usbDeviceId = PeripheralDevicePolicyDispatchService.toUsbDeviceId(request.deviceId)
-    if (!usbDeviceId) {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('usb_dispatch_failed')
-    }
-
     const usbDeviceType = PeripheralDevicePolicyDispatchService.toUsbDeviceType(request.deviceType)
     if (usbDeviceType) {
-      const removeResult = PeripheralDevicePolicyDispatchService.tryRunUsbOperation(() => {
-        const disallowed = usbManager.getDisallowedUsbDevices(ADMIN_WANT)
-        if (PeripheralDevicePolicyDispatchService.containsUsbDeviceType(disallowed, usbDeviceType)) {
-          usbManager.removeDisallowedUsbDevices(ADMIN_WANT, [usbDeviceType])
-        }
-      })
-      if (!removeResult.success) {
-        return removeResult
-      }
+      return PeripheralDevicePolicyDispatchService.tryRunUsbOperation(
+        () => {
+          const disallowed = usbManager.getDisallowedUsbDevices(ADMIN_WANT)
+          if (PeripheralDevicePolicyDispatchService.containsUsbDeviceType(disallowed, usbDeviceType)) {
+            usbManager.removeDisallowedUsbDevices(ADMIN_WANT, [usbDeviceType])
+          }
+        },
+        'usb_dispatch_conflict_unresolved'
+      )
     }
 
-    return PeripheralDevicePolicyDispatchService.tryRunUsbOperation(
-      () => {
-        usbManager.addAllowedUsbDevices(ADMIN_WANT, [usbDeviceId])
-      },
-      'usb_dispatch_conflict_unresolved'
-    )
+    return { success: true } as PeripheralPolicyDispatchResult
   }
 
   private static dispatchUsbDeny(request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult {
     const usbDeviceType = PeripheralDevicePolicyDispatchService.toUsbDeviceType(request.deviceType)
     if (!usbDeviceType) {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('unsupported_device_type')
-    }
-
-    const usbDeviceId = PeripheralDevicePolicyDispatchService.toUsbDeviceId(request.deviceId)
-    if (usbDeviceId) {
-      const removeResult = PeripheralDevicePolicyDispatchService.tryRunUsbOperation(() => {
-        const allowed = usbManager.getAllowedUsbDevices(ADMIN_WANT)
-        if (PeripheralDevicePolicyDispatchService.containsUsbDeviceId(allowed, usbDeviceId)) {
-          usbManager.removeAllowedUsbDevices(ADMIN_WANT, [usbDeviceId])
-        }
-      })
-      if (!removeResult.success) {
-        return removeResult
-      }
     }
 
     return PeripheralDevicePolicyDispatchService.tryRunUsbOperation(
@@ -246,17 +215,6 @@ export class PeripheralDevicePolicyDispatchService {
     }
   }
 
-  private static toUsbDeviceId(deviceId: string): usbManager.UsbDeviceId | null {
-    const parsed = parseUsbDeviceId(deviceId)
-    if (!parsed) {
-      return null
-    }
-    return {
-      vendorId: parsed.vendorId,
-      productId: parsed.productId
-    } as usbManager.UsbDeviceId
-  }
-
   private static toUsbDeviceType(deviceType: PeripheralType): usbManager.UsbDeviceType | null {
     switch (deviceType) {
       case PeripheralType.USB_STORAGE:
@@ -289,12 +247,6 @@ export class PeripheralDevicePolicyDispatchService {
       protocol: 0,
       descriptor: usbManager.Descriptor.INTERFACE
     } as usbManager.UsbDeviceType
-  }
-
-  private static containsUsbDeviceId(items: usbManager.UsbDeviceId[], target: usbManager.UsbDeviceId): boolean {
-    return items.some((item: usbManager.UsbDeviceId) => {
-      return item.vendorId === target.vendorId && item.productId === target.productId
-    })
   }
 
   private static containsUsbDeviceType(

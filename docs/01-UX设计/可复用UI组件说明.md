@@ -102,7 +102,7 @@
 | 组件 | 作用 | 典型场景 |
 | --- | --- | --- |
 | SectionToggleRow | 标题 + 说明 + 开关 | 启停类配置项 |
-| SectionSelectRow | 标题 + 说明 + 下拉选择 | 策略、模式、枚举值配置 |
+| SectionSelectRow | 标题 + 说明 + 下拉选择，支持可选异步提交失败回退 | 策略、模式、枚举值配置；下发失败需回退的选择场景 |
 | SectionActionRow | 标题 + 说明 + 操作按钮 | 立即执行类设置项 |
 | SectionSelectInputRow | 标题 + 说明 + 下拉 + 数字输入 | 组合型配置项 |
 
@@ -110,6 +110,7 @@
 
 - 优先用于“设置项列表”，而不是复杂业务表格。
 - 标题和说明文案应短句化，避免在行内放过长解释。
+- 若场景是“选择后立即调用系统接口，失败后需要恢复到原值”，优先使用 `SectionSelectRow` 的异步模式，不再在页面内重复维护一套临时 Select 状态。
 
 ### 4.3 模块复用组件
 
@@ -391,6 +392,154 @@ await this.loadingRunner.run(
 
 - 当前等待弹窗组件设计可继续复用
 - “调用搬离 UI 线程”属于等待弹窗能力的后续完善项，应继续在配套封装和具体场景链路上推进，而不是通过修改视觉组件规避问题
+
+### 6.2 配置选择行组件
+
+#### 6.2.1 基本信息
+
+| 字段 | 内容 |
+| --- | --- |
+| 组件名称 | SectionSelectRow |
+| 分层 | 全局通用组件 |
+| 文件 | `entry/src/main/ets/components/SectionRows.ets` |
+| 配套封装 | 无 |
+| 当前状态 | 已接入 |
+
+#### 6.2.2 组件职责
+
+`SectionSelectRow` 是设置页统一使用的“标题 + 说明 + 下拉选择”配置行组件。
+
+职责边界如下：
+
+- 负责统一选择行的视觉结构、间距、主题色和选择器尺寸。
+- 在同步场景下，负责把用户选中的索引透传给页面或 ViewModel。
+- 在异步场景下，负责托管临时显示值、处理中禁用态，以及失败时的 UI 回退。
+- 不负责具体业务校验、系统接口调用、成功失败提示和业务状态持久化。
+
+#### 6.2.3 设计规则
+
+当前 `SectionSelectRow` 遵循以下规则：
+
+- 左侧固定为标题和一行短说明。
+- 右侧为单个 `Select` 控件，默认宽度 `140`，可按场景覆写。
+- 跟随主题切换边框、背景、文本和箭头颜色。
+- 默认支持同步模式；异步能力为可选增强，不影响旧接入点。
+- 异步模式下，组件内部维护 `displayIndex`：
+  - 外部 `selectedIndex` 表示“已提交成功的真实值”。
+  - 内部 `displayIndex` 表示“当前界面展示值”。
+- 异步模式下，若 `processing=true` 或组件正在等待 `onSelectAsync` 返回，则 `Select` 禁用并降低透明度。
+
+#### 6.2.4 交互规则
+
+同步模式：
+
+- 页面传入 `selectedIndex`、`value`、`onSelect`。
+- 组件在用户选择后直接触发 `onSelect(index)`。
+- 是否更新最终状态由外层页面或 ViewModel 决定。
+
+异步模式：
+
+- 页面额外传入 `onSelectAsync(nextIndex, previousIndex)`。
+- 组件在用户选择后记录旧值，并进入异步等待态。
+- 若 `optimistic=true`，组件先展示新值，再等待异步结果。
+- 异步返回成功时，组件保持当前显示，等待父层回写新的 `selectedIndex`。
+- 异步返回失败时，组件自动把 `displayIndex` 回退成 `previousIndex`。
+- 当用户重复选择当前项时，组件直接忽略，不触发额外提交。
+
+#### 6.2.5 适用场景
+
+推荐使用 `SectionSelectRow` 的场景：
+
+- 日志管理、工具设置、身份鉴别等“标题 + 说明 + 枚举值选择”的标准设置页。
+- 策略、模式、等级、期限等固定选项的单值选择。
+- “选择后立即调用系统接口，若失败需要恢复原值”的配置行。
+
+#### 6.2.6 不适用场景
+
+不建议使用 `SectionSelectRow` 的场景：
+
+- 需要表格、多列或批量编辑的复杂配置界面。
+- 需要在一行内同时编辑多个字段的复合表单。
+- 需要展示树形层级、搜索、远程分页的大型选项集合。
+- 只服务某一个模块且行布局差异很大的业务私有表格。
+
+#### 6.2.7 使用方式
+
+同步接入示例：
+
+```ts
+SectionSelectRow({
+  title: '日志保留天数',
+  description: '设置本地日志默认保留时长。',
+  options: retentionOptions,
+  selectedIndex: this.retentionDaysIndex,
+  value: retentionOptions[this.retentionDaysIndex]?.value ?? '',
+  onSelect: (index: number) => {
+    this.retentionDaysIndex = index
+  }
+})
+```
+
+异步失败回退接入示例：
+
+```ts
+SectionSelectRow({
+  title: 'USB 存储设备',
+  description: '设置 USB 存储设备的访问权限，可选只读、读写或禁止访问。',
+  options: usbStorageOptions,
+  selectedIndex: this.usbStoragePolicyIndex,
+  value: usbStorageOptions[this.usbStoragePolicyIndex]?.value ?? '',
+  processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
+  optimistic: true,
+  onSelectAsync: async (nextIndex: number, previousIndex: number): Promise<boolean> => {
+    return await this.handleUsbStoragePolicyChange(nextIndex)
+  }
+})
+```
+
+接入要求：
+
+- 旧页面若只需要同步选择，继续使用 `onSelect`，不要为了统一形式强行改成异步模式。
+- 异步模式下，父层必须只在提交成功后更新 `selectedIndex`，失败时返回 `false` 交给组件回退。
+- `value` 应始终与 `selectedIndex` 指向的选项文本保持一致，避免出现显示值和索引错位。
+- 若页面本身已存在全局等待弹窗，可与 `processing` 同时使用；等待弹窗负责“处理中提示”，组件负责“选择禁用与失败回退”。
+
+#### 6.2.8 已接入页面
+
+| 页面 / 模块 | 场景 | 备注 |
+| --- | --- | --- |
+| 日志管理 | 日志保留天数、最大日志数量等枚举配置 | 同步模式 |
+| 工具设置 | 启动认证方式等枚举配置 | 同步模式 |
+| 身份鉴别 | 密码长度、有效期等枚举配置 | 同步模式 |
+| 外设管理 > 接口管控 | `USB 存储设备` 策略切换 | 异步模式，失败自动回退 |
+
+#### 6.2.9 日志要求
+
+`SectionSelectRow` 自身只输出非敏感交互日志：
+
+- 异步选择开始
+- 异步选择成功
+- 异步选择失败并回退
+
+允许记录：
+
+- 组件标题
+- 选择前后索引
+- 布尔状态
+- 策略枚举值
+
+禁止记录：
+
+- 账户名
+- 密码、PIN、口令
+- 页面表单中的敏感输入
+
+#### 6.2.10 维护注意事项
+
+- `SectionSelectRow` 仍是“设置行组件”，不是通用复杂下拉框；不要继续往里叠加搜索、联动表格等重交互。
+- 若后续再出现第二个“选择后异步提交、失败需回退”的场景，应优先复用当前异步能力，而不是再造业务私有 Select。
+- 若某个模块需要完全不同的行布局，可以复用该组件的交互模式，但不应直接把业务私有样式塞回全局组件。
+- 修改 `SectionSelectRow` 的默认行为时，必须回归验证日志管理、工具设置、身份鉴别这些同步场景，避免异步增强影响旧页面。
 
 ## 7. 复用原则
 
