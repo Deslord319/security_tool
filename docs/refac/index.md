@@ -8,10 +8,31 @@
   - 代码目录结构迁移方案设计，定义整体迁移目标、目标目录职责、迁移清单和分批实施建议。
 - `code-structure-module-migration-fix-plan.md`
   - 代码目录结构迁移修复计划，面向已有迁移方案的落地修正，补充阶段划分、Git 小步提交策略和验收标准。
+- `dashboard/`
+  - 安全总览模块 RFC 目录，聚焦摘要聚合、导航元数据、刷新边界和首页扩展位。
 - `firewall/`
   - 防火墙模块重构文档目录，聚焦防火墙模块的 SSOT、Story 拆分和分轮实施。
+- `identity/`
+  - 身份鉴别模块 RFC 目录，聚焦编辑态、系统态、管理员感知和保存链路收口。
+- `log-manage/`
+  - 日志管理模块 RFC 目录，聚焦状态收敛、详情快照、导出链路和稳定性补强。
 - `peripheral-management/`
-  - 外设管理模块重构文档目录，当前重点覆盖“设备连接记录”链路的重构、测试补齐和死代码清理。
+  - 外设管理模块重构文档目录，现已包含模块总 RFC，并继续覆盖“设备连接记录”链路的重构、测试补齐和死代码清理。
+- `tool-settings/`
+  - 工具设置模块 RFC 目录，聚焦启动认证、认证方式可用性和工具级设置边界。
+
+## dashboard
+
+目录用途：记录安全总览模块的收口与演进设计，重点回答首页如何保持“只做摘要聚合，不做业务真相源”。
+
+- `dashboard/dashboard-module-rfc.md`
+  - 安全总览模块执行层 RFC。
+  - 主要内容包括首页职责边界、摘要模型、Story / Round 拆分、刷新边界和扩展位规范。
+
+建议阅读顺序：
+
+1. 先看 `docs/03-模块设计/安全总览组件设计说明.md`
+2. 再看 `dashboard/dashboard-module-rfc.md`
 
 ## firewall
 
@@ -33,9 +54,40 @@
 2. 再看 `firewall-refactor-rfc-story-rounds.md`
 3. 若要继续做后续抽象或跨模块公共化，再看 `firewall-refactor-follow-up-open-items.md`
 
+## identity
+
+目录用途：记录身份鉴别模块的状态收口与后续演进设计，重点固定编辑态、系统态、管理员状态与保存链路的边界。
+
+- `identity/identity-module-rfc.md`
+  - 身份鉴别模块执行层 RFC。
+  - 主要内容包括状态分层、Story / Round 拆分、风险和验收信号。
+
+建议阅读顺序：
+
+1. 先看 `docs/03-模块设计/身份鉴别组件设计说明.md`
+2. 再看 `identity/identity-module-rfc.md`
+
+## log-manage
+
+目录用途：记录日志管理模块的状态收敛和持续演进设计，重点解决页面镜像态、详情稳定性、导出链路与高频刷新稳定性问题。
+
+- `log-manage/log-manage-module-rfc.md`
+  - 日志管理模块执行层 RFC。
+  - 主要内容包括单一真相源约束、Story / Round 拆分、文件白名单建议和验收信号。
+
+建议阅读顺序：
+
+1. 先看 `docs/03-模块设计/日志管理模块V2状态收敛与实施设计.md`
+2. 再看 `docs/03-模块设计/日志管理模块重构方案.md`
+3. 再看 `log-manage/log-manage-module-rfc.md`
+
 ## peripheral-management
 
-目录用途：记录外设管理模块下“设备连接记录”链路的重构方案、迁移计划、Mock 测试设计、测试执行追踪和死代码清理计划。
+目录用途：记录外设管理模块总 RFC，以及“设备连接记录”链路的重构方案、迁移计划、Mock 测试设计、测试执行追踪和死代码清理计划。
+
+- `peripheral-management/peripheral-management-module-rfc.md`
+  - 外设管理模块执行层总 RFC。
+  - 主要内容包括三条子域边界、主从 ViewModel 职责、Story / Round 拆分和与专项文档的挂靠关系。
 
 - `peripheral-management/device-connection-record.md`
   - “设备连接记录”链路的主重构计划，也是该主题的 SSOT。
@@ -64,15 +116,30 @@
 
 建议阅读顺序：
 
-1. 先看 `device-connection-record.md`
-2. 若要落地重构，再看 `device-connection-record-rfc-story-rounds.md`
-3. 若要处理 RuntimeService 退出，再看 `device-connection-record-runtime-service-migration-plan.md` 和对应 report
-4. 若要补测试，再看 `device-connection-record-mock-test-design.md`、`device-connection-record-mock-test-implementation-plan.md`、`device-connection-record-mock-test-tracker.md`
-5. 若要收尾清理，再看 `device-connection-record-dead-code-cleanup-plan.md`
+1. 先看 `docs/03-模块设计/外设管理组件设计说明.md`
+2. 再看 `peripheral-management-module-rfc.md`
+3. 若要推进设备连接记录专项，再看 `device-connection-record.md`
+4. 若要落地连接记录重构，再看 `device-connection-record-rfc-story-rounds.md`
+5. 若要处理 RuntimeService 退出，再看 `device-connection-record-runtime-service-migration-plan.md` 和对应 report
+6. 若要补测试，再看 `device-connection-record-mock-test-design.md`、`device-connection-record-mock-test-implementation-plan.md`、`device-connection-record-mock-test-tracker.md`
+7. 若要收尾清理，再看 `device-connection-record-dead-code-cleanup-plan.md`
+
+## tool-settings
+
+目录用途：记录工具设置模块的职责边界、保存链路和后续扩展规则，避免模块演变成杂项设置页。
+
+- `tool-settings/tool-settings-module-rfc.md`
+  - 工具设置模块执行层 RFC。
+  - 主要内容包括模块边界、Story / Round 拆分、风险和验收信号。
+
+建议阅读顺序：
+
+1. 先看 `docs/03-模块设计/工具设置组件设计说明.md`
+2. 再看 `tool-settings/tool-settings-module-rfc.md`
 
 ## 使用建议
 
 - 想了解整个重构方向：优先看根目录下两份代码结构迁移文档。
-- 想推进具体模块：进入对应子目录，先读 SSOT，再读 Story / Round 拆分文档。
+- 想推进具体模块：进入对应子目录，先读模块设计，再读 SSOT 或执行层 RFC。
 - 想做专项收口：优先找 `migration-plan`、`report`、`cleanup-plan`、`tracker` 这类文件。
 - 新增 refac 文档时，建议同步更新本索引，保持目录和用途说明可导航。
