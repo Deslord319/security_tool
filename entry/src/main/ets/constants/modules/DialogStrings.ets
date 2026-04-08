@@ -88,7 +88,7 @@ export class FirewallDialogStrings {
   // 标题
   static readonly ADD_RULE_TITLE: string = '新增规则'
   static readonly EDIT_RULE_TITLE: string = '编辑规则'
-  static readonly USER_FIREWALL_TITLE: string = '模式下发'
+  static readonly USER_FIREWALL_TITLE: string = '选择弹窗'
   
   // 标签
   static readonly RULE_NAME: string = '规则名称'
@@ -143,9 +143,6 @@ export class FirewallDialogStrings {
   static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙策略'
   static readonly ERROR_PLEASE_READ_STATUS: string = '请先选择并读取有效用户状态'
   
-  // 描述文本
-  static readonly USER_FIREWALL_DESCRIPTION: string = '选择目标 userId 后，为该用户下发自定义模式。白名单模式默认双向拒绝，只放行允许规则；黑名单模式默认双向允许，只阻止禁止规则。执行前需要完成 PIN 认证。'
-
   static buildPolicySummary(isOpen: boolean, inboundAction: string, outboundAction: string): string {
     let switchStatus = isOpen ? FirewallDialogStrings.SWITCH_ENABLED : FirewallDialogStrings.SWITCH_DISABLED
     return `主开关${switchStatus}，默认入站${inboundAction}，默认出站${outboundAction}`

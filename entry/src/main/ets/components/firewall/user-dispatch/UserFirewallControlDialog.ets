@@ -7,6 +7,7 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { DetailDialogShell } from '../../DetailDialogShell'
 
 const TAG = 'UserFirewallDialog'
 
@@ -41,14 +42,9 @@ export struct UserFirewallControlDialog {
     LogUtils.info(TAG, 'aboutToDisappear')
   }
 
-  build() {
+  @Builder
+  private dialogContent() {
     Column({ space: 16 }) {
-      Text(FirewallDialogStrings.USER_FIREWALL_DESCRIPTION)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .width('100%')
-
       if (this.viewModel.isLoadingUsers) {
         Column({ space: 10 }) {
           LoadingProgress()
@@ -61,6 +57,7 @@ export struct UserFirewallControlDialog {
         }
         .width('100%')
         .padding({ top: 20, bottom: 20 })
+        .alignItems(HorizontalAlign.Center)
       } else if (this.viewModel.users.length === 0) {
         Column({ space: 10 }) {
           Text(EmptyStateStrings.NO_USERS)
@@ -75,6 +72,7 @@ export struct UserFirewallControlDialog {
         }
         .width('100%')
         .padding({ top: 20, bottom: 20 })
+        .alignItems(HorizontalAlign.Start)
       } else {
         Column({ space: 12 }) {
           Column({ space: 6 }) {
@@ -187,21 +185,35 @@ export struct UserFirewallControlDialog {
 
               try {
                 await this.onActionCompleted(selectedUser.userId, this.viewModel.getSelectedMode())
-              } catch (err) {
-                LogUtils.warn(TAG, 'onActionCompleted failed: %{public}s', JSON.stringify(err))
+              } catch (_err) {
+                LogUtils.warn(TAG, 'onActionCompleted failed')
               }
               await DialogService.openSuccess(
                 this.getUIContext(),
-                FirewallDialogStrings.buildApplyModeSuccess(this.viewModel.lastApplyResult?.appliedRuleCount ?? 0)
+                FirewallDialogStrings.buildApplyModeSuccess(
+                  this.viewModel.lastApplyResult !== null ? this.viewModel.lastApplyResult.appliedRuleCount : 0
+                )
               )
             })
         }
         .width('100%')
       }
     }
-    .width(560)
-    .padding(20)
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_XL)
+    .width('100%')
+  }
+
+  build() {
+    DetailDialogShell({
+      title: FirewallDialogStrings.USER_FIREWALL_TITLE,
+      dialogWidth: 560,
+      maxBodyHeight: 520,
+      currentTheme: this.currentTheme,
+      onClose: () => {
+        this.controller.close()
+      },
+      content: () => {
+        this.dialogContent()
+      }
+    })
   }
 }
