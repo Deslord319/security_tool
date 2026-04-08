@@ -368,6 +368,35 @@ jobs:
 
           if (Test-Path -LiteralPath $testResult) {
             $resultText = (Get-Content -LiteralPath $testResult -Raw -Encoding utf8).Trim()
+            $lines = Get-Content -LiteralPath $testResult -Encoding utf8
+            $failedCases = New-Object System.Collections.Generic.List[string]
+            $currentClass = ''
+            $currentTest = ''
+            foreach ($line in $lines) {
+              if ($line.StartsWith('class=')) {
+                $currentClass = $line.Substring(6)
+                continue
+              }
+              if ($line.StartsWith('test=')) {
+                $currentTest = $line.Substring(5)
+                continue
+              }
+              if ($line -eq 'result=Failure' -or $line -eq 'result=Error') {
+                $failedCases.Add("$currentClass :: $currentTest")
+              }
+            }
+
+            if ($failedCases.Count -gt 0) {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '### Failed Cases'
+              foreach ($failedCase in $failedCases) {
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- $failedCase"
+              }
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+            } elseif ($resultText -match 'Failure:\s*0,\s*Error:\s*0') {
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'All discovered unit tests passed.'
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+            }
+
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $resultText
           } else {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'test_result.txt not found'
@@ -543,6 +572,37 @@ jobs:
             entry/build/default/outputs/default/entry-default-unsigned.hap
             hapsigner/signApp.hap
           retention-days: 7
+
+      - name: Publish build summary
+        if: always()
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $unsignedHap = 'entry/build/default/outputs/default/entry-default-unsigned.hap'
+          $signedHap = 'hapsigner/signApp.hap'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## entry@default HAP Build Summary'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+
+          if (Test-Path -LiteralPath $unsignedHap) {
+            $file = Get-Item -LiteralPath $unsignedHap
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Unsigned HAP: `"$($file.Name)`" ($([math]::Round($file.Length / 1MB, 2)) MB)"
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '- Unsigned HAP: missing'
+          }
+
+          if (Test-Path -LiteralPath $signedHap) {
+            $file = Get-Item -LiteralPath $signedHap
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Signed HAP: `"$($file.Name)`" ($([math]::Round($file.Length / 1MB, 2)) MB)"
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '- Signed HAP: missing'
+          }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
+
+          if (-not (Test-Path -LiteralPath $unsignedHap) -or -not (Test-Path -LiteralPath $signedHap)) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'Build or signing failed before artifacts were fully produced.'
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'Build and signing completed successfully.'
+          }
 
   # Example self-hosted implementation reference:
   #
