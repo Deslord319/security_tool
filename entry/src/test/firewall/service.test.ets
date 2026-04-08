@@ -3,6 +3,7 @@
  * 使用 Mock 数据测试业务逻辑
  */
 import { describe, beforeEach, it, expect } from '@ohos/hypium'
+import { netFirewall } from '@kit.NetworkKit'
 import {
   MockNetFirewallRule,
   MockNetFirewallPolicy,
@@ -23,6 +24,7 @@ import {
   removeNetFirewallRule,
   updateNetFirewallRule
 } from './__mocks__/MockNetFirewall'
+import { FirewallRepository } from '../../main/ets/services/firewall/repositories/FirewallRepository'
 
 // 辅助函数：创建规则对象
 function createRule(userId: number, name: string, direction: number, action: number, type: number, isEnabled: boolean, ruleId?: number): MockNetFirewallRule {
@@ -291,6 +293,53 @@ export default function firewallServiceTest() {
 
         expect(error !== null).assertTrue()
         expect(error!.message).assertEqual('Permission denied')
+      })
+    })
+
+    describe('FirewallRepository clone and normalize', () => {
+      it('should keep remoteIps when cloning a normal IP rule', 0, () => {
+        let rule: netFirewall.NetFirewallRule = {
+          userId: 100,
+          name: 'ip rule with remote address',
+          direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
+          action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+          type: netFirewall.NetFirewallRuleType.RULE_IP,
+          isEnabled: true,
+          protocol: 6,
+          remoteIps: [{
+            type: 1,
+            family: 1,
+            address: '192.168.10.20',
+            mask: 24
+          }]
+        }
+
+        let clonedRule = FirewallRepository.cloneRuleForCreate(rule)
+        expect(clonedRule.remoteIps !== undefined).assertTrue()
+        expect(clonedRule.remoteIps?.length ?? 0).assertEqual(1)
+        expect(clonedRule.remoteIps?.[0].address ?? '').assertEqual('192.168.10.20')
+        expect(clonedRule.remoteIps?.[0].mask ?? -1).assertEqual(24)
+      })
+
+      it('should still drop any-ipv4 remoteIps when normalizing create payload', 0, () => {
+        let rule: netFirewall.NetFirewallRule = {
+          userId: 100,
+          name: 'any ipv4',
+          direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
+          action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+          type: netFirewall.NetFirewallRuleType.RULE_IP,
+          isEnabled: true,
+          protocol: 1,
+          remoteIps: [{
+            type: 1,
+            family: 1,
+            address: '0.0.0.0',
+            mask: 0
+          }]
+        }
+
+        let normalizedRule = FirewallRepository.normalizeRuleForCreate(rule)
+        expect(normalizedRule.remoteIps === undefined).assertTrue()
       })
     })
 

@@ -171,7 +171,9 @@ export class FirewallRepository {
     if (localIps !== undefined) {
       clonedRule.localIps = localIps
     }
-    if (preserveEmptyRemoteIps || remoteIpsOverride !== undefined) {
+    let shouldCloneRemoteIps = preserveEmptyRemoteIps || remoteIpsOverride !== undefined ||
+      rule.type === netFirewall.NetFirewallRuleType.RULE_IP
+    if (shouldCloneRemoteIps) {
       let remoteIps = remoteIpsOverride ?? FirewallRepository.cloneIpParams(rule.remoteIps)
       if (remoteIps !== undefined) {
         clonedRule.remoteIps = remoteIps
