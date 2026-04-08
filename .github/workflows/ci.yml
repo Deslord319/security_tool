@@ -259,7 +259,8 @@ jobs:
             $coverage = Get-Content -LiteralPath $coverageReport -Raw -Encoding utf8 | ConvertFrom-Json
             $files = @($coverage.files | Sort-Object path)
             $escape = [System.Net.WebUtility]
-            $rows = foreach ($file in $files) {
+            $rows = New-Object System.Collections.Generic.List[string]
+            foreach ($file in $files) {
               $path = $escape::HtmlEncode([string]$file.path)
               $link = $escape::HtmlEncode([string]$file.link)
               $linePct = '{0:N2}' -f [double]$file.summary.lines.pct
@@ -272,86 +273,85 @@ jobs:
               $branchCovered = [int]$file.summary.branches.covered
               $branchTotal = [int]$file.summary.branches.total
               $rowClass = if ([double]$file.summary.lines.pct -ge 70) { 'good' } elseif ([double]$file.summary.lines.pct -ge 33) { 'warn' } else { 'bad' }
-@"
-      <tr class="$rowClass">
-        <td><a href="$link">$path</a></td>
-        <td>$funcPct%</td>
-        <td>$funcCovered / $funcTotal</td>
-        <td>$branchPct%</td>
-        <td>$branchCovered / $branchTotal</td>
-        <td>$linePct%</td>
-        <td>$lineCovered / $lineTotal</td>
-      </tr>
-"@
+              $rows.Add("      <tr class=""$rowClass"">")
+              $rows.Add("        <td><a href=""$link"">$path</a></td>")
+              $rows.Add("        <td>$funcPct%</td>")
+              $rows.Add("        <td>$funcCovered / $funcTotal</td>")
+              $rows.Add("        <td>$branchPct%</td>")
+              $rows.Add("        <td>$branchCovered / $branchTotal</td>")
+              $rows.Add("        <td>$linePct%</td>")
+              $rows.Add("        <td>$lineCovered / $lineTotal</td>")
+              $rows.Add("      </tr>")
             }
             $generatedAt = $escape::HtmlEncode([string]$(if ($coverage.date) { $coverage.date } else { Get-Date }))
-            $html = @"
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Coverage Report</title>
-  <style>
-    body { margin: 0; padding: 24px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #f5f7fb; color: #1f2a37; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    p.meta { margin: 0 0 24px; color: #6b7280; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: #fff; border: 1px solid #d9e2f1; border-radius: 12px; padding: 18px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }
-    .card h2 { margin: 0 0 8px; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
-    .card .pct { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
-    .card .count { color: #6b7280; font-size: 14px; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d9e2f1; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }
-    th, td { padding: 12px 14px; border-bottom: 1px solid #d9e2f1; text-align: left; vertical-align: top; font-size: 14px; }
-    th { background: #eef4ff; font-weight: 700; }
-    tr.good { background: #dff4e8; }
-    tr.warn { background: #fff2d8; }
-    tr.bad { background: #fde4e4; }
-    tr:last-child td { border-bottom: none; }
-    a { color: #0057b8; text-decoration: none; word-break: break-all; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>All Files Coverage</h1>
-  <p class="meta">Generated at $generatedAt</p>
-  <div class="cards">
-    <section class="card">
-      <h2>Functions</h2>
-      <div class="pct">$('{0:N2}' -f [double]$coverage.summary.functions.pct)%</div>
-      <div class="count">$([int]$coverage.summary.functions.covered) / $([int]$coverage.summary.functions.total)</div>
-    </section>
-    <section class="card">
-      <h2>Branches</h2>
-      <div class="pct">$('{0:N2}' -f [double]$coverage.summary.branches.pct)%</div>
-      <div class="count">$([int]$coverage.summary.branches.covered) / $([int]$coverage.summary.branches.total)</div>
-    </section>
-    <section class="card">
-      <h2>Lines</h2>
-      <div class="pct">$('{0:N2}' -f [double]$coverage.summary.lines.pct)%</div>
-      <div class="count">$([int]$coverage.summary.lines.covered) / $([int]$coverage.summary.lines.total)</div>
-    </section>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>File</th>
-        <th>Functions</th>
-        <th>Functions Count</th>
-        <th>Branches</th>
-        <th>Branches Count</th>
-        <th>Lines</th>
-        <th>Lines Count</th>
-      </tr>
-    </thead>
-    <tbody>
-$($rows -join "`r`n")
-    </tbody>
-  </table>
-</body>
-</html>
-"@
-            [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $reportHtml), $html, [System.Text.UTF8Encoding]::new($false))
+            $html = New-Object System.Collections.Generic.List[string]
+            $html.Add('<!doctype html>')
+            $html.Add('<html lang="en">')
+            $html.Add('<head>')
+            $html.Add('  <meta charset="utf-8" />')
+            $html.Add('  <meta name="viewport" content="width=device-width, initial-scale=1" />')
+            $html.Add('  <title>Coverage Report</title>')
+            $html.Add('  <style>')
+            $html.Add('    body { margin: 0; padding: 24px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #f5f7fb; color: #1f2a37; }')
+            $html.Add('    h1 { margin: 0 0 8px; font-size: 28px; }')
+            $html.Add('    p.meta { margin: 0 0 24px; color: #6b7280; }')
+            $html.Add('    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }')
+            $html.Add('    .card { background: #fff; border: 1px solid #d9e2f1; border-radius: 12px; padding: 18px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }')
+            $html.Add('    .card h2 { margin: 0 0 8px; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }')
+            $html.Add('    .card .pct { font-size: 32px; font-weight: 700; margin-bottom: 6px; }')
+            $html.Add('    .card .count { color: #6b7280; font-size: 14px; }')
+            $html.Add('    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d9e2f1; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }')
+            $html.Add('    th, td { padding: 12px 14px; border-bottom: 1px solid #d9e2f1; text-align: left; vertical-align: top; font-size: 14px; }')
+            $html.Add('    th { background: #eef4ff; font-weight: 700; }')
+            $html.Add('    tr.good { background: #dff4e8; }')
+            $html.Add('    tr.warn { background: #fff2d8; }')
+            $html.Add('    tr.bad { background: #fde4e4; }')
+            $html.Add('    tr:last-child td { border-bottom: none; }')
+            $html.Add('    a { color: #0057b8; text-decoration: none; word-break: break-all; }')
+            $html.Add('    a:hover { text-decoration: underline; }')
+            $html.Add('  </style>')
+            $html.Add('</head>')
+            $html.Add('<body>')
+            $html.Add('  <h1>All Files Coverage</h1>')
+            $html.Add("  <p class=""meta"">Generated at $generatedAt</p>")
+            $html.Add('  <div class="cards">')
+            $html.Add('    <section class="card">')
+            $html.Add('      <h2>Functions</h2>')
+            $html.Add("      <div class=""pct"">$('{0:N2}' -f [double]$coverage.summary.functions.pct)%</div>")
+            $html.Add("      <div class=""count"">$([int]$coverage.summary.functions.covered) / $([int]$coverage.summary.functions.total)</div>")
+            $html.Add('    </section>')
+            $html.Add('    <section class="card">')
+            $html.Add('      <h2>Branches</h2>')
+            $html.Add("      <div class=""pct"">$('{0:N2}' -f [double]$coverage.summary.branches.pct)%</div>")
+            $html.Add("      <div class=""count"">$([int]$coverage.summary.branches.covered) / $([int]$coverage.summary.branches.total)</div>")
+            $html.Add('    </section>')
+            $html.Add('    <section class="card">')
+            $html.Add('      <h2>Lines</h2>')
+            $html.Add("      <div class=""pct"">$('{0:N2}' -f [double]$coverage.summary.lines.pct)%</div>")
+            $html.Add("      <div class=""count"">$([int]$coverage.summary.lines.covered) / $([int]$coverage.summary.lines.total)</div>")
+            $html.Add('    </section>')
+            $html.Add('  </div>')
+            $html.Add('  <table>')
+            $html.Add('    <thead>')
+            $html.Add('      <tr>')
+            $html.Add('        <th>File</th>')
+            $html.Add('        <th>Functions</th>')
+            $html.Add('        <th>Functions Count</th>')
+            $html.Add('        <th>Branches</th>')
+            $html.Add('        <th>Branches Count</th>')
+            $html.Add('        <th>Lines</th>')
+            $html.Add('        <th>Lines Count</th>')
+            $html.Add('      </tr>')
+            $html.Add('    </thead>')
+            $html.Add('    <tbody>')
+            foreach ($row in $rows) {
+              $html.Add($row)
+            }
+            $html.Add('    </tbody>')
+            $html.Add('  </table>')
+            $html.Add('</body>')
+            $html.Add('</html>')
+            [System.IO.File]::WriteAllLines((Resolve-Path -LiteralPath $reportHtml), $html, [System.Text.UTF8Encoding]::new($false))
           } else {
             Write-Host 'coverageReport.json not found, skipping static report render.'
           }
