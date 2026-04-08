@@ -153,7 +153,11 @@ jobs:
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          npm install --prefer-offline
+          if (Test-Path -LiteralPath 'package.json') {
+            npm install --prefer-offline
+          } else {
+            Write-Host 'package.json not found at repository root, skipping npm install.'
+          }
 
       - name: Resolve hvigorw path
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
