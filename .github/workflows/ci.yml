@@ -249,6 +249,113 @@ jobs:
         run: |
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
+      - name: Render static coverage report
+        if: always()
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $coverageReport = 'entry/.test/default/outputs/test/reports/coverageReport.json'
+          $reportHtml = 'entry/.test/default/outputs/test/reports/index.html'
+          if (Test-Path -LiteralPath $coverageReport) {
+            $coverage = Get-Content -LiteralPath $coverageReport -Raw -Encoding utf8 | ConvertFrom-Json
+            $files = @($coverage.files | Sort-Object path)
+            $escape = [System.Net.WebUtility]
+            $rows = foreach ($file in $files) {
+              $path = $escape::HtmlEncode([string]$file.path)
+              $link = $escape::HtmlEncode([string]$file.link)
+              $linePct = '{0:N2}' -f [double]$file.summary.lines.pct
+              $funcPct = '{0:N2}' -f [double]$file.summary.functions.pct
+              $branchPct = '{0:N2}' -f [double]$file.summary.branches.pct
+              $lineCovered = [int]$file.summary.lines.covered
+              $lineTotal = [int]$file.summary.lines.total
+              $funcCovered = [int]$file.summary.functions.covered
+              $funcTotal = [int]$file.summary.functions.total
+              $branchCovered = [int]$file.summary.branches.covered
+              $branchTotal = [int]$file.summary.branches.total
+              $rowClass = if ([double]$file.summary.lines.pct -ge 70) { 'good' } elseif ([double]$file.summary.lines.pct -ge 33) { 'warn' } else { 'bad' }
+@"
+      <tr class="$rowClass">
+        <td><a href="$link">$path</a></td>
+        <td>$funcPct%</td>
+        <td>$funcCovered / $funcTotal</td>
+        <td>$branchPct%</td>
+        <td>$branchCovered / $branchTotal</td>
+        <td>$linePct%</td>
+        <td>$lineCovered / $lineTotal</td>
+      </tr>
+"@
+            }
+            $generatedAt = $escape::HtmlEncode([string]$(if ($coverage.date) { $coverage.date } else { Get-Date }))
+            $html = @"
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coverage Report</title>
+  <style>
+    body { margin: 0; padding: 24px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #f5f7fb; color: #1f2a37; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p.meta { margin: 0 0 24px; color: #6b7280; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #fff; border: 1px solid #d9e2f1; border-radius: 12px; padding: 18px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }
+    .card h2 { margin: 0 0 8px; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card .pct { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+    .card .count { color: #6b7280; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d9e2f1; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04); }
+    th, td { padding: 12px 14px; border-bottom: 1px solid #d9e2f1; text-align: left; vertical-align: top; font-size: 14px; }
+    th { background: #eef4ff; font-weight: 700; }
+    tr.good { background: #dff4e8; }
+    tr.warn { background: #fff2d8; }
+    tr.bad { background: #fde4e4; }
+    tr:last-child td { border-bottom: none; }
+    a { color: #0057b8; text-decoration: none; word-break: break-all; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>All Files Coverage</h1>
+  <p class="meta">Generated at $generatedAt</p>
+  <div class="cards">
+    <section class="card">
+      <h2>Functions</h2>
+      <div class="pct">$('{0:N2}' -f [double]$coverage.summary.functions.pct)%</div>
+      <div class="count">$([int]$coverage.summary.functions.covered) / $([int]$coverage.summary.functions.total)</div>
+    </section>
+    <section class="card">
+      <h2>Branches</h2>
+      <div class="pct">$('{0:N2}' -f [double]$coverage.summary.branches.pct)%</div>
+      <div class="count">$([int]$coverage.summary.branches.covered) / $([int]$coverage.summary.branches.total)</div>
+    </section>
+    <section class="card">
+      <h2>Lines</h2>
+      <div class="pct">$('{0:N2}' -f [double]$coverage.summary.lines.pct)%</div>
+      <div class="count">$([int]$coverage.summary.lines.covered) / $([int]$coverage.summary.lines.total)</div>
+    </section>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Functions</th>
+        <th>Functions Count</th>
+        <th>Branches</th>
+        <th>Branches Count</th>
+        <th>Lines</th>
+        <th>Lines Count</th>
+      </tr>
+    </thead>
+    <tbody>
+$($rows -join "`r`n")
+    </tbody>
+  </table>
+</body>
+</html>
+"@
+            [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $reportHtml), $html, [System.Text.UTF8Encoding]::new($false))
+          } else {
+            Write-Host 'coverageReport.json not found, skipping static report render.'
+          }
+
       - name: Publish test summary
         if: always()
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -286,28 +393,156 @@ jobs:
           name: entry-default-unit-test-report
           path: |
             entry/.test/default/intermediates/test/coverage_data/test_result.txt
-            entry/.test/default/outputs/test/reports/index.html
-            entry/.test/default/outputs/test/reports/coverageReport.json
+            entry/.test/default/outputs/test/reports
           retention-days: 7
 
   harmonyos_build:
-    name: HarmonyOS Build And Sign
-    runs-on: [self-hosted, harmonyos]
+    name: Build entry@default HAP
+    runs-on: [self-hosted, windows, harmonyos]
     needs: [checks, test_inventory, unit_test_entry_default]
-    if: false
+    if: github.event_name == 'push' && vars.HARMONYOS_CI_ENABLED == 'true'
 
     steps:
-      - name: Placeholder
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Install dependencies
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          echo "Enable this job after provisioning a self-hosted runner with the HarmonyOS toolchain."
-          echo "Expected runner labels: self-hosted, harmonyos"
-          echo "Minimum Actions Runner version for Node 24-based actions: v2.327.1"
-          echo "Typical responsibilities:"
-          echo "  1. Build unsigned HAP with hvigorw"
-          echo "  2. Copy the HAP into hapsigner/"
-          echo "  3. Generate or reuse the p7b profile"
-          echo "  4. Sign the HAP"
-          echo "  5. Upload the signed HAP artifact"
+          if (Test-Path -LiteralPath 'package.json') {
+            npm install --prefer-offline
+          } else {
+            Write-Host 'package.json not found at repository root, skipping npm install.'
+          }
+
+      - name: Resolve toolchain paths
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $candidates = @()
+          $javaCandidates = @()
+          if ($env:DEVECOSTUDIO_HOME) {
+            $candidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\hvigor\bin\hvigorw.bat')
+            $javaCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'jbr')
+          }
+          $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
+          $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
+          $ohpmCandidates = @()
+          if ($env:DEVECOSTUDIO_HOME) {
+            $ohpmCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\ohpm\bin\ohpm.bat')
+          }
+          $ohpmCandidates += 'C:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat'
+
+          $hvigorw = $null
+          foreach ($candidate in $candidates) {
+            if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+              $hvigorw = $candidate
+              break
+            }
+          }
+          if (-not $hvigorw) {
+            Write-Error 'hvigorw.bat was not found.'
+          }
+
+          $jbrHome = $null
+          foreach ($candidate in $javaCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+              $jbrHome = $candidate
+              break
+            }
+          }
+          if (-not $jbrHome) {
+            Write-Error 'DevEco Studio JBR was not found.'
+          }
+
+          $ohpmPath = $null
+          foreach ($candidate in $ohpmCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+              $ohpmPath = $candidate
+              break
+            }
+          }
+          if (-not $ohpmPath) {
+            Write-Error 'ohpm.bat was not found.'
+          }
+
+          "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
+          $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
+          New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
+          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
+          "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$npmGlobal" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install Harmony dependencies
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          if (Test-Path -LiteralPath 'oh-package.json5') {
+            & "$env:OHPM_PATH" install
+          } else {
+            Write-Host 'oh-package.json5 not found, skipping ohpm install.'
+          }
+
+      - name: Prepare pnpm for hvigor
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.27.0 --activate
+          pnpm --version
+
+      - name: Build unsigned HAP
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
+
+      - name: Sync HAP into signer workspace
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          Copy-Item -LiteralPath 'entry/build/default/outputs/default/entry-default-unsigned.hap' -Destination 'hapsigner/entry-default-unsigned.hap' -Force
+
+      - name: Sign HAP
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          Push-Location 'hapsigner'
+          try {
+            & "$env:JAVA_HOME\bin\java.exe" -jar 'hap-sign-tool.jar' sign-app `
+              -keyAlias 'openharmony application release' `
+              -signAlg 'SHA256withECDSA' `
+              -mode 'localSign' `
+              -appCertFile 'OpenHarmonyApplication.pem' `
+              -profileFile 'ohos_provision_debug.p7b' `
+              -inFile 'entry-default-unsigned.hap' `
+              -keystoreFile 'OpenHarmony.p12' `
+              -outFile 'signApp.hap' `
+              -keyPwd '123456' `
+              -keystorePwd '123456'
+          } finally {
+            Pop-Location
+          }
+
+      - name: Upload HAP artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: entry-default-hap
+          path: |
+            entry/build/default/outputs/default/entry-default-unsigned.hap
+            hapsigner/signApp.hap
+          retention-days: 7
 
   # Example self-hosted implementation reference:
   #
@@ -389,7 +624,7 @@ jobs:
           echo "| Checks | ${{ needs.checks.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Test Inventory | ${{ needs.test_inventory.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| entry@default Unit Tests | ${{ needs.unit_test_entry_default.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| HarmonyOS Build | ${{ needs.harmonyos_build.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build entry@default HAP | ${{ needs.harmonyos_build.result }} |" >> "$GITHUB_STEP_SUMMARY"
 
           if [[ "${{ needs.checks.result }}" == "failure" ]] || \
              [[ "${{ needs.test_inventory.result }}" == "failure" ]] || \

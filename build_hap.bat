@@ -4,39 +4,41 @@ set "SCRIPT_DIR=%~dp0"
 set "PROJECT_DIR=%SCRIPT_DIR:~0,-1%"
 set "SRC_HAP=entry\build\default\outputs\default\entry-default-unsigned.hap"
 set "DST_HAP=hapsigner\entry-default-unsigned.hap"
-set "HVIGOR_BIN="
+set "HVIGORW_CMD="
 set "IDE_HOME="
-
-if defined JAVA_HOME (
-  set "PATH=%JAVA_HOME%\bin;%PATH%"
-)
 
 if not defined IDE_HOME if defined DEVECOSTUDIO_HOME (
   set "IDE_HOME=%DEVECOSTUDIO_HOME%"
 )
 
-if not defined IDE_HOME if exist "%ProgramFiles%\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat" (
-  set "IDE_HOME=%ProgramFiles%\Huawei\DevEco Studio"
-)
-
-if not defined IDE_HOME if exist "%ProgramFiles(x86)%\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat" (
-  set "IDE_HOME=%ProgramFiles(x86)%\Huawei\DevEco Studio"
+if not defined IDE_HOME if exist "C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat" (
+  set "IDE_HOME=C:\Program Files\Huawei\DevEco Studio"
 )
 
 if not defined IDE_HOME if defined JAVA_HOME (
   for %%I in ("%JAVA_HOME%\..") do set "IDE_HOME=%%~fI"
 )
 
-if defined IDE_HOME if exist "%IDE_HOME%\tools\hvigor\bin\hvigorw.bat" (
-  set "HVIGOR_BIN=%IDE_HOME%\tools\hvigor\bin"
-  set "PATH=%HVIGOR_BIN%;%PATH%"
+if not defined JAVA_HOME if defined IDE_HOME if exist "%IDE_HOME%\jbr\bin\java.exe" (
+  set "JAVA_HOME=%IDE_HOME%\jbr"
+)
+
+if not defined HVIGORW_CMD if defined IDE_HOME if exist "%IDE_HOME%\tools\hvigor\bin\hvigorw.bat" (
+  set "HVIGORW_CMD=%IDE_HOME%\tools\hvigor\bin\hvigorw.bat"
+)
+
+if not defined HVIGORW_CMD if exist "C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat" (
+  set "HVIGORW_CMD=C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat"
+)
+
+if defined JAVA_HOME (
+  set "PATH=%JAVA_HOME%\bin;%PATH%"
 )
 
 cd /d "%PROJECT_DIR%"
 
 echo [1/2] Building unsigned HAP...
-where hvigorw >nul 2>nul
-if errorlevel 1 (
+if not defined HVIGORW_CMD (
   echo hvigorw not found. Please ensure DevEco Studio is installed, for example:
   echo   C:\Program Files\Huawei\DevEco Studio
   echo Or set DEVECOSTUDIO_HOME / JAVA_HOME before running this script.
@@ -44,7 +46,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-call hvigorw assembleHap --mode module -p product=default -p module=entry@default
+call "%HVIGORW_CMD%" assembleHap --mode module -p product=default -p module=entry@default
 if errorlevel 1 (
   echo Build failed with exit code %ERRORLEVEL%.
   endlocal
