@@ -88,7 +88,7 @@ export class FirewallDialogStrings {
   // 标题
   static readonly ADD_RULE_TITLE: string = '新增规则'
   static readonly EDIT_RULE_TITLE: string = '编辑规则'
-  static readonly USER_FIREWALL_TITLE: string = '选择弹窗'
+  static readonly USER_FIREWALL_TITLE: string = '模式下发'
   
   // 标签
   static readonly RULE_NAME: string = '规则名称'
