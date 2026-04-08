@@ -25,10 +25,10 @@ export default class OpenHarmonyTestRunner implements TestRunner {
   async onRun(): Promise<void> {
     TestLogUtils.info(TAG, 'onRun start')
 
-    let abilityDelegatorArguments = abilityDelegatorRegistry.getArguments()
+    const args = abilityDelegatorRegistry.getArguments()
     let abilityDelegator = abilityDelegatorRegistry.getAbilityDelegator()
+    const testAbilityName = 'TestAbility'
 
-    let testAbilityName = abilityDelegatorArguments.parameters['-p'] + '.TestAbility'
     TestLogUtils.info(TAG, 'testAbilityName: %{public}s', testAbilityName)
 
     let lMonitor: abilityDelegatorRegistry.AbilityMonitor = {
@@ -37,10 +37,12 @@ export default class OpenHarmonyTestRunner implements TestRunner {
     }
     abilityDelegator.addAbilityMonitor(lMonitor, addAbilityMonitorCallback)
 
-    let cmd = 'aa start -a TestAbility -b ' + abilityDelegatorArguments.bundleName
-    TestLogUtils.info(TAG, 'cmd: %{public}s', cmd)
-
-    await abilityDelegator.executeShellCommand(cmd, 5000)
+    TestLogUtils.info(TAG, 'start ability: %{public}s/%{public}s', args.bundleName, testAbilityName)
+    abilityDelegator.startAbility({
+      bundleName: args.bundleName,
+      abilityName: testAbilityName
+    }, (_err, _data) => {
+    })
 
     TestLogUtils.info(TAG, 'onRun end')
   }

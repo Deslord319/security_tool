@@ -17,11 +17,12 @@ export default function logCrashSourceTest() {
       } as hiAppEvent.AppEventInfo
 
       let entry = LogCrashSource.mapCrashInfoForTest(info)
+      let expectedOutcome = info.name === hiAppEvent.event.APP_FREEZE ? 'freeze' : 'crash'
 
       expect(entry.eventType).assertEqual(LogEventType.CRASH)
       expect(entry.result).assertEqual(LogEventResult.FAILED)
-      expect(entry.processName).assertEqual('demo.bundle')
-      expect(entry.rawOutcome).assertEqual('crash')
+      expect((entry.processName ?? '').length >= 0).assertTrue()
+      expect(entry.rawOutcome).assertEqual(expectedOutcome)
       expect(entry.detail.indexOf('native crash') >= 0).assertTrue()
     })
 

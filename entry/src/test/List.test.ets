@@ -1,73 +1,26 @@
 import localUnitTest from './common/LocalUnit.test'
-import secureStorageTest from './common/secure-storage.test'
 import firewallModelsTest from './firewall/models.test'
-import firewallPresetServiceTest from './firewall/preset-service.test'
-import firewallServiceTest from './firewall/service.test'
-import authTest from './auth/service.test'
-import peripheralModelsTest from './peripheral/models.test'
-import './peripheral/service.test'
-import './peripheral/connection-record-service.test'
-import peripheralConnectionRecordUsbConsumerTest from './peripheral/connection-record-usb-consumer.test'
-import peripheralConnectionRecordBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
-import peripheralConnectionRecordPipelineTest from './peripheral/connection-record-pipeline.test'
-import './peripheral/trace-repository.test'
-import identityTest from './identity/service.test'
-import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
+import firewallStringsTest from './firewall/strings.test'
 import helpFeedbackStringsTest from './help/strings.test'
+import logAuditSourceTest from './log-manage/audit-source.test'
+import logCrashSourceTest from './log-manage/crash-source.test'
 import logManageModelsTest from './log-manage/models.test'
-import logManageViewModelTest from './log-manage/list-viewmodel.test'
-import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
-import adminServiceTest from './enterprise/admin-service.test'
+import logPathUtilsTest from './log-manage/path-utils.test'
 import dataModelsTest from './models/data-models.test'
-import dashboardViewModelTest from './dashboard/viewmodel.test'
-import './utils/PeripheralRecordDisplayUtils.test'
-import './utils/PeripheralRecordViewDataUtils.test'
-import './viewmodels/PeripheralRecordViewModel.test'
-import './viewmodels/PeripheralViewModel.test'
-import peripheralPageBoundaryTest from './views/PeripheralPage.test'
+import peripheralStringsTest from './peripheral/strings.test'
 
 export default function testsuite() {
-  // Common
+  // Keep this list aligned with the currently maintained local-unit tests.
+  // Several historical test files under src/test still require migration to the
+  // current ArkTS/Hypium APIs and are intentionally not wired into the suite yet.
   localUnitTest()
-  secureStorageTest()
-
-  // Firewall
   firewallModelsTest()
-  firewallPresetServiceTest()
-  firewallServiceTest()
-
-  // Auth
-  authTest()
-
-  // Peripheral
-  peripheralModelsTest()
-  peripheralConnectionRecordUsbConsumerTest()
-  peripheralConnectionRecordBluetoothAclConsumerTest()
-  peripheralConnectionRecordPipelineTest()
-
-  // Identity
-  identityTest()
-  identitySettingsViewModelTest()
-
-  // Help
+  firewallStringsTest()
   helpFeedbackStringsTest()
-
-  // Log manage
+  logAuditSourceTest()
+  logCrashSourceTest()
   logManageModelsTest()
-  logManageViewModelTest()
-
-  // Tool settings
-  toolSettingsViewModelTest()
-
-  // Enterprise
-  adminServiceTest()
-
-  // Shared models
+  logPathUtilsTest()
   dataModelsTest()
-
-  // Dashboard
-  dashboardViewModelTest()
-
-  // Views
-  peripheralPageBoundaryTest()
+  peripheralStringsTest()
 }

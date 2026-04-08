@@ -3,9 +3,9 @@ import { FirewallStrings } from '../../main/ets/constants/modules/FirewallString
 
 export default function firewallStringsTest() {
   describe('FirewallStrings', () => {
-    it('should keep commercial page subtitles stable', 0, () => {
-      expect(FirewallStrings.pageSubtitle).assertEqual('统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则。')
-      expect(FirewallStrings.customRulesSubtitle).assertEqual('自定义防火墙规则，保存后自动下发')
+    it('should keep current page copy populated and scoped to custom rules', 0, () => {
+      expect(FirewallStrings.pageSubtitle).assertEqual('统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则')
+      expect(FirewallStrings.customRulesSubtitle).assertEqual('当前页面只维护自定义模式规则，保存后会重新下发整套自定义策略')
     })
 
     it('should expose preset mode titles and descriptions for each scenario', 0, () => {

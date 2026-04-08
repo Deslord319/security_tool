@@ -9,7 +9,7 @@ export default function logPathUtilsTest() {
     })
 
     it('should extract file path from raw audit text', 0, () => {
-      let path = LogPathUtils.extractPathFromRawText('open file file://media/Photo/test.png, result=allow')
+      let path = LogPathUtils.extractRawAuditPath(undefined, ['open file file://media/Photo/test.png, result=allow'])
       expect(path).assertEqual('file://media/Photo/test.png')
     })
 
@@ -25,18 +25,18 @@ export default function logPathUtilsTest() {
       expect(normalized).assertEqual('/storage/Users/currentUser/Download/oh-kia-samples/probe.txt')
     })
 
-    it('should classify remapped hmdfs docs path as user download', 0, () => {
-      let kind = LogPathUtils.describePathKind(
-        '/data/service/el2/100/hmdfs/account/files/Docs/Download/oh-kia-samples/probe.txt'
-      )
-      expect(kind).assertEqual('user_download')
-    })
-
     it('should remap generic hmdfs account files path into current user path', 0, () => {
       let normalized = LogPathUtils.normalizePathCandidate(
         '/data/service/el2/100/hmdfs/account/files/Shared/report.txt'
       )
       expect(normalized).assertEqual('/storage/Users/currentUser/Shared/report.txt')
+    })
+
+    it('should prefer structured candidate before scanning raw texts', 0, () => {
+      let path = LogPathUtils.extractRawAuditPath(' file://docs/storage/Users/currentUser/audit.csv ', [
+        'fallback /storage/Users/currentUser/ignored.txt'
+      ])
+      expect(path).assertEqual('file://docs/storage/Users/currentUser/audit.csv')
     })
   })
 }

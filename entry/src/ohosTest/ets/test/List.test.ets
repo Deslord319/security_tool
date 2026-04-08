@@ -16,7 +16,11 @@ export default function testsuite() {
     return
   }
 
-  // Keep a minimal smoke case for non-route invocations.
+  if (mode === 'peripheral_contract' || argsText.indexOf('peripheral_contract') >= 0) {
+    peripheralConnectionRecordContractTest()
+    return
+  }
+
+  // Keep the default device-side suite to a single stable smoke case.
   abilityTest()
-  peripheralConnectionRecordContractTest()
 }

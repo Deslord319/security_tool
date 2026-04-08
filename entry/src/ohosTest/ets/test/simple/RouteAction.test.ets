@@ -97,8 +97,8 @@ async function ensureTheme(driver: Driver, targetTheme: ThemeId): Promise<void> 
   await driver.delayMs(400)
 
   const expectedMarkerId = targetTheme === 'dark' ? 'theme-marker-dark' : 'theme-marker-light'
-  const applied = await driver.exists(ON.id(expectedMarkerId))
-  expect(applied).assertTrue()
+  const appliedMarker = await driver.findComponent(ON.id(expectedMarkerId))
+  expect(appliedMarker !== null).assertTrue()
 }
 
 export default function routeActionTest() {
