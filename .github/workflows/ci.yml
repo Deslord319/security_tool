@@ -151,12 +151,12 @@ jobs:
           distribution: temurin
 
       - name: Install dependencies
-        shell: powershell
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           npm install --prefer-offline
 
       - name: Resolve hvigorw path
-        shell: powershell
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
@@ -180,13 +180,13 @@ jobs:
           Write-Host "Using hvigorw: $hvigorw"
 
       - name: Run entry@default tests
-        shell: powershell
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
       - name: Publish test summary
         if: always()
-        shell: powershell
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $testResult = 'entry/.test/default/intermediates/test/coverage_data/test_result.txt'
           $coverageReport = 'entry/.test/default/outputs/test/reports/coverageReport.json'
