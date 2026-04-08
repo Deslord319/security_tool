@@ -163,10 +163,13 @@ jobs:
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
+          $javaCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $candidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\hvigor\bin\hvigorw.bat')
+            $javaCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'jbr')
           }
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
+          $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
 
           $hvigorw = $null
           foreach ($candidate in $candidates) {
@@ -180,8 +183,23 @@ jobs:
             Write-Error 'hvigorw.bat was not found. Set DEVECOSTUDIO_HOME or install DevEco Studio under C:\Program Files\Huawei\DevEco Studio.'
           }
 
+          $jbrHome = $null
+          foreach ($candidate in $javaCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+              $jbrHome = $candidate
+              break
+            }
+          }
+
+          if (-not $jbrHome) {
+            Write-Error 'DevEco Studio JBR was not found.'
+          }
+
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
+          Write-Host "Using JAVA_HOME: $jbrHome"
 
       - name: Run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
