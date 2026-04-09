@@ -2,6 +2,7 @@ import localUnitTest from './common/LocalUnit.test'
 import secureStorageTest from './common/secure-storage.test'
 import authServiceTest from './auth/service.test'
 import dashboardViewModelTest from './dashboard/viewmodel.test'
+import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import firewallAuthServiceTest from './firewall/auth-service.test'
 import firewallModelsTest from './firewall/models.test'
@@ -45,6 +46,7 @@ export default function testsuite() {
   localUnitTest()
   secureStorageTest()
   authServiceTest()
+  entryAbilityTest()
   dashboardViewModelTest()
   adminServiceTest()
   firewallAuthServiceTest()

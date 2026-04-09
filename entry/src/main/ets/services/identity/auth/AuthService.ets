@@ -4,6 +4,7 @@ import { userAuth } from '@kit.UserAuthenticationKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { AuthMethod } from '../../../models/DataModels'
 import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
+import { UserAuthAdapter } from './UserAuthAdapter'
 
 const TAG = 'AuthService'
 
@@ -33,7 +34,7 @@ export class AuthService {
     }
 
     try {
-      userAuth.getAvailableStatus(authType, userAuth.AuthTrustLevel.ATL1)
+      UserAuthAdapter.getAvailableStatus(authType)
       return {
         available: true,
         message: IdentityStrings.authSystemAvailable
@@ -89,7 +90,10 @@ export class AuthService {
         title: IdentityStrings.authDialogTitle
       }
 
-      let userAuthInstance = userAuth.getUserAuthInstance(authParam, widgetParam)
+      let userAuthInstance = UserAuthAdapter.getUserAuthInstance({
+        authParam: authParam,
+        widgetParam: widgetParam
+      })
 
       return new Promise<AuthExecutionResult>((resolve) => {
         try {
