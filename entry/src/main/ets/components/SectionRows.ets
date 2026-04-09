@@ -1,10 +1,7 @@
-import { LogUtils } from '../utils/LogUtils'
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 import { FormControlUtils } from '../utils/FormControlUtils'
-
-const TAG = 'SectionRows'
 
 @ComponentV2
 export struct SectionToggleRow {
@@ -52,77 +49,8 @@ export struct SectionSelectRow {
   @Param value: string = ''
   @Param selectWidth: number = 140
   @Param processing: boolean = false
-  @Param optimistic: boolean = false
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelect: (index: number) => void = () => {}
-  @Param onSelectAsync: ((nextIndex: number, previousIndex: number) => Promise<boolean>) | undefined = undefined
-  @Local private displayIndex: number = 0
-  @Local private isAsyncPending: boolean = false
-
-  aboutToAppear(): void {
-    this.displayIndex = this.selectedIndex
-  }
-
-  private getDisplayValue(): string {
-    const selectedOption = this.options[this.displayIndex]
-    if (selectedOption && typeof selectedOption.value === 'string') {
-      return selectedOption.value
-    }
-    return this.value
-  }
-
-  private getEffectiveIndex(): number {
-    return this.isAsyncPending ? this.displayIndex : this.selectedIndex
-  }
-
-  private async handleSelectChange(index: number): Promise<void> {
-    const nextIndex = index
-    const previousIndex = this.displayIndex
-    if (nextIndex === previousIndex) {
-      return
-    }
-
-    if (!this.onSelectAsync) {
-      this.displayIndex = nextIndex
-      this.onSelect(nextIndex)
-      return
-    }
-
-    this.isAsyncPending = true
-    if (this.optimistic) {
-      this.displayIndex = nextIndex
-    }
-    LogUtils.info(TAG,
-      'select async start: title=%{public}s, previousIndex=%{public}d, nextIndex=%{public}d',
-      this.title,
-      previousIndex,
-      nextIndex
-    )
-
-    let success = false
-    try {
-      success = await this.onSelectAsync(nextIndex, previousIndex)
-    } catch (err) {
-      LogUtils.error(TAG, 'select async exception: title=%{public}s, error=%{public}s', this.title, JSON.stringify(err))
-    }
-
-    this.isAsyncPending = false
-    if (success) {
-      LogUtils.info(TAG, 'select async success: title=%{public}s, nextIndex=%{public}d', this.title, nextIndex)
-      if (!this.optimistic) {
-        this.displayIndex = previousIndex
-      }
-      return
-    }
-
-    this.displayIndex = previousIndex
-    LogUtils.warn(TAG,
-      'select async rollback: title=%{public}s, rollbackIndex=%{public}d, failedIndex=%{public}d',
-      this.title,
-      previousIndex,
-      nextIndex
-    )
-  }
 
   build() {
     Row() {
@@ -143,8 +71,8 @@ export struct SectionSelectRow {
       .layoutWeight(1)
 
       Select(this.options)
-        .selected(this.getEffectiveIndex())
-        .value(this.isAsyncPending ? this.getDisplayValue() : this.value)
+        .selected(this.selectedIndex)
+        .value(this.value)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
@@ -156,10 +84,10 @@ export struct SectionSelectRow {
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .enabled(!(this.processing || this.isAsyncPending))
-        .opacity(this.processing || this.isAsyncPending ? 0.72 : 1)
+        .enabled(!this.processing)
+        .opacity(this.processing ? 0.72 : 1)
         .onSelect((index: number) => {
-          void this.handleSelectChange(index)
+          this.onSelect(index)
         })
     }
     .width('100%')

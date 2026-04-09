@@ -1,5 +1,4 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
-import { SectionSelectRow } from '../../SectionRows'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
 import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
@@ -26,6 +25,10 @@ export struct InterfaceControlTab {
   @Event onInterfaceToggle?: (feature: string, disallow: boolean) => void
   @Event onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
   @Event onPanelHover?: (isHover: boolean) => void
+  @Local private usbStoragePending: boolean = false
+  @Local private usbStorageDisplayIndex: number = 0
+  @Local private usbStorageRollbackIndex: number = 0
+  @Local private usbStorageSuccessAwaitingParent: boolean = false
 
   build() {
     Scroll() {
@@ -88,23 +91,17 @@ export struct InterfaceControlTab {
 
   @Builder
   private storageItem() {
-    SectionSelectRow({
-      title: DeviceTypeLabels.USB_STORAGE,
-      description: PeripheralStrings.usbStorageDescription,
-      options: PeripheralStrings.usbStorageOptions.map((value: string): SelectOption => ({ value: value } as SelectOption)),
-      selectedIndex: this.usbStoragePolicyIndex,
-      value: PeripheralStrings.usbStorageOptions[this.usbStoragePolicyIndex] ?? '',
-      selectWidth: 150,
-      processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
-      optimistic: true,
-      currentTheme: this.currentTheme,
-      onSelectAsync: async (nextIndex: number, _previousIndex: number): Promise<boolean> => {
-        if (!this.onUsbStoragePolicyChange) {
-          return false
-        }
-        return await this.onUsbStoragePolicyChange(nextIndex)
+    this.controlRow(
+      DeviceTypeLabels.USB_STORAGE,
+      PeripheralStrings.usbStorageDescription,
+      PeripheralStrings.usbStorageOptions,
+      this.getUsbStorageSelectedIndex(),
+      this.interfaceControlProcessingKey === this.usbStorageControlKey || this.usbStoragePending,
+      undefined,
+      async (nextIndex: number): Promise<boolean> => {
+        return await this.handleUsbStorageSelection(nextIndex)
       }
-    })
+    )
   }
 
   @Builder
@@ -114,7 +111,8 @@ export struct InterfaceControlTab {
     options: string[],
     selectedIndex: number,
     isProcessing: boolean,
-    onSelect: (index: number) => void
+    onSelect?: (index: number) => void,
+    onSelectAsync?: (index: number) => Promise<boolean>
   ) {
     Row() {
       Column({ space: 4 }) {
@@ -154,12 +152,51 @@ export struct InterfaceControlTab {
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .enabled(!isProcessing)
           .opacity(isProcessing ? 0.72 : 1)
-          .onSelect((index: number) => onSelect(index))
+          .onSelect((index: number) => {
+            if (onSelectAsync) {
+              void onSelectAsync(index)
+              return
+            }
+            if (onSelect) {
+              onSelect(index)
+            }
+          })
       }
     }
     .width('100%')
     .padding({ left: 20, right: 20, top: 16, bottom: 16 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .opacity(isProcessing ? 0.8 : 1)
+  }
+
+  private getUsbStorageSelectedIndex(): number {
+    if (this.usbStoragePending) {
+      return this.usbStorageDisplayIndex
+    }
+    if (this.usbStorageSuccessAwaitingParent && this.usbStoragePolicyIndex === this.usbStorageRollbackIndex) {
+      return this.usbStorageDisplayIndex
+    }
+    return this.usbStoragePolicyIndex
+  }
+
+  private async handleUsbStorageSelection(nextIndex: number): Promise<boolean> {
+    const previousIndex = this.usbStoragePolicyIndex
+    if (nextIndex === previousIndex || !this.onUsbStoragePolicyChange) {
+      return false
+    }
+
+    this.usbStorageDisplayIndex = nextIndex
+    this.usbStorageRollbackIndex = previousIndex
+    this.usbStorageSuccessAwaitingParent = false
+    this.usbStoragePending = true
+    let success = false
+    try {
+      success = await this.onUsbStoragePolicyChange(nextIndex)
+      return success
+    } finally {
+      this.usbStoragePending = false
+      this.usbStorageDisplayIndex = success ? nextIndex : previousIndex
+      this.usbStorageSuccessAwaitingParent = success
+    }
   }
 }
