@@ -7,10 +7,18 @@ export interface UserAuthInstanceRequest {
 
 export class UserAuthAdapter {
   static getAvailableStatus(authType: userAuth.UserAuthType): void {
-    userAuth.getAvailableStatus(authType, userAuth.AuthTrustLevel.ATL1)
+    try {
+      userAuth.getAvailableStatus(authType, userAuth.AuthTrustLevel.ATL1)
+    } catch (err) {
+      throw err as Error
+    }
   }
 
   static getUserAuthInstance(request: UserAuthInstanceRequest): userAuth.UserAuthInstance {
-    return userAuth.getUserAuthInstance(request.authParam, request.widgetParam)
+    try {
+      return userAuth.getUserAuthInstance(request.authParam, request.widgetParam)
+    } catch (err) {
+      throw err as Error
+    }
   }
 }

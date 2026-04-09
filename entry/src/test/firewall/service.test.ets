@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallModeStrategyFactory } from '../../main/ets/services/firewall/mode-strategies/FirewallModeStrategyFactory'
 import { FirewallRepository } from '../../main/ets/services/firewall/repositories/FirewallRepository'
+import { FirewallUserDispatchService } from '../../main/ets/services/firewall/user-dispatch/FirewallUserDispatchService'
 import { FirewallStore } from '../../main/ets/services/firewall/stores/FirewallStore'
 
 function createPolicy(isOpen: boolean, inAction: number, outAction: number): netFirewall.NetFirewallPolicy {
@@ -146,5 +147,90 @@ export default function firewallServiceTest() {
       expect(result.enabled).assertTrue()
       expect(result.currentMode).assertEqual('private')
     })
+
+    it('should list custom rules from store after initialization', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let rules = [
+        createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
+      ]
+      let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
+      let listMock = mockKit.mockFunc(FirewallStore, FirewallStore.listCustomRules)
+      when(initializeMock)(context).afterReturn(undefined)
+      when(listMock)(context).afterReturn(rules)
+
+      let result = await FirewallService.listCustomRules(context)
+
+      expect(result.length).assertEqual(1)
+      expect(result[0].name).assertEqual('rule-a')
+    })
+
+    it('should delegate loading user options through dispatch service', 0, async () => {
+      let loadUserOptionsMock = mockKit.mockFunc(FirewallUserDispatchService, FirewallUserDispatchService.loadUserOptions)
+      when(loadUserOptionsMock)().afterReturn([
+        { userId: 100, label: 'owner' },
+        { userId: 101, label: 'guest' }
+      ])
+
+      let options = await FirewallService.loadUserOptions()
+
+      expect(options.length).assertEqual(2)
+      expect(options[1].label).assertEqual('guest')
+    })
+
+    it('should delegate repository operations through service facade', 0, async () => {
+      let rule = createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
+      let policy = createPolicy(true, 0, 1)
+      let getPolicyMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicy)
+      let getAllRulesMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getAllRules)
+      let setEnabledMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.setFirewallEnabled)
+      let setPolicyMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.setFirewallPolicy)
+      let addRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.addRule)
+      let removeRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.removeRule)
+      let updateRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.updateRule)
+      let addRulesMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.addRules)
+      let clearAllRulesMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.clearAllRules)
+      when(getPolicyMock)().afterReturn(policy)
+      when(getAllRulesMock)().afterReturn([rule])
+      when(setEnabledMock)(true).afterReturn(true)
+      when(setPolicyMock)(policy).afterReturn(true)
+      when(addRuleMock)(rule).afterReturn(8)
+      when(removeRuleMock)(1).afterReturn(true)
+      when(updateRuleMock)(rule).afterReturn(true)
+      when(addRulesMock)(ArgumentMatchers.anyObj).afterReturn(true)
+      when(clearAllRulesMock)().afterReturn(true)
+
+      expect((await FirewallService.getFirewallPolicy())?.isOpen ?? false).assertTrue()
+      expect((await FirewallService.getAllRules()).length).assertEqual(1)
+      expect(await FirewallService.setFirewallEnabled(true)).assertTrue()
+      expect(await FirewallService.setFirewallPolicy(policy)).assertTrue()
+      expect(await FirewallService.addRule(rule)).assertEqual(8)
+      expect(await FirewallService.removeRule(1)).assertTrue()
+      expect(await FirewallService.updateRule(rule)).assertTrue()
+      expect(await FirewallService.addRules([rule])).assertTrue()
+      expect(await FirewallService.clearAllRules()).assertTrue()
+    })
+
+    it('should replace rule only after old rule removal succeeds', 0, async () => {
+      let rule = createRule(2, 'rule-b', netFirewall.NetFirewallRuleType.RULE_DOMAIN, netFirewall.NetFirewallRuleDirection.RULE_OUT, 1)
+      let removeRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.removeRule)
+      let addRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.addRule)
+      when(removeRuleMock)(2).afterReturn(true)
+      when(addRuleMock)(rule).afterReturn(9)
+
+      let result = await FirewallRepository.replaceRule(2, rule)
+
+      expect(result).assertEqual(9)
+    })
+
+    it('should fail replace rule when old rule removal fails', 0, async () => {
+      let rule = createRule(3, 'rule-c', netFirewall.NetFirewallRuleType.RULE_DOMAIN, netFirewall.NetFirewallRuleDirection.RULE_OUT, 1)
+      let removeRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.removeRule)
+      when(removeRuleMock)(3).afterReturn(false)
+
+      let result = await FirewallRepository.replaceRule(3, rule)
+
+      expect(result).assertEqual(-1)
+    })
+
   })
 }
