@@ -6,6 +6,7 @@ set "SRC_HAP=entry\build\default\outputs\default\entry-default-unsigned.hap"
 set "DST_HAP=hapsigner\entry-default-unsigned.hap"
 set "HVIGORW_CMD="
 set "IDE_HOME="
+set "JAVA_BIN_DIR="
 
 if not defined IDE_HOME if defined DEVECOSTUDIO_HOME (
   set "IDE_HOME=%DEVECOSTUDIO_HOME%"
@@ -19,8 +20,10 @@ if not defined IDE_HOME if defined JAVA_HOME (
   for %%I in ("%JAVA_HOME%\..") do set "IDE_HOME=%%~fI"
 )
 
-if not defined JAVA_HOME if defined IDE_HOME if exist "%IDE_HOME%\jbr\bin\java.exe" (
-  set "JAVA_HOME=%IDE_HOME%\jbr"
+if defined IDE_HOME if exist "%IDE_HOME%\jbr\bin\java.exe" (
+  set "JAVA_BIN_DIR=%IDE_HOME%\jbr\bin"
+) else if defined JAVA_HOME if exist "%JAVA_HOME%\bin\java.exe" (
+  set "JAVA_BIN_DIR=%JAVA_HOME%\bin"
 )
 
 if not defined HVIGORW_CMD if defined IDE_HOME if exist "%IDE_HOME%\tools\hvigor\bin\hvigorw.bat" (
@@ -31,8 +34,8 @@ if not defined HVIGORW_CMD if exist "C:\Program Files\Huawei\DevEco Studio\tools
   set "HVIGORW_CMD=C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat"
 )
 
-if defined JAVA_HOME (
-  set "PATH=%JAVA_HOME%\bin;%PATH%"
+if defined JAVA_BIN_DIR (
+  set "PATH=%JAVA_BIN_DIR%;C:\Windows\System32;C:\Windows;%PATH%"
 )
 
 cd /d "%PROJECT_DIR%"
@@ -46,11 +49,11 @@ if not defined HVIGORW_CMD (
   exit /b 1
 )
 
-call "%HVIGORW_CMD%" assembleHap --mode module -p product=default -p module=entry@default
+call "%HVIGORW_CMD%" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 if errorlevel 1 (
-  echo Build failed with exit code %ERRORLEVEL%.
-  endlocal
-  exit /b %ERRORLEVEL%
+  echo hvigor assembleHap failed with exit code %ERRORLEVEL%.
+  echo Official PackageHap did not complete. Stop here to avoid producing an invalid HAP.
+  goto :build_fail
 )
 
 if not exist "%SRC_HAP%" (
@@ -73,3 +76,9 @@ for %%I in ("%SRC_HAP%") do echo SRC %%~fI ^| size=%%~zI ^| time=%%~tI
 for %%I in ("%DST_HAP%") do echo DST %%~fI ^| size=%%~zI ^| time=%%~tI
 
 endlocal
+exit /b 0
+
+:build_fail
+echo Build failed.
+endlocal
+exit /b 1

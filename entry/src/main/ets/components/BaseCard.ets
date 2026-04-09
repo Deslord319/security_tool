@@ -5,6 +5,7 @@ import { HoverUtils } from '../utils/HoverUtils'
 @ComponentV2
 export struct BaseCard {
   @Param cardHeight: number = 132
+  @Param useAutoHeight: boolean = false
   @Param clickable: boolean = false
   @Param hoverable: boolean = true
   @Param disabled: boolean = false
@@ -42,7 +43,7 @@ export struct BaseCard {
     Stack() {
       Column()
         .width('100%')
-        .height('100%')
+        .height(this.useAutoHeight ? 'auto' : '100%')
         .linearGradient({
           angle: this.overlayAngle,
           colors: [
@@ -54,7 +55,7 @@ export struct BaseCard {
       this.content()
     }
     .width('100%')
-    .height(this.cardHeight)
+    .height(this.useAutoHeight ? 'auto' : this.cardHeight)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .border({

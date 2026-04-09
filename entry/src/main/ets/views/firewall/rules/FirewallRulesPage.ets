@@ -5,7 +5,9 @@ import { CommonLabelStrings, EmptyStateStrings, FirewallDialogStrings, FirewallR
 import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
 import { AddRuleDialog } from '../../../components/firewall/rules/AddRuleDialog'
 import { UserFirewallControlDialog } from '../../../components/firewall/user-dispatch/UserFirewallControlDialog'
+import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { SubPageHeader } from '../../../components/SubPageHeader'
+import { BaseCard } from '../../../components/BaseCard'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { netFirewall } from '@kit.NetworkKit'
 
@@ -16,6 +18,7 @@ import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 
 const TAG = 'FirewallRulesPage'
+const RULE_CARD_WIDTH_PERCENT = '100%'
 
 @ComponentV2
 export struct FirewallRulesPage {
@@ -383,16 +386,16 @@ export struct FirewallRulesPage {
       Text(title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(this.rulesViewModel.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
-        .fontColor(this.rulesViewModel.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(this.rulesViewModel.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
       Text(`${this.getTabCount(index)}`)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.rulesViewModel.currentTab === index ? Color.White : AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(this.rulesViewModel.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.SPACING_CHIP / 2, bottom: AppStyles.SPACING_CHIP / 2 })
-        .backgroundColor(this.rulesViewModel.currentTab === index ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).BG_COMPONENT)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
         .borderRadius(10)
     }
     .padding({ left: AppStyles.SPACING_TAB_BAR_PADDING, right: AppStyles.SPACING_TAB_BAR_PADDING, top: AppStyles.SPACING_CHIP, bottom: AppStyles.SPACING_CHIP })
@@ -533,89 +536,96 @@ export struct FirewallRulesPage {
         List({ space: 12 }) {
           ForEach(this.getFilteredRules(), (rule: netFirewall.NetFirewallRule) => {
             ListItem() {
-              Column({ space: 14 }) {
-                Row({ space: 12 }) {
-                  Column() {
-                    Image(this.getRuleIcon(rule.type))
-                      .width(18)
-                      .height(18)
-                      .fillColor(Color.White)
-                      .draggable(false)
-                  }
-                  .width(40)
-                  .height(40)
-                  .borderRadius(12)
-                  .justifyContent(FlexAlign.Center)
-                  .alignItems(HorizontalAlign.Center)
-                  .backgroundColor(this.getRuleTypeTextColor(rule.type))
-
-                  Column({ space: 6 }) {
-                    Text(rule.name ?? '-')
-                      .fontSize(AppStyles.FONT_SIZE_BODY)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                    Row({ space: 8 }) {
-                      Text(this.getRuleTypeLabel(rule.type))
-                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                        .fontColor(this.getRuleTypeTextColor(rule.type))
-                        .backgroundColor(this.getRuleTypeBgColor(rule.type))
-                        .borderRadius(10)
-                        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-
-                      Text(this.getDirectionLabel(rule.direction))
-                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                        .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
-                        .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
-                        .borderRadius(10)
-                        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-
-                      Text(this.getActionLabel(rule.action))
-                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                        .fontColor(this.getActionTextColor(rule.action))
-                        .backgroundColor(this.getActionBgColor(rule.action))
-                        .borderRadius(10)
-                        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
+              Row() {
+                Column() {
+                  BaseCard({
+                    useAutoHeight: true,
+                    clickable: true,
+                    currentTheme: this.currentTheme,
+                    onPress: () => {
+                      this.openEditRuleDialog(rule)
                     }
-                  }
-                  .layoutWeight(1)
-                  .alignItems(HorizontalAlign.Start)
+                  }) {
+                    Column({ space: 14 }) {
+                      Row({ space: 12 }) {
+                        Column() {
+                          Image(this.getRuleIcon(rule.type))
+                            .width(18)
+                            .height(18)
+                            .fillColor(Color.White)
+                            .draggable(false)
+                        }
+                        .width(40)
+                        .height(40)
+                        .borderRadius(12)
+                        .justifyContent(FlexAlign.Center)
+                        .alignItems(HorizontalAlign.Center)
+                        .backgroundColor(this.getRuleTypeTextColor(rule.type))
 
-                  Row({ space: 8 }) {
-                    Button(CommonStrings.actionDelete)
-                      .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                      .fontColor(AppColors.DANGER)
-                      .backgroundColor(ActionButtonStyles.getDangerBackground(this.currentTheme, false))
-                      .borderRadius(AppStyles.RADIUS_SM)
-                      .height(30)
-                      .onClick(() => {
-                        this.handleDeleteRule(rule)
-                      })
+                        Column({ space: 6 }) {
+                          Text(rule.name ?? '-')
+                            .fontSize(AppStyles.FONT_SIZE_BODY)
+                            .fontWeight(FontWeight.Medium)
+                            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                            .maxLines(1)
+                            .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                          Row({ space: 8 }) {
+                            Text(this.getRuleTypeLabel(rule.type))
+                              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                              .fontColor(this.getRuleTypeTextColor(rule.type))
+                              .backgroundColor(this.getRuleTypeBgColor(rule.type))
+                              .borderRadius(10)
+                              .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
+
+                            Text(this.getDirectionLabel(rule.direction))
+                              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                              .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
+                              .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
+                              .borderRadius(10)
+                              .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
+
+                            Text(this.getActionLabel(rule.action))
+                              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                              .fontColor(this.getActionTextColor(rule.action))
+                              .backgroundColor(this.getActionBgColor(rule.action))
+                              .borderRadius(10)
+                              .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
+                          }
+                        }
+                        .layoutWeight(1)
+                        .alignItems(HorizontalAlign.Start)
+
+                        Row({ space: 8 }) {
+                          Button(CommonStrings.actionDelete)
+                            .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                            .fontColor(AppColors.DANGER)
+                            .backgroundColor(ActionButtonStyles.getDangerBackground(this.currentTheme, false))
+                            .borderRadius(AppStyles.RADIUS_SM)
+                            .height(30)
+                            .onClick(() => {
+                              this.handleDeleteRule(rule)
+                            })
+                        }
+                      }
+                      .width('100%')
+
+                      Column({ space: 10 }) {
+                        this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule))
+                        this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule))
+                        this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule))
+                        this.detailRow(FirewallDialogStrings.PROTOCOL, this.getProtocolLabel(rule))
+                      }
+                      .width('100%')
+                    }
+                    .width('100%')
+                    .padding(AppStyles.PADDING_XL)
                   }
                 }
-                .width('100%')
-
-                Column({ space: 10 }) {
-                  this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule))
-                  this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule))
-                  this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule))
-                  this.detailRow(FirewallDialogStrings.PROTOCOL, this.getProtocolLabel(rule))
-                }
-                .width('100%')
+                .width(RULE_CARD_WIDTH_PERCENT)
               }
               .width('100%')
-              .padding(AppStyles.PADDING_XL)
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-              .borderRadius(AppStyles.RADIUS_LG)
-              .border({
-                width: 1,
-                color: AppColors.getColors(this.currentTheme).BORDER
-              })
-              .onClick(() => {
-                this.openEditRuleDialog(rule)
-              })
+              .justifyContent(FlexAlign.Center)
             }
           })
         }
@@ -653,32 +663,25 @@ export struct FirewallRulesPage {
   @Builder
   private headerActions() {
     Row({ space: 12 }) {
-      Button(FirewallStrings.userIdControlButton)
-        .type(ButtonType.Normal)
-        .height(36)
-        .padding({ left: 14, right: 14 })
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.BRAND_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .borderRadius(AppStyles.RADIUS_MD)
-        .border({
-          width: 1,
-          color: AppColors.getColors(this.currentTheme).BORDER
-        })
-        .onClick(() => {
+      IconTextActionButton({
+        label: FirewallStrings.userIdControlButton,
+        icon: $r('app.media.settings'),
+        kind: 'primary',
+        currentTheme: this.currentTheme,
+        onTap: () => {
           this.openUserFirewallDialog()
-        })
+        }
+      })
 
-      Button(FirewallStrings.addRuleButton)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(Color.White)
-        .backgroundColor(AppColors.BRAND_PRIMARY)
-        .borderRadius(AppStyles.RADIUS_MD)
-        .height(36)
-        .onClick(() => {
+      IconTextActionButton({
+        label: FirewallStrings.addRuleButton,
+        icon: $r('app.media.firewall'),
+        kind: 'primary',
+        currentTheme: this.currentTheme,
+        onTap: () => {
           this.addRuleDialogController.open()
-        })
+        }
+      })
     }
   }
 
