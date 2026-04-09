@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { OperationResult } from '../../main/ets/models/DataModels'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
@@ -37,10 +37,10 @@ export default function interfaceControlViewModelTest() {
   })
 
   it('should toggle interface successfully', 0, async (done: Function) => {
-    let setUsbInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbInterfaceDisabledWithCleanupAsync)
+    let setUsbInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
     let setResult = new VoidOperationResult()
     setResult.success = true
-    when(setUsbInterfaceMock)(true).afterReturn(setResult)
+    when(setUsbInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 
@@ -50,11 +50,11 @@ export default function interfaceControlViewModelTest() {
   })
 
   it('should surface failure stage for interface toggle', 0, async (done: Function) => {
-    let setUsbInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbInterfaceDisabledWithCleanupAsync)
+    let setUsbInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
     let setResult = new VoidOperationResult()
     setResult.success = false
     setResult.stage = 'read_usb_status'
-    when(setUsbInterfaceMock)(true).afterReturn(setResult)
+    when(setUsbInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 
