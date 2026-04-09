@@ -1,7 +1,7 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralExportStrings, PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
   PeripheralConnectionRecord,
@@ -44,9 +44,15 @@ export class PeripheralRecordState {
 export class PeripheralRecordViewModel {
   @Trace state: PeripheralRecordState = new PeripheralRecordState()
 
-  reloadRecords(): void {
+  async reloadRecords(): Promise<void> {
     try {
-      this.state.records = PeripheralConnectionRecordService.queryRecords()
+      this.state.records = await PeripheralConnectionRecordService.queryRecords()
+      if (this.state.connectionDetailDialog.visible && this.state.connectionDetailDialog.record) {
+        this.state.connectionDetailDialog.historyItems = buildConnectionHistoryItems(
+          this.state.records,
+          this.state.connectionDetailDialog.record
+        )
+      }
     } catch (err) {
       LogUtils.error(TAG, `reloadRecords failed: ${JSON.stringify(err)}`)
       this.state.records = []
@@ -67,26 +73,26 @@ export class PeripheralRecordViewModel {
 
   async exportConnectionHistory(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     if (this.state.records.length === 0) {
-      return { success: false, reason: PeripheralStrings.emptyConnectionHistory } as ExportActionResult
+      return { success: false, reason: PeripheralReasonCodes.EMPTY_CONNECTION_HISTORY } as ExportActionResult
     }
     if (!context) {
-      return { success: false, reason: PeripheralStrings.exportEnvNotReady } as ExportActionResult
+      return { success: false, reason: PeripheralReasonCodes.EXPORT_ENV_NOT_READY } as ExportActionResult
     }
 
     try {
       const csvContent = this.buildConnectionHistoryCsv(this.state.records)
-      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralStrings.csvConnectionHistoryFilePrefix)
+      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralExportStrings.CONNECTION_HISTORY_FILE_PREFIX)
       return result.success ?
         { success: true, fileName: result.fileName } as ExportActionResult :
-          { success: false, reason: PeripheralStrings.exportConnectionHistoryFailed } as ExportActionResult
+          { success: false, reason: PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
     } catch (err) {
       LogUtils.error(TAG, `exportConnectionHistory failed: ${JSON.stringify(err)}`)
-      return { success: false, reason: PeripheralStrings.exportConnectionHistoryFailed } as ExportActionResult
+      return { success: false, reason: PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult
     }
   }
 
   private buildConnectionHistoryCsv(records: PeripheralConnectionRecord[]): string {
-    const headers: string[] = PeripheralStrings.connectionHistoryCsvHeaders
+    const headers: string[] = PeripheralExportStrings.CONNECTION_HISTORY_CSV_HEADERS
     const rows = records.map((record: PeripheralConnectionRecord) => {
       return [
         formatPeripheralTimestamp(record.timestamp),

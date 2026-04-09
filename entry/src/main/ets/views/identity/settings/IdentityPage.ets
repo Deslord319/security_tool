@@ -1,7 +1,13 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
+import { ActionText, ModuleText } from '../../../constants/StringCatalog'
+import {
+  IdentityActionStrings,
+  IdentityFormStrings,
+  IdentityMessageStrings,
+  IdentityPageStrings,
+  IdentitySectionStrings
+} from '../../../constants/modules/IdentityStrings'
 import {
   AdminActivationState,
   PASSWORD_LENGTH_OPTIONS,
@@ -35,14 +41,14 @@ export struct IdentityPage {
   @Local viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
-    value: `${value} ${IdentityStrings.byteUnitSuffix}`
+    value: `${value} ${IdentityFormStrings.BYTE_UNIT_SUFFIX}`
   } as SelectOption))
 
   private validityOptions: SelectOption[] = [
     ...PASSWORD_VALIDITY_OPTIONS.map((value: number): SelectOption => ({
-      value: value === 0 ? IdentityStrings.permanentOption : `${value} ${IdentityStrings.dayUnit}`
+      value: value === 0 ? IdentityFormStrings.PERMANENT_OPTION : `${value} ${IdentityFormStrings.DAY_UNIT}`
     } as SelectOption)),
-    { value: IdentityStrings.customOption } as SelectOption
+    { value: IdentityFormStrings.CUSTOM_OPTION } as SelectOption
   ]
 
   aboutToAppear() {
@@ -73,7 +79,9 @@ export struct IdentityPage {
     if (!this.adminState.activated) {
       DialogService.openFailure(
         this.getUIContext(),
-        this.adminState.errorMessage?.trim().length ? this.adminState.errorMessage : `${IdentityStrings.saveAction}${IdentityStrings.adminRequiredWithActionSuffix}`
+        this.adminState.errorMessage?.trim().length ?
+          this.adminState.errorMessage :
+          `${IdentityActionStrings.SAVE}${IdentityMessageStrings.ADMIN_REQUIRED_WITH_ACTION_SUFFIX}`
       )
       return
     }
@@ -96,8 +104,8 @@ export struct IdentityPage {
   build() {
     Column() {
       SubPageHeader({
-        title: CommonStrings.moduleIdentity,
-        subtitle: IdentityStrings.pageSubtitle,
+        title: ModuleText.IDENTITY,
+        subtitle: IdentityPageStrings.SUBTITLE,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -108,7 +116,7 @@ export struct IdentityPage {
       Scroll() {
         Column({ space: 24 }) {
           SectionCard({
-            title: IdentityStrings.sectionPasswordComplexity,
+            title: IdentitySectionStrings.PASSWORD_COMPLEXITY,
             currentTheme: this.currentTheme,
             content: () => {
               this.passwordComplexityContent()
@@ -137,7 +145,7 @@ export struct IdentityPage {
   @Builder
   private headerActions() {
     IconTextActionButton({
-      label: CommonStrings.actionSaveConfig,
+      label: ActionText.SAVE_CONFIG,
       icon: $r('app.media.save'),
       kind: 'primary',
       currentTheme: this.currentTheme,
@@ -150,8 +158,8 @@ export struct IdentityPage {
   @Builder
   private passwordComplexityContent() {
     SectionSelectRow({
-      title: IdentityStrings.minPasswordLength,
-      description: IdentityStrings.minPasswordLengthDesc,
+      title: IdentitySectionStrings.MIN_PASSWORD_LENGTH,
+      description: IdentitySectionStrings.MIN_PASSWORD_LENGTH_DESC,
       options: this.lengthOptions,
       selectedIndex: this.viewModel.state.minLengthIndex,
       value: this.getSelectedMinLengthLabel(),
@@ -167,8 +175,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentityStrings.requireUppercase,
-      description: IdentityStrings.requireUppercaseDesc,
+      title: IdentitySectionStrings.REQUIRE_UPPERCASE,
+      description: IdentitySectionStrings.REQUIRE_UPPERCASE_DESC,
       isOn: this.viewModel.state.requireUppercase,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -181,8 +189,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentityStrings.requireLowercase,
-      description: IdentityStrings.requireLowercaseDesc,
+      title: IdentitySectionStrings.REQUIRE_LOWERCASE,
+      description: IdentitySectionStrings.REQUIRE_LOWERCASE_DESC,
       isOn: this.viewModel.state.requireLowercase,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -195,8 +203,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentityStrings.requireDigit,
-      description: IdentityStrings.requireDigitDesc,
+      title: IdentitySectionStrings.REQUIRE_DIGIT,
+      description: IdentitySectionStrings.REQUIRE_DIGIT_DESC,
       isOn: this.viewModel.state.requireDigit,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -209,8 +217,8 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionToggleRow({
-      title: IdentityStrings.requireSpecialChar,
-      description: IdentityStrings.requireSpecialCharDesc,
+      title: IdentitySectionStrings.REQUIRE_SPECIAL_CHAR,
+      description: IdentitySectionStrings.REQUIRE_SPECIAL_CHAR_DESC,
       isOn: this.viewModel.state.requireSpecialChar,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -223,17 +231,17 @@ export struct IdentityPage {
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
     SectionSelectInputRow({
-      title: IdentityStrings.passwordValidityPeriod,
-      description: IdentityStrings.passwordValidityPeriodDesc,
+      title: IdentitySectionStrings.PASSWORD_VALIDITY_PERIOD,
+      description: IdentitySectionStrings.PASSWORD_VALIDITY_PERIOD_DESC,
       options: this.validityOptions,
       selectedIndex: this.viewModel.state.validityPeriodIndex,
       value: this.getSelectedValidityLabel(),
       selectWidth: 140,
       showInput: this.viewModel.state.validityPeriodIndex === CUSTOM_VALIDITY_OPTION_INDEX,
       inputText: this.viewModel.state.customValidityPeriodText,
-      inputPlaceholder: IdentityStrings.customDaysPlaceholder,
+      inputPlaceholder: IdentityFormStrings.CUSTOM_DAYS_PLACEHOLDER,
       inputWidth: 112,
-      inputSuffix: IdentityStrings.dayUnit,
+      inputSuffix: IdentityFormStrings.DAY_UNIT,
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         this.viewModel.setValidityPeriodIndex(index)

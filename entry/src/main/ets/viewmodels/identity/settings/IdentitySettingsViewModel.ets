@@ -1,6 +1,9 @@
 import { securityManager } from '@kit.MDMKit'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
+import { AdminText, MessageText } from '../../../constants/StringCatalog'
+import {
+  IdentityActionStrings,
+  IdentityMessageStrings
+} from '../../../constants/modules/IdentityStrings'
 import {
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_VALIDITY_OPTIONS,
@@ -100,7 +103,7 @@ export class IdentitySettingsViewModel {
   save(): IdentitySettingsSaveResult {
     let config = this.buildConfig()
     if (!config) {
-      return { success: false, message: IdentityStrings.invalidValidityDays }
+      return { success: false, message: IdentityMessageStrings.INVALID_VALIDITY_DAYS }
     }
 
     let currentPolicy = IdentityService.getPasswordPolicyWithResult().data
@@ -108,20 +111,20 @@ export class IdentitySettingsViewModel {
     let nextRegex: string = IdentityService.buildComplexityRegex(config)
     let currentValidity: number = currentPolicy?.validityPeriod ?? 0
     if (currentRegex === nextRegex && currentValidity === config.validityPeriod) {
-      return { success: false, message: CommonStrings.messageNoChanges }
+      return { success: false, message: MessageText.NO_CHANGES }
     }
 
     let result = IdentityService.setPasswordPolicyWithResult(config)
     if (!result.success) {
       let message = result.isAdminMissing
-        ? DialogService.displayReason(result.errorMessage, IdentityStrings.adminRequired)
-        : DialogService.displayReason(result.errorMessage, `${IdentityStrings.passwordPolicyAction}${IdentityStrings.actionRetrySuffix}`)
+        ? DialogService.displayReason(result.errorMessage, AdminText.NOT_ACTIVATED)
+        : DialogService.displayReason(result.errorMessage, `${IdentityActionStrings.PASSWORD_POLICY}${IdentityMessageStrings.ACTION_RETRY_SUFFIX}`)
       return { success: false, message }
     }
 
     this.initialState = IdentitySettingsViewModel.snapshot(this.state)
     this.state.hasChanges = false
-    return { success: true, message: IdentityStrings.saveSuccess }
+    return { success: true, message: IdentityMessageStrings.SAVE_SUCCESS }
   }
 
   private buildConfig(): PasswordComplexityConfig | null {

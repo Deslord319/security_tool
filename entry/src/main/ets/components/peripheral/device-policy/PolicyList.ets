@@ -1,6 +1,7 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings, FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
@@ -79,7 +80,7 @@ export struct PolicyList {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .textAlign(TextAlign.Center)
 
-      Text(EmptyStateStrings.CHECK_PERMISSIONS)
+      Text(MessageText.CHECK_PERMISSIONS)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -100,11 +101,11 @@ export struct PolicyList {
   @Builder
   private tableHeader() {
     Row() {
-      this.headerCell(PeripheralStrings.deviceNameLabel, 2.6)
-      this.headerCell(PeripheralStrings.deviceTypeLabel, 1.5)
+      this.headerCell(PeripheralPageStrings.DEVICE_NAME_LABEL, 2.6)
+      this.headerCell(PeripheralPageStrings.DEVICE_TYPE_LABEL, 1.5)
       this.headerCell(FirewallDialogStrings.CURRENT_STATUS, 1.5)
-      this.headerCell(PeripheralStrings.latestConnectionTimeLabel, 1.8)
-      this.headerCell(PeripheralStrings.actionLabel, 1.4)
+      this.headerCell(PeripheralPageStrings.LATEST_CONNECTION_TIME_LABEL, 1.8)
+      this.headerCell(PeripheralPageStrings.ACTION_LABEL, 1.4)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })

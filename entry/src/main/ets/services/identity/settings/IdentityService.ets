@@ -7,7 +7,10 @@ import { AppInfo } from '../../../constants/AppConstants'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { PeripheralService } from '../../peripheral/interface-control/PeripheralService'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
-import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
+import {
+  IdentityActionStrings,
+  IdentityRequirementStrings
+} from '../../../constants/modules/IdentityStrings'
 
 const TAG = 'IdentityService'
 
@@ -45,16 +48,16 @@ export class IdentityService {
   static buildDescription(config: PasswordComplexityConfig): string {
     let parts: string[] = [IdentityService.buildMinLengthRequirement(config.minLength)]
     if (config.requireUppercase) {
-      parts.push(IdentityStrings.passwordRequirementUppercase)
+      parts.push(IdentityRequirementStrings.UPPERCASE)
     }
     if (config.requireLowercase) {
-      parts.push(IdentityStrings.passwordRequirementLowercase)
+      parts.push(IdentityRequirementStrings.LOWERCASE)
     }
     if (config.requireDigit) {
-      parts.push(IdentityStrings.passwordRequirementDigit)
+      parts.push(IdentityRequirementStrings.DIGIT)
     }
     if (config.requireSpecialChar) {
-      parts.push(IdentityStrings.passwordRequirementSpecial)
+      parts.push(IdentityRequirementStrings.SPECIAL)
     }
     return parts.join('，')
   }
@@ -72,7 +75,7 @@ export class IdentityService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>(IdentityStrings.passwordPolicyAction, err as Object)
+      return PeripheralService.buildFailureResult<void>(IdentityActionStrings.PASSWORD_POLICY, err as Object)
     }
   }
 
@@ -86,7 +89,7 @@ export class IdentityService {
     } catch (err) {
       LogUtils.error(TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<securityManager.PasswordPolicy | null>(
-        IdentityStrings.readPasswordPolicyAction,
+        IdentityActionStrings.READ_PASSWORD_POLICY,
         err as Object,
         null
       )
@@ -94,6 +97,6 @@ export class IdentityService {
   }
 
   private static buildMinLengthRequirement(minLength: number): string {
-    return IdentityStrings.buildPasswordMinLengthRequirement(minLength)
+    return IdentityRequirementStrings.buildPasswordMinLengthRequirement(minLength)
   }
 }

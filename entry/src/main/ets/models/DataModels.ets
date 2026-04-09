@@ -1,7 +1,13 @@
-
-import { PresentationStrings } from '../constants/modules/PresentationStrings'
-import { CommonLabelStrings, DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings, ResultStrings } from '../constants/modules/DialogStrings'
-import { IdentityStrings } from '../constants/modules/IdentityStrings'
+import {
+  FirewallActionPresentationStrings,
+  LogEventPresentationStrings,
+  LogResultPresentationStrings,
+  PeripheralRecordActionPresentationStrings,
+  PeripheralSourcePresentationStrings
+} from '../constants/modules/PresentationStrings'
+import { LabelText, ResultText, StorageAccessText } from '../constants/StringCatalog'
+import { DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings } from '../constants/modules/DialogStrings'
+import { IdentityAuthStrings } from '../constants/modules/IdentityStrings'
 
 export enum RuleType {
   IP = 1,
@@ -35,7 +41,7 @@ export function getRuleTypeLabel(type: RuleType): string {
     case RuleType.DNS:
       return FirewallRuleLabelStrings.DNS_RULE
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
@@ -46,14 +52,14 @@ export function getDirectionLabel(dir: RuleDirection): string {
     case RuleDirection.OUT:
       return FirewallDialogStrings.DIRECTION_OUTBOUND
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
 export function getProtocolLabel(proto: ProtocolType): string {
   switch (proto) {
     case ProtocolType.ALL:
-      return CommonLabelStrings.ALL
+      return LabelText.ALL
     case ProtocolType.TCP:
       return 'TCP'
     case ProtocolType.UDP:
@@ -61,7 +67,7 @@ export function getProtocolLabel(proto: ProtocolType): string {
     case ProtocolType.ICMP:
       return 'ICMP'
     default:
-      return CommonLabelStrings.ALL
+      return LabelText.ALL
   }
 }
 
@@ -70,9 +76,9 @@ export function getActionLabel(action: RuleAction): string {
     case RuleAction.ALLOW:
       return FirewallDialogStrings.ACTION_ALLOW
     case RuleAction.DENY:
-      return PresentationStrings.actionDeny
+      return FirewallActionPresentationStrings.DENY
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
@@ -253,48 +259,48 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
     case PeripheralType.BLUETOOTH:
       return DeviceTypeLabels.BLUETOOTH
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
 export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
   switch (policy) {
     case UsbStoragePolicy.READ_WRITE:
-      return PresentationStrings.usbStorageReadWrite
+      return StorageAccessText.READ_WRITE
     case UsbStoragePolicy.READ_ONLY:
-      return PresentationStrings.usbStorageReadOnly
+      return StorageAccessText.READ_ONLY
     case UsbStoragePolicy.DISABLED:
-      return PresentationStrings.usbStorageDisabled
+      return StorageAccessText.BLOCKED
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
 export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
   switch (source) {
     case 'runtime_event':
-      return PresentationStrings.sourceRuntimeEvent
+      return PeripheralSourcePresentationStrings.RUNTIME_EVENT
     case 'audit_event':
-      return PresentationStrings.sourceAuditEvent
+      return PeripheralSourcePresentationStrings.AUDIT_EVENT
     case 'policy_snapshot':
-      return PresentationStrings.sourcePolicySnapshot
+      return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
     default:
-      return PresentationStrings.sourceUnknown
+      return PeripheralSourcePresentationStrings.UNKNOWN
   }
 }
 
 export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
   switch (action) {
     case 'connect':
-      return PresentationStrings.recordActionConnect
+      return PeripheralRecordActionPresentationStrings.CONNECT
     case 'disconnect':
-      return PresentationStrings.recordActionDisconnect
+      return PeripheralRecordActionPresentationStrings.DISCONNECT
     case 'discover':
-      return PresentationStrings.recordActionDiscover
+      return PeripheralRecordActionPresentationStrings.DISCOVER
     case 'intercept':
-      return PresentationStrings.recordActionIntercept
+      return PeripheralRecordActionPresentationStrings.INTERCEPT
     default:
-      return PresentationStrings.recordActionUnknown
+      return PeripheralRecordActionPresentationStrings.UNKNOWN
   }
 }
 
@@ -375,7 +381,7 @@ export interface AuthMethodOption {
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
   { label: 'PIN', value: AuthMethod.PIN } as AuthMethodOption,
-  { label: IdentityStrings.authMethodFingerprint, value: AuthMethod.FINGERPRINT } as AuthMethodOption
+  { label: IdentityAuthStrings.METHOD_FINGERPRINT, value: AuthMethod.FINGERPRINT } as AuthMethodOption
 ]
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
@@ -601,28 +607,28 @@ export const PREF_STORE_NAME_LOG = 'log_settings'
 export function getLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
     case LogEventType.CRASH:
-      return PresentationStrings.logEventCrash
+      return LogEventPresentationStrings.CRASH
     case LogEventType.FILE:
-      return PresentationStrings.logEventFile
+      return LogEventPresentationStrings.FILE
     case LogEventType.ACCOUNT:
-      return PresentationStrings.logEventAccount
+      return LogEventPresentationStrings.ACCOUNT
     case LogEventType.PERMISSION:
-      return PresentationStrings.logEventPermission
+      return LogEventPresentationStrings.PERMISSION
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
 export function getLogEventResultLabel(result: LogEventResult): string {
   switch (result) {
     case LogEventResult.SUCCESS:
-      return ResultStrings.SUCCESS
+      return ResultText.SUCCESS
     case LogEventResult.BLOCKED:
-      return PresentationStrings.logResultBlocked
+      return LogResultPresentationStrings.BLOCKED
     case LogEventResult.FAILED:
-      return ResultStrings.FAILED
+      return ResultText.FAILED
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
@@ -640,10 +646,10 @@ export function getLogEventResultColor(result: LogEventResult): string {
 }
 
 export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: PresentationStrings.logEventCrash, value: LogEventType.CRASH },
-  { label: PresentationStrings.logEventFile, value: LogEventType.FILE },
-  { label: PresentationStrings.logEventAccount, value: LogEventType.ACCOUNT },
-  { label: PresentationStrings.logEventPermission, value: LogEventType.PERMISSION }
+  { label: LogEventPresentationStrings.CRASH, value: LogEventType.CRASH },
+  { label: LogEventPresentationStrings.FILE, value: LogEventType.FILE },
+  { label: LogEventPresentationStrings.ACCOUNT, value: LogEventType.ACCOUNT },
+  { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION }
 ]
 
 export function formatLogTimestamp(timestamp: number): string {

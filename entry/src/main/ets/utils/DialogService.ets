@@ -1,7 +1,7 @@
 import { LogUtils } from './LogUtils'
 
 import { AppColors } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
+import { ActionText, MessageText } from '../constants/StringCatalog'
 import { ThemeMode, getThemeColors } from '../theme/ThemeColors'
 
 export type ActionDialogStatus = 'success' | 'failure'
@@ -29,10 +29,10 @@ export interface ResultDialogOptions {
 export class DialogService {
   static displayLocation(directory?: string): string {
     let value = directory?.trim() ?? ''
-    return value.length > 0 ? value : CommonStrings.messageRetryLater
+    return value.length > 0 ? value : MessageText.RETRY_LATER
   }
 
-  static displayReason(reason?: string, fallback: string = CommonStrings.messageRetryLater): string {
+  static displayReason(reason?: string, fallback: string = MessageText.RETRY_LATER): string {
     let value = reason?.trim() ?? ''
     return value.length > 0 ? value : fallback
   }
@@ -44,14 +44,14 @@ export class DialogService {
         title: options.title,
         message: options.message,
         primaryButton: {
-          value: options.confirmText ?? CommonStrings.actionContinue,
+          value: options.confirmText ?? ActionText.CONTINUE,
           fontColor: `${AppColors.BRAND_PRIMARY}`,
           action: () => {
             options.onConfirm?.()
           }
         },
         secondaryButton: {
-          value: options.cancelText ?? CommonStrings.actionCancel,
+          value: options.cancelText ?? ActionText.CANCEL,
           fontColor: `${LIGHT_THEME_COLORS.TEXT_PRIMARY}`,
           action: () => {
             options.onCancel?.()
@@ -67,10 +67,10 @@ export class DialogService {
     try {
       await uiContext.showAlertDialog({
         autoCancel: false,
-        title: options.title ?? (options.status === 'success' ? CommonStrings.dialogSuccessTitle : CommonStrings.dialogFailureTitle),
+        title: options.title ?? (options.status === 'success' ? MessageText.SUCCESS_TITLE : MessageText.FAILURE_TITLE),
         message: options.message,
         primaryButton: {
-          value: options.confirmText ?? CommonStrings.actionAcknowledge,
+          value: options.confirmText ?? ActionText.ACKNOWLEDGE,
           fontColor: `${options.status === 'success' ? AppColors.BRAND_PRIMARY : AppColors.DANGER}`,
           action: () => {
             options.onConfirm?.()

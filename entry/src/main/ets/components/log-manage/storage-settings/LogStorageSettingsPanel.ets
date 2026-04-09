@@ -1,4 +1,4 @@
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { LogManagePageStrings, LogManageSettingStrings } from '../../../constants/modules/LogManageStrings'
 import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../SettingsSectionCard'
@@ -34,8 +34,8 @@ export struct LogStorageSettingsPanel {
   @Builder
   private settingsContent() {
     SectionSelectRow({
-      title: LogManageStrings.maxEntriesLabel,
-      description: LogManageStrings.maxEntriesDescription,
+      title: LogManageSettingStrings.MAX_ENTRIES_LABEL,
+      description: LogManageSettingStrings.MAX_ENTRIES_DESCRIPTION,
       options: this.buildMaxEntriesOptions(),
       selectedIndex: this.getSelectedMaxEntriesIndex(),
       value: `${this.maxLocalEntries}`,
@@ -47,8 +47,8 @@ export struct LogStorageSettingsPanel {
     Divider()
 
     SectionSelectRow({
-      title: LogManageStrings.retentionDaysLabel,
-      description: LogManageStrings.retentionDaysDescription,
+      title: LogManageSettingStrings.RETENTION_DAYS_LABEL,
+      description: LogManageSettingStrings.RETENTION_DAYS_DESCRIPTION,
       options: this.buildRetentionOptions(),
       selectedIndex: this.getSelectedRetentionIndex(),
       value: `${this.retentionDays}`,
@@ -60,7 +60,7 @@ export struct LogStorageSettingsPanel {
 
   build() {
     SectionCard({
-      title: LogManageStrings.settingsTitle,
+      title: LogManagePageStrings.SETTINGS_TITLE,
       currentTheme: this.currentTheme,
       content: () => {
         this.settingsContent()

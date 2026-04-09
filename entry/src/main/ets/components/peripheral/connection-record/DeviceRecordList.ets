@@ -4,9 +4,9 @@ import {
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
 } from '../../../models/DataModels'
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { LabelText, MessageText } from '../../../constants/StringCatalog'
 import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { ThemeMode, getThemeColors } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getPeripheralConnectionListPolicyLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
@@ -41,7 +41,7 @@ export struct DeviceRecordList {
         if (this.deviceRecords.length === 0) {
           EmptyStatePanel({
             title: EmptyStateStrings.NO_RECORDS,
-            description: EmptyStateStrings.CHECK_PERMISSIONS,
+            description: MessageText.CHECK_PERMISSIONS,
             radius: AppStyles.RADIUS_LG,
             verticalPadding: 24,
             currentTheme: this.currentTheme
@@ -83,12 +83,12 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      this.headerCell(PeripheralStrings.deviceNameLabel, 2.6)
-      this.headerCell(PeripheralStrings.deviceTypeLabel, 1.5)
+      this.headerCell(PeripheralPageStrings.DEVICE_NAME_LABEL, 2.6)
+      this.headerCell(PeripheralPageStrings.DEVICE_TYPE_LABEL, 1.5)
       this.headerCell(DeviceDetailStrings.CONNECTION_EVENT, 1.3)
-      this.headerCell(PeripheralStrings.policyLabel, 1.2)
-      this.headerCell(PeripheralStrings.connectionTimeLabel, 1.9)
-      this.headerCell(PeripheralStrings.actionLabel, 1.0)
+      this.headerCell(PeripheralPageStrings.POLICY_LABEL, 1.2)
+      this.headerCell(PeripheralPageStrings.CONNECTION_TIME_LABEL, 1.9)
+      this.headerCell(PeripheralPageStrings.ACTION_LABEL, 1.0)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -149,7 +149,7 @@ export struct DeviceRecordList {
       .justifyContent(FlexAlign.Center)
 
       Row() {
-        Text(LogManageStrings.detailTitle)
+        Text(LabelText.DETAIL)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
           .fontColor(this.getDetailButtonForeground())

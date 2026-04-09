@@ -1,5 +1,5 @@
 import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
-import { CommonStrings } from './CommonStrings'
+import { AppText, ModuleText } from './StringCatalog'
 import { RouteIds } from './RouteIds'
 
 export class AppColors {
@@ -212,7 +212,6 @@ export class InteractiveItemStyles {
 }
 
 export class AppInfo {
-  static readonly APP_NAME: string = CommonStrings.appName
   static readonly APP_VERSION: string = '1.0.0'
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
 }
@@ -224,10 +223,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: RouteIds.DASHBOARD, label: CommonStrings.moduleDashboard, icon: $r('app.media.dashboard') },
-  { id: RouteIds.FIREWALL, label: CommonStrings.moduleFirewall, icon: $r('app.media.firewall') },
-  { id: RouteIds.LOG_MANAGE, label: CommonStrings.moduleLogManage, icon: $r('app.media.log') },
-  { id: RouteIds.PERIPHERAL_MANAGE, label: CommonStrings.modulePeripheralManage, icon: $r('app.media.peripheral') },
-  { id: RouteIds.IDENTITY, label: CommonStrings.moduleIdentity, icon: $r('app.media.identity') },
-  { id: RouteIds.TOOL_SETTINGS, label: CommonStrings.moduleToolSettings, icon: $r('app.media.settings') }
+  { id: RouteIds.DASHBOARD, label: ModuleText.DASHBOARD, icon: $r('app.media.dashboard') },
+  { id: RouteIds.FIREWALL, label: ModuleText.FIREWALL, icon: $r('app.media.firewall') },
+  { id: RouteIds.LOG_MANAGE, label: ModuleText.LOG_MANAGE, icon: $r('app.media.log') },
+  { id: RouteIds.PERIPHERAL_MANAGE, label: ModuleText.PERIPHERAL_MANAGE, icon: $r('app.media.peripheral') },
+  { id: RouteIds.IDENTITY, label: ModuleText.IDENTITY, icon: $r('app.media.identity') },
+  { id: RouteIds.TOOL_SETTINGS, label: ModuleText.TOOL_SETTINGS, icon: $r('app.media.settings') }
 ]

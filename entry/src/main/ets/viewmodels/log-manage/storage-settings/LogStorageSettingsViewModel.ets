@@ -2,13 +2,12 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS, LogStorageConfig } from '../../../models/DataModels'
 import { LogStorageSettingsState } from '../../../models/LogManageModels'
 import {
-  LogConfigRepositoryPort,
   LogStorageMaintenancePort,
   SaveSettingsResult,
   ServiceResult
 } from '../../../services/log-manage/common/LogManagePorts'
-import { LogConfigRepository } from '../../../services/log-manage/repository/LogConfigRepository'
 import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
+import { LogSettingsRepository } from '../../../services/log-manage/repository/LogSettingsRepository'
 
 const TAG = 'LogStorageSettingsVM'
 
@@ -19,11 +18,11 @@ interface LogStorageConfigPersistencePort {
 
 class DefaultLogStorageConfigRepository implements LogStorageConfigPersistencePort {
   loadStorageConfig(): Promise<LogStorageConfig> {
-    return LogConfigRepository.loadStorageConfig()
+    return LogSettingsRepository.loadStorageConfig()
   }
 
   saveStorageConfig(config: LogStorageConfig): Promise<ServiceResult> {
-    return LogConfigRepository.saveStorageConfig(config)
+    return LogSettingsRepository.saveStorageConfig(config)
   }
 }
 

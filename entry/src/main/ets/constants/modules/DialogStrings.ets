@@ -1,4 +1,6 @@
 
+import { ActionText, LabelText, MessageText, ResultText } from '../StringCatalog'
+
 /**
  * 对话框通用字符串常量
  * 
@@ -8,18 +10,6 @@
  * - 提示信息
  * - 状态文本
  */
-
-// ==================== 通用对话框按钮文本 ====================
-export class DialogButtonStrings {
-  static readonly CONFIRM: string = '确定'
-  static readonly CANCEL: string = '取消'
-  static readonly CLOSE: string = '关闭'
-  static readonly SAVE: string = '保存'
-  static readonly DELETE: string = '删除'
-  static readonly EDIT: string = '编辑'
-  static readonly ADD: string = '添加'
-  static readonly OK: string = '好的'
-}
 
 // ==================== 加载状态文本 ====================
 export class LoadingStrings {
@@ -34,31 +24,12 @@ export class LoadingStrings {
 
 // ==================== 空状态提示 ====================
 export class EmptyStateStrings {
-  static readonly NO_DATA: string = '暂无数据'
   static readonly NO_USERS: string = '暂无可选用户'
   static readonly NO_RECORDS: string = '暂无连接记录'
   static readonly NO_HISTORY: string = '暂无历史记录'
   static readonly NO_RULES: string = '暂无自定义规则'
   static readonly NO_DEVICES: string = '暂无可管理的设备'
   static readonly NO_RESULTS: string = '未找到相关结果'
-  static readonly CHECK_PERMISSIONS: string = '请检查账户权限或系统账户状态'
-}
-
-// ==================== 成功/失败提示 ====================
-export class ResultStrings {
-  static readonly SUCCESS: string = '成功'
-  static readonly FAILED: string = '失败'
-  static readonly SAVE_SUCCESS: string = '保存成功'
-  static readonly SAVE_FAILED: string = '保存失败'
-  static readonly DELETE_SUCCESS: string = '删除成功'
-  static readonly ADD_SUCCESS: string = '添加成功'
-  static readonly UPDATE_SUCCESS: string = '更新成功'
-}
-
-// Shared labels reused across multiple modules.
-export class CommonLabelStrings {
-  static readonly ALL: string = '全部'
-  static readonly UNKNOWN: string = '未知'
 }
 
 // Firewall rule type labels reused by filters and dialogs.
@@ -101,7 +72,6 @@ export class FirewallDialogStrings {
   static readonly ACTION: string = '动作'
   static readonly TARGET_USER: string = '目标用户'
   static readonly CURRENT_STATUS: string = '当前策略'
-  static readonly CURRENT_MODE: string = '当前模式'
   static readonly TARGET_MODE: string = '目标模式'
   
   // 占位符

@@ -1,8 +1,13 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { CommonLabelStrings, EmptyStateStrings, FirewallDialogStrings, FirewallRuleLabelStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { ActionText, LabelText } from '../../../constants/StringCatalog'
+import { EmptyStateStrings, FirewallDialogStrings, FirewallRuleLabelStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import {
+  FirewallPageStrings,
+  FirewallRuleStrings,
+  buildFirewallReapplyPartialFailedMessage,
+  buildFirewallRuleCountText
+} from '../../../constants/modules/FirewallStrings'
 import { AddRuleDialog } from '../../../components/firewall/rules/AddRuleDialog'
 import { UserFirewallControlDialog } from '../../../components/firewall/user-dispatch/UserFirewallControlDialog'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
@@ -46,7 +51,7 @@ export struct FirewallRulesPage {
   aboutToAppear() {
     LogUtils.info(TAG, 'aboutToAppear')
     if (this.currentMode !== 'custom') {
-      DialogService.openFailure(this.getUIContext(), FirewallStrings.rulesOnlyCustomMode)
+      DialogService.openFailure(this.getUIContext(), FirewallRuleStrings.ONLY_CUSTOM_MODE)
       this.onBack()
       return
     }
@@ -72,7 +77,7 @@ export struct FirewallRulesPage {
     if (!result.success) {
       DialogService.openFailure(
         this.getUIContext(),
-        result.errorMessage?.length ? result.errorMessage : FirewallStrings.customRulesApplyFailed
+        result.errorMessage?.length ? result.errorMessage : FirewallRuleStrings.APPLY_FAILED
       )
       return
     }
@@ -82,7 +87,7 @@ export struct FirewallRulesPage {
     if ((result.reapplyFailedCount ?? 0) > 0) {
       await DialogService.openFailure(
         this.getUIContext(),
-        FirewallStrings.buildReapplyPartialFailedMessage(result.reapplySuccessCount ?? 0, result.reapplyFailedCount ?? 0)
+        buildFirewallReapplyPartialFailedMessage(result.reapplySuccessCount ?? 0, result.reapplyFailedCount ?? 0)
       )
       return
     }
@@ -92,21 +97,21 @@ export struct FirewallRulesPage {
     let conflict = this.rulesViewModel.findConflict(rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
+        DialogService.openFailure(this.getUIContext(), FirewallRuleStrings.DUPLICATE)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
         if (!conflictRule) {
-          DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesApplyFailed)
+          DialogService.openFailure(this.getUIContext(), FirewallRuleStrings.APPLY_FAILED)
           return
         }
         const conflictRuleValue: netFirewall.NetFirewallRule = conflictRule
         DialogService.openConfirm(this.getUIContext(), {
-          title: FirewallStrings.conflictRuleTitle,
-          message: FirewallStrings.conflictRuleReplaceMessage,
-          confirmText: CommonStrings.actionOverride,
-          cancelText: CommonStrings.actionCancel,
+          title: FirewallRuleStrings.CONFLICT_TITLE,
+          message: FirewallRuleStrings.CONFLICT_REPLACE_MESSAGE,
+      confirmText: ActionText.OVERRIDE,
+      cancelText: ActionText.CANCEL,
           onConfirm: () => {
             this.replaceConflictRule(conflictRuleValue, rule, false)
           }
@@ -115,10 +120,10 @@ export struct FirewallRulesPage {
       }
       if (conflict.kind === 'overlap_conflict') {
         DialogService.openConfirm(this.getUIContext(), {
-          title: FirewallStrings.overlapRuleTitle,
-          message: FirewallStrings.overlapRuleAddMessage,
-          confirmText: CommonStrings.actionContinue,
-          cancelText: CommonStrings.actionCancel,
+          title: FirewallRuleStrings.OVERLAP_TITLE,
+          message: FirewallRuleStrings.OVERLAP_ADD_MESSAGE,
+      confirmText: ActionText.CONTINUE,
+      cancelText: ActionText.CANCEL,
           onConfirm: () => {
             this.addRuleDirectly(rule)
           }
@@ -131,7 +136,7 @@ export struct FirewallRulesPage {
 
   private async addRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
     let nextRules = [...this.rulesViewModel.rules, rule]
-    await this.persistRules(nextRules, FirewallStrings.addRuleSuccess)
+    await this.persistRules(nextRules, FirewallRuleStrings.ADD_SUCCESS)
   }
 
   private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
@@ -160,21 +165,21 @@ export struct FirewallRulesPage {
     let conflict = this.rulesViewModel.findConflict(rule, comparableRules)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
-        DialogService.openFailure(this.getUIContext(), FirewallStrings.duplicateRule)
+        DialogService.openFailure(this.getUIContext(), FirewallRuleStrings.DUPLICATE)
         return
       }
       if (conflict.kind === 'hard_conflict') {
         let conflictRule = conflict.existingRule
         if (!conflictRule) {
-          DialogService.openFailure(this.getUIContext(), FirewallStrings.customRulesApplyFailed)
+          DialogService.openFailure(this.getUIContext(), FirewallRuleStrings.APPLY_FAILED)
           return
         }
         const conflictRuleValue: netFirewall.NetFirewallRule = conflictRule
         DialogService.openConfirm(this.getUIContext(), {
-          title: FirewallStrings.conflictRuleTitle,
-          message: FirewallStrings.conflictRuleReplaceAndSaveMessage,
-          confirmText: CommonStrings.actionOverride,
-          cancelText: CommonStrings.actionCancel,
+          title: FirewallRuleStrings.CONFLICT_TITLE,
+          message: FirewallRuleStrings.CONFLICT_REPLACE_AND_SAVE_MESSAGE,
+      confirmText: ActionText.OVERRIDE,
+      cancelText: ActionText.CANCEL,
           onConfirm: () => {
             this.replaceConflictRule(conflictRuleValue, rule, true)
           }
@@ -183,10 +188,10 @@ export struct FirewallRulesPage {
       }
       if (conflict.kind === 'overlap_conflict') {
         DialogService.openConfirm(this.getUIContext(), {
-          title: FirewallStrings.overlapRuleTitle,
-          message: FirewallStrings.overlapRuleEditMessage,
-          confirmText: CommonStrings.actionContinue,
-          cancelText: CommonStrings.actionCancel,
+          title: FirewallRuleStrings.OVERLAP_TITLE,
+          message: FirewallRuleStrings.OVERLAP_EDIT_MESSAGE,
+      confirmText: ActionText.CONTINUE,
+      cancelText: ActionText.CANCEL,
           onConfirm: () => {
             this.updateRuleDirectly(rule)
           }
@@ -202,7 +207,7 @@ export struct FirewallRulesPage {
     let nextRules = this.rulesViewModel.rules.map((item: netFirewall.NetFirewallRule) =>
       this.rulesViewModel.getLocalRuleId(item) === localRuleId ? rule : item
     )
-    await this.persistRules(nextRules, FirewallStrings.updateRuleSuccess)
+    await this.persistRules(nextRules, FirewallRuleStrings.UPDATE_SUCCESS)
   }
 
   private async replaceConflictRule(
@@ -220,15 +225,15 @@ export struct FirewallRulesPage {
     } else {
       nextRules.push(nextRule)
     }
-    await this.persistRules(nextRules, isEditMode ? FirewallStrings.replaceRuleSuccess : FirewallStrings.overwriteRuleSuccess)
+    await this.persistRules(nextRules, isEditMode ? FirewallRuleStrings.REPLACE_SUCCESS : FirewallRuleStrings.OVERWRITE_SUCCESS)
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
     DialogService.openConfirm(this.getUIContext(), {
-      title: FirewallStrings.deleteRuleTitle,
-      message: FirewallStrings.deleteRuleMessage,
-      confirmText: CommonStrings.actionDelete,
-      cancelText: CommonStrings.actionCancel,
+      title: FirewallRuleStrings.DELETE_TITLE,
+      message: FirewallRuleStrings.DELETE_MESSAGE,
+      confirmText: ActionText.DELETE,
+      cancelText: ActionText.CANCEL,
       onConfirm: () => {
         this.deleteRuleDirectly(rule)
       }
@@ -238,7 +243,7 @@ export struct FirewallRulesPage {
   private async deleteRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
     let localRuleId = this.rulesViewModel.getLocalRuleId(rule)
     let nextRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== localRuleId)
-    await this.persistRules(nextRules, FirewallStrings.deleteRuleSuccess)
+    await this.persistRules(nextRules, FirewallRuleStrings.DELETE_SUCCESS)
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
@@ -262,7 +267,7 @@ export struct FirewallRulesPage {
       case netFirewall.NetFirewallRuleType.RULE_DNS:
         return FirewallRuleLabelStrings.DNS_RULE
       default:
-        return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
     }
   }
 
@@ -406,8 +411,8 @@ export struct FirewallRulesPage {
   build() {
     Column() {
       SubPageHeader({
-        title: FirewallStrings.customModeTitle,
-        subtitle: FirewallStrings.customRulesSubtitle,
+        title: FirewallRuleStrings.CUSTOM_MODE_TITLE,
+        subtitle: FirewallRuleStrings.CUSTOM_RULES_SUBTITLE,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -419,7 +424,7 @@ export struct FirewallRulesPage {
         Column({ space: 18 }) {
           if (this.rulesViewModel.conflictNotice.length > 0) {
             Row({ space: 8 }) {
-              Text(FirewallStrings.conflictWarningLabel)
+              Text(FirewallRuleStrings.WARNING_LABEL)
                 .fontSize(AppStyles.FONT_SIZE_CAPTION)
                 .fontWeight(FontWeight.Medium)
                 .fontColor(AppColors.WARNING)
@@ -441,9 +446,9 @@ export struct FirewallRulesPage {
 
           Row({ space: AppStyles.PADDING_LG }) {
             CompactSummaryCard({
-              title: FirewallStrings.inboundRules,
-              valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
-              description: FirewallStrings.inboundCustomRulesDescription,
+              title: FirewallRuleStrings.INBOUND,
+              valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
+              description: FirewallRuleStrings.INBOUND_DESCRIPTION,
               accentStart: AppColors.WARNING,
               accentEnd: AppColors.GRADIENT_IDENTITY_END,
               icon: $r('app.media.arrow_down'),
@@ -452,9 +457,9 @@ export struct FirewallRulesPage {
               .layoutWeight(1)
 
             CompactSummaryCard({
-              title: FirewallStrings.outboundRules,
-              valueText: FirewallStrings.buildRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
-              description: FirewallStrings.outboundCustomRulesDescription,
+              title: FirewallRuleStrings.OUTBOUND,
+              valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
+              description: FirewallRuleStrings.OUTBOUND_DESCRIPTION,
               accentStart: AppColors.BRAND_PRIMARY,
               accentEnd: AppColors.GRADIENT_FIREWALL_END,
               icon: $r('app.media.arrow_up'),
@@ -597,7 +602,7 @@ export struct FirewallRulesPage {
                         .alignItems(HorizontalAlign.Start)
 
                         Row({ space: 8 }) {
-                          Button(CommonStrings.actionDelete)
+      Button(ActionText.DELETE)
                             .fontSize(AppStyles.FONT_SIZE_CAPTION)
                             .fontColor(AppColors.DANGER)
                             .backgroundColor(ActionButtonStyles.getDangerBackground(this.currentTheme, false))
@@ -664,7 +669,7 @@ export struct FirewallRulesPage {
   private headerActions() {
     Row({ space: 12 }) {
       IconTextActionButton({
-        label: FirewallStrings.userIdControlButton,
+        label: FirewallPageStrings.USER_ID_CONTROL_BUTTON,
         icon: $r('app.media.settings'),
         kind: 'primary',
         currentTheme: this.currentTheme,
@@ -674,7 +679,7 @@ export struct FirewallRulesPage {
       })
 
       IconTextActionButton({
-        label: FirewallStrings.addRuleButton,
+        label: FirewallRuleStrings.ADD_BUTTON,
         icon: $r('app.media.firewall'),
         kind: 'primary',
         currentTheme: this.currentTheme,

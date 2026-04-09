@@ -14,7 +14,7 @@ import {
   UserFirewallOption
 } from '../../models/firewall/firewall_service_contracts'
 import { FirewallManagedRuleMetadata } from '../../models/DataModels'
-import { FirewallStrings } from '../../constants/modules/FirewallStrings'
+import { FirewallRuleStrings } from '../../constants/modules/FirewallStrings'
 import { FirewallStore } from './stores'
 import { FirewallRepository } from './repositories'
 import {
@@ -111,7 +111,7 @@ export class FirewallService {
         return {
           success: false,
           errorCode: rollbackResult.errorCode,
-          errorMessage: FirewallStrings.customRulesLocalSaveFailed,
+          errorMessage: FirewallRuleStrings.LOCAL_SAVE_FAILED,
           appliedRuleCount: 0,
           reapplyTotalUsers: 0,
           reapplySuccessCount: 0,
@@ -122,7 +122,7 @@ export class FirewallService {
       return {
         success: false,
         errorCode: applyResult.errorCode,
-        errorMessage: FirewallStrings.customRulesRollbackSuccess,
+        errorMessage: FirewallRuleStrings.ROLLBACK_SUCCESS,
         appliedRuleCount: 0,
         reapplyTotalUsers: 0,
         reapplySuccessCount: 0,

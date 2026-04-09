@@ -1,6 +1,14 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { HelpFeedbackStrings, FaqItemString, GuideItemString } from '../../../constants/modules/HelpFeedbackStrings'
+import { ModuleText } from '../../../constants/StringCatalog'
+import {
+  FaqItemString,
+  GuideItemString,
+  HELP_FEEDBACK_FAQ_ITEMS,
+  HELP_FEEDBACK_GUIDE_ITEMS,
+  HelpFeedbackActionStrings,
+  HelpFeedbackContactStrings,
+  HelpFeedbackPageStrings
+} from '../../../constants/modules/HelpFeedbackStrings'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -29,7 +37,7 @@ struct ExpandableInfoList {
               .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
               .layoutWeight(1)
 
-            Text(this.expandedIndex === index ? HelpFeedbackStrings.collapseLabel : HelpFeedbackStrings.expandLabel)
+            Text(this.expandedIndex === index ? HelpFeedbackActionStrings.COLLAPSE : HelpFeedbackActionStrings.EXPAND)
               .fontSize(10)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -67,14 +75,14 @@ export struct HelpFeedbackPage {
   @Local expandedGuide: number = -1
   @Local expandedFaq: number = -1
 
-  private guideItems: GuideItemString[] = HelpFeedbackStrings.guideItems
-  private faqItems: FaqItemString[] = HelpFeedbackStrings.faqItems
+  private guideItems: GuideItemString[] = HELP_FEEDBACK_GUIDE_ITEMS
+  private faqItems: FaqItemString[] = HELP_FEEDBACK_FAQ_ITEMS
 
   build() {
     Column() {
       SubPageHeader({
-        title: CommonStrings.moduleHelpFeedback,
-        subtitle: HelpFeedbackStrings.pageSubtitle,
+        title: ModuleText.HELP_FEEDBACK,
+        subtitle: HelpFeedbackPageStrings.SUBTITLE,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack()
       })
@@ -82,7 +90,7 @@ export struct HelpFeedbackPage {
       Scroll() {
         Column({ space: 20 }) {
           SectionCard({
-            title: HelpFeedbackStrings.guideSectionTitle,
+            title: HelpFeedbackPageStrings.GUIDE_SECTION_TITLE,
             currentTheme: this.currentTheme,
             content: () => {
               this.guideSectionContent()
@@ -90,7 +98,7 @@ export struct HelpFeedbackPage {
           })
 
           SectionCard({
-            title: HelpFeedbackStrings.faqSectionTitle,
+            title: HelpFeedbackPageStrings.FAQ_SECTION_TITLE,
             currentTheme: this.currentTheme,
             content: () => {
               this.faqSectionContent()
@@ -98,7 +106,7 @@ export struct HelpFeedbackPage {
           })
 
           SectionCard({
-            title: HelpFeedbackStrings.contactSectionTitle,
+            title: HelpFeedbackPageStrings.CONTACT_SECTION_TITLE,
             currentTheme: this.currentTheme,
             content: () => {
               this.contactSectionContent()
@@ -156,19 +164,19 @@ export struct HelpFeedbackPage {
   @Builder
   private contactSectionContent() {
     Column({ space: 8 }) {
-      Text(HelpFeedbackStrings.contactDescription)
+      Text(HelpFeedbackContactStrings.DESCRIPTION)
         .fontSize(AppStyles.FONT_SIZE_SMALL)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         .lineHeight(20)
 
       Row({ space: 8 }) {
-        Text(HelpFeedbackStrings.feedbackEmailLabel)
+        Text(HelpFeedbackContactStrings.EMAIL_LABEL)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-        Text(HelpFeedbackStrings.feedbackEmail)
+        Text(HelpFeedbackContactStrings.EMAIL)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontColor(AppColors.BRAND_PRIMARY)
       }

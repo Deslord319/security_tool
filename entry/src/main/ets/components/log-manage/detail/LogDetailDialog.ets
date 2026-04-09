@@ -1,6 +1,7 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
+import { LabelText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { LogManageDetailStrings } from '../../../constants/modules/LogManageStrings'
 import {
   LogEntry,
   LogEventResult,
@@ -57,10 +58,10 @@ export struct LogDetailDialog {
     this.pushTextField(fields, 'rawEventName', 'Raw Event', this.entry.rawEventName)
     this.pushTextField(fields, 'rawOutcome', 'Raw Outcome', this.entry.rawOutcome)
     this.pushTextField(fields, 'rawAction', 'Raw Action', this.entry.rawAction)
-    this.pushTextField(fields, 'process', LogManageStrings.processLabel, this.entry.processName)
+    this.pushTextField(fields, 'process', LogManageDetailStrings.PROCESS_LABEL, this.entry.processName)
     this.pushNumberField(fields, 'pid', 'PID', this.entry.pid)
     this.pushNumberField(fields, 'uid', 'UID', this.entry.uid)
-    this.pushTextField(fields, 'filePath', LogManageStrings.filePathLabel, this.entry.filePath)
+    this.pushTextField(fields, 'filePath', LogManageDetailStrings.FILE_PATH_LABEL, this.entry.filePath)
     this.pushTextField(fields, 'remoteAddr', FirewallDialogStrings.REMOTE_ADDRESS, this.entry.remoteAddr)
     return fields
   }
@@ -103,12 +104,12 @@ export struct LogDetailDialog {
       .width('100%')
 
       Column({ space: 6 }) {
-        Text(LogManageStrings.detailTitle)
+        Text(LabelText.DETAIL)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-        Text(this.entry.detail.trim().length > 0 ? this.entry.detail : LogManageStrings.detailEmpty)
+        Text(this.entry.detail.trim().length > 0 ? this.entry.detail : LogManageDetailStrings.EMPTY)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
@@ -121,7 +122,7 @@ export struct LogDetailDialog {
 
       if (this.getFields().length > 0) {
         Column({ space: 8 }) {
-          Text(LogManageStrings.additionalInfo)
+          Text(LogManageDetailStrings.ADDITIONAL_INFO)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

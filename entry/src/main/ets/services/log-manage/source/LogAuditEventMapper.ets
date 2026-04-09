@@ -1,6 +1,6 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { LogManageAuditStrings } from '../../../constants/modules/LogManageStrings'
 import {
   generateLogEntryId,
   LogEntry,
@@ -82,7 +82,7 @@ function parseAuditPayload(content: string, metadata?: string): ParsedAuditPaylo
 
   return {
     detail: pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-      content || metadata || LogManageStrings.auditEventFallbackDetail,
+      content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
     result: mapResult(rawOutcome),
     processName: pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
     pid: pickFirstNumber(sources, ['pid', 'processId', 'process_id']),

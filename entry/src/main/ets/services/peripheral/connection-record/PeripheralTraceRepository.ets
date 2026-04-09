@@ -1,6 +1,5 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 import {
   LogEventResult,
@@ -12,14 +11,11 @@ import {
   PeripheralTraceStats,
   PeripheralType
 } from '../../../models/DataModels'
+import { PeripheralTraceEntryRepository } from './PeripheralTraceEntryRepository'
 
 const TAG = 'PeripheralTraceRepo'
-const PREF_STORE_NAME = 'peripheral_trace_settings'
-const PREF_KEY_TRACE_RECORDS = 'peripheral_trace_records'
 const RETENTION_DAYS_DEFAULT = 180
 const MAX_TRACE_ENTRIES_DEFAULT = 200000
-const PERSIST_MAX_ENTRIES = 12000
-const PERSIST_MAX_PAYLOAD_CHARS = 4 * 1024 * 1024
 
 interface TraceChangeEvent {
   totalCount: number
@@ -29,16 +25,10 @@ interface TraceChangeEvent {
 
 type TraceChangeListener = (event: TraceChangeEvent) => void
 
-interface TraceRetentionConfig {
-  retentionDays: number
-  maxEntries: number
-}
-
 export class PeripheralTraceRepository {
   private static context: common.UIAbilityContext | null = null
   private static initPromise: Promise<boolean> | null = null
   private static initialized: boolean = false
-  private static records: PeripheralTraceRecord[] = []
   private static nextListenerId: number = 1
   private static listeners: Map<number, TraceChangeListener> = new Map()
   private static retentionDays: number = RETENTION_DAYS_DEFAULT
@@ -66,10 +56,7 @@ export class PeripheralTraceRepository {
     if (maxEntries !== undefined && Number.isFinite(maxEntries) && maxEntries > 0) {
       PeripheralTraceRepository.maxEntries = Math.floor(maxEntries)
     }
-    let removed = PeripheralTraceRepository.cleanupInMemory()
-    if (removed > 0) {
-      await PeripheralTraceRepository.saveRecords()
-    }
+    await PeripheralTraceRepository.reconcileStorage()
   }
 
   static addChangeListener(listener: TraceChangeListener): number {
@@ -101,13 +88,15 @@ export class PeripheralTraceRepository {
       if (normalized.length === 0) {
         return true
       }
-
-      // Newest first. Notify listeners immediately after the in-memory state changes
-      // so UI consumers can refresh without waiting for persistence to finish.
-      PeripheralTraceRepository.records = normalized.concat(PeripheralTraceRepository.records)
-      PeripheralTraceRepository.cleanupInMemory()
+      let saved = await PeripheralTraceEntryRepository.upsertBatch(normalized)
+      if (!saved) {
+        return false
+      }
+      let reconciled = await PeripheralTraceRepository.reconcileStorage()
+      if (!reconciled) {
+        return false
+      }
       PeripheralTraceRepository.notifyChanged(normalized.length)
-      await PeripheralTraceRepository.saveRecords()
       return true
     } catch (err) {
       LogUtils.error(TAG, `appendBatch failed: ${JSON.stringify(err)}`)
@@ -115,72 +104,14 @@ export class PeripheralTraceRepository {
     }
   }
 
-  static query(query?: PeripheralTraceQuery): PeripheralTraceRecord[] {
-    if (!query) {
-      return PeripheralTraceRepository.records.slice()
-    }
-    let pageOffset = query.pageOffset && query.pageOffset > 0 ? Math.floor(query.pageOffset) : 0
-    let pageSize = query.pageSize && query.pageSize > 0 ? Math.floor(query.pageSize) : 0
-
-    let filtered = PeripheralTraceRepository.records.filter((record: PeripheralTraceRecord) => {
-      if (
-        query.startTime !== undefined &&
-        Number.isFinite(query.startTime) &&
-        record.occurAt < query.startTime
-      ) {
-        return false
-      }
-      if (
-        query.endTime !== undefined &&
-        Number.isFinite(query.endTime) &&
-        record.occurAt > query.endTime
-      ) {
-        return false
-      }
-
-      if (query.deviceId && query.deviceId.length > 0) {
-        let target = PeripheralTraceRepository.normalizeDeviceId(query.deviceId)
-        if (PeripheralTraceRepository.normalizeDeviceId(record.deviceId) !== target) {
-          return false
-        }
-      }
-
-      if (query.deviceTypes && query.deviceTypes.length > 0 && !query.deviceTypes.includes(record.deviceType)) {
-        return false
-      }
-      if (query.actions && query.actions.length > 0 && !query.actions.includes(record.action)) {
-        return false
-      }
-      if (query.decisions && query.decisions.length > 0 && !query.decisions.includes(record.decision)) {
-        return false
-      }
-      if (query.results && query.results.length > 0 && !query.results.includes(record.result)) {
-        return false
-      }
-      if (query.sources && query.sources.length > 0 && !query.sources.includes(record.source)) {
-        return false
-      }
-      if (query.keyword && query.keyword.length > 0) {
-        let keyword = query.keyword.toLowerCase()
-        let text = `${record.deviceName} ${record.deviceId} ${record.summary} ${record.detail || ''} ${record.processName || ''}`.toLowerCase()
-        if (!text.includes(keyword)) {
-          return false
-        }
-      }
-      return true
-    })
-
-    if (pageOffset > 0) {
-      filtered = filtered.slice(pageOffset)
-    }
-    if (pageSize > 0) {
-      filtered = filtered.slice(0, pageSize)
-    }
-    return filtered
+  static async query(query?: PeripheralTraceQuery): Promise<PeripheralTraceRecord[]> {
+    let pageOffset = query?.pageOffset && query.pageOffset > 0 ? Math.floor(query.pageOffset) : 0
+    let pageSize = query?.pageSize && query.pageSize > 0 ? Math.floor(query.pageSize) : undefined
+    return PeripheralTraceEntryRepository.listByQuery(query, pageSize, pageOffset)
   }
 
-  static getStats(query?: PeripheralTraceQuery): PeripheralTraceStats {
-    let records = PeripheralTraceRepository.query(query)
+  static async getStats(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
+    let records = await PeripheralTraceRepository.query(query)
     let stats: PeripheralTraceStats = {
       total: records.length,
       connects: 0,
@@ -221,19 +152,6 @@ export class PeripheralTraceRepository {
     return stats
   }
 
-  static exportJson(query?: PeripheralTraceQuery): string {
-    let records = PeripheralTraceRepository.query(query)
-    return JSON.stringify(records, null, 2)
-  }
-
-  static getRetentionConfig(): TraceRetentionConfig {
-    let config: TraceRetentionConfig = {
-      retentionDays: PeripheralTraceRepository.retentionDays,
-      maxEntries: PeripheralTraceRepository.maxEntries
-    }
-    return config
-  }
-
   static async forceCleanup(retentionDays?: number, maxEntries?: number): Promise<number> {
     if (retentionDays !== undefined && Number.isFinite(retentionDays) && retentionDays > 0) {
       PeripheralTraceRepository.retentionDays = Math.floor(retentionDays)
@@ -241,19 +159,26 @@ export class PeripheralTraceRepository {
     if (maxEntries !== undefined && Number.isFinite(maxEntries) && maxEntries > 0) {
       PeripheralTraceRepository.maxEntries = Math.floor(maxEntries)
     }
-    let removed = PeripheralTraceRepository.cleanupInMemory()
+    let before = await PeripheralTraceEntryRepository.countByQuery()
+    let reconciled = await PeripheralTraceRepository.reconcileStorage()
+    if (!reconciled) {
+      return 0
+    }
+    let after = await PeripheralTraceEntryRepository.countByQuery()
+    let removed = Math.max(0, before - after)
     if (removed > 0) {
-      await PeripheralTraceRepository.saveRecords()
-      PeripheralTraceRepository.notifyChanged(0)
+      await PeripheralTraceRepository.notifyChanged(0)
     }
     return removed
   }
 
   static async clearAll(): Promise<boolean> {
     try {
-      PeripheralTraceRepository.records = []
-      await PeripheralTraceRepository.saveRecords()
-      PeripheralTraceRepository.notifyChanged(0)
+      let cleared = await PeripheralTraceEntryRepository.clearAll()
+      if (!cleared) {
+        return false
+      }
+      await PeripheralTraceRepository.notifyChanged(0)
       LogUtils.info(TAG, 'clearAll success')
       return true
     } catch (err) {
@@ -267,38 +192,24 @@ export class PeripheralTraceRepository {
       return false
     }
     try {
-      let parsed = await PeripheralTraceRepository.loadPersistedRecords()
-      PeripheralTraceRepository.records = PeripheralTraceRepository.sanitizeRecords(parsed)
-      PeripheralTraceRepository.cleanupInMemory()
+      let ready = await PeripheralTraceEntryRepository.init(PeripheralTraceRepository.context)
+      if (!ready) {
+        return false
+      }
+      let reconciled = await PeripheralTraceRepository.reconcileStorage()
+      if (!reconciled) {
+        PeripheralTraceRepository.initialized = false
+        return false
+      }
       PeripheralTraceRepository.initialized = true
-      LogUtils.info(TAG, `init complete, records=${PeripheralTraceRepository.records.length}`)
+      let totalCount = await PeripheralTraceEntryRepository.countByQuery()
+      LogUtils.info(TAG, `init complete, records=${totalCount}`)
       return true
     } catch (err) {
       PeripheralTraceRepository.initialized = false
-      PeripheralTraceRepository.records = []
       LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
     }
-  }
-
-  private static sanitizeRecords(records: PeripheralTraceRecord[]): PeripheralTraceRecord[] {
-    let result: PeripheralTraceRecord[] = []
-    if (!Array.isArray(records)) {
-      return result
-    }
-    for (let item of records) {
-      if (!item || typeof item !== 'object') {
-        continue
-      }
-      result.push(PeripheralTraceRepository.normalizeRecord(item))
-    }
-    result.sort((a: PeripheralTraceRecord, b: PeripheralTraceRecord) => {
-      if (a.occurAt === b.occurAt) {
-        return b.collectAt - a.collectAt
-      }
-      return b.occurAt - a.occurAt
-    })
-    return result
   }
 
   private static normalizeRecord(record: PeripheralTraceRecord): PeripheralTraceRecord {
@@ -383,70 +294,33 @@ export class PeripheralTraceRepository {
     return value.replace(/\s+/g, ' ').toUpperCase()
   }
 
-  private static cleanupInMemory(): number {
-    let now = PeripheralTraceRepository.nowProvider()
-    let retentionMs = PeripheralTraceRepository.retentionDays * 24 * 60 * 60 * 1000
-    let cutoff = now - retentionMs
-    let before = PeripheralTraceRepository.records.length
-
-    let filtered = PeripheralTraceRepository.records.filter((item: PeripheralTraceRecord) => item.occurAt >= cutoff)
-    if (filtered.length > PeripheralTraceRepository.maxEntries) {
-      filtered = filtered
-        .sort((a: PeripheralTraceRecord, b: PeripheralTraceRecord) => b.occurAt - a.occurAt)
-        .slice(0, PeripheralTraceRepository.maxEntries)
-    }
-    PeripheralTraceRepository.records = filtered
-    return before - filtered.length
-  }
-
-  private static async saveRecords(): Promise<void> {
-    if (!PeripheralTraceRepository.context) {
-      return
-    }
+  private static async reconcileStorage(): Promise<boolean> {
     try {
-      let persistRecords = PeripheralTraceRepository.records.slice(
-        0,
-        Math.min(PERSIST_MAX_ENTRIES, PeripheralTraceRepository.records.length)
-      )
-      let payload = JSON.stringify(persistRecords)
-      while (payload.length > PERSIST_MAX_PAYLOAD_CHARS && persistRecords.length > 1) {
-        persistRecords = persistRecords.slice(0, Math.max(1, Math.floor(persistRecords.length * 0.8)))
-        payload = JSON.stringify(persistRecords)
+      let now = PeripheralTraceRepository.nowProvider()
+      let retentionMs = PeripheralTraceRepository.retentionDays * 24 * 60 * 60 * 1000
+      let cutoff = now - retentionMs
+      let deletedExpired = await PeripheralTraceEntryRepository.deleteExpired(cutoff)
+      if (!deletedExpired) {
+        return false
       }
-      if (payload.length > PERSIST_MAX_PAYLOAD_CHARS) {
-        payload = '[]'
+      let trimmed = await PeripheralTraceEntryRepository.trimToMaxEntries(PeripheralTraceRepository.maxEntries)
+      if (!trimmed) {
+        return false
       }
-      await PeripheralTraceRepository.persistRecords(payload)
+      return true
     } catch (err) {
-      LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `reconcileStorage failed: ${JSON.stringify(err)}`)
+      return false
     }
   }
 
-  private static async loadPersistedRecords(): Promise<PeripheralTraceRecord[]> {
-    if (!PeripheralTraceRepository.context) {
-      return []
-    }
-    let pref = PreferencesAccessor.of(PeripheralTraceRepository.context, PREF_STORE_NAME)
-    return pref.getJsonArray<PeripheralTraceRecord>(PREF_KEY_TRACE_RECORDS, [])
-  }
-
-  private static async persistRecords(payload: string): Promise<void> {
-    if (!PeripheralTraceRepository.context) {
-      return
-    }
-    let pref = PreferencesAccessor.of(PeripheralTraceRepository.context, PREF_STORE_NAME)
-    let saved = await pref.setValue(PREF_KEY_TRACE_RECORDS, payload)
-    if (!saved) {
-      LogUtils.error(TAG, 'persistRecords failed: preferences_write_failed')
-    }
-  }
-
-  private static notifyChanged(addedCount: number): void {
+  private static async notifyChanged(addedCount: number): Promise<void> {
     if (PeripheralTraceRepository.listeners.size <= 0) {
       return
     }
+    let totalCount = await PeripheralTraceEntryRepository.countByQuery()
     let event: TraceChangeEvent = {
-      totalCount: PeripheralTraceRepository.records.length,
+      totalCount: totalCount,
       addedCount: addedCount,
       timestamp: PeripheralTraceRepository.nowProvider()
     }

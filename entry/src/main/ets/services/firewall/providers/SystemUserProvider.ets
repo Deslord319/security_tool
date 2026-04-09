@@ -3,7 +3,7 @@ import { netFirewall } from '@kit.NetworkKit'
 import osAccount from '@ohos.account.osAccount'
 
 import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../../../models/DataModels'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { FirewallUserStrings, buildFirewallUserLabel } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'SystemUserProvider'
@@ -16,7 +16,7 @@ export class SystemUserProvider {
       if (ids.length === 0) {
         return {
           users: [],
-          message: FirewallStrings.noActivatedUsers
+          message: FirewallUserStrings.NO_ACTIVATED_USERS
         } as UserFirewallListResult
       }
 
@@ -32,7 +32,7 @@ export class SystemUserProvider {
         let isForeground = foregroundId === userId
         return {
           userId: userId,
-          label: FirewallStrings.buildUserLabel(userId, isForeground),
+          label: buildFirewallUserLabel(userId, isForeground),
           isForeground: isForeground
         } as UserFirewallOption
       })
@@ -48,7 +48,7 @@ export class SystemUserProvider {
       LogUtils.error(TAG, `loadAvailableUserIds failed: ${JSON.stringify(err)}`)
       return {
         users: [],
-        message: FirewallStrings.noActivatedUsers
+        message: FirewallUserStrings.NO_ACTIVATED_USERS
       } as UserFirewallListResult
     }
   }

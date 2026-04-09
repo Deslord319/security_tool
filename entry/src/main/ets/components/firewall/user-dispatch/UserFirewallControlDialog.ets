@@ -1,6 +1,7 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { MessageText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallUserApplyMode } from '../../../models/DataModels'
 import { FirewallUserDispatchViewModel } from '../../../viewmodels/firewall/user-dispatch/FirewallUserDispatchViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -65,7 +66,7 @@ export struct UserFirewallControlDialog {
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-          Text(this.viewModel.statusHintText.length > 0 ? this.viewModel.statusHintText : EmptyStateStrings.CHECK_PERMISSIONS)
+          Text(this.viewModel.statusHintText.length > 0 ? this.viewModel.statusHintText : MessageText.CHECK_PERMISSIONS)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -102,7 +103,7 @@ export struct UserFirewallControlDialog {
           .alignItems(HorizontalAlign.Start)
 
           Column({ space: 8 }) {
-            Text(FirewallDialogStrings.CURRENT_MODE)
+            Text(StatusText.CURRENT_MODE)
               .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontWeight(FontWeight.Medium)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

@@ -14,7 +14,7 @@ import {
   UserFirewallModeApplyResult,
   generateLogEntryId
 } from '../../../models/DataModels'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { buildFirewallToggleFailedMessage } from '../../../constants/modules/FirewallStrings'
 import { LogRepository } from '../../log-manage/repository/LogRepository'
 
 const TAG = 'FirewallAuthService'
@@ -109,7 +109,7 @@ export class FirewallAuthService {
 
     let applySuccess = await applyPolicy(targetEnabled)
     if (!applySuccess) {
-      let errorMessage = FirewallStrings.buildToggleFailedMessage('policy_apply_failed', undefined)
+      let errorMessage = buildFirewallToggleFailedMessage('policy_apply_failed', undefined)
       let applyFailedResult: FirewallToggleResult = {
         success: false,
         targetEnabled: targetEnabled,
@@ -152,7 +152,7 @@ export class FirewallAuthService {
         targetEnabled: targetEnabled ?? false,
         reason: 'lockout',
         lockRemainingSec: lockState.remainingSec,
-        errorMessage: FirewallStrings.buildToggleFailedMessage('lockout', lockState.remainingSec)
+        errorMessage: buildFirewallToggleFailedMessage('lockout', lockState.remainingSec)
       }
       if (currentEnabled !== undefined && targetEnabled !== undefined) {
         await FirewallAuthService.appendAuditEntry(
@@ -204,7 +204,7 @@ export class FirewallAuthService {
         targetEnabled: targetEnabled ?? false,
         reason: 'pin_failed',
         errorCode: authResult.errorCode,
-        errorMessage: authResult.message ?? FirewallStrings.buildToggleFailedMessage('pin_failed', undefined)
+        errorMessage: authResult.message ?? buildFirewallToggleFailedMessage('pin_failed', undefined)
       }
       if (failureUpdate.locked) {
         failedResult.lockRemainingSec = failureUpdate.remainingSec

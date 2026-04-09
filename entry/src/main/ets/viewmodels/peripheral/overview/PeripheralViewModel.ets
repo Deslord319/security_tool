@@ -1,6 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../../../models/DataModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
@@ -40,14 +40,14 @@ export class PeripheralViewModel {
       await this.policy.initialize(context)
       await this.reloadAllData()
       this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {
-        this.refreshTraceDrivenData()
+        void this.refreshTraceDrivenData()
       })
       this.devicePolicyListenerId = PeripheralDevicePolicyRepository.addChangeListener(() => {
         this.refreshPolicyDrivenData()
       })
       this.reasonCode = null
     } catch (err) {
-      this.reasonCode = PeripheralStrings.initFailed
+      this.reasonCode = PeripheralReasonCodes.INIT_FAILED
       LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoading = false
@@ -68,7 +68,7 @@ export class PeripheralViewModel {
   async reloadAllData(): Promise<void> {
     this.refreshAdminActivationState()
     this.interfaceControl.reloadState()
-    this.records.reloadRecords()
+    await this.records.reloadRecords()
     this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadAllData')
   }
@@ -82,18 +82,18 @@ export class PeripheralViewModel {
     if (this.adminState.activated) {
       return true
     }
-      this.reasonCode = PeripheralStrings.adminRequired
+    this.reasonCode = PeripheralReasonCodes.ADMIN_REQUIRED
     return false
   }
 
-  reloadDeviceRecords(): void {
-    this.records.reloadRecords()
+  async reloadDeviceRecords(): Promise<void> {
+    await this.records.reloadRecords()
     this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('reloadDeviceRecords')
   }
 
-  private refreshTraceDrivenData(): void {
-    this.records.reloadRecords()
+  private async refreshTraceDrivenData(): Promise<void> {
+    await this.records.reloadRecords()
     this.policy.reloadRecords(this.records.state.records)
     this.notifyRefresh('refreshTraceDrivenData')
   }
@@ -143,6 +143,7 @@ export class PeripheralViewModel {
       if (this.reasonCode !== null) {
         return false
       }
+      await this.records.reloadRecords()
       this.policy.reloadRecords(this.records.state.records)
       this.notifyRefresh('policyChangeSuccess')
       return true
@@ -154,13 +155,13 @@ export class PeripheralViewModel {
 
   async exportConnectionHistory(): Promise<ExportActionResult> {
     const result = await this.records.exportConnectionHistory(this.appContext)
-    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.exportConnectionHistoryFailed)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED)
     return result
   }
 
   async exportPeripheralPolicyRecords(): Promise<ExportActionResult> {
     const result = await this.policy.exportRecords(this.appContext)
-    this.reasonCode = result.success ? null : (result.reason ?? PeripheralStrings.exportPolicyRecordsFailed)
+    this.reasonCode = result.success ? null : (result.reason ?? PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED)
     return result
   }
 
@@ -186,7 +187,7 @@ export class PeripheralViewModel {
       return false
     }
     this.records.closeConnectionDetailDialog()
-    this.reloadDeviceRecords()
+    await this.reloadDeviceRecords()
     return true
   }
 

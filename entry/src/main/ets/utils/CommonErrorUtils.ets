@@ -3,6 +3,7 @@
  * 提供统一的错误处理相关方法
  */
 import { PermissionErrorStrings, SystemServiceErrorStrings, ErrorTemplates } from '../constants/modules/ErrorStrings'
+import { RequestText } from '../constants/StringCatalog'
 
 interface ErrorRecorder {
   lastErrorCode: number | undefined
@@ -52,7 +53,7 @@ export class CommonErrorUtils {
    * 根据操作和错误码解析错误消息
    */
   static resolveErrorMessage(action: string, code: number | undefined): string {
-    if (action === PermissionErrorStrings.readUserListAction) {
+    if (action === RequestText.READ_USER_LIST) {
       switch (code) {
         case 201:
       return PermissionErrorStrings.missingUserListPermission

@@ -1,5 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import { DialogButtonStrings } from '../constants/modules/DialogStrings'
+import { ActionText } from '../constants/StringCatalog'
 import { ThemeMode } from '../theme/ThemeColors'
 import { IconTextActionButton } from './IconTextActionButton'
 
@@ -28,7 +28,7 @@ export struct DetailDialogShell {
           Blank()
           if (this.showCloseAction) {
             IconTextActionButton({
-              label: DialogButtonStrings.CLOSE,
+              label: ActionText.CLOSE,
               showIcon: false,
               currentTheme: this.currentTheme,
               onTap: this.onClose

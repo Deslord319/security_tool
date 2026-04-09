@@ -2,8 +2,9 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { userAuth } from '@kit.UserAuthenticationKit'
 
 import { BusinessError } from '@kit.BasicServicesKit'
+import { LabelText } from '../../../constants/StringCatalog'
 import { AuthMethod } from '../../../models/DataModels'
-import { IdentityStrings } from '../../../constants/modules/IdentityStrings'
+import { IdentityAuthStrings } from '../../../constants/modules/IdentityStrings'
 import { UserAuthAdapter } from './UserAuthAdapter'
 
 const TAG = 'AuthService'
@@ -29,7 +30,7 @@ export class AuthService {
     if (authType === null) {
       return {
         available: false,
-        message: IdentityStrings.authMethodUnsupported
+        message: IdentityAuthStrings.METHOD_UNSUPPORTED
       }
     }
 
@@ -37,7 +38,7 @@ export class AuthService {
       UserAuthAdapter.getAvailableStatus(authType)
       return {
         available: true,
-        message: IdentityStrings.authSystemAvailable
+        message: IdentityAuthStrings.SYSTEM_AVAILABLE
       }
     } catch (err) {
       let e = err as BusinessError
@@ -52,9 +53,9 @@ export class AuthService {
       case AuthMethod.PIN:
         return 'PIN'
       case AuthMethod.FINGERPRINT:
-        return IdentityStrings.authMethodFingerprint
+        return IdentityAuthStrings.METHOD_FINGERPRINT
       default:
-        return IdentityStrings.authMethodGeneric
+        return LabelText.AUTH_METHOD
     }
   }
 
@@ -66,7 +67,7 @@ export class AuthService {
         return {
           success: false,
           reason: 'unavailable',
-          message: IdentityStrings.authMethodUnsupported
+          message: IdentityAuthStrings.METHOD_UNSUPPORTED
         }
       }
 
@@ -87,7 +88,7 @@ export class AuthService {
       }
 
       let widgetParam: userAuth.WidgetParam = {
-        title: IdentityStrings.authDialogTitle
+        title: IdentityAuthStrings.DIALOG_TITLE
       }
 
       let userAuthInstance = UserAuthAdapter.getUserAuthInstance({
@@ -125,7 +126,7 @@ export class AuthService {
                 success: false,
                 reason: 'failed',
                 errorCode: result.result,
-                message: IdentityStrings.authFailedOrCanceled
+                message: IdentityAuthStrings.FAILED_OR_CANCELED
               })
             }
           })
@@ -166,31 +167,31 @@ export class AuthService {
         return {
           available: false,
           errorCode: errorCode,
-          message: IdentityStrings.buildAuthNotEnrolled(authLabel)
+          message: IdentityAuthStrings.buildNotEnrolled(authLabel)
         }
       case 12500006:
         return {
           available: false,
           errorCode: errorCode,
-          message: IdentityStrings.authTrustLevelInsufficient
+          message: IdentityAuthStrings.TRUST_LEVEL_INSUFFICIENT
         }
       case 12500013:
         return {
           available: false,
           errorCode: errorCode,
-          message: IdentityStrings.authPinExpired
+          message: IdentityAuthStrings.PIN_EXPIRED
         }
       case 201:
         return {
           available: false,
           errorCode: errorCode,
-          message: IdentityStrings.authPermissionDenied
+          message: IdentityAuthStrings.PERMISSION_DENIED
         }
       case 401:
         return {
           available: false,
           errorCode: errorCode,
-          message: IdentityStrings.authInvalidParams
+          message: IdentityAuthStrings.INVALID_PARAMS
         }
       default:
         return {
@@ -198,7 +199,7 @@ export class AuthService {
           errorCode: errorCode,
           message: fallbackMessage && fallbackMessage.length > 0 ?
             fallbackMessage :
-            IdentityStrings.buildAuthUnavailable(authLabel)
+            IdentityAuthStrings.buildUnavailable(authLabel)
         }
     }
   }

@@ -1,6 +1,7 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
+import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { LogManageDetailStrings, LogManageEmptyStateStrings } from '../../../constants/modules/LogManageStrings'
 import {
   formatLogTimestamp,
   getLogEventResultColor,
@@ -25,7 +26,7 @@ export struct LogEntriesPanel {
       this.filterState.resultIndex > 0 ||
       this.filterState.keyword.trim().length > 0) ?
       EmptyStateStrings.NO_RESULTS :
-      LogManageStrings.emptyTitle
+      LogManageEmptyStateStrings.TITLE
   }
 
   private getEmptyStateDescription(): string {
@@ -35,8 +36,8 @@ export struct LogEntriesPanel {
     return (this.filterState.eventTypeIndex > 0 ||
       this.filterState.resultIndex > 0 ||
       this.filterState.keyword.trim().length > 0) ?
-      LogManageStrings.emptyDescription :
-      EmptyStateStrings.CHECK_PERMISSIONS
+      LogManageEmptyStateStrings.DESCRIPTION :
+      MessageText.CHECK_PERMISSIONS
   }
 
   @Builder
@@ -65,7 +66,7 @@ export struct LogEntriesPanel {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         if (entry.processName) {
-          Text(`${LogManageStrings.processLabel}: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
+          Text(`${LogManageDetailStrings.PROCESS_LABEL}: ${entry.processName}${entry.pid !== undefined ? ` (PID: ${entry.pid})` : ''}`)
             .fontSize(AppStyles.FONT_SIZE_CAPTION)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

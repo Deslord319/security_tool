@@ -1,7 +1,7 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralInterfaceStrings, PeripheralOptionStrings } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
@@ -36,19 +36,19 @@ export struct InterfaceControlTab {
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.storageItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.bluetoothTitle, PeripheralStrings.bluetoothDescription, PeripheralService.FEATURE_BLUETOOTH, this.btDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.BLUETOOTH_TITLE, PeripheralInterfaceStrings.BLUETOOTH_DESCRIPTION, PeripheralService.FEATURE_BLUETOOTH, this.btDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.wifiTitle, PeripheralStrings.wifiDescription, PeripheralService.FEATURE_WIFI, this.wifiDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.WIFI_TITLE, PeripheralInterfaceStrings.WIFI_DESCRIPTION, PeripheralService.FEATURE_WIFI, this.wifiDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.hdcTitle, PeripheralStrings.hdcDescription, PeripheralService.FEATURE_HDC, this.hdcDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.HDC_TITLE, PeripheralInterfaceStrings.HDC_DESCRIPTION, PeripheralService.FEATURE_HDC, this.hdcDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.networkSharingTitle, PeripheralStrings.networkSharingDescription, PeripheralService.FEATURE_NETWORK, this.networkDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.NETWORK_SHARING_TITLE, PeripheralInterfaceStrings.NETWORK_SHARING_DESCRIPTION, PeripheralService.FEATURE_NETWORK, this.networkDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.printerTitle, PeripheralStrings.printerDescription, PeripheralService.FEATURE_PRINTER, this.printerDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.PRINTER_TITLE, PeripheralInterfaceStrings.PRINTER_DESCRIPTION, PeripheralService.FEATURE_PRINTER, this.printerDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.microphoneTitle, PeripheralStrings.microphoneDescription, PeripheralService.FEATURE_MICROPHONE, this.microphoneDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.MICROPHONE_TITLE, PeripheralInterfaceStrings.MICROPHONE_DESCRIPTION, PeripheralService.FEATURE_MICROPHONE, this.microphoneDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralStrings.cameraTitle, PeripheralStrings.cameraDescription, PeripheralService.FEATURE_CAMERA, this.cameraDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.CAMERA_TITLE, PeripheralInterfaceStrings.CAMERA_DESCRIPTION, PeripheralService.FEATURE_CAMERA, this.cameraDisabled)
         }
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
@@ -69,9 +69,9 @@ export struct InterfaceControlTab {
   @Builder
   private usbInterfaceItem() {
     AsyncSelectRow({
-      label: PeripheralStrings.usbInterfaceTitle,
-      description: PeripheralStrings.usbInterfaceDescription,
-      options: PeripheralStrings.interfaceToggleOptions,
+      label: PeripheralInterfaceStrings.USB_INTERFACE_TITLE,
+      description: PeripheralInterfaceStrings.USB_INTERFACE_DESCRIPTION,
+      options: PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
       selectedIndex: this.usbDisabled ? 1 : 0,
       processing: this.interfaceControlProcessingKey === PeripheralService.FEATURE_USB,
       currentTheme: this.currentTheme,
@@ -90,7 +90,7 @@ export struct InterfaceControlTab {
     this.controlRow(
       label,
       description,
-      PeripheralStrings.interfaceToggleOptions,
+      PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
       disabled ? 1 : 0,
       this.interfaceControlProcessingKey === feature,
       (index: number) => {
@@ -105,8 +105,8 @@ export struct InterfaceControlTab {
   private storageItem() {
     AsyncSelectRow({
       label: DeviceTypeLabels.USB_STORAGE,
-      description: PeripheralStrings.usbStorageDescription,
-      options: PeripheralStrings.usbStorageOptions,
+      description: PeripheralInterfaceStrings.USB_STORAGE_DESCRIPTION,
+      options: PeripheralOptionStrings.USB_STORAGE_OPTIONS,
       selectedIndex: this.usbStoragePolicyIndex,
       processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
       currentTheme: this.currentTheme,

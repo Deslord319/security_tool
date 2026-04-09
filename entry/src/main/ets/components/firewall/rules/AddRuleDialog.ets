@@ -3,7 +3,8 @@ import { netFirewall } from '@kit.NetworkKit'
 import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
-import { FirewallDialogStrings, DialogButtonStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../../../constants/modules/DialogStrings'
+import { ActionText } from '../../../constants/StringCatalog'
+import { FirewallDialogStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../../../constants/modules/DialogStrings'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
@@ -260,7 +261,7 @@ export struct AddRuleDialog {
   }
 
   private getPrimaryButtonText(): string {
-    return this.isEditMode ? DialogButtonStrings.SAVE : DialogButtonStrings.ADD
+    return this.isEditMode ? ActionText.SAVE : ActionText.ADD
   }
 
   private getRuleTypeLabel(): string {
@@ -474,7 +475,7 @@ export struct AddRuleDialog {
       .alignItems(HorizontalAlign.Start)
 
       Row({ space: 16 }) {
-        Button(DialogButtonStrings.CANCEL)
+        Button(ActionText.CANCEL)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)

@@ -1,7 +1,12 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { ToolSettingsStrings } from '../../../constants/modules/ToolSettingsStrings'
+import { ActionText, LabelText, ModuleText } from '../../../constants/StringCatalog'
+import {
+  ToolSettingsConfirmationStrings,
+  ToolSettingsPageStrings,
+  ToolSettingsPasswordStrings,
+  ToolSettingsStartupAuthStrings
+} from '../../../constants/modules/ToolSettingsStrings'
 import { common } from '@kit.AbilityKit'
 import { AUTH_METHOD_OPTIONS } from '../../../models/DataModels'
 
@@ -64,8 +69,8 @@ export struct ToolSettingsPage {
     DialogService.openConfirm(this.getUIContext(), {
       title: request.title,
       message: request.message,
-      confirmText: ToolSettingsStrings.continueSave,
-      cancelText: CommonStrings.actionCancel,
+      confirmText: ToolSettingsConfirmationStrings.CONTINUE_SAVE,
+      cancelText: ActionText.CANCEL,
       onConfirm: () => {
         void this.handleSave(true)
       }
@@ -75,8 +80,8 @@ export struct ToolSettingsPage {
   build() {
     Column() {
       SubPageHeader({
-        title: CommonStrings.moduleToolSettings,
-        subtitle: ToolSettingsStrings.pageSubtitle,
+        title: ModuleText.TOOL_SETTINGS,
+        subtitle: ToolSettingsPageStrings.SUBTITLE,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {
@@ -88,7 +93,7 @@ export struct ToolSettingsPage {
         Column({ space: 24 }) {
           if (this.viewModel.state.initialized) {
             SectionCard({
-              title: ToolSettingsStrings.sectionStartupAuth,
+              title: ToolSettingsStartupAuthStrings.SECTION_TITLE,
               currentTheme: this.currentTheme,
               content: () => {
                 this.startupAuthContent()
@@ -122,7 +127,7 @@ export struct ToolSettingsPage {
   @Builder
   private headerActions() {
     IconTextActionButton({
-      label: CommonStrings.actionSaveSettings,
+      label: ActionText.SAVE_SETTINGS,
       icon: $r('app.media.save'),
       kind: 'primary',
       currentTheme: this.currentTheme,
@@ -152,8 +157,8 @@ export struct ToolSettingsPage {
   @Builder
   private startupAuthSwitchRow() {
     SectionToggleRow({
-      title: ToolSettingsStrings.startupAuthTitle,
-      description: ToolSettingsStrings.startupAuthDesc,
+      title: ToolSettingsStartupAuthStrings.TITLE,
+      description: ToolSettingsStartupAuthStrings.DESCRIPTION,
       isOn: this.viewModel.state.config.startupAuthEnabled,
       currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
@@ -165,8 +170,8 @@ export struct ToolSettingsPage {
   @Builder
   private authMethodRow() {
     SectionSelectRow({
-      title: ToolSettingsStrings.authMethodTitle,
-      description: ToolSettingsStrings.authMethodDesc,
+      title: LabelText.AUTH_METHOD,
+      description: ToolSettingsStartupAuthStrings.AUTH_METHOD_DESCRIPTION,
       options: this.authMethodOptions,
       selectedIndex: this.viewModel.selectedAuthMethodIndex,
       value: this.getSelectedAuthMethodLabel(),
@@ -183,9 +188,9 @@ export struct ToolSettingsPage {
   @Builder
   private changePasswordRow() {
     SectionActionRow({
-      title: ToolSettingsStrings.changePasswordLabel,
-      description: ToolSettingsStrings.changePasswordDesc,
-      actionLabel: ToolSettingsStrings.changePasswordLabel,
+      title: ToolSettingsPasswordStrings.CHANGE_LABEL,
+      description: ToolSettingsPasswordStrings.CHANGE_DESCRIPTION,
+      actionLabel: ToolSettingsPasswordStrings.CHANGE_LABEL,
       currentTheme: this.currentTheme,
       onTap: () => {
         this.viewModel.openPasswordSettings(this.getPageContext()).then((request: ToolSettingsActionRequest) => {

@@ -1,7 +1,7 @@
 import { LogUtils } from '../../../utils/LogUtils'
-﻿import { usbManager as edmUsbManager } from '@kit.MDMKit'
+import { usbManager as edmUsbManager } from '@kit.MDMKit'
 
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 
 const TAG = 'InterfaceControlViewModel'
@@ -72,13 +72,13 @@ export class InterfaceControlViewModel {
     try {
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
-      return this.normalizeReason(result.stage, PeripheralStrings.toggleInterfaceFailed)
+        return this.normalizeReason(result.stage, PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
       }
       this.updateInterfaceState(feature, disallow)
       return null
     } catch (err) {
       LogUtils.error(TAG, `toggleInterface failed: ${JSON.stringify(err)}`)
-      return PeripheralStrings.toggleInterfaceFailed
+      return PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED
     } finally {
       this.processingKey = ''
     }
@@ -94,7 +94,7 @@ export class InterfaceControlViewModel {
           : edmUsbManager.UsbPolicy.DISABLED
       const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policy)
       if (!result.success) {
-      return this.normalizeReason(result.stage, PeripheralStrings.usbStoragePolicyFailed)
+        return this.normalizeReason(result.stage, PeripheralReasonCodes.USB_STORAGE_POLICY_FAILED)
       }
       this.commitState({
         usbDisabled: this.state.usbDisabled,
@@ -110,7 +110,7 @@ export class InterfaceControlViewModel {
       return null
     } catch (err) {
       LogUtils.error(TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralStrings.usbStoragePolicyFailed
+      return PeripheralReasonCodes.USB_STORAGE_POLICY_FAILED
     } finally {
       this.processingKey = ''
     }
@@ -154,14 +154,14 @@ export class InterfaceControlViewModel {
 
   private normalizeReason(stage: string | undefined, fallbackReason: string): string {
     switch (stage) {
-      case PeripheralStrings.readUsbStatusFailed:
-        return PeripheralStrings.readUsbStatusFailed
-      case PeripheralStrings.readUsbStoragePolicyFailed:
-        return PeripheralStrings.readUsbStoragePolicyFailed
-      case PeripheralStrings.setUsbInterfaceConflict:
-        return PeripheralStrings.setUsbInterfaceConflict
-      case PeripheralStrings.setUsbStoragePolicyConflict:
-        return PeripheralStrings.setUsbStoragePolicyConflict
+      case PeripheralReasonCodes.READ_USB_STATUS_FAILED:
+        return PeripheralReasonCodes.READ_USB_STATUS_FAILED
+      case PeripheralReasonCodes.READ_USB_STORAGE_POLICY_FAILED:
+        return PeripheralReasonCodes.READ_USB_STORAGE_POLICY_FAILED
+      case PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT:
+        return PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT
+      case PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT:
+        return PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT
       default:
         return stage || fallbackReason
     }

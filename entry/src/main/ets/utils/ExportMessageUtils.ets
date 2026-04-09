@@ -1,12 +1,12 @@
-import { CommonStrings } from '../constants/CommonStrings'
-import { PeripheralStrings } from '../constants/modules/PeripheralStrings'
+import { AppText } from '../constants/StringCatalog'
+import { PeripheralExportStrings } from '../constants/modules/PeripheralStrings'
 
 export class ExportMessageUtils {
   static buildDownloadCenterDisplayPath(fileName: string): string {
-    return `${PeripheralStrings.exportDownloadPathPrefix}/${CommonStrings.appName}/${fileName}`
+    return `${PeripheralExportStrings.DOWNLOAD_PATH_PREFIX}/${AppText.NAME}/${fileName}`
   }
 
   static buildExportSuccessText(fileName: string): string {
-    return `${PeripheralStrings.exportSuccessPrefix}${ExportMessageUtils.buildDownloadCenterDisplayPath(fileName)}`
+    return `${PeripheralExportStrings.SUCCESS_PREFIX}${ExportMessageUtils.buildDownloadCenterDisplayPath(fileName)}`
   }
 }

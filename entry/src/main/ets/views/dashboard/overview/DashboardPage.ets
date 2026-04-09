@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { DashboardStrings } from '../../../constants/modules/DashboardStrings'
+import { ModuleText } from '../../../constants/StringCatalog'
+import { DashboardPageStrings } from '../../../constants/modules/DashboardStrings'
 import { MetricSummaryCard } from '../../../components/MetricSummaryCard'
 import { ToolCard } from '../../../components/ToolCard'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -116,13 +116,13 @@ export struct DashboardPage {
     Scroll() {
       Column({ space: 22 }) {
         Column({ space: 4 }) {
-          Text(CommonStrings.moduleDashboard)
+          Text(ModuleText.DASHBOARD)
             .fontSize(AppStyles.FONT_SIZE_TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-          Text(DashboardStrings.pageSubtitle)
+          Text(DashboardPageStrings.SUBTITLE)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -159,7 +159,7 @@ export struct DashboardPage {
         }
         .width('100%')
 
-        Text(DashboardStrings.quickActionsTitle)
+        Text(DashboardPageStrings.QUICK_ACTIONS_TITLE)
           .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

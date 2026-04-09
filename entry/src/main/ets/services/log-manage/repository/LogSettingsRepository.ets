@@ -20,26 +20,18 @@ const TAG = 'LogSettingsRepository'
 
 export class LogSettingsRepository {
   private static context: common.UIAbilityContext | null = null
-  private static storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
 
   static async init(context: common.UIAbilityContext): Promise<ServiceResult> {
     LogSettingsRepository.context = context
-    let success = await LogSettingsRepository.loadConfigInternal()
-    return success ? { success: true, code: 'ok' } : { success: false, code: 'config_init_failed' }
+    let config = await LogSettingsRepository.readStorageConfig()
+    return config ? { success: true, code: 'ok' } : { success: false, code: 'config_init_failed' }
   }
 
   static async loadStorageConfig(): Promise<LogStorageConfig> {
-    await LogSettingsRepository.loadConfigInternal()
-    return {
-      maxLocalEntries: LogSettingsRepository.storageConfig.maxLocalEntries,
-      retentionDays: LogSettingsRepository.storageConfig.retentionDays
-    }
-  }
-
-  static getStorageConfigSync(): LogStorageConfig {
-    return {
-      maxLocalEntries: LogSettingsRepository.storageConfig.maxLocalEntries,
-      retentionDays: LogSettingsRepository.storageConfig.retentionDays
+    let config = await LogSettingsRepository.readStorageConfig()
+    return config ?? {
+      maxLocalEntries: DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries,
+      retentionDays: DEFAULT_LOG_STORAGE_CONFIG.retentionDays
     }
   }
 
@@ -48,14 +40,14 @@ export class LogSettingsRepository {
       return { success: false, code: 'not_initialized' }
     }
     try {
-      LogSettingsRepository.storageConfig = {
+      let normalizedConfig: LogStorageConfig = {
         maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries),
         retentionDays: LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
       }
       let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
       let saved = await pref.setMany([
-        { key: PREF_KEY_LOG_MAX_ENTRIES, value: LogSettingsRepository.storageConfig.maxLocalEntries },
-        { key: PREF_KEY_LOG_RETENTION_DAYS, value: LogSettingsRepository.storageConfig.retentionDays }
+        { key: PREF_KEY_LOG_MAX_ENTRIES, value: normalizedConfig.maxLocalEntries },
+        { key: PREF_KEY_LOG_RETENTION_DAYS, value: normalizedConfig.retentionDays }
       ])
       if (!saved) {
         return { success: false, code: 'save_failed' }
@@ -98,22 +90,21 @@ export class LogSettingsRepository {
     }
   }
 
-  private static async loadConfigInternal(): Promise<boolean> {
+  private static async readStorageConfig(): Promise<LogStorageConfig | null> {
     if (!LogSettingsRepository.context) {
-      return false
+      return null
     }
     try {
       let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
       let maxEntries = await pref.getNumber(PREF_KEY_LOG_MAX_ENTRIES, DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
       let retentionDays = await pref.getNumber(PREF_KEY_LOG_RETENTION_DAYS, DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
-      LogSettingsRepository.storageConfig = {
+      return {
         maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(maxEntries),
         retentionDays: LogEntryNormalizer.normalizeRetentionDays(retentionDays)
       }
-      return true
     } catch (err) {
-      LogUtils.error(TAG, `loadConfigInternal failed: ${JSON.stringify(err)}`)
-      return false
+      LogUtils.error(TAG, `readStorageConfig failed: ${JSON.stringify(err)}`)
+      return null
     }
   }
 

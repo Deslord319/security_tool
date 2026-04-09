@@ -1,6 +1,6 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
+import { ActionText, AppText, ModuleText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
 import { DetailDialogShell } from './DetailDialogShell'
 
@@ -91,13 +91,13 @@ export struct AboutDialogContent {
         .height(80)
         .draggable(false)
 
-      Text(AppInfo.APP_NAME)
+      Text(AppText.NAME)
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      Text(`${CommonStrings.versionLabel} ${AppInfo.APP_VERSION}`)
+      Text(`${AppText.VERSION} ${AppInfo.APP_VERSION}`)
         .fontSize(14)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -107,7 +107,7 @@ export struct AboutDialogContent {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
-      Button(CommonStrings.actionConfirm)
+      Button(ActionText.CONFIRM)
         .width('100%')
         .height(40)
         .fontSize(16)
@@ -124,7 +124,7 @@ export struct AboutDialogContent {
 
   build() {
     DetailDialogShell({
-      title: CommonStrings.aboutLabel,
+      title: AppText.ABOUT,
       dialogWidth: 360,
       maxBodyHeight: 320,
       currentTheme: this.currentTheme,
@@ -157,7 +157,7 @@ export struct ThemeMenuPopup {
   build() {
     Column({ space: 6 }) {
       Column({ space: 6 }) {
-        Text(CommonStrings.themeSectionTitle)
+        Text(ThemeText.SECTION_TITLE)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -165,9 +165,9 @@ export struct ThemeMenuPopup {
           .width('100%')
           .padding({ left: 8, right: 8, top: 4 })
 
-        this.themeButton($r('app.media.dashboard'), CommonStrings.themeFollowSystem, ThemeOption.SYSTEM)
-        this.themeButton($r('app.media.sun'), CommonStrings.themeLightMode, ThemeOption.LIGHT)
-        this.themeButton($r('app.media.moon'), CommonStrings.themeDarkMode, ThemeOption.DARK)
+        this.themeButton($r('app.media.dashboard'), ThemeText.FOLLOW_SYSTEM, ThemeOption.SYSTEM)
+        this.themeButton($r('app.media.sun'), ThemeText.LIGHT_MODE, ThemeOption.LIGHT)
+        this.themeButton($r('app.media.moon'), ThemeText.DARK_MODE, ThemeOption.DARK)
       }
       .width('100%')
 
@@ -177,7 +177,7 @@ export struct ThemeMenuPopup {
         .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
       Column({ space: 2 }) {
-        this.actionMenuItem($r('app.media.help_menu'), CommonStrings.moduleHelpFeedback, RouteIds.HELP_FEEDBACK)
+        this.actionMenuItem($r('app.media.help_menu'), ModuleText.HELP_FEEDBACK, RouteIds.HELP_FEEDBACK)
         this.aboutMenuItem()
       }
       .width('100%')
@@ -287,7 +287,7 @@ export struct ThemeMenuPopup {
   private aboutMenuItem() {
     InteractiveMenuRow({
       icon: $r('app.media.info_menu'),
-      label: CommonStrings.aboutLabel,
+      label: AppText.ABOUT,
       itemId: 'menu-action-about',
       currentTheme: this.currentTheme,
       itemBackground: this.resolveMenuBackground(this.aboutHovered, this.aboutPressed),

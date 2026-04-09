@@ -1,5 +1,5 @@
-import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS, AppInfo } from '../constants/AppConstants'
-import { CommonStrings } from '../constants/CommonStrings'
+import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS } from '../constants/AppConstants'
+import { AppText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode } from '../theme/ThemeColors'
 import { InteractiveMenuRow } from './ThemeMenuPopup'
@@ -33,7 +33,7 @@ export struct SideBar {
   }
 
   private getThemeModeLabel(): string {
-    return this.currentTheme === ThemeMode.DARK ? CommonStrings.themeDarkMode : CommonStrings.themeLightMode
+    return this.currentTheme === ThemeMode.DARK ? ThemeText.DARK_MODE : ThemeText.LIGHT_MODE
   }
 
   private getThemeModeIconColor(): string {
@@ -52,7 +52,7 @@ export struct SideBar {
           .height(20)
           .draggable(false)
 
-        Text(AppInfo.APP_NAME)
+        Text(AppText.NAME)
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

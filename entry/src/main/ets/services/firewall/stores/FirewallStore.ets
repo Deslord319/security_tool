@@ -11,7 +11,7 @@ import {
   UserFirewallModeState
 } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { FirewallOperationStrings } from '../../../constants/modules/FirewallStrings'
 import {
   FirewallCustomRulesRepository,
   StoredCustomFirewallRuleRecord
@@ -139,7 +139,7 @@ export class FirewallStore {
         mode: mode,
         appliedRuleCount: 0,
         errorCode: undefined,
-        errorMessage: CommonErrorUtils.resolveErrorMessage(FirewallStrings.saveUserModeBindingsAction, undefined)
+        errorMessage: CommonErrorUtils.resolveErrorMessage(FirewallOperationStrings.SAVE_USER_MODE_BINDINGS, undefined)
       }
     }
     return result
@@ -398,7 +398,7 @@ export class FirewallStore {
       }
       return allRules
     } catch (err) {
-      FirewallStore.recordStoreError(FirewallStrings.readUserRulesAction, err as Object)
+      FirewallStore.recordStoreError(FirewallOperationStrings.READ_USER_RULES, err as Object)
       LogUtils.error(TAG, 'getRules failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return []
     }
@@ -419,7 +419,7 @@ export class FirewallStore {
       try {
         await netFirewall.removeNetFirewallRule(userId, ruleId)
       } catch (err) {
-        FirewallStore.recordStoreError(FirewallStrings.deleteUserRulesAction, err as Object)
+        FirewallStore.recordStoreError(FirewallOperationStrings.DELETE_USER_RULES, err as Object)
         LogUtils.error(TAG,
           'clearManagedRules failed, userId=%{public}d, ruleId=%{public}d, err=%{public}s',
           userId,
@@ -444,7 +444,7 @@ export class FirewallStore {
       )
       return true
     } catch (err) {
-      FirewallStore.recordStoreError(FirewallStrings.writeUserPolicyAction, err as Object)
+      FirewallStore.recordStoreError(FirewallOperationStrings.WRITE_USER_POLICY, err as Object)
       LogUtils.error(TAG, 'setPolicy failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return false
     }

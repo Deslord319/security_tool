@@ -1,11 +1,11 @@
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
-import { LogConfigRepository } from '../repository/LogConfigRepository'
+import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { MutationResult } from '../common/LogManagePorts'
 
 export class LogStorageMaintenanceService {
   static async reconcileStorageConfig(): Promise<MutationResult> {
-    let config = LogConfigRepository.getStorageConfigSync()
+    let config = await LogSettingsRepository.loadStorageConfig()
     let retentionDays = LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
     let maxEntries = LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries)
     let cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000
@@ -18,9 +18,5 @@ export class LogStorageMaintenanceService {
       return { success: false, code: 'save_failed' }
     }
     return { success: true, code: 'ok' }
-  }
-
-  static async maintainAfterAppend(): Promise<MutationResult> {
-    return LogStorageMaintenanceService.reconcileStorageConfig()
   }
 }

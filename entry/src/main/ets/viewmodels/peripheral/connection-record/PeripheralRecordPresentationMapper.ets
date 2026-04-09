@@ -6,9 +6,15 @@ import {
   PeripheralRecordPolicyHit,
   PeripheralType
 } from '../../../models/DataModels'
-import { PresentationStrings } from '../../../constants/modules/PresentationStrings'
-import { CommonLabelStrings, FirewallDialogStrings, ResultStrings } from '../../../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import { LabelText, ResultText, StatusText } from '../../../constants/StringCatalog'
+import {
+  LogResultPresentationStrings,
+  PeripheralSourcePresentationStrings
+} from '../../../constants/modules/PresentationStrings'
+import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
+import {
+  PeripheralMatchedPolicyStrings
+} from '../../../constants/modules/PeripheralStrings'
 
 export interface PeripheralConnectionHistoryItem {
   time: string
@@ -19,21 +25,21 @@ export interface PeripheralConnectionHistoryItem {
 export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPolicyKind): string {
   switch (kind) {
     case 'usb_disabled':
-      return PeripheralStrings.matchedPolicyUsbDisabled
+      return PeripheralMatchedPolicyStrings.USB_DISABLED
     case 'usb_storage_disabled':
-      return PeripheralStrings.matchedPolicyUsbStorageDisabled
+      return PeripheralMatchedPolicyStrings.USB_STORAGE_DISABLED
     case 'usb_storage_read_only':
-      return PeripheralStrings.matchedPolicyUsbStorageReadOnly
+      return PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY
     case 'device_deny':
-      return PeripheralStrings.matchedPolicyDeviceDeny
+      return PeripheralMatchedPolicyStrings.DEVICE_DENY
     case 'bluetooth_connection_event':
-      return PeripheralStrings.matchedPolicyBluetoothConnection
+      return PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION
     case 'bluetooth_discovery':
-      return PeripheralStrings.matchedPolicyBluetoothDiscovery
+      return PeripheralMatchedPolicyStrings.BLUETOOTH_DISCOVERY
     case 'default_allow':
-      return PeripheralStrings.matchedPolicyDefaultAllow
+      return PeripheralMatchedPolicyStrings.DEFAULT_ALLOW
     case 'disconnect_event':
-      return PeripheralStrings.matchedPolicyDisconnectEvent
+      return PeripheralMatchedPolicyStrings.DISCONNECT_EVENT
     default:
       return '--'
   }
@@ -46,13 +52,13 @@ function getPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
     case 'deny':
       return FirewallDialogStrings.ACTION_DENY
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 
 export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
-    return PeripheralStrings.policyPending
+    return PeripheralMatchedPolicyStrings.PENDING
   }
   if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
     return getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)
@@ -66,29 +72,29 @@ export function getPeripheralConnectionListPolicyLabel(record: PeripheralConnect
   }
 
   if (record.matchedPolicyKind === 'device_deny' || record.policyHit === 'deny') {
-    return '已禁用'
+    return StatusText.DISABLED
   }
 
   if (record.deviceType === PeripheralType.BLUETOOTH) {
-    return '已启用'
+    return StatusText.ENABLED
   }
 
-  return '已启用'
+  return StatusText.ENABLED
 }
 
 export function getPeripheralConnectionResultLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
-      return PresentationStrings.sourcePolicySnapshot
+    return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
   }
   switch (record.result) {
     case LogEventResult.SUCCESS:
-      return ResultStrings.SUCCESS
+      return ResultText.SUCCESS
     case LogEventResult.BLOCKED:
-      return PresentationStrings.logResultBlocked
+      return LogResultPresentationStrings.BLOCKED
     case LogEventResult.FAILED:
-      return ResultStrings.FAILED
+      return ResultText.FAILED
     default:
-      return CommonLabelStrings.UNKNOWN
+      return LabelText.UNKNOWN
   }
 }
 

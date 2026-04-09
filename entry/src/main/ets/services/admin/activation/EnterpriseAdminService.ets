@@ -2,6 +2,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
 import { Want } from '@kit.AbilityKit'
 import { AppInfo } from '../../../constants/AppConstants'
+import { AdminText } from '../../../constants/StringCatalog'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { AdminErrorStrings } from '../../../constants/modules/ErrorStrings'
@@ -39,7 +40,7 @@ export class EnterpriseAdminService {
       const error: Object = err as Object
       const code: number | undefined = CommonErrorUtils.extractErrorCode(error)
       const message: string = EnterpriseAdminService.isAdminMissingError(error)
-        ? AdminErrorStrings.notActivated
+        ? AdminText.NOT_ACTIVATED
         : AdminErrorStrings.buildCheckFailed(code)
       LogUtils.warn(TAG, `probeActivation failed: ${JSON.stringify(err)}`)
       return {

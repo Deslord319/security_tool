@@ -1,5 +1,6 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { ActionText } from '../../../constants/StringCatalog'
+import { LogManagePaginationStrings } from '../../../constants/modules/LogManageStrings'
 import { LogListState, LogPaginationState } from '../../../models/LogManageModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
@@ -19,7 +20,7 @@ export struct LogPaginationBar {
   @Event onNextPage: () => void = () => {}
 
   private getPageSizeOptions(): SelectOption[] {
-    return this.pageSizeOptions.map((size: number): SelectOption => ({ value: LogManageStrings.buildPageSizeText(size) } as SelectOption))
+    return this.pageSizeOptions.map((size: number): SelectOption => ({ value: LogManagePaginationStrings.buildPageSizeText(size) } as SelectOption))
   }
 
   private getCurrentRangeText(): string {
@@ -36,14 +37,14 @@ export struct LogPaginationBar {
     if (!this.loading && this.listState.allEntries.length > 0) {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       Row({ space: 12 }) {
-        Text(LogManageStrings.buildPageRangeText(this.getCurrentRangeText(), this.listState.allEntries.length))
+        Text(LogManagePaginationStrings.buildPageRangeText(this.getCurrentRangeText(), this.listState.allEntries.length))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
         Select(this.getPageSizeOptions())
           .selected(this.paginationState.pageSizeIndex)
-          .value(LogManageStrings.buildPageSizeText(this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20))
+          .value(LogManagePaginationStrings.buildPageSizeText(this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20))
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
           .fontColor(FormControlUtils.text(this.currentTheme))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
@@ -56,7 +57,7 @@ export struct LogPaginationBar {
           .onSelect((index: number) => this.onSelectPageSize(index))
 
         IconTextActionButton({
-          label: LogManageStrings.previousPageButton,
+          label: ActionText.PREVIOUS_PAGE,
           showIcon: false,
           isEnabled: this.paginationState.currentPage > 1,
           currentTheme: this.currentTheme,
@@ -69,7 +70,7 @@ export struct LogPaginationBar {
           .width(52)
           .textAlign(TextAlign.Center)
 
-        TextInput({ text: this.paginationState.pageInputText, placeholder: LogManageStrings.pageInputPlaceholder })
+        TextInput({ text: this.paginationState.pageInputText, placeholder: LogManagePaginationStrings.PAGE_INPUT_PLACEHOLDER })
           .type(InputType.Number)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(FormControlUtils.text(this.currentTheme))
@@ -82,7 +83,7 @@ export struct LogPaginationBar {
           .onSubmit(this.onJumpPage)
 
         IconTextActionButton({
-          label: LogManageStrings.jumpButton,
+          label: ActionText.JUMP,
           showIcon: false,
           isEnabled: this.paginationState.pageInputText.trim().length > 0,
           currentTheme: this.currentTheme,
@@ -90,7 +91,7 @@ export struct LogPaginationBar {
         })
 
         IconTextActionButton({
-          label: LogManageStrings.nextPageButton,
+          label: ActionText.NEXT_PAGE,
           showIcon: false,
           isEnabled: this.paginationState.currentPage < this.paginationState.totalPages,
           currentTheme: this.currentTheme,

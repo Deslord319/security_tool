@@ -11,7 +11,7 @@ import { PeripheralTraceRepository } from './PeripheralTraceRepository'
 const TAG = 'PeripheralConnectionRecordService'
 
 export class PeripheralConnectionRecordService {
-  static queryRecords(filter?: PeripheralConnectionFilter): PeripheralConnectionRecord[] {
+  static async queryRecords(filter?: PeripheralConnectionFilter): Promise<PeripheralConnectionRecord[]> {
     try {
       let query: PeripheralTraceQuery = {
         startTime: filter?.startTime,
@@ -21,7 +21,7 @@ export class PeripheralConnectionRecordService {
         sources: ['runtime_event'],
         keyword: filter?.keyword
       }
-      let records = PeripheralTraceRepository.query(query)
+      let records = await PeripheralTraceRepository.query(query)
       return records
         .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapRuntimeRecord(record))
         .sort((a: PeripheralConnectionRecord, b: PeripheralConnectionRecord) => b.timestamp - a.timestamp)

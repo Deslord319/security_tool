@@ -103,13 +103,6 @@ export interface LogRepositoryPort {
   removeChangeListener(id: number): void
 }
 
-export interface LogConfigRepositoryPort {
-  init(context: common.UIAbilityContext): Promise<ServiceResult>
-  loadStorageConfig(): Promise<LogStorageConfig>
-  saveStorageConfig(config: LogStorageConfig): Promise<ServiceResult>
-  loadSubscriptionConfig(): Promise<LogSubscriptionConfig>
-}
-
 export interface LogStorageMaintenancePort {
   reconcileStorageConfig(): Promise<MutationResult>
 }

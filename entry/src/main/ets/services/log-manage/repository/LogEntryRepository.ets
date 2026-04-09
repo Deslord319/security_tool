@@ -115,10 +115,6 @@ export class LogEntryRepository {
     }
   }
 
-  static async listLatest(limit: number): Promise<LogEntry[]> {
-    return LogEntryRepository.listByQuery(undefined, limit, 0)
-  }
-
   static async listByQuery(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]> {
     let store = await LogEntryRepository.getStore()
     if (!store) {

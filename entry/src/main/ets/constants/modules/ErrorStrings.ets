@@ -1,12 +1,10 @@
 export class PermissionErrorStrings {
-  static readonly readUserListAction: string = '读取用户列表'
   static readonly missingUserListPermission: string = '缺少系统用户列表读取权限'
   static readonly missingAccountOrFirewallPermission: string = '缺少账户或防火墙管理权限'
   static readonly invalidUserIdParam: string = '用户 ID 参数不合法'
 }
 
 export class AdminErrorStrings {
-  static readonly notActivated: string = '企业管理员未激活'
   static readonly checkFailed: string = '管理员状态检查失败'
 
   static buildCheckFailed(code?: number): string {

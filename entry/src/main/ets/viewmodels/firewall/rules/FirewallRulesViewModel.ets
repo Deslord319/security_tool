@@ -1,7 +1,11 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import {
+  FirewallRuleStrings,
+  buildFirewallConflictNotice,
+  buildFirewallReapplyPartialFailedMessage
+} from '../../../constants/modules/FirewallStrings'
 import {
   FirewallOperationResult,
   FirewallPresetMode,
@@ -41,10 +45,10 @@ export class FirewallRulesViewModel {
       this.rules = []
       this.conflictNotice = ''
       this.lastSaveResult = null
-      this.lastOperationMessage = FirewallStrings.rulesOnlyCustomMode
+      this.lastOperationMessage = FirewallRuleStrings.ONLY_CUSTOM_MODE
       return {
         success: false,
-        errorMessage: FirewallStrings.rulesOnlyCustomMode
+        errorMessage: FirewallRuleStrings.ONLY_CUSTOM_MODE
       }
     }
     return this.loadRules(context)
@@ -63,10 +67,10 @@ export class FirewallRulesViewModel {
       this.rules = []
       this.conflictNotice = ''
       this.lastSaveResult = null
-      this.lastOperationMessage = FirewallStrings.customRulesApplyFailed
+      this.lastOperationMessage = FirewallRuleStrings.APPLY_FAILED
       return {
         success: false,
-        errorMessage: FirewallStrings.customRulesApplyFailed
+        errorMessage: FirewallRuleStrings.APPLY_FAILED
       }
     } finally {
       this.isLoading = false
@@ -157,21 +161,21 @@ export class FirewallRulesViewModel {
       const reapplySuccessCount = result.reapplySuccessCount ?? 0
       const reapplyFailedCount = result.reapplyFailedCount ?? 0
       this.lastOperationMessage = reapplyFailedCount > 0
-        ? FirewallStrings.buildReapplyPartialFailedMessage(reapplySuccessCount, reapplyFailedCount)
+        ? buildFirewallReapplyPartialFailedMessage(reapplySuccessCount, reapplyFailedCount)
         : successMessage
       return result
       }
 
-      this.lastOperationMessage = result.errorMessage ?? FirewallStrings.customRulesApplyFailed
+      this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
       await this.restoreRules(context, previousRules)
       return result
     } catch (err) {
       LogUtils.error(TAG, `saveRules failed: ${JSON.stringify(err)}`)
       this.lastSaveResult = {
         success: false,
-        errorMessage: FirewallStrings.customRulesApplyFailed
+        errorMessage: FirewallRuleStrings.APPLY_FAILED
       }
-      this.lastOperationMessage = FirewallStrings.customRulesApplyFailed
+      this.lastOperationMessage = FirewallRuleStrings.APPLY_FAILED
       await this.restoreRules(context, previousRules)
       return this.lastSaveResult
     } finally {
@@ -183,7 +187,7 @@ export class FirewallRulesViewModel {
     context: common.UIAbilityContext,
     rule: netFirewall.NetFirewallRule
   ): Promise<FirewallRulesSaveResult> {
-    return this.saveRules(context, [...this.rules, rule], FirewallStrings.addRuleSuccess)
+    return this.saveRules(context, [...this.rules, rule], FirewallRuleStrings.ADD_SUCCESS)
   }
 
   async updateRule(
@@ -194,7 +198,7 @@ export class FirewallRulesViewModel {
     const nextRules = this.rules.map((item: netFirewall.NetFirewallRule) =>
       this.getLocalRuleId(item) === localRuleId ? rule : item
     )
-    return this.saveRules(context, nextRules, FirewallStrings.updateRuleSuccess)
+    return this.saveRules(context, nextRules, FirewallRuleStrings.UPDATE_SUCCESS)
   }
 
   async deleteRule(
@@ -203,12 +207,12 @@ export class FirewallRulesViewModel {
   ): Promise<FirewallRulesSaveResult> {
     const localRuleId = this.getLocalRuleId(rule)
     const nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== localRuleId)
-    return this.saveRules(context, nextRules, FirewallStrings.deleteRuleSuccess)
+    return this.saveRules(context, nextRules, FirewallRuleStrings.DELETE_SUCCESS)
   }
 
   refreshConflictNotice(): void {
     const summary = FirewallService.summarizeConflicts(this.rules)
-    this.conflictNotice = FirewallStrings.buildConflictNotice(
+    this.conflictNotice = buildFirewallConflictNotice(
       summary.duplicates,
       summary.hardConflicts,
       summary.overlapConflicts

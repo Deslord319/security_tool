@@ -1,11 +1,17 @@
 import { common } from '@kit.AbilityKit'
 import { AppColors } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
-import { ModuleText } from '../../../constants/StringCatalog'
+import { ModuleText, StatusText } from '../../../constants/StringCatalog'
 import { RouteIds } from '../../../constants/RouteIds'
-import { DashboardStrings } from '../../../constants/modules/DashboardStrings'
+import {
+  DashboardAdminStrings,
+  DashboardFirewallCardStrings,
+  DashboardGradientPalette,
+  DashboardLogCardStrings,
+  DashboardPeripheralCardStrings
+} from '../../../constants/modules/DashboardStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { getFirewallModeTitle } from '../../../constants/modules/FirewallStrings'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../models/DashboardModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { FirewallService } from '../../../services/firewall/FirewallService'
@@ -69,7 +75,7 @@ export class DashboardViewModel {
       this.buildAdminCard(),
       await this.buildFirewallCard(),
       await this.buildLogCard(),
-      this.buildPeripheralCard()
+      await this.buildPeripheralCard()
     ]
   }
 
@@ -77,9 +83,9 @@ export class DashboardViewModel {
     let activated = EnterpriseAdminService.probeActivation().activated
     return this.createModuleCard(
       'admin-status',
-      DashboardStrings.adminTitle,
-      activated ? DashboardStrings.adminReady : DashboardStrings.adminPending,
-      activated ? DashboardStrings.adminReadyDetail : DashboardStrings.adminPendingDetail,
+      DashboardAdminStrings.TITLE,
+      activated ? StatusText.ACTIVATED : DashboardAdminStrings.PENDING,
+      activated ? DashboardAdminStrings.READY_DETAIL : DashboardAdminStrings.PENDING_DETAIL,
       AppColors.WARNING,
       AppColors.GRADIENT_IDENTITY_END,
       AppResources.IDENTITY_ICON
@@ -88,12 +94,12 @@ export class DashboardViewModel {
 
   private async buildFirewallCard(): Promise<DashboardModuleCardState> {
     let enabled = false
-    let modeText = FirewallStrings.getModeTitle('custom')
+    let modeText = getFirewallModeTitle('custom')
     try {
       if (this.context) {
         let overview = await FirewallService.loadOverviewState(this.context)
         enabled = overview.enabled
-        modeText = FirewallStrings.getModeTitle(overview.currentMode)
+        modeText = getFirewallModeTitle(overview.currentMode)
       } else {
         let policy = await FirewallService.getFirewallPolicy()
         enabled = policy?.isOpen ?? false
@@ -104,11 +110,11 @@ export class DashboardViewModel {
 
     return this.createModuleCard(
       RouteIds.FIREWALL,
-      DashboardStrings.firewallTitle,
+      DashboardFirewallCardStrings.TITLE,
       enabled ? FirewallDialogStrings.SWITCH_ENABLED : FirewallDialogStrings.SWITCH_DISABLED,
       modeText,
-      DashboardStrings.firewallGradient.start,
-      DashboardStrings.firewallGradient.end,
+      DashboardGradientPalette.firewallGradient.start,
+      DashboardGradientPalette.firewallGradient.end,
       AppResources.FIREWALL_ICON
     )
   }
@@ -117,24 +123,24 @@ export class DashboardViewModel {
     let statistics = await LogRepository.getStatistics()
     return this.createModuleCard(
       RouteIds.LOG_MANAGE,
-      DashboardStrings.logTitle,
+      DashboardLogCardStrings.TITLE,
       `${statistics.todayCount}`,
-      `${DashboardStrings.logTodayDetailPrefix}${statistics.totalCount}${DashboardStrings.logTodayDetailSuffix}`,
-      DashboardStrings.logManageGradient.start,
-      DashboardStrings.logManageGradient.end,
+      `${DashboardLogCardStrings.TODAY_DETAIL_PREFIX}${statistics.totalCount}${DashboardLogCardStrings.TODAY_DETAIL_SUFFIX}`,
+      DashboardGradientPalette.logManageGradient.start,
+      DashboardGradientPalette.logManageGradient.end,
       AppResources.LOG_ICON
     )
   }
 
-  private buildPeripheralCard(): DashboardModuleCardState {
-    let stats = PeripheralTraceRepository.getStats()
+  private async buildPeripheralCard(): Promise<DashboardModuleCardState> {
+    let stats = await PeripheralTraceRepository.getStats()
     return this.createModuleCard(
       RouteIds.PERIPHERAL_MANAGE,
-      DashboardStrings.peripheralTitle,
+      DashboardPeripheralCardStrings.TITLE,
       `${stats.total}`,
-      `${DashboardStrings.peripheralDetailPrefix}${stats.connects}${DashboardStrings.peripheralDetailMiddle}${stats.disconnects}${DashboardStrings.peripheralDetailSuffix}`,
-      DashboardStrings.peripheralGradient.start,
-      DashboardStrings.peripheralGradient.end,
+      `${DashboardPeripheralCardStrings.DETAIL_PREFIX}${stats.connects}${DashboardPeripheralCardStrings.DETAIL_MIDDLE}${stats.disconnects}${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+      DashboardGradientPalette.peripheralGradient.start,
+      DashboardGradientPalette.peripheralGradient.end,
       AppResources.PERIPHERAL_ICON
     )
   }
@@ -147,7 +153,7 @@ export class DashboardViewModel {
         if (refreshLog && card.id === RouteIds.LOG_MANAGE) {
           nextCards[index] = await this.buildLogCard()
         } else if (refreshPeripheral && card.id === RouteIds.PERIPHERAL_MANAGE) {
-          nextCards[index] = this.buildPeripheralCard()
+          nextCards[index] = await this.buildPeripheralCard()
         }
       }
       this.moduleCards = nextCards
@@ -162,48 +168,48 @@ export class DashboardViewModel {
         RouteIds.FIREWALL,
         ModuleText.FIREWALL,
         AppResources.FIREWALL_ICON,
-        DashboardStrings.firewallGradient.start,
-        DashboardStrings.firewallGradient.end,
+        DashboardGradientPalette.firewallGradient.start,
+        DashboardGradientPalette.firewallGradient.end,
         RouteIds.FIREWALL
       ),
       this.createQuickEntry(
         RouteIds.LOG_MANAGE,
         ModuleText.LOG_MANAGE,
         AppResources.LOG_ICON,
-        DashboardStrings.logManageGradient.start,
-        DashboardStrings.logManageGradient.end,
+        DashboardGradientPalette.logManageGradient.start,
+        DashboardGradientPalette.logManageGradient.end,
         RouteIds.LOG_MANAGE
       ),
       this.createQuickEntry(
         RouteIds.PERIPHERAL_MANAGE,
         ModuleText.PERIPHERAL_MANAGE,
         AppResources.PERIPHERAL_ICON,
-        DashboardStrings.peripheralGradient.start,
-        DashboardStrings.peripheralGradient.end,
+        DashboardGradientPalette.peripheralGradient.start,
+        DashboardGradientPalette.peripheralGradient.end,
         RouteIds.PERIPHERAL_MANAGE
       ),
       this.createQuickEntry(
         RouteIds.IDENTITY,
         ModuleText.IDENTITY,
         AppResources.IDENTITY_ICON,
-        DashboardStrings.identityGradient.start,
-        DashboardStrings.identityGradient.end,
+        DashboardGradientPalette.identityGradient.start,
+        DashboardGradientPalette.identityGradient.end,
         RouteIds.IDENTITY
       ),
       this.createQuickEntry(
         RouteIds.TOOL_SETTINGS,
         ModuleText.TOOL_SETTINGS,
         AppResources.SETTINGS_ICON,
-        DashboardStrings.toolSettingsGradient.start,
-        DashboardStrings.toolSettingsGradient.end,
+        DashboardGradientPalette.toolSettingsGradient.start,
+        DashboardGradientPalette.toolSettingsGradient.end,
         RouteIds.TOOL_SETTINGS
       ),
       this.createQuickEntry(
         RouteIds.HELP_FEEDBACK,
         ModuleText.HELP_FEEDBACK,
         AppResources.HELP_ICON,
-        DashboardStrings.helpFeedbackGradient.start,
-        DashboardStrings.helpFeedbackGradient.end,
+        DashboardGradientPalette.helpFeedbackGradient.start,
+        DashboardGradientPalette.helpFeedbackGradient.end,
         RouteIds.HELP_FEEDBACK
       )
     ]

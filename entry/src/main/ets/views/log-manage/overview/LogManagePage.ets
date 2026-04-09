@@ -1,8 +1,17 @@
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { LoadingStrings, ResultStrings } from '../../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import { ActionText, ModuleText, ResultText, MessageText } from '../../../constants/StringCatalog'
+import { LoadingStrings } from '../../../constants/modules/DialogStrings'
+import {
+  LogManageActionStrings,
+  LogManageClearingStrings,
+  LogManageDetailStrings,
+  LogManageEmptyStateStrings,
+  LogManageFilterStrings,
+  LogManagePageStrings,
+  LogManageSettingStrings,
+  LogManageStatStrings
+} from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
@@ -10,7 +19,7 @@ import {
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
 } from '../../../models/DataModels'
-import { PresentationStrings } from '../../../constants/modules/PresentationStrings'
+import { LogResultPresentationStrings } from '../../../constants/modules/PresentationStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
@@ -36,14 +45,14 @@ export struct LogManagePage {
   private detailDialogController?: CustomDialogController
 
   private eventTypeFilterOptions: SelectOption[] = [
-    { value: LogManageStrings.allEventTypes } as SelectOption,
+    { value: LogManageFilterStrings.ALL_EVENT_TYPES } as SelectOption,
     ...LOG_EVENT_TYPE_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
   ]
   private resultFilterOptions: SelectOption[] = [
-    { value: LogManageStrings.allResults } as SelectOption,
-    { value: ResultStrings.SUCCESS } as SelectOption,
-    { value: PresentationStrings.logResultBlocked } as SelectOption,
-    { value: ResultStrings.FAILED } as SelectOption
+    { value: LogManageFilterStrings.ALL_RESULTS } as SelectOption,
+    { value: ResultText.SUCCESS } as SelectOption,
+    { value: LogResultPresentationStrings.BLOCKED } as SelectOption,
+    { value: ResultText.FAILED } as SelectOption
   ]
 
   aboutToAppear() {
@@ -90,7 +99,7 @@ export struct LogManagePage {
       this.detailDialogController = new CustomDialogController({
         builder: LogDetailDialog({
           controller: this.detailDialogController,
-          title: LogManageStrings.detailDialogTitle,
+          title: LogManageDetailStrings.DIALOG_TITLE,
           entry: entry,
           currentTheme: this.currentTheme,
           onClose: () => this.closeDetailDialog()
@@ -119,23 +128,23 @@ export struct LogManagePage {
       DialogService.openSuccess(this.getUIContext(), ExportMessageUtils.buildExportSuccessText(result.fileName ?? 'security_log.csv'))
       return
     }
-    DialogService.openFailure(this.getUIContext(), result.reason ?? CommonStrings.messageRetryLater)
+    DialogService.openFailure(this.getUIContext(), result.reason ?? MessageText.RETRY_LATER)
   }
 
   private handleClearLogs(): void {
     DialogService.openConfirm(this.getUIContext(), {
-      title: LogManageStrings.clearConfirmTitle,
-      message: LogManageStrings.buildClearConfirmMessage(this.viewModel.state.summary.totalCount),
-      confirmText: CommonStrings.actionClear,
-      cancelText: CommonStrings.actionCancel,
+      title: LogManageClearingStrings.CONFIRM_TITLE,
+      message: LogManageClearingStrings.buildConfirmMessage(this.viewModel.state.summary.totalCount),
+      confirmText: ActionText.CLEAR,
+      cancelText: ActionText.CANCEL,
       onConfirm: async () => {
         let result = await this.viewModel.clearLogs()
         this.closeDetailDialog()
         if (result.success) {
-          DialogService.openSuccess(this.getUIContext(), LogManageStrings.clearSuccess)
+          DialogService.openSuccess(this.getUIContext(), LogManageClearingStrings.SUCCESS)
           return
         }
-        DialogService.openFailure(this.getUIContext(), CommonStrings.messageRetryLater)
+        DialogService.openFailure(this.getUIContext(), MessageText.RETRY_LATER)
       }
     })
   }
@@ -143,10 +152,10 @@ export struct LogManagePage {
   private async handleSaveStorageSettings(): Promise<void> {
     let result = await this.viewModel.saveStorageSettings()
     if (!result.success) {
-      DialogService.openFailure(this.getUIContext(), result.code === 'no_changes' ? CommonStrings.messageNoChanges : LogManageStrings.saveSettingsFailed)
+      DialogService.openFailure(this.getUIContext(), result.code === 'no_changes' ? MessageText.NO_CHANGES : ResultText.SAVE_FAILED)
       return
     }
-    DialogService.openSuccess(this.getUIContext(), LogManageStrings.saveSettingsSuccess)
+    DialogService.openSuccess(this.getUIContext(), LogManageSettingStrings.SAVE_SUCCESS)
   }
 
   @Builder
@@ -154,9 +163,9 @@ export struct LogManagePage {
     GridRow({ columns: 4, gutter: 12 }) {
       GridCol() {
         CompactSummaryCard({
-          title: LogManageStrings.statTotal,
+          title: LogManageStatStrings.TOTAL,
           valueText: `${this.viewModel.state.summary.totalCount}`,
-          description: LogManageStrings.statTotalDescription,
+          description: LogManageStatStrings.TOTAL_DESCRIPTION,
           icon: $r('app.media.folder'),
           accentStart: AppColors.BRAND_PRIMARY,
           accentEnd: AppColors.GRADIENT_FIREWALL_END,
@@ -166,9 +175,9 @@ export struct LogManagePage {
       }
       GridCol() {
         CompactSummaryCard({
-          title: LogManageStrings.statToday,
+          title: LogManageStatStrings.TODAY,
           valueText: `${this.viewModel.state.summary.todayCount}`,
-          description: LogManageStrings.statTodayDescription,
+          description: LogManageStatStrings.TODAY_DESCRIPTION,
           icon: $r('app.media.log'),
           accentStart: AppColors.SUCCESS,
           accentEnd: AppColors.GRADIENT_LOG_END,
@@ -178,9 +187,9 @@ export struct LogManagePage {
       }
       GridCol() {
         CompactSummaryCard({
-          title: PresentationStrings.logResultBlocked,
+          title: LogResultPresentationStrings.BLOCKED,
           valueText: `${this.viewModel.state.summary.blockedCount}`,
-          description: LogManageStrings.statBlockedDescription,
+          description: LogManageStatStrings.BLOCKED_DESCRIPTION,
           icon: $r('app.media.alert'),
           accentStart: AppColors.WARNING,
           accentEnd: AppColors.GRADIENT_IDENTITY_END,
@@ -190,9 +199,9 @@ export struct LogManagePage {
       }
       GridCol() {
         CompactSummaryCard({
-          title: LogManageStrings.statCurrentShown,
+          title: LogManageStatStrings.CURRENT_SHOWN,
           valueText: `${this.viewModel.state.summary.currentShownCount}`,
-          description: LogManageStrings.statCurrentShownDescription,
+          description: LogManageStatStrings.CURRENT_SHOWN_DESCRIPTION,
           icon: $r('app.media.dashboard'),
           accentStart: AppColors.TEXT_MUTED,
           accentEnd: AppColors.GRADIENT_TOOL_END,
@@ -210,7 +219,7 @@ export struct LogManagePage {
     Row({ space: 8 }) {
       if (this.viewModel.state.mode === 'list') {
         IconTextActionButton({
-          label: LogManageStrings.exportLogsButton,
+          label: LogManageActionStrings.EXPORT_LOGS,
           icon: $r('app.media.save'),
           currentTheme: this.currentTheme,
           onTap: () => {
@@ -218,14 +227,14 @@ export struct LogManagePage {
           }
         })
         IconTextActionButton({
-          label: LogManageStrings.clearLogsButton,
+          label: LogManageActionStrings.CLEAR_LOGS,
           icon: $r('app.media.trash'),
           kind: 'danger',
           currentTheme: this.currentTheme,
           onTap: () => this.handleClearLogs()
         })
         IconTextActionButton({
-          label: LogManageStrings.openStorageSettingsButton,
+          label: LogManageActionStrings.OPEN_STORAGE_SETTINGS,
           icon: $r('app.media.settings'),
           currentTheme: this.currentTheme,
           onTap: () => {
@@ -234,7 +243,7 @@ export struct LogManagePage {
         })
       } else {
         IconTextActionButton({
-          label: CommonStrings.actionSaveSettings,
+          label: ActionText.SAVE_SETTINGS,
           icon: $r('app.media.save'),
           currentTheme: this.currentTheme,
           isEnabled: this.viewModel.settingsViewModel.state.dirty && !this.viewModel.settingsViewModel.state.saving,
@@ -243,7 +252,7 @@ export struct LogManagePage {
           }
         })
         IconTextActionButton({
-          label: LogManageStrings.backToLogListButton,
+          label: LogManageActionStrings.BACK_TO_LOG_LIST,
           icon: $r('app.media.log'),
           currentTheme: this.currentTheme,
           onTap: () => {
@@ -288,7 +297,7 @@ export struct LogManagePage {
     Row({ space: 8 }) {
       Select(this.eventTypeFilterOptions)
         .selected(this.viewModel.state.filter.eventTypeIndex)
-        .value((this.eventTypeFilterOptions[this.viewModel.state.filter.eventTypeIndex]?.value as string) ?? LogManageStrings.allEventTypes)
+        .value((this.eventTypeFilterOptions[this.viewModel.state.filter.eventTypeIndex]?.value as string) ?? LogManageFilterStrings.ALL_EVENT_TYPES)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
@@ -302,7 +311,7 @@ export struct LogManagePage {
 
       Select(this.resultFilterOptions)
         .selected(this.viewModel.state.filter.resultIndex)
-        .value((this.resultFilterOptions[this.viewModel.state.filter.resultIndex]?.value as string) ?? LogManageStrings.allResults)
+        .value((this.resultFilterOptions[this.viewModel.state.filter.resultIndex]?.value as string) ?? LogManageFilterStrings.ALL_RESULTS)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
@@ -314,7 +323,7 @@ export struct LogManagePage {
         .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => { void this.viewModel.setResultIndex(index) })
 
-      TextInput({ placeholder: LogManageStrings.searchPlaceholder, text: this.viewModel.state.filter.keyword })
+      TextInput({ placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER, text: this.viewModel.state.filter.keyword })
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(FormControlUtils.text(this.currentTheme))
         .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -333,8 +342,8 @@ export struct LogManagePage {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         SubPageHeader({
-          title: this.viewModel.state.mode === 'settings' ? LogManageStrings.settingsTitle : LogManageStrings.pageTitle,
-          subtitle: this.viewModel.state.mode === 'settings' ? LogManageStrings.settingsSubtitle : LogManageStrings.pageSubtitle,
+          title: this.viewModel.state.mode === 'settings' ? LogManagePageStrings.SETTINGS_TITLE : ModuleText.LOG_MANAGE,
+          subtitle: this.viewModel.state.mode === 'settings' ? LogManagePageStrings.SETTINGS_SUBTITLE : LogManagePageStrings.SUBTITLE,
           currentTheme: this.currentTheme,
           onBack: this.onBack,
           actions: () => {

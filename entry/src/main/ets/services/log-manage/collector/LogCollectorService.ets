@@ -10,13 +10,12 @@ import {
   CrashSubscribeResult,
   InitializeResult,
   LogAuditSourcePort,
-  LogConfigRepositoryPort,
   LogCrashSourcePort,
   LogRepositoryPort,
   MutationResult,
   ServiceResult
 } from '../common/LogManagePorts'
-import { LogConfigRepository } from '../repository/LogConfigRepository'
+import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogRepository } from '../repository/LogRepository'
 import { LogAuditSource } from '../source/LogAuditSource'
 import { LogCrashSource } from '../source/LogCrashSource'
@@ -54,11 +53,11 @@ class DefaultCollectorRepositoryPort implements CollectorRepositoryDeps {
 
 class DefaultCollectorConfigPort implements CollectorConfigDeps {
   init(context: common.UIAbilityContext): Promise<ServiceResult> {
-    return LogConfigRepository.init(context)
+    return LogSettingsRepository.init(context)
   }
 
   loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
-    return LogConfigRepository.loadSubscriptionConfig()
+    return LogSettingsRepository.loadSubscriptionConfig()
   }
 }
 

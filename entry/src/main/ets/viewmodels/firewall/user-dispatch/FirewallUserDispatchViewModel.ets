@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import { FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   FirewallUserApplyMode,
@@ -46,7 +46,7 @@ export class FirewallUserDispatchViewModel {
         this.selectedModeIndex = 0
         this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
         this.currentPolicyText = ''
-        this.statusHintText = FirewallStrings.noActivatedUsers
+        this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
         return
       }
 
@@ -62,7 +62,7 @@ export class FirewallUserDispatchViewModel {
       this.selectedModeIndex = 0
       this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
       this.currentPolicyText = ''
-      this.statusHintText = FirewallStrings.noActivatedUsers
+      this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
       LogUtils.error(TAG, `loadUsers failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoadingUsers = false

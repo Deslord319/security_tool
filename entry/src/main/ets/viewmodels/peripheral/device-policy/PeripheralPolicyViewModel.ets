@@ -2,7 +2,12 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
 import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
-import { PeripheralStrings } from '../../../constants/modules/PeripheralStrings'
+import {
+  PeripheralExportStrings,
+  PeripheralMatchedPolicyStrings,
+  PeripheralOptionStrings,
+  PeripheralReasonCodes
+} from '../../../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
   PeripheralConnectionRecord,
@@ -71,7 +76,7 @@ export class PeripheralPolicyViewModel {
   ): Promise<string | null> {
     const normalizedDeviceId = PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId, deviceType)
     if (normalizedDeviceId.length === 0) {
-      return PeripheralStrings.invalidDeviceId
+      return PeripheralReasonCodes.INVALID_DEVICE_ID
     }
 
     try {
@@ -95,10 +100,10 @@ export class PeripheralPolicyViewModel {
         updatedAt: Date.now()
       }
       const success = await PeripheralDevicePolicyRepository.set(record)
-      return success ? null : PeripheralStrings.policyChangeFailed
+      return success ? null : PeripheralReasonCodes.POLICY_CHANGE_FAILED
     } catch (err) {
       LogUtils.error(TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralStrings.policyChangeFailed
+      return PeripheralReasonCodes.POLICY_CHANGE_FAILED
     }
   }
 
@@ -135,21 +140,21 @@ export class PeripheralPolicyViewModel {
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     if (this.state.records.length === 0) {
-      return { success: false, reason: PeripheralStrings.emptyPolicyRecords } as ExportActionResult
+      return { success: false, reason: PeripheralReasonCodes.EMPTY_POLICY_RECORDS } as ExportActionResult
     }
     if (!context) {
-      return { success: false, reason: PeripheralStrings.exportEnvNotReady } as ExportActionResult
+      return { success: false, reason: PeripheralReasonCodes.EXPORT_ENV_NOT_READY } as ExportActionResult
     }
 
     try {
       const csvContent = this.buildPolicyCsv(this.state.records)
-      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralStrings.csvPolicyListFilePrefix)
+      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralExportStrings.POLICY_LIST_FILE_PREFIX)
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult
-        : { success: false, reason: PeripheralStrings.exportPolicyRecordsFailed } as ExportActionResult
+        : { success: false, reason: PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     } catch (err) {
       LogUtils.error(TAG, `exportRecords failed: ${JSON.stringify(err)}`)
-      return { success: false, reason: PeripheralStrings.exportPolicyRecordsFailed } as ExportActionResult
+      return { success: false, reason: PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult
     }
   }
 
@@ -212,32 +217,32 @@ export class PeripheralPolicyViewModel {
   private mapDispatchReason(reason?: PeripheralPolicyDispatchReason): string {
     switch (reason) {
       case 'unsupported_policy':
-        return PeripheralStrings.unsupportedPolicyDispatch
+        return PeripheralReasonCodes.UNSUPPORTED_POLICY_DISPATCH
       case 'unsupported_device_type':
-        return PeripheralStrings.unsupportedDeviceTypeDispatch
+        return PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH
       case 'dispatch_not_implemented':
-        return PeripheralStrings.devicePolicyDispatchNotImplemented
+        return PeripheralReasonCodes.DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED
       case 'usb_conflict_global_disabled':
-        return PeripheralStrings.usbConflictGlobalDisabled
+        return PeripheralReasonCodes.USB_CONFLICT_GLOBAL_DISABLED
       case 'usb_conflict_account_storage':
-        return PeripheralStrings.usbConflictAccountStorage
+        return PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE
       case 'usb_dispatch_failed':
-        return PeripheralStrings.usbDispatchFailed
+        return PeripheralReasonCodes.USB_DISPATCH_FAILED
       case 'usb_dispatch_conflict_unresolved':
-        return PeripheralStrings.usbDispatchConflictUnresolved
+        return PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED
       case 'bluetooth_conflict_global_disabled':
-        return PeripheralStrings.bluetoothConflictGlobalDisabled
+        return PeripheralReasonCodes.BLUETOOTH_CONFLICT_GLOBAL_DISABLED
       case 'bluetooth_dispatch_failed':
-        return PeripheralStrings.bluetoothDispatchFailed
+        return PeripheralReasonCodes.BLUETOOTH_DISPATCH_FAILED
       case 'bluetooth_dispatch_conflict_unresolved':
-        return PeripheralStrings.bluetoothDispatchConflictUnresolved
+        return PeripheralReasonCodes.BLUETOOTH_DISPATCH_CONFLICT_UNRESOLVED
       default:
-        return PeripheralStrings.policyChangeFailed
+        return PeripheralReasonCodes.POLICY_CHANGE_FAILED
     }
   }
 
   private buildPolicyCsv(records: PeripheralPolicyRecord[]): string {
-    const headers: string[] = PeripheralStrings.policyListCsvHeaders
+    const headers: string[] = PeripheralExportStrings.POLICY_LIST_CSV_HEADERS
     const rows = records.map((record: PeripheralPolicyRecord) => {
       return [
         record.deviceName,
@@ -251,12 +256,12 @@ export class PeripheralPolicyViewModel {
   }
 
   private getPolicyLabel(policyIndex: number): string {
-    return PeripheralStrings.policyOptions[policyIndex] ?? PeripheralStrings.policyOptions[0]
+    return PeripheralOptionStrings.POLICY_OPTIONS[policyIndex] ?? PeripheralOptionStrings.POLICY_OPTIONS[0]
   }
 
   private getDeviceTypeLabel(deviceType: PeripheralType): string {
     return deviceType === PeripheralType.USB_OTHER ? DeviceTypeLabels.USB_OTHER :
-      (deviceType ? getPeripheralTypeLabel(deviceType) : PeripheralStrings.unknownDevice)
+      (deviceType ? getPeripheralTypeLabel(deviceType) : PeripheralMatchedPolicyStrings.UNKNOWN_DEVICE)
   }
 
   private escapeCsvValue(value: string): string {

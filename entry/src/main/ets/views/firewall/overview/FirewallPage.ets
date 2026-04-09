@@ -1,8 +1,15 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { CommonStrings } from '../../../constants/CommonStrings'
+import { ModuleText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
-import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import {
+  FirewallPageStrings,
+  FirewallToggleStrings,
+  buildFirewallToggleFailedMessage,
+  getFirewallModeAccent,
+  getFirewallModeDescription,
+  getFirewallModeTitle
+} from '../../../constants/modules/FirewallStrings'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 
 import { common } from '@kit.AbilityKit'
@@ -71,7 +78,7 @@ export struct FirewallPage {
       )
     } catch (err) {
       this.firewallSwitchValue = currentEnabled
-      DialogService.openFailure(this.getUIContext(), FirewallStrings.toggleFailed)
+      DialogService.openFailure(this.getUIContext(), FirewallToggleStrings.TOGGLE_FAILED)
       LogUtils.error(TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
       this.isToggleProcessing = false
@@ -82,15 +89,15 @@ export struct FirewallPage {
     reason: FirewallToggleRejectReason | undefined,
     lockRemainingSec: number | undefined
   ): string {
-    return FirewallStrings.buildToggleFailedMessage(reason, lockRemainingSec)
+    return buildFirewallToggleFailedMessage(reason, lockRemainingSec)
   }
 
   private getModeTitle(mode: FirewallPresetMode): string {
-    return FirewallStrings.getModeTitle(mode)
+    return getFirewallModeTitle(mode)
   }
 
   private getModeDescription(mode: FirewallPresetMode): string {
-    return FirewallStrings.getModeDescription(mode)
+    return getFirewallModeDescription(mode)
   }
 
   private getModeIcon(mode: FirewallPresetMode): Resource {
@@ -106,7 +113,7 @@ export struct FirewallPage {
   }
 
   private getModeAccent(mode: FirewallPresetMode): string {
-    return FirewallStrings.getModeAccent(mode)
+    return getFirewallModeAccent(mode)
   }
 
   private getThemeColors() {
@@ -209,7 +216,7 @@ export struct FirewallPage {
   }
 
   private showModeChangeFailedDialog(): void {
-    DialogService.openFailure(this.getUIContext(), FirewallStrings.modeApplyFailed)
+    DialogService.openFailure(this.getUIContext(), FirewallToggleStrings.MODE_APPLY_FAILED)
   }
 
   private createModeLoadingDialogController(message: string): CustomDialogController {
@@ -296,7 +303,7 @@ export struct FirewallPage {
               .width(12)
               .height(12)
               .fillColor(this.getModeStatusTextColor(mode))
-            Text(CommonStrings.statusCurrentMode)
+            Text(StatusText.CURRENT_MODE)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getModeStatusTextColor(mode))
@@ -326,7 +333,7 @@ export struct FirewallPage {
       Column({ space: 8 }) {
         if (mode === 'custom') {
           Row({ space: 4 }) {
-            Text(FirewallStrings.rulesPage)
+            Text(FirewallPageStrings.RULES_PAGE)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -339,7 +346,7 @@ export struct FirewallPage {
           }
         } else if (this.isModeSelected(mode)) {
           Row({ space: 4 }) {
-            Text(CommonStrings.statusEffective)
+            Text(StatusText.EFFECTIVE)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
@@ -401,8 +408,8 @@ export struct FirewallPage {
   build() {
     Column() {
       SubPageHeader({
-        title: CommonStrings.moduleFirewall,
-        subtitle: FirewallStrings.pageSubtitle,
+          title: ModuleText.FIREWALL,
+        subtitle: FirewallPageStrings.SUBTITLE,
         currentTheme: this.currentTheme,
         onBack: () => this.onBack(),
         actions: () => {

@@ -2,8 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   LogEntry,
-  LogStatistics,
-  PREF_STORE_NAME_LOG
+  LogStatistics
 } from '../../../models/DataModels'
 import {
   ClearLogsResult,
@@ -12,21 +11,16 @@ import {
   LogSnapshot,
   MutationResult
 } from '../common/LogManagePorts'
-import { LogConfigRepository } from './LogConfigRepository'
+import { LogSettingsRepository } from './LogSettingsRepository'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
-import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 import { LogEntryRepository } from './LogEntryRepository'
 import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 
 const TAG = 'LogRepository'
-const LOG_DATA_KEY = 'log_entries'
-const LOG_MIGRATED_KEY = 'log_entries_rdb_migrated'
 
 type ChangeListener = () => void
 
 export class LogRepository {
-  private static context: common.UIAbilityContext | null = null
-  private static logEntries: LogEntry[] = []
   private static isInitialized: boolean = false
   private static initializedContextDir: string = ''
   private static initPromise: Promise<InitializeResult> | null = null
@@ -34,7 +28,6 @@ export class LogRepository {
   private static listeners: Map<number, ChangeListener> = new Map()
 
   static async init(context: common.UIAbilityContext): Promise<InitializeResult> {
-    LogRepository.context = context
     let contextDir = context.filesDir || ''
     if (LogRepository.isInitialized && LogRepository.initializedContextDir === contextDir) {
       return { success: true, code: 'ok' }
@@ -78,12 +71,11 @@ export class LogRepository {
       if (!saved) {
         return { success: false, code: 'save_failed' }
       }
-      let maintained = await LogStorageMaintenanceService.maintainAfterAppend()
+      let maintained = await LogStorageMaintenanceService.reconcileStorageConfig()
       if (!maintained.success) {
         return maintained
       }
-      await LogRepository.reloadFromStorage()
-      LogUtils.info(TAG, `addEntries success: appended=${normalizedBatch.length}, total=${LogRepository.logEntries.length}, latestTimestamp=${LogRepository.logEntries[0]?.timestamp ?? 0}`)
+      LogUtils.info(TAG, `addEntries success: appended=${normalizedBatch.length}`)
       LogRepository.notifyChanged()
       return { success: true, code: 'ok' }
     } catch (err) {
@@ -123,7 +115,6 @@ export class LogRepository {
       if (!cleared) {
         return { success: false, code: 'clear_failed' }
       }
-      LogRepository.logEntries = []
       LogRepository.notifyChanged()
       return { success: true, code: 'ok' }
     } catch (err) {
@@ -141,7 +132,6 @@ export class LogRepository {
       if (!maintained.success) {
         return maintained
       }
-      await LogRepository.reloadFromStorage()
       LogRepository.notifyChanged()
       return { success: true, code: 'ok' }
     } catch (err) {
@@ -152,8 +142,7 @@ export class LogRepository {
 
   private static async doInit(context: common.UIAbilityContext, contextDir: string): Promise<InitializeResult> {
     try {
-      LogRepository.context = context
-      let configResult = await LogConfigRepository.init(context)
+      let configResult = await LogSettingsRepository.init(context)
       if (!configResult.success) {
         LogRepository.isInitialized = false
         LogRepository.initializedContextDir = ''
@@ -165,14 +154,12 @@ export class LogRepository {
         LogRepository.initializedContextDir = ''
         return { success: false, code: 'storage_init_failed' }
       }
-      await LogRepository.migrateLegacyPayloadIfNeeded()
       let reconcileResult = await LogStorageMaintenanceService.reconcileStorageConfig()
       if (!reconcileResult.success) {
         LogRepository.isInitialized = false
         LogRepository.initializedContextDir = ''
         return { success: false, code: 'storage_init_failed' }
       }
-      await LogRepository.reloadFromStorage()
       LogRepository.isInitialized = true
       LogRepository.initializedContextDir = contextDir
       return { success: true, code: 'ok' }
@@ -192,50 +179,5 @@ export class LogRepository {
         LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
       }
     })
-  }
-
-  private static async reloadFromStorage(): Promise<void> {
-    if (!LogRepository.context) {
-      return
-    }
-    try {
-      let maxEntries = LogEntryNormalizer.normalizeMaxEntries(LogConfigRepository.getStorageConfigSync().maxLocalEntries)
-      LogRepository.logEntries = await LogEntryRepository.listLatest(maxEntries)
-    } catch (err) {
-      LogUtils.error(TAG, `reloadFromStorage failed: ${JSON.stringify(err)}`)
-      LogRepository.logEntries = []
-    }
-  }
-
-  private static async migrateLegacyPayloadIfNeeded(): Promise<void> {
-    if (!LogRepository.context) {
-      return
-    }
-    try {
-      let pref = PreferencesAccessor.of(LogRepository.context, PREF_STORE_NAME_LOG)
-      let migrated = await pref.getBoolean(LOG_MIGRATED_KEY, false)
-      if (migrated) {
-        return
-      }
-      let legacyEntries = await pref.getJsonArray<LogEntry>(LOG_DATA_KEY, [])
-      let maxEntries = LogEntryNormalizer.normalizeMaxEntries(LogConfigRepository.getStorageConfigSync().maxLocalEntries)
-      let sanitized = LogEntryNormalizer.sanitizeEntries(legacyEntries, maxEntries)
-      if (sanitized.length > 0) {
-        let imported = await LogEntryRepository.upsertEntries(sanitized)
-        if (!imported) {
-          LogUtils.error(TAG, 'migrateLegacyPayloadIfNeeded failed: import_failed')
-          return
-        }
-      }
-      let saved = await pref.setMany([
-        { key: LOG_DATA_KEY, value: '[]' },
-        { key: LOG_MIGRATED_KEY, value: true }
-      ])
-      if (!saved) {
-        LogUtils.error(TAG, 'migrateLegacyPayloadIfNeeded failed: save_migration_marker_failed')
-      }
-    } catch (err) {
-      LogUtils.error(TAG, `migrateLegacyPayloadIfNeeded failed: ${JSON.stringify(err)}`)
-    }
   }
 }

@@ -1,9 +1,12 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { ActionDialogStatus } from '../../../utils/DialogService'
-import { CommonStrings } from '../../../constants/CommonStrings'
-import { ToolSettingsStrings } from '../../../constants/modules/ToolSettingsStrings'
+import { MessageText } from '../../../constants/StringCatalog'
 import { AUTH_METHOD_OPTIONS, AuthMethod, DEFAULT_TOOL_SETTINGS, ToolSettingsConfig } from '../../../models/DataModels'
+import {
+  ToolSettingsConfirmationStrings,
+  ToolSettingsPageStrings
+} from '../../../constants/modules/ToolSettingsStrings'
 import {
   PreferencesToolSettingsRepository,
   ToolSettingsRepository
@@ -93,20 +96,20 @@ export class ToolSettingsViewModel {
       return {
         kind: 'result',
         status: 'failure',
-        message: CommonStrings.messageNoChanges
+        message: MessageText.NO_CHANGES
       }
     }
 
     if (this.state.config.startupAuthEnabled && !allowUnsupportedAuthMethod) {
       let availability = AuthService.checkAuthMethodAvailability(this.state.config.authMethod)
       if (!availability.available) {
-        let confirmMessage = `${availability.message}\n\n${ToolSettingsStrings.authMethodUnavailableMessage}`
+        let confirmMessage = `${availability.message}\n\n${ToolSettingsConfirmationStrings.AUTH_METHOD_UNAVAILABLE_MESSAGE}`
         LogUtils.warn(TAG,
           `[CONFIRM_REQUIRED] requestSave | authMethod=${this.state.config.authMethod}, errorCode=${availability.errorCode ?? 0}`
         )
         return {
           kind: 'confirm',
-          title: ToolSettingsStrings.authMethodUnavailableTitle,
+          title: ToolSettingsConfirmationStrings.AUTH_METHOD_UNAVAILABLE_TITLE,
           message: confirmMessage
         }
       }
@@ -122,7 +125,7 @@ export class ToolSettingsViewModel {
       return {
         kind: 'result',
         status: 'failure',
-        message: ToolSettingsStrings.openPasswordSettingsFailed
+        message: ToolSettingsPageStrings.OPEN_PASSWORD_SETTINGS_FAILED
       }
     }
     return { kind: 'none' }
@@ -141,7 +144,7 @@ export class ToolSettingsViewModel {
       return {
         kind: 'result',
         status: 'failure',
-        message: CommonStrings.messageSaveFailed
+        message: MessageText.SAVE_FAILED
       }
     }
       this.applyConfig(this.state.config, configToSave.startupAuthEnabled, configToSave.authMethod)
@@ -150,7 +153,7 @@ export class ToolSettingsViewModel {
       return {
         kind: 'result',
         status: 'success',
-        message: ToolSettingsStrings.saveSuccess
+        message: ToolSettingsPageStrings.SAVE_SUCCESS
       }
     } finally {
       this.isSaving = false
