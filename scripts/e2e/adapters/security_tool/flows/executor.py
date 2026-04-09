@@ -141,6 +141,10 @@ class SecurityToolFlowExecutor:
             request = MpcActionRequest(action="click_text", params=params, expected=f"Click visible text {params.get('text', '')}")
             return self._from_mcp(request)
 
+        if flow_ref == "ui.click_element":
+            request = MpcActionRequest(action="click_element", params=params, expected="Click visible element")
+            return self._from_mcp(request)
+
         if flow_ref == "ui.scroll_until_text":
             result = self.mcp.scroll_until_text(
                 bundle_name=self.bundle_name,
@@ -155,6 +159,10 @@ class SecurityToolFlowExecutor:
                 message=result.get("message", ""),
                 evidence=result.get("evidence", {}),
             )
+
+        if flow_ref == "ui.press_key":
+            request = MpcActionRequest(action="press_key", params=params, expected=f"Press device key {params.get('key', '')}")
+            return self._from_mcp(request)
 
         if flow_ref == "firewall.toggle_status":
             before = None if self.dry_run else self._read_toggle_state()

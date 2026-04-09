@@ -133,6 +133,17 @@ export class ActionButtonStyles {
     }
     return AppColors.getColors(theme).TEXT_PRIMARY
   }
+
+  static getPrimaryIconColor(theme: ThemeMode): ResourceColor {
+    return InteractiveItemStyles.getMenuIconColor(theme)
+  }
+
+  static getDangerIconColor(theme: ThemeMode): ResourceColor {
+    if (theme === ThemeMode.DARK) {
+      return '#FFB4AE'
+    }
+    return AppColors.DANGER
+  }
 }
 
 export class InteractiveItemStyles {

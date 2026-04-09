@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-09T08:35:30+00:00",
+  "updated_at": "2026-04-09T09:51:55+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -925,6 +925,87 @@
       "review_notes": []
     },
     {
+      "case_id": "NAV-ABOUT-001",
+      "case_name": "About Menu Entry Visible",
+      "module_id": "navigation",
+      "module_name": "导航",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_theme_menu",
+          "ref": "theme_menu.open",
+          "params": {}
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "about_menu_item_visible",
+          "type": "assert_text_presence",
+          "value": "关于",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "关于"
+      ],
+      "suite_membership": [
+        "navigation",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/navigation/about_dialog.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
       "case_id": "NAV-HELP-001",
       "case_name": "Help Feedback Reachable",
       "module_id": "navigation",
@@ -986,6 +1067,96 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/help_feedback.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "NAV-HELP-DETAIL-001",
+      "case_name": "Help Feedback Details Visible",
+      "module_id": "navigation",
+      "module_name": "导航",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_theme_menu",
+          "ref": "theme_menu.open",
+          "params": {}
+        },
+        {
+          "name": "open_help_feedback",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "帮助与反馈",
+            "bundle_name": "{{bundle_name}}"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "help_feedback_subtitle_visible",
+          "type": "assert_text_presence",
+          "value": "产品指南、常见问题与客户支持",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "Primary evidence uses the page-specific subtitle rendered below the help title.",
+        "产品指南、常见问题与客户支持"
+      ],
+      "suite_membership": [
+        "navigation",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/navigation/help_feedback_details.json",
       "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []

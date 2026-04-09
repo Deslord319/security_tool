@@ -1,0 +1,63 @@
+{
+  "case_id": "NAV-HELP-DETAIL-001",
+  "case_name": "Help Feedback Details Visible",
+  "module": "navigation",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "reset_previous_page",
+      "ref": "ui.press_key",
+      "params": {
+        "key": "BACK"
+      }
+    },
+    {
+      "name": "relaunch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_theme_menu",
+      "ref": "theme_menu.open",
+      "params": {}
+    },
+    {
+      "name": "open_help_feedback",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "帮助与反馈",
+        "bundle_name": "{{bundle_name}}"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "help_feedback_subtitle_visible",
+      "type": "assert_text_presence",
+      "value": "产品指南、常见问题与客户支持",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case extends help-feedback coverage from menu entry visibility to page detail visibility.",
+    "Using the explicit top-menu click path is more stable than the generic help-feedback navigation branch."
+  ]
+}

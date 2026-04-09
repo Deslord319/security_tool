@@ -1,0 +1,55 @@
+{
+  "case_id": "NAV-ABOUT-001",
+  "case_name": "About Menu Entry Visible",
+  "module": "navigation",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "reset_previous_page",
+      "ref": "ui.press_key",
+      "params": {
+        "key": "BACK"
+      }
+    },
+    {
+      "name": "relaunch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_theme_menu",
+      "ref": "theme_menu.open",
+      "params": {}
+    }
+  ],
+  "assertions": [
+    {
+      "name": "about_menu_item_visible",
+      "type": "assert_text_presence",
+      "value": "关于",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case verifies the top-menu about entry becomes visible from a reset foreground state.",
+    "The BACK plus relaunch reset avoids inheriting detail-page state from the previous navigation case."
+  ]
+}

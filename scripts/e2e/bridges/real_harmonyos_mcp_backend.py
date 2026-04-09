@@ -71,6 +71,10 @@ class RealHarmonyOsMcpBackend(
             return await self._capture_screenshot(params)
         if action == "click_text":
             return await self._click_text(payload)
+        if action == "click_element":
+            return await self._click_element(payload)
+        if action == "press_key":
+            return await self._press_key(payload)
         if action == "execute_template_action":
             return await self._execute_template_action(payload)
         if action == "toggle_firewall":
@@ -255,6 +259,29 @@ class RealHarmonyOsMcpBackend(
         if not click_result.get("ok", False):
             return self._fail("MCP_EXECUTION_FAILED", "Failed to click text target", {"target": target, "click_result": click_result})
         return self._pass("Text target clicked", {"target": target, "bundle_name": bundle_name, "contains": contains})
+
+    async def _click_element(self, payload: dict[str, Any]) -> dict[str, Any]:
+        params = dict(payload.get("params", {}))
+        params = {key: value for key, value in params.items() if value not in ("", None)}
+        if "bundle_name" not in params:
+            params["bundle_name"] = "com.huawei.securitytool"
+        if not any(key in params for key in ("element_id", "text", "x", "y")):
+            return self._fail("MCP_EXECUTION_FAILED", "Element selector is required", {"params": payload.get("params", {})})
+        await self._ensure_auth_dialog_cleared()
+        click_result = await self._call_tool("click_element", params)
+        if not click_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Visible element target was not found")
+        return self._pass("Element target clicked", {"params": params})
+
+    async def _press_key(self, payload: dict[str, Any]) -> dict[str, Any]:
+        params = payload.get("params", {})
+        key = str(params.get("key", "")).strip()
+        if not key:
+            return self._fail("MCP_EXECUTION_FAILED", "Key is required", {"params": params})
+        result = await self._call_tool("press_key", {"key": key})
+        if not result.get("ok", False):
+            return self._fail("MCP_EXECUTION_FAILED", "Failed to press device key", {"key": key, "press_result": result})
+        return self._pass("Device key pressed", {"key": key})
 
     async def _toggle_first_toggle(self, payload: dict[str, Any], *, page_text: str) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()

@@ -33,13 +33,23 @@ export struct IconTextActionButton {
     }
   }
 
+  private getIconColor(): ResourceColor {
+    switch (this.kind) {
+      case 'danger':
+        return ActionButtonStyles.getDangerIconColor(this.currentTheme)
+      default:
+        return ActionButtonStyles.getPrimaryIconColor(this.currentTheme)
+    }
+  }
+
   build() {
     Button() {
-      Row({ space: 6 }) {
+      Row({ space: 8 }) {
         if (this.showIcon) {
           Image(this.icon)
             .width(ActionButtonStyles.ICON_SIZE)
             .height(ActionButtonStyles.ICON_SIZE)
+            .fillColor(this.getIconColor())
             .draggable(false)
         }
 

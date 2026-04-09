@@ -25,7 +25,7 @@ class NavigationRuntimeMixin:
             route_element_id=route_id,
             marker_text=marker_text,
             page_text=page_text,
-            timeout_sec=1.0,
+            timeout_sec=2.0,
         )
         if page_id not in {"firewall"} and existing_marker.get("ok", False):
             return self._pass(
@@ -70,8 +70,29 @@ class NavigationRuntimeMixin:
             route_element_id=route_id,
             marker_text=marker_text,
             page_text=page_text,
-            timeout_sec=5.0,
+            timeout_sec=8.0,
         )
+        if page_id == "dashboard" and not marker_result.get("ok", False):
+            ui_tree = await self._get_ui_tree()
+            back_buttons = [
+                node for node in self._nodes_by_type(ui_tree, "Button")
+                if node.get("clickable")
+                and 640 <= (node.get("left") or 0) <= 820
+                and 360 <= (node.get("top") or 0) <= 520
+                and (node.get("width") or 0) <= 120
+                and (node.get("height") or 0) <= 120
+            ]
+            if back_buttons:
+                back_button = min(back_buttons, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
+                back_click = await self._call_tool("click_element", {"x": back_button["x"], "y": back_button["y"]})
+                if back_click.get("ok", False):
+                    marker_result = await self._wait_for_page_marker(
+                        page_id=page_id,
+                        route_element_id=route_id,
+                        marker_text=marker_text,
+                        page_text=page_text,
+                        timeout_sec=5.0,
+                    )
         if page_id == "firewall" and not marker_result.get("ok", False):
             ui_tree = await self._get_ui_tree()
             fallback = self._find_any_text_node(ui_tree, ["防火墙规则", FIREWALL_DIALOG_TITLE])

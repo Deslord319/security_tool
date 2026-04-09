@@ -22,10 +22,20 @@ FLOW_REGISTRY = {
         "kind": "ui",
         "params": ["text", "bundle_name", "contains"],
     },
+    "ui.click_element": {
+        "description": "Click a visible element using stable selector parameters.",
+        "kind": "ui",
+        "params": ["element_id", "element_type", "text", "bundle_name", "x", "y"],
+    },
     "ui.scroll_until_text": {
         "description": "Scroll the current page until the target text becomes visible.",
         "kind": "ui",
         "params": ["text", "direction", "max_swipes", "timeout_ms"],
+    },
+    "ui.press_key": {
+        "description": "Send a device key event through the MCP bridge.",
+        "kind": "ui",
+        "params": ["key"],
     },
     "entity.create": {
         "description": "Create a domain entity through adapter-backed declarative templates.",

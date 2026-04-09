@@ -14,6 +14,8 @@ NAVIGATION_SUITE = [
     *SMOKE_SUITE,
     "navigation/theme_menu.json",
     "navigation/help_feedback.json",
+    "navigation/help_feedback_details.json",
+    "navigation/about_dialog.json",
     "navigation/identity_page.json",
     "navigation/tool_settings_page.json",
 ]

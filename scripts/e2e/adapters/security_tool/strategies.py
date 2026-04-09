@@ -12,7 +12,7 @@ PAGE_STRATEGIES = {
     "help-feedback": {"page_text": "帮助与反馈", "marker_text": "使用指南"},
 }
 
-TOP_MENU_VISIBLE_TEXT = "帮助与反馈"
+TOP_MENU_VISIBLE_TEXT = "跟随系统"
 TOOL_SETTINGS_PAGE_TEXT = "工具设置"
 TOOL_SETTINGS_SAVE_TEXT = "保存设置"
 TOOL_SETTINGS_STARTUP_AUTH_TEXT = "启动时身份校验"
