@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import { LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
-import { LogAuditSource } from '../../main/ets/services/log-manage/source/LogAuditSource'
+import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
 
 export default function logAuditSourceTest() {
   describe('LogAuditSource', () => {
@@ -20,7 +20,7 @@ export default function logAuditSourceTest() {
         metadata: ''
       } as securityAudit.AuditEvent
 
-      let entry = LogAuditSource.parseAuditEventForTest(event)
+      let entry = parseAuditEventToLogEntry(event)
 
       expect(!!entry).assertTrue()
       expect(entry!.eventType).assertEqual(LogEventType.FILE)
@@ -39,7 +39,7 @@ export default function logAuditSourceTest() {
         metadata: ''
       } as securityAudit.AuditEvent
 
-      let entry = LogAuditSource.parseAuditEventForTest(event)
+      let entry = parseAuditEventToLogEntry(event)
 
       expect(entry === undefined).assertTrue()
     })

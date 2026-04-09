@@ -129,11 +129,4 @@ export class LogConfigRepository {
     }
     return result
   }
-
-  static setStorageConfigForTest(config: LogStorageConfig): void {
-    LogConfigRepository.storageConfig = {
-      maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries),
-      retentionDays: LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
-    }
-  }
 }

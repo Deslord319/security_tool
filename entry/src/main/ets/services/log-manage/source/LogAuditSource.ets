@@ -2,15 +2,13 @@ import { securityAudit } from '@kit.DeviceSecurityKit'
 import osAccount from '@ohos.account.osAccount'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import {
   ALL_LOG_EVENT_TYPES,
-  generateLogEntryId,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
 import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
+import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 
 const TAG = 'LogAuditSource'
 const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
@@ -24,8 +22,6 @@ const FILE_EVENT_IDS: number[] = [
   securityAudit.NotifyEvent.KIA_INTERCEPT
 ]
 
-type JsonField = string | number | boolean | Object | undefined
-type JsonMap = Record<string, JsonField>
 type LogEntryCallback = (entry: LogEntry) => void
 
 interface AuditClientCompat {
@@ -38,19 +34,6 @@ interface ClientSubscribeResult {
   successCount: number
   failedEventIds: number[]
   unsupported: boolean
-}
-
-interface ParsedAuditPayload {
-  detail: string
-  result: LogEventResult
-  processName?: string
-  pid?: number
-  rawFilePath?: string
-  filePath?: string
-  remoteAddr?: string
-  rawEventName?: string
-  rawOutcome?: string
-  rawAction?: string
 }
 
 interface FileFilterContext {
@@ -71,7 +54,6 @@ export class LogAuditSource {
     [LogEventType.ACCOUNT, [securityAudit.NotifyEvent.ACCOUNT]],
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]]
   ])
-  private static readonly EVENT_TYPE_BY_ID: Map<number, LogEventType> = LogAuditSource.buildEventTypeById()
 
   static async subscribe(onEntry: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<AuditSubscribeResult> {
     if (LogAuditSource.isSubscribed) {
@@ -235,65 +217,16 @@ export class LogAuditSource {
   }
 
   private static parseAuditEvent(event: securityAudit.AuditEvent): LogEntry | undefined {
-    const mappedType = LogAuditSource.EVENT_TYPE_BY_ID.get(event.eventId)
-    if (mappedType === undefined) {
+    const entry = parseAuditEventToLogEntry(event, LogAuditSource.nowProvider)
+    if (!entry) {
       return undefined
     }
-
-    const parsed = LogAuditSource.parseAuditPayload(event.content || '', event.metadata)
-    if (mappedType === LogEventType.FILE) {
+    if (entry.eventType === LogEventType.FILE) {
       LogUtils.info(TAG,
-        `FILE event accepted: eventId=${event.eventId}, eventName=${parsed.rawEventName || '-'}, action=${parsed.rawAction || '-'}, result=${parsed.result}, rawPath=${parsed.rawFilePath || '-'}, normalizedPath=${parsed.filePath || '-'}`
+        `FILE event accepted: eventId=${event.eventId}, eventName=${entry.rawEventName || '-'}, action=${entry.rawAction || '-'}, result=${entry.result}, normalizedPath=${entry.filePath || '-'}`
       )
     }
-
-    return {
-      id: generateLogEntryId(),
-      timestamp: LogAuditSource.parseTimestamp(event.timestamp || ''),
-      eventType: mappedType,
-      detail: parsed.detail,
-      processName: parsed.processName,
-      pid: parsed.pid,
-      uid: event.userId,
-      filePath: parsed.filePath,
-      remoteAddr: parsed.remoteAddr,
-      sourceEventId: event.eventId,
-      rawEventName: parsed.rawEventName,
-      rawOutcome: parsed.rawOutcome,
-      rawAction: parsed.rawAction,
-      result: parsed.result
-    }
-  }
-
-  private static parseAuditPayload(content: string, metadata?: string): ParsedAuditPayload {
-    const contentJson = LogAuditSource.safeParseJson(content)
-    const metadataJson = LogAuditSource.safeParseJson(metadata)
-    const sources = LogAuditSource.collectJsonSources(contentJson, metadataJson)
-    const rawOutcome = LogAuditSource.pickFirstString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result'])
-    const rawFilePath = LogAuditSource.resolveAuditRawFilePath(content, metadata, sources)
-    const normalizedFilePath = LogPathUtils.normalizePathCandidate(rawFilePath)
-
-    return {
-      detail: LogAuditSource.pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-        content || metadata || LogManageStrings.auditEventFallbackDetail,
-      result: LogAuditSource.mapResult(rawOutcome),
-      processName: LogAuditSource.pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
-      pid: LogAuditSource.pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
-      rawFilePath: rawFilePath,
-      filePath: normalizedFilePath,
-      remoteAddr: LogAuditSource.pickFirstString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
-      rawEventName: LogAuditSource.pickFirstString(sources, ['event_name', 'eventName', 'name']),
-      rawOutcome: rawOutcome,
-      rawAction: LogAuditSource.pickFirstString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
-    }
-  }
-
-  private static resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: JsonMap[]): string | undefined {
-    const structured = LogAuditSource.pickFirstString(sources, [
-      'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
-      'filePath', 'file_path', 'path', 'srcPath', 'src_path'
-    ])
-    return LogPathUtils.extractRawAuditPath(structured, [content, metadata])
+    return entry
   }
 
   private static tryAttachFilePrefixFilter(
@@ -366,34 +299,6 @@ export class LogAuditSource {
     }
   }
 
-  private static parseTimestamp(ts: string): number {
-    if (ts.length < 14) {
-      return LogAuditSource.nowProvider()
-    }
-    return new Date(
-      parseInt(ts.substring(0, 4)),
-      parseInt(ts.substring(4, 6)) - 1,
-      parseInt(ts.substring(6, 8)),
-      parseInt(ts.substring(8, 10)),
-      parseInt(ts.substring(10, 12)),
-      parseInt(ts.substring(12, 14))
-    ).getTime()
-  }
-
-  private static mapResult(rawOutcome?: string): LogEventResult {
-    if (!rawOutcome) {
-      return LogEventResult.SUCCESS
-    }
-    const normalized = rawOutcome.toLowerCase()
-    if (normalized.includes('blocked') || normalized.includes('deny') || normalized.includes('intercept')) {
-      return LogEventResult.BLOCKED
-    }
-    if (normalized.includes('failed') || normalized.includes('error') || normalized.includes('reject')) {
-      return LogEventResult.FAILED
-    }
-    return LogEventResult.SUCCESS
-  }
-
   private static normalizeAuditTypes(eventTypes?: LogEventType[]): LogEventType[] {
     const source = eventTypes && eventTypes.length > 0 ? eventTypes : ALL_LOG_EVENT_TYPES
     const result: LogEventType[] = []
@@ -416,95 +321,6 @@ export class LogAuditSource {
       }
     }
     return ids
-  }
-
-  private static buildEventTypeById(): Map<number, LogEventType> {
-    const mapping: Map<number, LogEventType> = new Map()
-    LogAuditSource.EVENT_IDS_BY_TYPE.forEach((ids: number[], type: LogEventType) => {
-      ids.forEach((eventId: number) => mapping.set(eventId, type))
-    })
-    return mapping
-  }
-
-  private static collectJsonSources(contentJson?: JsonMap, metadataJson?: JsonMap): JsonMap[] {
-    const result: JsonMap[] = []
-    const append = (candidate?: JsonMap): void => {
-      if (!candidate) {
-        return
-      }
-      result.push(candidate)
-      const extra = LogAuditSource.extractNestedJson(candidate, 'extra')
-      if (extra) {
-        result.push(extra)
-      }
-      const metadata = LogAuditSource.extractNestedJson(candidate, 'metadata')
-      if (metadata) {
-        result.push(metadata)
-      }
-    }
-    append(contentJson)
-    append(metadataJson)
-    return result
-  }
-
-  private static safeParseJson(value: string | undefined): JsonMap | undefined {
-    if (!value) {
-      return undefined
-    }
-    try {
-      const parsed = JSON.parse(value) as Object
-      return LogAuditSource.toJsonMap(parsed)
-    } catch {
-      return undefined
-    }
-  }
-
-  private static extractNestedJson(source: JsonMap, key: string): JsonMap | undefined {
-    const candidate = source[key]
-    if (typeof candidate === 'string') {
-      return LogAuditSource.safeParseJson(candidate)
-    }
-    if (candidate && typeof candidate === 'object') {
-      return LogAuditSource.toJsonMap(candidate)
-    }
-    return undefined
-  }
-
-  private static pickFirstString(sources: JsonMap[], keys: string[]): string | undefined {
-    for (const source of sources) {
-      for (const key of keys) {
-        const raw = source[key]
-        if (typeof raw === 'string' && raw.trim().length > 0) {
-          return raw.trim()
-        }
-      }
-    }
-    return undefined
-  }
-
-  private static pickFirstNumber(sources: JsonMap[], keys: string[]): number | undefined {
-    for (const source of sources) {
-      for (const key of keys) {
-        const raw = source[key]
-        if (typeof raw === 'number' && Number.isFinite(raw)) {
-          return raw
-        }
-        if (typeof raw === 'string') {
-          const parsed = Number(raw)
-          if (Number.isFinite(parsed)) {
-            return parsed
-          }
-        }
-      }
-    }
-    return undefined
-  }
-
-  private static toJsonMap(candidate: Object | undefined): JsonMap | undefined {
-    if (!candidate || Array.isArray(candidate)) {
-      return undefined
-    }
-    return candidate as JsonMap
   }
 
   private static extractErrorCode(err: Object): number | undefined {
@@ -567,10 +383,6 @@ export class LogAuditSource {
       LogUtils.warn(TAG, `deleteClient failed: ${JSON.stringify(err)}`)
     }
     return ok
-  }
-
-  static parseAuditEventForTest(event: securityAudit.AuditEvent): LogEntry | undefined {
-    return LogAuditSource.parseAuditEvent(event)
   }
 
 }
