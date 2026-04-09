@@ -109,17 +109,12 @@ export class PeripheralDevicePolicyRepository {
     }
   }
 
-  static resetForTest(): void {
+  static setRecordsForTest(records: PeripheralDevicePolicyRecord[]): void {
     PeripheralDevicePolicyRepository.context = null
     PeripheralDevicePolicyRepository.initPromise = null
     PeripheralDevicePolicyRepository.initialized = false
-    PeripheralDevicePolicyRepository.records = []
-    PeripheralDevicePolicyRepository.listeners = new Map()
     PeripheralDevicePolicyRepository.nextListenerId = 1
-    PeripheralDevicePolicyRepository.nowProvider = () => Date.now()
-  }
-
-  static setRecordsForTest(records: PeripheralDevicePolicyRecord[]): void {
+    PeripheralDevicePolicyRepository.listeners.clear()
     PeripheralDevicePolicyRepository.records = records.map((item: PeripheralDevicePolicyRecord) => {
       return PeripheralDevicePolicyRepository.normalizeRecord(item)
     })

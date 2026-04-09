@@ -11,6 +11,4 @@ export class RouteIds {
   static readonly IDENTITY = 'identity'
   static readonly TOOL_SETTINGS = 'tool-settings'
   static readonly HELP_FEEDBACK = 'help-feedback'
-
-  static readonly ADMIN = 'admin'
 }

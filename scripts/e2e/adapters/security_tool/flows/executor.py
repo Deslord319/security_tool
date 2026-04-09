@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from scripts.e2e.adapters.security_tool.operations import resolve_operation_binding
-from scripts.e2e.adapters.security_tool.runtime_config import load_runtime_config
 from scripts.e2e.core.failures import COMMAND_FAILED, FLOW_NOT_IMPLEMENTED
 from scripts.e2e.drivers.hdc_driver import HdcDriver
 from scripts.e2e.drivers.mcp_driver import McpDriver, McpExecutionResult, MpcActionRequest
@@ -27,7 +26,6 @@ class SecurityToolFlowExecutor:
         self.dry_run = dry_run
         self.bundle_name = bundle_name
         self.main_ability = main_ability
-        self.runtime_config = load_runtime_config()
 
     def _read_toggle_state(self, *, text: str = "", element_id: str = "") -> dict[str, Any]:
         return self.mcp.get_toggle_state(
@@ -89,12 +87,6 @@ class SecurityToolFlowExecutor:
                 f"-b {self.bundle_name}",
                 "-m entry",
             ]
-            if params.get("skip_startup_auth", self.runtime_config.skip_startup_auth):
-                launch_args.append("--ps skip_startup_auth 1")
-            if params.get("ui_route"):
-                launch_args.append(f"--ps ui_route {params['ui_route']}")
-            if params.get("ui_theme"):
-                launch_args.append(f"--ps ui_theme {params['ui_theme']}")
             shell_command = " ".join(launch_args)
             command = self.hdc.command(["shell", shell_command])
             if self.dry_run:

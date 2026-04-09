@@ -4,7 +4,5 @@
 # 约定：
 # - TOOL_PASSWORD 既用于启动认证/锁屏解锁，也用于应用内工具密码
 # - 只有这一套密码配置，不再区分启动认证密码和工具密码
-# - 除非明确验证跳过认证流程，否则保持 SKIP_STARTUP_AUTH = False
 
 TOOL_PASSWORD = ""
-SKIP_STARTUP_AUTH = False

@@ -83,7 +83,7 @@ export default function peripheralTraceRepositoryTest() {
 
     beforeEach(() => {
       now = Date.now()
-      PeripheralTraceRepository.resetForTest()
+      PeripheralTraceRepository.setRecordsForTest([])
     })
 
     it('should append and query normalized records', 0, async (done: Function) => {
@@ -228,13 +228,13 @@ export default function peripheralTraceRepositoryTest() {
 
     it('should update retention config and cleanup expired or overflow records', 0, async (done: Function) => {
       let now = Date.now()
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([
         createTraceRecord('expired', now - 10 * 24 * 60 * 60 * 1000),
         createTraceRecord('recent-a', now - 1 * 24 * 60 * 60 * 1000),
         createTraceRecord('recent-b', now - 12 * 60 * 60 * 1000)
       ])
 
+      await PeripheralTraceRepository.configure(180, 200000)
       await PeripheralTraceRepository.configure(2, 5)
       let config = PeripheralTraceRepository.getRetentionConfig()
       let retainedRecords = PeripheralTraceRepository.query()

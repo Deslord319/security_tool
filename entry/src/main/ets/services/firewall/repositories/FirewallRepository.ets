@@ -144,13 +144,19 @@ export class FirewallRepository {
       return FirewallRepository.cloneRuleForCreate(rule)
     }
     let normalizedRemoteIps = FirewallRepository.normalizeCreateIpParams(rule.remoteIps)
-    return FirewallRepository.cloneRuleForCreate(rule, normalizedRemoteIps, normalizedRemoteIps !== undefined)
+    return FirewallRepository.cloneRuleForCreate(
+      rule,
+      normalizedRemoteIps,
+      normalizedRemoteIps !== undefined,
+      normalizedRemoteIps !== undefined
+    )
   }
 
   static cloneRuleForCreate(
     rule: netFirewall.NetFirewallRule,
     remoteIpsOverride?: netFirewall.NetFirewallIpParams[],
-    preserveEmptyRemoteIps: boolean = false
+    preserveEmptyRemoteIps: boolean = false,
+    copyRuleIpRemoteIps: boolean = true
   ): netFirewall.NetFirewallRule {
     let clonedRule: netFirewall.NetFirewallRule = {
       userId: FirewallRepository.normalizeNumber(rule.userId) ?? FirewallRepository.DEFAULT_USER_ID,
@@ -172,7 +178,7 @@ export class FirewallRepository {
       clonedRule.localIps = localIps
     }
     let shouldCloneRemoteIps = preserveEmptyRemoteIps || remoteIpsOverride !== undefined ||
-      rule.type === netFirewall.NetFirewallRuleType.RULE_IP
+      (rule.type === netFirewall.NetFirewallRuleType.RULE_IP && copyRuleIpRemoteIps)
     if (shouldCloneRemoteIps) {
       let remoteIps = remoteIpsOverride ?? FirewallRepository.cloneIpParams(rule.remoteIps)
       if (remoteIps !== undefined) {

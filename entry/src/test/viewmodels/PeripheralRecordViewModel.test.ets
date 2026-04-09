@@ -86,13 +86,13 @@ export default function peripheralRecordViewModelTest() {
 
   beforeEach(() => {
     viewModel = new PeripheralRecordViewModel()
-    PeripheralTraceRepository.resetForTest()
-    LogExportService.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
+    LogExportService.setTestDeps({})
   })
 
   afterEach(() => {
-    PeripheralTraceRepository.resetForTest()
-    LogExportService.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
+    LogExportService.setTestDeps({})
   })
 
   it('U-RVM-001 should reload records from record service', 0, () => {
@@ -109,7 +109,7 @@ export default function peripheralRecordViewModelTest() {
   })
 
   it('U-RVM-002 should fall back to empty list when query pipeline returns no records', 0, () => {
-    PeripheralTraceRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
     viewModel.state.records = [createConnectionRecord('stale-record', 1700000000000)]
 
     viewModel.reloadRecords()

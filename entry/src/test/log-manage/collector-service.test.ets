@@ -137,7 +137,6 @@ export default function logCollectorServiceTest() {
     let context: common.UIAbilityContext
 
     beforeEach(() => {
-      LogCollectorService.resetForTest()
       repository = new FakeCollectorRepository()
       config = new FakeCollectorConfig()
       auditSource = new FakeAuditSource()

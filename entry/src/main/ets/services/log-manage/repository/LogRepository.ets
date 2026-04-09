@@ -310,14 +310,4 @@ export class LogRepository {
     LogUtils.warn(TAG, `Persist entries truncated: memory=${memoryCount}, saved=${savedCount}`)
   }
 
-  static resetForTest(entries: LogEntry[] = [], isInitialized: boolean = true): void {
-    LogRepository.context = null
-    LogRepository.logEntries = entries.slice()
-    LogRepository.isInitialized = isInitialized
-    LogRepository.initializedContextDir = ''
-    LogRepository.initPromise = null
-    LogRepository.nextListenerId = 1
-    LogRepository.listeners.clear()
-    LogRepository.lastPersistTruncateWarnAt = 0
-  }
 }

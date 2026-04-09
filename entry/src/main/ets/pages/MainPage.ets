@@ -25,13 +25,12 @@ import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/co
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
 
-const UI_TEST_ROUTE_KEY = 'ui_test_route'
 const TAG = 'MainPage'
 
 @Entry
 @ComponentV2
 struct MainPage {
-  @Local currentPage: string = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? RouteIds.DASHBOARD
+  @Local currentPage: string = RouteIds.DASHBOARD
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Local showMenu: boolean = false
   @Local logManageMounted: boolean = true
@@ -58,7 +57,6 @@ struct MainPage {
   aboutToAppear(): void {
     ThemeManager.getInstance().subscribe(this.themeListener)
     this.syncThemeState()
-    this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
       LogUtils.error(TAG, `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
     })
@@ -70,7 +68,6 @@ struct MainPage {
 
   onPageShow(): void {
     this.syncThemeState()
-    this.applyUiTestRouteOverride()
     this.loadFirewallState().catch((err: Object) => {
       LogUtils.error(TAG, `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
     })
@@ -87,28 +84,6 @@ struct MainPage {
 
   aboutToDisappear(): void {
     ThemeManager.getInstance().unsubscribe(this.themeListener)
-  }
-
-  private applyUiTestRouteOverride(): void {
-    const route = AppStorage.get<string>(UI_TEST_ROUTE_KEY) ?? ''
-    if (route.length === 0) {
-      return
-    }
-    switch (route) {
-      case RouteIds.DASHBOARD:
-      case RouteIds.FIREWALL:
-      case RouteIds.FIREWALL_RULES:
-      case RouteIds.LOG_MANAGE:
-      case RouteIds.PERIPHERAL_MANAGE:
-      case RouteIds.IDENTITY:
-      case RouteIds.TOOL_SETTINGS:
-      case RouteIds.HELP_FEEDBACK:
-        this.setCurrentPage(route)
-        break
-      default:
-        break
-    }
-    AppStorage.setOrCreate<string>(UI_TEST_ROUTE_KEY, '')
   }
 
   private syncDecorButtonStyle(): void {

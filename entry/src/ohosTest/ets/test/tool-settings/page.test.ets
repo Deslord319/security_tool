@@ -24,10 +24,7 @@ export default function toolSettingsPageTest() {
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
         moduleName: 'entry',
-        abilityName: ABILITY_NAME,
-        parameters: {
-          skip_startup_auth: 'true'
-        }
+        abilityName: ABILITY_NAME
       })
 
       await sleep(1200)

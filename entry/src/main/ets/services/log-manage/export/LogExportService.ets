@@ -129,6 +129,21 @@ export class LogExportService {
   }
 
   static setTestDeps(deps: LogExportServiceTestDeps): void {
+    LogExportService.nowProvider = () => Date.now()
+    LogExportService.pickerFactory = (context: common.UIAbilityContext): ExportPickerPort =>
+      new picker.DocumentViewPicker(context)
+    LogExportService.buildPathFn = (directoryUri: string, fileName: string): string =>
+      new fileUri.FileUri(`${directoryUri}/${fileName}`).path
+    LogExportService.openFileFn = (path: string): ExportFileHandle => {
+      let file = fileIo.openSync(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+      return { fd: file.fd }
+    }
+    LogExportService.writeFileFn = (fd: number, content: string): void => {
+      fileIo.writeSync(fd, content)
+    }
+    LogExportService.closeFileFn = (fd: number): void => {
+      fileIo.closeSync(fd)
+    }
     if (deps.nowProvider) {
       LogExportService.nowProvider = deps.nowProvider
     }
@@ -146,24 +161,6 @@ export class LogExportService {
     }
     if (deps.closeFileFn) {
       LogExportService.closeFileFn = deps.closeFileFn
-    }
-  }
-
-  static resetForTest(): void {
-    LogExportService.nowProvider = () => Date.now()
-    LogExportService.pickerFactory = (context: common.UIAbilityContext): ExportPickerPort =>
-      new picker.DocumentViewPicker(context)
-    LogExportService.buildPathFn = (directoryUri: string, fileName: string): string =>
-      new fileUri.FileUri(`${directoryUri}/${fileName}`).path
-    LogExportService.openFileFn = (path: string): ExportFileHandle => {
-      let file = fileIo.openSync(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
-      return { fd: file.fd }
-    }
-    LogExportService.writeFileFn = (fd: number, content: string): void => {
-      fileIo.writeSync(fd, content)
-    }
-    LogExportService.closeFileFn = (fd: number): void => {
-      fileIo.closeSync(fd)
     }
   }
 }

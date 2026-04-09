@@ -58,7 +58,7 @@ function createLogEntry(
 export default function logExportServiceTest() {
   describe('LogManage storage helpers', () => {
     beforeEach(() => {
-      LogExportService.resetForTest()
+      LogExportService.setTestDeps({})
     })
 
     it('should normalize storage config with fixed numeric values', 0, () => {

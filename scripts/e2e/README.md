@@ -116,12 +116,10 @@ pip install harmonyos_dev_mcp
 当前本地配置主要包含：
 
 - `TOOL_PASSWORD`
-- `SKIP_STARTUP_AUTH`
 
 环境变量也可以覆盖本地配置：
 
 - `HARMONYOS_E2E_TOOL_PASSWORD`
-- `HARMONYOS_E2E_SKIP_STARTUP_AUTH`
 
 ## 统一输入能力
 

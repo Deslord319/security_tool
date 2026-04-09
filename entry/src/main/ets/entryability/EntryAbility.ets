@@ -1,14 +1,12 @@
 import { LogUtils } from '../utils/LogUtils'
 import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
-import { ThemeManager, STORAGE_KEY_THEME } from '../theme/ThemeManager';
-import { ThemeOption } from '../theme/ThemeColors';
+import { ThemeManager } from '../theme/ThemeManager';
 import { AuthService } from '../services/identity/auth/AuthService';
 import { AuthMethod } from '../models/DataModels';
 import { DialogService } from '../utils/DialogService';
 import { PreferencesToolSettingsRepository } from '../services/tool-settings/system-settings/ToolSettingsRepository';
 
-const UI_TEST_ROUTE_KEY = 'ui_test_route'
 const ENTRYABILITY_TAG = 'entryAbility'
 
 interface EntryLoggableError {
@@ -17,14 +15,11 @@ interface EntryLoggableError {
 }
 
 export default class EntryAbility extends UIAbility {
-  private startupWant?: Want
   private toolSettingsRepository: PreferencesToolSettingsRepository = new PreferencesToolSettingsRepository()
 
-  onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    this.startupWant = want
+  onCreate(_want: Want, _launchParam: AbilityConstant.LaunchParam): void {
     // 初始化主题管理器
     ThemeManager.getInstance().init(this.context);
-    this.applyUiTestLaunchOverrides();
 
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
@@ -36,9 +31,7 @@ export default class EntryAbility extends UIAbility {
   onDestroy(): void {
   }
 
-  onNewWant(want: Want): void {
-    this.startupWant = want
-    this.applyUiTestLaunchOverrides()
+  onNewWant(_want: Want): void {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
@@ -48,12 +41,6 @@ export default class EntryAbility extends UIAbility {
 
   // 检查启动校验配置并决定是否拦截
   private async checkStartupAuth(windowStage: window.WindowStage): Promise<void> {
-    if (this.shouldSkipStartupAuth()) {
-      LogUtils.info(ENTRYABILITY_TAG, 'skip_startup_auth is enabled, loading MainPage directly')
-      this.loadMainPage(windowStage)
-      return
-    }
-
     try {
       let config = await this.toolSettingsRepository.loadConfig(this.context)
       if (!config.startupAuthEnabled) {
@@ -71,54 +58,6 @@ export default class EntryAbility extends UIAbility {
       )
       // 异常时降级：直接加载主页面
       this.loadMainPage(windowStage);
-    }
-  }
-
-  private shouldSkipStartupAuth(): boolean {
-    return this.getLaunchParamBoolean('skip_startup_auth')
-  }
-
-  private getLaunchParamString(name: string): string {
-    try {
-      const params = this.startupWant?.parameters
-      if (!params) {
-        return ''
-      }
-      const raw = params[name]
-      if (raw === undefined || raw === null) {
-        return ''
-      }
-      return `${raw}`.trim()
-    } catch (err) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'getLaunchParamString failed: name=%{public}s, err=%{public}s', name, JSON.stringify(err))
-    }
-    return ''
-  }
-
-  private getLaunchParamBoolean(name: string): boolean {
-    const normalized = this.getLaunchParamString(name).toLowerCase()
-    return normalized === 'true' || normalized === '1' || normalized === 'yes'
-  }
-
-  private applyUiTestLaunchOverrides(): void {
-    const route = this.getLaunchParamString('ui_route')
-    const theme = this.getLaunchParamString('ui_theme').toLowerCase()
-    if (route.length > 0) {
-      AppStorage.setOrCreate<string>(UI_TEST_ROUTE_KEY, route)
-    }
-
-    if (theme === 'dark') {
-      ThemeManager.getInstance().setOption(ThemeOption.DARK).catch((err: Error) => {
-        LogUtils.warn(ENTRYABILITY_TAG, 'applyUiTestLaunchOverrides dark failed: %{public}s', JSON.stringify(err))
-      })
-    } else if (theme === 'light') {
-      ThemeManager.getInstance().setOption(ThemeOption.LIGHT).catch((err: Error) => {
-        LogUtils.warn(ENTRYABILITY_TAG, 'applyUiTestLaunchOverrides light failed: %{public}s', JSON.stringify(err))
-      })
-    } else if (theme === 'system') {
-      ThemeManager.getInstance().setOption(ThemeOption.SYSTEM).catch((err: Error) => {
-        LogUtils.warn(ENTRYABILITY_TAG, 'applyUiTestLaunchOverrides system failed: %{public}s', JSON.stringify(err))
-      })
     }
   }
 
@@ -166,7 +105,6 @@ export default class EntryAbility extends UIAbility {
       // 页面组件创建后，@StorageLink 可能用默认值覆盖了 AppStorage
       // 需要在此重新应用正确的主题
       ThemeManager.getInstance().reapplyTheme();
-      this.applyUiTestLaunchOverrides();
 
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {

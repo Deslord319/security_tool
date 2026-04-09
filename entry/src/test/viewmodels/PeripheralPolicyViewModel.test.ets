@@ -23,13 +23,13 @@ export default function peripheralPolicyViewModelTest() {
 
   beforeEach(() => {
     viewModel = new PeripheralPolicyViewModel()
-    PeripheralDevicePolicyRepository.resetForTest()
-    LogExportService.resetForTest()
+    PeripheralDevicePolicyRepository.setRecordsForTest([])
+    LogExportService.setTestDeps({})
   })
 
   afterEach(() => {
-    PeripheralDevicePolicyRepository.resetForTest()
-    LogExportService.resetForTest()
+    PeripheralDevicePolicyRepository.setRecordsForTest([])
+    LogExportService.setTestDeps({})
   })
 
   it('should rebuild policy records from connection records and explicit device policies', 0, async (done: Function) => {

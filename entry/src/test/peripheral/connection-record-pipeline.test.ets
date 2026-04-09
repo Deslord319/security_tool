@@ -182,7 +182,6 @@ function createBluetoothEvent(): PeripheralConnectionRecordProducerEvent {
 export default function peripheralConnectionRecordPipelineTest() {
   describe('PeripheralConnectionRecordPipeline', () => {
     beforeEach(() => {
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([])
     })
 

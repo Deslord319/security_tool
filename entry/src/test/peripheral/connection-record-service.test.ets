@@ -39,7 +39,6 @@ export default function peripheralConnectionRecordServiceTest() {
       newer.decision = 'unknown'
       newer.deviceId = 'VID:2222 PID:0002'
 
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([older, newer])
 
       let records = PeripheralConnectionRecordService.queryRecords()
@@ -59,7 +58,6 @@ export default function peripheralConnectionRecordServiceTest() {
       record.summary = 'discover bluetooth device'
       record.matchedPolicyKind = 'bluetooth_discovery'
 
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([record])
 
       let records = PeripheralConnectionRecordService.queryRecords()
@@ -80,7 +78,6 @@ export default function peripheralConnectionRecordServiceTest() {
       record.summary = 'bluetooth device connected'
       record.matchedPolicyKind = 'bluetooth_connection_event'
 
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([record])
 
       let records = PeripheralConnectionRecordService.queryRecords()
@@ -112,7 +109,6 @@ export default function peripheralConnectionRecordServiceTest() {
       record.effectivePolicyLabel = 'read-only'
       record.matchedPolicyKind = 'usb_storage_read_only'
 
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([record])
 
       let records = PeripheralConnectionRecordService.queryRecords()
@@ -150,7 +146,6 @@ export default function peripheralConnectionRecordServiceTest() {
       ignoredRecord.result = LogEventResult.BLOCKED
       ignoredRecord.summary = 'keyboard blocked audit'
 
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([runtimeRecord, ignoredRecord])
 
       let filter: PeripheralConnectionFilter = {
@@ -172,7 +167,6 @@ export default function peripheralConnectionRecordServiceTest() {
       let auditRecord = buildTraceRecord('audit_only', 700)
       auditRecord.source = 'audit_event'
 
-      PeripheralTraceRepository.resetForTest()
       PeripheralTraceRepository.setRecordsForTest([auditRecord])
 
       let records = PeripheralConnectionRecordService.queryRecords()

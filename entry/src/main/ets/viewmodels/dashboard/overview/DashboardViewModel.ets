@@ -76,7 +76,7 @@ export class DashboardViewModel {
   private buildAdminCard(): DashboardModuleCardState {
     let activated = EnterpriseAdminService.probeActivation().activated
     return this.createModuleCard(
-      RouteIds.ADMIN,
+      'admin-status',
       DashboardStrings.adminTitle,
       activated ? DashboardStrings.adminReady : DashboardStrings.adminPending,
       activated ? DashboardStrings.adminReadyDetail : DashboardStrings.adminPendingDetail,
@@ -210,7 +210,7 @@ export class DashboardViewModel {
   }
 
   private createModuleCard(
-    id: 'admin' | 'firewall' | 'log-manage' | 'peripheral-manage',
+    id: 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage',
     title: string,
     primaryText: string,
     secondaryText: string,

@@ -130,14 +130,6 @@ export class LogConfigRepository {
     return result
   }
 
-  static resetForTest(): void {
-    LogConfigRepository.context = null
-    LogConfigRepository.storageConfig = {
-      maxLocalEntries: DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries,
-      retentionDays: DEFAULT_LOG_STORAGE_CONFIG.retentionDays
-    }
-  }
-
   static setStorageConfigForTest(config: LogStorageConfig): void {
     LogConfigRepository.storageConfig = {
       maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries),

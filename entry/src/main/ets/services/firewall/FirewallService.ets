@@ -21,8 +21,8 @@ import {
   FirewallConflictSummary,
   FirewallRulesService,
   FirewallRuleConflictMatch
-} from './rules'
-import { FirewallUserDispatchService } from './user-dispatch'
+} from './rules/FirewallRulesService'
+import { FirewallUserDispatchService } from './user-dispatch/FirewallUserDispatchService'
 import { FirewallAuthService } from './auth'
 import { FirewallModeStrategyFactory } from './mode-strategies/FirewallModeStrategyFactory'
 
@@ -204,9 +204,10 @@ export class FirewallService {
   static cloneRuleForCreate(
     rule: netFirewall.NetFirewallRule,
     normalizedRemoteIps?: netFirewall.NetFirewallIpParams[],
-    preserveEmptyRemoteIps: boolean = false
+    preserveEmptyRemoteIps: boolean = false,
+    copyRuleIpRemoteIps: boolean = true
   ): netFirewall.NetFirewallRule {
-    return FirewallRepository.cloneRuleForCreate(rule, normalizedRemoteIps, preserveEmptyRemoteIps)
+    return FirewallRepository.cloneRuleForCreate(rule, normalizedRemoteIps, preserveEmptyRemoteIps, copyRuleIpRemoteIps)
   }
 
   static getRulePrimaryKey(rule: netFirewall.NetFirewallRule): number | undefined {

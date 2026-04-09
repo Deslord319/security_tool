@@ -1,4 +1,4 @@
-export type DashboardModuleCardId = 'admin' | 'firewall' | 'log-manage' | 'peripheral-manage'
+export type DashboardModuleCardId = 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage'
 
 export interface DashboardModuleCardState {
   id: DashboardModuleCardId

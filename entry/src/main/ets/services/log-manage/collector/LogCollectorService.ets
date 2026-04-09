@@ -342,6 +342,21 @@ export class LogCollectorService {
   }
 
   static setTestDeps(deps: LogCollectorTestDeps): void {
+    LogCollectorService.initialized = false
+    LogCollectorService.running = false
+    LogCollectorService.auditEnabled = false
+    LogCollectorService.crashEnabled = false
+    LogCollectorService.auditReady = false
+    LogCollectorService.crashReady = false
+    LogCollectorService.pendingEntries = []
+    LogCollectorService.flushTimerId = -1
+    LogCollectorService.isFlushingEntries = false
+    LogCollectorService.setTimerFn = (task: () => void, delayMs: number): number => setTimeout(task, delayMs) as number
+    LogCollectorService.clearTimerFn = (timerId: number): void => clearTimeout(timerId)
+    LogCollectorService.repositoryPort = new DefaultCollectorRepositoryPort()
+    LogCollectorService.configPort = new DefaultCollectorConfigPort()
+    LogCollectorService.auditSourcePort = new DefaultCollectorAuditSourcePort()
+    LogCollectorService.crashSourcePort = new DefaultCollectorCrashSourcePort()
     if (deps.repositoryPort) {
       LogCollectorService.repositoryPort = deps.repositoryPort
     }
@@ -360,23 +375,5 @@ export class LogCollectorService {
     if (deps.clearTimerFn) {
       LogCollectorService.clearTimerFn = deps.clearTimerFn
     }
-  }
-
-  static resetForTest(): void {
-    LogCollectorService.initialized = false
-    LogCollectorService.running = false
-    LogCollectorService.auditEnabled = false
-    LogCollectorService.crashEnabled = false
-    LogCollectorService.auditReady = false
-    LogCollectorService.crashReady = false
-    LogCollectorService.pendingEntries = []
-    LogCollectorService.flushTimerId = -1
-    LogCollectorService.isFlushingEntries = false
-    LogCollectorService.setTimerFn = (task: () => void, delayMs: number): number => setTimeout(task, delayMs) as number
-    LogCollectorService.clearTimerFn = (timerId: number): void => clearTimeout(timerId)
-    LogCollectorService.repositoryPort = new DefaultCollectorRepositoryPort()
-    LogCollectorService.configPort = new DefaultCollectorConfigPort()
-    LogCollectorService.auditSourcePort = new DefaultCollectorAuditSourcePort()
-    LogCollectorService.crashSourcePort = new DefaultCollectorCrashSourcePort()
   }
 }

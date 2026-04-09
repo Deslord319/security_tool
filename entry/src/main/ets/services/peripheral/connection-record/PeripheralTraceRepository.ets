@@ -262,19 +262,14 @@ export class PeripheralTraceRepository {
     }
   }
 
-  static resetForTest(): void {
+  static setRecordsForTest(records: PeripheralTraceRecord[]): void {
     PeripheralTraceRepository.context = null
     PeripheralTraceRepository.initPromise = null
     PeripheralTraceRepository.initialized = false
-    PeripheralTraceRepository.records = []
-    PeripheralTraceRepository.listeners = new Map()
     PeripheralTraceRepository.nextListenerId = 1
+    PeripheralTraceRepository.listeners.clear()
     PeripheralTraceRepository.retentionDays = RETENTION_DAYS_DEFAULT
     PeripheralTraceRepository.maxEntries = MAX_TRACE_ENTRIES_DEFAULT
-    PeripheralTraceRepository.nowProvider = () => Date.now()
-  }
-
-  static setRecordsForTest(records: PeripheralTraceRecord[]): void {
     PeripheralTraceRepository.records = PeripheralTraceRepository.sanitizeRecords(records)
   }
 

@@ -141,7 +141,6 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     beforeEach(() => {
       mockKit = new MockKit()
-      PeripheralDevicePolicyRepository.resetForTest()
       PeripheralDevicePolicyRepository.setRecordsForTest([])
       let usbDisabledResult = new BooleanOperationResult()
       usbDisabledResult.data = false

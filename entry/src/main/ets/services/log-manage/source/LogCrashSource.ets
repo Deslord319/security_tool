@@ -162,9 +162,4 @@ export class LogCrashSource {
     return LogCrashSource.mapCrashInfo(info)
   }
 
-  static resetForTest(): void {
-    LogCrashSource.callback = null
-    LogCrashSource.subscribed = false
-    LogCrashSource.lastErrorCode = undefined
-  }
 }

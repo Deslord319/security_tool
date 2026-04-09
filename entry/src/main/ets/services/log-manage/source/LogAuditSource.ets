@@ -573,12 +573,4 @@ export class LogAuditSource {
     return LogAuditSource.parseAuditEvent(event)
   }
 
-  static resetForTest(): void {
-    LogAuditSource.callback = null
-    LogAuditSource.isSubscribed = false
-    LogAuditSource.client = null
-    LogAuditSource.clientSubscribedEventIds = []
-    LogAuditSource.lastSubscribeErrorCode = undefined
-    LogAuditSource.lastSubscribeFailedEventIds = []
-  }
 }

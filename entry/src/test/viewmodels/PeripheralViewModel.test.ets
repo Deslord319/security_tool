@@ -100,11 +100,11 @@ export default function peripheralViewModelTest() {
 
   beforeEach(() => {
     usecase = new PeripheralConnectionRecordClearUsecase()
-    PeripheralTraceRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
   })
 
   afterEach(() => {
-    PeripheralTraceRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
   })
 
   it('U-CLEAR-001 should return false when context is null', 0, async (done: Function) => {
@@ -138,8 +138,8 @@ export default function peripheralViewModelTest() {
     viewModel.policy = fakePolicy
     viewModel.records = fakeRecords
     viewModel.interfaceControl = fakeInterface
-    PeripheralTraceRepository.resetForTest()
-    PeripheralDevicePolicyRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
+    PeripheralDevicePolicyRepository.setRecordsForTest([])
     const inactiveAdminState: AdminActivationState = {
       activated: false,
       enableCommand: 'mock-enable',
@@ -152,8 +152,8 @@ export default function peripheralViewModelTest() {
   afterEach(() => {
     mockKit.clearAll()
     viewModel.destroy()
-    PeripheralTraceRepository.resetForTest()
-    PeripheralDevicePolicyRepository.resetForTest()
+    PeripheralTraceRepository.setRecordsForTest([])
+    PeripheralDevicePolicyRepository.setRecordsForTest([])
   })
 
   it('U-PVM-001 should initialize successfully, reload child data and register listeners', 0, async (done: Function) => {

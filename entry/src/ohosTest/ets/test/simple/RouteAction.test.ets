@@ -113,9 +113,6 @@ export default function routeActionTest() {
         bundleName: BUNDLE_NAME,
         moduleName: 'entry',
         abilityName: ABILITY_NAME,
-        parameters: {
-          skip_startup_auth: 'true',
-        },
       })
       await sleep(500)
       driver = Driver.create()
