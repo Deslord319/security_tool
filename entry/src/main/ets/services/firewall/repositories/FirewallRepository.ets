@@ -166,6 +166,14 @@ export class FirewallRepository {
       type: rule.type,
       isEnabled: rule.isEnabled
     }
+    let sourceRule = rule as FirewallRuleWithKey
+    let targetRule = clonedRule as FirewallRuleWithKey
+    if (typeof sourceRule.ruleId === 'number') {
+      targetRule.ruleId = sourceRule.ruleId
+    }
+    if (typeof sourceRule.id === 'number') {
+      targetRule.id = sourceRule.id
+    }
     if (rule.description !== undefined) {
       clonedRule.description = rule.description
     }
