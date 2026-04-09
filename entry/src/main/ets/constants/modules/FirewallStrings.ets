@@ -32,8 +32,8 @@ export class FirewallStrings {
   static readonly conflictWarningLabel: string = '注意'
 
   static readonly customModeTitle: string = '自定义模式'
-  static readonly customRulesSubtitle: string = '自定义防火墙规则，保存后自动下发'
-  static readonly addRuleButton: string = '+ 新增规则'
+  static readonly customRulesSubtitle: string = '支持IP、域名和DNS规则自定义配置'
+  static readonly addRuleButton: string = '新增规则'
   static readonly rulesReapplyPartialFailed: string = '共享规则已保存，但部分已绑定用户重下发失败'
   static readonly inboundRules: string = '入站规则'
   static readonly outboundRules: string = '出站规则'

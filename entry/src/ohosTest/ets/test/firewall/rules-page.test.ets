@@ -35,7 +35,7 @@ export default function firewallRulesPageTest() {
 
     it('should display rules page header', 0, async () => {
       await driver.assertComponentExist(ON.text('自定义模式'))
-      await driver.assertComponentExist(ON.text('+ 新增规则'))
+      await driver.assertComponentExist(ON.text('新增规则'))
       await driver.assertComponentExist(ON.text('入站规则'))
       await driver.assertComponentExist(ON.text('出站规则'))
     })

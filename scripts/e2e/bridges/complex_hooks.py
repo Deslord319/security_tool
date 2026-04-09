@@ -39,7 +39,7 @@ class ComplexHooksMixin:
         rules_page_ready = await self._wait_for(
             [
                 {"element_id": "route-page-firewall-rules", "bundle_name": "com.huawei.securitytool"},
-                {"text": "+ 新增规则", "bundle_name": "com.huawei.securitytool"},
+                {"text": "新增规则", "bundle_name": "com.huawei.securitytool"},
             ],
             timeout_sec=1.2,
         )
@@ -76,7 +76,7 @@ class ComplexHooksMixin:
             rules_page_ready = await self._wait_for(
                 [
                     {"element_id": "route-page-firewall-rules", "bundle_name": "com.huawei.securitytool"},
-                    {"text": "+ 新增规则", "bundle_name": "com.huawei.securitytool"},
+                    {"text": "新增规则", "bundle_name": "com.huawei.securitytool"},
                 ],
                 timeout_sec=8.0,
             )
