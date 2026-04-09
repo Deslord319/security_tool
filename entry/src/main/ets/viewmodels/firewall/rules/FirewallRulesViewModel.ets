@@ -77,16 +77,18 @@ export class FirewallRulesViewModel {
     this.currentTab = index < 0 ? 0 : index
   }
 
-  getFilteredRules(): netFirewall.NetFirewallRule[] {
-    if (this.currentTab === 0) {
-      return this.rules
+  getRulesByTab(index: number): netFirewall.NetFirewallRule[] {
+    switch (index) {
+      case 1:
+        return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === netFirewall.NetFirewallRuleType.RULE_IP)
+      case 2:
+        return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN)
+      case 3:
+        return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === netFirewall.NetFirewallRuleType.RULE_DNS)
+      case 0:
+      default:
+        return this.rules
     }
-
-    const targetType = this.getTargetRuleType()
-    if (targetType === null) {
-      return this.rules
-    }
-    return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === targetType)
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
@@ -231,18 +233,5 @@ export class FirewallRulesViewModel {
       this.rules = previousRules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
     }
     this.refreshConflictNotice()
-  }
-
-  private getTargetRuleType(): netFirewall.NetFirewallRuleType | null {
-    switch (this.currentTab) {
-      case 1:
-        return netFirewall.NetFirewallRuleType.RULE_IP
-      case 2:
-        return netFirewall.NetFirewallRuleType.RULE_DOMAIN
-      case 3:
-        return netFirewall.NetFirewallRuleType.RULE_DNS
-      default:
-        return null
-    }
   }
 }

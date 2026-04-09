@@ -241,16 +241,16 @@ export struct FirewallRulesPage {
     await this.persistRules(nextRules, FirewallStrings.deleteRuleSuccess)
   }
 
-  getFilteredRules(): netFirewall.NetFirewallRule[] {
-    return this.rulesViewModel.getFilteredRules()
-  }
-
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
     return this.rulesViewModel.countRulesByType(type)
   }
 
   countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
     return this.rulesViewModel.countRulesByDirection(direction)
+  }
+
+  getRulesByTab(tabIndex: number): netFirewall.NetFirewallRule[] {
+    return this.rulesViewModel.getRulesByTab(tabIndex)
   }
 
   getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
@@ -466,19 +466,19 @@ export struct FirewallRulesPage {
 
           Tabs({ barPosition: BarPosition.Start }) {
             TabContent() {
-              this.ruleListBuilder()
+              this.ruleListBuilder(0)
             }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))
 
             TabContent() {
-              this.ruleListBuilder()
+              this.ruleListBuilder(1)
             }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.IP_RULE, 1))
 
             TabContent() {
-              this.ruleListBuilder()
+              this.ruleListBuilder(2)
             }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DOMAIN_RULE, 2))
 
             TabContent() {
-              this.ruleListBuilder()
+              this.ruleListBuilder(3)
             }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DNS_RULE, 3))
           }
           .barMode(BarMode.Scrollable)
@@ -506,7 +506,7 @@ export struct FirewallRulesPage {
   }
 
   @Builder
-  ruleListBuilder() {
+  ruleListBuilder(tabIndex: number) {
     Column() {
       if (this.rulesViewModel.isLoading) {
         Column({ space: 10 }) {
@@ -521,7 +521,7 @@ export struct FirewallRulesPage {
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
-      } else if (this.getFilteredRules().length === 0) {
+      } else if (this.getRulesByTab(tabIndex).length === 0) {
         Column({ space: 10 }) {
           Text(EmptyStateStrings.NO_RULES)
             .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -534,7 +534,7 @@ export struct FirewallRulesPage {
         .alignItems(HorizontalAlign.Center)
       } else {
         List({ space: 12 }) {
-          ForEach(this.getFilteredRules(), (rule: netFirewall.NetFirewallRule) => {
+          ForEach(this.getRulesByTab(tabIndex), (rule: netFirewall.NetFirewallRule) => {
             ListItem() {
               Row() {
                 Column() {
