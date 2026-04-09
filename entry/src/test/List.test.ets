@@ -3,7 +3,9 @@ import secureStorageTest from './common/secure-storage.test'
 import authServiceTest from './auth/service.test'
 import dashboardViewModelTest from './dashboard/viewmodel.test'
 import adminServiceTest from './enterprise/admin-service.test'
+import firewallAuthServiceTest from './firewall/auth-service.test'
 import firewallModelsTest from './firewall/models.test'
+import firewallRulesServiceTest from './firewall/rules-service.test'
 import firewallServiceTest from './firewall/service.test'
 import firewallStringsTest from './firewall/strings.test'
 import helpFeedbackStringsTest from './help/strings.test'
@@ -29,6 +31,7 @@ import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
 import peripheralStringsTest from './peripheral/strings.test'
 import peripheralTraceRepositoryTest from './peripheral/trace-repository.test'
+import systemSettingsServiceTest from './tool-settings/system-settings-service.test'
 import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
 import peripheralRecordDisplayUtilsTest from './utils/PeripheralRecordDisplayUtils.test'
 import peripheralRecordViewDataUtilsTest from './utils/PeripheralRecordViewDataUtils.test'
@@ -44,7 +47,9 @@ export default function testsuite() {
   authServiceTest()
   dashboardViewModelTest()
   adminServiceTest()
+  firewallAuthServiceTest()
   firewallModelsTest()
+  firewallRulesServiceTest()
   firewallServiceTest()
   firewallStringsTest()
   helpFeedbackStringsTest()
@@ -70,6 +75,7 @@ export default function testsuite() {
   peripheralServiceTest()
   peripheralStringsTest()
   peripheralTraceRepositoryTest()
+  systemSettingsServiceTest()
   toolSettingsViewModelTest()
   peripheralRecordDisplayUtilsTest()
   peripheralRecordViewDataUtilsTest()

@@ -21,7 +21,7 @@ import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodel
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
 
-  reloadState(): void {
+  async reloadState(): Promise<void> {
     this.reloadCount++
   }
 }

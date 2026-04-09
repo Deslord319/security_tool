@@ -37,20 +37,10 @@ export default function interfaceControlViewModelTest() {
   })
 
   it('should toggle interface successfully', 0, async (done: Function) => {
-    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
-    let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
-    let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+    let setUsbInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbInterfaceDisabledWithCleanupAsync)
     let setResult = new VoidOperationResult()
     setResult.success = true
-    let getResult = new BooleanOperationResult()
-    getResult.success = true
-    getResult.data = true
-    let usbResult = new UsbPolicyOperationResult()
-    usbResult.success = true
-    usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
-    when(setInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(setResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(getResult)
-    when(getUsbStorageMock)().afterReturn(usbResult)
+    when(setUsbInterfaceMock)(true).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 
@@ -60,11 +50,11 @@ export default function interfaceControlViewModelTest() {
   })
 
   it('should surface failure stage for interface toggle', 0, async (done: Function) => {
-    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setUsbInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbInterfaceDisabledWithCleanupAsync)
     let setResult = new VoidOperationResult()
     setResult.success = false
     setResult.stage = 'read_usb_status'
-    when(setInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(setResult)
+    when(setUsbInterfaceMock)(true).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
 

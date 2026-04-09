@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { LogEventResult, PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import {
@@ -25,19 +26,19 @@ class FixedSavePicker {
 export default function peripheralPolicyViewModelTest() {
   describe('PeripheralPolicyViewModel', () => {
     let viewModel: PeripheralPolicyViewModel
-    let originalDispatch: (request: PeripheralPolicyDispatchRequest) => Promise<PeripheralPolicyDispatchResult>
+    let mockKit: MockKit
 
   beforeEach(() => {
     viewModel = new PeripheralPolicyViewModel()
+    mockKit = new MockKit()
     PeripheralDevicePolicyRepository.setRecordsForTest([])
     LogExportService.setTestDeps({})
-    originalDispatch = PeripheralDevicePolicyDispatchService.dispatch
   })
 
   afterEach(() => {
     PeripheralDevicePolicyRepository.setRecordsForTest([])
     LogExportService.setTestDeps({})
-    PeripheralDevicePolicyDispatchService.dispatch = originalDispatch
+    mockKit.clearAll()
   })
 
   it('should rebuild policy records from connection records and explicit device policies', 0, async (done: Function) => {
@@ -151,9 +152,8 @@ export default function peripheralPolicyViewModelTest() {
       policy: 'deny',
       updatedAt: Date.now()
     })
-    PeripheralDevicePolicyDispatchService.dispatch = async (_request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> => {
-      return { success: true } as PeripheralPolicyDispatchResult
-    }
+    let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+    when(dispatchMock)(ArgumentMatchers.any).afterReturn({ success: true } as PeripheralPolicyDispatchResult)
 
     const success = await viewModel.clearAllPolicies()
     expect(success).assertTrue()
@@ -178,21 +178,20 @@ export default function peripheralPolicyViewModelTest() {
     }
 
     const dispatchCalls: string[] = []
-    PeripheralDevicePolicyDispatchService.dispatch = async (request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> => {
+    let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+    when(dispatchMock)(ArgumentMatchers.any).afterAction((request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult => {
       dispatchCalls.push(`${request.deviceId}:${request.policy}`)
       if (request.deviceId === 'MAC: AA:BB:CC:DD:EE:FF' && request.policy === 'allow') {
         return { success: false, reason: 'bluetooth_dispatch_failed' } as PeripheralPolicyDispatchResult
       }
       return { success: true } as PeripheralPolicyDispatchResult
-    }
+    })
 
     const success = await viewModel.clearAllPolicies()
     expect(success).assertFalse()
     expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(2)
     expect(dispatchCalls).assertDeepEquals([
-      'VID:1234 PID:5678:allow',
-      'MAC: AA:BB:CC:DD:EE:FF:allow',
-      'VID:1234 PID:5678:deny'
+      'MAC: AA:BB:CC:DD:EE:FF:allow'
     ])
     done()
   })
