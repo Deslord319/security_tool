@@ -3,6 +3,7 @@ import { common } from '@kit.AbilityKit'
 import { MockKit, when } from '@ohos/hamock'
 import {
   AdminActivationState,
+  ExportActionResult,
   LogEventResult,
   PeripheralConnectionRecord,
   PeripheralTraceRecord,
@@ -29,13 +30,30 @@ class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   }
 }
 
+class FakeExportResult implements ExportActionResult {
+  success: boolean
+  fileName?: string
+  reason?: string
+
+  constructor(success: boolean, fileName?: string, reason?: string) {
+    this.success = success
+    this.fileName = fileName
+    this.reason = reason
+  }
+}
+
 class FakeRecordViewModel extends PeripheralRecordViewModel {
   reloadCount: number = 0
   nextRecords: PeripheralConnectionRecord[] = []
+  exportResult: ExportActionResult = new FakeExportResult(true, 'peripheral_connection_history.csv')
 
   reloadRecords(): void {
     this.reloadCount++
     this.state.records = this.nextRecords.slice()
+  }
+
+  async exportConnectionHistory(_context: common.UIAbilityContext | null): Promise<ExportActionResult> {
+    return this.exportResult
   }
 }
 
@@ -44,6 +62,7 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
   reloadCount: number = 0
   throwOnInitialize: boolean = false
   lastRecords: PeripheralConnectionRecord[] = []
+  exportResult: ExportActionResult = new FakeExportResult(true, 'peripheral_policy_records.csv')
 
   async initialize(_context: common.UIAbilityContext): Promise<boolean> {
     this.initializeCount++
@@ -57,6 +76,10 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
     this.reloadCount++
     this.lastRecords = connectionRecords.slice()
     this.state.records = []
+  }
+
+  async exportRecords(_context: common.UIAbilityContext | null): Promise<ExportActionResult> {
+    return this.exportResult
   }
 }
 
@@ -305,6 +328,28 @@ export default function peripheralViewModelTest() {
     expect(fakeRecords.state.connectionDetailDialog.visible).assertFalse()
     expect(ready).assertFalse()
     expect(viewModel.reasonCode).assertEqual(PeripheralStrings.adminRequired)
+    done()
+  })
+
+  it('should map connection history export result into page reason state', 0, async (done: Function) => {
+    fakeRecords.exportResult = new FakeExportResult(false, undefined, PeripheralStrings.exportConnectionHistoryFailed)
+
+    let result = await viewModel.exportConnectionHistory()
+
+    expect(result.success).assertFalse()
+    expect(viewModel.reasonCode).assertEqual(PeripheralStrings.exportConnectionHistoryFailed)
+    done()
+  })
+
+  it('should map policy export success without polluting failure reason', 0, async (done: Function) => {
+    viewModel.reasonCode = PeripheralStrings.exportPolicyRecordsFailed
+    fakePolicy.exportResult = new FakeExportResult(true, 'peripheral_policy_records.csv')
+
+    let result = await viewModel.exportPeripheralPolicyRecords()
+
+    expect(result.success).assertTrue()
+    expect(result.fileName).assertEqual('peripheral_policy_records.csv')
+    expect(viewModel.reasonCode).assertNull()
     done()
   })
   })

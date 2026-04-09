@@ -124,6 +124,33 @@ export default function toolSettingsViewModelTest() {
       done()
     })
 
+    it('should allow explicit save after unsupported auth confirmation', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      viewModel.setStartupAuthEnabled(true)
+      viewModel.setAuthMethod(AuthMethod.FINGERPRINT)
+
+      let result = await viewModel.requestSave(context, true)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('success')
+      expect(repository.config.startupAuthEnabled).assertTrue()
+      expect(repository.config.authMethod).assertEqual(AuthMethod.FINGERPRINT)
+      done()
+    })
+
+    it('should return failure when repository save fails', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      repository.saveResult = false
+      viewModel.setStartupAuthEnabled(true)
+
+      let result = await viewModel.requestSave(context, true)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('failure')
+      expect(result.message).assertEqual(CommonStrings.messageSaveFailed)
+      done()
+    })
+
     it('should return failure when opening password settings fails', 0, async (done: Function) => {
       let openSettingsMock = mockKit.mockFunc(SystemSettingsService, SystemSettingsService.openPasswordSettings)
       when(openSettingsMock)(context).afterReturn(false)

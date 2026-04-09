@@ -218,8 +218,18 @@ class ComplexHooksMixin:
 
     async def _set_tool_password(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
-        open_result = await self._click_first_available_text(["修改密码"], bundle_name="com.huawei.securitytool")
-        if not open_result.get("ok", False):
+        ui_tree = await self._get_ui_tree()
+        password_button = self._pick_button_by_text(ui_tree, ["修改密码"], min_left=2200)
+        open_result = None
+        if password_button:
+            click_result = await self._call_tool("click_element", {"x": password_button["x"], "y": password_button["y"]})
+            if click_result.get("ok", False):
+                open_result = {"ok": True, "button": password_button, "source": "button"}
+        if not open_result:
+            fallback = await self._click_first_available_text(["修改密码"], bundle_name="com.huawei.securitytool")
+            if fallback.get("ok", False):
+                open_result = {"ok": True, "source": "text"}
+        if not open_result:
             return self._unknown(payload, "MCP_ACTION_PENDING", "Password settings entry was not located")
 
         deadline = time.time() + 6.0

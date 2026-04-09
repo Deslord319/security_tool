@@ -65,6 +65,20 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.hasChanges).assertTrue()
     })
 
+    it('should reset to default editable values when no system policy is available', 0, () => {
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize(null)
+
+      expect(viewModel.state.minLengthIndex).assertEqual(1)
+      expect(viewModel.state.requireUppercase).assertTrue()
+      expect(viewModel.state.requireLowercase).assertTrue()
+      expect(viewModel.state.requireDigit).assertTrue()
+      expect(viewModel.state.requireSpecialChar).assertTrue()
+      expect(viewModel.state.validityPeriodIndex).assertEqual(0)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+      expect(viewModel.state.hasChanges).assertFalse()
+    })
+
     it('should reject save when custom validity is invalid', 0, () => {
       let viewModel = new IdentitySettingsViewModel()
       viewModel.reset()
@@ -138,6 +152,31 @@ export default function identitySettingsViewModelTest() {
 
       expect(result.success).assertFalse()
       expect(result.message).assertEqual(DialogService.displayReason('edm missing', IdentityStrings.adminRequired))
+    })
+
+    it('should use retry message when save fails for non-admin reasons', 0, () => {
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.reset()
+      viewModel.setRequirement('requireSpecialChar', false)
+
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      let policyResult = new PasswordPolicyResult()
+      policyResult.success = true
+      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 0 } as securityManager.PasswordPolicy
+      when(getPolicyMock)().afterReturn(policyResult)
+      let saveResult = new SavePasswordPolicyResult()
+      saveResult.success = false
+      saveResult.isAdminMissing = false
+      saveResult.errorMessage = 'io failed'
+      when(setPolicyMock)(ArgumentMatchers.anyObj).afterReturn(saveResult)
+
+      let result = viewModel.save()
+
+      expect(result.success).assertFalse()
+      expect(result.message).assertEqual(
+        DialogService.displayReason('io failed', `${IdentityStrings.passwordPolicyAction}${IdentityStrings.actionRetrySuffix}`)
+      )
     })
   })
 }

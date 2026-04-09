@@ -243,6 +243,25 @@ export default function logManageViewModelTest() {
       done()
     })
 
+    it('should keep detail selection stable when refreshed data still contains the same entry', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      viewModel.activate()
+      viewModel.openDetail('2')
+      repository.entries = [
+        createEntry('2', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'permission beta updated'),
+        createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'file delta')
+      ]
+
+      if (repository.listener) {
+        repository.listener()
+      }
+
+      expect(viewModel.state.detail.visible).assertTrue()
+      expect(viewModel.state.detail.entryId).assertEqual('2')
+      expect(viewModel.state.list.allEntries.length).assertEqual(2)
+      done()
+    })
+
     it('should expose empty filter hint instead of permission hint when query has no matches', 0, async (done: Function) => {
       await viewModel.initialize(context)
 
@@ -282,6 +301,16 @@ export default function logManageViewModelTest() {
       expect(result.success).assertTrue()
       expect(viewModel.state.mode).assertEqual('list')
       expect(viewModel.state.autoRefreshEnabled).assertTrue()
+      done()
+    })
+
+    it('should skip refresh when list is inactive', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+
+      let result = await viewModel.refreshIfActive()
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('skipped_inactive')
       done()
     })
   })

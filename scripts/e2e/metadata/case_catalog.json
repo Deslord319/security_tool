@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-09T07:29:00+00:00",
+  "updated_at": "2026-04-09T07:51:36+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -1255,7 +1255,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
-      "last_result_status": "PASS",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1699,7 +1699,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/auth_method.json",
-      "last_result_status": "PASS",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
