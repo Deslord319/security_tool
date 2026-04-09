@@ -24,6 +24,7 @@ export struct InterfaceControlTab {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param hoveredPanelIndex: number = -1
   @Event onInterfaceToggle?: (feature: string, disallow: boolean) => void
+  @Event onUsbInterfaceToggleAsync?: (disallow: boolean) => Promise<boolean>
   @Event onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
   @Event onPanelHover?: (isHover: boolean) => void
 
@@ -31,12 +32,7 @@ export struct InterfaceControlTab {
     Scroll() {
       Column({ space: 0 }) {
         Column() {
-          this.toggleItem(
-            PeripheralStrings.usbInterfaceTitle,
-            PeripheralStrings.usbInterfaceDescription,
-            PeripheralService.FEATURE_USB,
-            this.usbDisabled
-          )
+          this.usbInterfaceItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.storageItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
@@ -68,6 +64,25 @@ export struct InterfaceControlTab {
     .height('100%')
     .scrollBar(BarState.Auto)
     .align(Alignment.Top)
+  }
+
+  @Builder
+  private usbInterfaceItem() {
+    AsyncSelectRow({
+      label: PeripheralStrings.usbInterfaceTitle,
+      description: PeripheralStrings.usbInterfaceDescription,
+      options: PeripheralStrings.interfaceToggleOptions,
+      selectedIndex: this.usbDisabled ? 1 : 0,
+      processing: this.interfaceControlProcessingKey === PeripheralService.FEATURE_USB,
+      currentTheme: this.currentTheme,
+      optimistic: true,
+      onSelectAsync: async (nextIndex: number): Promise<boolean> => {
+        if (!this.onUsbInterfaceToggleAsync) {
+          return false
+        }
+        return await this.onUsbInterfaceToggleAsync(nextIndex === 1)
+      }
+    })
   }
 
   @Builder

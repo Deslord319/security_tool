@@ -225,6 +225,7 @@ export struct PeripheralPage {
         usbStorageControlKey: 'usb-storage-policy',
         currentTheme: this.currentTheme,
         hoveredPanelIndex: this.hoveredPanelIndex,
+        onUsbInterfaceToggleAsync: async (disallow: boolean): Promise<boolean> => this.handleUsbInterfaceToggle(disallow),
         onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
         onUsbStoragePolicyChange: async (index: number): Promise<boolean> => this.handleUsbStoragePolicyChange(index),
         onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
@@ -278,31 +279,42 @@ export struct PeripheralPage {
     .justifyContent(FlexAlign.Start)
   }
 
-  private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
-    const toggle = async (): Promise<boolean> => this.viewModel.toggleInterface(feature, disallow)
-    const success = feature === PeripheralService.FEATURE_USB
-      ? await this.usbLoadingRunner.run(
-        'peripheral-usb-interface',
-        PeripheralStrings.usbInterfaceLoadingMessage,
-        async (): Promise<boolean> => {
-          LogUtils.info(TAG, `usb interface switch start: disallow=${disallow}`)
-          return await toggle()
-        },
-        (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage),
-        500,
-        USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS
-      )
-      : await toggle()
+  private async handleUsbInterfaceToggle(disallow: boolean): Promise<boolean> {
+    const success = await this.usbLoadingRunner.run(
+      'peripheral-usb-interface',
+      PeripheralStrings.usbInterfaceLoadingMessage,
+      async (): Promise<boolean> => {
+        LogUtils.info(TAG, `usb interface switch start: disallow=${disallow}`)
+        return await this.viewModel.toggleInterface(PeripheralService.FEATURE_USB, disallow)
+      },
+      (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage),
+      500,
+      USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS
+    )
     if (!success) {
       if (!this.viewModel.adminState.activated) {
         DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setInterfaceAction}${PeripheralStrings.adminRequiredActionSuffix}`)
       } else {
         DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
       }
+      return false
+    }
+    LogUtils.info(TAG, `usb interface switch success: disallow=${disallow}`)
+    return true
+  }
+
+  private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
+    if (feature === PeripheralService.FEATURE_USB) {
+      await this.handleUsbInterfaceToggle(disallow)
       return
     }
-    if (feature === PeripheralService.FEATURE_USB) {
-      LogUtils.info(TAG, `usb interface switch success: disallow=${disallow}`)
+    const success = await this.viewModel.toggleInterface(feature, disallow)
+    if (!success) {
+      if (!this.viewModel.adminState.activated) {
+        DialogService.openFailure(this.getUIContext(), `${PeripheralStrings.setInterfaceAction}${PeripheralStrings.adminRequiredActionSuffix}`)
+      } else {
+        DialogService.openFailure(this.getUIContext(), PeripheralStrings.resolveReason(this.viewModel.reasonCode))
+      }
     }
   }
 
