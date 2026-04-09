@@ -1,7 +1,7 @@
 {
-  "case_id": "DASH-OVERVIEW-001",
-  "case_name": "Dashboard Overview Visible",
-  "module": "dashboard",
+  "case_id": "FW-RULES-003",
+  "case_name": "Firewall Rules Page Visible",
+  "module": "firewall",
   "flow": [
     {
       "name": "launch_app",
@@ -11,18 +11,18 @@
       }
     },
     {
-      "name": "open_dashboard",
+      "name": "open_firewall_rules_page",
       "ref": "navigation.open_page",
       "params": {
-        "page_id": "dashboard"
+        "page_id": "firewall-rules"
       }
     }
   ],
   "assertions": [
     {
-      "name": "dashboard_firewall_card_visible",
+      "name": "firewall_rules_add_button_visible",
       "type": "assert_text_presence",
-      "value": "防火墙模式",
+      "value": "新增规则",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -32,9 +32,9 @@
       }
     },
     {
-      "name": "dashboard_identity_entry_visible",
+      "name": "firewall_rules_outbound_section_visible",
       "type": "assert_text_presence",
-      "value": "身份鉴别",
+      "value": "出站规则",
       "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,6 +49,6 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Dashboard route is confirmed through stable first-screen cards and quick-entry text."
+    "This case isolates firewall rules page reachability from create/delete behavior."
   ]
 }

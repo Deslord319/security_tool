@@ -1,7 +1,7 @@
 {
-  "case_id": "DASH-OVERVIEW-001",
-  "case_name": "Dashboard Overview Visible",
-  "module": "dashboard",
+  "case_id": "FW-MODE-001",
+  "case_name": "Firewall Mode Cards Visible",
+  "module": "firewall",
   "flow": [
     {
       "name": "launch_app",
@@ -11,18 +11,18 @@
       }
     },
     {
-      "name": "open_dashboard",
+      "name": "open_firewall_page",
       "ref": "navigation.open_page",
       "params": {
-        "page_id": "dashboard"
+        "page_id": "firewall"
       }
     }
   ],
   "assertions": [
     {
-      "name": "dashboard_firewall_card_visible",
+      "name": "firewall_public_mode_visible",
       "type": "assert_text_presence",
-      "value": "防火墙模式",
+      "value": "公共网络模式",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -32,9 +32,9 @@
       }
     },
     {
-      "name": "dashboard_identity_entry_visible",
+      "name": "firewall_private_mode_visible",
       "type": "assert_text_presence",
-      "value": "身份鉴别",
+      "value": "私有网络模式",
       "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,6 +49,6 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Dashboard route is confirmed through stable first-screen cards and quick-entry text."
+    "This case supplements firewall coverage with preset mode card visibility."
   ]
 }

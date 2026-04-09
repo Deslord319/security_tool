@@ -11,6 +11,20 @@
       }
     },
     {
+      "name": "reset_previous_page",
+      "ref": "ui.press_key",
+      "params": {
+        "key": "BACK"
+      }
+    },
+    {
+      "name": "relaunch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
       "name": "open_firewall_page",
       "ref": "navigation.open_page",
       "params": {
@@ -46,7 +60,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the authenticated toggle flow returns to a stable firewall page state.",
+    "Current primary evidence confirms the authenticated toggle flow returns to a stable firewall page state after a foreground reset.",
     "Primary assertion will move to a service-backed firewall status read once getter execution is wired in."
   ]
 }

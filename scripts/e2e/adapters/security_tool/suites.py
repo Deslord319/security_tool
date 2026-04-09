@@ -1,5 +1,7 @@
 DASHBOARD_SUITE = [
     "dashboard/overview.json",
+    "dashboard/summary_cards.json",
+    "dashboard/quick_entries.json",
 ]
 
 
@@ -23,8 +25,10 @@ NAVIGATION_SUITE = [
 
 FIREWALL_SUITE = [
     "firewall/status_toggle.json",
+    "firewall/mode_cards.json",
     "firewall/rule_create.json",
     "firewall/rule_delete.json",
+    "firewall/rules_page_visible.json",
     "firewall/domain_browser.json",
 ]
 
@@ -43,6 +47,7 @@ PERIPHERAL_SUITE = [
 IDENTITY_SUITE = [
     "identity/password_policy.json",
     "identity/domain_policy.json",
+    "identity/validity_section.json",
 ]
 
 
@@ -55,6 +60,8 @@ TOOL_SETTINGS_SUITE = [
 
 LOGS_SUITE = [
     "logs/export.json",
+    "logs/page_details.json",
+    "logs/stats_visible.json",
     "logs/event_after_policy_change.json",
 ]
 

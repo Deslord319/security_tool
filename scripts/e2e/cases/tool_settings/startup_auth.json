@@ -11,6 +11,20 @@
       }
     },
     {
+      "name": "reset_previous_page",
+      "ref": "ui.press_key",
+      "params": {
+        "key": "BACK"
+      }
+    },
+    {
+      "name": "relaunch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
       "name": "open_tool_settings",
       "ref": "navigation.open_page",
       "params": {

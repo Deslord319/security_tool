@@ -1,0 +1,42 @@
+{
+  "case_id": "ID-VALIDITY-001",
+  "case_name": "Identity Validity Section Visible",
+  "module": "identity",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_identity_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "identity"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "identity_validity_section_visible",
+      "type": "assert_text_presence",
+      "value": "密码有效期",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case supplements identity coverage with the password-validity section."
+  ]
+}

@@ -1,7 +1,7 @@
 {
-  "case_id": "DASH-OVERVIEW-001",
-  "case_name": "Dashboard Overview Visible",
-  "module": "dashboard",
+  "case_id": "LOG-STATS-001",
+  "case_name": "Log Manage Stats Visible",
+  "module": "log-manage",
   "flow": [
     {
       "name": "launch_app",
@@ -11,18 +11,18 @@
       }
     },
     {
-      "name": "open_dashboard",
+      "name": "open_log_manage",
       "ref": "navigation.open_page",
       "params": {
-        "page_id": "dashboard"
+        "page_id": "log-manage"
       }
     }
   ],
   "assertions": [
     {
-      "name": "dashboard_firewall_card_visible",
+      "name": "log_manage_total_stat_visible",
       "type": "assert_text_presence",
-      "value": "防火墙模式",
+      "value": "总计",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -32,9 +32,9 @@
       }
     },
     {
-      "name": "dashboard_identity_entry_visible",
+      "name": "log_manage_current_stat_visible",
       "type": "assert_text_presence",
-      "value": "身份鉴别",
+      "value": "当前显示",
       "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,6 +49,6 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Dashboard route is confirmed through stable first-screen cards and quick-entry text."
+    "This case verifies the log-manage statistics strip is rendered."
   ]
 }

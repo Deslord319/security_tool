@@ -1,6 +1,6 @@
 {
-  "case_id": "DASH-OVERVIEW-001",
-  "case_name": "Dashboard Overview Visible",
+  "case_id": "DASH-OVERVIEW-003",
+  "case_name": "Dashboard Quick Entries Visible",
   "module": "dashboard",
   "flow": [
     {
@@ -20,9 +20,9 @@
   ],
   "assertions": [
     {
-      "name": "dashboard_firewall_card_visible",
+      "name": "dashboard_identity_entry_visible",
       "type": "assert_text_presence",
-      "value": "防火墙模式",
+      "value": "身份鉴别",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -32,9 +32,9 @@
       }
     },
     {
-      "name": "dashboard_identity_entry_visible",
+      "name": "dashboard_help_entry_visible",
       "type": "assert_text_presence",
-      "value": "身份鉴别",
+      "value": "帮助与反馈",
       "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,6 +49,6 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Dashboard route is confirmed through stable first-screen cards and quick-entry text."
+    "This case checks that dashboard quick-entry tiles expose additional modules beyond the existing overview case."
   ]
 }

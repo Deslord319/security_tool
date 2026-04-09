@@ -1,7 +1,7 @@
 {
-  "case_id": "ID-DOMAIN-001",
-  "case_name": "Identity Domain Policy Update",
-  "module": "identity",
+  "case_id": "LOG-PAGE-002",
+  "case_name": "Log Manage Page Details Visible",
+  "module": "log-manage",
   "flow": [
     {
       "name": "launch_app",
@@ -25,32 +25,31 @@
       }
     },
     {
-      "name": "open_identity_page",
+      "name": "open_log_manage",
       "ref": "navigation.open_page",
       "params": {
-        "page_id": "identity"
-      }
-    },
-    {
-      "name": "update_identity_domain_policy",
-      "ref": "entity.update",
-      "params": {
-        "domain": "identity",
-        "entity": "domain_policy",
-        "data": {
-          "password_max_age_days": 90,
-          "expiration_notify_days": 7,
-          "auth_validity_minutes": -1
-        }
+        "page_id": "log-manage"
       }
     }
   ],
   "assertions": [
     {
-      "name": "identity_domain_policy_page_marker_visible",
+      "name": "log_manage_export_button_visible",
       "type": "assert_text_presence",
-      "value": "密码有效期",
+      "value": "导出日志",
       "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "log_manage_total_stat_visible",
+      "type": "assert_text_presence",
+      "value": "总计",
+      "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
         "present": true,
@@ -64,7 +63,6 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the update executes in the domain policy section after a foreground reset.",
-    "Getter-backed domain policy assertion will be added later."
+    "This case supplements log-manage coverage with a reset-safe page reachability check using stable first-screen elements."
   ]
 }

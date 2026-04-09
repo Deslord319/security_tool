@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-09T09:51:55+00:00",
+  "updated_at": "2026-04-09T10:35:11+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -179,9 +179,9 @@
       ],
       "structured_assertions": [
         {
-          "name": "dashboard_quick_actions_visible",
+          "name": "dashboard_firewall_card_visible",
           "type": "assert_text_presence",
-          "value": "快捷方式",
+          "value": "防火墙模式",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -191,9 +191,9 @@
           }
         },
         {
-          "name": "dashboard_admin_card_visible",
+          "name": "dashboard_identity_entry_visible",
           "type": "assert_text_presence",
-          "value": "管理员状态",
+          "value": "身份鉴别",
           "level": "secondary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -224,6 +224,162 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/overview.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "DASH-OVERVIEW-002",
+      "case_name": "Dashboard Summary Cards Visible",
+      "module_id": "dashboard",
+      "module_name": "安全总览",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_dashboard",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "dashboard_log_card_visible",
+          "type": "assert_text_presence",
+          "value": "日志记录",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "dashboard_firewall_card_visible",
+          "type": "assert_text_presence",
+          "value": "防火墙模式",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "日志记录",
+        "防火墙模式"
+      ],
+      "suite_membership": [
+        "dashboard",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/dashboard/summary_cards.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "DASH-OVERVIEW-003",
+      "case_name": "Dashboard Quick Entries Visible",
+      "module_id": "dashboard",
+      "module_name": "安全总览",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_dashboard",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "dashboard_identity_entry_visible",
+          "type": "assert_text_presence",
+          "value": "身份鉴别",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "dashboard_help_entry_visible",
+          "type": "assert_text_presence",
+          "value": "帮助与反馈",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "身份鉴别",
+        "帮助与反馈"
+      ],
+      "suite_membership": [
+        "dashboard",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/dashboard/quick_entries.json",
       "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
@@ -318,6 +474,84 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "FW-MODE-001",
+      "case_name": "Firewall Mode Cards Visible",
+      "module_id": "firewall",
+      "module_name": "防火墙管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_firewall_page",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "firewall"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "firewall_public_mode_visible",
+          "type": "assert_text_presence",
+          "value": "公共网络模式",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "firewall_private_mode_visible",
+          "type": "assert_text_presence",
+          "value": "私有网络模式",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "公共网络模式",
+        "私有网络模式"
+      ],
+      "suite_membership": [
+        "firewall",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/firewall/mode_cards.json",
       "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
@@ -502,6 +736,84 @@
       "review_notes": []
     },
     {
+      "case_id": "FW-RULES-003",
+      "case_name": "Firewall Rules Page Visible",
+      "module_id": "firewall",
+      "module_name": "防火墙管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_firewall_rules_page",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "firewall-rules"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "firewall_rules_add_button_visible",
+          "type": "assert_text_presence",
+          "value": "新增规则",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "firewall_rules_outbound_section_visible",
+          "type": "assert_text_presence",
+          "value": "出站规则",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "新增规则",
+        "出站规则"
+      ],
+      "suite_membership": [
+        "firewall",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/firewall/rules_page_visible.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
       "case_id": "FW-STATUS-001",
       "case_name": "Firewall Status Toggle",
       "module_id": "firewall",
@@ -515,6 +827,20 @@
       "structured_flow": [
         {
           "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
           "ref": "app.launch",
           "params": {
             "timeout_sec": 20
@@ -559,11 +885,12 @@
         "firewall",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
         "防火墙步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
+        "缺少断言草稿",
+        "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
         "flow": [
@@ -574,7 +901,9 @@
         "assertion": [
           "缺少断言草稿"
         ],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
@@ -597,6 +926,20 @@
       "structured_flow": [
         {
           "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
           "ref": "app.launch",
           "params": {
             "timeout_sec": 20
@@ -645,11 +988,12 @@
         "identity",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
         "身份鉴别步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
+        "缺少断言草稿",
+        "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
         "flow": [
@@ -660,7 +1004,9 @@
         "assertion": [
           "缺少断言草稿"
         ],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
@@ -683,6 +1029,20 @@
       "structured_flow": [
         {
           "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
           "ref": "app.launch",
           "params": {
             "timeout_sec": 20
@@ -733,11 +1093,12 @@
         "identity",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
         "身份鉴别步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
+        "缺少断言草稿",
+        "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
         "flow": [
@@ -748,11 +1109,78 @@
         "assertion": [
           "缺少断言草稿"
         ],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/password_policy.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "ID-VALIDITY-001",
+      "case_name": "Identity Validity Section Visible",
+      "module_id": "identity",
+      "module_name": "身份鉴别",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_identity_page",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "identity"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "identity_validity_section_visible",
+          "type": "assert_text_presence",
+          "value": "密码有效期",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "密码有效期"
+      ],
+      "suite_membership": [
+        "identity",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/identity/validity_section.json",
       "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
@@ -920,6 +1348,180 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/export.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "LOG-PAGE-002",
+      "case_name": "Log Manage Page Details Visible",
+      "module_id": "log-manage",
+      "module_name": "日志管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_log_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "log-manage"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "log_manage_export_button_visible",
+          "type": "assert_text_presence",
+          "value": "导出日志",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "log_manage_total_stat_visible",
+          "type": "assert_text_presence",
+          "value": "总计",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "导出日志",
+        "总计"
+      ],
+      "suite_membership": [
+        "logs",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/logs/page_details.json",
+      "last_result_status": "PASS",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "LOG-STATS-001",
+      "case_name": "Log Manage Stats Visible",
+      "module_id": "log-manage",
+      "module_name": "日志管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_log_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "log-manage"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "log_manage_total_stat_visible",
+          "type": "assert_text_presence",
+          "value": "总计",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "log_manage_current_stat_visible",
+          "type": "assert_text_presence",
+          "value": "当前显示",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "总计",
+        "当前显示"
+      ],
+      "suite_membership": [
+        "logs",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/logs/stats_visible.json",
       "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
