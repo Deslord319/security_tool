@@ -7,6 +7,9 @@ import {
 } from '../../main/ets/models/DataModels'
 import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 
+const DEFAULT_RETENTION_DAYS = 180
+const DEFAULT_MAX_ENTRIES = 200000
+
 interface TraceRecordOverrides {
   collectAt?: number
   deviceName?: string
@@ -77,13 +80,32 @@ function createTraceRecord(recordId: string, occurAt: number, extra?: TraceRecor
   return record
 }
 
+async function resetTraceRepository(): Promise<void> {
+  await PeripheralTraceRepository.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
+  await PeripheralTraceRepository.clearAll()
+}
+
+async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void> {
+  await resetTraceRepository()
+  if (records.length <= 0) {
+    return
+  }
+  const sorted = records.slice().sort((left: PeripheralTraceRecord, right: PeripheralTraceRecord) => {
+    if (left.occurAt === right.occurAt) {
+      return right.collectAt - left.collectAt
+    }
+    return right.occurAt - left.occurAt
+  })
+  await PeripheralTraceRepository.appendBatch(sorted)
+}
+
 export default function peripheralTraceRepositoryTest() {
   describe('PeripheralTraceRepository', () => {
     let now: number
 
-    beforeEach(() => {
+    beforeEach(async () => {
       now = Date.now()
-      PeripheralTraceRepository.setRecordsForTest([])
+      await resetTraceRepository()
     })
 
     it('should append and query normalized records', 0, async (done: Function) => {
@@ -117,9 +139,10 @@ export default function peripheralTraceRepositoryTest() {
       done()
     })
 
-    it('should filter records by query dimensions and pagination', 0, (done: Function) => {
-      PeripheralTraceRepository.setRecordsForTest([
-        createTraceRecord('runtime-usb', 500, {
+    it('should filter records by query dimensions and pagination', 0, async (done: Function) => {
+      const base = Date.now()
+      await seedTraceRecords([
+        createTraceRecord('runtime-usb', base + 500, {
           deviceName: 'Alpha USB',
           deviceId: 'VID:0001 PID:0001',
           deviceType: PeripheralType.USB_STORAGE,
@@ -130,7 +153,7 @@ export default function peripheralTraceRepositoryTest() {
           detail: 'mounted alpha volume',
           processName: 'usb-service'
         }),
-        createTraceRecord('audit-bt', 400, {
+        createTraceRecord('audit-bt', base + 400, {
           deviceName: 'Beta Headset',
           deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
           deviceType: PeripheralType.BLUETOOTH,
@@ -141,7 +164,7 @@ export default function peripheralTraceRepositoryTest() {
           summary: 'beta blocked',
           detail: 'audit detail'
         }),
-        createTraceRecord('snapshot-usb', 300, {
+        createTraceRecord('snapshot-usb', base + 300, {
           deviceName: 'Gamma Camera',
           deviceId: 'VID:0002 PID:0002',
           deviceType: PeripheralType.USB_CAMERA,
@@ -160,7 +183,7 @@ export default function peripheralTraceRepositoryTest() {
       expect(PeripheralTraceRepository.query({ results: [LogEventResult.FAILED] }).length).assertEqual(1)
       expect(PeripheralTraceRepository.query({ sources: ['policy_snapshot'] }).length).assertEqual(1)
       expect(PeripheralTraceRepository.query({ keyword: 'alpha volume' }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ startTime: 350, endTime: 500 }).length).assertEqual(2)
+      expect(PeripheralTraceRepository.query({ startTime: base + 350, endTime: base + 500 }).length).assertEqual(2)
 
       let paged = PeripheralTraceRepository.query({ pageOffset: 1, pageSize: 1 })
       expect(paged.length).assertEqual(1)
@@ -168,19 +191,20 @@ export default function peripheralTraceRepositoryTest() {
       done()
     })
 
-    it('should report aggregated stats for filtered records', 0, (done: Function) => {
-      PeripheralTraceRepository.setRecordsForTest([
-        createTraceRecord('connect-allow', 500, {
+    it('should report aggregated stats for filtered records', 0, async (done: Function) => {
+      const base = Date.now()
+      await seedTraceRecords([
+        createTraceRecord('connect-allow', base + 500, {
           action: 'connect',
           decision: 'allow',
           source: 'runtime_event'
         }),
-        createTraceRecord('disconnect-deny', 400, {
+        createTraceRecord('disconnect-deny', base + 400, {
           action: 'disconnect',
           decision: 'deny',
           source: 'audit_event'
         }),
-        createTraceRecord('intercept-unknown', 300, {
+        createTraceRecord('intercept-unknown', base + 300, {
           action: 'intercept',
           decision: 'unknown',
           source: 'policy_snapshot'
@@ -228,7 +252,7 @@ export default function peripheralTraceRepositoryTest() {
 
     it('should update retention config and cleanup expired or overflow records', 0, async (done: Function) => {
       let now = Date.now()
-      PeripheralTraceRepository.setRecordsForTest([
+      await seedTraceRecords([
         createTraceRecord('expired', now - 10 * 24 * 60 * 60 * 1000),
         createTraceRecord('recent-a', now - 1 * 24 * 60 * 60 * 1000),
         createTraceRecord('recent-b', now - 12 * 60 * 60 * 1000)

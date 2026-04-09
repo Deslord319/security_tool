@@ -18,6 +18,9 @@ import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/peripheral_connection_record_clear_usecase'
 
+const DEFAULT_RETENTION_DAYS = 180
+const DEFAULT_MAX_ENTRIES = 200000
+
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
 
@@ -94,17 +97,31 @@ function createTraceRecord(recordId: string, occurAt: number, deviceId: string =
   }
 }
 
+async function resetTraceRepository(): Promise<void> {
+  await PeripheralTraceRepository.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
+  await PeripheralTraceRepository.clearAll()
+}
+
+async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void> {
+  await resetTraceRepository()
+  if (records.length <= 0) {
+    return
+  }
+  const sorted = records.slice().sort((left: PeripheralTraceRecord, right: PeripheralTraceRecord) => right.occurAt - left.occurAt)
+  await PeripheralTraceRepository.appendBatch(sorted)
+}
+
 export default function peripheralViewModelTest() {
   describe('PeripheralConnectionRecordClearUsecase', () => {
     let usecase: PeripheralConnectionRecordClearUsecase
 
-  beforeEach(() => {
+  beforeEach(async () => {
     usecase = new PeripheralConnectionRecordClearUsecase()
-    PeripheralTraceRepository.setRecordsForTest([])
+    await resetTraceRepository()
   })
 
-  afterEach(() => {
-    PeripheralTraceRepository.setRecordsForTest([])
+  afterEach(async () => {
+    await resetTraceRepository()
   })
 
   it('U-CLEAR-001 should return false when context is null', 0, async (done: Function) => {
@@ -129,7 +146,7 @@ export default function peripheralViewModelTest() {
     let fakeInterface: FakeInterfaceControlViewModel
     let mockKit: MockKit
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockKit = new MockKit()
     viewModel = new PeripheralViewModel()
     fakePolicy = new FakePolicyViewModel()
@@ -138,8 +155,8 @@ export default function peripheralViewModelTest() {
     viewModel.policy = fakePolicy
     viewModel.records = fakeRecords
     viewModel.interfaceControl = fakeInterface
-    PeripheralTraceRepository.setRecordsForTest([])
-    PeripheralDevicePolicyRepository.setRecordsForTest([])
+    await resetTraceRepository()
+    await PeripheralDevicePolicyRepository.clearAll()
     const inactiveAdminState: AdminActivationState = {
       activated: false,
       enableCommand: 'mock-enable',
@@ -149,11 +166,11 @@ export default function peripheralViewModelTest() {
     when(probeActivationMock)().afterReturn(inactiveAdminState)
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     mockKit.clearAll()
     viewModel.destroy()
-    PeripheralTraceRepository.setRecordsForTest([])
-    PeripheralDevicePolicyRepository.setRecordsForTest([])
+    await resetTraceRepository()
+    await PeripheralDevicePolicyRepository.clearAll()
   })
 
   it('U-PVM-001 should initialize successfully, reload child data and register listeners', 0, async (done: Function) => {
@@ -280,15 +297,15 @@ export default function peripheralViewModelTest() {
     done()
   })
 
-  it('should keep basic defaults and admin check behavior stable', 0, () => {
-    PeripheralTraceRepository.setRecordsForTest([createTraceRecord('trace-1', 1700000000000)])
-    PeripheralDevicePolicyRepository.setRecordsForTest([])
+  it('should keep basic defaults and admin check behavior stable', 0, async (done: Function) => {
+    await seedTraceRecords([createTraceRecord('trace-1', Date.now())])
 
     const ready = viewModel.ensureAdminReady()
 
     expect(fakeRecords.state.connectionDetailDialog.visible).assertFalse()
     expect(ready).assertFalse()
     expect(viewModel.reasonCode).assertEqual(PeripheralStrings.adminRequired)
+    done()
   })
   })
 }

@@ -108,18 +108,6 @@ export class PeripheralDevicePolicyRepository {
       return false
     }
   }
-
-  static setRecordsForTest(records: PeripheralDevicePolicyRecord[]): void {
-    PeripheralDevicePolicyRepository.context = null
-    PeripheralDevicePolicyRepository.initPromise = null
-    PeripheralDevicePolicyRepository.initialized = false
-    PeripheralDevicePolicyRepository.nextListenerId = 1
-    PeripheralDevicePolicyRepository.listeners.clear()
-    PeripheralDevicePolicyRepository.records = records.map((item: PeripheralDevicePolicyRecord) => {
-      return PeripheralDevicePolicyRepository.normalizeRecord(item)
-    })
-  }
-
   private static async doInit(): Promise<boolean> {
     if (!PeripheralDevicePolicyRepository.context) {
       return false

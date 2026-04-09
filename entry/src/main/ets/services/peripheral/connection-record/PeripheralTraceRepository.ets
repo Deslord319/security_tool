@@ -262,17 +262,6 @@ export class PeripheralTraceRepository {
     }
   }
 
-  static setRecordsForTest(records: PeripheralTraceRecord[]): void {
-    PeripheralTraceRepository.context = null
-    PeripheralTraceRepository.initPromise = null
-    PeripheralTraceRepository.initialized = false
-    PeripheralTraceRepository.nextListenerId = 1
-    PeripheralTraceRepository.listeners.clear()
-    PeripheralTraceRepository.retentionDays = RETENTION_DAYS_DEFAULT
-    PeripheralTraceRepository.maxEntries = MAX_TRACE_ENTRIES_DEFAULT
-    PeripheralTraceRepository.records = PeripheralTraceRepository.sanitizeRecords(records)
-  }
-
   private static async doInit(): Promise<boolean> {
     if (!PeripheralTraceRepository.context) {
       return false

@@ -28,15 +28,15 @@ export default function peripheralPolicyViewModelTest() {
     let viewModel: PeripheralPolicyViewModel
     let mockKit: MockKit
 
-  beforeEach(() => {
+  beforeEach(async () => {
     viewModel = new PeripheralPolicyViewModel()
     mockKit = new MockKit()
-    PeripheralDevicePolicyRepository.setRecordsForTest([])
+    await PeripheralDevicePolicyRepository.clearAll()
     LogExportService.setTestDeps({})
   })
 
-  afterEach(() => {
-    PeripheralDevicePolicyRepository.setRecordsForTest([])
+  afterEach(async () => {
+    await PeripheralDevicePolicyRepository.clearAll()
     LogExportService.setTestDeps({})
     mockKit.clearAll()
   })

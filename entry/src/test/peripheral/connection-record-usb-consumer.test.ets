@@ -139,9 +139,9 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
   describe('PeripheralConnectionRecordUsbConsumer', () => {
     let mockKit: MockKit
 
-    beforeEach(() => {
+    beforeEach(async () => {
       mockKit = new MockKit()
-      PeripheralDevicePolicyRepository.setRecordsForTest([])
+      await PeripheralDevicePolicyRepository.clearAll()
       let usbDisabledResult = new BooleanOperationResult()
       usbDisabledResult.data = false
       let usbStorageResult = new UsbPolicyOperationResult()
@@ -216,7 +216,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
         deviceName: 'Denied Storage',
         deviceType: PeripheralType.USB_STORAGE
       }
-      PeripheralDevicePolicyRepository.setRecordsForTest([deniedPolicy])
+      await PeripheralDevicePolicyRepository.set(deniedPolicy)
 
       const record = await consumer.consume(buildUsbEvent())
 

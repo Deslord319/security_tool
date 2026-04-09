@@ -15,6 +15,9 @@ import {
   PeripheralConnectionRecordProducerStatus
 } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
+const DEFAULT_RETENTION_DAYS = 180
+const DEFAULT_MAX_ENTRIES = 200000
+
 interface PipelineProbe {
   traceRepositoryReady: boolean
   context: common.UIAbilityContext | null
@@ -179,10 +182,15 @@ function createBluetoothEvent(): PeripheralConnectionRecordProducerEvent {
   return new FixedEvent('bluetooth_acl', 'usual.event.BLUETOOTH_ACL')
 }
 
+async function resetTraceRepository(): Promise<void> {
+  await PeripheralTraceRepository.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
+  await PeripheralTraceRepository.clearAll()
+}
+
 export default function peripheralConnectionRecordPipelineTest() {
   describe('PeripheralConnectionRecordPipeline', () => {
-    beforeEach(() => {
-      PeripheralTraceRepository.setRecordsForTest([])
+    beforeEach(async () => {
+      await resetTraceRepository()
     })
 
     it('should dedupe usb records within 1500ms window by deviceId|action|rawEventName', 0, async () => {

@@ -19,6 +19,9 @@ import {
 } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 
+const DEFAULT_RETENTION_DAYS = 180
+const DEFAULT_MAX_ENTRIES = 200000
+
 class FixedSavePicker {
   private paths: string[]
 
@@ -80,25 +83,40 @@ function createConnectionRecord(
   }
 }
 
+async function resetTraceRepository(): Promise<void> {
+  await PeripheralTraceRepository.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
+  await PeripheralTraceRepository.clearAll()
+}
+
+async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void> {
+  await resetTraceRepository()
+  if (records.length <= 0) {
+    return
+  }
+  const sorted = records.slice().sort((left: PeripheralTraceRecord, right: PeripheralTraceRecord) => right.occurAt - left.occurAt)
+  await PeripheralTraceRepository.appendBatch(sorted)
+}
+
 export default function peripheralRecordViewModelTest() {
   describe('PeripheralRecordViewModel', () => {
     let viewModel: PeripheralRecordViewModel
 
-  beforeEach(() => {
+  beforeEach(async () => {
     viewModel = new PeripheralRecordViewModel()
-    PeripheralTraceRepository.setRecordsForTest([])
+    await resetTraceRepository()
     LogExportService.setTestDeps({})
   })
 
-  afterEach(() => {
-    PeripheralTraceRepository.setRecordsForTest([])
+  afterEach(async () => {
+    await resetTraceRepository()
     LogExportService.setTestDeps({})
   })
 
-  it('U-RVM-001 should reload records from record service', 0, () => {
-    PeripheralTraceRepository.setRecordsForTest([
-      createTraceRecord('record-1', 1700000000000),
-      createTraceRecord('record-2', 1700000001000, 'VID:1111 PID:2222', 'USB Camera')
+  it('U-RVM-001 should reload records from record service', 0, async (done: Function) => {
+    const base = Date.now()
+    await seedTraceRecords([
+      createTraceRecord('record-1', base),
+      createTraceRecord('record-2', base + 1000, 'VID:1111 PID:2222', 'USB Camera')
     ])
 
     viewModel.reloadRecords()
@@ -106,15 +124,17 @@ export default function peripheralRecordViewModelTest() {
     expect(viewModel.state.records.length).assertEqual(2)
     expect(viewModel.state.records[0].id).assertEqual('peripheral_runtime_record-2')
     expect(viewModel.state.records[1].id).assertEqual('peripheral_runtime_record-1')
+    done()
   })
 
-  it('U-RVM-002 should fall back to empty list when query pipeline returns no records', 0, () => {
-    PeripheralTraceRepository.setRecordsForTest([])
+  it('U-RVM-002 should fall back to empty list when query pipeline returns no records', 0, async (done: Function) => {
+    await resetTraceRepository()
     viewModel.state.records = [createConnectionRecord('stale-record', 1700000000000)]
 
     viewModel.reloadRecords()
 
     expect(viewModel.state.records.length).assertEqual(0)
+    done()
   })
 
   it('U-RVM-003 should open detail dialog with selected record and same-device history only', 0, () => {
