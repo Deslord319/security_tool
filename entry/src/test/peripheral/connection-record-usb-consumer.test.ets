@@ -265,6 +265,27 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.detail?.includes('断开前生效策略为')).assertTrue()
     })
 
+    it('U-USB-006A should keep detached usb record disabled when device policy is deny', 0, async () => {
+      const consumer = new PeripheralConnectionRecordUsbConsumer()
+      const deniedPolicy: PeripheralDevicePolicyRecord = {
+        deviceId: 'vid:1234 pid:5678',
+        policy: 'deny',
+        updatedAt: 1,
+        deviceName: 'Denied Storage',
+        deviceType: PeripheralType.USB_STORAGE
+      }
+      await PeripheralDevicePolicyRepository.set(deniedPolicy)
+
+      const record = await consumer.consume(buildUsbEvent(commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED))
+
+      expect(record !== null).assertTrue()
+      expect(record?.action).assertEqual('disconnect')
+      expect(record?.decision).assertEqual('unknown')
+      expect(record?.matchedPolicyKind).assertEqual('disconnect_event')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
+      expect(record?.detail?.includes('断开前生效策略为：已禁用')).assertTrue()
+    })
+
     it('U-USB-007 should ignore unsupported usb event names', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
 

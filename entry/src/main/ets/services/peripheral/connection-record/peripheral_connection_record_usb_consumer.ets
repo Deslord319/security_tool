@@ -121,6 +121,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
   ): UsbEventPolicyEvaluation {
     const snapshot = PeripheralConnectionRecordUsbConsumer.readCurrentUsbPolicySnapshot()
     const effectivePolicyLabel = PeripheralConnectionRecordUsbConsumer.resolveEffectivePolicyLabel(
+      info.deviceId,
       info.deviceType,
       snapshot
     )
@@ -223,8 +224,15 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
   }
 
-  private static resolveEffectivePolicyLabel(deviceType: PeripheralType, snapshot: UsbPolicySnapshot): string {
+  private static resolveEffectivePolicyLabel(
+    deviceId: string,
+    deviceType: PeripheralType,
+    snapshot: UsbPolicySnapshot
+  ): string {
     if (snapshot.usbDisabled) {
+      return '已禁用'
+    }
+    if (snapshot.devicePolicies.get(deviceId.toUpperCase()) === 'deny') {
       return '已禁用'
     }
     if (deviceType === PeripheralType.USB_STORAGE && snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
