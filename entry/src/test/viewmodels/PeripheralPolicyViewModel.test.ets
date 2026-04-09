@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
+import { LogEventResult, PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import {
+  PeripheralDevicePolicyDispatchService,
+  PeripheralPolicyDispatchRequest,
+  PeripheralPolicyDispatchResult
+} from '../../main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
 
@@ -20,16 +25,19 @@ class FixedSavePicker {
 export default function peripheralPolicyViewModelTest() {
   describe('PeripheralPolicyViewModel', () => {
     let viewModel: PeripheralPolicyViewModel
+    let originalDispatch: (request: PeripheralPolicyDispatchRequest) => Promise<PeripheralPolicyDispatchResult>
 
   beforeEach(() => {
     viewModel = new PeripheralPolicyViewModel()
     PeripheralDevicePolicyRepository.setRecordsForTest([])
     LogExportService.setTestDeps({})
+    originalDispatch = PeripheralDevicePolicyDispatchService.dispatch
   })
 
   afterEach(() => {
     PeripheralDevicePolicyRepository.setRecordsForTest([])
     LogExportService.setTestDeps({})
+    PeripheralDevicePolicyDispatchService.dispatch = originalDispatch
   })
 
   it('should rebuild policy records from connection records and explicit device policies', 0, async (done: Function) => {
@@ -143,10 +151,49 @@ export default function peripheralPolicyViewModelTest() {
       policy: 'deny',
       updatedAt: Date.now()
     })
+    PeripheralDevicePolicyDispatchService.dispatch = async (_request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> => {
+      return { success: true } as PeripheralPolicyDispatchResult
+    }
 
     const success = await viewModel.clearAllPolicies()
     expect(success).assertTrue()
     expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(0)
+    done()
+  })
+
+  it('should rollback dispatched policies when clearing explicit policies fails midway', 0, async (done: Function) => {
+    const records: PeripheralDevicePolicyRecord[] = [{
+      deviceId: 'VID:1234 PID:5678',
+      policy: 'deny',
+      updatedAt: Date.now(),
+      deviceType: PeripheralType.USB_STORAGE
+    }, {
+      deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+      policy: 'deny',
+      updatedAt: Date.now() + 1,
+      deviceType: PeripheralType.BLUETOOTH
+    }]
+    for (const record of records) {
+      await PeripheralDevicePolicyRepository.set(record)
+    }
+
+    const dispatchCalls: string[] = []
+    PeripheralDevicePolicyDispatchService.dispatch = async (request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> => {
+      dispatchCalls.push(`${request.deviceId}:${request.policy}`)
+      if (request.deviceId === 'MAC: AA:BB:CC:DD:EE:FF' && request.policy === 'allow') {
+        return { success: false, reason: 'bluetooth_dispatch_failed' } as PeripheralPolicyDispatchResult
+      }
+      return { success: true } as PeripheralPolicyDispatchResult
+    }
+
+    const success = await viewModel.clearAllPolicies()
+    expect(success).assertFalse()
+    expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(2)
+    expect(dispatchCalls).assertDeepEquals([
+      'VID:1234 PID:5678:allow',
+      'MAC: AA:BB:CC:DD:EE:FF:allow',
+      'VID:1234 PID:5678:deny'
+    ])
     done()
   })
 

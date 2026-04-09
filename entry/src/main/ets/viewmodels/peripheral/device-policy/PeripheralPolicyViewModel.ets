@@ -103,7 +103,34 @@ export class PeripheralPolicyViewModel {
   }
 
   async clearAllPolicies(): Promise<boolean> {
-    return PeripheralDevicePolicyRepository.clearAll()
+    const records = PeripheralDevicePolicyRepository.getAll()
+    if (records.length === 0) {
+      return true
+    }
+
+    LogUtils.info(TAG, `clearAllPolicies start: total=${records.length}`)
+    const revertedRecords: PeripheralDevicePolicyRecord[] = []
+    for (const record of records) {
+      const clearResult = await this.dispatchPolicyRecord(record, 'allow')
+      if (!clearResult.success) {
+        LogUtils.error(
+          TAG,
+          `clearAllPolicies dispatch failed: deviceId=${record.deviceId}, deviceType=${record.deviceType}, reason=${clearResult.reason ?? 'unknown'}`
+        )
+        const rollbackSuccess = await this.rollbackClearedPolicies(revertedRecords)
+        LogUtils.warn(TAG, `clearAllPolicies rollback result: success=${rollbackSuccess}, reverted=${revertedRecords.length}`)
+        return false
+      }
+      revertedRecords.push(record)
+    }
+
+    const cleared = await PeripheralDevicePolicyRepository.clearAll()
+    if (cleared) {
+      LogUtils.info(TAG, `clearAllPolicies completed: total=${records.length}`)
+    } else {
+      LogUtils.error(TAG, `clearAllPolicies repository clear failed: total=${records.length}`)
+    }
+    return cleared
   }
 
   async exportRecords(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
@@ -128,6 +155,40 @@ export class PeripheralPolicyViewModel {
 
   private normalizeDeviceKey(deviceId: string): string {
     return PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId)
+  }
+
+  private async dispatchPolicyRecord(
+    record: PeripheralDevicePolicyRecord,
+    policy: 'allow' | 'deny'
+  ): Promise<PeripheralPolicyDispatchResult> {
+    if (!record.deviceType || !this.shouldDispatchBeforeSave(record.deviceType)) {
+      return { success: true } as PeripheralPolicyDispatchResult
+    }
+    return PeripheralDevicePolicyDispatchService.dispatch({
+      deviceId: record.deviceId,
+      deviceType: record.deviceType,
+      policy: policy
+    })
+  }
+
+  private async rollbackClearedPolicies(records: PeripheralDevicePolicyRecord[]): Promise<boolean> {
+    if (records.length === 0) {
+      return true
+    }
+
+    LogUtils.warn(TAG, `rollbackClearedPolicies start: total=${records.length}`)
+    for (let index = records.length - 1; index >= 0; index--) {
+      const record = records[index]
+      const rollbackResult = await this.dispatchPolicyRecord(record, record.policy)
+      if (!rollbackResult.success) {
+        LogUtils.error(
+          TAG,
+          `rollbackClearedPolicies failed: deviceId=${record.deviceId}, deviceType=${record.deviceType}, reason=${rollbackResult.reason ?? 'unknown'}`
+        )
+        return false
+      }
+    }
+    return true
   }
 
   private shouldDispatchBeforeSave(deviceType: PeripheralType): boolean {
