@@ -1,6 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
-import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
+import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 import {
   LogEventResult,
@@ -267,9 +267,7 @@ export class PeripheralTraceRepository {
       return false
     }
     try {
-      let store = await preferences.getPreferences(PeripheralTraceRepository.context, PREF_STORE_NAME)
-      let raw = await store.get(PREF_KEY_TRACE_RECORDS, '[]') as string
-      let parsed = JSON.parse(raw) as PeripheralTraceRecord[]
+      let parsed = await PeripheralTraceRepository.loadPersistedRecords()
       PeripheralTraceRepository.records = PeripheralTraceRepository.sanitizeRecords(parsed)
       PeripheralTraceRepository.cleanupInMemory()
       PeripheralTraceRepository.initialized = true
@@ -418,11 +416,28 @@ export class PeripheralTraceRepository {
       if (payload.length > PERSIST_MAX_PAYLOAD_CHARS) {
         payload = '[]'
       }
-      let store = await preferences.getPreferences(PeripheralTraceRepository.context, PREF_STORE_NAME)
-      await store.put(PREF_KEY_TRACE_RECORDS, payload)
-      await store.flush()
+      await PeripheralTraceRepository.persistRecords(payload)
     } catch (err) {
       LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private static async loadPersistedRecords(): Promise<PeripheralTraceRecord[]> {
+    if (!PeripheralTraceRepository.context) {
+      return []
+    }
+    let pref = PreferencesAccessor.of(PeripheralTraceRepository.context, PREF_STORE_NAME)
+    return pref.getJsonArray<PeripheralTraceRecord>(PREF_KEY_TRACE_RECORDS, [])
+  }
+
+  private static async persistRecords(payload: string): Promise<void> {
+    if (!PeripheralTraceRepository.context) {
+      return
+    }
+    let pref = PreferencesAccessor.of(PeripheralTraceRepository.context, PREF_STORE_NAME)
+    let saved = await pref.setValue(PREF_KEY_TRACE_RECORDS, payload)
+    if (!saved) {
+      LogUtils.error(TAG, 'persistRecords failed: preferences_write_failed')
     }
   }
 

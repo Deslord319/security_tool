@@ -1,6 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import { preferences } from '@kit.ArkData'
-
 import {
   FIREWALL_PIN_LOCK_DURATION_MS,
   FIREWALL_PIN_LOCK_MAX_ATTEMPTS,
@@ -9,6 +7,7 @@ import {
   PREF_STORE_NAME_FIREWALL_AUTH
 } from '../../../models/DataModels'
 import { LogUtils } from '../../../utils/LogUtils'
+import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 const TAG = 'FirewallAuthStateStore'
 
@@ -32,12 +31,10 @@ export interface FirewallAuthFailureUpdate {
 export class FirewallAuthStateStore {
   static async getState(context: common.UIAbilityContext): Promise<FirewallAuthState> {
     try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_AUTH)
-      let failedCountRaw = await store.get(PREF_KEY_FIREWALL_PIN_FAILED_COUNT, 0)
-      let lockUntilRaw = await store.get(PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, 0)
+      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_AUTH)
       return {
-        failedCount: FirewallAuthStateStore.normalizeNumber(failedCountRaw),
-        lockUntil: FirewallAuthStateStore.normalizeNumber(lockUntilRaw)
+        failedCount: await pref.getNumber(PREF_KEY_FIREWALL_PIN_FAILED_COUNT, 0),
+        lockUntil: await pref.getNumber(PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, 0)
       }
     } catch (err) {
       LogUtils.error(TAG, `getState failed: ${JSON.stringify(err)}`)
@@ -65,7 +62,6 @@ export class FirewallAuthStateStore {
     now: number = Date.now()
   ): Promise<FirewallAuthFailureUpdate> {
     try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_AUTH)
       let state = await FirewallAuthStateStore.getState(context)
       let nextFailedCount = state.failedCount + 1
       let lockUntil = state.lockUntil
@@ -78,9 +74,19 @@ export class FirewallAuthStateStore {
         remainingSec = Math.ceil(FIREWALL_PIN_LOCK_DURATION_MS / 1000)
       }
 
-      await store.put(PREF_KEY_FIREWALL_PIN_FAILED_COUNT, nextFailedCount)
-      await store.put(PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, lockUntil)
-      await store.flush()
+      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_AUTH)
+      let saved = await pref.setMany([
+        { key: PREF_KEY_FIREWALL_PIN_FAILED_COUNT, value: nextFailedCount },
+        { key: PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, value: lockUntil }
+      ])
+      if (!saved) {
+        LogUtils.error(TAG, 'recordFailure failed: preferences_write_failed')
+        return {
+          failedCount: 0,
+          locked: false,
+          remainingSec: 0
+        }
+      }
       return {
         failedCount: nextFailedCount,
         locked: locked,
@@ -98,25 +104,16 @@ export class FirewallAuthStateStore {
 
   static async clearFailures(context: common.UIAbilityContext): Promise<void> {
     try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_AUTH)
-      await store.put(PREF_KEY_FIREWALL_PIN_FAILED_COUNT, 0)
-      await store.put(PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, 0)
-      await store.flush()
+      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_AUTH)
+      let saved = await pref.setMany([
+        { key: PREF_KEY_FIREWALL_PIN_FAILED_COUNT, value: 0 },
+        { key: PREF_KEY_FIREWALL_PIN_LOCK_UNTIL, value: 0 }
+      ])
+      if (!saved) {
+        LogUtils.error(TAG, 'clearFailures failed: preferences_write_failed')
+      }
     } catch (err) {
       LogUtils.error(TAG, `clearFailures failed: ${JSON.stringify(err)}`)
     }
-  }
-
-  private static normalizeNumber(value: Object): number {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value
-    }
-    if (typeof value === 'string') {
-      let parsed = Number(value)
-      if (Number.isFinite(parsed)) {
-        return parsed
-      }
-    }
-    return 0
   }
 }

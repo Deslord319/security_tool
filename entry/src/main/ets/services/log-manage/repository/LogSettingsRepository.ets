@@ -1,0 +1,129 @@
+import { common } from '@kit.AbilityKit'
+import { LogUtils } from '../../../utils/LogUtils'
+import {
+  ALL_LOG_EVENT_TYPES,
+  DEFAULT_LOG_STORAGE_CONFIG,
+  DEFAULT_SUBSCRIPTION_CONFIG,
+  LogStorageConfig,
+  LogSubscriptionConfig,
+  PREF_KEY_LOG_MAX_ENTRIES,
+  PREF_KEY_LOG_RETENTION_DAYS,
+  PREF_KEY_LOG_SUBSCRIBE_ALL,
+  PREF_KEY_LOG_SUBSCRIBED_TYPES,
+  PREF_STORE_NAME_LOG
+} from '../../../models/DataModels'
+import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
+import { ServiceResult } from '../common/LogManagePorts'
+import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
+
+const TAG = 'LogSettingsRepository'
+
+export class LogSettingsRepository {
+  private static context: common.UIAbilityContext | null = null
+  private static storageConfig: LogStorageConfig = DEFAULT_LOG_STORAGE_CONFIG
+
+  static async init(context: common.UIAbilityContext): Promise<ServiceResult> {
+    LogSettingsRepository.context = context
+    let success = await LogSettingsRepository.loadConfigInternal()
+    return success ? { success: true, code: 'ok' } : { success: false, code: 'config_init_failed' }
+  }
+
+  static async loadStorageConfig(): Promise<LogStorageConfig> {
+    await LogSettingsRepository.loadConfigInternal()
+    return {
+      maxLocalEntries: LogSettingsRepository.storageConfig.maxLocalEntries,
+      retentionDays: LogSettingsRepository.storageConfig.retentionDays
+    }
+  }
+
+  static getStorageConfigSync(): LogStorageConfig {
+    return {
+      maxLocalEntries: LogSettingsRepository.storageConfig.maxLocalEntries,
+      retentionDays: LogSettingsRepository.storageConfig.retentionDays
+    }
+  }
+
+  static async saveStorageConfig(config: LogStorageConfig): Promise<ServiceResult> {
+    if (!LogSettingsRepository.context) {
+      return { success: false, code: 'not_initialized' }
+    }
+    try {
+      LogSettingsRepository.storageConfig = {
+        maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries),
+        retentionDays: LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
+      }
+      let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
+      let saved = await pref.setMany([
+        { key: PREF_KEY_LOG_MAX_ENTRIES, value: LogSettingsRepository.storageConfig.maxLocalEntries },
+        { key: PREF_KEY_LOG_RETENTION_DAYS, value: LogSettingsRepository.storageConfig.retentionDays }
+      ])
+      if (!saved) {
+        return { success: false, code: 'save_failed' }
+      }
+      return { success: true, code: 'ok' }
+    } catch (err) {
+      LogUtils.error(TAG, `saveStorageConfig failed: ${JSON.stringify(err)}`)
+      return { success: false, code: 'save_failed' }
+    }
+  }
+
+  static async loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
+    if (!LogSettingsRepository.context) {
+      return {
+        subscribeAll: DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll,
+        subscribedTypes: [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
+      }
+    }
+    try {
+      let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
+      let subscribeAll = await pref.getBoolean(PREF_KEY_LOG_SUBSCRIBE_ALL, DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll)
+      let parsedTypes = await pref.getJsonArray<number>(
+        PREF_KEY_LOG_SUBSCRIBED_TYPES,
+        [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
+      )
+      let subscribedTypes = subscribeAll ? [...ALL_LOG_EVENT_TYPES] : LogSettingsRepository.sanitizeSubscribedTypes(parsedTypes)
+      if (subscribedTypes.length === 0) {
+        subscribedTypes = [...ALL_LOG_EVENT_TYPES]
+      }
+      return {
+        subscribeAll: subscribeAll,
+        subscribedTypes: subscribedTypes
+      }
+    } catch (err) {
+      LogUtils.error(TAG, `loadSubscriptionConfig failed: ${JSON.stringify(err)}`)
+      return {
+        subscribeAll: DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll,
+        subscribedTypes: [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
+      }
+    }
+  }
+
+  private static async loadConfigInternal(): Promise<boolean> {
+    if (!LogSettingsRepository.context) {
+      return false
+    }
+    try {
+      let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
+      let maxEntries = await pref.getNumber(PREF_KEY_LOG_MAX_ENTRIES, DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
+      let retentionDays = await pref.getNumber(PREF_KEY_LOG_RETENTION_DAYS, DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
+      LogSettingsRepository.storageConfig = {
+        maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(maxEntries),
+        retentionDays: LogEntryNormalizer.normalizeRetentionDays(retentionDays)
+      }
+      return true
+    } catch (err) {
+      LogUtils.error(TAG, `loadConfigInternal failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
+  private static sanitizeSubscribedTypes(types: number[]): number[] {
+    let result: number[] = []
+    for (let value of types) {
+      if (ALL_LOG_EVENT_TYPES.includes(value as number) && !result.includes(value)) {
+        result.push(value)
+      }
+    }
+    return result
+  }
+}

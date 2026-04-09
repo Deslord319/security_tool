@@ -1,7 +1,7 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { preferences } from '@kit.ArkData'
 import { BusinessError } from '@kit.BasicServicesKit'
+import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 import {
   AuthMethod,
@@ -23,12 +23,12 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
   async loadConfig(context: common.UIAbilityContext): Promise<ToolSettingsConfig> {
     LogUtils.info(TAG, `[LOAD_START] loadConfig | store=${PREF_STORE_NAME_TOOL}`)
     try {
-      let store: preferences.Preferences = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
-      let startupAuthRaw: Object = await store.get(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled)
-      let authMethodRaw: Object = await store.get(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
+      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_TOOL)
       let config: ToolSettingsConfig = {
-        startupAuthEnabled: this.normalizeStartupAuthEnabled(startupAuthRaw),
-        authMethod: this.normalizeAuthMethod(authMethodRaw)
+        startupAuthEnabled: await pref.getBoolean(PREF_KEY_STARTUP_AUTH, DEFAULT_TOOL_SETTINGS.startupAuthEnabled),
+        authMethod: this.normalizeAuthMethod(
+          await pref.getNumber(PREF_KEY_AUTH_METHOD, DEFAULT_TOOL_SETTINGS.authMethod)
+        )
       }
       LogUtils.info(TAG,
         `[LOAD_SUCCESS] loadConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
@@ -51,10 +51,15 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
       `[SAVE_START] saveConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
     )
     try {
-      let store: preferences.Preferences = await preferences.getPreferences(context, PREF_STORE_NAME_TOOL)
-      await store.put(PREF_KEY_STARTUP_AUTH, config.startupAuthEnabled)
-      await store.put(PREF_KEY_AUTH_METHOD, config.authMethod)
-      await store.flush()
+      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_TOOL)
+      let saved = await pref.setMany([
+        { key: PREF_KEY_STARTUP_AUTH, value: config.startupAuthEnabled },
+        { key: PREF_KEY_AUTH_METHOD, value: config.authMethod }
+      ])
+      if (!saved) {
+        LogUtils.error(TAG, '[SAVE_FAIL] saveConfig | reason=preferences_write_failed')
+        return false
+      }
       LogUtils.info(TAG,
         `[SAVE_SUCCESS] saveConfig | startupAuthEnabled=${config.startupAuthEnabled}, authMethod=${config.authMethod}`
       )
@@ -68,11 +73,7 @@ export class PreferencesToolSettingsRepository implements ToolSettingsRepository
     }
   }
 
-  private normalizeStartupAuthEnabled(value: Object): boolean {
-    return typeof value === 'boolean' ? value : DEFAULT_TOOL_SETTINGS.startupAuthEnabled
-  }
-
-  private normalizeAuthMethod(value: Object): AuthMethod {
+  private normalizeAuthMethod(value: number): AuthMethod {
     if (value === AuthMethod.PIN) {
       return AuthMethod.PIN
     }

@@ -1,21 +1,12 @@
 import { common } from '@kit.AbilityKit'
-import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
 
-import {
-  PREF_KEY_FIREWALL_CUSTOM_RULES,
-  PREF_STORE_NAME_FIREWALL_CUSTOM_RULES
-} from '../../../models/DataModels'
-import { LogUtils } from '../../../utils/LogUtils'
 import { FirewallRepository } from '../repositories/FirewallRepository'
+import {
+  FirewallCustomRulesRepository,
+  StoredCustomFirewallRuleRecord
+} from '../repositories/FirewallCustomRulesRepository'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
-
-const TAG = 'CustomModeStrategy'
-
-interface StoredCustomFirewallRuleRecord {
-  customRuleId: string
-  rule: netFirewall.NetFirewallRule
-}
 
 export class CustomModeStrategy {
   static async listRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
@@ -112,43 +103,14 @@ export class CustomModeStrategy {
   }
 
   private static async loadRecords(context: common.UIAbilityContext): Promise<StoredCustomFirewallRuleRecord[]> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_CUSTOM_RULES)
-      let rawValue = await store.get(PREF_KEY_FIREWALL_CUSTOM_RULES, '[]')
-      let serialized = typeof rawValue === 'string' ? rawValue : '[]'
-      let parsed = JSON.parse(serialized) as StoredCustomFirewallRuleRecord[]
-      if (!Array.isArray(parsed)) {
-        return []
-      }
-      let records: StoredCustomFirewallRuleRecord[] = []
-      parsed.forEach((item: StoredCustomFirewallRuleRecord) => {
-        if (typeof item.customRuleId === 'string' && !!item.rule) {
-          records.push(CustomModeStrategy.createRecord(
-            item.customRuleId,
-            CustomModeStrategy.toStoredRule(item.rule)
-          ))
-        }
-      })
-      return records
-    } catch (err) {
-      LogUtils.error(TAG, `loadRecords failed: ${JSON.stringify(err)}`)
-      return []
-    }
+    return FirewallCustomRulesRepository.loadRecords(context)
   }
 
   private static async saveRecords(
     context: common.UIAbilityContext,
     records: StoredCustomFirewallRuleRecord[]
   ): Promise<boolean> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_CUSTOM_RULES)
-      await store.put(PREF_KEY_FIREWALL_CUSTOM_RULES, JSON.stringify(records))
-      await store.flush()
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    return FirewallCustomRulesRepository.saveRecords(context, records)
   }
 
   private static toDisplayRule(record: StoredCustomFirewallRuleRecord): netFirewall.NetFirewallRule {

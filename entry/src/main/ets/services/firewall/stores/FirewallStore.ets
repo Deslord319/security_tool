@@ -1,17 +1,10 @@
 import { common } from '@kit.AbilityKit'
-import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
   FirewallManagedRuleMetadata,
   FirewallPresetMode,
   FirewallUserApplyMode,
-  PREF_KEY_FIREWALL_ACTIVE_MODE,
-  PREF_KEY_FIREWALL_CUSTOM_RULES,
-  PREF_KEY_FIREWALL_USER_BINDINGS,
-  PREF_STORE_NAME_FIREWALL_MODE,
-  PREF_STORE_NAME_FIREWALL_CUSTOM_RULES,
-  PREF_STORE_NAME_FIREWALL_USER_BINDINGS,
   UserFirewallModeApplyResult,
   UserFirewallModeBinding,
   UserFirewallModeReapplySummary,
@@ -19,42 +12,33 @@ import {
 } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { FirewallStrings } from '../../../constants/modules/FirewallStrings'
+import {
+  FirewallCustomRulesRepository,
+  StoredCustomFirewallRuleRecord
+} from '../repositories/FirewallCustomRulesRepository'
+import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
+import { FirewallUserBindingsRepository } from '../repositories/FirewallUserBindingsRepository'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
 import { SystemUserProvider } from '../providers'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'FirewallStore'
 
-interface StoredCustomFirewallRuleRecord {
-  customRuleId: string
-  rule: netFirewall.NetFirewallRule
-}
-
 export class FirewallStore {
   static async initialize(context: common.UIAbilityContext): Promise<void> {
-    let storedModeValue = await FirewallStore.getStoredModeValue(context)
+    let storedModeValue = await FirewallModeRepository.getStoredModeValue(context)
     if (storedModeValue.length === 0) {
-      await FirewallStore.saveCurrentMode(context, 'custom')
+      await FirewallModeRepository.saveCurrentMode(context, 'custom')
     }
   }
 
   static async getCurrentMode(context: common.UIAbilityContext): Promise<FirewallPresetMode> {
-    let storedModeValue = await FirewallStore.getStoredModeValue(context)
-    if (storedModeValue === 'public' || storedModeValue === 'private' || storedModeValue === 'custom') {
-      return storedModeValue
-    }
-    return 'custom'
+    return FirewallModeRepository.getCurrentMode(context)
   }
 
   static async saveCurrentMode(context: common.UIAbilityContext, mode: FirewallPresetMode): Promise<void> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_MODE)
-      await store.put(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
-      await store.flush()
-    } catch (err) {
-      LogUtils.error(TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
-    }
+    await FirewallModeRepository.saveCurrentMode(context, mode)
   }
 
   static async listCustomRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
@@ -106,23 +90,7 @@ export class FirewallStore {
   }
 
   static async loadUserBindings(context: common.UIAbilityContext): Promise<UserFirewallModeBinding[]> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_USER_BINDINGS)
-      let rawValue = await store.get(PREF_KEY_FIREWALL_USER_BINDINGS, '[]')
-      let serialized = typeof rawValue === 'string' ? rawValue : '[]'
-      let parsed = JSON.parse(serialized) as UserFirewallModeBinding[]
-      if (!Array.isArray(parsed)) {
-        return []
-      }
-      return parsed.filter((item: UserFirewallModeBinding): boolean => {
-        return typeof item.userId === 'number' &&
-          (item.mode === 'allowlist' || item.mode === 'denylist')
-      })
-    } catch (err) {
-      FirewallStore.recordStoreError(FirewallStrings.readUserModeBindingsAction, err as Object)
-      LogUtils.error(TAG, `loadUserBindings failed: ${JSON.stringify(err)}`)
-      return []
-    }
+    return FirewallUserBindingsRepository.loadBindings(context)
   }
 
   static async getUserModeState(
@@ -170,8 +138,8 @@ export class FirewallStore {
         userId: userId,
         mode: mode,
         appliedRuleCount: 0,
-        errorCode: FirewallStore.getLastErrorCode(),
-        errorMessage: FirewallStore.getLastErrorMessage()
+        errorCode: undefined,
+        errorMessage: CommonErrorUtils.resolveErrorMessage(FirewallStrings.saveUserModeBindingsAction, undefined)
       }
     }
     return result
@@ -218,76 +186,25 @@ export class FirewallStore {
     context: common.UIAbilityContext,
     bindings: UserFirewallModeBinding[]
   ): Promise<boolean> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_USER_BINDINGS)
-      await store.put(PREF_KEY_FIREWALL_USER_BINDINGS, JSON.stringify(bindings))
-      await store.flush()
-      return true
-    } catch (err) {
-      FirewallStore.recordStoreError(FirewallStrings.saveUserModeBindingsAction, err as Object)
-      LogUtils.error(TAG, `saveUserBindings failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    return FirewallUserBindingsRepository.saveBindings(context, bindings)
   }
 
   static async getBindingMode(
     context: common.UIAbilityContext,
     userId: number
   ): Promise<FirewallUserApplyMode | undefined> {
-    let bindings = await FirewallStore.loadUserBindings(context)
-    let matched = bindings.find((item: UserFirewallModeBinding): boolean => item.userId === userId)
-    return matched?.mode
-  }
-
-  private static async getStoredModeValue(context: common.UIAbilityContext): Promise<string> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_MODE)
-      let rawValue = await store.get(PREF_KEY_FIREWALL_ACTIVE_MODE, '')
-      return typeof rawValue === 'string' ? rawValue : ''
-    } catch (err) {
-      LogUtils.error(TAG, `getStoredModeValue failed: ${JSON.stringify(err)}`)
-      return ''
-    }
+    return FirewallUserBindingsRepository.getBindingMode(context, userId)
   }
 
   private static async loadCustomRuleRecords(context: common.UIAbilityContext): Promise<StoredCustomFirewallRuleRecord[]> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_CUSTOM_RULES)
-      let rawValue = await store.get(PREF_KEY_FIREWALL_CUSTOM_RULES, '[]')
-      let serialized = typeof rawValue === 'string' ? rawValue : '[]'
-      let parsed = JSON.parse(serialized) as StoredCustomFirewallRuleRecord[]
-      if (!Array.isArray(parsed)) {
-        return []
-      }
-      let records: StoredCustomFirewallRuleRecord[] = []
-      parsed.forEach((item: StoredCustomFirewallRuleRecord) => {
-        if (typeof item.customRuleId === 'string' && !!item.rule) {
-          records.push(FirewallStore.createCustomRuleRecord(
-            item.customRuleId,
-            FirewallStore.toStoredRule(item.rule)
-          ))
-        }
-      })
-      return records
-    } catch (err) {
-      LogUtils.error(TAG, `loadCustomRuleRecords failed: ${JSON.stringify(err)}`)
-      return []
-    }
+    return FirewallCustomRulesRepository.loadRecords(context)
   }
 
   private static async saveCustomRuleRecords(
     context: common.UIAbilityContext,
     records: StoredCustomFirewallRuleRecord[]
   ): Promise<boolean> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_CUSTOM_RULES)
-      await store.put(PREF_KEY_FIREWALL_CUSTOM_RULES, JSON.stringify(records))
-      await store.flush()
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `saveCustomRuleRecords failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    return FirewallCustomRulesRepository.saveRecords(context, records)
   }
 
   private static toDisplayRule(record: StoredCustomFirewallRuleRecord): netFirewall.NetFirewallRule {
@@ -335,13 +252,7 @@ export class FirewallStore {
     userId: number,
     mode: FirewallUserApplyMode
   ): Promise<boolean> {
-    let bindings = await FirewallStore.loadUserBindings(context)
-    let nextBindings = bindings.filter((item: UserFirewallModeBinding): boolean => item.userId !== userId)
-    nextBindings.push({
-      userId: userId,
-      mode: mode
-    })
-    return FirewallStore.saveUserBindings(context, nextBindings)
+    return FirewallUserBindingsRepository.saveBindingMode(context, userId, mode)
   }
 
   private static clearLastError(): void {

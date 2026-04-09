@@ -1,8 +1,7 @@
 import { LogUtils } from '../utils/LogUtils'
-import { preferences } from '@kit.ArkData'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
-
 import { ThemeMode, ThemePreference, ThemeOption } from './ThemeColors'
+import { PreferencesAccessor } from '../storage/preferences/PreferencesAccessor'
 
 const TAG = 'ThemeManager'
 
@@ -19,7 +18,6 @@ export const STORAGE_KEY_OPTION = 'themeOption'
 export class ThemeManager {
   private static instance: ThemeManager
   private context: common.UIAbilityContext | null = null
-  private dataPreferences: preferences.Preferences | null = null
   private initialized: boolean = false
   private listeners: Array<() => void> = []
   // 保存 initSync 时检测到的系统主题，用于后续 reapply 和 NOT_SET fallback
@@ -69,11 +67,9 @@ export class ThemeManager {
     }
 
     try {
-      // 获取 Preferences 实例
-      this.dataPreferences = await preferences.getPreferences(this.context!, PREFERENCES_NAME)
-
+      let pref = PreferencesAccessor.of(this.context!, PREFERENCES_NAME)
       // 读取保存的选项（新逻辑：system/light/dark 三选一）
-      const savedOption = await this.dataPreferences.get(KEY_THEME_OPTION, ThemeOption.SYSTEM) as ThemeOption
+      const savedOption = await pref.getString(KEY_THEME_OPTION, ThemeOption.SYSTEM) as ThemeOption
 
       // 更新 AppStorage
       AppStorage.setOrCreate<ThemeOption>(STORAGE_KEY_OPTION, savedOption)
@@ -261,13 +257,16 @@ export class ThemeManager {
 
   // 保存选项到 Preferences
   private async saveOption(option: ThemeOption): Promise<void> {
-    if (!this.dataPreferences) {
+    if (!this.context) {
       return
     }
 
     try {
-      await this.dataPreferences.put(KEY_THEME_OPTION, option)
-      await this.dataPreferences.flush()
+      let pref = PreferencesAccessor.of(this.context, PREFERENCES_NAME)
+      let saved = await pref.setValue(KEY_THEME_OPTION, option)
+      if (!saved) {
+        LogUtils.error(TAG, 'saveOption failed: preferences_write_failed')
+      }
     } catch (err) {
       LogUtils.error(TAG, 'savePreferences failed: %{public}s', JSON.stringify(err))
     }
@@ -275,14 +274,19 @@ export class ThemeManager {
 
   // 保存偏好到 Preferences
   private async savePreferences(theme: ThemeMode, preference: ThemePreference): Promise<void> {
-    if (!this.dataPreferences) {
+    if (!this.context) {
       return
     }
 
     try {
-      await this.dataPreferences.put(KEY_THEME_MODE, theme)
-      await this.dataPreferences.put(KEY_THEME_PREFERENCE, preference)
-      await this.dataPreferences.flush()
+      let pref = PreferencesAccessor.of(this.context, PREFERENCES_NAME)
+      let saved = await pref.setMany([
+        { key: KEY_THEME_MODE, value: theme },
+        { key: KEY_THEME_PREFERENCE, value: preference }
+      ])
+      if (!saved) {
+        LogUtils.error(TAG, 'savePreferences failed: preferences_write_failed')
+      }
     } catch (err) {
       LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }

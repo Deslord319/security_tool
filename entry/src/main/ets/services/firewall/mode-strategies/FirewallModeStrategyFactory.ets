@@ -1,21 +1,16 @@
-import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { preferences } from '@kit.ArkData'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
   FirewallModeSwitchResult,
-  FirewallPresetMode,
-  PREF_KEY_FIREWALL_ACTIVE_MODE,
-  PREF_STORE_NAME_FIREWALL_MODE
+  FirewallPresetMode
 } from '../../../models/DataModels'
+import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import { CustomModeStrategy } from './CustomModeStrategy'
 import { FirewallModeStrategy } from './FirewallModeStrategy'
 import { PrivateModeStrategy } from './PrivateModeStrategy'
 import { PublicModeStrategy } from './PublicModeStrategy'
-
-const TAG = 'FirewallModeStrategyFactory'
 
 class CustomModeStrategyAdapter implements FirewallModeStrategy {
   readonly mode: FirewallPresetMode = 'custom'
@@ -50,21 +45,17 @@ export class FirewallModeStrategyFactory {
   }
 
   static async initialize(context: common.UIAbilityContext): Promise<void> {
-    let storedModeValue = await FirewallModeStrategyFactory.getStoredModeValue(context)
+    let storedModeValue = await FirewallModeRepository.getStoredModeValue(context)
     if (storedModeValue.length > 0) {
       return
     }
     let currentRules = await FirewallRepository.getAllRules()
     await CustomModeStrategy.initializeFromSystemIfEmpty(context, currentRules)
-    await FirewallModeStrategyFactory.saveCurrentMode(context, 'custom')
+    await FirewallModeRepository.saveCurrentMode(context, 'custom')
   }
 
   static async getCurrentMode(context: common.UIAbilityContext): Promise<FirewallPresetMode> {
-    let storedModeValue = await FirewallModeStrategyFactory.getStoredModeValue(context)
-    if (storedModeValue === 'public' || storedModeValue === 'private' || storedModeValue === 'custom') {
-      return storedModeValue
-    }
-    return 'custom'
+    return FirewallModeRepository.getCurrentMode(context)
   }
 
   static async switchMode(
@@ -110,27 +101,6 @@ export class FirewallModeStrategyFactory {
     return CustomModeStrategy.getCustomRuleId(rule)
   }
 
-  private static async getStoredModeValue(context: common.UIAbilityContext): Promise<string> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_MODE)
-      let rawValue = await store.get(PREF_KEY_FIREWALL_ACTIVE_MODE, '')
-      return typeof rawValue === 'string' ? rawValue : ''
-    } catch (err) {
-      LogUtils.error(TAG, `getStoredModeValue failed: ${JSON.stringify(err)}`)
-      return ''
-    }
-  }
-
-  private static async saveCurrentMode(context: common.UIAbilityContext, mode: FirewallPresetMode): Promise<void> {
-    try {
-      let store = await preferences.getPreferences(context, PREF_STORE_NAME_FIREWALL_MODE)
-      await store.put(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
-      await store.flush()
-    } catch (err) {
-      LogUtils.error(TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
-    }
-  }
-
   private static async applyModeRules(
     context: common.UIAbilityContext,
     targetMode: FirewallPresetMode,
@@ -156,7 +126,7 @@ export class FirewallModeStrategyFactory {
         errorMessage: undefined
       }
     }
-    await FirewallModeStrategyFactory.saveCurrentMode(context, targetMode)
+    await FirewallModeRepository.saveCurrentMode(context, targetMode)
     return {
       success: true,
       mode: targetMode,
