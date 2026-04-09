@@ -14,6 +14,8 @@ NAVIGATION_SUITE = [
     *SMOKE_SUITE,
     "navigation/theme_menu.json",
     "navigation/help_feedback.json",
+    "navigation/identity_page.json",
+    "navigation/tool_settings_page.json",
 ]
 
 
@@ -27,6 +29,8 @@ FIREWALL_SUITE = [
 
 PERIPHERAL_SUITE = [
     "peripheral/interfaces.json",
+    "peripheral/record_tab.json",
+    "peripheral/policy_tab.json",
     "peripheral/usb_policy.json",
     "peripheral/usb_whitelist.json",
     "peripheral/bluetooth_whitelist.json",

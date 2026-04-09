@@ -1,6 +1,6 @@
 {
-  "case_id": "PER-USB-001",
-  "case_name": "Peripheral USB Storage Policy",
+  "case_id": "PER-REC-001",
+  "case_name": "Peripheral Record Tab Reachable",
   "module": "peripheral",
   "flow": [
     {
@@ -18,30 +18,19 @@
       }
     },
     {
-      "name": "open_peripheral_interface_tab",
+      "name": "open_peripheral_record_tab",
       "ref": "ui.click_text",
       "params": {
-        "text": "接口管控",
+        "text": "设备连接记录",
         "bundle_name": "{{bundle_name}}"
-      }
-    },
-    {
-      "name": "update_usb_storage_policy",
-      "ref": "entity.update",
-      "params": {
-        "domain": "peripheral",
-        "entity": "usb_storage_policy",
-        "data": {
-          "policy": "read_only"
-        }
       }
     }
   ],
   "assertions": [
     {
-      "name": "peripheral_usb_storage_visible",
+      "name": "peripheral_record_export_visible",
       "type": "assert_text_presence",
-      "value": "USB 存储设备",
+      "value": "导出记录",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -56,7 +45,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the flow stays within the expected interface-control context.",
-    "Getter-backed USB storage policy assertion will be added later."
+    "This case gives the device-record tab its own stable reachability check.",
+    "Primary evidence uses the record-tab export action."
   ]
 }
