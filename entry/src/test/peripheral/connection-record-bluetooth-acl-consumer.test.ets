@@ -1,5 +1,7 @@
-import { describe, expect, it } from '@ohos/hypium'
-import { LogEventResult, PeripheralType } from '../../main/ets/models/DataModels'
+import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
+import { MockKit, when } from '@ohos/hamock'
+import { LogEventResult, PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
+import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
@@ -92,6 +94,16 @@ function buildBluetoothAclEvent(
 
 export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
   describe('PeripheralConnectionRecordBluetoothAclConsumer', () => {
+    let mockKit: MockKit
+
+    beforeEach(() => {
+      mockKit = new MockKit()
+    })
+
+    afterEach(() => {
+      mockKit.clearAll()
+    })
+
     it('U-BT-001 should map bluetooth acl connect event to connection record', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
@@ -99,9 +111,10 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('connect')
+      expect(record?.decision).assertEqual('allow')
       expect(record?.summary).assertEqual('蓝牙设备已连接')
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
-      expect(record?.effectivePolicyLabel).assertEqual('--')
+      expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.deviceType).assertEqual(PeripheralType.BLUETOOTH)
     })
 
@@ -116,8 +129,10 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('disconnect')
+      expect(record?.decision).assertEqual('allow')
       expect(record?.result).assertEqual(LogEventResult.SUCCESS)
       expect(record?.summary).assertEqual('蓝牙设备已断开')
+      expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=REMOTE_DISCONNECT')
     })
 
@@ -195,6 +210,26 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect((record?.rawPayload?.length ?? 0) > 0).assertTrue()
       expect(record?.rawPayload?.includes('"deviceId":"11:22:33:44:55:66"')).assertTrue()
       expect(record?.rawPayload?.includes('"stateName":"STATE_CONNECTED"')).assertTrue()
+    })
+
+    it('U-BT-009 should mark bluetooth record disabled when device policy is deny', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+      const deniedPolicy: PeripheralDevicePolicyRecord = {
+        deviceId: 'MAC: 11:22:33:44:55:66',
+        policy: 'deny',
+        updatedAt: 1,
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceName: 'Bluetooth Keyboard'
+      }
+      const getMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.get)
+      when(getMock)('MAC: 11:22:33:44:55:66').afterReturn(deniedPolicy)
+
+      const record = await consumer.consume(buildBluetoothAclEvent())
+
+      expect(record !== null).assertTrue()
+      expect(record?.decision).assertEqual('deny')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
+      expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
     })
   })
 }

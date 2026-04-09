@@ -186,11 +186,11 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('deny')
       expect(record?.result).assertEqual(LogEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_disabled')
-      expect(record?.effectivePolicyLabel).assertEqual('禁止访问')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('USB 存储已禁用')
     })
 
-    it('U-USB-003 should map usb storage read only policy to allow record with readonly label', 0, async () => {
+    it('U-USB-003 should map usb storage read only policy to allow record with enabled label', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
@@ -203,7 +203,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('allow')
       expect(record?.result).assertEqual(LogEventResult.SUCCESS)
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_read_only')
-      expect(record?.effectivePolicyLabel).assertEqual('只读')
+      expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.summary).assertEqual('USB 存储只读')
     })
 
@@ -224,6 +224,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.decision).assertEqual('deny')
       expect(record?.result).assertEqual(LogEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('命中单设备禁止接入')
     })
 

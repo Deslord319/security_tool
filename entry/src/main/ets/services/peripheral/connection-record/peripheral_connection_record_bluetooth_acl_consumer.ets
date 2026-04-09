@@ -6,6 +6,7 @@ import {
   PeripheralType,
   formatBluetoothDeviceId
 } from '../../../models/DataModels'
+import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   PeripheralConnectionRecordConsumeResult,
@@ -48,6 +49,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!eventInfo || eventInfo.action === 'unknown') {
       return null
     }
+    const devicePolicy = PeripheralDevicePolicyRepository.get(eventInfo.deviceId)
+    const denied = devicePolicy?.policy === 'deny'
 
     return {
       recordId: `runtime_bt_acl_${eventInfo.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
@@ -57,7 +60,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceType: PeripheralType.BLUETOOTH,
       deviceId: eventInfo.deviceId,
       action: eventInfo.action,
-      decision: 'unknown',
+      decision: denied ? 'deny' : 'allow',
       result: LogEventResult.SUCCESS,
       source: 'runtime_event',
       summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
@@ -65,7 +68,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,
       detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
-      effectivePolicyLabel: '--',
+      effectivePolicyLabel: denied ? '已禁用' : '已启用',
       matchedPolicyKind: 'bluetooth_connection_event'
     }
   }

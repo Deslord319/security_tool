@@ -157,7 +157,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
           summary: 'USB 存储已禁用',
           detail: 'USB 存储策略为禁止访问，设备接入被阻止。',
           usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: PeripheralConnectionRecordUsbConsumer.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
+          effectivePolicyLabel: '已禁用',
           matchedPolicyKind: 'usb_storage_disabled'
         }
       }
@@ -168,7 +168,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
           summary: 'USB 存储只读',
           detail: 'USB 存储策略为只读模式。',
           usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: PeripheralConnectionRecordUsbConsumer.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy),
+          effectivePolicyLabel: '已启用',
           matchedPolicyKind: 'usb_storage_read_only'
         }
       }
@@ -181,7 +181,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         summary: '命中单设备禁止接入',
         detail: `设备 ${info.deviceId} 命中禁止接入策略，已被阻止。`,
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
-        effectivePolicyLabel: effectivePolicyLabel,
+        effectivePolicyLabel: '已禁用',
         matchedPolicyKind: 'device_deny'
       }
     }
@@ -227,27 +227,14 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (snapshot.usbDisabled) {
       return '已禁用'
     }
-    if (deviceType === PeripheralType.USB_STORAGE) {
-      return PeripheralConnectionRecordUsbConsumer.getUsbStoragePolicyLabel(snapshot.usbStoragePolicy)
+    if (deviceType === PeripheralType.USB_STORAGE && snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
+      return '已禁用'
     }
     return '已启用'
   }
 
   private static buildDisconnectDetail(info: ResolvedUsbEventInfo, effectivePolicyLabel: string): string {
     return `${info.deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
-  }
-
-  private static getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
-    switch (policy) {
-      case UsbStoragePolicy.READ_WRITE:
-        return '读写'
-      case UsbStoragePolicy.READ_ONLY:
-        return '只读'
-      case UsbStoragePolicy.DISABLED:
-        return '禁止访问'
-      default:
-        return '未知'
-    }
   }
 
   private static resolveUsbEventInfo(data: commonEventManager.CommonEventData): ResolvedUsbEventInfo {

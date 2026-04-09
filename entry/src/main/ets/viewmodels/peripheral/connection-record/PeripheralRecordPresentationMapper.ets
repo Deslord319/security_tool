@@ -3,7 +3,8 @@ import {
   PeripheralConnectionRecord,
   LogEventResult,
   PeripheralMatchedPolicyKind,
-  PeripheralRecordPolicyHit
+  PeripheralRecordPolicyHit,
+  PeripheralType
 } from '../../../models/DataModels'
 import { PresentationStrings } from '../../../constants/modules/PresentationStrings'
 import { CommonLabelStrings, FirewallDialogStrings, ResultStrings } from '../../../constants/modules/DialogStrings'
@@ -57,6 +58,22 @@ export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionR
     return getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)
   }
   return getPolicyHitLabel(record.policyHit)
+}
+
+export function getPeripheralConnectionListPolicyLabel(record: PeripheralConnectionRecord): string {
+  if (record.effectivePolicyLabel && record.effectivePolicyLabel.trim().length > 0) {
+    return record.effectivePolicyLabel
+  }
+
+  if (record.matchedPolicyKind === 'device_deny' || record.policyHit === 'deny') {
+    return '已禁用'
+  }
+
+  if (record.deviceType === PeripheralType.BLUETOOTH) {
+    return '已启用'
+  }
+
+  return '已启用'
 }
 
 export function getPeripheralConnectionResultLabel(record: PeripheralConnectionRecord): string {

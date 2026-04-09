@@ -7,7 +7,8 @@ import {
 } from '../../main/ets/models/DataModels'
 import {
   buildConnectionHistoryItems,
-  formatPeripheralTimestamp
+  formatPeripheralTimestamp,
+  getPeripheralConnectionListPolicyLabel
 } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralPolicyService } from '../../main/ets/services/peripheral/device-policy/PeripheralPolicyService'
 
@@ -73,6 +74,36 @@ export default function peripheralRecordViewDataUtilsTest() {
       const history = buildConnectionHistoryItems([invalidTimestampRecord, validTimestampRecord], selectedRecord)
       expect(history.length).assertEqual(1)
       expect(history[0].time === '--').assertFalse()
+    })
+
+    it('should map device deny records to disabled list policy label', 0, () => {
+      const record = createConnectionRecord('record-deny', 300)
+      record.policyHit = 'deny'
+      record.matchedPolicyKind = 'device_deny'
+
+      const label = getPeripheralConnectionListPolicyLabel(record)
+
+      expect(label).assertEqual('已禁用')
+    })
+
+    it('should map bluetooth records without explicit label to enabled list policy label', 0, () => {
+      const record = createConnectionRecord('record-bt', 301)
+      record.deviceType = PeripheralType.BLUETOOTH
+      record.deviceId = 'MAC: 11:22:33:44:55:66'
+      record.effectivePolicyLabel = ''
+
+      const label = getPeripheralConnectionListPolicyLabel(record)
+
+      expect(label).assertEqual('已启用')
+    })
+
+    it('should use explicit effective policy label for list policy label', 0, () => {
+      const record = createConnectionRecord('record-explicit', 302)
+      record.effectivePolicyLabel = '已禁用'
+
+      const label = getPeripheralConnectionListPolicyLabel(record)
+
+      expect(label).assertEqual('已禁用')
     })
 
     it('should build latest usb and bluetooth policy records from connection candidates by default', 0, () => {

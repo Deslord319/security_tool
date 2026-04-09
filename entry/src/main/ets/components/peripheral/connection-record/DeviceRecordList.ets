@@ -9,7 +9,7 @@ import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
 import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
 import { ThemeMode, getThemeColors } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
-import { getPeripheralConnectionPolicyLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { getPeripheralConnectionListPolicyLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 
@@ -230,10 +230,7 @@ export struct DeviceRecordList {
   }
 
   private getPolicyText(record: PeripheralConnectionRecord): string {
-    if (record.effectivePolicyLabel && record.effectivePolicyLabel.trim().length > 0) {
-      return record.effectivePolicyLabel
-    }
-    return getPeripheralConnectionPolicyLabel(record)
+    return getPeripheralConnectionListPolicyLabel(record)
   }
 
   private eventTextColor(record: PeripheralConnectionRecord): ResourceColor {
