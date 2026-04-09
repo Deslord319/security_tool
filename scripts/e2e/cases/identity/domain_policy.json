@@ -35,7 +35,7 @@
     {
       "name": "identity_domain_policy_page_marker_visible",
       "type": "assert_text_presence",
-      "value": "口令有效期",
+      "value": "密码有效期",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",

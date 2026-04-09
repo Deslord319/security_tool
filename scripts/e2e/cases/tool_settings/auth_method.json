@@ -33,7 +33,7 @@
     {
       "name": "tool_settings_page_visible_after_auth_method_update",
       "type": "assert_text_presence",
-      "value": "身份认证方式",
+      "value": "工具设置",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",

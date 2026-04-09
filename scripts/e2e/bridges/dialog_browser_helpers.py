@@ -119,7 +119,7 @@ class DialogBrowserHelpersMixin:
                 if node.get("clickable")
                 and (node.get("top") or 0) <= 520
                 and (node.get("left") or 0) >= 800
-                and (node.get("width") or 0) >= 900
+                and (node.get("width") or 0) >= 180
             ]
             if inputs:
                 return max(inputs, key=lambda node: node.get("width") or 0)

@@ -81,12 +81,14 @@ class UiRuntimeHelpersMixin:
     async def _get_ui_tree(self) -> dict[str, Any]:
         result = await self._call_tool("get_ui_tree", {"bundle_name": "com.huawei.securitytool"})
         structured = result.get("result", result)
-        return structured.get("ui_tree", {}) if isinstance(structured, dict) else {}
+        ui_tree = structured.get("ui_tree", {}) if isinstance(structured, dict) else {}
+        return self._filter_ui_tree_by_bundle(ui_tree, "com.huawei.securitytool")
 
     async def _get_ui_tree_for_bundle(self, bundle_name: str) -> dict[str, Any]:
         result = await self._call_tool("get_ui_tree", {"bundle_name": bundle_name})
         structured = result.get("result", result)
-        return structured.get("ui_tree", {}) if isinstance(structured, dict) else {}
+        ui_tree = structured.get("ui_tree", {}) if isinstance(structured, dict) else {}
+        return self._filter_ui_tree_by_bundle(ui_tree, bundle_name)
 
     async def _call_tool(self, tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
         async with Client(mcp) as client:
@@ -133,6 +135,21 @@ class UiRuntimeHelpersMixin:
             node = stack.pop(0)
             yield node
             stack[0:0] = node.get("children", [])
+
+    def _filter_ui_tree_by_bundle(self, ui_tree: dict[str, Any], bundle_name: str) -> dict[str, Any]:
+        if not isinstance(ui_tree, dict):
+            return {}
+        nodes = ui_tree.get("nodes", [])
+        if not isinstance(nodes, list):
+            return ui_tree
+        filtered_nodes = []
+        for node in nodes:
+            props = node.get("properties", {}) or {}
+            if str(props.get("bundleName", "")).strip() == bundle_name:
+                filtered_nodes.append(node)
+        if not filtered_nodes:
+            return ui_tree
+        return {**ui_tree, "nodes": filtered_nodes, "count": len(filtered_nodes)}
 
     def _node_to_element(self, node: dict[str, Any]) -> dict[str, Any]:
         props = node.get("properties", {})

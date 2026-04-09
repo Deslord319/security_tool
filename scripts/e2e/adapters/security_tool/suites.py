@@ -11,7 +11,6 @@ SMOKE_SUITE = [
 
 
 NAVIGATION_SUITE = [
-    *DASHBOARD_SUITE,
     *SMOKE_SUITE,
     "navigation/theme_menu.json",
     "navigation/help_feedback.json",

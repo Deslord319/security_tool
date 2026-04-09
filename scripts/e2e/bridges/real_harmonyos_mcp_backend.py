@@ -69,6 +69,8 @@ class RealHarmonyOsMcpBackend(
             return await self._open_top_menu(params)
         if action == "capture_screenshot":
             return await self._capture_screenshot(params)
+        if action == "click_text":
+            return await self._click_text(payload)
         if action == "execute_template_action":
             return await self._execute_template_action(payload)
         if action == "toggle_firewall":
@@ -195,27 +197,25 @@ class RealHarmonyOsMcpBackend(
         text = str(params.get("text", ""))
         timeout_ms = int(params.get("timeout_ms", 1500))
         interval_ms = int(params.get("interval_ms", 250))
-        window_id = str(params.get("window_id", ""))
-        wait_params = {
-            "bundle_name": bundle_name,
-            "text": text,
-            "timeout_ms": timeout_ms,
-            "interval_ms": interval_ms,
-        }
-        if window_id:
-            wait_params["window_id"] = window_id
-        wait_result = await self._call_tool("wait_element", wait_params)
-        structured = wait_result.get("result", wait_result)
-        if wait_result.get("ok", False):
-            return self._pass(
-                "Text presence resolved",
-                {
-                    "exists": True,
-                    "element": structured.get("element", {}),
-                    "source": "wait_element",
-                },
-            )
-        return self._pass("Text presence resolved", {"exists": False, "element": {}, "source": "wait_element"})
+        deadline = time.time() + (timeout_ms / 1000)
+        while time.time() < deadline:
+            ui_tree = await self._get_ui_tree_for_bundle(str(bundle_name))
+            for node in self._iter_nodes(ui_tree):
+                props = node.get("properties", {}) or {}
+                node_text = str(props.get("text", "")).strip()
+                if not node_text:
+                    continue
+                if text == node_text or text in node_text:
+                    return self._pass(
+                        "Text presence resolved",
+                        {
+                            "exists": True,
+                            "element": self._node_to_element(node),
+                            "source": "ui_tree",
+                        },
+                    )
+            await asyncio.sleep(max(interval_ms, 50) / 1000)
+        return self._pass("Text presence resolved", {"exists": False, "element": {}, "source": "ui_tree"})
 
     async def _capture_screenshot(self, params: dict[str, Any]) -> dict[str, Any]:
         name = params.get("name", "screenshot")
@@ -227,6 +227,34 @@ class RealHarmonyOsMcpBackend(
         if not result.get("ok", False):
             return self._fail("MCP_EXECUTION_FAILED", "Failed to capture screenshot", {"screenshot_result": result})
         return self._pass("Screenshot captured", {"artifact_path": str(target)})
+
+    async def _click_text(self, payload: dict[str, Any]) -> dict[str, Any]:
+        params = payload.get("params", {})
+        target_text = str(params.get("text", "")).strip()
+        bundle_name = str(params.get("bundle_name", "")).strip() or "com.huawei.securitytool"
+        contains = bool(params.get("contains", False))
+        if not target_text:
+            return self._fail("MCP_EXECUTION_FAILED", "Text is required", {"params": params})
+
+        await self._ensure_auth_dialog_cleared()
+        ui_tree = await (self._get_ui_tree() if bundle_name == "com.huawei.securitytool" else self._get_ui_tree_for_bundle(bundle_name))
+        candidates: list[dict[str, Any]] = []
+        for node in self._nodes_by_type(ui_tree, "Text"):
+            text = str(node.get("text", "")).strip()
+            if not text:
+                continue
+            matched = target_text in text if contains else text == target_text
+            if matched:
+                candidates.append(node)
+
+        if not candidates:
+            return self._unknown(payload, "MCP_ACTION_PENDING", f"Visible text target was not found: {target_text}")
+
+        target = min(candidates, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
+        click_result = await self._call_tool("click_element", {"x": target["x"], "y": target["y"]})
+        if not click_result.get("ok", False):
+            return self._fail("MCP_EXECUTION_FAILED", "Failed to click text target", {"target": target, "click_result": click_result})
+        return self._pass("Text target clicked", {"target": target, "bundle_name": bundle_name, "contains": contains})
 
     async def _toggle_first_toggle(self, payload: dict[str, Any], *, page_text: str) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
@@ -509,6 +537,27 @@ class RealHarmonyOsMcpBackend(
             return self._unknown({"action": "toggle_indexed_control"}, "MCP_ACTION_PENDING", f"{control_type} controls were not detected")
         safe_index = min(max(index, 0), len(nodes) - 1)
         target = nodes[safe_index]
+
+        if str(control_type).lower() == "select" and feature:
+            current_text = str(target.get("text", "")).strip()
+            desired_text = "禁用" if current_text == "启用" else "启用"
+            open_result = await self._call_tool("click_element", {"x": target["x"], "y": target["y"]})
+            if not open_result.get("ok", False):
+                return self._fail("MCP_EXECUTION_FAILED", "Failed to open Select control", {"click_result": open_result, "control": target, "index": safe_index})
+            option_result = await self._choose_any_option([desired_text])
+            if option_result.get("status") != "PASS":
+                return option_result
+            return self._pass(
+                "Select control toggled",
+                {
+                    "feature": feature,
+                    "control": target,
+                    "index": safe_index,
+                    "before_text": current_text,
+                    "after_text": desired_text,
+                },
+            )
+
         click_result = await self._call_tool("click_element", {"x": target["x"], "y": target["y"]})
         if not click_result.get("ok", False):
             return self._fail("MCP_EXECUTION_FAILED", f"Failed to click {control_type} control", {"click_result": click_result, "control": target, "index": safe_index})

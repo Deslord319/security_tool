@@ -53,25 +53,25 @@ ACTION_TEMPLATES = {
     "peripheral.interface.toggle.usb": {
         "description": "Toggle the USB interface through generic control steps.",
         "sequence": [
-            {"type": "toggle_indexed_control", "params": {"control_type": "Toggle", "index": 0, "feature": "usb", "target_state": "${data.target_state}"}},
+            {"type": "toggle_indexed_control", "params": {"control_type": "Select", "index": 0, "feature": "usb", "target_state": "${data.target_state}"}},
         ],
     },
     "peripheral.interface.toggle.bluetooth": {
         "description": "Toggle the Bluetooth interface through generic control steps.",
         "sequence": [
-            {"type": "toggle_indexed_control", "params": {"control_type": "Toggle", "index": 1, "feature": "bluetooth", "target_state": "${data.target_state}"}},
+            {"type": "toggle_indexed_control", "params": {"control_type": "Select", "index": 2, "feature": "bluetooth", "target_state": "${data.target_state}"}},
         ],
     },
     "peripheral.interface.toggle.wifi": {
         "description": "Toggle the Wi-Fi interface through generic control steps.",
         "sequence": [
-            {"type": "toggle_indexed_control", "params": {"control_type": "Toggle", "index": 2, "feature": "wifi", "target_state": "${data.target_state}"}},
+            {"type": "toggle_indexed_control", "params": {"control_type": "Select", "index": 3, "feature": "wifi", "target_state": "${data.target_state}"}},
         ],
     },
     "peripheral.interface.toggle.hdc": {
         "description": "Toggle the HDC interface through generic control steps.",
         "sequence": [
-            {"type": "toggle_indexed_control", "params": {"control_type": "Toggle", "index": 3, "feature": "hdc", "target_state": "${data.target_state}"}},
+            {"type": "toggle_indexed_control", "params": {"control_type": "Select", "index": 4, "feature": "hdc", "target_state": "${data.target_state}"}},
         ],
     },
     "peripheral.usb_storage_policy.update": {

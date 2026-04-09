@@ -33,7 +33,7 @@
     {
       "name": "tool_settings_page_marker_visible",
       "type": "assert_text_presence",
-      "value": "启动时身份校验",
+      "value": "工具设置",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",

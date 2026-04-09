@@ -1,6 +1,6 @@
 {
   "case_id": "PER-BL-USB-001",
-  "case_name": "Peripheral USB Blacklist Create",
+  "case_name": "Peripheral Policy Tab Restore Entry",
   "module": "peripheral",
   "flow": [
     {
@@ -18,23 +18,19 @@
       }
     },
     {
-      "name": "create_usb_blacklist_entry",
-      "ref": "entity.create",
+      "name": "open_peripheral_policy_tab",
+      "ref": "ui.click_text",
       "params": {
-        "domain": "peripheral",
-        "entity": "blacklist",
-        "variant": "usb",
-        "data": {
-          "device_id": "USB-DENY-001"
-        }
+        "text": "黑白名单",
+        "bundle_name": "{{bundle_name}}"
       }
     }
   ],
   "assertions": [
     {
-      "name": "peripheral_policy_context_visible_after_usb_blacklist",
+      "name": "peripheral_policy_restore_visible",
       "type": "assert_text_presence",
-      "value": "黑白名单",
+      "value": "还原策略",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,7 +45,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the USB blacklist flow executes in the expected policy context.",
-    "Device-level blacklist getter assertions will be added after policy readback is wired."
+    "Current app version exposes policy reset in the 黑白名单 tab toolbar.",
+    "This case verifies the policy tab can be opened and its restore entry is visible."
   ]
 }

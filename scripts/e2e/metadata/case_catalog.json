@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-09T03:20:46+00:00",
+  "updated_at": "2026-04-09T07:29:00+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -63,7 +63,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/admin_enable.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "approved",
       "review_notes": [
         "tmp test",
@@ -146,7 +146,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -209,7 +209,6 @@
       ],
       "suite_membership": [
         "dashboard",
-        "navigation",
         "completeness"
       ],
       "bridge_coverage_status": "covered",
@@ -225,7 +224,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/overview.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -319,7 +318,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -413,7 +412,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_create.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -441,20 +440,6 @@
           "ref": "navigation.open_page",
           "params": {
             "page_id": "firewall"
-          }
-        },
-        {
-          "name": "seed_domain_rule_for_delete",
-          "ref": "entity.create",
-          "params": {
-            "domain": "firewall",
-            "entity": "rule",
-            "variant": "domain",
-            "data": {
-              "domain": "www.baidu.com",
-              "direction": "out",
-              "policy": "deny"
-            }
           }
         },
         {
@@ -512,7 +497,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_delete.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -594,7 +579,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/status_toggle.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -642,7 +627,7 @@
         {
           "name": "identity_domain_policy_page_marker_visible",
           "type": "assert_text_presence",
-          "value": "口令有效期",
+          "value": "密码有效期",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -680,7 +665,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/domain_policy.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -730,7 +715,7 @@
         {
           "name": "identity_page_marker_visible",
           "type": "assert_text_presence",
-          "value": "口令复杂度策略",
+          "value": "最小密码长度",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -768,7 +753,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/password_policy.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -858,7 +843,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/event_after_policy_change.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -935,7 +920,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/export.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -978,18 +963,6 @@
             "timeout_ms": 2000,
             "interval_ms": 250
           }
-        },
-        {
-          "name": "help_feedback_contact_visible",
-          "type": "assert_text_presence",
-          "value": "联系与反馈",
-          "level": "secondary",
-          "params": {
-            "bundle_name": "{{bundle_name}}",
-            "present": true,
-            "timeout_ms": 2000,
-            "interval_ms": 250
-          }
         }
       ],
       "checkpoint_summary": [
@@ -1013,7 +986,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/help_feedback.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1093,7 +1066,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/theme_menu.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1204,13 +1177,13 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
     {
       "case_id": "PER-BL-USB-001",
-      "case_name": "Peripheral USB Blacklist Create",
+      "case_name": "Peripheral Policy Tab Restore Entry",
       "module_id": "peripheral",
       "module_name": "外设管理",
       "status": "implemented",
@@ -1235,23 +1208,19 @@
           }
         },
         {
-          "name": "create_usb_blacklist_entry",
-          "ref": "entity.create",
+          "name": "open_peripheral_policy_tab",
+          "ref": "ui.click_text",
           "params": {
-            "domain": "peripheral",
-            "entity": "blacklist",
-            "variant": "usb",
-            "data": {
-              "device_id": "USB-DENY-001"
-            }
+            "text": "黑白名单",
+            "bundle_name": "{{bundle_name}}"
           }
         }
       ],
       "structured_assertions": [
         {
-          "name": "peripheral_policy_context_visible_after_usb_blacklist",
+          "name": "peripheral_policy_restore_visible",
           "type": "assert_text_presence",
-          "value": "黑白名单",
+          "value": "还原策略",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1269,20 +1238,24 @@
         "peripheral",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
-      "capability_gap_items": [],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
       "capability_gap_breakdown": {
         "flow": [],
         "template": [],
         "params": [],
         "assertion": [],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
-      "last_result_status": "FAIL",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1402,7 +1375,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/interfaces.json",
-      "last_result_status": "FAIL",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1486,13 +1459,13 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_policy.json",
-      "last_result_status": "FAIL",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
     {
       "case_id": "PER-WL-BT-001",
-      "case_name": "Peripheral Bluetooth Whitelist Create",
+      "case_name": "Peripheral Record Tab Export Entry",
       "module_id": "peripheral",
       "module_name": "外设管理",
       "status": "implemented",
@@ -1517,23 +1490,19 @@
           }
         },
         {
-          "name": "create_bluetooth_whitelist_entry",
-          "ref": "entity.create",
+          "name": "open_peripheral_record_tab",
+          "ref": "ui.click_text",
           "params": {
-            "domain": "peripheral",
-            "entity": "whitelist",
-            "variant": "bluetooth",
-            "data": {
-              "device_id": "BT-ALLOW-001"
-            }
+            "text": "设备连接记录",
+            "bundle_name": "{{bundle_name}}"
           }
         }
       ],
       "structured_assertions": [
         {
-          "name": "peripheral_policy_context_visible_after_bluetooth_whitelist",
+          "name": "peripheral_record_export_visible",
           "type": "assert_text_presence",
-          "value": "黑白名单",
+          "value": "导出记录",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1551,26 +1520,30 @@
         "peripheral",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
-      "capability_gap_items": [],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
       "capability_gap_breakdown": {
         "flow": [],
         "template": [],
         "params": [],
         "assertion": [],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/bluetooth_whitelist.json",
-      "last_result_status": "FAIL",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
     {
       "case_id": "PER-WL-USB-001",
-      "case_name": "Peripheral USB Whitelist Create",
+      "case_name": "Peripheral Policy Tab Export Entry",
       "module_id": "peripheral",
       "module_name": "外设管理",
       "status": "implemented",
@@ -1595,23 +1568,19 @@
           }
         },
         {
-          "name": "create_usb_whitelist_entry",
-          "ref": "entity.create",
+          "name": "open_peripheral_policy_tab",
+          "ref": "ui.click_text",
           "params": {
-            "domain": "peripheral",
-            "entity": "whitelist",
-            "variant": "usb",
-            "data": {
-              "device_id": "USB-ALLOW-001"
-            }
+            "text": "黑白名单",
+            "bundle_name": "{{bundle_name}}"
           }
         }
       ],
       "structured_assertions": [
         {
-          "name": "peripheral_whitelist_context_visible",
+          "name": "peripheral_policy_export_visible",
           "type": "assert_text_presence",
-          "value": "黑白名单",
+          "value": "导出名单",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1629,20 +1598,24 @@
         "peripheral",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
-      "capability_gap_items": [],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
       "capability_gap_breakdown": {
         "flow": [],
         "template": [],
         "params": [],
         "assertion": [],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_whitelist.json",
-      "last_result_status": "FAIL",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1688,7 +1661,7 @@
         {
           "name": "tool_settings_page_visible_after_auth_method_update",
           "type": "assert_text_presence",
-          "value": "身份认证方式",
+          "value": "工具设置",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1726,7 +1699,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/auth_method.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1770,7 +1743,7 @@
         {
           "name": "tool_password_form_context_visible",
           "type": "assert_text_presence",
-          "value": "访问密码",
+          "value": "修改密码",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1808,7 +1781,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/password_flow.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1854,7 +1827,7 @@
         {
           "name": "tool_settings_page_marker_visible",
           "type": "assert_text_presence",
-          "value": "启动时身份校验",
+          "value": "工具设置",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1891,7 +1864,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/startup_auth.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     }

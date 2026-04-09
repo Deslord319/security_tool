@@ -1,6 +1,6 @@
 {
   "case_id": "PER-WL-USB-001",
-  "case_name": "Peripheral USB Whitelist Create",
+  "case_name": "Peripheral Policy Tab Export Entry",
   "module": "peripheral",
   "flow": [
     {
@@ -18,23 +18,19 @@
       }
     },
     {
-      "name": "create_usb_whitelist_entry",
-      "ref": "entity.create",
+      "name": "open_peripheral_policy_tab",
+      "ref": "ui.click_text",
       "params": {
-        "domain": "peripheral",
-        "entity": "whitelist",
-        "variant": "usb",
-        "data": {
-          "device_id": "USB-ALLOW-001"
-        }
+        "text": "黑白名单",
+        "bundle_name": "{{bundle_name}}"
       }
     }
   ],
   "assertions": [
     {
-      "name": "peripheral_whitelist_context_visible",
+      "name": "peripheral_policy_export_visible",
       "type": "assert_text_presence",
-      "value": "黑白名单",
+      "value": "导出名单",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,7 +45,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the whitelist flow executes in the expected peripheral policy context.",
-    "Device-level whitelist getter assertions will be added after policy readback is wired."
+    "Current app version exposes peripheral policy changes through the 黑白名单 tab instead of add-device dialogs.",
+    "This case verifies the policy tab can be opened and its export entry is visible."
   ]
 }

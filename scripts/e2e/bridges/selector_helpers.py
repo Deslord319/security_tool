@@ -60,6 +60,9 @@ class SelectorHelpersMixin:
         return toggles[0] if toggles else None
 
     def _pick_tool_settings_save_button(self, ui_tree: dict[str, Any]) -> dict[str, Any] | None:
+        explicit = self._pick_button_by_text(ui_tree, ["保存设置"], min_left=2200)
+        if explicit:
+            return explicit
         buttons = [node for node in self._nodes_by_type(ui_tree, "Button") if node.get("clickable")]
         if not buttons:
             return None
@@ -217,7 +220,7 @@ class SelectorHelpersMixin:
         if not filtered_values:
             return self._pass("No input values requested", {"filled_inputs": []})
         field_descriptor = resolve_field_descriptor(field_group) if field_group else None
-        ui_tree = await self._get_ui_tree()
+        ui_tree = await self._get_ui_tree_for_bundle("com.huawei.securitytool")
         inputs = sorted(self._nodes_by_type(ui_tree, "TextInput"), key=lambda node: (node.get("top") or 0, node.get("left") or 0))
         if not inputs:
             return self._fail("MCP_EXECUTION_FAILED", "No text inputs were detected", {})

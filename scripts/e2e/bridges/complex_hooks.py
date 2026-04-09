@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any
 from urllib.parse import urlparse
 
@@ -216,45 +217,35 @@ class ComplexHooksMixin:
         return self._pass("Firewall rule dialog submitted", evidence)
 
     async def _set_tool_password(self, payload: dict[str, Any]) -> dict[str, Any]:
-        params = payload.get("params", {})
-        new_password = str(params.get("new_password", ""))
-        confirm_password = str(params.get("confirm_password", ""))
-        current_password = str(params.get("current_password", ""))
+        await self._ensure_auth_dialog_cleared()
+        open_result = await self._click_first_available_text(["修改密码"], bundle_name="com.huawei.securitytool")
+        if not open_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Password settings entry was not located")
 
-        ui_tree = await self._get_ui_tree()
-        inputs = self._nodes_by_type(ui_tree, "TextInput")
-        if len(inputs) < 2:
-            await self._call_tool("swipe", {"direction": "up"})
-            await self._wait_for_element(element_type="TextInput", timeout_sec=1.5)
+        deadline = time.time() + 6.0
+        settings_detected = False
+        while time.time() < deadline:
             ui_tree = await self._get_ui_tree()
-            inputs = self._nodes_by_type(ui_tree, "TextInput")
-        if len(inputs) < 2:
-            return self._unknown(payload, "MCP_ACTION_PENDING", "Password form inputs were not fully detected")
+            for node in self._iter_nodes(ui_tree):
+                props = node.get("properties", {}) or {}
+                if str(props.get("bundleName", "")).strip() == "com.huawei.hmos.settings":
+                    settings_detected = True
+                    break
+            if settings_detected:
+                break
+            await asyncio.sleep(0.3)
 
-        input_values = []
-        if current_password and len(inputs) >= 3:
-            input_values.append((inputs[0], current_password))
-            input_values.append((inputs[1], new_password))
-            input_values.append((inputs[2], confirm_password))
-        else:
-            input_values.append((inputs[0], new_password))
-            input_values.append((inputs[1], confirm_password))
-
-        for node, value in input_values:
-            input_result = await self._input_text_with_commit(node["x"], node["y"], value)
-            if not input_result.get("ok", False):
-                return self._fail("MCP_EXECUTION_FAILED", "Failed to input password field", {"input_result": input_result, "node": node})
-
-        save_result = await self._save_tool_settings(payload)
-        if save_result.get("status") != "PASS":
-            evidence = save_result.get("evidence", {})
-            evidence["filled_inputs"] = input_values
-            save_result["evidence"] = evidence
-            return save_result
-        save_result.setdefault("evidence", {})
-        save_result["evidence"]["filled_inputs"] = input_values
-        save_result["message"] = "Tool password fields populated and save triggered"
-        return save_result
+        await self._call_tool("run_app", {"bundle_name": "com.huawei.securitytool", "auto_detect": True})
+        await self._wait_for_any_texts(["工具设置", "修改密码"], timeout_sec=5.0)
+        return self._pass(
+            "Tool password settings entry opened",
+            {
+                "trigger": open_result,
+                "settings_bundle": "com.huawei.hmos.settings",
+                "returned_to_bundle": "com.huawei.securitytool",
+                "settings_observed": settings_detected,
+            },
+        )
 
     async def _open_browser_url(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
@@ -364,6 +355,7 @@ class ComplexHooksMixin:
         wait_result = await self._wait_for([{"text": TOOL_SETTINGS_PAGE_TEXT, "bundle_name": "com.huawei.securitytool"}])
         if not wait_result.get("ok", False):
             return self._unknown(payload, "MCP_ACTION_PENDING", "Save click succeeded but tool settings page confirmation did not resolve")
+        await self._dismiss_notice_dialogs()
         return self._pass(
             "Tool settings save action executed",
             {"save_button": save_button or {}, "wait_match": wait_result.get("match", {})},

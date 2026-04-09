@@ -137,6 +137,10 @@ class SecurityToolFlowExecutor:
             request = MpcActionRequest(action="capture_screenshot", params=params, expected="Screenshot saved successfully")
             return self._from_mcp(request)
 
+        if flow_ref == "ui.click_text":
+            request = MpcActionRequest(action="click_text", params=params, expected=f"Click visible text {params.get('text', '')}")
+            return self._from_mcp(request)
+
         if flow_ref == "ui.scroll_until_text":
             result = self.mcp.scroll_until_text(
                 bundle_name=self.bundle_name,

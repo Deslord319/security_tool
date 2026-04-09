@@ -17,6 +17,11 @@ FLOW_REGISTRY = {
         "kind": "ui",
         "params": ["name"],
     },
+    "ui.click_text": {
+        "description": "Click a visible text target in the current page.",
+        "kind": "ui",
+        "params": ["text", "bundle_name", "contains"],
+    },
     "ui.scroll_until_text": {
         "description": "Scroll the current page until the target text becomes visible.",
         "kind": "ui",

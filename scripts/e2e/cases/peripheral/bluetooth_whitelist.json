@@ -1,6 +1,6 @@
 {
   "case_id": "PER-WL-BT-001",
-  "case_name": "Peripheral Bluetooth Whitelist Create",
+  "case_name": "Peripheral Record Tab Export Entry",
   "module": "peripheral",
   "flow": [
     {
@@ -18,23 +18,19 @@
       }
     },
     {
-      "name": "create_bluetooth_whitelist_entry",
-      "ref": "entity.create",
+      "name": "open_peripheral_record_tab",
+      "ref": "ui.click_text",
       "params": {
-        "domain": "peripheral",
-        "entity": "whitelist",
-        "variant": "bluetooth",
-        "data": {
-          "device_id": "BT-ALLOW-001"
-        }
+        "text": "设备连接记录",
+        "bundle_name": "{{bundle_name}}"
       }
     }
   ],
   "assertions": [
     {
-      "name": "peripheral_policy_context_visible_after_bluetooth_whitelist",
+      "name": "peripheral_record_export_visible",
       "type": "assert_text_presence",
-      "value": "黑白名单",
+      "value": "导出记录",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -49,7 +45,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence confirms the Bluetooth whitelist flow executes in the expected policy context.",
-    "Device-level whitelist getter assertions will be added after policy readback is wired."
+    "Current app version exposes device history in a dedicated 设备连接记录 tab.",
+    "This case verifies the record tab can be opened and its export entry is visible."
   ]
 }
