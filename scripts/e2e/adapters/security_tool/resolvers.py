@@ -10,6 +10,36 @@ PAGE_REGISTRY = {page_id: config["page_text"] for page_id, config in PAGE_STRATE
 PAGE_MARKERS = {page_id: config["marker_text"] for page_id, config in PAGE_STRATEGIES.items()}
 
 
+def _normalize_label(value: str) -> str:
+    return str(value).replace("+", "").replace(" ", "").strip()
+
+
+def _node_props(node: dict[str, Any]) -> dict[str, Any]:
+    return node.get("properties", {})
+
+
+def _node_bounds(node: dict[str, Any]) -> tuple[int, int, int, int]:
+    props = _node_props(node)
+    return (
+        int(props.get("left", 0)),
+        int(props.get("top", 0)),
+        int(props.get("width", 0)),
+        int(props.get("height", 0)),
+    )
+
+
+def _descendant_texts(node: dict[str, Any]) -> set[str]:
+    texts: set[str] = set()
+    queue = [node]
+    while queue:
+        current = queue.pop(0)
+        text = str(_node_props(current).get("text", "")).strip()
+        if text:
+            texts.add(text)
+        queue[0:0] = current.get("children", [])
+    return texts
+
+
 def get_page_text(page_id: str) -> str:
     return PAGE_REGISTRY.get(page_id, "")
 
@@ -51,9 +81,11 @@ def find_page_marker_node(ui_tree: dict[str, Any], *, marker_text: str, page_tex
     candidate_texts = [marker_text] if marker_text else [page_text] if page_text else []
     if not candidate_texts:
         return None
+    normalized_candidates = {_normalize_label(text) for text in candidate_texts}
     for node in nodes_by_type(ui_tree, "Text"):
         text = str(node.get("text", "")).strip()
-        if text not in candidate_texts:
+        normalized_text = _normalize_label(text)
+        if normalized_text not in normalized_candidates:
             continue
         if (node.get("left") or 0) < 380:
             continue
@@ -67,20 +99,31 @@ def find_node_by_id(ui_tree: dict[str, Any], element_id: str, *, iter_nodes: Any
         return None
     for node in iter_nodes(ui_tree):
         props = node.get("properties", {})
-        if props.get("id") == wanted:
+        if props.get("id") == wanted or str(props.get("ID", "")).strip() == wanted:
             return node_to_element(node)
     return None
 
 
-def pick_sidebar_entry(ui_tree: dict[str, Any], page_id: str, *, nodes_by_type: Any) -> dict[str, Any] | None:
+def pick_sidebar_entry(ui_tree: dict[str, Any], page_id: str, *, iter_nodes: Any, node_to_element: Any) -> dict[str, Any] | None:
     target_text = get_page_text(page_id)
-    sidebar_nodes = [
-        node for node in nodes_by_type(ui_tree, "Text")
-        if (node.get("left") or 0) <= 700 and 120 <= (node.get("top") or 0) <= 900
-    ]
-    exact_matches = [node for node in sidebar_nodes if node.get("text") == target_text]
-    if exact_matches:
-        return min(exact_matches, key=lambda node: (node.get("top") or 0, node.get("left") or 0))
+    sidebar_nodes: list[dict[str, Any]] = []
+    exact_match: dict[str, Any] | None = None
+    for node in iter_nodes(ui_tree):
+        props = _node_props(node)
+        if not props.get("clickable"):
+            continue
+        left, top, width, height = _node_bounds(node)
+        if left > 720 or top < 120 or top > 980 or width < 200 or height < 40:
+            continue
+        texts = _descendant_texts(node)
+        if not texts:
+            continue
+        element = node_to_element(node)
+        sidebar_nodes.append(element)
+        if target_text in texts and exact_match is None:
+            exact_match = element
+    if exact_match:
+        return exact_match
     ordered = sorted(sidebar_nodes, key=lambda node: (node.get("top") or 0, node.get("left") or 0))
     index_map = {
         "dashboard": 0,

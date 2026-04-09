@@ -11,7 +11,7 @@ ADAPTER_CONFIG = AdapterConfig(
     main_ability="EntryAbility",
     admin_ability="EnterpriseAdminAbility",
     cases_dir="scripts/e2e/cases",
-    page_registry_version="2026-03-12",
+    page_registry_version="2026-04-09",
     notes=[
         "This adapter is the reference implementation inside the business repository.",
         "The structure is designed so core modules can be extracted into a standalone repository later.",

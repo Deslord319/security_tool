@@ -439,19 +439,66 @@ class RealHarmonyOsMcpBackend(
 
     async def _delete_visible_rule(self, *, target: str, fallback_target: str = "") -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
-        chosen_target = target or fallback_target
-        if chosen_target:
-            await self._call_tool("click_element", {"text": chosen_target, "bundle_name": "com.huawei.securitytool"})
-            await self._wait_for_any_texts(DELETE_ACTION_LABELS, timeout_sec=1.2)
-        delete_click = await self._click_first_available_text(DELETE_ACTION_LABELS, bundle_name="com.huawei.securitytool")
+        await self._dismiss_notice_dialogs()
+        normalized_target = str(target or "").strip()
+        normalized_fallback = str(fallback_target or "").strip()
+        if normalized_target.lower() in {"none", "null"}:
+            normalized_target = ""
+        if normalized_fallback.lower() in {"none", "null"}:
+            normalized_fallback = ""
+        chosen_target = normalized_target or normalized_fallback
+
+        def collect_descendant_texts(node: dict[str, Any]) -> set[str]:
+            texts: set[str] = set()
+            queue = [node]
+            while queue:
+                current = queue.pop(0)
+                props = current.get("properties", {})
+                text = str(props.get("text", "")).strip()
+                if text:
+                    texts.add(text)
+                queue[0:0] = current.get("children", [])
+            return texts
+
+        def pick_delete_button(ui_tree: dict[str, Any]) -> dict[str, Any] | None:
+            candidates: list[dict[str, Any]] = []
+            for node in self._iter_nodes(ui_tree):
+                props = node.get("properties", {})
+                left = int(props.get("left", 0))
+                top = int(props.get("top", 0))
+                width = int(props.get("width", 0))
+                height = int(props.get("height", 0))
+                if not props.get("clickable"):
+                    continue
+                if left < 2200 or top < 800 or top > 1150 or width < 40 or height < 24:
+                    continue
+                texts = collect_descendant_texts(node)
+                if not texts.intersection(DELETE_ACTION_LABELS):
+                    continue
+                candidates.append(self._node_to_element(node))
+            if not candidates:
+                return None
+            return max(candidates, key=lambda node: (node.get("left") or 0, -(node.get("top") or 0)))
+
+        ui_tree = await self._get_ui_tree()
+        delete_button = pick_delete_button(ui_tree)
+        delete_click = {"ok": False}
+        if delete_button:
+            delete_click = await self._call_tool("click_element", {"x": delete_button["x"], "y": delete_button["y"]})
+        if not delete_click.get("ok", False):
+            delete_click = await self._click_first_available_text(DELETE_ACTION_LABELS, bundle_name="com.huawei.securitytool")
         if not delete_click.get("ok", False):
             ui_tree = await self._get_ui_tree()
-            delete_button = self._pick_button_by_text(ui_tree, DELETE_ACTION_LABELS)
+            delete_button = pick_delete_button(ui_tree)
             if delete_button:
                 delete_click = await self._call_tool("click_element", {"x": delete_button["x"], "y": delete_button["y"]})
         if not delete_click.get("ok", False):
             return self._unknown({"action": "delete_visible_rule"}, "MCP_ACTION_PENDING", "Delete action was not found")
-        await self._confirm_dialog(allow_cancel=False)
+        confirm_result = await self._confirm_dialog(allow_cancel=False)
+        if confirm_result.get("status") != "PASS":
+            return confirm_result
+        if chosen_target:
+            await self._wait_for_element(text=chosen_target, state="gone", timeout_sec=3.0)
         return self._pass("Firewall rule delete triggered", {"target": chosen_target})
 
     async def _toggle_indexed_control(self, *, control_type: str, index: int, feature: str = "") -> dict[str, Any]:

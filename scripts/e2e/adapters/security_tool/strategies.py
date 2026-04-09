@@ -2,13 +2,14 @@ from __future__ import annotations
 
 
 PAGE_STRATEGIES = {
-    "dashboard": {"page_text": "安全总览", "marker_text": "安全总览"},
-    "firewall": {"page_text": "防火墙管理", "marker_text": "模式切换"},
-    "firewall-rules": {"page_text": "自定义规则", "marker_text": "+ 新增规则"},
-    "log-manage": {"page_text": "日志管理", "marker_text": "日志管理"},
-    "peripheral-manage": {"page_text": "外设管理", "marker_text": "外设管理"},
+    "dashboard": {"page_text": "安全总览", "marker_text": "快捷方式"},
+    "firewall": {"page_text": "防火墙管理", "marker_text": "公共网络模式"},
+    "firewall-rules": {"page_text": "自定义模式", "marker_text": "新增规则"},
+    "log-manage": {"page_text": "日志管理", "marker_text": "导出日志"},
+    "peripheral-manage": {"page_text": "外设管理", "marker_text": "接口管控"},
     "identity": {"page_text": "身份鉴别", "marker_text": "口令复杂度策略"},
     "tool-settings": {"page_text": "工具设置", "marker_text": "启动时身份校验"},
+    "help-feedback": {"page_text": "帮助与反馈", "marker_text": "使用指南"},
 }
 
 TOP_MENU_VISIBLE_TEXT = "帮助与反馈"
@@ -17,7 +18,7 @@ TOOL_SETTINGS_SAVE_TEXT = "保存设置"
 TOOL_SETTINGS_STARTUP_AUTH_TEXT = "启动时身份校验"
 
 FIREWALL_PAGE_TEXT = "防火墙管理"
-FIREWALL_CUSTOM_RULE_TEXT = "自定义规则"
+FIREWALL_CUSTOM_RULE_TEXT = "规则页"
 FIREWALL_DIALOG_TITLE = "新增规则"
 FIREWALL_ADD_RULE_TEXTS = ["+ 新增规则", "新增规则", "+ 添加规则", "添加规则"]
 

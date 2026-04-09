@@ -143,7 +143,7 @@ class UiRuntimeHelpersMixin:
         return {
             "type": node.get("type", ""),
             "text": props.get("text", ""),
-            "id": props.get("id", ""),
+            "id": props.get("id", "") or props.get("ID", ""),
             "x": left + width // 2,
             "y": top + height // 2,
             "left": left,
@@ -152,6 +152,7 @@ class UiRuntimeHelpersMixin:
             "height": height,
             "checked": props.get("checked", False),
             "clickable": props.get("clickable", False),
+            "properties": props,
         }
 
     def _nodes_by_type(self, ui_tree: dict[str, Any], node_type: str) -> list[dict[str, Any]]:
@@ -170,6 +171,7 @@ class UiRuntimeHelpersMixin:
                 {
                     "type": node_type,
                     "text": props.get("text", ""),
+                    "id": props.get("id", "") or props.get("ID", ""),
                     "x": int(left) + int(width) // 2,
                     "y": int(top) + int(height) // 2,
                     "left": int(left),
@@ -178,6 +180,7 @@ class UiRuntimeHelpersMixin:
                     "height": int(height),
                     "checked": props.get("checked", False),
                     "clickable": props.get("clickable", False),
+                    "properties": props,
                 }
             )
         return matches

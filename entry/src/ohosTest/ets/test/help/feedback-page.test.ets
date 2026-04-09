@@ -2,7 +2,7 @@
  * Help and feedback page smoke test.
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
+import { abilityDelegatorRegistry, Component, Driver, ON } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'HelpFeedbackPageTest'
@@ -18,12 +18,18 @@ export default function helpFeedbackPageTest() {
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
+        moduleName: 'entry',
         abilityName: ABILITY_NAME
       })
       await sleep(2000)
       driver = Driver.create()
       await driver.delayMs(1000)
-      await driver.click(ON.text('帮助与反馈'))
+      const menuOpened = await clickById(driver, 'top-menu-trigger')
+      expect(menuOpened).assertTrue()
+      await driver.delayMs(400)
+
+      const helpFeedbackEntry = await clickById(driver, 'menu-action-help-feedback')
+      expect(helpFeedbackEntry).assertTrue()
       await driver.delayMs(1000)
     })
 
@@ -46,7 +52,7 @@ export default function helpFeedbackPageTest() {
     })
 
     it('should display faq and contact info', 0, async () => {
-      const faqExists = await driver.exists(ON.text('如何启用启动校验？'))
+      const faqExists = await existsByText(driver, '如何启用启动校验？')
       expect(faqExists).assertTrue()
       await driver.assertComponentExist(ON.text('反馈邮箱'))
       await driver.assertComponentExist(ON.text('consumer@huawei.com'))
@@ -56,4 +62,40 @@ export default function helpFeedbackPageTest() {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function findById(driver: Driver, id: string): Promise<Component | null> {
+  try {
+    return await driver.findComponent(ON.id(id))
+  } catch (_err) {
+    return null
+  }
+}
+
+async function findByText(driver: Driver, text: string): Promise<Component | null> {
+  try {
+    return await driver.findComponent(ON.text(text))
+  } catch (_err) {
+    return null
+  }
+}
+
+async function clickComponent(component: Component | null): Promise<boolean> {
+  if (component === null) {
+    return false
+  }
+  try {
+    await component.click()
+    return true
+  } catch (_err) {
+    return false
+  }
+}
+
+async function clickById(driver: Driver, id: string): Promise<boolean> {
+  return await clickComponent(await findById(driver, id))
+}
+
+async function existsByText(driver: Driver, text: string): Promise<boolean> {
+  return await findByText(driver, text) !== null
 }

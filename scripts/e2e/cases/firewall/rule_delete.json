@@ -18,20 +18,6 @@
       }
     },
     {
-      "name": "seed_domain_rule_for_delete",
-      "ref": "entity.create",
-      "params": {
-        "domain": "firewall",
-        "entity": "rule",
-        "variant": "domain",
-        "data": {
-          "domain": "www.baidu.com",
-          "direction": "out",
-          "policy": "deny"
-        }
-      }
-    },
-    {
       "name": "delete_domain_rule",
       "ref": "entity.delete",
       "params": {
@@ -63,7 +49,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Delete case self-seeds the target domain rule to avoid cross-case state coupling.",
+    "Delete case assumes the completeness suite has already created the target domain rule.",
     "Current primary evidence confirms the deleted domain is no longer visible in the rules list."
   ]
 }

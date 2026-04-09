@@ -1,3 +1,8 @@
+DASHBOARD_SUITE = [
+    "dashboard/overview.json",
+]
+
+
 SMOKE_SUITE = [
     "smoke/install_bootstrap.json",
     "smoke/admin_enable.json",
@@ -6,8 +11,10 @@ SMOKE_SUITE = [
 
 
 NAVIGATION_SUITE = [
+    *DASHBOARD_SUITE,
     *SMOKE_SUITE,
     "navigation/theme_menu.json",
+    "navigation/help_feedback.json",
 ]
 
 
@@ -48,6 +55,7 @@ LOGS_SUITE = [
 
 
 COMPLETENESS_SUITE = [
+    *DASHBOARD_SUITE,
     *NAVIGATION_SUITE,
     *FIREWALL_SUITE,
     *LOGS_SUITE,
@@ -58,6 +66,7 @@ COMPLETENESS_SUITE = [
 
 
 SUITES = {
+    "dashboard": DASHBOARD_SUITE,
     "smoke": SMOKE_SUITE,
     "navigation": NAVIGATION_SUITE,
     "firewall": FIREWALL_SUITE,

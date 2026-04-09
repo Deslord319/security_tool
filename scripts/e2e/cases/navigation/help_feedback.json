@@ -1,0 +1,42 @@
+{
+  "case_id": "NAV-HELP-001",
+  "case_name": "Help Feedback Reachable",
+  "module": "navigation",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_help_feedback",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "help-feedback"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "help_feedback_guide_visible",
+      "type": "assert_text_presence",
+      "value": "使用指南",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case covers the top-menu route that is not reachable from the left navigation rail."
+  ]
+}

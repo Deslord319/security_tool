@@ -137,6 +137,21 @@ class SecurityToolFlowExecutor:
             request = MpcActionRequest(action="capture_screenshot", params=params, expected="Screenshot saved successfully")
             return self._from_mcp(request)
 
+        if flow_ref == "ui.scroll_until_text":
+            result = self.mcp.scroll_until_text(
+                bundle_name=self.bundle_name,
+                text=str(params.get("text", "")),
+                direction=str(params.get("direction", "up")),
+                max_swipes=int(params.get("max_swipes", 8)),
+                timeout_ms=int(params.get("timeout_ms", 1500)),
+            )
+            return FlowExecutionResult(
+                status=result.get("status", "UNKNOWN"),
+                failure_code=result.get("failure_code", ""),
+                message=result.get("message", ""),
+                evidence=result.get("evidence", {}),
+            )
+
         if flow_ref == "firewall.toggle_status":
             before = None if self.dry_run else self._read_toggle_state()
             request = MpcActionRequest(action="toggle_firewall", params=params, expected="Firewall switch state changes")

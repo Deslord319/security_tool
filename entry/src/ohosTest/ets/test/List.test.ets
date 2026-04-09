@@ -3,6 +3,7 @@ import { TestLogUtils } from '../utils/TestLogUtils'
 import abilityTest from './common/Ability.test'
 import peripheralConnectionRecordContractTest from './peripheral/connection-record-contract.test'
 import routeActionTest from './simple/RouteAction.test'
+import themeMenuPopupTest from './theme/theme-menu-popup.test'
 
 export default function testsuite() {
   const args = abilityDelegatorRegistry.getArguments()
@@ -18,6 +19,11 @@ export default function testsuite() {
 
   if (mode === 'peripheral_contract' || argsText.indexOf('peripheral_contract') >= 0) {
     peripheralConnectionRecordContractTest()
+    return
+  }
+
+  if (mode === 'theme_menu' || argsText.indexOf('theme_menu') >= 0) {
+    themeMenuPopupTest()
     return
   }
 

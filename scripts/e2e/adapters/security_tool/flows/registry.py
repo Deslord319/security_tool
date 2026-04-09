@@ -17,6 +17,11 @@ FLOW_REGISTRY = {
         "kind": "ui",
         "params": ["name"],
     },
+    "ui.scroll_until_text": {
+        "description": "Scroll the current page until the target text becomes visible.",
+        "kind": "ui",
+        "params": ["text", "direction", "max_swipes", "timeout_ms"],
+    },
     "entity.create": {
         "description": "Create a domain entity through adapter-backed declarative templates.",
         "kind": "ui",

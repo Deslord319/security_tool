@@ -1,8 +1,8 @@
 /**
  * Identity page smoke test.
  */
-import { describe, beforeAll, afterAll, it } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
+import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
+import { abilityDelegatorRegistry, Component, Driver, ON } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'IdentityPageTest'
@@ -18,12 +18,15 @@ export default function identityPageTest() {
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
+        moduleName: 'entry',
         abilityName: ABILITY_NAME
       })
       await sleep(2000)
       driver = Driver.create()
       await driver.delayMs(1000)
-      await driver.click(ON.text('身份鉴别'))
+
+      const identityEntry = await clickByText(driver, '身份鉴别')
+      expect(identityEntry).assertTrue()
       await driver.delayMs(1000)
     })
 
@@ -49,4 +52,25 @@ export default function identityPageTest() {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function findByText(driver: Driver, text: string): Promise<Component | null> {
+  try {
+    return await driver.findComponent(ON.text(text))
+  } catch (_err) {
+    return null
+  }
+}
+
+async function clickByText(driver: Driver, text: string): Promise<boolean> {
+  const component = await findByText(driver, text)
+  if (component === null) {
+    return false
+  }
+  try {
+    await component.click()
+    return true
+  } catch (_err) {
+    return false
+  }
 }

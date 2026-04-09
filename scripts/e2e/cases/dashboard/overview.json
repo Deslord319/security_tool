@@ -1,0 +1,54 @@
+{
+  "case_id": "DASH-OVERVIEW-001",
+  "case_name": "Dashboard Overview Visible",
+  "module": "dashboard",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_dashboard",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "dashboard"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "dashboard_quick_actions_visible",
+      "type": "assert_text_presence",
+      "value": "快捷方式",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "dashboard_admin_card_visible",
+      "type": "assert_text_presence",
+      "value": "管理员状态",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "Dashboard route is confirmed through the quick-actions section and the admin summary card."
+  ]
+}

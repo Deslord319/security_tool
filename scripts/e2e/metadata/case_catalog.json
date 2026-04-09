@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-07T07:42:49+00:00",
+  "updated_at": "2026-04-09T03:20:46+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -146,6 +146,85 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "DASH-OVERVIEW-001",
+      "case_name": "Dashboard Overview Visible",
+      "module_id": "dashboard",
+      "module_name": "安全总览",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_dashboard",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "dashboard_quick_actions_visible",
+          "type": "assert_text_presence",
+          "value": "快捷方式",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "dashboard_admin_card_visible",
+          "type": "assert_text_presence",
+          "value": "管理员状态",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "快捷方式",
+        "管理员状态"
+      ],
+      "suite_membership": [
+        "dashboard",
+        "navigation",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/dashboard/overview.json",
       "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
@@ -861,6 +940,84 @@
       "review_notes": []
     },
     {
+      "case_id": "NAV-HELP-001",
+      "case_name": "Help Feedback Reachable",
+      "module_id": "navigation",
+      "module_name": "导航",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_help_feedback",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "help-feedback"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "help_feedback_guide_visible",
+          "type": "assert_text_presence",
+          "value": "使用指南",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "help_feedback_contact_visible",
+          "type": "assert_text_presence",
+          "value": "联系与反馈",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "使用指南",
+        "联系与反馈"
+      ],
+      "suite_membership": [
+        "navigation",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/navigation/help_feedback.json",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
       "case_id": "NAV-MENU-001",
       "case_name": "Theme Menu Visible",
       "module_id": "navigation",
@@ -1047,7 +1204,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "UNKNOWN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1125,7 +1282,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1245,7 +1402,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/interfaces.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1329,7 +1486,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_policy.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1407,7 +1564,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/bluetooth_whitelist.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1485,7 +1642,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_whitelist.json",
-      "last_result_status": "UNKNOWN",
+      "last_result_status": "FAIL",
       "review_status": "unreviewed",
       "review_notes": []
     },

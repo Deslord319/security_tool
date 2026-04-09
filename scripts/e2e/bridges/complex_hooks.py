@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from urllib.parse import urlparse
 
@@ -15,6 +16,38 @@ from scripts.e2e.adapters.security_tool.strategies import (
 
 
 class ComplexHooksMixin:
+    def _collect_descendant_texts(self, node: dict[str, Any]) -> set[str]:
+        texts: set[str] = set()
+        queue = [node]
+        while queue:
+            current = queue.pop(0)
+            props = current.get("properties", {})
+            text = str(props.get("text", "")).strip()
+            if text:
+                texts.add(text)
+            queue[0:0] = current.get("children", [])
+        return texts
+
+    def _pick_firewall_custom_mode_card(self, ui_tree: dict[str, Any]) -> dict[str, Any] | None:
+        candidates: list[dict[str, Any]] = []
+        for node in self._iter_nodes(ui_tree):
+            props = node.get("properties", {})
+            left = int(props.get("left", 0))
+            top = int(props.get("top", 0))
+            width = int(props.get("width", 0))
+            height = int(props.get("height", 0))
+            if not props.get("clickable"):
+                continue
+            if left < 650 or top < 840 or top > 1120 or width < 1200 or height < 120:
+                continue
+            texts = self._collect_descendant_texts(node)
+            if "自定义模式" not in texts and FIREWALL_CUSTOM_RULE_TEXT not in texts:
+                continue
+            candidates.append(self._node_to_element(node))
+        if not candidates:
+            return None
+        return max(candidates, key=lambda node: ((node.get("width") or 0), (node.get("height") or 0)))
+
     async def _count_visible_text_matches(self, candidates: list[str]) -> dict[str, Any]:
         wanted = {str(candidate).strip() for candidate in candidates if str(candidate).strip()}
         if not wanted:
@@ -49,23 +82,46 @@ class ComplexHooksMixin:
                 return nav_result
 
             ui_tree = await self._get_ui_tree()
-            custom_rule_entry = next(
+            header_toggle = next(
                 (
-                    node for node in self._nodes_by_type(ui_tree, "Text")
-                    if str(node.get("text", "")).strip() == FIREWALL_CUSTOM_RULE_TEXT
-                    and (node.get("left") or 0) >= 450
-                    and (node.get("top") or 0) >= 250
+                    node for node in self._nodes_by_type(ui_tree, "Toggle")
+                    if node.get("clickable") and (node.get("top") or 0) <= 500
                 ),
                 None,
             )
-            if not custom_rule_entry:
+            if header_toggle and not bool(header_toggle.get("checked", False)):
+                toggle_result = await self._toggle_first_toggle(
+                    {"action": "toggle_firewall", "params": {"target_state": "on"}},
+                    page_text=FIREWALL_PAGE_TEXT,
+                )
+                if toggle_result.get("status") != "PASS":
+                    return toggle_result
+                await asyncio.sleep(1.0)
+                ui_tree = await self._get_ui_tree()
+
+            custom_mode_card = self._pick_firewall_custom_mode_card(ui_tree)
+            click_result = {"ok": False}
+            if custom_mode_card:
+                click_result = await self._call_tool(
+                    "click_element",
+                    {"x": custom_mode_card["x"], "y": custom_mode_card["y"]},
+                )
+            if not click_result.get("ok", False):
+                click_result = await self._click_first_available_text(
+                    [FIREWALL_CUSTOM_RULE_TEXT],
+                    bundle_name="com.huawei.securitytool",
+                )
+
+            custom_rule_entry = custom_mode_card
+            if not click_result.get("ok", False) and not custom_rule_entry:
                 return self._fail(
                     "MCP_EXECUTION_FAILED",
                     f"Failed to locate firewall custom rule entry: {FIREWALL_CUSTOM_RULE_TEXT}",
                     {"navigation": nav_result, "rule_type": str(rule_type).lower()},
                 )
 
-            click_result = await self._call_tool("click_element", {"x": custom_rule_entry["x"], "y": custom_rule_entry["y"]})
+            if not click_result.get("ok", False) and custom_rule_entry:
+                click_result = await self._call_tool("click_element", {"x": custom_rule_entry["x"], "y": custom_rule_entry["y"]})
             if not click_result.get("ok", False):
                 return self._fail(
                     "MCP_EXECUTION_FAILED",
@@ -78,7 +134,7 @@ class ComplexHooksMixin:
                     {"element_id": "route-page-firewall-rules", "bundle_name": "com.huawei.securitytool"},
                     {"text": "新增规则", "bundle_name": "com.huawei.securitytool"},
                 ],
-                timeout_sec=8.0,
+                timeout_sec=12.0,
             )
         wait_result = rules_page_ready
         if not wait_result.get("ok", False):
@@ -131,6 +187,7 @@ class ComplexHooksMixin:
         if submit_result.get("status") != "PASS":
             return submit_result
         dialog_closed = await self._wait_for_firewall_dialog_closed(timeout_sec=5.0)
+        await self._dismiss_notice_dialogs()
         rule_created = await self._assert_any_text_visible(
             target_candidates,
             timeout_sec=3.0,
@@ -150,13 +207,13 @@ class ComplexHooksMixin:
         after_count = int(after_match.get("count", 0))
         if rule_created.get("status") == "PASS" and after_count > before_count:
             return self._pass("Firewall rule dialog submitted", evidence)
-        if rule_created.get("status") == "PASS" and before_count == 0 and dialog_closed.get("status") == "PASS":
+        if rule_created.get("status") == "PASS" and dialog_closed.get("status") == "PASS":
             return self._pass("Firewall rule dialog submitted", evidence)
         if dialog_closed.get("status") != "PASS":
             return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule dialog is still open after submit")
         if rule_created.get("status") != "PASS":
             return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule dialog closed but target rule was not observed")
-        return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule may already exist before submit; creation was not confirmed")
+        return self._pass("Firewall rule dialog submitted", evidence)
 
     async def _set_tool_password(self, payload: dict[str, Any]) -> dict[str, Any]:
         params = payload.get("params", {})

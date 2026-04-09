@@ -19,6 +19,18 @@ from scripts.e2e.adapters.security_tool.strategies import (
 
 
 class SelectorHelpersMixin:
+    def _collect_descendant_texts(self, node: dict[str, Any]) -> set[str]:
+        texts: set[str] = set()
+        queue = [node]
+        while queue:
+            current = queue.pop(0)
+            props = current.get("properties", {})
+            text = str(props.get("text", "")).strip()
+            if text:
+                texts.add(text)
+            queue[0:0] = current.get("children", [])
+        return texts
+
     def _find_page_marker_node(self, ui_tree: dict[str, Any], *, marker_text: str, page_text: str) -> dict[str, Any] | None:
         return resolve_page_marker_node(
             ui_tree,
@@ -88,7 +100,40 @@ class SelectorHelpersMixin:
         return ordered[target_index]
 
     def _pick_sidebar_entry(self, ui_tree: dict[str, Any], page_id: str) -> dict[str, Any] | None:
-        return resolve_sidebar_entry(ui_tree, page_id, nodes_by_type=self._nodes_by_type)
+        return resolve_sidebar_entry(
+            ui_tree,
+            page_id,
+            iter_nodes=self._iter_nodes,
+            node_to_element=self._node_to_element,
+        )
+
+    def _pick_top_menu_trigger(self, ui_tree: dict[str, Any]) -> dict[str, Any] | None:
+        buttons = [
+            node for node in self._nodes_by_type(ui_tree, "Button")
+            if node.get("clickable")
+            and (node.get("left") or 0) >= 2200
+            and (node.get("top") or 0) <= 380
+            and (node.get("width") or 0) <= 140
+            and (node.get("height") or 0) <= 140
+        ]
+        if buttons:
+            return min(buttons, key=lambda node: (node.get("top") or 0, -(node.get("left") or 0)))
+
+        fallback: list[dict[str, Any]] = []
+        for node in self._iter_nodes(ui_tree):
+            props = node.get("properties", {})
+            left = int(props.get("left", 0))
+            top = int(props.get("top", 0))
+            width = int(props.get("width", 0))
+            height = int(props.get("height", 0))
+            if not props.get("clickable"):
+                continue
+            if left < 2200 or top > 380 or width > 160 or height > 160:
+                continue
+            fallback.append(self._node_to_element(node))
+        if not fallback:
+            return None
+        return min(fallback, key=lambda node: (node.get("top") or 0, -(node.get("left") or 0)))
 
     def _pick_toggle_node(self, ui_tree: dict[str, Any], *, text: str = "", element_id: str = "") -> dict[str, Any] | None:
         toggles = self._nodes_by_type(ui_tree, "Toggle")
@@ -242,9 +287,28 @@ class SelectorHelpersMixin:
             if top < region["top_min"] or top > 1850:
                 continue
             buttons.append(node)
-        if not buttons:
+        if buttons:
+            return max(buttons, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
+
+        fallback_buttons: list[dict[str, Any]] = []
+        for node in self._iter_nodes(ui_tree):
+            props = node.get("properties", {})
+            if not props.get("clickable"):
+                continue
+            left = int(props.get("left", 0))
+            top = int(props.get("top", 0))
+            width = int(props.get("width", 0))
+            height = int(props.get("height", 0))
+            if left < region["left_min"] or left > 2200:
+                continue
+            if top < region["top_min"] or top > 1850 or width <= 0 or height <= 0:
+                continue
+            if not self._collect_descendant_texts(node).intersection(wanted):
+                continue
+            fallback_buttons.append(self._node_to_element(node))
+        if not fallback_buttons:
             return None
-        return max(buttons, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
+        return max(fallback_buttons, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
 
     def _resolve_option_labels(self, option_group: str, option_key: str, fallback: list[str] | None = None) -> list[str]:
         descriptor = resolve_option_descriptor(option_group, option_key)

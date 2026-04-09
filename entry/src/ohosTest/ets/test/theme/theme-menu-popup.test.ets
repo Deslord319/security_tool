@@ -2,7 +2,7 @@
  * Theme menu popup smoke test.
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
+import { abilityDelegatorRegistry, Component, Driver, ON } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
 
 const TAG = 'ThemeMenuPopupTest'
@@ -18,6 +18,7 @@ export default function themeMenuPopupTest() {
       const delegator = abilityDelegatorRegistry.getAbilityDelegator()
       await delegator.startAbility({
         bundleName: BUNDLE_NAME,
+        moduleName: 'entry',
         abilityName: ABILITY_NAME
       })
       await sleep(2000)
@@ -30,13 +31,15 @@ export default function themeMenuPopupTest() {
     })
 
     it('should open popup when clicking trigger', 0, async () => {
-      await driver.click(ON.id('top-menu-trigger'))
-      await driver.delayMs(500)
-      const popupExists = await driver.exists(ON.text('显示模式'))
+      const opened = await ensureMenuOpen(driver)
+      expect(opened).assertTrue()
+      const popupExists = await existsByText(driver, '显示模式')
       expect(popupExists).assertTrue()
     })
 
     it('should display theme and action entries', 0, async () => {
+      const opened = await ensureMenuOpen(driver)
+      expect(opened).assertTrue()
       await driver.assertComponentExist(ON.text('显示模式'))
       await driver.assertComponentExist(ON.text('跟随系统'))
       await driver.assertComponentExist(ON.text('浅色模式'))
@@ -46,16 +49,21 @@ export default function themeMenuPopupTest() {
     })
 
     it('should switch theme by menu id', 0, async () => {
-      await driver.click(ON.id('theme-option-light'))
+      let opened = await ensureMenuOpen(driver)
+      expect(opened).assertTrue()
+
+      let lightClicked = await clickById(driver, 'theme-option-light')
+      expect(lightClicked).assertTrue()
       await driver.delayMs(1000)
-      const lightThemeMarker = await driver.exists(ON.id('theme-marker-light'))
+      const lightThemeMarker = await existsById(driver, 'theme-marker-light')
       expect(lightThemeMarker).assertTrue()
 
-      await driver.click(ON.id('top-menu-trigger'))
-      await driver.delayMs(500)
-      await driver.click(ON.id('theme-option-dark'))
+      opened = await ensureMenuOpen(driver)
+      expect(opened).assertTrue()
+      let darkClicked = await clickById(driver, 'theme-option-dark')
+      expect(darkClicked).assertTrue()
       await driver.delayMs(1000)
-      const darkThemeMarker = await driver.exists(ON.id('theme-marker-dark'))
+      const darkThemeMarker = await existsById(driver, 'theme-marker-dark')
       expect(darkThemeMarker).assertTrue()
     })
   })
@@ -63,4 +71,64 @@ export default function themeMenuPopupTest() {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function findById(driver: Driver, id: string): Promise<Component | null> {
+  try {
+    return await driver.findComponent(ON.id(id))
+  } catch (_err) {
+    return null
+  }
+}
+
+async function findByText(driver: Driver, text: string): Promise<Component | null> {
+  try {
+    return await driver.findComponent(ON.text(text))
+  } catch (_err) {
+    return null
+  }
+}
+
+async function clickComponent(component: Component | null): Promise<boolean> {
+  if (component === null) {
+    return false
+  }
+  try {
+    await component.click()
+    return true
+  } catch (_err) {
+    return false
+  }
+}
+
+async function clickById(driver: Driver, id: string): Promise<boolean> {
+  return await clickComponent(await findById(driver, id))
+}
+
+async function existsById(driver: Driver, id: string): Promise<boolean> {
+  return await findById(driver, id) !== null
+}
+
+async function existsByText(driver: Driver, text: string): Promise<boolean> {
+  return await findByText(driver, text) !== null
+}
+
+async function safeDelay(driver: Driver, ms: number): Promise<void> {
+  try {
+    await driver.delayMs(ms)
+  } catch (_err) {
+    // ignore
+  }
+}
+
+async function ensureMenuOpen(driver: Driver): Promise<boolean> {
+  if (await existsByText(driver, '显示模式')) {
+    return true
+  }
+  const clicked = await clickById(driver, 'top-menu-trigger')
+  if (!clicked) {
+    return false
+  }
+  await safeDelay(driver, 500)
+  return await existsByText(driver, '显示模式')
 }
