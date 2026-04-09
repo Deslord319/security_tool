@@ -97,7 +97,7 @@ export interface LogCollectorStatusPort {
 export interface LogRepositoryPort {
   init(context: common.UIAbilityContext): Promise<InitializeResult>
   addEntries(entries: LogEntry[]): Promise<MutationResult>
-  snapshot(query?: LogQuery): LogSnapshot
+  snapshot(query?: LogQuery): Promise<LogSnapshot>
   clear(): Promise<ClearLogsResult>
   addChangeListener(listener: () => void): number
   removeChangeListener(id: number): void
@@ -115,7 +115,7 @@ export interface LogStorageMaintenancePort {
 }
 
 export interface LogExportServicePort {
-  export(context: common.UIAbilityContext | null, entries: LogEntry[], fileNamePrefix?: string): Promise<ExportLogsResult>
+  export(context: common.UIAbilityContext | null, query?: LogQuery, fileNamePrefix?: string): Promise<ExportLogsResult>
 }
 
 export interface LogAuditSourcePort {

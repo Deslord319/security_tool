@@ -1,7 +1,11 @@
 import { common } from '@kit.AbilityKit'
-import { CommonStrings } from '../../../constants/CommonStrings'
+import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
+import {
+  LogManageClearingStrings,
+  LogManageEmptyStateStrings,
+  LogManageFilterStrings
+} from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
@@ -42,7 +46,7 @@ class DefaultLogManageRepository implements LogRepositoryPort {
     return LogRepository.addEntries(entries)
   }
 
-  snapshot(query?: LogQuery): LogSnapshot {
+  snapshot(query?: LogQuery): Promise<LogSnapshot> {
     return LogRepository.snapshot(query)
   }
 
@@ -60,8 +64,8 @@ class DefaultLogManageRepository implements LogRepositoryPort {
 }
 
 class DefaultLogManageExporter implements LogExportServicePort {
-  export(context: common.UIAbilityContext | null, entries: LogEntry[], fileNamePrefix?: string): Promise<ExportLogsResult> {
-    return LogExportService.export(context, entries, fileNamePrefix)
+  export(context: common.UIAbilityContext | null, query?: LogQuery, fileNamePrefix?: string): Promise<ExportLogsResult> {
+    return LogExportService.export(context, query, fileNamePrefix)
   }
 }
 
@@ -136,7 +140,7 @@ export class LogManageViewModel {
 
   async refreshAll(): Promise<RefreshResult> {
     try {
-      this.rebuildStateFromSnapshot()
+      await this.rebuildStateFromSnapshot()
       return { success: true, code: 'ok' }
     } catch (err) {
       LogUtils.error(TAG, `refreshAll failed: ${JSON.stringify(err)}`)
@@ -188,7 +192,7 @@ export class LogManageViewModel {
   setPageSizeIndex(index: number): void {
     this.state.pagination.pageSizeIndex = this.normalizePageSizeIndex(index)
     this.resetToFirstPage()
-    this.rebuildStateFromSnapshot()
+    void this.rebuildStateFromSnapshot()
   }
 
   setPageInputText(text: string): void {
@@ -196,21 +200,21 @@ export class LogManageViewModel {
   }
 
   jumpToInputPage(): void {
-    this.changePage(this.normalizePage(this.state.pagination.pageInputText, this.state.pagination.totalPages))
+    void this.changePage(this.normalizePage(this.state.pagination.pageInputText, this.state.pagination.totalPages))
   }
 
   goToPreviousPage(): void {
     if (this.state.pagination.currentPage <= 1) {
       return
     }
-    this.changePage(this.state.pagination.currentPage - 1)
+    void this.changePage(this.state.pagination.currentPage - 1)
   }
 
   goToNextPage(): void {
     if (this.state.pagination.currentPage >= this.state.pagination.totalPages) {
       return
     }
-    this.changePage(this.state.pagination.currentPage + 1)
+    void this.changePage(this.state.pagination.currentPage + 1)
   }
 
   openDetail(entryId: string): void {
@@ -232,12 +236,12 @@ export class LogManageViewModel {
       return { success: false, code: 'clear_failed' }
     }
     this.closeDetail()
-    this.rebuildStateFromSnapshot()
+    await this.rebuildStateFromSnapshot()
     return { success: true, code: 'ok' }
   }
 
   async exportLogs(context: common.UIAbilityContext | null): Promise<ExportActionResult> {
-    let result: ExportLogsResult = await this.exporter.export(context, this.state.list.allEntries)
+    let result: ExportLogsResult = await this.exporter.export(context, this.buildQuery())
     if (result.success) {
       return {
         success: true,
@@ -285,8 +289,8 @@ export class LogManageViewModel {
     }
   }
 
-  private rebuildStateFromSnapshot(): void {
-    let snapshot = this.repository.snapshot(this.buildQuery())
+  private async rebuildStateFromSnapshot(): Promise<void> {
+    let snapshot = await this.repository.snapshot(this.buildQuery())
     let pageSize = PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? PAGE_SIZE_OPTIONS[0]
     let totalPages = this.calcTotalPages(snapshot.entries.length, pageSize)
     let currentPage = this.normalizePage(`${this.state.pagination.currentPage}`, totalPages)
@@ -350,22 +354,22 @@ export class LogManageViewModel {
 
   private rebuildFilterHint(snapshot: LogSnapshot): void {
     if (snapshot.entries.length > 0) {
-      this.state.filter.hintMessage = this.state.filter.eventTypeIndex === 1 ? LogManageStrings.fileFilterHint : ''
+      this.state.filter.hintMessage = this.state.filter.eventTypeIndex === 1 ? LogManageFilterStrings.FILE_HINT : ''
       return
     }
     if (this.state.filter.eventTypeIndex === 1) {
-      this.state.filter.hintMessage = LogManageStrings.fileFilterEmptyHint
+      this.state.filter.hintMessage = LogManageFilterStrings.FILE_EMPTY_HINT
       return
     }
     if (this.state.filter.eventTypeIndex > 0 ||
       this.state.filter.resultIndex > 0 ||
       this.state.filter.keyword.trim().length > 0) {
-      this.state.filter.hintMessage = LogManageStrings.emptyDescription
+      this.state.filter.hintMessage = LogManageEmptyStateStrings.DESCRIPTION
       return
     }
     this.state.filter.hintMessage = (!this.state.collector.running || this.state.collector.degraded) ?
-      EmptyStateStrings.CHECK_PERMISSIONS :
-      LogManageStrings.emptyDescription
+      MessageText.CHECK_PERMISSIONS :
+      LogManageEmptyStateStrings.DESCRIPTION
   }
 
   private syncDetailState(): void {
@@ -423,11 +427,11 @@ export class LogManageViewModel {
     return Math.max(1, Math.ceil(totalCount / pageSize))
   }
 
-  private changePage(targetPage: number): void {
+  private async changePage(targetPage: number): Promise<void> {
     let currentPage = this.normalizePage(`${targetPage}`, this.state.pagination.totalPages)
     this.state.pagination.currentPage = currentPage
     this.state.pagination.pageInputText = `${currentPage}`
-    this.rebuildStateFromSnapshot()
+    await this.rebuildStateFromSnapshot()
   }
 
   private mapResultIndexToValue(index: number): LogEventResult {
@@ -445,8 +449,8 @@ export class LogManageViewModel {
 
   private mapExportError(code: string): string {
     if (code === 'empty') {
-      return LogManageStrings.noExportableLogs
+      return LogManageClearingStrings.NO_EXPORTABLE_LOGS
     }
-    return CommonStrings.messageRetryLater
+    return MessageText.RETRY_LATER
   }
 }

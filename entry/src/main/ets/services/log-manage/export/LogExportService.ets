@@ -7,10 +7,12 @@ import {
   getLogEventResultLabel,
   getLogEventTypeLabel
 } from '../../../models/DataModels'
-import { LogManageStrings } from '../../../constants/modules/LogManageStrings'
-import { ExportLogsResult } from '../common/LogManagePorts'
+import { LogManageCsvStrings } from '../../../constants/modules/LogManageStrings'
+import { ExportLogsResult, LogQuery } from '../common/LogManagePorts'
+import { LogEntryRepository } from '../repository/LogEntryRepository'
 
 const TAG = 'LogExportService'
+const EXPORT_PAGE_SIZE = 500
 
 interface ExportPickerPort {
   save(options: picker.DocumentSaveOptions): Promise<string[]>
@@ -51,17 +53,56 @@ export class LogExportService {
 
   static async export(
     context: common.UIAbilityContext | null,
-    entries: LogEntry[],
+    query?: LogQuery,
     fileNamePrefix: string = 'security_log'
   ): Promise<ExportLogsResult> {
     if (!context) {
       return { success: false, code: 'context_missing' }
     }
-    if (entries.length === 0) {
+    let totalCount = await LogEntryRepository.countByQuery(query)
+    if (totalCount <= 0) {
       return { success: false, code: 'empty' }
     }
-    let csvContent = LogExportService.buildCsvContent(entries).trim()
-    return LogExportService.saveCsvContent(context, csvContent, fileNamePrefix)
+    let timestamp = LogExportService.nowProvider()
+    let fileName = LogExportService.buildExportFileName(timestamp, fileNamePrefix)
+    try {
+      let documentViewPicker = LogExportService.pickerFactory(context)
+      let saveOptions = new picker.DocumentSaveOptions()
+      saveOptions.pickerMode = picker.DocumentPickerMode.DOWNLOAD
+      let result = await documentViewPicker.save(saveOptions)
+      if (result.length === 0) {
+        return { success: false, code: 'user_canceled' }
+      }
+      let directoryUri = result[0]
+      let targetPath = LogExportService.buildPathFn(directoryUri, fileName)
+      let file = LogExportService.openFileFn(targetPath)
+      try {
+        LogExportService.writeFileFn(file.fd, `${LogManageCsvStrings.buildHeader()}\r\n`)
+        let offset = 0
+        while (offset < totalCount) {
+          let entries = await LogEntryRepository.listByQuery(query, EXPORT_PAGE_SIZE, offset)
+          if (entries.length === 0) {
+            break
+          }
+          let chunk = LogExportService.buildCsvBody(entries)
+          if (chunk.length > 0) {
+            LogExportService.writeFileFn(file.fd, chunk)
+          }
+          offset += entries.length
+        }
+      } finally {
+        LogExportService.closeFileFn(file.fd)
+      }
+      return {
+        success: true,
+        code: 'ok',
+        fileName,
+        fullPath: targetPath
+      }
+    } catch (err) {
+      LogUtils.error(TAG, `export failed: ${JSON.stringify(err)}`)
+      return { success: false, code: 'io_failed' }
+    }
   }
 
   static async saveCsvContent(
@@ -106,18 +147,8 @@ export class LogExportService {
   }
 
   static buildCsvContent(entries: LogEntry[]): string {
-    let header = LogManageStrings.buildCsvHeader()
-    let lines: string[] = [header]
-    for (let entry of entries) {
-      let time = formatLogTimestamp(entry.timestamp)
-      let type = getLogEventTypeLabel(entry.eventType)
-      let detail = `"${entry.detail.replace(/"/g, '""')}"`
-      let process = entry.processName || ''
-      let pid = entry.pid !== undefined ? entry.pid.toString() : ''
-      let result = getLogEventResultLabel(entry.result)
-      lines.push(`${time},${type},${detail},${process},${pid},${result}`)
-    }
-    return lines.join('\r\n')
+    let header = LogManageCsvStrings.buildHeader()
+    return `${header}\r\n${LogExportService.buildCsvBody(entries)}`.trim()
   }
 
   private static buildExportFileName(timestamp: number, prefix: string): string {
@@ -162,5 +193,19 @@ export class LogExportService {
     if (deps.closeFileFn) {
       LogExportService.closeFileFn = deps.closeFileFn
     }
+  }
+
+  private static buildCsvBody(entries: LogEntry[]): string {
+    let lines: string[] = []
+    for (let entry of entries) {
+      let time = formatLogTimestamp(entry.timestamp)
+      let type = getLogEventTypeLabel(entry.eventType)
+      let detail = `"${entry.detail.replace(/"/g, '""')}"`
+      let process = entry.processName || ''
+      let pid = entry.pid !== undefined ? entry.pid.toString() : ''
+      let result = getLogEventResultLabel(entry.result)
+      lines.push(`${time},${type},${detail},${process},${pid},${result}`)
+    }
+    return lines.length > 0 ? `${lines.join('\r\n')}\r\n` : ''
   }
 }

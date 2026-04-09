@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { AppColors } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
-import { CommonStrings } from '../../../constants/CommonStrings'
+import { ModuleText } from '../../../constants/StringCatalog'
 import { RouteIds } from '../../../constants/RouteIds'
 import { DashboardStrings } from '../../../constants/modules/DashboardStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
@@ -68,7 +68,7 @@ export class DashboardViewModel {
     return [
       this.buildAdminCard(),
       await this.buildFirewallCard(),
-      this.buildLogCard(),
+      await this.buildLogCard(),
       this.buildPeripheralCard()
     ]
   }
@@ -113,8 +113,8 @@ export class DashboardViewModel {
     )
   }
 
-  private buildLogCard(): DashboardModuleCardState {
-    let statistics = LogRepository.getStatistics()
+  private async buildLogCard(): Promise<DashboardModuleCardState> {
+    let statistics = await LogRepository.getStatistics()
     return this.createModuleCard(
       RouteIds.LOG_MANAGE,
       DashboardStrings.logTitle,
@@ -145,7 +145,7 @@ export class DashboardViewModel {
       for (let index = 0; index < nextCards.length; index++) {
         let card = nextCards[index]
         if (refreshLog && card.id === RouteIds.LOG_MANAGE) {
-          nextCards[index] = this.buildLogCard()
+          nextCards[index] = await this.buildLogCard()
         } else if (refreshPeripheral && card.id === RouteIds.PERIPHERAL_MANAGE) {
           nextCards[index] = this.buildPeripheralCard()
         }
@@ -160,7 +160,7 @@ export class DashboardViewModel {
     return [
       this.createQuickEntry(
         RouteIds.FIREWALL,
-        CommonStrings.moduleFirewall,
+        ModuleText.FIREWALL,
         AppResources.FIREWALL_ICON,
         DashboardStrings.firewallGradient.start,
         DashboardStrings.firewallGradient.end,
@@ -168,7 +168,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.LOG_MANAGE,
-        CommonStrings.moduleLogManage,
+        ModuleText.LOG_MANAGE,
         AppResources.LOG_ICON,
         DashboardStrings.logManageGradient.start,
         DashboardStrings.logManageGradient.end,
@@ -176,7 +176,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.PERIPHERAL_MANAGE,
-        CommonStrings.modulePeripheralManage,
+        ModuleText.PERIPHERAL_MANAGE,
         AppResources.PERIPHERAL_ICON,
         DashboardStrings.peripheralGradient.start,
         DashboardStrings.peripheralGradient.end,
@@ -184,7 +184,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.IDENTITY,
-        CommonStrings.moduleIdentity,
+        ModuleText.IDENTITY,
         AppResources.IDENTITY_ICON,
         DashboardStrings.identityGradient.start,
         DashboardStrings.identityGradient.end,
@@ -192,7 +192,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.TOOL_SETTINGS,
-        CommonStrings.moduleToolSettings,
+        ModuleText.TOOL_SETTINGS,
         AppResources.SETTINGS_ICON,
         DashboardStrings.toolSettingsGradient.start,
         DashboardStrings.toolSettingsGradient.end,
@@ -200,7 +200,7 @@ export class DashboardViewModel {
       ),
       this.createQuickEntry(
         RouteIds.HELP_FEEDBACK,
-        CommonStrings.moduleHelpFeedback,
+        ModuleText.HELP_FEEDBACK,
         AppResources.HELP_ICON,
         DashboardStrings.helpFeedbackGradient.start,
         DashboardStrings.helpFeedbackGradient.end,
