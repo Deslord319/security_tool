@@ -23,7 +23,7 @@ import {
   PeripheralPolicyDispatchResult
 } from '../../../services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
 import { PeripheralPolicyService } from '../../../services/peripheral/device-policy/PeripheralPolicyService'
-import { LogExportService } from '../../../services/log-manage/export/LogExportService'
+import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 
 const TAG = 'PeripheralPolicyViewModel'
 
@@ -148,7 +148,7 @@ export class PeripheralPolicyViewModel {
 
     try {
       const csvContent = this.buildPolicyCsv(this.state.records)
-      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralExportStrings.POLICY_LIST_FILE_PREFIX)
+      const result = await CsvFileExportService.saveText(context, csvContent, PeripheralExportStrings.POLICY_LIST_FILE_PREFIX, 'csv')
       return result.success
         ? { success: true, fileName: result.fileName } as ExportActionResult
         : { success: false, reason: PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED } as ExportActionResult

@@ -10,7 +10,6 @@ import {
   getPeripheralTypeLabel
 } from '../../../models/DataModels'
 import { PeripheralConnectionRecordService } from '../../../services/peripheral/connection-record/PeripheralConnectionRecordService'
-import { LogExportService } from '../../../services/log-manage/export/LogExportService'
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp,
@@ -18,6 +17,7 @@ import {
   getPeripheralConnectionResultLabel,
   PeripheralConnectionHistoryItem
 } from './PeripheralRecordPresentationMapper'
+import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 
 const TAG = 'PeripheralRecordViewModel'
 
@@ -81,7 +81,7 @@ export class PeripheralRecordViewModel {
 
     try {
       const csvContent = this.buildConnectionHistoryCsv(this.state.records)
-      const result = await LogExportService.saveCsvContent(context, csvContent, PeripheralExportStrings.CONNECTION_HISTORY_FILE_PREFIX)
+      const result = await CsvFileExportService.saveText(context, csvContent, PeripheralExportStrings.CONNECTION_HISTORY_FILE_PREFIX, 'csv')
       return result.success ?
         { success: true, fileName: result.fileName } as ExportActionResult :
           { success: false, reason: PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED } as ExportActionResult

@@ -1,42 +1,19 @@
-import { beforeEach, describe, it, expect } from '@ohos/hypium'
+import { afterEach, beforeEach, describe, it, expect } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { picker } from '@kit.CoreFileKit'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEntry,
   LogEventResult,
   LogEventType
 } from '../../main/ets/models/DataModels'
+import {
+  CsvFileExportResult,
+  CsvFileExportService,
+  CsvFileWritePort
+} from '../../main/ets/services/common/export/CsvFileExportService'
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
-
-class FakeSavePicker {
-  private uris: string[]
-
-  constructor(uris: string[]) {
-    this.uris = uris
-  }
-
-  async save(_options: picker.DocumentSaveOptions): Promise<string[]> {
-    return this.uris.slice()
-  }
-}
-
-class FakeExportFileHandle {
-  fd: number
-
-  constructor(fd: number) {
-    this.fd = fd
-  }
-}
-
-class FakeExportDeps {
-  nowProvider?: () => number
-  pickerFactory?: (context: common.UIAbilityContext) => FakeSavePicker
-  buildPathFn?: (directoryUri: string, fileName: string) => string
-  openFileFn?: (path: string) => FakeExportFileHandle
-  writeFileFn?: (fd: number, content: string) => void
-  closeFileFn?: (fd: number) => void
-}
+import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
 
 function createLogEntry(
   id: string,
@@ -55,10 +32,43 @@ function createLogEntry(
   }
 }
 
+function createExportResult(
+  success: boolean,
+  code: 'ok' | 'empty' | 'user_canceled' | 'io_failed' | 'context_missing',
+  fileName?: string,
+  fullPath?: string
+): CsvFileExportResult {
+  let result: CsvFileExportResult = {
+    success,
+    code,
+    fileName,
+    fullPath
+  }
+  return result
+}
+
+class CapturingWritePort implements CsvFileWritePort {
+  private readonly captured: string[]
+
+  constructor(captured: string[]) {
+    this.captured = captured
+  }
+
+  append(content: string): void {
+    this.captured.push(content)
+  }
+}
+
 export default function logExportServiceTest() {
   describe('LogManage storage helpers', () => {
+    let mockKit: MockKit
+
     beforeEach(() => {
-      LogExportService.setTestDeps({})
+      mockKit = new MockKit()
+    })
+
+    afterEach(() => {
+      mockKit.clearAll()
     })
 
     it('should normalize storage config with fixed numeric values', 0, () => {
@@ -92,73 +102,85 @@ export default function logExportServiceTest() {
       expect(csv.indexOf('beta') > 0).assertTrue()
     })
 
-    it('should return empty when export entries are missing', 0, async (done: Function) => {
-      let result = await LogExportService.export(null, [])
+    it('should return context_missing when export context is missing', 0, async (done: Function) => {
+      let result = await LogExportService.export(null)
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('context_missing')
       done()
     })
 
-    it('should return empty when csv content is blank', 0, async (done: Function) => {
-      let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, '')
+    it('should return empty when queried log count is zero', 0, async (done: Function) => {
+      let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
+      when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(0))
+
+      let result = await LogExportService.export({} as common.UIAbilityContext)
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('empty')
       done()
     })
 
-    it('should return user_canceled when picker returns empty directory list', 0, async (done: Function) => {
-      let deps = new FakeExportDeps()
-      deps.pickerFactory = (_context: common.UIAbilityContext) => new FakeSavePicker([])
-      deps.nowProvider = () => new Date(2026, 0, 15, 8, 30, 0).getTime()
-      LogExportService.setTestDeps(deps as Object as never)
+    it('should propagate downstream export result when writer is canceled', 0, async (done: Function) => {
+      let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
+      let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
+      when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
+      when(saveMock)().afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
 
-      let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, 'header\r\nrow')
+      let result = await LogExportService.export({} as common.UIAbilityContext)
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('user_canceled')
       done()
     })
 
-    it('should return io_failed when write pipeline throws', 0, async (done: Function) => {
-      let closeCalled = false
-      let deps = new FakeExportDeps()
-      deps.pickerFactory = (_context: common.UIAbilityContext) => new FakeSavePicker(['file://docs/storage'])
-      deps.buildPathFn = (_directoryUri: string, fileName: string): string => `/mock/${fileName}`
-      deps.openFileFn = (_path: string): FakeExportFileHandle => new FakeExportFileHandle(9)
-      deps.writeFileFn = (_fd: number, _content: string): void => { throw new Error('write failed') }
-      deps.closeFileFn = (_fd: number): void => { closeCalled = true }
-      LogExportService.setTestDeps(deps as Object as never)
+    it('should write csv header and row chunks through export writer', 0, async (done: Function) => {
+      let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
+      let listMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.listByQuery)
+      let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
+      let captured: string[] = []
+      when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
+      when(listMock)().afterReturn(Promise.resolve([
+        createLogEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'alpha', 1700000000000)
+      ]))
+      when(saveMock)().afterAction((
+        context: common.UIAbilityContext,
+        fileNamePrefix: string,
+        writer: (port: CsvFileWritePort) => Promise<void>,
+        fileExtension: string
+      ) => {
+        let port = new CapturingWritePort(captured)
+        return writer(port).then(() => {
+          return Promise.resolve(createExportResult(
+            true,
+            'ok',
+            `${fileNamePrefix}_mock.${fileExtension}`,
+            `/mock/${fileNamePrefix}_mock.${fileExtension}`
+          ))
+        })
+      })
 
-      let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, 'header\r\nrow')
+      let result = await LogExportService.export({} as common.UIAbilityContext)
 
-      expect(result.success).assertFalse()
-      expect(result.code).assertEqual('io_failed')
-      expect(closeCalled).assertTrue()
+      expect(result.success).assertTrue()
+      expect(captured.length >= 2).assertTrue()
+      expect(captured[0].indexOf('时间,事件类型,详情,进程名,PID,结果')).assertEqual(0)
+      expect(captured[1].indexOf('alpha') > -1).assertTrue()
       done()
     })
 
-    it('should return ok with file metadata when save pipeline succeeds', 0, async (done: Function) => {
-      let wroteContent = ''
-      let deps = new FakeExportDeps()
-      deps.nowProvider = () => new Date(2026, 0, 15, 8, 30, 0).getTime()
-      deps.pickerFactory = (_context: common.UIAbilityContext) => new FakeSavePicker(['file://docs/storage'])
-      deps.buildPathFn = (_directoryUri: string, fileName: string): string => `/mock/${fileName}`
-      deps.openFileFn = (_path: string): FakeExportFileHandle => new FakeExportFileHandle(7)
-      deps.writeFileFn = (_fd: number, content: string): void => {
-        wroteContent = content
-      }
-      deps.closeFileFn = (_fd: number): void => {}
-      LogExportService.setTestDeps(deps as Object as never)
+    it('should return io_failed when export writer throws unexpectedly', 0, async (done: Function) => {
+      let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
+      let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
+      when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
+      when(saveMock)().afterAction(() => {
+        throw new Error('writer failed')
+      })
 
-      let result = await LogExportService.saveCsvContent({} as common.UIAbilityContext, 'header\r\nrow')
+      let result = await LogExportService.export({} as common.UIAbilityContext)
 
-      expect(result.success).assertTrue()
-      expect(result.code).assertEqual('ok')
-      expect(result.fileName).assertEqual('security_log_20260115_083000.csv')
-      expect(result.fullPath).assertEqual('/mock/security_log_20260115_083000.csv')
-      expect(wroteContent).assertEqual('header\r\nrow')
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('io_failed')
       done()
     })
   })

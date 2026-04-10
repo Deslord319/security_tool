@@ -1,43 +1,19 @@
-import { beforeEach, describe, expect, it } from '@ohos/hypium'
+import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { LogEntry, LogEventResult, LogEventType, LogSubscriptionConfig } from '../../main/ets/models/DataModels'
 import {
   AuditSubscribeResult,
   CrashSubscribeResult,
   InitializeResult,
   MutationResult,
-  ServiceResult,
-  SourceStatus
+  ServiceResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import { LogCollectorService } from '../../main/ets/services/log-manage/collector/LogCollectorService'
-
-interface FakeSubscriptionConfig {
-  subscribeAll: boolean
-  subscribedTypes: LogEventType[]
-}
-
-class FakeCollectorDeps {
-  repositoryPort: FakeCollectorRepository
-  configPort: FakeCollectorConfig
-  auditSourcePort: FakeAuditSource
-  crashSourcePort: FakeCrashSource
-  setTimerFn: (task: () => void, delayMs: number) => number
-  clearTimerFn: (timerId: number) => void
-
-  constructor(
-    repositoryPort: FakeCollectorRepository,
-    configPort: FakeCollectorConfig,
-    auditSourcePort: FakeAuditSource,
-    crashSourcePort: FakeCrashSource
-  ) {
-    this.repositoryPort = repositoryPort
-    this.configPort = configPort
-    this.auditSourcePort = auditSourcePort
-    this.crashSourcePort = crashSourcePort
-    this.setTimerFn = (_task: () => void, _delayMs: number): number => 1
-    this.clearTimerFn = (_timerId: number): void => {}
-  }
-}
+import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
+import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
+import { LogAuditSource } from '../../main/ets/services/log-manage/source/LogAuditSource'
+import { LogCrashSource } from '../../main/ets/services/log-manage/source/LogCrashSource'
 
 function createEntry(id: string, detail: string): LogEntry {
   return {
@@ -53,33 +29,12 @@ class FakeCollectorRepository {
   initResult: InitializeResult = { success: true, code: 'ok' }
   addEntriesResult: MutationResult = { success: true, code: 'ok' }
   savedBatches: LogEntry[][] = []
-
-  async init(_context: common.UIAbilityContext): Promise<InitializeResult> {
-    return this.initResult
-  }
-
-  async addEntries(entries: LogEntry[]): Promise<MutationResult> {
-    this.savedBatches.push(entries.slice())
-    return this.addEntriesResult
-  }
 }
 
 class FakeCollectorConfig {
   initResult: ServiceResult = { success: true, code: 'ok' }
   subscribeAll: boolean = true
   subscribedTypes: LogEventType[] = [LogEventType.FILE, LogEventType.CRASH]
-
-  async init(_context: common.UIAbilityContext): Promise<ServiceResult> {
-    return this.initResult
-  }
-
-  async loadSubscriptionConfig(): Promise<FakeSubscriptionConfig> {
-    let result: FakeSubscriptionConfig = {
-      subscribeAll: this.subscribeAll,
-      subscribedTypes: this.subscribedTypes.slice()
-    }
-    return result
-  }
 }
 
 class FakeAuditSource {
@@ -90,20 +45,6 @@ class FakeAuditSource {
     failedEventIds: []
   }
   callback?: (entry: LogEntry) => void
-
-  async subscribe(onEntry: (entry: LogEntry) => void, _eventTypes?: LogEventType[]): Promise<AuditSubscribeResult> {
-    this.callback = onEntry
-    return this.result
-  }
-
-  unsubscribe(): boolean {
-    this.callback = undefined
-    return true
-  }
-
-  getStatus(): SourceStatus {
-    return { subscribed: this.callback !== undefined }
-  }
 }
 
 class FakeCrashSource {
@@ -112,20 +53,6 @@ class FakeCrashSource {
     code: 'ok'
   }
   callback?: (entry: LogEntry) => void
-
-  subscribe(onEntry: (entry: LogEntry) => void): CrashSubscribeResult {
-    this.callback = onEntry
-    return this.result
-  }
-
-  unsubscribe(): boolean {
-    this.callback = undefined
-    return true
-  }
-
-  getStatus(): SourceStatus {
-    return { subscribed: this.callback !== undefined }
-  }
 }
 
 export default function logCollectorServiceTest() {
@@ -135,15 +62,67 @@ export default function logCollectorServiceTest() {
     let auditSource: FakeAuditSource
     let crashSource: FakeCrashSource
     let context: common.UIAbilityContext
+    let mockKit: MockKit
 
-    beforeEach(() => {
+    beforeEach(async () => {
+      await LogCollectorService.stop()
       repository = new FakeCollectorRepository()
       config = new FakeCollectorConfig()
       auditSource = new FakeAuditSource()
       crashSource = new FakeCrashSource()
-      let deps = new FakeCollectorDeps(repository, config, auditSource, crashSource)
-      LogCollectorService.setTestDeps(deps as Object as never)
       context = {} as common.UIAbilityContext
+      mockKit = new MockKit()
+
+      let initStorageMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.initialize)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      let initConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.init)
+      let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadSubscriptionConfig)
+      let auditSubscribeMock = mockKit.mockFunc(LogAuditSource, LogAuditSource.subscribe)
+      let auditUnsubscribeMock = mockKit.mockFunc(LogAuditSource, LogAuditSource.unsubscribe)
+      let crashSubscribeMock = mockKit.mockFunc(LogCrashSource, LogCrashSource.subscribe)
+      let crashUnsubscribeMock = mockKit.mockFunc(LogCrashSource, LogCrashSource.unsubscribe)
+
+      when(initStorageMock)(ArgumentMatchers.any).afterAction((_context: common.UIAbilityContext) => {
+        return Promise.resolve(repository.initResult)
+      })
+      when(appendEntriesMock)(ArgumentMatchers.any).afterAction((entries: LogEntry[]) => {
+        repository.savedBatches.push(entries.slice())
+        return Promise.resolve(repository.addEntriesResult)
+      })
+      when(initConfigMock)(ArgumentMatchers.any).afterAction((_context: common.UIAbilityContext) => {
+        return Promise.resolve(config.initResult)
+      })
+      when(loadConfigMock)().afterAction(() => {
+        let result: LogSubscriptionConfig = {
+          subscribeAll: config.subscribeAll,
+          subscribedTypes: config.subscribedTypes.slice()
+        }
+        return Promise.resolve(result)
+      })
+      when(auditSubscribeMock)().afterAction((
+        onEntry: (entry: LogEntry) => void,
+        _eventTypes?: LogEventType[]
+      ) => {
+        auditSource.callback = onEntry
+        return Promise.resolve(auditSource.result)
+      })
+      when(auditUnsubscribeMock)().afterAction(() => {
+        auditSource.callback = undefined
+        return true
+      })
+      when(crashSubscribeMock)(ArgumentMatchers.any).afterAction((onEntry: (entry: LogEntry) => void) => {
+        crashSource.callback = onEntry
+        return crashSource.result
+      })
+      when(crashUnsubscribeMock)().afterAction(() => {
+        crashSource.callback = undefined
+        return true
+      })
+    })
+
+    afterEach(async () => {
+      await LogCollectorService.stop()
+      mockKit.clearAll()
     })
 
     it('should return ok when only enabled audit source is ready', 0, async (done: Function) => {

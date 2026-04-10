@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { AppInfo } from '../../../constants/AppConstants'
-import { LogEntry, LogEventType, LogSubscriptionConfig } from '../../../models/DataModels'
+import { LogEntry, LogEventType } from '../../../models/DataModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   AuditSubscribeResult,
@@ -8,86 +8,14 @@ import {
   CollectorStopResult,
   CollectorStatus,
   CrashSubscribeResult,
-  InitializeResult,
-  LogAuditSourcePort,
-  LogCrashSourcePort,
-  LogRepositoryPort,
-  MutationResult,
-  ServiceResult
+  InitializeResult
 } from '../common/LogManagePorts'
 import { LogSettingsRepository } from '../repository/LogSettingsRepository'
-import { LogRepository } from '../repository/LogRepository'
+import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 import { LogAuditSource } from '../source/LogAuditSource'
 import { LogCrashSource } from '../source/LogCrashSource'
 
 const TAG = 'LogCollectorService'
-
-interface CollectorRepositoryDeps {
-  init(context: common.UIAbilityContext): Promise<InitializeResult>
-  addEntries(entries: LogEntry[]): Promise<MutationResult>
-}
-
-interface CollectorConfigDeps {
-  init(context: common.UIAbilityContext): Promise<ServiceResult>
-  loadSubscriptionConfig(): Promise<LogSubscriptionConfig>
-}
-
-interface LogCollectorTestDeps {
-  repositoryPort?: CollectorRepositoryDeps
-  configPort?: CollectorConfigDeps
-  auditSourcePort?: LogAuditSourcePort
-  crashSourcePort?: LogCrashSourcePort
-  setTimerFn?: (task: () => void, delayMs: number) => number
-  clearTimerFn?: (timerId: number) => void
-}
-
-class DefaultCollectorRepositoryPort implements CollectorRepositoryDeps {
-  init(context: common.UIAbilityContext): Promise<InitializeResult> {
-    return LogRepository.init(context)
-  }
-
-  addEntries(entries: LogEntry[]): Promise<MutationResult> {
-    return LogRepository.addEntries(entries)
-  }
-}
-
-class DefaultCollectorConfigPort implements CollectorConfigDeps {
-  init(context: common.UIAbilityContext): Promise<ServiceResult> {
-    return LogSettingsRepository.init(context)
-  }
-
-  loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
-    return LogSettingsRepository.loadSubscriptionConfig()
-  }
-}
-
-class DefaultCollectorAuditSourcePort implements LogAuditSourcePort {
-  subscribe(onEntry: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<AuditSubscribeResult> {
-    return LogAuditSource.subscribe(onEntry, eventTypes)
-  }
-
-  unsubscribe(): boolean {
-    return LogAuditSource.unsubscribe()
-  }
-
-  getStatus() {
-    return LogAuditSource.getStatus()
-  }
-}
-
-class DefaultCollectorCrashSourcePort implements LogCrashSourcePort {
-  subscribe(onEntry: (entry: LogEntry) => void): CrashSubscribeResult {
-    return LogCrashSource.subscribe(onEntry)
-  }
-
-  unsubscribe(): boolean {
-    return LogCrashSource.unsubscribe()
-  }
-
-  getStatus() {
-    return LogCrashSource.getStatus()
-  }
-}
 
 export class LogCollectorService {
   private static initialized: boolean = false
@@ -101,14 +29,6 @@ export class LogCollectorService {
   private static isFlushingEntries: boolean = false
   private static readonly BATCH_FLUSH_INTERVAL_MS: number = 200
   private static readonly MAX_PENDING_ENTRIES: number = 1200
-  private static setTimerFn: (task: () => void, delayMs: number) => number =
-    (task: () => void, delayMs: number): number => setTimeout(task, delayMs) as number
-  private static clearTimerFn: (timerId: number) => void =
-    (timerId: number): void => clearTimeout(timerId)
-  private static repositoryPort: CollectorRepositoryDeps = new DefaultCollectorRepositoryPort()
-  private static configPort: CollectorConfigDeps = new DefaultCollectorConfigPort()
-  private static auditSourcePort: LogAuditSourcePort = new DefaultCollectorAuditSourcePort()
-  private static crashSourcePort: LogCrashSourcePort = new DefaultCollectorCrashSourcePort()
   private static readonly INTERNAL_LOG_PATH_KEYWORDS: string[] = [
     'preferences/log_settings',
     'preferences/theme_preferences',
@@ -121,11 +41,11 @@ export class LogCollectorService {
     if (LogCollectorService.initialized) {
       return { success: true, code: 'ok' }
     }
-    let repoReady = await LogCollectorService.repositoryPort.init(context)
+    let repoReady = await LogStorageMaintenanceService.initialize(context)
     if (!repoReady.success) {
       return repoReady
     }
-    let configReady = await LogCollectorService.configPort.init(context)
+    let configReady = await LogSettingsRepository.init(context)
     if (!configReady.success) {
       return { success: false, code: 'config_init_failed' }
     }
@@ -140,7 +60,7 @@ export class LogCollectorService {
     if (!LogCollectorService.initialized) {
       return LogCollectorService.buildStartResult(false, 'not_initialized')
     }
-    let subscribeConfig = await LogCollectorService.configPort.loadSubscriptionConfig()
+    let subscribeConfig = await LogSettingsRepository.loadSubscriptionConfig()
     let targetTypes = subscribeConfig.subscribeAll ? undefined : subscribeConfig.subscribedTypes
     let auditTypes = targetTypes?.filter((type: LogEventType) => type !== LogEventType.CRASH)
     let shouldCollectCrash = targetTypes === undefined || targetTypes.includes(LogEventType.CRASH)
@@ -148,12 +68,12 @@ export class LogCollectorService {
     LogCollectorService.auditEnabled = shouldCollectAudit
     LogCollectorService.crashEnabled = shouldCollectCrash
     let auditResult: AuditSubscribeResult = auditTypes === undefined || auditTypes.length > 0 ?
-      await LogCollectorService.auditSourcePort.subscribe((entry: LogEntry) => {
+      await LogAuditSource.subscribe((entry: LogEntry) => {
         LogCollectorService.handleIncomingEntry(entry)
       }, auditTypes) :
       LogCollectorService.buildSkippedAuditSubscribeResult()
     let crashResult: CrashSubscribeResult = shouldCollectCrash ?
-      LogCollectorService.crashSourcePort.subscribe((entry: LogEntry) => {
+      LogCrashSource.subscribe((entry: LogEntry) => {
         LogCollectorService.handleIncomingEntry(entry)
       }) :
       LogCollectorService.buildSkippedCrashSubscribeResult()
@@ -189,10 +109,10 @@ export class LogCollectorService {
     LogCollectorService.crashEnabled = false
     LogCollectorService.auditReady = false
     LogCollectorService.crashReady = false
-    LogCollectorService.auditSourcePort.unsubscribe()
-    LogCollectorService.crashSourcePort.unsubscribe()
+    LogAuditSource.unsubscribe()
+    LogCrashSource.unsubscribe()
     if (LogCollectorService.flushTimerId >= 0) {
-      LogCollectorService.clearTimerFn(LogCollectorService.flushTimerId)
+      clearTimeout(LogCollectorService.flushTimerId)
       LogCollectorService.flushTimerId = -1
     }
     await LogCollectorService.flushPendingEntries()
@@ -265,12 +185,12 @@ export class LogCollectorService {
     if (LogCollectorService.flushTimerId >= 0) {
       return
     }
-    LogCollectorService.flushTimerId = LogCollectorService.setTimerFn(() => {
+    LogCollectorService.flushTimerId = setTimeout(() => {
       LogCollectorService.flushTimerId = -1
       LogCollectorService.flushPendingEntries().catch((err: Object) => {
         LogUtils.error(TAG, `flushPendingEntries timer failed: ${JSON.stringify(err)}`)
       })
-    }, LogCollectorService.BATCH_FLUSH_INTERVAL_MS)
+    }, LogCollectorService.BATCH_FLUSH_INTERVAL_MS) as number
   }
 
   private static async flushPendingEntries(): Promise<void> {
@@ -281,7 +201,7 @@ export class LogCollectorService {
     let batch = LogCollectorService.pendingEntries.slice()
     LogCollectorService.pendingEntries = []
     try {
-      let saved = await LogCollectorService.repositoryPort.addEntries(batch)
+      let saved = await LogStorageMaintenanceService.appendEntries(batch)
       LogUtils.info(TAG, `flushPendingEntries result: batch=${batch.length}, saved=${saved.success}, pendingAfterFlush=${LogCollectorService.pendingEntries.length}`)
       if (!saved.success) {
         LogCollectorService.requeueFailedBatch(batch, 'flushPendingEntries failed')
@@ -338,41 +258,5 @@ export class LogCollectorService {
       code: 'unsupported'
     }
     return result
-  }
-
-  static setTestDeps(deps: LogCollectorTestDeps): void {
-    LogCollectorService.initialized = false
-    LogCollectorService.running = false
-    LogCollectorService.auditEnabled = false
-    LogCollectorService.crashEnabled = false
-    LogCollectorService.auditReady = false
-    LogCollectorService.crashReady = false
-    LogCollectorService.pendingEntries = []
-    LogCollectorService.flushTimerId = -1
-    LogCollectorService.isFlushingEntries = false
-    LogCollectorService.setTimerFn = (task: () => void, delayMs: number): number => setTimeout(task, delayMs) as number
-    LogCollectorService.clearTimerFn = (timerId: number): void => clearTimeout(timerId)
-    LogCollectorService.repositoryPort = new DefaultCollectorRepositoryPort()
-    LogCollectorService.configPort = new DefaultCollectorConfigPort()
-    LogCollectorService.auditSourcePort = new DefaultCollectorAuditSourcePort()
-    LogCollectorService.crashSourcePort = new DefaultCollectorCrashSourcePort()
-    if (deps.repositoryPort) {
-      LogCollectorService.repositoryPort = deps.repositoryPort
-    }
-    if (deps.configPort) {
-      LogCollectorService.configPort = deps.configPort
-    }
-    if (deps.auditSourcePort) {
-      LogCollectorService.auditSourcePort = deps.auditSourcePort
-    }
-    if (deps.crashSourcePort) {
-      LogCollectorService.crashSourcePort = deps.crashSourcePort
-    }
-    if (deps.setTimerFn) {
-      LogCollectorService.setTimerFn = deps.setTimerFn
-    }
-    if (deps.clearTimerFn) {
-      LogCollectorService.clearTimerFn = deps.clearTimerFn
-    }
   }
 }
