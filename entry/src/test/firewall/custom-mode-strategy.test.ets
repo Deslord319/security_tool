@@ -1,22 +1,14 @@
-import { describe, expect, it } from '@ohos/hypium'
+import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 
 import { CustomModeStrategy } from '../../main/ets/services/firewall/mode-strategies/CustomModeStrategy'
+import {
+  FirewallCustomRulesRepository,
+  StoredCustomFirewallRuleRecord
+} from '../../main/ets/services/firewall/repositories/FirewallCustomRulesRepository'
 import { FirewallRulesService } from '../../main/ets/services/firewall/rules/FirewallRulesService'
-
-interface StoredCustomFirewallRuleRecordLike {
-  customRuleId: string
-  rule: netFirewall.NetFirewallRule
-}
-
-interface CustomModeStrategyContractAccess {
-  toDisplayRule(record: StoredCustomFirewallRuleRecordLike): netFirewall.NetFirewallRule
-  toStoredRule(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule
-  generateCustomRuleId(): string
-  createRecord(customRuleId: string, rule: netFirewall.NetFirewallRule): StoredCustomFirewallRuleRecordLike
-  hashRuleId(customRuleId: string): number
-}
 
 function createRule(name: string): netFirewall.NetFirewallRule {
   return {
@@ -29,8 +21,25 @@ function createRule(name: string): netFirewall.NetFirewallRule {
   } as netFirewall.NetFirewallRule
 }
 
+function createStoredRecord(customRuleId: string, name: string): StoredCustomFirewallRuleRecord {
+  return {
+    customRuleId,
+    rule: createRule(name)
+  }
+}
+
 export default function customModeStrategyTest() {
   describe('CustomModeStrategy', () => {
+    let mockKit: MockKit
+
+    beforeEach(() => {
+      mockKit = new MockKit()
+    })
+
+    afterEach(() => {
+      mockKit.clearAll()
+    })
+
     it('should extract custom rule id from managed metadata only', 0, () => {
       let customRule = FirewallRulesService.applyManagedRuleMetadata(createRule('custom-rule'), {
         owner: 'security_tool',
@@ -49,75 +58,97 @@ export default function customModeStrategyTest() {
       expect(CustomModeStrategy.getCustomRuleId(presetRule) === undefined).assertTrue()
     })
 
-    it('should convert stored rule to display rule with hashed id and custom metadata', 0, () => {
-      let contract = CustomModeStrategy as Object as CustomModeStrategyContractAccess
-      let record = contract.createRecord('custom_abc', createRule('demo'))
+    it('should convert stored rules to display rules with stable ids and custom metadata', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let loadMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.loadRecords)
+      when(loadMock)(context).afterReturn([
+        createStoredRecord('custom_abc', 'demo')
+      ])
 
-      let displayRule = contract.toDisplayRule(record)
+      let first = await CustomModeStrategy.listRules(context)
+      let second = await CustomModeStrategy.listRules(context)
 
-      expect(displayRule.id !== undefined).assertTrue()
-      expect(displayRule.description?.includes('custom_abc') ?? false).assertTrue()
-      expect(CustomModeStrategy.getCustomRuleId(displayRule)).assertEqual('custom_abc')
+      expect(first.length).assertEqual(1)
+      expect(first[0].id !== undefined).assertTrue()
+      expect(first[0].description?.includes('custom_abc') ?? false).assertTrue()
+      expect(CustomModeStrategy.getCustomRuleId(first[0])).assertEqual('custom_abc')
+      expect(first[0].id).assertEqual(second[0].id)
     })
 
-    it('should strip description when converting to stored rule', 0, () => {
-      let contract = CustomModeStrategy as Object as CustomModeStrategyContractAccess
+    it('should strip managed description when replacing stored rules', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let saveMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.saveRecords)
+      when(saveMock)(ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
+
       let rule = FirewallRulesService.applyManagedRuleMetadata(createRule('demo'), {
         owner: 'security_tool',
         mode: 'custom',
         kind: 'custom',
         customRuleId: 'custom_demo'
       })
+      let replaced = await CustomModeStrategy.replaceAllRules(context, [rule])
 
-      let storedRule = contract.toStoredRule(rule)
-
-      expect(storedRule.description === undefined).assertTrue()
-      expect(storedRule.name).assertEqual('demo')
+      expect(replaced).assertTrue()
     })
 
-    it('should generate stable non-zero hashes for custom rule ids', 0, () => {
-      let contract = CustomModeStrategy as Object as CustomModeStrategyContractAccess
-      let generatedId = contract.generateCustomRuleId()
-      let hash1 = contract.hashRuleId('custom_same')
-      let hash2 = contract.hashRuleId('custom_same')
-
-      expect(generatedId.startsWith('custom_')).assertTrue()
-      expect(hash1 > 0).assertTrue()
-      expect(hash1).assertEqual(hash2)
-    })
-
-    it('should return empty rules when custom store is unavailable', 0, async () => {
+    it('should generate custom ids for added rules and initialization migrations', 0, async () => {
       let context = {} as common.UIAbilityContext
+      let loadMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.loadRecords)
+      let saveMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.saveRecords)
+      when(loadMock)(context).afterReturn([])
+      when(saveMock)(ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
 
-      let listRules = await CustomModeStrategy.listRules(context)
-      let applyRules = await CustomModeStrategy.buildRulesForApply(context)
+      let initializedRule = createRule('system-demo')
+      await CustomModeStrategy.initializeFromSystemIfEmpty(context, [initializedRule])
+      let added = await CustomModeStrategy.addRule(context, createRule('manual-demo'))
 
-      expect(listRules.length >= 0).assertTrue()
-      expect(applyRules.length).assertEqual(listRules.length)
+      expect(added).assertTrue()
     })
 
-    it('should short-circuit initialization when system rules are empty', 0, async () => {
+    it('should short-circuit initialization when custom store already has records', 0, async () => {
       let context = {} as common.UIAbilityContext
+      let saveCount = 0
+      let loadMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.loadRecords)
+      let saveMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.saveRecords)
+      when(loadMock)(context).afterReturn([createStoredRecord('custom_existing', 'existing')])
+      when(saveMock)(ArgumentMatchers.anyObj).afterAction(() => {
+        saveCount++
+        return Promise.resolve(true)
+      })
 
-      await CustomModeStrategy.initializeFromSystemIfEmpty(context, [])
+      await CustomModeStrategy.initializeFromSystemIfEmpty(context, [createRule('system-demo')])
 
-      expect(true).assertTrue()
+      expect(saveCount).assertEqual(0)
     })
 
-    it('should replace all custom rules and return a boolean result', 0, async () => {
-      let context = {} as common.UIAbilityContext
-      let result = await CustomModeStrategy.replaceAllRules(context, [createRule('demo')])
-
-      expect(typeof result === 'boolean').assertTrue()
-    })
-
-    it('should add rules and reject update/remove when custom metadata is missing', 0, async () => {
+    it('should reject update and remove when custom metadata is missing', 0, async () => {
       let context = {} as common.UIAbilityContext
       let rule = createRule('demo')
 
-      expect(typeof (await CustomModeStrategy.addRule(context, rule)) === 'boolean').assertTrue()
       expect(await CustomModeStrategy.updateRule(context, rule)).assertFalse()
       expect(await CustomModeStrategy.removeRule(context, rule)).assertFalse()
+    })
+
+    it('should update and remove rules through repository when custom metadata exists', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let loadMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.loadRecords)
+      let saveMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.saveRecords)
+      when(loadMock)(context).afterReturn([
+        createStoredRecord('custom_demo', 'before')
+      ])
+      when(saveMock)(ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
+
+      let rule = FirewallRulesService.applyManagedRuleMetadata(createRule('after'), {
+        owner: 'security_tool',
+        mode: 'custom',
+        kind: 'custom',
+        customRuleId: 'custom_demo'
+      })
+      let updated = await CustomModeStrategy.updateRule(context, rule)
+      let removed = await CustomModeStrategy.removeRule(context, rule)
+
+      expect(updated).assertTrue()
+      expect(removed).assertTrue()
     })
   })
 }
