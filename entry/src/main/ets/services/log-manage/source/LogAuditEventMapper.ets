@@ -24,15 +24,6 @@ interface ParsedAuditPayload {
   rawAction?: string
 }
 
-const FILE_EVENT_IDS: number[] = [
-  securityAudit.NotifyEvent.FILE,
-  securityAudit.NotifyEvent.FILE_INTERCEPTED,
-  securityAudit.NotifyEvent.KIA_CREATE,
-  securityAudit.NotifyEvent.KIA_READ,
-  securityAudit.NotifyEvent.KIA_VARIANT,
-  securityAudit.NotifyEvent.KIA_INTERCEPT
-]
-
 const EVENT_TYPE_BY_ID: Map<number, LogEventType> = new Map<number, LogEventType>([
   [securityAudit.NotifyEvent.FILE, LogEventType.FILE],
   [securityAudit.NotifyEvent.FILE_INTERCEPTED, LogEventType.FILE],

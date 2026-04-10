@@ -1,4 +1,3 @@
-import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
 import {
@@ -26,8 +25,6 @@ import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
 } from '../../../viewmodels/identity/settings/IdentitySettingsViewModel'
-
-const TAG = 'IdentityPage'
 
 @ComponentV2
 export struct IdentityPage {
