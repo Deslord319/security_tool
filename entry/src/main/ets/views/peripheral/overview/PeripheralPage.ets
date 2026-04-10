@@ -30,7 +30,6 @@ import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunne
 import { CommonLoadingDialog } from '../../../components/CommonLoadingDialog'
 
 const TAG = 'PeripheralPage'
-const USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS = 180
 
 @ComponentV2
 export struct PeripheralPage {
@@ -297,9 +296,7 @@ export struct PeripheralPage {
         LogUtils.info(TAG, `usb interface switch start: disallow=${disallow}`)
         return await this.viewModel.toggleInterface(PeripheralService.FEATURE_USB, disallow)
       },
-      (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage),
-      500,
-      USB_INTERFACE_LOADING_RENDER_READY_DELAY_MS
+      (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
     )
     if (!success) {
       if (!this.viewModel.adminState.activated) {

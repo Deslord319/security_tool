@@ -38,7 +38,7 @@ struct ExpandableInfoList {
               .layoutWeight(1)
 
             Text(this.expandedIndex === index ? HelpFeedbackActionStrings.COLLAPSE : HelpFeedbackActionStrings.EXPAND)
-              .fontSize(10)
+              .fontSize(AppStyles.FONT_SIZE_SMALL)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           }
