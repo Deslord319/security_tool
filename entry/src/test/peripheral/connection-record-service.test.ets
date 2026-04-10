@@ -59,7 +59,7 @@ export default function peripheralConnectionRecordServiceTest() {
 
       await seedTraceRecords([older, newer])
 
-      let records = PeripheralConnectionRecordService.queryRecords()
+      let records = await PeripheralConnectionRecordService.queryRecords()
 
       expect(records.length).assertEqual(2)
       expect(records[0].deviceName).assertEqual('Newer Device')
@@ -80,11 +80,11 @@ export default function peripheralConnectionRecordServiceTest() {
 
       await seedTraceRecords([record])
 
-      let records = PeripheralConnectionRecordService.queryRecords()
+      let records = await PeripheralConnectionRecordService.queryRecords()
 
       expect(records.length).assertEqual(1)
       expect(records[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
-      expect(records[0].action).assertEqual('unknown')
+      expect(records[0].action).assertEqual('discover')
       expect(records[0].matchedPolicyKind).assertEqual('bluetooth_discovery')
       done()
     })
@@ -102,7 +102,7 @@ export default function peripheralConnectionRecordServiceTest() {
 
       await seedTraceRecords([record])
 
-      let records = PeripheralConnectionRecordService.queryRecords()
+      let records = await PeripheralConnectionRecordService.queryRecords()
 
       expect(records.length).assertEqual(1)
       expect(records[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
@@ -135,7 +135,7 @@ export default function peripheralConnectionRecordServiceTest() {
 
       await seedTraceRecords([record])
 
-      let records = PeripheralConnectionRecordService.queryRecords()
+      let records = await PeripheralConnectionRecordService.queryRecords()
 
       expect(records.length).assertEqual(1)
       expect(records[0].id).assertEqual('peripheral_runtime_runtime_rich')
@@ -182,7 +182,7 @@ export default function peripheralConnectionRecordServiceTest() {
         keyword: 'keyboard'
       }
 
-      let records = PeripheralConnectionRecordService.queryRecords(filter)
+      let records = await PeripheralConnectionRecordService.queryRecords(filter)
 
       expect(records.length).assertEqual(1)
       expect(records[0].source).assertEqual('runtime_event')
@@ -197,7 +197,7 @@ export default function peripheralConnectionRecordServiceTest() {
 
       await seedTraceRecords([auditRecord])
 
-      let records = PeripheralConnectionRecordService.queryRecords()
+      let records = await PeripheralConnectionRecordService.queryRecords()
 
       expect(records.length).assertEqual(0)
       done()

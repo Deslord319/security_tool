@@ -45,10 +45,6 @@ export class LogCollectorService {
     if (!repoReady.success) {
       return repoReady
     }
-    let configReady = await LogSettingsRepository.init(context)
-    if (!configReady.success) {
-      return { success: false, code: 'config_init_failed' }
-    }
     LogCollectorService.initialized = true
     return { success: true, code: 'ok' }
   }

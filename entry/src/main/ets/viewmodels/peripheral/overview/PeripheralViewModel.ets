@@ -4,7 +4,8 @@ import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStri
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../../../models/DataModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
-import { PeripheralTraceRepository } from '../../../services/peripheral/connection-record/PeripheralTraceRepository'
+import { PeripheralTraceEntryRepository } from '../../../services/peripheral/connection-record/PeripheralTraceEntryRepository'
+import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { InterfaceControlViewModel } from '../interface-control/InterfaceControlViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../connection-record/peripheral_connection_record_clear_usecase'
 import { PeripheralPolicyViewModel } from '../device-policy/PeripheralPolicyViewModel'
@@ -38,7 +39,7 @@ export class PeripheralViewModel {
     this.appContext = context
     try {
       this.destroy()
-      let traceReady = await PeripheralTraceRepository.init(context)
+      let traceReady = await PeripheralTraceMaintenanceService.initialize(context)
       if (!traceReady) {
         this.reasonCode = PeripheralReasonCodes.INIT_FAILED
         LogUtils.error(TAG, 'initialize failed: trace repository not ready')
@@ -46,7 +47,7 @@ export class PeripheralViewModel {
       }
       await this.policy.initialize(context)
       await this.reloadAllData()
-      this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {
+      this.traceStorageListenerId = PeripheralTraceEntryRepository.addChangeListener(() => {
         void this.refreshTraceDrivenData()
       })
       this.devicePolicyListenerId = PeripheralDevicePolicyRepository.addChangeListener(() => {
@@ -63,7 +64,7 @@ export class PeripheralViewModel {
 
   destroy(): void {
     if (this.traceStorageListenerId > 0) {
-      PeripheralTraceRepository.removeChangeListener(this.traceStorageListenerId)
+      PeripheralTraceEntryRepository.removeChangeListener(this.traceStorageListenerId)
       this.traceStorageListenerId = -1
     }
     if (this.devicePolicyListenerId > 0) {

@@ -6,7 +6,7 @@ import {
   PeripheralTraceQuery,
   PeripheralTraceRecord
 } from '../../../models/DataModels'
-import { PeripheralTraceRepository } from './PeripheralTraceRepository'
+import { PeripheralTraceEntryRepository } from './PeripheralTraceEntryRepository'
 
 const TAG = 'PeripheralConnectionRecordService'
 
@@ -21,7 +21,7 @@ export class PeripheralConnectionRecordService {
         sources: ['runtime_event', 'audit_event'],
         keyword: filter?.keyword
       }
-      let records = await PeripheralTraceRepository.query(query)
+      let records = await PeripheralTraceEntryRepository.listByQuery(query)
       return records
         .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapTraceRecord(record))
         .sort((a: PeripheralConnectionRecord, b: PeripheralConnectionRecord) => b.timestamp - a.timestamp)

@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
-import { PeripheralTraceRepository } from '../../../services/peripheral/connection-record/PeripheralTraceRepository'
+import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'ConnectionRecordClearUsecase'
@@ -11,11 +11,11 @@ export class PeripheralConnectionRecordClearUsecase {
       return false
     }
     try {
-      const inited = await PeripheralTraceRepository.init(context)
+      const inited = await PeripheralTraceMaintenanceService.initialize(context)
       if (!inited) {
         return false
       }
-      return PeripheralTraceRepository.clearAll()
+      return PeripheralTraceMaintenanceService.clearAll()
     } catch (err) {
       const error = err as BusinessError
       LogUtils.error(TAG, `execute failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`)

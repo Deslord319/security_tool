@@ -8,6 +8,7 @@ import {
   PeripheralRecordSource,
   PeripheralTraceQuery,
   PeripheralTraceRecord,
+  PeripheralTraceStats,
   PeripheralType,
   UsbStoragePolicy
 } from '../../../models/DataModels'
@@ -74,27 +75,48 @@ interface PeripheralTraceExtraData {
 export class PeripheralTraceEntryRepository {
   private static context: common.UIAbilityContext | null = null
   private static initialized: boolean = false
+  private static initPromise: Promise<boolean> | null = null
+  private static initializedContextDir: string = ''
+  private static nextListenerId: number = 1
+  private static listeners: Map<number, () => void> = new Map()
 
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     PeripheralTraceEntryRepository.context = context
-    if (PeripheralTraceEntryRepository.initialized) {
+    let contextDir = context.filesDir || ''
+    if (PeripheralTraceEntryRepository.initialized && PeripheralTraceEntryRepository.initializedContextDir === contextDir) {
       return true
     }
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return false
+    if (PeripheralTraceEntryRepository.initPromise) {
+      return PeripheralTraceEntryRepository.initPromise
     }
-    try {
-      await store.executeSql(CREATE_TABLE_SQL)
-      await store.executeSql(CREATE_INDEX_OCCUR_AT_SQL)
-      await store.executeSql(CREATE_INDEX_DEVICE_ID_SQL)
-      await store.executeSql(CREATE_INDEX_ACTION_SQL)
-      PeripheralTraceEntryRepository.initialized = true
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    PeripheralTraceEntryRepository.initPromise = PeripheralTraceEntryRepository.doInit(context, contextDir)
+    let ready = await PeripheralTraceEntryRepository.initPromise
+    PeripheralTraceEntryRepository.initPromise = null
+    return ready
+  }
+
+  static isReady(): boolean {
+    return PeripheralTraceEntryRepository.initialized
+  }
+
+  static addChangeListener(listener: () => void): number {
+    let id = PeripheralTraceEntryRepository.nextListenerId++
+    PeripheralTraceEntryRepository.listeners.set(id, listener)
+    return id
+  }
+
+  static removeChangeListener(listenerId: number): void {
+    PeripheralTraceEntryRepository.listeners.delete(listenerId)
+  }
+
+  static notifyChanged(): void {
+    PeripheralTraceEntryRepository.listeners.forEach((listener: () => void) => {
+      try {
+        listener()
+      } catch (err) {
+        LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
+      }
+    })
   }
 
   static async upsertBatch(records: PeripheralTraceRecord[]): Promise<boolean> {
@@ -229,6 +251,72 @@ export class PeripheralTraceEntryRepository {
       return null
     }
     return RdbStoreProvider.getStore(PeripheralTraceEntryRepository.context, DB_NAME)
+  }
+
+  static async getStatistics(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
+    let records = await PeripheralTraceEntryRepository.listByQuery(query)
+    let stats: PeripheralTraceStats = {
+      total: records.length,
+      connects: 0,
+      disconnects: 0,
+      intercepts: 0,
+      allows: 0,
+      denies: 0,
+      unknowns: 0,
+      runtimeCount: 0,
+      auditCount: 0,
+      snapshotCount: 0
+    }
+    for (let record of records) {
+      if (record.action === 'connect') {
+        stats.connects++
+      } else if (record.action === 'disconnect') {
+        stats.disconnects++
+      } else if (record.action === 'intercept') {
+        stats.intercepts++
+      }
+
+      if (record.decision === 'allow') {
+        stats.allows++
+      } else if (record.decision === 'deny') {
+        stats.denies++
+      } else {
+        stats.unknowns++
+      }
+
+      if (record.source === 'runtime_event') {
+        stats.runtimeCount++
+      } else if (record.source === 'audit_event') {
+        stats.auditCount++
+      } else {
+        stats.snapshotCount++
+      }
+    }
+    return stats
+  }
+
+  private static async doInit(context: common.UIAbilityContext, contextDir: string): Promise<boolean> {
+    PeripheralTraceEntryRepository.context = context
+    let store = await PeripheralTraceEntryRepository.getStore()
+    if (!store) {
+      PeripheralTraceEntryRepository.initialized = false
+      PeripheralTraceEntryRepository.initializedContextDir = ''
+      return false
+    }
+    try {
+      await store.executeSql(CREATE_TABLE_SQL)
+      await store.executeSql(CREATE_INDEX_OCCUR_AT_SQL)
+      await store.executeSql(CREATE_INDEX_DEVICE_ID_SQL)
+      await store.executeSql(CREATE_INDEX_ACTION_SQL)
+      PeripheralTraceEntryRepository.initialized = true
+      PeripheralTraceEntryRepository.initializedContextDir = contextDir
+      return true
+    } catch (err) {
+      PeripheralTraceEntryRepository.initialized = false
+      PeripheralTraceEntryRepository.initializedContextDir = ''
+      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
+      return false
+    }
   }
 
   private static buildSelectSql(
@@ -430,7 +518,7 @@ export class PeripheralTraceEntryRepository {
     if (numeric === LogEventResult.SUCCESS || numeric === LogEventResult.BLOCKED || numeric === LogEventResult.FAILED) {
       return numeric as LogEventResult
     }
-    return LogEventResult.SUCCESS
+    return LogEventResult.FAILED
   }
 
   private static parseAction(rawValue: string): PeripheralRecordAction {

@@ -204,7 +204,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       await pipeline.push(event)
 
       expect(consumer.consumeCalls).assertEqual(2)
-      expect(PeripheralTraceRepository.query().length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query()).length).assertEqual(1)
     })
 
     it('should not apply usb dedupe window for bluetooth acl records', 0, async () => {
@@ -216,7 +216,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       await pipeline.push(createBluetoothEvent())
 
       expect(consumer.consumeCalls).assertEqual(2)
-      expect(PeripheralTraceRepository.query().length).assertEqual(2)
+      expect((await PeripheralTraceRepository.query()).length).assertEqual(2)
     })
 
     it('should skip consumers whose canHandle returns false', 0, async () => {
@@ -230,7 +230,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       expect(processed).assertTrue()
       expect(skippedConsumer.consumeCalls).assertEqual(0)
       expect(handledConsumer.consumeCalls).assertEqual(1)
-      expect(PeripheralTraceRepository.query().length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query()).length).assertEqual(1)
     })
 
     it('should not append when consumer returns null', 0, async () => {
@@ -242,7 +242,7 @@ export default function peripheralConnectionRecordPipelineTest() {
 
       expect(processed).assertFalse()
       expect(consumer.consumeCalls).assertEqual(1)
-      expect(PeripheralTraceRepository.query().length).assertEqual(0)
+      expect((await PeripheralTraceRepository.query()).length).assertEqual(0)
     })
 
     it('should only append records produced by matching consumers', 0, async () => {
@@ -252,7 +252,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       markTraceRepositoryReady(pipeline)
 
       const processed = await pipeline.push(createUsbEvent())
-      const records: PeripheralTraceRecord[] = PeripheralTraceRepository.query()
+      const records: PeripheralTraceRecord[] = await PeripheralTraceRepository.query()
 
       expect(processed).assertTrue()
       expect(usbConsumer.consumeCalls).assertEqual(1)
@@ -269,7 +269,7 @@ export default function peripheralConnectionRecordPipelineTest() {
 
       expect(processed).assertFalse()
       expect(consumer.consumeCalls).assertEqual(0)
-      expect(PeripheralTraceRepository.query().length).assertEqual(0)
+      expect((await PeripheralTraceRepository.query()).length).assertEqual(0)
     })
 
     it('should stay stable when append fails after consumer produces a record', 0, async () => {
@@ -281,7 +281,7 @@ export default function peripheralConnectionRecordPipelineTest() {
 
       expect(processed).assertTrue()
       expect(consumer.consumeCalls).assertEqual(1)
-      expect(PeripheralTraceRepository.query().length).assertEqual(0)
+      expect((await PeripheralTraceRepository.query()).length).assertEqual(0)
     })
 
     it('should bind and start the new producer when attachProducer is called after start', 0, async () => {

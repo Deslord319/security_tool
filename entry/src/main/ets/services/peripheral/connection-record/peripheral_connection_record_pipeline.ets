@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { PeripheralTraceRecord } from '../../../models/DataModels'
-import { PeripheralTraceRepository } from './PeripheralTraceRepository'
+import { PeripheralTraceMaintenanceService } from './PeripheralTraceMaintenanceService'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   PeripheralConnectionRecordConsumer,
@@ -103,7 +103,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
   async push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean> {
     const traceReady = await this.ensureTraceRepositoryReady()
     if (!traceReady) {
-      LogUtils.warn(TAG, `skip push: trace repository not ready, channel=${event.channel}`)
+      LogUtils.warn(TAG, `skip push: trace storage not ready, channel=${event.channel}`)
       return false
     }
     let processed: boolean = false
@@ -120,7 +120,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
         continue
       }
       processed = true
-      const appended = await PeripheralTraceRepository.append(record)
+      const appended = await PeripheralTraceMaintenanceService.appendEntries([record])
       if (!appended) {
         LogUtils.warn(TAG, `append failed: channel=${event.channel}, deviceId=${record.deviceId}`)
       }
@@ -149,7 +149,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
     if (!this.context) {
       return false
     }
-    const initialized = await PeripheralTraceRepository.init(this.context)
+    const initialized = await PeripheralTraceMaintenanceService.initialize(this.context)
     this.traceRepositoryReady = initialized
     return initialized
   }

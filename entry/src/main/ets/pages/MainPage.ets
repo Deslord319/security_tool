@@ -17,7 +17,7 @@ import { ThemeManager } from '../theme/ThemeManager'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { PeripheralDevicePolicyRepository } from '../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
-import { PeripheralTraceRepository } from '../services/peripheral/connection-record/PeripheralTraceRepository'
+import { PeripheralTraceMaintenanceService } from '../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
 import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
@@ -164,7 +164,11 @@ struct MainPage {
         LogUtils.error(TAG, 'connection record pipeline bindContext failed')
         return
       }
-      await PeripheralTraceRepository.configure(180, 200000)
+      let traceConfigured = await PeripheralTraceMaintenanceService.configure(180, 200000)
+      if (!traceConfigured) {
+        LogUtils.error(TAG, 'PeripheralTraceMaintenanceService configure failed')
+        return
+      }
 
       let devicePolicyInited = await PeripheralDevicePolicyRepository.init(context)
       if (!devicePolicyInited) {

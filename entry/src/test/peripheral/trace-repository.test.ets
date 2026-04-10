@@ -15,7 +15,7 @@ interface TraceRecordOverrides {
   deviceName?: string
   deviceType?: PeripheralType
   deviceId?: string
-  action?: 'connect' | 'disconnect' | 'intercept' | 'unknown'
+  action?: 'connect' | 'disconnect' | 'discover' | 'intercept' | 'unknown'
   decision?: 'allow' | 'deny' | 'unknown'
   result?: LogEventResult
   source?: 'runtime_event' | 'audit_event' | 'policy_snapshot'
@@ -113,7 +113,7 @@ export default function peripheralTraceRepositoryTest() {
         deviceId: ' vid:0001   pid:0001 ',
         matchedPolicyKind: 'default_allow'
       }))
-      let records = PeripheralTraceRepository.query()
+      let records = await PeripheralTraceRepository.query()
 
       expect(ok).assertTrue()
       expect(records.length).assertEqual(1)
@@ -123,13 +123,42 @@ export default function peripheralTraceRepositoryTest() {
       done()
     })
 
+    it('should preserve bluetooth discovery action during normalization', 0, async (done: Function) => {
+      let ok = await PeripheralTraceRepository.append(createTraceRecord('bt-discover', now, {
+        deviceType: PeripheralType.BLUETOOTH,
+        action: 'discover',
+        decision: 'unknown',
+        matchedPolicyKind: 'bluetooth_discovery'
+      }))
+      let records = await PeripheralTraceRepository.query()
+
+      expect(ok).assertTrue()
+      expect(records.length).assertEqual(1)
+      expect(records[0].action).assertEqual('discover')
+      expect(records[0].matchedPolicyKind).assertEqual('bluetooth_discovery')
+      done()
+    })
+
+    it('should normalize invalid results to failed instead of success', 0, async (done: Function) => {
+      let invalidResultRecord = createTraceRecord('invalid-result', now)
+      invalidResultRecord.result = 99 as LogEventResult
+
+      let ok = await PeripheralTraceRepository.append(invalidResultRecord)
+      let records = await PeripheralTraceRepository.query()
+
+      expect(ok).assertTrue()
+      expect(records.length).assertEqual(1)
+      expect(records[0].result).assertEqual(LogEventResult.FAILED)
+      done()
+    })
+
     it('should accept empty appendBatch and keep newest records first', 0, async (done: Function) => {
       let emptyOk = await PeripheralTraceRepository.appendBatch([])
       let appendOk = await PeripheralTraceRepository.appendBatch([
         createTraceRecord('older', now),
         createTraceRecord('newer', now + 200)
       ])
-      let records = PeripheralTraceRepository.query()
+      let records = await PeripheralTraceRepository.query()
 
       expect(emptyOk).assertTrue()
       expect(appendOk).assertTrue()
@@ -176,16 +205,16 @@ export default function peripheralTraceRepositoryTest() {
         })
       ])
 
-      expect(PeripheralTraceRepository.query({ deviceId: ' vid:0001   pid:0001 ' }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ deviceTypes: [PeripheralType.BLUETOOTH] }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ actions: ['disconnect'] }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ decisions: ['deny'] }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ results: [LogEventResult.FAILED] }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ sources: ['policy_snapshot'] }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ keyword: 'alpha volume' }).length).assertEqual(1)
-      expect(PeripheralTraceRepository.query({ startTime: base + 350, endTime: base + 500 }).length).assertEqual(2)
+      expect((await PeripheralTraceRepository.query({ deviceId: ' vid:0001   pid:0001 ' })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ deviceTypes: [PeripheralType.BLUETOOTH] })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ actions: ['disconnect'] })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ decisions: ['deny'] })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ results: [LogEventResult.FAILED] })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ sources: ['policy_snapshot'] })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ keyword: 'alpha volume' })).length).assertEqual(1)
+      expect((await PeripheralTraceRepository.query({ startTime: base + 350, endTime: base + 500 })).length).assertEqual(2)
 
-      let paged = PeripheralTraceRepository.query({ pageOffset: 1, pageSize: 1 })
+      let paged = await PeripheralTraceRepository.query({ pageOffset: 1, pageSize: 1 })
       expect(paged.length).assertEqual(1)
       expect(paged[0].recordId).assertEqual('audit-bt')
       done()
@@ -211,8 +240,8 @@ export default function peripheralTraceRepositoryTest() {
         })
       ])
 
-      let stats = PeripheralTraceRepository.getStats()
-      let runtimeStats = PeripheralTraceRepository.getStats({ sources: ['runtime_event'] })
+      let stats = await PeripheralTraceRepository.getStats()
+      let runtimeStats = await PeripheralTraceRepository.getStats({ sources: ['runtime_event'] })
 
       expect(stats.total).assertEqual(3)
       expect(stats.connects).assertEqual(1)
@@ -251,19 +280,19 @@ export default function peripheralTraceRepositoryTest() {
     })
 
     it('should update retention config and cleanup expired or overflow records', 0, async (done: Function) => {
-      let now = Date.now()
+      let cleanupNow = Date.now()
       await seedTraceRecords([
-        createTraceRecord('expired', now - 10 * 24 * 60 * 60 * 1000),
-        createTraceRecord('recent-a', now - 1 * 24 * 60 * 60 * 1000),
-        createTraceRecord('recent-b', now - 12 * 60 * 60 * 1000)
+        createTraceRecord('expired', cleanupNow - 10 * 24 * 60 * 60 * 1000),
+        createTraceRecord('recent-a', cleanupNow - 1 * 24 * 60 * 60 * 1000),
+        createTraceRecord('recent-b', cleanupNow - 12 * 60 * 60 * 1000)
       ])
 
       await PeripheralTraceRepository.configure(180, 200000)
       await PeripheralTraceRepository.configure(2, 5)
       let config = PeripheralTraceRepository.getRetentionConfig()
-      let retainedRecords = PeripheralTraceRepository.query()
+      let retainedRecords = await PeripheralTraceRepository.query()
       let removed = await PeripheralTraceRepository.forceCleanup(undefined, 1)
-      let records = PeripheralTraceRepository.query()
+      let records = await PeripheralTraceRepository.query()
 
       expect(config.retentionDays).assertEqual(2)
       expect(config.maxEntries).assertEqual(5)

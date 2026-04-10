@@ -39,37 +39,37 @@ export class RdbResultSetReader {
 
   getRequiredString(columnIndex: number): string {
     if (columnIndex < 0) {
-      return ''
+      throw new Error('column_not_found')
     }
     try {
       return this.resultSet.getString(columnIndex)
     } catch (err) {
       LogUtils.error(this.tag, `getRequiredString failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return ''
+      throw err as Error
     }
   }
 
   getOptionalString(columnIndex: number): string | undefined {
     if (columnIndex < 0) {
-      return undefined
+      throw new Error('column_not_found')
     }
     try {
       return this.resultSet.isColumnNull(columnIndex) ? undefined : this.resultSet.getString(columnIndex)
     } catch (err) {
       LogUtils.error(this.tag, `getOptionalString failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return undefined
+      throw err as Error
     }
   }
 
   getRequiredNumber(columnIndex: number): number {
     if (columnIndex < 0) {
-      return 0
+      throw new Error('column_not_found')
     }
     try {
       return this.resultSet.getLong(columnIndex)
     } catch (err) {
       LogUtils.error(this.tag, `getRequiredNumber failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return 0
+      throw err as Error
     }
   }
 

@@ -16,7 +16,8 @@ import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../mod
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
-import { PeripheralTraceRepository } from '../../../services/peripheral/connection-record/PeripheralTraceRepository'
+import { PeripheralTraceEntryRepository } from '../../../services/peripheral/connection-record/PeripheralTraceEntryRepository'
+import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
@@ -33,7 +34,7 @@ export class DashboardViewModel {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
-    await PeripheralTraceRepository.init(context)
+    await PeripheralTraceMaintenanceService.initialize(context)
     this.quickEntries = this.buildQuickEntries()
     await this.refreshAll()
     this.registerListeners()
@@ -45,7 +46,7 @@ export class DashboardViewModel {
       this.logListenerId = -1
     }
     if (this.peripheralTraceListenerId > 0) {
-      PeripheralTraceRepository.removeChangeListener(this.peripheralTraceListenerId)
+      PeripheralTraceEntryRepository.removeChangeListener(this.peripheralTraceListenerId)
       this.peripheralTraceListenerId = -1
     }
   }
@@ -65,7 +66,7 @@ export class DashboardViewModel {
       })
     }
     if (this.peripheralTraceListenerId <= 0) {
-      this.peripheralTraceListenerId = PeripheralTraceRepository.addChangeListener(() => {
+      this.peripheralTraceListenerId = PeripheralTraceEntryRepository.addChangeListener(() => {
         void this.refreshLiveCards(true, false)
       })
     }
@@ -134,7 +135,7 @@ export class DashboardViewModel {
   }
 
   private async buildPeripheralCard(): Promise<DashboardModuleCardState> {
-    let stats = await PeripheralTraceRepository.getStats()
+    let stats = await PeripheralTraceEntryRepository.getStatistics()
     return this.createModuleCard(
       RouteIds.PERIPHERAL_MANAGE,
       DashboardPeripheralCardStrings.TITLE,
