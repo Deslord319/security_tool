@@ -1,3 +1,4 @@
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText, ModuleText, ResultText, MessageText } from '../../../constants/StringCatalog'
@@ -300,6 +301,8 @@ export struct LogManagePage {
         .value((this.eventTypeFilterOptions[this.viewModel.state.filter.eventTypeIndex]?.value as string) ?? LogManageFilterStrings.ALL_EVENT_TYPES)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(120)
@@ -314,6 +317,8 @@ export struct LogManagePage {
         .value((this.resultFilterOptions[this.viewModel.state.filter.resultIndex]?.value as string) ?? LogManageFilterStrings.ALL_RESULTS)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
         .optionFont({ size: AppStyles.FONT_SIZE_BODY })
         .width(110)

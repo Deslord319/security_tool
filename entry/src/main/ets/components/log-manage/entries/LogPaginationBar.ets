@@ -1,3 +1,4 @@
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText } from '../../../constants/StringCatalog'
 import { LogManagePaginationStrings } from '../../../constants/modules/LogManageStrings'
@@ -47,6 +48,8 @@ export struct LogPaginationBar {
           .value(LogManagePaginationStrings.buildPageSizeText(this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20))
           .font({ size: AppStyles.FONT_SIZE_CAPTION })
           .fontColor(FormControlUtils.text(this.currentTheme))
+          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
           .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
           .width(126)
