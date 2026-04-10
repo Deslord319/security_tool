@@ -47,13 +47,27 @@ class DefaultLogManageStorage implements LogStoragePort {
     return LogStorageMaintenanceService.appendEntries(entries)
   }
 
-  async snapshot(query?: LogQuery): Promise<LogSnapshot> {
+  count(query?: LogQuery): Promise<number> {
+    return LogEntryRepository.countByQuery(query)
+  }
+
+  list(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]> {
+    return LogEntryRepository.listByQuery(query, limit, offset)
+  }
+
+  hasEntry(entryId: string, query?: LogQuery): Promise<boolean> {
+    return LogEntryRepository.hasEntry(entryId, query)
+  }
+
+  async snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot> {
     let statistics = await LogEntryRepository.getStatistics()
-    let entries = await LogEntryRepository.listByQuery(query)
+    let filteredCount = await this.count(query)
+    let entries = await this.list(query, limit, offset)
     return {
       totalCount: statistics.totalCount,
       todayCount: statistics.todayCount,
       blockedCount: statistics.blockedCount,
+      filteredCount,
       entries
     }
   }
@@ -298,19 +312,20 @@ export class LogManageViewModel {
   }
 
   private async rebuildStateFromSnapshot(): Promise<void> {
-    let snapshot = await this.storage.snapshot(this.buildQuery())
     let pageSize = PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? PAGE_SIZE_OPTIONS[0]
-    let totalPages = this.calcTotalPages(snapshot.entries.length, pageSize)
+    let currentQuery = this.buildQuery()
+    let filteredCount = await this.storage.count(currentQuery)
+    let totalPages = this.calcTotalPages(filteredCount, pageSize)
     let currentPage = this.normalizePage(`${this.state.pagination.currentPage}`, totalPages)
     let pageStart = (currentPage - 1) * pageSize
-    let pagedEntries = snapshot.entries.slice(pageStart, pageStart + pageSize)
+    let snapshot = await this.storage.snapshot(currentQuery, pageSize, pageStart)
 
     this.applyCollectorState()
-    this.applySummaryState(snapshot, pagedEntries.length)
-    this.applyListState(snapshot, pagedEntries)
+    this.applySummaryState(snapshot, snapshot.entries.length)
+    this.applyListState(snapshot)
     this.applyPaginationState(currentPage, totalPages)
     this.rebuildFilterHint(snapshot)
-    this.syncDetailState()
+    await this.syncDetailState(currentQuery)
   }
 
   private buildQuery(): LogQuery | undefined {
@@ -349,9 +364,9 @@ export class LogManageViewModel {
     this.state.summary.currentShownCount = currentShownCount
   }
 
-  private applyListState(snapshot: LogSnapshot, pagedEntries: LogEntry[]): void {
+  private applyListState(snapshot: LogSnapshot): void {
     this.state.list.allEntries = snapshot.entries.slice()
-    this.state.list.pagedEntries = pagedEntries
+    this.state.list.pagedEntries = snapshot.entries.slice()
   }
 
   private applyPaginationState(currentPage: number, totalPages: number): void {
@@ -361,7 +376,7 @@ export class LogManageViewModel {
   }
 
   private rebuildFilterHint(snapshot: LogSnapshot): void {
-    if (snapshot.entries.length > 0) {
+    if (snapshot.filteredCount > 0) {
       this.state.filter.hintMessage = this.state.filter.eventTypeIndex === 1 ? LogManageFilterStrings.FILE_HINT : ''
       return
     }
@@ -380,14 +395,13 @@ export class LogManageViewModel {
       LogManageEmptyStateStrings.DESCRIPTION
   }
 
-  private syncDetailState(): void {
+  private async syncDetailState(query?: LogQuery): Promise<void> {
     if (this.state.detail.entryId.length === 0) {
       return
     }
-    for (let entry of this.state.list.allEntries) {
-      if (entry.id === this.state.detail.entryId) {
-        return
-      }
+    let exists = await this.storage.hasEntry(this.state.detail.entryId, query)
+    if (exists) {
+      return
     }
     this.closeDetail()
   }

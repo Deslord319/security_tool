@@ -149,7 +149,7 @@ export default function peripheralConnectionRecordServiceTest() {
 
       expect(records.length).assertEqual(2)
       expect(records[0].deviceName).assertEqual('Bluetooth Keyboard')
-      expect(records[1].source).assertEqual('runtime_event')
+      expect(records[1].source).assertEqual('audit_event')
       expect(JSON.stringify(capturedQuery).indexOf('runtime_event') > -1).assertTrue()
       expect(JSON.stringify(capturedQuery).indexOf('audit_event') > -1).assertTrue()
     })

@@ -20,7 +20,7 @@ import {
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 
 const TAG = 'PeripheralRecordViewModel'
-const DEFAULT_RECORD_PAGE_SIZE = 200
+const DEFAULT_RECORD_PAGE_SIZE = 500
 
 export interface ConnectionDetailDialogState {
   visible: boolean

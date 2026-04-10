@@ -94,15 +94,16 @@ export class LogStorageSettingsViewModel {
     }
     this.state.saving = true
     try {
-      let saveResult = await this.dependencies.configRepository.saveStorageConfig(
-        this.cloneConfig(this.state.maxLocalEntries, this.state.retentionDays)
-      )
+      let previousConfig = this.cloneConfig(this.initialConfig.maxLocalEntries, this.initialConfig.retentionDays)
+      let nextConfig = this.cloneConfig(this.state.maxLocalEntries, this.state.retentionDays)
+      let saveResult = await this.dependencies.configRepository.saveStorageConfig(nextConfig)
       if (!saveResult.success) {
         this.finishSavingWithFailure()
         return this.buildSaveResult(false, 'save_failed')
       }
       let reconcileResult = await this.dependencies.storageMaintenance.reconcileStorageConfig()
       if (!reconcileResult.success) {
+        await this.rollbackConfig(previousConfig)
         this.finishSavingWithFailure()
         return this.buildSaveResult(false, 'save_failed')
       }
@@ -126,6 +127,28 @@ export class LogStorageSettingsViewModel {
 
   private finishSavingWithFailure(): void {
     this.state.saving = false
+  }
+
+  private async rollbackConfig(previousConfig: LogStorageConfig): Promise<void> {
+    try {
+      let rollbackResult = await this.dependencies.configRepository.saveStorageConfig(previousConfig)
+      if (!rollbackResult.success) {
+        await this.load()
+        return
+      }
+      let reconciled = await this.dependencies.storageMaintenance.reconcileStorageConfig()
+      if (!reconciled.success) {
+        await this.load()
+        return
+      }
+      this.state.maxLocalEntries = previousConfig.maxLocalEntries
+      this.state.retentionDays = previousConfig.retentionDays
+      this.state.dirty = false
+      this.state.saving = false
+    } catch (err) {
+      LogUtils.error(TAG, `rollback failed: ${JSON.stringify(err)}`)
+      await this.load()
+    }
   }
 
   private isDirty(maxLocalEntries: number, retentionDays: number): boolean {

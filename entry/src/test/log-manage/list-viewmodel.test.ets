@@ -34,8 +34,9 @@ function createEntry(id: string, eventType: LogEventType, result: LogEventResult
 }
 
 async function flushAsyncWork(): Promise<void> {
-  await Promise.resolve()
-  await Promise.resolve()
+  for (let index = 0; index < 6; index++) {
+    await Promise.resolve()
+  }
 }
 
 class FakeLogListStorage implements LogStoragePort {
@@ -43,18 +44,16 @@ class FakeLogListStorage implements LogStoragePort {
   listener: (() => void) | null = null
   initResult: InitializeResult = { success: true, code: 'ok' }
   clearResult: ClearLogsResult = { success: true, code: 'ok' }
+  forcedHasEntry: boolean | null = null
+  countCallCount: number = 0
+  listCallCount: number = 0
+  snapshotCallCount: number = 0
+  hasEntryCallCount: number = 0
+  lastLimit?: number
+  lastOffset?: number
 
-  async init(_context: common.UIAbilityContext): Promise<InitializeResult> {
-    return this.initResult
-  }
-
-  async addEntries(entries: LogEntry[]): Promise<MutationResult> {
-    this.entries = entries.concat(this.entries)
-    return { success: true, code: 'ok' }
-  }
-
-  async snapshot(query?: LogQuery): Promise<LogSnapshot> {
-    let filtered = this.entries.filter((entry: LogEntry) => {
+  private filterEntries(query?: LogQuery): LogEntry[] {
+    return this.entries.filter((entry: LogEntry) => {
       if (query?.eventTypes && query.eventTypes.length > 0 && !query.eventTypes.includes(entry.eventType)) {
         return false
       }
@@ -66,12 +65,57 @@ class FakeLogListStorage implements LogStoragePort {
       }
       return true
     })
+  }
+
+  async init(_context: common.UIAbilityContext): Promise<InitializeResult> {
+    return this.initResult
+  }
+
+  async addEntries(entries: LogEntry[]): Promise<MutationResult> {
+    this.entries = entries.concat(this.entries)
+    return { success: true, code: 'ok' }
+  }
+
+  async count(query?: LogQuery): Promise<number> {
+    this.countCallCount++
+    return this.filterEntries(query).length
+  }
+
+  async list(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]> {
+    this.listCallCount++
+    this.lastLimit = limit
+    this.lastOffset = offset
+    let filtered = this.filterEntries(query)
+    let start = offset ?? 0
+    let end = limit !== undefined ? start + limit : filtered.length
+    return filtered.slice(start, end)
+  }
+
+  async hasEntry(entryId: string, query?: LogQuery): Promise<boolean> {
+    this.hasEntryCallCount++
+    if (this.forcedHasEntry !== null) {
+      return this.forcedHasEntry
+    }
+    let filtered = this.filterEntries(query)
+    for (let entry of filtered) {
+      if (entry.id === entryId) {
+        return true
+      }
+    }
+    return false
+  }
+
+  async snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot> {
+    this.snapshotCallCount++
+    let filtered = this.filterEntries(query)
+    let paged = await this.list(query, limit, offset)
     let blockedCount = this.entries.filter((entry: LogEntry) => entry.result === LogEventResult.BLOCKED).length
     return {
       totalCount: this.entries.length,
       todayCount: this.entries.length,
       blockedCount: blockedCount,
-      entries: filtered
+      filteredCount: filtered.length,
+      entries: paged
     }
   }
 
@@ -167,6 +211,11 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.summary.blockedCount).assertEqual(1)
       expect(viewModel.state.collector.running).assertTrue()
       expect(viewModel.state.collector.crashReady).assertFalse()
+      expect(storage.lastLimit).assertEqual(20)
+      expect(storage.lastOffset).assertEqual(0)
+      expect(storage.countCallCount).assertEqual(1)
+      expect(storage.listCallCount).assertEqual(1)
+      expect(storage.snapshotCallCount).assertEqual(1)
     })
 
     it('should reset to first page when filter changes', 0, async () => {
@@ -269,6 +318,32 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.list.allEntries.length).assertEqual(2)
     })
 
+    it('should keep detail open when entry is off current page but still exists in filtered result', 0, async () => {
+      storage.entries = []
+      for (let index = 0; index < 30; index++) {
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+      }
+      await viewModel.initialize(context)
+      viewModel.openDetail('25')
+      storage.forcedHasEntry = true
+
+      await viewModel.refreshAll()
+
+      expect(viewModel.state.detail.visible).assertTrue()
+      expect(viewModel.state.detail.entryId).assertEqual('25')
+    })
+
+    it('should close detail when active filters no longer include the selected entry', 0, async () => {
+      await viewModel.initialize(context)
+      viewModel.openDetail('2')
+
+      await viewModel.setEventTypeIndex(1)
+
+      expect(viewModel.state.detail.visible).assertFalse()
+      expect(viewModel.state.detail.entryId).assertEqual('')
+      expect(storage.hasEntryCallCount > 0).assertTrue()
+    })
+
     it('should expose empty filter hint instead of permission hint when query has no matches', 0, async () => {
       await viewModel.initialize(context)
 
@@ -294,6 +369,50 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.pagination.totalPages).assertEqual(2)
       expect(viewModel.state.list.pagedEntries.length).assertEqual(5)
       expect(viewModel.state.summary.currentShownCount).assertEqual(5)
+      expect(storage.lastLimit).assertEqual(20)
+      expect(storage.lastOffset).assertEqual(20)
+    })
+
+    it('should request repository pagination instead of slicing full filtered entries locally', 0, async () => {
+      storage.entries = []
+      for (let index = 0; index < 55; index++) {
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+      }
+      await viewModel.initialize(context)
+      viewModel.setPageSizeIndex(1)
+      await flushAsyncWork()
+
+      viewModel.goToNextPage()
+      await flushAsyncWork()
+
+      expect(viewModel.state.pagination.currentPage).assertEqual(2)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(5)
+      expect(storage.lastLimit).assertEqual(50)
+      expect(storage.lastOffset).assertEqual(50)
+      expect(storage.listCallCount >= 2).assertTrue()
+      expect(storage.snapshotCallCount).assertEqual(3)
+    })
+
+    it('should avoid redundant list queries when jumping directly to a later page', 0, async () => {
+      storage.entries = []
+      for (let index = 0; index < 120; index++) {
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+      }
+      await viewModel.initialize(context)
+      storage.listCallCount = 0
+      storage.snapshotCallCount = 0
+      storage.countCallCount = 0
+      viewModel.setPageInputText('3')
+
+      viewModel.jumpToInputPage()
+      await flushAsyncWork()
+
+      expect(viewModel.state.pagination.currentPage).assertEqual(3)
+      expect(storage.countCallCount).assertEqual(1)
+      expect(storage.snapshotCallCount).assertEqual(1)
+      expect(storage.listCallCount).assertEqual(1)
+      expect(storage.lastLimit).assertEqual(20)
+      expect(storage.lastOffset).assertEqual(40)
     })
 
     it('should switch mode and restore list after saving settings', 0, async () => {

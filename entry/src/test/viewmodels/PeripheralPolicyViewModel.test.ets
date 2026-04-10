@@ -39,6 +39,16 @@ function clonePolicyRecord(record: PeripheralDevicePolicyRecord): PeripheralDevi
   return cloned
 }
 
+function createDispatchResult(success: boolean, reason?: string): PeripheralPolicyDispatchResult {
+  let result: PeripheralPolicyDispatchResult = {
+    success: success
+  }
+  if (reason !== undefined) {
+    result.reason = reason as never
+  }
+  return result
+}
+
 export default function peripheralPolicyViewModelTest() {
   describe('PeripheralPolicyViewModel', () => {
     let viewModel: PeripheralPolicyViewModel
@@ -75,14 +85,14 @@ export default function peripheralPolicyViewModelTest() {
         records = []
         return Promise.resolve(true)
       })
-      when(dispatchMock)(ArgumentMatchers.any).afterReturn({ success: true } as PeripheralPolicyDispatchResult)
+      when(dispatchMock)(ArgumentMatchers.any).afterReturn(createDispatchResult(true))
     })
 
     afterEach(async () => {
       mockKit.clearAll()
     })
 
-    it('should rebuild policy records from connection records and explicit device policies', 0, async (done: Function) => {
+    it('should rebuild policy records from connection records and explicit device policies', 0, async () => {
       records = [{
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
@@ -106,7 +116,6 @@ export default function peripheralPolicyViewModelTest() {
 
       expect(viewModel.state.records.length).assertEqual(1)
       expect(viewModel.state.records[0].policyIndex).assertEqual(1)
-      done()
     })
 
     it('should expose connected devices as default allow when no explicit policy exists', 0, () => {
@@ -127,13 +136,12 @@ export default function peripheralPolicyViewModelTest() {
       expect(viewModel.state.records[0].policyIndex).assertEqual(0)
     })
 
-    it('should reject invalid device ids when changing policy', 0, async (done: Function) => {
+    it('should reject invalid device ids when changing policy', 0, async () => {
       const reason = await viewModel.setDevicePolicy('', 'USB Device', PeripheralType.USB_STORAGE, 0)
       expect(reason).assertEqual('invalid_device_id')
-      done()
     })
 
-    it('should persist single-device deny policy', 0, async (done: Function) => {
+    it('should persist single-device deny policy', 0, async () => {
       const reason = await viewModel.setDevicePolicy(
         'VID:1234 PID:5678',
         'USB Device',
@@ -143,10 +151,9 @@ export default function peripheralPolicyViewModelTest() {
 
       expect(reason).assertNull()
       expect(records[0].policy).assertEqual('deny')
-      done()
     })
 
-    it('should normalize bluetooth device ids when persisting policy', 0, async (done: Function) => {
+    it('should normalize bluetooth device ids when persisting policy', 0, async () => {
       const reason = await viewModel.setDevicePolicy(
         'aa-bb-cc-dd-ee-ff',
         'Bluetooth Device',
@@ -157,10 +164,9 @@ export default function peripheralPolicyViewModelTest() {
       expect(reason).assertNull()
       expect(records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
       expect(records[0].policy).assertEqual('deny')
-      done()
     })
 
-    it('should rebuild bluetooth policy records with normalized ids', 0, async (done: Function) => {
+    it('should rebuild bluetooth policy records with normalized ids', 0, async () => {
       records = [{
         deviceId: 'aa-bb-cc-dd-ee-ff',
         policy: 'deny',
@@ -185,10 +191,9 @@ export default function peripheralPolicyViewModelTest() {
       expect(viewModel.state.records.length).assertEqual(1)
       expect(viewModel.state.records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
       expect(viewModel.state.records[0].policyIndex).assertEqual(1)
-      done()
     })
 
-    it('should clear all explicit device policies', 0, async (done: Function) => {
+    it('should clear all explicit device policies', 0, async () => {
       records = [{
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
@@ -198,11 +203,10 @@ export default function peripheralPolicyViewModelTest() {
       const success = await viewModel.clearAllPolicies()
       expect(success).assertTrue()
       expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(0)
-      done()
     })
 
-    it('should rollback dispatched policies when clearing explicit policies fails midway', 0, async (done: Function) => {
-      const records: PeripheralDevicePolicyRecord[] = [{
+    it('should rollback dispatched policies when clearing explicit policies fails midway', 0, async () => {
+      const seededRecords: PeripheralDevicePolicyRecord[] = [{
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
         updatedAt: Date.now(),
@@ -213,30 +217,29 @@ export default function peripheralPolicyViewModelTest() {
         updatedAt: Date.now() + 1,
         deviceType: PeripheralType.BLUETOOTH
       }]
-      for (const record of records) {
-        records.push(record)
-      }
+      records = seededRecords.slice()
 
       const dispatchCalls: string[] = []
       let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
       when(dispatchMock)(ArgumentMatchers.any).afterAction((request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult => {
         dispatchCalls.push(`${request.deviceId}:${request.policy}`)
         if (request.deviceId === 'MAC: AA:BB:CC:DD:EE:FF' && request.policy === 'allow') {
-          return { success: false, reason: 'bluetooth_dispatch_failed' } as PeripheralPolicyDispatchResult
+          return createDispatchResult(false, 'bluetooth_dispatch_failed')
         }
-        return { success: true } as PeripheralPolicyDispatchResult
+        return createDispatchResult(true)
       })
 
       const success = await viewModel.clearAllPolicies()
       expect(success).assertFalse()
       expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(2)
       expect(dispatchCalls).assertDeepEquals([
-        'MAC: AA:BB:CC:DD:EE:FF:allow'
+        'VID:1234 PID:5678:allow',
+        'MAC: AA:BB:CC:DD:EE:FF:allow',
+        'VID:1234 PID:5678:deny'
       ])
-      done()
     })
 
-    it('should export policy records successfully', 0, async (done: Function) => {
+    it('should export policy records successfully', 0, async () => {
       viewModel.state.records = [{
         deviceName: 'USB Device',
         deviceType: PeripheralType.USB_STORAGE,
@@ -253,7 +256,6 @@ export default function peripheralPolicyViewModelTest() {
 
       const result = await viewModel.exportRecords({} as common.UIAbilityContext)
       expect(result.success).assertTrue()
-      done()
     })
   })
 }

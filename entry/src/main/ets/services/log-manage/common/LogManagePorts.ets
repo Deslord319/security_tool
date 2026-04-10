@@ -44,6 +44,7 @@ export interface LogSnapshot {
   totalCount: number
   todayCount: number
   blockedCount: number
+  filteredCount: number
   entries: LogEntry[]
 }
 
@@ -84,7 +85,10 @@ export interface LogCollectorStatusPort {
 export interface LogStoragePort {
   init(context: common.UIAbilityContext): Promise<InitializeResult>
   addEntries(entries: LogEntry[]): Promise<MutationResult>
-  snapshot(query?: LogQuery): Promise<LogSnapshot>
+  count(query?: LogQuery): Promise<number>
+  list(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]>
+  hasEntry(entryId: string, query?: LogQuery): Promise<boolean>
+  snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot>
   clear(): Promise<ClearLogsResult>
   addChangeListener(listener: () => void): number
   removeChangeListener(id: number): void

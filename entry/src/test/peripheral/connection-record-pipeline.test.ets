@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEventResult,
   PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
-import { PeripheralTraceMaintenanceService } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
+import {
+  PeripheralTraceMaintenanceService,
+  PeripheralTraceMutationResult
+} from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { PeripheralConnectionRecordPipelineImpl } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import {
   PeripheralConnectionRecordConsumer,
@@ -184,12 +187,14 @@ export default function peripheralConnectionRecordPipelineTest() {
       mockKit = new MockKit()
       savedRecords = []
       let appendMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.appendEntries)
-      when(appendMock)().afterAction((records: PeripheralTraceRecord[]) => {
+      when(appendMock)(ArgumentMatchers.any).afterAction((records: PeripheralTraceRecord[]) => {
         if (records.length > 0 && records[0].recordId === 'runtime_usb_throwing') {
-          return Promise.resolve(false)
+          let failed: PeripheralTraceMutationResult = { success: false, code: 'save_failed' }
+          return Promise.resolve(failed)
         }
         savedRecords = savedRecords.concat(records)
-        return Promise.resolve(true)
+        let success: PeripheralTraceMutationResult = { success: true, code: 'ok' }
+        return Promise.resolve(success)
       })
     })
 

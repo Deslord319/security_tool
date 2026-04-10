@@ -21,8 +21,12 @@ class FakeLogStorageConfigRepository implements LogStorageConfigRepositoryPort {
     retentionDays: 30
   }
   saveResult: ServiceResult = { success: true, code: 'ok' }
+  saveCallCount: number = 0
+  loadCallCount: number = 0
+  failOnSaveCallNumbers: number[] = []
 
   async loadStorageConfig(): Promise<LogStorageConfig> {
+    this.loadCallCount++
     return {
       maxLocalEntries: this.config.maxLocalEntries,
       retentionDays: this.config.retentionDays
@@ -30,6 +34,10 @@ class FakeLogStorageConfigRepository implements LogStorageConfigRepositoryPort {
   }
 
   async saveStorageConfig(config: LogStorageConfig): Promise<ServiceResult> {
+    this.saveCallCount++
+    if (this.failOnSaveCallNumbers.includes(this.saveCallCount)) {
+      return { success: false, code: 'save_failed' }
+    }
     if (this.saveResult.success) {
       this.config = {
         maxLocalEntries: config.maxLocalEntries,
@@ -42,8 +50,14 @@ class FakeLogStorageConfigRepository implements LogStorageConfigRepositoryPort {
 
 class FakeLogStorageMaintenanceRepository implements LogStorageMaintenancePort {
   reconcileResult: MutationResult = { success: true, code: 'ok' }
+  reconcileCallCount: number = 0
+  queuedResults: MutationResult[] = []
 
   async reconcileStorageConfig(): Promise<MutationResult> {
+    this.reconcileCallCount++
+    if (this.queuedResults.length > 0) {
+      return this.queuedResults.shift() as MutationResult
+    }
     return this.reconcileResult
   }
 }
@@ -111,6 +125,53 @@ export default function logStorageSettingsViewModelTest() {
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('no_changes')
+    })
+
+    it('should rollback persisted config when reconcile fails after save', 0, async () => {
+      await viewModel.load()
+      viewModel.setMaxLocalEntries(2000)
+      storageMaintenance.reconcileResult = { success: false, code: 'save_failed' }
+
+      let result: ServiceResult = await viewModel.save()
+
+      expect(result.success).assertFalse()
+      expect(configRepository.config.maxLocalEntries).assertEqual(5000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(5000)
+      expect(viewModel.state.dirty).assertFalse()
+      expect(storageMaintenance.reconcileCallCount).assertEqual(2)
+    })
+
+    it('should reload current persisted config when rollback save fails', 0, async () => {
+      await viewModel.load()
+      viewModel.setMaxLocalEntries(2000)
+      storageMaintenance.reconcileResult = { success: false, code: 'save_failed' }
+      configRepository.failOnSaveCallNumbers = [2]
+
+      let result: ServiceResult = await viewModel.save()
+
+      expect(result.success).assertFalse()
+      expect(configRepository.config.maxLocalEntries).assertEqual(2000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(2000)
+      expect(viewModel.state.dirty).assertFalse()
+      expect(configRepository.loadCallCount >= 2).assertTrue()
+      expect(storageMaintenance.reconcileCallCount).assertEqual(1)
+    })
+
+    it('should reload rolled-back config when rollback reconcile also fails', 0, async () => {
+      await viewModel.load()
+      viewModel.setMaxLocalEntries(2000)
+      storageMaintenance.queuedResults = [
+        { success: false, code: 'save_failed' },
+        { success: false, code: 'save_failed' }
+      ]
+
+      let result: ServiceResult = await viewModel.save()
+
+      expect(result.success).assertFalse()
+      expect(configRepository.config.maxLocalEntries).assertEqual(5000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(5000)
+      expect(viewModel.state.dirty).assertFalse()
+      expect(storageMaintenance.reconcileCallCount).assertEqual(2)
     })
   })
 }

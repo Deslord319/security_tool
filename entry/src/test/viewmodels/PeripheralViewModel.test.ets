@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   AdminActivationState,
   ExportActionResult,
@@ -12,15 +12,18 @@ import {
 import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
-import { PeripheralTraceMaintenanceService } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
+import { PeripheralTraceEntryRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceEntryRepository'
+import {
+  PeripheralTraceClearResult,
+  PeripheralTraceInitializeResult,
+  PeripheralTraceMaintenanceService
+} from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/peripheral_connection_record_clear_usecase'
 
-const DEFAULT_RETENTION_DAYS = 180
-const DEFAULT_MAX_ENTRIES = 200000
 const TEST_CONTEXT = {} as common.UIAbilityContext
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
@@ -121,36 +124,29 @@ function createTraceRecord(recordId: string, occurAt: number, deviceId: string =
   }
 }
 
-async function resetTraceRepository(): Promise<void> {
-  let initialized = await PeripheralTraceMaintenanceService.initialize(TEST_CONTEXT)
-  expect(initialized.success).assertTrue()
-  let configured = await PeripheralTraceMaintenanceService.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
-  expect(configured.success).assertTrue()
-  let cleared = await PeripheralTraceMaintenanceService.clearAll()
-  expect(cleared.success).assertTrue()
-}
-
-async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void> {
-  await resetTraceRepository()
-  if (records.length <= 0) {
-    return
-  }
-  const sorted = records.slice().sort((left: PeripheralTraceRecord, right: PeripheralTraceRecord) => right.occurAt - left.occurAt)
-  let appended = await PeripheralTraceMaintenanceService.appendEntries(sorted)
-  expect(appended.success).assertTrue()
+async function flushAsyncWork(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
 }
 
 export default function peripheralViewModelTest() {
   describe('PeripheralConnectionRecordClearUsecase', () => {
     let usecase: PeripheralConnectionRecordClearUsecase
+    let mockKit: MockKit
 
-  beforeEach(async () => {
+  beforeEach(() => {
     usecase = new PeripheralConnectionRecordClearUsecase()
-    await resetTraceRepository()
+    mockKit = new MockKit()
+    let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
+    let clearMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.clearAll)
+    let initResult: PeripheralTraceInitializeResult = { success: true, code: 'ok' }
+    let clearResult: PeripheralTraceClearResult = { success: true, code: 'ok' }
+    when(initMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(initResult))
+    when(clearMock)().afterReturn(Promise.resolve(clearResult))
   })
 
-  afterEach(async () => {
-    await resetTraceRepository()
+  afterEach(() => {
+    mockKit.clearAll()
   })
 
   it('U-CLEAR-001 should return false when context is null', 0, async (done: Function) => {
@@ -174,9 +170,13 @@ export default function peripheralViewModelTest() {
     let fakeRecords: FakeRecordViewModel
     let fakeInterface: FakeInterfaceControlViewModel
     let mockKit: MockKit
+    let traceListener: (() => void) | null
+    let devicePolicyListener: (() => void) | null
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockKit = new MockKit()
+    traceListener = null
+    devicePolicyListener = null
     viewModel = new PeripheralViewModel()
     fakePolicy = new FakePolicyViewModel()
     fakeRecords = new FakeRecordViewModel()
@@ -184,22 +184,46 @@ export default function peripheralViewModelTest() {
     viewModel.policy = fakePolicy
     viewModel.records = fakeRecords
     viewModel.interfaceControl = fakeInterface
-    await resetTraceRepository()
-    await PeripheralDevicePolicyRepository.clearAll()
     const inactiveAdminState: AdminActivationState = {
       activated: false,
       enableCommand: 'mock-enable',
       adminType: 'super'
     }
     let probeActivationMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+    let traceInitMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
+    let traceAddListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
+    let traceRemoveListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.removeChangeListener)
+    let deviceAddListenerMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.addChangeListener)
+    let deviceRemoveListenerMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.removeChangeListener)
+    let deviceClearAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.clearAll)
     when(probeActivationMock)().afterReturn(inactiveAdminState)
+    let traceInitResult: PeripheralTraceInitializeResult = { success: true, code: 'ok' }
+    when(traceInitMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(traceInitResult))
+    when(traceAddListenerMock)(ArgumentMatchers.any).afterAction((listener: () => void) => {
+      traceListener = listener
+      return 1
+    })
+    when(traceRemoveListenerMock)(ArgumentMatchers.any).afterAction(() => {
+      traceListener = null
+    })
+    when(deviceAddListenerMock)(ArgumentMatchers.any).afterAction((listener: () => void) => {
+      devicePolicyListener = listener
+      return 1
+    })
+    when(deviceRemoveListenerMock)(ArgumentMatchers.any).afterAction(() => {
+      devicePolicyListener = null
+    })
+    when(deviceClearAllMock)().afterAction(() => {
+      if (devicePolicyListener) {
+        devicePolicyListener()
+      }
+      return Promise.resolve(true)
+    })
   })
 
-  afterEach(async () => {
+  afterEach(() => {
     mockKit.clearAll()
     viewModel.destroy()
-    await resetTraceRepository()
-    await PeripheralDevicePolicyRepository.clearAll()
   })
 
   it('U-PVM-001 should initialize successfully, reload child data and register listeners', 0, async (done: Function) => {
@@ -214,12 +238,18 @@ export default function peripheralViewModelTest() {
     expect(viewModel.reasonCode).assertNull()
     expect(viewModel.isLoading).assertFalse()
 
-    await PeripheralTraceMaintenanceService.appendEntries([createTraceRecord('trace-1', 1700000000000)])
+    if (traceListener) {
+      traceListener()
+    }
+    await flushAsyncWork()
     expect(fakeRecords.reloadCount).assertEqual(2)
     expect(fakePolicy.reloadCount).assertEqual(2)
 
     viewModel.destroy()
-    await PeripheralTraceMaintenanceService.appendEntries([createTraceRecord('trace-2', 1700000001000)])
+    if (traceListener) {
+      traceListener()
+    }
+    await flushAsyncWork()
     expect(fakeRecords.reloadCount).assertEqual(2)
     expect(fakePolicy.reloadCount).assertEqual(2)
     done()
@@ -305,7 +335,10 @@ export default function peripheralViewModelTest() {
     fakeRecords.reloadCount = 0
     fakePolicy.reloadCount = 0
 
-    await PeripheralTraceMaintenanceService.appendEntries([createTraceRecord('trace-1', 1700000000000)])
+    if (traceListener) {
+      traceListener()
+    }
+    await flushAsyncWork()
 
     expect(fakeRecords.reloadCount).assertEqual(1)
     expect(fakePolicy.reloadCount).assertEqual(1)
@@ -319,7 +352,9 @@ export default function peripheralViewModelTest() {
     fakeRecords.reloadCount = 0
     fakePolicy.reloadCount = 0
 
-    await PeripheralDevicePolicyRepository.clearAll()
+    if (devicePolicyListener) {
+      devicePolicyListener()
+    }
 
     expect(fakeRecords.reloadCount).assertEqual(0)
     expect(fakePolicy.reloadCount).assertEqual(1)
@@ -327,8 +362,6 @@ export default function peripheralViewModelTest() {
   })
 
   it('should keep basic defaults and admin check behavior stable', 0, async (done: Function) => {
-    await seedTraceRecords([createTraceRecord('trace-1', Date.now())])
-
     const ready = viewModel.ensureAdminReady()
 
     expect(fakeRecords.state.connectionDetailDialog.visible).assertFalse()
