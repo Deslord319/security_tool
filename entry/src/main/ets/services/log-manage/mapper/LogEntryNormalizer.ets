@@ -52,7 +52,6 @@ export class LogEntryNormalizer {
       filePath: LogEntryNormalizer.truncateString(entry.filePath, MAX_FILE_PATH_LENGTH),
       remoteAddr: LogEntryNormalizer.truncateString(entry.remoteAddr, MAX_REMOTE_ADDR_LENGTH),
       sourceEventId: entry.sourceEventId,
-      sourceSubType: entry.sourceSubType,
       rawEventName: LogEntryNormalizer.truncateString(entry.rawEventName, MAX_RAW_EVENT_NAME_LENGTH),
       rawOutcome: LogEntryNormalizer.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
       rawAction: LogEntryNormalizer.truncateString(entry.rawAction, MAX_RAW_ACTION_LENGTH),
@@ -68,21 +67,7 @@ export class LogEntryNormalizer {
       }
       normalizedBatch.push(LogEntryNormalizer.normalizeEntry(entry))
     }
-    normalizedBatch.reverse()
     return normalizedBatch
-  }
-
-  static sanitizeEntries(entries: LogEntry[], maxEntries: number): LogEntry[] {
-    let result: LogEntry[] = []
-    let limit = Math.min(entries.length, maxEntries)
-    for (let i = 0; i < limit; i++) {
-      let item = entries[i]
-      if (!item || typeof item !== 'object') {
-        continue
-      }
-      result.push(LogEntryNormalizer.normalizeEntry(item))
-    }
-    return result
   }
 
   private static normalizeTimestamp(ts: number): number {

@@ -49,7 +49,6 @@ interface LogEntryExtraData {
   uid?: number
   remoteAddr?: string
   sourceEventId?: number
-  sourceSubType?: number
   rawEventName?: string
   rawOutcome?: string
   rawAction?: string
@@ -114,8 +113,12 @@ export class LogEntryRepository {
     }
     try {
       await store.executeSql(CREATE_TABLE_SQL)
-      await LogEntryRepository.ensureColumn(store, "ALTER TABLE log_entries ADD COLUMN source TEXT NOT NULL DEFAULT 'unknown'")
-      await LogEntryRepository.ensureColumn(store, 'ALTER TABLE log_entries ADD COLUMN extra_json TEXT')
+      await LogEntryRepository.ensureColumn(
+        store,
+        "ALTER TABLE log_entries ADD COLUMN source TEXT NOT NULL DEFAULT 'unknown'",
+        'source'
+      )
+      await LogEntryRepository.ensureColumn(store, 'ALTER TABLE log_entries ADD COLUMN extra_json TEXT', 'extra_json')
       await store.executeSql(CREATE_INDEX_TIMESTAMP_SQL)
       await store.executeSql(CREATE_INDEX_EVENT_TYPE_SQL)
       await store.executeSql(CREATE_INDEX_RESULT_SQL)
@@ -199,6 +202,31 @@ export class LogEntryRepository {
     } catch (err) {
       LogUtils.error(TAG, `countByQuery failed: ${JSON.stringify(err)}`)
       return 0
+    } finally {
+      reader?.close()
+    }
+  }
+
+  static async hasEntry(entryId: string, query?: LogQuery): Promise<boolean> {
+    let store = await LogEntryRepository.getStore()
+    if (!store) {
+      return false
+    }
+    let reader: RdbResultSetReader | null = null
+    try {
+      let built = LogEntryRepository.buildWhereClause(query)
+      let sql = `SELECT COUNT(1) AS count FROM ${TABLE_NAME} WHERE record_id = ?`
+      let args: Array<relationalStore.ValueType> = [entryId]
+      if (built.sql.length > 0) {
+        sql += ` AND (${built.sql.substring(' WHERE '.length)})`
+        args = args.concat(built.args)
+      }
+      let resultSet = await store.querySql(sql, args)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return reader.readFirstLong('count') > 0
+    } catch (err) {
+      LogUtils.error(TAG, `hasEntry failed: ${JSON.stringify(err)}`)
+      return false
     } finally {
       reader?.close()
     }
@@ -363,7 +391,6 @@ export class LogEntryRepository {
         filePath: reader.getOptionalString(filePathIndex),
         remoteAddr: LogEntryRepository.pickString(extra, 'remoteAddr'),
         sourceEventId: LogEntryRepository.pickNumber(extra, 'sourceEventId'),
-        sourceSubType: LogEntryRepository.pickNumber(extra, 'sourceSubType'),
         rawEventName: LogEntryRepository.pickString(extra, 'rawEventName'),
         rawOutcome: LogEntryRepository.pickString(extra, 'rawOutcome'),
         rawAction: LogEntryRepository.pickString(extra, 'rawAction')
@@ -379,7 +406,7 @@ export class LogEntryRepository {
   ): SqlBundle {
     let built = LogEntryRepository.buildWhereClause(query)
     let sql =
-      `SELECT record_id, timestamp, event_type, result, source, detail, process_name, file_path, extra_json
+      `SELECT record_id, timestamp, event_type, result, detail, process_name, file_path, extra_json
        FROM ${TABLE_NAME}${built.sql}
        ORDER BY timestamp DESC, id DESC`
     let args = built.args.slice()
@@ -426,10 +453,18 @@ export class LogEntryRepository {
     }
   }
 
-  private static async ensureColumn(store: relationalStore.RdbStore, sql: string): Promise<void> {
+  private static async ensureColumn(
+    store: relationalStore.RdbStore,
+    sql: string,
+    columnName: string
+  ): Promise<void> {
     try {
       await store.executeSql(sql)
-    } catch (_) {
+    } catch (err) {
+      if (LogEntryRepository.isDuplicateColumnError(err, columnName)) {
+        return
+      }
+      throw new Error(JSON.stringify(err))
     }
   }
 
@@ -442,7 +477,7 @@ export class LogEntryRepository {
   }
 
   private static resolveSource(entry: LogEntry): string {
-    if (entry.sourceEventId !== undefined || entry.sourceSubType !== undefined) {
+    if (entry.sourceEventId !== undefined) {
       return 'audit_event'
     }
     if (entry.eventType === LogEventType.CRASH) {
@@ -464,9 +499,6 @@ export class LogEntryRepository {
     }
     if (entry.sourceEventId !== undefined) {
       extra.sourceEventId = entry.sourceEventId
-    }
-    if (entry.sourceSubType !== undefined) {
-      extra.sourceSubType = entry.sourceSubType
     }
     if (entry.rawEventName !== undefined) {
       extra.rawEventName = entry.rawEventName
@@ -538,13 +570,15 @@ export class LogEntryRepository {
       case 'sourceEventId':
         value = source.sourceEventId
         break
-      case 'sourceSubType':
-        value = source.sourceSubType
-        break
       default:
         value = undefined
         break
     }
     return value !== undefined && Number.isFinite(value) ? value : undefined
+  }
+
+  private static isDuplicateColumnError(err: Object, columnName: string): boolean {
+    let text = JSON.stringify(err).toLowerCase()
+    return text.includes('duplicate') && text.includes(columnName.toLowerCase())
   }
 }

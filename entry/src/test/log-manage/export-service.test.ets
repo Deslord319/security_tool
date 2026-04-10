@@ -78,13 +78,13 @@ export default function logExportServiceTest() {
       expect(LogEntryNormalizer.normalizeRetentionDays(14)).assertEqual(14)
     })
 
-    it('should sanitize entries and keep newest records first', 0, () => {
+    it('should normalize export entries and keep list order stable', 0, () => {
       let entries: LogEntry[] = [
         createLogEntry('old', LogEventType.FILE, LogEventResult.SUCCESS, 'older', 1000),
         createLogEntry('new', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'newer', 2000)
       ]
 
-      let normalized = LogEntryNormalizer.sanitizeEntries(entries, 10)
+      let normalized = LogEntryNormalizer.normalizeEntriesForAppend(entries)
 
       expect(normalized.length).assertEqual(2)
       expect(normalized[0].id).assertEqual('old')

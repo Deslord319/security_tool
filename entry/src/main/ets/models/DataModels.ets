@@ -522,7 +522,6 @@ export interface LogEntry {
   filePath?: string
   remoteAddr?: string
   sourceEventId?: number
-  sourceSubType?: number
   rawEventName?: string
   rawOutcome?: string
   rawAction?: string

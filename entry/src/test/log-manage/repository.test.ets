@@ -17,8 +17,8 @@ export default function logRepositoryTest() {
   })
 
   describe('LogEntryNormalizer', () => {
-    it('should sanitize valid entries and keep declared event fields', 0, () => {
-      let entries = LogEntryNormalizer.sanitizeEntries([
+    it('should normalize valid entries and keep declared event fields', 0, () => {
+      let entries = LogEntryNormalizer.normalizeEntriesForAppend([
         {
           id: '1',
           timestamp: Date.now(),
@@ -33,7 +33,7 @@ export default function logRepositoryTest() {
           detail: 'beta',
           result: LogEventResult.BLOCKED
         }
-      ], 10)
+      ])
 
       expect(entries.length).assertEqual(2)
       expect(entries[0].id).assertEqual('1')

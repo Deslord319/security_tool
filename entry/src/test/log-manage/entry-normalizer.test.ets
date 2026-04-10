@@ -56,7 +56,7 @@ export default function entryNormalizerTest() {
       expect(normalized.result).assertEqual(LogEventResult.SUCCESS)
     })
 
-    it('should reverse append batches and ignore invalid items', 0, () => {
+    it('should preserve append batch order and ignore invalid items', 0, () => {
       let first = createEntry('1', 'alpha')
       let second = createEntry('2', 'beta')
 
@@ -67,22 +67,9 @@ export default function entryNormalizerTest() {
       ])
 
       expect(result.length).assertEqual(2)
-      expect(result[0].id).assertEqual('2')
-      expect(result[1].id).assertEqual('1')
-    })
-
-    it('should sanitize persisted entries within max limit', 0, () => {
-      let entries: LogEntry[] = [
-        createEntry('1'),
-        createUndefinedEntry(),
-        createEntry('2'),
-        createEntry('3')
-      ]
-
-      let result = LogEntryNormalizer.sanitizeEntries(entries, 2)
-
-      expect(result.length).assertEqual(1)
       expect(result[0].id).assertEqual('1')
+      expect(result[1].id).assertEqual('2')
     })
+
   })
 }
