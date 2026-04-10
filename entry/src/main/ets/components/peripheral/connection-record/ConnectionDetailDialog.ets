@@ -49,6 +49,7 @@ export struct ConnectionDetailDialog {
       Text(DeviceDetailStrings.KEY_INFO)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
       Row({ space: 10 }) {
         this.metricField(DeviceDetailStrings.DEVICE_ID, record.deviceId)
@@ -106,9 +107,11 @@ export struct ConnectionDetailDialog {
         Text(DeviceDetailStrings.HISTORY_TITLE)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         Blank()
         Text(`${this.historyItems.length} ${DeviceDetailStrings.HISTORY_COUNT_SUFFIX}`)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
       }
       .width('100%')
@@ -116,6 +119,7 @@ export struct ConnectionDetailDialog {
       if (this.historyItems.length === 0) {
         Text(DeviceDetailStrings.NO_HISTORY)
           .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       } else {
         Column({ space: AppStyles.PADDING_SM }) {
@@ -131,8 +135,10 @@ export struct ConnectionDetailDialog {
                 Text(item.time)
                   .fontSize(AppStyles.FONT_SIZE_SMALL)
                   .fontWeight(FontWeight.Medium)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                 Text(`${item.policy} / ${item.result}`)
                   .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                  .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
                   .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
               }
               .layoutWeight(1)

@@ -6,6 +6,7 @@ import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../../models/
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { HoverUtils } from '../../../utils/HoverUtils'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 
 export interface PolicyOption {
   value: string
@@ -21,6 +22,7 @@ export struct PolicyList {
   @Param getPolicyLabel?: (index: number) => string = undefined
   @Param isUpdating?: (deviceId: string) => boolean = undefined
   @Event onPanelHover?: (isHover: boolean) => void = undefined
+  @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   build() {
     Scroll() {
@@ -42,6 +44,11 @@ export struct PolicyList {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
+    .scrollBarColor(getScrollBarColor(this.currentTheme))
+    .scrollBarWidth(this.scrollBarWidth)
+    .onHover((isHover: boolean) => {
+      this.scrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+    })
     .align(Alignment.Top)
   }
 

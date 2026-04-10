@@ -22,6 +22,7 @@ import {
 } from '../../../models/DataModels'
 import { LogResultPresentationStrings } from '../../../constants/modules/PresentationStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
@@ -43,6 +44,7 @@ export struct LogManagePage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param onBack: () => void = () => {}
   @Local viewModel: LogManageViewModel = new LogManageViewModel()
+  @Local private settingsScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
   private detailDialogController?: CustomDialogController
 
   private eventTypeFilterOptions: SelectOption[] = [
@@ -368,6 +370,11 @@ export struct LogManagePage {
           .width('100%')
           .layoutWeight(1)
           .scrollBar(BarState.Auto)
+          .scrollBarColor(getScrollBarColor(this.currentTheme))
+          .scrollBarWidth(this.settingsScrollBarWidth)
+          .onHover((isHover: boolean) => {
+            this.settingsScrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+          })
           .align(Alignment.Top)
         } else {
           if (this.viewModel.state.initialized) {

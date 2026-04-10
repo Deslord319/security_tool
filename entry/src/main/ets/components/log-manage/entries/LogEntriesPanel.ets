@@ -11,6 +11,7 @@ import {
 } from '../../../models/DataModels'
 import { LogFilterState, LogListState } from '../../../models/LogManageModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 
 @ComponentV2
@@ -20,6 +21,7 @@ export struct LogEntriesPanel {
   @Param filterState: LogFilterState = new LogFilterState()
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onEntryClick: (entry: LogEntry) => void = () => {}
+  @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   private getEmptyStateTitle(): string {
     return (this.filterState.eventTypeIndex > 0 ||
@@ -122,6 +124,11 @@ export struct LogEntriesPanel {
       .width('100%')
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
+      .scrollBarColor(getScrollBarColor(this.currentTheme))
+      .scrollBarWidth(this.scrollBarWidth)
+      .onHover((isHover: boolean) => {
+        this.scrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+      })
       .align(Alignment.Top)
     } else {
       Scroll() {
@@ -141,6 +148,11 @@ export struct LogEntriesPanel {
       .width('100%')
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
+      .scrollBarColor(getScrollBarColor(this.currentTheme))
+      .scrollBarWidth(this.scrollBarWidth)
+      .onHover((isHover: boolean) => {
+        this.scrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+      })
       .align(Alignment.Top)
     }
   }

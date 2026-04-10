@@ -17,6 +17,7 @@ import { FirewallPresetMode, FirewallToggleRejectReason } from '../../../models/
 import { FirewallOverviewViewModel } from '../../../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunner'
 import { CommonLoadingDialog } from '../../../components/CommonLoadingDialog'
@@ -34,6 +35,7 @@ export struct FirewallPage {
   @Event onNavigateToRules: () => void = () => {}
   @Event onBack: () => void = () => {}
   private readonly modeLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
+  @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   aboutToAppear() {
     this.firewallSwitchValue = this.overviewViewModel.state.enabled
@@ -437,6 +439,11 @@ export struct FirewallPage {
       .width('100%')
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
+      .scrollBarColor(getScrollBarColor(this.currentTheme))
+      .scrollBarWidth(this.scrollBarWidth)
+      .onHover((isHover: boolean) => {
+        this.scrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+      })
       .align(Alignment.Top)
     }
     .width('100%')

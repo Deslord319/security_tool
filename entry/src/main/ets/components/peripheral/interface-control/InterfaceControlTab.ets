@@ -6,6 +6,7 @@ import { PeripheralService } from '../../../services/peripheral/interface-contro
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { AsyncSelectRow } from '../../AsyncSelectRow'
 
 @ComponentV2
@@ -27,6 +28,7 @@ export struct InterfaceControlTab {
   @Event onUsbInterfaceToggleAsync?: (disallow: boolean) => Promise<boolean>
   @Event onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
   @Event onPanelHover?: (isHover: boolean) => void
+  @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   build() {
     Scroll() {
@@ -52,6 +54,7 @@ export struct InterfaceControlTab {
         }
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
@@ -59,10 +62,16 @@ export struct InterfaceControlTab {
       }
       .width('100%')
       .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     }
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
+    .scrollBarColor(getScrollBarColor(this.currentTheme))
+    .scrollBarWidth(this.scrollBarWidth)
+    .onHover((isHover: boolean) => {
+      this.scrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+    })
     .align(Alignment.Top)
   }
 

@@ -18,6 +18,7 @@ import { netFirewall } from '@kit.NetworkKit'
 
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../../../theme/ThemeColors'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { FirewallPresetMode, FirewallUserApplyMode } from '../../../models/DataModels'
 import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
@@ -32,6 +33,8 @@ export struct FirewallRulesPage {
   @Param rulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   @Event onBack: () => void = () => {}
   private userFirewallDialogController?: CustomDialogController
+  @Local private pageScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
+  @Local private listScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
@@ -504,6 +507,12 @@ export struct FirewallRulesPage {
       }
       .width('100%')
       .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .scrollBarColor(getScrollBarColor(this.currentTheme))
+      .scrollBarWidth(this.pageScrollBarWidth)
+      .onHover((isHover: boolean) => {
+        this.pageScrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+      })
     }
     .width('100%')
     .height('100%')
@@ -637,6 +646,11 @@ export struct FirewallRulesPage {
         .width('100%')
         .layoutWeight(1)
         .scrollBar(BarState.Auto)
+        .scrollBarColor(getScrollBarColor(this.currentTheme))
+        .scrollBarWidth(this.listScrollBarWidth)
+        .onHover((isHover: boolean) => {
+          this.listScrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+        })
       }
     }
     .width('100%')

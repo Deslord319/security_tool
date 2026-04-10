@@ -9,6 +9,7 @@ import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { ThemeMode, getThemeColors } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
+import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { getPeripheralConnectionListPolicyLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
@@ -22,6 +23,7 @@ export struct DeviceRecordList {
   @Event onPanelHover?: (isHover: boolean) => void
   @Local private activeDetailId: string = ''
   @Local private hoveredDetailId: string = ''
+  @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   private getDetailButtonBackground(recordId: string): ResourceColor {
     return ActionButtonStyles.getPrimaryBackground(
@@ -77,6 +79,11 @@ export struct DeviceRecordList {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
+    .scrollBarColor(getScrollBarColor(this.currentTheme))
+    .scrollBarWidth(this.scrollBarWidth)
+    .onHover((isHover: boolean) => {
+      this.scrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+    })
     .align(Alignment.Top)
   }
 
