@@ -113,12 +113,6 @@ export class LogEntryRepository {
     }
     try {
       await store.executeSql(CREATE_TABLE_SQL)
-      await LogEntryRepository.ensureColumn(
-        store,
-        "ALTER TABLE log_entries ADD COLUMN source TEXT NOT NULL DEFAULT 'unknown'",
-        'source'
-      )
-      await LogEntryRepository.ensureColumn(store, 'ALTER TABLE log_entries ADD COLUMN extra_json TEXT', 'extra_json')
       await store.executeSql(CREATE_INDEX_TIMESTAMP_SQL)
       await store.executeSql(CREATE_INDEX_EVENT_TYPE_SQL)
       await store.executeSql(CREATE_INDEX_RESULT_SQL)
@@ -128,7 +122,7 @@ export class LogEntryRepository {
     } catch (err) {
       LogEntryRepository.initialized = false
       LogEntryRepository.initializedContextDir = ''
-      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `init failed: ${err}`)
       return false
     }
   }
@@ -161,7 +155,7 @@ export class LogEntryRepository {
       }
       return true
     } catch (err) {
-      LogUtils.error(TAG, `upsertEntries failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `upsertEntries failed: ${err}`)
       return false
     }
   }
@@ -181,7 +175,7 @@ export class LogEntryRepository {
       reader = new RdbResultSetReader(resultSet, TAG)
       return LogEntryRepository.mapResultSet(reader)
     } catch (err) {
-      LogUtils.error(TAG, `listByQuery failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `listByQuery failed: ${err}`)
       return []
     } finally {
       reader?.close()
@@ -200,7 +194,7 @@ export class LogEntryRepository {
       reader = new RdbResultSetReader(resultSet, TAG)
       return reader.readFirstLong('count')
     } catch (err) {
-      LogUtils.error(TAG, `countByQuery failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `countByQuery failed: ${err}`)
       return 0
     } finally {
       reader?.close()
@@ -225,7 +219,7 @@ export class LogEntryRepository {
       reader = new RdbResultSetReader(resultSet, TAG)
       return reader.readFirstLong('count') > 0
     } catch (err) {
-      LogUtils.error(TAG, `hasEntry failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `hasEntry failed: ${err}`)
       return false
     } finally {
       reader?.close()
@@ -265,7 +259,7 @@ export class LogEntryRepository {
       await store.executeSql(`DELETE FROM ${TABLE_NAME} WHERE timestamp < ?`, [cutoffTimestamp])
       return true
     } catch (err) {
-      LogUtils.error(TAG, `deleteExpired failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `deleteExpired failed: ${err}`)
       return false
     }
   }
@@ -287,7 +281,7 @@ export class LogEntryRepository {
       )
       return true
     } catch (err) {
-      LogUtils.error(TAG, `trimToMaxEntries failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `trimToMaxEntries failed: ${err}`)
       return false
     }
   }
@@ -301,7 +295,7 @@ export class LogEntryRepository {
       await store.executeSql(`DELETE FROM ${TABLE_NAME}`)
       return true
     } catch (err) {
-      LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `clearAll failed: ${err}`)
       return false
     }
   }
@@ -324,7 +318,7 @@ export class LogEntryRepository {
       reader = new RdbResultSetReader(resultSet, TAG)
       return reader.readFirstLong('count')
     } catch (err) {
-      LogUtils.error(TAG, `countByRawWhere failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `countByRawWhere failed: ${err}`)
       return 0
     } finally {
       reader?.close()
@@ -357,7 +351,7 @@ export class LogEntryRepository {
       } while (reader.moveToNext())
       return result
     } catch (err) {
-      LogUtils.error(TAG, `groupCountByEventType failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `groupCountByEventType failed: ${err}`)
       return result
     } finally {
       reader?.close()
@@ -453,21 +447,6 @@ export class LogEntryRepository {
     }
   }
 
-  private static async ensureColumn(
-    store: relationalStore.RdbStore,
-    sql: string,
-    columnName: string
-  ): Promise<void> {
-    try {
-      await store.executeSql(sql)
-    } catch (err) {
-      if (LogEntryRepository.isDuplicateColumnError(err, columnName)) {
-        return
-      }
-      throw new Error(JSON.stringify(err))
-    }
-  }
-
   private static serializeEventType(eventType: LogEventType): string {
     return eventType.toString()
   }
@@ -538,7 +517,7 @@ export class LogEntryRepository {
       let parsed = JSON.parse(rawValue) as Object
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as LogEntryExtraData : {}
     } catch (err) {
-      LogUtils.warn(TAG, `parseExtraJson failed: ${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `parseExtraJson failed: ${err}`)
       return {}
     }
   }
@@ -577,8 +556,4 @@ export class LogEntryRepository {
     return value !== undefined && Number.isFinite(value) ? value : undefined
   }
 
-  private static isDuplicateColumnError(err: Object, columnName: string): boolean {
-    let text = JSON.stringify(err).toLowerCase()
-    return text.includes('duplicate') && text.includes(columnName.toLowerCase())
-  }
 }

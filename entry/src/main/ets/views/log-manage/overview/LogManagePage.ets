@@ -106,7 +106,7 @@ export struct LogManagePage {
           onClose: () => this.closeDetailDialog()
         }),
         alignment: DialogAlignment.Center,
-        autoCancel: true,
+        autoCancel: false,
         customStyle: true,
         isModal: true,
         maskColor: AppColors.OVERLAY_BACKGROUND,

@@ -163,17 +163,13 @@ export default function peripheralConnectionRecordServiceTest() {
       expect(records.length).assertEqual(0)
     })
 
-    it('should forward pagination and count query to trace repository', 0, async () => {
+    it('should query full record set and count query from trace repository', 0, async () => {
       let capturedListQuery: Object | null = null
-      let capturedLimit: number | undefined = undefined
-      let capturedOffset: number | undefined = undefined
       let capturedCountQuery: Object | null = null
       let listMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.listByQuery)
       let countMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.countByQuery)
       when(listMock)(ArgumentMatchers.any).afterAction((query?: Object) => {
         capturedListQuery = query ?? null
-        capturedLimit = 20
-        capturedOffset = 40
         return Promise.resolve([])
       })
       when(countMock)(ArgumentMatchers.any).afterAction((query?: Object) => {
@@ -186,11 +182,9 @@ export default function peripheralConnectionRecordServiceTest() {
         deviceTypes: [PeripheralType.USB_CAMERA]
       }
       let count = await PeripheralConnectionRecordService.countRecords(filter)
-      await PeripheralConnectionRecordService.queryRecords(filter, 20, 40)
+      await PeripheralConnectionRecordService.queryRecords(filter)
 
       expect(count).assertEqual(3)
-      expect(capturedLimit).assertEqual(20)
-      expect(capturedOffset).assertEqual(40)
       expect(JSON.stringify(capturedListQuery).indexOf('camera') > -1).assertTrue()
       expect(JSON.stringify(capturedCountQuery).indexOf('camera') > -1).assertTrue()
     })

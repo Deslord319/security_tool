@@ -40,8 +40,10 @@ struct MainPage {
   @Local currentTheme: ThemeMode = ThemeManager.getInstance().getCurrentTheme()
   @Local currentThemeOption: ThemeOption = ThemeManager.getInstance().getCurrentOption()
   private aboutDialogController?: CustomDialogController
-  private runtimeInitialized: boolean = false
-  private runtimeInitInProgress: boolean = false
+  private logRuntimeInitialized: boolean = false
+  private peripheralRuntimeInitialized: boolean = false
+  private logRuntimeInitInProgress: boolean = false
+  private peripheralRuntimeInitInProgress: boolean = false
   private readonly themeListener: () => void = () => {
     this.syncThemeState()
     this.syncDecorButtonStyle()
@@ -57,24 +59,11 @@ struct MainPage {
   aboutToAppear(): void {
     ThemeManager.getInstance().subscribe(this.themeListener)
     this.syncThemeState()
-    this.loadFirewallState().catch((err: Object) => {
-      LogUtils.error(TAG, `loadFirewallState in aboutToAppear failed: ${JSON.stringify(err)}`)
-    })
-    this.ensureRuntimeServices().catch((err: Object) => {
-      LogUtils.error(TAG, `ensureRuntimeServices in aboutToAppear failed: ${JSON.stringify(err)}`)
-    })
     this.syncDecorButtonStyle()
   }
 
   onPageShow(): void {
-    this.syncThemeState()
-    this.loadFirewallState().catch((err: Object) => {
-      LogUtils.error(TAG, `loadFirewallState in onPageShow failed: ${JSON.stringify(err)}`)
-    })
-    this.ensureRuntimeServices().catch((err: Object) => {
-      LogUtils.error(TAG, `ensureRuntimeServices in onPageShow failed: ${JSON.stringify(err)}`)
-    })
-    this.syncDecorButtonStyle()
+    this.handlePageActivated('onPageShow')
   }
 
   private syncThemeState(): void {
@@ -114,17 +103,27 @@ struct MainPage {
     await this.firewallOverviewViewModel.initialize(context)
   }
 
+  private handlePageActivated(source: 'onPageShow'): void {
+    this.syncThemeState()
+    this.loadFirewallState().catch((err: Object) => {
+      LogUtils.error(TAG, `loadFirewallState in ${source} failed: ${JSON.stringify(err)}`)
+    })
+    this.ensureRuntimeServices().catch((err: Object) => {
+      LogUtils.error(TAG, `ensureRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
+    })
+    this.syncDecorButtonStyle()
+  }
+
   private async ensureRuntimeServices(): Promise<void> {
-    if (!this.runtimeInitialized) {
-      await this.initRuntimeServices()
-      if (!this.runtimeInitialized) {
-        LogUtils.warn(TAG, 'runtime services not initialized, skip start')
-        return
-      }
+    if (!this.logRuntimeInitialized) {
+      await this.initLogRuntimeServices()
+    }
+    if (!this.peripheralRuntimeInitialized) {
+      await this.initPeripheralRuntimeServices()
     }
 
     let status = LogCollectorService.getStatus()
-    if (!status.running) {
+    if (this.logRuntimeInitialized && !status.running) {
       let collectorStarted = await LogCollectorService.start()
       LogUtils.info(TAG, `ensureRuntimeServices collector start result: started=${collectorStarted.success}, code=${collectorStarted.code}`)
       if (!collectorStarted.success) {
@@ -133,7 +132,7 @@ struct MainPage {
     }
 
     let runtimeStatus = this.connectionRecordProducer.getStatus()
-    if (!runtimeStatus.running) {
+    if (this.peripheralRuntimeInitialized && !runtimeStatus.running) {
       let runtimeStarted = await this.connectionRecordPipeline.start()
       let latestStatus = this.connectionRecordProducer.getStatus()
       LogUtils.info(TAG,
@@ -145,11 +144,11 @@ struct MainPage {
     }
   }
 
-  private async initRuntimeServices(): Promise<void> {
-    if (this.runtimeInitialized || this.runtimeInitInProgress) {
+  private async initLogRuntimeServices(): Promise<void> {
+    if (this.logRuntimeInitialized || this.logRuntimeInitInProgress) {
       return
     }
-    this.runtimeInitInProgress = true
+    this.logRuntimeInitInProgress = true
 
     try {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
@@ -158,7 +157,24 @@ struct MainPage {
         LogUtils.error(TAG, `LogCollectorService init failed: ${collectorInited.code}`)
         return
       }
+      this.logRuntimeInitialized = true
+      LogUtils.info(TAG, 'initLogRuntimeServices success')
+    } catch (err) {
+      this.logRuntimeInitialized = false
+      LogUtils.error(TAG, `initLogRuntimeServices failed: ${JSON.stringify(err)}`)
+    } finally {
+      this.logRuntimeInitInProgress = false
+    }
+  }
 
+  private async initPeripheralRuntimeServices(): Promise<void> {
+    if (this.peripheralRuntimeInitialized || this.peripheralRuntimeInitInProgress) {
+      return
+    }
+    this.peripheralRuntimeInitInProgress = true
+
+    try {
+      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let traceRepoInited = await this.connectionRecordPipeline.bindContext(context)
       if (!traceRepoInited) {
         LogUtils.error(TAG, 'connection record pipeline bindContext failed')
@@ -181,14 +197,13 @@ struct MainPage {
         LogUtils.error(TAG, 'connection record pipeline attachProducer failed')
         return
       }
-      LogUtils.info(TAG, 'initRuntimeServices success')
-
-      this.runtimeInitialized = true
+      this.peripheralRuntimeInitialized = true
+      LogUtils.info(TAG, 'initPeripheralRuntimeServices success')
     } catch (err) {
-      this.runtimeInitialized = false
-      LogUtils.error(TAG, `initRuntimeServices failed: ${JSON.stringify(err)}`)
+      this.peripheralRuntimeInitialized = false
+      LogUtils.error(TAG, `initPeripheralRuntimeServices failed: ${JSON.stringify(err)}`)
     } finally {
-      this.runtimeInitInProgress = false
+      this.peripheralRuntimeInitInProgress = false
     }
   }
 

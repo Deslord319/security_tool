@@ -12,9 +12,7 @@ const TAG = 'PeripheralConnectionRecordService'
 
 export class PeripheralConnectionRecordService {
   static async queryRecords(
-    filter?: PeripheralConnectionFilter,
-    limit?: number,
-    offset?: number
+    filter?: PeripheralConnectionFilter
   ): Promise<PeripheralConnectionRecord[]> {
     try {
       let query: PeripheralTraceQuery = {
@@ -25,7 +23,7 @@ export class PeripheralConnectionRecordService {
         sources: ['runtime_event', 'audit_event'],
         keyword: filter?.keyword
       }
-      let records = await PeripheralTraceEntryRepository.listByQuery(query, limit, offset)
+      let records = await PeripheralTraceEntryRepository.listByQuery(query)
       return records
         .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapTraceRecord(record))
     } catch (err) {

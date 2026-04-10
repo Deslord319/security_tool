@@ -163,14 +163,14 @@ export class PeripheralTraceEntryRepository {
     }
   }
 
-  static async listByQuery(query?: PeripheralTraceQuery, limit?: number, offset?: number): Promise<PeripheralTraceRecord[]> {
+  static async listByQuery(query?: PeripheralTraceQuery): Promise<PeripheralTraceRecord[]> {
     let store = await PeripheralTraceEntryRepository.getStore()
     if (!store) {
       return []
     }
     let reader: RdbResultSetReader | null = null
     try {
-      let built = PeripheralTraceEntryRepository.buildSelectSql(query, limit, offset)
+      let built = PeripheralTraceEntryRepository.buildSelectSql(query)
       let resultSet = await store.querySql(built.sql, built.args)
       reader = new RdbResultSetReader(resultSet, TAG)
       return PeripheralTraceEntryRepository.mapResultSet(reader)
@@ -357,9 +357,7 @@ export class PeripheralTraceEntryRepository {
   }
 
   private static buildSelectSql(
-    query?: PeripheralTraceQuery,
-    limit?: number,
-    offset?: number
+    query?: PeripheralTraceQuery
   ): SqlBundle {
     let built = PeripheralTraceEntryRepository.buildWhereClause(query)
     let sql =
@@ -367,16 +365,7 @@ export class PeripheralTraceEntryRepository {
               action, decision, result, source, summary, detail, process_name, raw_payload, extra_json
        FROM ${TABLE_NAME}${built.sql}
        ORDER BY occur_at DESC, id DESC`
-    let args = built.args.slice()
-    if (limit !== undefined) {
-      sql += ' LIMIT ?'
-      args.push(limit)
-      if (offset !== undefined && offset > 0) {
-        sql += ' OFFSET ?'
-        args.push(offset)
-      }
-    }
-    return { sql, args }
+    return { sql, args: built.args.slice() }
   }
 
   private static buildCountSql(query?: PeripheralTraceQuery): SqlBundle {
