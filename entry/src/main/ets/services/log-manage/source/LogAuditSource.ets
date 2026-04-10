@@ -41,12 +41,6 @@ interface FileFilterContext {
   prefix: string
 }
 
-interface AuditFilterCompat {
-  isInclude: boolean
-  type: securityAudit.FilterType
-  values: string[]
-}
-
 export class LogAuditSource {
   private static isSubscribed: boolean = false
   private static callback: LogEntryCallback | null = null
@@ -252,13 +246,13 @@ export class LogAuditSource {
       return false
     }
 
-    const filter: AuditFilterCompat = {
+    const filter: securityAudit.Filter = {
       isInclude: true,
       type: securityAudit.FilterType.FILE_PATH_PREFIX,
       values: [fileFilterContext.prefix]
     }
     try {
-      client.addFilter(eventId, filter as securityAudit.Filter)
+      client.addFilter(eventId, filter)
       LogUtils.info(TAG,
         `FILE prefilter attached: eventId=${eventId}, foregroundUserId=${fileFilterContext.foregroundUserId}, prefix=${fileFilterContext.prefix}`
       )
