@@ -30,7 +30,8 @@ import {
 } from '../../../services/log-manage/common/LogManagePorts'
 import { LogCollectorService } from '../../../services/log-manage/collector/LogCollectorService'
 import { LogExportService } from '../../../services/log-manage/export/LogExportService'
-import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
+import { LogStorageMaintenanceService } from '../../../services/log-manage/maintenance/LogStorageMaintenanceService'
+import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogStorageSettingsViewModel } from '../storage-settings/LogStorageSettingsViewModel'
 
@@ -39,27 +40,34 @@ const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
 class DefaultLogManageRepository implements LogRepositoryPort {
   init(context: common.UIAbilityContext): Promise<InitializeResult> {
-    return LogRepository.init(context)
+    return LogStorageMaintenanceService.initialize(context)
   }
 
   addEntries(entries: LogEntry[]): Promise<MutationResult> {
-    return LogRepository.addEntries(entries)
+    return LogStorageMaintenanceService.appendEntries(entries)
   }
 
-  snapshot(query?: LogQuery): Promise<LogSnapshot> {
-    return LogRepository.snapshot(query)
+  async snapshot(query?: LogQuery): Promise<LogSnapshot> {
+    let statistics = await LogEntryRepository.getStatistics()
+    let entries = await LogEntryRepository.listByQuery(query)
+    return {
+      totalCount: statistics.totalCount,
+      todayCount: statistics.todayCount,
+      blockedCount: statistics.blockedCount,
+      entries
+    }
   }
 
   clear(): Promise<ClearLogsResult> {
-    return LogRepository.clear()
+    return LogStorageMaintenanceService.clearAll()
   }
 
   addChangeListener(listener: () => void): number {
-    return LogRepository.addChangeListener(listener)
+    return LogEntryRepository.addChangeListener(listener)
   }
 
   removeChangeListener(listenerId: number): void {
-    LogRepository.removeChangeListener(listenerId)
+    LogEntryRepository.removeChangeListener(listenerId)
   }
 }
 

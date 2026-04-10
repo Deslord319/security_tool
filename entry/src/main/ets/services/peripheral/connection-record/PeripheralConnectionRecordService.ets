@@ -18,12 +18,12 @@ export class PeripheralConnectionRecordService {
         endTime: filter?.endTime,
         deviceTypes: filter?.deviceTypes,
         results: filter?.results,
-        sources: ['runtime_event'],
+        sources: ['runtime_event', 'audit_event'],
         keyword: filter?.keyword
       }
       let records = await PeripheralTraceRepository.query(query)
       return records
-        .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapRuntimeRecord(record))
+        .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapTraceRecord(record))
         .sort((a: PeripheralConnectionRecord, b: PeripheralConnectionRecord) => b.timestamp - a.timestamp)
     } catch (err) {
       LogUtils.error(TAG, `queryRecords failed: ${JSON.stringify(err)}`)
@@ -31,9 +31,9 @@ export class PeripheralConnectionRecordService {
     }
   }
 
-  private static mapRuntimeRecord(record: PeripheralTraceRecord): PeripheralConnectionRecord {
+  private static mapTraceRecord(record: PeripheralTraceRecord): PeripheralConnectionRecord {
     return {
-      id: `peripheral_runtime_${record.recordId}`,
+      id: `peripheral_${record.source}_${record.recordId}`,
       timestamp: record.occurAt,
       collectAt: record.collectAt,
       deviceName: record.deviceName,
@@ -42,7 +42,7 @@ export class PeripheralConnectionRecordService {
       action: record.action,
       result: record.result,
       policyHit: record.decision,
-      source: 'runtime_event',
+      source: record.source,
       summary: record.summary,
       correlationId: record.correlationId,
       policyVersion: record.policyVersion,

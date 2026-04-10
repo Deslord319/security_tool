@@ -37,6 +37,13 @@ export class PeripheralViewModel {
     this.isLoading = true
     this.appContext = context
     try {
+      this.destroy()
+      let traceReady = await PeripheralTraceRepository.init(context)
+      if (!traceReady) {
+        this.reasonCode = PeripheralReasonCodes.INIT_FAILED
+        LogUtils.error(TAG, 'initialize failed: trace repository not ready')
+        return
+      }
       await this.policy.initialize(context)
       await this.reloadAllData()
       this.traceStorageListenerId = PeripheralTraceRepository.addChangeListener(() => {

@@ -1,6 +1,6 @@
-export interface StorageResult<T> {
+export interface StorageResult<TCode extends string = string, TData = void> {
   success: boolean
-  code: 'ok' | 'read_failed' | 'save_failed' | 'storage_init_failed' | 'data_corrupted'
+  code: TCode
   message?: string
-  data?: T
+  data?: TData
 }

@@ -6,7 +6,7 @@ import {
   SaveSettingsResult,
   ServiceResult
 } from '../../../services/log-manage/common/LogManagePorts'
-import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
+import { LogStorageMaintenanceService } from '../../../services/log-manage/maintenance/LogStorageMaintenanceService'
 import { LogSettingsRepository } from '../../../services/log-manage/repository/LogSettingsRepository'
 
 const TAG = 'LogStorageSettingsVM'
@@ -28,7 +28,7 @@ class DefaultLogStorageConfigRepository implements LogStorageConfigPersistencePo
 
 class DefaultLogStorageMaintenanceRepository implements LogStorageMaintenancePort {
   reconcileStorageConfig() {
-    return LogRepository.reconcileStorageConfig()
+    return LogStorageMaintenanceService.reconcileStorageConfig()
   }
 }
 

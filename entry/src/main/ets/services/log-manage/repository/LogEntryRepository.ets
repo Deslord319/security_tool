@@ -4,6 +4,7 @@ import { LogEntry, LogEventResult, LogEventType, LogStatistics } from '../../../
 import { LogUtils } from '../../../utils/LogUtils'
 import { RdbStoreProvider } from '../../../storage/rdb/RdbStoreProvider'
 import { LogQuery } from '../common/LogManagePorts'
+import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 
 const TAG = 'LogEntryRepository'
 const DB_NAME = 'security_tool.db'
@@ -54,17 +55,61 @@ interface LogEntryExtraData {
   rawAction?: string
 }
 
+type ChangeListener = () => void
+
 export class LogEntryRepository {
   private static context: common.UIAbilityContext | null = null
   private static initialized: boolean = false
+  private static initializedContextDir: string = ''
+  private static initPromise: Promise<boolean> | null = null
+  private static nextListenerId: number = 1
+  private static listeners: Map<number, ChangeListener> = new Map()
 
   static async init(context: common.UIAbilityContext): Promise<boolean> {
     LogEntryRepository.context = context
-    if (LogEntryRepository.initialized) {
+    let contextDir = context.filesDir || ''
+    if (LogEntryRepository.initialized && LogEntryRepository.initializedContextDir === contextDir) {
       return true
     }
+    if (LogEntryRepository.initPromise) {
+      return LogEntryRepository.initPromise
+    }
+    LogEntryRepository.initPromise = LogEntryRepository.doInit(context, contextDir)
+    let ready = await LogEntryRepository.initPromise
+    LogEntryRepository.initPromise = null
+    return ready
+  }
+
+  static isReady(): boolean {
+    return LogEntryRepository.initialized
+  }
+
+  static addChangeListener(listener: ChangeListener): number {
+    let id = LogEntryRepository.nextListenerId++
+    LogEntryRepository.listeners.set(id, listener)
+    return id
+  }
+
+  static removeChangeListener(listenerId: number): void {
+    LogEntryRepository.listeners.delete(listenerId)
+  }
+
+  static notifyChanged(): void {
+    LogEntryRepository.listeners.forEach((listener: ChangeListener) => {
+      try {
+        listener()
+      } catch (err) {
+        LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
+      }
+    })
+  }
+
+  private static async doInit(context: common.UIAbilityContext, contextDir: string): Promise<boolean> {
+    LogEntryRepository.context = context
     let store = await LogEntryRepository.getStore()
     if (!store) {
+      LogEntryRepository.initialized = false
+      LogEntryRepository.initializedContextDir = ''
       return false
     }
     try {
@@ -75,8 +120,11 @@ export class LogEntryRepository {
       await store.executeSql(CREATE_INDEX_EVENT_TYPE_SQL)
       await store.executeSql(CREATE_INDEX_RESULT_SQL)
       LogEntryRepository.initialized = true
+      LogEntryRepository.initializedContextDir = contextDir
       return true
     } catch (err) {
+      LogEntryRepository.initialized = false
+      LogEntryRepository.initializedContextDir = ''
       LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
     }
@@ -120,19 +168,20 @@ export class LogEntryRepository {
     if (!store) {
       return []
     }
-    let resultSet: relationalStore.ResultSet | null = null
+    let reader: RdbResultSetReader | null = null
     try {
       let built = LogEntryRepository.buildSelectSql(query, limit, offset)
-      resultSet = await store.querySql(
+      let resultSet = await store.querySql(
         built.sql,
         built.args
       )
-      return LogEntryRepository.mapResultSet(resultSet)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return LogEntryRepository.mapResultSet(reader)
     } catch (err) {
       LogUtils.error(TAG, `listByQuery failed: ${JSON.stringify(err)}`)
       return []
     } finally {
-      LogEntryRepository.closeResultSet(resultSet)
+      reader?.close()
     }
   }
 
@@ -141,16 +190,17 @@ export class LogEntryRepository {
     if (!store) {
       return 0
     }
-    let resultSet: relationalStore.ResultSet | null = null
+    let reader: RdbResultSetReader | null = null
     try {
       let built = LogEntryRepository.buildCountSql(query)
-      resultSet = await store.querySql(built.sql, built.args)
-      return LogEntryRepository.readFirstLong(resultSet, 'count')
+      let resultSet = await store.querySql(built.sql, built.args)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return reader.readFirstLong('count')
     } catch (err) {
       LogUtils.error(TAG, `countByQuery failed: ${JSON.stringify(err)}`)
       return 0
     } finally {
-      LogEntryRepository.closeResultSet(resultSet)
+      reader?.close()
     }
   }
 
@@ -240,15 +290,16 @@ export class LogEntryRepository {
     if (!store) {
       return 0
     }
-    let resultSet: relationalStore.ResultSet | null = null
+    let reader: RdbResultSetReader | null = null
     try {
-      resultSet = await store.querySql(`SELECT COUNT(1) AS count FROM ${TABLE_NAME} WHERE ${whereClause}`, args)
-      return LogEntryRepository.readFirstLong(resultSet, 'count')
+      let resultSet = await store.querySql(`SELECT COUNT(1) AS count FROM ${TABLE_NAME} WHERE ${whereClause}`, args)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return reader.readFirstLong('count')
     } catch (err) {
       LogUtils.error(TAG, `countByRawWhere failed: ${JSON.stringify(err)}`)
       return 0
     } finally {
-      LogEntryRepository.closeResultSet(resultSet)
+      reader?.close()
     }
   }
 
@@ -258,57 +309,58 @@ export class LogEntryRepository {
     if (!store) {
       return result
     }
-    let resultSet: relationalStore.ResultSet | null = null
+    let reader: RdbResultSetReader | null = null
     try {
-      resultSet = await store.querySql(
+      let resultSet = await store.querySql(
         `SELECT event_type, COUNT(1) AS count
          FROM ${TABLE_NAME}
          GROUP BY event_type`
       )
-      if (!LogEntryRepository.hasRows(resultSet)) {
+      reader = new RdbResultSetReader(resultSet, TAG)
+      if (!reader.moveToFirst()) {
         return result
       }
-      let eventTypeIndex = LogEntryRepository.getColumnIndex(resultSet, 'event_type')
-      let countIndex = LogEntryRepository.getColumnIndex(resultSet, 'count')
+      let eventTypeIndex = reader.getColumnIndex('event_type')
+      let countIndex = reader.getColumnIndex('count')
       do {
-        let eventType = LogEntryRepository.parseEventType(LogEntryRepository.getRequiredString(resultSet, eventTypeIndex))
-        let count = LogEntryRepository.getRequiredNumber(resultSet, countIndex)
+        let eventType = LogEntryRepository.parseEventType(reader.getRequiredString(eventTypeIndex))
+        let count = reader.getRequiredNumber(countIndex)
         result.set(eventType, count)
-      } while (LogEntryRepository.goToNextRow(resultSet))
+      } while (reader.moveToNext())
       return result
     } catch (err) {
       LogUtils.error(TAG, `groupCountByEventType failed: ${JSON.stringify(err)}`)
       return result
     } finally {
-      LogEntryRepository.closeResultSet(resultSet)
+      reader?.close()
     }
   }
 
-  private static mapResultSet(resultSet: relationalStore.ResultSet): LogEntry[] {
+  private static mapResultSet(reader: RdbResultSetReader): LogEntry[] {
     let entries: LogEntry[] = []
-    if (!LogEntryRepository.hasRows(resultSet)) {
+    if (!reader.moveToFirst()) {
       return entries
     }
-    let recordIdIndex = LogEntryRepository.getColumnIndex(resultSet, 'record_id')
-    let timestampIndex = LogEntryRepository.getColumnIndex(resultSet, 'timestamp')
-    let eventTypeIndex = LogEntryRepository.getColumnIndex(resultSet, 'event_type')
-    let resultIndex = LogEntryRepository.getColumnIndex(resultSet, 'result')
-    let detailIndex = LogEntryRepository.getColumnIndex(resultSet, 'detail')
-    let processNameIndex = LogEntryRepository.getColumnIndex(resultSet, 'process_name')
-    let filePathIndex = LogEntryRepository.getColumnIndex(resultSet, 'file_path')
-    let extraJsonIndex = LogEntryRepository.getColumnIndex(resultSet, 'extra_json')
+    let recordIdIndex = reader.getColumnIndex('record_id')
+    let timestampIndex = reader.getColumnIndex('timestamp')
+    let eventTypeIndex = reader.getColumnIndex('event_type')
+    let resultIndex = reader.getColumnIndex('result')
+    let detailIndex = reader.getColumnIndex('detail')
+    let processNameIndex = reader.getColumnIndex('process_name')
+    let filePathIndex = reader.getColumnIndex('file_path')
+    let extraJsonIndex = reader.getColumnIndex('extra_json')
     do {
-      let extra = LogEntryRepository.parseExtraJson(LogEntryRepository.getOptionalString(resultSet, extraJsonIndex))
+      let extra = LogEntryRepository.parseExtraJson(reader.getOptionalString(extraJsonIndex))
       entries.push({
-        id: LogEntryRepository.getRequiredString(resultSet, recordIdIndex),
-        timestamp: LogEntryRepository.getRequiredNumber(resultSet, timestampIndex),
-        eventType: LogEntryRepository.parseEventType(LogEntryRepository.getRequiredString(resultSet, eventTypeIndex)),
-        result: LogEntryRepository.parseResult(LogEntryRepository.getRequiredString(resultSet, resultIndex)),
-        detail: LogEntryRepository.getRequiredString(resultSet, detailIndex),
-        processName: LogEntryRepository.getOptionalString(resultSet, processNameIndex),
+        id: reader.getRequiredString(recordIdIndex),
+        timestamp: reader.getRequiredNumber(timestampIndex),
+        eventType: LogEntryRepository.parseEventType(reader.getRequiredString(eventTypeIndex)),
+        result: LogEntryRepository.parseResult(reader.getRequiredString(resultIndex)),
+        detail: reader.getRequiredString(detailIndex),
+        processName: reader.getOptionalString(processNameIndex),
         pid: LogEntryRepository.pickNumber(extra, 'pid'),
         uid: LogEntryRepository.pickNumber(extra, 'uid'),
-        filePath: LogEntryRepository.getOptionalString(resultSet, filePathIndex),
+        filePath: reader.getOptionalString(filePathIndex),
         remoteAddr: LogEntryRepository.pickString(extra, 'remoteAddr'),
         sourceEventId: LogEntryRepository.pickNumber(extra, 'sourceEventId'),
         sourceSubType: LogEntryRepository.pickNumber(extra, 'sourceSubType'),
@@ -316,7 +368,7 @@ export class LogEntryRepository {
         rawOutcome: LogEntryRepository.pickString(extra, 'rawOutcome'),
         rawAction: LogEntryRepository.pickString(extra, 'rawAction')
       })
-    } while (LogEntryRepository.goToNextRow(resultSet))
+    } while (reader.moveToNext())
     return entries
   }
 
@@ -494,89 +546,5 @@ export class LogEntryRepository {
         break
     }
     return value !== undefined && Number.isFinite(value) ? value : undefined
-  }
-
-  private static hasRows(resultSet: relationalStore.ResultSet): boolean {
-    try {
-      return resultSet.rowCount > 0 && resultSet.goToFirstRow()
-    } catch (err) {
-      LogUtils.error(TAG, `hasRows failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  private static goToNextRow(resultSet: relationalStore.ResultSet): boolean {
-    try {
-      return resultSet.goToNextRow()
-    } catch (err) {
-      LogUtils.error(TAG, `goToNextRow failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  private static getColumnIndex(resultSet: relationalStore.ResultSet, column: string): number {
-    try {
-      return resultSet.getColumnIndex(column)
-    } catch (err) {
-      LogUtils.error(TAG, `getColumnIndex failed: column=${column}, err=${JSON.stringify(err)}`)
-      return -1
-    }
-  }
-
-  private static getRequiredString(resultSet: relationalStore.ResultSet, columnIndex: number): string {
-    if (columnIndex < 0) {
-      return ''
-    }
-    try {
-      return resultSet.getString(columnIndex)
-    } catch (err) {
-      LogUtils.error(TAG, `getRequiredString failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return ''
-    }
-  }
-
-  private static getOptionalString(resultSet: relationalStore.ResultSet, columnIndex: number): string | undefined {
-    if (columnIndex < 0) {
-      return undefined
-    }
-    try {
-      return resultSet.isColumnNull(columnIndex) ? undefined : resultSet.getString(columnIndex)
-    } catch (err) {
-      LogUtils.error(TAG, `getOptionalString failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return undefined
-    }
-  }
-
-  private static getRequiredNumber(resultSet: relationalStore.ResultSet, columnIndex: number): number {
-    if (columnIndex < 0) {
-      return 0
-    }
-    try {
-      return resultSet.getLong(columnIndex)
-    } catch (err) {
-      LogUtils.error(TAG, `getRequiredNumber failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return 0
-    }
-  }
-
-  private static closeResultSet(resultSet: relationalStore.ResultSet | null): void {
-    if (!resultSet) {
-      return
-    }
-    try {
-      if (!resultSet.isClosed) {
-        resultSet.close()
-      }
-    } catch (err) {
-      LogUtils.warn(TAG, `closeResultSet failed: ${JSON.stringify(err)}`)
-    }
-  }
-
-  private static readFirstLong(resultSet: relationalStore.ResultSet | null, column: string): number {
-    if (!resultSet || !LogEntryRepository.hasRows(resultSet)) {
-      return 0
-    }
-    let columnIndex = LogEntryRepository.getColumnIndex(resultSet, column)
-    return LogEntryRepository.getRequiredNumber(resultSet, columnIndex)
   }
 }

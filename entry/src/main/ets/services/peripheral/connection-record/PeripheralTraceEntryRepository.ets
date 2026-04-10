@@ -13,6 +13,7 @@ import {
 } from '../../../models/DataModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { RdbStoreProvider } from '../../../storage/rdb/RdbStoreProvider'
+import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 
 const TAG = 'PeripheralTraceEntryRepo'
 const DB_NAME = 'security_tool.db'
@@ -140,16 +141,17 @@ export class PeripheralTraceEntryRepository {
     if (!store) {
       return []
     }
-    let resultSet: relationalStore.ResultSet | null = null
+    let reader: RdbResultSetReader | null = null
     try {
       let built = PeripheralTraceEntryRepository.buildSelectSql(query, limit, offset)
-      resultSet = await store.querySql(built.sql, built.args)
-      return PeripheralTraceEntryRepository.mapResultSet(resultSet)
+      let resultSet = await store.querySql(built.sql, built.args)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return PeripheralTraceEntryRepository.mapResultSet(reader)
     } catch (err) {
       LogUtils.error(TAG, `listByQuery failed: ${JSON.stringify(err)}`)
       return []
     } finally {
-      PeripheralTraceEntryRepository.closeResultSet(resultSet)
+      reader?.close()
     }
   }
 
@@ -158,16 +160,17 @@ export class PeripheralTraceEntryRepository {
     if (!store) {
       return 0
     }
-    let resultSet: relationalStore.ResultSet | null = null
+    let reader: RdbResultSetReader | null = null
     try {
       let built = PeripheralTraceEntryRepository.buildCountSql(query)
-      resultSet = await store.querySql(built.sql, built.args)
-      return PeripheralTraceEntryRepository.readFirstLong(resultSet, 'count')
+      let resultSet = await store.querySql(built.sql, built.args)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return reader.readFirstLong('count')
     } catch (err) {
       LogUtils.error(TAG, `countByQuery failed: ${JSON.stringify(err)}`)
       return 0
     } finally {
-      PeripheralTraceEntryRepository.closeResultSet(resultSet)
+      reader?.close()
     }
   }
 
@@ -346,55 +349,55 @@ export class PeripheralTraceEntryRepository {
     return JSON.stringify(extra)
   }
 
-  private static mapResultSet(resultSet: relationalStore.ResultSet): PeripheralTraceRecord[] {
+  private static mapResultSet(reader: RdbResultSetReader): PeripheralTraceRecord[] {
     let records: PeripheralTraceRecord[] = []
-    if (!PeripheralTraceEntryRepository.hasRows(resultSet)) {
+    if (!reader.moveToFirst()) {
       return records
     }
-    let recordIdIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'record_id')
-    let occurAtIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'occur_at')
-    let collectAtIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'collect_at')
-    let deviceNameIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'device_name')
-    let deviceTypeIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'device_type')
-    let deviceIdIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'device_id')
-    let actionIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'action')
-    let decisionIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'decision')
-    let resultIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'result')
-    let sourceIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'source')
-    let summaryIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'summary')
-    let detailIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'detail')
-    let processNameIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'process_name')
-    let rawPayloadIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'raw_payload')
-    let extraJsonIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, 'extra_json')
+    let recordIdIndex = reader.getColumnIndex('record_id')
+    let occurAtIndex = reader.getColumnIndex('occur_at')
+    let collectAtIndex = reader.getColumnIndex('collect_at')
+    let deviceNameIndex = reader.getColumnIndex('device_name')
+    let deviceTypeIndex = reader.getColumnIndex('device_type')
+    let deviceIdIndex = reader.getColumnIndex('device_id')
+    let actionIndex = reader.getColumnIndex('action')
+    let decisionIndex = reader.getColumnIndex('decision')
+    let resultIndex = reader.getColumnIndex('result')
+    let sourceIndex = reader.getColumnIndex('source')
+    let summaryIndex = reader.getColumnIndex('summary')
+    let detailIndex = reader.getColumnIndex('detail')
+    let processNameIndex = reader.getColumnIndex('process_name')
+    let rawPayloadIndex = reader.getColumnIndex('raw_payload')
+    let extraJsonIndex = reader.getColumnIndex('extra_json')
     do {
       let extra = PeripheralTraceEntryRepository.parseExtraJson(
-        PeripheralTraceEntryRepository.getOptionalString(resultSet, extraJsonIndex)
+        reader.getOptionalString(extraJsonIndex)
       )
       records.push({
-        recordId: PeripheralTraceEntryRepository.getRequiredString(resultSet, recordIdIndex),
-        occurAt: PeripheralTraceEntryRepository.getRequiredNumber(resultSet, occurAtIndex),
-        collectAt: PeripheralTraceEntryRepository.getRequiredNumber(resultSet, collectAtIndex),
-        deviceName: PeripheralTraceEntryRepository.getRequiredString(resultSet, deviceNameIndex),
+        recordId: reader.getRequiredString(recordIdIndex),
+        occurAt: reader.getRequiredNumber(occurAtIndex),
+        collectAt: reader.getRequiredNumber(collectAtIndex),
+        deviceName: reader.getRequiredString(deviceNameIndex),
         deviceType: PeripheralTraceEntryRepository.parseDeviceType(
-          PeripheralTraceEntryRepository.getRequiredString(resultSet, deviceTypeIndex)
+          reader.getRequiredString(deviceTypeIndex)
         ),
-        deviceId: PeripheralTraceEntryRepository.getRequiredString(resultSet, deviceIdIndex),
+        deviceId: reader.getRequiredString(deviceIdIndex),
         action: PeripheralTraceEntryRepository.parseAction(
-          PeripheralTraceEntryRepository.getRequiredString(resultSet, actionIndex)
+          reader.getRequiredString(actionIndex)
         ),
         decision: PeripheralTraceEntryRepository.parseDecision(
-          PeripheralTraceEntryRepository.getRequiredString(resultSet, decisionIndex)
+          reader.getRequiredString(decisionIndex)
         ),
         result: PeripheralTraceEntryRepository.parseResult(
-          PeripheralTraceEntryRepository.getRequiredString(resultSet, resultIndex)
+          reader.getRequiredString(resultIndex)
         ),
         source: PeripheralTraceEntryRepository.parseSource(
-          PeripheralTraceEntryRepository.getRequiredString(resultSet, sourceIndex)
+          reader.getRequiredString(sourceIndex)
         ),
-        summary: PeripheralTraceEntryRepository.getRequiredString(resultSet, summaryIndex),
-        detail: PeripheralTraceEntryRepository.getOptionalString(resultSet, detailIndex),
-        processName: PeripheralTraceEntryRepository.getOptionalString(resultSet, processNameIndex),
-        rawPayload: PeripheralTraceEntryRepository.getOptionalString(resultSet, rawPayloadIndex),
+        summary: reader.getRequiredString(summaryIndex),
+        detail: reader.getOptionalString(detailIndex),
+        processName: reader.getOptionalString(processNameIndex),
+        rawPayload: reader.getOptionalString(rawPayloadIndex),
         correlationId: extra.correlationId,
         policyVersion: extra.policyVersion,
         rawEventId: extra.rawEventId,
@@ -405,7 +408,7 @@ export class PeripheralTraceEntryRepository {
         effectivePolicyLabel: extra.effectivePolicyLabel,
         matchedPolicyKind: PeripheralTraceEntryRepository.parseMatchedPolicyKind(extra.matchedPolicyKind)
       })
-    } while (PeripheralTraceEntryRepository.goToNextRow(resultSet))
+    } while (reader.moveToNext())
     return records
   }
 
@@ -495,89 +498,5 @@ export class PeripheralTraceEntryRepository {
       return 'UNKNOWN'
     }
     return value.replace(/\s+/g, ' ').toUpperCase()
-  }
-
-  private static hasRows(resultSet: relationalStore.ResultSet): boolean {
-    try {
-      return resultSet.rowCount > 0 && resultSet.goToFirstRow()
-    } catch (err) {
-      LogUtils.error(TAG, `hasRows failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  private static goToNextRow(resultSet: relationalStore.ResultSet): boolean {
-    try {
-      return resultSet.goToNextRow()
-    } catch (err) {
-      LogUtils.error(TAG, `goToNextRow failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  private static getColumnIndex(resultSet: relationalStore.ResultSet, column: string): number {
-    try {
-      return resultSet.getColumnIndex(column)
-    } catch (err) {
-      LogUtils.error(TAG, `getColumnIndex failed: column=${column}, err=${JSON.stringify(err)}`)
-      return -1
-    }
-  }
-
-  private static getRequiredString(resultSet: relationalStore.ResultSet, columnIndex: number): string {
-    if (columnIndex < 0) {
-      return ''
-    }
-    try {
-      return resultSet.getString(columnIndex)
-    } catch (err) {
-      LogUtils.error(TAG, `getRequiredString failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return ''
-    }
-  }
-
-  private static getOptionalString(resultSet: relationalStore.ResultSet, columnIndex: number): string | undefined {
-    if (columnIndex < 0) {
-      return undefined
-    }
-    try {
-      return resultSet.isColumnNull(columnIndex) ? undefined : resultSet.getString(columnIndex)
-    } catch (err) {
-      LogUtils.error(TAG, `getOptionalString failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return undefined
-    }
-  }
-
-  private static getRequiredNumber(resultSet: relationalStore.ResultSet, columnIndex: number): number {
-    if (columnIndex < 0) {
-      return 0
-    }
-    try {
-      return resultSet.getLong(columnIndex)
-    } catch (err) {
-      LogUtils.error(TAG, `getRequiredNumber failed: index=${columnIndex}, err=${JSON.stringify(err)}`)
-      return 0
-    }
-  }
-
-  private static readFirstLong(resultSet: relationalStore.ResultSet | null, column: string): number {
-    if (!resultSet || !PeripheralTraceEntryRepository.hasRows(resultSet)) {
-      return 0
-    }
-    let columnIndex = PeripheralTraceEntryRepository.getColumnIndex(resultSet, column)
-    return PeripheralTraceEntryRepository.getRequiredNumber(resultSet, columnIndex)
-  }
-
-  private static closeResultSet(resultSet: relationalStore.ResultSet | null): void {
-    if (!resultSet) {
-      return
-    }
-    try {
-      if (!resultSet.isClosed) {
-        resultSet.close()
-      }
-    } catch (err) {
-      LogUtils.warn(TAG, `closeResultSet failed: ${JSON.stringify(err)}`)
-    }
   }
 }

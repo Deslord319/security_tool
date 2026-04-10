@@ -15,8 +15,8 @@ import { getFirewallModeTitle } from '../../../constants/modules/FirewallStrings
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../models/DashboardModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { FirewallService } from '../../../services/firewall/FirewallService'
+import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
 import { PeripheralTraceRepository } from '../../../services/peripheral/connection-record/PeripheralTraceRepository'
-import { LogRepository } from '../../../services/log-manage/repository/LogRepository'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
@@ -33,6 +33,7 @@ export class DashboardViewModel {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
+    await PeripheralTraceRepository.init(context)
     this.quickEntries = this.buildQuickEntries()
     await this.refreshAll()
     this.registerListeners()
@@ -40,7 +41,7 @@ export class DashboardViewModel {
 
   destroy(): void {
     if (this.logListenerId > 0) {
-      LogRepository.removeChangeListener(this.logListenerId)
+      LogEntryRepository.removeChangeListener(this.logListenerId)
       this.logListenerId = -1
     }
     if (this.peripheralTraceListenerId > 0) {
@@ -59,7 +60,7 @@ export class DashboardViewModel {
 
   private registerListeners(): void {
     if (this.logListenerId <= 0) {
-      this.logListenerId = LogRepository.addChangeListener(() => {
+      this.logListenerId = LogEntryRepository.addChangeListener(() => {
         void this.refreshLiveCards(false, true)
       })
     }
@@ -120,7 +121,7 @@ export class DashboardViewModel {
   }
 
   private async buildLogCard(): Promise<DashboardModuleCardState> {
-    let statistics = await LogRepository.getStatistics()
+    let statistics = await LogEntryRepository.getStatistics()
     return this.createModuleCard(
       RouteIds.LOG_MANAGE,
       DashboardLogCardStrings.TITLE,

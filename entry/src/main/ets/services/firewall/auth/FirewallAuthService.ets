@@ -15,7 +15,7 @@ import {
   generateLogEntryId
 } from '../../../models/DataModels'
 import { buildFirewallToggleFailedMessage } from '../../../constants/modules/FirewallStrings'
-import { LogRepository } from '../../log-manage/repository/LogRepository'
+import { LogStorageMaintenanceService } from '../../log-manage/maintenance/LogStorageMaintenanceService'
 
 const TAG = 'FirewallAuthService'
 
@@ -259,7 +259,7 @@ export class FirewallAuthService {
       rawEventName: beforeEnabled ? 'firewall_state_on' : 'firewall_state_off',
       rawOutcome: afterEnabled ? 'target_on' : 'target_off'
     }
-    let saved = await LogRepository.addEntry(entry)
+    let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {
       LogUtils.warn(TAG, `appendAuditEntry failed: ${detail}`)
     }
@@ -284,7 +284,7 @@ export class FirewallAuthService {
       rawEventName: 'firewall_user_mode_apply',
       rawOutcome: result === LogEventResult.SUCCESS ? 'success' : 'blocked_or_failed'
     }
-    let saved = await LogRepository.addEntry(entry)
+    let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {
       LogUtils.warn(TAG, `appendGenericAuditEntry failed: ${detail}`)
     }

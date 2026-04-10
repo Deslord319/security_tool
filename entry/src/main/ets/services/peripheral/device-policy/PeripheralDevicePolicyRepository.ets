@@ -1,8 +1,8 @@
 import { LogUtils } from '../../../utils/LogUtils'
-import { preferences } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 
 import { PeripheralDevicePolicyRecord } from '../../../models/DataModels'
+import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 const TAG = 'PeripheralDevicePolicyRepo'
 const PREF_STORE_NAME = 'peripheral_device_policy'
@@ -113,9 +113,8 @@ export class PeripheralDevicePolicyRepository {
       return false
     }
     try {
-      const store = await preferences.getPreferences(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
-      const raw = await store.get(PREF_KEY_DEVICE_POLICIES, '[]') as string
-      const parsed = JSON.parse(raw) as PeripheralDevicePolicyRecord[]
+      let pref = PreferencesAccessor.of(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
+      const parsed = await pref.getJsonArray<PeripheralDevicePolicyRecord>(PREF_KEY_DEVICE_POLICIES, [])
       PeripheralDevicePolicyRepository.records = Array.isArray(parsed)
         ? parsed.map((item: PeripheralDevicePolicyRecord) => PeripheralDevicePolicyRepository.normalizeRecord(item))
         : []
@@ -134,9 +133,8 @@ export class PeripheralDevicePolicyRepository {
       return
     }
     try {
-      const store = await preferences.getPreferences(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
-      await store.put(PREF_KEY_DEVICE_POLICIES, JSON.stringify(PeripheralDevicePolicyRepository.records))
-      await store.flush()
+      let pref = PreferencesAccessor.of(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
+      await pref.setJson(PREF_KEY_DEVICE_POLICIES, PeripheralDevicePolicyRepository.records)
     } catch (err) {
       LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
     }

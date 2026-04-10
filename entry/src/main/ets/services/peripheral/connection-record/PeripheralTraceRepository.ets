@@ -96,7 +96,7 @@ export class PeripheralTraceRepository {
       if (!reconciled) {
         return false
       }
-      PeripheralTraceRepository.notifyChanged(normalized.length)
+      await PeripheralTraceRepository.notifyChanged(normalized.length)
       return true
     } catch (err) {
       LogUtils.error(TAG, `appendBatch failed: ${JSON.stringify(err)}`)
