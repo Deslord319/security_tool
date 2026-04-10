@@ -22,7 +22,7 @@ import {
   LogCollectorStatusPort,
   LogExportServicePort,
   LogQuery,
-  LogRepositoryPort,
+  LogStoragePort,
   LogSnapshot,
   MutationResult,
   RefreshResult,
@@ -38,7 +38,7 @@ import { LogStorageSettingsViewModel } from '../storage-settings/LogStorageSetti
 const TAG = 'LogManageViewModel'
 const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
-class DefaultLogManageRepository implements LogRepositoryPort {
+class DefaultLogManageStorage implements LogStoragePort {
   init(context: common.UIAbilityContext): Promise<InitializeResult> {
     return LogStorageMaintenanceService.initialize(context)
   }
@@ -89,17 +89,17 @@ export class LogManageViewModel {
   readonly settingsViewModel: LogStorageSettingsViewModel
   private listenerId: number = -1
   private initialized: boolean = false
-  private repository: LogRepositoryPort
+  private storage: LogStoragePort
   private exporter: LogExportServicePort
   private collector: LogCollectorStatusPort
 
   constructor(
-    repository: LogRepositoryPort = new DefaultLogManageRepository(),
+    storage: LogStoragePort = new DefaultLogManageStorage(),
     exporter: LogExportServicePort = new DefaultLogManageExporter(),
     collector: LogCollectorStatusPort = new DefaultLogManageCollector(),
     settingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
   ) {
-    this.repository = repository
+    this.storage = storage
     this.exporter = exporter
     this.collector = collector
     this.settingsViewModel = settingsViewModel
@@ -110,7 +110,7 @@ export class LogManageViewModel {
     this.state.loading = true
     try {
       if (!this.initialized) {
-        let initResult = await this.repository.init(context)
+        let initResult = await this.storage.init(context)
         if (!initResult.success) {
           return { success: false, code: 'storage_init_failed' }
         }
@@ -239,7 +239,7 @@ export class LogManageViewModel {
     if (this.state.summary.totalCount <= 0) {
       return { success: false, code: 'already_empty' }
     }
-    let result = await this.repository.clear()
+    let result = await this.storage.clear()
     if (!result.success) {
       return { success: false, code: 'clear_failed' }
     }
@@ -274,14 +274,14 @@ export class LogManageViewModel {
     if (this.listenerId > 0) {
       return
     }
-    this.listenerId = this.repository.addChangeListener(() => {
+    this.listenerId = this.storage.addChangeListener(() => {
       void this.refreshIfActive()
     })
   }
 
   private unregisterStorageListener(): void {
     if (this.listenerId > 0) {
-      this.repository.removeChangeListener(this.listenerId)
+      this.storage.removeChangeListener(this.listenerId)
       this.listenerId = -1
     }
   }
@@ -298,7 +298,7 @@ export class LogManageViewModel {
   }
 
   private async rebuildStateFromSnapshot(): Promise<void> {
-    let snapshot = await this.repository.snapshot(this.buildQuery())
+    let snapshot = await this.storage.snapshot(this.buildQuery())
     let pageSize = PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? PAGE_SIZE_OPTIONS[0]
     let totalPages = this.calcTotalPages(snapshot.entries.length, pageSize)
     let currentPage = this.normalizePage(`${this.state.pagination.currentPage}`, totalPages)

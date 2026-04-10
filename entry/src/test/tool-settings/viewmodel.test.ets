@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { MockKit, when } from '@ohos/hamock'
-import { CommonStrings } from '../../main/ets/constants/CommonStrings'
-import { ToolSettingsStrings } from '../../main/ets/constants/modules/ToolSettingsStrings'
+import { MessageText } from '../../main/ets/constants/StringCatalog'
+import { ToolSettingsConfirmationStrings, ToolSettingsPageStrings } from '../../main/ets/constants/modules/ToolSettingsStrings'
 import { AuthMethod, ToolSettingsConfig } from '../../main/ets/models/DataModels'
 import { AuthAvailabilityResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { SystemSettingsService } from '../../main/ets/services/tool-settings/system-settings/SystemSettingsService'
@@ -80,7 +80,7 @@ export default function toolSettingsViewModelTest() {
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('failure')
-      expect(result.message).assertEqual(CommonStrings.messageNoChanges)
+      expect(result.message).assertEqual(MessageText.NO_CHANGES)
       done()
     })
 
@@ -98,7 +98,7 @@ export default function toolSettingsViewModelTest() {
       let result = await viewModel.requestSave(context)
 
       expect(result.kind).assertEqual('confirm')
-      expect(result.title).assertEqual(ToolSettingsStrings.authMethodUnavailableTitle)
+      expect(result.title).assertEqual(ToolSettingsConfirmationStrings.AUTH_METHOD_UNAVAILABLE_TITLE)
       expect((result.message ?? '').indexOf('fingerprint unavailable') >= 0).assertTrue()
       done()
     })
@@ -117,7 +117,7 @@ export default function toolSettingsViewModelTest() {
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('success')
-      expect(result.message).assertEqual(ToolSettingsStrings.saveSuccess)
+      expect(result.message).assertEqual(ToolSettingsPageStrings.SAVE_SUCCESS)
       expect(viewModel.state.hasChanges).assertFalse()
       expect(repository.config.startupAuthEnabled).assertTrue()
       expect(repository.config.authMethod).assertEqual(AuthMethod.FINGERPRINT)
@@ -147,7 +147,7 @@ export default function toolSettingsViewModelTest() {
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('failure')
-      expect(result.message).assertEqual(CommonStrings.messageSaveFailed)
+      expect(result.message).assertEqual(MessageText.SAVE_FAILED)
       done()
     })
 
@@ -159,7 +159,7 @@ export default function toolSettingsViewModelTest() {
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('failure')
-      expect(result.message).assertEqual(ToolSettingsStrings.openPasswordSettingsFailed)
+      expect(result.message).assertEqual(ToolSettingsPageStrings.OPEN_PASSWORD_SETTINGS_FAILED)
       done()
     })
   })

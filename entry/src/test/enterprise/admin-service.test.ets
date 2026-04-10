@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
-
 import { AppInfo } from '../../main/ets/constants/AppConstants'
 import { AdminErrorStrings } from '../../main/ets/constants/modules/ErrorStrings'
+import { AdminText } from '../../main/ets/constants/StringCatalog'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
 
 interface ErrorPayload {
@@ -14,17 +14,13 @@ export default function enterpriseAdminServiceTest() {
     it('should build enable command with default admin type', 0, () => {
       let command = EnterpriseAdminService.buildEnableCommand()
 
-      expect(command).assertEqual(
-        `edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a EnterpriseAdminAbility -t byod`
-      )
+      expect(command).assertEqual(`edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a EnterpriseAdminAbility -t byod`)
     })
 
     it('should build enable command with explicit admin type', 0, () => {
       let command = EnterpriseAdminService.buildEnableCommand('super')
 
-      expect(command).assertEqual(
-        `edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a EnterpriseAdminAbility -t super`
-      )
+      expect(command).assertEqual(`edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a EnterpriseAdminAbility -t super`)
     })
 
     it('should detect admin missing error by code', 0, () => {
@@ -63,7 +59,8 @@ export default function enterpriseAdminServiceTest() {
       let isMissing = EnterpriseAdminService.isAdminMissingError(missingError as Object)
 
       expect(isMissing).assertTrue()
-      expect(AdminErrorStrings.notActivated.length > 0).assertTrue()
+      expect(AdminText.NOT_ACTIVATED.length > 0).assertTrue()
+      expect(AdminErrorStrings.buildCheckFailed(1).length > 0).assertTrue()
     })
   })
 }

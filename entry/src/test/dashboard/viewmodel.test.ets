@@ -1,9 +1,9 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { NAV_ITEMS } from '../../main/ets/constants/AppConstants'
-import { CommonStrings } from '../../main/ets/constants/CommonStrings'
 import { RouteIds } from '../../main/ets/constants/RouteIds'
-import { DashboardViewModel } from '../../main/ets/viewmodels/dashboard/overview/DashboardViewModel'
+import { ModuleText } from '../../main/ets/constants/StringCatalog'
 import { DashboardQuickEntryState } from '../../main/ets/models/DashboardModels'
+import { DashboardViewModel } from '../../main/ets/viewmodels/dashboard/overview/DashboardViewModel'
 
 interface DashboardViewModelContractAccess {
   buildQuickEntries(): DashboardQuickEntryState[]
@@ -26,7 +26,7 @@ export default function dashboardViewModelTest() {
       expect(quickEntries.length).assertEqual(6)
       expect(quickEntries[0].id).assertEqual(RouteIds.FIREWALL)
       expect(quickEntries[5].id).assertEqual(RouteIds.HELP_FEEDBACK)
-      expect(quickEntries[5].title).assertEqual(CommonStrings.moduleHelpFeedback)
+      expect(quickEntries[5].title).assertEqual(ModuleText.HELP_FEEDBACK)
     })
 
     it('should keep help feedback outside sidebar navigation items', 0, () => {
@@ -34,7 +34,7 @@ export default function dashboardViewModelTest() {
       let toolSettingsItem = NAV_ITEMS.find((item) => item.id === RouteIds.TOOL_SETTINGS)
 
       expect(NAV_ITEMS.length).assertEqual(6)
-      expect(toolSettingsItem?.label ?? '').assertEqual(CommonStrings.moduleToolSettings)
+      expect(toolSettingsItem?.label ?? '').assertEqual(ModuleText.TOOL_SETTINGS)
       expect(helpItem === undefined).assertTrue()
     })
 

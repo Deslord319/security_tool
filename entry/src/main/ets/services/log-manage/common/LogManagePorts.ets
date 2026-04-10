@@ -81,7 +81,7 @@ export interface LogCollectorStatusPort {
   getStatus(): CollectorStatus
 }
 
-export interface LogRepositoryPort {
+export interface LogStoragePort {
   init(context: common.UIAbilityContext): Promise<InitializeResult>
   addEntries(entries: LogEntry[]): Promise<MutationResult>
   snapshot(query?: LogQuery): Promise<LogSnapshot>

@@ -1,6 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-
-import { CommonStrings } from '../../main/ets/constants/CommonStrings'
+import { MessageText } from '../../main/ets/constants/StringCatalog'
 import { DialogService } from '../../main/ets/utils/DialogService'
 
 interface DialogButtonLike {
@@ -38,8 +37,8 @@ function asUIContext(value: Object): UIContext {
 export default function dialogServiceTest() {
   describe('DialogService', () => {
     it('should display fallback location and reason when values are empty', 0, () => {
-      expect(DialogService.displayLocation('  ')).assertEqual(CommonStrings.messageRetryLater)
-      expect(DialogService.displayReason('')).assertEqual(CommonStrings.messageRetryLater)
+      expect(DialogService.displayLocation('  ')).assertEqual(MessageText.RETRY_LATER)
+      expect(DialogService.displayReason('')).assertEqual(MessageText.RETRY_LATER)
       expect(DialogService.displayReason('', 'fallback')).assertEqual('fallback')
     })
 
@@ -78,7 +77,7 @@ export default function dialogServiceTest() {
         }
       })
 
-      expect(uiContext.lastOptions?.title ?? '').assertEqual(CommonStrings.dialogSuccessTitle)
+      expect(uiContext.lastOptions?.title ?? '').assertEqual(MessageText.SUCCESS_TITLE)
       uiContext.lastOptions?.primaryButton.action()
       expect(acknowledged).assertEqual(1)
     })

@@ -75,7 +75,6 @@ export default function logCollectorServiceTest() {
 
       let initStorageMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.initialize)
       let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
-      let initConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.init)
       let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadSubscriptionConfig)
       let auditSubscribeMock = mockKit.mockFunc(LogAuditSource, LogAuditSource.subscribe)
       let auditUnsubscribeMock = mockKit.mockFunc(LogAuditSource, LogAuditSource.unsubscribe)
@@ -89,9 +88,6 @@ export default function logCollectorServiceTest() {
         repository.savedBatches.push(entries.slice())
         return Promise.resolve(repository.addEntriesResult)
       })
-      when(initConfigMock)(ArgumentMatchers.any).afterAction((_context: common.UIAbilityContext) => {
-        return Promise.resolve(config.initResult)
-      })
       when(loadConfigMock)().afterAction(() => {
         let result: LogSubscriptionConfig = {
           subscribeAll: config.subscribeAll,
@@ -99,7 +95,7 @@ export default function logCollectorServiceTest() {
         }
         return Promise.resolve(result)
       })
-      when(auditSubscribeMock)().afterAction((
+      when(auditSubscribeMock)(ArgumentMatchers.any).afterAction((
         onEntry: (entry: LogEntry) => void,
         _eventTypes?: LogEventType[]
       ) => {

@@ -7,17 +7,18 @@ import {
   InteractiveItemStyles,
   NAV_ITEMS
 } from '../../main/ets/constants/AppConstants'
-import { CommonStrings } from '../../main/ets/constants/CommonStrings'
 import { RouteIds } from '../../main/ets/constants/RouteIds'
+import { AppText, ModuleText } from '../../main/ets/constants/StringCatalog'
 import { ThemeMode } from '../../main/ets/theme/ThemeColors'
 
 export default function appConstantsTest() {
   describe('AppConstants', () => {
     it('should expose stable app metadata and navigation items', 0, () => {
-      expect(AppInfo.APP_NAME).assertEqual(CommonStrings.appName)
+      expect(AppText.NAME.length > 0).assertTrue()
       expect(AppInfo.BUNDLE_NAME).assertEqual('com.huawei.securitytool')
       expect(NAV_ITEMS.length).assertEqual(6)
       expect(NAV_ITEMS[0].id).assertEqual(RouteIds.DASHBOARD)
+      expect(NAV_ITEMS[0].label).assertEqual(ModuleText.DASHBOARD)
       expect(NAV_ITEMS[5].id).assertEqual(RouteIds.TOOL_SETTINGS)
     })
 

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from '@ohos/hypium'
 import { LogStorageConfig } from '../../main/ets/models/DataModels'
 import {
-  LogConfigRepositoryPort,
   LogStorageMaintenancePort,
   MutationResult,
   ServiceResult
@@ -11,7 +10,12 @@ import {
   LogStorageSettingsViewModel
 } from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
 
-class FakeLogStorageConfigRepository implements Pick<LogConfigRepositoryPort, 'loadStorageConfig' | 'saveStorageConfig'> {
+interface LogStorageConfigRepositoryPort {
+  loadStorageConfig(): Promise<LogStorageConfig>
+  saveStorageConfig(config: LogStorageConfig): Promise<ServiceResult>
+}
+
+class FakeLogStorageConfigRepository implements LogStorageConfigRepositoryPort {
   config: LogStorageConfig = {
     maxLocalEntries: 5000,
     retentionDays: 30
@@ -70,17 +74,16 @@ export default function logStorageSettingsViewModelTest() {
       viewModel = new LogStorageSettingsViewModel(dependencies)
     })
 
-    it('should load real config values instead of select indices', 0, async (done: Function) => {
+    it('should load real config values instead of select indices', 0, async () => {
       let result: ServiceResult = await viewModel.load()
 
       expect(result.success).assertTrue()
       expect(viewModel.state.maxLocalEntries).assertEqual(5000)
       expect(viewModel.state.retentionDays).assertEqual(30)
       expect(viewModel.state.dirty).assertFalse()
-      done()
     })
 
-    it('should mark form dirty after changing values', 0, async (done: Function) => {
+    it('should mark form dirty after changing values', 0, async () => {
       await viewModel.load()
       viewModel.setMaxLocalEntries(1000)
       viewModel.setRetentionDays(14)
@@ -88,10 +91,9 @@ export default function logStorageSettingsViewModelTest() {
       expect(viewModel.state.dirty).assertTrue()
       expect(viewModel.state.maxLocalEntries).assertEqual(1000)
       expect(viewModel.state.retentionDays).assertEqual(14)
-      done()
     })
 
-    it('should save numeric config values and clear dirty state', 0, async (done: Function) => {
+    it('should save numeric config values and clear dirty state', 0, async () => {
       await viewModel.load()
       viewModel.setMaxLocalEntries(2000)
 
@@ -100,17 +102,15 @@ export default function logStorageSettingsViewModelTest() {
       expect(result.success).assertTrue()
       expect(configRepository.config.maxLocalEntries).assertEqual(2000)
       expect(viewModel.state.dirty).assertFalse()
-      done()
     })
 
-    it('should reject save when no changes exist', 0, async (done: Function) => {
+    it('should reject save when no changes exist', 0, async () => {
       await viewModel.load()
 
       let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('no_changes')
-      done()
     })
   })
 }

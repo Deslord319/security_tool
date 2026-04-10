@@ -24,30 +24,72 @@ function createExportResult(fileName: string, fullPath: string): CsvFileExportRe
   return result
 }
 
+function clonePolicyRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
+  let cloned: PeripheralDevicePolicyRecord = {
+    deviceId: record.deviceId,
+    policy: record.policy,
+    updatedAt: record.updatedAt
+  }
+  if (record.deviceName !== undefined) {
+    cloned.deviceName = record.deviceName
+  }
+  if (record.deviceType !== undefined) {
+    cloned.deviceType = record.deviceType
+  }
+  return cloned
+}
+
 export default function peripheralPolicyViewModelTest() {
   describe('PeripheralPolicyViewModel', () => {
     let viewModel: PeripheralPolicyViewModel
     let mockKit: MockKit
+    let records: PeripheralDevicePolicyRecord[]
 
     beforeEach(async () => {
       viewModel = new PeripheralPolicyViewModel()
       mockKit = new MockKit()
-      await PeripheralDevicePolicyRepository.clearAll()
+      records = []
+      let getAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.getAll)
+      let getMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.get)
+      let setMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.set)
+      let clearAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.clearAll)
+      let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+
+      when(getAllMock)().afterAction(() => {
+        return records.map((item: PeripheralDevicePolicyRecord) => clonePolicyRecord(item))
+      })
+      when(getMock)(ArgumentMatchers.any).afterAction((deviceId: string) => {
+        let found = records.find((item: PeripheralDevicePolicyRecord) => item.deviceId === deviceId)
+        return found ? clonePolicyRecord(found) : null
+      })
+      when(setMock)(ArgumentMatchers.any).afterAction((record: PeripheralDevicePolicyRecord) => {
+        let index = records.findIndex((item: PeripheralDevicePolicyRecord) => item.deviceId === record.deviceId)
+        if (index >= 0) {
+          records[index] = clonePolicyRecord(record)
+        } else {
+          records = [clonePolicyRecord(record)].concat(records)
+        }
+        return Promise.resolve(true)
+      })
+      when(clearAllMock)().afterAction(() => {
+        records = []
+        return Promise.resolve(true)
+      })
+      when(dispatchMock)(ArgumentMatchers.any).afterReturn({ success: true } as PeripheralPolicyDispatchResult)
     })
 
     afterEach(async () => {
-      await PeripheralDevicePolicyRepository.clearAll()
       mockKit.clearAll()
     })
 
     it('should rebuild policy records from connection records and explicit device policies', 0, async (done: Function) => {
-      await PeripheralDevicePolicyRepository.set({
+      records = [{
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
         updatedAt: Date.now(),
         deviceName: 'USB Device',
         deviceType: PeripheralType.USB_STORAGE
-      })
+      }]
 
       viewModel.reloadRecords([{
         id: 'record-1',
@@ -100,7 +142,7 @@ export default function peripheralPolicyViewModelTest() {
       )
 
       expect(reason).assertNull()
-      expect(PeripheralDevicePolicyRepository.get('VID:1234 PID:5678')?.policy).assertEqual('deny')
+      expect(records[0].policy).assertEqual('deny')
       done()
     })
 
@@ -113,18 +155,19 @@ export default function peripheralPolicyViewModelTest() {
       )
 
       expect(reason).assertNull()
-      expect(PeripheralDevicePolicyRepository.get('MAC: AA:BB:CC:DD:EE:FF')?.policy).assertEqual('deny')
+      expect(records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
+      expect(records[0].policy).assertEqual('deny')
       done()
     })
 
     it('should rebuild bluetooth policy records with normalized ids', 0, async (done: Function) => {
-      await PeripheralDevicePolicyRepository.set({
+      records = [{
         deviceId: 'aa-bb-cc-dd-ee-ff',
         policy: 'deny',
         updatedAt: Date.now(),
         deviceName: 'Bluetooth Device',
         deviceType: PeripheralType.BLUETOOTH
-      })
+      }]
 
       viewModel.reloadRecords([{
         id: 'record-bt-1',
@@ -146,13 +189,11 @@ export default function peripheralPolicyViewModelTest() {
     })
 
     it('should clear all explicit device policies', 0, async (done: Function) => {
-      await PeripheralDevicePolicyRepository.set({
+      records = [{
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
         updatedAt: Date.now()
-      })
-      let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
-      when(dispatchMock)(ArgumentMatchers.any).afterReturn({ success: true } as PeripheralPolicyDispatchResult)
+      }]
 
       const success = await viewModel.clearAllPolicies()
       expect(success).assertTrue()
@@ -173,7 +214,7 @@ export default function peripheralPolicyViewModelTest() {
         deviceType: PeripheralType.BLUETOOTH
       }]
       for (const record of records) {
-        await PeripheralDevicePolicyRepository.set(record)
+        records.push(record)
       }
 
       const dispatchCalls: string[] = []
@@ -205,7 +246,7 @@ export default function peripheralPolicyViewModelTest() {
         policyIndex: 0
       }]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)().afterReturn(Promise.resolve(createExportResult(
+      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createExportResult(
         'peripheral_policy_list_20260326_120000.csv',
         '/mock/peripheral_policy_list_20260326_120000.csv'
       )))

@@ -15,8 +15,8 @@ import {
   LogCollectorStatusPort,
   LogExportServicePort,
   LogQuery,
-  LogRepositoryPort,
   LogSnapshot,
+  LogStoragePort,
   MutationResult,
   SaveSettingsResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
@@ -33,7 +33,12 @@ function createEntry(id: string, eventType: LogEventType, result: LogEventResult
   }
 }
 
-class FakeLogListRepository implements LogRepositoryPort {
+async function flushAsyncWork(): Promise<void> {
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
+class FakeLogListStorage implements LogStoragePort {
   entries: LogEntry[] = []
   listener: (() => void) | null = null
   initResult: InitializeResult = { success: true, code: 'ok' }
@@ -48,7 +53,7 @@ class FakeLogListRepository implements LogRepositoryPort {
     return { success: true, code: 'ok' }
   }
 
-  snapshot(query?: LogQuery): LogSnapshot {
+  async snapshot(query?: LogQuery): Promise<LogSnapshot> {
     let filtered = this.entries.filter((entry: LogEntry) => {
       if (query?.eventTypes && query.eventTypes.length > 0 && !query.eventTypes.includes(entry.eventType)) {
         return false
@@ -94,7 +99,11 @@ class FakeLogListExporter implements LogExportServicePort {
     fileName: 'security_log.csv'
   }
 
-  async export(_context: common.UIAbilityContext | null, _entries: LogEntry[]): Promise<ExportLogsResult> {
+  async export(
+    _context: common.UIAbilityContext | null,
+    _query?: LogQuery,
+    _fileNamePrefix?: string
+  ): Promise<ExportLogsResult> {
     return this.result
   }
 }
@@ -129,7 +138,7 @@ class FakeLogStorageSettingsViewModel extends LogStorageSettingsViewModel {
 
 export default function logManageViewModelTest() {
   describe('LogManageViewModel', () => {
-    let repository: FakeLogListRepository
+    let storage: FakeLogListStorage
     let exporter: FakeLogListExporter
     let collector: FakeLogListCollector
     let settingsViewModel: FakeLogStorageSettingsViewModel
@@ -137,8 +146,8 @@ export default function logManageViewModelTest() {
     let context: common.UIAbilityContext
 
     beforeEach(() => {
-      repository = new FakeLogListRepository()
-      repository.entries = [
+      storage = new FakeLogListStorage()
+      storage.entries = [
         createEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'file alpha'),
         createEntry('2', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'permission beta'),
         createEntry('3', LogEventType.FILE, LogEventResult.FAILED, 'file gamma')
@@ -146,11 +155,11 @@ export default function logManageViewModelTest() {
       exporter = new FakeLogListExporter()
       collector = new FakeLogListCollector()
       settingsViewModel = new FakeLogStorageSettingsViewModel()
-      viewModel = new LogManageViewModel(repository, exporter, collector, settingsViewModel)
+      viewModel = new LogManageViewModel(storage, exporter, collector, settingsViewModel)
       context = {} as common.UIAbilityContext
     })
 
-    it('should initialize list state from repository snapshot', 0, async (done: Function) => {
+    it('should initialize list state from repository snapshot', 0, async () => {
       let result: ListViewInitializeResult = await viewModel.initialize(context)
 
       expect(result.success).assertTrue()
@@ -158,10 +167,9 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.summary.blockedCount).assertEqual(1)
       expect(viewModel.state.collector.running).assertTrue()
       expect(viewModel.state.collector.crashReady).assertFalse()
-      done()
     })
 
-    it('should reset to first page when filter changes', 0, async (done: Function) => {
+    it('should reset to first page when filter changes', 0, async () => {
       await viewModel.initialize(context)
       viewModel.setPageSizeIndex(0)
       viewModel.setPageInputText('2')
@@ -172,34 +180,35 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.pagination.currentPage).assertEqual(1)
       expect(viewModel.state.pagination.pageInputText).assertEqual('1')
       expect(viewModel.state.list.allEntries.length).assertEqual(1)
-      done()
     })
 
-    it('should refresh from listener only when active and auto refresh enabled', 0, async (done: Function) => {
+    it('should refresh from listener only when active and auto refresh enabled', 0, async () => {
       await viewModel.initialize(context)
-      repository.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
+      storage.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
 
-      if (repository.listener) {
-        repository.listener()
+      if (storage.listener) {
+        storage.listener()
       }
+      await flushAsyncWork()
       expect(viewModel.state.list.allEntries.length).assertEqual(3)
 
       viewModel.activate()
-      if (repository.listener) {
-        repository.listener()
+      if (storage.listener) {
+        storage.listener()
       }
+      await flushAsyncWork()
       expect(viewModel.state.list.allEntries.length).assertEqual(1)
 
-      repository.entries = [createEntry('5', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry 2')]
+      storage.entries = [createEntry('5', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry 2')]
       await viewModel.setMode('settings')
-      if (repository.listener) {
-        repository.listener()
+      if (storage.listener) {
+        storage.listener()
       }
+      await flushAsyncWork()
       expect(viewModel.state.list.allEntries[0].id).assertEqual('4')
-      done()
     })
 
-    it('should map export result into presentation result', 0, async (done: Function) => {
+    it('should map export result into presentation result', 0, async () => {
       await viewModel.initialize(context)
 
       let successResult: ExportActionResult = await viewModel.exportLogs(context)
@@ -213,10 +222,9 @@ export default function logManageViewModelTest() {
       let failedResult: ExportActionResult = await viewModel.exportLogs(context)
       expect(failedResult.success).assertFalse()
       expect((failedResult.reason ?? '').length > 0).assertTrue()
-      done()
     })
 
-    it('should clear logs even when current filter result is empty', 0, async (done: Function) => {
+    it('should clear logs even when current filter result is empty', 0, async () => {
       await viewModel.initialize(context)
       await viewModel.setKeyword('missing-keyword')
 
@@ -225,71 +233,70 @@ export default function logManageViewModelTest() {
       expect(result.success).assertTrue()
       expect(viewModel.state.summary.totalCount).assertEqual(0)
       expect(viewModel.state.list.allEntries.length).assertEqual(0)
-      done()
     })
 
-    it('should clear detail state when repository no longer contains it', 0, async (done: Function) => {
+    it('should clear detail state when repository no longer contains it', 0, async () => {
       await viewModel.initialize(context)
       viewModel.activate()
       viewModel.openDetail('2')
-      repository.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
+      storage.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
 
-      if (repository.listener) {
-        repository.listener()
+      if (storage.listener) {
+        storage.listener()
       }
+      await flushAsyncWork()
 
       expect(viewModel.state.detail.entryId).assertEqual('')
       expect(viewModel.state.detail.visible).assertFalse()
-      done()
     })
 
-    it('should keep detail selection stable when refreshed data still contains the same entry', 0, async (done: Function) => {
+    it('should keep detail selection stable when refreshed data still contains the same entry', 0, async () => {
       await viewModel.initialize(context)
       viewModel.activate()
       viewModel.openDetail('2')
-      repository.entries = [
+      storage.entries = [
         createEntry('2', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'permission beta updated'),
         createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'file delta')
       ]
 
-      if (repository.listener) {
-        repository.listener()
+      if (storage.listener) {
+        storage.listener()
       }
+      await flushAsyncWork()
 
       expect(viewModel.state.detail.visible).assertTrue()
       expect(viewModel.state.detail.entryId).assertEqual('2')
       expect(viewModel.state.list.allEntries.length).assertEqual(2)
-      done()
     })
 
-    it('should expose empty filter hint instead of permission hint when query has no matches', 0, async (done: Function) => {
+    it('should expose empty filter hint instead of permission hint when query has no matches', 0, async () => {
       await viewModel.initialize(context)
 
       await viewModel.setKeyword('missing-keyword')
 
       expect(viewModel.state.list.allEntries.length).assertEqual(0)
       expect((viewModel.state.filter.hintMessage ?? '').length > 0).assertTrue()
-      done()
     })
 
-    it('should keep pagination state in sync after moving to next page', 0, async (done: Function) => {
-      repository.entries = []
+    it('should keep pagination state in sync after moving to next page', 0, async () => {
+      storage.entries = []
       for (let index = 0; index < 25; index++) {
-        repository.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
       }
       await viewModel.initialize(context)
       viewModel.setPageSizeIndex(0)
+      await flushAsyncWork()
 
       viewModel.goToNextPage()
+      await flushAsyncWork()
 
       expect(viewModel.state.pagination.currentPage).assertEqual(2)
       expect(viewModel.state.pagination.totalPages).assertEqual(2)
       expect(viewModel.state.list.pagedEntries.length).assertEqual(5)
       expect(viewModel.state.summary.currentShownCount).assertEqual(5)
-      done()
     })
 
-    it('should switch mode and restore list after saving settings', 0, async (done: Function) => {
+    it('should switch mode and restore list after saving settings', 0, async () => {
       await viewModel.initialize(context)
 
       await viewModel.setMode('settings')
@@ -301,17 +308,15 @@ export default function logManageViewModelTest() {
       expect(result.success).assertTrue()
       expect(viewModel.state.mode).assertEqual('list')
       expect(viewModel.state.autoRefreshEnabled).assertTrue()
-      done()
     })
 
-    it('should skip refresh when list is inactive', 0, async (done: Function) => {
+    it('should skip refresh when list is inactive', 0, async () => {
       await viewModel.initialize(context)
 
       let result = await viewModel.refreshIfActive()
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('skipped_inactive')
-      done()
     })
   })
 }

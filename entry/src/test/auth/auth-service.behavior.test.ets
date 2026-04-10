@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { userAuth } from '@kit.UserAuthenticationKit'
-import { IdentityStrings } from '../../main/ets/constants/modules/IdentityStrings'
+import { LabelText } from '../../main/ets/constants/StringCatalog'
+import { IdentityAuthStrings } from '../../main/ets/constants/modules/IdentityStrings'
 import { AuthMethod } from '../../main/ets/models/DataModels'
 import { AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { UserAuthAdapter } from '../../main/ets/services/identity/auth/UserAuthAdapter'
@@ -65,13 +66,13 @@ export default function authServiceBehaviorTest() {
       let result = AuthService.checkAuthMethodAvailability(999 as AuthMethod)
 
       expect(result.available).assertFalse()
-      expect(result.message).assertEqual(IdentityStrings.authMethodUnsupported)
+      expect(result.message).assertEqual(IdentityAuthStrings.METHOD_UNSUPPORTED)
     })
 
     it('should map auth method labels correctly', 0, () => {
       expect(AuthService.getAuthMethodLabel(AuthMethod.PIN)).assertEqual('PIN')
-      expect(AuthService.getAuthMethodLabel(AuthMethod.FINGERPRINT)).assertEqual(IdentityStrings.authMethodFingerprint)
-      expect(AuthService.getAuthMethodLabel(999 as AuthMethod)).assertEqual(IdentityStrings.authMethodGeneric)
+      expect(AuthService.getAuthMethodLabel(AuthMethod.FINGERPRINT)).assertEqual(IdentityAuthStrings.METHOD_FINGERPRINT)
+      expect(AuthService.getAuthMethodLabel(999 as AuthMethod)).assertEqual(LabelText.AUTH_METHOD)
     })
 
     it('should reject unsupported auth method during authenticate', 0, async () => {
@@ -79,7 +80,7 @@ export default function authServiceBehaviorTest() {
 
       expect(result.success).assertFalse()
       expect(result.reason).assertEqual('unavailable')
-      expect(result.message).assertEqual(IdentityStrings.authMethodUnsupported)
+      expect(result.message).assertEqual(IdentityAuthStrings.METHOD_UNSUPPORTED)
     })
 
     it('should reject unsupported auth method even when challenge is provided', 0, async () => {
@@ -87,7 +88,7 @@ export default function authServiceBehaviorTest() {
 
       expect(result.success).assertFalse()
       expect(result.reason).assertEqual('unavailable')
-      expect(result.message).assertEqual(IdentityStrings.authMethodUnsupported)
+      expect(result.message).assertEqual(IdentityAuthStrings.METHOD_UNSUPPORTED)
     })
 
     it('should report available when system auth status check succeeds', 0, () => {
@@ -97,7 +98,7 @@ export default function authServiceBehaviorTest() {
       let result = AuthService.checkAuthMethodAvailability(AuthMethod.PIN)
 
       expect(result.available).assertTrue()
-      expect(result.message).assertEqual(IdentityStrings.authSystemAvailable)
+      expect(result.message).assertEqual(IdentityAuthStrings.SYSTEM_AVAILABLE)
     })
 
     it('should map availability errors from auth status check', 0, () => {
@@ -110,7 +111,7 @@ export default function authServiceBehaviorTest() {
 
       expect(result.available).assertFalse()
       expect(result.errorCode).assertEqual(12500010)
-      expect(result.message).assertEqual(IdentityStrings.buildAuthNotEnrolled(IdentityStrings.authMethodFingerprint))
+      expect(result.message).assertEqual(IdentityAuthStrings.buildNotEnrolled(IdentityAuthStrings.METHOD_FINGERPRINT))
     })
 
     it('should resolve success when auth result callback returns success', 0, async () => {
@@ -136,7 +137,7 @@ export default function authServiceBehaviorTest() {
       expect(result.success).assertFalse()
       expect(result.reason).assertEqual('unavailable')
       expect(result.errorCode).assertEqual(12500006)
-      expect(result.message).assertEqual(IdentityStrings.authTrustLevelInsufficient)
+      expect(result.message).assertEqual(IdentityAuthStrings.TRUST_LEVEL_INSUFFICIENT)
     })
 
     it('should map non-availability result callback codes to failed reason', 0, async () => {
@@ -150,7 +151,7 @@ export default function authServiceBehaviorTest() {
       expect(result.success).assertFalse()
       expect(result.reason).assertEqual('failed')
       expect(result.errorCode).assertEqual(401)
-      expect(result.message).assertEqual(IdentityStrings.authFailedOrCanceled)
+      expect(result.message).assertEqual(IdentityAuthStrings.FAILED_OR_CANCELED)
     })
 
     it('should map start exceptions from auth instance', 0, async () => {
@@ -164,7 +165,7 @@ export default function authServiceBehaviorTest() {
       expect(result.success).assertFalse()
       expect(result.reason).assertEqual('unavailable')
       expect(result.errorCode).assertEqual(201)
-      expect(result.message).assertEqual(IdentityStrings.authPermissionDenied)
+      expect(result.message).assertEqual(IdentityAuthStrings.PERMISSION_DENIED)
     })
   })
 }

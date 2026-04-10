@@ -211,14 +211,19 @@ Exports must:
 
 ## Peripheral Trace Long-Term Design
 
-Short term:
+Current state:
 
-- use `PreferencesAccessor`
+- `PeripheralTraceEntryRepository` is the relational owner of `peripheral_trace_entries`
+- `PeripheralTraceMaintenanceService` owns initialization, append, retention cleanup, max-entry trimming, and clear-all flow
+- the old Preferences payload path for peripheral traces has been removed
+- the old `PeripheralTraceRepository` compatibility owner has been retired from the runtime storage path
 
-Long term:
+Remaining alignment work:
 
-- move to `PeripheralTraceEntryRepository`
-- add `PeripheralTraceMaintenanceService`
+- move peripheral statistics from in-memory aggregation to SQL aggregation
+- add pagination-oriented query flow for connection record pages instead of always loading the full record set
+- upgrade peripheral maintenance results from raw `boolean` to typed result objects aligned with log maintenance
+- make peripheral pipeline return semantics distinguish between "handled by consumer" and "persisted successfully"
 
 ## Firewall Long-Term Design
 
@@ -303,6 +308,12 @@ Migration responsibilities:
 - `entry/src/main/ets/services/log-manage/repository/LogRepository.ets`
 - `entry/src/main/ets/services/peripheral/connection-record/PeripheralTraceRepository.ets`
 
+Current runtime status:
+
+- `entry/src/main/ets/services/log-manage/repository/LogConfigRepository.ets` has been replaced by `LogSettingsRepository`
+- `entry/src/main/ets/services/log-manage/repository/LogRepository.ets` has been removed from the runtime path
+- `entry/src/main/ets/services/peripheral/connection-record/PeripheralTraceRepository.ets` is no longer the runtime storage owner; the runtime path uses `PeripheralTraceEntryRepository + PeripheralTraceMaintenanceService`
+
 ## Removable Glue
 
 Remove or eliminate patterns such as:
@@ -345,9 +356,14 @@ Remove or eliminate patterns such as:
 
 ### Phase 5: peripheral trace migration
 
-- first bridge through `PreferencesAccessor`
-- then migrate to `PeripheralTraceEntryRepository`
-- add maintenance logic
+- migration completed for runtime storage ownership:
+  - `PeripheralTraceEntryRepository` owns relational persistence
+  - `PeripheralTraceMaintenanceService` owns append and cleanup flow
+- follow-up work:
+  - SQL-backed statistics
+  - paged list queries for peripheral record pages
+  - typed maintenance result model
+  - stricter pipeline persistence result semantics
 
 ### Phase 6: global cleanup
 

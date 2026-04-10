@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { CommonStrings } from '../../main/ets/constants/CommonStrings'
-import { IdentityStrings } from '../../main/ets/constants/modules/IdentityStrings'
-import { OperationResult, PASSWORD_VALIDITY_OPTIONS, PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import { AdminText, MessageText } from '../../main/ets/constants/StringCatalog'
+import { IdentityActionStrings, IdentityMessageStrings } from '../../main/ets/constants/modules/IdentityStrings'
+import { OperationResult, PASSWORD_VALIDITY_OPTIONS } from '../../main/ets/models/DataModels'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
@@ -87,7 +87,7 @@ export default function identitySettingsViewModelTest() {
       let result = viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(result.message).assertEqual(IdentityStrings.invalidValidityDays)
+      expect(result.message).assertEqual(IdentityMessageStrings.INVALID_VALIDITY_DAYS)
     })
 
     it('should reject save when nothing changed from current policy', 0, () => {
@@ -106,7 +106,7 @@ export default function identitySettingsViewModelTest() {
       let result = viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(result.message).assertEqual(CommonStrings.messageNoChanges)
+      expect(result.message).assertEqual(MessageText.NO_CHANGES)
     })
 
     it('should clear dirty state after successful save', 0, () => {
@@ -127,7 +127,7 @@ export default function identitySettingsViewModelTest() {
       let result = viewModel.save()
 
       expect(result.success).assertTrue()
-      expect(result.message).assertEqual(IdentityStrings.saveSuccess)
+      expect(result.message).assertEqual(IdentityMessageStrings.SAVE_SUCCESS)
       expect(viewModel.state.hasChanges).assertFalse()
     })
 
@@ -151,7 +151,7 @@ export default function identitySettingsViewModelTest() {
       let result = viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(result.message).assertEqual(DialogService.displayReason('edm missing', IdentityStrings.adminRequired))
+      expect(result.message).assertEqual(DialogService.displayReason('edm missing', AdminText.NOT_ACTIVATED))
     })
 
     it('should use retry message when save fails for non-admin reasons', 0, () => {
@@ -175,7 +175,7 @@ export default function identitySettingsViewModelTest() {
 
       expect(result.success).assertFalse()
       expect(result.message).assertEqual(
-        DialogService.displayReason('io failed', `${IdentityStrings.passwordPolicyAction}${IdentityStrings.actionRetrySuffix}`)
+        DialogService.displayReason('io failed', `${IdentityActionStrings.PASSWORD_POLICY}${IdentityMessageStrings.ACTION_RETRY_SUFFIX}`)
       )
     })
   })

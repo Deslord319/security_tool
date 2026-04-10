@@ -125,7 +125,8 @@ export default function logExportServiceTest() {
       let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
       let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
       when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
-      when(saveMock)().afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
+      when(saveMock)(ArgumentMatchers.any)
+        .afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
 
       let result = await LogExportService.export({} as common.UIAbilityContext)
 
@@ -140,10 +141,10 @@ export default function logExportServiceTest() {
       let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
       let captured: string[] = []
       when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
-      when(listMock)().afterReturn(Promise.resolve([
+      when(listMock)(ArgumentMatchers.any).afterReturn(Promise.resolve([
         createLogEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'alpha', 1700000000000)
       ]))
-      when(saveMock)().afterAction((
+      when(saveMock)(ArgumentMatchers.any).afterAction((
         context: common.UIAbilityContext,
         fileNamePrefix: string,
         writer: (port: CsvFileWritePort) => Promise<void>,
@@ -173,7 +174,7 @@ export default function logExportServiceTest() {
       let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
       let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
       when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
-      when(saveMock)().afterAction(() => {
+      when(saveMock)(ArgumentMatchers.any).afterAction(() => {
         throw new Error('writer failed')
       })
 
