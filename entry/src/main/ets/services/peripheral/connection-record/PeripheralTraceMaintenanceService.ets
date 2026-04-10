@@ -7,6 +7,7 @@ import {
   PeripheralTraceRecord,
   PeripheralType
 } from '../../../models/DataModels'
+import { StorageResult } from '../../../storage/StorageResult'
 import { LogUtils } from '../../../utils/LogUtils'
 import { PeripheralTraceEntryRepository } from './PeripheralTraceEntryRepository'
 
@@ -19,20 +20,33 @@ interface TraceRetentionConfig {
   maxEntries: number
 }
 
+export interface PeripheralTraceInitializeResult extends StorageResult<'ok' | 'storage_init_failed'> {
+}
+
+export interface PeripheralTraceMutationResult extends StorageResult<'ok' | 'not_initialized' | 'save_failed'> {
+}
+
+export interface PeripheralTraceClearResult extends StorageResult<'ok' | 'clear_failed'> {
+}
+
 export class PeripheralTraceMaintenanceService {
   private static retentionDays: number = RETENTION_DAYS_DEFAULT
   private static maxEntries: number = MAX_TRACE_ENTRIES_DEFAULT
   private static nowProvider: () => number = () => Date.now()
 
-  static async initialize(context: common.UIAbilityContext): Promise<boolean> {
+  static async initialize(context: common.UIAbilityContext): Promise<PeripheralTraceInitializeResult> {
     let ready = await PeripheralTraceEntryRepository.init(context)
     if (!ready) {
-      return false
+      return { success: false, code: 'storage_init_failed' }
     }
-    return PeripheralTraceMaintenanceService.reconcileStorageConfig()
+    let reconciled = await PeripheralTraceMaintenanceService.reconcileStorageConfig()
+    if (!reconciled.success) {
+      return { success: false, code: 'storage_init_failed' }
+    }
+    return { success: true, code: 'ok' }
   }
 
-  static async configure(retentionDays?: number, maxEntries?: number): Promise<boolean> {
+  static async configure(retentionDays?: number, maxEntries?: number): Promise<PeripheralTraceMutationResult> {
     if (retentionDays !== undefined && Number.isFinite(retentionDays) && retentionDays > 0) {
       PeripheralTraceMaintenanceService.retentionDays = Math.floor(retentionDays)
     }
@@ -49,13 +63,13 @@ export class PeripheralTraceMaintenanceService {
     }
   }
 
-  static async appendEntries(records: PeripheralTraceRecord[]): Promise<boolean> {
+  static async appendEntries(records: PeripheralTraceRecord[]): Promise<PeripheralTraceMutationResult> {
     try {
       if (records.length === 0) {
-        return true
+        return { success: true, code: 'ok' }
       }
       if (!PeripheralTraceEntryRepository.isReady()) {
-        return false
+        return { success: false, code: 'not_initialized' }
       }
       let normalized: PeripheralTraceRecord[] = []
       for (let item of records) {
@@ -65,61 +79,57 @@ export class PeripheralTraceMaintenanceService {
         normalized.push(PeripheralTraceMaintenanceService.normalizeRecord(item))
       }
       if (normalized.length === 0) {
-        return true
+        return { success: true, code: 'ok' }
       }
       let saved = await PeripheralTraceEntryRepository.upsertBatch(normalized)
       if (!saved) {
-        return false
+        return { success: false, code: 'save_failed' }
       }
-      let reconciled = await PeripheralTraceMaintenanceService.reconcileStorageConfig()
-      if (!reconciled) {
-        return false
-      }
-      return true
+      return PeripheralTraceMaintenanceService.reconcileStorageConfig()
     } catch (err) {
       LogUtils.error(TAG, `appendEntries failed: ${JSON.stringify(err)}`)
-      return false
+      return { success: false, code: 'save_failed' }
     }
   }
 
-  static async reconcileStorageConfig(): Promise<boolean> {
+  static async reconcileStorageConfig(): Promise<PeripheralTraceMutationResult> {
     try {
       if (!PeripheralTraceEntryRepository.isReady()) {
-        return false
+        return { success: false, code: 'not_initialized' }
       }
       let now = PeripheralTraceMaintenanceService.nowProvider()
       let retentionMs = PeripheralTraceMaintenanceService.retentionDays * 24 * 60 * 60 * 1000
       let cutoff = now - retentionMs
       let deletedExpired = await PeripheralTraceEntryRepository.deleteExpired(cutoff)
       if (!deletedExpired) {
-        return false
+        return { success: false, code: 'save_failed' }
       }
       let trimmed = await PeripheralTraceEntryRepository.trimToMaxEntries(PeripheralTraceMaintenanceService.maxEntries)
       if (!trimmed) {
-        return false
+        return { success: false, code: 'save_failed' }
       }
       PeripheralTraceEntryRepository.notifyChanged()
-      return true
+      return { success: true, code: 'ok' }
     } catch (err) {
       LogUtils.error(TAG, `reconcileStorageConfig failed: ${JSON.stringify(err)}`)
-      return false
+      return { success: false, code: 'save_failed' }
     }
   }
 
-  static async clearAll(): Promise<boolean> {
+  static async clearAll(): Promise<PeripheralTraceClearResult> {
     try {
       if (!PeripheralTraceEntryRepository.isReady()) {
-        return false
+        return { success: false, code: 'clear_failed' }
       }
       let cleared = await PeripheralTraceEntryRepository.clearAll()
       if (!cleared) {
-        return false
+        return { success: false, code: 'clear_failed' }
       }
       PeripheralTraceEntryRepository.notifyChanged()
-      return true
+      return { success: true, code: 'ok' }
     } catch (err) {
       LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
-      return false
+      return { success: false, code: 'clear_failed' }
     }
   }
 

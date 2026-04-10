@@ -20,6 +20,7 @@ import {
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 
 const TAG = 'PeripheralRecordViewModel'
+const DEFAULT_RECORD_PAGE_SIZE = 200
 
 export interface ConnectionDetailDialogState {
   visible: boolean
@@ -44,9 +45,9 @@ export class PeripheralRecordState {
 export class PeripheralRecordViewModel {
   @Trace state: PeripheralRecordState = new PeripheralRecordState()
 
-  async reloadRecords(): Promise<void> {
+  async reloadRecords(limit: number = DEFAULT_RECORD_PAGE_SIZE): Promise<void> {
     try {
-      this.state.records = await PeripheralConnectionRecordService.queryRecords()
+      this.state.records = await PeripheralConnectionRecordService.queryRecords(undefined, limit)
       if (this.state.connectionDetailDialog.visible && this.state.connectionDetailDialog.record) {
         this.state.connectionDetailDialog.historyItems = buildConnectionHistoryItems(
           this.state.records,

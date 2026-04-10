@@ -34,7 +34,10 @@ export class DashboardViewModel {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
-    await PeripheralTraceMaintenanceService.initialize(context)
+    let initialized = await PeripheralTraceMaintenanceService.initialize(context)
+    if (!initialized.success) {
+      LogUtils.warn(TAG, `initialize peripheral trace storage failed: ${initialized.code}`)
+    }
     this.quickEntries = this.buildQuickEntries()
     await this.refreshAll()
     this.registerListeners()

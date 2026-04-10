@@ -11,7 +11,11 @@ import { PeripheralTraceEntryRepository } from './PeripheralTraceEntryRepository
 const TAG = 'PeripheralConnectionRecordService'
 
 export class PeripheralConnectionRecordService {
-  static async queryRecords(filter?: PeripheralConnectionFilter): Promise<PeripheralConnectionRecord[]> {
+  static async queryRecords(
+    filter?: PeripheralConnectionFilter,
+    limit?: number,
+    offset?: number
+  ): Promise<PeripheralConnectionRecord[]> {
     try {
       let query: PeripheralTraceQuery = {
         startTime: filter?.startTime,
@@ -21,13 +25,29 @@ export class PeripheralConnectionRecordService {
         sources: ['runtime_event', 'audit_event'],
         keyword: filter?.keyword
       }
-      let records = await PeripheralTraceEntryRepository.listByQuery(query)
+      let records = await PeripheralTraceEntryRepository.listByQuery(query, limit, offset)
       return records
         .map((record: PeripheralTraceRecord) => PeripheralConnectionRecordService.mapTraceRecord(record))
-        .sort((a: PeripheralConnectionRecord, b: PeripheralConnectionRecord) => b.timestamp - a.timestamp)
     } catch (err) {
       LogUtils.error(TAG, `queryRecords failed: ${JSON.stringify(err)}`)
       return []
+    }
+  }
+
+  static async countRecords(filter?: PeripheralConnectionFilter): Promise<number> {
+    try {
+      let query: PeripheralTraceQuery = {
+        startTime: filter?.startTime,
+        endTime: filter?.endTime,
+        deviceTypes: filter?.deviceTypes,
+        results: filter?.results,
+        sources: ['runtime_event', 'audit_event'],
+        keyword: filter?.keyword
+      }
+      return PeripheralTraceEntryRepository.countByQuery(query)
+    } catch (err) {
+      LogUtils.error(TAG, `countRecords failed: ${JSON.stringify(err)}`)
+      return 0
     }
   }
 

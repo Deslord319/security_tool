@@ -9,10 +9,10 @@ import {
   PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
-import { PeripheralStrings } from '../../main/ets/constants/modules/PeripheralStrings'
+import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
-import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
+import { PeripheralTraceMaintenanceService } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
@@ -21,6 +21,7 @@ import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodel
 
 const DEFAULT_RETENTION_DAYS = 180
 const DEFAULT_MAX_ENTRIES = 200000
+const TEST_CONTEXT = {} as common.UIAbilityContext
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
@@ -47,7 +48,7 @@ class FakeRecordViewModel extends PeripheralRecordViewModel {
   nextRecords: PeripheralConnectionRecord[] = []
   exportResult: ExportActionResult = new FakeExportResult(true, 'peripheral_connection_history.csv')
 
-  reloadRecords(): void {
+  async reloadRecords(): Promise<void> {
     this.reloadCount++
     this.state.records = this.nextRecords.slice()
   }
@@ -121,8 +122,12 @@ function createTraceRecord(recordId: string, occurAt: number, deviceId: string =
 }
 
 async function resetTraceRepository(): Promise<void> {
-  await PeripheralTraceRepository.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
-  await PeripheralTraceRepository.clearAll()
+  let initialized = await PeripheralTraceMaintenanceService.initialize(TEST_CONTEXT)
+  expect(initialized.success).assertTrue()
+  let configured = await PeripheralTraceMaintenanceService.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
+  expect(configured.success).assertTrue()
+  let cleared = await PeripheralTraceMaintenanceService.clearAll()
+  expect(cleared.success).assertTrue()
 }
 
 async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void> {
@@ -131,7 +136,8 @@ async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void>
     return
   }
   const sorted = records.slice().sort((left: PeripheralTraceRecord, right: PeripheralTraceRecord) => right.occurAt - left.occurAt)
-  await PeripheralTraceRepository.appendBatch(sorted)
+  let appended = await PeripheralTraceMaintenanceService.appendEntries(sorted)
+  expect(appended.success).assertTrue()
 }
 
 export default function peripheralViewModelTest() {
@@ -208,12 +214,12 @@ export default function peripheralViewModelTest() {
     expect(viewModel.reasonCode).assertNull()
     expect(viewModel.isLoading).assertFalse()
 
-    await PeripheralTraceRepository.append(createTraceRecord('trace-1', 1700000000000))
+    await PeripheralTraceMaintenanceService.appendEntries([createTraceRecord('trace-1', 1700000000000)])
     expect(fakeRecords.reloadCount).assertEqual(2)
     expect(fakePolicy.reloadCount).assertEqual(2)
 
     viewModel.destroy()
-    await PeripheralTraceRepository.append(createTraceRecord('trace-2', 1700000001000))
+    await PeripheralTraceMaintenanceService.appendEntries([createTraceRecord('trace-2', 1700000001000)])
     expect(fakeRecords.reloadCount).assertEqual(2)
     expect(fakePolicy.reloadCount).assertEqual(2)
     done()
@@ -224,15 +230,15 @@ export default function peripheralViewModelTest() {
 
     await viewModel.initialize({} as common.UIAbilityContext)
 
-    expect(viewModel.reasonCode).assertEqual(PeripheralStrings.initFailed)
+    expect(viewModel.reasonCode).assertEqual(PeripheralReasonCodes.INIT_FAILED)
     expect(viewModel.isLoading).assertFalse()
     done()
   })
 
-  it('U-PVM-003 should reload device records, sync policy records and notify refresh', 0, () => {
+  it('U-PVM-003 should reload device records, sync policy records and notify refresh', 0, async () => {
     fakeRecords.nextRecords = [createConnectionRecord('record-1', 1700000000000)]
 
-    viewModel.reloadDeviceRecords()
+    await viewModel.reloadDeviceRecords()
 
     expect(fakeRecords.reloadCount).assertEqual(1)
     expect(fakePolicy.reloadCount).assertEqual(1)
@@ -299,7 +305,7 @@ export default function peripheralViewModelTest() {
     fakeRecords.reloadCount = 0
     fakePolicy.reloadCount = 0
 
-    await PeripheralTraceRepository.append(createTraceRecord('trace-1', 1700000000000))
+    await PeripheralTraceMaintenanceService.appendEntries([createTraceRecord('trace-1', 1700000000000)])
 
     expect(fakeRecords.reloadCount).assertEqual(1)
     expect(fakePolicy.reloadCount).assertEqual(1)
@@ -327,22 +333,22 @@ export default function peripheralViewModelTest() {
 
     expect(fakeRecords.state.connectionDetailDialog.visible).assertFalse()
     expect(ready).assertFalse()
-    expect(viewModel.reasonCode).assertEqual(PeripheralStrings.adminRequired)
+    expect(viewModel.reasonCode).assertEqual(PeripheralReasonCodes.ADMIN_REQUIRED)
     done()
   })
 
   it('should map connection history export result into page reason state', 0, async (done: Function) => {
-    fakeRecords.exportResult = new FakeExportResult(false, undefined, PeripheralStrings.exportConnectionHistoryFailed)
+    fakeRecords.exportResult = new FakeExportResult(false, undefined, PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED)
 
     let result = await viewModel.exportConnectionHistory()
 
     expect(result.success).assertFalse()
-    expect(viewModel.reasonCode).assertEqual(PeripheralStrings.exportConnectionHistoryFailed)
+    expect(viewModel.reasonCode).assertEqual(PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED)
     done()
   })
 
   it('should map policy export success without polluting failure reason', 0, async (done: Function) => {
-    viewModel.reasonCode = PeripheralStrings.exportPolicyRecordsFailed
+    viewModel.reasonCode = PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED
     fakePolicy.exportResult = new FakeExportResult(true, 'peripheral_policy_records.csv')
 
     let result = await viewModel.exportPeripheralPolicyRecords()

@@ -12,10 +12,11 @@ export class PeripheralConnectionRecordClearUsecase {
     }
     try {
       const inited = await PeripheralTraceMaintenanceService.initialize(context)
-      if (!inited) {
+      if (!inited.success) {
         return false
       }
-      return PeripheralTraceMaintenanceService.clearAll()
+      let cleared = await PeripheralTraceMaintenanceService.clearAll()
+      return cleared.success
     } catch (err) {
       const error = err as BusinessError
       LogUtils.error(TAG, `execute failed: code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`)

@@ -60,6 +60,11 @@ interface SqlBundle {
   args: Array<relationalStore.ValueType>
 }
 
+interface GroupCountBundle {
+  key: string
+  count: number
+}
+
 interface PeripheralTraceExtraData {
   correlationId?: string
   policyVersion?: string
@@ -254,45 +259,77 @@ export class PeripheralTraceEntryRepository {
   }
 
   static async getStatistics(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
-    let records = await PeripheralTraceEntryRepository.listByQuery(query)
+    let actionCounts = await PeripheralTraceEntryRepository.groupCountByColumn('action', query)
+    let decisionCounts = await PeripheralTraceEntryRepository.groupCountByColumn('decision', query)
+    let sourceCounts = await PeripheralTraceEntryRepository.groupCountByColumn('source', query)
     let stats: PeripheralTraceStats = {
-      total: records.length,
-      connects: 0,
-      disconnects: 0,
-      intercepts: 0,
-      allows: 0,
-      denies: 0,
-      unknowns: 0,
-      runtimeCount: 0,
-      auditCount: 0,
-      snapshotCount: 0
-    }
-    for (let record of records) {
-      if (record.action === 'connect') {
-        stats.connects++
-      } else if (record.action === 'disconnect') {
-        stats.disconnects++
-      } else if (record.action === 'intercept') {
-        stats.intercepts++
-      }
-
-      if (record.decision === 'allow') {
-        stats.allows++
-      } else if (record.decision === 'deny') {
-        stats.denies++
-      } else {
-        stats.unknowns++
-      }
-
-      if (record.source === 'runtime_event') {
-        stats.runtimeCount++
-      } else if (record.source === 'audit_event') {
-        stats.auditCount++
-      } else {
-        stats.snapshotCount++
-      }
+      total: await PeripheralTraceEntryRepository.countByQuery(query),
+      connects: actionCounts.get('connect') ?? 0,
+      disconnects: actionCounts.get('disconnect') ?? 0,
+      intercepts: actionCounts.get('intercept') ?? 0,
+      allows: decisionCounts.get('allow') ?? 0,
+      denies: decisionCounts.get('deny') ?? 0,
+      unknowns: decisionCounts.get('unknown') ?? 0,
+      runtimeCount: sourceCounts.get('runtime_event') ?? 0,
+      auditCount: sourceCounts.get('audit_event') ?? 0,
+      snapshotCount: sourceCounts.get('policy_snapshot') ?? 0
     }
     return stats
+  }
+
+  private static async countByRawWhere(whereClause: string, args: Array<relationalStore.ValueType>): Promise<number> {
+    let store = await PeripheralTraceEntryRepository.getStore()
+    if (!store) {
+      return 0
+    }
+    let reader: RdbResultSetReader | null = null
+    try {
+      let resultSet = await store.querySql(`SELECT COUNT(1) AS count FROM ${TABLE_NAME} WHERE ${whereClause}`, args)
+      reader = new RdbResultSetReader(resultSet, TAG)
+      return reader.readFirstLong('count')
+    } catch (err) {
+      LogUtils.error(TAG, `countByRawWhere failed: ${JSON.stringify(err)}`)
+      return 0
+    } finally {
+      reader?.close()
+    }
+  }
+
+  private static async groupCountByColumn(column: 'action' | 'decision' | 'source', query?: PeripheralTraceQuery): Promise<Map<string, number>> {
+    let store = await PeripheralTraceEntryRepository.getStore()
+    let result = new Map<string, number>()
+    if (!store) {
+      return result
+    }
+    let reader: RdbResultSetReader | null = null
+    try {
+      let built = PeripheralTraceEntryRepository.buildWhereClause(query)
+      let resultSet = await store.querySql(
+        `SELECT ${column} AS grouped_key, COUNT(1) AS count
+         FROM ${TABLE_NAME}${built.sql}
+         GROUP BY ${column}`,
+        built.args
+      )
+      reader = new RdbResultSetReader(resultSet, TAG)
+      if (!reader.moveToFirst()) {
+        return result
+      }
+      let keyIndex = reader.getColumnIndex('grouped_key')
+      let countIndex = reader.getColumnIndex('count')
+      do {
+        let item: GroupCountBundle = {
+          key: reader.getRequiredString(keyIndex),
+          count: reader.getRequiredNumber(countIndex)
+        }
+        result.set(item.key, item.count)
+      } while (reader.moveToNext())
+      return result
+    } catch (err) {
+      LogUtils.error(TAG, `groupCountByColumn failed: column=${column}, err=${JSON.stringify(err)}`)
+      return result
+    } finally {
+      reader?.close()
+    }
   }
 
   private static async doInit(context: common.UIAbilityContext, contextDir: string): Promise<boolean> {

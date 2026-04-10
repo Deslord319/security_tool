@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
@@ -14,20 +14,17 @@ import {
   PeripheralExportStrings,
   PeripheralReasonCodes
 } from '../../main/ets/constants/modules/PeripheralStrings'
-import { PeripheralTraceRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceRepository'
 import {
   CsvFileExportResult,
   CsvFileExportService
 } from '../../main/ets/services/common/export/CsvFileExportService'
+import { PeripheralConnectionRecordService } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordService'
 import {
   formatPeripheralTimestamp,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel
 } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
-
-const DEFAULT_RETENTION_DAYS = 180
-const DEFAULT_MAX_ENTRIES = 200000
 
 function createExportResult(
   success: boolean,
@@ -87,42 +84,30 @@ function createConnectionRecord(
   }
 }
 
-async function resetTraceRepository(): Promise<void> {
-  await PeripheralTraceRepository.configure(DEFAULT_RETENTION_DAYS, DEFAULT_MAX_ENTRIES)
-  await PeripheralTraceRepository.clearAll()
-}
-
-async function seedTraceRecords(records: PeripheralTraceRecord[]): Promise<void> {
-  await resetTraceRepository()
-  if (records.length <= 0) {
-    return
-  }
-  const sorted = records.slice().sort((left: PeripheralTraceRecord, right: PeripheralTraceRecord) => right.occurAt - left.occurAt)
-  await PeripheralTraceRepository.appendBatch(sorted)
-}
-
 export default function peripheralRecordViewModelTest() {
   describe('PeripheralRecordViewModel', () => {
     let viewModel: PeripheralRecordViewModel
     let mockKit: MockKit
+    let queryRecordsMock: Object
 
     beforeEach(async () => {
       viewModel = new PeripheralRecordViewModel()
       mockKit = new MockKit()
-      await resetTraceRepository()
+      queryRecordsMock = mockKit.mockFunc(PeripheralConnectionRecordService, PeripheralConnectionRecordService.queryRecords)
+      when(queryRecordsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve([]))
     })
 
     afterEach(async () => {
-      await resetTraceRepository()
       mockKit.clearAll()
     })
 
     it('U-RVM-001 should reload records from record service', 0, async (done: Function) => {
       const base = Date.now()
-      await seedTraceRecords([
-        createTraceRecord('record-1', base),
-        createTraceRecord('record-2', base + 1000, 'VID:1111 PID:2222', 'USB Camera')
-      ])
+      let records = [
+        createConnectionRecord('peripheral_runtime_record-2', base + 1000, 'VID:1111 PID:2222', 'USB Camera'),
+        createConnectionRecord('peripheral_runtime_record-1', base)
+      ]
+      when(queryRecordsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(records))
 
       await viewModel.reloadRecords()
 
@@ -133,7 +118,6 @@ export default function peripheralRecordViewModelTest() {
     })
 
     it('U-RVM-002 should fall back to empty list when query pipeline returns no records', 0, async (done: Function) => {
-      await resetTraceRepository()
       viewModel.state.records = [createConnectionRecord('stale-record', 1700000000000)]
 
       await viewModel.reloadRecords()
@@ -172,7 +156,7 @@ export default function peripheralRecordViewModelTest() {
     it('U-RVM-005 should export connection history and return generated file name', 0, async (done: Function) => {
       viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)().afterReturn(Promise.resolve(createExportResult(
+      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createExportResult(
         true,
         'ok',
         'peripheral_connection_history_20250115_083000.csv',
@@ -209,13 +193,13 @@ export default function peripheralRecordViewModelTest() {
     it('U-RVM-008 should map export service failure and thrown errors to export failure reason', 0, async (done: Function) => {
       viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)().afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
+      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
 
       const failedResult = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
       expect(failedResult.success).assertFalse()
       expect(failedResult.reason ?? '').assertEqual(PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED)
 
-      when(exportMock)().afterAction(() => {
+      when(exportMock)(ArgumentMatchers.any).afterAction(() => {
         throw new Error('picker failed')
       })
       const thrownResult = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
@@ -229,7 +213,7 @@ export default function peripheralRecordViewModelTest() {
       viewModel.state.records = [record]
       let capturedCsv = ''
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)().afterAction((
+      when(exportMock)(ArgumentMatchers.any).afterAction((
         _context: common.UIAbilityContext,
         content: string
       ) => {
@@ -266,7 +250,7 @@ export default function peripheralRecordViewModelTest() {
       let capturedCsv = ''
       viewModel.state.records = [record]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)().afterAction((
+      when(exportMock)(ArgumentMatchers.any).afterAction((
         _context: common.UIAbilityContext,
         content: string
       ) => {

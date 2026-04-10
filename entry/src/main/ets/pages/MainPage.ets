@@ -165,8 +165,8 @@ struct MainPage {
         return
       }
       let traceConfigured = await PeripheralTraceMaintenanceService.configure(180, 200000)
-      if (!traceConfigured) {
-        LogUtils.error(TAG, 'PeripheralTraceMaintenanceService configure failed')
+      if (!traceConfigured.success) {
+        LogUtils.error(TAG, `PeripheralTraceMaintenanceService configure failed: ${traceConfigured.code}`)
         return
       }
 

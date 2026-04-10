@@ -106,7 +106,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       LogUtils.warn(TAG, `skip push: trace storage not ready, channel=${event.channel}`)
       return false
     }
-    let processed: boolean = false
+    let persisted: boolean = false
     for (let index = 0; index < this.consumers.length; index++) {
       const consumer = this.consumers[index]
       if (!consumer.canHandle(event)) {
@@ -119,13 +119,14 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       if (this.shouldSkipByDedupe(event, record)) {
         continue
       }
-      processed = true
       const appended = await PeripheralTraceMaintenanceService.appendEntries([record])
-      if (!appended) {
-        LogUtils.warn(TAG, `append failed: channel=${event.channel}, deviceId=${record.deviceId}`)
+      if (!appended.success) {
+        LogUtils.warn(TAG, `append failed: channel=${event.channel}, deviceId=${record.deviceId}, code=${appended.code}`)
+        continue
       }
+      persisted = true
     }
-    return processed
+    return persisted
   }
 
   private shouldSkipByDedupe(event: PeripheralConnectionRecordProducerEvent, record: PeripheralTraceRecord): boolean {
@@ -150,7 +151,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       return false
     }
     const initialized = await PeripheralTraceMaintenanceService.initialize(this.context)
-    this.traceRepositoryReady = initialized
-    return initialized
+    this.traceRepositoryReady = initialized.success
+    return initialized.success
   }
 }

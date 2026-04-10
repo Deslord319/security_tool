@@ -40,9 +40,9 @@ export class PeripheralViewModel {
     try {
       this.destroy()
       let traceReady = await PeripheralTraceMaintenanceService.initialize(context)
-      if (!traceReady) {
+      if (!traceReady.success) {
         this.reasonCode = PeripheralReasonCodes.INIT_FAILED
-        LogUtils.error(TAG, 'initialize failed: trace repository not ready')
+        LogUtils.error(TAG, `initialize failed: trace storage not ready, code=${traceReady.code}`)
         return
       }
       await this.policy.initialize(context)
