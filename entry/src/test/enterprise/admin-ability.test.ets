@@ -8,6 +8,8 @@ export default function enterpriseAdminAbilityTest() {
 
       ability.onAdminEnabled()
       ability.onAdminDisabled()
+      ability.onAccountAdded(101)
+      ability.onAccountRemoved(101)
       ability.onBundleAdded('com.example.demo')
       ability.onBundleRemoved('com.example.demo')
 

@@ -4,6 +4,13 @@ import { SystemUserProvider } from '../../main/ets/services/firewall/providers/S
 
 export default function systemUserProviderTest() {
   describe('SystemUserProvider', () => {
+    it('should allow tracked-user maintenance methods without throwing', 0, async () => {
+      await SystemUserProvider.trackAddedUser(101)
+      await SystemUserProvider.trackRemovedUser(101)
+
+      expect(true).assertTrue()
+    })
+
     it('should return a well-formed available-user result', 0, async () => {
       let result = await SystemUserProvider.loadAvailableUserIds()
 

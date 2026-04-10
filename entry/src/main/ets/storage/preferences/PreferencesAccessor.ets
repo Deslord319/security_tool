@@ -13,15 +13,15 @@ const TAG = 'PreferencesAccessor'
 
 export class PreferencesAccessor {
   private static cache: Map<string, preferences.Preferences> = new Map()
-  private context: common.UIAbilityContext
+  private context: common.Context
   private storeName: string
 
-  private constructor(context: common.UIAbilityContext, storeName: string) {
+  private constructor(context: common.Context, storeName: string) {
     this.context = context
     this.storeName = storeName
   }
 
-  static of(context: common.UIAbilityContext, storeName: string): PreferencesAccessor {
+  static of(context: common.Context, storeName: string): PreferencesAccessor {
     return new PreferencesAccessor(context, storeName)
   }
 

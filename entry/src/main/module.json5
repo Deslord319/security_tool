@@ -63,6 +63,9 @@
         "name": "ohos.permission.ENTERPRISE_ADMIN_MANAGE"
       },
       {
+        "name": "ohos.permission.ENTERPRISE_SUBSCRIBE_MANAGED_EVENT"
+      },
+      {
         "name": "ohos.permission.START_PROVISIONING_MESSAGE"
       },
       {
