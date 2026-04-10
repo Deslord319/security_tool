@@ -156,14 +156,13 @@ export class FirewallRulesViewModel {
       const result = await FirewallService.saveCustomRules(context, nextRules)
       this.lastSaveResult = result
       if (result.success) {
-      this.rules = nextRules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
-      this.refreshConflictNotice()
-      const reapplySuccessCount = result.reapplySuccessCount ?? 0
-      const reapplyFailedCount = result.reapplyFailedCount ?? 0
-      this.lastOperationMessage = reapplyFailedCount > 0
-        ? buildFirewallReapplyPartialFailedMessage(reapplySuccessCount, reapplyFailedCount)
-        : successMessage
-      return result
+        await this.reloadRules(context)
+        const reapplySuccessCount = result.reapplySuccessCount ?? 0
+        const reapplyFailedCount = result.reapplyFailedCount ?? 0
+        this.lastOperationMessage = reapplyFailedCount > 0
+          ? buildFirewallReapplyPartialFailedMessage(reapplySuccessCount, reapplyFailedCount)
+          : successMessage
+        return result
       }
 
       this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
