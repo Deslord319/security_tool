@@ -7,6 +7,7 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
 
 type JsonField = string | number | boolean | Object | undefined
 type JsonMap = Record<string, JsonField>
@@ -47,7 +48,7 @@ export function parseAuditEventToLogEntry(
   const parsed = parseAuditPayload(event.content || '', event.metadata)
   return {
     id: generateLogEntryId(),
-    timestamp: parseTimestamp(event.timestamp || '', nowProvider),
+    timestamp: resolveAuditSourceTimestamp(event.timestamp || '', nowProvider),
     eventType: mappedType,
     detail: parsed.detail,
     processName: parsed.processName,
@@ -92,20 +93,6 @@ function resolveAuditRawFilePath(content: string, metadata: string | undefined, 
     'filePath', 'file_path', 'path', 'srcPath', 'src_path'
   ])
   return LogPathUtils.extractRawAuditPath(structured, [content, metadata])
-}
-
-function parseTimestamp(ts: string, nowProvider: () => number): number {
-  if (ts.length < 14) {
-    return nowProvider()
-  }
-  return new Date(
-    parseInt(ts.substring(0, 4)),
-    parseInt(ts.substring(4, 6)) - 1,
-    parseInt(ts.substring(6, 8)),
-    parseInt(ts.substring(8, 10)),
-    parseInt(ts.substring(10, 12)),
-    parseInt(ts.substring(12, 14))
-  ).getTime()
 }
 
 function mapResult(rawOutcome?: string): LogEventResult {

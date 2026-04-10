@@ -37,5 +37,33 @@ export default function logCrashSourceTest() {
       expect(entry.rawOutcome).assertEqual('freeze')
       expect(entry.detail).assertEqual(hiAppEvent.event.APP_FREEZE)
     })
+
+    it('should prefer source event timestamp when params carry milliseconds', 0, () => {
+      let info = {
+        name: hiAppEvent.event.APP_CRASH,
+        params: {
+          timestamp: 1712732400000,
+          reason: 'native crash'
+        }
+      } as hiAppEvent.AppEventInfo
+
+      let entry = mapCrashInfoToLogEntry(info, () => 123)
+
+      expect(entry.timestamp).assertEqual(1712732400000)
+    })
+
+    it('should normalize seconds-based source timestamps before fallback', 0, () => {
+      let info = {
+        name: hiAppEvent.event.APP_CRASH,
+        params: {
+          eventTime: '1712732400',
+          reason: 'native crash'
+        }
+      } as hiAppEvent.AppEventInfo
+
+      let entry = mapCrashInfoToLogEntry(info, () => 456)
+
+      expect(entry.timestamp).assertEqual(1712732400000)
+    })
   })
 }

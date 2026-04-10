@@ -43,5 +43,23 @@ export default function logAuditSourceTest() {
 
       expect(entry === undefined).assertTrue()
     })
+
+    it('should fallback to now provider when audit timestamp is invalid', 0, () => {
+      let event = {
+        eventId: securityAudit.NotifyEvent.FILE,
+        timestamp: '20261302120000',
+        userId: 100,
+        content: JSON.stringify({
+          description: 'blocked file access',
+          outcome: 'blocked'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event, () => 1712732400000)
+
+      expect(!!entry).assertTrue()
+      expect(entry!.timestamp).assertEqual(1712732400000)
+    })
   })
 }

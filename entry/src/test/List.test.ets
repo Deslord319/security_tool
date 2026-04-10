@@ -26,15 +26,17 @@ import identityServiceTest from './identity/service.test'
 import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
 import logAuditSourceTest from './log-manage/audit-source.test'
 import logCollectorServiceTest from './log-manage/collector-service.test'
-import logConfigRepositoryTest from './log-manage/config-repository.test'
+import logSettingsRepositoryTest from './log-manage/settings-repository.test'
 import logCrashSourceTest from './log-manage/crash-source.test'
 import logEntryNormalizerTest from './log-manage/entry-normalizer.test'
 import logExportServiceTest from './log-manage/export-service.test'
 import logListViewModelTest from './log-manage/list-viewmodel.test'
+import logMaintenanceServiceTest from './log-manage/maintenance-service.test'
 import logManageModelsTest from './log-manage/models.test'
 import logPathUtilsTest from './log-manage/path-utils.test'
-import logRepositoryTest from './log-manage/repository.test'
+import logEntryRepositoryTest from './log-manage/entry-repository.test'
 import logSettingsViewModelTest from './log-manage/settings-viewmodel.test'
+import logTimestampResolverTest from './log-manage/timestamp-resolver.test'
 import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
 import peripheralPipelineTest from './peripheral/connection-record-pipeline.test'
@@ -86,15 +88,17 @@ export default function testsuite() {
   identitySettingsViewModelTest()
   logAuditSourceTest()
   logCollectorServiceTest()
-  logConfigRepositoryTest()
+  logSettingsRepositoryTest()
   logCrashSourceTest()
   logEntryNormalizerTest()
   logExportServiceTest()
   logListViewModelTest()
+  logMaintenanceServiceTest()
   logManageModelsTest()
   logPathUtilsTest()
-  logRepositoryTest()
+  logEntryRepositoryTest()
   logSettingsViewModelTest()
+  logTimestampResolverTest()
   dataModelsTest()
   peripheralBluetoothAclConsumerTest()
   peripheralPipelineTest()

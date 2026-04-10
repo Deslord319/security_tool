@@ -5,6 +5,7 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { resolveCrashSourceTimestamp } from './LogTimestampResolver'
 
 type CrashParamValue = string | number | boolean | Object | undefined
 type CrashParamMap = Record<string, CrashParamValue>
@@ -35,7 +36,7 @@ export function mapCrashInfoToLogEntry(
 
   return {
     id: generateLogEntryId(),
-    timestamp: nowProvider(),
+    timestamp: resolveCrashTimestamp(params, nowProvider),
     eventType: LogEventType.CRASH,
     detail: detailParts.join(' | '),
     processName: processName,
@@ -47,6 +48,19 @@ export function mapCrashInfoToLogEntry(
     rawAction: rawAction,
     result: LogEventResult.FAILED
   }
+}
+
+function resolveCrashTimestamp(params: CrashParamMap, nowProvider: () => number): number {
+  return resolveCrashSourceTimestamp([
+    params['time'],
+    params['timestamp'],
+    params['eventTime'],
+    params['event_time'],
+    params['occurTime'],
+    params['occur_time'],
+    params['happenTime'],
+    params['happen_time']
+  ], nowProvider)
 }
 
 function pickString(params: CrashParamMap, keys: string[]): string | undefined {
