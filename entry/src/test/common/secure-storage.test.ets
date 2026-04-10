@@ -45,11 +45,6 @@ enum MockReturnType {
   ALL = 1
 }
 
-// 辅助函数：创建模拟数据
-function createMockAsset(attrs: MockAssetAttributes): MockAssetAttributes {
-  return attrs
-}
-
 function encodeInvalidText(_encoder: MockTextEncoder): Uint8Array {
   throw new Error('invalid input')
 }
