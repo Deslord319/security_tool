@@ -1,13 +1,13 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { netFirewall } from '@kit.NetworkKit'
+import { AppInfo } from '../../../constants/AppConstants'
 
 export class FirewallRepository {
-  private static readonly DEFAULT_USER_ID = 100
   private static readonly TAG = 'FirewallRepository'
 
   static async getFirewallPolicy(): Promise<netFirewall.NetFirewallPolicy | null> {
     try {
-      return await netFirewall.getNetFirewallPolicy(FirewallRepository.DEFAULT_USER_ID)
+      return await netFirewall.getNetFirewallPolicy(AppInfo.DEFAULT_USER_ID)
     } catch (err) {
       LogUtils.error(FirewallRepository.TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
       return null
@@ -16,7 +16,7 @@ export class FirewallRepository {
 
   static async getAllRules(userId?: number): Promise<netFirewall.NetFirewallRule[]> {
     try {
-      let effectiveUserId = userId ?? FirewallRepository.DEFAULT_USER_ID
+      let effectiveUserId = userId ?? AppInfo.DEFAULT_USER_ID
       let allRules: netFirewall.NetFirewallRule[] = []
       let page = 1
       while (true) {
@@ -52,7 +52,7 @@ export class FirewallRepository {
         inAction: existingPolicy.inAction,
         outAction: existingPolicy.outAction
       }
-      await netFirewall.setNetFirewallPolicy(FirewallRepository.DEFAULT_USER_ID, policy)
+      await netFirewall.setNetFirewallPolicy(AppInfo.DEFAULT_USER_ID, policy)
       return true
     } catch (err) {
       LogUtils.error(FirewallRepository.TAG, `setFirewallEnabled failed: ${JSON.stringify(err)}`)
@@ -62,7 +62,7 @@ export class FirewallRepository {
 
   static async setFirewallPolicy(policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
     try {
-      await netFirewall.setNetFirewallPolicy(FirewallRepository.DEFAULT_USER_ID, policy)
+      await netFirewall.setNetFirewallPolicy(AppInfo.DEFAULT_USER_ID, policy)
       return true
     } catch (err) {
       LogUtils.error(FirewallRepository.TAG, `setFirewallPolicy failed: ${JSON.stringify(err)}`)
@@ -84,7 +84,7 @@ export class FirewallRepository {
 
   static async removeRule(ruleId: number): Promise<boolean> {
     try {
-      await netFirewall.removeNetFirewallRule(FirewallRepository.DEFAULT_USER_ID, ruleId)
+      await netFirewall.removeNetFirewallRule(AppInfo.DEFAULT_USER_ID, ruleId)
       return true
     } catch (err) {
       LogUtils.error(FirewallRepository.TAG, `removeRule failed: ${JSON.stringify(err)}`)
@@ -160,7 +160,7 @@ export class FirewallRepository {
     copyRuleIpRemoteIps: boolean = true
   ): netFirewall.NetFirewallRule {
     let clonedRule: netFirewall.NetFirewallRule = {
-      userId: FirewallRepository.normalizeNumber(rule.userId) ?? FirewallRepository.DEFAULT_USER_ID,
+      userId: FirewallRepository.normalizeNumber(rule.userId) ?? AppInfo.DEFAULT_USER_ID,
       name: rule.name,
       direction: rule.direction,
       action: rule.action,

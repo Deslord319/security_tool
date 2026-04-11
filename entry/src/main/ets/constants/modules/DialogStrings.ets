@@ -1,4 +1,3 @@
-
 import { ActionText, LabelText, MessageText, ResultText } from '../StringCatalog'
 
 /**
@@ -28,16 +27,11 @@ export class EmptyStateStrings {
   static readonly NO_RESULTS: string = '未找到相关结果'
 }
 
-// Firewall rule type labels reused by filters and dialogs.
 export class FirewallRuleLabelStrings {
   static readonly ALL_RULES: string = '全部规则'
   static readonly IP_RULE: string = 'IP规则'
   static readonly DOMAIN_RULE: string = '域名规则'
   static readonly DNS_RULE: string = 'DNS规则'
-}
-
-// ==================== 验证错误提示 ====================
-export class ValidationErrorStrings {
 }
 
 // ==================== 防火墙相关文本 ====================
@@ -115,7 +109,6 @@ export class DeviceDetailStrings {
   static readonly RESULT_STATUS: string = '结果状态'
 }
 
-// Shared device type labels reused by records and policy views.
 export class DeviceTypeLabels {
   static readonly USB_STORAGE: string = 'USB 存储设备'
   static readonly USB_CAMERA: string = 'USB 摄像头'

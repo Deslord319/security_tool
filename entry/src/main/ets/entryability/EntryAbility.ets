@@ -117,8 +117,6 @@ export default class EntryAbility extends UIAbility {
 
       // 隐藏系统标题栏（装饰栏），保留三键区和拖拽能力
       windowStage.getMainWindow().then((mainWindow: window.Window) => {
-        // Ensure snapshots are allowed for UI regression capture.
-        mainWindow.setWindowPrivacyMode(false)
         mainWindow.setWindowDecorVisible(false);
         mainWindow.setWindowDecorHeight(56);
       }).catch((decErr: Error) => {
@@ -128,19 +126,15 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageDestroy(): void {
-    // Main window is destroyed, release UI related resources
   }
 
   onForeground(): void {
-    // Ability has brought to foreground
   }
 
   onBackground(): void {
-    // Ability has back to background
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {
-    // 系统配置变化时（包括深色模式切换），传入最新的 colorMode
     const newColorMode = newConfig?.colorMode;
     ThemeManager.getInstance().onConfigurationUpdate(newColorMode);
   }

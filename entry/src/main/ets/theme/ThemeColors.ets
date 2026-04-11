@@ -35,7 +35,6 @@ export interface ThemeColorSet {
   BORDER: string
   BORDER_OPACITY: number
 
-  // Form control colors
   FORM_BG: string
   FORM_BORDER: string
   FORM_TEXT: string
@@ -78,7 +77,6 @@ export const LightThemeColors: ThemeColorSet = {
   BORDER: '#000000',
   BORDER_OPACITY: 0.1,
 
-  // Form control colors
   FORM_BG: '#FFFFFF',
   FORM_BORDER: '#D0D7DE',
   FORM_TEXT: '#111827',
@@ -121,7 +119,6 @@ export const DarkThemeColors: ThemeColorSet = {
   BORDER: '#FFFFFF',
   BORDER_OPACITY: 0.1,
 
-  // Form control colors
   FORM_BG: '#2A2A2C',
   FORM_BORDER: '#5A5A5E',
   FORM_TEXT: '#F4F4F5',

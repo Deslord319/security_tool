@@ -5,7 +5,7 @@ import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { ActionText } from '../../../constants/StringCatalog'
-import { FirewallDialogStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../../../constants/modules/DialogStrings'
+import { FirewallDialogStrings, FirewallRuleLabelStrings } from '../../../constants/modules/DialogStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 
@@ -159,7 +159,7 @@ export struct AddRuleDialog {
 
   private buildCreateRule(): netFirewall.NetFirewallRule {
     let rule: netFirewall.NetFirewallRule = {
-      userId: this.initialRule?.userId ?? 100,
+      userId: this.initialRule?.userId ?? AppInfo.DEFAULT_USER_ID,
       name: this.ruleName.trim(),
       direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
       action: this.action as netFirewall.FirewallRuleAction,
@@ -173,7 +173,7 @@ export struct AddRuleDialog {
 
   private buildUpdateRule(): netFirewall.NetFirewallRule {
     let baseRule: netFirewall.NetFirewallRule = {
-      userId: this.initialRule?.userId ?? 100,
+      userId: this.initialRule?.userId ?? AppInfo.DEFAULT_USER_ID,
       name: this.ruleName.trim(),
       direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
       action: this.action as netFirewall.FirewallRuleAction,

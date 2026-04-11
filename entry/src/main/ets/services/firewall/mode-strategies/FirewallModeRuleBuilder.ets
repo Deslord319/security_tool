@@ -3,8 +3,7 @@ import { netFirewall } from '@kit.NetworkKit'
 import { FirewallManagedRuleMetadata, FirewallPresetConfig, FirewallPresetMode } from '../../../models/DataModels'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
-
-const DEFAULT_USER_ID = 100
+import { AppInfo } from '../../../constants/AppConstants'
 
 export class FirewallModeRuleBuilder {
   static buildRulesForMode(
@@ -90,7 +89,7 @@ export class FirewallModeRuleBuilder {
     scopes.forEach((cidr: string | undefined) => {
       ports.forEach((port: number | undefined) => {
         let rule: netFirewall.NetFirewallRule = {
-          userId: DEFAULT_USER_ID,
+          userId: AppInfo.DEFAULT_USER_ID,
           name: name,
           direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
           action: action,
