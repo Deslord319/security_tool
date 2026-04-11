@@ -1,7 +1,7 @@
 import relationalStore from '@ohos.data.relationalStore'
-import { common } from '@kit.AbilityKit'
 import {
   LogEventResult,
+  normalizeDeviceId,
   PeripheralMatchedPolicyKind,
   PeripheralRecordAction,
   PeripheralRecordPolicyHit,
@@ -12,8 +12,7 @@ import {
   PeripheralType,
   UsbStoragePolicy
 } from '../../../models/DataModels'
-import { LogUtils } from '../../../utils/LogUtils'
-import { RdbStoreProvider } from '../../../storage/rdb/RdbStoreProvider'
+import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 
 const TAG = 'PeripheralTraceEntryRepo'
@@ -55,16 +54,6 @@ CREATE INDEX IF NOT EXISTS idx_peripheral_trace_action
 ON peripheral_trace_entries(action)
 `
 
-interface SqlBundle {
-  sql: string
-  args: Array<relationalStore.ValueType>
-}
-
-interface GroupCountBundle {
-  key: string
-  count: number
-}
-
 interface PeripheralTraceExtraData {
   correlationId?: string
   policyVersion?: string
@@ -77,193 +66,83 @@ interface PeripheralTraceExtraData {
   matchedPolicyKind?: string
 }
 
-export class PeripheralTraceEntryRepository {
-  private static context: common.UIAbilityContext | null = null
-  private static initialized: boolean = false
-  private static initPromise: Promise<boolean> | null = null
-  private static initializedContextDir: string = ''
-  private static nextListenerId: number = 1
-  private static listeners: Map<number, () => void> = new Map()
-
-  static async init(context: common.UIAbilityContext): Promise<boolean> {
-    PeripheralTraceEntryRepository.context = context
-    let contextDir = context.filesDir || ''
-    if (PeripheralTraceEntryRepository.initialized && PeripheralTraceEntryRepository.initializedContextDir === contextDir) {
-      return true
-    }
-    if (PeripheralTraceEntryRepository.initPromise) {
-      return PeripheralTraceEntryRepository.initPromise
-    }
-    PeripheralTraceEntryRepository.initPromise = PeripheralTraceEntryRepository.doInit(context, contextDir)
-    let ready = await PeripheralTraceEntryRepository.initPromise
-    PeripheralTraceEntryRepository.initPromise = null
-    return ready
-  }
-
-  static isReady(): boolean {
-    return PeripheralTraceEntryRepository.initialized
-  }
-
-  static addChangeListener(listener: () => void): number {
-    let id = PeripheralTraceEntryRepository.nextListenerId++
-    PeripheralTraceEntryRepository.listeners.set(id, listener)
-    return id
-  }
-
-  static removeChangeListener(listenerId: number): void {
-    PeripheralTraceEntryRepository.listeners.delete(listenerId)
-  }
-
-  static notifyChanged(): void {
-    PeripheralTraceEntryRepository.listeners.forEach((listener: () => void) => {
-      try {
-        listener()
-      } catch (err) {
-        LogUtils.warn(TAG, `listener failed: ${JSON.stringify(err)}`)
-      }
+class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRecord, PeripheralTraceQuery> {
+  constructor() {
+    super({
+      tag: TAG,
+      dbName: DB_NAME,
+      tableName: TABLE_NAME,
+      createStatements: [
+        CREATE_TABLE_SQL,
+        CREATE_INDEX_OCCUR_AT_SQL,
+        CREATE_INDEX_DEVICE_ID_SQL,
+        CREATE_INDEX_ACTION_SQL
+      ]
     })
   }
 
-  static async upsertBatch(records: PeripheralTraceRecord[]): Promise<boolean> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return false
-    }
-    try {
-      for (let record of records) {
-        let args: Array<relationalStore.ValueType> = [
-          record.recordId,
-          record.occurAt,
-          record.collectAt,
-          record.deviceName,
-          record.deviceType,
-          record.deviceId,
-          record.action,
-          record.decision,
-          PeripheralTraceEntryRepository.serializeResult(record.result),
-          record.source,
-          record.summary,
-          record.detail ?? null,
-          record.processName ?? null,
-          record.rawPayload ?? null,
-          PeripheralTraceEntryRepository.buildExtraJson(record)
-        ]
-        await store.executeSql(
-          `INSERT OR REPLACE INTO ${TABLE_NAME} (
-            record_id, occur_at, collect_at, device_name, device_type, device_id,
-            action, decision, result, source, summary, detail, process_name, raw_payload, extra_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          args
-        )
-      }
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `upsertBatch failed: ${JSON.stringify(err)}`)
-      return false
-    }
+  async upsertBatch(records: PeripheralTraceRecord[]): Promise<boolean> {
+    return this.replaceBatch(
+      records,
+      `INSERT OR REPLACE INTO ${TABLE_NAME} (
+        record_id, occur_at, collect_at, device_name, device_type, device_id,
+        action, decision, result, source, summary, detail, process_name, raw_payload, extra_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (record: PeripheralTraceRecord) => [
+        record.recordId,
+        record.occurAt,
+        record.collectAt,
+        record.deviceName,
+        record.deviceType,
+        record.deviceId,
+        record.action,
+        record.decision,
+        this.serializeResult(record.result),
+        record.source,
+        record.summary,
+        record.detail ?? null,
+        record.processName ?? null,
+        record.rawPayload ?? null,
+        this.buildExtraJson(record)
+      ],
+      'upsertBatch'
+    )
   }
 
-  static async listByQuery(query?: PeripheralTraceQuery): Promise<PeripheralTraceRecord[]> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return []
-    }
-    let reader: RdbResultSetReader | null = null
-    try {
-      let built = PeripheralTraceEntryRepository.buildSelectSql(query)
-      let resultSet = await store.querySql(built.sql, built.args)
-      reader = new RdbResultSetReader(resultSet, TAG)
-      return PeripheralTraceEntryRepository.mapResultSet(reader)
-    } catch (err) {
-      LogUtils.error(TAG, `listByQuery failed: ${JSON.stringify(err)}`)
-      return []
-    } finally {
-      reader?.close()
-    }
+  async listByQuery(query?: PeripheralTraceQuery): Promise<PeripheralTraceRecord[]> {
+    return this.queryRows(
+      this.buildSelectSqlForQuery(query),
+      (reader: RdbResultSetReader) => this.mapResultSet(reader),
+      'listByQuery'
+    )
   }
 
-  static async countByQuery(query?: PeripheralTraceQuery): Promise<number> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return 0
-    }
-    let reader: RdbResultSetReader | null = null
-    try {
-      let built = PeripheralTraceEntryRepository.buildCountSql(query)
-      let resultSet = await store.querySql(built.sql, built.args)
-      reader = new RdbResultSetReader(resultSet, TAG)
-      return reader.readFirstLong('count')
-    } catch (err) {
-      LogUtils.error(TAG, `countByQuery failed: ${JSON.stringify(err)}`)
-      return 0
-    } finally {
-      reader?.close()
-    }
+  async countByQuery(query?: PeripheralTraceQuery): Promise<number> {
+    return this.countByQueryBuilt(
+      query,
+      (nextQuery?: PeripheralTraceQuery) => this.buildCountSqlForQuery(nextQuery),
+      'countByQuery'
+    )
   }
 
-  static async deleteExpired(cutoffTimestamp: number): Promise<boolean> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return false
-    }
-    try {
-      await store.executeSql(`DELETE FROM ${TABLE_NAME} WHERE occur_at < ?`, [cutoffTimestamp])
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `deleteExpired failed: ${JSON.stringify(err)}`)
-      return false
-    }
+  async deleteExpired(cutoffTimestamp: number): Promise<boolean> {
+    return this.deleteExpiredByColumn('occur_at', cutoffTimestamp)
   }
 
-  static async trimToMaxEntries(maxEntries: number): Promise<boolean> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return false
-    }
-    try {
-      await store.executeSql(
-        `DELETE FROM ${TABLE_NAME}
-         WHERE id NOT IN (
-           SELECT id FROM ${TABLE_NAME}
-           ORDER BY occur_at DESC, id DESC
-           LIMIT ?
-         )`,
-        [maxEntries]
-      )
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `trimToMaxEntries failed: ${JSON.stringify(err)}`)
-      return false
-    }
+  async trimToMaxEntries(maxEntries: number): Promise<boolean> {
+    return this.trimToMaxEntriesByOrder('occur_at DESC, id DESC', maxEntries)
   }
 
-  static async clearAll(): Promise<boolean> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return false
-    }
-    try {
-      await store.executeSql(`DELETE FROM ${TABLE_NAME}`)
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `clearAll failed: ${JSON.stringify(err)}`)
-      return false
-    }
+  async clearAll(): Promise<boolean> {
+    return this.clearAllRows()
   }
 
-  private static async getStore(): Promise<relationalStore.RdbStore | null> {
-    if (!PeripheralTraceEntryRepository.context) {
-      return null
-    }
-    return RdbStoreProvider.getStore(PeripheralTraceEntryRepository.context, DB_NAME)
-  }
-
-  static async getStatistics(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
-    let actionCounts = await PeripheralTraceEntryRepository.groupCountByColumn('action', query)
-    let decisionCounts = await PeripheralTraceEntryRepository.groupCountByColumn('decision', query)
-    let sourceCounts = await PeripheralTraceEntryRepository.groupCountByColumn('source', query)
-    let stats: PeripheralTraceStats = {
-      total: await PeripheralTraceEntryRepository.countByQuery(query),
+  async getStatistics(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
+    let actionCounts = await this.groupCountByColumn('action', query)
+    let decisionCounts = await this.groupCountByColumn('decision', query)
+    let sourceCounts = await this.groupCountByColumn('source', query)
+    return {
+      total: await this.countByQuery(query),
       connects: actionCounts.get('connect') ?? 0,
       disconnects: actionCounts.get('disconnect') ?? 0,
       intercepts: actionCounts.get('intercept') ?? 0,
@@ -274,109 +153,29 @@ export class PeripheralTraceEntryRepository {
       auditCount: sourceCounts.get('audit_event') ?? 0,
       snapshotCount: sourceCounts.get('policy_snapshot') ?? 0
     }
-    return stats
   }
 
-  private static async countByRawWhere(whereClause: string, args: Array<relationalStore.ValueType>): Promise<number> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      return 0
-    }
-    let reader: RdbResultSetReader | null = null
-    try {
-      let resultSet = await store.querySql(`SELECT COUNT(1) AS count FROM ${TABLE_NAME} WHERE ${whereClause}`, args)
-      reader = new RdbResultSetReader(resultSet, TAG)
-      return reader.readFirstLong('count')
-    } catch (err) {
-      LogUtils.error(TAG, `countByRawWhere failed: ${JSON.stringify(err)}`)
-      return 0
-    } finally {
-      reader?.close()
-    }
-  }
-
-  private static async groupCountByColumn(column: 'action' | 'decision' | 'source', query?: PeripheralTraceQuery): Promise<Map<string, number>> {
-    let store = await PeripheralTraceEntryRepository.getStore()
-    let result = new Map<string, number>()
-    if (!store) {
-      return result
-    }
-    let reader: RdbResultSetReader | null = null
-    try {
-      let built = PeripheralTraceEntryRepository.buildWhereClause(query)
-      let resultSet = await store.querySql(
-        `SELECT ${column} AS grouped_key, COUNT(1) AS count
-         FROM ${TABLE_NAME}${built.sql}
-         GROUP BY ${column}`,
-        built.args
-      )
-      reader = new RdbResultSetReader(resultSet, TAG)
-      if (!reader.moveToFirst()) {
-        return result
-      }
-      let keyIndex = reader.getColumnIndex('grouped_key')
-      let countIndex = reader.getColumnIndex('count')
-      do {
-        let item: GroupCountBundle = {
-          key: reader.getRequiredString(keyIndex),
-          count: reader.getRequiredNumber(countIndex)
-        }
-        result.set(item.key, item.count)
-      } while (reader.moveToNext())
-      return result
-    } catch (err) {
-      LogUtils.error(TAG, `groupCountByColumn failed: column=${column}, err=${JSON.stringify(err)}`)
-      return result
-    } finally {
-      reader?.close()
-    }
-  }
-
-  private static async doInit(context: common.UIAbilityContext, contextDir: string): Promise<boolean> {
-    PeripheralTraceEntryRepository.context = context
-    let store = await PeripheralTraceEntryRepository.getStore()
-    if (!store) {
-      PeripheralTraceEntryRepository.initialized = false
-      PeripheralTraceEntryRepository.initializedContextDir = ''
-      return false
-    }
-    try {
-      await store.executeSql(CREATE_TABLE_SQL)
-      await store.executeSql(CREATE_INDEX_OCCUR_AT_SQL)
-      await store.executeSql(CREATE_INDEX_DEVICE_ID_SQL)
-      await store.executeSql(CREATE_INDEX_ACTION_SQL)
-      PeripheralTraceEntryRepository.initialized = true
-      PeripheralTraceEntryRepository.initializedContextDir = contextDir
-      return true
-    } catch (err) {
-      PeripheralTraceEntryRepository.initialized = false
-      PeripheralTraceEntryRepository.initializedContextDir = ''
-      LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
-  private static buildSelectSql(
+  private async groupCountByColumn(
+    column: 'action' | 'decision' | 'source',
     query?: PeripheralTraceQuery
-  ): SqlBundle {
-    let built = PeripheralTraceEntryRepository.buildWhereClause(query)
-    let sql =
-      `SELECT record_id, occur_at, collect_at, device_name, device_type, device_id,
-              action, decision, result, source, summary, detail, process_name, raw_payload, extra_json
-       FROM ${TABLE_NAME}${built.sql}
-       ORDER BY occur_at DESC, id DESC`
-    return { sql, args: built.args.slice() }
+  ): Promise<Map<string, number>> {
+    return this.queryGroupCounts(column, this.buildWhereClause(query), 'groupCountByColumn')
   }
 
-  private static buildCountSql(query?: PeripheralTraceQuery): SqlBundle {
-    let built = PeripheralTraceEntryRepository.buildWhereClause(query)
-    return {
-      sql: `SELECT COUNT(1) AS count FROM ${TABLE_NAME}${built.sql}`,
-      args: built.args
-    }
+  private buildSelectSqlForQuery(query?: PeripheralTraceQuery): SqlBundle {
+    return this.buildSelectSql(
+      `record_id, occur_at, collect_at, device_name, device_type, device_id,
+       action, decision, result, source, summary, detail, process_name, raw_payload, extra_json`,
+      this.buildWhereClause(query),
+      'occur_at DESC, id DESC'
+    )
   }
 
-  private static buildWhereClause(query?: PeripheralTraceQuery): SqlBundle {
+  private buildCountSqlForQuery(query?: PeripheralTraceQuery): SqlBundle {
+    return this.buildCountSql(this.buildWhereClause(query))
+  }
+
+  private buildWhereClause(query?: PeripheralTraceQuery): SqlBundle {
     let clauses: string[] = []
     let args: Array<relationalStore.ValueType> = []
     if (!query) {
@@ -392,7 +191,7 @@ export class PeripheralTraceEntryRepository {
     }
     if (query.deviceId && query.deviceId.trim().length > 0) {
       clauses.push('device_id = ?')
-      args.push(PeripheralTraceEntryRepository.normalizeDeviceId(query.deviceId))
+      args.push(normalizeDeviceId(query.deviceId))
     }
     if (query.deviceTypes && query.deviceTypes.length > 0) {
       let placeholders = query.deviceTypes.map(() => '?').join(', ')
@@ -412,7 +211,7 @@ export class PeripheralTraceEntryRepository {
     if (query.results && query.results.length > 0) {
       let placeholders = query.results.map(() => '?').join(', ')
       clauses.push(`result IN (${placeholders})`)
-      query.results.forEach((result: LogEventResult) => args.push(PeripheralTraceEntryRepository.serializeResult(result)))
+      query.results.forEach((result: LogEventResult) => args.push(this.serializeResult(result)))
     }
     if (query.sources && query.sources.length > 0) {
       let placeholders = query.sources.map(() => '?').join(', ')
@@ -432,11 +231,11 @@ export class PeripheralTraceEntryRepository {
     }
   }
 
-  private static serializeResult(result: LogEventResult): string {
+  private serializeResult(result: LogEventResult): string {
     return result.toString()
   }
 
-  private static buildExtraJson(record: PeripheralTraceRecord): string | null {
+  private buildExtraJson(record: PeripheralTraceRecord): string | null {
     let extra: PeripheralTraceExtraData = {}
     extra.correlationId = record.correlationId
     extra.policyVersion = record.policyVersion
@@ -463,7 +262,7 @@ export class PeripheralTraceEntryRepository {
     return JSON.stringify(extra)
   }
 
-  private static mapResultSet(reader: RdbResultSetReader): PeripheralTraceRecord[] {
+  private mapResultSet(reader: RdbResultSetReader): PeripheralTraceRecord[] {
     let records: PeripheralTraceRecord[] = []
     if (!reader.moveToFirst()) {
       return records
@@ -484,30 +283,18 @@ export class PeripheralTraceEntryRepository {
     let rawPayloadIndex = reader.getColumnIndex('raw_payload')
     let extraJsonIndex = reader.getColumnIndex('extra_json')
     do {
-      let extra = PeripheralTraceEntryRepository.parseExtraJson(
-        reader.getOptionalString(extraJsonIndex)
-      )
+      let extra = this.parseExtraJson(reader.getOptionalString(extraJsonIndex))
       records.push({
         recordId: reader.getRequiredString(recordIdIndex),
         occurAt: reader.getRequiredNumber(occurAtIndex),
         collectAt: reader.getRequiredNumber(collectAtIndex),
         deviceName: reader.getRequiredString(deviceNameIndex),
-        deviceType: PeripheralTraceEntryRepository.parseDeviceType(
-          reader.getRequiredString(deviceTypeIndex)
-        ),
+        deviceType: this.parseDeviceType(reader.getRequiredString(deviceTypeIndex)),
         deviceId: reader.getRequiredString(deviceIdIndex),
-        action: PeripheralTraceEntryRepository.parseAction(
-          reader.getRequiredString(actionIndex)
-        ),
-        decision: PeripheralTraceEntryRepository.parseDecision(
-          reader.getRequiredString(decisionIndex)
-        ),
-        result: PeripheralTraceEntryRepository.parseResult(
-          reader.getRequiredString(resultIndex)
-        ),
-        source: PeripheralTraceEntryRepository.parseSource(
-          reader.getRequiredString(sourceIndex)
-        ),
+        action: this.parseAction(reader.getRequiredString(actionIndex)),
+        decision: this.parseDecision(reader.getRequiredString(decisionIndex)),
+        result: this.parseResult(reader.getRequiredString(resultIndex)),
+        source: this.parseSource(reader.getRequiredString(sourceIndex)),
         summary: reader.getRequiredString(summaryIndex),
         detail: reader.getOptionalString(detailIndex),
         processName: reader.getOptionalString(processNameIndex),
@@ -518,28 +305,19 @@ export class PeripheralTraceEntryRepository {
         rawEventName: extra.rawEventName,
         rawOutcome: extra.rawOutcome,
         rawAction: extra.rawAction,
-        usbPolicy: PeripheralTraceEntryRepository.parseUsbPolicy(extra.usbPolicy),
+        usbPolicy: this.parseUsbPolicy(extra.usbPolicy),
         effectivePolicyLabel: extra.effectivePolicyLabel,
-        matchedPolicyKind: PeripheralTraceEntryRepository.parseMatchedPolicyKind(extra.matchedPolicyKind)
+        matchedPolicyKind: this.parseMatchedPolicyKind(extra.matchedPolicyKind)
       })
     } while (reader.moveToNext())
     return records
   }
 
-  private static parseExtraJson(rawValue: string | undefined): PeripheralTraceExtraData {
-    if (!rawValue || rawValue.length === 0) {
-      return {}
-    }
-    try {
-      let parsed = JSON.parse(rawValue) as Object
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as PeripheralTraceExtraData : {}
-    } catch (err) {
-      LogUtils.warn(TAG, `parseExtraJson failed: ${JSON.stringify(err)}`)
-      return {}
-    }
+  private parseExtraJson(rawValue: string | undefined): PeripheralTraceExtraData {
+    return this.parseJsonObject<PeripheralTraceExtraData>(rawValue, 'parseExtraJson') ?? {}
   }
 
-  private static parseResult(rawValue: string): LogEventResult {
+  private parseResult(rawValue: string): LogEventResult {
     let numeric = Number(rawValue)
     if (numeric === LogEventResult.SUCCESS || numeric === LogEventResult.BLOCKED || numeric === LogEventResult.FAILED) {
       return numeric as LogEventResult
@@ -547,28 +325,28 @@ export class PeripheralTraceEntryRepository {
     return LogEventResult.FAILED
   }
 
-  private static parseAction(rawValue: string): PeripheralRecordAction {
+  private parseAction(rawValue: string): PeripheralRecordAction {
     if (rawValue === 'connect' || rawValue === 'disconnect' || rawValue === 'discover' || rawValue === 'intercept' || rawValue === 'unknown') {
       return rawValue
     }
     return 'unknown'
   }
 
-  private static parseDecision(rawValue: string): PeripheralRecordPolicyHit {
+  private parseDecision(rawValue: string): PeripheralRecordPolicyHit {
     if (rawValue === 'allow' || rawValue === 'deny' || rawValue === 'unknown') {
       return rawValue
     }
     return 'unknown'
   }
 
-  private static parseSource(rawValue: string): PeripheralRecordSource {
+  private parseSource(rawValue: string): PeripheralRecordSource {
     if (rawValue === 'runtime_event' || rawValue === 'audit_event' || rawValue === 'policy_snapshot') {
       return rawValue
     }
     return 'audit_event'
   }
 
-  private static parseDeviceType(rawValue: string): PeripheralType {
+  private parseDeviceType(rawValue: string): PeripheralType {
     switch (rawValue) {
       case PeripheralType.USB_STORAGE:
       case PeripheralType.USB_CAMERA:
@@ -582,14 +360,14 @@ export class PeripheralTraceEntryRepository {
     }
   }
 
-  private static parseUsbPolicy(value?: number): UsbStoragePolicy | undefined {
+  private parseUsbPolicy(value?: number): UsbStoragePolicy | undefined {
     if (value === UsbStoragePolicy.READ_WRITE || value === UsbStoragePolicy.READ_ONLY || value === UsbStoragePolicy.DISABLED) {
       return value as UsbStoragePolicy
     }
     return undefined
   }
 
-  private static parseMatchedPolicyKind(value?: string): PeripheralMatchedPolicyKind | undefined {
+  private parseMatchedPolicyKind(value?: string): PeripheralMatchedPolicyKind | undefined {
     switch (value) {
       case 'usb_disabled':
       case 'usb_storage_disabled':
@@ -605,12 +383,6 @@ export class PeripheralTraceEntryRepository {
         return undefined
     }
   }
-
-  private static normalizeDeviceId(deviceId: string): string {
-    let value = (deviceId || '').trim()
-    if (value.length === 0) {
-      return 'UNKNOWN'
-    }
-    return value.replace(/\s+/g, ' ').toUpperCase()
-  }
 }
+
+export const PeripheralTraceEntryRepository = new PeripheralTraceEntryRdbRepository()

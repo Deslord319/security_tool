@@ -1,11 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { MessageText } from '../../../constants/StringCatalog'
-import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
-import {
-  LogManageClearingStrings,
-  LogManageEmptyStateStrings,
-  LogManageFilterStrings
-} from '../../../constants/modules/LogManageStrings'
+import { LogManageClearingStrings } from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
   LogEntry,
@@ -324,7 +319,6 @@ export class LogManageViewModel {
     this.applySummaryState(snapshot, snapshot.entries.length)
     this.applyListState(snapshot)
     this.applyPaginationState(currentPage, totalPages)
-    this.rebuildFilterHint(snapshot)
     await this.syncDetailState(currentQuery)
   }
 
@@ -365,7 +359,6 @@ export class LogManageViewModel {
   }
 
   private applyListState(snapshot: LogSnapshot): void {
-    this.state.list.allEntries = snapshot.entries.slice()
     this.state.list.pagedEntries = snapshot.entries.slice()
   }
 
@@ -373,26 +366,6 @@ export class LogManageViewModel {
     this.state.pagination.currentPage = currentPage
     this.state.pagination.totalPages = totalPages
     this.state.pagination.pageInputText = `${currentPage}`
-  }
-
-  private rebuildFilterHint(snapshot: LogSnapshot): void {
-    if (snapshot.filteredCount > 0) {
-      this.state.filter.hintMessage = this.state.filter.eventTypeIndex === 1 ? LogManageFilterStrings.FILE_HINT : ''
-      return
-    }
-    if (this.state.filter.eventTypeIndex === 1) {
-      this.state.filter.hintMessage = LogManageFilterStrings.FILE_EMPTY_HINT
-      return
-    }
-    if (this.state.filter.eventTypeIndex > 0 ||
-      this.state.filter.resultIndex > 0 ||
-      this.state.filter.keyword.trim().length > 0) {
-      this.state.filter.hintMessage = LogManageEmptyStateStrings.DESCRIPTION
-      return
-    }
-    this.state.filter.hintMessage = (!this.state.collector.running || this.state.collector.degraded) ?
-      MessageText.CHECK_PERMISSIONS :
-      LogManageEmptyStateStrings.DESCRIPTION
   }
 
   private async syncDetailState(query?: LogQuery): Promise<void> {

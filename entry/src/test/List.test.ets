@@ -37,6 +37,7 @@ import logPathUtilsTest from './log-manage/path-utils.test'
 import logEntryRepositoryTest from './log-manage/entry-repository.test'
 import logSettingsViewModelTest from './log-manage/settings-viewmodel.test'
 import logTimestampResolverTest from './log-manage/timestamp-resolver.test'
+import logValuePickerTest from './log-manage/value-picker.test'
 import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
 import peripheralPipelineTest from './peripheral/connection-record-pipeline.test'
@@ -53,6 +54,7 @@ import systemSettingsServiceTest from './tool-settings/system-settings-service.t
 import toolSettingsViewModelTest from './tool-settings/viewmodel.test'
 import peripheralRecordDisplayUtilsTest from './utils/PeripheralRecordDisplayUtils.test'
 import peripheralRecordViewDataUtilsTest from './utils/PeripheralRecordViewDataUtils.test'
+import ipv4UtilsTest from './utils/Ipv4Utils.test'
 import interfaceControlViewModelTest from './viewmodels/InterfaceControlViewModel.test'
 import peripheralPolicyViewModelTest from './viewmodels/PeripheralPolicyViewModel.test'
 import peripheralRecordViewModelTest from './viewmodels/PeripheralRecordViewModel.test'
@@ -99,6 +101,7 @@ export default function testsuite() {
   logEntryRepositoryTest()
   logSettingsViewModelTest()
   logTimestampResolverTest()
+  logValuePickerTest()
   dataModelsTest()
   peripheralBluetoothAclConsumerTest()
   peripheralPipelineTest()
@@ -115,6 +118,7 @@ export default function testsuite() {
   toolSettingsViewModelTest()
   peripheralRecordDisplayUtilsTest()
   peripheralRecordViewDataUtilsTest()
+  ipv4UtilsTest()
   interfaceControlViewModelTest()
   peripheralPolicyViewModelTest()
   peripheralRecordViewModelTest()

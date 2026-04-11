@@ -393,6 +393,7 @@ export struct LogManagePage {
             LogPaginationBar({
               loading: this.viewModel.state.loading,
               listState: this.viewModel.state.list,
+              summaryState: this.viewModel.state.summary,
               paginationState: this.viewModel.state.pagination,
               currentTheme: this.currentTheme,
               pageSizeOptions: PAGE_SIZE_OPTIONS,

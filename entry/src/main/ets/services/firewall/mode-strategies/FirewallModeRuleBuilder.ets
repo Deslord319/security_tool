@@ -1,6 +1,7 @@
 import { netFirewall } from '@kit.NetworkKit'
 
 import { FirewallManagedRuleMetadata, FirewallPresetConfig, FirewallPresetMode } from '../../../models/DataModels'
+import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
 
 const DEFAULT_USER_ID = 100
@@ -125,7 +126,7 @@ export class FirewallModeRuleBuilder {
     }
     let parts = normalized.split('/')
     let address = parts[0].trim()
-    if (!FirewallModeRuleBuilder.isValidIpv4(address)) {
+    if (!Ipv4Utils.isValidIpv4(address)) {
       return null
     }
     let mask = 32
@@ -142,19 +143,5 @@ export class FirewallModeRuleBuilder {
       address: address,
       mask: mask
     }
-  }
-
-  private static isValidIpv4(address: string): boolean {
-    let segments = address.split('.')
-    if (segments.length !== 4) {
-      return false
-    }
-    return segments.every((segment: string): boolean => {
-      if (!/^\d+$/.test(segment)) {
-        return false
-      }
-      let value = Number(segment)
-      return Number.isInteger(value) && value >= 0 && value <= 255
-    })
   }
 }

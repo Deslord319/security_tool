@@ -250,9 +250,9 @@ export class PeripheralPolicyViewModel {
         record.deviceId,
         record.lastSeenLabel,
         this.getPolicyLabel(record.policyIndex)
-      ].map((value: string) => this.escapeCsvValue(value)).join(',')
+      ].map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')
     })
-    return `\uFEFF${headers.map((value: string) => this.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
+    return `\uFEFF${headers.map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
   }
 
   private getPolicyLabel(policyIndex: number): string {
@@ -262,13 +262,5 @@ export class PeripheralPolicyViewModel {
   private getDeviceTypeLabel(deviceType: PeripheralType): string {
     return deviceType === PeripheralType.USB_OTHER ? DeviceTypeLabels.USB_OTHER :
       (deviceType ? getPeripheralTypeLabel(deviceType) : PeripheralMatchedPolicyStrings.UNKNOWN_DEVICE)
-  }
-
-  private escapeCsvValue(value: string): string {
-    const normalized = value.replace(/"/g, '""')
-    if (/[",\r\n]/.test(normalized)) {
-      return `"${normalized}"`
-    }
-    return normalized
   }
 }

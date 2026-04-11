@@ -4,13 +4,13 @@ import {
   getPeripheralTypeLabel,
   PeripheralConnectionRecord
 } from '../../../models/DataModels'
-import { LabelText, MessageText } from '../../../constants/StringCatalog'
+import { LabelText } from '../../../constants/StringCatalog'
 import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { ThemeMode, getThemeColors } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
-import { getPeripheralConnectionListPolicyLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { getPeripheralConnectionListPolicyLabel, formatPeripheralTimestamp } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 
@@ -43,7 +43,6 @@ export struct DeviceRecordList {
         if (this.deviceRecords.length === 0) {
           EmptyStatePanel({
             title: EmptyStateStrings.NO_RECORDS,
-            description: MessageText.CHECK_PERMISSIONS,
             radius: AppStyles.RADIUS_LG,
             verticalPadding: 24,
             currentTheme: this.currentTheme
@@ -232,8 +231,7 @@ export struct DeviceRecordList {
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {
-    const date = new Date(record.timestamp)
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
+    return formatPeripheralTimestamp(record.timestamp)
   }
 
   private getPolicyText(record: PeripheralConnectionRecord): string {

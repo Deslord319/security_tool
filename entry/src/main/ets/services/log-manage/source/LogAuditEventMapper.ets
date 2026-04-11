@@ -7,6 +7,7 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { pickNumber, pickString } from '../common/LogValuePicker'
 import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
 
 type JsonField = string | number | boolean | Object | undefined
@@ -68,27 +69,27 @@ function parseAuditPayload(content: string, metadata?: string): ParsedAuditPaylo
   const contentJson = safeParseJson(content)
   const metadataJson = safeParseJson(metadata)
   const sources = collectJsonSources(contentJson, metadataJson)
-  const rawOutcome = pickFirstString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result'])
+  const rawOutcome = pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result'])
   const rawFilePath = resolveAuditRawFilePath(content, metadata, sources)
   const normalizedFilePath = LogPathUtils.normalizePathCandidate(rawFilePath)
 
   return {
-    detail: pickFirstString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
+    detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
       content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
     result: mapResult(rawOutcome),
-    processName: pickFirstString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
-    pid: pickFirstNumber(sources, ['pid', 'processId', 'process_id']),
+    processName: pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
+    pid: pickNumber(sources, ['pid', 'processId', 'process_id']),
     rawFilePath: rawFilePath,
     filePath: normalizedFilePath,
-    remoteAddr: pickFirstString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
-    rawEventName: pickFirstString(sources, ['event_name', 'eventName', 'name']),
+    remoteAddr: pickString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
+    rawEventName: pickString(sources, ['event_name', 'eventName', 'name']),
     rawOutcome: rawOutcome,
-    rawAction: pickFirstString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
+    rawAction: pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
   }
 }
 
 function resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: JsonMap[]): string | undefined {
-  const structured = pickFirstString(sources, [
+  const structured = pickString(sources, [
     'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
     'filePath', 'file_path', 'path', 'srcPath', 'src_path'
   ])
@@ -149,36 +150,6 @@ function extractNestedJson(source: JsonMap, key: string): JsonMap | undefined {
   }
   if (candidate && typeof candidate === 'object') {
     return toJsonMap(candidate)
-  }
-  return undefined
-}
-
-function pickFirstString(sources: JsonMap[], keys: string[]): string | undefined {
-  for (const source of sources) {
-    for (const key of keys) {
-      const raw = source[key]
-      if (typeof raw === 'string' && raw.trim().length > 0) {
-        return raw.trim()
-      }
-    }
-  }
-  return undefined
-}
-
-function pickFirstNumber(sources: JsonMap[], keys: string[]): number | undefined {
-  for (const source of sources) {
-    for (const key of keys) {
-      const raw = source[key]
-      if (typeof raw === 'number' && Number.isFinite(raw)) {
-        return raw
-      }
-      if (typeof raw === 'string') {
-        const parsed = Number(raw)
-        if (Number.isFinite(parsed)) {
-          return parsed
-        }
-      }
-    }
   }
   return undefined
 }

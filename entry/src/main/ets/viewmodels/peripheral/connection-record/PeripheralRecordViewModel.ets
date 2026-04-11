@@ -21,12 +21,6 @@ import { CsvFileExportService } from '../../../services/common/export/CsvFileExp
 
 const TAG = 'PeripheralRecordViewModel'
 
-export interface ConnectionDetailDialogState {
-  visible: boolean
-  record: PeripheralConnectionRecord | null
-  historyItems: PeripheralConnectionHistoryItem[]
-}
-
 @ObservedV2
 export class ConnectionDetailDialogStateModel {
   @Trace visible: boolean = false
@@ -103,16 +97,8 @@ export class PeripheralRecordViewModel {
         getPeripheralConnectionPolicyLabel(record),
         getPeripheralConnectionResultLabel(record),
         getPeripheralRecordSourceLabel(record.source)
-      ].map((value: string) => this.escapeCsvValue(value)).join(',')
+      ].map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')
     })
-    return `\uFEFF${headers.map((value: string) => this.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
-  }
-
-  private escapeCsvValue(value: string): string {
-    const normalized = value.replace(/"/g, '""')
-    if (/[",\r\n]/.test(normalized)) {
-      return `"${normalized}"`
-    }
-    return normalized
+    return `\uFEFF${headers.map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
   }
 }

@@ -9,6 +9,11 @@ import {
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
+  collectPayloadSources,
+  pickNumber,
+  pickString
+} from './peripheral_connection_record_payload_utils'
+import {
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent
@@ -76,7 +81,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   private static async resolveBluetoothAclEventInfo(
     data: commonEventManager.CommonEventData
   ): Promise<BluetoothAclEventInfo | null> {
-    const payloads = PeripheralConnectionRecordBluetoothAclConsumer.collectPayloadSources(data)
+    const payloads = collectPayloadSources(data as Object)
     const rawDeviceId = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothDeviceId(payloads)
     if (rawDeviceId.length === 0) {
       LogUtils.warn(
@@ -116,7 +121,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   }
 
   private static resolveBluetoothDeviceId(sources: EventPayloadRecord[]): string {
-    return PeripheralConnectionRecordBluetoothAclConsumer.pickString(
+    return pickString(
       sources,
       ['deviceId', 'deviceid', 'deviceAddr', 'deviceAddress', 'address', 'addr', 'remoteAddr', 'remoteAddress', 'mac', 'macAddress']
     )
@@ -131,7 +136,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       return 'connect'
     }
 
-    const stateValue = PeripheralConnectionRecordBluetoothAclConsumer.pickNumber(
+    const stateValue = pickNumber(
       sources,
       ['connectionstate', 'connectionState', 'aclState', 'aclstate', 'state', 'linkState', 'linkstate', 'status']
     )
@@ -145,7 +150,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   }
 
   private static resolveBluetoothAclStateLabel(sources: EventPayloadRecord[]): string {
-    const rawLabel = PeripheralConnectionRecordBluetoothAclConsumer.pickString(
+    const rawLabel = pickString(
       sources,
       [
         'stateName',
@@ -166,7 +171,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       return rawLabel
     }
 
-    const rawState = PeripheralConnectionRecordBluetoothAclConsumer.pickNumber(
+    const rawState = pickNumber(
       sources,
       ['connectionstate', 'connectionState', 'aclState', 'aclstate', 'state', 'linkState', 'linkstate', 'status']
     )
@@ -187,7 +192,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   }
 
   private static resolveBluetoothAclReasonLabel(sources: EventPayloadRecord[]): string {
-    const rawReason = PeripheralConnectionRecordBluetoothAclConsumer.pickString(
+    const rawReason = pickString(
       sources,
       ['reason', 'reasonCode', 'reasoncode', 'cause', 'disconnectReason', 'disconnectreason']
     )
@@ -195,7 +200,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       return rawReason
     }
 
-    const reasonCode = PeripheralConnectionRecordBluetoothAclConsumer.pickNumber(
+    const reasonCode = pickNumber(
       sources,
       ['reason', 'reasonCode', 'reasoncode', 'cause', 'disconnectReason', 'disconnectreason']
     )
@@ -206,11 +211,11 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   }
 
   private static resolveBluetoothOccurAt(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordBluetoothAclConsumer.pickNumber(sources, ['timestamp', 'time', 'occurAt'])
+    return pickNumber(sources, ['timestamp', 'time', 'occurAt'])
   }
 
   private static resolveBluetoothDeviceName(deviceId: string, sources: EventPayloadRecord[]): string {
-    const payloadName = PeripheralConnectionRecordBluetoothAclConsumer.pickString(
+    const payloadName = pickString(
       sources,
       ['deviceName', 'name', 'remoteName', 'remoteDeviceName', 'alias', 'deviceAlias', 'aliasName']
     )
@@ -242,31 +247,6 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     return `**:**:**:**:${segments[segments.length - 2]}:${segments[segments.length - 1]}`
   }
 
-  private static collectPayloadSources(data: commonEventManager.CommonEventData): EventPayloadRecord[] {
-    const sources: EventPayloadRecord[] = []
-    const root = PeripheralConnectionRecordBluetoothAclConsumer.toRecord(data as Object)
-    const parameters = PeripheralConnectionRecordBluetoothAclConsumer.toRecord(data.parameters as Object)
-    const want = PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(root, 'want')
-    const wantParameters = PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(want, 'parameters')
-    const rootData = PeripheralConnectionRecordBluetoothAclConsumer.parseJsonObjectField(root, 'data')
-    const wantData = PeripheralConnectionRecordBluetoothAclConsumer.parseJsonObjectField(want, 'data')
-
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, root)
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, parameters)
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, want)
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, wantParameters)
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, rootData)
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, wantData)
-
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, PeripheralConnectionRecordBluetoothAclConsumer.readDeviceField(root))
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, PeripheralConnectionRecordBluetoothAclConsumer.readDeviceField(parameters))
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, PeripheralConnectionRecordBluetoothAclConsumer.readDeviceField(want))
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, PeripheralConnectionRecordBluetoothAclConsumer.readDeviceField(wantParameters))
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, PeripheralConnectionRecordBluetoothAclConsumer.readDeviceField(rootData))
-    PeripheralConnectionRecordBluetoothAclConsumer.pushRecord(sources, PeripheralConnectionRecordBluetoothAclConsumer.readDeviceField(wantData))
-    return sources
-  }
-
   private static describePayloadKeys(sources: EventPayloadRecord[]): string {
     const keys = new Set<string>()
     sources.forEach((source: EventPayloadRecord) => {
@@ -277,101 +257,5 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       })
     })
     return Array.from(keys).sort().join('|')
-  }
-
-  private static pickNumber(sources: EventPayloadRecord[], keys: string[]): number {
-    for (const source of sources) {
-      for (const key of keys) {
-        const value = source[key]
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          return value
-        }
-        if (typeof value === 'string') {
-          const normalized = value.trim()
-          if (normalized.length === 0) {
-            continue
-          }
-          const radix = normalized.startsWith('0x') || normalized.startsWith('0X') ? 16 : 10
-          const parsed = parseInt(normalized.replace(/^0x/i, ''), radix)
-          if (Number.isFinite(parsed)) {
-            return parsed
-          }
-        }
-      }
-    }
-    return Number.NaN
-  }
-
-  private static pickString(sources: EventPayloadRecord[], keys: string[]): string {
-    for (const source of sources) {
-      for (const key of keys) {
-        const value = source[key]
-        if (typeof value === 'string' && value.trim().length > 0) {
-          return value.trim()
-        }
-      }
-    }
-    return ''
-  }
-
-  private static pushRecord(target: EventPayloadRecord[], value: EventPayloadRecord | undefined): void {
-    if (value === undefined) {
-      return
-    }
-    if (target.some((item: EventPayloadRecord) => item === value)) {
-      return
-    }
-    target.push(value)
-  }
-
-  private static toRecord(value: Object | undefined | null): EventPayloadRecord | undefined {
-    if (!value || typeof value !== 'object') {
-      return undefined
-    }
-    return value as EventPayloadRecord
-  }
-
-  private static readObjectField(
-    source: EventPayloadRecord | undefined,
-    key: string
-  ): EventPayloadRecord | undefined {
-    if (source === undefined) {
-      return undefined
-    }
-    return PeripheralConnectionRecordBluetoothAclConsumer.toRecord(source[key])
-  }
-
-  private static parseJsonObjectField(
-    source: EventPayloadRecord | undefined,
-    key: string
-  ): EventPayloadRecord | undefined {
-    if (source === undefined) {
-      return undefined
-    }
-    const value = source[key]
-    if (typeof value !== 'string') {
-      return undefined
-    }
-    const normalized = value.trim()
-    if (normalized.length === 0 || !normalized.startsWith('{')) {
-      return undefined
-    }
-    try {
-      return PeripheralConnectionRecordBluetoothAclConsumer.toRecord(JSON.parse(normalized) as Object)
-    } catch (_err) {
-      return undefined
-    }
-  }
-
-  private static readDeviceField(source: EventPayloadRecord | undefined): EventPayloadRecord | undefined {
-    if (source === undefined) {
-      return undefined
-    }
-    return PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(source, 'device') ||
-      PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(source, 'remoteDevice') ||
-      PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(source, 'remote_device') ||
-      PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(source, 'bluetoothDevice') ||
-      PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(source, 'usbDevice') ||
-      PeripheralConnectionRecordBluetoothAclConsumer.readObjectField(source, 'usb_device')
   }
 }

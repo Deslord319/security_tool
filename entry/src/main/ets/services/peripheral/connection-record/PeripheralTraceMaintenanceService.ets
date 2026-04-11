@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import {
   LogEventResult,
+  normalizeDeviceId,
   PeripheralRecordAction,
   PeripheralRecordPolicyHit,
   PeripheralRecordSource,
@@ -15,18 +16,13 @@ const TAG = 'PeripheralTraceMaintenance'
 const RETENTION_DAYS_DEFAULT = 180
 const MAX_TRACE_ENTRIES_DEFAULT = 200000
 
-interface TraceRetentionConfig {
-  retentionDays: number
-  maxEntries: number
+interface PeripheralTraceInitializeResult extends StorageResult<'ok' | 'storage_init_failed'> {
 }
 
-export interface PeripheralTraceInitializeResult extends StorageResult<'ok' | 'storage_init_failed'> {
+interface PeripheralTraceMutationResult extends StorageResult<'ok' | 'not_initialized' | 'save_failed'> {
 }
 
-export interface PeripheralTraceMutationResult extends StorageResult<'ok' | 'not_initialized' | 'save_failed'> {
-}
-
-export interface PeripheralTraceClearResult extends StorageResult<'ok' | 'clear_failed'> {
+interface PeripheralTraceClearResult extends StorageResult<'ok' | 'clear_failed'> {
 }
 
 export class PeripheralTraceMaintenanceService {
@@ -54,13 +50,6 @@ export class PeripheralTraceMaintenanceService {
       PeripheralTraceMaintenanceService.maxEntries = Math.floor(maxEntries)
     }
     return PeripheralTraceMaintenanceService.reconcileStorageConfig()
-  }
-
-  static getRetentionConfig(): TraceRetentionConfig {
-    return {
-      retentionDays: PeripheralTraceMaintenanceService.retentionDays,
-      maxEntries: PeripheralTraceMaintenanceService.maxEntries
-    }
   }
 
   static async appendEntries(records: PeripheralTraceRecord[]): Promise<PeripheralTraceMutationResult> {
@@ -149,7 +138,7 @@ export class PeripheralTraceMaintenanceService {
       collectAt: collectAt,
       deviceName: record.deviceName || 'Unknown Device',
       deviceType: record.deviceType || PeripheralType.USB_OTHER,
-      deviceId: PeripheralTraceMaintenanceService.normalizeDeviceId(record.deviceId),
+      deviceId: normalizeDeviceId(record.deviceId),
       action: action,
       decision: decision,
       result: result,
@@ -196,13 +185,5 @@ export class PeripheralTraceMaintenanceService {
       return source
     }
     return 'audit_event'
-  }
-
-  private static normalizeDeviceId(deviceId: string): string {
-    let value = (deviceId || '').trim()
-    if (value.length === 0) {
-      return 'UNKNOWN'
-    }
-    return value.replace(/\s+/g, ' ').toUpperCase()
   }
 }

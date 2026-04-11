@@ -325,6 +325,14 @@ export function formatUsbDeviceId(vendorId: number, productId: number): string {
   return `VID:${vendorId.toString(16).toUpperCase().padStart(4, '0')} PID:${productId.toString(16).toUpperCase().padStart(4, '0')}`
 }
 
+export function normalizeDeviceId(deviceId: string): string {
+  let value = (deviceId || '').trim()
+  if (value.length === 0) {
+    return 'UNKNOWN'
+  }
+  return value.replace(/\s+/g, ' ').toUpperCase()
+}
+
 export function formatBluetoothDeviceId(deviceId: string): string {
   const normalized = deviceId.trim().replace(/-/g, ':').toUpperCase()
   return `MAC: ${normalized}`

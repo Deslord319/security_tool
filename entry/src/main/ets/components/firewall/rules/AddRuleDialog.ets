@@ -7,6 +7,7 @@ import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { ActionText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../../../constants/modules/DialogStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
+import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
@@ -85,36 +86,6 @@ export struct AddRuleDialog {
     return `${port.startPort}`
   }
 
-  private isValidIpv4Address(value: string): boolean {
-    let parts = value.split('.')
-    if (parts.length !== 4) {
-      return false
-    }
-    return parts.every((segment: string): boolean => {
-      if (!/^\d+$/.test(segment)) {
-        return false
-      }
-      let num = parseInt(segment, 10)
-      return num >= 0 && num <= 255 && `${num}` === segment
-    })
-  }
-
-  private isValidIpv4OrCidr(value: string): boolean {
-    let parts = value.split('/')
-    if (parts.length > 2 || !this.isValidIpv4Address(parts[0].trim())) {
-      return false
-    }
-    if (parts.length === 1) {
-      return true
-    }
-    let mask = parts[1].trim()
-    if (!/^\d+$/.test(mask)) {
-      return false
-    }
-    let maskValue = parseInt(mask, 10)
-    return maskValue >= 0 && maskValue <= 32
-  }
-
   private isValidPort(value: string): boolean {
     if (!/^\d+$/.test(value)) {
       return false
@@ -147,7 +118,7 @@ export struct AddRuleDialog {
       return FirewallDialogStrings.ERROR_IP_REQUIRED
     }
 
-    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && !this.isValidIpv4OrCidr(remoteAddress)) {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP && !Ipv4Utils.isValidIpv4OrCidr(remoteAddress)) {
       return FirewallDialogStrings.ERROR_INVALID_IP
     }
 
@@ -163,7 +134,7 @@ export struct AddRuleDialog {
       return FirewallDialogStrings.ERROR_INVALID_DOMAIN
     }
 
-    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS && !this.isValidIpv4Address(remoteAddress)) {
+    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS && !Ipv4Utils.isValidIpv4(remoteAddress)) {
       return FirewallDialogStrings.ERROR_INVALID_DNS
     }
 

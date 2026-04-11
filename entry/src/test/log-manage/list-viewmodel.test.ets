@@ -228,7 +228,7 @@ export default function logManageViewModelTest() {
 
       expect(viewModel.state.pagination.currentPage).assertEqual(1)
       expect(viewModel.state.pagination.pageInputText).assertEqual('1')
-      expect(viewModel.state.list.allEntries.length).assertEqual(1)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(1)
     })
 
     it('should refresh from listener only when active and auto refresh enabled', 0, async () => {
@@ -239,14 +239,14 @@ export default function logManageViewModelTest() {
         storage.listener()
       }
       await flushAsyncWork()
-      expect(viewModel.state.list.allEntries.length).assertEqual(3)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(3)
 
       viewModel.activate()
       if (storage.listener) {
         storage.listener()
       }
       await flushAsyncWork()
-      expect(viewModel.state.list.allEntries.length).assertEqual(1)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(1)
 
       storage.entries = [createEntry('5', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry 2')]
       await viewModel.setMode('settings')
@@ -254,7 +254,7 @@ export default function logManageViewModelTest() {
         storage.listener()
       }
       await flushAsyncWork()
-      expect(viewModel.state.list.allEntries[0].id).assertEqual('4')
+      expect(viewModel.state.list.pagedEntries[0].id).assertEqual('4')
     })
 
     it('should map export result into presentation result', 0, async () => {
@@ -281,7 +281,7 @@ export default function logManageViewModelTest() {
 
       expect(result.success).assertTrue()
       expect(viewModel.state.summary.totalCount).assertEqual(0)
-      expect(viewModel.state.list.allEntries.length).assertEqual(0)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(0)
     })
 
     it('should clear detail state when repository no longer contains it', 0, async () => {
@@ -315,7 +315,7 @@ export default function logManageViewModelTest() {
 
       expect(viewModel.state.detail.visible).assertTrue()
       expect(viewModel.state.detail.entryId).assertEqual('2')
-      expect(viewModel.state.list.allEntries.length).assertEqual(2)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(2)
     })
 
     it('should keep detail open when entry is off current page but still exists in filtered result', 0, async () => {
@@ -344,13 +344,12 @@ export default function logManageViewModelTest() {
       expect(storage.hasEntryCallCount > 0).assertTrue()
     })
 
-    it('should expose empty filter hint instead of permission hint when query has no matches', 0, async () => {
+    it('should keep empty paged result when query has no matches', 0, async () => {
       await viewModel.initialize(context)
 
       await viewModel.setKeyword('missing-keyword')
 
-      expect(viewModel.state.list.allEntries.length).assertEqual(0)
-      expect((viewModel.state.filter.hintMessage ?? '').length > 0).assertTrue()
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(0)
     })
 
     it('should keep pagination state in sync after moving to next page', 0, async () => {

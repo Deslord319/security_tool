@@ -1,7 +1,6 @@
 import { LogUtils } from '../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-
 import {
   FirewallOperationResult,
   FirewallOverviewState,

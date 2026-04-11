@@ -91,17 +91,6 @@ export default function logExportServiceTest() {
       expect(normalized[1].id).assertEqual('new')
     })
 
-    it('should build csv with expected header and lines', 0, () => {
-      let csv = LogExportService.buildCsvContent([
-        createLogEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'alpha'),
-        createLogEntry('2', LogEventType.CRASH, LogEventResult.FAILED, 'beta')
-      ])
-
-      expect(csv.indexOf('时间,事件类型,详情,进程名,PID,结果')).assertEqual(0)
-      expect(csv.indexOf('alpha') > 0).assertTrue()
-      expect(csv.indexOf('beta') > 0).assertTrue()
-    })
-
     it('should return context_missing when export context is missing', 0, async (done: Function) => {
       let result = await LogExportService.export(null)
 

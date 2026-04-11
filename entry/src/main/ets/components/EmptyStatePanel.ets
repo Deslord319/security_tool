@@ -5,7 +5,6 @@ import { HoverUtils } from '../utils/HoverUtils'
 @ComponentV2
 export struct EmptyStatePanel {
   @Param title: string = ''
-  @Param description: string = ''
   @Param radius: number = AppStyles.RADIUS_LG
   @Param horizontalPadding: number = AppStyles.PADDING_LG
   @Param verticalPadding: number = 32
@@ -13,20 +12,12 @@ export struct EmptyStatePanel {
   @Local isHovered: boolean = false
 
   build() {
-    Column({ space: 10 }) {
+    Column() {
       Text(this.title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         .textAlign(TextAlign.Center)
-
-      if (this.description.length > 0) {
-        Text(this.description)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .textAlign(TextAlign.Center)
-      }
     }
     .width('100%')
     .padding({

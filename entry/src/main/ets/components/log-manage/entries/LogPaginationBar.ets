@@ -2,7 +2,7 @@ import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText } from '../../../constants/StringCatalog'
 import { LogManagePaginationStrings } from '../../../constants/modules/LogManageStrings'
-import { LogListState, LogPaginationState } from '../../../models/LogManageModels'
+import { LogListState, LogPaginationState, LogSummaryState } from '../../../models/LogManageModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { IconTextActionButton } from '../../IconTextActionButton'
@@ -11,6 +11,7 @@ import { IconTextActionButton } from '../../IconTextActionButton'
 export struct LogPaginationBar {
   @Param loading: boolean = false
   @Param listState: LogListState = new LogListState()
+  @Param summaryState: LogSummaryState = new LogSummaryState()
   @Param paginationState: LogPaginationState = new LogPaginationState()
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param pageSizeOptions: number[] = []
@@ -25,7 +26,7 @@ export struct LogPaginationBar {
   }
 
   private getCurrentRangeText(): string {
-    if (this.listState.allEntries.length === 0 || this.listState.pagedEntries.length === 0) {
+    if (this.summaryState.totalCount === 0 || this.listState.pagedEntries.length === 0) {
       return '0-0'
     }
     let pageSize = this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20
@@ -35,10 +36,10 @@ export struct LogPaginationBar {
   }
 
   build() {
-    if (!this.loading && this.listState.allEntries.length > 0) {
+    if (!this.loading && this.summaryState.totalCount > 0) {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       Row({ space: 12 }) {
-        Text(LogManagePaginationStrings.buildPageRangeText(this.getCurrentRangeText(), this.listState.allEntries.length))
+        Text(LogManagePaginationStrings.buildPageRangeText(this.getCurrentRangeText(), this.summaryState.totalCount))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)

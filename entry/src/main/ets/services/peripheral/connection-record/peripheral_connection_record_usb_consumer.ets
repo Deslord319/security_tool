@@ -17,6 +17,14 @@ import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent
 } from './peripheral_connection_record_producer_contract'
+import {
+  collectPayloadSources,
+  pickNumber,
+  pickString,
+  readDeviceField,
+  toRecord,
+  toRecordArray
+} from './peripheral_connection_record_payload_utils'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'ConnectionRecordUsbConsumer'
@@ -287,116 +295,60 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
   }
 
   private static collectPayloadSources(data: commonEventManager.CommonEventData): EventPayloadRecord[] {
-    const sources: EventPayloadRecord[] = []
-    const root = PeripheralConnectionRecordUsbConsumer.toRecord(data as Object)
-    const parameters = PeripheralConnectionRecordUsbConsumer.toRecord(data.parameters as Object)
-    const want = PeripheralConnectionRecordUsbConsumer.readObjectField(root, 'want')
-    const wantParameters = PeripheralConnectionRecordUsbConsumer.readObjectField(want, 'parameters')
-    const rootData = PeripheralConnectionRecordUsbConsumer.parseJsonObjectField(root, 'data')
-    const wantData = PeripheralConnectionRecordUsbConsumer.parseJsonObjectField(want, 'data')
-
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, root)
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, parameters)
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, want)
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, wantParameters)
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, rootData)
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, wantData)
-
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, PeripheralConnectionRecordUsbConsumer.readDeviceField(root))
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, PeripheralConnectionRecordUsbConsumer.readDeviceField(parameters))
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, PeripheralConnectionRecordUsbConsumer.readDeviceField(want))
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, PeripheralConnectionRecordUsbConsumer.readDeviceField(wantParameters))
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, PeripheralConnectionRecordUsbConsumer.readDeviceField(rootData))
-    PeripheralConnectionRecordUsbConsumer.pushRecord(sources, PeripheralConnectionRecordUsbConsumer.readDeviceField(wantData))
-    return sources
+    return collectPayloadSources(data as Object)
   }
 
   private static resolveVendorId(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordUsbConsumer.pickNumber(sources, ['vendorId', 'vid', 'vendor_id'])
+    return pickNumber(sources, ['vendorId', 'vid', 'vendor_id'])
   }
 
   private static resolveProductId(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordUsbConsumer.pickNumber(sources, ['productId', 'pid', 'product_id'])
+    return pickNumber(sources, ['productId', 'pid', 'product_id'])
   }
 
   private static resolveOccurAt(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordUsbConsumer.pickNumber(sources, ['timestamp', 'time', 'occurAt'])
+    return pickNumber(sources, ['timestamp', 'time', 'occurAt'])
   }
 
   private static resolveRawDeviceName(sources: EventPayloadRecord[]): string {
-    return PeripheralConnectionRecordUsbConsumer.pickString(
+    return pickString(
       sources,
       ['deviceName', 'name', 'productName', 'product', 'manufacturerName']
     )
   }
 
   private static resolveProductName(sources: EventPayloadRecord[]): string {
-    return PeripheralConnectionRecordUsbConsumer.pickString(sources, ['productName', 'product', 'deviceName', 'name'])
+    return pickString(sources, ['productName', 'product', 'deviceName', 'name'])
   }
 
   private static resolveManufacturerName(sources: EventPayloadRecord[]): string {
-    return PeripheralConnectionRecordUsbConsumer.pickString(sources, ['manufacturerName', 'manufacturer', 'vendorName'])
+    return pickString(sources, ['manufacturerName', 'manufacturer', 'vendorName'])
   }
 
   private static resolveBaseClass(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordUsbConsumer.pickNumber(sources, ['baseClass', 'classCode', 'deviceClass', 'clazz'])
+    return pickNumber(sources, ['baseClass', 'classCode', 'deviceClass', 'clazz'])
   }
 
   private static resolveSubClass(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordUsbConsumer.pickNumber(sources, ['subClass', 'subclass', 'usbSubClass'])
+    return pickNumber(sources, ['subClass', 'subclass', 'usbSubClass'])
   }
 
   private static resolveProtocol(sources: EventPayloadRecord[]): number {
-    return PeripheralConnectionRecordUsbConsumer.pickNumber(sources, ['protocol', 'usbProtocol'])
+    return pickNumber(sources, ['protocol', 'usbProtocol'])
   }
 
   private static resolveDetail(sources: EventPayloadRecord[], manufacturerName: string): string {
-    return PeripheralConnectionRecordUsbConsumer.pickString(sources, ['detail', 'message', 'description']) ||
+    return pickString(sources, ['detail', 'message', 'description']) ||
       (manufacturerName.length > 0 ? `manufacturer=${manufacturerName}` : '')
-  }
-
-  private static pickNumber(sources: EventPayloadRecord[], keys: string[]): number {
-    for (const source of sources) {
-      for (const key of keys) {
-        const value = source[key]
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          return value
-        }
-        if (typeof value === 'string') {
-          const normalized = value.trim()
-          if (normalized.length === 0) {
-            continue
-          }
-          const radix = normalized.startsWith('0x') || normalized.startsWith('0X') ? 16 : 10
-          const parsed = parseInt(normalized.replace(/^0x/i, ''), radix)
-          if (Number.isFinite(parsed)) {
-            return parsed
-          }
-        }
-      }
-    }
-    return Number.NaN
-  }
-
-  private static pickString(sources: EventPayloadRecord[], keys: string[]): string {
-    for (const source of sources) {
-      for (const key of keys) {
-        const value = source[key]
-        if (typeof value === 'string' && value.trim().length > 0) {
-          return value.trim()
-        }
-      }
-    }
-    return ''
   }
 
   private static pickInterfaceClass(sources: EventPayloadRecord[]): number {
     for (const source of sources) {
-      const configs = PeripheralConnectionRecordUsbConsumer.toRecordArray(source['configs'])
+      const configs = toRecordArray(source['configs'])
       for (const config of configs) {
-        const interfaces = PeripheralConnectionRecordUsbConsumer.toRecordArray(config['interfaces'])
+        const interfaces = toRecordArray(config['interfaces'])
         for (const item of interfaces) {
-          const clazz = PeripheralConnectionRecordUsbConsumer.pickNumber(
+          const clazz = pickNumber(
             [item],
             ['clazz', 'baseClass', 'classCode', 'deviceClass']
           )
@@ -422,80 +374,5 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       return product
     }
     return ''
-  }
-
-  private static pushRecord(target: EventPayloadRecord[], value: EventPayloadRecord | undefined): void {
-    if (value === undefined) {
-      return
-    }
-    if (target.some((item: EventPayloadRecord) => item === value)) {
-      return
-    }
-    target.push(value)
-  }
-
-  private static toRecord(value: Object | undefined | null): EventPayloadRecord | undefined {
-    if (!value || typeof value !== 'object') {
-      return undefined
-    }
-    return value as EventPayloadRecord
-  }
-
-  private static readObjectField(
-    source: EventPayloadRecord | undefined,
-    key: string
-  ): EventPayloadRecord | undefined {
-    if (source === undefined) {
-      return undefined
-    }
-    return PeripheralConnectionRecordUsbConsumer.toRecord(source[key])
-  }
-
-  private static parseJsonObjectField(
-    source: EventPayloadRecord | undefined,
-    key: string
-  ): EventPayloadRecord | undefined {
-    if (source === undefined) {
-      return undefined
-    }
-    const value = source[key]
-    if (typeof value !== 'string') {
-      return undefined
-    }
-    const normalized = value.trim()
-    if (normalized.length === 0 || !normalized.startsWith('{')) {
-      return undefined
-    }
-    try {
-      return PeripheralConnectionRecordUsbConsumer.toRecord(JSON.parse(normalized) as Object)
-    } catch (_err) {
-      return undefined
-    }
-  }
-
-  private static readDeviceField(source: EventPayloadRecord | undefined): EventPayloadRecord | undefined {
-    if (source === undefined) {
-      return undefined
-    }
-    return PeripheralConnectionRecordUsbConsumer.readObjectField(source, 'device') ||
-      PeripheralConnectionRecordUsbConsumer.readObjectField(source, 'remoteDevice') ||
-      PeripheralConnectionRecordUsbConsumer.readObjectField(source, 'remote_device') ||
-      PeripheralConnectionRecordUsbConsumer.readObjectField(source, 'bluetoothDevice') ||
-      PeripheralConnectionRecordUsbConsumer.readObjectField(source, 'usbDevice') ||
-      PeripheralConnectionRecordUsbConsumer.readObjectField(source, 'usb_device')
-  }
-
-  private static toRecordArray(value: Object | undefined | null): EventPayloadRecord[] {
-    if (!Array.isArray(value)) {
-      return []
-    }
-    const result: EventPayloadRecord[] = []
-    for (const item of value as Object[]) {
-      const record = PeripheralConnectionRecordUsbConsumer.toRecord(item)
-      if (record) {
-        result.push(record)
-      }
-    }
-    return result
   }
 }

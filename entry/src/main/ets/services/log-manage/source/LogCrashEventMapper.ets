@@ -5,6 +5,7 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { pickNumber, pickString } from '../common/LogValuePicker'
 import { resolveCrashSourceTimestamp } from './LogTimestampResolver'
 
 type CrashParamValue = string | number | boolean | Object | undefined
@@ -63,28 +64,3 @@ function resolveCrashTimestamp(params: CrashParamMap, nowProvider: () => number)
   ], nowProvider)
 }
 
-function pickString(params: CrashParamMap, keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = params[key]
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim()
-    }
-  }
-  return undefined
-}
-
-function pickNumber(params: CrashParamMap, keys: string[]): number | undefined {
-  for (const key of keys) {
-    const value = params[key]
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value
-    }
-    if (typeof value === 'string') {
-      const parsed = Number(value)
-      if (Number.isFinite(parsed)) {
-        return parsed
-      }
-    }
-  }
-  return undefined
-}

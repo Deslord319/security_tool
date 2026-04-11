@@ -7,23 +7,19 @@ import {
 } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import {
+  formatPeripheralTimestamp,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
-  getPeripheralMatchedPolicyKindLabel
+  getPeripheralMatchedPolicyKindLabel,
+  PeripheralConnectionHistoryItem
 } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
-
-export interface ConnectionHistoryItem {
-  time: string
-  policy: string
-  result: string
-}
 
 @CustomDialog
 export struct ConnectionDetailDialog {
   controller: CustomDialogController
   selectedRecord: PeripheralConnectionRecord | null = null
-  historyItems: ConnectionHistoryItem[] = []
+  historyItems: PeripheralConnectionHistoryItem[] = []
   currentTheme: ThemeMode = ThemeMode.LIGHT
   onClose: () => void = () => {}
 
@@ -123,7 +119,7 @@ export struct ConnectionDetailDialog {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
       } else {
         Column({ space: AppStyles.PADDING_SM }) {
-          ForEach(this.historyItems, (item: ConnectionHistoryItem, index: number) => {
+          ForEach(this.historyItems, (item: PeripheralConnectionHistoryItem, index: number) => {
             Row({ space: AppStyles.PADDING_SM }) {
               Text(`${index + 1}`)
                 .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -159,8 +155,7 @@ export struct ConnectionDetailDialog {
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {
-    const date = new Date(record.timestamp)
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    return formatPeripheralTimestamp(record.timestamp)
   }
 
   build() {

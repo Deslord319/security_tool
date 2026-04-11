@@ -40,7 +40,6 @@ export class PeripheralOptionStrings {
 }
 
 export class PeripheralLoadingStrings {
-  static readonly USB: string = '正在更新 USB 策略，请稍候...'
   static readonly USB_INTERFACE: string = '正在设置 USB 接口策略，请稍候...'
   static readonly USB_STORAGE: string = '正在设置 USB 存储策略，请稍候...'
 }
@@ -135,8 +134,6 @@ export class PeripheralEmptyStateStrings {
   static readonly CLEAR_FAILED: string = '清理未完成，请稍后重试'
   static readonly CLEAR_HISTORY_SUCCESS: string = '记录已清理'
   static readonly CLEAR_POLICY_SUCCESS: string = '黑白名单已还原，设备已恢复默认允许接入'
-  static readonly EMPTY_POLICY_TITLE: string = '暂无黑白名单设备'
-  static readonly EMPTY_POLICY_DESCRIPTION: string = '设备连接后会出现在这里，可按需设置允许或禁止接入。'
 }
 
 export const PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX: string = '未完成，请先激活企业管理员权限'

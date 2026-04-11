@@ -1,7 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-
-import { PeripheralDevicePolicyRecord } from '../../../models/DataModels'
+import { normalizeDeviceId, PeripheralDevicePolicyRecord } from '../../../models/DataModels'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 const TAG = 'PeripheralDevicePolicyRepo'
@@ -55,7 +54,7 @@ export class PeripheralDevicePolicyRepository {
   }
 
   static get(deviceId: string): PeripheralDevicePolicyRecord | null {
-    const normalized = PeripheralDevicePolicyRepository.normalizeDeviceId(deviceId)
+    const normalized = normalizeDeviceId(deviceId)
     const found = PeripheralDevicePolicyRepository.records.find((item: PeripheralDevicePolicyRecord) => {
       return item.deviceId === normalized
     })
@@ -84,7 +83,7 @@ export class PeripheralDevicePolicyRepository {
 
   static async remove(deviceId: string): Promise<boolean> {
     try {
-      const normalized = PeripheralDevicePolicyRepository.normalizeDeviceId(deviceId)
+      const normalized = normalizeDeviceId(deviceId)
       PeripheralDevicePolicyRepository.records = PeripheralDevicePolicyRepository.records.filter(
         (item: PeripheralDevicePolicyRecord) => item.deviceId !== normalized
       )
@@ -142,7 +141,7 @@ export class PeripheralDevicePolicyRepository {
 
   private static normalizeRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
     return {
-      deviceId: PeripheralDevicePolicyRepository.normalizeDeviceId(record.deviceId),
+      deviceId: normalizeDeviceId(record.deviceId),
       policy: record.policy === 'deny' ? 'deny' : 'allow',
       updatedAt: Number.isFinite(record.updatedAt) && record.updatedAt > 0
         ? Math.floor(record.updatedAt)
@@ -150,11 +149,6 @@ export class PeripheralDevicePolicyRepository {
       deviceName: record.deviceName,
       deviceType: record.deviceType
     }
-  }
-
-  private static normalizeDeviceId(deviceId: string): string {
-    const value = (deviceId || '').trim().toUpperCase()
-    return value.replace(/\s+/g, ' ')
   }
 
   private static cloneRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {

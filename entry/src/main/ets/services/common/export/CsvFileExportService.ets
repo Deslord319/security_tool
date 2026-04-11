@@ -110,6 +110,14 @@ export class CsvFileExportService {
     }
   }
 
+  static escapeCsvValue(value: string): string {
+    const normalized = value.replace(/"/g, '""')
+    if (/[",\r\n]/.test(normalized)) {
+      return `"${normalized}"`
+    }
+    return normalized
+  }
+
   private static buildExportFileName(timestamp: number, prefix: string, extension: string): string {
     let date = new Date(timestamp)
     let pad = (n: number): string => n.toString().padStart(2, '0')

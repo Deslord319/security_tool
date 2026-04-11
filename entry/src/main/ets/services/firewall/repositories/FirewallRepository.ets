@@ -14,8 +14,9 @@ export class FirewallRepository {
     }
   }
 
-  static async getAllRules(): Promise<netFirewall.NetFirewallRule[]> {
+  static async getAllRules(userId?: number): Promise<netFirewall.NetFirewallRule[]> {
     try {
+      let effectiveUserId = userId ?? FirewallRepository.DEFAULT_USER_ID
       let allRules: netFirewall.NetFirewallRule[] = []
       let page = 1
       while (true) {
@@ -25,7 +26,7 @@ export class FirewallRepository {
           orderField: netFirewall.NetFirewallOrderField.ORDER_BY_RULE_NAME,
           orderType: netFirewall.NetFirewallOrderType.ORDER_ASC
         }
-        let result = await netFirewall.getNetFirewallRules(FirewallRepository.DEFAULT_USER_ID, requestParam)
+        let result = await netFirewall.getNetFirewallRules(effectiveUserId, requestParam)
         let pageRules = result.data ?? []
         allRules.push(...pageRules)
         if (pageRules.length < requestParam.pageSize) {

@@ -6,18 +6,6 @@ import { PeripheralService } from '../../../services/peripheral/interface-contro
 
 const TAG = 'InterfaceControlViewModel'
 
-export interface InterfaceControlState {
-  usbDisabled: boolean
-  btDisabled: boolean
-  wifiDisabled: boolean
-  hdcDisabled: boolean
-  networkDisabled: boolean
-  printerDisabled: boolean
-  microphoneDisabled: boolean
-  cameraDisabled: boolean
-  usbStoragePolicyIndex: number
-}
-
 @ObservedV2
 export class InterfaceControlStateModel {
   @Trace usbDisabled: boolean = false
@@ -130,7 +118,7 @@ export class InterfaceControlViewModel {
     })
   }
 
-  private commitState(nextState: InterfaceControlState): void {
+  private commitState(nextState: InterfaceControlStateModel): void {
     this.state.usbDisabled = nextState.usbDisabled
     this.state.btDisabled = nextState.btDisabled
     this.state.wifiDisabled = nextState.wifiDisabled

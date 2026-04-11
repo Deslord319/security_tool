@@ -379,24 +379,7 @@ export class FirewallStore {
 
   private static async getRules(userId: number): Promise<netFirewall.NetFirewallRule[]> {
     try {
-      let allRules: netFirewall.NetFirewallRule[] = []
-      let page = 1
-      while (true) {
-        let requestParam: netFirewall.RequestParam = {
-          page: page,
-          pageSize: 50,
-          orderField: netFirewall.NetFirewallOrderField.ORDER_BY_RULE_NAME,
-          orderType: netFirewall.NetFirewallOrderType.ORDER_ASC
-        }
-        let result = await netFirewall.getNetFirewallRules(userId, requestParam)
-        let pageRules = result.data ?? []
-        allRules.push(...pageRules)
-        if (pageRules.length < requestParam.pageSize) {
-          break
-        }
-        page++
-      }
-      return allRules
+      return await FirewallRepository.getAllRules(userId)
     } catch (err) {
       FirewallStore.recordStoreError(FirewallOperationStrings.READ_USER_RULES, err as Object)
       LogUtils.error(TAG, 'getRules failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))

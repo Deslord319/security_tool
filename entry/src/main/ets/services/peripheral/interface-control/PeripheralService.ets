@@ -63,16 +63,6 @@ export class PeripheralService {
     }
   }
 
-  static setUsbStoragePolicyWithResult(policy: usbManager.UsbPolicy): OperationResult<void> {
-    try {
-      usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
-      return { success: true } as OperationResult<void>
-    } catch (err) {
-      LogUtils.error(TAG, `setUsbStoragePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('set usb storage policy', err as Object)
-    }
-  }
-
   static getUsbStoragePolicyWithResult(): OperationResult<usbManager.UsbPolicy> {
     try {
       const policy: usbManager.UsbPolicy = usbManager.getUsbStorageDeviceAccessPolicy(ADMIN_WANT)

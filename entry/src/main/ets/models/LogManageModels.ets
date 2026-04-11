@@ -14,7 +14,7 @@ class LogCollectorState implements CollectorStatus {
 }
 
 @ObservedV2
-class LogSummaryState {
+export class LogSummaryState {
   @Trace totalCount: number = 0
   @Trace todayCount: number = 0
   @Trace blockedCount: number = 0
@@ -26,7 +26,6 @@ export class LogFilterState {
   @Trace eventTypeIndex: number = 0
   @Trace resultIndex: number = 0
   @Trace keyword: string = ''
-  @Trace hintMessage: string = ''
 }
 
 @ObservedV2
@@ -39,7 +38,6 @@ export class LogPaginationState {
 
 @ObservedV2
 export class LogListState {
-  @Trace allEntries: LogEntry[] = []
   @Trace pagedEntries: LogEntry[] = []
 }
 

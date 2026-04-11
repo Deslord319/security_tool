@@ -54,7 +54,7 @@ export class MessageText {
   static readonly SUCCESS_TITLE: string = '操作成功'
   static readonly FAILURE_TITLE: string = '操作失败'
   static readonly NO_DATA: string = '暂无数据'
-  static readonly CHECK_PERMISSIONS: string = '请检查账户权限或系统账户状态'
+  static readonly CHECK_PERMISSIONS: string = '请重新插拔连接设备或检查账号权限'
 }
 
 export class LabelText {

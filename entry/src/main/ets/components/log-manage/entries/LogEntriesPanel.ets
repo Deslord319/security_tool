@@ -1,5 +1,4 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
-import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { LogManageDetailStrings, LogManageEmptyStateStrings } from '../../../constants/modules/LogManageStrings'
 import {
@@ -29,17 +28,6 @@ export struct LogEntriesPanel {
       this.filterState.keyword.trim().length > 0) ?
       EmptyStateStrings.NO_RESULTS :
       LogManageEmptyStateStrings.TITLE
-  }
-
-  private getEmptyStateDescription(): string {
-    if (this.filterState.hintMessage.length > 0) {
-      return this.filterState.hintMessage
-    }
-    return (this.filterState.eventTypeIndex > 0 ||
-      this.filterState.resultIndex > 0 ||
-      this.filterState.keyword.trim().length > 0) ?
-      LogManageEmptyStateStrings.DESCRIPTION :
-      MessageText.CHECK_PERMISSIONS
   }
 
   @Builder
@@ -99,7 +87,6 @@ export struct LogEntriesPanel {
   private emptyState() {
     EmptyStatePanel({
       title: this.getEmptyStateTitle(),
-      description: this.getEmptyStateDescription(),
       currentTheme: this.currentTheme
     })
   }
@@ -113,7 +100,7 @@ export struct LogEntriesPanel {
       .width('100%')
       .layoutWeight(1)
       .justifyContent(FlexAlign.Center)
-    } else if (this.listState.allEntries.length === 0) {
+    } else if (this.listState.pagedEntries.length === 0) {
       Scroll() {
         Column() {
           this.emptyState()

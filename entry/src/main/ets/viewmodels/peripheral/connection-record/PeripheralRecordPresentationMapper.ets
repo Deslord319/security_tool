@@ -74,11 +74,6 @@ export function getPeripheralConnectionListPolicyLabel(record: PeripheralConnect
   if (record.matchedPolicyKind === 'device_deny' || record.policyHit === 'deny') {
     return StatusText.DISABLED
   }
-
-  if (record.deviceType === PeripheralType.BLUETOOTH) {
-    return StatusText.ENABLED
-  }
-
   return StatusText.ENABLED
 }
 

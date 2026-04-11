@@ -52,11 +52,6 @@ export class LogExportService {
     }
   }
 
-  static buildCsvContent(entries: LogEntry[]): string {
-    let header = LogManageCsvStrings.buildHeader()
-    return `${header}\r\n${LogExportService.buildCsvBody(entries)}`.trim()
-  }
-
   private static buildCsvBody(entries: LogEntry[]): string {
     let lines: string[] = []
     for (let entry of entries) {

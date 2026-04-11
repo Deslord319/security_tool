@@ -1,6 +1,7 @@
 import { netFirewall } from '@kit.NetworkKit'
 
 import { FirewallManagedRuleMetadata } from '../../../models/DataModels'
+import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { FirewallRepository } from '../repositories'
 
 const RULE_METADATA_PREFIX = 'SECURITY_TOOL_META:'
@@ -242,8 +243,8 @@ export class FirewallRulesService {
 
   private static normalizeIpParamRange(ipParam: netFirewall.NetFirewallIpParams): NormalizedIpRange | null {
     if (ipParam.startIp && ipParam.endIp) {
-      let startIp = FirewallRulesService.parseIpv4(ipParam.startIp.trim())
-      let endIp = FirewallRulesService.parseIpv4(ipParam.endIp.trim())
+      let startIp = Ipv4Utils.parseIpv4(ipParam.startIp.trim())
+      let endIp = Ipv4Utils.parseIpv4(ipParam.endIp.trim())
       if (startIp === null || endIp === null || startIp > endIp) {
         return null
       }
@@ -259,7 +260,7 @@ export class FirewallRulesService {
   }
 
   private static normalizeIpv4Range(address: string, maskValue?: number): NormalizedIpRange | null {
-    let ipValue = FirewallRulesService.parseIpv4(address.trim())
+    let ipValue = Ipv4Utils.parseIpv4(address.trim())
     if (ipValue === null) {
       return null
     }
@@ -277,25 +278,6 @@ export class FirewallRulesService {
       start,
       end: start + blockSize - 1
     }
-  }
-
-  private static parseIpv4(address: string): number | null {
-    let segments = address.split('.')
-    if (segments.length !== 4) {
-      return null
-    }
-    let result = 0
-    for (let i = 0; i < 4; i++) {
-      if (!/^\d+$/.test(segments[i])) {
-        return null
-      }
-      let value = Number(segments[i])
-      if (value < 0 || value > 255) {
-        return null
-      }
-      result = result * 256 + value
-    }
-    return result
   }
 
   private static normalizePortRange(rule: netFirewall.NetFirewallRule): NormalizedPortRange {

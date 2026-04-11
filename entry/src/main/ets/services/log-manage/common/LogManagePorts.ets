@@ -101,15 +101,3 @@ export interface LogStorageMaintenancePort {
 export interface LogExportServicePort {
   export(context: common.UIAbilityContext | null, query?: LogQuery, fileNamePrefix?: string): Promise<ExportLogsResult>
 }
-
-export interface LogAuditSourcePort {
-  subscribe(onEntry: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<AuditSubscribeResult>
-  unsubscribe(): boolean
-  getStatus(): SourceStatus
-}
-
-export interface LogCrashSourcePort {
-  subscribe(onEntry: (entry: LogEntry) => void): CrashSubscribeResult
-  unsubscribe(): boolean
-  getStatus(): SourceStatus
-}
