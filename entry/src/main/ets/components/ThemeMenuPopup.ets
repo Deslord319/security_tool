@@ -85,10 +85,11 @@ export struct AboutDialogContent {
 
   @Builder
   private aboutContent() {
-    Column({ space: 16 }) {
+    Column({ space: 14 }) {
       Image($r('app.media.startIcon_about'))
         .width(80)
         .height(80)
+        .margin({ top: 10 })
         .draggable(false)
 
       Text(AppText.NAME)
@@ -108,7 +109,7 @@ export struct AboutDialogContent {
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
       Button(ActionText.CONFIRM)
-        .width('100%')
+        .width(180)
         .height(40)
         .fontSize(16)
         .fontColor(Color.White)
@@ -125,11 +126,12 @@ export struct AboutDialogContent {
   build() {
     DetailDialogShell({
       title: AppText.ABOUT,
-      dialogWidth: 360,
-      maxBodyHeight: 320,
+      dialogWidth: 300,
+      maxBodyHeight: 260,
       currentTheme: this.currentTheme,
       showHeader: false,
       showCloseAction: false,
+      bodyRightPaddingExtra: 0,
       onClose: this.onConfirm,
       content: () => {
         this.aboutContent()

@@ -373,11 +373,11 @@ export struct FirewallRulesPage {
     }
     switch (rule.protocol) {
       case 6:
-        return 'TCP'
+        return FirewallDialogStrings.PROTOCOL_TCP
       case 17:
-        return 'UDP'
+        return FirewallDialogStrings.PROTOCOL_UDP
       case 1:
-        return 'ICMP'
+        return FirewallDialogStrings.PROTOCOL_ICMP
       default:
         return 'ALL'
     }
@@ -414,7 +414,7 @@ export struct FirewallRulesPage {
         }
       })
 
-      Column({ space: 18 }) {
+      Column({ space: 14 }) {
         if (this.rulesViewModel.conflictNotice.length > 0) {
           Row({ space: 8 }) {
             Text(FirewallRuleStrings.WARNING_LABEL)
@@ -491,8 +491,8 @@ export struct FirewallRulesPage {
       .width('100%')
       .layoutWeight(1)
       .padding({
-        top: AppStyles.PADDING_MD,
-        bottom: AppStyles.PADDING_LG
+        top: AppStyles.PADDING_SM,
+        bottom: AppStyles.PADDING_MD
       })
     }
     .width('100%')
@@ -637,7 +637,7 @@ export struct FirewallRulesPage {
     }
     .width('100%')
     .height('100%')
-    .padding({ top: AppStyles.PADDING_MD, bottom: 2 })
+    .padding({ top: AppStyles.PADDING_SM, bottom: 0 })
   }
 
   @Builder
@@ -666,7 +666,7 @@ export struct FirewallRulesPage {
     Row({ space: 12 }) {
       IconTextActionButton({
         label: FirewallPageStrings.USER_ID_CONTROL_BUTTON,
-        icon: $r('app.media.settings'),
+        icon: $r('app.media.globe'),
         kind: 'primary',
         currentTheme: this.currentTheme,
         onTap: () => {

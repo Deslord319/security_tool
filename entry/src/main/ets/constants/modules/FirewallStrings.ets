@@ -4,7 +4,7 @@ import { AppColors } from '../AppConstants'
 export class FirewallPageStrings {
   static readonly SUBTITLE: string = '统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则'
   static readonly RULES_PAGE: string = '规则页'
-  static readonly USER_ID_CONTROL_BUTTON: string = '按用户 ID 控制'
+  static readonly USER_ID_CONTROL_BUTTON: string = '全局策略'
 }
 
 export class FirewallToggleStrings {
@@ -51,14 +51,6 @@ export class FirewallModeStrings {
 }
 
 export class FirewallOperationStrings {
-  static readonly READ_POLICY: string = '读取防火墙策略'
-  static readonly SET_STATUS: string = '设置防火墙状态'
-  static readonly READ_RULES: string = '读取防火墙规则'
-  static readonly ADD_RULE: string = '新增防火墙规则'
-  static readonly DELETE_RULE: string = '删除防火墙规则'
-  static readonly UPDATE_RULE: string = '更新防火墙规则'
-  static readonly READ_USER_POLICY: string = '读取用户防火墙状态'
-  static readonly READ_USER_MODE_BINDINGS: string = '读取用户模式绑定'
   static readonly SAVE_USER_MODE_BINDINGS: string = '保存用户模式绑定'
   static readonly READ_USER_RULES: string = '读取用户防火墙规则'
   static readonly DELETE_USER_RULES: string = '删除用户防火墙规则'

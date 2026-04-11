@@ -1,3 +1,4 @@
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
 import { DialogService } from '../../../utils/DialogService'
@@ -5,6 +6,7 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { ActionText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings, FirewallRuleLabelStrings, ValidationErrorStrings } from '../../../constants/modules/DialogStrings'
+import { DetailDialogShell } from '../../DetailDialogShell'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
@@ -28,6 +30,12 @@ export struct AddRuleDialog {
   @State localPort: string = ''
   @State remotePort: string = ''
   @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
+  private readonly protocolOptions: SelectOption[] = [
+    { value: FirewallDialogStrings.PROTOCOL_TCP },
+    { value: FirewallDialogStrings.PROTOCOL_UDP },
+    { value: FirewallDialogStrings.PROTOCOL_ICMP }
+  ]
+  private readonly protocolValues: number[] = [6, 17, 1]
 
   aboutToAppear(): void {
     this.applyInitialRule()
@@ -264,6 +272,21 @@ export struct AddRuleDialog {
     return this.isEditMode ? ActionText.SAVE : ActionText.ADD
   }
 
+  private getTertiaryButtonBackground(): ResourceColor {
+    return this.currentTheme === ThemeMode.DARK
+      ? 'rgba(255,255,255,0.08)'
+      : AppColors.getColors(this.currentTheme).BG_PAGE
+  }
+
+  private getSelectedProtocolIndex(): number {
+    const protocolIndex = this.protocolValues.indexOf(this.protocol)
+    return protocolIndex >= 0 ? protocolIndex : 0
+  }
+
+  private getSelectedProtocolLabel(): string {
+    return (this.protocolOptions[this.getSelectedProtocolIndex()]?.value as string) ?? FirewallDialogStrings.PROTOCOL_TCP
+  }
+
   private getRuleTypeLabel(): string {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return FirewallRuleLabelStrings.DOMAIN_RULE
@@ -284,7 +307,8 @@ export struct AddRuleDialog {
     return FirewallDialogStrings.IP_PLACEHOLDER
   }
 
-  build() {
+  @Builder
+  private formContent() {
     Column({ space: 16 }) {
       Column({ space: 6 }) {
         Text(FirewallDialogStrings.RULE_NAME)
@@ -320,6 +344,8 @@ export struct AddRuleDialog {
             this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? FirewallRuleLabelStrings.DNS_RULE :
             FirewallRuleLabelStrings.IP_RULE)
           .fontColor(FormControlUtils.text(this.currentTheme))
+          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
@@ -346,6 +372,8 @@ export struct AddRuleDialog {
             FirewallDialogStrings.DIRECTION_OUTBOUND :
             FirewallDialogStrings.DIRECTION_INBOUND)
           .fontColor(FormControlUtils.text(this.currentTheme))
+          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
@@ -364,14 +392,12 @@ export struct AddRuleDialog {
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          Select([
-            { value: 'TCP' },
-            { value: 'UDP' },
-            { value: 'ICMP' }
-          ])
-            .selected(this.protocol === 17 ? 1 : this.protocol === 1 ? 2 : 0)
-            .value(this.protocol === 17 ? 'UDP' : this.protocol === 1 ? 'ICMP' : 'TCP')
+          Select(this.protocolOptions)
+            .selected(this.getSelectedProtocolIndex())
+            .value(this.getSelectedProtocolLabel())
             .fontColor(FormControlUtils.text(this.currentTheme))
+            .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+            .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
             .font({ size: AppStyles.FONT_SIZE_BODY })
             .width('100%')
             .height(40)
@@ -379,8 +405,7 @@ export struct AddRuleDialog {
             .borderRadius(AppStyles.RADIUS_MD)
             .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .onSelect((index: number) => {
-              let protocols: number[] = [6, 17, 1]
-              this.protocol = protocols[index]
+              this.protocol = this.protocolValues[index] ?? this.protocolValues[0]
             })
         }
         .width('100%')
@@ -463,6 +488,8 @@ export struct AddRuleDialog {
             FirewallDialogStrings.ACTION_DENY :
             FirewallDialogStrings.ACTION_ALLOW)
           .fontColor(FormControlUtils.text(this.currentTheme))
+          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
           .height(40)
@@ -478,8 +505,7 @@ export struct AddRuleDialog {
         Button(ActionText.CANCEL)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+          .backgroundColor(this.getTertiaryButtonBackground())
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
@@ -500,10 +526,22 @@ export struct AddRuleDialog {
       }
       .width('100%')
     }
-    .padding(32)
-    .constraintSize({ maxWidth: 600 })
-    .width('90%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_XL)
+    .width('100%')
+  }
+
+  build() {
+    DetailDialogShell({
+      dialogWidth: 620,
+      maxBodyHeight: 620,
+      currentTheme: this.currentTheme,
+      showHeader: false,
+      showCloseAction: false,
+      onClose: () => {
+        this.closeDialog()
+      },
+      content: () => {
+        this.formContent()
+      }
+    })
   }
 }

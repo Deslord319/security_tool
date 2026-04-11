@@ -16,17 +16,13 @@ export class LoadingStrings {
   static readonly LOADING: string = '加载中...'
   static readonly LOADING_USERS: string = '正在加载用户列表...'
   static readonly LOADING_RULES: string = '正在加载规则...'
-  static readonly LOADING_POLICY: string = '正在读取防火墙状态...'
   static readonly APPLYING_MODE: string = '正在应用防火墙模式...'
-  static readonly SAVING: string = '正在保存...'
-  static readonly SUBMITTING: string = '正在提交...'
 }
 
 // ==================== 空状态提示 ====================
 export class EmptyStateStrings {
   static readonly NO_USERS: string = '暂无可选用户'
   static readonly NO_RECORDS: string = '暂无连接记录'
-  static readonly NO_HISTORY: string = '暂无历史记录'
   static readonly NO_RULES: string = '暂无自定义规则'
   static readonly NO_DEVICES: string = '暂无可管理的设备'
   static readonly NO_RESULTS: string = '未找到相关结果'
@@ -42,25 +38,10 @@ export class FirewallRuleLabelStrings {
 
 // ==================== 验证错误提示 ====================
 export class ValidationErrorStrings {
-  static readonly PIN_FAILED: string = 'PIN 验证失败，已取消本次变更'
-  static readonly PIN_UNAVAILABLE: string = '系统 PIN 认证暂不可用'
-  static readonly PIN_LOCKOUT_MESSAGE: string = 'PIN 认证失败次数过多，请在'
-  static readonly PIN_LOCKOUT_SUFFIX: string = '秒后重试'
-  static readonly POLICY_FAILED: string = '防火墙状态更新失败'
-  static readonly NETWORK_FAILED: string = '网络操作失败'
-  static readonly PERMISSION_DENIED: string = '权限不足'
-  static readonly STATUS_UNKNOWN: string = '状态未知'
-  static readonly PLEASE_READ_STATUS_FIRST: string = '请先读取状态'
 }
 
 // ==================== 防火墙相关文本 ====================
 export class FirewallDialogStrings {
-  // Titles
-  // 标题
-  static readonly ADD_RULE_TITLE: string = '新增规则'
-  static readonly EDIT_RULE_TITLE: string = '编辑规则'
-  static readonly USER_FIREWALL_TITLE: string = '模式下发'
-  
   // 标签
   static readonly RULE_NAME: string = '规则名称'
   static readonly RULE_TYPE: string = '规则类型'
@@ -93,13 +74,9 @@ export class FirewallDialogStrings {
   static readonly SWITCH_DISABLED: string = '已关闭'
   static readonly APPLY_MODE_FAILED: string = '策略下发失败'
   
-  // 按钮
-  static readonly APPLY_MODE: string = '下发策略'
-  
   // 状态文本
   static readonly MODE_ALLOWLIST: string = '白名单模式'
   static readonly MODE_DENYLIST: string = '黑名单模式'
-  static readonly MODE_UNMANAGED: string = '未纳管'
   
   // 验证错误
   static readonly ERROR_DOMAIN_REQUIRED: string = '请输入域名'
@@ -111,12 +88,6 @@ export class FirewallDialogStrings {
   static readonly ERROR_INVALID_DOMAIN: string = '域名格式不正确'
   static readonly ERROR_INVALID_DNS: string = 'DNS 地址格式不正确'
   static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙策略'
-  static readonly ERROR_PLEASE_READ_STATUS: string = '请先选择并读取有效用户状态'
-  
-  static buildPolicySummary(isOpen: boolean, inboundAction: string, outboundAction: string): string {
-    let switchStatus = isOpen ? FirewallDialogStrings.SWITCH_ENABLED : FirewallDialogStrings.SWITCH_DISABLED
-    return `主开关${switchStatus}，默认入站${inboundAction}，默认出站${outboundAction}`
-  }
 
   static buildApplyModeSuccess(ruleCount: number): string {
     return `策略下发成功，本次下发 ${ruleCount} 条规则`

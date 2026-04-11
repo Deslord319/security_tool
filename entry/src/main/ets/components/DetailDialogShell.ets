@@ -12,6 +12,7 @@ export struct DetailDialogShell {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param showHeader: boolean = true
   @Param showCloseAction: boolean = true
+  @Param bodyRightPaddingExtra: number = DetailDialogShell.SCROLL_CONTENT_RIGHT_PADDING
   @BuilderParam content?: () => void
   @Event onClose: () => void = () => {}
   private static readonly DIALOG_PADDING: number = 18
@@ -67,7 +68,7 @@ export struct DetailDialogShell {
         .width('100%')
         .padding({
           left: DetailDialogShell.DIALOG_PADDING,
-          right: DetailDialogShell.DIALOG_PADDING + DetailDialogShell.SCROLL_CONTENT_RIGHT_PADDING,
+          right: DetailDialogShell.DIALOG_PADDING + this.bodyRightPaddingExtra,
           top: 0,
           bottom: DetailDialogShell.DIALOG_PADDING
         })
@@ -85,10 +86,6 @@ export struct DetailDialogShell {
     .alignItems(HorizontalAlign.Start)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
-    .border({
-      width: 1,
-      color: AppColors.getColors(this.currentTheme).BORDER
-    })
   }
 }
 

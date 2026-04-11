@@ -22,8 +22,6 @@ export class FirewallUserDispatchViewModel {
   @Trace isLoadingPolicy: boolean = false
   @Trace isSubmitting: boolean = false
   @Trace statusHintText: string = ''
-  @Trace currentModeText: string = FirewallDialogStrings.MODE_UNMANAGED
-  @Trace currentPolicyText: string = ''
   @Trace lastApplyResult: FirewallUserApplyResult | null = null
 
   private readonly modeOptions: FirewallUserApplyMode[] = ['allowlist', 'denylist']
@@ -44,8 +42,6 @@ export class FirewallUserDispatchViewModel {
         this.selectedIndex = 0
         this.selectedUserId = -1
         this.selectedModeIndex = 0
-        this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
-        this.currentPolicyText = ''
         this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
         return
       }
@@ -60,8 +56,6 @@ export class FirewallUserDispatchViewModel {
       this.selectedIndex = 0
       this.selectedUserId = -1
       this.selectedModeIndex = 0
-      this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
-      this.currentPolicyText = ''
       this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
       LogUtils.error(TAG, `loadUsers failed: ${JSON.stringify(err)}`)
     } finally {
@@ -94,10 +88,8 @@ export class FirewallUserDispatchViewModel {
     this.statusHintText = ''
     try {
       const result = await FirewallService.loadUserModeState(this.context, this.selectedUserId)
-      this.applyLoadedUserState(result)
+      this.applyLoadedMode(result)
     } catch (err) {
-      this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
-      this.currentPolicyText = ''
       this.statusHintText = FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
       LogUtils.error(TAG, `loadStateForSelectedUser failed: ${JSON.stringify(err)}`)
     } finally {
@@ -140,44 +132,17 @@ export class FirewallUserDispatchViewModel {
     return this.users[this.selectedIndex]
   }
 
-  private applyLoadedUserState(result: FirewallUserModeStateResult): void {
+  private applyLoadedMode(result: FirewallUserModeStateResult): void {
     if (result.errorCode !== undefined) {
-      this.currentModeText = FirewallDialogStrings.MODE_UNMANAGED
-      this.currentPolicyText = result.message ?? FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
-      this.statusHintText = this.currentPolicyText
+      this.statusHintText = result.message ?? FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
       this.selectedModeIndex = 0
       return
     }
 
-    this.currentModeText = this.getModeLabel(result.bindingMode)
-    this.currentPolicyText = this.buildPolicySummary(result.isOpen, result.inAction, result.outAction)
     const selectedMode = result.bindingMode ?? this.modeOptions[0]
     this.selectedModeIndex = this.modeOptions.findIndex((item: FirewallUserApplyMode): boolean => item === selectedMode)
     if (this.selectedModeIndex < 0) {
       this.selectedModeIndex = 0
-    }
-  }
-
-  private buildPolicySummary(isOpen: boolean, inAction: number, outAction: number): string {
-    return FirewallDialogStrings.buildPolicySummary(
-      isOpen,
-      this.getActionLabel(inAction),
-      this.getActionLabel(outAction)
-    )
-  }
-
-  private getActionLabel(action: number): string {
-    return action === 1 ? FirewallDialogStrings.ACTION_DENY : FirewallDialogStrings.ACTION_ALLOW
-  }
-
-  private getModeLabel(mode?: FirewallUserApplyMode): string {
-    switch (mode) {
-      case 'allowlist':
-        return FirewallDialogStrings.MODE_ALLOWLIST
-      case 'denylist':
-        return FirewallDialogStrings.MODE_DENYLIST
-      default:
-        return FirewallDialogStrings.MODE_UNMANAGED
     }
   }
 }
