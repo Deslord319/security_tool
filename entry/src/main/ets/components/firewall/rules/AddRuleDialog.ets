@@ -1,5 +1,5 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
-import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppColors, AppStyles, AppInfo } from '../../../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
 import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
