@@ -80,7 +80,7 @@ export class FirewallService {
 
   static async listCustomRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
     await FirewallModeStrategyFactory.initialize(context)
-    return FirewallStore.listCustomRules(context)
+    return FirewallModeStrategyFactory.listCustomRules(context)
   }
 
   static async saveCustomRules(
@@ -88,7 +88,7 @@ export class FirewallService {
     nextRules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallRulesSaveResult> {
     await FirewallModeStrategyFactory.initialize(context)
-    let previousRules = await FirewallStore.listCustomRules(context)
+    let previousRules = await FirewallModeStrategyFactory.listCustomRules(context)
     let applyResult = await FirewallModeStrategyFactory.applyCustomRules(context, nextRules)
     if (!applyResult.success) {
       return {
@@ -103,7 +103,7 @@ export class FirewallService {
       }
     }
 
-    let saved = await FirewallStore.replaceAllCustomRules(context, nextRules)
+    let saved = await FirewallModeStrategyFactory.replaceAllCustomRules(context, nextRules)
     if (!saved) {
       let rollbackResult = await FirewallModeStrategyFactory.applyCustomRules(context, previousRules)
       if (!rollbackResult.success) {

@@ -18,6 +18,8 @@ const ADMIN_WANT: Want = {
 }
 
 export class IdentityService {
+  static readonly DAY_IN_MS: number = 24 * 60 * 60 * 1000
+
   static toConfig(policy?: securityManager.PasswordPolicy | null): PasswordComplexityConfig | null {
     if (!policy) {
       return null
@@ -29,7 +31,7 @@ export class IdentityService {
       requireLowercase: IdentityService.hasLowercaseRequirement(policy.complexityRegex),
       requireDigit: IdentityService.hasDigitRequirement(policy.complexityRegex),
       requireSpecialChar: IdentityService.hasSpecialRequirement(policy.complexityRegex),
-      validityPeriod: policy.validityPeriod
+      validityPeriod: IdentityService.toDays(policy.validityPeriod)
     }
   }
 
@@ -39,7 +41,7 @@ export class IdentityService {
       additionalDescription: IdentityService.buildDescription(config)
     }
     if (typeof config.validityPeriod === 'number') {
-      policy.validityPeriod = config.validityPeriod
+      policy.validityPeriod = IdentityService.toMilliseconds(config.validityPeriod)
     }
     return policy
   }
@@ -154,5 +156,19 @@ export class IdentityService {
       return 0
     }
     return parseInt(lenMatch[1])
+  }
+
+  private static toMilliseconds(days?: number): number | undefined {
+    if (typeof days !== 'number') {
+      return undefined
+    }
+    return days * IdentityService.DAY_IN_MS
+  }
+
+  private static toDays(milliseconds?: number): number | undefined {
+    if (typeof milliseconds !== 'number') {
+      return undefined
+    }
+    return Math.round(milliseconds / IdentityService.DAY_IN_MS)
   }
 }

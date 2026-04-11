@@ -36,6 +36,7 @@ export class ToolSettingsUiState {
   @Trace config: ToolSettingsConfigState = new ToolSettingsConfigState()
   @Trace initialConfig: ToolSettingsConfigState = new ToolSettingsConfigState()
   @Trace hasChanges: boolean = false
+  @Trace saving: boolean = false
   @Trace initialized: boolean = false
 }
 
@@ -43,7 +44,6 @@ export class ToolSettingsUiState {
 export class ToolSettingsViewModel {
   @Trace state: ToolSettingsUiState = new ToolSettingsUiState()
   private repository: ToolSettingsRepository
-  private isSaving: boolean = false
 
   constructor(repository: ToolSettingsRepository = new PreferencesToolSettingsRepository()) {
     this.repository = repository
@@ -87,7 +87,7 @@ export class ToolSettingsViewModel {
     context: common.UIAbilityContext,
     allowUnsupportedAuthMethod: boolean = false
   ): Promise<ToolSettingsActionRequest> {
-    if (this.isSaving) {
+    if (this.state.saving) {
       LogUtils.warn(TAG, '[SAVE_SKIP] requestSave | reason=saving')
       return { kind: 'none' }
     }
@@ -136,7 +136,7 @@ export class ToolSettingsViewModel {
       startupAuthEnabled: this.state.config.startupAuthEnabled,
       authMethod: this.state.config.authMethod
     }
-    this.isSaving = true
+    this.state.saving = true
     try {
       let saved = await this.repository.saveConfig(context, configToSave)
       if (!saved) {
@@ -156,7 +156,7 @@ export class ToolSettingsViewModel {
         message: ToolSettingsPageStrings.SAVE_SUCCESS
       }
     } finally {
-      this.isSaving = false
+      this.state.saving = false
     }
   }
 

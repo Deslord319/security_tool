@@ -124,8 +124,8 @@ export default function firewallServiceTest() {
       let context = {} as common.UIAbilityContext
       let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
       let getPolicyMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicy)
-      when(initializeMock)(context).afterReturn(undefined)
-      when(getPolicyMock)().afterReturn(null)
+      when(initializeMock)(context).afterReturn(Promise.resolve())
+      when(getPolicyMock)().afterReturn(Promise.resolve(null))
 
       let result = await FirewallService.loadOverviewState(context)
 
@@ -138,9 +138,9 @@ export default function firewallServiceTest() {
       let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
       let getPolicyMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicy)
       let currentModeMock = mockKit.mockFunc(FirewallStore, FirewallStore.getCurrentMode)
-      when(initializeMock)(context).afterReturn(undefined)
-      when(getPolicyMock)().afterReturn(createPolicy(true, 0, 1))
-      when(currentModeMock)(context).afterReturn('private')
+      when(initializeMock)(context).afterReturn(Promise.resolve())
+      when(getPolicyMock)().afterReturn(Promise.resolve(createPolicy(true, 0, 1)))
+      when(currentModeMock)(context).afterReturn(Promise.resolve('private'))
 
       let result = await FirewallService.loadOverviewState(context)
 
@@ -154,9 +154,9 @@ export default function firewallServiceTest() {
         createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
       ]
       let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
-      let listMock = mockKit.mockFunc(FirewallStore, FirewallStore.listCustomRules)
-      when(initializeMock)(context).afterReturn(undefined)
-      when(listMock)(context).afterReturn(rules)
+      let listMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.listCustomRules)
+      when(initializeMock)(context).afterReturn(Promise.resolve())
+      when(listMock)(context).afterReturn(Promise.resolve(rules))
 
       let result = await FirewallService.listCustomRules(context)
 
@@ -189,15 +189,15 @@ export default function firewallServiceTest() {
       let updateRuleMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.updateRule)
       let addRulesMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.addRules)
       let clearAllRulesMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.clearAllRules)
-      when(getPolicyMock)().afterReturn(policy)
-      when(getAllRulesMock)().afterReturn([rule])
-      when(setEnabledMock)(true).afterReturn(true)
-      when(setPolicyMock)(policy).afterReturn(true)
-      when(addRuleMock)(rule).afterReturn(8)
-      when(removeRuleMock)(1).afterReturn(true)
-      when(updateRuleMock)(rule).afterReturn(true)
-      when(addRulesMock)(ArgumentMatchers.anyObj).afterReturn(true)
-      when(clearAllRulesMock)().afterReturn(true)
+      when(getPolicyMock)().afterReturn(Promise.resolve(policy))
+      when(getAllRulesMock)().afterReturn(Promise.resolve([rule]))
+      when(setEnabledMock)(true).afterReturn(Promise.resolve(true))
+      when(setPolicyMock)(policy).afterReturn(Promise.resolve(true))
+      when(addRuleMock)(rule).afterReturn(Promise.resolve(8))
+      when(removeRuleMock)(1).afterReturn(Promise.resolve(true))
+      when(updateRuleMock)(rule).afterReturn(Promise.resolve(true))
+      when(addRulesMock)(ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
+      when(clearAllRulesMock)().afterReturn(Promise.resolve(true))
 
       expect((await FirewallService.getFirewallPolicy())?.isOpen ?? false).assertTrue()
       expect((await FirewallService.getAllRules()).length).assertEqual(1)

@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { PeripheralTraceEntryRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceEntryRepository'
-import { PeripheralTraceMaintenanceService } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
+import {
+  PeripheralTraceMaintenanceService,
+  PeripheralTraceRetentionConfig
+} from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
 export default function peripheralTraceRepositoryTest() {
   describe('PeripheralTraceMaintenanceService', () => {
@@ -11,7 +14,7 @@ export default function peripheralTraceRepositoryTest() {
 
     beforeEach(() => {
       mockKit = new MockKit()
-      let originalConfig = PeripheralTraceMaintenanceService.getRetentionConfig()
+      let originalConfig: PeripheralTraceRetentionConfig = PeripheralTraceMaintenanceService.getRetentionConfig()
       originalRetentionDays = originalConfig.retentionDays
       originalMaxEntries = originalConfig.maxEntries
     })
@@ -37,7 +40,7 @@ export default function peripheralTraceRepositoryTest() {
       when(trimMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
 
       let result = await PeripheralTraceMaintenanceService.configure(2, 5)
-      let config = PeripheralTraceMaintenanceService.getRetentionConfig()
+      let config: PeripheralTraceRetentionConfig = PeripheralTraceMaintenanceService.getRetentionConfig()
 
       expect(result.success).assertTrue()
       expect(config.retentionDays).assertEqual(2)

@@ -132,6 +132,7 @@ export struct ToolSettingsPage {
       icon: AppResources.SAVE_ICON,
       kind: 'primary',
       currentTheme: this.currentTheme,
+      isEnabled: this.viewModel.state.initialized && this.viewModel.state.hasChanges && !this.viewModel.state.saving,
       onTap: () => {
         void this.handleSave()
       }

@@ -15,6 +15,8 @@ import {
 } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { DialogService } from '../../main/ets/utils/DialogService'
 
+const DAY_IN_MS: number = 24 * 60 * 60 * 1000
+
 class MockAdminState implements AdminActivationState {
   activated: boolean = false
   errorCode?: number
@@ -111,7 +113,7 @@ export default function identitySettingsViewModelTest() {
     it('should initialize from current system policy when admin is active', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let policy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{10,}$', 365)
+      let policy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{10,}$', 365 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(policy))
 
@@ -215,7 +217,7 @@ export default function identitySettingsViewModelTest() {
     it('should reject save when nothing changed from current policy', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let currentPolicy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$', 30)
+      let currentPolicy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$', 30 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
 
@@ -231,7 +233,7 @@ export default function identitySettingsViewModelTest() {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
-      let currentPolicy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$', 30)
+      let currentPolicy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$', 30 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
       when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(true))
@@ -253,7 +255,7 @@ export default function identitySettingsViewModelTest() {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
-      let currentPolicy = createPolicy('^(?=.*[a-z]).{6,}$', 30)
+      let currentPolicy = createPolicy('^(?=.*[a-z]).{6,}$', 30 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
       when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(false, true, 'edm missing'))
@@ -271,7 +273,7 @@ export default function identitySettingsViewModelTest() {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
-      let currentPolicy = createPolicy('^(?=.*\\d).{10,}$', 30)
+      let currentPolicy = createPolicy('^(?=.*\\d).{10,}$', 30 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
       when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(false, false, 'io failed'))
@@ -318,7 +320,7 @@ export default function identitySettingsViewModelTest() {
     it('should map half-year validity period to half-year option', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let policy = createPolicy('^.{6,}$', 183)
+      let policy = createPolicy('^.{6,}$', 183 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(policy))
 
@@ -332,7 +334,7 @@ export default function identitySettingsViewModelTest() {
     it('should map one-year validity period to one-year option', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let policy = createPolicy('^.{6,}$', 366)
+      let policy = createPolicy('^.{6,}$', 366 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(policy))
 
@@ -346,7 +348,7 @@ export default function identitySettingsViewModelTest() {
     it('should map custom validity period to custom option', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let policy = createPolicy('^.{6,}$', 90)
+      let policy = createPolicy('^.{6,}$', 90 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(policy))
 
@@ -440,7 +442,7 @@ export default function identitySettingsViewModelTest() {
     it('should set minLengthIndex to default when policy minLength not in options', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let policy = createPolicy('^.{99,}$', 365)
+      let policy = createPolicy('^.{99,}$', 365 * DAY_IN_MS)
       when(adminMock)().afterReturn(createActivatedAdminState())
       when(getPolicyMock)().afterReturn(createPolicyResult(policy))
 

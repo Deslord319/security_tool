@@ -52,51 +52,6 @@ export class CustomModeStrategy {
     return CustomModeStrategy.saveRecords(context, records)
   }
 
-  static async addRule(
-    context: common.UIAbilityContext,
-    rule: netFirewall.NetFirewallRule
-  ): Promise<boolean> {
-    let records = await CustomModeStrategy.loadRecords(context)
-    records.push({
-      customRuleId: CustomModeStrategy.generateCustomRuleId(),
-      rule: CustomModeStrategy.toStoredRule(rule)
-    })
-    return CustomModeStrategy.saveRecords(context, records)
-  }
-
-  static async updateRule(
-    context: common.UIAbilityContext,
-    rule: netFirewall.NetFirewallRule
-  ): Promise<boolean> {
-    let customRuleId = CustomModeStrategy.getCustomRuleId(rule)
-    if (!customRuleId) {
-      return false
-    }
-    let records = await CustomModeStrategy.loadRecords(context)
-    let index = records.findIndex((item: StoredCustomFirewallRuleRecord): boolean => item.customRuleId === customRuleId)
-    if (index < 0) {
-      return false
-    }
-    records[index] = {
-      customRuleId: customRuleId,
-      rule: CustomModeStrategy.toStoredRule(rule)
-    }
-    return CustomModeStrategy.saveRecords(context, records)
-  }
-
-  static async removeRule(
-    context: common.UIAbilityContext,
-    rule: netFirewall.NetFirewallRule
-  ): Promise<boolean> {
-    let customRuleId = CustomModeStrategy.getCustomRuleId(rule)
-    if (!customRuleId) {
-      return false
-    }
-    let records = await CustomModeStrategy.loadRecords(context)
-    let nextRecords = records.filter((item: StoredCustomFirewallRuleRecord): boolean => item.customRuleId !== customRuleId)
-    return CustomModeStrategy.saveRecords(context, nextRecords)
-  }
-
   static getCustomRuleId(rule: netFirewall.NetFirewallRule): string | undefined {
     let metadata = FirewallRulesService.parseManagedRuleDescription(rule.description)
     return metadata?.kind === 'custom' ? metadata.customRuleId : undefined

@@ -12,10 +12,6 @@ import {
 } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { FirewallOperationStrings } from '../../../constants/modules/FirewallStrings'
-import {
-  FirewallCustomRulesRepository,
-  StoredCustomFirewallRuleRecord
-} from '../repositories/FirewallCustomRulesRepository'
 import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import { FirewallUserBindingsRepository } from '../repositories/FirewallUserBindingsRepository'
@@ -39,54 +35,6 @@ export class FirewallStore {
 
   static async saveCurrentMode(context: common.UIAbilityContext, mode: FirewallPresetMode): Promise<void> {
     await FirewallModeRepository.saveCurrentMode(context, mode)
-  }
-
-  static async listCustomRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
-    let records = await FirewallStore.loadCustomRuleRecords(context)
-    return records.map((record: StoredCustomFirewallRuleRecord): netFirewall.NetFirewallRule =>
-      FirewallStore.toDisplayRule(record)
-    )
-  }
-
-  static async buildCustomRulesForApply(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
-    return FirewallStore.listCustomRules(context)
-  }
-
-  static async initializeCustomRulesFromSystemIfEmpty(
-    context: common.UIAbilityContext,
-    currentRules: netFirewall.NetFirewallRule[]
-  ): Promise<void> {
-    let records = await FirewallStore.loadCustomRuleRecords(context)
-    if (records.length > 0 || currentRules.length === 0) {
-      return
-    }
-    let migratedRecords: StoredCustomFirewallRuleRecord[] = []
-    currentRules.forEach((rule: netFirewall.NetFirewallRule) => {
-      migratedRecords.push(FirewallStore.createCustomRuleRecord(
-        FirewallStore.generateCustomRuleId(),
-        FirewallStore.toStoredRule(rule)
-      ))
-    })
-    await FirewallStore.saveCustomRuleRecords(context, migratedRecords)
-  }
-
-  static async replaceAllCustomRules(
-    context: common.UIAbilityContext,
-    nextRules: netFirewall.NetFirewallRule[]
-  ): Promise<boolean> {
-    let records: StoredCustomFirewallRuleRecord[] = []
-    nextRules.forEach((rule: netFirewall.NetFirewallRule) => {
-      records.push(FirewallStore.createCustomRuleRecord(
-        FirewallStore.getCustomRuleId(rule) ?? FirewallStore.generateCustomRuleId(),
-        FirewallStore.toStoredRule(rule)
-      ))
-    })
-    return FirewallStore.saveCustomRuleRecords(context, records)
-  }
-
-  static getCustomRuleId(rule: netFirewall.NetFirewallRule): string | undefined {
-    let metadata = FirewallRulesService.parseManagedRuleDescription(rule.description)
-    return metadata?.kind === 'custom' ? metadata.customRuleId : undefined
   }
 
   static async loadUserBindings(context: common.UIAbilityContext): Promise<UserFirewallModeBinding[]> {
@@ -194,57 +142,6 @@ export class FirewallStore {
     userId: number
   ): Promise<FirewallUserApplyMode | undefined> {
     return FirewallUserBindingsRepository.getBindingMode(context, userId)
-  }
-
-  private static async loadCustomRuleRecords(context: common.UIAbilityContext): Promise<StoredCustomFirewallRuleRecord[]> {
-    return FirewallCustomRulesRepository.loadRecords(context)
-  }
-
-  private static async saveCustomRuleRecords(
-    context: common.UIAbilityContext,
-    records: StoredCustomFirewallRuleRecord[]
-  ): Promise<boolean> {
-    return FirewallCustomRulesRepository.saveRecords(context, records)
-  }
-
-  private static toDisplayRule(record: StoredCustomFirewallRuleRecord): netFirewall.NetFirewallRule {
-    let rule = FirewallRepository.cloneRuleForCreate(record.rule)
-    let displayRule = FirewallRulesService.applyManagedRuleMetadata(rule, {
-      owner: 'security_tool',
-      mode: 'custom',
-      kind: 'custom',
-      customRuleId: record.customRuleId
-    })
-    displayRule.id = FirewallStore.hashRuleId(record.customRuleId)
-    return displayRule
-  }
-
-  private static toStoredRule(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
-    let clonedRule = FirewallRepository.cloneRuleForCreate(rule)
-    clonedRule.description = undefined
-    return clonedRule
-  }
-
-  private static createCustomRuleRecord(
-    customRuleId: string,
-    rule: netFirewall.NetFirewallRule
-  ): StoredCustomFirewallRuleRecord {
-    return {
-      customRuleId: customRuleId,
-      rule: rule
-    }
-  }
-
-  private static generateCustomRuleId(): string {
-    return `custom_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-  }
-
-  private static hashRuleId(customRuleId: string): number {
-    let hash = 0
-    for (let i = 0; i < customRuleId.length; i++) {
-      hash = (hash * 31 + customRuleId.charCodeAt(i)) % 2147483647
-    }
-    return hash === 0 ? 1 : hash
   }
 
   private static async saveBindingMode(

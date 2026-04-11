@@ -3,6 +3,7 @@ import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEventResult,
   PeripheralConnectionFilter,
+  PeripheralTraceQuery,
   PeripheralTraceRecord,
   PeripheralType,
   UsbStoragePolicy
@@ -130,9 +131,9 @@ export default function peripheralConnectionRecordServiceTest() {
       auditRecord.result = LogEventResult.BLOCKED
       auditRecord.summary = 'keyboard blocked audit'
 
-      let capturedQuery: Object | null = null
+      let capturedQuery: PeripheralTraceQuery | null = null
       let listMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.listByQuery)
-      when(listMock)(ArgumentMatchers.any).afterAction((query?: Object) => {
+      when(listMock)(ArgumentMatchers.any).afterAction((query?: PeripheralTraceQuery) => {
         capturedQuery = query ?? null
         return Promise.resolve([runtimeRecord, auditRecord])
       })
@@ -164,15 +165,15 @@ export default function peripheralConnectionRecordServiceTest() {
     })
 
     it('should query full record set and count query from trace repository', 0, async () => {
-      let capturedListQuery: Object | null = null
-      let capturedCountQuery: Object | null = null
+      let capturedListQuery: PeripheralTraceQuery | null = null
+      let capturedCountQuery: PeripheralTraceQuery | null = null
       let listMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.listByQuery)
       let countMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.countByQuery)
-      when(listMock)(ArgumentMatchers.any).afterAction((query?: Object) => {
+      when(listMock)(ArgumentMatchers.any).afterAction((query?: PeripheralTraceQuery) => {
         capturedListQuery = query ?? null
         return Promise.resolve([])
       })
-      when(countMock)(ArgumentMatchers.any).afterAction((query?: Object) => {
+      when(countMock)(ArgumentMatchers.any).afterAction((query?: PeripheralTraceQuery) => {
         capturedCountQuery = query ?? null
         return Promise.resolve(3)
       })

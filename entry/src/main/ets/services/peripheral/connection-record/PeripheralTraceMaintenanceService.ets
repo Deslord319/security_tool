@@ -16,13 +16,18 @@ const TAG = 'PeripheralTraceMaintenance'
 const RETENTION_DAYS_DEFAULT = 180
 const MAX_TRACE_ENTRIES_DEFAULT = 200000
 
-interface PeripheralTraceInitializeResult extends StorageResult<'ok' | 'storage_init_failed'> {
+export interface PeripheralTraceInitializeResult extends StorageResult<'ok' | 'storage_init_failed'> {
 }
 
-interface PeripheralTraceMutationResult extends StorageResult<'ok' | 'not_initialized' | 'save_failed'> {
+export interface PeripheralTraceMutationResult extends StorageResult<'ok' | 'not_initialized' | 'save_failed'> {
 }
 
-interface PeripheralTraceClearResult extends StorageResult<'ok' | 'clear_failed'> {
+export interface PeripheralTraceClearResult extends StorageResult<'ok' | 'clear_failed'> {
+}
+
+export interface PeripheralTraceRetentionConfig {
+  retentionDays: number
+  maxEntries: number
 }
 
 export class PeripheralTraceMaintenanceService {
@@ -50,6 +55,13 @@ export class PeripheralTraceMaintenanceService {
       PeripheralTraceMaintenanceService.maxEntries = Math.floor(maxEntries)
     }
     return PeripheralTraceMaintenanceService.reconcileStorageConfig()
+  }
+
+  static getRetentionConfig(): PeripheralTraceRetentionConfig {
+    return {
+      retentionDays: PeripheralTraceMaintenanceService.retentionDays,
+      maxEntries: PeripheralTraceMaintenanceService.maxEntries
+    }
   }
 
   static async appendEntries(records: PeripheralTraceRecord[]): Promise<PeripheralTraceMutationResult> {

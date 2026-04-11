@@ -3,6 +3,8 @@ import { securityManager } from '@kit.MDMKit'
 import { PasswordComplexityConfig } from '../../main/ets/models/DataModels'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 
+const DAY_IN_MS: number = 24 * 60 * 60 * 1000
+
 class TestPasswordConfig implements PasswordComplexityConfig {
   minLength: number = 8
   requireLowercase: boolean = true
@@ -35,7 +37,7 @@ export default function identityServiceTest() {
 
       expect(policy.complexityRegex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{10,}$')
       expect(policy.additionalDescription).assertEqual('至少10个字符，包含大写字母，包含小写字母，包含数字，包含特殊字符(!@#$%^&*)')
-      expect(policy.validityPeriod).assertEqual(365)
+      expect(policy.validityPeriod).assertEqual(365 * DAY_IN_MS)
     })
 
     it('should omit validityPeriod when config does not set one', 0, () => {
@@ -50,7 +52,7 @@ export default function identityServiceTest() {
     it('should convert password policy to config', 0, () => {
       let policy = new TestPasswordPolicy()
       policy.complexityRegex = '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{12,}$'
-      policy.validityPeriod = 184
+      policy.validityPeriod = 184 * DAY_IN_MS
 
       let config = IdentityService.toConfig(policy)
 

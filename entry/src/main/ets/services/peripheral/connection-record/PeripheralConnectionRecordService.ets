@@ -32,6 +32,23 @@ export class PeripheralConnectionRecordService {
     }
   }
 
+  static async countRecords(filter?: PeripheralConnectionFilter): Promise<number> {
+    try {
+      let query: PeripheralTraceQuery = {
+        startTime: filter?.startTime,
+        endTime: filter?.endTime,
+        deviceTypes: filter?.deviceTypes,
+        results: filter?.results,
+        sources: ['runtime_event', 'audit_event'],
+        keyword: filter?.keyword
+      }
+      return await PeripheralTraceEntryRepository.countByQuery(query)
+    } catch (err) {
+      LogUtils.error(TAG, `countRecords failed: ${JSON.stringify(err)}`)
+      return 0
+    }
+  }
+
   private static mapTraceRecord(record: PeripheralTraceRecord): PeripheralConnectionRecord {
     return {
       id: `peripheral_${record.source}_${record.recordId}`,

@@ -74,7 +74,7 @@ export default function firewallStrategyFactoryTest() {
     it('should replace custom rules and return a boolean result', 0, async () => {
       let context = {} as common.UIAbilityContext
       let saveMock = mockKit.mockFunc(FirewallCustomRulesRepository, FirewallCustomRulesRepository.saveRecords)
-      when(saveMock)(ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
+      when(saveMock)(context, ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
       let result = await FirewallModeStrategyFactory.replaceAllCustomRules(context, [createCustomRule()])
 
       expect(typeof result === 'boolean').assertTrue()

@@ -32,7 +32,7 @@ export class FirewallUserDispatchService {
     mode: FirewallUserApplyMode
   ): Promise<FirewallUserApplyResult> {
     await FirewallModeStrategyFactory.initialize(context)
-    let sharedRules = await FirewallStore.buildCustomRulesForApply(context)
+    let sharedRules = await FirewallModeStrategyFactory.buildCustomRulesForApply(context)
     return FirewallAuthService.executeUserModeApply(
       context,
       userId,
