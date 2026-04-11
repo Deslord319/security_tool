@@ -67,7 +67,7 @@ export struct DashboardPage {
 
   private scheduleEnter(delayMs: number, update: () => void): void {
     let timerId = setTimeout(() => {
-      animateTo({
+      this.getUIContext().animateTo({
         duration: 300,
         curve: Curve.Friction
       }, update)

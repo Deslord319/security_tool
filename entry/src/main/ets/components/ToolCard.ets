@@ -14,7 +14,7 @@ export struct ToolCard {
   @Local isHovered: boolean = false
 
   private setHoverState(isHovered: boolean): void {
-    HoverUtils.animate(() => {
+    HoverUtils.animate(this.getUIContext(), () => {
       this.isHovered = isHovered
     })
   }

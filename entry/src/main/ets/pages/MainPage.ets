@@ -225,7 +225,7 @@ struct MainPage {
     }
     this.pageEnterOpacity = 0.76
     this.pageEnterOffset = this.currentPage === RouteIds.DASHBOARD ? 18 : 10
-    animateTo({
+    this.getUIContext().animateTo({
       duration: 320,
       curve: Curve.Friction
     }, () => {

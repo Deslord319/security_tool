@@ -46,7 +46,7 @@ export struct EmptyStatePanel {
     .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))
     .translate({ y: HoverUtils.getTranslateY(this.isHovered, 4) })
     .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
+      HoverUtils.animate(this.getUIContext(), () => {
         this.isHovered = isHover
       })
     })

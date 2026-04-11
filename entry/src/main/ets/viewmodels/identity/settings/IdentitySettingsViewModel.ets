@@ -26,7 +26,7 @@ export class IdentitySettingsState {
   @Trace requireLowercase: boolean = true
   @Trace requireDigit: boolean = true
   @Trace requireSpecialChar: boolean = true
-  @Trace validityPeriodIndex: number = 0
+  @Trace validityPeriodIndex: number = PERMANENT_VALIDITY_OPTION_INDEX
   @Trace customValidityPeriodText: string = ''
   @Trace hasChanges: boolean = false
 }
@@ -219,7 +219,7 @@ export class IdentitySettingsViewModel {
     state.requireLowercase = true
     state.requireDigit = true
     state.requireSpecialChar = true
-    state.validityPeriodIndex = 0
+    state.validityPeriodIndex = PERMANENT_VALIDITY_OPTION_INDEX
     state.customValidityPeriodText = ''
     state.hasChanges = false
     return state

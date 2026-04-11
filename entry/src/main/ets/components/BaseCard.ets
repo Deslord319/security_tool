@@ -33,7 +33,7 @@ export struct BaseCard {
       }
       return
     }
-    HoverUtils.animate(() => {
+    HoverUtils.animate(this.getUIContext(), () => {
       this.isHovered = isHovered
     })
     this.onHoverChange(isHovered)

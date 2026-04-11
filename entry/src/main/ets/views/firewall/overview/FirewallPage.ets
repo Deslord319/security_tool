@@ -392,7 +392,7 @@ export struct FirewallPage {
         }
         return
       }
-      HoverUtils.animate(() => {
+      HoverUtils.animate(this.getUIContext(), () => {
         if (isHover) {
           this.hoveredMode = mode
         } else if (this.hoveredMode === mode) {

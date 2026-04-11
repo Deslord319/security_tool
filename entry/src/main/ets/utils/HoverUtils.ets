@@ -3,8 +3,8 @@ import { ThemeMode } from '../theme/ThemeColors'
 export class HoverUtils {
   static readonly DURATION_MS: number = 220
 
-  static animate(update: () => void): void {
-    animateTo({
+  static animate(uiContext: UIContext, update: () => void): void {
+    uiContext.animateTo({
       duration: HoverUtils.DURATION_MS,
       curve: Curve.EaseOut
     }, update)

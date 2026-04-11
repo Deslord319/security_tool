@@ -75,7 +75,7 @@ export struct PeripheralPage {
   }
 
   private setPanelHover(index: number, isHover: boolean): void {
-    HoverUtils.animate(() => {
+    HoverUtils.animate(this.getUIContext(), () => {
       this.hoveredPanelIndex = isHover ? index : -1
     })
   }

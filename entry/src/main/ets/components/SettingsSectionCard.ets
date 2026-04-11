@@ -45,7 +45,7 @@ export struct SectionCard {
     .shadow(HoverUtils.getShadow(this.currentTheme, this.hovered, true))
     .translate({ y: HoverUtils.getTranslateY(this.hovered, 4) })
     .onHover((isHover: boolean) => {
-      HoverUtils.animate(() => {
+      HoverUtils.animate(this.getUIContext(), () => {
         this.hovered = isHover
       })
     })
