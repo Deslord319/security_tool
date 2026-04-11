@@ -1,12 +1,13 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { ActionText, AppText, ModuleText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
 import { DetailDialogShell } from './DetailDialogShell'
 
 @ComponentV2
 export struct InteractiveMenuRow {
-  @Param icon: Resource = $r('app.media.dashboard')
+  @Param icon: Resource = AppResources.DASHBOARD_ICON
   @Param label: string = ''
   @Param itemId: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -86,7 +87,7 @@ export struct AboutDialogContent {
   @Builder
   private aboutContent() {
     Column({ space: 14 }) {
-      Image($r('app.media.startIcon_about'))
+      Image(AppResources.START_ICON_ABOUT)
         .width(80)
         .height(80)
         .margin({ top: 10 })
@@ -167,9 +168,9 @@ export struct ThemeMenuPopup {
           .width('100%')
           .padding({ left: 8, right: 8, top: 4 })
 
-        this.themeButton($r('app.media.dashboard'), ThemeText.FOLLOW_SYSTEM, ThemeOption.SYSTEM)
-        this.themeButton($r('app.media.sun'), ThemeText.LIGHT_MODE, ThemeOption.LIGHT)
-        this.themeButton($r('app.media.moon'), ThemeText.DARK_MODE, ThemeOption.DARK)
+        this.themeButton(AppResources.DASHBOARD_ICON, ThemeText.FOLLOW_SYSTEM, ThemeOption.SYSTEM)
+        this.themeButton(AppResources.SUN_ICON, ThemeText.LIGHT_MODE, ThemeOption.LIGHT)
+        this.themeButton(AppResources.MOON_ICON, ThemeText.DARK_MODE, ThemeOption.DARK)
       }
       .width('100%')
 
@@ -179,7 +180,7 @@ export struct ThemeMenuPopup {
         .margin({ left: 8, right: 8, top: 2, bottom: 2 })
 
       Column({ space: 2 }) {
-        this.actionMenuItem($r('app.media.help_menu'), ModuleText.HELP_FEEDBACK, RouteIds.HELP_FEEDBACK)
+        this.actionMenuItem(AppResources.HELP_MENU_ICON, ModuleText.HELP_FEEDBACK, RouteIds.HELP_FEEDBACK)
         this.aboutMenuItem()
       }
       .width('100%')
@@ -288,7 +289,7 @@ export struct ThemeMenuPopup {
   @Builder
   private aboutMenuItem() {
     InteractiveMenuRow({
-      icon: $r('app.media.info_menu'),
+      icon: AppResources.INFO_MENU_ICON,
       label: AppText.ABOUT,
       itemId: 'menu-action-about',
       currentTheme: this.currentTheme,

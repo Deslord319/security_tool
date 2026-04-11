@@ -88,34 +88,3 @@ export struct DetailDialogShell {
     .borderRadius(AppStyles.RADIUS_LG)
   }
 }
-
-@ComponentV2
-export struct DetailDialogOverlay {
-  @Event onDismiss: () => void = () => {}
-  @BuilderParam content?: () => void
-
-  build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(AppColors.OVERLAY_BACKGROUND)
-        .onClick(() => {
-          this.onDismiss()
-        })
-
-      Column() {
-        if (this.content) {
-          this.content()
-        }
-      }
-      .width('100%')
-      .height('100%')
-      .padding(AppStyles.PADDING_LG)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-    }
-    .width('100%')
-    .height('100%')
-  }
-}

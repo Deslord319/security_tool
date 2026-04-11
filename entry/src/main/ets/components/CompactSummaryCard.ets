@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 import { MetricSummaryCard } from './MetricSummaryCard'
 
@@ -9,7 +10,7 @@ export struct CompactSummaryCard {
   @Param title: string = ''
   @Param valueText: string = ''
   @Param description: string = ''
-  @Param icon: Resource = $r('app.media.shield')
+  @Param icon: Resource = AppResources.SHIELD_ICON
   @Param accentStart: string = AppColors.BRAND_PRIMARY
   @Param accentEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Param clickable: boolean = false

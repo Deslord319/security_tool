@@ -3,6 +3,79 @@ import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConsta
 import { ThemeMode } from '../theme/ThemeColors'
 import { FormControlUtils } from '../utils/FormControlUtils'
 
+interface SectionRowPadding {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+
+const SECTION_ROW_PADDING: SectionRowPadding = {
+  left: 16,
+  right: 16,
+  top: 14,
+  bottom: 14
+}
+
+@ComponentV2
+export struct SectionLabel {
+  @Param title: string = ''
+  @Param description: string = ''
+  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+
+  build() {
+    Column({ space: 2 }) {
+      Text(this.title)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+
+      if (this.description.length > 0) {
+        Text(this.description)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      }
+    }
+    .alignItems(HorizontalAlign.Start)
+    .layoutWeight(1)
+  }
+}
+
+interface SectionSelectParams {
+  options: SelectOption[]
+  selectedIndex: number
+  value: string
+  selectWidth: number
+  currentTheme: ThemeMode
+  enabled: boolean
+  opacity: number
+  onSelect: (index: number) => void
+}
+
+@Builder
+function SectionSelectBuilder(params: SectionSelectParams) {
+  Select(params.options)
+    .selected(params.selectedIndex)
+    .value(params.value)
+    .font({ size: AppStyles.FONT_SIZE_BODY })
+    .fontColor(FormControlUtils.text(params.currentTheme))
+    .textModifier(new TextModifier().fontColor(FormControlUtils.text(params.currentTheme)))
+    .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(params.currentTheme)]))
+    .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+    .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+    .width(params.selectWidth)
+    .height(36)
+    .backgroundColor(FormControlUtils.background(params.currentTheme))
+    .borderRadius(AppStyles.RADIUS_SM)
+    .border({ width: 1, color: FormControlUtils.border(params.currentTheme), style: BorderStyle.Solid })
+    .enabled(params.enabled)
+    .opacity(params.opacity)
+    .onSelect((index: number) => {
+      params.onSelect(index)
+    })
+}
+
 @ComponentV2
 export struct SectionToggleRow {
   @Param title: string = ''
@@ -13,21 +86,11 @@ export struct SectionToggleRow {
 
   build() {
     Row() {
-      Column({ space: 2 }) {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-        if (this.description.length > 0) {
-          Text(this.description)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+      SectionLabel({
+        title: this.title,
+        description: this.description,
+        currentTheme: this.currentTheme
+      })
 
       Toggle({ type: ToggleType.Switch, isOn: this.isOn })
         .selectedColor(AppColors.BRAND_PRIMARY)
@@ -36,7 +99,7 @@ export struct SectionToggleRow {
         })
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .padding(SECTION_ROW_PADDING)
   }
 }
 
@@ -54,44 +117,25 @@ export struct SectionSelectRow {
 
   build() {
     Row() {
-      Column({ space: 2 }) {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+      SectionLabel({
+        title: this.title,
+        description: this.description,
+        currentTheme: this.currentTheme
+      })
 
-        if (this.description.length > 0) {
-          Text(this.description)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Select(this.options)
-        .selected(this.selectedIndex)
-        .value(this.value)
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(this.selectWidth)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .enabled(!this.processing)
-        .opacity(this.processing ? 0.72 : 1)
-        .onSelect((index: number) => {
-          this.onSelect(index)
-        })
+      SectionSelectBuilder({
+        options: this.options,
+        selectedIndex: this.selectedIndex,
+        value: this.value,
+        selectWidth: this.selectWidth,
+        currentTheme: this.currentTheme,
+        enabled: !this.processing,
+        opacity: this.processing ? 0.72 : 1,
+        onSelect: this.onSelect
+      } as SectionSelectParams)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .padding(SECTION_ROW_PADDING)
   }
 }
 
@@ -115,21 +159,11 @@ export struct SectionActionRow {
 
   build() {
     Row() {
-      Column({ space: 2 }) {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-        if (this.description.length > 0) {
-          Text(this.description)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+      SectionLabel({
+        title: this.title,
+        description: this.description,
+        currentTheme: this.currentTheme
+      })
 
       Button(this.actionLabel)
         .type(ButtonType.Normal)
@@ -162,7 +196,7 @@ export struct SectionActionRow {
         })
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .padding(SECTION_ROW_PADDING)
   }
 }
 
@@ -185,40 +219,23 @@ export struct SectionSelectInputRow {
 
   build() {
     Row() {
-      Column({ space: 2 }) {
-        Text(this.title)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-        if (this.description.length > 0) {
-          Text(this.description)
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+      SectionLabel({
+        title: this.title,
+        description: this.description,
+        currentTheme: this.currentTheme
+      })
 
       Row({ space: 8 }) {
-        Select(this.options)
-          .selected(this.selectedIndex)
-          .value(this.value)
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-          .width(this.selectWidth)
-          .height(36)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => {
-            this.onSelect(index)
-          })
+        SectionSelectBuilder({
+          options: this.options,
+          selectedIndex: this.selectedIndex,
+          value: this.value,
+          selectWidth: this.selectWidth,
+          currentTheme: this.currentTheme,
+          enabled: true,
+          opacity: 1,
+          onSelect: this.onSelect
+        } as SectionSelectParams)
 
         if (this.showInput) {
           Row({ space: 6 }) {
@@ -248,6 +265,6 @@ export struct SectionSelectInputRow {
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 16 })
+    .padding(SECTION_ROW_PADDING)
   }
 }

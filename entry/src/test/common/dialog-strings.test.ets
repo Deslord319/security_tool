@@ -4,9 +4,10 @@ import {
   DeviceTypeLabels,
   FirewallDialogStrings,
   FirewallRuleLabelStrings,
-  LoadingStrings,
-  ValidationErrorStrings
+  LoadingStrings
 } from '../../main/ets/constants/modules/DialogStrings'
+import { IdentityAuthStrings } from '../../main/ets/constants/modules/IdentityStrings'
+import { buildFirewallConflictNotice } from '../../main/ets/constants/modules/FirewallStrings'
 import { ActionText, LabelText, MessageText, ResultText } from '../../main/ets/constants/StringCatalog'
 
 export default function dialogStringsTest() {
@@ -14,7 +15,7 @@ export default function dialogStringsTest() {
     it('should expose shared button, loading and empty-state copy', 0, () => {
       expect(ActionText.CONFIRM.length > 0).assertTrue()
       expect(ActionText.CANCEL.length > 0).assertTrue()
-      expect(LoadingStrings.LOADING_POLICY.length > 0).assertTrue()
+      expect(LoadingStrings.LOADING.length > 0).assertTrue()
       expect(MessageText.CHECK_PERMISSIONS.length > 0).assertTrue()
       expect(ResultText.SAVE_SUCCESS.length > 0).assertTrue()
     })
@@ -22,7 +23,7 @@ export default function dialogStringsTest() {
     it('should expose firewall dialog labels and builders', 0, () => {
       expect(FirewallDialogStrings.RULE_NAME_PLACEHOLDER.length > 0).assertTrue()
       expect(FirewallDialogStrings.MODE_ALLOWLIST.length > 0).assertTrue()
-      expect(FirewallDialogStrings.buildPolicySummary(true, 'allow', 'deny').length > 0).assertTrue()
+      expect(buildFirewallConflictNotice(1, 1, 1).length > 0).assertTrue()
       expect(FirewallDialogStrings.buildApplyModeSuccess(3).length > 0).assertTrue()
     })
 
@@ -34,10 +35,10 @@ export default function dialogStringsTest() {
       expect(FirewallRuleLabelStrings.DOMAIN_RULE.length > 0).assertTrue()
     })
 
-    it('should expose validation copy used by pages', 0, () => {
-      expect(ValidationErrorStrings.PIN_FAILED.length > 0).assertTrue()
-      expect(ValidationErrorStrings.PERMISSION_DENIED.length > 0).assertTrue()
-      expect(ValidationErrorStrings.STATUS_UNKNOWN.length > 0).assertTrue()
+    it('should expose validation and auth copy used by pages', 0, () => {
+      expect(IdentityAuthStrings.PERMISSION_DENIED.length > 0).assertTrue()
+      expect(IdentityAuthStrings.INVALID_PARAMS.length > 0).assertTrue()
+      expect(IdentityAuthStrings.FAILED_OR_CANCELED.length > 0).assertTrue()
     })
   })
 }

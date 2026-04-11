@@ -1,21 +1,16 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
 import {
-  IdentityActionStrings,
   IdentityFormStrings,
-  IdentityMessageStrings,
   IdentityPageStrings,
   IdentitySectionStrings
 } from '../../../constants/modules/IdentityStrings'
 import {
-  AdminActivationState,
-  PASSWORD_LENGTH_OPTIONS,
-  PASSWORD_VALIDITY_OPTIONS
+  PASSWORD_LENGTH_OPTIONS
 } from '../../../models/DataModels'
 
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
-import { IdentityService } from '../../../services/identity/settings/IdentityService'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
@@ -23,7 +18,7 @@ import { DialogService } from '../../../utils/DialogService'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
-  PERMANENT_VALIDITY_OPTION_INDEX,
+  IdentitySettingsActionRequest,
   IdentitySettingsViewModel
 } from '../../../viewmodels/identity/settings/IdentitySettingsViewModel'
 
@@ -31,11 +26,6 @@ import {
 export struct IdentityPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onBack: () => void = () => {}
-  @Local adminState: AdminActivationState = {
-    activated: false,
-    enableCommand: EnterpriseAdminService.buildEnableCommand(),
-    adminType: EnterpriseAdminService.DEFAULT_ADMIN_TYPE
-  }
   @Local viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
@@ -43,68 +33,32 @@ export struct IdentityPage {
   } as SelectOption))
 
   private validityOptions: SelectOption[] = [
-    ...PASSWORD_VALIDITY_OPTIONS.map((value: number): SelectOption => ({
-      value: `${value} ${IdentityFormStrings.DAY_UNIT}`
-    } as SelectOption)),
-    { value: IdentityFormStrings.PERMANENT_OPTION } as SelectOption,
+    { value: IdentityFormStrings.HALF_YEAR_OPTION } as SelectOption,
+    { value: IdentityFormStrings.ONE_YEAR_OPTION } as SelectOption,
     { value: IdentityFormStrings.CUSTOM_OPTION } as SelectOption
   ]
 
   aboutToAppear() {
-    this.refreshAdminActivationState()
-    this.loadCurrentPolicy()
+    this.viewModel.initialize()
   }
 
-  private refreshAdminActivationState(): void {
-    this.adminState = EnterpriseAdminService.probeActivation()
-  }
-
-  private loadCurrentPolicy(): void {
-    if (!this.adminState.activated) {
-      this.viewModel.reset()
+  private async saveConfig(skipImmediateExpiryConfirm: boolean = false): Promise<void> {
+    let request = this.viewModel.requestSave(skipImmediateExpiryConfirm)
+    if (request.kind === 'none') {
       return
     }
-
-    let result = IdentityService.getPasswordPolicyWithResult()
-    if (!result.success) {
-      this.viewModel.reset()
-      return
-    }
-    this.viewModel.initialize(result.data)
-  }
-
-  private async saveConfig(): Promise<void> {
-    this.refreshAdminActivationState()
-    if (!this.adminState.activated) {
-      DialogService.openFailure(
-        this.getUIContext(),
-        this.adminState.errorMessage?.trim().length ?
-          this.adminState.errorMessage :
-          `${IdentityActionStrings.SAVE}${IdentityMessageStrings.ADMIN_REQUIRED_WITH_ACTION_SUFFIX}`
-      )
-      return
-    }
-
-    if (this.viewModel.shouldWarnImmediateExpiry()) {
+    if (request.kind === 'confirm' && request.title) {
       await DialogService.openConfirm(this.getUIContext(), {
-        title: IdentityMessageStrings.IMMEDIATE_EXPIRY_RISK_TITLE,
-        message: IdentityMessageStrings.IMMEDIATE_EXPIRY_RISK_MESSAGE,
+        title: request.title,
+        message: request.message,
         onConfirm: () => {
-          this.executeSave()
+          void this.saveConfig(true)
         }
       })
       return
     }
 
-    this.executeSave()
-  }
-
-  private executeSave(): void {
-    let result = this.viewModel.save()
-    DialogService.openResult(this.getUIContext(), {
-      status: result.success ? 'success' : 'failure',
-      message: result.message
-    })
+    this.showSaveResult(request)
   }
 
   private getSelectedMinLengthLabel(): string {
@@ -113,6 +67,20 @@ export struct IdentityPage {
 
   private getSelectedValidityLabel(): string {
     return this.validityOptions[this.viewModel.state.validityPeriodIndex].value as string
+  }
+
+  private showSaveResult(request: IdentitySettingsActionRequest): void {
+    if (request.kind !== 'result' || !request.status) {
+      return
+    }
+    DialogService.openResult(this.getUIContext(), {
+      status: request.status,
+      message: request.message
+    })
+  }
+
+  private getSaveButtonLabel(): string {
+    return ActionText.SAVE_CONFIG
   }
 
   build() {
@@ -159,9 +127,10 @@ export struct IdentityPage {
   @Builder
   private headerActions() {
     IconTextActionButton({
-      label: ActionText.SAVE_CONFIG,
-      icon: $r('app.media.save'),
+      label: this.getSaveButtonLabel(),
+      icon: AppResources.SAVE_ICON,
       kind: 'primary',
+      isEnabled: this.viewModel.state.canSave,
       currentTheme: this.currentTheme,
       onTap: () => {
         void this.saveConfig()

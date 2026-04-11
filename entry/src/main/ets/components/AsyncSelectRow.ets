@@ -1,5 +1,6 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { SectionLabel } from './SectionRows'
 import { ThemeMode } from '../theme/ThemeColors'
 import { FormControlUtils } from '../utils/FormControlUtils'
 import { LogUtils } from '../utils/LogUtils'
@@ -43,6 +44,10 @@ export struct AsyncSelectRow {
     return this.options[effectiveIndex] ?? ''
   }
 
+  private isBusy(): boolean {
+    return this.processing || this.isAsyncPending
+  }
+
   private async handleSelectChange(nextIndex: number): Promise<void> {
     const previousIndex = this.getEffectiveSelectedIndex()
     if (nextIndex === previousIndex) {
@@ -81,32 +86,21 @@ export struct AsyncSelectRow {
 
   build() {
     Row() {
-      Column({ space: 4 }) {
-        Text(this.label)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(this.description)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+      SectionLabel({
+        title: this.label,
+        description: this.description,
+        currentTheme: this.currentTheme
+      })
 
       Row({ space: 10 }) {
-        if (this.processing || this.isAsyncPending) {
+        if (this.isBusy()) {
           LoadingProgress()
             .width(18)
             .height(18)
             .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         }
 
-        Select(this.options.map((value: string) => {
-          const item: SelectOption = { value: value }
-          return item
-        }))
+        Select(this.options.map((value: string): SelectOption => ({ value: value } as SelectOption)))
           .selected(this.getEffectiveSelectedIndex())
           .value(this.getDisplayValue())
           .fontColor(FormControlUtils.text(this.currentTheme))
@@ -116,8 +110,8 @@ export struct AsyncSelectRow {
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .enabled(!(this.processing || this.isAsyncPending))
-          .opacity(this.processing || this.isAsyncPending ? 0.72 : 1)
+          .enabled(!this.isBusy())
+          .opacity(this.isBusy() ? 0.72 : 1)
           .onSelect((index: number) => {
             void this.handleSelectChange(index)
           })
@@ -126,6 +120,6 @@ export struct AsyncSelectRow {
     .width('100%')
     .padding({ left: 20, right: 20, top: 16, bottom: 16 })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .opacity(this.processing || this.isAsyncPending ? 0.8 : 1)
+    .opacity(this.isBusy() ? 0.8 : 1)
   }
 }

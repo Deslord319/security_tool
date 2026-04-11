@@ -139,20 +139,6 @@ export class PeripheralEmptyStateStrings {
   static readonly EMPTY_POLICY_DESCRIPTION: string = '设备连接后会出现在这里，可按需设置允许或禁止接入。'
 }
 
-export class PeripheralRuntimeStrings {
-  static readonly UNNAMED_BLUETOOTH_DEVICE: string = '未命名蓝牙设备'
-  static readonly DEVICE_DISCONNECTED: string = '设备已断开'
-  static readonly USB_INTERFACE_DISABLED_DETAIL: string = 'USB 接口已被总控禁用，设备接入被阻止。'
-  static readonly USB_STORAGE_DISABLED_DETAIL: string = 'USB 存储策略为禁止访问，设备接入被阻止。'
-  static readonly USB_STORAGE_READ_ONLY_DETAIL: string = 'USB 存储策略为只读模式。'
-  static readonly DEFAULT_ALLOW_SUMMARY: string = '按当前策略允许接入'
-  static readonly DEFAULT_ALLOW_DETAIL: string = '未命中更高优先级的阻断策略，按默认规则允许接入。'
-  static readonly USB_DEVICE_NAME: string = 'USB 设备'
-  static readonly UNKNOWN_USB_DEVICE_NAME: string = '未识别 USB 设备'
-  static readonly BLUETOOTH_CONNECTED: string = '蓝牙设备已连接'
-  static readonly BLUETOOTH_DISCONNECTED: string = '蓝牙设备已断开'
-}
-
 export const PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX: string = '未完成，请先激活企业管理员权限'
 
 export function resolvePeripheralReason(reason?: string | null): string {
@@ -210,12 +196,4 @@ export function resolvePeripheralReason(reason?: string | null): string {
     default:
       return reason && reason.trim().length > 0 ? reason : MessageText.RETRY_LATER
   }
-}
-
-export function buildPeripheralRuntimeDeviceDenyDetail(deviceId: string): string {
-  return `设备 ${deviceId} 命中禁止接入策略，已被阻止。`
-}
-
-export function buildPeripheralDisconnectDetail(deviceName: string, effectivePolicyLabel: string): string {
-  return `${deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
 }

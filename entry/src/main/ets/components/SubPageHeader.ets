@@ -1,4 +1,5 @@
 import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 
 @ComponentV2
@@ -15,7 +16,7 @@ export struct SubPageHeader {
     Row() {
       Row({ space: 8 }) {
         Button() {
-          Image($r('app.media.arrow_left'))
+          Image(AppResources.ARROW_LEFT_ICON)
             .width(18)
             .height(18)
             .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

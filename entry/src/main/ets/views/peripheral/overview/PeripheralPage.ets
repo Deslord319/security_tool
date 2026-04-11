@@ -7,6 +7,7 @@ import { DeviceRecordList } from '../../../components/peripheral/connection-reco
 import { InterfaceControlTab } from '../../../components/peripheral/interface-control/InterfaceControlTab'
 import { PolicyList, PolicyOption } from '../../../components/peripheral/device-policy/PolicyList'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
 import {
   PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX,
@@ -387,7 +388,7 @@ export struct PeripheralPage {
     Row({ space: 8 }) {
       IconTextActionButton({
         label: exportLabel,
-        icon: $r('app.media.save'),
+        icon: AppResources.SAVE_ICON,
         kind: 'primary',
         currentTheme: this.currentTheme,
         onTap: onExport
@@ -395,7 +396,7 @@ export struct PeripheralPage {
 
       IconTextActionButton({
         label: clearLabel,
-        icon: $r('app.media.trash'),
+        icon: AppResources.TRASH_ICON,
         kind: 'danger',
         currentTheme: this.currentTheme,
         onTap: onClear

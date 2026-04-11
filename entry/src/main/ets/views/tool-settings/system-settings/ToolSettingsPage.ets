@@ -1,5 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppResources } from '../../../constants/AppResources'
 import { ActionText, LabelText, ModuleText } from '../../../constants/StringCatalog'
 import {
   ToolSettingsConfirmationStrings,
@@ -128,7 +129,7 @@ export struct ToolSettingsPage {
   private headerActions() {
     IconTextActionButton({
       label: ActionText.SAVE_SETTINGS,
-      icon: $r('app.media.save'),
+      icon: AppResources.SAVE_ICON,
       kind: 'primary',
       currentTheme: this.currentTheme,
       onTap: () => {

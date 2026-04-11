@@ -4,7 +4,7 @@ import { CollectorStatus } from '../services/log-manage/common/LogManagePorts'
 export type LogManageMode = 'list' | 'settings'
 
 @ObservedV2
-export class LogCollectorState implements CollectorStatus {
+class LogCollectorState implements CollectorStatus {
   @Trace running: boolean = false
   @Trace auditReady: boolean = false
   @Trace crashReady: boolean = false
@@ -14,7 +14,7 @@ export class LogCollectorState implements CollectorStatus {
 }
 
 @ObservedV2
-export class LogSummaryState {
+class LogSummaryState {
   @Trace totalCount: number = 0
   @Trace todayCount: number = 0
   @Trace blockedCount: number = 0
@@ -44,7 +44,7 @@ export class LogListState {
 }
 
 @ObservedV2
-export class LogDetailState {
+class LogDetailState {
   @Trace visible: boolean = false
   @Trace entryId: string = ''
 }

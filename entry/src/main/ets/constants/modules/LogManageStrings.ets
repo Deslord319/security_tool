@@ -14,14 +14,6 @@ export class LogManageDetailStrings {
   static readonly FILE_PATH_LABEL: string = '文件路径'
 }
 
-export class LogManageSubscriptionStrings {
-  static readonly FAILED: string = '订阅失败'
-
-  static buildSubscribedText(modeText: string): string {
-    return `已订阅（${modeText}）`
-  }
-}
-
 export class LogManageFilterStrings {
   static readonly ALL_EVENT_TYPES: string = '全部类型'
   static readonly ALL_RESULTS: string = '全部结果'

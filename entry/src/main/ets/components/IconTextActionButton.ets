@@ -1,4 +1,5 @@
 import { ActionButtonStyles, AppStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 
 export type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
@@ -6,7 +7,7 @@ export type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
 @ComponentV2
 export struct IconTextActionButton {
   @Param label: string = ''
-  @Param icon: Resource = $r('app.media.save')
+  @Param icon: Resource = AppResources.SAVE_ICON
   @Param showIcon: boolean = true
   @Param kind: IconTextActionButtonKind = 'primary'
   @Param isEnabled: boolean = true

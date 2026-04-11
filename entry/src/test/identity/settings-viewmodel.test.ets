@@ -3,28 +3,97 @@ import { securityManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { AdminText, MessageText } from '../../main/ets/constants/StringCatalog'
 import { IdentityActionStrings, IdentityMessageStrings } from '../../main/ets/constants/modules/IdentityStrings'
-import { OperationResult, PASSWORD_VALIDITY_OPTIONS } from '../../main/ets/models/DataModels'
+import { AdminActivationState, OperationResult, PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
-  PERMANENT_VALIDITY_OPTION_INDEX,
-  IdentitySettingsViewModel
+  HALF_YEAR_VALIDITY_OPTION_INDEX,
+  IdentitySettingsActionRequest,
+  IdentitySettingsViewModel,
+  ONE_YEAR_VALIDITY_OPTION_INDEX
 } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { DialogService } from '../../main/ets/utils/DialogService'
 
-interface MockPasswordPolicyResult extends OperationResult<securityManager.PasswordPolicy | null> {
-  data?: securityManager.PasswordPolicy | null
+class MockAdminState implements AdminActivationState {
+  activated: boolean = false
+  errorCode?: number
+  errorMessage?: string
+  enableCommand: string = 'edm enable-admin'
+  adminType: 'super' | 'byod' = 'byod'
 }
 
-class PasswordPolicyResult implements MockPasswordPolicyResult {
+class MockPasswordPolicyResult implements OperationResult<securityManager.PasswordPolicy | null> {
   success: boolean = true
   data?: securityManager.PasswordPolicy | null = null
+  errorCode?: number
+  errorMessage?: string
+  userMessage?: string
+  isAdminMissing?: boolean
+  stage?: string
+  suggestion?: string
 }
 
-class SavePasswordPolicyResult implements OperationResult<void> {
+class MockSaveResult implements OperationResult<void> {
   success: boolean = false
-  isAdminMissing?: boolean
+  data?: void
+  errorCode?: number
   errorMessage?: string
+  userMessage?: string
+  isAdminMissing?: boolean
+  stage?: string
+  suggestion?: string
+}
+
+function createActivatedAdminState(): AdminActivationState {
+  let state = new MockAdminState()
+  state.activated = true
+  return state
+}
+
+function createInactiveAdminState(message: string = AdminText.NOT_ACTIVATED): AdminActivationState {
+  let state = new MockAdminState()
+  state.activated = false
+  state.errorMessage = message
+  return state
+}
+
+function createPolicy(regex: string, validityPeriod?: number): securityManager.PasswordPolicy {
+  let policy: securityManager.PasswordPolicy = {
+    complexityRegex: regex
+  }
+  if (typeof validityPeriod === 'number') {
+    policy.validityPeriod = validityPeriod
+  }
+  return policy
+}
+
+function createPolicyResult(policy: securityManager.PasswordPolicy | null): OperationResult<securityManager.PasswordPolicy | null> {
+  let result = new MockPasswordPolicyResult()
+  result.success = true
+  result.data = policy
+  return result
+}
+
+function createFailedPolicyResult(errorMessage: string = 'get failed'): OperationResult<securityManager.PasswordPolicy | null> {
+  let result = new MockPasswordPolicyResult()
+  result.success = false
+  result.errorMessage = errorMessage
+  return result
+}
+
+function createSaveResult(success: boolean, isAdminMissing?: boolean, errorMessage?: string): OperationResult<void> {
+  let result = new MockSaveResult()
+  result.success = success
+  result.isAdminMissing = isAdminMissing
+  result.errorMessage = errorMessage
+  return result
+}
+
+function expectResultFailure(result: IdentitySettingsActionRequest, expectedMessage: string): void {
+  expect(result.kind).assertEqual('result')
+  expect(result.status).assertEqual('failure')
+  expect(result.message).assertEqual(expectedMessage)
 }
 
 export default function identitySettingsViewModelTest() {
@@ -39,164 +108,420 @@ export default function identitySettingsViewModelTest() {
       mockKit.clearAll()
     })
 
-    it('should initialize from password policy', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      viewModel.initialize({
-        complexityRegex: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{10,}$',
-        validityPeriod: 365
-      } as securityManager.PasswordPolicy)
+    it('should initialize from current system policy when admin is active', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{10,}$', 365)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
 
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.initialized).assertTrue()
+      expect(viewModel.state.loading).assertFalse()
+      expect(viewModel.state.adminActivated).assertTrue()
       expect(viewModel.state.minLengthIndex).assertEqual(2)
       expect(viewModel.state.requireLowercase).assertTrue()
       expect(viewModel.state.requireUppercase).assertTrue()
       expect(viewModel.state.requireDigit).assertTrue()
       expect(viewModel.state.requireSpecialChar).assertFalse()
-      expect(viewModel.state.validityPeriodIndex).assertEqual(PASSWORD_VALIDITY_OPTIONS.indexOf(365))
+      expect(viewModel.state.validityPeriodIndex).assertEqual(ONE_YEAR_VALIDITY_OPTION_INDEX)
       expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertFalse()
     })
 
-    it('should switch to custom validity state', 0, () => {
+    it('should reset to defaults and expose admin message when admin is inactive', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createInactiveAdminState('please activate admin'))
+
       let viewModel = new IdentitySettingsViewModel()
-      viewModel.reset()
+      viewModel.initialize()
+
+      expect(viewModel.state.initialized).assertTrue()
+      expect(viewModel.state.adminActivated).assertFalse()
+      expect(viewModel.state.adminMessage).assertEqual('please activate admin')
+      expect(viewModel.state.minLengthIndex).assertEqual(0)
+      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertFalse()
+    })
+
+    it('should reset to defaults when getPasswordPolicy fails', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createFailedPolicyResult('policy read error'))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.initialized).assertTrue()
+      expect(viewModel.state.loading).assertFalse()
+      expect(viewModel.state.adminActivated).assertTrue()
+      expect(viewModel.state.minLengthIndex).assertEqual(0)
+      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertFalse()
+    })
+
+    it('should sanitize custom validity input and update derived state', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
       viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
       viewModel.setCustomValidityPeriodText('120days')
 
       expect(viewModel.isCustomValiditySelected).assertTrue()
       expect(viewModel.state.customValidityPeriodText).assertEqual('120')
       expect(viewModel.state.hasChanges).assertTrue()
-    })
-
-    it('should switch to permanent validity state', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      viewModel.reset()
-      viewModel.setValidityPeriodIndex(PERMANENT_VALIDITY_OPTION_INDEX)
-
-      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
-      expect(viewModel.state.customValidityPeriodText).assertEqual('')
-      expect(viewModel.state.hasChanges).assertFalse()
-    })
-
-    it('should reset to default editable values when no system policy is available', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      viewModel.initialize(null)
-
-      expect(viewModel.state.minLengthIndex).assertEqual(1)
-      expect(viewModel.state.requireUppercase).assertTrue()
-      expect(viewModel.state.requireLowercase).assertTrue()
-      expect(viewModel.state.requireDigit).assertTrue()
-      expect(viewModel.state.requireSpecialChar).assertTrue()
-      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
-      expect(viewModel.state.customValidityPeriodText).assertEqual('')
-      expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertTrue()
     })
 
     it('should reject save when custom validity is invalid', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+
       let viewModel = new IdentitySettingsViewModel()
       viewModel.reset()
       viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
 
-      let result = viewModel.save()
+      let result = viewModel.requestSave()
 
-      expect(result.success).assertFalse()
-      expect(result.message).assertEqual(IdentityMessageStrings.INVALID_VALIDITY_DAYS)
+      expectResultFailure(result, IdentityMessageStrings.INVALID_VALIDITY_DAYS)
+      expect(viewModel.state.canSave).assertTrue()
     })
 
-    it('should warn when custom validity is zero days', 0, () => {
+    it('should return confirm request when custom validity is zero days', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+
       let viewModel = new IdentitySettingsViewModel()
       viewModel.reset()
       viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
       viewModel.setCustomValidityPeriodText('0')
 
-      expect(viewModel.shouldWarnImmediateExpiry()).assertTrue()
+      let result = viewModel.requestSave()
+
+      expect(result.kind).assertEqual('confirm')
+      expect(result.title).assertEqual(IdentityMessageStrings.IMMEDIATE_EXPIRY_RISK_TITLE)
+      expect(result.message).assertEqual(IdentityMessageStrings.IMMEDIATE_EXPIRY_RISK_MESSAGE)
     })
 
     it('should reject save when nothing changed from current policy', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      const currentRegex = '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$'
-      viewModel.initialize({
-        complexityRegex: currentRegex,
-        validityPeriod: 30
-      } as securityManager.PasswordPolicy)
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let policyResult = new PasswordPolicyResult()
-      policyResult.success = true
-      policyResult.data = { complexityRegex: currentRegex, validityPeriod: 30 } as securityManager.PasswordPolicy
-      when(getPolicyMock)().afterReturn(policyResult)
+      let currentPolicy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$', 30)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
 
-      let result = viewModel.save()
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
 
-      expect(result.success).assertFalse()
-      expect(result.message).assertEqual(MessageText.NO_CHANGES)
+      let result = viewModel.requestSave(true)
+
+      expectResultFailure(result, MessageText.NO_CHANGES)
     })
 
-    it('should clear dirty state after successful save', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      viewModel.reset()
-      viewModel.setRequirement('requireSpecialChar', false)
-
+    it('should save changed config and clear dirty state', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
-      let policyResult = new PasswordPolicyResult()
-      policyResult.success = true
-      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 180 } as securityManager.PasswordPolicy
-      when(getPolicyMock)().afterReturn(policyResult)
-      let saveResult = new SavePasswordPolicyResult()
-      saveResult.success = true
-      when(setPolicyMock)(ArgumentMatchers.anyObj).afterReturn(saveResult)
+      let currentPolicy = createPolicy('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{8,}$', 30)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
+      when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(true))
 
-      let result = viewModel.save()
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setRequirement('requireSpecialChar', false)
 
-      expect(result.success).assertTrue()
+      let result = viewModel.requestSave(true)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('success')
       expect(result.message).assertEqual(IdentityMessageStrings.SAVE_SUCCESS)
+      expect(viewModel.state.hasChanges).assertFalse()
+      expect(viewModel.state.canSave).assertFalse()
+    })
+
+    it('should surface admin-missing save failures from service layer', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      let currentPolicy = createPolicy('^(?=.*[a-z]).{6,}$', 30)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
+      when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(false, true, 'edm missing'))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setRequirement('requireSpecialChar', true)
+
+      let result = viewModel.requestSave(true)
+
+      expectResultFailure(result, DialogService.displayReason('edm missing', AdminText.NOT_ACTIVATED))
+    })
+
+    it('should surface retry message for non-admin save failures', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      let currentPolicy = createPolicy('^(?=.*\\d).{10,}$', 30)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(currentPolicy))
+      when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(false, false, 'io failed'))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setRequirement('requireSpecialChar', true)
+
+      let result = viewModel.requestSave(true)
+
+      expectResultFailure(
+        result,
+        DialogService.displayReason('io failed', `${IdentityActionStrings.PASSWORD_POLICY}${IdentityMessageStrings.ACTION_RETRY_SUFFIX}`)
+      )
+    })
+
+    it('should return failure immediately when admin is inactive during save', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      when(adminMock)().afterReturn(createInactiveAdminState('admin inactive'))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.reset()
+      viewModel.setRequirement('requireDigit', true)
+
+      let result = viewModel.requestSave(true)
+
+      expectResultFailure(result, 'admin inactive')
+    })
+
+    it('should use default admin required message when admin has no error message', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let inactiveState = createInactiveAdminState('')
+      when(adminMock)().afterReturn(inactiveState)
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.reset()
+      viewModel.setRequirement('requireDigit', true)
+
+      let result = viewModel.requestSave(true)
+
+      expectResultFailure(result, `${IdentityActionStrings.SAVE}${IdentityMessageStrings.ADMIN_REQUIRED_WITH_ACTION_SUFFIX}`)
+    })
+
+    it('should map half-year validity period to half-year option', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$', 183)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+    })
+
+    it('should map one-year validity period to one-year option', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$', 366)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(ONE_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+    })
+
+    it('should map custom validity period to custom option', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$', 90)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('90')
+    })
+
+    it('should default validity option when policy has no validity period', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$')
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+    })
+
+    it('should clear custom text when switching away from custom validity', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
+      viewModel.setCustomValidityPeriodText('90')
+      viewModel.setValidityPeriodIndex(HALF_YEAR_VALIDITY_OPTION_INDEX)
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+    })
+
+    it('should skip confirm when skipImmediateExpiryConfirm is true and validity is zero', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+      when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(true))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
+      viewModel.setCustomValidityPeriodText('0')
+
+      let result = viewModel.requestSave(true)
+
+      expect(result.kind).assertEqual('result')
+    })
+
+    it('should reject save when current policy is null and config differs', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+      when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(true))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setRequirement('requireDigit', true)
+
+      let result = viewModel.requestSave(true)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('success')
+    })
+
+    it('should keep canSave true when custom validity is empty', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
+
+      expect(viewModel.state.hasChanges).assertTrue()
+      expect(viewModel.state.canSave).assertTrue()
+    })
+
+    it('should set minLengthIndex to default when policy minLength not in options', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{99,}$', 365)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.minLengthIndex).assertEqual(0)
+    })
+
+    it('should update minLengthIndex when setMinLengthIndex is called', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setMinLengthIndex(3)
+
+      expect(viewModel.state.minLengthIndex).assertEqual(3)
+      expect(viewModel.state.hasChanges).assertTrue()
+    })
+
+    it('should ignore invalid minLengthIndex', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setMinLengthIndex(-1)
+
+      expect(viewModel.state.minLengthIndex).assertEqual(0)
       expect(viewModel.state.hasChanges).assertFalse()
     })
 
-    it('should use admin-required message when save fails without admin', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      viewModel.reset()
-      viewModel.setRequirement('requireSpecialChar', false)
-
+    it('should set requireUppercase via setRequirement', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
-      let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
-      let policyResult = new PasswordPolicyResult()
-      policyResult.success = true
-      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 180 } as securityManager.PasswordPolicy
-      when(getPolicyMock)().afterReturn(policyResult)
-      let saveResult = new SavePasswordPolicyResult()
-      saveResult.success = false
-      saveResult.isAdminMissing = true
-      saveResult.errorMessage = 'edm missing'
-      when(setPolicyMock)(ArgumentMatchers.anyObj).afterReturn(saveResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
 
-      let result = viewModel.save()
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setRequirement('requireUppercase', true)
 
-      expect(result.success).assertFalse()
-      expect(result.message).assertEqual(DialogService.displayReason('edm missing', AdminText.NOT_ACTIVATED))
+      expect(viewModel.state.requireUppercase).assertTrue()
+      expect(viewModel.state.hasChanges).assertTrue()
     })
 
-    it('should use retry message when save fails for non-admin reasons', 0, () => {
-      let viewModel = new IdentitySettingsViewModel()
-      viewModel.reset()
-      viewModel.setRequirement('requireSpecialChar', false)
+    it('should set requireLowercase via setRequirement', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
 
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setRequirement('requireLowercase', true)
+
+      expect(viewModel.state.requireLowercase).assertTrue()
+      expect(viewModel.state.hasChanges).assertTrue()
+    })
+
+    it('should resolve one-year validity period correctly', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
-      let policyResult = new PasswordPolicyResult()
-      policyResult.success = true
-      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 180 } as securityManager.PasswordPolicy
-      when(getPolicyMock)().afterReturn(policyResult)
-      let saveResult = new SavePasswordPolicyResult()
-      saveResult.success = false
-      saveResult.isAdminMissing = false
-      saveResult.errorMessage = 'io failed'
-      when(setPolicyMock)(ArgumentMatchers.anyObj).afterReturn(saveResult)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(null))
+      when(setPolicyMock)(ArgumentMatchers.anyObj as PasswordComplexityConfig).afterReturn(createSaveResult(true))
 
-      let result = viewModel.save()
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+      viewModel.setValidityPeriodIndex(ONE_YEAR_VALIDITY_OPTION_INDEX)
 
-      expect(result.success).assertFalse()
-      expect(result.message).assertEqual(
-        DialogService.displayReason('io failed', `${IdentityActionStrings.PASSWORD_POLICY}${IdentityMessageStrings.ACTION_RETRY_SUFFIX}`)
-      )
+      let result = viewModel.requestSave(true)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('success')
     })
   })
 }

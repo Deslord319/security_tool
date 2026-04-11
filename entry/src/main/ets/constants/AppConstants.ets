@@ -1,4 +1,5 @@
 import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
+import { AppResources } from './AppResources'
 import { AppText, ModuleText } from './StringCatalog'
 import { RouteIds } from './RouteIds'
 
@@ -223,10 +224,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: RouteIds.DASHBOARD, label: ModuleText.DASHBOARD, icon: $r('app.media.dashboard') },
-  { id: RouteIds.FIREWALL, label: ModuleText.FIREWALL, icon: $r('app.media.firewall') },
-  { id: RouteIds.LOG_MANAGE, label: ModuleText.LOG_MANAGE, icon: $r('app.media.log') },
-  { id: RouteIds.PERIPHERAL_MANAGE, label: ModuleText.PERIPHERAL_MANAGE, icon: $r('app.media.peripheral') },
-  { id: RouteIds.IDENTITY, label: ModuleText.IDENTITY, icon: $r('app.media.identity') },
-  { id: RouteIds.TOOL_SETTINGS, label: ModuleText.TOOL_SETTINGS, icon: $r('app.media.settings') }
+  { id: RouteIds.DASHBOARD, label: ModuleText.DASHBOARD, icon: AppResources.DASHBOARD_ICON },
+  { id: RouteIds.FIREWALL, label: ModuleText.FIREWALL, icon: AppResources.FIREWALL_ICON },
+  { id: RouteIds.LOG_MANAGE, label: ModuleText.LOG_MANAGE, icon: AppResources.LOG_ICON },
+  { id: RouteIds.PERIPHERAL_MANAGE, label: ModuleText.PERIPHERAL_MANAGE, icon: AppResources.PERIPHERAL_ICON },
+  { id: RouteIds.IDENTITY, label: ModuleText.IDENTITY, icon: AppResources.IDENTITY_ICON },
+  { id: RouteIds.TOOL_SETTINGS, label: ModuleText.TOOL_SETTINGS, icon: AppResources.SETTINGS_ICON }
 ]

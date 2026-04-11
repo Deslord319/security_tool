@@ -11,6 +11,7 @@ export struct BaseCard {
   @Param disabled: boolean = false
   @Param overlayAngle: number = 24
   @Param hoverLift: number = 4
+  @Param hoverScale: number = 1.01
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @BuilderParam content: () => void
   @Event onPress: () => void = () => {}
@@ -65,8 +66,8 @@ export struct BaseCard {
     .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))
     .translate({ y: HoverUtils.getTranslateY(this.isHovered, this.hoverLift) })
     .scale({
-      x: HoverUtils.getScale(this.isHovered),
-      y: HoverUtils.getScale(this.isHovered)
+      x: HoverUtils.getScale(this.isHovered, this.hoverScale),
+      y: HoverUtils.getScale(this.isHovered, this.hoverScale)
     })
     .opacity(this.disabled ? 0.6 : 1)
     .clip(true)

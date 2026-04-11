@@ -120,8 +120,6 @@ export interface OperationResult<T = void> {
 
 export type PeripheralRecordSource = 'runtime_event' | 'audit_event' | 'policy_snapshot'
 
-export type PeripheralCandidateSource = PeripheralRecordSource | 'connected_usb'
-
 export type PeripheralRecordAction = 'connect' | 'disconnect' | 'discover' | 'intercept' | 'unknown'
 
 export type PeripheralRecordPolicyHit = 'allow' | 'deny' | 'unknown'
@@ -306,7 +304,7 @@ export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): 
 
 // ==================== 设备 ID 解析工具函数 ====================
 
-export interface ParsedUsbId {
+interface ParsedUsbId {
   vendorId: number
   productId: number
 }
@@ -357,7 +355,8 @@ export interface PasswordComplexityConfig {
 }
 
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
-export const PASSWORD_VALIDITY_OPTIONS: number[] = [180, 365]
+export type PasswordValidityPreset = 'halfYear' | 'oneYear'
+export const PASSWORD_VALIDITY_PRESETS: PasswordValidityPreset[] = ['halfYear', 'oneYear']
 
 export enum AuthMethod {
   PIN = 1,
@@ -386,12 +385,10 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 
-export type FirewallManagedRuleKind = 'preset' | 'custom'
-
 export interface FirewallManagedRuleMetadata {
   owner: 'security_tool'
   mode: FirewallPresetMode
-  kind: FirewallManagedRuleKind
+  kind: 'preset' | 'custom'
   customRuleId?: string
   templateKey?: string
 }
@@ -570,7 +567,7 @@ export interface ExportActionResult {
   reason?: string
 }
 
-export interface LogEventTypeOption {
+interface LogEventTypeOption {
   label: string
   value: LogEventType
   icon?: Resource

@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 import { BaseCard } from './BaseCard'
 import { HoverUtils } from '../utils/HoverUtils'
@@ -8,7 +9,7 @@ export struct MetricSummaryCard {
   @Param title: string = ''
   @Param primaryText: string = ''
   @Param secondaryText: string = ''
-  @Param icon: Resource = $r('app.media.shield')
+  @Param icon: Resource = AppResources.SHIELD_ICON
   @Param accentStart: string = AppColors.BRAND_PRIMARY
   @Param accentEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Param cardHeight: number = 108
@@ -79,7 +80,7 @@ export struct MetricSummaryCard {
             Blank()
 
             if (this.clickable && !this.disabled) {
-              Image($r('app.media.chevron_right'))
+              Image(AppResources.CHEVRON_RIGHT_ICON)
                 .width(16)
                 .height(16)
                 .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

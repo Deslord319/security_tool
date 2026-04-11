@@ -1,4 +1,5 @@
 import { AppColors, AppStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 import { BaseCard } from './BaseCard'
 import { HoverUtils } from '../utils/HoverUtils'
@@ -6,7 +7,7 @@ import { HoverUtils } from '../utils/HoverUtils'
 @ComponentV2
 export struct ToolCard {
   @Param label: string = ''
-  @Param icon: Resource = $r('app.media.shield')
+  @Param icon: Resource = AppResources.SHIELD_ICON
   @Param gradientStart: string = AppColors.BRAND_PRIMARY
   @Param gradientEnd: string = AppColors.GRADIENT_FIREWALL_END
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT

@@ -1,5 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppResources } from '../../../constants/AppResources'
 import { ModuleText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import {
@@ -105,12 +106,12 @@ export struct FirewallPage {
   private getModeIcon(mode: FirewallPresetMode): Resource {
     switch (mode) {
       case 'public':
-        return $r('app.media.globe')
+        return AppResources.GLOBE_ICON
       case 'private':
-        return $r('app.media.shield')
+        return AppResources.SHIELD_ICON
       case 'custom':
       default:
-        return $r('app.media.firewall')
+        return AppResources.FIREWALL_ICON
     }
   }
 
@@ -301,7 +302,7 @@ export struct FirewallPage {
       Column({ space: 6 }) {
         if (this.isModeSelected(mode)) {
           Row({ space: 4 }) {
-            Image($r('app.media.check'))
+            Image(AppResources.CHECK_ICON)
               .width(12)
               .height(12)
               .fillColor(this.getModeStatusTextColor(mode))
@@ -340,7 +341,7 @@ export struct FirewallPage {
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
               .opacity(this.isModeSelected(mode) ? this.getThemeColors().TEXT_SECONDARY_OPACITY : this.getThemeColors().TEXT_TERTIARY_OPACITY)
-            Image($r('app.media.chevron_right'))
+            Image(AppResources.CHEVRON_RIGHT_ICON)
               .width(16)
               .height(16)
               .fillColor(this.getThemeColors().TEXT_PRIMARY)
@@ -353,13 +354,13 @@ export struct FirewallPage {
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
               .opacity(this.getThemeColors().TEXT_SECONDARY_OPACITY)
-            Image($r('app.media.check'))
+            Image(AppResources.CHECK_ICON)
               .width(14)
               .height(14)
               .fillColor(this.getModeAccent(mode))
           }
         } else {
-          Image($r('app.media.check'))
+          Image(AppResources.CHECK_ICON)
             .width(14)
             .height(14)
             .fillColor(this.getThemeColors().TEXT_PRIMARY)

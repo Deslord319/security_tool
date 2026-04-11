@@ -15,6 +15,7 @@ class FakeToolSettingsRepository implements ToolSettingsRepository {
     authMethod: AuthMethod.PIN
   }
   saveResult: boolean = true
+  saveDelay: number = 0
 
   async loadConfig(_context: common.UIAbilityContext): Promise<ToolSettingsConfig> {
     return {
@@ -24,6 +25,9 @@ class FakeToolSettingsRepository implements ToolSettingsRepository {
   }
 
   async saveConfig(_context: common.UIAbilityContext, config: ToolSettingsConfig): Promise<boolean> {
+    if (this.saveDelay > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, this.saveDelay))
+    }
     if (this.saveResult) {
       this.config = {
         startupAuthEnabled: config.startupAuthEnabled,
@@ -160,6 +164,83 @@ export default function toolSettingsViewModelTest() {
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('failure')
       expect(result.message).assertEqual(ToolSettingsPageStrings.OPEN_PASSWORD_SETTINGS_FAILED)
+      done()
+    })
+
+    it('should return none when opening password settings succeeds', 0, async (done: Function) => {
+      let openSettingsMock = mockKit.mockFunc(SystemSettingsService, SystemSettingsService.openPasswordSettings)
+      when(openSettingsMock)(context).afterReturn(true)
+
+      let result = await viewModel.openPasswordSettings(context)
+
+      expect(result.kind).assertEqual('none')
+      done()
+    })
+
+    it('should skip save when already saving', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      viewModel.setStartupAuthEnabled(true)
+      repository.saveDelay = 100
+
+      let firstSave = viewModel.requestSave(context, true)
+      let secondResult = await viewModel.requestSave(context, true)
+
+      expect(secondResult.kind).assertEqual('none')
+
+      await firstSave
+      done()
+    })
+
+    it('should not update config when setting same startupAuthEnabled value', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+
+      viewModel.setStartupAuthEnabled(false)
+
+      expect(viewModel.state.hasChanges).assertFalse()
+      done()
+    })
+
+    it('should not update config when setting same authMethod value', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+
+      viewModel.setAuthMethod(AuthMethod.PIN)
+
+      expect(viewModel.state.hasChanges).assertFalse()
+      done()
+    })
+
+    it('should return 0 for selectedAuthMethodIndex when auth method not found in options', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      viewModel.state.config.authMethod = 999 as AuthMethod
+
+      expect(viewModel.selectedAuthMethodIndex).assertEqual(0)
+      done()
+    })
+
+    it('should skip auth availability check when startup auth is disabled', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      viewModel.setAuthMethod(AuthMethod.FINGERPRINT)
+
+      let result = await viewModel.requestSave(context)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('success')
+      done()
+    })
+
+    it('should save successfully when auth method is available and startup auth enabled', 0, async (done: Function) => {
+      await viewModel.initialize(context)
+      viewModel.setStartupAuthEnabled(true)
+      let availabilityMock = mockKit.mockFunc(AuthService, AuthService.checkAuthMethodAvailability)
+      let resultValue = new FakeAuthAvailabilityResult()
+      resultValue.available = true
+      resultValue.message = 'available'
+      when(availabilityMock)(AuthMethod.PIN).afterReturn(resultValue)
+
+      let result = await viewModel.requestSave(context)
+
+      expect(result.kind).assertEqual('result')
+      expect(result.status).assertEqual('success')
       done()
     })
   })

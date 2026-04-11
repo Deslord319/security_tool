@@ -4,9 +4,7 @@ import { securityManager } from '@kit.MDMKit'
 import { Want } from '@kit.AbilityKit'
 import { OperationResult, PasswordComplexityConfig } from '../../../models/DataModels'
 import { AppInfo } from '../../../constants/AppConstants'
-import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { PeripheralService } from '../../peripheral/interface-control/PeripheralService'
-import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import {
   IdentityActionStrings,
   IdentityRequirementStrings
@@ -20,6 +18,32 @@ const ADMIN_WANT: Want = {
 }
 
 export class IdentityService {
+  static toConfig(policy?: securityManager.PasswordPolicy | null): PasswordComplexityConfig | null {
+    if (!policy) {
+      return null
+    }
+
+    return {
+      minLength: IdentityService.resolveMinLength(policy.complexityRegex),
+      requireUppercase: IdentityService.hasUppercaseRequirement(policy.complexityRegex),
+      requireLowercase: IdentityService.hasLowercaseRequirement(policy.complexityRegex),
+      requireDigit: IdentityService.hasDigitRequirement(policy.complexityRegex),
+      requireSpecialChar: IdentityService.hasSpecialRequirement(policy.complexityRegex),
+      validityPeriod: policy.validityPeriod
+    }
+  }
+
+  static toPasswordPolicy(config: PasswordComplexityConfig): securityManager.PasswordPolicy {
+    let policy: securityManager.PasswordPolicy = {
+      complexityRegex: IdentityService.buildComplexityRegex(config),
+      additionalDescription: IdentityService.buildDescription(config)
+    }
+    if (typeof config.validityPeriod === 'number') {
+      policy.validityPeriod = config.validityPeriod
+    }
+    return policy
+  }
+
   static buildComplexityRegex(config: PasswordComplexityConfig): string {
     let lookaheads: string[] = []
     let charSet = ''
@@ -64,16 +88,12 @@ export class IdentityService {
 
   static setPasswordPolicyWithResult(config: PasswordComplexityConfig): OperationResult<void> {
     try {
-      let regex = IdentityService.buildComplexityRegex(config)
-      let description = IdentityService.buildDescription(config)
-      let policy: securityManager.PasswordPolicy = {
-        complexityRegex: regex,
-        additionalDescription: description
-      }
-      if (typeof config.validityPeriod === 'number') {
-        policy.validityPeriod = config.validityPeriod
-      }
+      let policy = IdentityService.toPasswordPolicy(config)
+      LogUtils.info(TAG,
+        `setPasswordPolicy request | minLength=${config.minLength}, upper=${config.requireUppercase}, lower=${config.requireLowercase}, digit=${config.requireDigit}, special=${config.requireSpecialChar}, validity=${typeof config.validityPeriod === 'number' ? config.validityPeriod : -1}, regex=${policy.complexityRegex}`
+      )
       securityManager.setPasswordPolicy(ADMIN_WANT, policy)
+      LogUtils.info(TAG, `setPasswordPolicy success | regex=${policy.complexityRegex}, validity=${typeof policy.validityPeriod === 'number' ? policy.validityPeriod : -1}`)
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
@@ -84,6 +104,9 @@ export class IdentityService {
   static getPasswordPolicyWithResult(): OperationResult<securityManager.PasswordPolicy | null> {
     try {
       let result = securityManager.getPasswordPolicy(ADMIN_WANT)
+      LogUtils.info(TAG,
+        `getPasswordPolicy success | hasPolicy=${result !== null}, regex=${result?.complexityRegex ?? ''}, validity=${typeof result?.validityPeriod === 'number' ? result.validityPeriod : -1}`
+      )
       return {
         success: true,
         data: result
@@ -100,5 +123,36 @@ export class IdentityService {
 
   private static buildMinLengthRequirement(minLength: number): string {
     return IdentityRequirementStrings.buildPasswordMinLengthRequirement(minLength)
+  }
+
+  private static hasLowercaseRequirement(regex?: string): boolean {
+    let source = regex ?? ''
+    return source.indexOf('(?=.*[a-z])') >= 0
+  }
+
+  private static hasUppercaseRequirement(regex?: string): boolean {
+    let source = regex ?? ''
+    return source.indexOf('(?=.*[A-Z])') >= 0
+  }
+
+  private static hasDigitRequirement(regex?: string): boolean {
+    let source = regex ?? ''
+    return source.indexOf('(?=.*\\d)') >= 0 || source.indexOf('(?=.*[0-9])') >= 0
+  }
+
+  private static hasSpecialRequirement(regex?: string): boolean {
+    let source = regex ?? ''
+    return source.indexOf('(?=.*[!@#$%^&*])') >= 0 ||
+      source.indexOf('(?=.*[^a-zA-Z0-9])') >= 0 ||
+      source.indexOf('(?=.*[^A-Za-z0-9])') >= 0
+  }
+
+  private static resolveMinLength(regex?: string): number {
+    let source = regex ?? ''
+    let lenMatch = source.match(/\{(\d+),\}/)
+    if (!lenMatch || !lenMatch[1]) {
+      return 0
+    }
+    return parseInt(lenMatch[1])
   }
 }

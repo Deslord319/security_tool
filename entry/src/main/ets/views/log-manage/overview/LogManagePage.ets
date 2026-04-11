@@ -1,6 +1,7 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText, ResultText, MessageText } from '../../../constants/StringCatalog'
 import { LoadingStrings } from '../../../constants/modules/DialogStrings'
 import {
@@ -169,7 +170,7 @@ export struct LogManagePage {
           title: LogManageStatStrings.TOTAL,
           valueText: `${this.viewModel.state.summary.totalCount}`,
           description: LogManageStatStrings.TOTAL_DESCRIPTION,
-          icon: $r('app.media.folder'),
+          icon: AppResources.FOLDER_ICON,
           accentStart: AppColors.BRAND_PRIMARY,
           accentEnd: AppColors.GRADIENT_FIREWALL_END,
           preset: 'log',
@@ -181,7 +182,7 @@ export struct LogManagePage {
           title: LogManageStatStrings.TODAY,
           valueText: `${this.viewModel.state.summary.todayCount}`,
           description: LogManageStatStrings.TODAY_DESCRIPTION,
-          icon: $r('app.media.log'),
+          icon: AppResources.LOG_ICON,
           accentStart: AppColors.SUCCESS,
           accentEnd: AppColors.GRADIENT_LOG_END,
           preset: 'log',
@@ -193,7 +194,7 @@ export struct LogManagePage {
           title: LogResultPresentationStrings.BLOCKED,
           valueText: `${this.viewModel.state.summary.blockedCount}`,
           description: LogManageStatStrings.BLOCKED_DESCRIPTION,
-          icon: $r('app.media.alert'),
+          icon: AppResources.ALERT_ICON,
           accentStart: AppColors.WARNING,
           accentEnd: AppColors.GRADIENT_IDENTITY_END,
           preset: 'log',
@@ -205,7 +206,7 @@ export struct LogManagePage {
           title: LogManageStatStrings.CURRENT_SHOWN,
           valueText: `${this.viewModel.state.summary.currentShownCount}`,
           description: LogManageStatStrings.CURRENT_SHOWN_DESCRIPTION,
-          icon: $r('app.media.dashboard'),
+          icon: AppResources.DASHBOARD_ICON,
           accentStart: AppColors.TEXT_MUTED,
           accentEnd: AppColors.GRADIENT_TOOL_END,
           preset: 'log',
@@ -223,7 +224,7 @@ export struct LogManagePage {
       if (this.viewModel.state.mode === 'list') {
         IconTextActionButton({
           label: LogManageActionStrings.EXPORT_LOGS,
-          icon: $r('app.media.save'),
+          icon: AppResources.SAVE_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
             void this.handleExportLogs()
@@ -231,14 +232,14 @@ export struct LogManagePage {
         })
         IconTextActionButton({
           label: LogManageActionStrings.CLEAR_LOGS,
-          icon: $r('app.media.trash'),
+          icon: AppResources.TRASH_ICON,
           kind: 'danger',
           currentTheme: this.currentTheme,
           onTap: () => this.handleClearLogs()
         })
         IconTextActionButton({
           label: LogManageActionStrings.OPEN_STORAGE_SETTINGS,
-          icon: $r('app.media.settings'),
+          icon: AppResources.SETTINGS_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
             void this.openStorageSettings()
@@ -247,7 +248,7 @@ export struct LogManagePage {
       } else {
         IconTextActionButton({
           label: ActionText.SAVE_SETTINGS,
-          icon: $r('app.media.save'),
+          icon: AppResources.SAVE_ICON,
           currentTheme: this.currentTheme,
           isEnabled: this.viewModel.settingsViewModel.state.dirty && !this.viewModel.settingsViewModel.state.saving,
           onTap: () => {
@@ -256,7 +257,7 @@ export struct LogManagePage {
         })
         IconTextActionButton({
           label: LogManageActionStrings.BACK_TO_LOG_LIST,
-          icon: $r('app.media.log'),
+          icon: AppResources.LOG_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
             void this.backToLogList()

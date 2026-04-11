@@ -1,7 +1,5 @@
-export type DashboardModuleCardId = 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage'
-
 export interface DashboardModuleCardState {
-  id: DashboardModuleCardId
+  id: 'admin-status' | 'firewall' | 'log-manage' | 'peripheral-manage'
   title: string
   primaryText: string
   secondaryText: string

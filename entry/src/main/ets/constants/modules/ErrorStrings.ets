@@ -19,13 +19,6 @@ export class SystemServiceErrorStrings {
   static readonly userNotExistOrInvalid: string = '目标用户不存在或已失效'
 }
 
-export class LogExportErrorStrings {
-  static readonly noLogsToExport: string = '无日志可导出'
-  static readonly uiContextUnavailable: string = 'UI 上下文不可用'
-  static readonly userCanceledSave: string = '用户取消保存'
-  static readonly exportFailedPrefix: string = '导出失败：'
-}
-
 export class ErrorTemplates {
   static readonly actionFailedTemplate: string = '${action}失败'
   static readonly errorWithCodeTemplate: string = '${message}（错误码 ${code}）'

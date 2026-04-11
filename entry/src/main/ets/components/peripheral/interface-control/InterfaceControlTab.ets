@@ -8,6 +8,7 @@ import { HoverUtils } from '../../../utils/HoverUtils'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { AsyncSelectRow } from '../../AsyncSelectRow'
+import { SectionLabel } from '../../SectionRows'
 
 @ComponentV2
 export struct InterfaceControlTab {
@@ -61,7 +62,7 @@ export struct InterfaceControlTab {
         .onHover((isHover: boolean) => this.onPanelHover && this.onPanelHover(isHover))
       }
       .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM })
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_XS })
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     }
     .width('100%')
@@ -139,19 +140,11 @@ export struct InterfaceControlTab {
     onSelect?: (index: number) => void
   ) {
     Row() {
-      Column({ space: 4 }) {
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-        Text(description)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+      SectionLabel({
+        title: label,
+        description: description,
+        currentTheme: this.currentTheme
+      })
 
       Row({ space: 10 }) {
         if (isProcessing) {
@@ -161,10 +154,7 @@ export struct InterfaceControlTab {
             .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         }
 
-        Select(options.map((value: string) => {
-          const item: SelectOption = { value: value }
-          return item
-        }))
+        Select(options.map((value: string): SelectOption => ({ value: value } as SelectOption)))
           .selected(selectedIndex)
           .value(options[selectedIndex] ?? '')
           .fontColor(FormControlUtils.text(this.currentTheme))

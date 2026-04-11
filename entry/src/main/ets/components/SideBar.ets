@@ -1,4 +1,5 @@
 import { AppColors, AppStyles, InteractiveItemStyles, NavItem, NAV_ITEMS } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { AppText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode } from '../theme/ThemeColors'
@@ -29,7 +30,7 @@ export struct SideBar {
   }
 
   private getThemeModeIcon(): Resource {
-    return this.currentTheme === ThemeMode.DARK ? $r('app.media.moon') : $r('app.media.sun')
+    return this.currentTheme === ThemeMode.DARK ? AppResources.MOON_ICON : AppResources.SUN_ICON
   }
 
   private getThemeModeLabel(): string {
@@ -47,7 +48,7 @@ export struct SideBar {
   build() {
     Column() {
       Row({ space: 8 }) {
-        Image($r('app.media.startIcon_about'))
+        Image(AppResources.START_ICON_ABOUT)
           .width(20)
           .height(20)
           .draggable(false)

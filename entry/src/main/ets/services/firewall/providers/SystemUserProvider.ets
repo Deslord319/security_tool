@@ -168,7 +168,12 @@ export class SystemUserProvider {
 
   private static getPreferencesContext(): common.Context | null {
     try {
-      return application.getApplicationContext()
+      let context = application.getApplicationContext()
+      if (!context) {
+        LogUtils.warn(TAG, 'getPreferencesContext returned empty application context')
+        return null
+      }
+      return context
     } catch (err) {
       LogUtils.warn(TAG, 'getPreferencesContext failed: %{public}s', JSON.stringify(err))
       return null

@@ -212,7 +212,7 @@ export class DashboardViewModel {
       this.createQuickEntry(
         RouteIds.HELP_FEEDBACK,
         ModuleText.HELP_FEEDBACK,
-        AppResources.HELP_ICON,
+        AppResources.HELP_MENU_ICON,
         DashboardGradientPalette.helpFeedbackGradient.start,
         DashboardGradientPalette.helpFeedbackGradient.end,
         RouteIds.HELP_FEEDBACK

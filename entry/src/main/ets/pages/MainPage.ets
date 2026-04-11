@@ -10,6 +10,7 @@ import { ToolSettingsPage } from '../views/tool-settings/system-settings/ToolSet
 import { HelpFeedbackPage } from '../views/help-feedback/overview/HelpFeedbackPage'
 import { LogManagePage } from '../views/log-manage/overview/LogManagePage'
 import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
+import { AppResources } from '../constants/AppResources'
 import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { ThemeManager } from '../theme/ThemeManager'
@@ -451,7 +452,7 @@ struct MainPage {
             Blank()
 
             Button() {
-              Image($r('app.media.menu_vertical_light'))
+              Image(AppResources.MENU_VERTICAL_LIGHT_ICON)
                 .width(18)
                 .height(18)
                 .fillColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
