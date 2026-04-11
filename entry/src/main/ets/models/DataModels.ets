@@ -353,11 +353,11 @@ export interface PasswordComplexityConfig {
   requireLowercase: boolean
   requireDigit: boolean
   requireSpecialChar: boolean
-  validityPeriod: number
+  validityPeriod?: number
 }
 
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
-export const PASSWORD_VALIDITY_OPTIONS: number[] = [0, 30, 60, 90]
+export const PASSWORD_VALIDITY_OPTIONS: number[] = [180, 365]
 
 export enum AuthMethod {
   PIN = 1,

@@ -33,7 +33,6 @@ export struct FirewallRulesPage {
   @Param rulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   @Event onBack: () => void = () => {}
   private userFirewallDialogController?: CustomDialogController
-  @Local private pageScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
   @Local private listScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
@@ -384,31 +383,23 @@ export struct FirewallRulesPage {
     }
   }
 
-  getTabCount(index: number): number {
-    return this.rulesViewModel.getTabCount(index)
-  }
-
   @Builder
   tabBuilder(title: string, index: number) {
-    Row({ space: 8 }) {
+    Column() {
       Text(title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(this.rulesViewModel.currentTab === index ? FontWeight.Medium : FontWeight.Normal)
+        .fontWeight(this.rulesViewModel.currentTab === index ? FontWeight.Bold : FontWeight.Regular)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(this.rulesViewModel.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-
-      Text(`${this.getTabCount(index)}`)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(this.rulesViewModel.currentTab === index ? 1 : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.SPACING_CHIP / 2, bottom: AppStyles.SPACING_CHIP / 2 })
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_COMPONENT)
-        .borderRadius(10)
+        .opacity(this.rulesViewModel.currentTab === index
+          ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY
+          : AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
     }
-    .padding({ left: AppStyles.SPACING_TAB_BAR_PADDING, right: AppStyles.SPACING_TAB_BAR_PADDING, top: AppStyles.SPACING_CHIP, bottom: AppStyles.SPACING_CHIP })
-    .backgroundColor(this.rulesViewModel.currentTab === index ? AppColors.getColors(this.currentTheme).BG_CARD : Color.Transparent)
-    .borderRadius(AppStyles.RADIUS_MD)
+    .padding({
+      left: AppStyles.SPACING_TAB_BAR_ITEM_HORIZONTAL,
+      right: AppStyles.SPACING_TAB_BAR_ITEM_HORIZONTAL,
+      top: AppStyles.SPACING_TAB_BAR_ITEM_VERTICAL,
+      bottom: AppStyles.SPACING_TAB_BAR_ITEM_VERTICAL
+    })
   }
 
   build() {
@@ -423,95 +414,85 @@ export struct FirewallRulesPage {
         }
       })
 
-      Scroll() {
-        Column({ space: 18 }) {
-          if (this.rulesViewModel.conflictNotice.length > 0) {
-            Row({ space: 8 }) {
-              Text(FirewallRuleStrings.WARNING_LABEL)
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(AppColors.WARNING)
-                .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-                .backgroundColor(AppColors.FIREWALL_CONFLICT_BG)
-                .borderRadius(AppStyles.RADIUS_CHIP)
+      Column({ space: 18 }) {
+        if (this.rulesViewModel.conflictNotice.length > 0) {
+          Row({ space: 8 }) {
+            Text(FirewallRuleStrings.WARNING_LABEL)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.WARNING)
+              .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
+              .backgroundColor(AppColors.FIREWALL_CONFLICT_BG)
+              .borderRadius(AppStyles.RADIUS_CHIP)
 
-              Text(this.rulesViewModel.conflictNotice)
-                .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                .fontColor(AppColors.WARNING)
-                .layoutWeight(1)
-            }
-            .width('100%')
-            .padding(AppStyles.PADDING_MD)
-            .backgroundColor(AppColors.FIREWALL_CONFLICT_PANEL_BG)
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: AppColors.FIREWALL_CONFLICT_BORDER })
-          }
-
-          Row({ space: AppStyles.PADDING_LG }) {
-            CompactSummaryCard({
-              title: FirewallRuleStrings.INBOUND,
-              valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
-              description: FirewallRuleStrings.INBOUND_DESCRIPTION,
-              accentStart: AppColors.WARNING,
-              accentEnd: AppColors.GRADIENT_IDENTITY_END,
-              icon: $r('app.media.arrow_down'),
-              currentTheme: this.currentTheme
-            })
-              .layoutWeight(1)
-
-            CompactSummaryCard({
-              title: FirewallRuleStrings.OUTBOUND,
-              valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
-              description: FirewallRuleStrings.OUTBOUND_DESCRIPTION,
-              accentStart: AppColors.BRAND_PRIMARY,
-              accentEnd: AppColors.GRADIENT_FIREWALL_END,
-              icon: $r('app.media.arrow_up'),
-              currentTheme: this.currentTheme
-            })
+            Text(this.rulesViewModel.conflictNotice)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.WARNING)
               .layoutWeight(1)
           }
           .width('100%')
-
-          Tabs({ barPosition: BarPosition.Start }) {
-            TabContent() {
-              this.ruleListBuilder(0)
-            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))
-
-            TabContent() {
-              this.ruleListBuilder(1)
-            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.IP_RULE, 1))
-
-            TabContent() {
-              this.ruleListBuilder(2)
-            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DOMAIN_RULE, 2))
-
-            TabContent() {
-              this.ruleListBuilder(3)
-            }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DNS_RULE, 3))
-          }
-          .barMode(BarMode.Scrollable)
-          .barBackgroundColor(Color.Transparent)
-          .divider(null)
-          .onChange((index: number) => {
-            this.rulesViewModel.setCurrentTab(index)
-          })
-          .layoutWeight(1)
+          .padding(AppStyles.PADDING_MD)
+          .backgroundColor(AppColors.FIREWALL_CONFLICT_PANEL_BG)
+          .borderRadius(AppStyles.RADIUS_MD)
+          .border({ width: 1, color: AppColors.FIREWALL_CONFLICT_BORDER })
         }
-        .padding({
-          left: AppStyles.PADDING_LG,
-          right: AppStyles.PADDING_LG,
-          top: AppStyles.PADDING_MD,
-          bottom: AppStyles.PADDING_LG
-        })
+
+        Row({ space: AppStyles.PADDING_LG }) {
+          CompactSummaryCard({
+            title: FirewallRuleStrings.INBOUND,
+            valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
+            description: FirewallRuleStrings.INBOUND_DESCRIPTION,
+            accentStart: AppColors.WARNING,
+            accentEnd: AppColors.GRADIENT_IDENTITY_END,
+            icon: $r('app.media.arrow_down'),
+            currentTheme: this.currentTheme
+          })
+            .layoutWeight(1)
+
+          CompactSummaryCard({
+            title: FirewallRuleStrings.OUTBOUND,
+            valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
+            description: FirewallRuleStrings.OUTBOUND_DESCRIPTION,
+            accentStart: AppColors.BRAND_PRIMARY,
+            accentEnd: AppColors.GRADIENT_FIREWALL_END,
+            icon: $r('app.media.arrow_up'),
+            currentTheme: this.currentTheme
+          })
+            .layoutWeight(1)
+        }
         .width('100%')
+        .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
+
+        Tabs({ barPosition: BarPosition.Start }) {
+          TabContent() {
+            this.ruleListBuilder(0)
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))
+
+          TabContent() {
+            this.ruleListBuilder(1)
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.IP_RULE, 1))
+
+          TabContent() {
+            this.ruleListBuilder(2)
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DOMAIN_RULE, 2))
+
+          TabContent() {
+            this.ruleListBuilder(3)
+          }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.DNS_RULE, 3))
+        }
+        .barMode(BarMode.Scrollable)
+        .barBackgroundColor(Color.Transparent)
+        .divider(null)
+        .onChange((index: number) => {
+          this.rulesViewModel.setCurrentTab(index)
+        })
+        .layoutWeight(1)
       }
       .width('100%')
       .layoutWeight(1)
-      .scrollBar(BarState.Auto)
-      .scrollBarColor(getScrollBarColor(this.currentTheme))
-      .scrollBarWidth(this.pageScrollBarWidth)
-      .onHover((isHover: boolean) => {
-        this.pageScrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
+      .padding({
+        top: AppStyles.PADDING_MD,
+        bottom: AppStyles.PADDING_LG
       })
     }
     .width('100%')
@@ -639,6 +620,7 @@ export struct FirewallRulesPage {
                 .width(RULE_CARD_WIDTH_PERCENT)
               }
               .width('100%')
+              .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
               .justifyContent(FlexAlign.Center)
             }
           })

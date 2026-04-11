@@ -68,8 +68,10 @@ export class IdentityService {
       let description = IdentityService.buildDescription(config)
       let policy: securityManager.PasswordPolicy = {
         complexityRegex: regex,
-        validityPeriod: config.validityPeriod,
         additionalDescription: description
+      }
+      if (typeof config.validityPeriod === 'number') {
+        policy.validityPeriod = config.validityPeriod
       }
       securityManager.setPasswordPolicy(ADMIN_WANT, policy)
       return { success: true } as OperationResult<void>

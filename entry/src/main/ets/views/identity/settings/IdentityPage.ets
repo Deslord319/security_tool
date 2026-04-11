@@ -23,6 +23,7 @@ import { DialogService } from '../../../utils/DialogService'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
+  PERMANENT_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
 } from '../../../viewmodels/identity/settings/IdentitySettingsViewModel'
 
@@ -43,8 +44,9 @@ export struct IdentityPage {
 
   private validityOptions: SelectOption[] = [
     ...PASSWORD_VALIDITY_OPTIONS.map((value: number): SelectOption => ({
-      value: value === 0 ? IdentityFormStrings.PERMANENT_OPTION : `${value} ${IdentityFormStrings.DAY_UNIT}`
+      value: `${value} ${IdentityFormStrings.DAY_UNIT}`
     } as SelectOption)),
+    { value: IdentityFormStrings.PERMANENT_OPTION } as SelectOption,
     { value: IdentityFormStrings.CUSTOM_OPTION } as SelectOption
   ]
 
@@ -71,7 +73,7 @@ export struct IdentityPage {
     this.viewModel.initialize(result.data)
   }
 
-  private saveConfig(): void {
+  private async saveConfig(): Promise<void> {
     this.refreshAdminActivationState()
     if (!this.adminState.activated) {
       DialogService.openFailure(
@@ -83,6 +85,21 @@ export struct IdentityPage {
       return
     }
 
+    if (this.viewModel.shouldWarnImmediateExpiry()) {
+      await DialogService.openConfirm(this.getUIContext(), {
+        title: IdentityMessageStrings.IMMEDIATE_EXPIRY_RISK_TITLE,
+        message: IdentityMessageStrings.IMMEDIATE_EXPIRY_RISK_MESSAGE,
+        onConfirm: () => {
+          this.executeSave()
+        }
+      })
+      return
+    }
+
+    this.executeSave()
+  }
+
+  private executeSave(): void {
     let result = this.viewModel.save()
     DialogService.openResult(this.getUIContext(), {
       status: result.success ? 'success' : 'failure',
@@ -147,7 +164,7 @@ export struct IdentityPage {
       kind: 'primary',
       currentTheme: this.currentTheme,
       onTap: () => {
-        this.saveConfig()
+        void this.saveConfig()
       }
     })
   }

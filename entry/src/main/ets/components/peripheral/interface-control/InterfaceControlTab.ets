@@ -61,7 +61,7 @@ export struct InterfaceControlTab {
         .onHover((isHover: boolean) => this.onPanelHover && this.onPanelHover(isHover))
       }
       .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD })
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM })
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     }
     .width('100%')

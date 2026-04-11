@@ -1,9 +1,7 @@
 import { securityManager } from '@kit.MDMKit'
 import { AdminText, MessageText } from '../../../constants/StringCatalog'
-import {
-  IdentityActionStrings,
-  IdentityMessageStrings
-} from '../../../constants/modules/IdentityStrings'
+import { IdentityActionStrings } from '../../../constants/modules/IdentityStrings'
+import { IdentityMessageStrings } from '../../../constants/modules/IdentityStrings'
 import {
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_VALIDITY_OPTIONS,
@@ -12,7 +10,8 @@ import {
 import { IdentityService } from '../../../services/identity/settings/IdentityService'
 import { DialogService } from '../../../utils/DialogService'
 
-export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length
+export const PERMANENT_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length
+export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_OPTIONS.length + 1
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
 
 export interface IdentitySettingsSaveResult {
@@ -100,6 +99,10 @@ export class IdentitySettingsViewModel {
     })
   }
 
+  shouldWarnImmediateExpiry(): boolean {
+    return this.resolveValidityPeriod() === 0
+  }
+
   save(): IdentitySettingsSaveResult {
     let config = this.buildConfig()
     if (!config) {
@@ -109,7 +112,7 @@ export class IdentitySettingsViewModel {
     let currentPolicy = IdentityService.getPasswordPolicyWithResult().data
     let currentRegex: string = currentPolicy?.complexityRegex ?? ''
     let nextRegex: string = IdentityService.buildComplexityRegex(config)
-    let currentValidity: number = currentPolicy?.validityPeriod ?? 0
+    let currentValidity: number | undefined = currentPolicy?.validityPeriod
     if (currentRegex === nextRegex && currentValidity === config.validityPeriod) {
       return { success: false, message: MessageText.NO_CHANGES }
     }
@@ -143,9 +146,12 @@ export class IdentitySettingsViewModel {
     }
   }
 
-  private resolveValidityPeriod(): number | null {
-    if (!this.isCustomValiditySelected) {
+  private resolveValidityPeriod(): number | undefined | null {
+    if (this.state.validityPeriodIndex < PASSWORD_VALIDITY_OPTIONS.length) {
       return PASSWORD_VALIDITY_OPTIONS[this.state.validityPeriodIndex]
+    }
+    if (this.state.validityPeriodIndex === PERMANENT_VALIDITY_OPTION_INDEX) {
+      return undefined
     }
 
     let normalizedText = this.state.customValidityPeriodText.trim()
@@ -177,16 +183,25 @@ export class IdentitySettingsViewModel {
 
   private applyValidityPeriod(state: IdentitySettingsState, validityPeriod: number | undefined): IdentitySettingsState {
     let nextState = IdentitySettingsViewModel.snapshot(state)
-    let normalized = typeof validityPeriod === 'number' && validityPeriod >= 0 ? validityPeriod : 0
-    let index = PASSWORD_VALIDITY_OPTIONS.indexOf(normalized)
+    if (typeof validityPeriod !== 'number') {
+      nextState.validityPeriodIndex = PERMANENT_VALIDITY_OPTION_INDEX
+      return nextState
+    }
+
+    let index = PASSWORD_VALIDITY_OPTIONS.indexOf(validityPeriod)
     if (index >= 0) {
       nextState.validityPeriodIndex = index
-      nextState.customValidityPeriodText = ''
+      return nextState
+    }
+
+    if (validityPeriod === 0) {
+      nextState.validityPeriodIndex = CUSTOM_VALIDITY_OPTION_INDEX
+      nextState.customValidityPeriodText = '0'
       return nextState
     }
 
     nextState.validityPeriodIndex = CUSTOM_VALIDITY_OPTION_INDEX
-    nextState.customValidityPeriodText = `${normalized}`
+    nextState.customValidityPeriodText = `${validityPeriod}`
     return nextState
   }
 

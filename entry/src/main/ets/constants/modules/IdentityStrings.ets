@@ -12,7 +12,9 @@ export class IdentityMessageStrings {
   static readonly SAVE_SUCCESS: string = '身份鉴别配置已保存'
   static readonly ADMIN_REQUIRED_WITH_ACTION_SUFFIX: string = '未完成，请先激活企业管理员'
   static readonly ACTION_RETRY_SUFFIX: string = '未完成，请稍后重试'
-  static readonly INVALID_VALIDITY_DAYS: string = '请输入非负整数天数，0 表示永久有效'
+  static readonly INVALID_VALIDITY_DAYS: string = '请输入非负整数天数'
+  static readonly IMMEDIATE_EXPIRY_RISK_TITLE: string = '风险提示'
+  static readonly IMMEDIATE_EXPIRY_RISK_MESSAGE: string = '当前自定义天数为 0，密码策略下发后可能导致密码立即过期。请确认是否继续保存。'
 }
 
 export class IdentitySectionStrings {

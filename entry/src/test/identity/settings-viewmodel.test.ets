@@ -7,6 +7,7 @@ import { OperationResult, PASSWORD_VALIDITY_OPTIONS } from '../../main/ets/model
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
+  PERMANENT_VALIDITY_OPTION_INDEX,
   IdentitySettingsViewModel
 } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { DialogService } from '../../main/ets/utils/DialogService'
@@ -42,7 +43,7 @@ export default function identitySettingsViewModelTest() {
       let viewModel = new IdentitySettingsViewModel()
       viewModel.initialize({
         complexityRegex: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{10,}$',
-        validityPeriod: 60
+        validityPeriod: 365
       } as securityManager.PasswordPolicy)
 
       expect(viewModel.state.minLengthIndex).assertEqual(2)
@@ -50,7 +51,7 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.requireUppercase).assertTrue()
       expect(viewModel.state.requireDigit).assertTrue()
       expect(viewModel.state.requireSpecialChar).assertFalse()
-      expect(viewModel.state.validityPeriodIndex).assertEqual(PASSWORD_VALIDITY_OPTIONS.indexOf(60))
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PASSWORD_VALIDITY_OPTIONS.indexOf(365))
       expect(viewModel.state.hasChanges).assertFalse()
     })
 
@@ -65,6 +66,16 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.hasChanges).assertTrue()
     })
 
+    it('should switch to permanent validity state', 0, () => {
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.reset()
+      viewModel.setValidityPeriodIndex(PERMANENT_VALIDITY_OPTION_INDEX)
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+      expect(viewModel.state.hasChanges).assertFalse()
+    })
+
     it('should reset to default editable values when no system policy is available', 0, () => {
       let viewModel = new IdentitySettingsViewModel()
       viewModel.initialize(null)
@@ -74,7 +85,7 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.requireLowercase).assertTrue()
       expect(viewModel.state.requireDigit).assertTrue()
       expect(viewModel.state.requireSpecialChar).assertTrue()
-      expect(viewModel.state.validityPeriodIndex).assertEqual(0)
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
       expect(viewModel.state.customValidityPeriodText).assertEqual('')
       expect(viewModel.state.hasChanges).assertFalse()
     })
@@ -88,6 +99,15 @@ export default function identitySettingsViewModelTest() {
 
       expect(result.success).assertFalse()
       expect(result.message).assertEqual(IdentityMessageStrings.INVALID_VALIDITY_DAYS)
+    })
+
+    it('should warn when custom validity is zero days', 0, () => {
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.reset()
+      viewModel.setValidityPeriodIndex(CUSTOM_VALIDITY_OPTION_INDEX)
+      viewModel.setCustomValidityPeriodText('0')
+
+      expect(viewModel.shouldWarnImmediateExpiry()).assertTrue()
     })
 
     it('should reject save when nothing changed from current policy', 0, () => {
@@ -118,7 +138,7 @@ export default function identitySettingsViewModelTest() {
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
       let policyResult = new PasswordPolicyResult()
       policyResult.success = true
-      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 0 } as securityManager.PasswordPolicy
+      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 180 } as securityManager.PasswordPolicy
       when(getPolicyMock)().afterReturn(policyResult)
       let saveResult = new SavePasswordPolicyResult()
       saveResult.success = true
@@ -140,7 +160,7 @@ export default function identitySettingsViewModelTest() {
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
       let policyResult = new PasswordPolicyResult()
       policyResult.success = true
-      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 0 } as securityManager.PasswordPolicy
+      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 180 } as securityManager.PasswordPolicy
       when(getPolicyMock)().afterReturn(policyResult)
       let saveResult = new SavePasswordPolicyResult()
       saveResult.success = false
@@ -163,7 +183,7 @@ export default function identitySettingsViewModelTest() {
       let setPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.setPasswordPolicyWithResult)
       let policyResult = new PasswordPolicyResult()
       policyResult.success = true
-      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 0 } as securityManager.PasswordPolicy
+      policyResult.data = { complexityRegex: 'old-regex', validityPeriod: 180 } as securityManager.PasswordPolicy
       when(getPolicyMock)().afterReturn(policyResult)
       let saveResult = new SavePasswordPolicyResult()
       saveResult.success = false

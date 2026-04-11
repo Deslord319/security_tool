@@ -74,7 +74,7 @@ export struct DeviceRecordList {
         }
       }
       .width('100%')
-      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_MD, bottom: AppStyles.PADDING_MD })
+      .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM, bottom: AppStyles.PADDING_MD })
     }
     .width('100%')
     .height('100%')

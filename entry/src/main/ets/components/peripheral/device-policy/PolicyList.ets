@@ -1,3 +1,4 @@
+import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings, FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
@@ -37,7 +38,7 @@ export struct PolicyList {
       .padding({
         left: AppStyles.PADDING_LG,
         right: AppStyles.PADDING_LG,
-        top: AppStyles.PADDING_MD,
+        top: AppStyles.PADDING_SM,
         bottom: AppStyles.PADDING_MD
       })
     }
@@ -168,6 +169,8 @@ export struct PolicyList {
         .value(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
         .font({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
         .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
         .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
         .optionFont({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
         .backgroundColor(FormControlUtils.background(this.currentTheme))
