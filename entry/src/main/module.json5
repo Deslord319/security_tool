@@ -75,6 +75,9 @@
         "name": "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"
       },
       {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_APPLICATION"
+      },
+      {
         "name": "ohos.permission.ACCESS_BIOMETRIC"
       },
       {
