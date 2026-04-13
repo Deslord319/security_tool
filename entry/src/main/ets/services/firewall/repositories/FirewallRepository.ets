@@ -71,11 +71,10 @@ export class FirewallRepository {
   }
 
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
+    let preparedRule = FirewallRepository.normalizeRuleForCreate(rule)
     try {
-      let preparedRule = FirewallRepository.normalizeRuleForCreate(rule)
       return await netFirewall.addNetFirewallRule(preparedRule)
     } catch (err) {
-      let preparedRule = FirewallRepository.normalizeRuleForCreate(rule)
       LogUtils.error(FirewallRepository.TAG, `addRule failed payload: ${JSON.stringify(preparedRule)}`)
       LogUtils.error(FirewallRepository.TAG, `addRule failed: ${JSON.stringify(err)}`)
       return -1

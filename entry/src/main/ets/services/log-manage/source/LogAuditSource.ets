@@ -2,6 +2,7 @@ import { securityAudit } from '@kit.DeviceSecurityKit'
 import osAccount from '@ohos.account.osAccount'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import {
   ALL_LOG_EVENT_TYPES,
   LogEntry,
@@ -92,7 +93,7 @@ export class LogAuditSource {
         eventIds.filter((eventId: number) => !clientResult.failedEventIds.includes(eventId))
       )
     } catch (err) {
-      LogAuditSource.lastSubscribeErrorCode = LogAuditSource.extractErrorCode(err as Object)
+      LogAuditSource.lastSubscribeErrorCode = CommonErrorUtils.extractErrorCode(err as Object)
       LogAuditSource.unsubscribeInternal()
       LogAuditSource.callback = null
       LogUtils.error(TAG, `subscribe failed: ${JSON.stringify(err)}`)
@@ -164,7 +165,7 @@ export class LogAuditSource {
         subscribedIds.push(eventId)
         successCount += 1
       } catch (err) {
-        const code = LogAuditSource.extractErrorCode(err as Object)
+        const code = CommonErrorUtils.extractErrorCode(err as Object)
         if (LogAuditSource.lastSubscribeErrorCode === undefined) {
           LogAuditSource.lastSubscribeErrorCode = code
         }
@@ -210,7 +211,7 @@ export class LogAuditSource {
       }
       return clientValue
     } catch (err) {
-      LogAuditSource.lastSubscribeErrorCode = LogAuditSource.extractErrorCode(err as Object)
+      LogAuditSource.lastSubscribeErrorCode = CommonErrorUtils.extractErrorCode(err as Object)
       LogUtils.error(TAG, `createClient failed: ${JSON.stringify(err)}`)
       return null
     }
@@ -258,7 +259,7 @@ export class LogAuditSource {
       )
       return true
     } catch (err) {
-      const code = LogAuditSource.extractErrorCode(err as Object)
+      const code = CommonErrorUtils.extractErrorCode(err as Object)
       if (LogAuditSource.lastSubscribeErrorCode === undefined) {
         LogAuditSource.lastSubscribeErrorCode = code
       }
@@ -321,18 +322,6 @@ export class LogAuditSource {
       }
     }
     return ids
-  }
-
-  private static extractErrorCode(err: Object): number | undefined {
-    const codeValue = (err as Record<string, Object>)['code']
-    if (typeof codeValue === 'number') {
-      return codeValue
-    }
-    if (typeof codeValue === 'string') {
-      const parsed = Number(codeValue)
-      return Number.isNaN(parsed) ? undefined : parsed
-    }
-    return undefined
   }
 
   private static releaseClient(client: AuditClientCompat | null, subscribedEventIds: number[]): void {

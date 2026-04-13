@@ -5,7 +5,7 @@ import {
   PeripheralRecordActionPresentationStrings,
   PeripheralSourcePresentationStrings
 } from '../constants/modules/PresentationStrings'
-import { LabelText, ResultText, StorageAccessText } from '../constants/StringCatalog'
+import { LabelText, ResultText } from '../constants/StringCatalog'
 import { DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings } from '../constants/modules/DialogStrings'
 import { IdentityAuthStrings } from '../constants/modules/IdentityStrings'
 
@@ -256,19 +256,6 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
       return DeviceTypeLabels.USB_OTHER
     case PeripheralType.BLUETOOTH:
       return DeviceTypeLabels.BLUETOOTH
-    default:
-      return LabelText.UNKNOWN
-  }
-}
-
-export function getUsbStoragePolicyLabel(policy: UsbStoragePolicy): string {
-  switch (policy) {
-    case UsbStoragePolicy.READ_WRITE:
-      return StorageAccessText.READ_WRITE
-    case UsbStoragePolicy.READ_ONLY:
-      return StorageAccessText.READ_ONLY
-    case UsbStoragePolicy.DISABLED:
-      return StorageAccessText.BLOCKED
     default:
       return LabelText.UNKNOWN
   }
@@ -533,14 +520,6 @@ export interface LogEntry {
   result: LogEventResult
 }
 
-export interface LogFilter {
-  eventTypes?: LogEventType[]
-  results?: LogEventResult[]
-  keyword?: string
-  startTime?: number
-  endTime?: number
-}
-
 export interface LogStorageConfig {
   maxLocalEntries: number
   retentionDays: number
@@ -556,17 +535,6 @@ export interface LogStatistics {
   todayCount: number
   blockedCount: number
   byType: Map<LogEventType, number>
-}
-
-export interface LogExportResult {
-  success: boolean
-  timestamp: number
-  fileName?: string
-  fullPath?: string
-  directory?: string
-  sizeBytes?: number
-  errorCode?: number
-  errorMessage?: string
 }
 
 export interface ExportActionResult {

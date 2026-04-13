@@ -6,8 +6,12 @@ import { FirewallModeRuleBuilder } from './FirewallModeRuleBuilder'
 import { FirewallModeStrategy } from './FirewallModeStrategy'
 import { FirewallPresetConfigReader } from './FirewallPresetConfigReader'
 
-export class PrivateModeStrategy implements FirewallModeStrategy {
-  readonly mode: FirewallPresetMode = 'private'
+export class PresetModeStrategy implements FirewallModeStrategy {
+  readonly mode: FirewallPresetMode
+
+  constructor(mode: FirewallPresetMode) {
+    this.mode = mode
+  }
 
   async buildRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
     let config: FirewallPresetConfig = await FirewallPresetConfigReader.loadConfig(context)

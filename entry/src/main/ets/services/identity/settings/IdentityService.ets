@@ -1,9 +1,7 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { securityManager } from '@kit.MDMKit'
-
-import { Want } from '@kit.AbilityKit'
+import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { OperationResult, PasswordComplexityConfig } from '../../../models/DataModels'
-import { AppInfo } from '../../../constants/AppConstants'
 import { PeripheralService } from '../../peripheral/interface-control/PeripheralService'
 import {
   IdentityActionStrings,
@@ -11,11 +9,6 @@ import {
 } from '../../../constants/modules/IdentityStrings'
 
 const TAG = 'IdentityService'
-
-const ADMIN_WANT: Want = {
-  bundleName: AppInfo.BUNDLE_NAME,
-  abilityName: 'EnterpriseAdminAbility'
-}
 
 export class IdentityService {
   static readonly DAY_IN_MS: number = 24 * 60 * 60 * 1000

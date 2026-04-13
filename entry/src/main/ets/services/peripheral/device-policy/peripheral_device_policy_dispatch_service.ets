@@ -1,7 +1,6 @@
 import restrictions from '@ohos.enterprise.restrictions'
 import { bluetoothManager, usbManager } from '@kit.MDMKit'
-import { Want } from '@kit.AbilityKit'
-import { AppInfo } from '../../../constants/AppConstants'
+import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { OperationResult, PeripheralDevicePolicy, PeripheralType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
@@ -29,10 +28,6 @@ export interface PeripheralPolicyDispatchResult extends OperationResult<void> {
   reason?: PeripheralPolicyDispatchReason
 }
 
-const ADMIN_WANT: Want = {
-  bundleName: AppInfo.BUNDLE_NAME,
-  abilityName: 'EnterpriseAdminAbility'
-}
 const TAG = 'PeripheralDevicePolicyDispatchService'
 
 export class PeripheralDevicePolicyDispatchService {

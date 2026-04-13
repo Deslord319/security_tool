@@ -3,12 +3,10 @@ import {
   AuthMethod,
   DEFAULT_TOOL_SETTINGS,
   PeripheralType,
-  UsbStoragePolicy,
   formatBluetoothDeviceId,
   formatUsbDeviceId,
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
-  getUsbStoragePolicyLabel,
   inferPeripheralTypeFromBaseClass,
   parseUsbDeviceId
 } from '../../main/ets/models/DataModels'
@@ -46,12 +44,6 @@ export default function dataModelsTest() {
       expect(getPeripheralRecordSourceLabel('runtime_event').length > 0).assertTrue()
       expect(getPeripheralRecordSourceLabel('audit_event').length > 0).assertTrue()
       expect(getPeripheralRecordSourceLabel('policy_snapshot').length > 0).assertTrue()
-    })
-
-    it('should keep usb policy labels populated', 0, () => {
-      expect(getUsbStoragePolicyLabel(UsbStoragePolicy.READ_WRITE).length > 0).assertTrue()
-      expect(getUsbStoragePolicyLabel(UsbStoragePolicy.READ_ONLY).length > 0).assertTrue()
-      expect(getUsbStoragePolicyLabel(UsbStoragePolicy.DISABLED).length > 0).assertTrue()
     })
 
     it('should expose the current default tool settings contract', 0, () => {

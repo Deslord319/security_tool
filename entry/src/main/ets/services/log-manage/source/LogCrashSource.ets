@@ -1,6 +1,7 @@
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 import { LogEntry } from '../../../models/DataModels'
 import { LogUtils } from '../../../utils/LogUtils'
+import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { CrashSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { mapCrashInfoToLogEntry } from './LogCrashEventMapper'
 
@@ -37,7 +38,7 @@ export class LogCrashSource {
       LogCrashSource.lastErrorCode = undefined
       return { success: true, code: 'ok' }
     } catch (err) {
-      LogCrashSource.lastErrorCode = LogCrashSource.extractErrorCode(err as Object)
+      LogCrashSource.lastErrorCode = CommonErrorUtils.extractErrorCode(err as Object)
       LogUtils.error(TAG, `addWatcher failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'unsupported' }
     }
@@ -76,17 +77,4 @@ export class LogCrashSource {
       }
     }
   }
-
-  private static extractErrorCode(err: Object): number | undefined {
-    const codeValue = (err as Record<string, Object>)['code']
-    if (typeof codeValue === 'number') {
-      return codeValue
-    }
-    if (typeof codeValue === 'string') {
-      const parsed = Number(codeValue)
-      return Number.isNaN(parsed) ? undefined : parsed
-    }
-    return undefined
-  }
-
 }

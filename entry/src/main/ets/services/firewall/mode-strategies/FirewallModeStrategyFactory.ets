@@ -9,8 +9,7 @@ import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import { CustomModeStrategy } from './CustomModeStrategy'
 import { FirewallModeStrategy } from './FirewallModeStrategy'
-import { PrivateModeStrategy } from './PrivateModeStrategy'
-import { PublicModeStrategy } from './PublicModeStrategy'
+import { PresetModeStrategy } from './PresetModeStrategy'
 
 class CustomModeStrategyAdapter implements FirewallModeStrategy {
   readonly mode: FirewallPresetMode = 'custom'
@@ -21,8 +20,8 @@ class CustomModeStrategyAdapter implements FirewallModeStrategy {
 }
 
 export class FirewallModeStrategyFactory {
-  private static readonly publicStrategy: FirewallModeStrategy = new PublicModeStrategy()
-  private static readonly privateStrategy: FirewallModeStrategy = new PrivateModeStrategy()
+  private static readonly publicStrategy: FirewallModeStrategy = new PresetModeStrategy('public')
+  private static readonly privateStrategy: FirewallModeStrategy = new PresetModeStrategy('private')
   private static readonly customStrategy: FirewallModeStrategy = new CustomModeStrategyAdapter()
 
   static getStrategy(mode: FirewallPresetMode): FirewallModeStrategy {

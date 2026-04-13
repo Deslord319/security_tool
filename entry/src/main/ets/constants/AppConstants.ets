@@ -2,6 +2,7 @@ import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
 import { AppResources } from './AppResources'
 import { AppText, ModuleText } from './StringCatalog'
 import { RouteIds } from './RouteIds'
+import { Want } from '@kit.AbilityKit'
 
 export class AppColors {
   static getColors(theme: ThemeMode): ThemeColorSet {
@@ -13,7 +14,6 @@ export class AppColors {
   static readonly THEME_MODE_ICON_COLOR_DARK: string = '#8E8E93'
   static readonly THEME_MODE_ICON_COLOR_LIGHT: string = '#FFD60A'
   static readonly OVERLAY_BACKGROUND: string = '#66000000'
-  static readonly BRAND_LIGHT: string = '#5EA1FF'
 
   static readonly SUCCESS: string = '#34C759'
   static readonly WARNING: string = '#FF9500'
@@ -216,6 +216,12 @@ export class AppInfo {
   static readonly APP_VERSION: string = '1.0.0'
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
   static readonly DEFAULT_USER_ID: number = 100
+  static readonly ADMIN_ABILITY_NAME: string = 'EnterpriseAdminAbility'
+}
+
+export const ADMIN_WANT: Want = {
+  bundleName: AppInfo.BUNDLE_NAME,
+  abilityName: AppInfo.ADMIN_ABILITY_NAME
 }
 
 export interface NavItem {

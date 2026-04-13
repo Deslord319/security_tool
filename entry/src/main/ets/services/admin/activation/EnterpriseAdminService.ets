@@ -1,26 +1,19 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
-import { Want } from '@kit.AbilityKit'
-import { AppInfo } from '../../../constants/AppConstants'
+import { AppInfo, ADMIN_WANT } from '../../../constants/AppConstants'
 import { AdminText } from '../../../constants/StringCatalog'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { AdminErrorStrings } from '../../../constants/modules/ErrorStrings'
 
 const TAG = 'EnterpriseAdminService'
-const ADMIN_ABILITY_NAME = 'EnterpriseAdminAbility'
 const ADMIN_MISSING_ERROR_CODE = 9200001
-
-const ADMIN_WANT: Want = {
-  bundleName: AppInfo.BUNDLE_NAME,
-  abilityName: ADMIN_ABILITY_NAME
-}
 
 export class EnterpriseAdminService {
   static readonly DEFAULT_ADMIN_TYPE: EnterpriseAdminType = 'byod'
 
   static buildEnableCommand(adminType: EnterpriseAdminType = EnterpriseAdminService.DEFAULT_ADMIN_TYPE): string {
-    return `edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a ${ADMIN_ABILITY_NAME} -t ${adminType}`
+    return `edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a ${AppInfo.ADMIN_ABILITY_NAME} -t ${adminType}`
   }
 
   static isAdminMissingError(err: Object): boolean {

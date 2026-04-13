@@ -1,16 +1,11 @@
-import { Want } from '@kit.AbilityKit'
 import { adminManager, EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
 
-import { AppInfo } from '../constants/AppConstants'
+import { ADMIN_WANT } from '../constants/AppConstants'
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
 import { LogUtils } from '../utils/LogUtils'
 
 
 const TAG = 'EnterpriseAdminAbility'
-const ADMIN_WANT: Want = {
-  bundleName: AppInfo.BUNDLE_NAME,
-  abilityName: 'EnterpriseAdminAbility'
-}
 
 export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbility {
   onAdminEnabled(): void {

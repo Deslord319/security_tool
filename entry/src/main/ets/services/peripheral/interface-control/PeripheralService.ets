@@ -2,18 +2,12 @@ import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
 import { networkManager, usbManager } from '@kit.MDMKit'
 
-import { Want } from '@kit.AbilityKit'
-import { AppInfo } from '../../../constants/AppConstants'
+import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { OperationResult } from '../../../models/DataModels'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 
 const TAG = 'PeripheralService'
-
-const ADMIN_WANT: Want = {
-  bundleName: AppInfo.BUNDLE_NAME,
-  abilityName: 'EnterpriseAdminAbility'
-}
 
 interface UsbConflictSnapshot {
   storagePolicy: usbManager.UsbPolicy

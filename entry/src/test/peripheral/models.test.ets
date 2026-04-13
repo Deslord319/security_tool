@@ -4,8 +4,8 @@
  */
 import { describe, it, expect } from '@ohos/hypium'
 import {
-  PeripheralType, UsbStoragePolicy,
-  getPeripheralTypeLabel, getUsbStoragePolicyLabel,
+  PeripheralType,
+  getPeripheralTypeLabel,
   parseUsbDeviceId, formatUsbDeviceId, formatBluetoothDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../../main/ets/models/DataModels'
@@ -38,24 +38,6 @@ export default function peripheralModelsTest() {
 
       it('should return 未知 for invalid type', 0, () => {
         expect(getPeripheralTypeLabel('invalid' as PeripheralType)).assertEqual('未知')
-      })
-    })
-
-    describe('getUsbStoragePolicyLabel', () => {
-      it('should return 读写 for READ_WRITE', 0, () => {
-        expect(getUsbStoragePolicyLabel(UsbStoragePolicy.READ_WRITE)).assertEqual('读写')
-      })
-
-      it('should return 只读 for READ_ONLY', 0, () => {
-        expect(getUsbStoragePolicyLabel(UsbStoragePolicy.READ_ONLY)).assertEqual('只读')
-      })
-
-      it('should return 禁止访问 for DISABLED', 0, () => {
-        expect(getUsbStoragePolicyLabel(UsbStoragePolicy.DISABLED)).assertEqual('禁止访问')
-      })
-
-      it('should return 未知 for invalid policy', 0, () => {
-        expect(getUsbStoragePolicyLabel(99 as UsbStoragePolicy)).assertEqual('未知')
       })
     })
 
