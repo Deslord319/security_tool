@@ -114,12 +114,10 @@
 从这条原型中，当前已确认可抽取字段：
 
 - 应用包名：`extra.bundleName`
-- 进程名候选：`extra.pname`
 - PID：`extra.pid`
 - UID：`extra.uid`
 - 新权限名称：`extra.newPermission.PermissionName`
 - 新权限状态：`extra.newPermission.PermissionState`
-- 已有权限列表：`extra.existingPermissions`
 - 事件时间：外层时间字段或 `extra.timestamp`
 - 事件 ID：外层 `eventId`
 
@@ -149,7 +147,7 @@
 其中：
 
 - `ACCOUNT` 已确认存在账号身份字段，如用户名、用户 ID、结果
-- `PERMISSION` 已确认存在应用、权限变更、权限列表等字段
+- `PERMISSION` 已确认存在应用、权限变更等字段
 - `FILE` 已确认存在操作类型、文件路径、进程、结果等字段
 
 本文件仅作为当前阶段的材料归档，不展开后续方案设计。

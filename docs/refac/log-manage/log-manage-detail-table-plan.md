@@ -90,12 +90,10 @@ export interface LogEntry {
 #### PERMISSION
 
 - 应用包名
-- 进程名候选
 - PID
 - UID
 - 新权限名称
 - 新权限状态
-- 已有权限列表
 - 事件时间
 - 事件 ID
 

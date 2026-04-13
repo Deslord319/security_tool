@@ -125,12 +125,10 @@ function buildDetailRows(
       const newPermission = findNestedJson([extra, contentJson, metadataJson], 'newPermission')
       const newPermissionSources = compactSources(newPermission, extra, contentJson, metadataJson, ...sources)
       appendTextRow(rows, 'permission.bundleName', '应用包名', pickString(extraSources, ['bundleName', 'bundle_name']))
-      appendTextRow(rows, 'permission.processName', '进程名候选', pickString(extraSources, ['pname', 'processName', 'procName', 'process_name']))
       appendNumberRow(rows, 'permission.pid', 'PID', pickNumber(extraSources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'permission.uid', 'UID', pickNumber(extraSources, ['uid', 'userId', 'user_id']))
       appendTextRow(rows, 'permission.newPermissionName', '新权限名称', pickString(newPermissionSources, ['PermissionName', 'permissionName', 'name']))
       appendTextRow(rows, 'permission.newPermissionState', '新权限状态', pickString(newPermissionSources, ['PermissionState', 'permissionState', 'state']))
-      appendTextRow(rows, 'permission.existingPermissions', '已有权限列表', formatExistingPermissions(extra))
       appendTextRow(rows, 'permission.timestamp', '事件时间', formatLogTimestamp(timestamp))
       appendNumberRow(rows, 'permission.eventId', '事件 ID', event.eventId)
       break
@@ -206,44 +204,6 @@ function findNestedJson(sources: Array<LooseRecord | undefined>, key: string): L
     }
   }
   return undefined
-}
-
-function formatExistingPermissions(extra?: LooseRecord): string | undefined {
-  if (!extra) {
-    return undefined
-  }
-  const existingPermissions = extra['existingPermissions']
-  if (typeof existingPermissions === 'string') {
-    const normalized = existingPermissions.trim()
-    return normalized.length > 0 ? normalized : undefined
-  }
-  if (!Array.isArray(existingPermissions)) {
-    return undefined
-  }
-  const summaries: string[] = []
-  for (let item of existingPermissions as Object[]) {
-    const summary = formatPermissionSummary(item)
-    if (summary) {
-      summaries.push(summary)
-    }
-  }
-  return summaries.length > 0 ? summaries.join('\n') : undefined
-}
-
-function formatPermissionSummary(candidate: Object | undefined): string | undefined {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-    return undefined
-  }
-  const record = candidate as LooseRecord
-  const permissionName = pickString([record], ['PermissionName', 'permissionName', 'name'])
-  const permissionState = pickString([record], ['PermissionState', 'permissionState', 'state'])
-  if (!permissionName && !permissionState) {
-    return JSON.stringify(record)
-  }
-  if (permissionName && permissionState) {
-    return `${permissionName} (${permissionState})`
-  }
-  return permissionName || permissionState
 }
 
 function resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: LooseRecord[]): string | undefined {
