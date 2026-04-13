@@ -68,7 +68,7 @@ function SectionSelectBuilder(params: SectionSelectParams) {
     .height(36)
     .backgroundColor(FormControlUtils.background(params.currentTheme))
     .borderRadius(AppStyles.RADIUS_SM)
-    .border({ width: 1, color: FormControlUtils.border(params.currentTheme), style: BorderStyle.Solid })
+    .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(params.currentTheme), style: BorderStyle.Solid })
     .enabled(params.enabled)
     .opacity(params.opacity)
     .onSelect((index: number) => {
@@ -248,7 +248,7 @@ export struct SectionSelectInputRow {
               .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
               .backgroundColor(FormControlUtils.background(this.currentTheme))
               .borderRadius(AppStyles.RADIUS_SM)
-              .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+              .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
               .onChange((value: string) => {
                 this.onInputChange(value)
               })

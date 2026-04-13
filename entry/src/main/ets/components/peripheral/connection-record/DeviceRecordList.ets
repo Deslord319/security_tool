@@ -66,7 +66,7 @@ export struct DeviceRecordList {
           .borderRadius(AppStyles.RADIUS_LG)
           .clip(true)
           .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER })
           .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 1, true))
           .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 1, 4) })
           .onHover((isHover: boolean) => this.onPanelHover && this.onPanelHover(isHover))

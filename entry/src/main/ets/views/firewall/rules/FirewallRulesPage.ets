@@ -445,7 +445,7 @@ export struct FirewallRulesPage {
           .padding(AppStyles.PADDING_MD)
           .backgroundColor(AppColors.FIREWALL_CONFLICT_PANEL_BG)
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.FIREWALL_CONFLICT_BORDER })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.FIREWALL_CONFLICT_BORDER })
         }
 
         Row({ space: AppStyles.PADDING_LG }) {

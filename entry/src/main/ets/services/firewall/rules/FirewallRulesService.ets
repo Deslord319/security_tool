@@ -1,12 +1,11 @@
 import { netFirewall } from '@kit.NetworkKit'
-
 import { FirewallManagedRuleMetadata } from '../../../models/DataModels'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
-import { FirewallRepository } from '../repositories'
+import { FirewallRepository } from '../repositories/FirewallRepository'
 
 const RULE_METADATA_PREFIX = 'SECURITY_TOOL_META:'
 
-export type FirewallRuleConflictKind = 'none' | 'duplicate' | 'hard_conflict' | 'overlap_conflict'
+type FirewallRuleConflictKind = 'none' | 'duplicate' | 'hard_conflict' | 'overlap_conflict'
 
 export interface FirewallRuleConflictMatch {
   kind: FirewallRuleConflictKind

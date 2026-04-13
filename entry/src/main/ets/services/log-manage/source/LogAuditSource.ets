@@ -10,6 +10,7 @@ import {
 } from '../../../models/DataModels'
 import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogAuditSource'
 const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
@@ -93,7 +94,7 @@ export class LogAuditSource {
         eventIds.filter((eventId: number) => !clientResult.failedEventIds.includes(eventId))
       )
     } catch (err) {
-      LogAuditSource.lastSubscribeErrorCode = CommonErrorUtils.extractErrorCode(err as Object)
+      LogAuditSource.lastSubscribeErrorCode = CommonErrorUtils.extractErrorCode(err as ErrorLike)
       LogAuditSource.unsubscribeInternal()
       LogAuditSource.callback = null
       LogUtils.error(TAG, `subscribe failed: ${JSON.stringify(err)}`)
@@ -165,7 +166,7 @@ export class LogAuditSource {
         subscribedIds.push(eventId)
         successCount += 1
       } catch (err) {
-        const code = CommonErrorUtils.extractErrorCode(err as Object)
+        const code = CommonErrorUtils.extractErrorCode(err as ErrorLike)
         if (LogAuditSource.lastSubscribeErrorCode === undefined) {
           LogAuditSource.lastSubscribeErrorCode = code
         }
@@ -211,7 +212,7 @@ export class LogAuditSource {
       }
       return clientValue
     } catch (err) {
-      LogAuditSource.lastSubscribeErrorCode = CommonErrorUtils.extractErrorCode(err as Object)
+      LogAuditSource.lastSubscribeErrorCode = CommonErrorUtils.extractErrorCode(err as ErrorLike)
       LogUtils.error(TAG, `createClient failed: ${JSON.stringify(err)}`)
       return null
     }
@@ -259,7 +260,7 @@ export class LogAuditSource {
       )
       return true
     } catch (err) {
-      const code = CommonErrorUtils.extractErrorCode(err as Object)
+      const code = CommonErrorUtils.extractErrorCode(err as ErrorLike)
       if (LogAuditSource.lastSubscribeErrorCode === undefined) {
         LogAuditSource.lastSubscribeErrorCode = code
       }

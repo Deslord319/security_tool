@@ -1,10 +1,11 @@
 import { LogUtils } from '../../../utils/LogUtils'
+import { LooseValue } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogTimestampResolver'
 const UNIX_MILLIS_THRESHOLD = 1_000_000_000_000
 
 export function resolveCrashSourceTimestamp(
-  rawValues: Array<Object | undefined>,
+  rawValues: LooseValue[],
   nowProvider: () => number
 ): number {
   for (const rawValue of rawValues) {
@@ -25,7 +26,7 @@ export function resolveAuditSourceTimestamp(rawValue: string, nowProvider: () =>
   return nowProvider()
 }
 
-function parseFlexibleTimestamp(rawValue: Object | undefined): number | undefined {
+function parseFlexibleTimestamp(rawValue: LooseValue): number | undefined {
   if (typeof rawValue === 'number') {
     return normalizeUnixTimestamp(rawValue)
   }

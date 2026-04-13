@@ -42,14 +42,6 @@ export class FirewallRuleStrings {
   static readonly OUTBOUND_DESCRIPTION: string = '自定义出站规则'
 }
 
-export class FirewallModeStrings {
-  static readonly PUBLIC_TITLE: string = '公共网络模式'
-  static readonly PUBLIC_DESCRIPTION: string = '适用于开放网络环境，默认采用更严格的访问控制策略'
-  static readonly PRIVATE_TITLE: string = '私有网络模式'
-  static readonly PRIVATE_DESCRIPTION: string = '适用于可信网络环境，优先保证局域网互通与常规办公访问'
-  static readonly CUSTOM_DESCRIPTION: string = '根据业务需要自定义入站、出站与域名访问规则'
-}
-
 export class FirewallOperationStrings {
   static readonly SAVE_USER_MODE_BINDINGS: string = '保存用户模式绑定'
   static readonly READ_USER_RULES: string = '读取用户防火墙规则'
@@ -76,9 +68,9 @@ export function getFirewallModeAccent(mode: FirewallPresetMode): string {
 export function getFirewallModeTitle(mode: FirewallPresetMode): string {
   switch (mode) {
     case 'public':
-      return FirewallModeStrings.PUBLIC_TITLE
+      return '公共网络模式'
     case 'private':
-      return FirewallModeStrings.PRIVATE_TITLE
+      return '私有网络模式'
     case 'custom':
     default:
       return FirewallRuleStrings.CUSTOM_MODE_TITLE
@@ -88,12 +80,12 @@ export function getFirewallModeTitle(mode: FirewallPresetMode): string {
 export function getFirewallModeDescription(mode: FirewallPresetMode): string {
   switch (mode) {
     case 'public':
-      return FirewallModeStrings.PUBLIC_DESCRIPTION
+      return '适用于开放网络环境，默认采用更严格的访问控制策略'
     case 'private':
-      return FirewallModeStrings.PRIVATE_DESCRIPTION
+      return '适用于可信网络环境，优先保证局域网互通与常规办公访问'
     case 'custom':
     default:
-      return FirewallModeStrings.CUSTOM_DESCRIPTION
+      return '根据业务需要自定义入站、出站与域名访问规则'
   }
 }
 
@@ -139,4 +131,18 @@ export function buildFirewallRuleCountText(count: number): string {
 
 export function buildFirewallUserLabel(userId: number, isForeground: boolean): string {
   return isForeground ? `用户 ${userId}（当前）` : `用户 ${userId}`
+}
+
+export class FirewallPresetRuleNameStrings {
+  static readonly PUBLIC_ALLOW_ICMPV4: string = '允许 ICMPv4'
+  static readonly PUBLIC_ALLOW_SERVICE: string = '允许对外服务'
+  static readonly PUBLIC_ALLOW_REMOTE_MANAGE: string = '允许远程管理'
+  static readonly PUBLIC_DENY_SMB: string = '阻止 SMB 共享'
+  static readonly PUBLIC_DENY_NETBIOS: string = '阻止 NetBIOS'
+  static readonly PRIVATE_ALLOW_ICMP: string = '允许 ICMP'
+  static readonly PRIVATE_ALLOW_REMOTE_MANAGE: string = '允许内网远程'
+  static readonly PRIVATE_ALLOW_SHARE: string = '允许内网共享'
+  static readonly PRIVATE_ALLOW_DISCOVERY: string = '允许内网发现'
+  static readonly PRIVATE_ALLOW_TCP: string = '允许内网应用 TCP'
+  static readonly PRIVATE_ALLOW_UDP: string = '允许内网应用 UDP'
 }

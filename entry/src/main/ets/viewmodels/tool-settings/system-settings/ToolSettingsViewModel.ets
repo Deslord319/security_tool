@@ -16,7 +16,7 @@ import { SystemSettingsService } from '../../../services/tool-settings/system-se
 
 const TAG = 'ToolSettings.ViewModel'
 
-export type ToolSettingsActionKind = 'none' | 'result' | 'confirm'
+type ToolSettingsActionKind = 'none' | 'result' | 'confirm'
 
 export interface ToolSettingsActionRequest {
   kind: ToolSettingsActionKind
@@ -32,7 +32,7 @@ export class ToolSettingsConfigState {
 }
 
 @ObservedV2
-export class ToolSettingsUiState {
+class ToolSettingsUiState {
   @Trace config: ToolSettingsConfigState = new ToolSettingsConfigState()
   @Trace initialConfig: ToolSettingsConfigState = new ToolSettingsConfigState()
   @Trace hasChanges: boolean = false

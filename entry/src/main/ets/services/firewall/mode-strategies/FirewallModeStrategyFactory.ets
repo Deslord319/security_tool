@@ -100,6 +100,16 @@ export class FirewallModeStrategyFactory {
     return CustomModeStrategy.getCustomRuleId(rule)
   }
 
+  private static buildFailedSwitchResult(targetMode: FirewallPresetMode): FirewallModeSwitchResult {
+    return {
+      success: false,
+      mode: targetMode,
+      appliedRuleCount: 0,
+      errorCode: undefined,
+      errorMessage: undefined
+    }
+  }
+
   private static async applyModeRules(
     context: common.UIAbilityContext,
     targetMode: FirewallPresetMode,
@@ -107,23 +117,11 @@ export class FirewallModeStrategyFactory {
   ): Promise<FirewallModeSwitchResult> {
     let cleared = await FirewallRepository.clearAllRules()
     if (!cleared) {
-      return {
-        success: false,
-        mode: targetMode,
-        appliedRuleCount: 0,
-        errorCode: undefined,
-        errorMessage: undefined
-      }
+      return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
     }
     let applied = await FirewallRepository.addRules(targetRules)
     if (!applied) {
-      return {
-        success: false,
-        mode: targetMode,
-        appliedRuleCount: 0,
-        errorCode: undefined,
-        errorMessage: undefined
-      }
+      return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
     }
     await FirewallModeRepository.saveCurrentMode(context, targetMode)
     return {

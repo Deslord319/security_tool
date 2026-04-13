@@ -5,10 +5,8 @@ export class PermissionErrorStrings {
 }
 
 export class AdminErrorStrings {
-  static readonly checkFailed: string = '管理员状态检查失败'
-
   static buildCheckFailed(code?: number): string {
-    return code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : AdminErrorStrings.checkFailed
+    return code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : '管理员状态检查失败'
   }
 }
 
@@ -21,6 +19,4 @@ export class SystemServiceErrorStrings {
 
 export class ErrorTemplates {
   static readonly actionFailedTemplate: string = '${action}失败'
-  static readonly errorWithCodeTemplate: string = '${message}（错误码 ${code}）'
-  static readonly exportFailedTemplate: string = '导出失败：${detail}'
 }

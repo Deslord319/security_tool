@@ -4,6 +4,7 @@ import { FirewallManagedRuleMetadata, FirewallPresetConfig, FirewallPresetMode }
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
 import { AppInfo } from '../../../constants/AppConstants'
+import { FirewallPresetRuleNameStrings } from '../../../constants/modules/FirewallStrings'
 
 export class FirewallModeRuleBuilder {
   static buildRulesForMode(
@@ -20,21 +21,21 @@ export class FirewallModeRuleBuilder {
 
   static buildPublicRules(fixedPublicIp: string): netFirewall.NetFirewallRule[] {
     let rules: netFirewall.NetFirewallRule[] = []
-    rules.push(...FirewallModeRuleBuilder.createInboundRules('public', 'allow_icmp', '允许 ICMPv4', netFirewall.FirewallRuleAction.RULE_ALLOW, 1))
+    rules.push(...FirewallModeRuleBuilder.createInboundRules('public', 'allow_icmp', FirewallPresetRuleNameStrings.PUBLIC_ALLOW_ICMPV4, netFirewall.FirewallRuleAction.RULE_ALLOW, 1))
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'public', 'allow_service', '允许对外服务', netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [80, 443]
+      'public', 'allow_service', FirewallPresetRuleNameStrings.PUBLIC_ALLOW_SERVICE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [80, 443]
     ))
     if (fixedPublicIp.length > 0) {
       rules.push(...FirewallModeRuleBuilder.createInboundRules(
-        'public', 'allow_remote_manage', '允许远程管理', netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [22, 3389],
+        'public', 'allow_remote_manage', FirewallPresetRuleNameStrings.PUBLIC_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [22, 3389],
         [fixedPublicIp]
       ))
     }
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'public', 'deny_smb', '阻止 SMB 共享', netFirewall.FirewallRuleAction.RULE_DENY, 6, [135, 139, 445]
+      'public', 'deny_smb', FirewallPresetRuleNameStrings.PUBLIC_DENY_SMB, netFirewall.FirewallRuleAction.RULE_DENY, 6, [135, 139, 445]
     ))
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'public', 'deny_netbios', '阻止 NetBIOS', netFirewall.FirewallRuleAction.RULE_DENY, 17, [137, 138]
+      'public', 'deny_netbios', FirewallPresetRuleNameStrings.PUBLIC_DENY_NETBIOS, netFirewall.FirewallRuleAction.RULE_DENY, 17, [137, 138]
     ))
     return rules
   }
@@ -49,25 +50,25 @@ export class FirewallModeRuleBuilder {
       return rules
     }
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'private', 'allow_icmp', '允许 ICMP', netFirewall.FirewallRuleAction.RULE_ALLOW, 1, undefined, cidrs
+      'private', 'allow_icmp', FirewallPresetRuleNameStrings.PRIVATE_ALLOW_ICMP, netFirewall.FirewallRuleAction.RULE_ALLOW, 1, undefined, cidrs
     ))
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'private', 'allow_remote_manage', '允许内网远程', netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [22, 3389, 5900], cidrs
+      'private', 'allow_remote_manage', FirewallPresetRuleNameStrings.PRIVATE_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [22, 3389, 5900], cidrs
     ))
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'private', 'allow_share', '允许内网共享', netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [135, 139, 445], cidrs
+      'private', 'allow_share', FirewallPresetRuleNameStrings.PRIVATE_ALLOW_SHARE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [135, 139, 445], cidrs
     ))
     rules.push(...FirewallModeRuleBuilder.createInboundRules(
-      'private', 'allow_discovery', '允许内网发现', netFirewall.FirewallRuleAction.RULE_ALLOW, 17, [137, 138], cidrs
+      'private', 'allow_discovery', FirewallPresetRuleNameStrings.PRIVATE_ALLOW_DISCOVERY, netFirewall.FirewallRuleAction.RULE_ALLOW, 17, [137, 138], cidrs
     ))
     if (privateTcpPorts.length > 0) {
       rules.push(...FirewallModeRuleBuilder.createInboundRules(
-        'private', 'allow_private_tcp', '允许内网应用 TCP', netFirewall.FirewallRuleAction.RULE_ALLOW, 6, privateTcpPorts, cidrs
+        'private', 'allow_private_tcp', FirewallPresetRuleNameStrings.PRIVATE_ALLOW_TCP, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, privateTcpPorts, cidrs
       ))
     }
     if (privateUdpPorts.length > 0) {
       rules.push(...FirewallModeRuleBuilder.createInboundRules(
-        'private', 'allow_private_udp', '允许内网应用 UDP', netFirewall.FirewallRuleAction.RULE_ALLOW, 17, privateUdpPorts, cidrs
+        'private', 'allow_private_udp', FirewallPresetRuleNameStrings.PRIVATE_ALLOW_UDP, netFirewall.FirewallRuleAction.RULE_ALLOW, 17, privateUdpPorts, cidrs
       ))
     }
     return rules

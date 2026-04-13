@@ -31,7 +31,7 @@ export struct EmptyStatePanel {
     .borderRadius(this.radius)
     .clip(true)
     .border({
-      width: 1,
+      width: AppStyles.DIVIDER_HEIGHT,
       color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))

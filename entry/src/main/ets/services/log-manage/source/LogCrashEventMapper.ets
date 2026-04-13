@@ -5,17 +5,15 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { LooseRecord } from '../../../types/LooseValueTypes'
 import { pickNumber, pickString } from '../common/LogValuePicker'
 import { resolveCrashSourceTimestamp } from './LogTimestampResolver'
-
-type CrashParamValue = string | number | boolean | Object | undefined
-type CrashParamMap = Record<string, CrashParamValue>
 
 export function mapCrashInfoToLogEntry(
   info: hiAppEvent.AppEventInfo,
   nowProvider: () => number = () => Date.now()
 ): LogEntry {
-  const params = info.params as CrashParamMap
+  const params = info.params as LooseRecord
   const processName = pickString(params, [
     'bundleName', 'bundle_name', 'processName', 'process_name', 'moduleName', 'module_name', 'abilityName'
   ])
@@ -51,7 +49,7 @@ export function mapCrashInfoToLogEntry(
   }
 }
 
-function resolveCrashTimestamp(params: CrashParamMap, nowProvider: () => number): number {
+function resolveCrashTimestamp(params: LooseRecord, nowProvider: () => number): number {
   return resolveCrashSourceTimestamp([
     params['time'],
     params['timestamp'],

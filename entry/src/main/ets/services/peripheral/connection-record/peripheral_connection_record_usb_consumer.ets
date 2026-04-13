@@ -26,6 +26,13 @@ import {
   toRecordArray
 } from './peripheral_connection_record_payload_utils'
 import { LogUtils } from '../../../utils/LogUtils'
+import { generateRandomSuffix } from '../../../utils/ValuePicker'
+import { StatusText } from '../../../constants/StringCatalog'
+import {
+  PeripheralMatchedPolicyStrings,
+  PeripheralConnectionRecordStrings
+} from '../../../constants/modules/PeripheralStrings'
+import { LooseRecord } from '../../../types/LooseValueTypes'
 
 const TAG = 'ConnectionRecordUsbConsumer'
 
@@ -59,7 +66,7 @@ interface UsbEventPolicyEvaluation {
 }
 
 type UsbEventAction = 'connect' | 'disconnect' | 'unknown'
-type EventPayloadRecord = Record<string, Object>
+type EventPayloadRecord = LooseRecord
 
 export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnectionRecordConsumer {
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean {
@@ -91,7 +98,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
 
     return {
-      recordId: `runtime_usb_${info.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
+      recordId: `runtime_usb_${info.occurAt}_${generateRandomSuffix()}`,
       occurAt: info.occurAt,
       collectAt: Date.now(),
       deviceName: info.deviceName,
@@ -138,7 +145,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       return {
         policyHit: 'unknown',
         result: LogEventResult.SUCCESS,
-        summary: '设备已断开',
+        summary: PeripheralConnectionRecordStrings.USB_DISCONNECTED,
         detail: PeripheralConnectionRecordUsbConsumer.buildDisconnectDetail(info, effectivePolicyLabel),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: effectivePolicyLabel,
@@ -150,10 +157,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       return {
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
-        summary: 'USB 接口已禁用',
-        detail: 'USB 接口已被总控禁用，设备接入被阻止。',
+        summary: PeripheralMatchedPolicyStrings.USB_DISABLED,
+        detail: PeripheralConnectionRecordStrings.USB_INTERFACE_DISABLED_DETAIL,
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
-        effectivePolicyLabel: '已禁用',
+        effectivePolicyLabel: StatusText.DISABLED,
         matchedPolicyKind: 'usb_disabled'
       }
     }
@@ -163,10 +170,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         return {
           policyHit: 'deny',
           result: LogEventResult.BLOCKED,
-          summary: 'USB 存储已禁用',
-          detail: 'USB 存储策略为禁止访问，设备接入被阻止。',
+          summary: PeripheralMatchedPolicyStrings.USB_STORAGE_DISABLED,
+          detail: PeripheralConnectionRecordStrings.USB_STORAGE_DISABLED_DETAIL,
           usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: '已禁用',
+          effectivePolicyLabel: StatusText.DISABLED,
           matchedPolicyKind: 'usb_storage_disabled'
         }
       }
@@ -174,10 +181,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         return {
           policyHit: 'allow',
           result: LogEventResult.SUCCESS,
-          summary: 'USB 存储只读',
-          detail: 'USB 存储策略为只读模式。',
+          summary: PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY,
+          detail: PeripheralConnectionRecordStrings.USB_STORAGE_READ_ONLY_DETAIL,
           usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: '已启用',
+          effectivePolicyLabel: StatusText.ENABLED,
           matchedPolicyKind: 'usb_storage_read_only'
         }
       }
@@ -187,10 +194,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       return {
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
-        summary: '命中单设备禁止接入',
+        summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
         detail: `设备 ${info.deviceId} 命中禁止接入策略，已被阻止。`,
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
-        effectivePolicyLabel: '已禁用',
+        effectivePolicyLabel: StatusText.DISABLED,
         matchedPolicyKind: 'device_deny'
       }
     }
@@ -198,8 +205,8 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     return {
       policyHit: 'allow',
       result: LogEventResult.SUCCESS,
-      summary: '按当前策略允许接入',
-      detail: '未命中更高优先级的阻断策略，按默认规则允许接入。',
+      summary: PeripheralConnectionRecordStrings.DEFAULT_ALLOW,
+      detail: PeripheralConnectionRecordStrings.DEFAULT_ALLOW_DETAIL,
       usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
       effectivePolicyLabel: effectivePolicyLabel,
       matchedPolicyKind: 'default_allow'
@@ -238,15 +245,15 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     snapshot: UsbPolicySnapshot
   ): string {
     if (snapshot.usbDisabled) {
-      return '已禁用'
+      return StatusText.DISABLED
     }
     if (snapshot.devicePolicies.get(deviceId.toUpperCase()) === 'deny') {
-      return '已禁用'
+      return StatusText.DISABLED
     }
     if (deviceType === PeripheralType.USB_STORAGE && snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
-      return '已禁用'
+      return StatusText.DISABLED
     }
-    return '已启用'
+    return StatusText.ENABLED
   }
 
   private static buildDisconnectDetail(info: ResolvedUsbEventInfo, effectivePolicyLabel: string): string {
@@ -275,7 +282,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     const deviceId = hasVidPid ? formatUsbDeviceId(vendorId, productId) : `UNKNOWN-USB-${occurAt}`
     let deviceName = PeripheralConnectionRecordUsbConsumer.buildUsbDisplayName(manufacturerName, productName)
     if (deviceName.length === 0) {
-      deviceName = deviceNameField || (hasVidPid ? 'USB 设备' : '未识别 USB 设备')
+      deviceName = deviceNameField || (hasVidPid ? PeripheralConnectionRecordStrings.USB_DEVICE : PeripheralConnectionRecordStrings.UNRECOGNIZED_USB_DEVICE)
     }
 
     return {

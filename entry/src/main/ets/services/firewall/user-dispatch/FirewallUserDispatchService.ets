@@ -9,9 +9,9 @@ import {
 } from '../../../models/firewall/firewall_service_contracts'
 import { UserFirewallModeReapplySummary } from '../../../models/DataModels'
 import { FirewallModeStrategyFactory } from '../mode-strategies/FirewallModeStrategyFactory'
-import { FirewallStore } from '../stores'
-import { FirewallAuthService } from '../auth'
-import { SystemUserProvider } from '../providers'
+import { FirewallStore } from '../stores/FirewallStore'
+import { FirewallAuthService } from '../auth/FirewallAuthService'
+import { SystemUserProvider } from '../providers/SystemUserProvider'
 
 export class FirewallUserDispatchService {
   static async loadUserOptions(): Promise<UserFirewallOption[]> {

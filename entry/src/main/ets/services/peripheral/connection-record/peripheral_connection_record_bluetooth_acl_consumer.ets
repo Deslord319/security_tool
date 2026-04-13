@@ -18,12 +18,15 @@ import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent
 } from './peripheral_connection_record_producer_contract'
+import { StatusText } from '../../../constants/StringCatalog'
+import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
+import { LooseRecord } from '../../../types/LooseValueTypes'
+import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const TAG = 'ConnectionRecordBtConsumer'
-const FALLBACK_BLUETOOTH_NAME = '未命名蓝牙设备'
 
 type BluetoothAclAction = 'connect' | 'disconnect' | 'unknown'
-type EventPayloadRecord = Record<string, Object>
+type EventPayloadRecord = LooseRecord
 
 interface BluetoothAclEventInfo {
   occurAt: number
@@ -58,7 +61,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     const denied = devicePolicy?.policy === 'deny'
 
     return {
-      recordId: `runtime_bt_acl_${eventInfo.occurAt}_${Math.random().toString(36).substring(2, 8)}`,
+      recordId: `runtime_bt_acl_${eventInfo.occurAt}_${generateRandomSuffix()}`,
       occurAt: eventInfo.occurAt,
       collectAt: Date.now(),
       deviceName: eventInfo.deviceName,
@@ -68,12 +71,12 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       decision: denied ? 'deny' : 'allow',
       result: LogEventResult.SUCCESS,
       source: 'runtime_event',
-      summary: eventInfo.action === 'connect' ? '蓝牙设备已连接' : '蓝牙设备已断开',
+      summary: eventInfo.action === 'connect' ? PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED : PeripheralConnectionRecordStrings.BLUETOOTH_DISCONNECTED,
       rawEventName: rawData.event,
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,
       detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
-      effectivePolicyLabel: denied ? '已禁用' : '已启用',
+      effectivePolicyLabel: denied ? StatusText.DISABLED : StatusText.ENABLED,
       matchedPolicyKind: 'bluetooth_connection_event'
     }
   }
@@ -236,7 +239,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       )
     }
 
-    return FALLBACK_BLUETOOTH_NAME
+    return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
   }
 
   private static maskBluetoothIdentifier(deviceId: string): string {

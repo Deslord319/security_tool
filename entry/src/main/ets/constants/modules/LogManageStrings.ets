@@ -18,8 +18,6 @@ export class LogManageFilterStrings {
   static readonly ALL_EVENT_TYPES: string = '全部类型'
   static readonly ALL_RESULTS: string = '全部结果'
   static readonly SEARCH_PLACEHOLDER: string = '搜索日志内容...'
-  static readonly FILE_HINT: string = '提示：文件日志仅记录当前前台用户目录中的文件操作。'
-  static readonly FILE_EMPTY_HINT: string = '当前文件日志为空，仅会记录当前前台用户目录中的文件操作。'
 }
 
 export class LogManageActionStrings {
@@ -41,7 +39,6 @@ export class LogManageStatStrings {
 
 export class LogManageEmptyStateStrings {
   static readonly TITLE: string = '暂无日志记录'
-  static readonly DESCRIPTION: string = '可以稍后刷新，或检查采集与筛选配置。'
 }
 
 export class LogManageSettingStrings {

@@ -96,7 +96,7 @@ export struct UserFirewallControlDialog {
               .height(40)
               .backgroundColor(FormControlUtils.background(this.currentTheme))
               .borderRadius(AppStyles.RADIUS_MD)
-              .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+              .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
               .onSelect((index: number) => {
                 this.viewModel.selectUser(index)
               })
@@ -124,7 +124,7 @@ export struct UserFirewallControlDialog {
               .height(40)
               .backgroundColor(FormControlUtils.background(this.currentTheme))
               .borderRadius(AppStyles.RADIUS_MD)
-              .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+              .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
               .onSelect((index: number) => {
                 this.viewModel.selectMode(index)
               })
@@ -139,7 +139,7 @@ export struct UserFirewallControlDialog {
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
               .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
               .borderRadius(AppStyles.RADIUS_MD)
-              .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+              .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
               .layoutWeight(1)
               .height(40)
               .enabled(!this.viewModel.isSubmitting)

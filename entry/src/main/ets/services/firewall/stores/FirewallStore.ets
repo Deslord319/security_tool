@@ -16,8 +16,9 @@ import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import { FirewallUserBindingsRepository } from '../repositories/FirewallUserBindingsRepository'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
-import { SystemUserProvider } from '../providers'
+import { SystemUserProvider } from '../providers/SystemUserProvider'
 import { LogUtils } from '../../../utils/LogUtils'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'FirewallStore'
 
@@ -157,7 +158,7 @@ export class FirewallStore {
     FirewallStore.lastErrorMessage = ''
   }
 
-  private static recordStoreError(action: string, err: Object): void {
+  private static recordStoreError(action: string, err: ErrorLike): void {
     let code = CommonErrorUtils.extractErrorCode(err)
     FirewallStore.lastErrorCode = code
     FirewallStore.lastErrorMessage = CommonErrorUtils.resolveErrorMessage(action, code)
@@ -278,7 +279,7 @@ export class FirewallStore {
     try {
       return await FirewallRepository.getAllRules(userId)
     } catch (err) {
-      FirewallStore.recordStoreError(FirewallOperationStrings.READ_USER_RULES, err as Object)
+      FirewallStore.recordStoreError(FirewallOperationStrings.READ_USER_RULES, err as ErrorLike)
       LogUtils.error(TAG, 'getRules failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return []
     }
@@ -299,7 +300,7 @@ export class FirewallStore {
       try {
         await netFirewall.removeNetFirewallRule(userId, ruleId)
       } catch (err) {
-        FirewallStore.recordStoreError(FirewallOperationStrings.DELETE_USER_RULES, err as Object)
+        FirewallStore.recordStoreError(FirewallOperationStrings.DELETE_USER_RULES, err as ErrorLike)
         LogUtils.error(TAG,
           'clearManagedRules failed, userId=%{public}d, ruleId=%{public}d, err=%{public}s',
           userId,
@@ -324,7 +325,7 @@ export class FirewallStore {
       )
       return true
     } catch (err) {
-      FirewallStore.recordStoreError(FirewallOperationStrings.WRITE_USER_POLICY, err as Object)
+      FirewallStore.recordStoreError(FirewallOperationStrings.WRITE_USER_POLICY, err as ErrorLike)
       LogUtils.error(TAG, 'setPolicy failed, userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
       return false
     }

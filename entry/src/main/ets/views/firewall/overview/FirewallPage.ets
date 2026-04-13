@@ -147,7 +147,7 @@ export struct FirewallPage {
   }
 
   private getModeCardBorderWidth(mode: FirewallPresetMode): number {
-    return this.isModeSelected(mode) ? 2 : 1
+    return this.isModeSelected(mode) ? 2 : AppStyles.DIVIDER_HEIGHT
   }
 
   private getModeIconContainerBorder(mode: FirewallPresetMode): BorderOptions {
@@ -197,7 +197,7 @@ export struct FirewallPage {
   private getModeStatusBorder(mode: FirewallPresetMode): BorderOptions {
     if (this.currentTheme === ThemeMode.DARK) {
       return {
-        width: 1,
+        width: AppStyles.DIVIDER_HEIGHT,
         color: `${this.getModeAccent(mode)}55`
       }
     }

@@ -57,7 +57,7 @@ export struct LogPaginationBar {
           .height(32)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => this.onSelectPageSize(index))
 
         IconTextActionButton({
@@ -79,7 +79,7 @@ export struct LogPaginationBar {
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .borderRadius(AppStyles.RADIUS_SM)
           .height(32)
           .width(62)

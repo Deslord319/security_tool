@@ -6,6 +6,7 @@ import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { OperationResult } from '../../../models/DataModels'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'PeripheralService'
 
@@ -36,7 +37,7 @@ export class PeripheralService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('set interface disabled policy', err as Object)
+      return PeripheralService.buildFailureResult<void>('set interface disabled policy', err as ErrorLike)
     }
   }
 
@@ -53,7 +54,7 @@ export class PeripheralService {
       } as OperationResult<boolean>
     } catch (err) {
       LogUtils.error(TAG, `getInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<boolean>('get interface disabled status', err as Object, false)
+      return PeripheralService.buildFailureResult<boolean>('get interface disabled status', err as ErrorLike, false)
     }
   }
 
@@ -68,7 +69,7 @@ export class PeripheralService {
       LogUtils.error(TAG, `getUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<usbManager.UsbPolicy>(
         'get usb storage policy',
-        err as Object,
+        err as ErrorLike,
         usbManager.UsbPolicy.READ_WRITE
       )
     }
@@ -89,13 +90,13 @@ export class PeripheralService {
       } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setUsbStoragePolicyWithCleanupResult failed: ${JSON.stringify(err)}`)
-      if (CommonErrorUtils.extractErrorCode(err as Object) === 9200010) {
+      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === 9200010) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_storage_policy',
           'system detected usb policy conflict'
         )
       }
-      return PeripheralService.buildFailureResult<void>('set usb storage policy', err as Object)
+      return PeripheralService.buildFailureResult<void>('set usb storage policy', err as ErrorLike)
     }
   }
 
@@ -108,7 +109,7 @@ export class PeripheralService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('set network interface status', err as Object)
+      return PeripheralService.buildFailureResult<void>('set network interface status', err as ErrorLike)
     }
   }
 
@@ -128,7 +129,7 @@ export class PeripheralService {
       return { success: true, data: allDisabled } as OperationResult<boolean>
     } catch (err) {
       LogUtils.error(TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<boolean>('get network interface status', err as Object, false)
+      return PeripheralService.buildFailureResult<boolean>('get network interface status', err as ErrorLike, false)
     }
   }
 
@@ -154,13 +155,13 @@ export class PeripheralService {
       } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setUsbInterfaceDisabledWithCleanup failed: ${JSON.stringify(err)}`)
-      if (CommonErrorUtils.extractErrorCode(err as Object) === 9200010) {
+      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === 9200010) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_interface',
           'system detected usb interface conflict'
         )
       }
-      return PeripheralService.buildFailureResult<void>('set usb interface', err as Object)
+      return PeripheralService.buildFailureResult<void>('set usb interface', err as ErrorLike)
     }
   }
 
@@ -199,7 +200,7 @@ export class PeripheralService {
     }
   }
 
-  static buildFailureResult<T>(action: string, err: Object, fallbackData?: T): OperationResult<T> {
+  static buildFailureResult<T>(action: string, err: ErrorLike, fallbackData?: T): OperationResult<T> {
     const code = CommonErrorUtils.extractErrorCode(err)
     const isAdminMissing = EnterpriseAdminService.isAdminMissingError(err)
     const message = isAdminMissing

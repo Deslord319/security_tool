@@ -7,11 +7,9 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { LooseRecord } from '../../../types/LooseValueTypes'
 import { pickNumber, pickString } from '../common/LogValuePicker'
 import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
-
-type JsonField = string | number | boolean | Object | undefined
-type JsonMap = Record<string, JsonField>
 
 interface ParsedAuditPayload {
   detail: string
@@ -88,7 +86,7 @@ function parseAuditPayload(content: string, metadata?: string): ParsedAuditPaylo
   }
 }
 
-function resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: JsonMap[]): string | undefined {
+function resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: LooseRecord[]): string | undefined {
   const structured = pickString(sources, [
     'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
     'filePath', 'file_path', 'path', 'srcPath', 'src_path'
@@ -110,9 +108,9 @@ function mapResult(rawOutcome?: string): LogEventResult {
   return LogEventResult.SUCCESS
 }
 
-function collectJsonSources(contentJson?: JsonMap, metadataJson?: JsonMap): JsonMap[] {
-  const result: JsonMap[] = []
-  const append = (candidate?: JsonMap): void => {
+function collectJsonSources(contentJson?: LooseRecord, metadataJson?: LooseRecord): LooseRecord[] {
+  const result: LooseRecord[] = []
+  const append = (candidate?: LooseRecord): void => {
     if (!candidate) {
       return
     }
@@ -131,7 +129,7 @@ function collectJsonSources(contentJson?: JsonMap, metadataJson?: JsonMap): Json
   return result
 }
 
-function safeParseJson(value: string | undefined): JsonMap | undefined {
+function safeParseJson(value: string | undefined): LooseRecord | undefined {
   if (!value) {
     return undefined
   }
@@ -143,7 +141,7 @@ function safeParseJson(value: string | undefined): JsonMap | undefined {
   }
 }
 
-function extractNestedJson(source: JsonMap, key: string): JsonMap | undefined {
+function extractNestedJson(source: LooseRecord, key: string): LooseRecord | undefined {
   const candidate = source[key]
   if (typeof candidate === 'string') {
     return safeParseJson(candidate)
@@ -154,9 +152,9 @@ function extractNestedJson(source: JsonMap, key: string): JsonMap | undefined {
   return undefined
 }
 
-function toJsonMap(candidate: Object | undefined): JsonMap | undefined {
+function toJsonMap(candidate: Object | undefined): LooseRecord | undefined {
   if (!candidate || Array.isArray(candidate)) {
     return undefined
   }
-  return candidate as JsonMap
+  return candidate as LooseRecord
 }

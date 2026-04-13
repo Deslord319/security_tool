@@ -293,7 +293,7 @@ export struct AddRuleDialog {
           .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.ruleName = value })
       }
       .width('100%')
@@ -322,7 +322,7 @@ export struct AddRuleDialog {
           .height(40)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.ruleType = index + 1 })
       }
       .width('100%')
@@ -350,7 +350,7 @@ export struct AddRuleDialog {
           .height(40)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.ruleDirection = index + 1 })
       }
       .width('100%')
@@ -374,7 +374,7 @@ export struct AddRuleDialog {
             .height(40)
             .backgroundColor(FormControlUtils.background(this.currentTheme))
             .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+            .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .onSelect((index: number) => {
               this.protocol = this.protocolValues[index] ?? this.protocolValues[0]
             })
@@ -398,7 +398,7 @@ export struct AddRuleDialog {
           .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.remoteAddress = value })
       }
       .width('100%')
@@ -417,7 +417,7 @@ export struct AddRuleDialog {
             .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
             .backgroundColor(FormControlUtils.background(this.currentTheme))
             .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+            .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .type(InputType.Number)
             .onChange((value: string) => { this.localPort = value })
         }
@@ -436,7 +436,7 @@ export struct AddRuleDialog {
             .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
             .backgroundColor(FormControlUtils.background(this.currentTheme))
             .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+            .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
             .type(InputType.Number)
             .onChange((value: string) => { this.remotePort = value })
         }
@@ -466,7 +466,7 @@ export struct AddRuleDialog {
           .height(40)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => { this.action = index })
       }
       .width('100%')
@@ -478,7 +478,7 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .backgroundColor(this.getTertiaryButtonBackground())
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
           .onClick(() => {

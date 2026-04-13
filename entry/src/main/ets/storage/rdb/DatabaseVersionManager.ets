@@ -1,8 +1,9 @@
 import relationalStore from '@ohos.data.relationalStore'
+import { AppInfo } from '../../constants/AppConstants'
 
 export class DatabaseVersionManager {
   private static versions: Map<string, number> = new Map([
-    ['security_tool.db', 1]
+    [AppInfo.DB_NAME, 1]
   ])
 
   static getVersion(name: string): number {

@@ -2,6 +2,10 @@ import { common } from '@kit.AbilityKit'
 import {
   LogEventResult,
   normalizeDeviceId,
+  normalizeLogEventResult,
+  normalizePeripheralAction,
+  normalizePeripheralDecision,
+  normalizePeripheralSource,
   PeripheralRecordAction,
   PeripheralRecordPolicyHit,
   PeripheralRecordSource,
@@ -10,6 +14,7 @@ import {
 } from '../../../models/DataModels'
 import { StorageResult } from '../../../storage/StorageResult'
 import { LogUtils } from '../../../utils/LogUtils'
+import { generateRandomSuffix } from '../../../utils/ValuePicker'
 import { PeripheralTraceEntryRepository } from './PeripheralTraceEntryRepository'
 
 const TAG = 'PeripheralTraceMaintenance'
@@ -138,14 +143,14 @@ export class PeripheralTraceMaintenanceService {
     let now = PeripheralTraceMaintenanceService.nowProvider()
     let occurAt = Number.isFinite(record.occurAt) && record.occurAt > 0 ? Math.floor(record.occurAt) : now
     let collectAt = Number.isFinite(record.collectAt) && record.collectAt > 0 ? Math.floor(record.collectAt) : now
-    let result = PeripheralTraceMaintenanceService.normalizeResult(record.result)
-    let action = PeripheralTraceMaintenanceService.normalizeAction(record.action)
-    let decision = PeripheralTraceMaintenanceService.normalizeDecision(record.decision)
-    let source = PeripheralTraceMaintenanceService.normalizeSource(record.source)
+    let result = normalizeLogEventResult(record.result)
+    let action = normalizePeripheralAction(record.action)
+    let decision = normalizePeripheralDecision(record.decision)
+    let source = normalizePeripheralSource(record.source)
     return {
       recordId: record.recordId && record.recordId.length > 0 ?
         record.recordId :
-        `ptr_${collectAt}_${Math.random().toString(36).substring(2, 8)}`,
+        `ptr_${collectAt}_${generateRandomSuffix()}`,
       occurAt: occurAt,
       collectAt: collectAt,
       deviceName: record.deviceName || 'Unknown Device',
@@ -171,31 +176,4 @@ export class PeripheralTraceMaintenanceService {
     }
   }
 
-  private static normalizeResult(result: LogEventResult): LogEventResult {
-    if (result === LogEventResult.SUCCESS || result === LogEventResult.BLOCKED || result === LogEventResult.FAILED) {
-      return result
-    }
-    return LogEventResult.FAILED
-  }
-
-  private static normalizeAction(action: PeripheralRecordAction): PeripheralRecordAction {
-    if (action === 'connect' || action === 'disconnect' || action === 'discover' || action === 'intercept' || action === 'unknown') {
-      return action
-    }
-    return 'unknown'
-  }
-
-  private static normalizeDecision(decision: PeripheralRecordPolicyHit): PeripheralRecordPolicyHit {
-    if (decision === 'allow' || decision === 'deny' || decision === 'unknown') {
-      return decision
-    }
-    return 'unknown'
-  }
-
-  private static normalizeSource(source: PeripheralRecordSource): PeripheralRecordSource {
-    if (source === 'runtime_event' || source === 'audit_event' || source === 'policy_snapshot') {
-      return source
-    }
-    return 'audit_event'
-  }
 }

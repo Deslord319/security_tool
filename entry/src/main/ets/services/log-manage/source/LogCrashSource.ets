@@ -4,6 +4,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { CrashSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { mapCrashInfoToLogEntry } from './LogCrashEventMapper'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogCrashSource'
 const WATCHER_NAME = 'securityCrashWatcher1'
@@ -38,7 +39,7 @@ export class LogCrashSource {
       LogCrashSource.lastErrorCode = undefined
       return { success: true, code: 'ok' }
     } catch (err) {
-      LogCrashSource.lastErrorCode = CommonErrorUtils.extractErrorCode(err as Object)
+      LogCrashSource.lastErrorCode = CommonErrorUtils.extractErrorCode(err as ErrorLike)
       LogUtils.error(TAG, `addWatcher failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'unsupported' }
     }

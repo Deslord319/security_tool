@@ -3,7 +3,11 @@ import { common } from '@kit.AbilityKit'
 
 import { AuthService } from '../../identity/auth/AuthService'
 import { FirewallRepository } from '../repositories/FirewallRepository'
-import { FirewallAuthStateStore } from '../stores'
+import {
+  FirewallAuthFailureUpdate,
+  FirewallAuthLockState,
+  FirewallAuthStateStore
+} from '../stores/FirewallAuthStateStore'
 import {
   AuthMethod,
   FirewallToggleResult,
@@ -18,6 +22,11 @@ import { buildFirewallToggleFailedMessage } from '../../../constants/modules/Fir
 import { LogStorageMaintenanceService } from '../../log-manage/maintenance/LogStorageMaintenanceService'
 
 const TAG = 'FirewallAuthService'
+
+interface FirewallAuditContext {
+  beforeEnabled: boolean
+  afterEnabled: boolean
+}
 
 export class FirewallAuthService {
   static async executeToggle(
@@ -56,14 +65,14 @@ export class FirewallAuthService {
     }
     let applyResult = await applyAction()
     if (!applyResult.success) {
-      await FirewallAuthService.appendGenericAuditEntry(
+      await FirewallAuthService.appendAuditEntry(
         LogEventResult.FAILED,
         `firewall user mode apply ${userId} ${mode} failed`,
         applyResult.errorCode
       )
       return applyResult
     }
-    await FirewallAuthService.appendGenericAuditEntry(
+    await FirewallAuthService.appendAuditEntry(
       LogEventResult.SUCCESS,
       `firewall user mode apply ${userId} ${mode} success`
     )
@@ -73,14 +82,14 @@ export class FirewallAuthService {
   static async getLockState(
     context: common.UIAbilityContext,
     now: number = Date.now()
-  ) {
+  ): Promise<FirewallAuthLockState> {
     return FirewallAuthStateStore.getLockState(context, now)
   }
 
   static async recordFailure(
     context: common.UIAbilityContext,
     now: number = Date.now()
-  ) {
+  ): Promise<FirewallAuthFailureUpdate> {
     return FirewallAuthStateStore.recordFailure(context, now)
   }
 
@@ -118,10 +127,10 @@ export class FirewallAuthService {
         errorMessage: errorMessage
       }
       await FirewallAuthService.appendAuditEntry(
-        currentEnabled,
-        targetEnabled,
         LogEventResult.FAILED,
         `${auditPrefix} failed: policy apply failed`,
+        undefined,
+        { beforeEnabled: currentEnabled, afterEnabled: targetEnabled }
       )
       return applyFailedResult
     }
@@ -131,10 +140,10 @@ export class FirewallAuthService {
       targetEnabled: targetEnabled
     }
     await FirewallAuthService.appendAuditEntry(
-      currentEnabled,
-      targetEnabled,
       LogEventResult.SUCCESS,
-      `${auditPrefix} success`
+      `${auditPrefix} success`,
+      undefined,
+      { beforeEnabled: currentEnabled, afterEnabled: targetEnabled }
     )
     return successResult
   }
@@ -156,13 +165,13 @@ export class FirewallAuthService {
       }
       if (currentEnabled !== undefined && targetEnabled !== undefined) {
         await FirewallAuthService.appendAuditEntry(
-          currentEnabled,
-          targetEnabled,
           LogEventResult.BLOCKED,
-          `${auditPrefix} blocked: locked ${lockState.remainingSec}s`
+          `${auditPrefix} blocked: locked ${lockState.remainingSec}s`,
+          undefined,
+          { beforeEnabled: currentEnabled, afterEnabled: targetEnabled }
         )
       } else {
-        await FirewallAuthService.appendGenericAuditEntry(
+        await FirewallAuthService.appendAuditEntry(
           LogEventResult.BLOCKED,
           `${auditPrefix} blocked: locked ${lockState.remainingSec}s`
         )
@@ -181,14 +190,13 @@ export class FirewallAuthService {
       }
       if (currentEnabled !== undefined && targetEnabled !== undefined) {
         await FirewallAuthService.appendAuditEntry(
-          currentEnabled,
-          targetEnabled,
           LogEventResult.BLOCKED,
           `${auditPrefix} blocked: pin unavailable`,
-          authResult.errorCode
+          authResult.errorCode,
+          { beforeEnabled: currentEnabled, afterEnabled: targetEnabled }
         )
       } else {
-        await FirewallAuthService.appendGenericAuditEntry(
+        await FirewallAuthService.appendAuditEntry(
           LogEventResult.BLOCKED,
           `${auditPrefix} blocked: pin unavailable`,
           authResult.errorCode
@@ -211,16 +219,15 @@ export class FirewallAuthService {
       }
       if (currentEnabled !== undefined && targetEnabled !== undefined) {
         await FirewallAuthService.appendAuditEntry(
-          currentEnabled,
-          targetEnabled,
           LogEventResult.BLOCKED,
           failureUpdate.locked ?
             `${auditPrefix} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
             `${auditPrefix} blocked: pin failed`,
-          authResult.errorCode
+          authResult.errorCode,
+          { beforeEnabled: currentEnabled, afterEnabled: targetEnabled }
         )
       } else {
-        await FirewallAuthService.appendGenericAuditEntry(
+        await FirewallAuthService.appendAuditEntry(
           LogEventResult.BLOCKED,
           failureUpdate.locked ?
             `${auditPrefix} blocked: pin failed and locked ${failureUpdate.remainingSec}s` :
@@ -239,11 +246,10 @@ export class FirewallAuthService {
   }
 
   private static async appendAuditEntry(
-    beforeEnabled: boolean,
-    afterEnabled: boolean,
     result: LogEventResult,
     detail: string,
-    errorCode?: number
+    errorCode?: number,
+    context?: FirewallAuditContext
   ): Promise<void> {
     let normalizedDetail = detail
     if (errorCode !== undefined) {
@@ -254,39 +260,14 @@ export class FirewallAuthService {
       timestamp: Date.now(),
       eventType: LogEventType.ACCOUNT,
       detail: normalizedDetail,
-      processName: 'firewall-toggle-auth',
+      processName: context ? 'firewall-toggle-auth' : 'firewall-user-mode-auth',
       result: result,
-      rawEventName: beforeEnabled ? 'firewall_state_on' : 'firewall_state_off',
-      rawOutcome: afterEnabled ? 'target_on' : 'target_off'
+      rawEventName: context ? (context.beforeEnabled ? 'firewall_state_on' : 'firewall_state_off') : 'firewall_user_mode_apply',
+      rawOutcome: context ? (context.afterEnabled ? 'target_on' : 'target_off') : (result === LogEventResult.SUCCESS ? 'success' : 'blocked_or_failed')
     }
     let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {
       LogUtils.warn(TAG, `appendAuditEntry failed: ${detail}`)
-    }
-  }
-
-  private static async appendGenericAuditEntry(
-    result: LogEventResult,
-    detail: string,
-    errorCode?: number
-  ): Promise<void> {
-    let normalizedDetail = detail
-    if (errorCode !== undefined) {
-      normalizedDetail = `${detail}, errorCode=${errorCode}`
-    }
-    let entry: LogEntry = {
-      id: generateLogEntryId(),
-      timestamp: Date.now(),
-      eventType: LogEventType.ACCOUNT,
-      detail: normalizedDetail,
-      processName: 'firewall-user-mode-auth',
-      result: result,
-      rawEventName: 'firewall_user_mode_apply',
-      rawOutcome: result === LogEventResult.SUCCESS ? 'success' : 'blocked_or_failed'
-    }
-    let saved = await LogStorageMaintenanceService.appendEntries([entry])
-    if (!saved.success) {
-      LogUtils.warn(TAG, `appendGenericAuditEntry failed: ${detail}`)
     }
   }
 }

@@ -207,7 +207,7 @@ export struct LogManagePage {
           valueText: `${this.viewModel.state.summary.currentShownCount}`,
           description: LogManageStatStrings.CURRENT_SHOWN_DESCRIPTION,
           icon: AppResources.DASHBOARD_ICON,
-          accentStart: AppColors.TEXT_MUTED,
+          accentStart: AppColors.GRADIENT_TOOL_START,
           accentEnd: AppColors.GRADIENT_TOOL_END,
           preset: 'log',
           currentTheme: this.currentTheme
@@ -312,7 +312,7 @@ export struct LogManagePage {
         .height(36)
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => { void this.viewModel.setEventTypeIndex(index) })
 
       Select(this.resultFilterOptions)
@@ -328,7 +328,7 @@ export struct LogManagePage {
         .height(36)
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => { void this.viewModel.setResultIndex(index) })
 
       TextInput({ placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER, text: this.viewModel.state.filter.keyword })
@@ -336,7 +336,7 @@ export struct LogManagePage {
         .fontColor(FormControlUtils.text(this.currentTheme))
         .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
         .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .borderRadius(AppStyles.RADIUS_SM)
         .height(36)
         .layoutWeight(1)

@@ -17,7 +17,7 @@ export default function dialogStringsTest() {
       expect(ActionText.CANCEL.length > 0).assertTrue()
       expect(LoadingStrings.LOADING.length > 0).assertTrue()
       expect(MessageText.CHECK_PERMISSIONS.length > 0).assertTrue()
-      expect(ResultText.SAVE_SUCCESS.length > 0).assertTrue()
+      expect(ResultText.SUCCESS.length > 0).assertTrue()
     })
 
     it('should expose firewall dialog labels and builders', 0, () => {

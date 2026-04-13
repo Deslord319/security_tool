@@ -56,7 +56,7 @@ export struct InterfaceControlTab {
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-        .border({ width: 1, color: AppColors.getColors(this.currentTheme).BORDER })
+        .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER })
         .shadow(HoverUtils.getShadow(this.currentTheme, this.hoveredPanelIndex === 0, true))
         .translate({ y: HoverUtils.getTranslateY(this.hoveredPanelIndex === 0, 4) })
         .onHover((isHover: boolean) => this.onPanelHover && this.onPanelHover(isHover))
@@ -163,7 +163,7 @@ export struct InterfaceControlTab {
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .enabled(!isProcessing)
           .opacity(isProcessing ? 0.72 : 1)
           .onSelect((index: number) => {

@@ -25,6 +25,7 @@ import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/pe
 import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
+import { ErrorLike } from '../types/LooseValueTypes'
 
 const TAG = 'MainPage'
 
@@ -106,10 +107,10 @@ struct MainPage {
 
   private handlePageActivated(source: 'onPageShow'): void {
     this.syncThemeState()
-    this.loadFirewallState().catch((err: Object) => {
+    this.loadFirewallState().catch((err: ErrorLike) => {
       LogUtils.error(TAG, `loadFirewallState in ${source} failed: ${JSON.stringify(err)}`)
     })
-    this.ensureRuntimeServices().catch((err: Object) => {
+    this.ensureRuntimeServices().catch((err: ErrorLike) => {
       LogUtils.error(TAG, `ensureRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()

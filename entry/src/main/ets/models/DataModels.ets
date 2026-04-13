@@ -8,6 +8,7 @@ import {
 import { LabelText, ResultText } from '../constants/StringCatalog'
 import { DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings } from '../constants/modules/DialogStrings'
 import { IdentityAuthStrings } from '../constants/modules/IdentityStrings'
+import { generateRandomSuffix } from '../utils/ValuePicker'
 
 export enum RuleType {
   IP = 1,
@@ -631,5 +632,41 @@ export function formatLogTimestamp(timestamp: number): string {
 }
 
 export function generateLogEntryId(): string {
-  return `log_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  return `log_${Date.now()}_${generateRandomSuffix(9)}`
+}
+
+export function normalizeLogEventResult(value: LogEventResult, fallback: LogEventResult = LogEventResult.FAILED): LogEventResult {
+  if (value === LogEventResult.SUCCESS || value === LogEventResult.BLOCKED || value === LogEventResult.FAILED) {
+    return value
+  }
+  return fallback
+}
+
+export function parseLogEventResult(rawValue: string, fallback: LogEventResult = LogEventResult.FAILED): LogEventResult {
+  let numeric = Number(rawValue)
+  if (numeric === LogEventResult.SUCCESS || numeric === LogEventResult.BLOCKED || numeric === LogEventResult.FAILED) {
+    return numeric as LogEventResult
+  }
+  return fallback
+}
+
+export function normalizePeripheralAction(action: PeripheralRecordAction): PeripheralRecordAction {
+  if (action === 'connect' || action === 'disconnect' || action === 'discover' || action === 'intercept' || action === 'unknown') {
+    return action
+  }
+  return 'unknown'
+}
+
+export function normalizePeripheralDecision(decision: PeripheralRecordPolicyHit): PeripheralRecordPolicyHit {
+  if (decision === 'allow' || decision === 'deny' || decision === 'unknown') {
+    return decision
+  }
+  return 'unknown'
+}
+
+export function normalizePeripheralSource(source: PeripheralRecordSource): PeripheralRecordSource {
+  if (source === 'runtime_event' || source === 'audit_event' || source === 'policy_snapshot') {
+    return source
+  }
+  return 'audit_event'
 }

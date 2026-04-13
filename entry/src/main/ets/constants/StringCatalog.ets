@@ -16,15 +16,10 @@ export class ModuleText {
 
 export class StatusText {
   static readonly ACTIVATED: string = '已激活'
-  static readonly NOT_ACTIVATED: string = '未激活'
-  static readonly LISTENING: string = '监听中'
-  static readonly NOT_LISTENING: string = '未监听'
   static readonly CURRENT_MODE: string = '当前模式'
   static readonly EFFECTIVE: string = '已生效'
   static readonly ENABLED: string = '已启用'
   static readonly DISABLED: string = '已禁用'
-  static readonly SUBSCRIBED: string = '已订阅'
-  static readonly NOT_SUBSCRIBED: string = '未订阅'
 }
 
 export class ActionText {
@@ -39,9 +34,7 @@ export class ActionText {
   static readonly ACKNOWLEDGE: string = '我知道了'
   static readonly CONFIRM: string = '确定'
   static readonly CLOSE: string = '关闭'
-  static readonly EDIT: string = '编辑'
   static readonly ADD: string = '添加'
-  static readonly OK: string = '好的'
   static readonly PREVIOUS_PAGE: string = '上一页'
   static readonly NEXT_PAGE: string = '下一页'
   static readonly JUMP: string = '跳转'
@@ -53,7 +46,6 @@ export class MessageText {
   static readonly RETRY_LATER: string = '请稍后重试'
   static readonly SUCCESS_TITLE: string = '操作成功'
   static readonly FAILURE_TITLE: string = '操作失败'
-  static readonly NO_DATA: string = '暂无数据'
   static readonly CHECK_PERMISSIONS: string = '请重新插拔连接设备或检查账号权限'
 }
 
@@ -68,11 +60,7 @@ export class LabelText {
 export class ResultText {
   static readonly SUCCESS: string = '成功'
   static readonly FAILED: string = '失败'
-  static readonly SAVE_SUCCESS: string = '保存成功'
   static readonly SAVE_FAILED: string = '保存失败'
-  static readonly DELETE_SUCCESS: string = '删除成功'
-  static readonly ADD_SUCCESS: string = '添加成功'
-  static readonly UPDATE_SUCCESS: string = '更新成功'
 }
 
 export class ThemeText {

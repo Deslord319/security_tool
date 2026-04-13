@@ -5,7 +5,7 @@ import { BusinessError } from '@kit.BasicServicesKit'
 import { LabelText } from '../../../constants/StringCatalog'
 import { AuthMethod } from '../../../models/DataModels'
 import { IdentityAuthStrings } from '../../../constants/modules/IdentityStrings'
-import { UserAuthAdapter } from './UserAuthAdapter'
+import { UserAuthAdapter, UserAuthInstanceResult, UserAuthStatusResult } from './UserAuthAdapter'
 
 const TAG = 'AuthService'
 
@@ -35,11 +35,27 @@ export class AuthService {
     }
 
     try {
-      UserAuthAdapter.getAvailableStatus(authType)
-      return {
-        available: true,
-        message: IdentityAuthStrings.SYSTEM_AVAILABLE
+      let availableResult = UserAuthAdapter.getAvailableStatus(authType)
+      if (availableResult === undefined) {
+        return {
+          available: true,
+          message: IdentityAuthStrings.SYSTEM_AVAILABLE
+        }
       }
+      let resolvedAvailableResult = availableResult as UserAuthStatusResult
+      if (resolvedAvailableResult.success) {
+        return {
+          available: true,
+          message: IdentityAuthStrings.SYSTEM_AVAILABLE
+        }
+      }
+      let mapped = AuthService.mapAuthError(
+        authMethod,
+        resolvedAvailableResult.errorCode,
+        resolvedAvailableResult.errorMessage
+      )
+      LogUtils.warn(TAG, `Auth method ${authMethod} unavailable: code=${mapped.errorCode}, msg=${mapped.message}`)
+      return mapped
     } catch (err) {
       let e = err as BusinessError
       let mapped = AuthService.mapAuthError(authMethod, e.code, e.message)
@@ -91,10 +107,30 @@ export class AuthService {
         title: IdentityAuthStrings.DIALOG_TITLE
       }
 
-      let userAuthInstance = UserAuthAdapter.getUserAuthInstance({
+      let userAuthInstanceValue = UserAuthAdapter.getUserAuthInstance({
         authParam: authParam,
         widgetParam: widgetParam
       })
+      let userAuthInstance: userAuth.UserAuthInstance
+      let structuredResult = userAuthInstanceValue as UserAuthInstanceResult
+      if (typeof structuredResult.success === 'boolean') {
+        if (!structuredResult.success || !structuredResult.instance) {
+          let mapped = AuthService.mapAuthError(
+            authMethod,
+            structuredResult.errorCode,
+            structuredResult.errorMessage
+          )
+          return {
+            success: false,
+            reason: AuthService.isUnavailableErrorCode(structuredResult.errorCode) ? 'unavailable' : 'failed',
+            errorCode: mapped.errorCode,
+            message: mapped.message
+          }
+        }
+        userAuthInstance = structuredResult.instance as userAuth.UserAuthInstance
+      } else {
+        userAuthInstance = userAuthInstanceValue as userAuth.UserAuthInstance
+      }
 
       return new Promise<AuthExecutionResult>((resolve) => {
         try {

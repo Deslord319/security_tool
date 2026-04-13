@@ -60,7 +60,7 @@ export struct BaseCard {
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_LG)
     .border({
-      width: 1,
+      width: AppStyles.DIVIDER_HEIGHT,
       color: AppColors.getColors(this.currentTheme).BORDER
     })
     .shadow(HoverUtils.getShadow(this.currentTheme, this.isHovered, true))

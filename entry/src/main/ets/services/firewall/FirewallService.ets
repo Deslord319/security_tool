@@ -14,15 +14,15 @@ import {
 } from '../../models/firewall/firewall_service_contracts'
 import { FirewallManagedRuleMetadata } from '../../models/DataModels'
 import { FirewallRuleStrings } from '../../constants/modules/FirewallStrings'
-import { FirewallStore } from './stores'
-import { FirewallRepository } from './repositories'
+import { FirewallStore } from './stores/FirewallStore'
+import { FirewallRepository } from './repositories/FirewallRepository'
 import {
   FirewallConflictSummary,
   FirewallRulesService,
   FirewallRuleConflictMatch
 } from './rules/FirewallRulesService'
 import { FirewallUserDispatchService } from './user-dispatch/FirewallUserDispatchService'
-import { FirewallAuthService } from './auth'
+import { FirewallAuthService } from './auth/FirewallAuthService'
 import { FirewallModeStrategyFactory } from './mode-strategies/FirewallModeStrategyFactory'
 
 const TAG = 'FirewallService'

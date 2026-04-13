@@ -1,9 +1,12 @@
-type EventPayloadRecord = Record<string, Object>
+import { LooseRecord, LooseValue } from '../../../types/LooseValueTypes'
+import { pickNumberFromRecords, pickStringFromRecords } from '../../../utils/ValuePicker'
+
+type EventPayloadRecord = LooseRecord
 
 export function collectPayloadSources(data: Object): EventPayloadRecord[] {
   const sources: EventPayloadRecord[] = []
   const root = toRecord(data)
-  const parameters = toRecord((data as Record<string, Object>).parameters as Object)
+  const parameters = toRecord((data as LooseRecord).parameters)
   const want = readObjectField(root, 'want')
   const wantParameters = readObjectField(want, 'parameters')
   const rootData = parseJsonObjectField(root, 'data')
@@ -26,38 +29,12 @@ export function collectPayloadSources(data: Object): EventPayloadRecord[] {
 }
 
 export function pickNumber(sources: EventPayloadRecord[], keys: string[]): number {
-  for (const source of sources) {
-    for (const key of keys) {
-      const value = source[key]
-      if (typeof value === 'number' && Number.isFinite(value)) {
-        return value
-      }
-      if (typeof value === 'string') {
-        const normalized = value.trim()
-        if (normalized.length === 0) {
-          continue
-        }
-        const radix = normalized.startsWith('0x') || normalized.startsWith('0X') ? 16 : 10
-        const parsed = parseInt(normalized.replace(/^0x/i, ''), radix)
-        if (Number.isFinite(parsed)) {
-          return parsed
-        }
-      }
-    }
-  }
-  return Number.NaN
+  const result = pickNumberFromRecords(sources, keys, true)
+  return result !== undefined ? result : Number.NaN
 }
 
 export function pickString(sources: EventPayloadRecord[], keys: string[]): string {
-  for (const source of sources) {
-    for (const key of keys) {
-      const value = source[key]
-      if (typeof value === 'string' && value.trim().length > 0) {
-        return value.trim()
-      }
-    }
-  }
-  return ''
+  return pickStringFromRecords(sources, keys) ?? ''
 }
 
 export function pushRecord(target: EventPayloadRecord[], value: EventPayloadRecord | undefined): void {
@@ -70,7 +47,7 @@ export function pushRecord(target: EventPayloadRecord[], value: EventPayloadReco
   target.push(value)
 }
 
-export function toRecord(value: Object | undefined | null): EventPayloadRecord | undefined {
+export function toRecord(value: LooseValue | null): EventPayloadRecord | undefined {
   if (!value || typeof value !== 'object') {
     return undefined
   }
@@ -103,7 +80,7 @@ export function parseJsonObjectField(
     return undefined
   }
   try {
-    return toRecord(JSON.parse(normalized) as Object)
+    return toRecord(JSON.parse(normalized) as LooseValue)
   } catch (_err) {
     return undefined
   }
@@ -121,12 +98,12 @@ export function readDeviceField(source: EventPayloadRecord | undefined): EventPa
     readObjectField(source, 'usb_device')
 }
 
-export function toRecordArray(value: Object | undefined | null): EventPayloadRecord[] {
+export function toRecordArray(value: LooseValue | null): EventPayloadRecord[] {
   if (!Array.isArray(value)) {
     return []
   }
   const result: EventPayloadRecord[] = []
-  for (const item of value as Object[]) {
+  for (const item of value as LooseValue[]) {
     const record = toRecord(item)
     if (record) {
       result.push(record)

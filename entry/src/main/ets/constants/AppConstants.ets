@@ -23,8 +23,6 @@ export class AppColors {
   static readonly SIDEBAR_SELECTED_TILE: string = '#3B9BFF'
   static readonly SIDEBAR_SELECTED_ICON: string = '#EAF4FF'
 
-  static readonly TEXT_MUTED: string = '#9E9E9E'
-  
   // Dashboard 渐变色 end 值
   static readonly GRADIENT_FIREWALL_END: string = '#00C6FF'
   static readonly GRADIENT_LOG_END: string = '#30D158'
@@ -72,10 +70,7 @@ export class AppStyles {
   // 间距常量（按需定义）
   static readonly SPACING_TAB_BAR_ITEM_HORIZONTAL: number = 16
   static readonly SPACING_TAB_BAR_ITEM_VERTICAL: number = 10
-  static readonly SPACING_TAB_BAR_PADDING: number = 14
   static readonly SPACING_CHIP: number = 4
-  static readonly SPACING_LIST_ITEM: number = 18
-  static readonly SPACING_DIALOG: number = 24
   static readonly SPACING_CARD: number = 20
   
   // 圆角常量
@@ -217,6 +212,7 @@ export class AppInfo {
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
   static readonly DEFAULT_USER_ID: number = 100
   static readonly ADMIN_ABILITY_NAME: string = 'EnterpriseAdminAbility'
+  static readonly DB_NAME: string = 'security_tool.db'
 }
 
 export const ADMIN_WANT: Want = {

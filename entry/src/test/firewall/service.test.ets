@@ -4,9 +4,9 @@ import { netFirewall } from '@kit.NetworkKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallModeStrategyFactory } from '../../main/ets/services/firewall/mode-strategies/FirewallModeStrategyFactory'
-import { FirewallRepository } from '../../main/ets/services/firewall/repositories'
+import { FirewallRepository } from '../../main/ets/services/firewall/repositories/FirewallRepository'
 import { FirewallUserDispatchService } from '../../main/ets/services/firewall/user-dispatch/FirewallUserDispatchService'
-import { FirewallStore } from '../../main/ets/services/firewall/stores'
+import { FirewallStore } from '../../main/ets/services/firewall/stores/FirewallStore'
 
 function createPolicy(isOpen: boolean, inAction: number, outAction: number): netFirewall.NetFirewallPolicy {
   return {

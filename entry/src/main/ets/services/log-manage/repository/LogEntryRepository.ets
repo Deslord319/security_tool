@@ -1,12 +1,12 @@
 import relationalStore from '@ohos.data.relationalStore'
-import { LogEntry, LogEventResult, LogEventType, LogStatistics } from '../../../models/DataModels'
+import { AppInfo } from '../../../constants/AppConstants'
+import { LogEntry, LogEventResult, LogEventType, LogStatistics, parseLogEventResult } from '../../../models/DataModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { LogQuery } from '../common/LogManagePorts'
 import { pickNumber, pickString } from '../common/LogValuePicker'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 
 const TAG = 'LogEntryRepository'
-const DB_NAME = 'security_tool.db'
 const TABLE_NAME = 'log_entries'
 
 const CREATE_TABLE_SQL = `
@@ -52,7 +52,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   constructor() {
     super({
       tag: TAG,
-      dbName: DB_NAME,
+      dbName: AppInfo.DB_NAME,
       tableName: TABLE_NAME,
       createStatements: [
         CREATE_TABLE_SQL,
@@ -281,11 +281,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   }
 
   private parseResult(rawValue: string): LogEventResult {
-    let numeric = Number(rawValue)
-    if (numeric === LogEventResult.SUCCESS || numeric === LogEventResult.BLOCKED || numeric === LogEventResult.FAILED) {
-      return numeric as LogEventResult
-    }
-    return LogEventResult.SUCCESS
+    return parseLogEventResult(rawValue, LogEventResult.SUCCESS)
   }
 
   private parseExtraJson(rawValue: string | undefined): LogEntryExtraData {

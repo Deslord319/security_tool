@@ -5,6 +5,7 @@ import { OperationResult, PeripheralDevicePolicy, PeripheralType } from '../../.
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { LogUtils } from '../../../utils/LogUtils'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 export type PeripheralPolicyDispatchReason =
   'unsupported_device_type' |
@@ -178,7 +179,7 @@ export class PeripheralDevicePolicyDispatchService {
       } as OperationResult<boolean>
     } catch (err) {
       LogUtils.error(TAG, `getUsbDisabledState failed: ${JSON.stringify(err)}`)
-      return PeripheralDevicePolicyDispatchService.buildOperationFailureResult<boolean>('read usb disabled state', err as Object, false)
+      return PeripheralDevicePolicyDispatchService.buildOperationFailureResult<boolean>('read usb disabled state', err as ErrorLike, false)
     }
   }
 
@@ -192,7 +193,7 @@ export class PeripheralDevicePolicyDispatchService {
       LogUtils.error(TAG, `getBluetoothDisabledState failed: ${JSON.stringify(err)}`)
       return PeripheralDevicePolicyDispatchService.buildOperationFailureResult<boolean>(
         'read bluetooth disabled state',
-        err as Object,
+        err as ErrorLike,
         false
       )
     }
@@ -208,7 +209,7 @@ export class PeripheralDevicePolicyDispatchService {
       LogUtils.error(TAG, `getUsbStoragePolicy failed: ${JSON.stringify(err)}`)
       return PeripheralDevicePolicyDispatchService.buildOperationFailureResult<usbManager.UsbPolicy>(
         'read usb storage policy',
-        err as Object,
+        err as ErrorLike,
         usbManager.UsbPolicy.READ_WRITE
       )
     }
@@ -275,17 +276,18 @@ export class PeripheralDevicePolicyDispatchService {
       action()
       return { success: true } as PeripheralPolicyDispatchResult
     } catch (err) {
-      const error = err as Object
+      const error = err as ErrorLike
       const code = CommonErrorUtils.extractErrorCode(error)
       const defaultReason: PeripheralPolicyDispatchReason = channel === 'usb' ? 'usb_dispatch_failed' : 'bluetooth_dispatch_failed'
+      const adminMissing = EnterpriseAdminService.isAdminMissingError(error)
       LogUtils.error(TAG, `${channel} dispatch failed: code=${code ?? -1}, message=${CommonErrorUtils.extractErrorMessage(error)}`)
       return {
         success: false,
         reason: code === 9200010 ? conflictReason : defaultReason,
         errorCode: code,
         errorMessage: CommonErrorUtils.extractErrorMessage(error),
-        isAdminMissing: EnterpriseAdminService.isAdminMissingError(error),
-        suggestion: EnterpriseAdminService.isAdminMissingError(error)
+        isAdminMissing: adminMissing,
+        suggestion: adminMissing
           ? EnterpriseAdminService.buildEnableCommand()
           : undefined,
         stage: 'device_policy_dispatch'
@@ -295,7 +297,7 @@ export class PeripheralDevicePolicyDispatchService {
 
   private static buildOperationFailureResult<T>(
     action: string,
-    err: Object,
+    err: ErrorLike,
     fallbackData?: T
   ): OperationResult<T> {
     const code = CommonErrorUtils.extractErrorCode(err)

@@ -14,6 +14,7 @@ import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 import { LogAuditSource } from '../source/LogAuditSource'
 import { LogCrashSource } from '../source/LogCrashSource'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogCollectorService'
 
@@ -183,7 +184,7 @@ export class LogCollectorService {
     }
     LogCollectorService.flushTimerId = setTimeout(() => {
       LogCollectorService.flushTimerId = -1
-      LogCollectorService.flushPendingEntries().catch((err: Object) => {
+      LogCollectorService.flushPendingEntries().catch((err: ErrorLike) => {
         LogUtils.error(TAG, `flushPendingEntries timer failed: ${JSON.stringify(err)}`)
       })
     }, LogCollectorService.BATCH_FLUSH_INTERVAL_MS) as number

@@ -24,7 +24,7 @@ const DAY_IN_MS: number = 24 * 60 * 60 * 1000
 const TAG = 'IdentitySettings.ViewModel'
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
 
-export type IdentitySettingsActionKind = 'none' | 'result' | 'confirm'
+type IdentitySettingsActionKind = 'none' | 'result' | 'confirm'
 
 export interface IdentitySettingsActionRequest {
   kind: IdentitySettingsActionKind

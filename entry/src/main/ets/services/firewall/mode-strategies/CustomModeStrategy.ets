@@ -7,6 +7,7 @@ import {
   StoredCustomFirewallRuleRecord
 } from '../repositories/FirewallCustomRulesRepository'
 import { FirewallRulesService } from '../rules/FirewallRulesService'
+import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 export class CustomModeStrategy {
   static async listRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
@@ -87,7 +88,7 @@ export class CustomModeStrategy {
   }
 
   private static generateCustomRuleId(): string {
-    return `custom_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+    return `custom_${Date.now()}_${generateRandomSuffix()}`
   }
 
   private static createRecord(

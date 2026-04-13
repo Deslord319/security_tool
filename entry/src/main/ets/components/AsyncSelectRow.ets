@@ -109,7 +109,7 @@ export struct AsyncSelectRow {
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: 1, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .enabled(!this.isBusy())
           .opacity(this.isBusy() ? 0.72 : 1)
           .onSelect((index: number) => {

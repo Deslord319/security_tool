@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 
 import { FirewallPresetConfig } from '../../../models/DataModels'
+import { LooseValue } from '../../../types/LooseValueTypes'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'FirewallPresetConfigReader'
@@ -35,12 +36,12 @@ export class FirewallPresetConfigReader {
     }
   }
 
-  private static normalizeStringArray(value: Object | undefined): string[] {
+  private static normalizeStringArray(value: LooseValue): string[] {
     if (!Array.isArray(value)) {
       return []
     }
     let items: string[] = []
-    value.forEach((item: Object) => {
+    value.forEach((item: LooseValue) => {
       if (typeof item === 'string') {
         let normalized = item.trim()
         if (normalized.length > 0) {
@@ -51,12 +52,12 @@ export class FirewallPresetConfigReader {
     return items
   }
 
-  private static normalizePorts(value: Object | undefined): number[] {
+  private static normalizePorts(value: LooseValue): number[] {
     if (!Array.isArray(value)) {
       return []
     }
     let ports: number[] = []
-    value.forEach((item: Object) => {
+    value.forEach((item: LooseValue) => {
       let num = typeof item === 'number' ? item : Number(item)
       if (Number.isInteger(num) && num >= 1 && num <= 65535) {
         ports.push(num)

@@ -102,7 +102,7 @@ export const LightThemeColors: ThemeColorSet = {
 }
 
 // 深色主题颜色
-export const DarkThemeColors: ThemeColorSet = {
+const DarkThemeColors: ThemeColorSet = {
   // 背景色
   BG_PAGE: '#121212',
   BG_CARD: '#1E1E1E',

@@ -55,8 +55,6 @@ export class PeripheralPageStrings {
   static readonly DEVICE_TYPE_LABEL: string = '设备类型'
   static readonly CONNECTION_TIME_LABEL: string = '连接时间'
   static readonly LATEST_CONNECTION_TIME_LABEL: string = '最近连接时间'
-  static readonly LATEST_SEEN_TIME_LABEL: string = '最近出现时间'
-  static readonly POLICY_HIT_LABEL: string = '策略命中'
 }
 
 export class PeripheralInterfaceStrings {
@@ -92,6 +90,20 @@ export class PeripheralMatchedPolicyStrings {
   static readonly UNKNOWN_DEVICE: string = '未知设备'
 }
 
+export class PeripheralConnectionRecordStrings {
+  static readonly UNNAMED_BLUETOOTH: string = '未命名蓝牙设备'
+  static readonly BLUETOOTH_CONNECTED: string = '蓝牙设备已连接'
+  static readonly BLUETOOTH_DISCONNECTED: string = '蓝牙设备已断开'
+  static readonly USB_DISCONNECTED: string = '设备已断开'
+  static readonly USB_INTERFACE_DISABLED_DETAIL: string = 'USB 接口已被总控禁用，设备接入被阻止。'
+  static readonly USB_STORAGE_DISABLED_DETAIL: string = 'USB 存储策略为禁止访问，设备接入被阻止。'
+  static readonly USB_STORAGE_READ_ONLY_DETAIL: string = 'USB 存储策略为只读模式。'
+  static readonly DEFAULT_ALLOW: string = '按当前策略允许接入'
+  static readonly DEFAULT_ALLOW_DETAIL: string = '未命中更高优先级的阻断策略，按默认规则允许接入。'
+  static readonly USB_DEVICE: string = 'USB 设备'
+  static readonly UNRECOGNIZED_USB_DEVICE: string = '未识别 USB 设备'
+}
+
 export class PeripheralExportStrings {
   static readonly CONNECTION_HISTORY_FILE_PREFIX: string = 'peripheral_connection_history'
   static readonly POLICY_LIST_FILE_PREFIX: string = 'peripheral_policy_list'
@@ -109,7 +121,7 @@ export class PeripheralExportStrings {
     PeripheralPageStrings.DEVICE_TYPE_LABEL,
     DeviceDetailStrings.DEVICE_ID,
     DeviceDetailStrings.CONNECTION_EVENT,
-    PeripheralPageStrings.POLICY_HIT_LABEL,
+    '策略命中',
     DeviceDetailStrings.RESULT_STATUS,
     DeviceDetailStrings.EVENT_SOURCE
   ]
@@ -117,7 +129,7 @@ export class PeripheralExportStrings {
     PeripheralPageStrings.DEVICE_NAME_LABEL,
     PeripheralPageStrings.DEVICE_TYPE_LABEL,
     DeviceDetailStrings.DEVICE_ID,
-    PeripheralPageStrings.LATEST_SEEN_TIME_LABEL,
+    '最近出现时间',
     FirewallDialogStrings.CURRENT_STATUS
   ]
 }

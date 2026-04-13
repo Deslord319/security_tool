@@ -3,13 +3,14 @@ import { common } from '@kit.AbilityKit'
 import { LogUtils } from '../../utils/LogUtils'
 import { RdbResultSetReader } from './RdbResultSetReader'
 import { RdbStoreProvider } from './RdbStoreProvider'
+import { ErrorLike } from '../../types/LooseValueTypes'
 
 export interface SqlBundle {
   sql: string
   args: Array<relationalStore.ValueType>
 }
 
-export interface GroupCountRow {
+interface GroupCountRow {
   key: string
   count: number
 }
@@ -213,7 +214,7 @@ export abstract class RdbRepository<TRecord, TQuery> {
     }
   }
 
-  protected stringifyError(err: Object): string {
+  protected stringifyError(err: ErrorLike): string {
     return JSON.stringify(err)
   }
 

@@ -4,6 +4,7 @@
  */
 import { PermissionErrorStrings, SystemServiceErrorStrings, ErrorTemplates } from '../constants/modules/ErrorStrings'
 import { RequestText } from '../constants/StringCatalog'
+import { ErrorLike, LooseValue } from '../types/LooseValueTypes'
 
 interface ErrorRecorder {
   lastErrorCode: number | undefined
@@ -11,11 +12,14 @@ interface ErrorRecorder {
 }
 
 export class CommonErrorUtils {
+  private static getField(err: ErrorLike, key: string): LooseValue {
+    return (err as Record<string, LooseValue>)[key]
+  }
   /**
    * 从错误对象中提取错误码
    */
-  static extractErrorCode(err: Object): number | undefined {
-    let codeValue = (err as Record<string, Object>)['code']
+  static extractErrorCode(err: ErrorLike): number | undefined {
+    let codeValue = CommonErrorUtils.getField(err, 'code')
     if (typeof codeValue === 'number') {
       return codeValue
     }
@@ -29,12 +33,12 @@ export class CommonErrorUtils {
   /**
    * 从错误对象中提取错误消息
    */
-  static extractErrorMessage(err: Object): string {
-    let messageValue = (err as Record<string, Object>)['message']
+  static extractErrorMessage(err: ErrorLike): string {
+    let messageValue = CommonErrorUtils.getField(err, 'message')
     if (typeof messageValue === 'string') {
       return messageValue
     }
-    let dataValue = (err as Record<string, Object>)['data']
+    let dataValue = CommonErrorUtils.getField(err, 'data')
     if (typeof dataValue === 'string') {
       return dataValue
     }

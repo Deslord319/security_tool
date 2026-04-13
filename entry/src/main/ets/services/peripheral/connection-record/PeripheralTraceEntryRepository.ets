@@ -1,7 +1,12 @@
 import relationalStore from '@ohos.data.relationalStore'
+import { AppInfo } from '../../../constants/AppConstants'
 import {
   LogEventResult,
   normalizeDeviceId,
+  normalizePeripheralAction,
+  normalizePeripheralDecision,
+  normalizePeripheralSource,
+  parseLogEventResult,
   PeripheralMatchedPolicyKind,
   PeripheralRecordAction,
   PeripheralRecordPolicyHit,
@@ -16,7 +21,6 @@ import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 
 const TAG = 'PeripheralTraceEntryRepo'
-const DB_NAME = 'security_tool.db'
 const TABLE_NAME = 'peripheral_trace_entries'
 
 const CREATE_TABLE_SQL = `
@@ -70,7 +74,7 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
   constructor() {
     super({
       tag: TAG,
-      dbName: DB_NAME,
+      dbName: AppInfo.DB_NAME,
       tableName: TABLE_NAME,
       createStatements: [
         CREATE_TABLE_SQL,
@@ -318,32 +322,19 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
   }
 
   private parseResult(rawValue: string): LogEventResult {
-    let numeric = Number(rawValue)
-    if (numeric === LogEventResult.SUCCESS || numeric === LogEventResult.BLOCKED || numeric === LogEventResult.FAILED) {
-      return numeric as LogEventResult
-    }
-    return LogEventResult.FAILED
+    return parseLogEventResult(rawValue, LogEventResult.FAILED)
   }
 
   private parseAction(rawValue: string): PeripheralRecordAction {
-    if (rawValue === 'connect' || rawValue === 'disconnect' || rawValue === 'discover' || rawValue === 'intercept' || rawValue === 'unknown') {
-      return rawValue
-    }
-    return 'unknown'
+    return normalizePeripheralAction(rawValue as PeripheralRecordAction)
   }
 
   private parseDecision(rawValue: string): PeripheralRecordPolicyHit {
-    if (rawValue === 'allow' || rawValue === 'deny' || rawValue === 'unknown') {
-      return rawValue
-    }
-    return 'unknown'
+    return normalizePeripheralDecision(rawValue as PeripheralRecordPolicyHit)
   }
 
   private parseSource(rawValue: string): PeripheralRecordSource {
-    if (rawValue === 'runtime_event' || rawValue === 'audit_event' || rawValue === 'policy_snapshot') {
-      return rawValue
-    }
-    return 'audit_event'
+    return normalizePeripheralSource(rawValue as PeripheralRecordSource)
   }
 
   private parseDeviceType(rawValue: string): PeripheralType {

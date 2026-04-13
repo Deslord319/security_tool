@@ -17,10 +17,6 @@ export class PeripheralRecordActionPresentationStrings {
   static readonly UNKNOWN: string = '未知动作'
 }
 
-export class PeripheralPolicyPresentationStrings {
-  static readonly CURRENT_CONNECTION: string = '当前连接'
-}
-
 export class LogEventPresentationStrings {
   static readonly CRASH: string = '崩溃日志'
   static readonly FILE: string = '文件操作'

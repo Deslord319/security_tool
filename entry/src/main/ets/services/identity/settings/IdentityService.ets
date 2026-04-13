@@ -3,6 +3,7 @@ import { securityManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { OperationResult, PasswordComplexityConfig } from '../../../models/DataModels'
 import { PeripheralService } from '../../peripheral/interface-control/PeripheralService'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 import {
   IdentityActionStrings,
   IdentityRequirementStrings
@@ -92,7 +93,7 @@ export class IdentityService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setPasswordPolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>(IdentityActionStrings.PASSWORD_POLICY, err as Object)
+      return PeripheralService.buildFailureResult<void>(IdentityActionStrings.PASSWORD_POLICY, err as ErrorLike)
     }
   }
 
@@ -110,7 +111,7 @@ export class IdentityService {
       LogUtils.error(TAG, `getPasswordPolicy failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildFailureResult<securityManager.PasswordPolicy | null>(
         IdentityActionStrings.READ_PASSWORD_POLICY,
-        err as Object,
+        err as ErrorLike,
         null
       )
     }

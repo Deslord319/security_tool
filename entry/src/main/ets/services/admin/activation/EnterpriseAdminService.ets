@@ -5,6 +5,7 @@ import { AdminText } from '../../../constants/StringCatalog'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { AdminErrorStrings } from '../../../constants/modules/ErrorStrings'
+import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'EnterpriseAdminService'
 const ADMIN_MISSING_ERROR_CODE = 9200001
@@ -16,7 +17,7 @@ export class EnterpriseAdminService {
     return `edm enable-admin -n ${AppInfo.BUNDLE_NAME} -a ${AppInfo.ADMIN_ABILITY_NAME} -t ${adminType}`
   }
 
-  static isAdminMissingError(err: Object): boolean {
+  static isAdminMissingError(err: ErrorLike): boolean {
     return CommonErrorUtils.extractErrorCode(err) === ADMIN_MISSING_ERROR_CODE
   }
 
@@ -30,7 +31,7 @@ export class EnterpriseAdminService {
         adminType: adminType
       } as AdminActivationState
     } catch (err) {
-      const error: Object = err as Object
+      const error: ErrorLike = err as ErrorLike
       const code: number | undefined = CommonErrorUtils.extractErrorCode(error)
       const message: string = EnterpriseAdminService.isAdminMissingError(error)
         ? AdminText.NOT_ACTIVATED
