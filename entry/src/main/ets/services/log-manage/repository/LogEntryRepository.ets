@@ -1,10 +1,20 @@
 import relationalStore from '@ohos.data.relationalStore'
 import { AppInfo } from '../../../constants/AppConstants'
-import { LogEntry, LogEventResult, LogEventType, LogStatistics, parseLogEventResult } from '../../../models/DataModels'
+import { LogUtils } from '../../../utils/LogUtils'
+import {
+  LogDetailTableRow,
+  LogEntry,
+  LogEventResult,
+  LogEventType,
+  LogStatistics,
+  parseLogEventResult
+} from '../../../models/DataModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { LogQuery } from '../common/LogManagePorts'
 import { pickNumber, pickString } from '../common/LogValuePicker'
+import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
+import { LooseRecord } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogEntryRepository'
 const TABLE_NAME = 'log_entries'
@@ -46,6 +56,64 @@ interface LogEntryExtraData {
   rawEventName?: string
   rawOutcome?: string
   rawAction?: string
+  detailRows?: LogDetailTableRow[]
+}
+
+export function serializeLogEntryExtraData(entry: LogEntry): string | null {
+  let extra: LogEntryExtraData = {}
+  if (entry.pid !== undefined) {
+    extra.pid = entry.pid
+  }
+  if (entry.uid !== undefined) {
+    extra.uid = entry.uid
+  }
+  if (entry.remoteAddr !== undefined) {
+    extra.remoteAddr = entry.remoteAddr
+  }
+  if (entry.sourceEventId !== undefined) {
+    extra.sourceEventId = entry.sourceEventId
+  }
+  if (entry.rawEventName !== undefined) {
+    extra.rawEventName = entry.rawEventName
+  }
+  if (entry.rawOutcome !== undefined) {
+    extra.rawOutcome = entry.rawOutcome
+  }
+  if (entry.rawAction !== undefined) {
+    extra.rawAction = entry.rawAction
+  }
+  let detailRows = LogEntryNormalizer.normalizeDetailRows(entry.detailRows)
+  if (detailRows !== undefined) {
+    extra.detailRows = detailRows
+  }
+  let keys = Object.keys(extra)
+  return keys.length > 0 ? JSON.stringify(extra) : null
+}
+
+export function deserializeLogEntryExtraData(rawValue: string | undefined): LogEntryExtraData {
+  if (!rawValue || rawValue.length === 0) {
+    return {}
+  }
+  try {
+    let parsed = JSON.parse(rawValue) as Object
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {}
+    }
+    let extra = parsed as LooseRecord
+    return {
+      pid: pickNumber([extra], ['pid']),
+      uid: pickNumber([extra], ['uid']),
+      remoteAddr: pickString([extra], ['remoteAddr']),
+      sourceEventId: pickNumber([extra], ['sourceEventId']),
+      rawEventName: pickString([extra], ['rawEventName']),
+      rawOutcome: pickString([extra], ['rawOutcome']),
+      rawAction: pickString([extra], ['rawAction']),
+      detailRows: LogEntryNormalizer.normalizeDetailRows(extra.detailRows as LogDetailTableRow[] | undefined)
+    }
+  } catch (err) {
+    LogUtils.warn(TAG, `parseExtraJson failed: ${JSON.stringify(err)}`)
+    return {}
+  }
 }
 
 class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
@@ -182,7 +250,8 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
         sourceEventId: pickNumber(extra, ['sourceEventId']),
         rawEventName: pickString(extra, ['rawEventName']),
         rawOutcome: pickString(extra, ['rawOutcome']),
-        rawAction: pickString(extra, ['rawAction'])
+        rawAction: pickString(extra, ['rawAction']),
+        detailRows: LogEntryNormalizer.normalizeDetailRows(extra.detailRows)
       })
     } while (reader.moveToNext())
     return entries
@@ -245,30 +314,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   }
 
   private buildExtraJson(entry: LogEntry): string | null {
-    let extra: LogEntryExtraData = {}
-    if (entry.pid !== undefined) {
-      extra.pid = entry.pid
-    }
-    if (entry.uid !== undefined) {
-      extra.uid = entry.uid
-    }
-    if (entry.remoteAddr !== undefined) {
-      extra.remoteAddr = entry.remoteAddr
-    }
-    if (entry.sourceEventId !== undefined) {
-      extra.sourceEventId = entry.sourceEventId
-    }
-    if (entry.rawEventName !== undefined) {
-      extra.rawEventName = entry.rawEventName
-    }
-    if (entry.rawOutcome !== undefined) {
-      extra.rawOutcome = entry.rawOutcome
-    }
-    if (entry.rawAction !== undefined) {
-      extra.rawAction = entry.rawAction
-    }
-    let keys = Object.keys(extra)
-    return keys.length > 0 ? JSON.stringify(extra) : null
+    return serializeLogEntryExtraData(entry)
   }
 
   private parseEventType(rawValue: string): LogEventType {
@@ -285,7 +331,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   }
 
   private parseExtraJson(rawValue: string | undefined): LogEntryExtraData {
-    return this.parseJsonObject<LogEntryExtraData>(rawValue, 'parseExtraJson') ?? {}
+    return deserializeLogEntryExtraData(rawValue)
   }
 }
 
