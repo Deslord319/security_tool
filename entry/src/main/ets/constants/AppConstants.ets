@@ -66,6 +66,11 @@ export class AppStyles {
   static readonly FONT_SIZE_BODY: number = 14
   static readonly FONT_SIZE_SMALL: number = 13
   static readonly FONT_SIZE_CAPTION: number = 12
+  static readonly FONT_SIZE_MICRO: number = 11
+
+  static readonly SELECT_WIDTH_DEFAULT: number = 140
+  static readonly TOP_BAR_HEIGHT: number = 56
+  static readonly RADIUS_PILL: number = 999
   
   // 间距常量（按需定义）
   static readonly SPACING_TAB_BAR_ITEM_HORIZONTAL: number = 16

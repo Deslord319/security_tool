@@ -92,3 +92,14 @@ export class LogManageCsvStrings {
 export class LogManageAuditStrings {
   static readonly FALLBACK_DETAIL: string = '安全审计事件'
 }
+
+export class LogEventPresentationStrings {
+  static readonly CRASH: string = '崩溃日志'
+  static readonly FILE: string = '文件操作'
+  static readonly ACCOUNT: string = '用户认证'
+  static readonly PERMISSION: string = '权限变更'
+}
+
+export class LogResultPresentationStrings {
+  static readonly BLOCKED: string = '已阻止'
+}

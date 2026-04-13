@@ -6,7 +6,6 @@ import { RouteIds } from '../../main/ets/constants/RouteIds'
 import { AppResources } from '../../main/ets/constants/AppResources'
 import { StatusText } from '../../main/ets/constants/StringCatalog'
 import { DashboardAdminStrings, DashboardFirewallCardStrings, DashboardLogCardStrings, DashboardPeripheralCardStrings } from '../../main/ets/constants/modules/DashboardStrings'
-import { FirewallDialogStrings } from '../../main/ets/constants/modules/DialogStrings'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../../main/ets/models/DashboardModels'
 import { FirewallPresetMode, LogStatistics, PeripheralTraceStats } from '../../main/ets/models/DataModels'
 import { FirewallOverviewState } from '../../main/ets/models/firewall/firewall_service_contracts'
@@ -137,7 +136,7 @@ export default function dashboardViewModelTest() {
       expect(viewModel.quickEntries.length).assertEqual(6)
       expect(viewModel.moduleCards[0].primaryText).assertEqual(StatusText.ACTIVATED)
       expect(viewModel.moduleCards[0].secondaryText).assertEqual(DashboardAdminStrings.READY_DETAIL)
-      expect(viewModel.moduleCards[1].primaryText).assertEqual(FirewallDialogStrings.SWITCH_ENABLED)
+      expect(viewModel.moduleCards[1].primaryText).assertEqual(StatusText.ENABLED)
       expect(viewModel.moduleCards[2].primaryText).assertEqual('5')
       expect(viewModel.moduleCards[3].primaryText).assertEqual('10')
       done()
@@ -192,7 +191,7 @@ export default function dashboardViewModelTest() {
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
 
-      expect(viewModel.moduleCards[1].primaryText).assertEqual(FirewallDialogStrings.SWITCH_DISABLED)
+      expect(viewModel.moduleCards[1].primaryText).assertEqual(StatusText.DISABLED)
       done()
     })
 
@@ -205,7 +204,7 @@ export default function dashboardViewModelTest() {
       let internal = viewModel as Object as DashboardViewModelInternal
       let firewallCard = await internal.buildFirewallCard() as Record<string, string>
 
-      expect(firewallCard.primaryText).assertEqual(FirewallDialogStrings.SWITCH_ENABLED)
+      expect(firewallCard.primaryText).assertEqual(StatusText.ENABLED)
       done()
     })
 
@@ -233,7 +232,7 @@ export default function dashboardViewModelTest() {
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
 
-      expect(viewModel.moduleCards[1].primaryText).assertEqual(FirewallDialogStrings.SWITCH_DISABLED)
+      expect(viewModel.moduleCards[1].primaryText).assertEqual(StatusText.DISABLED)
       done()
     })
 
@@ -459,7 +458,7 @@ export default function dashboardViewModelTest() {
       let internal = viewModel as Object as DashboardViewModelInternal
       let firewallCard = await internal.buildFirewallCard() as Record<string, string>
 
-      expect(firewallCard.primaryText).assertEqual(FirewallDialogStrings.SWITCH_DISABLED)
+      expect(firewallCard.primaryText).assertEqual(StatusText.DISABLED)
       done()
     })
 
@@ -472,7 +471,7 @@ export default function dashboardViewModelTest() {
       let internal = viewModel as Object as DashboardViewModelInternal
       let firewallCard = await internal.buildFirewallCard() as Record<string, string>
 
-      expect(firewallCard.primaryText).assertEqual(FirewallDialogStrings.SWITCH_ENABLED)
+      expect(firewallCard.primaryText).assertEqual(StatusText.ENABLED)
       done()
     })
 

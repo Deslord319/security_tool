@@ -1,4 +1,4 @@
-import { DeviceDetailStrings, FirewallDialogStrings } from './DialogStrings'
+import { FirewallDialogStrings } from './FirewallStrings'
 import { LabelText, MessageText, StorageAccessText } from '../StringCatalog'
 
 export class PeripheralReasonCodes {
@@ -102,6 +102,18 @@ export class PeripheralConnectionRecordStrings {
   static readonly DEFAULT_ALLOW_DETAIL: string = '未命中更高优先级的阻断策略，按默认规则允许接入。'
   static readonly USB_DEVICE: string = 'USB 设备'
   static readonly UNRECOGNIZED_USB_DEVICE: string = '未识别 USB 设备'
+  static readonly DEVICE_DENY_DETAIL_TEMPLATE: string = '设备 {deviceId} 命中禁止接入策略，已被阻止。'
+  static readonly DISCONNECT_DETAIL_TEMPLATE: string = '{deviceName} 已断开连接，断开前生效策略为：{policyLabel}。'
+
+  static buildDeviceDenyDetail(deviceId: string): string {
+    return PeripheralConnectionRecordStrings.DEVICE_DENY_DETAIL_TEMPLATE.replace('{deviceId}', deviceId)
+  }
+
+  static buildDisconnectDetail(deviceName: string, policyLabel: string): string {
+    return PeripheralConnectionRecordStrings.DISCONNECT_DETAIL_TEMPLATE
+      .replace('{deviceName}', deviceName)
+      .replace('{policyLabel}', policyLabel)
+  }
 }
 
 export class PeripheralExportStrings {
@@ -115,7 +127,8 @@ export class PeripheralExportStrings {
   static readonly CLEAR_POLICY_LABEL: string = '还原策略'
   static readonly CLEAR_HISTORY_MESSAGE: string = '将清空当前设备连接记录，且无法恢复。是否继续？'
   static readonly CLEAR_POLICY_MESSAGE: string = '将还原当前所有黑白名单配置，设备会恢复默认允许接入。是否继续？'
-  static readonly CONNECTION_HISTORY_CSV_HEADERS: string[] = [
+  static get CONNECTION_HISTORY_CSV_HEADERS(): string[] {
+    return [
     LabelText.TIME,
     PeripheralPageStrings.DEVICE_NAME_LABEL,
     PeripheralPageStrings.DEVICE_TYPE_LABEL,
@@ -124,14 +137,17 @@ export class PeripheralExportStrings {
     '策略命中',
     DeviceDetailStrings.RESULT_STATUS,
     DeviceDetailStrings.EVENT_SOURCE
-  ]
-  static readonly POLICY_LIST_CSV_HEADERS: string[] = [
+    ]
+  }
+  static get POLICY_LIST_CSV_HEADERS(): string[] {
+    return [
     PeripheralPageStrings.DEVICE_NAME_LABEL,
     PeripheralPageStrings.DEVICE_TYPE_LABEL,
     DeviceDetailStrings.DEVICE_ID,
     '最近出现时间',
     FirewallDialogStrings.CURRENT_STATUS
-  ]
+    ]
+  }
 }
 
 export class PeripheralActionStrings {
@@ -205,4 +221,45 @@ export function resolvePeripheralReason(reason?: string | null): string {
     default:
       return reason && reason.trim().length > 0 ? reason : MessageText.RETRY_LATER
   }
+}
+
+export class DeviceDetailStrings {
+  static readonly TITLE: string = '设备详情'
+  static readonly KEY_INFO: string = '关键信息'
+  static readonly HISTORY_TITLE: string = '历史连接记录'
+  static readonly NO_HISTORY: string = '暂无历史连接记录'
+  static readonly NO_RECORDS: string = '当前没有可展示的连接记录'
+  static readonly HISTORY_COUNT_SUFFIX: string = '条'
+  static readonly DEVICE_ID: string = '设备标识'
+  static readonly RECENT_TIME: string = '最近时间'
+  static readonly CONNECTION_EVENT: string = '连接事件'
+  static readonly EVENT_SOURCE: string = '事件来源'
+  static readonly POLICY_RESULT: string = '策略结论'
+  static readonly EFFECTIVE_POLICY: string = '执行策略'
+  static readonly MATCH_TYPE: string = '命中类型'
+  static readonly RESULT_STATUS: string = '结果状态'
+}
+
+export class DeviceTypeLabels {
+  static readonly USB_STORAGE: string = 'USB 存储设备'
+  static readonly USB_CAMERA: string = 'USB 摄像头'
+  static readonly USB_PRINTER: string = 'USB 打印机'
+  static readonly USB_HID: string = 'USB 人机输入设备'
+  static readonly USB_OTHER: string = 'USB 其他设备'
+  static readonly BLUETOOTH: string = '蓝牙设备'
+}
+
+export class PeripheralSourcePresentationStrings {
+  static readonly RUNTIME_EVENT: string = '运行时事件'
+  static readonly AUDIT_EVENT: string = '审计事件'
+  static readonly POLICY_SNAPSHOT: string = '策略快照'
+  static readonly UNKNOWN: string = '未知来源'
+}
+
+export class PeripheralRecordActionPresentationStrings {
+  static readonly CONNECT: string = '连接'
+  static readonly DISCONNECT: string = '断开'
+  static readonly DISCOVER: string = '发现'
+  static readonly INTERCEPT: string = '拦截'
+  static readonly UNKNOWN: string = '未知动作'
 }

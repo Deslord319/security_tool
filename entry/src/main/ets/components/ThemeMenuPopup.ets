@@ -104,7 +104,7 @@ export struct AboutDialogContent {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-      Text('Copyright 2026')
+      Text(AppText.COPYRIGHT)
         .fontSize(12)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)

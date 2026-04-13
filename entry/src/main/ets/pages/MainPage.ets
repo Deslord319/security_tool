@@ -473,8 +473,8 @@ struct MainPage {
             })
           }
           .width('100%')
-          .height(56)
-          .padding({ left: AppStyles.PADDING_LG, right: 140 })
+          .height(AppStyles.TOP_BAR_HEIGHT)
+          .padding({ left: AppStyles.PADDING_LG, right: AppStyles.SELECT_WIDTH_DEFAULT })
           .alignItems(VerticalAlign.Center)
           .backgroundColor(this.currentTheme === ThemeMode.DARK ? AppColors.getColors(this.currentTheme).BG_COMPONENT : Color.Transparent)
 
@@ -535,7 +535,7 @@ struct MainPage {
             }
           })
         }
-        .margin({ top: 56, right: 140 })
+        .margin({ top: AppStyles.TOP_BAR_HEIGHT, right: AppStyles.SELECT_WIDTH_DEFAULT })
       }
     }
     .width('100%')

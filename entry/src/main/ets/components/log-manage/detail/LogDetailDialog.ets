@@ -1,6 +1,6 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import { LabelText } from '../../../constants/StringCatalog'
-import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
+import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 import { LogManageDetailStrings } from '../../../constants/modules/LogManageStrings'
 import {
   LogEntry,

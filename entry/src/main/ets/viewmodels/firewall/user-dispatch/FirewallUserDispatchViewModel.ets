@@ -1,6 +1,5 @@
 import { common } from '@kit.AbilityKit'
-import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
-import { FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
+import { FirewallDialogStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   FirewallUserApplyMode,

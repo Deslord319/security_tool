@@ -5,7 +5,7 @@ import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { ActionText } from '../../../constants/StringCatalog'
-import { FirewallDialogStrings, FirewallRuleLabelStrings } from '../../../constants/modules/DialogStrings'
+import { FirewallDialogStrings, FirewallRuleLabelStrings } from '../../../constants/modules/FirewallStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 

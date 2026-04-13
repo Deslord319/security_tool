@@ -43,6 +43,7 @@ export class IdentityFormStrings {
 }
 
 export class IdentityAuthStrings {
+  static readonly METHOD_PIN: string = 'PIN'
   static readonly METHOD_FINGERPRINT: string = '指纹'
   static readonly METHOD_UNSUPPORTED: string = '当前设备不支持该认证方式'
   static readonly SYSTEM_AVAILABLE: string = '系统认证可用'

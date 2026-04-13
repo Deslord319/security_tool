@@ -12,7 +12,8 @@ import {
   LogManageFilterStrings,
   LogManagePageStrings,
   LogManageSettingStrings,
-  LogManageStatStrings
+  LogManageStatStrings,
+  LogResultPresentationStrings
 } from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
@@ -21,7 +22,6 @@ import {
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
 } from '../../../models/DataModels'
-import { LogResultPresentationStrings } from '../../../constants/modules/PresentationStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'

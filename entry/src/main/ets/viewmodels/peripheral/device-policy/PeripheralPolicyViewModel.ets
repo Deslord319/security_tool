@@ -1,8 +1,7 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
-import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
-import {
+import { DeviceTypeLabels,
   PeripheralExportStrings,
   PeripheralMatchedPolicyStrings,
   PeripheralOptionStrings,

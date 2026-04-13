@@ -1,12 +1,7 @@
-import {
-  FirewallActionPresentationStrings,
-  LogEventPresentationStrings,
-  LogResultPresentationStrings,
-  PeripheralRecordActionPresentationStrings,
-  PeripheralSourcePresentationStrings
-} from '../constants/modules/PresentationStrings'
 import { LabelText, ResultText } from '../constants/StringCatalog'
-import { DeviceTypeLabels, FirewallDialogStrings, FirewallRuleLabelStrings } from '../constants/modules/DialogStrings'
+import { FirewallActionPresentationStrings, FirewallDialogStrings, FirewallRuleLabelStrings } from '../constants/modules/FirewallStrings'
+import { DeviceTypeLabels, PeripheralRecordActionPresentationStrings, PeripheralSourcePresentationStrings } from '../constants/modules/PeripheralStrings'
+import { LogEventPresentationStrings, LogResultPresentationStrings } from '../constants/modules/LogManageStrings'
 import { IdentityAuthStrings } from '../constants/modules/IdentityStrings'
 import { generateRandomSuffix } from '../utils/ValuePicker'
 
@@ -62,11 +57,11 @@ export function getProtocolLabel(proto: ProtocolType): string {
     case ProtocolType.ALL:
       return LabelText.ALL
     case ProtocolType.TCP:
-      return 'TCP'
+      return FirewallDialogStrings.PROTOCOL_TCP
     case ProtocolType.UDP:
-      return 'UDP'
+      return FirewallDialogStrings.PROTOCOL_UDP
     case ProtocolType.ICMP:
-      return 'ICMP'
+      return FirewallDialogStrings.PROTOCOL_ICMP
     default:
       return LabelText.ALL
   }
@@ -375,7 +370,7 @@ export interface AuthMethodOption {
 }
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
-  { label: 'PIN', value: AuthMethod.PIN } as AuthMethodOption,
+  { label: IdentityAuthStrings.METHOD_PIN, value: AuthMethod.PIN } as AuthMethodOption,
   { label: IdentityAuthStrings.METHOD_FINGERPRINT, value: AuthMethod.FINGERPRINT } as AuthMethodOption
 ]
 

@@ -67,7 +67,7 @@ export class AuthService {
   static getAuthMethodLabel(method: AuthMethod): string {
     switch (method) {
       case AuthMethod.PIN:
-        return 'PIN'
+        return IdentityAuthStrings.METHOD_PIN
       case AuthMethod.FINGERPRINT:
         return IdentityAuthStrings.METHOD_FINGERPRINT
       default:

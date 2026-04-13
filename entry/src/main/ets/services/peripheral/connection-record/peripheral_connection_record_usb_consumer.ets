@@ -195,7 +195,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         policyHit: 'deny',
         result: LogEventResult.BLOCKED,
         summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
-        detail: `设备 ${info.deviceId} 命中禁止接入策略，已被阻止。`,
+        detail: PeripheralConnectionRecordStrings.buildDeviceDenyDetail(info.deviceId),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: StatusText.DISABLED,
         matchedPolicyKind: 'device_deny'
@@ -257,7 +257,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
   }
 
   private static buildDisconnectDetail(info: ResolvedUsbEventInfo, effectivePolicyLabel: string): string {
-    return `${info.deviceName} 已断开连接，断开前生效策略为：${effectivePolicyLabel}。`
+    return PeripheralConnectionRecordStrings.buildDisconnectDetail(info.deviceName, effectivePolicyLabel)
   }
 
   private static resolveUsbEventInfo(data: commonEventManager.CommonEventData): ResolvedUsbEventInfo {
