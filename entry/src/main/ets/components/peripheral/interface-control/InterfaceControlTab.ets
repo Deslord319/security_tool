@@ -1,7 +1,6 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { DeviceTypeLabels } from '../../../constants/modules/DialogStrings'
-import { PeripheralInterfaceStrings, PeripheralOptionStrings } from '../../../constants/modules/PeripheralStrings'
+import { DeviceTypeLabels, PeripheralInterfaceStrings, PeripheralOptionStrings } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'

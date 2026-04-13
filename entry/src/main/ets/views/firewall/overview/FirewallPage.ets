@@ -2,8 +2,9 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ModuleText, StatusText } from '../../../constants/StringCatalog'
-import { FirewallDialogStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { LoadingStrings } from '../../../constants/modules/DialogStrings'
 import {
+  FirewallDialogStrings,
   FirewallPageStrings,
   FirewallToggleStrings,
   buildFirewallToggleFailedMessage,
@@ -307,12 +308,12 @@ export struct FirewallPage {
               .height(12)
               .fillColor(this.getModeStatusTextColor(mode))
             Text(StatusText.CURRENT_MODE)
-              .fontSize(11)
+              .fontSize(AppStyles.FONT_SIZE_MICRO)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getModeStatusTextColor(mode))
           }
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-          .borderRadius(999)
+          .borderRadius(AppStyles.RADIUS_PILL)
           .backgroundColor(this.getModeStatusBackground(mode))
           .border(this.getModeStatusBorder(mode))
         }
@@ -350,7 +351,7 @@ export struct FirewallPage {
         } else if (this.isModeSelected(mode)) {
           Row({ space: 4 }) {
             Text(StatusText.EFFECTIVE)
-              .fontSize(11)
+              .fontSize(AppStyles.FONT_SIZE_MICRO)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
               .opacity(this.getThemeColors().TEXT_SECONDARY_OPACITY)

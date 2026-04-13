@@ -1,7 +1,10 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { LabelText, ResultText } from '../../main/ets/constants/StringCatalog'
-import { FirewallDialogStrings, FirewallRuleLabelStrings } from '../../main/ets/constants/modules/DialogStrings'
-import { FirewallActionPresentationStrings } from '../../main/ets/constants/modules/PresentationStrings'
+import {
+  FirewallActionPresentationStrings,
+  FirewallDialogStrings,
+  FirewallRuleLabelStrings
+} from '../../main/ets/constants/modules/FirewallStrings'
 import {
   getActionLabel,
   getDirectionLabel,

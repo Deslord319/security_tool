@@ -2,8 +2,10 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, LabelText } from '../../../constants/StringCatalog'
-import { EmptyStateStrings, FirewallDialogStrings, FirewallRuleLabelStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import {
+  FirewallDialogStrings,
+  FirewallRuleLabelStrings,
   FirewallPageStrings,
   FirewallRuleStrings,
   buildFirewallReapplyPartialFailedMessage,
@@ -357,7 +359,7 @@ export struct FirewallRulesPage {
   getRuleLocalPort(rule: netFirewall.NetFirewallRule): string {
     let port = rule.localPorts?.[0]
     if (!port) {
-      return 'ALL'
+      return FirewallDialogStrings.ALL_VALUE
     }
     return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
   }
@@ -365,14 +367,14 @@ export struct FirewallRulesPage {
   getRuleRemotePort(rule: netFirewall.NetFirewallRule): string {
     let port = rule.remotePorts?.[0]
     if (!port) {
-      return 'ALL'
+      return FirewallDialogStrings.ALL_VALUE
     }
     return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
   }
 
   getProtocolLabel(rule: netFirewall.NetFirewallRule): string {
     if (rule.protocol === undefined || rule.protocol === null) {
-      return 'ALL'
+      return FirewallDialogStrings.ALL_VALUE
     }
     switch (rule.protocol) {
       case 6:
@@ -382,7 +384,7 @@ export struct FirewallRulesPage {
       case 1:
         return FirewallDialogStrings.PROTOCOL_ICMP
       default:
-        return 'ALL'
+        return FirewallDialogStrings.ALL_VALUE
     }
   }
 

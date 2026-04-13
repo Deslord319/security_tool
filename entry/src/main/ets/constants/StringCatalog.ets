@@ -2,7 +2,10 @@ export class AppText {
   static readonly NAME: string = '安全管理中心'
   static readonly ABOUT: string = '关于'
   static readonly VERSION: string = '版本'
+  static readonly COPYRIGHT: string = 'Copyright 2026'
 }
+
+export const PLACEHOLDER_TEXT: string = '--'
 
 export class ModuleText {
   static readonly DASHBOARD: string = '安全总览'

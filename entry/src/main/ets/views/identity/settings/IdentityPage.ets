@@ -146,7 +146,7 @@ export struct IdentityPage {
       options: this.lengthOptions,
       selectedIndex: this.viewModel.state.minLengthIndex,
       value: this.getSelectedMinLengthLabel(),
-      selectWidth: 140,
+      selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         this.viewModel.setMinLengthIndex(index)
@@ -219,7 +219,7 @@ export struct IdentityPage {
       options: this.validityOptions,
       selectedIndex: this.viewModel.state.validityPeriodIndex,
       value: this.getSelectedValidityLabel(),
-      selectWidth: 140,
+      selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
       showInput: this.viewModel.state.validityPeriodIndex === CUSTOM_VALIDITY_OPTION_INDEX,
       inputText: this.viewModel.state.customValidityPeriodText,
       inputPlaceholder: IdentityFormStrings.CUSTOM_DAYS_PLACEHOLDER,

@@ -8,7 +8,8 @@ import { FirewallUserDispatchViewModel } from '../../../viewmodels/firewall/user
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
-import { EmptyStateStrings, FirewallDialogStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 
 const TAG = 'UserFirewallDialog'
 

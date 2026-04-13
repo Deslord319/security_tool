@@ -13,7 +13,8 @@ import {
   getPeripheralMatchedPolicyKindLabel,
   PeripheralConnectionHistoryItem
 } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
-import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
+import { DeviceDetailStrings } from '../../../constants/modules/PeripheralStrings'
+import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
 
 @CustomDialog
 export struct ConnectionDetailDialog {
@@ -61,7 +62,7 @@ export struct ConnectionDetailDialog {
 
       Row({ space: 10 }) {
         this.metricField(DeviceDetailStrings.POLICY_RESULT, getPeripheralConnectionPolicyLabel(record))
-        this.metricField(DeviceDetailStrings.EFFECTIVE_POLICY, record.effectivePolicyLabel ?? '--')
+        this.metricField(DeviceDetailStrings.EFFECTIVE_POLICY, record.effectivePolicyLabel ?? PLACEHOLDER_TEXT)
       }
       .width('100%')
 

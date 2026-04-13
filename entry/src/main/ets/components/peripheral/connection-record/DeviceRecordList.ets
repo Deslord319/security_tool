@@ -5,8 +5,7 @@ import {
   PeripheralConnectionRecord
 } from '../../../models/DataModels'
 import { LabelText } from '../../../constants/StringCatalog'
-import { DeviceDetailStrings } from '../../../constants/modules/DialogStrings'
-import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
+import { DeviceDetailStrings, PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { ThemeMode, getThemeColors } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'

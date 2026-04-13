@@ -1,13 +1,14 @@
 import { describe, expect, it } from '@ohos/hypium'
 import {
-  DeviceDetailStrings,
-  DeviceTypeLabels,
-  FirewallDialogStrings,
-  FirewallRuleLabelStrings,
   LoadingStrings
 } from '../../main/ets/constants/modules/DialogStrings'
 import { IdentityAuthStrings } from '../../main/ets/constants/modules/IdentityStrings'
-import { buildFirewallConflictNotice } from '../../main/ets/constants/modules/FirewallStrings'
+import {
+  buildFirewallConflictNotice,
+  FirewallDialogStrings,
+  FirewallRuleLabelStrings
+} from '../../main/ets/constants/modules/FirewallStrings'
+import { DeviceDetailStrings, DeviceTypeLabels } from '../../main/ets/constants/modules/PeripheralStrings'
 import { ActionText, LabelText, MessageText, ResultText } from '../../main/ets/constants/StringCatalog'
 
 export default function dialogStringsTest() {

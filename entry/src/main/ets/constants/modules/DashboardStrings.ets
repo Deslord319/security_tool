@@ -12,7 +12,7 @@ export class DashboardPageStrings {
 
 export class DashboardAdminStrings {
   static readonly TITLE: string = '管理员状态'
-  static readonly PENDING: string = '待激活'
+  static readonly PENDING: string = '未激活'
   static readonly READY_DETAIL: string = '企业管理能力已激活'
   static readonly PENDING_DETAIL: string = '企业管理能力未激活'
 }

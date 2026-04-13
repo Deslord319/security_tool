@@ -6,15 +6,13 @@ import {
   PeripheralRecordPolicyHit,
   PeripheralType
 } from '../../../models/DataModels'
-import { LabelText, ResultText, StatusText } from '../../../constants/StringCatalog'
+import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../../constants/StringCatalog'
+import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 import {
-  LogResultPresentationStrings,
+  PeripheralMatchedPolicyStrings,
   PeripheralSourcePresentationStrings
-} from '../../../constants/modules/PresentationStrings'
-import { FirewallDialogStrings } from '../../../constants/modules/DialogStrings'
-import {
-  PeripheralMatchedPolicyStrings
 } from '../../../constants/modules/PeripheralStrings'
+import { LogResultPresentationStrings } from '../../../constants/modules/LogManageStrings'
 
 export interface PeripheralConnectionHistoryItem {
   time: string
@@ -41,7 +39,7 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
     case 'disconnect_event':
       return PeripheralMatchedPolicyStrings.DISCONNECT_EVENT
     default:
-      return '--'
+      return PLACEHOLDER_TEXT
   }
 }
 
@@ -95,7 +93,7 @@ export function getPeripheralConnectionResultLabel(record: PeripheralConnectionR
 
 export function formatPeripheralTimestamp(timestamp: number): string {
   if (timestamp <= 0) {
-    return '--'
+    return PLACEHOLDER_TEXT
   }
   return formatLogTimestamp(timestamp)
 }

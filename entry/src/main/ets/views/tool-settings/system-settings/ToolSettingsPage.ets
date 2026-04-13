@@ -177,7 +177,7 @@ export struct ToolSettingsPage {
       options: this.authMethodOptions,
       selectedIndex: this.viewModel.selectedAuthMethodIndex,
       value: this.getSelectedAuthMethodLabel(),
-      selectWidth: 140,
+      selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         if (index >= 0 && index < AUTH_METHOD_OPTIONS.length) {
