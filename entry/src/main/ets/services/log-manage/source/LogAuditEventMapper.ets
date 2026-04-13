@@ -18,7 +18,6 @@ interface ParsedAuditPayload {
   result: LogEventResult
   processName?: string
   pid?: number
-  rawFilePath?: string
   filePath?: string
   remoteAddr?: string
   rawEventName?: string
@@ -79,7 +78,6 @@ function parseAuditPayload(content: string, metadata?: string): ParsedAuditPaylo
     result: mapResult(rawOutcome),
     processName: pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
     pid: pickNumber(sources, ['pid', 'processId', 'process_id']),
-    rawFilePath: rawFilePath,
     filePath: normalizedFilePath,
     remoteAddr: pickString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
     rawEventName: pickString(sources, ['event_name', 'eventName', 'name']),
