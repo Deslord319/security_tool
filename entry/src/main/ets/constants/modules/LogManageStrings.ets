@@ -100,9 +100,15 @@ export class LogManageAuditStrings {
 
 export class LogEventPresentationStrings {
   static readonly CRASH: string = '崩溃日志'
-  static readonly FILE: string = '文件操作'
-  static readonly ACCOUNT: string = '用户认证'
-  static readonly PERMISSION: string = '权限变更'
+  static readonly FILE: string = '文件操作日志'
+  static readonly ACCOUNT: string = '用户认证日志'
+  static readonly PERMISSION: string = '权限变更日志'
+  static readonly POWER: string = '开关机日志'
+}
+
+export class LogDeviceLifecycleStrings {
+  static readonly BOOT: string = '设备启动'
+  static readonly SHUTDOWN_REQUESTED: string = '设备关闭'
 }
 
 export class LogResultPresentationStrings {

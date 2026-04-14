@@ -16,6 +16,7 @@
     },
     "acls": {
         "allowed-acls": [
+            "ohos.permission.PREPARE_APP_TERMINATE",
             "ohos.permission.MANAGE_NET_FIREWALL",
             "ohos.permission.GET_NET_FIREWALL",
             "ohos.permission.ENTERPRISE_MANAGE_NETWORK",
@@ -31,6 +32,7 @@
             "ohos.permission.START_PROVISIONING_MESSAGE",
             "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
             "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY",
+            "ohos.permission.ENTERPRISE_MANAGE_APPLICATION",
             "ohos.permission.ACCESS_BIOMETRIC",
             "ohos.permission.QUERY_AUDIT_EVENT",
             "ohos.permission.GET_LOCAL_ACCOUNTS",
@@ -39,6 +41,7 @@
     },
     "permissions": {
         "restricted-permissions": [
+            "ohos.permission.PREPARE_APP_TERMINATE",
             "ohos.permission.MANAGE_NET_FIREWALL",
             "ohos.permission.GET_NET_FIREWALL",
             "ohos.permission.ENTERPRISE_MANAGE_NETWORK",
@@ -54,6 +57,7 @@
             "ohos.permission.START_PROVISIONING_MESSAGE",
             "ohos.permission.ENTERPRISE_MANAGE_SECURITY",
             "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY",
+            "ohos.permission.ENTERPRISE_MANAGE_APPLICATION",
             "ohos.permission.ACCESS_BIOMETRIC",
             "ohos.permission.QUERY_AUDIT_EVENT",
             "ohos.permission.GET_LOCAL_ACCOUNTS",

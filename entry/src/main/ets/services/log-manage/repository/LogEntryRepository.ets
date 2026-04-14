@@ -182,6 +182,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     byType.set(LogEventType.FILE, 0)
     byType.set(LogEventType.ACCOUNT, 0)
     byType.set(LogEventType.PERMISSION, 0)
+    byType.set(LogEventType.POWER, 0)
     let todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
     let todayTimestamp = todayStart.getTime()
@@ -320,7 +321,8 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   private parseEventType(rawValue: string): LogEventType {
     let numeric = Number(rawValue)
     if (numeric === LogEventType.CRASH || numeric === LogEventType.FILE ||
-      numeric === LogEventType.ACCOUNT || numeric === LogEventType.PERMISSION) {
+      numeric === LogEventType.ACCOUNT || numeric === LogEventType.PERMISSION ||
+      numeric === LogEventType.POWER) {
       return numeric as LogEventType
     }
     return LogEventType.FILE
