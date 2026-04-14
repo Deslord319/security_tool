@@ -498,6 +498,7 @@ export struct AddRuleDialog {
       .width('100%')
     }
     .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   build() {

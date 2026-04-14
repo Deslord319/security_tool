@@ -19,6 +19,10 @@ export struct DetailDialogShell {
   private static readonly SCROLL_CONTENT_RIGHT_PADDING: number = 24
   @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
+  private getBodyTopPadding(): number {
+    return this.showHeader || this.showCloseAction ? 0 : DetailDialogShell.DIALOG_PADDING
+  }
+
   build() {
     Column({ space: 0 }) {
       Column({ space: 0 }) {
@@ -69,7 +73,7 @@ export struct DetailDialogShell {
         .padding({
           left: DetailDialogShell.DIALOG_PADDING,
           right: DetailDialogShell.DIALOG_PADDING + this.bodyRightPaddingExtra,
-          top: 0,
+          top: this.getBodyTopPadding(),
           bottom: DetailDialogShell.DIALOG_PADDING
         })
       }
