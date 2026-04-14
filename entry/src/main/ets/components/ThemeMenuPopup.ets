@@ -1,5 +1,6 @@
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
-import { AppColors, AppStyles, AppInfo, InteractiveItemStyles } from '../constants/AppConstants'
+import { bundleManager } from '@kit.AbilityKit'
+import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { ActionText, AppText, ModuleText, ThemeText } from '../constants/StringCatalog'
 import { RouteIds } from '../constants/RouteIds'
@@ -99,7 +100,7 @@ export struct AboutDialogContent {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
-      Text(`${AppText.VERSION} ${AppInfo.APP_VERSION}`)
+      Text(`${AppText.VERSION} ${this.resolveAppVersion()}`)
         .fontSize(14)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
@@ -138,6 +139,17 @@ export struct AboutDialogContent {
         this.aboutContent()
       }
     })
+  }
+
+  private resolveAppVersion(): string {
+    try {
+      const bundleInfo = bundleManager.getBundleInfoForSelfSync(
+        bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
+      )
+      return bundleInfo.versionName
+    } catch (_) {
+      return ''
+    }
   }
 }
 

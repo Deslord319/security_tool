@@ -16,6 +16,9 @@
     },
     "requestPermissions": [
       {
+        "name": "ohos.permission.PREPARE_APP_TERMINATE"
+      },
+      {
         "name": "ohos.permission.MANAGE_NET_FIREWALL"
       },
       {
@@ -75,6 +78,9 @@
         "name": "ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY"
       },
       {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_APPLICATION"
+      },
+      {
         "name": "ohos.permission.ACCESS_BIOMETRIC"
       },
       {
@@ -110,6 +116,16 @@
             ]
           }
         ]
+      },
+      {
+        "name": "BackGroundAbility",
+        "srcEntry": "./ets/backgroundability/BackGroundAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": false
       }
     ],
     "extensionAbilities": [

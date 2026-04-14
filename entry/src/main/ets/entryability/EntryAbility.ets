@@ -1,17 +1,46 @@
 import { LogUtils } from '../utils/LogUtils'
-import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, common, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { ThemeManager } from '../theme/ThemeManager';
 import { AuthService } from '../services/identity/auth/AuthService';
 import { AuthMethod } from '../models/DataModels';
 import { DialogService } from '../utils/DialogService';
+import { AppInfo } from '../constants/AppConstants'
 import { PreferencesToolSettingsRepository } from '../services/tool-settings/system-settings/ToolSettingsRepository';
+import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKit';
+import { statusBarManager } from '@kit.DeskTopExtensionKit';
+import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
 
 const ENTRYABILITY_TAG = 'entryAbility'
+
+let globalContext: common.UIAbilityContext | null = null
+let terminateSubscriber: commonEventManager.CommonEventSubscriber | null = null
 
 interface EntryLoggableError {
   code?: number
   message?: string
+}
+
+function showEntryAbilityFromStatusBar(): void {
+  if (!globalContext) {
+    LogUtils.warn(ENTRYABILITY_TAG, 'showEntryAbilityFromStatusBar skipped: context unavailable')
+    return
+  }
+  globalContext.showAbility().then(() => {
+    LogUtils.info(ENTRYABILITY_TAG, 'showAbility success | source=statusBarIconClick')
+  }).catch((err: Error) => {
+    LogUtils.warn(ENTRYABILITY_TAG, 'showAbility failed | source=statusBarIconClick, err=%{public}s', JSON.stringify(err))
+  })
+}
+
+function onStatusBarIconClick(eventData: emitter.EventData): void {
+  let data = eventData.data as Record<string, Object | string | number | boolean> | undefined
+  if (!data) {
+    return
+  }
+  if (data['iconClickType'] === 'leftClick') {
+    showEntryAbilityFromStatusBar()
+  }
 }
 
 export default class EntryAbility extends UIAbility {
@@ -26,9 +55,22 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       LogUtils.error(ENTRYABILITY_TAG, 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    globalContext = this.context
+    this.createTerminateSubscriber()
+    void this.initStatusBar()
   }
 
   onDestroy(): void {
+    globalContext = null
+    statusBarManager.off('statusBarIconClick', onStatusBarIconClick)
+    if (terminateSubscriber) {
+      commonEventManager.unsubscribe(terminateSubscriber, (err?: BusinessError) => {
+        if (err) {
+          LogUtils.warn(ENTRYABILITY_TAG, 'unsubscribe terminate event failed: %{public}s', JSON.stringify(err))
+        }
+      })
+      terminateSubscriber = null
+    }
   }
 
   onNewWant(_want: Want): void {
@@ -125,6 +167,47 @@ export default class EntryAbility extends UIAbility {
     });
   }
 
+  private async initStatusBar(): Promise<void> {
+    try {
+      await loadStatusBar(this.context)
+      statusBarManager.off('statusBarIconClick', onStatusBarIconClick)
+      statusBarManager.on('statusBarIconClick', onStatusBarIconClick)
+      await holdStatusBar(this.context)
+      LogUtils.info(ENTRYABILITY_TAG, 'initStatusBar success')
+    } catch (err) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'initStatusBar failed: %{public}s', JSON.stringify(err))
+    }
+  }
+
+  private createTerminateSubscriber(): void {
+    if (terminateSubscriber) {
+      return
+    }
+    let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
+      events: [AppInfo.BACKGROUND_ABILITY_TERMINATE_EVENT]
+    }
+    commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
+      if (err) {
+        LogUtils.warn(ENTRYABILITY_TAG, 'createTerminateSubscriber failed: %{public}s', JSON.stringify(err))
+        return
+      }
+      terminateSubscriber = subscriber
+      commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, _data: commonEventManager.CommonEventData) => {
+        if (callbackErr) {
+          LogUtils.warn(ENTRYABILITY_TAG, 'terminate event callback failed: %{public}s', JSON.stringify(callbackErr))
+          return
+        }
+        statusBarManager.removeFromStatusBar(this.context)
+        setTimeout(() => {
+          this.context.terminateSelf().catch((terminateErr: Error) => {
+            LogUtils.warn(ENTRYABILITY_TAG, 'terminateSelf failed after tray removal: %{public}s',
+              JSON.stringify(terminateErr))
+          })
+        }, 200)
+      });
+    })
+  }
+
   onWindowStageDestroy(): void {
   }
 
@@ -137,5 +220,15 @@ export default class EntryAbility extends UIAbility {
   onConfigurationUpdate(newConfig: Configuration): void {
     const newColorMode = newConfig?.colorMode;
     ThemeManager.getInstance().onConfigurationUpdate(newColorMode);
+  }
+
+  onPrepareToTerminate(): boolean {
+    this.context.hideAbility().then(() => {
+      LogUtils.info(ENTRYABILITY_TAG, 'hideAbility success | source=onPrepareToTerminate')
+    }).catch((err: BusinessError) => {
+      LogUtils.warn(ENTRYABILITY_TAG, 'hideAbility failed | source=onPrepareToTerminate, err=%{public}s',
+        JSON.stringify(err))
+    })
+    return true
   }
 }

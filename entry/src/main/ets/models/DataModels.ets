@@ -347,8 +347,8 @@ export interface PasswordComplexityConfig {
 }
 
 export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
-export type PasswordValidityPreset = 'halfYear' | 'oneYear'
-export const PASSWORD_VALIDITY_PRESETS: PasswordValidityPreset[] = ['halfYear', 'oneYear']
+export type PasswordValidityPreset = 'halfYear' | 'oneYear' | 'permanent'
+export const PASSWORD_VALIDITY_PRESETS: PasswordValidityPreset[] = ['halfYear', 'oneYear', 'permanent']
 
 export enum AuthMethod {
   PIN = 1,
@@ -527,7 +527,8 @@ export enum LogEventType {
   CRASH = 0,
   FILE = 1,
   ACCOUNT = 2,
-  PERMISSION = 3
+  PERMISSION = 3,
+  POWER = 4
 }
 
 export enum LogEventResult {
@@ -598,7 +599,8 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.CRASH,
   LogEventType.FILE,
   LogEventType.ACCOUNT,
-  LogEventType.PERMISSION
+  LogEventType.PERMISSION,
+  LogEventType.POWER
 ]
 
 export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
@@ -626,6 +628,8 @@ export function getLogEventTypeLabel(type: LogEventType): string {
       return LogEventPresentationStrings.ACCOUNT
     case LogEventType.PERMISSION:
       return LogEventPresentationStrings.PERMISSION
+    case LogEventType.POWER:
+      return LogEventPresentationStrings.POWER
     default:
       return LabelText.UNKNOWN
   }
@@ -661,7 +665,8 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: LogEventPresentationStrings.CRASH, value: LogEventType.CRASH },
   { label: LogEventPresentationStrings.FILE, value: LogEventType.FILE },
   { label: LogEventPresentationStrings.ACCOUNT, value: LogEventType.ACCOUNT },
-  { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION }
+  { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION },
+  { label: LogEventPresentationStrings.POWER, value: LogEventType.POWER }
 ]
 
 export function formatLogTimestamp(timestamp: number): string {

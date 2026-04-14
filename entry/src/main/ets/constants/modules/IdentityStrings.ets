@@ -36,6 +36,7 @@ export class IdentitySectionStrings {
 export class IdentityFormStrings {
   static readonly CUSTOM_DAYS_PLACEHOLDER: string = '输入天数'
   static readonly DAY_UNIT: string = '天'
+  static readonly PERMANENT_OPTION: string = '永久'
   static readonly HALF_YEAR_OPTION: string = '半年'
   static readonly ONE_YEAR_OPTION: string = '一年'
   static readonly CUSTOM_OPTION: string = '自定义'

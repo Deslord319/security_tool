@@ -11,6 +11,7 @@ import {
   HALF_YEAR_VALIDITY_OPTION_INDEX,
   IdentitySettingsActionRequest,
   IdentitySettingsViewModel,
+  PERMANENT_VALIDITY_OPTION_INDEX,
   ONE_YEAR_VALIDITY_OPTION_INDEX
 } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { DialogService } from '../../main/ets/utils/DialogService'
@@ -144,7 +145,7 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.adminActivated).assertFalse()
       expect(viewModel.state.adminMessage).assertEqual('please activate admin')
       expect(viewModel.state.minLengthIndex).assertEqual(0)
-      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
       expect(viewModel.state.hasChanges).assertFalse()
       expect(viewModel.state.canSave).assertFalse()
     })
@@ -162,7 +163,7 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.loading).assertFalse()
       expect(viewModel.state.adminActivated).assertTrue()
       expect(viewModel.state.minLengthIndex).assertEqual(0)
-      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
       expect(viewModel.state.hasChanges).assertFalse()
       expect(viewModel.state.canSave).assertFalse()
     })
@@ -369,7 +370,7 @@ export default function identitySettingsViewModelTest() {
       let viewModel = new IdentitySettingsViewModel()
       viewModel.initialize()
 
-      expect(viewModel.state.validityPeriodIndex).assertEqual(HALF_YEAR_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
       expect(viewModel.state.customValidityPeriodText).assertEqual('')
     })
 

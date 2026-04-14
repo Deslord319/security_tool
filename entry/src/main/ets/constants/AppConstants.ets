@@ -213,16 +213,25 @@ export class InteractiveItemStyles {
 }
 
 export class AppInfo {
-  static readonly APP_VERSION: string = '1.0.0'
   static readonly BUNDLE_NAME: string = 'com.huawei.securitytool'
   static readonly DEFAULT_USER_ID: number = 100
+  static readonly ENTRY_MODULE_NAME: string = 'entry'
+  static readonly ENTRY_ABILITY_NAME: string = 'EntryAbility'
   static readonly ADMIN_ABILITY_NAME: string = 'EnterpriseAdminAbility'
+  static readonly BACKGROUND_ABILITY_NAME: string = 'BackGroundAbility'
+  static readonly STATUS_BAR_TITLE: string = 'SecurityTool'
+  static readonly BACKGROUND_ABILITY_TERMINATE_EVENT: string = 'security_tool_onPrepareToTerminate_event'
   static readonly DB_NAME: string = 'security_tool.db'
 }
 
 export const ADMIN_WANT: Want = {
   bundleName: AppInfo.BUNDLE_NAME,
   abilityName: AppInfo.ADMIN_ABILITY_NAME
+}
+
+export const ENTRY_WANT: Want = {
+  bundleName: AppInfo.BUNDLE_NAME,
+  abilityName: AppInfo.ENTRY_ABILITY_NAME
 }
 
 export interface NavItem {
