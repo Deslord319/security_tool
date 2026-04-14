@@ -499,6 +499,12 @@ export enum LogEventResult {
   FAILED = 2
 }
 
+export interface LogDetailTableRow {
+  key: string
+  label: string
+  value: string
+}
+
 export interface LogEntry {
   id: string
   timestamp: number
@@ -513,6 +519,7 @@ export interface LogEntry {
   rawEventName?: string
   rawOutcome?: string
   rawAction?: string
+  detailRows?: LogDetailTableRow[]
   result: LogEventResult
 }
 

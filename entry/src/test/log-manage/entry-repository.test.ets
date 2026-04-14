@@ -1,13 +1,45 @@
 import { describe, expect, it } from '@ohos/hypium'
 
-import { LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import { LogDetailTableRow, LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
-import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
+import {
+  deserializeLogEntryExtraData,
+  LogEntryRepository,
+  serializeLogEntryExtraData
+} from '../../main/ets/services/log-manage/repository/LogEntryRepository'
 
 export default function logEntryRepositoryTest() {
   describe('LogEntryRepository', () => {
     it('should expose repository instance in unit environment', 0, () => {
       expect(LogEntryRepository !== null).assertTrue()
+    })
+
+    it('should serialize and restore detail rows in extra json payload', 0, () => {
+      let detailRows: LogDetailTableRow[] = [
+        {
+          key: 'sourceEventId',
+          label: '事件 ID',
+          value: '268435712'
+        }
+      ]
+      let entry: LogEntry = {
+        id: 'entry-1',
+        timestamp: Date.now(),
+        eventType: LogEventType.FILE,
+        detail: 'detail',
+        result: LogEventResult.SUCCESS,
+        detailRows: detailRows
+      }
+
+      let payload = serializeLogEntryExtraData(entry)
+      expect(payload !== null).assertTrue()
+
+      let restored = deserializeLogEntryExtraData(payload ?? undefined)
+      expect(restored.detailRows !== undefined).assertTrue()
+      expect(restored.detailRows!.length).assertEqual(1)
+      expect(restored.detailRows![0].key).assertEqual('sourceEventId')
+      expect(restored.detailRows![0].label).assertEqual('事件 ID')
+      expect(restored.detailRows![0].value).assertEqual('268435712')
     })
   })
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@ohos/hypium'
 import {
+  LogDetailTableRow,
   LogEntry,
   LogEventResult,
   LogEventType
@@ -19,14 +20,16 @@ function createEntry(
   detail: string = 'detail',
   result: LogEventResult = LogEventResult.SUCCESS,
   eventType: LogEventType = LogEventType.FILE,
-  timestamp: number = Date.now()
+  timestamp: number = Date.now(),
+  detailRows?: LogDetailTableRow[]
 ): LogEntry {
   const entry: LogEntry = {
     id: id,
     timestamp: timestamp,
     eventType: eventType,
     detail: detail,
-    result: result
+    result: result,
+    detailRows: detailRows
   }
   return entry
 }
@@ -69,6 +72,41 @@ export default function entryNormalizerTest() {
       expect(result.length).assertEqual(2)
       expect(result[0].id).assertEqual('1')
       expect(result[1].id).assertEqual('2')
+    })
+
+    it('should normalize detail rows and drop empty values', 0, () => {
+      let longText = 'x'.repeat(1100)
+      let normalized = LogEntryNormalizer.normalizeEntry(createEntry(
+        'entry-3',
+        'detail',
+        LogEventResult.SUCCESS,
+        LogEventType.FILE,
+        Date.now(),
+        [
+          {
+            key: '  sourceEventId  ',
+            label: '  事件 ID  ',
+            value: '  12345  '
+          },
+          {
+            key: ' ',
+            label: 'bad',
+            value: 'bad'
+          },
+          {
+            key: 'long',
+            label: 'long label',
+            value: longText
+          }
+        ]
+      ))
+
+      expect(normalized.detailRows !== undefined).assertTrue()
+      expect(normalized.detailRows!.length).assertEqual(2)
+      expect(normalized.detailRows![0].key).assertEqual('sourceEventId')
+      expect(normalized.detailRows![0].label).assertEqual('事件 ID')
+      expect(normalized.detailRows![0].value).assertEqual('12345')
+      expect(normalized.detailRows![1].value.length <= 1027).assertTrue()
     })
 
   })

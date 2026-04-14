@@ -74,12 +74,24 @@
 - `log-manage/log-manage-module-rfc.md`
   - 日志管理模块执行层 RFC。
   - 主要内容包括单一真相源约束、Story / Round 拆分、文件白名单建议和验收信号。
+- `log-manage/log-manage-audit-event-materials.md`
+  - 日志管理模块系统审计事件材料归档。
+  - 主要内容包括当前讨论范围、`ACCOUNT / PERMISSION / FILE` 原型样例，以及当前已确认可抽取字段。
+- `log-manage/log-manage-detail-table-plan.md`
+  - 日志管理模块详情结构化展示方案。
+  - 主要内容包括结构化详情字段方向、可复用表格组件目标，以及本轮严格限定的代码文件范围。
+- `log-manage/log-manage-detail-table-implementation-plan.md`
+  - 日志管理模块详情结构化展示实施计划。
+  - 主要内容包括背景和目的、严格文件范围、分步实施、输入输出、验收标准、并行拆分和死代码清理要求。
 
 建议阅读顺序：
 
 1. 先看 `docs/03-模块设计/日志管理模块V2状态收敛与实施设计.md`
 2. 再看 `docs/03-模块设计/日志管理模块重构方案.md`
 3. 再看 `log-manage/log-manage-module-rfc.md`
+4. 若要查看系统审计事件的当前材料归档，再看 `log-manage/log-manage-audit-event-materials.md`
+5. 若要推进详情弹窗结构化展示，再看 `log-manage/log-manage-detail-table-plan.md`
+6. 若要按多 Session 方式落地实施，再看 `log-manage/log-manage-detail-table-implementation-plan.md`
 
 ## peripheral-management
 

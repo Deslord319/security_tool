@@ -2,10 +2,13 @@ import { securityAudit } from '@kit.DeviceSecurityKit'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
 import { LogManageAuditStrings } from '../../../constants/modules/LogManageStrings'
 import {
+  formatLogTimestamp,
   generateLogEntryId,
+  LogDetailTableRow,
   LogEntry,
   LogEventResult,
-  LogEventType
+  LogEventType,
+  getLogEventResultLabel
 } from '../../../models/DataModels'
 import { LooseRecord } from '../../../types/LooseValueTypes'
 import { pickNumber, pickString } from '../common/LogValuePicker'
@@ -14,6 +17,7 @@ import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
 interface ParsedAuditPayload {
   detail: string
   result: LogEventResult
+  detailRows: LogDetailTableRow[]
   processName?: string
   pid?: number
   rawFilePath?: string
@@ -44,10 +48,11 @@ export function parseAuditEventToLogEntry(
     return undefined
   }
 
-  const parsed = parseAuditPayload(event.content || '', event.metadata)
+  const timestamp = resolveAuditSourceTimestamp(event.timestamp || '', nowProvider)
+  const parsed = parseAuditPayload(event.content || '', event.metadata, mappedType, event, timestamp)
   return {
     id: generateLogEntryId(),
-    timestamp: resolveAuditSourceTimestamp(event.timestamp || '', nowProvider),
+    timestamp,
     eventType: mappedType,
     detail: parsed.detail,
     processName: parsed.processName,
@@ -59,11 +64,18 @@ export function parseAuditEventToLogEntry(
     rawEventName: parsed.rawEventName,
     rawOutcome: parsed.rawOutcome,
     rawAction: parsed.rawAction,
-    result: parsed.result
-  }
+    result: parsed.result,
+    detailRows: parsed.detailRows
+  } as LogEntry
 }
 
-function parseAuditPayload(content: string, metadata?: string): ParsedAuditPayload {
+function parseAuditPayload(
+  content: string,
+  metadata: string | undefined,
+  eventType: LogEventType,
+  event: securityAudit.AuditEvent,
+  timestamp: number
+): ParsedAuditPayload {
   const contentJson = safeParseJson(content)
   const metadataJson = safeParseJson(metadata)
   const sources = collectJsonSources(contentJson, metadataJson)
@@ -75,6 +87,7 @@ function parseAuditPayload(content: string, metadata?: string): ParsedAuditPaylo
     detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
       content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
     result: mapResult(rawOutcome),
+    detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources),
     processName: pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']),
     pid: pickNumber(sources, ['pid', 'processId', 'process_id']),
     rawFilePath: rawFilePath,
@@ -84,6 +97,113 @@ function parseAuditPayload(content: string, metadata?: string): ParsedAuditPaylo
     rawOutcome: rawOutcome,
     rawAction: pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state'])
   }
+}
+
+function buildDetailRows(
+  eventType: LogEventType,
+  event: securityAudit.AuditEvent,
+  timestamp: number,
+  contentJson?: LooseRecord,
+  metadataJson?: LooseRecord,
+  sources: LooseRecord[] = []
+): LogDetailTableRow[] {
+  let rows: LogDetailTableRow[] = []
+  switch (eventType) {
+    case LogEventType.ACCOUNT: {
+      const caller = findNestedJson([contentJson, metadataJson], 'caller')
+      const callerSources = compactSources(caller, contentJson, metadataJson, ...sources)
+      appendTextRow(rows, 'account.userName', '用户名', pickString(callerSources, ['userName', 'user_name']))
+      appendNumberRow(rows, 'account.userId', '用户 ID', pickNumber(callerSources, ['userId', 'user_id']))
+      appendTextRow(rows, 'account.result', '结果', getLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
+      appendTextRow(rows, 'account.timestamp', '事件时间', formatLogTimestamp(timestamp))
+      appendNumberRow(rows, 'account.eventId', '事件 ID', event.eventId)
+      break
+    }
+    case LogEventType.PERMISSION: {
+      const extra = findNestedJson([contentJson, metadataJson], 'extra')
+      const extraSources = compactSources(extra, contentJson, metadataJson, ...sources)
+      const newPermission = findNestedJson([extra, contentJson, metadataJson], 'newPermission')
+      const newPermissionSources = compactSources(newPermission, extra, contentJson, metadataJson, ...sources)
+      appendTextRow(rows, 'permission.bundleName', '应用包名', pickString(extraSources, ['bundleName', 'bundle_name']))
+      appendNumberRow(rows, 'permission.pid', 'PID', pickNumber(extraSources, ['pid', 'processId', 'process_id']))
+      appendNumberRow(rows, 'permission.uid', 'UID', pickNumber(extraSources, ['uid', 'userId', 'user_id']))
+      appendTextRow(rows, 'permission.newPermissionName', '新权限名称', pickString(newPermissionSources, ['PermissionName', 'permissionName', 'name']))
+      appendTextRow(rows, 'permission.newPermissionState', '新权限状态', pickString(newPermissionSources, ['PermissionState', 'permissionState', 'state']))
+      appendTextRow(rows, 'permission.timestamp', '事件时间', formatLogTimestamp(timestamp))
+      appendNumberRow(rows, 'permission.eventId', '事件 ID', event.eventId)
+      break
+    }
+    case LogEventType.FILE: {
+      appendTextRow(rows, 'file.operation', '操作类型', pickString(sources, ['event_name', 'eventName', 'name']) || pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state']))
+      appendTextRow(rows, 'file.filePath', '文件路径', pickString(sources, ['filePath', 'file_path', 'path', 'srcPath', 'src_path']) || rawFilePathFallback(contentJson, metadataJson, sources))
+      appendTextRow(rows, 'file.processName', '进程名', pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']))
+      appendNumberRow(rows, 'file.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
+      appendNumberRow(rows, 'file.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
+      appendTextRow(rows, 'file.result', '结果', getLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
+      appendTextRow(rows, 'file.timestamp', '事件时间', formatLogTimestamp(timestamp))
+      appendNumberRow(rows, 'file.eventId', '事件 ID', event.eventId)
+      break
+    }
+    default:
+      break
+  }
+  return rows
+}
+
+function rawFilePathFallback(contentJson?: LooseRecord, metadataJson?: LooseRecord, sources: LooseRecord[] = []): string | undefined {
+  const rawSources = compactSources(contentJson, metadataJson, ...sources)
+  return pickString(rawSources, [
+    'path',
+    'filePath',
+    'file_path',
+    'srcPath',
+    'src_path',
+    'targetPath',
+    'target_path',
+    'dstPath',
+    'dst_path',
+    'uri',
+    'fileUri',
+    'file_uri'
+  ])
+}
+
+function appendTextRow(rows: LogDetailTableRow[], key: string, label: string, value?: string): void {
+  const normalized = (value || '').trim()
+  if (normalized.length === 0) {
+    return
+  }
+  rows.push({ key, label, value: normalized } as LogDetailTableRow)
+}
+
+function appendNumberRow(rows: LogDetailTableRow[], key: string, label: string, value?: number): void {
+  if (value === undefined) {
+    return
+  }
+  rows.push({ key, label, value: `${value}` } as LogDetailTableRow)
+}
+
+function compactSources(...sources: Array<LooseRecord | undefined>): LooseRecord[] {
+  let result: LooseRecord[] = []
+  for (let source of sources) {
+    if (source) {
+      result.push(source)
+    }
+  }
+  return result
+}
+
+function findNestedJson(sources: Array<LooseRecord | undefined>, key: string): LooseRecord | undefined {
+  for (let source of sources) {
+    if (!source) {
+      continue
+    }
+    const nested = extractNestedJson(source, key)
+    if (nested) {
+      return nested
+    }
+  }
+  return undefined
 }
 
 function resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: LooseRecord[]): string | undefined {

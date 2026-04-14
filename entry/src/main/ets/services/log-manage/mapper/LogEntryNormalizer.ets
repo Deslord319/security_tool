@@ -1,6 +1,7 @@
 import {
   ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG,
+  LogDetailTableRow,
   LogEntry,
   LogEventResult,
   LogEventType
@@ -14,6 +15,9 @@ const MAX_REMOTE_ADDR_LENGTH = 256
 const MAX_RAW_EVENT_NAME_LENGTH = 128
 const MAX_RAW_OUTCOME_LENGTH = 64
 const MAX_RAW_ACTION_LENGTH = 64
+const MAX_DETAIL_ROW_KEY_LENGTH = 64
+const MAX_DETAIL_ROW_LABEL_LENGTH = 128
+const MAX_DETAIL_ROW_VALUE_LENGTH = 1024
 
 export class LogEntryNormalizer {
   private static nowProvider: () => number = () => Date.now()
@@ -55,6 +59,7 @@ export class LogEntryNormalizer {
       rawEventName: LogEntryNormalizer.truncateString(entry.rawEventName, MAX_RAW_EVENT_NAME_LENGTH),
       rawOutcome: LogEntryNormalizer.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
       rawAction: LogEntryNormalizer.truncateString(entry.rawAction, MAX_RAW_ACTION_LENGTH),
+      detailRows: LogEntryNormalizer.normalizeDetailRows(entry.detailRows),
       result: LogEntryNormalizer.normalizeEventResult(entry.result)
     }
   }
@@ -89,6 +94,33 @@ export class LogEntryNormalizer {
       return result
     }
     return LogEventResult.SUCCESS
+  }
+
+  static normalizeDetailRows(rows?: LogDetailTableRow[] | null): LogDetailTableRow[] | undefined {
+    if (!rows || rows.length === 0) {
+      return undefined
+    }
+    let normalizedRows: LogDetailTableRow[] = []
+    for (let row of rows) {
+      if (!row || typeof row !== 'object') {
+        continue
+      }
+      if (typeof row.key !== 'string' || typeof row.label !== 'string' || typeof row.value !== 'string') {
+        continue
+      }
+      let key = LogEntryNormalizer.truncateString(row.key.trim(), MAX_DETAIL_ROW_KEY_LENGTH)
+      let label = LogEntryNormalizer.truncateString(row.label.trim(), MAX_DETAIL_ROW_LABEL_LENGTH)
+      let value = LogEntryNormalizer.truncateString(row.value.trim(), MAX_DETAIL_ROW_VALUE_LENGTH)
+      if (!key || !label || !value) {
+        continue
+      }
+      normalizedRows.push({
+        key,
+        label,
+        value
+      })
+    }
+    return normalizedRows.length > 0 ? normalizedRows : undefined
   }
 
   private static normalizeEntryId(id: string | undefined): string {
