@@ -83,6 +83,9 @@
 - `log-manage/log-manage-detail-table-implementation-plan.md`
   - 日志管理模块详情结构化展示实施计划。
   - 主要内容包括背景和目的、严格文件范围、分步实施、输入输出、验收标准、并行拆分和死代码清理要求。
+- `log-manage/log-manage-audit-result-mapping-analysis-2026-04-14.md`
+  - 日志管理模块审计结果映射问题分析。
+  - 主要内容包括列表与详情弹窗结果展示逻辑、`entry.result` 来源、`Fail -> SUCCESS` 根因和修复方向。
 
 建议阅读顺序：
 
@@ -92,6 +95,7 @@
 4. 若要查看系统审计事件的当前材料归档，再看 `log-manage/log-manage-audit-event-materials.md`
 5. 若要推进详情弹窗结构化展示，再看 `log-manage/log-manage-detail-table-plan.md`
 6. 若要按多 Session 方式落地实施，再看 `log-manage/log-manage-detail-table-implementation-plan.md`
+7. 若要回看一次真实审计失败事件为何被展示成“成功”，再看 `log-manage/log-manage-audit-result-mapping-analysis-2026-04-14.md`
 
 ## peripheral-management
 
