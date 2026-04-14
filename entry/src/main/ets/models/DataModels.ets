@@ -480,12 +480,14 @@ export interface UserFirewallPolicyResult {
 export type FirewallUserApplyMode = 'allowlist' | 'denylist'
 
 export interface UserFirewallModeBinding {
+  // 用户历史模式记录：只表达该用户最近一次选择的全局策略模式，不承载规则 binding 语义。
   userId: number
   mode: FirewallUserApplyMode
 }
 
 export interface UserFirewallModeState {
   userId: number
+  // 回显/查询时读取的历史模式记录；不用于驱动规则模板联动。
   bindingMode?: FirewallUserApplyMode
   isManaged: boolean
   isOpen: boolean
@@ -520,7 +522,9 @@ export const PREF_STORE_NAME_FIREWALL_MODE = 'firewall_mode'
 export const PREF_KEY_FIREWALL_ACTIVE_MODE = 'firewall_active_mode'
 export const PREF_STORE_NAME_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules'
 export const PREF_KEY_FIREWALL_CUSTOM_RULES = 'firewall_custom_rules_payload'
+// 用户历史模式记录存储，供全局防火墙重新开启时恢复完整 policy。
 export const PREF_STORE_NAME_FIREWALL_USER_BINDINGS = 'firewall_user_bindings'
+// 历史模式记录列表的存储键，不再表达规则绑定或模板联动语义。
 export const PREF_KEY_FIREWALL_USER_BINDINGS = 'firewall_user_bindings_payload'
 
 export enum LogEventType {

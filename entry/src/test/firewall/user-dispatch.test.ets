@@ -1,10 +1,23 @@
-import { describe, expect, it } from '@ohos/hypium'
+import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 
+import { FirewallAuthService } from '../../main/ets/services/firewall/auth/FirewallAuthService'
+import { FirewallStore } from '../../main/ets/services/firewall/stores/FirewallStore'
 import { FirewallUserDispatchService } from '../../main/ets/services/firewall/user-dispatch/FirewallUserDispatchService'
 
 export default function firewallUserDispatchServiceTest() {
   describe('FirewallUserDispatchService', () => {
+    let mockKit: MockKit
+
+    beforeEach(() => {
+      mockKit = new MockKit()
+    })
+
+    afterEach(() => {
+      mockKit.clearAll()
+    })
+
     it('should load user options as an array', 0, async () => {
       let users = await FirewallUserDispatchService.loadUserOptions()
 
@@ -19,13 +32,26 @@ export default function firewallUserDispatchServiceTest() {
       expect(typeof result.isOpen === 'boolean').assertTrue()
     })
 
-    it('should reapply user bindings and return summary counters', 0, async () => {
-      let result = await FirewallUserDispatchService.reapplyUserBindings({} as common.UIAbilityContext, [])
+    it('should apply user mode through auth wrapper and return policy-only result shape', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let authApplyMock = mockKit.mockFunc(FirewallAuthService, FirewallAuthService.executeUserModeApply)
+      let storeApplyMock = mockKit.mockFunc(FirewallStore, FirewallStore.applyUserMode)
+      when(storeApplyMock)(context, 100, 'allowlist').afterReturn(Promise.resolve({
+        success: true,
+        userId: 100,
+        mode: 'allowlist',
+        appliedRuleCount: 0
+      }))
+      when(authApplyMock)(context, 100, 'allowlist', ArgumentMatchers.anyObj).afterAction((ctx, userId, mode, applyAction) => {
+        return applyAction()
+      })
 
-      expect(result.totalUsers >= 0).assertTrue()
-      expect(result.successCount >= 0).assertTrue()
-      expect(result.failedCount >= 0).assertTrue()
-      expect(result.failedUsers.length >= 0).assertTrue()
+      let result = await FirewallUserDispatchService.applyUserMode(context, 100, 'allowlist')
+
+      expect(result.success).assertTrue()
+      expect(result.userId).assertEqual(100)
+      expect(result.mode).assertEqual('allowlist')
+      expect(result.appliedRuleCount).assertEqual(0)
     })
   })
 }

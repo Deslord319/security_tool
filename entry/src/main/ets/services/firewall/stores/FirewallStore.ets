@@ -2,7 +2,6 @@ import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
-  getFirewallRuleUserIds,
   FirewallManagedRuleMetadata,
   FirewallPresetMode,
   FirewallUserApplyMode,
@@ -81,10 +80,9 @@ export class FirewallStore {
   static async applyUserMode(
     context: common.UIAbilityContext,
     userId: number,
-    mode: FirewallUserApplyMode,
-    sharedRules: netFirewall.NetFirewallRule[]
+    mode: FirewallUserApplyMode
   ): Promise<UserFirewallModeApplyResult> {
-    let result = await FirewallStore.applyUserModeInternal(userId, mode, sharedRules)
+    let result = await FirewallStore.applyUserModeInternal(userId, mode)
     if (!result.success) {
       return result
     }
@@ -100,43 +98,6 @@ export class FirewallStore {
       }
     }
     return result
-  }
-
-  static async reapplyUserBindings(
-    context: common.UIAbilityContext,
-    sharedRules: netFirewall.NetFirewallRule[]
-  ): Promise<UserFirewallModeReapplySummary> {
-    let activeUsersResult = await SystemUserProvider.loadAvailableUserIds()
-    let activeUserIds = activeUsersResult.users.map((item) => item.userId)
-    let bindings = await FirewallStore.loadUserBindings(context)
-    let validBindings = bindings.filter((item: UserFirewallModeBinding): boolean => activeUserIds.includes(item.userId))
-    if (validBindings.length !== bindings.length) {
-      await FirewallStore.saveUserBindings(context, validBindings)
-    }
-
-    let summary: UserFirewallModeReapplySummary = {
-      totalUsers: validBindings.length,
-      successCount: 0,
-      failedCount: 0,
-      failedUsers: []
-    }
-    for (let i = 0; i < validBindings.length; i++) {
-      let binding = validBindings[i]
-      let result = await FirewallStore.applyUserModeInternal(binding.userId, binding.mode, sharedRules)
-      if (result.success) {
-        summary.successCount++
-        continue
-      }
-      summary.failedCount++
-      summary.failedUsers.push(binding.userId)
-    }
-    LogUtils.info(TAG,
-      'reapplyUserBindings finished: total=%{public}d, success=%{public}d, failed=%{public}d',
-      summary.totalUsers,
-      summary.successCount,
-      summary.failedCount
-    )
-    return summary
   }
 
   static async applyCustomRuleBuckets(
@@ -234,8 +195,7 @@ export class FirewallStore {
 
   private static async applyUserModeInternal(
     userId: number,
-    mode: FirewallUserApplyMode,
-    sharedRules: netFirewall.NetFirewallRule[]
+    mode: FirewallUserApplyMode
   ): Promise<UserFirewallModeApplyResult> {
     FirewallStore.clearLastError()
     let policy = await SystemUserProvider.getPolicy(userId)
@@ -250,81 +210,38 @@ export class FirewallStore {
       }
     }
 
-    let snapshotRules = await FirewallStore.getManagedRules(userId)
-    let targetRules = FirewallStore.buildRulesForMode(userId, mode, sharedRules)
     LogUtils.info(TAG,
-      'applyUserMode start: userId=%{public}d, mode=%{public}s, totalRules=%{public}d',
+      'applyUserMode start: userId=%{public}d, mode=%{public}s, policyOnly=%{public}s',
       userId,
       mode,
-      targetRules.length
+      'true'
     )
-
-    if (!await FirewallStore.clearManagedRules(userId)) {
-      return FirewallStore.buildFailedResult(userId, mode, 0)
-    }
 
     let targetPolicy: netFirewall.NetFirewallPolicy = {
       isOpen: policy.isOpen,
       inAction: mode === 'allowlist'
-        ? netFirewall.FirewallRuleAction.RULE_DENY
-        : netFirewall.FirewallRuleAction.RULE_ALLOW,
+        ? netFirewall.FirewallRuleAction.RULE_ALLOW
+        : netFirewall.FirewallRuleAction.RULE_DENY,
       outAction: mode === 'allowlist'
-        ? netFirewall.FirewallRuleAction.RULE_DENY
-        : netFirewall.FirewallRuleAction.RULE_ALLOW
+        ? netFirewall.FirewallRuleAction.RULE_ALLOW
+        : netFirewall.FirewallRuleAction.RULE_DENY
     }
     if (!await FirewallStore.setPolicy(userId, targetPolicy)) {
-      await FirewallStore.restoreManagedRules(userId, snapshotRules)
-      return FirewallStore.buildFailedResult(userId, mode, 0)
-    }
-
-    if (!await FirewallStore.addRules(targetRules)) {
-      let originalPolicy: netFirewall.NetFirewallPolicy = {
-        isOpen: policy.isOpen,
-        inAction: policy.inAction,
-        outAction: policy.outAction
-      }
-      await FirewallStore.restoreManagedRulesAndPolicy(userId, originalPolicy, snapshotRules)
       return FirewallStore.buildFailedResult(userId, mode, 0)
     }
 
     LogUtils.info(TAG,
-      'applyUserMode success: userId=%{public}d, mode=%{public}s, applied=%{public}d',
+      'applyUserMode success: userId=%{public}d, mode=%{public}s, policyOnly=%{public}s',
       userId,
       mode,
-      targetRules.length
+      'true'
     )
     return {
       success: true,
       userId: userId,
       mode: mode,
-      appliedRuleCount: targetRules.length
+      appliedRuleCount: 0
     }
-  }
-
-  private static buildRulesForMode(
-    userId: number,
-    mode: FirewallUserApplyMode,
-    sharedRules: netFirewall.NetFirewallRule[]
-  ): netFirewall.NetFirewallRule[] {
-    let filteredRules = sharedRules.filter((rule: netFirewall.NetFirewallRule): boolean => {
-      if (!getFirewallRuleUserIds(rule).includes(userId)) {
-        return false
-      }
-      if (mode === 'allowlist') {
-        return rule.action === netFirewall.FirewallRuleAction.RULE_ALLOW
-      }
-      return rule.action === netFirewall.FirewallRuleAction.RULE_DENY
-    })
-    return filteredRules.map((rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule => {
-      let clonedRule = FirewallRepository.cloneRuleForCreate(rule)
-      clonedRule.userId = userId
-      return FirewallRulesService.applyManagedRuleMetadata(clonedRule, {
-        owner: 'security_tool',
-        mode: 'custom',
-        kind: 'custom',
-        customRuleId: FirewallStore.getManagedRuleMetadata(rule)?.customRuleId
-      })
-    })
   }
 
   private static async applyCustomRulesForUser(
@@ -462,6 +379,7 @@ export class FirewallStore {
     return true
   }
 
+  // 保留给自定义规则主链路使用；用户模式切换已不再调用这些恢复函数。
   private static async restoreManagedRulesAndPolicy(
     userId: number,
     policy: netFirewall.NetFirewallPolicy,
@@ -473,6 +391,7 @@ export class FirewallStore {
     LogUtils.info(TAG, 'restoreManagedRulesAndPolicy finished: userId=%{public}d, rules=%{public}d', userId, snapshotRules.length)
   }
 
+  // 保留给自定义规则主链路使用；用户模式切换已不再调用这些恢复函数。
   private static async restoreManagedRules(userId: number, snapshotRules: netFirewall.NetFirewallRule[]): Promise<void> {
     await FirewallStore.clearManagedRules(userId)
     await FirewallStore.addRules(snapshotRules.map((rule: netFirewall.NetFirewallRule) => FirewallRepository.cloneRuleForCreate(rule)))
