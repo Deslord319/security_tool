@@ -115,7 +115,7 @@ export struct MultiCheckSelect {
   }
 
   build() {
-    Column({ space: 8 }) {
+    Column({ space: 6 }) {
       Row() {
         Text(this.getDisplayText())
           .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -144,7 +144,7 @@ export struct MultiCheckSelect {
       })
 
       if (this.isExpanded) {
-        Column({ space: 4 }) {
+        Column({ space: 2 }) {
           if (this.options.length === 0) {
             Text(FirewallDialogStrings.USER_SCOPE_EMPTY)
               .fontSize(AppStyles.FONT_SIZE_SMALL)
@@ -182,7 +182,7 @@ export struct MultiCheckSelect {
                       .layoutWeight(1)
                   }
                   .width('100%')
-                  .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+                  .padding({ left: 10, right: 10, top: 6, bottom: 6 })
                   .backgroundColor(this.getRowBackground(this.isAllSelected()))
                   .borderRadius(AppStyles.RADIUS_SM)
                   .onClick(() => {
@@ -219,7 +219,7 @@ export struct MultiCheckSelect {
                         .layoutWeight(1)
                     }
                     .width('100%')
-                    .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+                    .padding({ left: 10, right: 10, top: 6, bottom: 6 })
                     .backgroundColor(this.getRowBackground(this.isOptionSelected(option.userId)))
                     .borderRadius(AppStyles.RADIUS_SM)
                     .onClick(() => {
@@ -231,11 +231,11 @@ export struct MultiCheckSelect {
               .width('100%')
             }
             .scrollBar(BarState.Auto)
-            .height(240)
+            .constraintSize({ maxHeight: 240 })
           }
         }
         .width('100%')
-        .padding(8)
+        .padding(6)
         .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
         .borderRadius(AppStyles.RADIUS_MD)
         .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
