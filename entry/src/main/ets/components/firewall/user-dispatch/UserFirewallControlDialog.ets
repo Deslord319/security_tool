@@ -10,6 +10,7 @@ import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
+import { DetailDialogShell } from '../../DetailDialogShell'
 
 const TAG = 'UserFirewallDialog'
 
@@ -74,7 +75,7 @@ export struct UserFirewallControlDialog {
         }
         .width('100%')
         .padding({ top: 20, bottom: 20 })
-        .alignItems(HorizontalAlign.Start)
+        .alignItems(HorizontalAlign.Center)
       } else {
         Column({ space: 16 }) {
           Column({ space: 6 }) {
@@ -137,8 +138,9 @@ export struct UserFirewallControlDialog {
             Button(ActionText.CANCEL)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-              .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+              .backgroundColor(this.currentTheme === ThemeMode.DARK
+                ? 'rgba(255,255,255,0.08)'
+                : AppColors.getColors(this.currentTheme).BG_PAGE)
               .borderRadius(AppStyles.RADIUS_MD)
               .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
               .layoutWeight(1)
@@ -149,7 +151,7 @@ export struct UserFirewallControlDialog {
                 this.controller.close()
               })
 
-            Button(ActionText.CONFIRM)
+            Button(ActionText.ADD)
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(Color.White)
               .backgroundColor(AppColors.BRAND_PRIMARY)
@@ -193,19 +195,25 @@ export struct UserFirewallControlDialog {
           .width('100%')
         }
         .width('100%')
+        .alignItems(HorizontalAlign.Start)
       }
     }
     .width('100%')
   }
 
   build() {
-    Column() {
-      this.dialogContent()
-    }
-    .padding(28)
-    .constraintSize({ maxWidth: 480, maxHeight: 360 })
-    .width('84%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
-    .borderRadius(AppStyles.RADIUS_XL)
+    DetailDialogShell({
+      dialogWidth: 480,
+      maxBodyHeight: 360,
+      currentTheme: this.currentTheme,
+      showHeader: false,
+      showCloseAction: false,
+      onClose: () => {
+        this.controller.close()
+      },
+      content: () => {
+        this.dialogContent()
+      }
+    })
   }
 }

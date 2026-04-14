@@ -1,21 +1,29 @@
 import { common, contextConstant, StartOptions, Want } from '@kit.AbilityKit'
 import { image } from '@kit.ImageKit'
 import { statusBarManager } from '@kit.DeskTopExtensionKit'
-
 import { AppInfo } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { LogUtils } from './LogUtils'
 
 const TAG = 'StatusBarUtil'
 
-async function getPixelMap(context: common.UIAbilityContext): Promise<PixelMap> {
-  let fileData = context.resourceManager.getMediaContentSync(AppResources.START_ICON_ABOUT.id)
-  let imageSource = image.createImageSource(fileData.buffer)
-  return await imageSource.createPixelMap()
+async function getPixelMap(context: common.UIAbilityContext): Promise<PixelMap | null> {
+  try {
+    let fileData = context.resourceManager.getMediaContentSync(AppResources.START_ICON_ABOUT.id)
+    let imageSource = image.createImageSource(fileData.buffer)
+    return await imageSource.createPixelMap()
+  } catch (err) {
+    LogUtils.warn(TAG, 'getPixelMap failed: %{public}s', JSON.stringify(err))
+    return null
+  }
 }
 
 export async function loadStatusBar(context: common.UIAbilityContext): Promise<void> {
   let trayIcon = await getPixelMap(context)
+  if (!trayIcon) {
+    LogUtils.warn(TAG, 'loadStatusBar skipped: tray icon unavailable')
+    return
+  }
   let icons: statusBarManager.StatusBarIcon = {
     white: trayIcon,
     black: trayIcon
@@ -30,7 +38,12 @@ export async function loadStatusBar(context: common.UIAbilityContext): Promise<v
     icons: icons,
     quickOperation: quickOperation
   }
-  statusBarManager.addToStatusBar(context, statusBarItem)
+  try {
+    statusBarManager.addToStatusBar(context, statusBarItem)
+  } catch (err) {
+    LogUtils.warn(TAG, 'loadStatusBar failed: %{public}s', JSON.stringify(err))
+    return
+  }
   LogUtils.info(TAG, 'loadStatusBar success')
 }
 

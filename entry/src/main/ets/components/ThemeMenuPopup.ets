@@ -91,7 +91,7 @@ export struct AboutDialogContent {
       Image(AppResources.START_ICON_ABOUT)
         .width(80)
         .height(80)
-        .margin({ top: 10 })
+        .margin({ top: 18 })
         .draggable(false)
 
       Text(AppText.NAME)
@@ -128,8 +128,8 @@ export struct AboutDialogContent {
   build() {
     DetailDialogShell({
       title: AppText.ABOUT,
-      dialogWidth: 300,
-      maxBodyHeight: 260,
+      dialogWidth: 360,
+      maxBodyHeight: 290,
       currentTheme: this.currentTheme,
       showHeader: false,
       showCloseAction: false,

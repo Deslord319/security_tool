@@ -720,7 +720,7 @@ export struct FirewallRulesPage {
         }
       }),
       alignment: DialogAlignment.Center,
-      autoCancel: true,
+      autoCancel: false,
       customStyle: true
     })
     this.userFirewallDialogController.open()
