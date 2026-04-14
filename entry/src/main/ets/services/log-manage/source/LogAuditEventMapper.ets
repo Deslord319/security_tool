@@ -1,6 +1,7 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
 import { LogManageAuditStrings } from '../../../constants/modules/LogManageStrings'
+import { LogUtils } from '../../../utils/LogUtils'
 import {
   formatLogTimestamp,
   generateLogEntryId,
@@ -13,6 +14,8 @@ import {
 import { LooseRecord } from '../../../types/LooseValueTypes'
 import { pickNumber, pickString } from '../common/LogValuePicker'
 import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
+
+const TAG = 'LogAuditEventMapper'
 
 interface ParsedAuditPayload {
   detail: string
@@ -50,6 +53,10 @@ export function parseAuditEventToLogEntry(
 
   const timestamp = resolveAuditSourceTimestamp(event.timestamp || '', nowProvider)
   const parsed = parseAuditPayload(event.content || '', event.metadata, mappedType, event, timestamp)
+  LogUtils.info(
+    TAG,
+    `AUDIT_MAPPED_RESULT eventId=${event.eventId}, eventType=${mappedType}, rawEventName=${parsed.rawEventName || '-'}, rawAction=${parsed.rawAction || '-'}, rawOutcome=${parsed.rawOutcome || '-'}, mappedResult=${parsed.result}, processName=${parsed.processName || '-'}, filePath=${parsed.filePath || '-'}, detail=${parsed.detail}`
+  )
   return {
     id: generateLogEntryId(),
     timestamp,
@@ -216,15 +223,19 @@ function resolveAuditRawFilePath(content: string, metadata: string | undefined, 
 
 function mapResult(rawOutcome?: string): LogEventResult {
   if (!rawOutcome) {
+    LogUtils.info(TAG, 'AUDIT_RESULT_MAPPING rawOutcome=-, mappedResult=0')
     return LogEventResult.SUCCESS
   }
   const normalized = rawOutcome.toLowerCase()
   if (normalized.includes('blocked') || normalized.includes('deny') || normalized.includes('intercept')) {
+    LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=1`)
     return LogEventResult.BLOCKED
   }
   if (normalized.includes('failed') || normalized.includes('error') || normalized.includes('reject')) {
+    LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=2`)
     return LogEventResult.FAILED
   }
+  LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=0`)
   return LogEventResult.SUCCESS
 }
 
