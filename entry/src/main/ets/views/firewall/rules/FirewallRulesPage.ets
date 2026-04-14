@@ -626,6 +626,7 @@ export struct FirewallRulesPage {
                     .width('100%')
 
                     Column({ space: 10 }) {
+                      this.detailRow(FirewallDialogStrings.USER_SCOPE, this.rulesViewModel.getRuleUserScopeLabel(rule), this.isRuleHovered(rule))
                       this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule), this.isRuleHovered(rule))
                       this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule), this.isRuleHovered(rule))
                       this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule), this.isRuleHovered(rule))

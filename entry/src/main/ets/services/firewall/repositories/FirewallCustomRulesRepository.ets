@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
+  normalizeFirewallRuleUserIds,
   PREF_KEY_FIREWALL_CUSTOM_RULES,
   PREF_STORE_NAME_FIREWALL_CUSTOM_RULES
 } from '../../../models/DataModels'
@@ -13,6 +14,7 @@ const TAG = 'FirewallCustomRulesRepository'
 export interface StoredCustomFirewallRuleRecord {
   customRuleId: string
   rule: netFirewall.NetFirewallRule
+  userIds: number[]
 }
 
 export class FirewallCustomRulesRepository {
@@ -23,9 +25,14 @@ export class FirewallCustomRulesRepository {
       let records: StoredCustomFirewallRuleRecord[] = []
       parsed.forEach((item: StoredCustomFirewallRuleRecord) => {
         if (typeof item.customRuleId === 'string' && item.customRuleId.length > 0 && !!item.rule) {
+          let userIds = normalizeFirewallRuleUserIds(Array.isArray(item.userIds) ? item.userIds : [])
+          if (userIds.length === 0) {
+            return
+          }
           records.push({
             customRuleId: item.customRuleId,
-            rule: item.rule
+            rule: item.rule,
+            userIds: userIds
           })
         }
       })
@@ -42,7 +49,14 @@ export class FirewallCustomRulesRepository {
   ): Promise<boolean> {
     try {
       let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_CUSTOM_RULES)
-      return await pref.setJson(PREF_KEY_FIREWALL_CUSTOM_RULES, records)
+      let normalizedRecords = records.map((item: StoredCustomFirewallRuleRecord): StoredCustomFirewallRuleRecord => {
+        return {
+          customRuleId: item.customRuleId,
+          rule: item.rule,
+          userIds: normalizeFirewallRuleUserIds(item.userIds)
+        }
+      }).filter((item: StoredCustomFirewallRuleRecord): boolean => item.userIds.length > 0)
+      return await pref.setJson(PREF_KEY_FIREWALL_CUSTOM_RULES, normalizedRecords)
     } catch (err) {
       LogUtils.error(TAG, `saveRecords failed: ${JSON.stringify(err)}`)
       return false

@@ -24,7 +24,8 @@ function createRule(name: string): netFirewall.NetFirewallRule {
 function createStoredRecord(customRuleId: string, name: string): StoredCustomFirewallRuleRecord {
   return {
     customRuleId,
-    rule: createRule(name)
+    rule: createRule(name),
+    userIds: [100]
   }
 }
 

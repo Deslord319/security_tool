@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
+  FirewallDialogStrings,
   FirewallRuleStrings,
   buildFirewallConflictNotice,
   buildFirewallReapplyPartialFailedMessage
@@ -9,8 +10,15 @@ import {
 import {
   FirewallOperationResult,
   FirewallPresetMode,
-  FirewallRulesSaveResult
+  FirewallRulesSaveResult,
+  UserFirewallOption
 } from '../../../models/firewall/firewall_service_contracts'
+import {
+  attachFirewallRuleUserIds,
+  FirewallScopedRule,
+  getFirewallRuleUserIds,
+  normalizeFirewallRuleUserIds as normalizeScopedUserIds
+} from '../../../models/DataModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { LogUtils } from '../../../utils/LogUtils'
 
@@ -26,6 +34,45 @@ export interface FirewallRulesConflictInfo {
   existingRule: netFirewall.NetFirewallRule | null
 }
 
+export function normalizeFirewallRuleUserIds(userIds: number[] | undefined | null): number[] {
+  return normalizeScopedUserIds(userIds ?? [])
+}
+
+export function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFirewallOption[]): boolean {
+  let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
+  let normalizedAvailableUserIds = normalizeFirewallRuleUserIds(
+    availableUsers.map((item: UserFirewallOption): number => item.userId)
+  )
+  if (normalizedUserIds.length === 0 || normalizedAvailableUserIds.length === 0) {
+    return false
+  }
+  if (normalizedUserIds.length !== normalizedAvailableUserIds.length) {
+    return false
+  }
+  return normalizedUserIds.every((userId: number, index: number): boolean => userId === normalizedAvailableUserIds[index])
+}
+
+export function buildFirewallRuleUserScopeLabel(
+  rule: netFirewall.NetFirewallRule,
+  availableUsers: UserFirewallOption[]
+): string {
+  let userIds = getFirewallRuleUserIds(rule)
+  if (userIds.length === 0 || isFirewallRuleAllUsers(userIds, availableUsers)) {
+    return FirewallDialogStrings.ALL_VALUE
+  }
+  let userLabelMap = new Map<number, string>()
+  availableUsers.forEach((item: UserFirewallOption) => {
+    userLabelMap.set(item.userId, item.label)
+  })
+  let labels = userIds.map((userId: number): string => userLabelMap.get(userId) ?? `用户 ${userId}`)
+  return labels.join('、')
+}
+
+function cloneScopedRule(rule: netFirewall.NetFirewallRule): FirewallScopedRule {
+  let clonedRule = FirewallService.cloneRuleForCreate(rule)
+  return attachFirewallRuleUserIds(clonedRule, getFirewallRuleUserIds(rule))
+}
+
 @ObservedV2
 export class FirewallRulesViewModel {
   @Trace currentMode: FirewallPresetMode = 'custom'
@@ -35,6 +82,7 @@ export class FirewallRulesViewModel {
   @Trace isLoading: boolean = false
   @Trace lastSaveResult: FirewallRulesSaveResult | null = null
   @Trace lastOperationMessage: string = ''
+  @Trace userOptions: UserFirewallOption[] = []
 
   async initialize(
     context: common.UIAbilityContext,
@@ -46,6 +94,7 @@ export class FirewallRulesViewModel {
       this.conflictNotice = ''
       this.lastSaveResult = null
       this.lastOperationMessage = FirewallRuleStrings.ONLY_CUSTOM_MODE
+      this.userOptions = []
       return {
         success: false,
         errorMessage: FirewallRuleStrings.ONLY_CUSTOM_MODE
@@ -57,6 +106,7 @@ export class FirewallRulesViewModel {
   async loadRules(context: common.UIAbilityContext): Promise<FirewallOperationResult> {
     this.isLoading = true
     try {
+      await this.reloadUserOptions()
       await this.reloadRules(context)
       this.lastOperationMessage = ''
       return {
@@ -148,14 +198,13 @@ export class FirewallRulesViewModel {
     nextRules: netFirewall.NetFirewallRule[],
     successMessage: string = ''
   ): Promise<FirewallRulesSaveResult> {
-    const previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) =>
-      FirewallService.cloneRuleForCreate(rule)
-    )
+    const previousRules = this.rules.map((rule: netFirewall.NetFirewallRule) => cloneScopedRule(rule))
     this.isLoading = true
     try {
       const result = await FirewallService.saveCustomRules(context, nextRules)
       this.lastSaveResult = result
       if (result.success) {
+        await this.reloadUserOptions()
         await this.reloadRules(context)
         const reapplySuccessCount = result.reapplySuccessCount ?? 0
         const reapplyFailedCount = result.reapplyFailedCount ?? 0
@@ -186,7 +235,7 @@ export class FirewallRulesViewModel {
     context: common.UIAbilityContext,
     rule: netFirewall.NetFirewallRule
   ): Promise<FirewallRulesSaveResult> {
-    return this.saveRules(context, [...this.rules, rule], FirewallRuleStrings.ADD_SUCCESS)
+    return this.saveRules(context, [...this.rules, cloneScopedRule(rule)], FirewallRuleStrings.ADD_SUCCESS)
   }
 
   async updateRule(
@@ -195,7 +244,7 @@ export class FirewallRulesViewModel {
   ): Promise<FirewallRulesSaveResult> {
     const localRuleId = this.getLocalRuleId(rule)
     const nextRules = this.rules.map((item: netFirewall.NetFirewallRule) =>
-      this.getLocalRuleId(item) === localRuleId ? rule : item
+      this.getLocalRuleId(item) === localRuleId ? cloneScopedRule(rule) : cloneScopedRule(item)
     )
     return this.saveRules(context, nextRules, FirewallRuleStrings.UPDATE_SUCCESS)
   }
@@ -205,7 +254,9 @@ export class FirewallRulesViewModel {
     rule: netFirewall.NetFirewallRule
   ): Promise<FirewallRulesSaveResult> {
     const localRuleId = this.getLocalRuleId(rule)
-    const nextRules = this.rules.filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== localRuleId)
+    const nextRules = this.rules
+      .filter((item: netFirewall.NetFirewallRule) => this.getLocalRuleId(item) !== localRuleId)
+      .map((item: netFirewall.NetFirewallRule) => cloneScopedRule(item))
     return this.saveRules(context, nextRules, FirewallRuleStrings.DELETE_SUCCESS)
   }
 
@@ -218,10 +269,23 @@ export class FirewallRulesViewModel {
     )
   }
 
+  getRuleUserScopeLabel(rule: netFirewall.NetFirewallRule): string {
+    return buildFirewallRuleUserScopeLabel(rule, this.userOptions)
+  }
+
   private async reloadRules(context: common.UIAbilityContext): Promise<void> {
     const rules = await FirewallService.listCustomRules(context)
-    this.rules = rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
+    this.rules = rules.map((rule: netFirewall.NetFirewallRule) => cloneScopedRule(rule))
     this.refreshConflictNotice()
+  }
+
+  private async reloadUserOptions(): Promise<void> {
+    try {
+      this.userOptions = await FirewallService.loadUserOptions()
+    } catch (err) {
+      LogUtils.error(TAG, `reloadUserOptions failed: ${JSON.stringify(err)}`)
+      this.userOptions = []
+    }
   }
 
   private async restoreRules(
@@ -230,10 +294,10 @@ export class FirewallRulesViewModel {
   ): Promise<void> {
     try {
       const rules = await FirewallService.listCustomRules(context)
-      this.rules = rules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
+      this.rules = rules.map((rule: netFirewall.NetFirewallRule) => cloneScopedRule(rule))
     } catch (err) {
       LogUtils.error(TAG, `restoreRules fallback failed: ${JSON.stringify(err)}`)
-      this.rules = previousRules.map((rule: netFirewall.NetFirewallRule) => FirewallService.cloneRuleForCreate(rule))
+      this.rules = previousRules.map((rule: netFirewall.NetFirewallRule) => cloneScopedRule(rule))
     }
     this.refreshConflictNotice()
   }

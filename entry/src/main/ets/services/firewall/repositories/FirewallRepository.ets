@@ -72,6 +72,7 @@ export class FirewallRepository {
 
   static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
     let preparedRule = FirewallRepository.normalizeRuleForCreate(rule)
+    LogUtils.info(FirewallRepository.TAG, `addRule payload: ${JSON.stringify(preparedRule)}`)
     try {
       return await netFirewall.addNetFirewallRule(preparedRule)
     } catch (err) {
@@ -82,6 +83,7 @@ export class FirewallRepository {
   }
 
   static async removeRule(ruleId: number): Promise<boolean> {
+    LogUtils.info(FirewallRepository.TAG, `removeRule payload: ruleId=${ruleId}`)
     try {
       await netFirewall.removeNetFirewallRule(AppInfo.DEFAULT_USER_ID, ruleId)
       return true
@@ -92,6 +94,7 @@ export class FirewallRepository {
   }
 
   static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
+    LogUtils.info(FirewallRepository.TAG, `updateRule payload: ${JSON.stringify(rule)}`)
     try {
       await netFirewall.updateNetFirewallRule(rule)
       return true
@@ -102,6 +105,7 @@ export class FirewallRepository {
   }
 
   static async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<number> {
+    LogUtils.info(FirewallRepository.TAG, `replaceRule payload: oldRuleId=${oldRuleId}, newRule=${JSON.stringify(newRule)}`)
     let removed = await FirewallRepository.removeRule(oldRuleId)
     if (!removed) {
       return -1
@@ -115,6 +119,7 @@ export class FirewallRepository {
   }
 
   static async addRules(rules: netFirewall.NetFirewallRule[]): Promise<boolean> {
+    LogUtils.info(FirewallRepository.TAG, `addRules payload: rules.length=${rules.length}`)
     for (let i = 0; i < rules.length; i++) {
       let ruleId = await FirewallRepository.addRule(FirewallRepository.cloneRuleForCreate(rules[i]))
       if (ruleId <= 0) {
