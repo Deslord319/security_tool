@@ -196,8 +196,16 @@ export class LogAuditSource {
 
   private static createAuditEventCallback(): (event: securityAudit.AuditEvent) => void {
     return (event: securityAudit.AuditEvent): void => {
+      LogUtils.info(
+        TAG,
+        `AUDIT_RAW_INPUT eventId=${event.eventId}, timestamp=${event.timestamp || '-'}, userId=${event.userId}, content=${event.content || '-'}, metadata=${event.metadata || '-'}`
+      )
       const entry = LogAuditSource.parseAuditEvent(event)
       if (entry && LogAuditSource.callback) {
+        LogUtils.info(
+          TAG,
+          `AUDIT_RAW_INPUT_ACCEPTED eventId=${event.eventId}, recordId=${entry.id}, result=${entry.result}, rawOutcome=${entry.rawOutcome || '-'}`
+        )
         LogAuditSource.callback(entry)
       }
     }
