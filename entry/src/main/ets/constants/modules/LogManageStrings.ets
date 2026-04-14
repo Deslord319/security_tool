@@ -8,6 +8,11 @@ export class LogManagePageStrings {
 
 export class LogManageDetailStrings {
   static readonly DIALOG_TITLE: string = '日志详情'
+  static readonly SUMMARY: string = '摘要'
+  static readonly TIME_LABEL: string = '时间'
+  static readonly EVENT_TYPE_LABEL: string = '事件类型'
+  static readonly RESULT_LABEL: string = '结果'
+  static readonly STRUCTURED_DETAILS: string = '结构化详情'
   static readonly EMPTY: string = '暂无详情'
   static readonly SUMMARY: string = '摘要'
   static readonly TIME_LABEL: string = '时间'
