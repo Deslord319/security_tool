@@ -226,12 +226,12 @@ function mapResult(rawOutcome?: string): LogEventResult {
     LogUtils.info(TAG, 'AUDIT_RESULT_MAPPING rawOutcome=-, mappedResult=0')
     return LogEventResult.SUCCESS
   }
-  const normalized = rawOutcome.toLowerCase()
+  const normalized = rawOutcome.trim().toLowerCase()
   if (normalized.includes('blocked') || normalized.includes('deny') || normalized.includes('intercept')) {
     LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=1`)
     return LogEventResult.BLOCKED
   }
-  if (normalized.includes('failed') || normalized.includes('error') || normalized.includes('reject')) {
+  if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('reject')) {
     LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=2`)
     return LogEventResult.FAILED
   }
