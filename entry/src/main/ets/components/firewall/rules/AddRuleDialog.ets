@@ -339,7 +339,6 @@ export struct AddRuleDialog {
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onChange((value: string) => { this.ruleName = value })
       }
-      .margin({ top: 8 })
       .width('100%')
       .alignItems(HorizontalAlign.Start)
 
@@ -569,6 +568,7 @@ export struct AddRuleDialog {
       }
       .width('100%')
     }
+    .margin({ top: 8 })
     .width('100%')
   }
 
