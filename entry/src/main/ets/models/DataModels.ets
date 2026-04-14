@@ -4,6 +4,7 @@ import { DeviceTypeLabels, PeripheralRecordActionPresentationStrings, Peripheral
 import { LogEventPresentationStrings, LogResultPresentationStrings } from '../constants/modules/LogManageStrings'
 import { IdentityAuthStrings } from '../constants/modules/IdentityStrings'
 import { generateRandomSuffix } from '../utils/ValuePicker'
+import { netFirewall } from '@kit.NetworkKit'
 
 export enum RuleType {
   IP = 1,
@@ -382,6 +383,42 @@ export interface FirewallManagedRuleMetadata {
   kind: 'preset' | 'custom'
   customRuleId?: string
   templateKey?: string
+}
+
+export interface FirewallScopedRule extends netFirewall.NetFirewallRule {
+  userIds: number[]
+}
+
+export interface UserScopedFirewallRuleBucket {
+  userId: number
+  rules: netFirewall.NetFirewallRule[]
+}
+
+export function normalizeFirewallRuleUserIds(userIds: number[]): number[] {
+  let uniqueValues = new Set<number>()
+  userIds.forEach((value: number) => {
+    if (Number.isInteger(value) && value >= 0) {
+      uniqueValues.add(value)
+    }
+  })
+  return Array.from(uniqueValues).sort((left: number, right: number) => left - right)
+}
+
+export function getFirewallRuleUserIds(rule: netFirewall.NetFirewallRule): number[] {
+  let scopedRule = rule as FirewallScopedRule
+  if (!Array.isArray(scopedRule.userIds)) {
+    return []
+  }
+  return normalizeFirewallRuleUserIds(scopedRule.userIds)
+}
+
+export function attachFirewallRuleUserIds(
+  rule: netFirewall.NetFirewallRule,
+  userIds: number[]
+): FirewallScopedRule {
+  let scopedRule = rule as FirewallScopedRule
+  scopedRule.userIds = normalizeFirewallRuleUserIds(userIds)
+  return scopedRule
 }
 
 export interface FirewallModeSwitchResult {

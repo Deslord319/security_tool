@@ -1,5 +1,5 @@
 import { netFirewall } from '@kit.NetworkKit'
-import { FirewallManagedRuleMetadata } from '../../../models/DataModels'
+import { FirewallManagedRuleMetadata, getFirewallRuleUserIds } from '../../../models/DataModels'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 
@@ -107,6 +107,9 @@ export class FirewallRulesService {
     existingRule: netFirewall.NetFirewallRule,
     targetRule: netFirewall.NetFirewallRule
   ): FirewallRuleConflictKind {
+    if (!FirewallRulesService.hasUserScopeIntersection(existingRule, targetRule)) {
+      return 'none'
+    }
     if (existingRule.type !== targetRule.type || existingRule.direction !== targetRule.direction) {
       return 'none'
     }
@@ -118,6 +121,33 @@ export class FirewallRulesService {
       return 'overlap_conflict'
     }
     return 'none'
+  }
+
+  private static hasUserScopeIntersection(
+    left: netFirewall.NetFirewallRule,
+    right: netFirewall.NetFirewallRule
+  ): boolean {
+    let leftUserIds = FirewallRulesService.extractUserIds(left)
+    let rightUserIds = FirewallRulesService.extractUserIds(right)
+    if (leftUserIds.length === 0 || rightUserIds.length === 0) {
+      return true
+    }
+    let rightUserSet = new Set<number>(rightUserIds)
+    return leftUserIds.some((userId: number) => rightUserSet.has(userId))
+  }
+
+  private static extractUserIds(rule: netFirewall.NetFirewallRule): number[] {
+    return FirewallRulesService.normalizeUserIds(getFirewallRuleUserIds(rule))
+  }
+
+  private static normalizeUserIds(userIds: number[]): number[] {
+    let uniqueValues = new Set<number>()
+    userIds.forEach((value: number) => {
+      if (Number.isInteger(value) && value >= 0) {
+        uniqueValues.add(value)
+      }
+    })
+    return Array.from(uniqueValues).sort((left: number, right: number) => left - right)
   }
 
   private static isSameRuleKey(

@@ -2,9 +2,11 @@ import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
+  getFirewallRuleUserIds,
   FirewallManagedRuleMetadata,
   FirewallPresetMode,
   FirewallUserApplyMode,
+  UserScopedFirewallRuleBucket,
   UserFirewallModeApplyResult,
   UserFirewallModeBinding,
   UserFirewallModeReapplySummary,
@@ -21,6 +23,12 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'FirewallStore'
+
+interface CustomRuleApplySnapshot {
+  userId: number
+  policy: netFirewall.NetFirewallPolicy
+  rules: netFirewall.NetFirewallRule[]
+}
 
 export class FirewallStore {
   static async initialize(context: common.UIAbilityContext): Promise<void> {
@@ -124,6 +132,58 @@ export class FirewallStore {
     }
     LogUtils.info(TAG,
       'reapplyUserBindings finished: total=%{public}d, success=%{public}d, failed=%{public}d',
+      summary.totalUsers,
+      summary.successCount,
+      summary.failedCount
+    )
+    return summary
+  }
+
+  static async applyCustomRuleBuckets(
+    context: common.UIAbilityContext,
+    buckets: UserScopedFirewallRuleBucket[]
+  ): Promise<UserFirewallModeReapplySummary> {
+    let activeUsersResult = await SystemUserProvider.loadAvailableUserIds()
+    let activeUserIds = activeUsersResult.users.map((item) => item.userId)
+    let bucketMap = new Map<number, netFirewall.NetFirewallRule[]>()
+    buckets.forEach((bucket: UserScopedFirewallRuleBucket) => {
+      bucketMap.set(bucket.userId, bucket.rules)
+    })
+
+    let summary: UserFirewallModeReapplySummary = {
+      totalUsers: activeUserIds.length,
+      successCount: 0,
+      failedCount: 0,
+      failedUsers: []
+    }
+    let snapshots = await FirewallStore.captureCustomRuleApplySnapshots(activeUserIds)
+    if (snapshots.length !== activeUserIds.length) {
+      summary.failedCount = 1
+      summary.failedUsers = activeUserIds.filter((userId: number) =>
+        !snapshots.some((snapshot: CustomRuleApplySnapshot): boolean => snapshot.userId === userId)
+      )
+      if (summary.failedUsers.length === 0 && activeUserIds.length > 0) {
+        summary.failedUsers = [activeUserIds[0]]
+      }
+      return summary
+    }
+
+    for (let i = 0; i < activeUserIds.length; i++) {
+      let userId = activeUserIds[i]
+      let result = await FirewallStore.applyCustomRulesForUser(userId, bucketMap.get(userId) ?? [])
+      if (result) {
+        summary.successCount++
+        continue
+      }
+      await FirewallStore.rollbackCustomRuleApplySnapshots(snapshots)
+      summary.successCount = 0
+      summary.failedCount++
+      summary.failedUsers.push(userId)
+      break
+    }
+
+    LogUtils.info(TAG,
+      'applyCustomRuleBuckets finished: total=%{public}d, success=%{public}d, failed=%{public}d',
       summary.totalUsers,
       summary.successCount,
       summary.failedCount
@@ -247,6 +307,9 @@ export class FirewallStore {
     sharedRules: netFirewall.NetFirewallRule[]
   ): netFirewall.NetFirewallRule[] {
     let filteredRules = sharedRules.filter((rule: netFirewall.NetFirewallRule): boolean => {
+      if (!getFirewallRuleUserIds(rule).includes(userId)) {
+        return false
+      }
       if (mode === 'allowlist') {
         return rule.action === netFirewall.FirewallRuleAction.RULE_ALLOW
       }
@@ -262,6 +325,62 @@ export class FirewallStore {
         customRuleId: FirewallStore.getManagedRuleMetadata(rule)?.customRuleId
       })
     })
+  }
+
+  private static async applyCustomRulesForUser(
+    userId: number,
+    targetRules: netFirewall.NetFirewallRule[]
+  ): Promise<boolean> {
+    FirewallStore.clearLastError()
+    let snapshotRules = await FirewallStore.getManagedRules(userId)
+    if (!await FirewallStore.clearManagedRules(userId)) {
+      return false
+    }
+    if (targetRules.length === 0) {
+      return true
+    }
+    if (await FirewallStore.addRules(targetRules)) {
+      return true
+    }
+    await FirewallStore.restoreManagedRules(userId, snapshotRules)
+    return false
+  }
+
+  private static async captureCustomRuleApplySnapshots(userIds: number[]): Promise<CustomRuleApplySnapshot[]> {
+    let snapshots: CustomRuleApplySnapshot[] = []
+    for (let i = 0; i < userIds.length; i++) {
+      let userId = userIds[i]
+      let policyResult = await SystemUserProvider.getPolicy(userId)
+      if (policyResult.errorCode !== undefined) {
+        LogUtils.error(TAG, 'captureCustomRuleApplySnapshots getPolicy failed: userId=%{public}d, code=%{public}s',
+          userId,
+          `${policyResult.errorCode}`
+        )
+        return snapshots
+      }
+      let snapshotRules = await FirewallStore.getManagedRules(userId)
+      if (FirewallStore.getLastErrorMessage().length > 0) {
+        LogUtils.error(TAG, 'captureCustomRuleApplySnapshots getManagedRules failed: userId=%{public}d', userId)
+        return snapshots
+      }
+      snapshots.push({
+        userId: userId,
+        policy: {
+          isOpen: policyResult.isOpen,
+          inAction: policyResult.inAction,
+          outAction: policyResult.outAction
+        },
+        rules: snapshotRules
+      })
+    }
+    return snapshots
+  }
+
+  private static async rollbackCustomRuleApplySnapshots(snapshots: CustomRuleApplySnapshot[]): Promise<void> {
+    for (let i = 0; i < snapshots.length; i++) {
+      let snapshot = snapshots[i]
+      await FirewallStore.restoreManagedRulesAndPolicy(snapshot.userId, snapshot.policy, snapshot.rules)
+    }
   }
 
   private static getManagedRuleMetadata(rule: netFirewall.NetFirewallRule): FirewallManagedRuleMetadata | null {

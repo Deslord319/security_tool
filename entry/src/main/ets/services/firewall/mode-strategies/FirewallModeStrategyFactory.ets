@@ -5,6 +5,7 @@ import {
   FirewallModeSwitchResult,
   FirewallPresetMode
 } from '../../../models/DataModels'
+import { FirewallStore } from '../stores/FirewallStore'
 import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import { CustomModeStrategy } from './CustomModeStrategy'
@@ -62,6 +63,10 @@ export class FirewallModeStrategyFactory {
     mode: FirewallPresetMode
   ): Promise<FirewallModeSwitchResult> {
     await FirewallModeStrategyFactory.initialize(context)
+    if (mode === 'custom') {
+      let targetRules = await FirewallModeStrategyFactory.buildCustomRulesForApply(context)
+      return FirewallModeStrategyFactory.applyCustomRules(context, targetRules)
+    }
     let targetRules = await FirewallModeStrategyFactory.buildRulesForMode(context, mode)
     return FirewallModeStrategyFactory.applyModeRules(context, mode, targetRules)
   }
@@ -71,7 +76,17 @@ export class FirewallModeStrategyFactory {
     rules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallModeSwitchResult> {
     await FirewallModeStrategyFactory.initialize(context)
-    return FirewallModeStrategyFactory.applyModeRules(context, 'custom', rules)
+    let buckets = CustomModeStrategy.buildRuleBucketsByUser(rules)
+    let summary = await FirewallStore.applyCustomRuleBuckets(context, buckets)
+    if (summary.failedCount > 0) {
+      return FirewallModeStrategyFactory.buildFailedSwitchResult('custom')
+    }
+    await FirewallModeRepository.saveCurrentMode(context, 'custom')
+    return {
+      success: true,
+      mode: 'custom',
+      appliedRuleCount: rules.length
+    }
   }
 
   static async listCustomRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {

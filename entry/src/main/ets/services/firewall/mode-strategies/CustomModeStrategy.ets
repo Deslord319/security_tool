@@ -1,6 +1,13 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
+import {
+  attachFirewallRuleUserIds,
+  FirewallScopedRule,
+  getFirewallRuleUserIds,
+  normalizeFirewallRuleUserIds,
+  UserScopedFirewallRuleBucket
+} from '../../../models/DataModels'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import {
   FirewallCustomRulesRepository,
@@ -10,15 +17,38 @@ import { FirewallRulesService } from '../rules/FirewallRulesService'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 export class CustomModeStrategy {
-  static async listRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
+  static async listRules(context: common.UIAbilityContext): Promise<FirewallScopedRule[]> {
     let records = await CustomModeStrategy.loadRecords(context)
-    return records.map((record: StoredCustomFirewallRuleRecord): netFirewall.NetFirewallRule => {
+    return records.map((record: StoredCustomFirewallRuleRecord): FirewallScopedRule => {
       return CustomModeStrategy.toDisplayRule(record)
     })
   }
 
-  static async buildRulesForApply(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
+  static async buildRulesForApply(context: common.UIAbilityContext): Promise<FirewallScopedRule[]> {
     return CustomModeStrategy.listRules(context)
+  }
+
+  static buildRuleBucketsByUser(rules: netFirewall.NetFirewallRule[]): UserScopedFirewallRuleBucket[] {
+    let bucketMap = new Map<number, netFirewall.NetFirewallRule[]>()
+    rules.forEach((rule: netFirewall.NetFirewallRule) => {
+      let userIds = getFirewallRuleUserIds(rule)
+      userIds.forEach((userId: number) => {
+        let clonedRule = FirewallRepository.cloneRuleForCreate(rule)
+        clonedRule.userId = userId
+        let bucketRules = bucketMap.get(userId) ?? []
+        bucketRules.push(clonedRule)
+        bucketMap.set(userId, bucketRules)
+      })
+    })
+
+    let buckets: UserScopedFirewallRuleBucket[] = []
+    Array.from(bucketMap.keys()).sort((left: number, right: number) => left - right).forEach((userId: number) => {
+      buckets.push({
+        userId: userId,
+        rules: bucketMap.get(userId) ?? []
+      })
+    })
+    return buckets
   }
 
   static async initializeFromSystemIfEmpty(
@@ -33,7 +63,8 @@ export class CustomModeStrategy {
     systemRules.forEach((rule: netFirewall.NetFirewallRule) => {
       migratedRecords.push(CustomModeStrategy.createRecord(
         CustomModeStrategy.generateCustomRuleId(),
-        CustomModeStrategy.toStoredRule(rule)
+        CustomModeStrategy.toStoredRule(rule),
+        normalizeFirewallRuleUserIds([rule.userId ?? 100])
       ))
     })
     await CustomModeStrategy.saveRecords(context, migratedRecords)
@@ -45,9 +76,14 @@ export class CustomModeStrategy {
   ): Promise<boolean> {
     let records: StoredCustomFirewallRuleRecord[] = []
     rules.forEach((rule: netFirewall.NetFirewallRule) => {
+      let userIds = getFirewallRuleUserIds(rule)
+      if (userIds.length === 0) {
+        return
+      }
       records.push(CustomModeStrategy.createRecord(
         CustomModeStrategy.getCustomRuleId(rule) ?? CustomModeStrategy.generateCustomRuleId(),
-        CustomModeStrategy.toStoredRule(rule)
+        CustomModeStrategy.toStoredRule(rule),
+        userIds
       ))
     })
     return CustomModeStrategy.saveRecords(context, records)
@@ -69,7 +105,7 @@ export class CustomModeStrategy {
     return FirewallCustomRulesRepository.saveRecords(context, records)
   }
 
-  private static toDisplayRule(record: StoredCustomFirewallRuleRecord): netFirewall.NetFirewallRule {
+  private static toDisplayRule(record: StoredCustomFirewallRuleRecord): FirewallScopedRule {
     let rule = FirewallRepository.cloneRuleForCreate(record.rule)
     let displayRule = FirewallRulesService.applyManagedRuleMetadata(rule, {
       owner: 'security_tool',
@@ -77,8 +113,9 @@ export class CustomModeStrategy {
       kind: 'custom',
       customRuleId: record.customRuleId
     })
-    displayRule.id = CustomModeStrategy.hashRuleId(record.customRuleId)
-    return displayRule
+    let scopedDisplayRule = attachFirewallRuleUserIds(displayRule, record.userIds)
+    scopedDisplayRule.id = CustomModeStrategy.hashRuleId(record.customRuleId)
+    return scopedDisplayRule
   }
 
   private static toStoredRule(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
@@ -93,11 +130,13 @@ export class CustomModeStrategy {
 
   private static createRecord(
     customRuleId: string,
-    rule: netFirewall.NetFirewallRule
+    rule: netFirewall.NetFirewallRule,
+    userIds: number[]
   ): StoredCustomFirewallRuleRecord {
     return {
       customRuleId: customRuleId,
-      rule: rule
+      rule: rule,
+      userIds: normalizeFirewallRuleUserIds(userIds)
     }
   }
 

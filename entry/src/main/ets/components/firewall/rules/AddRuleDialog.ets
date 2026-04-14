@@ -5,9 +5,19 @@ import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { ActionText } from '../../../constants/StringCatalog'
-import { FirewallDialogStrings, FirewallRuleLabelStrings } from '../../../constants/modules/FirewallStrings'
+import { FirewallDialogStrings, FirewallRuleLabelStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
+import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
+import { UserFirewallOption } from '../../../models/firewall/firewall_service_contracts'
+import {
+  attachFirewallRuleUserIds,
+  getFirewallRuleUserIds
+} from '../../../models/DataModels'
+import {
+  isFirewallRuleAllUsers,
+  normalizeFirewallRuleUserIds
+} from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
@@ -31,6 +41,8 @@ export struct AddRuleDialog {
   @State localPort: string = ''
   @State remotePort: string = ''
   @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
+  @State userOptions: UserFirewallOption[] = []
+  @State selectedUserIds: number[] = []
   private readonly protocolOptions: SelectOption[] = [
     { value: FirewallDialogStrings.PROTOCOL_TCP },
     { value: FirewallDialogStrings.PROTOCOL_UDP },
@@ -40,6 +52,7 @@ export struct AddRuleDialog {
 
   aboutToAppear(): void {
     this.applyInitialRule()
+    void this.loadUserOptions()
   }
 
   private applyInitialRule(): void {
@@ -55,6 +68,57 @@ export struct AddRuleDialog {
     this.remoteAddress = this.resolveRemoteAddress(rule)
     this.localPort = this.resolvePort(rule.localPorts)
     this.remotePort = this.resolvePort(rule.remotePorts)
+  }
+
+  private async loadUserOptions(): Promise<void> {
+    try {
+      let result = await SystemUserProvider.loadAvailableUserIds()
+      this.userOptions = result.users ?? []
+    } catch (_err) {
+      this.userOptions = []
+    }
+    this.applyInitialRuleScope()
+  }
+
+  private applyInitialRuleScope(): void {
+    if (!this.initialRule) {
+      this.selectedUserIds = this.getAllAvailableUserIds()
+      return
+    }
+    let ruleUserIds = normalizeFirewallRuleUserIds(getFirewallRuleUserIds(this.initialRule))
+    this.selectedUserIds = ruleUserIds.length > 0 ? ruleUserIds : this.getAllAvailableUserIds()
+  }
+
+  private getAllAvailableUserIds(): number[] {
+    return normalizeFirewallRuleUserIds(this.userOptions.map((item: UserFirewallOption): number => item.userId))
+  }
+
+  private isAllUsersSelected(): boolean {
+    return isFirewallRuleAllUsers(this.selectedUserIds, this.userOptions)
+  }
+
+  private setAllUsersSelected(isOn: boolean): void {
+    this.selectedUserIds = isOn ? this.getAllAvailableUserIds() : []
+  }
+
+  private syncUserSelection(userId: number, isOn: boolean): void {
+    let nextUserIds = new Set<number>(this.selectedUserIds)
+    if (isOn) {
+      nextUserIds.add(userId)
+    } else {
+      nextUserIds.delete(userId)
+    }
+    this.selectedUserIds = normalizeFirewallRuleUserIds(Array.from(nextUserIds))
+  }
+
+  private getSelectedUserIdsForSave(): number[] {
+    if (this.userOptions.length === 0) {
+      return normalizeFirewallRuleUserIds(this.selectedUserIds)
+    }
+    if (this.isAllUsersSelected()) {
+      return this.getAllAvailableUserIds()
+    }
+    return normalizeFirewallRuleUserIds(this.selectedUserIds)
   }
 
   private resolveRemoteAddress(rule: netFirewall.NetFirewallRule): string {
@@ -138,6 +202,10 @@ export struct AddRuleDialog {
       return FirewallDialogStrings.ERROR_INVALID_DNS
     }
 
+    if (this.getSelectedUserIdsForSave().length === 0) {
+      return FirewallDialogStrings.ERROR_USER_SCOPE_REQUIRED
+    }
+
     return ''
   }
 
@@ -164,11 +232,12 @@ export struct AddRuleDialog {
       direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
       action: this.action as netFirewall.FirewallRuleAction,
       type: this.ruleType as netFirewall.NetFirewallRuleType,
-      isEnabled: this.initialRule?.isEnabled ?? true
+      isEnabled: this.initialRule?.isEnabled ?? true,
+      description: this.initialRule?.description
     }
 
     this.applyRuleSpecificFields(rule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
-    return rule
+    return attachFirewallRuleUserIds(rule, this.getSelectedUserIdsForSave())
   }
 
   private buildUpdateRule(): netFirewall.NetFirewallRule {
@@ -190,7 +259,7 @@ export struct AddRuleDialog {
       targetRule.id = originalRule.id
     }
     this.applyRuleSpecificFields(baseRule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
-    return baseRule
+    return attachFirewallRuleUserIds(baseRule, this.getSelectedUserIdsForSave())
   }
 
   private applyRuleSpecificFields(
@@ -443,6 +512,75 @@ export struct AddRuleDialog {
         .width('100%')
         .alignItems(HorizontalAlign.Start)
       }
+
+      Column({ space: 6 }) {
+        Text(FirewallDialogStrings.USER_SCOPE)
+          .fontSize(AppStyles.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+
+        if (this.userOptions.length === 0) {
+          Text(FirewallUserStrings.NO_ACTIVATED_USERS)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .width('100%')
+        } else {
+          Row({ space: 12 }) {
+            Toggle({ type: ToggleType.Switch, isOn: this.isAllUsersSelected() })
+              .selectedColor(AppColors.BRAND_PRIMARY)
+              .onChange((value: boolean) => {
+                this.setAllUsersSelected(value)
+              })
+
+            Column({ space: 4 }) {
+              Text(FirewallDialogStrings.ALL_VALUE)
+                .fontSize(AppStyles.FONT_SIZE_BODY)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              Text(FirewallDialogStrings.USER_SCOPE_ALL_HINT)
+                .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+
+          Column({ space: 8 }) {
+            ForEach(this.userOptions, (user: UserFirewallOption) => {
+              Row({ space: 12 }) {
+                Toggle({
+                  type: ToggleType.Switch,
+                  isOn: this.selectedUserIds.includes(user.userId)
+                })
+                  .selectedColor(AppColors.BRAND_PRIMARY)
+                  .onChange((value: boolean) => {
+                    this.syncUserSelection(user.userId, value)
+                  })
+
+                Column({ space: 4 }) {
+                  Text(user.label)
+                    .fontSize(AppStyles.FONT_SIZE_BODY)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                  Text(`${FirewallDialogStrings.USER_SCOPE_SELECTED_HINT}${user.userId}`)
+                    .fontSize(AppStyles.FONT_SIZE_CAPTION)
+                    .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+                    .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+              }
+              .width('100%')
+            })
+          }
+          .width('100%')
+          .padding({ left: 2, right: 2, top: 4 })
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
 
       Column({ space: 6 }) {
         Text(FirewallDialogStrings.ACTION)
