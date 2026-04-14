@@ -16,6 +16,7 @@
     },
     "acls": {
         "allowed-acls": [
+            "ohos.permission.PREPARE_APP_TERMINATE",
             "ohos.permission.MANAGE_NET_FIREWALL",
             "ohos.permission.GET_NET_FIREWALL",
             "ohos.permission.ENTERPRISE_MANAGE_NETWORK",
@@ -40,6 +41,7 @@
     },
     "permissions": {
         "restricted-permissions": [
+            "ohos.permission.PREPARE_APP_TERMINATE",
             "ohos.permission.MANAGE_NET_FIREWALL",
             "ohos.permission.GET_NET_FIREWALL",
             "ohos.permission.ENTERPRISE_MANAGE_NETWORK",

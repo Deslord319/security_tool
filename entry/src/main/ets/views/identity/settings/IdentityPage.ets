@@ -35,6 +35,7 @@ export struct IdentityPage {
   private validityOptions: SelectOption[] = [
     { value: IdentityFormStrings.HALF_YEAR_OPTION } as SelectOption,
     { value: IdentityFormStrings.ONE_YEAR_OPTION } as SelectOption,
+    { value: IdentityFormStrings.PERMANENT_OPTION } as SelectOption,
     { value: IdentityFormStrings.CUSTOM_OPTION } as SelectOption
   ]
 

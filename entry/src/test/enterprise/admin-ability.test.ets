@@ -6,6 +6,7 @@ export default function enterpriseAdminAbilityTest() {
     it('should allow lifecycle callbacks without throwing', 0, () => {
       let ability = new EnterpriseAdminAbility()
 
+      ability.onStart()
       ability.onAdminEnabled()
       ability.onAdminDisabled()
       ability.onAccountAdded(101)

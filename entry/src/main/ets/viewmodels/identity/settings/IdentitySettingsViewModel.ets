@@ -15,9 +15,12 @@ import { LogUtils } from '../../../utils/LogUtils'
 
 export const HALF_YEAR_VALIDITY_OPTION_INDEX: number = 0
 export const ONE_YEAR_VALIDITY_OPTION_INDEX: number = 1
+export const PERMANENT_VALIDITY_OPTION_INDEX: number = 2
 export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_PRESETS.length
 const DEFAULT_PASSWORD_LENGTH_INDEX: number = 0
-const DEFAULT_VALIDITY_OPTION_INDEX: number = HALF_YEAR_VALIDITY_OPTION_INDEX
+const DEFAULT_VALIDITY_OPTION_INDEX: number = PERMANENT_VALIDITY_OPTION_INDEX
+const DEFAULT_VALIDITY_YEARS: number = 100
+const PERMANENT_VALIDITY_DAY_OPTIONS: number[] = [36524, 36525, 36526]
 const HALF_YEAR_VALIDITY_DAY_OPTIONS: number[] = [181, 182, 183, 184]
 const ONE_YEAR_VALIDITY_DAY_OPTIONS: number[] = [365, 366]
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000
@@ -253,6 +256,9 @@ export class IdentitySettingsViewModel {
     if (this.state.validityPeriodIndex === ONE_YEAR_VALIDITY_OPTION_INDEX) {
       return IdentitySettingsViewModel.buildOneYearValidityDays()
     }
+    if (this.state.validityPeriodIndex === PERMANENT_VALIDITY_OPTION_INDEX) {
+      return IdentitySettingsViewModel.buildPermanentValidityDays()
+    }
 
     let normalizedText = this.state.customValidityPeriodText.trim()
     if (normalizedText.length === 0 || !/^\d+$/.test(normalizedText)) {
@@ -281,6 +287,24 @@ export class IdentitySettingsViewModel {
     let validityPeriodDays = config.validityPeriod
     let validityPeriodMs = policy?.validityPeriod
     if (typeof validityPeriodDays !== 'number') {
+      state.validityPeriodIndex = PERMANENT_VALIDITY_OPTION_INDEX
+      state.customValidityPeriodText = ''
+      return
+    }
+
+    if (IdentitySettingsViewModel.isPermanentPresetValidity(validityPeriodMs)) {
+      state.validityPeriodIndex = PERMANENT_VALIDITY_OPTION_INDEX
+      state.customValidityPeriodText = ''
+      return
+    }
+
+    if (validityPeriodDays <= 0) {
+      state.validityPeriodIndex = PERMANENT_VALIDITY_OPTION_INDEX
+      state.customValidityPeriodText = ''
+      return
+    }
+
+    if (typeof validityPeriodMs !== 'number') {
       state.validityPeriodIndex = DEFAULT_VALIDITY_OPTION_INDEX
       state.customValidityPeriodText = ''
       return
@@ -345,6 +369,10 @@ export class IdentitySettingsViewModel {
     }
   }
 
+  private static buildPermanentValidityDays(referenceDate: Date = new Date()): number {
+    return IdentitySettingsViewModel.diffDays(referenceDate, IdentitySettingsViewModel.addYears(referenceDate, DEFAULT_VALIDITY_YEARS))
+  }
+
   private static buildHalfYearValidityDays(referenceDate: Date = new Date()): number {
     return IdentitySettingsViewModel.diffDays(referenceDate, IdentitySettingsViewModel.addMonths(referenceDate, 6))
   }
@@ -401,6 +429,13 @@ export class IdentitySettingsViewModel {
 
   private static isOneYearPresetValidity(validityPeriodMs?: number): boolean {
     return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, ONE_YEAR_VALIDITY_DAY_OPTIONS)
+  }
+
+  private static isPermanentPresetValidity(validityPeriodMs?: number): boolean {
+    if (typeof validityPeriodMs !== 'number') {
+      return true
+    }
+    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, PERMANENT_VALIDITY_DAY_OPTIONS)
   }
 
   private static matchesPresetMs(validityPeriodMs: number | undefined, candidateDays: number[]): boolean {

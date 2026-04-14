@@ -1,7 +1,6 @@
 import { adminManager, applicationManager, EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
-
 import type { Want } from '@kit.AbilityKit'
-
+import osAccount from '@ohos.account.osAccount'
 import { ADMIN_WANT, ENTRY_WANT } from '../constants/AppConstants'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
@@ -19,6 +18,7 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
   onAdminEnabled(): void {
     LogUtils.info(TAG, 'Enterprise admin enabled')
     this.ensureAutoStartAppRegistered('onAdminEnabled')
+    void this.ensureKeepAliveAppsForCurrentAccounts('onAdminEnabled')
     this.subscribeAccountManagedEvents()
   }
 
@@ -38,10 +38,12 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
   onAccountAdded(accountId: number): void {
     LogUtils.info(TAG, 'Account added: %{public}d', accountId)
     void SystemUserProvider.trackAddedUser(accountId)
+    this.ensureKeepAliveAppRegistered('onAccountAdded', accountId)
   }
 
   onAccountRemoved(accountId: number): void {
     LogUtils.info(TAG, 'Account removed: %{public}d', accountId)
+    this.removeKeepAliveAppRegistration('onAccountRemoved', accountId)
     void SystemUserProvider.trackRemovedUser(accountId)
   }
 
@@ -78,14 +80,77 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
         item.bundleName === ENTRY_WANT.bundleName && item.abilityName === ENTRY_WANT.abilityName
       )
       if (alreadyRegistered) {
+        LogUtils.info(TAG, 'ensureAutoStartAppRegistered skipped | source=%{public}s, alreadyRegistered=true', source)
         return
       }
       applicationManager.addAutoStartApps(ADMIN_WANT, [ENTRY_WANT])
+      LogUtils.info(TAG, 'ensureAutoStartAppRegistered success | source=%{public}s, bundle=%{public}s, ability=%{public}s',
+        source, ENTRY_WANT.bundleName ?? '-', ENTRY_WANT.abilityName ?? '-')
     } catch (err) {
       let error: ErrorLike = err as ErrorLike
       let code = CommonErrorUtils.extractErrorCode(error)
       LogUtils.warn(TAG, 'ensureAutoStartAppRegistered failed | source=%{public}s, code=%{public}s, err=%{public}s',
         source, `${code ?? 'unknown'}`, JSON.stringify(err))
+    }
+  }
+
+  private async ensureKeepAliveAppsForCurrentAccounts(source: string): Promise<void> {
+    try {
+      let accountIds = await osAccount.getAccountManager().getActivatedOsAccountLocalIds()
+      if (accountIds.length === 0) {
+        LogUtils.warn(TAG, 'ensureKeepAliveAppsForCurrentAccounts skipped | source=%{public}s, accountCount=0', source)
+        return
+      }
+      for (let accountId of accountIds) {
+        this.ensureKeepAliveAppRegistered(source, accountId)
+      }
+    } catch (err) {
+      let error: ErrorLike = err as ErrorLike
+      let code = CommonErrorUtils.extractErrorCode(error)
+      LogUtils.warn(TAG, 'ensureKeepAliveAppsForCurrentAccounts failed | source=%{public}s, code=%{public}s, err=%{public}s',
+        source, `${code ?? 'unknown'}`, JSON.stringify(err))
+    }
+  }
+
+  private ensureKeepAliveAppRegistered(source: string, accountId: number): void {
+    this.reconcileKeepAliveAppRegistration(source, accountId, true)
+  }
+
+  private removeKeepAliveAppRegistration(source: string, accountId: number): void {
+    this.reconcileKeepAliveAppRegistration(source, accountId, false)
+  }
+
+  private reconcileKeepAliveAppRegistration(source: string, accountId: number, shouldRegister: boolean): void {
+    let bundleName = ENTRY_WANT.bundleName
+    if (!bundleName) {
+      LogUtils.warn(TAG,
+        'reconcileKeepAliveAppRegistration skipped | source=%{public}s, accountId=%{public}d, bundleName=empty',
+        source, accountId)
+      return
+    }
+    try {
+      let currentBundles = applicationManager.getKeepAliveApps(ADMIN_WANT, accountId)
+      let alreadyRegistered = currentBundles.includes(bundleName)
+      if (alreadyRegistered === shouldRegister) {
+        LogUtils.info(TAG,
+          'reconcileKeepAliveAppRegistration skipped | source=%{public}s, accountId=%{public}d, targetRegistered=%{public}s',
+          source, accountId, String(shouldRegister))
+        return
+      }
+      if (shouldRegister) {
+        applicationManager.addKeepAliveApps(ADMIN_WANT, [bundleName], accountId)
+      } else {
+        applicationManager.removeKeepAliveApps(ADMIN_WANT, [bundleName], accountId)
+      }
+      LogUtils.info(TAG,
+        'reconcileKeepAliveAppRegistration success | source=%{public}s, accountId=%{public}d, targetRegistered=%{public}s, bundle=%{public}s',
+        source, accountId, String(shouldRegister), bundleName)
+    } catch (err) {
+      let error: ErrorLike = err as ErrorLike
+      let code = CommonErrorUtils.extractErrorCode(error)
+      LogUtils.warn(TAG,
+        'reconcileKeepAliveAppRegistration failed | source=%{public}s, accountId=%{public}d, targetRegistered=%{public}s, code=%{public}s, err=%{public}s',
+        source, accountId, String(shouldRegister), `${code ?? 'unknown'}`, JSON.stringify(err))
     }
   }
 }
