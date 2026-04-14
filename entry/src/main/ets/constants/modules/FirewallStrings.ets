@@ -178,8 +178,8 @@ export class FirewallDialogStrings {
   static readonly PROTOCOL_UDP: string = 'UDP'
   static readonly PROTOCOL_ICMP: string = 'ICMP'
   static readonly ALL_VALUE: string = 'ALL'
-  static readonly USER_SCOPE_ALL_HINT: string = '所有用户'
-  static readonly USER_SCOPE_SELECTED_HINT: string = '用户ID：'
+  static readonly USER_SCOPE_PLACEHOLDER: string = '请选择用户'
+  static readonly USER_SCOPE_EMPTY: string = '暂无可选用户'
   static readonly ACTION_ALLOW: string = '允许'
   static readonly ACTION_DENY: string = '阻止'
   static readonly APPLY_MODE_FAILED: string = '策略下发失败'
@@ -198,6 +198,10 @@ export class FirewallDialogStrings {
 
   static buildApplyModeSuccess(ruleCount: number): string {
     return `策略下发成功，本次下发 ${ruleCount} 条规则`
+  }
+
+  static buildUserScopeSelectionSummary(userCount: number): string {
+    return `已选择 ${userCount} 个用户`
   }
 }
 
