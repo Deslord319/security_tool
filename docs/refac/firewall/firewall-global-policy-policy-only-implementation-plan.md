@@ -148,6 +148,28 @@ let reapplySummary = await FirewallUserDispatchService.reapplyUserBindings(conte
 
 1. 继续作为规则模板联动 binding 使用
 
+## 3.3 本轮日志增强
+
+本轮额外增加一项轻量实现：
+
+1. 在 `FirewallStore.applyUserModeInternal(...)` 中
+2. 于 `setPolicy(...)` 调用前
+3. 打印即将下发的 policy payload
+
+日志字段固定为：
+
+- `userId`
+- `mode`
+- `isOpen`
+- `inAction`
+- `outAction`
+
+目的：
+
+1. 提高全局策略模式切换的运行期可观测性
+2. 便于排查“模式选择 -> policy 下发参数”是否符合预期
+3. 为后续按历史模式恢复完整 policy 提供运行证据
+
 ## 4. 实施步骤
 
 ### Step 1：固定领域模型和历史模式记录语义

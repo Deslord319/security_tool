@@ -226,6 +226,14 @@ export class FirewallStore {
         ? netFirewall.FirewallRuleAction.RULE_ALLOW
         : netFirewall.FirewallRuleAction.RULE_DENY
     }
+    LogUtils.info(TAG,
+      'applyUserMode policy payload: userId=%{public}d, mode=%{public}s, isOpen=%{public}s, inAction=%{public}d, outAction=%{public}d',
+      userId,
+      mode,
+      String(targetPolicy.isOpen),
+      targetPolicy.inAction,
+      targetPolicy.outAction
+    )
     if (!await FirewallStore.setPolicy(userId, targetPolicy)) {
       return FirewallStore.buildFailedResult(userId, mode, 0)
     }
