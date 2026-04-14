@@ -60,7 +60,7 @@ export struct LogManagePage {
   ]
 
   aboutToAppear() {
-    void this.initializeViewModels()
+    this.initializeViewModels()
   }
 
   aboutToDisappear() {
@@ -227,7 +227,7 @@ export struct LogManagePage {
           icon: AppResources.SAVE_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
-            void this.handleExportLogs()
+            this.handleExportLogs()
           }
         })
         IconTextActionButton({
@@ -242,7 +242,7 @@ export struct LogManagePage {
           icon: AppResources.SETTINGS_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
-            void this.openStorageSettings()
+            this.openStorageSettings()
           }
         })
       } else {
@@ -252,7 +252,7 @@ export struct LogManagePage {
           currentTheme: this.currentTheme,
           isEnabled: this.viewModel.settingsViewModel.state.dirty && !this.viewModel.settingsViewModel.state.saving,
           onTap: () => {
-            void this.handleSaveStorageSettings()
+            this.handleSaveStorageSettings()
           }
         })
         IconTextActionButton({
@@ -260,7 +260,7 @@ export struct LogManagePage {
           icon: AppResources.LOG_ICON,
           currentTheme: this.currentTheme,
           onTap: () => {
-            void this.backToLogList()
+            this.backToLogList()
           }
         })
       }

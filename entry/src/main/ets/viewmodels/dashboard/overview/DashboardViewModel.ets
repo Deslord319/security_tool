@@ -64,12 +64,12 @@ export class DashboardViewModel {
   private registerListeners(): void {
     if (this.logListenerId <= 0) {
       this.logListenerId = LogEntryRepository.addChangeListener(() => {
-        void this.refreshLiveCards(false, true)
+        this.refreshLiveCards(false, true)
       })
     }
     if (this.peripheralTraceListenerId <= 0) {
       this.peripheralTraceListenerId = PeripheralTraceEntryRepository.addChangeListener(() => {
-        void this.refreshLiveCards(true, false)
+        this.refreshLiveCards(true, false)
       })
     }
   }

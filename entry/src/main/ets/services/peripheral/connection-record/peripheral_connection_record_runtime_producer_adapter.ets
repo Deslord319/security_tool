@@ -145,7 +145,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   private async registerBluetoothRuntimeEvents(): Promise<boolean> {
     try {
       this.bluetoothStateListener = (state: access.BluetoothState): void => {
-        void this.handleBluetoothStateChange(state)
+        this.handleBluetoothStateChange(state)
       }
       access.on('stateChange', this.bluetoothStateListener)
 

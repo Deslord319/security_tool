@@ -53,7 +53,7 @@ export struct IdentityPage {
         title: request.title,
         message: request.message,
         onConfirm: () => {
-          void this.saveConfig(true)
+          this.saveConfig(true)
         }
       })
       return
@@ -134,7 +134,7 @@ export struct IdentityPage {
       isEnabled: this.viewModel.state.canSave,
       currentTheme: this.currentTheme,
       onTap: () => {
-        void this.saveConfig()
+        this.saveConfig()
       }
     })
   }

@@ -209,7 +209,7 @@ export class LogManageViewModel {
   setPageSizeIndex(index: number): void {
     this.state.pagination.pageSizeIndex = this.normalizePageSizeIndex(index)
     this.resetToFirstPage()
-    void this.rebuildStateFromSnapshot()
+    this.rebuildStateFromSnapshot()
   }
 
   setPageInputText(text: string): void {
@@ -217,21 +217,21 @@ export class LogManageViewModel {
   }
 
   jumpToInputPage(): void {
-    void this.changePage(this.normalizePage(this.state.pagination.pageInputText, this.state.pagination.totalPages))
+    this.changePage(this.normalizePage(this.state.pagination.pageInputText, this.state.pagination.totalPages))
   }
 
   goToPreviousPage(): void {
     if (this.state.pagination.currentPage <= 1) {
       return
     }
-    void this.changePage(this.state.pagination.currentPage - 1)
+    this.changePage(this.state.pagination.currentPage - 1)
   }
 
   goToNextPage(): void {
     if (this.state.pagination.currentPage >= this.state.pagination.totalPages) {
       return
     }
-    void this.changePage(this.state.pagination.currentPage + 1)
+    this.changePage(this.state.pagination.currentPage + 1)
   }
 
   openDetail(entryId: string): void {

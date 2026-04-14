@@ -52,7 +52,7 @@ export struct PeripheralPage {
     LogUtils.info(TAG,
       `page enter: tab=${this.currentTabIndex}, records=${this.viewModel.records.state.records.length}, policyRecords=${this.viewModel.policy.state.records.length}`
     )
-    void this.initViewModel()
+    this.initViewModel()
   }
 
   aboutToDisappear() {
@@ -275,7 +275,7 @@ export struct PeripheralPage {
         onPolicyChange: (index: number, policyIndex: number) => {
           const record = this.viewModel.policy.state.records[index]
           if (record) {
-            void this.handlePolicyChange(record, policyIndex)
+            this.handlePolicyChange(record, policyIndex)
           }
         },
         getPolicyLabel: (index: number) => this.policyListOptions[index].value,

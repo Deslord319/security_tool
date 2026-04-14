@@ -439,7 +439,7 @@ struct MainPage {
             this.setCurrentPage(id)
           },
           onToggleTheme: () => {
-            void this.handleThemeToggle()
+            this.handleThemeToggle()
           }
         })
 
@@ -528,7 +528,9 @@ struct MainPage {
               this.setCurrentPage(route)
             },
             onSelectOption: (option: ThemeOption) => {
-              void this.handleThemeOptionSelect(option)
+              this.handleThemeOptionSelect(option).catch((err: ErrorLike) => {
+                LogUtils.warn(TAG, `handleThemeOptionSelect failed: ${JSON.stringify(err)}`)
+              })
             },
             onOpenAbout: () => {
               this.openAboutDialog()

@@ -6,7 +6,7 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
   }
 
   async onRestore(bundleVersion: BundleVersion): Promise<void> {
-    void bundleVersion
+    bundleVersion
     await Promise.resolve()
   }
 }
