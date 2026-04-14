@@ -63,7 +63,7 @@ export struct FirewallRulesPage {
       return
     }
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    void this.rulesViewModel.initialize(context, this.currentMode)
+    this.rulesViewModel.initialize(context, this.currentMode)
   }
 
   aboutToDisappear(): void {

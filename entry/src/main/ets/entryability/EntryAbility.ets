@@ -10,6 +10,7 @@ import { PreferencesToolSettingsRepository } from '../services/tool-settings/sys
 import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKit';
 import { statusBarManager } from '@kit.DeskTopExtensionKit';
 import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
+import { LogPowerLifecycleSource } from '../services/log-manage/source/LogPowerLifecycleSource';
 
 const ENTRYABILITY_TAG = 'entryAbility'
 
@@ -57,10 +58,14 @@ export default class EntryAbility extends UIAbility {
     }
     globalContext = this.context
     this.createTerminateSubscriber()
-    void this.initStatusBar()
+    LogPowerLifecycleSource.init(this.context).catch((err: Error) => {
+      LogUtils.warn(ENTRYABILITY_TAG, 'LogPowerLifecycleSource init failed: %{public}s', JSON.stringify(err))
+    })
+    this.initStatusBar()
   }
 
   onDestroy(): void {
+    LogPowerLifecycleSource.destroy()
     globalContext = null
     statusBarManager.off('statusBarIconClick', onStatusBarIconClick)
     if (terminateSubscriber) {

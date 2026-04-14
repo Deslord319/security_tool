@@ -32,7 +32,7 @@ export struct ToolSettingsPage {
 
   aboutToAppear() {
     LogUtils.info(TAG, '[PAGE_ENTER] aboutToAppear | route=tool-settings')
-    void this.initializeViewModel()
+    this.initializeViewModel()
   }
 
   aboutToDisappear() {
@@ -73,7 +73,7 @@ export struct ToolSettingsPage {
       confirmText: ToolSettingsConfirmationStrings.CONTINUE_SAVE,
       cancelText: ActionText.CANCEL,
       onConfirm: () => {
-        void this.handleSave(true)
+        this.handleSave(true)
       }
     })
   }
@@ -134,7 +134,7 @@ export struct ToolSettingsPage {
       currentTheme: this.currentTheme,
       isEnabled: this.viewModel.state.initialized && this.viewModel.state.hasChanges && !this.viewModel.state.saving,
       onTap: () => {
-        void this.handleSave()
+        this.handleSave()
       }
     })
   }

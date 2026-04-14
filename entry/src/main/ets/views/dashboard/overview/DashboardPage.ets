@@ -25,11 +25,11 @@ export struct DashboardPage {
   private initialized: boolean = false
 
   aboutToAppear(): void {
-    void this.initializePage()
+    this.initializePage()
   }
 
   onPageShow(): void {
-    void this.viewModel.refreshStaticStatuses()
+    this.viewModel.refreshStaticStatuses()
   }
 
   aboutToDisappear(): void {

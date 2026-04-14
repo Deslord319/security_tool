@@ -18,7 +18,7 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
   onAdminEnabled(): void {
     LogUtils.info(TAG, 'Enterprise admin enabled')
     this.ensureAutoStartAppRegistered('onAdminEnabled')
-    void this.ensureKeepAliveAppsForCurrentAccounts('onAdminEnabled')
+    this.ensureKeepAliveAppsForCurrentAccounts('onAdminEnabled')
     this.subscribeAccountManagedEvents()
   }
 
@@ -37,14 +37,14 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
 
   onAccountAdded(accountId: number): void {
     LogUtils.info(TAG, 'Account added: %{public}d', accountId)
-    void SystemUserProvider.trackAddedUser(accountId)
+    SystemUserProvider.trackAddedUser(accountId)
     this.ensureKeepAliveAppRegistered('onAccountAdded', accountId)
   }
 
   onAccountRemoved(accountId: number): void {
     LogUtils.info(TAG, 'Account removed: %{public}d', accountId)
     this.removeKeepAliveAppRegistration('onAccountRemoved', accountId)
-    void SystemUserProvider.trackRemovedUser(accountId)
+    SystemUserProvider.trackRemovedUser(accountId)
   }
 
   private subscribeAccountManagedEvents(): void {

@@ -113,7 +113,7 @@ export struct AsyncSelectRow {
           .enabled(!this.isBusy())
           .opacity(this.isBusy() ? 0.72 : 1)
           .onSelect((index: number) => {
-            void this.handleSelectChange(index)
+            this.handleSelectChange(index)
           })
       }
     }

@@ -48,7 +48,7 @@ export class PeripheralViewModel {
       await this.policy.initialize(context)
       await this.reloadAllData()
       this.traceStorageListenerId = PeripheralTraceEntryRepository.addChangeListener(() => {
-        void this.refreshTraceDrivenData()
+        this.refreshTraceDrivenData()
       })
       this.devicePolicyListenerId = PeripheralDevicePolicyRepository.addChangeListener(() => {
         this.refreshPolicyDrivenData()

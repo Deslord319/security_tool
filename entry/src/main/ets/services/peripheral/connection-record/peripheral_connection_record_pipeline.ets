@@ -77,7 +77,7 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
     }
     if (this.producerListenerId <= 0) {
       this.producerListenerId = this.producer.subscribe((event: PeripheralConnectionRecordProducerEvent) => {
-        void this.push(event)
+        this.push(event)
       })
     }
     const started = await this.producer.start()
