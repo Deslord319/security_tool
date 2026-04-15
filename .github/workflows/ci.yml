@@ -237,16 +237,12 @@ jobs:
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
 
-      - name: Prepare pnpm for hvigor
+      - name: Install pnpm and run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          corepack enable
-          corepack prepare pnpm@10.27.0 --activate
+          npm install -g pnpm@10.27.0
+          where.exe pnpm
           pnpm --version
-
-      - name: Run entry@default tests
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
       - name: Render static coverage report
@@ -527,16 +523,12 @@ jobs:
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
 
-      - name: Prepare pnpm for hvigor
+      - name: Install pnpm and build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          corepack enable
-          corepack prepare pnpm@10.27.0 --activate
+          npm install -g pnpm@10.27.0
+          where.exe pnpm
           pnpm --version
-
-      - name: Build unsigned HAP
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
           & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 
       - name: Sync HAP into signer workspace
