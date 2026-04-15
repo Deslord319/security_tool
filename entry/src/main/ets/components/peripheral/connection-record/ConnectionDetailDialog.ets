@@ -2,6 +2,7 @@ import { DetailDialogShell } from '../../DetailDialogShell'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   PeripheralConnectionRecord,
+  PeripheralType,
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel
 } from '../../../models/DataModels'
@@ -49,7 +50,7 @@ export struct ConnectionDetailDialog {
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
       Row({ space: 10 }) {
-        this.metricField(DeviceDetailStrings.DEVICE_ID, record.deviceId)
+        this.metricField(DeviceDetailStrings.DEVICE_ID, this.getDetailDeviceId(record))
         this.metricField(DeviceDetailStrings.RECENT_TIME, this.formatConnectionTime(record))
       }
       .width('100%')
@@ -157,6 +158,23 @@ export struct ConnectionDetailDialog {
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {
     return formatPeripheralTimestamp(record.timestamp)
+  }
+
+  private getDetailDeviceId(record: PeripheralConnectionRecord): string {
+    return this.isUsbDevice(record.deviceType) ? PLACEHOLDER_TEXT : record.deviceId
+  }
+
+  private isUsbDevice(deviceType: PeripheralType): boolean {
+    switch (deviceType) {
+      case PeripheralType.USB_STORAGE:
+      case PeripheralType.USB_CAMERA:
+      case PeripheralType.USB_PRINTER:
+      case PeripheralType.USB_HID:
+      case PeripheralType.USB_OTHER:
+        return true
+      default:
+        return false
+    }
   }
 
   build() {
