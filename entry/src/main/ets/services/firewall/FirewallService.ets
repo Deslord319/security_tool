@@ -24,23 +24,38 @@ import {
 import { FirewallUserDispatchService } from './user-dispatch/FirewallUserDispatchService'
 import { FirewallAuthService } from './auth/FirewallAuthService'
 import { FirewallModeStrategyFactory } from './mode-strategies/FirewallModeStrategyFactory'
+import { SystemUserProvider } from './providers/SystemUserProvider'
 
 const TAG = 'FirewallService'
+
+interface UserPolicySnapshot {
+  userId: number
+  policy: netFirewall.NetFirewallPolicy
+}
 
 export class FirewallService {
   static async loadOverviewState(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
     await FirewallModeStrategyFactory.initialize(context)
-    let policy = await FirewallRepository.getFirewallPolicy()
-    if (policy === null) {
-      LogUtils.warn(TAG, 'loadOverviewState fallback to default state because getFirewallPolicy returned null')
+    let availableUsers = await SystemUserProvider.loadAvailableUserIds()
+    if (availableUsers.users.length === 0) {
+      LogUtils.warn(TAG, 'loadOverviewState fallback to default state because no available users')
       return {
         enabled: false,
         currentMode: 'custom'
       }
     }
 
+    let enabled = true
+    for (let i = 0; i < availableUsers.users.length; i++) {
+      let policy = await SystemUserProvider.getPolicy(availableUsers.users[i].userId)
+      if (!policy.isOpen) {
+        enabled = false
+        break
+      }
+    }
+
     return {
-      enabled: policy.isOpen,
+      enabled: enabled,
       currentMode: await FirewallStore.getCurrentMode(context)
     }
   }
@@ -50,7 +65,12 @@ export class FirewallService {
     currentEnabled: boolean,
     targetEnabled: boolean
   ): Promise<FirewallToggleOperationResult> {
-    let result = await FirewallAuthService.executeToggle(context, currentEnabled, targetEnabled)
+    let result = await FirewallAuthService.executeToggle(
+      context,
+      currentEnabled,
+      targetEnabled,
+      async (enabled: boolean): Promise<boolean> => FirewallService.applyHomeToggleForAllUsers(context, enabled)
+    )
     return {
       success: result.success,
       targetEnabled: result.targetEnabled,
@@ -244,5 +264,69 @@ export class FirewallService {
 
   static countByDirection(rules: netFirewall.NetFirewallRule[], direction: netFirewall.NetFirewallRuleDirection): number {
     return FirewallRulesService.countByDirection(rules, direction)
+  }
+
+  private static async applyHomeToggleForAllUsers(
+    context: common.UIAbilityContext,
+    targetEnabled: boolean
+  ): Promise<boolean> {
+    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let users = usersResult.users
+    if (users.length === 0) {
+      return true
+    }
+
+    if (!targetEnabled) {
+      return FirewallService.setOpenStateForUsers(users, false)
+    }
+
+    let currentMode = await FirewallModeStrategyFactory.getCurrentMode(context)
+    let modeResult = await FirewallModeStrategyFactory.switchMode(context, currentMode)
+    return modeResult.success
+  }
+
+  private static async setOpenStateForUsers(
+    users: UserFirewallOption[],
+    isOpen: boolean
+  ): Promise<boolean> {
+    let snapshots: UserPolicySnapshot[] = []
+    for (let i = 0; i < users.length; i++) {
+      let userId = users[i].userId
+      let policy = await FirewallRepository.getFirewallPolicyByUserId(userId)
+      if (policy === null) {
+        return false
+      }
+      snapshots.push({
+        userId: userId,
+        policy: {
+          isOpen: policy.isOpen,
+          inAction: policy.inAction,
+          outAction: policy.outAction
+        }
+      })
+    }
+
+    for (let i = 0; i < snapshots.length; i++) {
+      let snapshot = snapshots[i]
+      let nextPolicy: netFirewall.NetFirewallPolicy = {
+        isOpen: isOpen,
+        inAction: snapshot.policy.inAction,
+        outAction: snapshot.policy.outAction
+      }
+      let applied = await FirewallRepository.setFirewallPolicyByUserId(snapshot.userId, nextPolicy)
+      if (!applied) {
+        LogUtils.error(TAG, `setOpenStateForUsers failed: userId=${snapshot.userId}`)
+        for (let j = 0; j < i; j++) {
+          let previous = snapshots[j]
+          let rollbackApplied = await FirewallRepository.setFirewallPolicyByUserId(previous.userId, previous.policy)
+          if (!rollbackApplied) {
+            LogUtils.error(TAG, `setOpenStateForUsers rollback failed: userId=${previous.userId}`)
+          }
+        }
+        return false
+      }
+    }
+
+    return true
   }
 }

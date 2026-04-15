@@ -19,13 +19,14 @@ export class FirewallAuthService {
   static async executeToggle(
     context: common.UIAbilityContext,
     currentEnabled: boolean,
-    targetEnabled: boolean
+    targetEnabled: boolean,
+    applyPolicy?: (enabled: boolean) => Promise<boolean>
   ): Promise<FirewallToggleResult> {
     return FirewallAuthService.executeToggleInternal(
       context,
       currentEnabled,
       targetEnabled,
-      async (enabled: boolean): Promise<boolean> => FirewallRepository.setFirewallEnabled(enabled),
+      applyPolicy ?? (async (enabled: boolean): Promise<boolean> => FirewallRepository.setFirewallEnabled(enabled)),
       'firewall toggle'
     )
   }
