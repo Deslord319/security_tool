@@ -2,7 +2,8 @@ import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/App
 import {
   getPeripheralRecordActionLabel,
   getPeripheralTypeLabel,
-  PeripheralConnectionRecord
+  PeripheralConnectionRecord,
+  PeripheralType
 } from '../../../models/DataModels'
 import { LabelText } from '../../../constants/StringCatalog'
 import { DeviceDetailStrings, PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
@@ -110,12 +111,14 @@ export struct DeviceRecordList {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(record.deviceId)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        if (this.getDisplayDeviceId(record.deviceType, record.deviceId).length > 0) {
+          Text(this.getDisplayDeviceId(record.deviceType, record.deviceId))
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
@@ -235,6 +238,23 @@ export struct DeviceRecordList {
 
   private getPolicyText(record: PeripheralConnectionRecord): string {
     return getPeripheralConnectionListPolicyLabel(record)
+  }
+
+  private getDisplayDeviceId(deviceType: PeripheralType, deviceId: string): string {
+    return this.isUsbDevice(deviceType) ? '' : deviceId
+  }
+
+  private isUsbDevice(deviceType: PeripheralType): boolean {
+    switch (deviceType) {
+      case PeripheralType.USB_STORAGE:
+      case PeripheralType.USB_CAMERA:
+      case PeripheralType.USB_PRINTER:
+      case PeripheralType.USB_HID:
+      case PeripheralType.USB_OTHER:
+        return true
+      default:
+        return false
+    }
   }
 
   private eventTextColor(record: PeripheralConnectionRecord): ResourceColor {

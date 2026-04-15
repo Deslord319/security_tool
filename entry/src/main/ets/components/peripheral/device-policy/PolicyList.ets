@@ -4,7 +4,7 @@ import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
-import { getPeripheralTypeLabel, PeripheralPolicyRecord } from '../../../models/DataModels'
+import { getPeripheralTypeLabel, PeripheralPolicyRecord, PeripheralType } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { HoverUtils } from '../../../utils/HoverUtils'
@@ -132,12 +132,14 @@ export struct PolicyList {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Text(record.deviceId)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        if (this.getDisplayDeviceId(record.deviceType, record.deviceId).length > 0) {
+          Text(this.getDisplayDeviceId(record.deviceType, record.deviceId))
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(2.6)
@@ -225,5 +227,22 @@ export struct PolicyList {
 
   private getDeviceTypeLabel(record: PeripheralPolicyRecord): string {
     return getPeripheralTypeLabel(record.deviceType)
+  }
+
+  private getDisplayDeviceId(deviceType: PeripheralType, deviceId: string): string {
+    return this.isUsbDevice(deviceType) ? '' : deviceId
+  }
+
+  private isUsbDevice(deviceType: PeripheralType): boolean {
+    switch (deviceType) {
+      case PeripheralType.USB_STORAGE:
+      case PeripheralType.USB_CAMERA:
+      case PeripheralType.USB_PRINTER:
+      case PeripheralType.USB_HID:
+      case PeripheralType.USB_OTHER:
+        return true
+      default:
+        return false
+    }
   }
 }
