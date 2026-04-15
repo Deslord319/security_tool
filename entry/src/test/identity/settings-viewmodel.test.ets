@@ -453,6 +453,19 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.minLengthIndex).assertEqual(0)
     })
 
+    it('should map policy minLength 20 to the new option index', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{20,}$', 365 * DAY_IN_MS)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      viewModel.initialize()
+
+      expect(viewModel.state.minLengthIndex).assertEqual(5)
+    })
+
     it('should update minLengthIndex when setMinLengthIndex is called', 0, () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)

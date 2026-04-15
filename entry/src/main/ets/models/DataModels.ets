@@ -346,7 +346,7 @@ export interface PasswordComplexityConfig {
   validityPeriod?: number
 }
 
-export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16]
+export const PASSWORD_LENGTH_OPTIONS: number[] = [6, 8, 10, 12, 16, 20, 24]
 export type PasswordValidityPreset = 'halfYear' | 'oneYear' | 'permanent'
 export const PASSWORD_VALIDITY_PRESETS: PasswordValidityPreset[] = ['halfYear', 'oneYear', 'permanent']
 
