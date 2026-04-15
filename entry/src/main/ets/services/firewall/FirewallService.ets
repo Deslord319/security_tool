@@ -130,14 +130,13 @@ export class FirewallService {
       }
     }
 
-    let reapplySummary = await FirewallUserDispatchService.reapplyUserBindings(context, nextRules)
     return {
       success: true,
       appliedRuleCount: nextRules.length,
-      reapplyTotalUsers: reapplySummary.totalUsers,
-      reapplySuccessCount: reapplySummary.successCount,
-      reapplyFailedCount: reapplySummary.failedCount,
-      failedUsers: reapplySummary.failedUsers
+      reapplyTotalUsers: 0,
+      reapplySuccessCount: 0,
+      reapplyFailedCount: 0,
+      failedUsers: []
     }
   }
 

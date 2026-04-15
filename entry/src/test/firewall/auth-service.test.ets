@@ -136,5 +136,82 @@ export default function firewallAuthServiceTest() {
       expect(result.success).assertTrue()
       expect(result.targetEnabled).assertTrue()
     })
+
+    it('should execute user mode policy-only action after pin auth succeeds', 0, async () => {
+      let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
+      let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
+      let clearFailuresMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.clearFailures)
+      when(getLockStateMock)(context).afterReturn({
+        locked: false,
+        remainingSec: 0,
+        state: { failedCount: 0, lockUntil: 0 }
+      })
+      when(authenticateMock)(AuthMethod.PIN).afterReturn({ success: true })
+      when(clearFailuresMock)(context).afterReturn(undefined)
+
+      let result = await FirewallAuthService.executeUserModeApply(
+        context,
+        100,
+        'allowlist',
+        async (): Promise<{ success: boolean; userId: number; mode: 'allowlist'; appliedRuleCount: number }> => {
+          return {
+            success: true,
+            userId: 100,
+            mode: 'allowlist',
+            appliedRuleCount: 0
+          }
+        }
+      )
+
+      expect(result.success).assertTrue()
+      expect(result.userId).assertEqual(100)
+      expect(result.mode).assertEqual('allowlist')
+      expect(result.appliedRuleCount).assertEqual(0)
+    })
+
+    it('should not execute user mode action when pin auth fails', 0, async () => {
+      let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
+      let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
+      let recordFailureMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.recordFailure)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      let applyInvoked = false
+      when(getLockStateMock)(context).afterReturn({
+        locked: false,
+        remainingSec: 0,
+        state: { failedCount: 0, lockUntil: 0 }
+      })
+      when(authenticateMock)(AuthMethod.PIN).afterReturn({
+        success: false,
+        reason: 'failed',
+        errorCode: 12500001,
+        message: 'pin failed'
+      })
+      when(recordFailureMock)(context).afterReturn({
+        failedCount: 1,
+        locked: false,
+        remainingSec: 0
+      })
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
+
+      let result = await FirewallAuthService.executeUserModeApply(
+        context,
+        101,
+        'denylist',
+        async (): Promise<{ success: boolean; userId: number; mode: 'denylist'; appliedRuleCount: number }> => {
+          applyInvoked = true
+          return {
+            success: true,
+            userId: 101,
+            mode: 'denylist',
+            appliedRuleCount: 0
+          }
+        }
+      )
+
+      expect(result.success).assertFalse()
+      expect(result.userId).assertEqual(101)
+      expect(result.mode).assertEqual('denylist')
+      expect(applyInvoked).assertFalse()
+    })
   })
 }

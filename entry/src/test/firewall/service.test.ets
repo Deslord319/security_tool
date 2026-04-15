@@ -164,6 +164,33 @@ export default function firewallServiceTest() {
       expect(result[0].name).assertEqual('rule-a')
     })
 
+    it('should return zero user reapply counters after saving custom rules', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let rules = [
+        createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
+      ]
+      let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
+      let listMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.listCustomRules)
+      let applyCustomRulesMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.applyCustomRules)
+      let replaceAllRulesMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.replaceAllCustomRules)
+      when(initializeMock)(context).afterReturn(Promise.resolve())
+      when(listMock)(context).afterReturn(Promise.resolve([]))
+      when(applyCustomRulesMock)(context, rules).afterReturn(Promise.resolve({
+        success: true,
+        mode: 'custom',
+        appliedRuleCount: 1
+      }))
+      when(replaceAllRulesMock)(context, rules).afterReturn(Promise.resolve(true))
+
+      let result = await FirewallService.saveCustomRules(context, rules)
+
+      expect(result.success).assertTrue()
+      expect(result.reapplyTotalUsers ?? -1).assertEqual(0)
+      expect(result.reapplySuccessCount ?? -1).assertEqual(0)
+      expect(result.reapplyFailedCount ?? -1).assertEqual(0)
+      expect(result.failedUsers?.length ?? -1).assertEqual(0)
+    })
+
     it('should delegate loading user options through dispatch service', 0, async () => {
       let loadUserOptionsMock = mockKit.mockFunc(FirewallUserDispatchService, FirewallUserDispatchService.loadUserOptions)
       when(loadUserOptionsMock)().afterReturn([
@@ -175,6 +202,24 @@ export default function firewallServiceTest() {
 
       expect(options.length).assertEqual(2)
       expect(options[1].label).assertEqual('guest')
+    })
+
+    it('should delegate user mode apply through dispatch service', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let applyModeMock = mockKit.mockFunc(FirewallUserDispatchService, FirewallUserDispatchService.applyUserMode)
+      when(applyModeMock)(context, 100, 'allowlist').afterReturn(Promise.resolve({
+        success: true,
+        userId: 100,
+        mode: 'allowlist',
+        appliedRuleCount: 0
+      }))
+
+      let result = await FirewallService.applyUserMode(context, 100, 'allowlist')
+
+      expect(result.success).assertTrue()
+      expect(result.userId).assertEqual(100)
+      expect(result.mode).assertEqual('allowlist')
+      expect(result.appliedRuleCount).assertEqual(0)
     })
 
     it('should delegate repository operations through service facade', 0, async () => {
