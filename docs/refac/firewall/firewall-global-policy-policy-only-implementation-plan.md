@@ -306,7 +306,7 @@ private static async applyUserModeInternal(userId, mode): Promise<UserFirewallMo
   }
 
   let targetPolicy: netFirewall.NetFirewallPolicy = {
-    isOpen: currentPolicy.isOpen,
+    isOpen: true,
     inAction: mode === 'allowlist'
       ? netFirewall.FirewallRuleAction.RULE_ALLOW
       : netFirewall.FirewallRuleAction.RULE_DENY,
@@ -340,6 +340,7 @@ private static async applyUserModeInternal(userId, mode): Promise<UserFirewallMo
 1. `applyUserModeInternal(...)` 不再接收规则数组
 2. 不再调用规则筛选、规则清理、规则写入、规则回滚
 3. 成功后保存 `userId -> mode`
+4. 用户模式切换生成的完整 policy 固定为 `isOpen=true`
 
 并行性：
 
@@ -465,7 +466,7 @@ test('saveCustomRules should not trigger user-mode reapply')
 
 ```ts
 expect(setNetFirewallPolicy).toHaveBeenCalledWith(userId, {
-  isOpen: currentOpenState,
+  isOpen: true,
   inAction: RULE_ALLOW,
   outAction: RULE_ALLOW
 })

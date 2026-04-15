@@ -218,7 +218,7 @@ export class FirewallStore {
     )
 
     let targetPolicy: netFirewall.NetFirewallPolicy = {
-      isOpen: policy.isOpen,
+      isOpen: true,
       inAction: mode === 'allowlist'
         ? netFirewall.FirewallRuleAction.RULE_ALLOW
         : netFirewall.FirewallRuleAction.RULE_DENY,
