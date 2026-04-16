@@ -230,13 +230,14 @@ jobs:
           $hvigorUserHome = Join-Path $hvigorUserHomeRoot 'user-home'
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
           $hvigorUserConfig = Join-Path $hvigorUserHome 'hvigor-config.json5'
-          @'
-{
-  "properties": {
-    "hvigor.dependency.useNpm": true
-  }
-}
-'@ | Set-Content -LiteralPath $hvigorUserConfig -Encoding utf8
+          $hvigorConfigLines = @(
+            '{',
+            '  "properties": {',
+            '    "hvigor.dependency.useNpm": true',
+            '  }',
+            '}'
+          )
+          [System.IO.File]::WriteAllLines($hvigorUserConfig, $hvigorConfigLines, [System.Text.UTF8Encoding]::new($false))
           New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
           New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
           "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -544,13 +545,14 @@ jobs:
           $hvigorUserHome = Join-Path $hvigorUserHomeRoot 'user-home'
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
           $hvigorUserConfig = Join-Path $hvigorUserHome 'hvigor-config.json5'
-          @'
-{
-  "properties": {
-    "hvigor.dependency.useNpm": true
-  }
-}
-'@ | Set-Content -LiteralPath $hvigorUserConfig -Encoding utf8
+          $hvigorConfigLines = @(
+            '{',
+            '  "properties": {',
+            '    "hvigor.dependency.useNpm": true',
+            '  }',
+            '}'
+          )
+          [System.IO.File]::WriteAllLines($hvigorUserConfig, $hvigorConfigLines, [System.Text.UTF8Encoding]::new($false))
           New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
           New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
           "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
