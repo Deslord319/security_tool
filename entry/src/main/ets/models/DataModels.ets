@@ -387,6 +387,8 @@ export interface FirewallManagedRuleMetadata {
 
 export interface FirewallScopedRule extends netFirewall.NetFirewallRule {
   userIds: number[]
+  targetUserIds?: number[]
+  localRuleId?: string
 }
 
 export interface UserScopedFirewallRuleBucket {
@@ -407,7 +409,7 @@ export function normalizeFirewallRuleUserIds(userIds: number[]): number[] {
 export function getFirewallRuleUserIds(rule: netFirewall.NetFirewallRule): number[] {
   let scopedRule = rule as FirewallScopedRule
   if (!Array.isArray(scopedRule.userIds)) {
-    return []
+    return Array.isArray(scopedRule.targetUserIds) ? normalizeFirewallRuleUserIds(scopedRule.targetUserIds) : []
   }
   return normalizeFirewallRuleUserIds(scopedRule.userIds)
 }
@@ -417,7 +419,9 @@ export function attachFirewallRuleUserIds(
   userIds: number[]
 ): FirewallScopedRule {
   let scopedRule = rule as FirewallScopedRule
-  scopedRule.userIds = normalizeFirewallRuleUserIds(userIds)
+  let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
+  scopedRule.userIds = normalizedUserIds
+  scopedRule.targetUserIds = normalizedUserIds
   return scopedRule
 }
 

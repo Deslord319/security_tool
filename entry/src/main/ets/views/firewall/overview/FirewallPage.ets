@@ -15,7 +15,7 @@ import {
 import { SubPageHeader } from '../../../components/SubPageHeader'
 
 import { common } from '@kit.AbilityKit'
-import { FirewallPresetMode, FirewallToggleRejectReason } from '../../../models/DataModels'
+import { FirewallPresetMode, FirewallToggleRejectReason } from '../../../services/firewall/FirewallModels'
 import { FirewallOverviewViewModel } from '../../../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'

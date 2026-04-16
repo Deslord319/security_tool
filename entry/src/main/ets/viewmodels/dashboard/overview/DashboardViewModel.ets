@@ -104,9 +104,6 @@ export class DashboardViewModel {
         let overview = await FirewallService.loadOverviewState(this.context)
         enabled = overview.enabled
         modeText = getFirewallModeTitle(overview.currentMode)
-      } else {
-        let policy = await FirewallService.getFirewallPolicy()
-        enabled = policy?.isOpen ?? false
       }
     } catch (err) {
       LogUtils.warn(TAG, `buildFirewallCard failed: ${JSON.stringify(err)}`)

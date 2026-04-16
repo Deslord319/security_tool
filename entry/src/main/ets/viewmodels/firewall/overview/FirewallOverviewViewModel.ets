@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 
-import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode, FirewallToggleOperationResult } from '../../../models/firewall/firewall_service_contracts'
+import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode, FirewallToggleOperationResult } from '../../../services/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 
 @ObservedV2
@@ -47,7 +47,7 @@ export class FirewallOverviewViewModel {
 
     this.state.isToggleProcessing = true
     try {
-      let result = await FirewallService.toggleFirewall(context, this.state.enabled, targetEnabled)
+      let result = await FirewallService.setFirewallEnabledForAllUsers(context, targetEnabled)
       if (result.success) {
         this.state.enabled = targetEnabled
       }

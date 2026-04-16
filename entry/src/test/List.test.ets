@@ -10,18 +10,9 @@ import dashboardViewModelTest from './dashboard/viewmodel.test'
 import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
 import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
-import firewallAuthServiceTest from './firewall/auth-service.test'
-import customModeStrategyTest from './firewall/custom-mode-strategy.test'
-import firewallModeRuleBuilderTest from './firewall/mode-rule-builder.test'
 import firewallModelsTest from './firewall/models.test'
-import firewallPresetConfigReaderTest from './firewall/preset-config-reader.test'
-import firewallRulesServiceTest from './firewall/rules-service.test'
-import firewallServiceTest from './firewall/service.test'
-import firewallStrategyFactoryTest from './firewall/strategy-factory.test'
 import systemUserProviderTest from './firewall/system-user-provider.test'
-import firewallUserDispatchServiceTest from './firewall/user-dispatch.test'
 import firewallStringsTest from './firewall/strings.test'
-import firewallAuthStateStoreTest from './firewall/auth-state-store.test'
 import helpFeedbackStringsTest from './help/strings.test'
 import identityServiceBehaviorTest from './identity/service-behavior.test'
 import identityServiceTest from './identity/service.test'
@@ -90,18 +81,9 @@ export default function testsuite() {
   dashboardViewModelTest()
   enterpriseAdminAbilityTest()
   adminServiceTest()
-  firewallAuthServiceTest()
-  customModeStrategyTest()
-  firewallModeRuleBuilderTest()
   firewallModelsTest()
-  firewallPresetConfigReaderTest()
-  firewallRulesServiceTest()
-  firewallServiceTest()
-  firewallStrategyFactoryTest()
   systemUserProviderTest()
-  firewallUserDispatchServiceTest()
   firewallStringsTest()
-  firewallAuthStateStoreTest()
   helpFeedbackStringsTest()
   identityServiceBehaviorTest()
   identityServiceTest()

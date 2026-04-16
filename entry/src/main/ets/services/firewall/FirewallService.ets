@@ -1,54 +1,49 @@
-import { LogUtils } from '../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
+import { AuthMethod } from '../../models/DataModels'
+import { LogUtils } from '../../utils/LogUtils'
+import { AuthService } from '../identity/auth/AuthService'
+import { FirewallLocalRepository } from './FirewallLocalRepository'
 import {
+  FirewallBatchOperationResult,
+  FirewallFailedItem,
   FirewallOperationResult,
   FirewallOverviewState,
-  FirewallRulesSaveResult,
-  FirewallToggleOperationResult,
-  FirewallUserApplyResult,
-  FirewallUserModeStateResult,
+  FirewallPreparedRule,
   FirewallPresetMode,
-  FirewallUserApplyMode,
+  FirewallRuleDeployment,
+  FirewallRuleDisplayItem,
+  FirewallRuleIntent,
+  FirewallRuleIntentInput,
+  FirewallRuleMutationResult,
+  FirewallToggleOperationResult,
+  FirewallUserPolicyApplyResult,
+  FirewallUserPolicyMode,
+  FirewallUserPolicyStateResult,
   UserFirewallOption
-} from '../../models/firewall/firewall_service_contracts'
-import { FirewallManagedRuleMetadata } from '../../models/DataModels'
-import { FirewallRuleStrings } from '../../constants/modules/FirewallStrings'
-import { FirewallStore } from './stores/FirewallStore'
-import { FirewallRepository } from './repositories/FirewallRepository'
-import {
-  FirewallConflictSummary,
-  FirewallRulesService,
-  FirewallRuleConflictMatch
-} from './rules/FirewallRulesService'
-import { FirewallUserDispatchService } from './user-dispatch/FirewallUserDispatchService'
-import { FirewallAuthService } from './auth/FirewallAuthService'
-import { FirewallModeStrategyFactory } from './mode-strategies/FirewallModeStrategyFactory'
+} from './FirewallModels'
+import { FirewallModeStrategy } from './FirewallModeStrategy'
+import { FirewallRuleUtils } from './FirewallRuleUtils'
+import { FirewallSystemRepository } from './FirewallSystemRepository'
 import { SystemUserProvider } from './providers/SystemUserProvider'
 
 const TAG = 'FirewallService'
 
-interface UserPolicySnapshot {
-  userId: number
-  policy: netFirewall.NetFirewallPolicy
-}
-
 export class FirewallService {
   static async loadOverviewState(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
-    await FirewallModeStrategyFactory.initialize(context)
     let availableUsers = await SystemUserProvider.loadAvailableUserIds()
     if (availableUsers.users.length === 0) {
       LogUtils.warn(TAG, 'loadOverviewState fallback to default state because no available users')
       return {
         enabled: false,
-        currentMode: 'custom'
+        currentMode: await FirewallLocalRepository.getCurrentMode(context)
       }
     }
 
     let enabled = true
     for (let i = 0; i < availableUsers.users.length; i++) {
-      let policy = await SystemUserProvider.getPolicy(availableUsers.users[i].userId)
-      if (!policy.isOpen) {
+      let policy = await FirewallSystemRepository.getPolicy(availableUsers.users[i].userId)
+      if (policy === null || !policy.isOpen) {
         enabled = false
         break
       }
@@ -56,28 +51,52 @@ export class FirewallService {
 
     return {
       enabled: enabled,
-      currentMode: await FirewallStore.getCurrentMode(context)
+      currentMode: await FirewallLocalRepository.getCurrentMode(context)
     }
   }
 
-  static async toggleFirewall(
+  static async setFirewallEnabledForAllUsers(
     context: common.UIAbilityContext,
-    currentEnabled: boolean,
-    targetEnabled: boolean
+    enabled: boolean
   ): Promise<FirewallToggleOperationResult> {
-    let result = await FirewallAuthService.executeToggle(
-      context,
-      currentEnabled,
-      targetEnabled,
-      async (enabled: boolean): Promise<boolean> => FirewallService.applyHomeToggleForAllUsers(context, enabled)
-    )
+    let authResult = await AuthService.authenticate(AuthMethod.PIN)
+    if (!authResult.success) {
+      return {
+        success: false,
+        targetEnabled: enabled,
+        reason: authResult.reason === 'unavailable' ? 'pin_unavailable' : 'pin_failed',
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.message
+      }
+    }
+
+    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let users = usersResult.users
+    let failedItems: FirewallFailedItem[] = []
+    for (let i = 0; i < users.length; i++) {
+      let userId = users[i].userId
+      let existingPolicy = await FirewallSystemRepository.getPolicy(userId)
+      if (existingPolicy === null) {
+        failedItems.push({ userId: userId, errorMessage: 'read policy failed' })
+        continue
+      }
+      let nextPolicy: netFirewall.NetFirewallPolicy = {
+        isOpen: enabled,
+        inAction: existingPolicy.inAction,
+        outAction: existingPolicy.outAction
+      }
+      let applied = await FirewallSystemRepository.setPolicy(userId, nextPolicy)
+      if (!applied) {
+        failedItems.push({ userId: userId, errorMessage: 'set policy failed' })
+      }
+    }
+
     return {
-      success: result.success,
-      targetEnabled: result.targetEnabled,
-      reason: result.reason,
-      lockRemainingSec: result.lockRemainingSec,
-      errorCode: result.errorCode,
-      errorMessage: result.errorMessage
+      success: failedItems.length === 0,
+      targetEnabled: enabled,
+      reason: failedItems.length === 0 ? undefined : 'policy_apply_failed',
+      failedItems: failedItems,
+      errorMessage: failedItems.length === 0 ? undefined : 'policy apply failed'
     }
   }
 
@@ -85,248 +104,358 @@ export class FirewallService {
     context: common.UIAbilityContext,
     targetMode: FirewallPresetMode
   ): Promise<FirewallOperationResult> {
-    let result = await FirewallModeStrategyFactory.switchMode(context, targetMode)
-    if (!result.success) {
-      return {
-        success: false,
-        errorCode: result.errorCode,
-        errorMessage: result.errorMessage
-      }
-    }
-    return {
-      success: true
-    }
-  }
+    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let failedItems: FirewallFailedItem[] = []
 
-  static async listCustomRules(context: common.UIAbilityContext): Promise<netFirewall.NetFirewallRule[]> {
-    await FirewallModeStrategyFactory.initialize(context)
-    return FirewallModeStrategyFactory.listCustomRules(context)
-  }
-
-  static async saveCustomRules(
-    context: common.UIAbilityContext,
-    nextRules: netFirewall.NetFirewallRule[]
-  ): Promise<FirewallRulesSaveResult> {
-    await FirewallModeStrategyFactory.initialize(context)
-    let previousRules = await FirewallModeStrategyFactory.listCustomRules(context)
-    let applyResult = await FirewallModeStrategyFactory.applyCustomRules(context, nextRules)
-    if (!applyResult.success) {
-      return {
-        success: false,
-        errorCode: applyResult.errorCode,
-        errorMessage: applyResult.errorMessage,
-        appliedRuleCount: 0,
-        reapplyTotalUsers: 0,
-        reapplySuccessCount: 0,
-        reapplyFailedCount: 0,
-        failedUsers: []
-      }
+    for (let i = 0; i < usersResult.users.length; i++) {
+      let userId = usersResult.users[i].userId
+      let clearResult = await FirewallSystemRepository.clearRules(userId)
+      failedItems.push(...clearResult.failedItems)
     }
 
-    let saved = await FirewallModeStrategyFactory.replaceAllCustomRules(context, nextRules)
-    if (!saved) {
-      let rollbackResult = await FirewallModeStrategyFactory.applyCustomRules(context, previousRules)
-      if (!rollbackResult.success) {
-        return {
-          success: false,
-          errorCode: rollbackResult.errorCode,
-          errorMessage: FirewallRuleStrings.LOCAL_SAVE_FAILED,
-          appliedRuleCount: 0,
-          reapplyTotalUsers: 0,
-          reapplySuccessCount: 0,
-          reapplyFailedCount: 0,
-          failedUsers: []
+    let deploymentsCleared = await FirewallLocalRepository.clearAllRuleDeployments(context)
+    if (!deploymentsCleared) {
+      failedItems.push({ errorMessage: 'clear local deployments failed' })
+    }
+
+    let preparedRules = await FirewallModeStrategy.buildRulesForMode(context, targetMode)
+    let deploymentsByLocalRuleId = new Map<string, FirewallRuleDeployment[]>()
+    for (let i = 0; i < preparedRules.length; i++) {
+      let prepared = preparedRules[i]
+      let systemRuleId = await FirewallSystemRepository.addRule(prepared.rule)
+      if (systemRuleId > 0) {
+        if (prepared.localRuleId !== undefined) {
+          FirewallService.appendDeployment(deploymentsByLocalRuleId, prepared.localRuleId, {
+            localRuleId: prepared.localRuleId,
+            userId: prepared.userId,
+            systemRuleId: systemRuleId
+          })
         }
+        continue
       }
-      return {
-        success: false,
-        errorCode: applyResult.errorCode,
-        errorMessage: FirewallRuleStrings.ROLLBACK_SUCCESS,
-        appliedRuleCount: 0,
-        reapplyTotalUsers: 0,
-        reapplySuccessCount: 0,
-        reapplyFailedCount: 0,
-        failedUsers: []
+      failedItems.push({
+        localRuleId: prepared.localRuleId,
+        userId: prepared.userId,
+        errorMessage: 'add rule failed'
+      })
+    }
+
+    let localRuleIds = Array.from(deploymentsByLocalRuleId.keys())
+    for (let i = 0; i < localRuleIds.length; i++) {
+      let localRuleId = localRuleIds[i]
+      let saved = await FirewallLocalRepository.replaceRuleDeployments(
+        context,
+        localRuleId,
+        deploymentsByLocalRuleId.get(localRuleId) ?? []
+      )
+      if (!saved) {
+        failedItems.push({ localRuleId: localRuleId, errorMessage: 'save deployments failed' })
       }
+    }
+
+    let modeSaved = await FirewallLocalRepository.saveCurrentMode(context, targetMode)
+    if (!modeSaved) {
+      failedItems.push({ errorMessage: 'save target mode failed' })
     }
 
     return {
-      success: true,
-      appliedRuleCount: nextRules.length,
-      reapplyTotalUsers: 0,
-      reapplySuccessCount: 0,
-      reapplyFailedCount: 0,
-      failedUsers: []
+      success: failedItems.length === 0,
+      failedItems: failedItems,
+      errorMessage: failedItems.length === 0 ? undefined : 'mode switch completed with failed items'
     }
   }
 
-  static async loadUserOptions(): Promise<UserFirewallOption[]> {
-    return FirewallUserDispatchService.loadUserOptions()
+  static async listRulesForDisplay(context: common.UIAbilityContext): Promise<FirewallRuleDisplayItem[]> {
+    let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
+    return data.ruleIntents.map((intent: FirewallRuleIntent): FirewallRuleDisplayItem => {
+      let deployments = data.ruleDeployments.filter((item: FirewallRuleDeployment): boolean => item.localRuleId === intent.localRuleId)
+      return FirewallRuleUtils.cloneDisplayRuleFromIntent(intent, deployments) as FirewallRuleDisplayItem
+    })
   }
 
-  static async loadUserModeState(
+  static async createRule(
     context: common.UIAbilityContext,
-    userId: number
-  ): Promise<FirewallUserModeStateResult> {
-    return FirewallUserDispatchService.loadUserModeState(context, userId)
+    input: FirewallRuleIntentInput
+  ): Promise<FirewallRuleMutationResult> {
+    let localRuleId = FirewallService.generateLocalRuleId()
+    return FirewallService.createRuleWithLocalRuleId(context, localRuleId, input)
   }
 
-  static async applyUserMode(
+  static async updateRule(
+    context: common.UIAbilityContext,
+    localRuleId: string,
+    input: FirewallRuleIntentInput
+  ): Promise<FirewallRuleMutationResult> {
+    let existingIntent = await FirewallLocalRepository.getRuleIntent(context, localRuleId)
+    if (existingIntent === null) {
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        errorMessage: 'rule intent not found'
+      }
+    }
+
+    let failedItems = await FirewallService.deleteDeploymentsOnly(context, localRuleId)
+    let result = await FirewallService.createRuleWithLocalRuleId(
+      context,
+      localRuleId,
+      input,
+      existingIntent.createdAt
+    )
+    if (failedItems.length > 0) {
+      result.failedItems = [...(result.failedItems ?? []), ...failedItems]
+      result.success = false
+    }
+    return result
+  }
+
+  static async deleteRule(
+    context: common.UIAbilityContext,
+    localRuleId: string
+  ): Promise<FirewallRuleMutationResult> {
+    let failedItems = await FirewallService.deleteDeploymentsOnly(context, localRuleId)
+    let intentRemoved = await FirewallLocalRepository.removeRuleIntent(context, localRuleId)
+    if (!intentRemoved) {
+      failedItems.push({ localRuleId: localRuleId, errorMessage: 'remove rule intent failed' })
+    }
+    return {
+      success: failedItems.length === 0,
+      localRuleId: localRuleId,
+      failedItems: failedItems,
+      errorMessage: failedItems.length === 0 ? undefined : 'delete rule completed with failed items'
+    }
+  }
+
+  static async applyUserPolicyMode(
     context: common.UIAbilityContext,
     userId: number,
-    mode: FirewallUserApplyMode
-  ): Promise<FirewallUserApplyResult> {
-    return FirewallUserDispatchService.applyUserMode(context, userId, mode)
+    mode: FirewallUserPolicyMode
+  ): Promise<FirewallUserPolicyApplyResult> {
+    let authResult = await AuthService.authenticate(AuthMethod.PIN)
+    if (!authResult.success) {
+      return {
+        success: false,
+        userId: userId,
+        mode: mode,
+        errorCode: authResult.errorCode,
+        errorMessage: authResult.message
+      }
+    }
+
+    let policy = FirewallService.buildPolicyForUserMode(mode)
+    let applied = await FirewallSystemRepository.setPolicy(userId, policy)
+    if (!applied) {
+      return {
+        success: false,
+        userId: userId,
+        mode: mode,
+        errorMessage: 'set policy failed'
+      }
+    }
+
+    let saved = await FirewallLocalRepository.saveUserPolicyMode(context, userId, mode)
+    return {
+      success: saved,
+      userId: userId,
+      mode: mode,
+      errorMessage: saved ? undefined : 'save user policy mode failed'
+    }
   }
 
-  static async getFirewallPolicy(): Promise<netFirewall.NetFirewallPolicy | null> {
-    return FirewallRepository.getFirewallPolicy()
-  }
-
-  static async getAllRules(): Promise<netFirewall.NetFirewallRule[]> {
-    return FirewallRepository.getAllRules()
-  }
-
-  static async setFirewallEnabled(enabled: boolean): Promise<boolean> {
-    return FirewallRepository.setFirewallEnabled(enabled)
-  }
-
-  static async setFirewallPolicy(policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
-    return FirewallRepository.setFirewallPolicy(policy)
-  }
-
-  static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
-    return FirewallRepository.addRule(rule)
-  }
-
-  static async removeRule(ruleId: number): Promise<boolean> {
-    return FirewallRepository.removeRule(ruleId)
-  }
-
-  static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
-    return FirewallRepository.updateRule(rule)
-  }
-
-  static async replaceRule(oldRuleId: number, newRule: netFirewall.NetFirewallRule): Promise<number> {
-    return FirewallRepository.replaceRule(oldRuleId, newRule)
-  }
-
-  static async addRules(rules: netFirewall.NetFirewallRule[]): Promise<boolean> {
-    return FirewallRepository.addRules(rules)
-  }
-
-  static async clearAllRules(): Promise<boolean> {
-    return FirewallRepository.clearAllRules()
-  }
-
-  static cloneRuleForCreate(
-    rule: netFirewall.NetFirewallRule,
-    normalizedRemoteIps?: netFirewall.NetFirewallIpParams[],
-    preserveEmptyRemoteIps: boolean = false,
-    copyRuleIpRemoteIps: boolean = true
-  ): netFirewall.NetFirewallRule {
-    return FirewallRepository.cloneRuleForCreate(rule, normalizedRemoteIps, preserveEmptyRemoteIps, copyRuleIpRemoteIps)
-  }
-
-  static getRulePrimaryKey(rule: netFirewall.NetFirewallRule): number | undefined {
-    return FirewallRepository.getRulePrimaryKey(rule)
-  }
-
-  static buildManagedRuleDescription(metadata: FirewallManagedRuleMetadata): string {
-    return FirewallRulesService.buildManagedRuleDescription(metadata)
-  }
-
-  static parseManagedRuleDescription(description?: string): FirewallManagedRuleMetadata | null {
-    return FirewallRulesService.parseManagedRuleDescription(description)
-  }
-
-  static applyManagedRuleMetadata(
-    rule: netFirewall.NetFirewallRule,
-    metadata: FirewallManagedRuleMetadata
-  ): netFirewall.NetFirewallRule {
-    return FirewallRulesService.applyManagedRuleMetadata(rule, metadata)
+  static async loadUserPolicyState(
+    context: common.UIAbilityContext,
+    userId: number
+  ): Promise<FirewallUserPolicyStateResult> {
+    let policy = await FirewallSystemRepository.getPolicy(userId)
+    if (policy === null) {
+      return {
+        userId: userId,
+        isManaged: false,
+        isOpen: false,
+        inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        outAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        message: 'read policy failed'
+      }
+    }
+    return {
+      userId: userId,
+      bindingMode: await FirewallLocalRepository.getUserPolicyMode(context, userId),
+      isManaged: true,
+      isOpen: policy.isOpen,
+      inAction: policy.inAction,
+      outAction: policy.outAction
+    }
   }
 
   static findRuleConflict(
     existingRules: netFirewall.NetFirewallRule[],
     targetRule: netFirewall.NetFirewallRule
-  ): FirewallRuleConflictMatch | null {
-    return FirewallRulesService.findRuleConflict(existingRules, targetRule)
+  ) {
+    let existingIntents = existingRules.map((rule: netFirewall.NetFirewallRule): FirewallRuleIntent =>
+      FirewallService.displayRuleToIntent(rule, `display_${FirewallService.readDisplayLocalRuleId(rule) ?? ''}`)
+    )
+    let targetIntent = FirewallService.displayRuleToIntent(targetRule, 'target')
+    return FirewallRuleUtils.findRuleConflict(existingIntents, targetIntent, FirewallService.readDisplayLocalRuleId(targetRule))
   }
 
-  static summarizeConflicts(rules: netFirewall.NetFirewallRule[]): FirewallConflictSummary {
-    return FirewallRulesService.summarizeConflicts(rules)
+  static summarizeConflicts(rules: netFirewall.NetFirewallRule[]) {
+    return FirewallRuleUtils.summarizeConflicts(
+      rules.map((rule: netFirewall.NetFirewallRule): FirewallRuleIntent =>
+        FirewallService.displayRuleToIntent(rule, FirewallService.readDisplayLocalRuleId(rule) ?? FirewallService.generateLocalRuleId())
+      )
+    )
   }
 
   static countByType(rules: netFirewall.NetFirewallRule[], type: netFirewall.NetFirewallRuleType): number {
-    return FirewallRulesService.countByType(rules, type)
+    return rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === type).length
   }
 
   static countByDirection(rules: netFirewall.NetFirewallRule[], direction: netFirewall.NetFirewallRuleDirection): number {
-    return FirewallRulesService.countByDirection(rules, direction)
+    return rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.direction === direction).length
   }
 
-  private static async applyHomeToggleForAllUsers(
+  private static async createRuleWithLocalRuleId(
     context: common.UIAbilityContext,
-    targetEnabled: boolean
-  ): Promise<boolean> {
-    let usersResult = await SystemUserProvider.loadAvailableUserIds()
-    let users = usersResult.users
-    if (users.length === 0) {
-      return true
+    localRuleId: string,
+    input: FirewallRuleIntentInput,
+    createdAt?: number
+  ): Promise<FirewallRuleMutationResult> {
+    let validation = FirewallRuleUtils.validateRuleIntentInput(input)
+    if (!validation.success) {
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        errorMessage: validation.errorMessage
+      }
     }
 
-    if (!targetEnabled) {
-      return FirewallService.setOpenStateForUsers(users, false)
+    let now = Date.now()
+    let intent = FirewallRuleUtils.buildIntentFromInput(localRuleId, input, now, createdAt)
+    let deployments: FirewallRuleDeployment[] = []
+    let failedItems: FirewallFailedItem[] = []
+
+    for (let i = 0; i < intent.targetUserIds.length; i++) {
+      let userId = intent.targetUserIds[i]
+      let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, userId)
+      let normalizedRule = FirewallRuleUtils.normalizeRuleForCreate(rule)
+      let systemRuleId = await FirewallSystemRepository.addRule(normalizedRule)
+      if (systemRuleId > 0) {
+        deployments.push({
+          localRuleId: localRuleId,
+          userId: userId,
+          systemRuleId: systemRuleId
+        })
+        continue
+      }
+      failedItems.push({ localRuleId: localRuleId, userId: userId, errorMessage: 'add rule failed' })
     }
 
-    let currentMode = await FirewallModeStrategyFactory.getCurrentMode(context)
-    let modeResult = await FirewallModeStrategyFactory.switchMode(context, currentMode)
-    return modeResult.success
+    if (deployments.length === 0) {
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        failedItems: failedItems,
+        errorMessage: 'all rule deployments failed'
+      }
+    }
+
+    let intentSaved = await FirewallLocalRepository.saveRuleIntent(context, intent)
+    let deploymentsSaved = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, deployments)
+    if (!intentSaved || !deploymentsSaved) {
+      LogUtils.error(TAG, `createRule local save failed: localRuleId=${localRuleId}`)
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        successDeployments: deployments,
+        failedItems: failedItems,
+        errorMessage: 'local save failed'
+      }
+    }
+
+    return {
+      success: failedItems.length === 0,
+      localRuleId: localRuleId,
+      successDeployments: deployments,
+      failedItems: failedItems,
+      errorMessage: failedItems.length === 0 ? undefined : 'rule created with failed items'
+    }
   }
 
-  private static async setOpenStateForUsers(
-    users: UserFirewallOption[],
-    isOpen: boolean
-  ): Promise<boolean> {
-    let snapshots: UserPolicySnapshot[] = []
-    for (let i = 0; i < users.length; i++) {
-      let userId = users[i].userId
-      let policy = await FirewallRepository.getFirewallPolicyByUserId(userId)
-      if (policy === null) {
-        return false
-      }
-      snapshots.push({
-        userId: userId,
-        policy: {
-          isOpen: policy.isOpen,
-          inAction: policy.inAction,
-          outAction: policy.outAction
-        }
-      })
-    }
-
-    for (let i = 0; i < snapshots.length; i++) {
-      let snapshot = snapshots[i]
-      let nextPolicy: netFirewall.NetFirewallPolicy = {
-        isOpen: isOpen,
-        inAction: snapshot.policy.inAction,
-        outAction: snapshot.policy.outAction
-      }
-      let applied = await FirewallRepository.setFirewallPolicyByUserId(snapshot.userId, nextPolicy)
-      if (!applied) {
-        LogUtils.error(TAG, `setOpenStateForUsers failed: userId=${snapshot.userId}`)
-        for (let j = 0; j < i; j++) {
-          let previous = snapshots[j]
-          let rollbackApplied = await FirewallRepository.setFirewallPolicyByUserId(previous.userId, previous.policy)
-          if (!rollbackApplied) {
-            LogUtils.error(TAG, `setOpenStateForUsers rollback failed: userId=${previous.userId}`)
-          }
-        }
-        return false
+  private static async deleteDeploymentsOnly(
+    context: common.UIAbilityContext,
+    localRuleId: string
+  ): Promise<FirewallFailedItem[]> {
+    let deployments = await FirewallLocalRepository.listRuleDeployments(context, localRuleId)
+    let failedItems: FirewallFailedItem[] = []
+    for (let i = 0; i < deployments.length; i++) {
+      let deployment = deployments[i]
+      let removed = await FirewallSystemRepository.removeRule(deployment.userId, deployment.systemRuleId)
+      if (!removed) {
+        failedItems.push({
+          localRuleId: localRuleId,
+          userId: deployment.userId,
+          systemRuleId: deployment.systemRuleId,
+          errorMessage: 'remove system rule failed'
+        })
       }
     }
-
-    return true
+    let localRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
+    if (!localRemoved) {
+      failedItems.push({ localRuleId: localRuleId, errorMessage: 'remove deployments failed' })
+    }
+    return failedItems
   }
+
+  private static buildPolicyForUserMode(mode: FirewallUserPolicyMode): netFirewall.NetFirewallPolicy {
+    if (mode === 'allowlist') {
+      return {
+        isOpen: true,
+        inAction: netFirewall.FirewallRuleAction.RULE_DENY,
+        outAction: netFirewall.FirewallRuleAction.RULE_DENY
+      }
+    }
+    return {
+      isOpen: true,
+      inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
+      outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
+    }
+  }
+
+  private static appendDeployment(
+    deploymentsByLocalRuleId: Map<string, FirewallRuleDeployment[]>,
+    localRuleId: string,
+    deployment: FirewallRuleDeployment
+  ): void {
+    let deployments = deploymentsByLocalRuleId.get(localRuleId) ?? []
+    deployments.push(deployment)
+    deploymentsByLocalRuleId.set(localRuleId, deployments)
+  }
+
+  private static displayRuleToIntent(rule: netFirewall.NetFirewallRule, fallbackLocalRuleId: string): FirewallRuleIntent {
+    let input = FirewallRuleUtils.buildIntentInputFromRule(rule, FirewallService.readDisplayTargetUserIds(rule))
+    return FirewallRuleUtils.buildIntentFromInput(
+      input.localRuleId ?? fallbackLocalRuleId,
+      input,
+      Date.now()
+    )
+  }
+
+  private static readDisplayLocalRuleId(rule: netFirewall.NetFirewallRule): string | undefined {
+    let source = rule as FirewallDisplayRuleCarrier
+    return source.localRuleId
+  }
+
+  private static readDisplayTargetUserIds(rule: netFirewall.NetFirewallRule): number[] {
+    let source = rule as FirewallDisplayRuleCarrier
+    return Array.isArray(source.targetUserIds) ? source.targetUserIds : []
+  }
+
+  private static generateLocalRuleId(): string {
+    return `fw_rule_${Date.now()}_${Math.floor(Math.random() * 1000000000).toString(36)}`
+  }
+}
+
+interface FirewallDisplayRuleCarrier extends netFirewall.NetFirewallRule {
+  localRuleId?: string
+  targetUserIds?: number[]
 }
