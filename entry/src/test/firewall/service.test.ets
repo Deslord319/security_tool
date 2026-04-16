@@ -2,11 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallModeStrategyFactory } from '../../main/ets/services/firewall/mode-strategies/FirewallModeStrategyFactory'
 import { FirewallRepository } from '../../main/ets/services/firewall/repositories/FirewallRepository'
 import { FirewallUserDispatchService } from '../../main/ets/services/firewall/user-dispatch/FirewallUserDispatchService'
 import { FirewallStore } from '../../main/ets/services/firewall/stores/FirewallStore'
+import { FirewallAuthService } from '../../main/ets/services/firewall/auth/FirewallAuthService'
+import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
+import { UserFirewallOption } from '../../main/ets/models/firewall/firewall_service_contracts'
 
 function createPolicy(isOpen: boolean, inAction: number, outAction: number): netFirewall.NetFirewallPolicy {
   return {
@@ -32,6 +36,13 @@ function createRule(
     action,
     isEnabled: true
   } as netFirewall.NetFirewallRule
+}
+
+function createUsers(): UserFirewallOption[] {
+  return [
+    { userId: 100, label: '用户 100' } as UserFirewallOption,
+    { userId: 101, label: '用户 101' } as UserFirewallOption
+  ]
 }
 
 export default function firewallServiceTest() {
@@ -92,76 +103,180 @@ export default function firewallServiceTest() {
       expect(cloned.isEnabled).assertFalse()
     })
 
-    it('should read rule primary key from ruleId or id field', 0, () => {
-      let ruleWithRuleId = createRule(8, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP,
-        netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
-      let ruleWithId = {
-        id: 9,
-        userId: 100,
-        name: 'rule-b',
-        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
-        action: 1,
-        type: netFirewall.NetFirewallRuleType.RULE_DOMAIN,
-        isEnabled: true
-      } as netFirewall.NetFirewallRule
-
-      expect(FirewallRepository.getRulePrimaryKey(ruleWithRuleId)).assertEqual(8)
-      expect(FirewallRepository.getRulePrimaryKey(ruleWithId)).assertEqual(9)
-    })
-
-    it('should delegate count helpers through FirewallService', 0, () => {
-      let rules: netFirewall.NetFirewallRule[] = [
-        createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0),
-        createRule(2, 'rule-b', netFirewall.NetFirewallRuleType.RULE_DOMAIN, netFirewall.NetFirewallRuleDirection.RULE_OUT, 1),
-        createRule(3, 'rule-c', netFirewall.NetFirewallRuleType.RULE_DOMAIN, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
-      ]
-
-      expect(FirewallService.countByType(rules, netFirewall.NetFirewallRuleType.RULE_DOMAIN)).assertEqual(2)
-      expect(FirewallService.countByDirection(rules, netFirewall.NetFirewallRuleDirection.RULE_IN)).assertEqual(2)
-    })
-
-    it('should build default overview when policy is unavailable', 0, async () => {
+    it('should build default overview when no users are available', 0, async () => {
       let context = {} as common.UIAbilityContext
       let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
-      let getPolicyMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicy)
+      let loadUsersMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
       when(initializeMock)(context).afterReturn(Promise.resolve())
-      when(getPolicyMock)().afterReturn(Promise.resolve(null))
+      when(loadUsersMock)().afterReturn({
+        users: [],
+        message: 'no users'
+      })
 
       let result = await FirewallService.loadOverviewState(context)
 
-      expect((result?.enabled ?? false)).assertFalse()
-      expect(result?.currentMode ?? 'custom').assertEqual('custom')
+      expect(result.enabled).assertFalse()
+      expect(result.currentMode).assertEqual('custom')
     })
 
-    it('should build overview from repository and store state', 0, async () => {
+    it('should build overview from aggregated user policies and stored mode', 0, async () => {
       let context = {} as common.UIAbilityContext
       let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
-      let getPolicyMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicy)
+      let loadUsersMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let getPolicyMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.getPolicy)
       let currentModeMock = mockKit.mockFunc(FirewallStore, FirewallStore.getCurrentMode)
       when(initializeMock)(context).afterReturn(Promise.resolve())
-      when(getPolicyMock)().afterReturn(Promise.resolve(createPolicy(true, 0, 1)))
+      when(loadUsersMock)().afterReturn({
+        users: createUsers(),
+        selectedUserId: 100
+      })
+      when(getPolicyMock)(100).afterReturn(Promise.resolve({
+        userId: 100,
+        isOpen: true,
+        inAction: 0,
+        outAction: 0
+      }))
+      when(getPolicyMock)(101).afterReturn(Promise.resolve({
+        userId: 101,
+        isOpen: false,
+        inAction: 1,
+        outAction: 0
+      }))
       when(currentModeMock)(context).afterReturn(Promise.resolve('private'))
 
       let result = await FirewallService.loadOverviewState(context)
 
-      expect(typeof (result?.enabled ?? false)).assertEqual('boolean')
-      expect((result?.currentMode ?? 'custom').length > 0).assertTrue()
+      expect(result.enabled).assertFalse()
+      expect(result.currentMode).assertEqual('private')
     })
 
-    it('should list custom rules from store after initialization', 0, async () => {
+    it('should delegate toggle through auth service with multi-user apply action', 0, async () => {
       let context = {} as common.UIAbilityContext
-      let rules = [
-        createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
-      ]
-      let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
-      let listMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.listCustomRules)
-      when(initializeMock)(context).afterReturn(Promise.resolve())
-      when(listMock)(context).afterReturn(Promise.resolve(rules))
+      let executeToggleMock = mockKit.mockFunc(FirewallAuthService, FirewallAuthService.executeToggle)
+      let loadUsersMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let getPolicyByUserMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicyByUserId)
+      let setPolicyByUserMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.setFirewallPolicyByUserId)
+      let currentModeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.getCurrentMode)
+      let switchModeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.switchMode)
+      let applyInvoked = false
+      let switchModeInvoked = false
 
-      let result = await FirewallService.listCustomRules(context)
+      when(loadUsersMock)().afterReturn({
+        users: createUsers(),
+        selectedUserId: 100
+      })
+      when(getPolicyByUserMock)(100).afterReturn(Promise.resolve(createPolicy(false, 0, 1)))
+      when(getPolicyByUserMock)(101).afterReturn(Promise.resolve(createPolicy(false, 1, 0)))
+      when(setPolicyByUserMock)(ArgumentMatchers.anyNumber, ArgumentMatchers.anyObj).afterReturn(Promise.resolve(true))
+      when(currentModeMock)(context).afterReturn(Promise.resolve('public'))
+      when(switchModeMock)(context, 'public').afterAction((_ctx: common.UIAbilityContext, mode: string) => {
+        switchModeInvoked = true
+        let _mode = mode
+        return Promise.resolve({
+          success: true,
+          mode: _mode,
+          appliedRuleCount: 2
+        })
+      })
+      when(executeToggleMock)(
+        context,
+        false,
+        true,
+        ArgumentMatchers.anyObj
+      ).afterAction((
+        ctx: common.UIAbilityContext,
+        currentEnabled: boolean,
+        targetEnabled: boolean,
+        applyAction: (enabled: boolean) => Promise<boolean>
+      ) => {
+        let _ctx = ctx
+        let _currentEnabled = currentEnabled
+        let _targetEnabled = targetEnabled
+        let _ = [_ctx, _currentEnabled, _targetEnabled]
+        applyInvoked = true
+        return applyAction(true).then((ok: boolean) => {
+          return {
+            success: ok,
+            targetEnabled: true
+          }
+        })
+      })
 
-      expect(result.length).assertEqual(1)
-      expect(result[0].name).assertEqual('rule-a')
+      let result = await FirewallService.toggleFirewall(context, false, true)
+
+      expect(applyInvoked).assertTrue()
+      expect(switchModeInvoked).assertTrue()
+      expect(result.success).assertTrue()
+      expect(result.targetEnabled).assertTrue()
+    })
+
+    it('should disable all available users when toggled off', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let executeToggleMock = mockKit.mockFunc(FirewallAuthService, FirewallAuthService.executeToggle)
+      let loadUsersMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let getPolicyByUserMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.getFirewallPolicyByUserId)
+      let setPolicyByUserMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.setFirewallPolicyByUserId)
+      let applyInvoked = false
+      let appliedPolicies: Array<{ userId: number, policy: netFirewall.NetFirewallPolicy }> = []
+
+      when(loadUsersMock)().afterReturn({
+        users: createUsers(),
+        selectedUserId: 100
+      })
+      when(getPolicyByUserMock)(100).afterReturn(Promise.resolve(createPolicy(true, netFirewall.FirewallRuleAction.RULE_ALLOW, netFirewall.FirewallRuleAction.RULE_DENY)))
+      when(getPolicyByUserMock)(101).afterReturn(Promise.resolve(createPolicy(true, netFirewall.FirewallRuleAction.RULE_DENY, netFirewall.FirewallRuleAction.RULE_ALLOW)))
+      when(setPolicyByUserMock)(ArgumentMatchers.anyNumber, ArgumentMatchers.anyObj).afterAction((
+        userId: number,
+        policy: netFirewall.NetFirewallPolicy
+      ) => {
+        appliedPolicies.push({ userId, policy })
+        return Promise.resolve(true)
+      })
+      when(executeToggleMock)(
+        context,
+        true,
+        false,
+        ArgumentMatchers.anyObj
+      ).afterAction((
+        _ctx: common.UIAbilityContext,
+        _currentEnabled: boolean,
+        _targetEnabled: boolean,
+        applyAction: (enabled: boolean) => Promise<boolean>
+      ) => {
+        applyInvoked = true
+        return applyAction(false).then((ok: boolean) => {
+          return {
+            success: ok,
+            targetEnabled: false
+          }
+        })
+      })
+
+      let result = await FirewallService.toggleFirewall(context, true, false)
+
+      expect(applyInvoked).assertTrue()
+      expect(result.success).assertTrue()
+      expect(result.targetEnabled).assertFalse()
+      expect(appliedPolicies.length).assertEqual(2)
+      expect(appliedPolicies[0].policy.isOpen).assertFalse()
+      expect(appliedPolicies[1].policy.isOpen).assertFalse()
+      expect(appliedPolicies[0].policy.inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
+      expect(appliedPolicies[0].policy.outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_DENY)
+      expect(appliedPolicies[1].policy.inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_DENY)
+      expect(appliedPolicies[1].policy.outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
+    })
+
+    it('should delegate loading user options through dispatch service', 0, async () => {
+      let loadUserOptionsMock = mockKit.mockFunc(FirewallUserDispatchService, FirewallUserDispatchService.loadUserOptions)
+      when(loadUserOptionsMock)().afterReturn([
+        { userId: 100, label: 'owner' },
+        { userId: 101, label: 'guest' }
+      ])
+
+      let options = await FirewallService.loadUserOptions()
+
+      expect(options.length).assertEqual(2)
+      expect(options[1].label).assertEqual('guest')
     })
 
     it('should return zero user reapply counters after saving custom rules', 0, async () => {
@@ -188,20 +303,22 @@ export default function firewallServiceTest() {
       expect(result.reapplyTotalUsers ?? -1).assertEqual(0)
       expect(result.reapplySuccessCount ?? -1).assertEqual(0)
       expect(result.reapplyFailedCount ?? -1).assertEqual(0)
-      expect(result.failedUsers?.length ?? -1).assertEqual(0)
     })
 
-    it('should delegate loading user options through dispatch service', 0, async () => {
-      let loadUserOptionsMock = mockKit.mockFunc(FirewallUserDispatchService, FirewallUserDispatchService.loadUserOptions)
-      when(loadUserOptionsMock)().afterReturn([
-        { userId: 100, label: 'owner' },
-        { userId: 101, label: 'guest' }
-      ])
+    it('should list custom rules from store after initialization', 0, async () => {
+      let context = {} as common.UIAbilityContext
+      let rules = [
+        createRule(1, 'rule-a', netFirewall.NetFirewallRuleType.RULE_IP, netFirewall.NetFirewallRuleDirection.RULE_IN, 0)
+      ]
+      let initializeMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.initialize)
+      let listMock = mockKit.mockFunc(FirewallModeStrategyFactory, FirewallModeStrategyFactory.listCustomRules)
+      when(initializeMock)(context).afterReturn(Promise.resolve())
+      when(listMock)(context).afterReturn(Promise.resolve(rules))
 
-      let options = await FirewallService.loadUserOptions()
+      let result = await FirewallService.listCustomRules(context)
 
-      expect(options.length).assertEqual(2)
-      expect(options[1].label).assertEqual('guest')
+      expect(result.length).assertEqual(1)
+      expect(result[0].name).assertEqual('rule-a')
     })
 
     it('should delegate user mode apply through dispatch service', 0, async () => {

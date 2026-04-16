@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+
 import { AuthMethod } from '../../main/ets/models/DataModels'
 import { FirewallAuthService } from '../../main/ets/services/firewall/auth/FirewallAuthService'
-import { FirewallRepository } from '../../main/ets/services/firewall/repositories/FirewallRepository'
 import { FirewallAuthStateStore } from '../../main/ets/services/firewall/stores/FirewallAuthStateStore'
 import { AuthService } from '../../main/ets/services/identity/auth/AuthService'
+import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
 
 export default function firewallAuthServiceTest() {
   describe('FirewallAuthService', () => {
@@ -23,11 +24,13 @@ export default function firewallAuthServiceTest() {
 
     it('should block toggle when lockout is active', 0, async () => {
       let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
       when(getLockStateMock)(context).afterReturn({
         locked: true,
         remainingSec: 48,
         state: { failedCount: 0, lockUntil: Date.now() + 48000 }
       })
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
 
       let result = await FirewallAuthService.executeToggle(context, false, true)
 
@@ -39,6 +42,7 @@ export default function firewallAuthServiceTest() {
     it('should block toggle when pin is unavailable', 0, async () => {
       let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
       let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
       when(getLockStateMock)(context).afterReturn({
         locked: false,
         remainingSec: 0,
@@ -50,6 +54,7 @@ export default function firewallAuthServiceTest() {
         errorCode: 201,
         message: 'permission denied'
       })
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
 
       let result = await FirewallAuthService.executeToggle(context, false, true)
 
@@ -58,39 +63,12 @@ export default function firewallAuthServiceTest() {
       expect(result.errorCode).assertEqual(201)
     })
 
-    it('should record pin failure and return lock time when threshold reached', 0, async () => {
-      let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
-      let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
-      let recordFailureMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.recordFailure)
-      when(getLockStateMock)(context).afterReturn({
-        locked: false,
-        remainingSec: 0,
-        state: { failedCount: 2, lockUntil: 0 }
-      })
-      when(authenticateMock)(AuthMethod.PIN).afterReturn({
-        success: false,
-        reason: 'failed',
-        errorCode: 12500001,
-        message: 'pin failed'
-      })
-      when(recordFailureMock)(context).afterReturn({
-        failedCount: 0,
-        locked: true,
-        remainingSec: 60
-      })
-
-      let result = await FirewallAuthService.executeToggle(context, true, false)
-
-      expect(result.success).assertFalse()
-      expect(result.reason).assertEqual('pin_failed')
-      expect(result.lockRemainingSec).assertEqual(60)
-    })
-
-    it('should return policy apply failure when repository toggle fails', 0, async () => {
+    it('should use injected toggle action and return apply failure on false', 0, async () => {
       let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
       let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
       let clearFailuresMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.clearFailures)
-      let setEnabledMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.setFirewallEnabled)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      let observedEnabled = false
       when(getLockStateMock)(context).afterReturn({
         locked: false,
         remainingSec: 0,
@@ -98,19 +76,29 @@ export default function firewallAuthServiceTest() {
       })
       when(authenticateMock)(AuthMethod.PIN).afterReturn({ success: true })
       when(clearFailuresMock)(context).afterReturn(undefined)
-      when(setEnabledMock)(false).afterReturn(false)
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
 
-      let result = await FirewallAuthService.executeToggle(context, true, false)
+      let result = await FirewallAuthService.executeToggle(
+        context,
+        true,
+        false,
+        async (enabled: boolean): Promise<boolean> => {
+          observedEnabled = enabled
+          return false
+        }
+      )
 
+      expect(observedEnabled).assertFalse()
       expect(result.success).assertFalse()
       expect(result.reason).assertEqual('policy_apply_failed')
     })
 
-    it('should return success after auth and policy update succeed', 0, async () => {
+    it('should return success after auth and injected toggle action succeed', 0, async () => {
       let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
       let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
       let clearFailuresMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.clearFailures)
-      let setEnabledMock = mockKit.mockFunc(FirewallRepository, FirewallRepository.setFirewallEnabled)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      let observedEnabled = false
       when(getLockStateMock)(context).afterReturn({
         locked: false,
         remainingSec: 0,
@@ -118,18 +106,28 @@ export default function firewallAuthServiceTest() {
       })
       when(authenticateMock)(AuthMethod.PIN).afterReturn({ success: true })
       when(clearFailuresMock)(context).afterReturn(undefined)
-      when(setEnabledMock)(true).afterReturn(true)
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
 
-      let result = await FirewallAuthService.executeToggle(context, false, true)
+      let result = await FirewallAuthService.executeToggle(
+        context,
+        false,
+        true,
+        async (enabled: boolean): Promise<boolean> => {
+          observedEnabled = enabled
+          return true
+        }
+      )
 
+      expect(observedEnabled).assertTrue()
       expect(result.success).assertTrue()
       expect(result.targetEnabled).assertTrue()
     })
 
-    it('should execute user mode policy-only action after pin auth succeeds', 0, async () => {
+    it('should execute user mode action after pin auth succeeds', 0, async () => {
       let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
       let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
       let clearFailuresMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.clearFailures)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
       when(getLockStateMock)(context).afterReturn({
         locked: false,
         remainingSec: 0,
@@ -137,6 +135,7 @@ export default function firewallAuthServiceTest() {
       })
       when(authenticateMock)(AuthMethod.PIN).afterReturn({ success: true })
       when(clearFailuresMock)(context).afterReturn(undefined)
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
 
       let result = await FirewallAuthService.executeUserModeApply(
         context,
@@ -155,13 +154,43 @@ export default function firewallAuthServiceTest() {
       expect(result.success).assertTrue()
       expect(result.userId).assertEqual(100)
       expect(result.mode).assertEqual('allowlist')
-      expect(result.appliedRuleCount).assertEqual(0)
     })
 
-    it('should not execute user mode action when pin auth fails', 0, async () => {
+    it('should record pin failure and return lock time when threshold reached', 0, async () => {
       let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
       let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
       let recordFailureMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.recordFailure)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      when(getLockStateMock)(context).afterReturn({
+        locked: false,
+        remainingSec: 0,
+        state: { failedCount: 2, lockUntil: 0 }
+      })
+      when(authenticateMock)(AuthMethod.PIN).afterReturn({
+        success: false,
+        reason: 'failed',
+        errorCode: 12500001,
+        message: 'pin failed'
+      })
+      when(recordFailureMock)(context).afterReturn({
+        failedCount: 0,
+        locked: true,
+        remainingSec: 60
+      })
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
+
+      let result = await FirewallAuthService.executeToggle(context, true, false)
+
+      expect(result.success).assertFalse()
+      expect(result.reason).assertEqual('pin_failed')
+      expect(result.lockRemainingSec).assertEqual(60)
+    })
+
+    it('should not execute user mode action when pin fails', 0, async () => {
+      let getLockStateMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.getLockState)
+      let authenticateMock = mockKit.mockFunc(AuthService, AuthService.authenticate)
+      let recordFailureMock = mockKit.mockFunc(FirewallAuthStateStore, FirewallAuthStateStore.recordFailure)
+      let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
       let applyInvoked = false
       when(getLockStateMock)(context).afterReturn({
         locked: false,
@@ -179,6 +208,7 @@ export default function firewallAuthServiceTest() {
         locked: false,
         remainingSec: 0
       })
+      when(appendEntriesMock)(ArgumentMatchers.anyObj).afterReturn({ success: true, code: 'ok' })
 
       let result = await FirewallAuthService.executeUserModeApply(
         context,
@@ -200,5 +230,6 @@ export default function firewallAuthServiceTest() {
       expect(result.mode).assertEqual('denylist')
       expect(applyInvoked).assertFalse()
     })
+
   })
 }

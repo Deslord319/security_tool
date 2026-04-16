@@ -6,10 +6,14 @@ export class FirewallRepository {
   private static readonly TAG = 'FirewallRepository'
 
   static async getFirewallPolicy(): Promise<netFirewall.NetFirewallPolicy | null> {
+    return FirewallRepository.getFirewallPolicyByUserId(AppInfo.DEFAULT_USER_ID)
+  }
+
+  static async getFirewallPolicyByUserId(userId: number): Promise<netFirewall.NetFirewallPolicy | null> {
     try {
-      return await netFirewall.getNetFirewallPolicy(AppInfo.DEFAULT_USER_ID)
+      return await netFirewall.getNetFirewallPolicy(userId)
     } catch (err) {
-      LogUtils.error(FirewallRepository.TAG, `getFirewallPolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(FirewallRepository.TAG, `getFirewallPolicyByUserId failed: userId=${userId}, err=${JSON.stringify(err)}`)
       return null
     }
   }
@@ -61,11 +65,15 @@ export class FirewallRepository {
   }
 
   static async setFirewallPolicy(policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
+    return FirewallRepository.setFirewallPolicyByUserId(AppInfo.DEFAULT_USER_ID, policy)
+  }
+
+  static async setFirewallPolicyByUserId(userId: number, policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
     try {
-      await netFirewall.setNetFirewallPolicy(AppInfo.DEFAULT_USER_ID, policy)
+      await netFirewall.setNetFirewallPolicy(userId, policy)
       return true
     } catch (err) {
-      LogUtils.error(FirewallRepository.TAG, `setFirewallPolicy failed: ${JSON.stringify(err)}`)
+      LogUtils.error(FirewallRepository.TAG, `setFirewallPolicyByUserId failed: userId=${userId}, err=${JSON.stringify(err)}`)
       return false
     }
   }
@@ -83,12 +91,16 @@ export class FirewallRepository {
   }
 
   static async removeRule(ruleId: number): Promise<boolean> {
+    return FirewallRepository.removeRuleByUserId(AppInfo.DEFAULT_USER_ID, ruleId)
+  }
+
+  static async removeRuleByUserId(userId: number, ruleId: number): Promise<boolean> {
     LogUtils.info(FirewallRepository.TAG, `removeRule payload: ruleId=${ruleId}`)
     try {
-      await netFirewall.removeNetFirewallRule(AppInfo.DEFAULT_USER_ID, ruleId)
+      await netFirewall.removeNetFirewallRule(userId, ruleId)
       return true
     } catch (err) {
-      LogUtils.error(FirewallRepository.TAG, `removeRule failed: ${JSON.stringify(err)}`)
+      LogUtils.error(FirewallRepository.TAG, `removeRuleByUserId failed: userId=${userId}, err=${JSON.stringify(err)}`)
       return false
     }
   }

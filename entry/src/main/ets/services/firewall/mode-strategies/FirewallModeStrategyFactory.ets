@@ -2,15 +2,26 @@ import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 
 import {
+  FirewallUserApplyMode,
   FirewallModeSwitchResult,
-  FirewallPresetMode
+  FirewallPresetMode,
+  UserFirewallOption,
+  UserScopedFirewallRuleBucket
 } from '../../../models/DataModels'
-import { FirewallStore } from '../stores/FirewallStore'
 import { FirewallModeRepository } from '../repositories/FirewallModeRepository'
+import { FirewallUserBindingsRepository } from '../repositories/FirewallUserBindingsRepository'
 import { FirewallRepository } from '../repositories/FirewallRepository'
 import { CustomModeStrategy } from './CustomModeStrategy'
 import { FirewallModeStrategy } from './FirewallModeStrategy'
 import { PresetModeStrategy } from './PresetModeStrategy'
+import { FirewallRulesService } from '../rules/FirewallRulesService'
+import { SystemUserProvider } from '../providers/SystemUserProvider'
+
+interface UserManagedSnapshot {
+  userId: number
+  policy: netFirewall.NetFirewallPolicy
+  managedRules: netFirewall.NetFirewallRule[]
+}
 
 class CustomModeStrategyAdapter implements FirewallModeStrategy {
   readonly mode: FirewallPresetMode = 'custom'
@@ -76,11 +87,49 @@ export class FirewallModeStrategyFactory {
     rules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallModeSwitchResult> {
     await FirewallModeStrategyFactory.initialize(context)
-    let buckets = CustomModeStrategy.buildRuleBucketsByUser(rules)
-    let summary = await FirewallStore.applyCustomRuleBuckets(context, buckets)
-    if (summary.failedCount > 0) {
+    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let users = usersResult.users
+    if (users.length === 0) {
+      await FirewallModeRepository.saveCurrentMode(context, 'custom')
+      return {
+        success: true,
+        mode: 'custom',
+        appliedRuleCount: rules.length
+      }
+    }
+
+    let snapshots = await FirewallModeStrategyFactory.captureUserSnapshots(users)
+    if (snapshots === null) {
       return FirewallModeStrategyFactory.buildFailedSwitchResult('custom')
     }
+
+    let bucketMap = FirewallModeStrategyFactory.buildBucketMap(CustomModeStrategy.buildRuleBucketsByUser(rules))
+    for (let i = 0; i < snapshots.length; i++) {
+      let snapshot = snapshots[i]
+      let cleared = await FirewallModeStrategyFactory.clearManagedRules(snapshot.userId)
+      if (!cleared) {
+        await FirewallModeStrategyFactory.rollbackUserSnapshots(snapshots)
+        return FirewallModeStrategyFactory.buildFailedSwitchResult('custom')
+      }
+
+      let bindingMode = await FirewallUserBindingsRepository.getBindingMode(context, snapshot.userId)
+      let policyApplied = await FirewallRepository.setFirewallPolicyByUserId(
+        snapshot.userId,
+        FirewallModeStrategyFactory.buildCustomPolicy(bindingMode)
+      )
+      if (!policyApplied) {
+        await FirewallModeStrategyFactory.rollbackUserSnapshots(snapshots)
+        return FirewallModeStrategyFactory.buildFailedSwitchResult('custom')
+      }
+
+      let userRules = bucketMap.get(snapshot.userId) ?? []
+      let rulesApplied = await FirewallModeStrategyFactory.addRulesForUser(snapshot.userId, userRules)
+      if (!rulesApplied) {
+        await FirewallModeStrategyFactory.rollbackUserSnapshots(snapshots)
+        return FirewallModeStrategyFactory.buildFailedSwitchResult('custom')
+      }
+    }
+
     await FirewallModeRepository.saveCurrentMode(context, 'custom')
     return {
       success: true,
@@ -130,19 +179,146 @@ export class FirewallModeStrategyFactory {
     targetMode: FirewallPresetMode,
     targetRules: netFirewall.NetFirewallRule[]
   ): Promise<FirewallModeSwitchResult> {
-    let cleared = await FirewallRepository.clearAllRules()
-    if (!cleared) {
+    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let users = usersResult.users
+    if (users.length === 0) {
+      await FirewallModeRepository.saveCurrentMode(context, targetMode)
+      return {
+        success: true,
+        mode: targetMode,
+        appliedRuleCount: targetRules.length
+      }
+    }
+
+    let snapshots = await FirewallModeStrategyFactory.captureUserSnapshots(users)
+    if (snapshots === null) {
       return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
     }
-    let applied = await FirewallRepository.addRules(targetRules)
-    if (!applied) {
-      return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
+
+    for (let i = 0; i < snapshots.length; i++) {
+      let snapshot = snapshots[i]
+      let cleared = await FirewallModeStrategyFactory.clearManagedRules(snapshot.userId)
+      if (!cleared) {
+        await FirewallModeStrategyFactory.rollbackUserSnapshots(snapshots)
+        return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
+      }
+
+      let targetPolicy: netFirewall.NetFirewallPolicy = {
+        isOpen: true,
+        inAction: snapshot.policy.inAction,
+        outAction: snapshot.policy.outAction
+      }
+      let policyApplied = await FirewallRepository.setFirewallPolicyByUserId(snapshot.userId, targetPolicy)
+      if (!policyApplied) {
+        await FirewallModeStrategyFactory.rollbackUserSnapshots(snapshots)
+        return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
+      }
+
+      let rulesApplied = await FirewallModeStrategyFactory.addRulesForUser(snapshot.userId, targetRules)
+      if (!rulesApplied) {
+        await FirewallModeStrategyFactory.rollbackUserSnapshots(snapshots)
+        return FirewallModeStrategyFactory.buildFailedSwitchResult(targetMode)
+      }
     }
+
     await FirewallModeRepository.saveCurrentMode(context, targetMode)
     return {
       success: true,
       mode: targetMode,
       appliedRuleCount: targetRules.length
     }
+  }
+
+  private static buildCustomPolicy(bindingMode: FirewallUserApplyMode | undefined): netFirewall.NetFirewallPolicy {
+    if (bindingMode === 'denylist') {
+      return {
+        isOpen: true,
+        inAction: netFirewall.FirewallRuleAction.RULE_DENY,
+        outAction: netFirewall.FirewallRuleAction.RULE_DENY
+      }
+    }
+    return {
+      isOpen: true,
+      inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
+      outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
+    }
+  }
+
+  private static buildBucketMap(
+    buckets: UserScopedFirewallRuleBucket[]
+  ): Map<number, netFirewall.NetFirewallRule[]> {
+    let bucketMap = new Map<number, netFirewall.NetFirewallRule[]>()
+    buckets.forEach((bucket) => {
+      bucketMap.set(bucket.userId, bucket.rules)
+    })
+    return bucketMap
+  }
+
+  private static async captureUserSnapshots(users: UserFirewallOption[]): Promise<UserManagedSnapshot[] | null> {
+    let snapshots: UserManagedSnapshot[] = []
+    for (let i = 0; i < users.length; i++) {
+      let userId = users[i].userId
+      let policy = await FirewallRepository.getFirewallPolicyByUserId(userId)
+      if (policy === null) {
+        return null
+      }
+      let managedRules = await FirewallModeStrategyFactory.getManagedRules(userId)
+      snapshots.push({
+        userId,
+        policy: {
+          isOpen: policy.isOpen,
+          inAction: policy.inAction,
+          outAction: policy.outAction
+        },
+        managedRules
+      })
+    }
+    return snapshots
+  }
+
+  private static async rollbackUserSnapshots(snapshots: UserManagedSnapshot[]): Promise<void> {
+    for (let i = 0; i < snapshots.length; i++) {
+      let snapshot = snapshots[i]
+      await FirewallModeStrategyFactory.clearManagedRules(snapshot.userId)
+      await FirewallRepository.setFirewallPolicyByUserId(snapshot.userId, snapshot.policy)
+      await FirewallModeStrategyFactory.addRulesForUser(snapshot.userId, snapshot.managedRules)
+    }
+  }
+
+  private static async getManagedRules(userId: number): Promise<netFirewall.NetFirewallRule[]> {
+    let rules = await FirewallRepository.getAllRules(userId)
+    return rules.filter((rule: netFirewall.NetFirewallRule): boolean =>
+      FirewallRulesService.parseManagedRuleDescription(rule.description) !== null
+    )
+  }
+
+  private static async clearManagedRules(userId: number): Promise<boolean> {
+    let managedRules = await FirewallModeStrategyFactory.getManagedRules(userId)
+    for (let i = 0; i < managedRules.length; i++) {
+      let ruleId = FirewallRepository.getRulePrimaryKey(managedRules[i])
+      if (ruleId === undefined) {
+        continue
+      }
+      let removed = await FirewallRepository.removeRuleByUserId(userId, ruleId)
+      if (!removed) {
+        return false
+      }
+    }
+    return true
+  }
+
+  private static async addRulesForUser(
+    userId: number,
+    rules: netFirewall.NetFirewallRule[]
+  ): Promise<boolean> {
+    for (let i = 0; i < rules.length; i++) {
+      let clonedRule = FirewallRepository.cloneRuleForCreate(rules[i])
+      clonedRule.userId = userId
+      let ruleId = await FirewallRepository.addRule(clonedRule)
+      if (ruleId <= 0) {
+        return false
+      }
+    }
+    return true
   }
 }
