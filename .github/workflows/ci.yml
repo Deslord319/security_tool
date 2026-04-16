@@ -241,7 +241,10 @@ jobs:
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           npm install -g pnpm@10.27.0
+          where.exe node
+          where.exe npm
           where.exe pnpm
+          npm config get prefix
           pnpm --version
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
@@ -527,7 +530,10 @@ jobs:
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           npm install -g pnpm@10.27.0
+          where.exe node
+          where.exe npm
           where.exe pnpm
+          npm config get prefix
           pnpm --version
           & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 
