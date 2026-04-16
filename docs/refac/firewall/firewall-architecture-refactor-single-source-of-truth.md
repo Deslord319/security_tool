@@ -135,6 +135,8 @@ Repository 负责数据访问：
 - `FirewallModeStrategy`：只负责模式规则生成
 - `SystemUserProvider`：只负责系统用户来源和用户 policy 摘要读取
 
+`FirewallModeStrategy` 允许调用 `SystemUserProvider.loadAvailableUserIds()` 获取首页模式切换的目标用户列表。该调用只允许用于生成 `public/private` 模式的 `FirewallPreparedRule`，不得在 Strategy 中写 policy、写规则或写本地数据。
+
 ## 5. 最终核心文件
 
 目标核心文件：
@@ -266,6 +268,10 @@ export interface FirewallPreparedRule {
 `custom` 模式生成的 `FirewallPreparedRule` 必须携带 `localRuleId`。
 
 `FirewallService` 下发成功后，仅对携带 `localRuleId` 的 `FirewallPreparedRule` 写入 `FirewallRuleDeployment`。
+
+`public/private` 模式的 prepared rules 按首页模式切换语义面向所有可用用户生成。
+
+`custom` 模式的 prepared rules 不按所有可用用户强制展开，而是按每条 `FirewallRuleIntent.targetUserIds` 生成。
 
 ## 7. FirewallSystemRepository
 
@@ -702,6 +708,21 @@ static async loadPresetConfig(context): Promise<FirewallPresetConfig>
 
 `custom` 返回的 `FirewallPreparedRule` 必须携带 `localRuleId`，下发成功后由 `FirewallService` 写入成功 deployments。
 
+### 10.3 用户来源边界
+
+首页模式切换已经确认针对所有用户。
+
+`FirewallModeStrategy` 允许在生成 `public/private` 模式规则时调用 `SystemUserProvider.loadAvailableUserIds()`，并按所有可用用户生成 `FirewallPreparedRule`。
+
+`custom` 模式不使用所有可用用户作为强制目标。`custom` 必须读取 `FirewallLocalRepository.listRuleIntents(context)`，并按每条 `FirewallRuleIntent.targetUserIds` 生成 `FirewallPreparedRule`。
+
+该授权不改变 Strategy 边界：
+
+- Strategy 不允许调用 `FirewallSystemRepository.addRule/removeRule/clearRules`。
+- Strategy 不允许调用 `FirewallLocalRepository.save*` 写本地数据。
+- Strategy 不允许写 policy。
+- Strategy 只生成 prepared rules。
+
 ## 11. FirewallService
 
 文件：
@@ -985,8 +1006,10 @@ userId -> FirewallUserPolicyMode
 `public/private`：
 
 - 由 `FirewallModeStrategy` 生成系统规则。
+- `FirewallModeStrategy` 调用 `SystemUserProvider.loadAvailableUserIds()`，按所有可用用户生成 `FirewallPreparedRule`。
 - 不写入 `FirewallRuleIntentMappingData`。
 - 切换后 `ruleDeployments` 保持为空，除非后续又切回 `custom` 并成功下发自定义规则。
+- 下发成功后不写 deployments。
 
 `custom`：
 
@@ -1128,6 +1151,9 @@ entry/src/main/ets/services/firewall/FirewallRuleUtils.ets
 18. `public/private` 模式生成的 `FirewallPreparedRule` 不写 deployments。
 19. `switchMode` 会调用 `FirewallLocalRepository.clearAllRuleDeployments(context)`。
 20. `switchMode` 不管 `failedItems` 是否为空，都保存目标模式。
+21. `public/private` 模式 prepared rules 按所有可用用户生成。
+22. `custom` 模式 prepared rules 只按 intent 自身 `targetUserIds` 生成。
+23. `FirewallModeStrategy` 不写系统规则、不写本地数据、不写 policy。
 
 ## 23. 后续更新规则
 
