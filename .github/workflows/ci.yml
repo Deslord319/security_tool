@@ -139,17 +139,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -159,16 +148,21 @@ jobs:
             Write-Host 'package.json not found at repository root, skipping npm install.'
           }
 
-      - name: Resolve hvigorw path
+      - name: Resolve local HarmonyOS toolchain
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
+          $nodeCandidates = @()
           $javaCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $candidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\hvigor\bin\hvigorw.bat')
             $javaCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'jbr')
           }
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
+          if ($env:NODE_HOME) {
+            $nodeCandidates += $env:NODE_HOME
+          }
+          $nodeCandidates += 'C:\Program Files\nodejs'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
@@ -186,6 +180,18 @@ jobs:
 
           if (-not $hvigorw) {
             Write-Error 'hvigorw.bat was not found. Set DEVECOSTUDIO_HOME or install DevEco Studio under C:\Program Files\Huawei\DevEco Studio.'
+          }
+
+          $nodeHome = $null
+          foreach ($candidate in $nodeCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'node.exe'))) {
+              $nodeHome = $candidate
+              break
+            }
+          }
+
+          if (-not $nodeHome) {
+            Write-Error 'Node.js was not found. Set NODE_HOME or install Node.js under C:\Program Files\nodejs.'
           }
 
           $jbrHome = $null
@@ -213,8 +219,10 @@ jobs:
           }
 
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
           $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
@@ -225,6 +233,7 @@ jobs:
           "$npmGlobal" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
+          Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $jbrHome"
 
@@ -434,17 +443,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -454,16 +452,21 @@ jobs:
             Write-Host 'package.json not found at repository root, skipping npm install.'
           }
 
-      - name: Resolve toolchain paths
+      - name: Resolve local HarmonyOS toolchain
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
+          $nodeCandidates = @()
           $javaCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $candidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\hvigor\bin\hvigorw.bat')
             $javaCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'jbr')
           }
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
+          if ($env:NODE_HOME) {
+            $nodeCandidates += $env:NODE_HOME
+          }
+          $nodeCandidates += 'C:\Program Files\nodejs'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
@@ -480,6 +483,17 @@ jobs:
           }
           if (-not $hvigorw) {
             Write-Error 'hvigorw.bat was not found.'
+          }
+
+          $nodeHome = $null
+          foreach ($candidate in $nodeCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'node.exe'))) {
+              $nodeHome = $candidate
+              break
+            }
+          }
+          if (-not $nodeHome) {
+            Write-Error 'Node.js was not found. Set NODE_HOME or install Node.js under C:\Program Files\nodejs.'
           }
 
           $jbrHome = $null
@@ -505,8 +519,10 @@ jobs:
           }
 
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
           $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
