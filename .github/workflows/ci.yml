@@ -206,6 +206,11 @@ jobs:
             Write-Error 'DevEco Studio JBR was not found.'
           }
 
+          $devecoSdkHome = Join-Path (Split-Path -Path $jbrHome -Parent) 'sdk'
+          if (-not (Test-Path -LiteralPath $devecoSdkHome)) {
+            Write-Error "DevEco Studio SDK was not found at $devecoSdkHome."
+          }
+
           $ohpmPath = $null
           foreach ($candidate in $ohpmCandidates) {
             if ($candidate -and (Test-Path -LiteralPath $candidate)) {
@@ -222,6 +227,7 @@ jobs:
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
@@ -249,6 +255,7 @@ jobs:
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $jbrHome"
+          Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
           Write-Host "Using hvigor config: $hvigorUserConfig"
 
@@ -522,6 +529,11 @@ jobs:
             Write-Error 'DevEco Studio JBR was not found.'
           }
 
+          $devecoSdkHome = Join-Path (Split-Path -Path $jbrHome -Parent) 'sdk'
+          if (-not (Test-Path -LiteralPath $devecoSdkHome)) {
+            Write-Error "DevEco Studio SDK was not found at $devecoSdkHome."
+          }
+
           $ohpmPath = $null
           foreach ($candidate in $ohpmCandidates) {
             if ($candidate -and (Test-Path -LiteralPath $candidate)) {
@@ -537,6 +549,7 @@ jobs:
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
