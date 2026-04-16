@@ -1,5 +1,9 @@
 # 防火墙管理模块：MVVM + Strategy 渐进式重构唯一真相
 
+> 取代声明：本文已被 `docs/refac/firewall/firewall-architecture-refactor-single-source-of-truth.md` 取代。  
+> 后续防火墙架构重构、旧代码清理、规则 intent/deployment 本地模型、认证删除、快照回滚删除、metadata 删除和 worktree/分支约束，均以新文档为唯一真相。  
+> 本文仅作为历史背景和旧方案参考材料保留；若与新文档冲突，以新文档为准。
+
 > 状态：Draft  
 > 日期：2026-04-07  
 > 适用范围：仅用于“防火墙管理”模块目录重组、MVVM 化、策略模式改造与可测试化改造  
