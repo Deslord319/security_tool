@@ -394,6 +394,13 @@ static buildSystemRuleFromIntent(
 
 注意：只构造，不做 normalize。
 
+系统 API 兼容约束：
+
+- 构造出的 `NetFirewallRule` 不得携带值为 `undefined` 的可选字段。
+- `cloneIpParams`、`clonePortParams`、`cloneDomainParams`、`cloneDnsParams` 返回 `undefined` 时，不得把对应字段写入 `NetFirewallRule`。
+- 传给 `addNetFirewallRule` 的对象中，不允许出现 `localIps=undefined`、`localPorts=undefined`、`remotePorts=undefined`、`domains=undefined`、`dns=undefined`、`protocol=undefined` 等 key。
+- 该约束由 `FirewallRuleUtils` 的规则构造和创建前规范化保证，不下沉到 `FirewallSystemRepository` 兜底修正。
+
 ```ts
 static normalizeRuleForCreate(
   rule: netFirewall.NetFirewallRule
@@ -405,6 +412,8 @@ static normalizeRuleForCreate(
 来源：改造旧 `FirewallRepository.normalizeRuleForCreate`。
 
 注意：不要和 `buildSystemRuleFromIntent` 合并。
+
+注意：规范化后的对象仍需满足“只写入有效 optional 字段”的约束，不得在 clone 过程中重新写回 `undefined` key。
 
 ```ts
 static validateRuleIntentInput(input: FirewallRuleIntentInput): FirewallRuleValidationResult

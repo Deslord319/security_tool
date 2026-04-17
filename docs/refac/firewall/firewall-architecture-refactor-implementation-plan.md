@@ -301,6 +301,7 @@ metadata 函数不迁入
 不访问 Preferences
 buildSystemRuleFromIntent 只构造，不 normalize
 normalizeRuleForCreate 单独存在
+下发前 NetFirewallRule 不包含值为 undefined 的 optional key
 不包含 buildManagedRuleDescription / parseManagedRuleDescription / applyManagedRuleMetadata
 ```
 
@@ -309,25 +310,55 @@ normalizeRuleForCreate 单独存在
 ```ts
 export class FirewallRuleUtils {
   static buildSystemRuleFromIntent(intent: FirewallRuleIntent, userId: number): netFirewall.NetFirewallRule {
-    return {
+    const rule: netFirewall.NetFirewallRule = {
       userId,
       name: intent.name,
       type: intent.type,
       direction: intent.direction,
       action: intent.action,
-      isEnabled: intent.isEnabled,
-      protocol: intent.protocol,
-      remoteIps: cloneIpParams(intent.remoteIps),
-      localIps: cloneIpParams(intent.localIps),
-      localPorts: clonePortParams(intent.localPorts),
-      remotePorts: clonePortParams(intent.remotePorts),
-      domains: cloneDomainParams(intent.domains),
-      dns: cloneDnsParams(intent.dns)
+      isEnabled: intent.isEnabled
     }
+
+    const protocol = normalizeNumber(intent.protocol)
+    if (protocol !== undefined) {
+      rule.protocol = protocol
+    }
+
+    const remoteIps = cloneIpParams(intent.remoteIps)
+    if (remoteIps !== undefined) {
+      rule.remoteIps = remoteIps
+    }
+
+    const localIps = cloneIpParams(intent.localIps)
+    if (localIps !== undefined) {
+      rule.localIps = localIps
+    }
+
+    const localPorts = clonePortParams(intent.localPorts)
+    if (localPorts !== undefined) {
+      rule.localPorts = localPorts
+    }
+
+    const remotePorts = clonePortParams(intent.remotePorts)
+    if (remotePorts !== undefined) {
+      rule.remotePorts = remotePorts
+    }
+
+    const domains = cloneDomainParams(intent.domains)
+    if (domains !== undefined) {
+      rule.domains = domains
+    }
+
+    const dns = cloneDnsParams(intent.dns)
+    if (dns !== undefined) {
+      rule.dns = dns
+    }
+
+    return rule
   }
 
   static normalizeRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
-    return normalizeCreatePayload(rule)
+    return normalizeCreatePayloadWithoutUndefinedOptionalKeys(rule)
   }
 }
 ```

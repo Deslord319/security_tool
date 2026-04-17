@@ -184,23 +184,65 @@ export class FirewallRuleUtils {
   }
 
   private static copyRuleFieldsFromIntent(rule: netFirewall.NetFirewallRule, intent: FirewallRuleIntent): void {
-    rule.protocol = FirewallRuleUtils.normalizeNumber(intent.protocol)
-    rule.remoteIps = FirewallRuleUtils.cloneIpParams(intent.remoteIps)
-    rule.localIps = FirewallRuleUtils.cloneIpParams(intent.localIps)
-    rule.localPorts = FirewallRuleUtils.clonePortParams(intent.localPorts)
-    rule.remotePorts = FirewallRuleUtils.clonePortParams(intent.remotePorts)
-    rule.domains = FirewallRuleUtils.cloneDomainParams(intent.domains)
-    rule.dns = FirewallRuleUtils.cloneDnsParams(intent.dns)
+    let protocol = FirewallRuleUtils.normalizeNumber(intent.protocol)
+    if (protocol !== undefined) {
+      rule.protocol = protocol
+    }
+    let remoteIps = FirewallRuleUtils.cloneIpParams(intent.remoteIps)
+    if (remoteIps !== undefined) {
+      rule.remoteIps = remoteIps
+    }
+    let localIps = FirewallRuleUtils.cloneIpParams(intent.localIps)
+    if (localIps !== undefined) {
+      rule.localIps = localIps
+    }
+    let localPorts = FirewallRuleUtils.clonePortParams(intent.localPorts)
+    if (localPorts !== undefined) {
+      rule.localPorts = localPorts
+    }
+    let remotePorts = FirewallRuleUtils.clonePortParams(intent.remotePorts)
+    if (remotePorts !== undefined) {
+      rule.remotePorts = remotePorts
+    }
+    let domains = FirewallRuleUtils.cloneDomainParams(intent.domains)
+    if (domains !== undefined) {
+      rule.domains = domains
+    }
+    let dns = FirewallRuleUtils.cloneDnsParams(intent.dns)
+    if (dns !== undefined) {
+      rule.dns = dns
+    }
   }
 
   private static copyRuleFields(target: netFirewall.NetFirewallRule, source: netFirewall.NetFirewallRule): void {
-    target.protocol = FirewallRuleUtils.normalizeNumber(source.protocol)
-    target.remoteIps = FirewallRuleUtils.cloneIpParams(source.remoteIps)
-    target.localIps = FirewallRuleUtils.cloneIpParams(source.localIps)
-    target.localPorts = FirewallRuleUtils.clonePortParams(source.localPorts)
-    target.remotePorts = FirewallRuleUtils.clonePortParams(source.remotePorts)
-    target.domains = FirewallRuleUtils.cloneDomainParams(source.domains)
-    target.dns = FirewallRuleUtils.cloneDnsParams(source.dns)
+    let protocol = FirewallRuleUtils.normalizeNumber(source.protocol)
+    if (protocol !== undefined) {
+      target.protocol = protocol
+    }
+    let remoteIps = FirewallRuleUtils.cloneIpParams(source.remoteIps)
+    if (remoteIps !== undefined) {
+      target.remoteIps = remoteIps
+    }
+    let localIps = FirewallRuleUtils.cloneIpParams(source.localIps)
+    if (localIps !== undefined) {
+      target.localIps = localIps
+    }
+    let localPorts = FirewallRuleUtils.clonePortParams(source.localPorts)
+    if (localPorts !== undefined) {
+      target.localPorts = localPorts
+    }
+    let remotePorts = FirewallRuleUtils.clonePortParams(source.remotePorts)
+    if (remotePorts !== undefined) {
+      target.remotePorts = remotePorts
+    }
+    let domains = FirewallRuleUtils.cloneDomainParams(source.domains)
+    if (domains !== undefined) {
+      target.domains = domains
+    }
+    let dns = FirewallRuleUtils.cloneDnsParams(source.dns)
+    if (dns !== undefined) {
+      target.dns = dns
+    }
   }
 
   private static classifyRuleConflict(left: FirewallRuleIntent, right: FirewallRuleIntent): FirewallRuleConflictKind {
