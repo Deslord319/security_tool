@@ -1,5 +1,6 @@
 import { netFirewall } from '@kit.NetworkKit'
 import { LogUtils } from '../../utils/LogUtils'
+import { CommonErrorUtils } from '../../utils/CommonErrorUtils'
 import { FirewallBatchOperationResult, FirewallFailedItem } from './FirewallModels'
 
 const TAG = 'FirewallSystemRepository'
@@ -51,12 +52,19 @@ export class FirewallSystemRepository {
     }
   }
 
-  static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
+  static async addRule(rule: netFirewall.NetFirewallRule): Promise<FirewallAddRuleRawResult> {
     try {
-      return await netFirewall.addNetFirewallRule(rule)
+      return {
+        systemRuleId: await netFirewall.addNetFirewallRule(rule)
+      }
     } catch (err) {
+      let errorCode = CommonErrorUtils.extractErrorCode(err)
+      let errorMessage = CommonErrorUtils.extractErrorMessage(err)
       LogUtils.error(TAG, `addRule failed: userId=${rule.userId}, payload=${JSON.stringify(rule)}, err=${JSON.stringify(err)}`)
-      return -1
+      return {
+        errorCode: errorCode,
+        errorMessage: errorMessage
+      }
     }
   }
 
@@ -111,4 +119,10 @@ export class FirewallSystemRepository {
 
 interface FirewallRuleWithId extends netFirewall.NetFirewallRule {
   id?: number
+}
+
+export interface FirewallAddRuleRawResult {
+  systemRuleId?: number
+  errorCode?: number
+  errorMessage?: string
 }

@@ -15,6 +15,9 @@ export class FirewallToggleStrings {
 export class FirewallRuleStrings {
   static readonly ONLY_CUSTOM_MODE: string = '只有自定义模式支持维护规则'
   static readonly APPLY_FAILED: string = '自定义规则下发失败'
+  static readonly APPLY_FAILED_PERMISSION: string = '规则添加失败，请检查权限和企业管理员状态'
+  static readonly APPLY_FAILED_INVALID_PARAM: string = '规则参数不合法，请检查输入'
+  static readonly APPLY_FAILED_DNS_UNSUPPORTED: string = '当前系统不支持该 DNS 规则参数，请联系厂家确认接口约束'
   static readonly LOCAL_SAVE_FAILED: string = '本地规则保存失败，且回滚远端规则失败'
   static readonly ROLLBACK_SUCCESS: string = '本地规则保存失败，已回滚远端规则'
   static readonly DUPLICATE: string = '已存在完全相同的规则'
@@ -123,6 +126,20 @@ export function buildFirewallConflictNotice(duplicates: number, hardConflicts: n
 
 export function buildFirewallReapplyPartialFailedMessage(successCount: number, failedCount: number): string {
   return `${FirewallRuleStrings.REAPPLY_PARTIAL_FAILED}（成功 ${successCount} 个，失败 ${failedCount} 个）`
+}
+
+export function buildFirewallAddRuleFailedMessage(errorCode?: number): string {
+  switch (errorCode) {
+    case 201:
+      return FirewallRuleStrings.APPLY_FAILED_PERMISSION
+    case 401:
+    case 2100001:
+      return FirewallRuleStrings.APPLY_FAILED_INVALID_PARAM
+    case 29400007:
+      return FirewallRuleStrings.APPLY_FAILED_DNS_UNSUPPORTED
+    default:
+      return FirewallRuleStrings.APPLY_FAILED
+  }
 }
 
 export function buildFirewallRuleCountText(count: number): string {

@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
+import { buildFirewallAddRuleFailedMessage } from '../../constants/modules/FirewallStrings'
 import { AuthMethod } from '../../models/DataModels'
 import { LogUtils } from '../../utils/LogUtils'
 import { AuthService } from '../identity/auth/AuthService'
@@ -122,13 +123,13 @@ export class FirewallService {
     let deploymentsByLocalRuleId = new Map<string, FirewallRuleDeployment[]>()
     for (let i = 0; i < preparedRules.length; i++) {
       let prepared = preparedRules[i]
-      let systemRuleId = await FirewallSystemRepository.addRule(prepared.rule)
-      if (systemRuleId > 0) {
+      let addRuleResult = await FirewallSystemRepository.addRule(prepared.rule)
+      if ((addRuleResult.systemRuleId ?? -1) > 0) {
         if (prepared.localRuleId !== undefined) {
           FirewallService.appendDeployment(deploymentsByLocalRuleId, prepared.localRuleId, {
             localRuleId: prepared.localRuleId,
             userId: prepared.userId,
-            systemRuleId: systemRuleId
+            systemRuleId: addRuleResult.systemRuleId as number
           })
         }
         continue
@@ -136,7 +137,8 @@ export class FirewallService {
       failedItems.push({
         localRuleId: prepared.localRuleId,
         userId: prepared.userId,
-        errorMessage: 'add rule failed'
+        errorCode: addRuleResult.errorCode,
+        errorMessage: addRuleResult.errorMessage ?? 'add rule failed'
       })
     }
 
@@ -338,24 +340,31 @@ export class FirewallService {
       let userId = intent.targetUserIds[i]
       let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, userId)
       let normalizedRule = FirewallRuleUtils.normalizeRuleForCreate(rule)
-      let systemRuleId = await FirewallSystemRepository.addRule(normalizedRule)
-      if (systemRuleId > 0) {
+      let addRuleResult = await FirewallSystemRepository.addRule(normalizedRule)
+      if ((addRuleResult.systemRuleId ?? -1) > 0) {
         deployments.push({
           localRuleId: localRuleId,
           userId: userId,
-          systemRuleId: systemRuleId
+          systemRuleId: addRuleResult.systemRuleId as number
         })
         continue
       }
-      failedItems.push({ localRuleId: localRuleId, userId: userId, errorMessage: 'add rule failed' })
+      failedItems.push({
+        localRuleId: localRuleId,
+        userId: userId,
+        errorCode: addRuleResult.errorCode,
+        errorMessage: addRuleResult.errorMessage ?? 'add rule failed'
+      })
     }
 
     if (deployments.length === 0) {
+      let firstFailedItem = failedItems[0]
       return {
         success: false,
         localRuleId: localRuleId,
         failedItems: failedItems,
-        errorMessage: 'all rule deployments failed'
+        errorCode: firstFailedItem?.errorCode,
+        errorMessage: buildFirewallAddRuleFailedMessage(firstFailedItem?.errorCode)
       }
     }
 
