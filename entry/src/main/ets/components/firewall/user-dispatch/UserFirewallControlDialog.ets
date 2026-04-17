@@ -3,7 +3,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText, MessageText } from '../../../constants/StringCatalog'
-import { FirewallUserApplyMode } from '../../../models/DataModels'
+import { FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
 import { FirewallUserDispatchViewModel } from '../../../viewmodels/firewall/user-dispatch/FirewallUserDispatchViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
@@ -15,15 +15,15 @@ import { DetailDialogShell } from '../../DetailDialogShell'
 const TAG = 'UserFirewallDialog'
 
 interface ModeOption {
-  mode: FirewallUserApplyMode
+  mode: FirewallUserPolicyMode
   label: string
 }
 
 @CustomDialog
 export struct UserFirewallControlDialog {
   controller: CustomDialogController
-  onActionCompleted: (userId: number, mode: FirewallUserApplyMode) => Promise<void> =
-    async (_userId: number, _mode: FirewallUserApplyMode) => {}
+  onActionCompleted: (userId: number, mode: FirewallUserPolicyMode) => Promise<void> =
+    async (_userId: number, _mode: FirewallUserPolicyMode) => {}
   currentTheme: ThemeMode = ThemeMode.LIGHT
 
   viewModel: FirewallUserDispatchViewModel = new FirewallUserDispatchViewModel()
@@ -185,9 +185,7 @@ export struct UserFirewallControlDialog {
                 }
                 await DialogService.openSuccess(
                   this.getUIContext(),
-                  FirewallDialogStrings.buildApplyModeSuccess(
-                    this.viewModel.lastApplyResult !== null ? this.viewModel.lastApplyResult.appliedRuleCount : 0
-                  )
+                  FirewallDialogStrings.buildApplyModeSuccess(this.viewModel.lastApplyResult !== null && this.viewModel.lastApplyResult.success ? 1 : 0)
                 )
                 this.controller.close()
               })

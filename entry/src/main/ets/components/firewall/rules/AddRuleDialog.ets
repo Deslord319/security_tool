@@ -10,7 +10,7 @@ import { DetailDialogShell } from '../../DetailDialogShell'
 import { MultiCheckSelect } from '../../MultiCheckSelect'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
-import { UserFirewallOption } from '../../../models/firewall/firewall_service_contracts'
+import { UserFirewallOption } from '../../../services/firewall/FirewallModels'
 import {
   attachFirewallRuleUserIds,
   getFirewallRuleUserIds
@@ -20,6 +20,7 @@ import { normalizeFirewallRuleUserIds } from '../../../viewmodels/firewall/rules
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
   id?: number
   ruleId?: number
+  localRuleId?: string
 }
 
 @CustomDialog
@@ -231,6 +232,9 @@ export struct AddRuleDialog {
     }
     if (typeof originalRule.id === 'number') {
       targetRule.id = originalRule.id
+    }
+    if (typeof originalRule.localRuleId === 'string') {
+      targetRule.localRuleId = originalRule.localRuleId
     }
     this.applyRuleSpecificFields(baseRule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
     return attachFirewallRuleUserIds(baseRule, this.getSelectedUserIdsForSave())

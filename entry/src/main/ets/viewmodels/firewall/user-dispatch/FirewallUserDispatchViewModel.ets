@@ -2,12 +2,13 @@ import { common } from '@kit.AbilityKit'
 import { FirewallDialogStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
-  FirewallUserApplyMode,
-  FirewallUserApplyResult,
-  FirewallUserModeStateResult,
+  FirewallUserPolicyMode,
+  FirewallUserPolicyApplyResult,
+  FirewallUserPolicyStateResult,
   UserFirewallOption
-} from '../../../models/firewall/firewall_service_contracts'
+} from '../../../services/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
+import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
 
 const TAG = 'FirewallUserDispatchViewModel'
 
@@ -21,9 +22,9 @@ export class FirewallUserDispatchViewModel {
   @Trace isLoadingPolicy: boolean = false
   @Trace isSubmitting: boolean = false
   @Trace statusHintText: string = ''
-  @Trace lastApplyResult: FirewallUserApplyResult | null = null
+  @Trace lastApplyResult: FirewallUserPolicyApplyResult | null = null
 
-  private readonly modeOptions: FirewallUserApplyMode[] = ['allowlist', 'denylist']
+  private readonly modeOptions: FirewallUserPolicyMode[] = ['allowlist', 'denylist']
   private context: common.UIAbilityContext | null = null
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
@@ -35,8 +36,8 @@ export class FirewallUserDispatchViewModel {
     this.isLoadingUsers = true
     this.statusHintText = ''
     try {
-      const result = await FirewallService.loadUserOptions()
-      if (result.length === 0) {
+      const result = await SystemUserProvider.loadAvailableUserIds()
+      if (result.users.length === 0) {
         this.users = []
         this.selectedIndex = 0
         this.selectedUserId = -1
@@ -45,9 +46,9 @@ export class FirewallUserDispatchViewModel {
         return
       }
 
-      this.users = result
+      this.users = result.users
       this.selectedIndex = 0
-      this.selectedUserId = result[0].userId
+      this.selectedUserId = result.users[0].userId
       this.selectedModeIndex = 0
       await this.loadStateForSelectedUser()
     } catch (err) {
@@ -86,7 +87,7 @@ export class FirewallUserDispatchViewModel {
     this.isLoadingPolicy = true
     this.statusHintText = ''
     try {
-      const result = await FirewallService.loadUserModeState(this.context, this.selectedUserId)
+      const result = await FirewallService.loadUserPolicyState(this.context, this.selectedUserId)
       this.applyLoadedMode(result)
     } catch (err) {
       this.statusHintText = FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
@@ -104,7 +105,7 @@ export class FirewallUserDispatchViewModel {
     this.isSubmitting = true
     try {
       const targetMode = this.modeOptions[this.selectedModeIndex]
-      const result = await FirewallService.applyUserMode(this.context, this.selectedUserId, targetMode)
+      const result = await FirewallService.applyUserPolicyMode(this.context, this.selectedUserId, targetMode)
       this.lastApplyResult = result
       if (!result.success) {
         this.statusHintText = result.errorMessage ?? FirewallDialogStrings.APPLY_MODE_FAILED
@@ -123,7 +124,7 @@ export class FirewallUserDispatchViewModel {
     }
   }
 
-  getSelectedMode(): FirewallUserApplyMode {
+  getSelectedMode(): FirewallUserPolicyMode {
     return this.modeOptions[this.selectedModeIndex]
   }
 
@@ -131,7 +132,7 @@ export class FirewallUserDispatchViewModel {
     return this.users[this.selectedIndex]
   }
 
-  private applyLoadedMode(result: FirewallUserModeStateResult): void {
+  private applyLoadedMode(result: FirewallUserPolicyStateResult): void {
     if (result.errorCode !== undefined) {
       this.statusHintText = result.message ?? FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
       this.selectedModeIndex = 0
@@ -139,7 +140,7 @@ export class FirewallUserDispatchViewModel {
     }
 
     const selectedMode = result.bindingMode ?? this.modeOptions[0]
-    this.selectedModeIndex = this.modeOptions.findIndex((item: FirewallUserApplyMode): boolean => item === selectedMode)
+    this.selectedModeIndex = this.modeOptions.findIndex((item: FirewallUserPolicyMode): boolean => item === selectedMode)
     if (this.selectedModeIndex < 0) {
       this.selectedModeIndex = 0
     }

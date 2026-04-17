@@ -1,0 +1,114 @@
+import { netFirewall } from '@kit.NetworkKit'
+import { LogUtils } from '../../utils/LogUtils'
+import { FirewallBatchOperationResult, FirewallFailedItem } from './FirewallModels'
+
+const TAG = 'FirewallSystemRepository'
+
+export class FirewallSystemRepository {
+  static async getPolicy(userId: number): Promise<netFirewall.NetFirewallPolicy | null> {
+    try {
+      return await netFirewall.getNetFirewallPolicy(userId)
+    } catch (err) {
+      LogUtils.error(TAG, `getPolicy failed: userId=${userId}, err=${JSON.stringify(err)}`)
+      return null
+    }
+  }
+
+  static async setPolicy(userId: number, policy: netFirewall.NetFirewallPolicy): Promise<boolean> {
+    try {
+      await netFirewall.setNetFirewallPolicy(userId, policy)
+      return true
+    } catch (err) {
+      LogUtils.error(TAG, `setPolicy failed: userId=${userId}, err=${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
+  static async listRules(userId: number): Promise<netFirewall.NetFirewallRule[]> {
+    try {
+      let allRules: netFirewall.NetFirewallRule[] = []
+      let page = 1
+      const pageSize = 50
+      while (true) {
+        let requestParam: netFirewall.RequestParam = {
+          page: page,
+          pageSize: pageSize,
+          orderField: netFirewall.NetFirewallOrderField.ORDER_BY_RULE_NAME,
+          orderType: netFirewall.NetFirewallOrderType.ORDER_ASC
+        }
+        let result = await netFirewall.getNetFirewallRules(userId, requestParam)
+        let pageRules = result.data ?? []
+        allRules.push(...pageRules)
+        if (pageRules.length < pageSize) {
+          break
+        }
+        page++
+      }
+      return allRules
+    } catch (err) {
+      LogUtils.error(TAG, `listRules failed: userId=${userId}, err=${JSON.stringify(err)}`)
+      return []
+    }
+  }
+
+  static async addRule(rule: netFirewall.NetFirewallRule): Promise<number> {
+    try {
+      return await netFirewall.addNetFirewallRule(rule)
+    } catch (err) {
+      LogUtils.error(TAG, `addRule failed: userId=${rule.userId}, payload=${JSON.stringify(rule)}, err=${JSON.stringify(err)}`)
+      return -1
+    }
+  }
+
+  static async removeRule(userId: number, systemRuleId: number): Promise<boolean> {
+    try {
+      await netFirewall.removeNetFirewallRule(userId, systemRuleId)
+      return true
+    } catch (err) {
+      LogUtils.error(TAG, `removeRule failed: userId=${userId}, systemRuleId=${systemRuleId}, err=${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
+  static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
+    try {
+      await netFirewall.updateNetFirewallRule(rule)
+      return true
+    } catch (err) {
+      LogUtils.error(TAG, `updateRule failed: payload=${JSON.stringify(rule)}, err=${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
+  static async clearRules(userId: number): Promise<FirewallBatchOperationResult> {
+    let rules = await FirewallSystemRepository.listRules(userId)
+    let failedItems: FirewallFailedItem[] = []
+    for (let i = 0; i < rules.length; i++) {
+      let ruleId = FirewallSystemRepository.readSystemRuleId(rules[i])
+      if (ruleId === undefined) {
+        failedItems.push({ userId: userId, errorMessage: 'missing system rule id' })
+        continue
+      }
+      let removed = await FirewallSystemRepository.removeRule(userId, ruleId)
+      if (!removed) {
+        failedItems.push({ userId: userId, systemRuleId: ruleId })
+      }
+    }
+    return {
+      success: failedItems.length === 0,
+      totalCount: rules.length,
+      successCount: rules.length - failedItems.length,
+      failedCount: failedItems.length,
+      failedItems: failedItems
+    }
+  }
+
+  private static readSystemRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
+    let source = rule as FirewallRuleWithId
+    return typeof source.id === 'number' ? source.id : undefined
+  }
+}
+
+interface FirewallRuleWithId extends netFirewall.NetFirewallRule {
+  id?: number
+}

@@ -8,7 +8,6 @@ import {
   FirewallRuleLabelStrings,
   FirewallPageStrings,
   FirewallRuleStrings,
-  buildFirewallReapplyPartialFailedMessage,
   buildFirewallRuleCountText
 } from '../../../constants/modules/FirewallStrings'
 import { AddRuleDialog } from '../../../components/firewall/rules/AddRuleDialog'
@@ -23,7 +22,7 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
-import { FirewallPresetMode, FirewallUserApplyMode } from '../../../models/DataModels'
+import { FirewallPresetMode, FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
 import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 
@@ -38,7 +37,7 @@ export struct FirewallRulesPage {
   @Event onBack: () => void = () => {}
   private userFirewallDialogController?: CustomDialogController
   @Local private listScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
-  @Local private hoveredRuleId: number = -1
+  @Local private hoveredRuleId: string = ''
 
   private addRuleDialogController: CustomDialogController = new CustomDialogController({
     builder: AddRuleDialog({
@@ -75,29 +74,6 @@ export struct FirewallRulesPage {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     const result = await this.rulesViewModel.loadRules(context)
     LogUtils.info(TAG, `loadRules finished: count=${this.rulesViewModel.rules.length}, success=${result.success}`)
-  }
-
-  private async persistRules(nextRules: netFirewall.NetFirewallRule[], successMessage: string): Promise<void> {
-    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    LogUtils.info(TAG, `persistRules start: nextCount=${nextRules.length}, currentCount=${this.rulesViewModel.rules.length}`)
-    let result = await this.rulesViewModel.saveRules(context, nextRules, successMessage)
-    if (!result.success) {
-      DialogService.openFailure(
-        this.getUIContext(),
-        result.errorMessage?.length ? result.errorMessage : FirewallRuleStrings.APPLY_FAILED
-      )
-      return
-    }
-    LogUtils.info(TAG,
-      `persistRules success: ${successMessage}, reapply total=${result.reapplyTotalUsers ?? 0}, success=${result.reapplySuccessCount ?? 0}, failed=${result.reapplyFailedCount ?? 0}`
-    )
-    if ((result.reapplyFailedCount ?? 0) > 0) {
-      await DialogService.openFailure(
-        this.getUIContext(),
-        buildFirewallReapplyPartialFailedMessage(result.reapplySuccessCount ?? 0, result.reapplyFailedCount ?? 0)
-      )
-      return
-    }
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule) {
@@ -142,8 +118,11 @@ export struct FirewallRulesPage {
   }
 
   private async addRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let nextRules = [...this.rulesViewModel.rules, rule]
-    await this.persistRules(nextRules, FirewallRuleStrings.ADD_SUCCESS)
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result = await this.rulesViewModel.addRule(context, rule)
+    if (!result.success) {
+      DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+    }
   }
 
   private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
@@ -210,11 +189,11 @@ export struct FirewallRulesPage {
   }
 
   private async updateRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let localRuleId = this.rulesViewModel.getLocalRuleId(rule)
-    let nextRules = this.rulesViewModel.rules.map((item: netFirewall.NetFirewallRule) =>
-      this.rulesViewModel.getLocalRuleId(item) === localRuleId ? rule : item
-    )
-    await this.persistRules(nextRules, FirewallRuleStrings.UPDATE_SUCCESS)
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result = await this.rulesViewModel.updateRule(context, rule)
+    if (!result.success) {
+      DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+    }
   }
 
   private async replaceConflictRule(
@@ -222,17 +201,14 @@ export struct FirewallRulesPage {
     nextRule: netFirewall.NetFirewallRule,
     isEditMode: boolean
   ): Promise<void> {
-    let conflictRuleId = this.rulesViewModel.getLocalRuleId(conflictRule)
-    let nextRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== conflictRuleId)
-    if (isEditMode) {
-      let currentRuleId = this.rulesViewModel.getLocalRuleId(nextRule)
-      nextRules = nextRules.map((item: netFirewall.NetFirewallRule) =>
-        this.rulesViewModel.getLocalRuleId(item) === currentRuleId ? nextRule : item
-      )
-    } else {
-      nextRules.push(nextRule)
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    await this.rulesViewModel.deleteRule(context, conflictRule)
+    let result = isEditMode
+      ? await this.rulesViewModel.updateRule(context, nextRule)
+      : await this.rulesViewModel.addRule(context, nextRule)
+    if (!result.success) {
+      DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
     }
-    await this.persistRules(nextRules, isEditMode ? FirewallRuleStrings.REPLACE_SUCCESS : FirewallRuleStrings.OVERWRITE_SUCCESS)
   }
 
   async handleDeleteRule(rule: netFirewall.NetFirewallRule) {
@@ -248,9 +224,11 @@ export struct FirewallRulesPage {
   }
 
   private async deleteRuleDirectly(rule: netFirewall.NetFirewallRule): Promise<void> {
-    let localRuleId = this.rulesViewModel.getLocalRuleId(rule)
-    let nextRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== localRuleId)
-    await this.persistRules(nextRules, FirewallRuleStrings.DELETE_SUCCESS)
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result = await this.rulesViewModel.deleteRule(context, rule)
+    if (!result.success) {
+      DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+    }
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
@@ -388,8 +366,8 @@ export struct FirewallRulesPage {
     }
   }
 
-  private getHoveredRuleId(rule: netFirewall.NetFirewallRule): number {
-    return this.rulesViewModel.getLocalRuleId(rule) ?? -1
+  private getHoveredRuleId(rule: netFirewall.NetFirewallRule): string {
+    return this.rulesViewModel.getLocalRuleId(rule) ?? ''
   }
 
   private isRuleHovered(rule: netFirewall.NetFirewallRule): boolean {
@@ -555,7 +533,7 @@ export struct FirewallRulesPage {
                   },
                   onHoverChange: (isHovered: boolean) => {
                     let ruleId = this.getHoveredRuleId(rule)
-                    this.hoveredRuleId = isHovered ? ruleId : (this.hoveredRuleId === ruleId ? -1 : this.hoveredRuleId)
+                    this.hoveredRuleId = isHovered ? ruleId : (this.hoveredRuleId === ruleId ? '' : this.hoveredRuleId)
                   }
                 }) {
                   Column({ space: 14 }) {
@@ -716,7 +694,7 @@ export struct FirewallRulesPage {
       builder: UserFirewallControlDialog({
         controller: this.userFirewallDialogController,
         currentTheme: this.currentTheme,
-        onActionCompleted: async (_userId: number, _mode: FirewallUserApplyMode): Promise<void> => {
+        onActionCompleted: async (_userId: number, _mode: FirewallUserPolicyMode): Promise<void> => {
           await this.loadRules()
         }
       }),

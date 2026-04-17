@@ -1,11 +1,11 @@
 import { application, common } from '@kit.AbilityKit'
-import { netFirewall } from '@kit.NetworkKit'
 import osAccount from '@ohos.account.osAccount'
 
-import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../../../models/DataModels'
+import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../FirewallModels'
 import { FirewallUserStrings, buildFirewallUserLabel } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
+import { FirewallSystemRepository } from '../FirewallSystemRepository'
 
 const TAG = 'SystemUserProvider'
 const TRACKED_USERS_STORE = 'firewall_tracked_users'
@@ -89,30 +89,22 @@ export class SystemUserProvider {
   }
 
   static async getPolicy(userId: number): Promise<UserFirewallPolicyResult> {
-    try {
-      let policy = await netFirewall.getNetFirewallPolicy(userId)
-      LogUtils.info(TAG,
-        'getPolicy success: userId=%{public}d, isOpen=%{public}s, inAction=%{public}d, outAction=%{public}d',
-        userId,
-        String(policy.isOpen),
-        policy.inAction,
-        policy.outAction
-      )
+    let policy = await FirewallSystemRepository.getPolicy(userId)
+    if (policy !== null) {
       return {
         userId: userId,
         isOpen: policy.isOpen,
         inAction: policy.inAction,
         outAction: policy.outAction
       } as UserFirewallPolicyResult
-    } catch (err) {
-      LogUtils.error(TAG, `getPolicy failed, userId=${userId}, err=${JSON.stringify(err)}`)
-      return {
-        userId: userId,
-        isOpen: false,
-        inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
-        outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
-      } as UserFirewallPolicyResult
     }
+    return {
+      userId: userId,
+      isOpen: false,
+      inAction: 0,
+      outAction: 0,
+      message: FirewallUserStrings.NO_ACTIVATED_USERS
+    } as UserFirewallPolicyResult
   }
 
   private static async loadTrackedUserIds(): Promise<number[]> {
