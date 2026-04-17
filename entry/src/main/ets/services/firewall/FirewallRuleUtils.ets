@@ -25,8 +25,11 @@ export class FirewallRuleUtils {
 
   static normalizeRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
     let normalizedRule = FirewallRuleUtils.cloneSystemRule(rule)
-    if (normalizedRule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      normalizedRule.remoteIps = FirewallRuleUtils.normalizeCreateIpParams(normalizedRule.remoteIps)
+    if (normalizedRule.type === netFirewall.NetFirewallRuleType.RULE_IP && rule.remoteIps !== undefined) {
+      let remoteIps = FirewallRuleUtils.normalizeCreateIpParams(rule.remoteIps)
+      if (remoteIps !== undefined) {
+        normalizedRule.remoteIps = remoteIps
+      }
     }
     return normalizedRule
   }

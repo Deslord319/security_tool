@@ -656,6 +656,7 @@ static async listUserPolicyModes(context): Promise<FirewallUserPolicyModeRecord[
 
 ```text
 entry/src/main/ets/services/firewall/FirewallModeStrategy.ets
+entry/src/main/resources/rawfile/firewall_preset_config.json
 ```
 
 职责：只负责模式规则生成，不负责下发，不写本地数据。
@@ -704,6 +705,12 @@ static async loadPresetConfig(context): Promise<FirewallPresetConfig>
 读取预设配置。
 
 来源：复用旧 `FirewallPresetConfigReader`。
+
+`public/private` 共用 `resources/rawfile/firewall_preset_config.json`：
+
+- `public` 使用 `fixedPublicIp`。
+- `private` 使用 `privateCidrs`、`privateTcpPorts`、`privateUdpPorts`。
+- 配置文件必须随包存在，避免模式切换时 `getRawFileContent('firewall_preset_config.json')` 失败。
 
 ### 10.2 模式规则持久化边界
 

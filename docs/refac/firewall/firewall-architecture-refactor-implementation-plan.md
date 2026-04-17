@@ -440,6 +440,7 @@ SystemUserProvider
 
 ```text
 新增 FirewallModeStrategy.ets
+新增 resources/rawfile/firewall_preset_config.json
 buildRulesForMode 返回 FirewallPreparedRule[]
 public/private 内部调用 SystemUserProvider.loadAvailableUserIds
 public/private 按所有可用用户生成 prepared rules
@@ -456,6 +457,7 @@ FirewallModeStrategy 不写本地数据
 FirewallModeStrategy 不写 policy
 public/private 不写 deployments
 custom 只生成带 localRuleId 的 prepared rules
+切换 public/private 时不出现 getRawFileContent failed
 ```
 
 ### 伪代码

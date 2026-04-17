@@ -1,0 +1,6 @@
+{
+  "fixedPublicIp": "",
+  "privateCidrs": [],
+  "privateTcpPorts": [],
+  "privateUdpPorts": []
+}
