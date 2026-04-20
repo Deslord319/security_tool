@@ -268,6 +268,22 @@ jobs:
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
 
+      - name: Inspect SDK inputs and stop hvigor daemon
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $previewerModule = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
+          Write-Host "Resolved DEVECO_SDK_HOME: $env:DEVECO_SDK_HOME"
+          Write-Host "Resolved previewer module path: $previewerModule"
+          if (Test-Path -LiteralPath $previewerModule) {
+            $item = Get-Item -LiteralPath $previewerModule
+            Write-Host "Previewer module size: $($item.Length)"
+            $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8
+            Write-Host "Previewer module first line: $firstLine"
+          } else {
+            Write-Error "Previewer module.json not found at $previewerModule"
+          }
+          & "$env:HVIGORW_PATH" --stop-daemon
+
       - name: Install pnpm and run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -582,6 +598,22 @@ jobs:
           } else {
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
+
+      - name: Inspect SDK inputs and stop hvigor daemon
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $previewerModule = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
+          Write-Host "Resolved DEVECO_SDK_HOME: $env:DEVECO_SDK_HOME"
+          Write-Host "Resolved previewer module path: $previewerModule"
+          if (Test-Path -LiteralPath $previewerModule) {
+            $item = Get-Item -LiteralPath $previewerModule
+            Write-Host "Previewer module size: $($item.Length)"
+            $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8
+            Write-Host "Previewer module first line: $firstLine"
+          } else {
+            Write-Error "Previewer module.json not found at $previewerModule"
+          }
+          & "$env:HVIGORW_PATH" --stop-daemon
 
       - name: Install pnpm and build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
