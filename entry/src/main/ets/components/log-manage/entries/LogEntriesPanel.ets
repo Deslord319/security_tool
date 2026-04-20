@@ -34,11 +34,9 @@ export struct LogEntriesPanel {
   private logEntryRow(entry: LogEntry) {
     Row() {
       Text(formatLogTimestamp(entry.timestamp))
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         .width(140)
-        .fontFamily('monospace')
 
       Text(getLogEventTypeLabel(entry.eventType))
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
