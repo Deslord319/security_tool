@@ -44,7 +44,7 @@ export struct LogEntriesPanel {
         .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
         .borderRadius(4)
         .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-        .width(72)
+        .width(96)
         .textAlign(TextAlign.Center)
 
       Column({ space: 2 }) {
