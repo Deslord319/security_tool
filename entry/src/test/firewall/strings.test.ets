@@ -2,6 +2,7 @@ import { describe, expect, it } from '@ohos/hypium'
 import {
   buildFirewallConflictNotice,
   buildFirewallToggleFailedMessage,
+  FirewallDialogStrings,
   FirewallPageStrings,
   FirewallRuleStrings,
   getFirewallModeDescription,
@@ -35,6 +36,15 @@ export default function firewallStringsTest() {
       expect(buildFirewallToggleFailedMessage('pin_unavailable', undefined).length > 0).assertTrue()
       expect(buildFirewallToggleFailedMessage('policy_apply_failed', undefined).length > 0).assertTrue()
       expect(buildFirewallToggleFailedMessage(undefined, undefined).length > 0).assertTrue()
+    })
+
+    it('should expose updated firewall dialog placeholders and validation copy for ip rules', 0, () => {
+      expect(FirewallDialogStrings.LOCAL_ADDRESS).assertEqual('本地地址')
+      expect(FirewallDialogStrings.IP_PLACEHOLDER.includes('110.110.110.1-110.110.110.254')).assertTrue()
+      expect(FirewallDialogStrings.PORT_PLACEHOLDER).assertEqual('例如 80,443,1000-2000')
+      expect(FirewallDialogStrings.ERROR_INVALID_IP_RANGE.length > 0).assertTrue()
+      expect(FirewallDialogStrings.ERROR_INVALID_PORT_RANGE.length > 0).assertTrue()
+      expect(FirewallDialogStrings.ERROR_PORT_ITEM_LIMIT.length > 0).assertTrue()
     })
   })
 }
