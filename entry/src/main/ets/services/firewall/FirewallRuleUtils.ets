@@ -10,6 +10,35 @@ import {
 } from './FirewallModels'
 
 export class FirewallRuleUtils {
+  static formatIpParamsForDisplay(params?: netFirewall.NetFirewallIpParams[]): string {
+    if (!params || params.length === 0) {
+      return ''
+    }
+    let ip = params[0]
+    if (typeof ip.startIp === 'string' && typeof ip.endIp === 'string' &&
+      ip.startIp.trim().length > 0 && ip.endIp.trim().length > 0) {
+      return `${ip.startIp.trim()}-${ip.endIp.trim()}`
+    }
+    if (typeof ip.address !== 'string' || ip.address.trim().length === 0) {
+      return ''
+    }
+    let address = ip.address.trim()
+    let mask = FirewallRuleUtils.normalizeNumber(ip.mask)
+    return mask === undefined || mask >= 32 ? address : `${address}/${mask}`
+  }
+
+  static formatPortParamsForDisplay(params?: netFirewall.NetFirewallPortParams[]): string {
+    let normalized = FirewallRuleUtils.clonePortParams(params)
+    if (!normalized || normalized.length === 0) {
+      return ''
+    }
+    return normalized.map((port: netFirewall.NetFirewallPortParams): string => {
+      let startPort = port.startPort ?? 0
+      let endPort = port.endPort ?? startPort
+      return startPort === endPort ? `${startPort}` : `${startPort}-${endPort}`
+    }).join(',')
+  }
+
   static buildSystemRuleFromIntent(intent: FirewallRuleIntent, userId: number): netFirewall.NetFirewallRule {
     let rule: netFirewall.NetFirewallRule = {
       userId: userId,
@@ -25,10 +54,14 @@ export class FirewallRuleUtils {
 
   static normalizeRuleForCreate(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
     let normalizedRule = FirewallRuleUtils.cloneSystemRule(rule)
-    if (normalizedRule.type === netFirewall.NetFirewallRuleType.RULE_IP && rule.remoteIps !== undefined) {
+    if (normalizedRule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
       let remoteIps = FirewallRuleUtils.normalizeCreateIpParams(rule.remoteIps)
       if (remoteIps !== undefined) {
         normalizedRule.remoteIps = remoteIps
+      }
+      let localIps = FirewallRuleUtils.normalizeCreateIpParams(rule.localIps)
+      if (localIps !== undefined) {
+        normalizedRule.localIps = localIps
       }
     }
     return normalizedRule
@@ -40,9 +73,6 @@ export class FirewallRuleUtils {
     }
     if (FirewallRuleUtils.normalizeUserIds(input.targetUserIds).length === 0) {
       return { success: false, errorMessage: 'target users are required' }
-    }
-    if (input.type === netFirewall.NetFirewallRuleType.RULE_IP && !input.remoteIps?.[0]) {
-      return { success: false, errorMessage: 'ip rule requires remote ip' }
     }
     if (input.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN && !input.domains?.[0]) {
       return { success: false, errorMessage: 'domain rule requires domain' }
@@ -300,11 +330,18 @@ export class FirewallRuleUtils {
     if (!leftIp || !rightIp) {
       return false
     }
-    return leftIp.protocol === rightIp.protocol &&
+    if (!(leftIp.protocol === rightIp.protocol &&
       leftIp.ip.start === rightIp.ip.start &&
       leftIp.ip.end === rightIp.ip.end &&
-      leftIp.port.start === rightIp.port.start &&
-      leftIp.port.end === rightIp.port.end
+      leftIp.ports.length === rightIp.ports.length)) {
+      return false
+    }
+    for (let i = 0; i < leftIp.ports.length; i++) {
+      if (leftIp.ports[i].start !== rightIp.ports[i].start || leftIp.ports[i].end !== rightIp.ports[i].end) {
+        return false
+      }
+    }
+    return true
   }
 
   private static isIpRuleOverlap(left: FirewallRuleIntent, right: FirewallRuleIntent): boolean {
@@ -313,9 +350,18 @@ export class FirewallRuleUtils {
     if (!leftIp || !rightIp) {
       return false
     }
-    return FirewallRuleUtils.isProtocolOverlap(leftIp.protocol, rightIp.protocol) &&
-      FirewallRuleUtils.isRangeOverlap(leftIp.ip, rightIp.ip) &&
-      FirewallRuleUtils.isRangeOverlap(leftIp.port, rightIp.port)
+    if (!FirewallRuleUtils.isProtocolOverlap(leftIp.protocol, rightIp.protocol) ||
+      !FirewallRuleUtils.isRangeOverlap(leftIp.ip, rightIp.ip)) {
+      return false
+    }
+    for (let i = 0; i < leftIp.ports.length; i++) {
+      for (let j = 0; j < rightIp.ports.length; j++) {
+        if (FirewallRuleUtils.isRangeOverlap(leftIp.ports[i], rightIp.ports[j])) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   private static isSameDomainRuleKey(left: FirewallRuleIntent, right: FirewallRuleIntent): boolean {
@@ -354,18 +400,17 @@ export class FirewallRuleUtils {
   }
 
   private static normalizeIpRule(intent: FirewallRuleIntent): NormalizedIpRule | null {
-    let ipParams = intent.remoteIps?.[0]
-    if (!ipParams) {
-      return null
-    }
-    let ipRange = FirewallRuleUtils.normalizeIpParamRange(ipParams)
+    let activeIps = intent.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? intent.localIps : intent.remoteIps
+    let ipParams = activeIps?.[0]
+    let anyIpRange: NormalizedIpRange = { start: 0, end: 0xFFFFFFFF }
+    let ipRange = ipParams ? FirewallRuleUtils.normalizeIpParamRange(ipParams) : anyIpRange
     if (!ipRange) {
       return null
     }
     return {
       protocol: intent.protocol ?? 0,
       ip: ipRange,
-      port: FirewallRuleUtils.normalizePortRange(intent)
+      ports: FirewallRuleUtils.normalizePortRange(intent)
     }
   }
 
@@ -402,15 +447,18 @@ export class FirewallRuleUtils {
     return { start: start, end: start + blockSize - 1 }
   }
 
-  private static normalizePortRange(intent: FirewallRuleIntent): NormalizedPortRange {
-    let port = intent.localPorts?.[0] ?? intent.remotePorts?.[0]
-    if (!port) {
-      return { start: 0, end: 65535 }
+  private static normalizePortRange(intent: FirewallRuleIntent): NormalizedPortRange[] {
+    let sourcePorts = intent.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? intent.localPorts : intent.remotePorts
+    let normalizedPorts = FirewallRuleUtils.clonePortParams(sourcePorts)
+    if (!normalizedPorts || normalizedPorts.length === 0) {
+      return [{ start: 0, end: 65535 }]
     }
-    return {
-      start: port.startPort ?? 0,
-      end: port.endPort ?? port.startPort ?? 65535
-    }
+    return normalizedPorts.map((port: netFirewall.NetFirewallPortParams): NormalizedPortRange => {
+      return {
+        start: port.startPort ?? 0,
+        end: port.endPort ?? port.startPort ?? 65535
+      }
+    })
   }
 
   private static normalizeDomainRule(intent: FirewallRuleIntent): NormalizedDomainPattern | null {
@@ -506,7 +554,27 @@ export class FirewallRuleUtils {
       let resolvedEndPort = endPort ?? startPort ?? resolvedStartPort
       result.push({ startPort: resolvedStartPort, endPort: resolvedEndPort })
     })
-    return result.length > 0 ? result : undefined
+    if (result.length === 0) {
+      return undefined
+    }
+    result.sort((left: netFirewall.NetFirewallPortParams, right: netFirewall.NetFirewallPortParams): number => {
+      let startDiff = (left.startPort ?? 0) - (right.startPort ?? 0)
+      if (startDiff !== 0) {
+        return startDiff
+      }
+      return (left.endPort ?? left.startPort ?? 0) - (right.endPort ?? right.startPort ?? 0)
+    })
+    let deduped: netFirewall.NetFirewallPortParams[] = []
+    result.forEach((item: netFirewall.NetFirewallPortParams) => {
+      let previous = deduped[deduped.length - 1]
+      if (previous &&
+        previous.startPort === item.startPort &&
+        previous.endPort === item.endPort) {
+        return
+      }
+      deduped.push(item)
+    })
+    return deduped
   }
 
   private static cloneDomainParams(source?: netFirewall.NetFirewallDomainParams[]): netFirewall.NetFirewallDomainParams[] | undefined {
@@ -558,7 +626,7 @@ interface NormalizedPortRange {
 interface NormalizedIpRule {
   protocol: number
   ip: NormalizedIpRange
-  port: NormalizedPortRange
+  ports: NormalizedPortRange[]
 }
 
 interface NormalizedDomainPattern {
