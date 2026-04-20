@@ -271,14 +271,26 @@ jobs:
       - name: Inspect SDK inputs and stop hvigor daemon
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
+          $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
           $previewerModule = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
+          Write-Host "Current runner user: $currentUser"
           Write-Host "Resolved DEVECO_SDK_HOME: $env:DEVECO_SDK_HOME"
           Write-Host "Resolved previewer module path: $previewerModule"
+          try {
+            & icacls $env:DEVECO_SDK_HOME /grant "${currentUser}:(OI)(CI)R" /T /C
+          } catch {
+            Write-Host "icacls grant attempt failed: $($_.Exception.Message)"
+          }
           if (Test-Path -LiteralPath $previewerModule) {
             $item = Get-Item -LiteralPath $previewerModule
             Write-Host "Previewer module size: $($item.Length)"
-            $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8
-            Write-Host "Previewer module first line: $firstLine"
+            try {
+              $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8 -ErrorAction Stop
+              Write-Host "Previewer module first line: $firstLine"
+            } catch {
+              Write-Host "Previewer module first line read failed: $($_.Exception.Message)"
+              & icacls $previewerModule
+            }
           } else {
             Write-Error "Previewer module.json not found at $previewerModule"
           }
@@ -602,14 +614,26 @@ jobs:
       - name: Inspect SDK inputs and stop hvigor daemon
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
+          $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
           $previewerModule = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
+          Write-Host "Current runner user: $currentUser"
           Write-Host "Resolved DEVECO_SDK_HOME: $env:DEVECO_SDK_HOME"
           Write-Host "Resolved previewer module path: $previewerModule"
+          try {
+            & icacls $env:DEVECO_SDK_HOME /grant "${currentUser}:(OI)(CI)R" /T /C
+          } catch {
+            Write-Host "icacls grant attempt failed: $($_.Exception.Message)"
+          }
           if (Test-Path -LiteralPath $previewerModule) {
             $item = Get-Item -LiteralPath $previewerModule
             Write-Host "Previewer module size: $($item.Length)"
-            $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8
-            Write-Host "Previewer module first line: $firstLine"
+            try {
+              $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8 -ErrorAction Stop
+              Write-Host "Previewer module first line: $firstLine"
+            } catch {
+              Write-Host "Previewer module first line read failed: $($_.Exception.Message)"
+              & icacls $previewerModule
+            }
           } else {
             Write-Error "Previewer module.json not found at $previewerModule"
           }
