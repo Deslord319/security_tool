@@ -191,21 +191,21 @@ jobs:
             Write-Error 'Node.js was not found.'
           }
 
-          $jbrHome = $null
-          foreach ($candidate in $javaCandidates) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-              $jbrHome = $candidate
-              break
+          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $env:JAVA_HOME
+          } else {
+            $resolvedJava = $null
+            foreach ($candidate in $javaCandidates) {
+              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+                $resolvedJava = $candidate
+                break
+              }
             }
+            $resolvedJava
           }
 
-          if (-not $jbrHome) {
-            Write-Error 'DevEco Studio JBR was not found.'
-          }
-
-          $devecoSdkHome = Join-Path (Split-Path -Path $jbrHome -Parent) 'sdk'
-          if (-not (Test-Path -LiteralPath $devecoSdkHome)) {
-            Write-Error "DevEco Studio SDK was not found at $devecoSdkHome."
+          if (-not $javaHome) {
+            Write-Error 'Java runtime was not found.'
           }
 
           $ohpmPath = $null
@@ -223,30 +223,13 @@ jobs:
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $hvigorUserHomeRoot = 'C:\hvigor-ci'
-          $hvigorUserHome = Join-Path $hvigorUserHomeRoot 'user-home'
-          New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
-          $hvigorUserConfig = Join-Path $hvigorUserHome 'hvigor-config.json5'
-          $hvigorConfigLines = @(
-            '{',
-            '  "properties": {',
-            '    "hvigor.dependency.useNpm": true',
-            '  }',
-            '}'
-          )
-          [System.IO.File]::WriteAllLines($hvigorUserConfig, $hvigorConfigLines, [System.Text.UTF8Encoding]::new($false))
-          "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
-          Write-Host "Using JAVA_HOME: $jbrHome"
-          Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
-          Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
-          Write-Host "Using hvigor config: $hvigorUserConfig"
+          Write-Host "Using JAVA_HOME: $javaHome"
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -499,20 +482,20 @@ jobs:
             Write-Error 'Node.js was not found.'
           }
 
-          $jbrHome = $null
-          foreach ($candidate in $javaCandidates) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-              $jbrHome = $candidate
-              break
+          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $env:JAVA_HOME
+          } else {
+            $resolvedJava = $null
+            foreach ($candidate in $javaCandidates) {
+              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+                $resolvedJava = $candidate
+                break
+              }
             }
+            $resolvedJava
           }
-          if (-not $jbrHome) {
-            Write-Error 'DevEco Studio JBR was not found.'
-          }
-
-          $devecoSdkHome = Join-Path (Split-Path -Path $jbrHome -Parent) 'sdk'
-          if (-not (Test-Path -LiteralPath $devecoSdkHome)) {
-            Write-Error "DevEco Studio SDK was not found at $devecoSdkHome."
+          if (-not $javaHome) {
+            Write-Error 'Java runtime was not found.'
           }
 
           $ohpmPath = $null
@@ -529,23 +512,9 @@ jobs:
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $hvigorUserHomeRoot = 'C:\hvigor-ci'
-          $hvigorUserHome = Join-Path $hvigorUserHomeRoot 'user-home'
-          New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
-          $hvigorUserConfig = Join-Path $hvigorUserHome 'hvigor-config.json5'
-          $hvigorConfigLines = @(
-            '{',
-            '  "properties": {',
-            '    "hvigor.dependency.useNpm": true',
-            '  }',
-            '}'
-          )
-          [System.IO.File]::WriteAllLines($hvigorUserConfig, $hvigorConfigLines, [System.Text.UTF8Encoding]::new($false))
-          "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
