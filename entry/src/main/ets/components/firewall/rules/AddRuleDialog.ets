@@ -735,7 +735,7 @@ export struct AddRuleDialog {
   build() {
     DetailDialogShell({
       dialogWidth: 620,
-      maxBodyHeight: 620,
+      maxBodyHeight: 760,
       currentTheme: this.currentTheme,
       showHeader: false,
       showCloseAction: false,
