@@ -152,17 +152,12 @@ jobs:
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
-          $nodeCandidates = @()
           $javaCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $candidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\hvigor\bin\hvigorw.bat')
             $javaCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'jbr')
           }
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
-          if ($env:NODE_HOME) {
-            $nodeCandidates += $env:NODE_HOME
-          }
-          $nodeCandidates += 'C:\Program Files\nodejs'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
@@ -182,16 +177,18 @@ jobs:
             Write-Error 'hvigorw.bat was not found. Set DEVECOSTUDIO_HOME or install DevEco Studio under C:\Program Files\Huawei\DevEco Studio.'
           }
 
-          $nodeHome = $null
-          foreach ($candidate in $nodeCandidates) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'node.exe'))) {
-              $nodeHome = $candidate
-              break
+          $nodeHome = if ($env:NODE_HOME -and (Test-Path -LiteralPath (Join-Path $env:NODE_HOME 'node.exe'))) {
+            $env:NODE_HOME
+          } else {
+            $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+            if ($nodeCommand) {
+              Split-Path -Path $nodeCommand.Source -Parent
+            } else {
+              $null
             }
           }
-
           if (-not $nodeHome) {
-            Write-Error 'Node.js was not found. Set NODE_HOME or install Node.js under C:\Program Files\nodejs.'
+            Write-Error 'Node.js was not found.'
           }
 
           $jbrHome = $null
@@ -230,8 +227,6 @@ jobs:
           "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
-          $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
           $hvigorUserHomeRoot = 'C:\hvigor-ci'
           $hvigorUserHome = Join-Path $hvigorUserHomeRoot 'user-home'
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
@@ -244,13 +239,7 @@ jobs:
             '}'
           )
           [System.IO.File]::WriteAllLines($hvigorUserConfig, $hvigorConfigLines, [System.Text.UTF8Encoding]::new($false))
-          New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
-          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
-          "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$npmGlobal" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
@@ -268,43 +257,14 @@ jobs:
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
 
-      - name: Inspect SDK inputs and stop hvigor daemon
+      - name: Stop hvigor daemon
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-          $previewerModule = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
-          Write-Host "Current runner user: $currentUser"
-          Write-Host "Resolved DEVECO_SDK_HOME: $env:DEVECO_SDK_HOME"
-          Write-Host "Resolved previewer module path: $previewerModule"
-          try {
-            & icacls $env:DEVECO_SDK_HOME /grant "${currentUser}:(OI)(CI)R" /T /C
-          } catch {
-            Write-Host "icacls grant attempt failed: $($_.Exception.Message)"
-          }
-          if (Test-Path -LiteralPath $previewerModule) {
-            $item = Get-Item -LiteralPath $previewerModule
-            Write-Host "Previewer module size: $($item.Length)"
-            try {
-              $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8 -ErrorAction Stop
-              Write-Host "Previewer module first line: $firstLine"
-            } catch {
-              Write-Host "Previewer module first line read failed: $($_.Exception.Message)"
-              & icacls $previewerModule
-            }
-          } else {
-            Write-Error "Previewer module.json not found at $previewerModule"
-          }
           & "$env:HVIGORW_PATH" --stop-daemon
 
-      - name: Install pnpm and run entry@default tests
+      - name: Run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          npm install -g pnpm@10.27.0
-          where.exe node
-          where.exe npm
-          where.exe pnpm
-          npm config get prefix
-          pnpm --version
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
       - name: Render static coverage report
@@ -506,17 +466,12 @@ jobs:
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
-          $nodeCandidates = @()
           $javaCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $candidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\hvigor\bin\hvigorw.bat')
             $javaCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'jbr')
           }
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
-          if ($env:NODE_HOME) {
-            $nodeCandidates += $env:NODE_HOME
-          }
-          $nodeCandidates += 'C:\Program Files\nodejs'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
@@ -535,15 +490,18 @@ jobs:
             Write-Error 'hvigorw.bat was not found.'
           }
 
-          $nodeHome = $null
-          foreach ($candidate in $nodeCandidates) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'node.exe'))) {
-              $nodeHome = $candidate
-              break
+          $nodeHome = if ($env:NODE_HOME -and (Test-Path -LiteralPath (Join-Path $env:NODE_HOME 'node.exe'))) {
+            $env:NODE_HOME
+          } else {
+            $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+            if ($nodeCommand) {
+              Split-Path -Path $nodeCommand.Source -Parent
+            } else {
+              $null
             }
           }
           if (-not $nodeHome) {
-            Write-Error 'Node.js was not found. Set NODE_HOME or install Node.js under C:\Program Files\nodejs.'
+            Write-Error 'Node.js was not found.'
           }
 
           $jbrHome = $null
@@ -580,8 +538,6 @@ jobs:
           "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
-          $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
           $hvigorUserHomeRoot = 'C:\hvigor-ci'
           $hvigorUserHome = Join-Path $hvigorUserHomeRoot 'user-home'
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
@@ -594,13 +550,7 @@ jobs:
             '}'
           )
           [System.IO.File]::WriteAllLines($hvigorUserConfig, $hvigorConfigLines, [System.Text.UTF8Encoding]::new($false))
-          New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
-          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
-          "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$npmGlobal" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -611,43 +561,14 @@ jobs:
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
 
-      - name: Inspect SDK inputs and stop hvigor daemon
+      - name: Stop hvigor daemon
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-          $previewerModule = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
-          Write-Host "Current runner user: $currentUser"
-          Write-Host "Resolved DEVECO_SDK_HOME: $env:DEVECO_SDK_HOME"
-          Write-Host "Resolved previewer module path: $previewerModule"
-          try {
-            & icacls $env:DEVECO_SDK_HOME /grant "${currentUser}:(OI)(CI)R" /T /C
-          } catch {
-            Write-Host "icacls grant attempt failed: $($_.Exception.Message)"
-          }
-          if (Test-Path -LiteralPath $previewerModule) {
-            $item = Get-Item -LiteralPath $previewerModule
-            Write-Host "Previewer module size: $($item.Length)"
-            try {
-              $firstLine = Get-Content -LiteralPath $previewerModule -TotalCount 1 -Encoding utf8 -ErrorAction Stop
-              Write-Host "Previewer module first line: $firstLine"
-            } catch {
-              Write-Host "Previewer module first line read failed: $($_.Exception.Message)"
-              & icacls $previewerModule
-            }
-          } else {
-            Write-Error "Previewer module.json not found at $previewerModule"
-          }
           & "$env:HVIGORW_PATH" --stop-daemon
 
-      - name: Install pnpm and build unsigned HAP
+      - name: Build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          npm install -g pnpm@10.27.0
-          where.exe node
-          where.exe npm
-          where.exe pnpm
-          npm config get prefix
-          pnpm --version
           & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 
       - name: Sync HAP into signer workspace
