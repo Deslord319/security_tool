@@ -185,7 +185,7 @@ export struct UserFirewallControlDialog {
                 }
                 await DialogService.openSuccess(
                   this.getUIContext(),
-                  FirewallDialogStrings.buildApplyModeSuccess(this.viewModel.lastApplyResult !== null && this.viewModel.lastApplyResult.success ? 1 : 0)
+                  FirewallDialogStrings.APPLY_MODE_SUCCESS
                 )
                 this.controller.close()
               })

@@ -219,9 +219,7 @@ export class FirewallDialogStrings {
   static readonly ERROR_USER_SCOPE_REQUIRED: string = '请至少选择一个用户'
   static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙策略'
 
-  static buildApplyModeSuccess(ruleCount: number): string {
-    return `策略下发成功，本次下发 ${ruleCount} 条规则`
-  }
+  static readonly APPLY_MODE_SUCCESS: string = '已为所选用户应用全局策略'
 
   static buildUserScopeSelectionSummary(userCount: number): string {
     return `已选择 ${userCount} 个用户`
