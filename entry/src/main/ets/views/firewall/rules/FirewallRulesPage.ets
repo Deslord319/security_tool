@@ -25,6 +25,7 @@ import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } f
 import { FirewallPresetMode, FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
 import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
+import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 
 const TAG = 'FirewallRulesPage'
 const RULE_CARD_WIDTH_PERCENT = '100%'
@@ -319,11 +320,8 @@ export struct FirewallRulesPage {
 
   getRuleAddress(rule: netFirewall.NetFirewallRule): string {
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      let ip = rule.remoteIps?.[0]
-      if (!ip?.address) {
-        return '-'
-      }
-      return ip.mask !== undefined && ip.mask < 32 ? `${ip.address}/${ip.mask}` : ip.address
+      let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
+      return FirewallRuleUtils.formatIpParamsForDisplay(ipParams) || FirewallDialogStrings.ALL_VALUE
     }
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return rule.domains?.[0]?.domain ?? '-'
@@ -335,19 +333,23 @@ export struct FirewallRulesPage {
   }
 
   getRuleLocalPort(rule: netFirewall.NetFirewallRule): string {
-    let port = rule.localPorts?.[0]
-    if (!port) {
-      return FirewallDialogStrings.ALL_VALUE
-    }
-    return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
+    return FirewallRuleUtils.formatPortParamsForDisplay(rule.localPorts) || FirewallDialogStrings.ALL_VALUE
   }
 
   getRuleRemotePort(rule: netFirewall.NetFirewallRule): string {
-    let port = rule.remotePorts?.[0]
-    if (!port) {
-      return FirewallDialogStrings.ALL_VALUE
-    }
-    return port.startPort === port.endPort ? `${port.startPort}` : `${port.startPort}-${port.endPort}`
+    return FirewallRuleUtils.formatPortParamsForDisplay(rule.remotePorts) || FirewallDialogStrings.ALL_VALUE
+  }
+
+  getIpAddressLabel(rule: netFirewall.NetFirewallRule): string {
+    return rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN
+      ? FirewallDialogStrings.LOCAL_ADDRESS
+      : FirewallDialogStrings.REMOTE_ADDRESS
+  }
+
+  getPrimaryPortLabel(rule: netFirewall.NetFirewallRule): string {
+    return rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN
+      ? FirewallDialogStrings.LOCAL_PORT
+      : FirewallDialogStrings.REMOTE_PORT
   }
 
   getProtocolLabel(rule: netFirewall.NetFirewallRule): string {
@@ -605,9 +607,20 @@ export struct FirewallRulesPage {
 
                     Column({ space: 10 }) {
                       this.detailRow(FirewallDialogStrings.USER_SCOPE, this.rulesViewModel.getRuleUserScopeLabel(rule), this.isRuleHovered(rule))
-                      this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule), this.isRuleHovered(rule))
-                      this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule), this.isRuleHovered(rule))
-                      this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule), this.isRuleHovered(rule))
+                      if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
+                        this.detailRow(this.getIpAddressLabel(rule), this.getRuleAddress(rule), this.isRuleHovered(rule))
+                        this.detailRow(
+                          this.getPrimaryPortLabel(rule),
+                          rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN
+                            ? this.getRuleLocalPort(rule)
+                            : this.getRuleRemotePort(rule),
+                          this.isRuleHovered(rule)
+                        )
+                      } else {
+                        this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule), this.isRuleHovered(rule))
+                        this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule), this.isRuleHovered(rule))
+                        this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule), this.isRuleHovered(rule))
+                      }
                       this.detailRow(FirewallDialogStrings.PROTOCOL, this.getProtocolLabel(rule), this.isRuleHovered(rule))
                     }
                     .width('100%')
