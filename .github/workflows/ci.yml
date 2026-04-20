@@ -257,11 +257,6 @@ jobs:
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
 
-      - name: Stop hvigor daemon
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
-          & "$env:HVIGORW_PATH" --stop-daemon
-
       - name: Run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -560,11 +555,6 @@ jobs:
           } else {
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
-
-      - name: Stop hvigor daemon
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
-          & "$env:HVIGORW_PATH" --stop-daemon
 
       - name: Build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
