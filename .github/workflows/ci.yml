@@ -1105,12 +1105,17 @@ jobs:
           echo "| entry@default Unit Tests | ${{ needs.unit_test_entry_default.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Build entry@default HAP | ${{ needs.harmonyos_build.result }} |" >> "$GITHUB_STEP_SUMMARY"
 
+          HAP_BUILD_REQUIRED=false
+          if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ vars.HARMONYOS_CI_ENABLED }}" == "true" ]]; then
+            HAP_BUILD_REQUIRED=true
+          fi
+
           if [[ "${{ needs.checks.result }}" != "success" ]] || \
              [[ "${{ needs.test_inventory.result }}" != "success" ]] || \
              [[ "${{ needs.unit_test_entry_default.result }}" != "success" ]] || \
-             [[ "${{ needs.harmonyos_build.result }}" != "success" ]]; then
+             { [[ "$HAP_BUILD_REQUIRED" == "true" ]] && [[ "${{ needs.harmonyos_build.result }}" != "success" ]]; }; then
             echo "CI/CD pipeline failed"
-            echo "Required jobs must finish with success. Skipped, cancelled, or failed unit/HAP jobs are not accepted."
+            echo "Required jobs must finish with success. HAP build is required for push events and optional for pull requests."
             exit 1
           fi
 
