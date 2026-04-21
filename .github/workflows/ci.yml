@@ -305,8 +305,41 @@ jobs:
             }
           }
 
-          $overlayResources = Join-Path $overlayOpenHarmony 'previewer\common\resources'
+          $realPreviewer = Join-Path $realOpenHarmony 'previewer'
+          $overlayPreviewer = Join-Path $overlayOpenHarmony 'previewer'
+          New-Item -ItemType Directory -Path $overlayPreviewer -Force | Out-Null
+          Get-ChildItem -LiteralPath $realPreviewer -Force | Where-Object { $_.Name -ne 'common' } | ForEach-Object {
+            $target = Join-Path $overlayPreviewer $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realCommon = Join-Path $realPreviewer 'common'
+          $overlayCommon = Join-Path $overlayPreviewer 'common'
+          New-Item -ItemType Directory -Path $overlayCommon -Force | Out-Null
+          Get-ChildItem -LiteralPath $realCommon -Force | Where-Object { $_.Name -ne 'resources' } | ForEach-Object {
+            $target = Join-Path $overlayCommon $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realResources = Join-Path $realCommon 'resources'
+          $overlayResources = Join-Path $overlayCommon 'resources'
           New-Item -ItemType Directory -Path $overlayResources -Force | Out-Null
+          Get-ChildItem -LiteralPath $realResources -Force | Where-Object { $_.Name -ne 'module.json' } | ForEach-Object {
+            $target = Join-Path $overlayResources $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
           Copy-Item -LiteralPath '.github\ci\openharmony-previewer-module.json' -Destination (Join-Path $overlayResources 'module.json') -Force
           node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('SDK overlay module.json valid')" (Join-Path $overlayResources 'module.json')
           $devecoSdkHome = $sdkOverlayHome
@@ -733,8 +766,41 @@ jobs:
             }
           }
 
-          $overlayResources = Join-Path $overlayOpenHarmony 'previewer\common\resources'
+          $realPreviewer = Join-Path $realOpenHarmony 'previewer'
+          $overlayPreviewer = Join-Path $overlayOpenHarmony 'previewer'
+          New-Item -ItemType Directory -Path $overlayPreviewer -Force | Out-Null
+          Get-ChildItem -LiteralPath $realPreviewer -Force | Where-Object { $_.Name -ne 'common' } | ForEach-Object {
+            $target = Join-Path $overlayPreviewer $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realCommon = Join-Path $realPreviewer 'common'
+          $overlayCommon = Join-Path $overlayPreviewer 'common'
+          New-Item -ItemType Directory -Path $overlayCommon -Force | Out-Null
+          Get-ChildItem -LiteralPath $realCommon -Force | Where-Object { $_.Name -ne 'resources' } | ForEach-Object {
+            $target = Join-Path $overlayCommon $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realResources = Join-Path $realCommon 'resources'
+          $overlayResources = Join-Path $overlayCommon 'resources'
           New-Item -ItemType Directory -Path $overlayResources -Force | Out-Null
+          Get-ChildItem -LiteralPath $realResources -Force | Where-Object { $_.Name -ne 'module.json' } | ForEach-Object {
+            $target = Join-Path $overlayResources $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
           Copy-Item -LiteralPath '.github\ci\openharmony-previewer-module.json' -Destination (Join-Path $overlayResources 'module.json') -Force
           node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('SDK overlay module.json valid')" (Join-Path $overlayResources 'module.json')
           $devecoSdkHome = $sdkOverlayHome
