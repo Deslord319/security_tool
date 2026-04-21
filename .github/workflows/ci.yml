@@ -141,7 +141,37 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $sha = $env:GITHUB_SHA
+          $zipPath = Join-Path $env:RUNNER_TEMP "source-$sha.zip"
+          $extractPath = Join-Path $env:RUNNER_TEMP "source-$sha"
+          Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            'User-Agent' = 'security-tool-ci'
+            Accept = 'application/vnd.github+json'
+          }
+          Invoke-WebRequest -Uri "https://api.github.com/repos/$repo/zipball/$sha" -Headers $headers -OutFile $zipPath
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+          $sourceRoot = Get-ChildItem -LiteralPath $extractPath -Directory | Select-Object -First 1
+          if (-not $sourceRoot) {
+            Write-Error 'Downloaded source archive is empty.'
+          }
+
+          Get-ChildItem -LiteralPath (Get-Location) -Force |
+            Where-Object { $_.Name -ne '.git' } |
+            Remove-Item -Recurse -Force
+          Get-ChildItem -LiteralPath $sourceRoot.FullName -Force |
+            Copy-Item -Destination (Get-Location) -Recurse -Force
+
+          Write-Host "Checked out $repo@$sha via GitHub archive."
 
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -491,7 +521,37 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $sha = $env:GITHUB_SHA
+          $zipPath = Join-Path $env:RUNNER_TEMP "source-$sha.zip"
+          $extractPath = Join-Path $env:RUNNER_TEMP "source-$sha"
+          Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            'User-Agent' = 'security-tool-ci'
+            Accept = 'application/vnd.github+json'
+          }
+          Invoke-WebRequest -Uri "https://api.github.com/repos/$repo/zipball/$sha" -Headers $headers -OutFile $zipPath
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+          $sourceRoot = Get-ChildItem -LiteralPath $extractPath -Directory | Select-Object -First 1
+          if (-not $sourceRoot) {
+            Write-Error 'Downloaded source archive is empty.'
+          }
+
+          Get-ChildItem -LiteralPath (Get-Location) -Force |
+            Where-Object { $_.Name -ne '.git' } |
+            Remove-Item -Recurse -Force
+          Get-ChildItem -LiteralPath $sourceRoot.FullName -Force |
+            Copy-Item -Destination (Get-Location) -Recurse -Force
+
+          Write-Host "Checked out $repo@$sha via GitHub archive."
 
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
