@@ -324,19 +324,22 @@ jobs:
           Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
           Write-Host "Using PNPM_HOME: $pnpmHome"
 
-      - name: Validate DevEco SDK metadata
+      - name: Grant DevEco SDK metadata read access
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $moduleJson = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
           if (-not (Test-Path -LiteralPath $moduleJson)) {
-            Write-Host "SDK metadata not found, skipping validation: $moduleJson"
+            Write-Host "SDK metadata not found, skipping ACL grant: $moduleJson"
             exit 0
           }
 
-          $text = [System.IO.File]::ReadAllText($moduleJson, [System.Text.Encoding]::UTF8)
-          $text = $text.Trim([char]0xFEFF, [char]0x0000, [char]0x001A)
-          [System.IO.File]::WriteAllText($moduleJson, $text, [System.Text.UTF8Encoding]::new($false))
-          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('DevEco SDK module.json valid')" "$moduleJson"
+          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+          Write-Host "Current runner account: $account"
+          & icacls $moduleJson
+          & icacls $moduleJson /grant "${account}:(R)" /C
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Unable to change SDK metadata ACL; continuing to hvigor for the authoritative result."
+          }
 
       - name: Install pnpm for hvigor
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -733,19 +736,22 @@ jobs:
           Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
           Write-Host "Using PNPM_HOME: $pnpmHome"
 
-      - name: Validate DevEco SDK metadata
+      - name: Grant DevEco SDK metadata read access
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $moduleJson = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
           if (-not (Test-Path -LiteralPath $moduleJson)) {
-            Write-Host "SDK metadata not found, skipping validation: $moduleJson"
+            Write-Host "SDK metadata not found, skipping ACL grant: $moduleJson"
             exit 0
           }
 
-          $text = [System.IO.File]::ReadAllText($moduleJson, [System.Text.Encoding]::UTF8)
-          $text = $text.Trim([char]0xFEFF, [char]0x0000, [char]0x001A)
-          [System.IO.File]::WriteAllText($moduleJson, $text, [System.Text.UTF8Encoding]::new($false))
-          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('DevEco SDK module.json valid')" "$moduleJson"
+          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+          Write-Host "Current runner account: $account"
+          & icacls $moduleJson
+          & icacls $moduleJson /grant "${account}:(R)" /C
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Unable to change SDK metadata ACL; continuing to hvigor for the authoritative result."
+          }
 
       - name: Install pnpm for hvigor
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
