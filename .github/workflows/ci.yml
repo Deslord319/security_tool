@@ -47,8 +47,7 @@ jobs:
       - name: HarmonyOS SDK note
         run: |
           echo "GitHub-hosted runners do not provide the HarmonyOS SDK toolchain."
-          echo "This workflow only runs repository checks by default."
-          echo "Real HAP build/sign steps should move to a self-hosted runner later."
+          echo "Repository checks run here; HarmonyOS unit tests and HAP build run on the required self-hosted harmonyos runner jobs."
 
       - name: Verify workflow inputs
         run: |
@@ -84,8 +83,8 @@ jobs:
 
       - name: Report test execution policy
         run: |
-          echo "HarmonyOS unit tests are not executed on GitHub-hosted runners by default."
-          echo "This job only reports test inventory until a self-hosted runner is configured."
+          echo "This job reports test inventory only."
+          echo "HarmonyOS unit tests are executed by the required self-hosted entry@default unit test job."
 
       - name: Collect test inventory
         shell: bash
@@ -110,7 +109,7 @@ jobs:
             echo "Commit: ${GITHUB_SHA}"
             echo ""
             echo "Execution:"
-            echo "  Not executed on GitHub-hosted runner"
+            echo "  Inventory only; real unit execution runs in the self-hosted HarmonyOS unit test job"
             echo ""
             echo "Test Files:"
             find entry/src/test -name "*.test.ets"
@@ -131,7 +130,7 @@ jobs:
       - name: Coverage note
         run: |
           echo "Coverage baseline is maintained separately from this workflow."
-          echo "Actual test execution requires a self-hosted HarmonyOS runner."
+          echo "Actual unit test execution is enforced by the self-hosted HarmonyOS unit test job."
 
   unit_test_entry_default:
     name: Run entry@default Unit Tests
@@ -141,7 +140,37 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $sha = $env:GITHUB_SHA
+          $zipPath = Join-Path $env:RUNNER_TEMP "source-$sha.zip"
+          $extractPath = Join-Path $env:RUNNER_TEMP "source-$sha"
+          Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            'User-Agent' = 'security-tool-ci'
+            Accept = 'application/vnd.github+json'
+          }
+          Invoke-WebRequest -Uri "https://api.github.com/repos/$repo/zipball/$sha" -Headers $headers -OutFile $zipPath
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+          $sourceRoot = Get-ChildItem -LiteralPath $extractPath -Directory | Select-Object -First 1
+          if (-not $sourceRoot) {
+            Write-Error 'Downloaded source archive is empty.'
+          }
+
+          Get-ChildItem -LiteralPath (Get-Location) -Force |
+            Where-Object { $_.Name -ne '.git' } |
+            Remove-Item -Recurse -Force
+          Get-ChildItem -LiteralPath $sourceRoot.FullName -Force |
+            Copy-Item -Destination (Get-Location) -Recurse -Force
+
+          Write-Host "Checked out $repo@$sha via GitHub archive."
 
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -164,10 +193,13 @@ jobs:
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
+          $sdkCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $ohpmCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\ohpm\bin\ohpm.bat')
+            $sdkCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'sdk')
           }
           $ohpmCandidates += 'C:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat'
+          $sdkCandidates += 'C:\Program Files\Huawei\DevEco Studio\sdk'
 
           $hvigorw = $null
           foreach ($candidate in $candidates) {
@@ -195,17 +227,15 @@ jobs:
             Write-Error 'Node.js was not found.'
           }
 
-          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
-            $env:JAVA_HOME
-          } else {
-            $resolvedJava = $null
-            foreach ($candidate in $javaCandidates) {
-              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-                $resolvedJava = $candidate
-                break
-              }
+          $javaHome = $null
+          foreach ($candidate in $javaCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+              $javaHome = $candidate
+              break
             }
-            $resolvedJava
+          }
+          if (-not $javaHome -and $env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $javaHome = $env:JAVA_HOME
           }
 
           if (-not $javaHome) {
@@ -224,21 +254,160 @@ jobs:
             Write-Error 'ohpm.bat was not found.'
           }
 
+          $devecoSdkHome = $null
+          foreach ($candidate in $sdkCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'default\sdk-pkg.json'))) {
+              $devecoSdkHome = $candidate
+              break
+            }
+          }
+
+          if (-not $devecoSdkHome) {
+            Write-Error 'DevEco SDK was not found.'
+          }
+
           $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
+          $npmCache = Join-Path $hvigorUserHome 'npm-cache'
+          $pnpmHome = Join-Path $hvigorUserHome 'pnpm-home'
+          New-Item -ItemType Directory -Path $npmCache -Force | Out-Null
+          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
+          if ($hvigorUserHome -match '\s') {
+            Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
+          }
+
+          $realDevecoSdkHome = $devecoSdkHome
+          $sdkOverlayHome = Join-Path 'C:\hvigor-ci' ("sdk-overlay-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+          $overlayDefault = Join-Path $sdkOverlayHome 'default'
+          $overlayOpenHarmony = Join-Path $overlayDefault 'openharmony'
+          $realDefault = Join-Path $realDevecoSdkHome 'default'
+          $realOpenHarmony = Join-Path $realDefault 'openharmony'
+          Remove-Item -LiteralPath $sdkOverlayHome -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $overlayDefault -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $realDefault 'sdk-pkg.json') -Destination (Join-Path $overlayDefault 'sdk-pkg.json') -Force
+
+          Get-ChildItem -LiteralPath $realDefault -Force | Where-Object { $_.Name -ne 'openharmony' -and $_.Name -ne 'sdk-pkg.json' } | ForEach-Object {
+            $target = Join-Path $overlayDefault $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          New-Item -ItemType Directory -Path $overlayOpenHarmony -Force | Out-Null
+          Get-ChildItem -LiteralPath $realOpenHarmony -Force | Where-Object { $_.Name -ne 'previewer' } | ForEach-Object {
+            $target = Join-Path $overlayOpenHarmony $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realPreviewer = Join-Path $realOpenHarmony 'previewer'
+          $overlayPreviewer = Join-Path $overlayOpenHarmony 'previewer'
+          New-Item -ItemType Directory -Path $overlayPreviewer -Force | Out-Null
+          Get-ChildItem -LiteralPath $realPreviewer -Force | Where-Object { $_.Name -ne 'common' } | ForEach-Object {
+            $target = Join-Path $overlayPreviewer $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realCommon = Join-Path $realPreviewer 'common'
+          $overlayCommon = Join-Path $overlayPreviewer 'common'
+          New-Item -ItemType Directory -Path $overlayCommon -Force | Out-Null
+          Get-ChildItem -LiteralPath $realCommon -Force | Where-Object { $_.Name -ne 'resources' } | ForEach-Object {
+            $target = Join-Path $overlayCommon $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realResources = Join-Path $realCommon 'resources'
+          $overlayResources = Join-Path $overlayCommon 'resources'
+          New-Item -ItemType Directory -Path $overlayResources -Force | Out-Null
+          Get-ChildItem -LiteralPath $realResources -Force | Where-Object { $_.Name -ne 'module.json' } | ForEach-Object {
+            $target = Join-Path $overlayResources $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+          Copy-Item -LiteralPath '.github\ci\openharmony-previewer-module.json' -Destination (Join-Path $overlayResources 'module.json') -Force
+          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('SDK overlay module.json valid')" (Join-Path $overlayResources 'module.json')
+          $devecoSdkHome = $sdkOverlayHome
+
+          function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
+            if ($targetPath -notmatch '\s') {
+              return $targetPath
+            }
+            $linkRoot = Join-Path 'C:\hvigor-ci\tool-links' ($env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+            New-Item -ItemType Directory -Path $linkRoot -Force | Out-Null
+            $linkPath = Join-Path $linkRoot $name
+            if (Test-Path -LiteralPath $linkPath) {
+              Remove-Item -LiteralPath $linkPath -Force
+            }
+            New-Item -ItemType Junction -Path $linkPath -Target $targetPath | Out-Null
+            return $linkPath
+          }
+
+          $nodeHome = New-NoSpaceToolLink -name 'node' -targetPath $nodeHome
+          $javaHome = New-NoSpaceToolLink -name 'jbr' -targetPath $javaHome
+          if ($nodeHome -match '\s') {
+            Write-Error "NODE_HOME must not contain spaces for hvigor pnpm bootstrap: $nodeHome"
+          }
+          if ($javaHome -match '\s') {
+            Write-Error "JAVA_HOME must not contain spaces for hvigor: $javaHome"
+          }
 
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "REAL_DEVECO_SDK_HOME=$realDevecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NPM_CONFIG_PREFIX=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using REAL_DEVECO_SDK_HOME: $realDevecoSdkHome"
+          Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
+          Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
+          Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
+          Write-Host "Using PNPM_HOME: $pnpmHome"
+
+      - name: Install pnpm for hvigor
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $env:PATH = "$env:NODE_HOME;$env:PNPM_HOME;$env:JAVA_HOME\bin;$env:PATH"
+          $npm = Join-Path $env:NODE_HOME 'npm.cmd'
+          if (-not (Test-Path -LiteralPath $npm)) {
+            Write-Error "npm.cmd was not found under NODE_HOME: $npm"
+          }
+          & $npm --version
+          $wrapperTools = Join-Path $env:HVIGOR_USER_HOME 'wrapper\tools'
+          New-Item -ItemType Directory -Path $wrapperTools -Force | Out-Null
+          & $npm install --prefix "$wrapperTools" "pnpm@10.27.0"
+          $pnpm = Join-Path $wrapperTools 'node_modules\.bin\pnpm.cmd'
+          if (-not (Test-Path -LiteralPath $pnpm)) {
+            Write-Error "pnpm.cmd was not installed under hvigor wrapper tools: $pnpm"
+          }
+          & $pnpm --version
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -252,6 +421,20 @@ jobs:
       - name: Run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
+          $realRestool = Join-Path $env:REAL_DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          $overlayRestool = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          foreach ($tool in @(@{ Name = 'real'; Path = $realRestool }, @{ Name = 'overlay'; Path = $overlayRestool })) {
+            Write-Host "Checking $($tool.Name) restool: $($tool.Path)"
+            if (-not (Test-Path -LiteralPath $tool.Path)) {
+              Write-Error "restool.exe missing at $($tool.Path)"
+            }
+            icacls $tool.Path
+            try {
+              & $tool.Path 2>&1 | Select-Object -First 5 | ForEach-Object { Write-Host $_ }
+            } catch {
+              Write-Error "restool.exe could not be executed from $($tool.Path): $($_.Exception.Message)"
+            }
+          }
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
       - name: Render static coverage report
@@ -438,7 +621,37 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $sha = $env:GITHUB_SHA
+          $zipPath = Join-Path $env:RUNNER_TEMP "source-$sha.zip"
+          $extractPath = Join-Path $env:RUNNER_TEMP "source-$sha"
+          Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            'User-Agent' = 'security-tool-ci'
+            Accept = 'application/vnd.github+json'
+          }
+          Invoke-WebRequest -Uri "https://api.github.com/repos/$repo/zipball/$sha" -Headers $headers -OutFile $zipPath
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+          $sourceRoot = Get-ChildItem -LiteralPath $extractPath -Directory | Select-Object -First 1
+          if (-not $sourceRoot) {
+            Write-Error 'Downloaded source archive is empty.'
+          }
+
+          Get-ChildItem -LiteralPath (Get-Location) -Force |
+            Where-Object { $_.Name -ne '.git' } |
+            Remove-Item -Recurse -Force
+          Get-ChildItem -LiteralPath $sourceRoot.FullName -Force |
+            Copy-Item -Destination (Get-Location) -Recurse -Force
+
+          Write-Host "Checked out $repo@$sha via GitHub archive."
 
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -461,10 +674,13 @@ jobs:
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
+          $sdkCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $ohpmCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\ohpm\bin\ohpm.bat')
+            $sdkCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'sdk')
           }
           $ohpmCandidates += 'C:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat'
+          $sdkCandidates += 'C:\Program Files\Huawei\DevEco Studio\sdk'
 
           $hvigorw = $null
           foreach ($candidate in $candidates) {
@@ -491,17 +707,15 @@ jobs:
             Write-Error 'Node.js was not found.'
           }
 
-          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
-            $env:JAVA_HOME
-          } else {
-            $resolvedJava = $null
-            foreach ($candidate in $javaCandidates) {
-              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-                $resolvedJava = $candidate
-                break
-              }
+          $javaHome = $null
+          foreach ($candidate in $javaCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+              $javaHome = $candidate
+              break
             }
-            $resolvedJava
+          }
+          if (-not $javaHome -and $env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $javaHome = $env:JAVA_HOME
           }
           if (-not $javaHome) {
             Write-Error 'Java runtime was not found.'
@@ -518,21 +732,159 @@ jobs:
             Write-Error 'ohpm.bat was not found.'
           }
 
+          $devecoSdkHome = $null
+          foreach ($candidate in $sdkCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'default\sdk-pkg.json'))) {
+              $devecoSdkHome = $candidate
+              break
+            }
+          }
+          if (-not $devecoSdkHome) {
+            Write-Error 'DevEco SDK was not found.'
+          }
+
           $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
+          $npmCache = Join-Path $hvigorUserHome 'npm-cache'
+          $pnpmHome = Join-Path $hvigorUserHome 'pnpm-home'
+          New-Item -ItemType Directory -Path $npmCache -Force | Out-Null
+          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
+          if ($hvigorUserHome -match '\s') {
+            Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
+          }
+
+          $realDevecoSdkHome = $devecoSdkHome
+          $sdkOverlayHome = Join-Path 'C:\hvigor-ci' ("sdk-overlay-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+          $overlayDefault = Join-Path $sdkOverlayHome 'default'
+          $overlayOpenHarmony = Join-Path $overlayDefault 'openharmony'
+          $realDefault = Join-Path $realDevecoSdkHome 'default'
+          $realOpenHarmony = Join-Path $realDefault 'openharmony'
+          Remove-Item -LiteralPath $sdkOverlayHome -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $overlayDefault -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $realDefault 'sdk-pkg.json') -Destination (Join-Path $overlayDefault 'sdk-pkg.json') -Force
+
+          Get-ChildItem -LiteralPath $realDefault -Force | Where-Object { $_.Name -ne 'openharmony' -and $_.Name -ne 'sdk-pkg.json' } | ForEach-Object {
+            $target = Join-Path $overlayDefault $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          New-Item -ItemType Directory -Path $overlayOpenHarmony -Force | Out-Null
+          Get-ChildItem -LiteralPath $realOpenHarmony -Force | Where-Object { $_.Name -ne 'previewer' } | ForEach-Object {
+            $target = Join-Path $overlayOpenHarmony $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realPreviewer = Join-Path $realOpenHarmony 'previewer'
+          $overlayPreviewer = Join-Path $overlayOpenHarmony 'previewer'
+          New-Item -ItemType Directory -Path $overlayPreviewer -Force | Out-Null
+          Get-ChildItem -LiteralPath $realPreviewer -Force | Where-Object { $_.Name -ne 'common' } | ForEach-Object {
+            $target = Join-Path $overlayPreviewer $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realCommon = Join-Path $realPreviewer 'common'
+          $overlayCommon = Join-Path $overlayPreviewer 'common'
+          New-Item -ItemType Directory -Path $overlayCommon -Force | Out-Null
+          Get-ChildItem -LiteralPath $realCommon -Force | Where-Object { $_.Name -ne 'resources' } | ForEach-Object {
+            $target = Join-Path $overlayCommon $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $realResources = Join-Path $realCommon 'resources'
+          $overlayResources = Join-Path $overlayCommon 'resources'
+          New-Item -ItemType Directory -Path $overlayResources -Force | Out-Null
+          Get-ChildItem -LiteralPath $realResources -Force | Where-Object { $_.Name -ne 'module.json' } | ForEach-Object {
+            $target = Join-Path $overlayResources $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+          Copy-Item -LiteralPath '.github\ci\openharmony-previewer-module.json' -Destination (Join-Path $overlayResources 'module.json') -Force
+          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('SDK overlay module.json valid')" (Join-Path $overlayResources 'module.json')
+          $devecoSdkHome = $sdkOverlayHome
+
+          function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
+            if ($targetPath -notmatch '\s') {
+              return $targetPath
+            }
+            $linkRoot = Join-Path 'C:\hvigor-ci\tool-links' ($env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+            New-Item -ItemType Directory -Path $linkRoot -Force | Out-Null
+            $linkPath = Join-Path $linkRoot $name
+            if (Test-Path -LiteralPath $linkPath) {
+              Remove-Item -LiteralPath $linkPath -Force
+            }
+            New-Item -ItemType Junction -Path $linkPath -Target $targetPath | Out-Null
+            return $linkPath
+          }
+
+          $nodeHome = New-NoSpaceToolLink -name 'node' -targetPath $nodeHome
+          $javaHome = New-NoSpaceToolLink -name 'jbr' -targetPath $javaHome
+          if ($nodeHome -match '\s') {
+            Write-Error "NODE_HOME must not contain spaces for hvigor pnpm bootstrap: $nodeHome"
+          }
+          if ($javaHome -match '\s') {
+            Write-Error "JAVA_HOME must not contain spaces for hvigor: $javaHome"
+          }
 
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "REAL_DEVECO_SDK_HOME=$realDevecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NPM_CONFIG_PREFIX=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using REAL_DEVECO_SDK_HOME: $realDevecoSdkHome"
+          Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
+          Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
+          Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
+          Write-Host "Using PNPM_HOME: $pnpmHome"
+
+      - name: Install pnpm for hvigor
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $env:PATH = "$env:NODE_HOME;$env:PNPM_HOME;$env:JAVA_HOME\bin;$env:PATH"
+          $npm = Join-Path $env:NODE_HOME 'npm.cmd'
+          if (-not (Test-Path -LiteralPath $npm)) {
+            Write-Error "npm.cmd was not found under NODE_HOME: $npm"
+          }
+          & $npm --version
+          $wrapperTools = Join-Path $env:HVIGOR_USER_HOME 'wrapper\tools'
+          New-Item -ItemType Directory -Path $wrapperTools -Force | Out-Null
+          & $npm install --prefix "$wrapperTools" "pnpm@10.27.0"
+          $pnpm = Join-Path $wrapperTools 'node_modules\.bin\pnpm.cmd'
+          if (-not (Test-Path -LiteralPath $pnpm)) {
+            Write-Error "pnpm.cmd was not installed under hvigor wrapper tools: $pnpm"
+          }
+          & $pnpm --version
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -546,6 +898,20 @@ jobs:
       - name: Build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
+          $realRestool = Join-Path $env:REAL_DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          $overlayRestool = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          foreach ($tool in @(@{ Name = 'real'; Path = $realRestool }, @{ Name = 'overlay'; Path = $overlayRestool })) {
+            Write-Host "Checking $($tool.Name) restool: $($tool.Path)"
+            if (-not (Test-Path -LiteralPath $tool.Path)) {
+              Write-Error "restool.exe missing at $($tool.Path)"
+            }
+            icacls $tool.Path
+            try {
+              & $tool.Path 2>&1 | Select-Object -First 5 | ForEach-Object { Write-Host $_ }
+            } catch {
+              Write-Error "restool.exe could not be executed from $($tool.Path): $($_.Exception.Message)"
+            }
+          }
           & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 
       - name: Sync HAP into signer workspace
@@ -695,11 +1061,12 @@ jobs:
           echo "| entry@default Unit Tests | ${{ needs.unit_test_entry_default.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Build entry@default HAP | ${{ needs.harmonyos_build.result }} |" >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "${{ needs.checks.result }}" == "failure" ]] || \
-             [[ "${{ needs.test_inventory.result }}" == "failure" ]] || \
-             [[ "${{ needs.unit_test_entry_default.result }}" == "failure" ]] || \
-             [[ "${{ needs.harmonyos_build.result }}" == "failure" ]]; then
+          if [[ "${{ needs.checks.result }}" != "success" ]] || \
+             [[ "${{ needs.test_inventory.result }}" != "success" ]] || \
+             [[ "${{ needs.unit_test_entry_default.result }}" != "success" ]] || \
+             [[ "${{ needs.harmonyos_build.result }}" != "success" ]]; then
             echo "CI/CD pipeline failed"
+            echo "Required jobs must finish with success. Skipped, cancelled, or failed unit/HAP jobs are not accepted."
             exit 1
           fi
 
