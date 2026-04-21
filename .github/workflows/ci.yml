@@ -194,10 +194,13 @@ jobs:
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
+          $sdkCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $ohpmCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\ohpm\bin\ohpm.bat')
+            $sdkCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'sdk')
           }
           $ohpmCandidates += 'C:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat'
+          $sdkCandidates += 'C:\Program Files\Huawei\DevEco Studio\sdk'
 
           $hvigorw = $null
           foreach ($candidate in $candidates) {
@@ -254,6 +257,18 @@ jobs:
             Write-Error 'ohpm.bat was not found.'
           }
 
+          $devecoSdkHome = $null
+          foreach ($candidate in $sdkCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'default\sdk-pkg.json'))) {
+              $devecoSdkHome = $candidate
+              break
+            }
+          }
+
+          if (-not $devecoSdkHome) {
+            Write-Error 'DevEco SDK was not found.'
+          }
+
           $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
           $npmCache = Join-Path $hvigorUserHome 'npm-cache'
@@ -291,6 +306,7 @@ jobs:
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NPM_CONFIG_PREFIX=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -302,6 +318,7 @@ jobs:
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
           Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
           Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
@@ -576,10 +593,13 @@ jobs:
           $candidates += 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
           $javaCandidates += 'C:\Program Files\Huawei\DevEco Studio\jbr'
           $ohpmCandidates = @()
+          $sdkCandidates = @()
           if ($env:DEVECOSTUDIO_HOME) {
             $ohpmCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'tools\ohpm\bin\ohpm.bat')
+            $sdkCandidates += (Join-Path $env:DEVECOSTUDIO_HOME 'sdk')
           }
           $ohpmCandidates += 'C:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat'
+          $sdkCandidates += 'C:\Program Files\Huawei\DevEco Studio\sdk'
 
           $hvigorw = $null
           foreach ($candidate in $candidates) {
@@ -633,6 +653,17 @@ jobs:
             Write-Error 'ohpm.bat was not found.'
           }
 
+          $devecoSdkHome = $null
+          foreach ($candidate in $sdkCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'default\sdk-pkg.json'))) {
+              $devecoSdkHome = $candidate
+              break
+            }
+          }
+          if (-not $devecoSdkHome) {
+            Write-Error 'DevEco SDK was not found.'
+          }
+
           $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
           $npmCache = Join-Path $hvigorUserHome 'npm-cache'
@@ -670,6 +701,7 @@ jobs:
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NPM_CONFIG_PREFIX=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -681,6 +713,7 @@ jobs:
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
           Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
           Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
