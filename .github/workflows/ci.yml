@@ -47,8 +47,7 @@ jobs:
       - name: HarmonyOS SDK note
         run: |
           echo "GitHub-hosted runners do not provide the HarmonyOS SDK toolchain."
-          echo "This workflow only runs repository checks by default."
-          echo "Real HAP build/sign steps should move to a self-hosted runner later."
+          echo "Repository checks run here; HarmonyOS unit tests and HAP build run on the required self-hosted harmonyos runner jobs."
 
       - name: Verify workflow inputs
         run: |
@@ -84,8 +83,8 @@ jobs:
 
       - name: Report test execution policy
         run: |
-          echo "HarmonyOS unit tests are not executed on GitHub-hosted runners by default."
-          echo "This job only reports test inventory until a self-hosted runner is configured."
+          echo "This job reports test inventory only."
+          echo "HarmonyOS unit tests are executed by the required self-hosted entry@default unit test job."
 
       - name: Collect test inventory
         shell: bash
@@ -110,7 +109,7 @@ jobs:
             echo "Commit: ${GITHUB_SHA}"
             echo ""
             echo "Execution:"
-            echo "  Not executed on GitHub-hosted runner"
+            echo "  Inventory only; real unit execution runs in the self-hosted HarmonyOS unit test job"
             echo ""
             echo "Test Files:"
             find entry/src/test -name "*.test.ets"
@@ -131,7 +130,7 @@ jobs:
       - name: Coverage note
         run: |
           echo "Coverage baseline is maintained separately from this workflow."
-          echo "Actual test execution requires a self-hosted HarmonyOS runner."
+          echo "Actual unit test execution is enforced by the self-hosted HarmonyOS unit test job."
 
   unit_test_entry_default:
     name: Run entry@default Unit Tests
@@ -934,11 +933,12 @@ jobs:
           echo "| entry@default Unit Tests | ${{ needs.unit_test_entry_default.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Build entry@default HAP | ${{ needs.harmonyos_build.result }} |" >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "${{ needs.checks.result }}" == "failure" ]] || \
-             [[ "${{ needs.test_inventory.result }}" == "failure" ]] || \
-             [[ "${{ needs.unit_test_entry_default.result }}" == "failure" ]] || \
-             [[ "${{ needs.harmonyos_build.result }}" == "failure" ]]; then
+          if [[ "${{ needs.checks.result }}" != "success" ]] || \
+             [[ "${{ needs.test_inventory.result }}" != "success" ]] || \
+             [[ "${{ needs.unit_test_entry_default.result }}" != "success" ]] || \
+             [[ "${{ needs.harmonyos_build.result }}" != "success" ]]; then
             echo "CI/CD pipeline failed"
+            echo "Required jobs must finish with success. Skipped, cancelled, or failed unit/HAP jobs are not accepted."
             exit 1
           fi
 
