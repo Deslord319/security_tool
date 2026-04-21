@@ -278,43 +278,10 @@ jobs:
             Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
           }
 
-          $sdkOverlayHome = Join-Path $hvigorUserHome 'deveco-sdk'
-          if (Test-Path -LiteralPath $sdkOverlayHome) {
-            Remove-Item -LiteralPath $sdkOverlayHome -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $sdkOverlayHome -Force | Out-Null
-          robocopy "$devecoSdkHome" "$sdkOverlayHome" /MIR /R:0 /W:0 /NFL /NDL /NJH /NJS /NP
-          $robocopyExit = $LASTEXITCODE
-          $global:LASTEXITCODE = 0
-          if ($robocopyExit -ge 16) {
-            Write-Error "Failed to prepare DevEco SDK overlay. robocopy exit code: $robocopyExit"
-          }
-          if ($robocopyExit -ge 8) {
-            Write-Host "DevEco SDK overlay copied with warnings. robocopy exit code: $robocopyExit"
-          }
           $sourceModuleJson = '.github\ci\openharmony-previewer-module.json'
-          $overlayModuleJson = Join-Path $sdkOverlayHome 'default\openharmony\previewer\common\resources\module.json'
-          New-Item -ItemType Directory -Path (Split-Path -Path $overlayModuleJson -Parent) -Force | Out-Null
-          Copy-Item -LiteralPath $sourceModuleJson -Destination $overlayModuleJson -Force
-          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('Overlay SDK module.json valid')" "$overlayModuleJson"
-          $overlayDefault = Join-Path $sdkOverlayHome 'default'
-          $sourceDefault = Join-Path $devecoSdkHome 'default'
-          foreach ($relativeDir in @(
-            'hms',
-            'openharmony\ets',
-            'openharmony\js',
-            'openharmony\native',
-            'openharmony\toolchains'
-          )) {
-            $overlayDir = Join-Path $overlayDefault $relativeDir
-            $sourceDir = Join-Path $sourceDefault $relativeDir
-            if (Test-Path -LiteralPath $overlayDir) {
-              Remove-Item -LiteralPath $overlayDir -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path (Split-Path -Path $overlayDir -Parent) -Force | Out-Null
-            New-Item -ItemType Junction -Path $overlayDir -Target $sourceDir | Out-Null
-          }
-          $devecoSdkHome = $sdkOverlayHome
+          $targetModuleJson = Join-Path $devecoSdkHome 'default\openharmony\previewer\common\resources\module.json'
+          Copy-Item -LiteralPath $sourceModuleJson -Destination $targetModuleJson -Force
+          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('DevEco SDK module.json valid')" "$targetModuleJson"
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
             if ($targetPath -notmatch '\s') {
@@ -711,43 +678,10 @@ jobs:
             Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
           }
 
-          $sdkOverlayHome = Join-Path $hvigorUserHome 'deveco-sdk'
-          if (Test-Path -LiteralPath $sdkOverlayHome) {
-            Remove-Item -LiteralPath $sdkOverlayHome -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $sdkOverlayHome -Force | Out-Null
-          robocopy "$devecoSdkHome" "$sdkOverlayHome" /MIR /R:0 /W:0 /NFL /NDL /NJH /NJS /NP
-          $robocopyExit = $LASTEXITCODE
-          $global:LASTEXITCODE = 0
-          if ($robocopyExit -ge 16) {
-            Write-Error "Failed to prepare DevEco SDK overlay. robocopy exit code: $robocopyExit"
-          }
-          if ($robocopyExit -ge 8) {
-            Write-Host "DevEco SDK overlay copied with warnings. robocopy exit code: $robocopyExit"
-          }
           $sourceModuleJson = '.github\ci\openharmony-previewer-module.json'
-          $overlayModuleJson = Join-Path $sdkOverlayHome 'default\openharmony\previewer\common\resources\module.json'
-          New-Item -ItemType Directory -Path (Split-Path -Path $overlayModuleJson -Parent) -Force | Out-Null
-          Copy-Item -LiteralPath $sourceModuleJson -Destination $overlayModuleJson -Force
-          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('Overlay SDK module.json valid')" "$overlayModuleJson"
-          $overlayDefault = Join-Path $sdkOverlayHome 'default'
-          $sourceDefault = Join-Path $devecoSdkHome 'default'
-          foreach ($relativeDir in @(
-            'hms',
-            'openharmony\ets',
-            'openharmony\js',
-            'openharmony\native',
-            'openharmony\toolchains'
-          )) {
-            $overlayDir = Join-Path $overlayDefault $relativeDir
-            $sourceDir = Join-Path $sourceDefault $relativeDir
-            if (Test-Path -LiteralPath $overlayDir) {
-              Remove-Item -LiteralPath $overlayDir -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path (Split-Path -Path $overlayDir -Parent) -Force | Out-Null
-            New-Item -ItemType Junction -Path $overlayDir -Target $sourceDir | Out-Null
-          }
-          $devecoSdkHome = $sdkOverlayHome
+          $targetModuleJson = Join-Path $devecoSdkHome 'default\openharmony\previewer\common\resources\module.json'
+          Copy-Item -LiteralPath $sourceModuleJson -Destination $targetModuleJson -Force
+          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('DevEco SDK module.json valid')" "$targetModuleJson"
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
             if ($targetPath -notmatch '\s') {
