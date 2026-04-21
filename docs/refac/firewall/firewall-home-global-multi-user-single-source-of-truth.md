@@ -13,14 +13,15 @@
 
 - 面向 `SystemUserProvider.loadAvailableUserIds()` 返回的全部用户生效
 - 在 `custom` 模式下，按每个用户命中的规则集下发规则
-- 在首页重新开启防火墙时，按历史模式和当前首页模式为所有用户完整恢复 policy 与规则
+- 首页顶部开关只修改所有用户的 `isOpen`，不重建 policy 与规则
+- 首页模式切换负责为所有用户同步目标模式 policy 与规则
 
 后续涉及以下行为的分析、实现、测试和文档说明，均以本文为唯一真相：
 
 1. 首页顶部防火墙开关
 2. 首页 `public / private / custom` 模式切换
-3. 首页关闭后再次开启时的多用户恢复
-4. `custom` 模式下各用户的 `NetFirewallPolicy` 与规则下发
+3. 首页模式切换时的多用户 policy 与规则下发
+4. `custom` 模式下各用户的 `NetFirewallPolicy` 恢复与规则下发
 
 ## 2. 结论
 
@@ -56,33 +57,34 @@
 
 首页切换到 `public` 或 `private` 时：
 
-- 对所有用户统一下发该模式对应的 policy
+- 对所有用户统一下发该模式对应的 policy：`isOpen=true`，`inAction=RULE_ALLOW`，`outAction=RULE_ALLOW`
 - 对所有用户统一下发该模式对应的规则
 
 此链路不使用“历史 mode -> `inAction/outAction`”推导逻辑。
 
 固定要求：
 
-- `public / private` 直接使用各自模式定义好的 policy
+- `public / private` 的 policy 固定为双向允许
 - `public / private` 直接使用各自模式定义好的规则
 
 ### 2.4 `custom` 模式下发规则
 
 首页切换到 `custom` 时：
 
-- 对所有用户统一生效
+- 对所有用户统一重建 policy
 - 但每个用户实际收到的规则，必须是该用户命中的自定义规则
 
 可理解为：
 
 - “首页切到 custom”是全局动作
+- “每个用户最终得到什么 policy”由本地 `userId -> mode` 历史记录决定
 - “每个用户最终拿到哪些规则”仍然由规则自己的用户作用域决定
 
 固定要求：
 
-1. `custom` 模式要对所有用户执行下发
-2. 每个用户不能简单共享一套完全相同的规则结果
-3. 每个用户只下发其命中的自定义规则
+1. `custom` 模式要对所有用户执行 policy 恢复
+2. `custom` 模式只为每个用户下发其命中的自定义规则
+3. 每个用户不能简单共享一套完全相同的规则结果
 
 ## 3. 历史模式记录与 policy 推导
 
@@ -107,10 +109,10 @@
 
 历史 mode 与 `NetFirewallPolicy.inAction / outAction` 的对应关系固定如下：
 
-1. 黑名单 `denylist`
+1. 白名单 `allowlist`
    - `inAction = FirewallRuleAction.RULE_DENY`
    - `outAction = FirewallRuleAction.RULE_DENY`
-2. 白名单 `allowlist`
+2. 黑名单 `denylist`
    - `inAction = FirewallRuleAction.RULE_ALLOW`
    - `outAction = FirewallRuleAction.RULE_ALLOW`
 
@@ -119,10 +121,10 @@
 首页切换到 `custom` 时，每个用户的 `NetFirewallPolicy` 生成规则固定如下：
 
 1. 先读取该用户历史 mode 记录
-2. 如果历史 mode = `denylist`
+2. 如果历史 mode = `allowlist`
    - `inAction = RULE_DENY`
    - `outAction = RULE_DENY`
-3. 如果历史 mode = `allowlist`
+3. 如果历史 mode = `denylist`
    - `inAction = RULE_ALLOW`
    - `outAction = RULE_ALLOW`
 4. 如果没有历史记录
@@ -141,28 +143,27 @@
 首页顶部防火墙开关关闭时：
 
 - 应对 `SystemUserProvider.loadAvailableUserIds()` 返回的所有用户统一执行关闭
+- 只修改每个用户 policy 的 `isOpen=false`
+- 不修改 `inAction / outAction`
+- 不清理规则，不重建规则，不保存模式
 
-本文只固化“首页关闭是全量用户动作”的作用域真相。
+本文只固化“首页关闭是全量用户动作”和“只改 `isOpen`”的作用域真相。
 
 ### 4.2 重新开启语义
 
-首页顶部防火墙开关在关闭后重新开启时，不允许只恢复 `isOpen=true`。
+首页顶部防火墙开关在关闭后重新开启时，只恢复 `isOpen=true`。
 
 固定要求：
 
-- 必须按当前首页模式和本文定义的 policy / 规则恢复逻辑，为所有用户完整恢复
+- 对所有用户统一修改 `isOpen=true`
+- 保留关闭前已有的 `inAction / outAction`
+- 不按当前首页模式重建 policy
+- 不重新下发 `public / private / custom` 规则
 
-恢复语义如下：
+前提约束：
 
-1. 若当前首页模式为 `public`
-   - 对所有用户重新下发 `public` 的 policy 与规则
-2. 若当前首页模式为 `private`
-   - 对所有用户重新下发 `private` 的 policy 与规则
-3. 若当前首页模式为 `custom`
-   - 对所有用户重新计算其 `custom` policy
-   - `inAction / outAction` 按历史 mode 推导
-   - 没有历史记录时默认 `RULE_ALLOW / RULE_ALLOW`
-   - 同时重新下发该用户命中的自定义规则
+- 防火墙关闭后，产品侧没有其它入口允许用户修改 policy。
+- 因此关闭期间不会产生需要“重新开启时重建模式 policy”的用户操作。
 
 ## 5. 作用域边界
 
@@ -182,7 +183,7 @@
 
 1. 首页只控制默认用户 `100`
 2. 首页 `custom` 只影响默认用户 `100`
-3. 首页重新开启时只改 `isOpen`，不恢复完整规则和 policy
+3. 首页模式切换只替换规则、不写 policy
 4. 首页 `custom` 模式下忽略历史 mode 记录
 
 本文不直接覆盖“用户弹窗 policy-only 链路”的全部讨论，但在“首页全局开关 / 首页全局模式切换”范围内，本文优先级更高。
@@ -195,7 +196,8 @@
 2. 首页三种模式切换对 `SystemUserProvider.loadAvailableUserIds()` 返回的所有用户生效
 3. 首页切到 `custom` 时，所有用户都参与下发
 4. 首页切到 `custom` 时，每个用户只收到其命中的自定义规则
-5. `custom` 模式下，历史 `denylist` 用户得到 `DENY / DENY`
-6. `custom` 模式下，历史 `allowlist` 用户得到 `ALLOW / ALLOW`
+5. `custom` 模式下，历史 `allowlist` 用户得到 `DENY / DENY`
+6. `custom` 模式下，历史 `denylist` 用户得到 `ALLOW / ALLOW`
 7. `custom` 模式下，没有历史记录的用户得到 `ALLOW / ALLOW`
-8. 首页关闭后再次开启时，能按当前首页模式为所有用户完整恢复 policy 与规则
+8. `public / private` 模式下，所有用户得到 `ALLOW / ALLOW`
+9. 首页关闭后再次开启时，只恢复所有用户的 `isOpen=true`，不重建 policy 和规则
