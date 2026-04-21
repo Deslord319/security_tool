@@ -297,6 +297,23 @@ jobs:
           New-Item -ItemType Directory -Path (Split-Path -Path $overlayModuleJson -Parent) -Force | Out-Null
           Copy-Item -LiteralPath $sourceModuleJson -Destination $overlayModuleJson -Force
           node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('Overlay SDK module.json valid')" "$overlayModuleJson"
+          $overlayDefault = Join-Path $sdkOverlayHome 'default'
+          $sourceDefault = Join-Path $devecoSdkHome 'default'
+          foreach ($relativeDir in @(
+            'hms',
+            'openharmony\ets',
+            'openharmony\js',
+            'openharmony\native',
+            'openharmony\toolchains'
+          )) {
+            $overlayDir = Join-Path $overlayDefault $relativeDir
+            $sourceDir = Join-Path $sourceDefault $relativeDir
+            if (Test-Path -LiteralPath $overlayDir) {
+              Remove-Item -LiteralPath $overlayDir -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path (Split-Path -Path $overlayDir -Parent) -Force | Out-Null
+            New-Item -ItemType Junction -Path $overlayDir -Target $sourceDir | Out-Null
+          }
           $devecoSdkHome = $sdkOverlayHome
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
@@ -713,6 +730,23 @@ jobs:
           New-Item -ItemType Directory -Path (Split-Path -Path $overlayModuleJson -Parent) -Force | Out-Null
           Copy-Item -LiteralPath $sourceModuleJson -Destination $overlayModuleJson -Force
           node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('Overlay SDK module.json valid')" "$overlayModuleJson"
+          $overlayDefault = Join-Path $sdkOverlayHome 'default'
+          $sourceDefault = Join-Path $devecoSdkHome 'default'
+          foreach ($relativeDir in @(
+            'hms',
+            'openharmony\ets',
+            'openharmony\js',
+            'openharmony\native',
+            'openharmony\toolchains'
+          )) {
+            $overlayDir = Join-Path $overlayDefault $relativeDir
+            $sourceDir = Join-Path $sourceDefault $relativeDir
+            if (Test-Path -LiteralPath $overlayDir) {
+              Remove-Item -LiteralPath $overlayDir -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path (Split-Path -Path $overlayDir -Parent) -Force | Out-Null
+            New-Item -ItemType Junction -Path $overlayDir -Target $sourceDir | Out-Null
+          }
           $devecoSdkHome = $sdkOverlayHome
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
