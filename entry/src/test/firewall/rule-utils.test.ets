@@ -3,17 +3,37 @@ import { netFirewall } from '@kit.NetworkKit'
 import { FirewallRuleUtils } from '../../main/ets/services/firewall/FirewallRuleUtils'
 import { FirewallRuleIntent } from '../../main/ets/services/firewall/FirewallModels'
 
+interface BuildIpIntentOptions {
+  localIps?: netFirewall.NetFirewallIpParams[]
+  remoteIps?: netFirewall.NetFirewallIpParams[]
+  localPorts?: netFirewall.NetFirewallPortParams[]
+  remotePorts?: netFirewall.NetFirewallPortParams[]
+  protocol?: number
+}
+
+function buildIpv4Address(address: string, mask: number): netFirewall.NetFirewallIpParams {
+  return {
+    type: 1,
+    family: 1,
+    address: address,
+    mask: mask
+  }
+}
+
+function buildIpv4Range(startIp: string, endIp: string): netFirewall.NetFirewallIpParams {
+  return {
+    type: 2,
+    family: 1,
+    startIp: startIp,
+    endIp: endIp
+  }
+}
+
 function buildIpIntent(
   localRuleId: string,
   direction: netFirewall.NetFirewallRuleDirection,
   action: netFirewall.FirewallRuleAction,
-  options: {
-    localIps?: netFirewall.NetFirewallIpParams[]
-    remoteIps?: netFirewall.NetFirewallIpParams[]
-    localPorts?: netFirewall.NetFirewallPortParams[]
-    remotePorts?: netFirewall.NetFirewallPortParams[]
-    protocol?: number
-  } = {}
+  options: BuildIpIntentOptions = {}
 ): FirewallRuleIntent {
   return {
     localRuleId: localRuleId,
@@ -36,9 +56,9 @@ function buildIpIntent(
 export default function firewallRuleUtilsTest() {
   describe('FirewallRuleUtils', () => {
     it('should format ip params for single ip, cidr and range display', 0, () => {
-      expect(FirewallRuleUtils.formatIpParamsForDisplay([{ address: '110.110.110.110', mask: 32 }])).assertEqual('110.110.110.110')
-      expect(FirewallRuleUtils.formatIpParamsForDisplay([{ address: '8.8.8.0', mask: 24 }])).assertEqual('8.8.8.0/24')
-      expect(FirewallRuleUtils.formatIpParamsForDisplay([{ startIp: '10.0.0.1', endIp: '10.0.0.20' }])).assertEqual('10.0.0.1-10.0.0.20')
+      expect(FirewallRuleUtils.formatIpParamsForDisplay([buildIpv4Address('110.110.110.110', 32)])).assertEqual('110.110.110.110')
+      expect(FirewallRuleUtils.formatIpParamsForDisplay([buildIpv4Address('8.8.8.0', 24)])).assertEqual('8.8.8.0/24')
+      expect(FirewallRuleUtils.formatIpParamsForDisplay([buildIpv4Range('10.0.0.1', '10.0.0.20')])).assertEqual('10.0.0.1-10.0.0.20')
       expect(FirewallRuleUtils.formatIpParamsForDisplay(undefined)).assertEqual('')
     })
 
@@ -68,7 +88,7 @@ export default function firewallRuleUtilsTest() {
         netFirewall.NetFirewallRuleDirection.RULE_IN,
         netFirewall.FirewallRuleAction.RULE_ALLOW,
         {
-          localIps: [{ address: '192.168.1.10', mask: 32 }],
+          localIps: [buildIpv4Address('192.168.1.10', 32)],
           localPorts: [{ startPort: 80, endPort: 80 }]
         }
       )
@@ -77,7 +97,7 @@ export default function firewallRuleUtilsTest() {
         netFirewall.NetFirewallRuleDirection.RULE_IN,
         netFirewall.FirewallRuleAction.RULE_DENY,
         {
-          localIps: [{ address: '192.168.1.10', mask: 32 }],
+          localIps: [buildIpv4Address('192.168.1.10', 32)],
           localPorts: [{ startPort: 80, endPort: 80 }]
         }
       )
@@ -92,7 +112,7 @@ export default function firewallRuleUtilsTest() {
         netFirewall.NetFirewallRuleDirection.RULE_OUT,
         netFirewall.FirewallRuleAction.RULE_ALLOW,
         {
-          remoteIps: [{ address: '8.8.8.0', mask: 24 }],
+          remoteIps: [buildIpv4Address('8.8.8.0', 24)],
           remotePorts: [
             { startPort: 80, endPort: 80 },
             { startPort: 1000, endPort: 2000 }
@@ -104,7 +124,7 @@ export default function firewallRuleUtilsTest() {
         netFirewall.NetFirewallRuleDirection.RULE_OUT,
         netFirewall.FirewallRuleAction.RULE_DENY,
         {
-          remoteIps: [{ startIp: '8.8.8.8', endIp: '8.8.8.8' }],
+          remoteIps: [buildIpv4Range('8.8.8.8', '8.8.8.8')],
           remotePorts: [{ startPort: 1500, endPort: 1500 }]
         }
       )

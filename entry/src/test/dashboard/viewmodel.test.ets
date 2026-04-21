@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { netFirewall } from '@kit.NetworkKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { RouteIds } from '../../main/ets/constants/RouteIds'
 import { AppResources } from '../../main/ets/constants/AppResources'
@@ -62,6 +61,7 @@ function createFirewallOverview(enabled: boolean = false, currentMode: FirewallP
 }
 
 interface DashboardViewModelInternal {
+  context: common.UIAbilityContext | null
   buildAdminCard(): Object
   buildFirewallCard(): Promise<Object>
   buildLogCard(): Promise<Object>
@@ -195,16 +195,12 @@ export default function dashboardViewModelTest() {
       done()
     })
 
-    it('should fall back to getFirewallPolicy when context is null', 0, async (done: Function) => {
-      let policyMock = mockKit.mockFunc(FirewallService, FirewallService.getFirewallPolicy)
-      let policy: netFirewall.NetFirewallPolicy = { isOpen: true, inAction: 0, outAction: 0 } as netFirewall.NetFirewallPolicy
-      when(policyMock)().afterReturn(policy)
-
+    it('should use disabled firewall card state when context is null', 0, async (done: Function) => {
       let viewModel = new DashboardViewModel()
       let internal = viewModel as Object as DashboardViewModelInternal
       let firewallCard = await internal.buildFirewallCard() as Record<string, string>
 
-      expect(firewallCard.primaryText).assertEqual(StatusText.ENABLED)
+      expect(firewallCard.primaryText).assertEqual(StatusText.DISABLED)
       done()
     })
 
@@ -450,25 +446,26 @@ export default function dashboardViewModelTest() {
       expect(card.accentEnd).assertEqual('#000')
     })
 
-    it('should handle getFirewallPolicy returning null', 0, async (done: Function) => {
-      let policyMock = mockKit.mockFunc(FirewallService, FirewallService.getFirewallPolicy)
-      when(policyMock)().afterReturn(null)
+    it('should handle loadOverviewState returning disabled state', 0, async (done: Function) => {
+      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
+      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(false, 'custom'))
 
       let viewModel = new DashboardViewModel()
       let internal = viewModel as Object as DashboardViewModelInternal
+      internal.context = context
       let firewallCard = await internal.buildFirewallCard() as Record<string, string>
 
       expect(firewallCard.primaryText).assertEqual(StatusText.DISABLED)
       done()
     })
 
-    it('should handle getFirewallPolicy returning open policy', 0, async (done: Function) => {
-      let policyMock = mockKit.mockFunc(FirewallService, FirewallService.getFirewallPolicy)
-      let policy: netFirewall.NetFirewallPolicy = { isOpen: true, inAction: 0, outAction: 0 } as netFirewall.NetFirewallPolicy
-      when(policyMock)().afterReturn(policy)
+    it('should handle loadOverviewState returning enabled state', 0, async (done: Function) => {
+      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
+      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(true, 'custom'))
 
       let viewModel = new DashboardViewModel()
       let internal = viewModel as Object as DashboardViewModelInternal
+      internal.context = context
       let firewallCard = await internal.buildFirewallCard() as Record<string, string>
 
       expect(firewallCard.primaryText).assertEqual(StatusText.ENABLED)
