@@ -353,6 +353,7 @@ export class LogManageViewModel {
 
   private applySummaryState(snapshot: LogSnapshot, currentShownCount: number): void {
     this.state.summary.totalCount = snapshot.totalCount
+    this.state.summary.filteredCount = snapshot.filteredCount
     this.state.summary.todayCount = snapshot.todayCount
     this.state.summary.blockedCount = snapshot.blockedCount
     this.state.summary.currentShownCount = currentShownCount

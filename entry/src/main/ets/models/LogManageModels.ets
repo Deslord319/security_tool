@@ -16,6 +16,7 @@ class LogCollectorState implements CollectorStatus {
 @ObservedV2
 export class LogSummaryState {
   @Trace totalCount: number = 0
+  @Trace filteredCount: number = 0
   @Trace todayCount: number = 0
   @Trace blockedCount: number = 0
   @Trace currentShownCount: number = 0

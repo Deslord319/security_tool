@@ -14,17 +14,12 @@ import { AppResources } from '../constants/AppResources'
 import { RouteIds } from '../constants/RouteIds'
 import { ThemeMode, ThemeOption } from '../theme/ThemeColors'
 import { ThemeManager } from '../theme/ThemeManager'
+import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager'
 
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
-import { PeripheralDevicePolicyRepository } from '../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
-import { PeripheralTraceMaintenanceService } from '../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
-import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
-import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
-import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
-import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
-import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
+import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { ErrorLike } from '../types/LooseValueTypes'
 
 const TAG = 'MainPage'
@@ -32,31 +27,21 @@ const TAG = 'MainPage'
 @Entry
 @ComponentV2
 struct MainPage {
+  private readonly applicationRuntime: ApplicationRuntimeManager = ApplicationRuntimeManager.getInstance()
   @Local currentPage: string = RouteIds.DASHBOARD
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Local showMenu: boolean = false
-  @Local logManageMounted: boolean = true
+  @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
   @Local pageEnterOpacity: number = 1
   @Local pageEnterOffset: number = 0
   @Local menuTriggerHovered: boolean = false
   @Local currentTheme: ThemeMode = ThemeManager.getInstance().getCurrentTheme()
   @Local currentThemeOption: ThemeOption = ThemeManager.getInstance().getCurrentOption()
   private aboutDialogController?: CustomDialogController
-  private logRuntimeInitialized: boolean = false
-  private peripheralRuntimeInitialized: boolean = false
-  private logRuntimeInitInProgress: boolean = false
-  private peripheralRuntimeInitInProgress: boolean = false
   private readonly themeListener: () => void = () => {
     this.syncThemeState()
     this.syncDecorButtonStyle()
   }
-  private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
-    new PeripheralConnectionRecordRuntimeProducerAdapter()
-  private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
-    new PeripheralConnectionRecordPipelineImpl(this.connectionRecordProducer, [
-      new PeripheralConnectionRecordUsbConsumer(),
-      new PeripheralConnectionRecordBluetoothAclConsumer()
-    ])
 
   aboutToAppear(): void {
     ThemeManager.getInstance().subscribe(this.themeListener)
@@ -110,103 +95,10 @@ struct MainPage {
     this.loadFirewallState().catch((err: ErrorLike) => {
       LogUtils.error(TAG, `loadFirewallState in ${source} failed: ${JSON.stringify(err)}`)
     })
-    this.ensureRuntimeServices().catch((err: ErrorLike) => {
+    this.applicationRuntime.ensureRuntimeServices().catch((err: ErrorLike) => {
       LogUtils.error(TAG, `ensureRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
     })
     this.syncDecorButtonStyle()
-  }
-
-  private async ensureRuntimeServices(): Promise<void> {
-    if (!this.logRuntimeInitialized) {
-      await this.initLogRuntimeServices()
-    }
-    if (!this.peripheralRuntimeInitialized) {
-      await this.initPeripheralRuntimeServices()
-    }
-
-    let status = LogCollectorService.getStatus()
-    if (this.logRuntimeInitialized && !status.running) {
-      let collectorStarted = await LogCollectorService.start()
-      LogUtils.info(TAG, `ensureRuntimeServices collector start result: started=${collectorStarted.success}, code=${collectorStarted.code}`)
-      if (!collectorStarted.success) {
-        LogUtils.warn(TAG, `LogCollectorService restart failed: ${collectorStarted.code}`)
-      }
-    }
-
-    let runtimeStatus = this.connectionRecordProducer.getStatus()
-    if (this.peripheralRuntimeInitialized && !runtimeStatus.running) {
-      let runtimeStarted = await this.connectionRecordPipeline.start()
-      let latestStatus = this.connectionRecordProducer.getStatus()
-      LogUtils.info(TAG,
-        `ensureRuntimeServices peripheral runtime start result: started=${runtimeStarted}, usb=${latestStatus.capabilities.usbRuntimeEvents}, bluetooth=${latestStatus.capabilities.bluetoothRuntimeEvents}, reason=${latestStatus.capabilities.degradedReason ?? 'none'}`
-      )
-      if (!runtimeStarted) {
-        LogUtils.warn(TAG, 'connection record runtime start failed')
-      }
-    }
-  }
-
-  private async initLogRuntimeServices(): Promise<void> {
-    if (this.logRuntimeInitialized || this.logRuntimeInitInProgress) {
-      return
-    }
-    this.logRuntimeInitInProgress = true
-
-    try {
-      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      let collectorInited = await LogCollectorService.init(context)
-      if (!collectorInited.success) {
-        LogUtils.error(TAG, `LogCollectorService init failed: ${collectorInited.code}`)
-        return
-      }
-      this.logRuntimeInitialized = true
-      LogUtils.info(TAG, 'initLogRuntimeServices success')
-    } catch (err) {
-      this.logRuntimeInitialized = false
-      LogUtils.error(TAG, `initLogRuntimeServices failed: ${JSON.stringify(err)}`)
-    } finally {
-      this.logRuntimeInitInProgress = false
-    }
-  }
-
-  private async initPeripheralRuntimeServices(): Promise<void> {
-    if (this.peripheralRuntimeInitialized || this.peripheralRuntimeInitInProgress) {
-      return
-    }
-    this.peripheralRuntimeInitInProgress = true
-
-    try {
-      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      let traceRepoInited = await this.connectionRecordPipeline.bindContext(context)
-      if (!traceRepoInited) {
-        LogUtils.error(TAG, 'connection record pipeline bindContext failed')
-        return
-      }
-      let traceConfigured = await PeripheralTraceMaintenanceService.configure(180, 200000)
-      if (!traceConfigured.success) {
-        LogUtils.error(TAG, `PeripheralTraceMaintenanceService configure failed: ${traceConfigured.code}`)
-        return
-      }
-
-      let devicePolicyInited = await PeripheralDevicePolicyRepository.init(context)
-      if (!devicePolicyInited) {
-        LogUtils.error(TAG, 'PeripheralDevicePolicyRepository init failed')
-        return
-      }
-
-      let producerAttached = await this.connectionRecordPipeline.attachProducer(this.connectionRecordProducer)
-      if (!producerAttached) {
-        LogUtils.error(TAG, 'connection record pipeline attachProducer failed')
-        return
-      }
-      this.peripheralRuntimeInitialized = true
-      LogUtils.info(TAG, 'initPeripheralRuntimeServices success')
-    } catch (err) {
-      this.peripheralRuntimeInitialized = false
-      LogUtils.error(TAG, `initPeripheralRuntimeServices failed: ${JSON.stringify(err)}`)
-    } finally {
-      this.peripheralRuntimeInitInProgress = false
-    }
   }
 
   private setCurrentPage(page: string): void {
@@ -215,15 +107,11 @@ struct MainPage {
   }
 
   private handlePageRouteChange(): void {
+    // Request an explicit refresh when navigating to the log manager page instead of forcing a remount.
     if (this.currentPage === RouteIds.LOG_MANAGE) {
-      this.logManageMounted = false
-      setTimeout(() => {
-        if (this.currentPage === RouteIds.LOG_MANAGE) {
-          this.logManageMounted = true
-        }
-      }, 0)
-    } else {
-      this.logManageMounted = true
+      this.requestLogManageRefresh().catch((err: Error) => {
+        LogUtils.warn(TAG, `requestLogManageRefresh failed: ${JSON.stringify(err)}`)
+      })
     }
     this.pageEnterOpacity = 0.76
     this.pageEnterOffset = this.currentPage === RouteIds.DASHBOARD ? 18 : 10
@@ -234,6 +122,16 @@ struct MainPage {
       this.pageEnterOpacity = 1
       this.pageEnterOffset = 0
     })
+  }
+
+  // Ensure the shared LogManageViewModel is initialized/activated and refreshed when the user
+  // navigates to the log page. This avoids relying on UI remounting behavior.
+  private async requestLogManageRefresh(): Promise<void> {
+    try {
+      await this.applicationRuntime.refreshLogManageData()
+    } catch (err) {
+      LogUtils.warn(TAG, `requestLogManageRefresh failed: ${JSON.stringify(err)}`)
+    }
   }
 
   private async handleThemeToggle(): Promise<void> {
@@ -303,18 +201,13 @@ struct MainPage {
   @Builder
   private buildLogManageRoute() {
     Column() {
-      if (this.logManageMounted) {
-        LogManagePage({
-          currentTheme: this.currentTheme,
-          onBack: () => {
-            this.setCurrentPage(RouteIds.DASHBOARD)
-          }
-        })
-      } else {
-        Column()
-          .width('100%')
-          .height('100%')
-      }
+      LogManagePage({
+        currentTheme: this.currentTheme,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        },
+        viewModel: this.logManageViewModel
+      })
     }
     .id('route-page-log-manage')
     .width('100%')

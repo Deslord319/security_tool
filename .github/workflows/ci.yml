@@ -2,10 +2,14 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master, develop, 'codex/**']
     tags: ['v*']
   pull_request:
     branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: '18'
@@ -139,17 +143,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -159,7 +152,7 @@ jobs:
             Write-Host 'package.json not found at repository root, skipping npm install.'
           }
 
-      - name: Resolve hvigorw path
+      - name: Resolve local HarmonyOS toolchain
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
@@ -188,16 +181,35 @@ jobs:
             Write-Error 'hvigorw.bat was not found. Set DEVECOSTUDIO_HOME or install DevEco Studio under C:\Program Files\Huawei\DevEco Studio.'
           }
 
-          $jbrHome = $null
-          foreach ($candidate in $javaCandidates) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-              $jbrHome = $candidate
-              break
+          $nodeHome = if ($env:NODE_HOME -and (Test-Path -LiteralPath (Join-Path $env:NODE_HOME 'node.exe'))) {
+            $env:NODE_HOME
+          } else {
+            $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+            if ($nodeCommand) {
+              Split-Path -Path $nodeCommand.Source -Parent
+            } else {
+              $null
             }
           }
+          if (-not $nodeHome) {
+            Write-Error 'Node.js was not found.'
+          }
 
-          if (-not $jbrHome) {
-            Write-Error 'DevEco Studio JBR was not found.'
+          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $env:JAVA_HOME
+          } else {
+            $resolvedJava = $null
+            foreach ($candidate in $javaCandidates) {
+              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+                $resolvedJava = $candidate
+                break
+              }
+            }
+            $resolvedJava
+          }
+
+          if (-not $javaHome) {
+            Write-Error 'Java runtime was not found.'
           }
 
           $ohpmPath = $null
@@ -212,21 +224,21 @@ jobs:
             Write-Error 'ohpm.bat was not found.'
           }
 
+          $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+          New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
+
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
-          $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
-          New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
-          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
-          "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$npmGlobal" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
+          Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
-          Write-Host "Using JAVA_HOME: $jbrHome"
+          Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -236,13 +248,6 @@ jobs:
           } else {
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
-
-      - name: Prepare pnpm for hvigor
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.27.0 --activate
-          pnpm --version
 
       - name: Run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -435,17 +440,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
       - name: Install dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -455,7 +449,7 @@ jobs:
             Write-Host 'package.json not found at repository root, skipping npm install.'
           }
 
-      - name: Resolve toolchain paths
+      - name: Resolve local HarmonyOS toolchain
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $candidates = @()
@@ -483,15 +477,34 @@ jobs:
             Write-Error 'hvigorw.bat was not found.'
           }
 
-          $jbrHome = $null
-          foreach ($candidate in $javaCandidates) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-              $jbrHome = $candidate
-              break
+          $nodeHome = if ($env:NODE_HOME -and (Test-Path -LiteralPath (Join-Path $env:NODE_HOME 'node.exe'))) {
+            $env:NODE_HOME
+          } else {
+            $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+            if ($nodeCommand) {
+              Split-Path -Path $nodeCommand.Source -Parent
+            } else {
+              $null
             }
           }
-          if (-not $jbrHome) {
-            Write-Error 'DevEco Studio JBR was not found.'
+          if (-not $nodeHome) {
+            Write-Error 'Node.js was not found.'
+          }
+
+          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $env:JAVA_HOME
+          } else {
+            $resolvedJava = $null
+            foreach ($candidate in $javaCandidates) {
+              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+                $resolvedJava = $candidate
+                break
+              }
+            }
+            $resolvedJava
+          }
+          if (-not $javaHome) {
+            Write-Error 'Java runtime was not found.'
           }
 
           $ohpmPath = $null
@@ -505,18 +518,21 @@ jobs:
             Write-Error 'ohpm.bat was not found.'
           }
 
+          $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+          New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
+
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "JAVA_HOME=$jbrHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$jbrHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $npmGlobal = Join-Path $env:RUNNER_TEMP 'npm-global'
-          $pnpmHome = Join-Path $env:RUNNER_TEMP 'pnpm'
-          New-Item -ItemType Directory -Path $npmGlobal -Force | Out-Null
-          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
-          "NPM_CONFIG_PREFIX=$npmGlobal" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$npmGlobal" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Using hvigorw: $hvigorw"
+          Write-Host "Using NODE_HOME: $nodeHome"
+          Write-Host "Using ohpm: $ohpmPath"
+          Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -526,13 +542,6 @@ jobs:
           } else {
             Write-Host 'oh-package.json5 not found, skipping ohpm install.'
           }
-
-      - name: Prepare pnpm for hvigor
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.27.0 --activate
-          pnpm --version
 
       - name: Build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
