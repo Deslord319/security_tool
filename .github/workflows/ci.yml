@@ -316,10 +316,12 @@ jobs:
             Write-Error "npm.cmd was not found under NODE_HOME: $npm"
           }
           & $npm --version
-          & $npm install --global --prefix "$env:PNPM_HOME" "pnpm@10.27.0"
-          $pnpm = Join-Path $env:PNPM_HOME 'pnpm.cmd'
+          $wrapperTools = Join-Path $env:HVIGOR_USER_HOME 'wrapper\tools'
+          New-Item -ItemType Directory -Path $wrapperTools -Force | Out-Null
+          & $npm install --prefix "$wrapperTools" "pnpm@10.27.0"
+          $pnpm = Join-Path $wrapperTools 'node_modules\.bin\pnpm.cmd'
           if (-not (Test-Path -LiteralPath $pnpm)) {
-            Write-Error "pnpm.cmd was not installed under PNPM_HOME: $pnpm"
+            Write-Error "pnpm.cmd was not installed under hvigor wrapper tools: $pnpm"
           }
           & $pnpm --version
 
@@ -693,10 +695,12 @@ jobs:
             Write-Error "npm.cmd was not found under NODE_HOME: $npm"
           }
           & $npm --version
-          & $npm install --global --prefix "$env:PNPM_HOME" "pnpm@10.27.0"
-          $pnpm = Join-Path $env:PNPM_HOME 'pnpm.cmd'
+          $wrapperTools = Join-Path $env:HVIGOR_USER_HOME 'wrapper\tools'
+          New-Item -ItemType Directory -Path $wrapperTools -Force | Out-Null
+          & $npm install --prefix "$wrapperTools" "pnpm@10.27.0"
+          $pnpm = Join-Path $wrapperTools 'node_modules\.bin\pnpm.cmd'
           if (-not (Test-Path -LiteralPath $pnpm)) {
-            Write-Error "pnpm.cmd was not installed under PNPM_HOME: $pnpm"
+            Write-Error "pnpm.cmd was not installed under hvigor wrapper tools: $pnpm"
           }
           & $pnpm --version
 
