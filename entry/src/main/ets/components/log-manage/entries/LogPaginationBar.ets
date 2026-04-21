@@ -26,7 +26,7 @@ export struct LogPaginationBar {
   }
 
   private getCurrentRangeText(): string {
-    if (this.summaryState.totalCount === 0 || this.listState.pagedEntries.length === 0) {
+    if (this.summaryState.filteredCount === 0 || this.listState.pagedEntries.length === 0) {
       return '0-0'
     }
     let pageSize = this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20
@@ -36,10 +36,10 @@ export struct LogPaginationBar {
   }
 
   build() {
-    if (!this.loading && this.summaryState.totalCount > 0) {
+    if (!this.loading && this.summaryState.filteredCount > 0) {
       Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
       Row({ space: 12 }) {
-        Text(LogManagePaginationStrings.buildPageRangeText(this.getCurrentRangeText(), this.summaryState.totalCount))
+        Text(LogManagePaginationStrings.buildPageRangeText(this.getCurrentRangeText(), this.summaryState.filteredCount))
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)

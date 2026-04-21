@@ -44,7 +44,8 @@ const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 export struct LogManagePage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param onBack: () => void = () => {}
-  @Local viewModel: LogManageViewModel = new LogManageViewModel()
+  @Param viewModel: LogManageViewModel | null = null
+  @Local ownedViewModel: LogManageViewModel = new LogManageViewModel()
   @Local private settingsScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
   private detailDialogController?: CustomDialogController
 
@@ -64,41 +65,51 @@ export struct LogManagePage {
   }
 
   aboutToDisappear() {
-    this.viewModel.deactivate()
-    this.viewModel.destroy()
+    this.getActiveViewModel().deactivate()
+    if (!this.viewModel) {
+      this.ownedViewModel.destroy()
+    }
     this.closeDetailDialog()
   }
 
   private async initializeViewModels(): Promise<void> {
     try {
+      let viewModel = this.getActiveViewModel()
       let context = this.getUIContext().getHostContext() as common.UIAbilityContext
-      let initResult = await this.viewModel.initialize(context)
-      if (!initResult.success) {
-        LogUtils.warn(TAG, `initializeViewModels list init failed: ${initResult.code}`)
+      if (!viewModel.state.initialized) {
+        let initResult = await viewModel.initialize(context)
+        if (!initResult.success) {
+          LogUtils.warn(TAG, `initializeViewModels list init failed: ${initResult.code}`)
+        }
       }
-      this.viewModel.activate()
-      await this.viewModel.refreshAll()
+      viewModel.activate()
+      await viewModel.refreshAll()
     } catch (err) {
       LogUtils.error(TAG, `initializeViewModels failed: ${JSON.stringify(err)}`)
     }
   }
 
+  private getActiveViewModel(): LogManageViewModel {
+    return this.viewModel ?? this.ownedViewModel
+  }
+
   private async openStorageSettings(): Promise<void> {
     try {
       this.closeDetailDialog()
-      await this.viewModel.setMode('settings')
+      await this.getActiveViewModel().setMode('settings')
     } catch (err) {
       LogUtils.error(TAG, `openStorageSettings failed: ${JSON.stringify(err)}`)
     }
   }
 
   private async backToLogList(): Promise<void> {
-    await this.viewModel.setMode('list')
+    await this.getActiveViewModel().setMode('list')
   }
 
   private openLogDetailDialog(entry: LogEntry): void {
+    let viewModel = this.getActiveViewModel()
     this.closeDetailDialogController()
-    this.viewModel.openDetail(entry.id)
+    viewModel.openDetail(entry.id)
     try {
       this.detailDialogController = new CustomDialogController({
         builder: LogDetailDialog({
@@ -115,7 +126,7 @@ export struct LogManagePage {
         maskColor: AppColors.OVERLAY_BACKGROUND,
         cancel: () => {
           this.detailDialogController = undefined
-          this.viewModel.closeDetail()
+          viewModel.closeDetail()
         }
       })
       this.detailDialogController.open()
@@ -127,7 +138,7 @@ export struct LogManagePage {
 
   private async handleExportLogs(): Promise<void> {
     let context = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let result: ExportActionResult = await this.viewModel.exportLogs(context)
+    let result: ExportActionResult = await this.getActiveViewModel().exportLogs(context)
     if (result.success) {
       DialogService.openSuccess(this.getUIContext(), ExportMessageUtils.buildExportSuccessText(result.fileName ?? 'security_log.csv'))
       return
@@ -136,13 +147,14 @@ export struct LogManagePage {
   }
 
   private handleClearLogs(): void {
+    let viewModel = this.getActiveViewModel()
     DialogService.openConfirm(this.getUIContext(), {
       title: LogManageClearingStrings.CONFIRM_TITLE,
-      message: LogManageClearingStrings.buildConfirmMessage(this.viewModel.state.summary.totalCount),
+      message: LogManageClearingStrings.buildConfirmMessage(viewModel.state.summary.totalCount),
       confirmText: ActionText.CLEAR,
       cancelText: ActionText.CANCEL,
       onConfirm: async () => {
-        let result = await this.viewModel.clearLogs()
+        let result = await viewModel.clearLogs()
         this.closeDetailDialog()
         if (result.success) {
           DialogService.openSuccess(this.getUIContext(), LogManageClearingStrings.SUCCESS)
@@ -154,7 +166,7 @@ export struct LogManagePage {
   }
 
   private async handleSaveStorageSettings(): Promise<void> {
-    let result = await this.viewModel.saveStorageSettings()
+    let result = await this.getActiveViewModel().saveStorageSettings()
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.code === 'no_changes' ? MessageText.NO_CHANGES : ResultText.SAVE_FAILED)
       return
@@ -168,7 +180,7 @@ export struct LogManagePage {
       GridCol() {
         CompactSummaryCard({
           title: LogManageStatStrings.TOTAL,
-          valueText: `${this.viewModel.state.summary.totalCount}`,
+          valueText: `${this.getActiveViewModel().state.summary.totalCount}`,
           description: LogManageStatStrings.TOTAL_DESCRIPTION,
           icon: AppResources.FOLDER_ICON,
           accentStart: AppColors.BRAND_PRIMARY,
@@ -180,7 +192,7 @@ export struct LogManagePage {
       GridCol() {
         CompactSummaryCard({
           title: LogManageStatStrings.TODAY,
-          valueText: `${this.viewModel.state.summary.todayCount}`,
+          valueText: `${this.getActiveViewModel().state.summary.todayCount}`,
           description: LogManageStatStrings.TODAY_DESCRIPTION,
           icon: AppResources.LOG_ICON,
           accentStart: AppColors.SUCCESS,
@@ -192,7 +204,7 @@ export struct LogManagePage {
       GridCol() {
         CompactSummaryCard({
           title: LogResultPresentationStrings.BLOCKED,
-          valueText: `${this.viewModel.state.summary.blockedCount}`,
+          valueText: `${this.getActiveViewModel().state.summary.blockedCount}`,
           description: LogManageStatStrings.BLOCKED_DESCRIPTION,
           icon: AppResources.ALERT_ICON,
           accentStart: AppColors.WARNING,
@@ -204,7 +216,7 @@ export struct LogManagePage {
       GridCol() {
         CompactSummaryCard({
           title: LogManageStatStrings.CURRENT_SHOWN,
-          valueText: `${this.viewModel.state.summary.currentShownCount}`,
+          valueText: `${this.getActiveViewModel().state.summary.currentShownCount}`,
           description: LogManageStatStrings.CURRENT_SHOWN_DESCRIPTION,
           icon: AppResources.DASHBOARD_ICON,
           accentStart: AppColors.GRADIENT_TOOL_START,
@@ -221,7 +233,7 @@ export struct LogManagePage {
   @Builder
   private headerRightActions() {
     Row({ space: 8 }) {
-      if (this.viewModel.state.mode === 'list') {
+      if (this.getActiveViewModel().state.mode === 'list') {
         IconTextActionButton({
           label: LogManageActionStrings.EXPORT_LOGS,
           icon: AppResources.SAVE_ICON,
@@ -250,7 +262,8 @@ export struct LogManagePage {
           label: ActionText.SAVE_SETTINGS,
           icon: AppResources.SAVE_ICON,
           currentTheme: this.currentTheme,
-          isEnabled: this.viewModel.settingsViewModel.state.dirty && !this.viewModel.settingsViewModel.state.saving,
+          isEnabled: this.getActiveViewModel().settingsViewModel.state.dirty &&
+            !this.getActiveViewModel().settingsViewModel.state.saving,
           onTap: () => {
             this.handleSaveStorageSettings()
           }
@@ -270,14 +283,16 @@ export struct LogManagePage {
   @Builder
   private settingsPanel() {
     LogStorageSettingsPanel({
-      maxLocalEntries: this.viewModel.settingsViewModel.state.maxLocalEntries,
-      retentionDays: this.viewModel.settingsViewModel.state.retentionDays,
+      maxLocalEntries: this.getActiveViewModel().settingsViewModel.state.maxLocalEntries,
+      retentionDays: this.getActiveViewModel().settingsViewModel.state.retentionDays,
       currentTheme: this.currentTheme,
       onSelectMaxEntries: (index: number) => {
-        this.viewModel.settingsViewModel.setMaxLocalEntries(LOG_MAX_ENTRIES_OPTIONS[index] ?? LOG_MAX_ENTRIES_OPTIONS[0])
+        this.getActiveViewModel().settingsViewModel.setMaxLocalEntries(LOG_MAX_ENTRIES_OPTIONS[index] ??
+          LOG_MAX_ENTRIES_OPTIONS[0])
       },
       onSelectRetentionDays: (index: number) => {
-        this.viewModel.settingsViewModel.setRetentionDays(LOG_RETENTION_OPTIONS[index] ?? LOG_RETENTION_OPTIONS[0])
+        this.getActiveViewModel().settingsViewModel.setRetentionDays(LOG_RETENTION_OPTIONS[index] ??
+          LOG_RETENTION_OPTIONS[0])
       }
     })
   }
@@ -293,15 +308,16 @@ export struct LogManagePage {
 
   private closeDetailDialog(): void {
     this.closeDetailDialogController()
-    this.viewModel.closeDetail()
+    this.getActiveViewModel().closeDetail()
   }
 
   @Builder
   private filterToolbar() {
     Row({ space: 8 }) {
       Select(this.eventTypeFilterOptions)
-        .selected(this.viewModel.state.filter.eventTypeIndex)
-        .value((this.eventTypeFilterOptions[this.viewModel.state.filter.eventTypeIndex]?.value as string) ?? LogManageFilterStrings.ALL_EVENT_TYPES)
+        .selected(this.getActiveViewModel().state.filter.eventTypeIndex)
+        .value((this.eventTypeFilterOptions[this.getActiveViewModel().state.filter.eventTypeIndex]?.value as string) ??
+          LogManageFilterStrings.ALL_EVENT_TYPES)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
@@ -313,11 +329,12 @@ export struct LogManagePage {
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.viewModel.setEventTypeIndex(index) })
+        .onSelect((index: number) => { void this.getActiveViewModel().setEventTypeIndex(index) })
 
       Select(this.resultFilterOptions)
-        .selected(this.viewModel.state.filter.resultIndex)
-        .value((this.resultFilterOptions[this.viewModel.state.filter.resultIndex]?.value as string) ?? LogManageFilterStrings.ALL_RESULTS)
+        .selected(this.getActiveViewModel().state.filter.resultIndex)
+        .value((this.resultFilterOptions[this.getActiveViewModel().state.filter.resultIndex]?.value as string) ??
+          LogManageFilterStrings.ALL_RESULTS)
         .font({ size: AppStyles.FONT_SIZE_BODY })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
@@ -329,9 +346,12 @@ export struct LogManagePage {
         .backgroundColor(FormControlUtils.background(this.currentTheme))
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.viewModel.setResultIndex(index) })
+        .onSelect((index: number) => { void this.getActiveViewModel().setResultIndex(index) })
 
-      TextInput({ placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER, text: this.viewModel.state.filter.keyword })
+      TextInput({
+        placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER,
+        text: this.getActiveViewModel().state.filter.keyword
+      })
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(FormControlUtils.text(this.currentTheme))
         .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
@@ -340,7 +360,7 @@ export struct LogManagePage {
         .borderRadius(AppStyles.RADIUS_SM)
         .height(36)
         .layoutWeight(1)
-        .onChange((value: string) => { void this.viewModel.setKeyword(value) })
+        .onChange((value: string) => { void this.getActiveViewModel().setKeyword(value) })
     }
     .width('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM })
@@ -350,8 +370,9 @@ export struct LogManagePage {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         SubPageHeader({
-          title: this.viewModel.state.mode === 'settings' ? LogManagePageStrings.SETTINGS_TITLE : ModuleText.LOG_MANAGE,
-          subtitle: this.viewModel.state.mode === 'settings' ? LogManagePageStrings.SETTINGS_SUBTITLE : LogManagePageStrings.SUBTITLE,
+          title: this.getActiveViewModel().state.mode === 'settings' ? LogManagePageStrings.SETTINGS_TITLE : ModuleText.LOG_MANAGE,
+          subtitle: this.getActiveViewModel().state.mode === 'settings' ?
+            LogManagePageStrings.SETTINGS_SUBTITLE : LogManagePageStrings.SUBTITLE,
           currentTheme: this.currentTheme,
           onBack: this.onBack,
           actions: () => {
@@ -359,7 +380,7 @@ export struct LogManagePage {
           }
         })
 
-        if (this.viewModel.state.mode === 'settings') {
+        if (this.getActiveViewModel().state.mode === 'settings') {
           Scroll() {
             Column({ space: 24 }) {
               this.settingsPanel()
@@ -378,30 +399,30 @@ export struct LogManagePage {
           })
           .align(Alignment.Top)
         } else {
-          if (this.viewModel.state.initialized) {
+          if (this.getActiveViewModel().state.initialized) {
             this.summaryCards()
             this.filterToolbar()
             LogEntriesPanel({
-              loading: this.viewModel.state.loading,
-              listState: this.viewModel.state.list,
-              filterState: this.viewModel.state.filter,
+              loading: this.getActiveViewModel().state.loading,
+              listState: this.getActiveViewModel().state.list,
+              filterState: this.getActiveViewModel().state.filter,
               currentTheme: this.currentTheme,
               onEntryClick: (entry: LogEntry) => {
                 this.openLogDetailDialog(entry)
               }
             })
             LogPaginationBar({
-              loading: this.viewModel.state.loading,
-              listState: this.viewModel.state.list,
-              summaryState: this.viewModel.state.summary,
-              paginationState: this.viewModel.state.pagination,
+              loading: this.getActiveViewModel().state.loading,
+              listState: this.getActiveViewModel().state.list,
+              summaryState: this.getActiveViewModel().state.summary,
+              paginationState: this.getActiveViewModel().state.pagination,
               currentTheme: this.currentTheme,
               pageSizeOptions: PAGE_SIZE_OPTIONS,
-              onSelectPageSize: (index: number) => this.viewModel.setPageSizeIndex(index),
-              onChangePageInput: (value: string) => this.viewModel.setPageInputText(value),
-              onJumpPage: () => this.viewModel.jumpToInputPage(),
-              onPrevPage: () => this.viewModel.goToPreviousPage(),
-              onNextPage: () => this.viewModel.goToNextPage()
+              onSelectPageSize: (index: number) => this.getActiveViewModel().setPageSizeIndex(index),
+              onChangePageInput: (value: string) => this.getActiveViewModel().setPageInputText(value),
+              onJumpPage: () => this.getActiveViewModel().jumpToInputPage(),
+              onPrevPage: () => this.getActiveViewModel().goToPreviousPage(),
+              onNextPage: () => this.getActiveViewModel().goToNextPage()
             })
           } else {
             Column({ space: 12 }) {

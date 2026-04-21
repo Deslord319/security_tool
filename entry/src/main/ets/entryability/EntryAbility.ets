@@ -11,6 +11,7 @@ import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKi
 import { statusBarManager } from '@kit.DeskTopExtensionKit';
 import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
 import { LogPowerLifecycleSource } from '../services/log-manage/source/LogPowerLifecycleSource';
+import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager';
 
 const ENTRYABILITY_TAG = 'entryAbility'
 
@@ -82,6 +83,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
+    ApplicationRuntimeManager.getInstance().bindContext(this.context)
     // 异步检查启动认证
     this.checkStartupAuth(windowStage);
   }
@@ -152,6 +154,10 @@ export default class EntryAbility extends UIAbility {
       // 页面组件创建后，@StorageLink 可能用默认值覆盖了 AppStorage
       // 需要在此重新应用正确的主题
       ThemeManager.getInstance().reapplyTheme();
+
+      ApplicationRuntimeManager.getInstance().initializeAll().catch((runtimeErr: Error) => {
+        LogUtils.warn(ENTRYABILITY_TAG, 'Application runtime init failed: %{public}s', JSON.stringify(runtimeErr))
+      })
 
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {
