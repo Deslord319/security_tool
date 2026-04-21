@@ -227,17 +227,15 @@ jobs:
             Write-Error 'Node.js was not found.'
           }
 
-          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
-            $env:JAVA_HOME
-          } else {
-            $resolvedJava = $null
-            foreach ($candidate in $javaCandidates) {
-              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-                $resolvedJava = $candidate
-                break
-              }
+          $javaHome = $null
+          foreach ($candidate in $javaCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+              $javaHome = $candidate
+              break
             }
-            $resolvedJava
+          }
+          if (-not $javaHome -and $env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $javaHome = $env:JAVA_HOME
           }
 
           if (-not $javaHome) {
@@ -277,11 +275,6 @@ jobs:
           if ($hvigorUserHome -match '\s') {
             Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
           }
-
-          $sourceModuleJson = '.github\ci\openharmony-previewer-module.json'
-          $targetModuleJson = Join-Path $devecoSdkHome 'default\openharmony\previewer\common\resources\module.json'
-          Copy-Item -LiteralPath $sourceModuleJson -Destination $targetModuleJson -Force
-          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('DevEco SDK module.json valid')" "$targetModuleJson"
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
             if ($targetPath -notmatch '\s') {
@@ -630,17 +623,15 @@ jobs:
             Write-Error 'Node.js was not found.'
           }
 
-          $javaHome = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
-            $env:JAVA_HOME
-          } else {
-            $resolvedJava = $null
-            foreach ($candidate in $javaCandidates) {
-              if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
-                $resolvedJava = $candidate
-                break
-              }
+          $javaHome = $null
+          foreach ($candidate in $javaCandidates) {
+            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'bin\java.exe'))) {
+              $javaHome = $candidate
+              break
             }
-            $resolvedJava
+          }
+          if (-not $javaHome -and $env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+            $javaHome = $env:JAVA_HOME
           }
           if (-not $javaHome) {
             Write-Error 'Java runtime was not found.'
@@ -677,11 +668,6 @@ jobs:
           if ($hvigorUserHome -match '\s') {
             Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
           }
-
-          $sourceModuleJson = '.github\ci\openharmony-previewer-module.json'
-          $targetModuleJson = Join-Path $devecoSdkHome 'default\openharmony\previewer\common\resources\module.json'
-          Copy-Item -LiteralPath $sourceModuleJson -Destination $targetModuleJson -Force
-          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('DevEco SDK module.json valid')" "$targetModuleJson"
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
             if ($targetPath -notmatch '\s') {
