@@ -323,24 +323,6 @@ jobs:
           Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
           Write-Host "Using PNPM_HOME: $pnpmHome"
 
-      - name: Check DevEco SDK metadata access
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
-          $moduleJson = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
-          if (-not (Test-Path -LiteralPath $moduleJson)) {
-            Write-Error "SDK metadata not found: $moduleJson"
-          }
-
-          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-          Write-Host "Current runner account: $account"
-          cmd /c icacls "$moduleJson"
-          try {
-            $stream = [System.IO.File]::Open($moduleJson, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-            $stream.Dispose()
-          } catch {
-            Write-Error "DevEco SDK metadata is not readable by runner account '$account': $moduleJson. Fix the self-hosted runner service account or grant this account read permission to the DevEco SDK directory."
-          }
-
       - name: Install pnpm for hvigor
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
@@ -735,24 +717,6 @@ jobs:
           Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
           Write-Host "Using NPM_CONFIG_PREFIX: $pnpmHome"
           Write-Host "Using PNPM_HOME: $pnpmHome"
-
-      - name: Check DevEco SDK metadata access
-        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
-        run: |
-          $moduleJson = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
-          if (-not (Test-Path -LiteralPath $moduleJson)) {
-            Write-Error "SDK metadata not found: $moduleJson"
-          }
-
-          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-          Write-Host "Current runner account: $account"
-          cmd /c icacls "$moduleJson"
-          try {
-            $stream = [System.IO.File]::Open($moduleJson, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-            $stream.Dispose()
-          } catch {
-            Write-Error "DevEco SDK metadata is not readable by runner account '$account': $moduleJson. Fix the self-hosted runner service account or grant this account read permission to the DevEco SDK directory."
-          }
 
       - name: Install pnpm for hvigor
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
