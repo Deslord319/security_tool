@@ -12,6 +12,7 @@ import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import firewallModelsTest from './firewall/models.test'
 import firewallRuleUtilsTest from './firewall/rule-utils.test'
+import firewallServiceTest from './firewall/service.test'
 import systemUserProviderTest from './firewall/system-user-provider.test'
 import firewallStringsTest from './firewall/strings.test'
 import helpFeedbackStringsTest from './help/strings.test'
@@ -84,6 +85,7 @@ export default function testsuite() {
   adminServiceTest()
   firewallModelsTest()
   firewallRuleUtilsTest()
+  firewallServiceTest()
   systemUserProviderTest()
   firewallStringsTest()
   helpFeedbackStringsTest()
