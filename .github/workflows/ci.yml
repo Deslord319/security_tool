@@ -226,19 +226,54 @@ jobs:
 
           $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
+          $npmCache = Join-Path $hvigorUserHome 'npm-cache'
+          $pnpmHome = Join-Path $hvigorUserHome 'pnpm-home'
+          New-Item -ItemType Directory -Path $npmCache -Force | Out-Null
+          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
+          if ($hvigorUserHome -match '\s') {
+            Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
+          }
+
+          function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
+            if ($targetPath -notmatch '\s') {
+              return $targetPath
+            }
+            $linkRoot = Join-Path 'C:\hvigor-ci\tool-links' ($env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+            New-Item -ItemType Directory -Path $linkRoot -Force | Out-Null
+            $linkPath = Join-Path $linkRoot $name
+            if (Test-Path -LiteralPath $linkPath) {
+              Remove-Item -LiteralPath $linkPath -Force
+            }
+            New-Item -ItemType Junction -Path $linkPath -Target $targetPath | Out-Null
+            return $linkPath
+          }
+
+          $nodeHome = New-NoSpaceToolLink -name 'node' -targetPath $nodeHome
+          $javaHome = New-NoSpaceToolLink -name 'jbr' -targetPath $javaHome
+          if ($nodeHome -match '\s') {
+            Write-Error "NODE_HOME must not contain spaces for hvigor pnpm bootstrap: $nodeHome"
+          }
+          if ($javaHome -match '\s') {
+            Write-Error "JAVA_HOME must not contain spaces for hvigor: $javaHome"
+          }
 
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
+          Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
+          Write-Host "Using PNPM_HOME: $pnpmHome"
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
@@ -520,19 +555,54 @@ jobs:
 
           $hvigorUserHome = Join-Path 'C:\hvigor-ci' ("user-home-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
           New-Item -ItemType Directory -Path $hvigorUserHome -Force | Out-Null
+          $npmCache = Join-Path $hvigorUserHome 'npm-cache'
+          $pnpmHome = Join-Path $hvigorUserHome 'pnpm-home'
+          New-Item -ItemType Directory -Path $npmCache -Force | Out-Null
+          New-Item -ItemType Directory -Path $pnpmHome -Force | Out-Null
+          if ($hvigorUserHome -match '\s') {
+            Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
+          }
+
+          function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
+            if ($targetPath -notmatch '\s') {
+              return $targetPath
+            }
+            $linkRoot = Join-Path 'C:\hvigor-ci\tool-links' ($env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+            New-Item -ItemType Directory -Path $linkRoot -Force | Out-Null
+            $linkPath = Join-Path $linkRoot $name
+            if (Test-Path -LiteralPath $linkPath) {
+              Remove-Item -LiteralPath $linkPath -Force
+            }
+            New-Item -ItemType Junction -Path $linkPath -Target $targetPath | Out-Null
+            return $linkPath
+          }
+
+          $nodeHome = New-NoSpaceToolLink -name 'node' -targetPath $nodeHome
+          $javaHome = New-NoSpaceToolLink -name 'jbr' -targetPath $javaHome
+          if ($nodeHome -match '\s') {
+            Write-Error "NODE_HOME must not contain spaces for hvigor pnpm bootstrap: $nodeHome"
+          }
+          if ($javaHome -match '\s') {
+            Write-Error "JAVA_HOME must not contain spaces for hvigor: $javaHome"
+          }
 
           "HVIGORW_PATH=$hvigorw" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PNPM_HOME=$pnpmHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "$nodeHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$pnpmHome" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$javaHome\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using hvigorw: $hvigorw"
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
+          Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
+          Write-Host "Using PNPM_HOME: $pnpmHome"
 
       - name: Install Harmony dependencies
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
