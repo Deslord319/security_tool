@@ -16,7 +16,7 @@ export struct DetailDialogShell {
   @BuilderParam content?: () => void
   @Event onClose: () => void = () => {}
   private static readonly DIALOG_PADDING: number = 18
-  private static readonly SCROLL_CONTENT_RIGHT_PADDING: number = 24
+  private static readonly SCROLL_CONTENT_RIGHT_PADDING: number = 4
   @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   private getBodyTopPadding(): number {
