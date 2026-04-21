@@ -327,33 +327,22 @@ jobs:
       - name: Check DevEco SDK metadata access
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          $ready = 'true'
           $moduleJson = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
           if (-not (Test-Path -LiteralPath $moduleJson)) {
-            Write-Host "SDK metadata not found: $moduleJson"
-            $ready = 'false'
-          } else {
-            $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-            Write-Host "Current runner account: $account"
-            & icacls $moduleJson
-            if ($LASTEXITCODE -ne 0) {
-              $ready = 'false'
-            } else {
-              & icacls $moduleJson /grant "${account}:(R)" /C
-              if ($LASTEXITCODE -ne 0) {
-                $ready = 'false'
-              }
-            }
+            Write-Error "SDK metadata not found: $moduleJson"
           }
 
-          "HARMONY_RUNNER_READY=$ready" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          if ($ready -ne 'true') {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'HarmonyOS self-hosted runner SDK metadata is not readable by the runner account. Skipping entry@default unit tests on this runner.'
+          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+          Write-Host "Current runner account: $account"
+          cmd /c icacls "$moduleJson"
+          try {
+            $stream = [System.IO.File]::Open($moduleJson, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            $stream.Dispose()
+          } catch {
+            Write-Error "DevEco SDK metadata is not readable by runner account '$account': $moduleJson. Fix the self-hosted runner service account or grant this account read permission to the DevEco SDK directory."
           }
-          exit 0
 
       - name: Install pnpm for hvigor
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $env:PATH = "$env:NODE_HOME;$env:PNPM_HOME;$env:JAVA_HOME\bin;$env:PATH"
@@ -372,7 +361,6 @@ jobs:
           & $pnpm --version
 
       - name: Install Harmony dependencies
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           if (Test-Path -LiteralPath 'oh-package.json5') {
@@ -382,7 +370,6 @@ jobs:
           }
 
       - name: Run entry@default tests
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
@@ -753,33 +740,22 @@ jobs:
       - name: Check DevEco SDK metadata access
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
-          $ready = 'true'
           $moduleJson = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\previewer\common\resources\module.json'
           if (-not (Test-Path -LiteralPath $moduleJson)) {
-            Write-Host "SDK metadata not found: $moduleJson"
-            $ready = 'false'
-          } else {
-            $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-            Write-Host "Current runner account: $account"
-            & icacls $moduleJson
-            if ($LASTEXITCODE -ne 0) {
-              $ready = 'false'
-            } else {
-              & icacls $moduleJson /grant "${account}:(R)" /C
-              if ($LASTEXITCODE -ne 0) {
-                $ready = 'false'
-              }
-            }
+            Write-Error "SDK metadata not found: $moduleJson"
           }
 
-          "HARMONY_RUNNER_READY=$ready" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          if ($ready -ne 'true') {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'HarmonyOS self-hosted runner SDK metadata is not readable by the runner account. Skipping HAP build on this runner.'
+          $account = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+          Write-Host "Current runner account: $account"
+          cmd /c icacls "$moduleJson"
+          try {
+            $stream = [System.IO.File]::Open($moduleJson, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            $stream.Dispose()
+          } catch {
+            Write-Error "DevEco SDK metadata is not readable by runner account '$account': $moduleJson. Fix the self-hosted runner service account or grant this account read permission to the DevEco SDK directory."
           }
-          exit 0
 
       - name: Install pnpm for hvigor
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           $env:PATH = "$env:NODE_HOME;$env:PNPM_HOME;$env:JAVA_HOME\bin;$env:PATH"
@@ -798,7 +774,6 @@ jobs:
           & $pnpm --version
 
       - name: Install Harmony dependencies
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           if (Test-Path -LiteralPath 'oh-package.json5') {
@@ -808,19 +783,16 @@ jobs:
           }
 
       - name: Build unsigned HAP
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 
       - name: Sync HAP into signer workspace
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           Copy-Item -LiteralPath 'entry/build/default/outputs/default/entry-default-unsigned.hap' -Destination 'hapsigner/entry-default-unsigned.hap' -Force
 
       - name: Sign HAP
-        if: env.HARMONY_RUNNER_READY != 'false'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           Push-Location 'hapsigner'
@@ -841,7 +813,6 @@ jobs:
           }
 
       - name: Upload HAP artifacts
-        if: env.HARMONY_RUNNER_READY != 'false'
         uses: actions/upload-artifact@v6
         with:
           name: entry-default-hap
