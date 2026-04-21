@@ -371,6 +371,7 @@ jobs:
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "REAL_DEVECO_SDK_HOME=$realDevecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -383,6 +384,7 @@ jobs:
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using REAL_DEVECO_SDK_HOME: $realDevecoSdkHome"
           Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
           Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
@@ -419,6 +421,20 @@ jobs:
       - name: Run entry@default tests
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
+          $realRestool = Join-Path $env:REAL_DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          $overlayRestool = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          foreach ($tool in @(@{ Name = 'real'; Path = $realRestool }, @{ Name = 'overlay'; Path = $overlayRestool })) {
+            Write-Host "Checking $($tool.Name) restool: $($tool.Path)"
+            if (-not (Test-Path -LiteralPath $tool.Path)) {
+              Write-Error "restool.exe missing at $($tool.Path)"
+            }
+            icacls $tool.Path
+            try {
+              & $tool.Path 2>&1 | Select-Object -First 5 | ForEach-Object { Write-Host $_ }
+            } catch {
+              Write-Error "restool.exe could not be executed from $($tool.Path): $($_.Exception.Message)"
+            }
+          }
           & "$env:HVIGORW_PATH" --no-daemon test --mode module -p product=default -p module=entry@default
 
       - name: Render static coverage report
@@ -832,6 +848,7 @@ jobs:
           "NODE_HOME=$nodeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "OHPM_PATH=$ohpmPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "JAVA_HOME=$javaHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "REAL_DEVECO_SDK_HOME=$realDevecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "DEVECO_SDK_HOME=$devecoSdkHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "HVIGOR_USER_HOME=$hvigorUserHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "NPM_CONFIG_CACHE=$npmCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -844,6 +861,7 @@ jobs:
           Write-Host "Using NODE_HOME: $nodeHome"
           Write-Host "Using ohpm: $ohpmPath"
           Write-Host "Using JAVA_HOME: $javaHome"
+          Write-Host "Using REAL_DEVECO_SDK_HOME: $realDevecoSdkHome"
           Write-Host "Using DEVECO_SDK_HOME: $devecoSdkHome"
           Write-Host "Using HVIGOR_USER_HOME: $hvigorUserHome"
           Write-Host "Using NPM_CONFIG_CACHE: $npmCache"
@@ -880,6 +898,20 @@ jobs:
       - name: Build unsigned HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
+          $realRestool = Join-Path $env:REAL_DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          $overlayRestool = Join-Path $env:DEVECO_SDK_HOME 'default\openharmony\toolchains\restool.exe'
+          foreach ($tool in @(@{ Name = 'real'; Path = $realRestool }, @{ Name = 'overlay'; Path = $overlayRestool })) {
+            Write-Host "Checking $($tool.Name) restool: $($tool.Path)"
+            if (-not (Test-Path -LiteralPath $tool.Path)) {
+              Write-Error "restool.exe missing at $($tool.Path)"
+            }
+            icacls $tool.Path
+            try {
+              & $tool.Path 2>&1 | Select-Object -First 5 | ForEach-Object { Write-Host $_ }
+            } catch {
+              Write-Error "restool.exe could not be executed from $($tool.Path): $($_.Exception.Message)"
+            }
+          }
           & "$env:HVIGORW_PATH" --no-daemon assembleHap --mode module -p product=default -p module=entry@default
 
       - name: Sync HAP into signer workspace
