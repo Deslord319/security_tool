@@ -276,6 +276,41 @@ jobs:
             Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
           }
 
+          $realDevecoSdkHome = $devecoSdkHome
+          $sdkOverlayHome = Join-Path 'C:\hvigor-ci' ("sdk-overlay-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+          $overlayDefault = Join-Path $sdkOverlayHome 'default'
+          $overlayOpenHarmony = Join-Path $overlayDefault 'openharmony'
+          $realDefault = Join-Path $realDevecoSdkHome 'default'
+          $realOpenHarmony = Join-Path $realDefault 'openharmony'
+          Remove-Item -LiteralPath $sdkOverlayHome -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $overlayDefault -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $realDefault 'sdk-pkg.json') -Destination (Join-Path $overlayDefault 'sdk-pkg.json') -Force
+
+          Get-ChildItem -LiteralPath $realDefault -Force | Where-Object { $_.Name -ne 'openharmony' -and $_.Name -ne 'sdk-pkg.json' } | ForEach-Object {
+            $target = Join-Path $overlayDefault $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          New-Item -ItemType Directory -Path $overlayOpenHarmony -Force | Out-Null
+          Get-ChildItem -LiteralPath $realOpenHarmony -Force | Where-Object { $_.Name -ne 'previewer' } | ForEach-Object {
+            $target = Join-Path $overlayOpenHarmony $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $overlayResources = Join-Path $overlayOpenHarmony 'previewer\common\resources'
+          New-Item -ItemType Directory -Path $overlayResources -Force | Out-Null
+          Copy-Item -LiteralPath '.github\ci\openharmony-previewer-module.json' -Destination (Join-Path $overlayResources 'module.json') -Force
+          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('SDK overlay module.json valid')" (Join-Path $overlayResources 'module.json')
+          $devecoSdkHome = $sdkOverlayHome
+
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
             if ($targetPath -notmatch '\s') {
               return $targetPath
@@ -668,6 +703,41 @@ jobs:
           if ($hvigorUserHome -match '\s') {
             Write-Error "HVIGOR_USER_HOME must not contain spaces: $hvigorUserHome"
           }
+
+          $realDevecoSdkHome = $devecoSdkHome
+          $sdkOverlayHome = Join-Path 'C:\hvigor-ci' ("sdk-overlay-" + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_JOB + '-' + $env:GITHUB_RUN_ATTEMPT)
+          $overlayDefault = Join-Path $sdkOverlayHome 'default'
+          $overlayOpenHarmony = Join-Path $overlayDefault 'openharmony'
+          $realDefault = Join-Path $realDevecoSdkHome 'default'
+          $realOpenHarmony = Join-Path $realDefault 'openharmony'
+          Remove-Item -LiteralPath $sdkOverlayHome -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $overlayDefault -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $realDefault 'sdk-pkg.json') -Destination (Join-Path $overlayDefault 'sdk-pkg.json') -Force
+
+          Get-ChildItem -LiteralPath $realDefault -Force | Where-Object { $_.Name -ne 'openharmony' -and $_.Name -ne 'sdk-pkg.json' } | ForEach-Object {
+            $target = Join-Path $overlayDefault $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          New-Item -ItemType Directory -Path $overlayOpenHarmony -Force | Out-Null
+          Get-ChildItem -LiteralPath $realOpenHarmony -Force | Where-Object { $_.Name -ne 'previewer' } | ForEach-Object {
+            $target = Join-Path $overlayOpenHarmony $_.Name
+            if ($_.PSIsContainer) {
+              New-Item -ItemType Junction -Path $target -Target $_.FullName | Out-Null
+            } else {
+              Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            }
+          }
+
+          $overlayResources = Join-Path $overlayOpenHarmony 'previewer\common\resources'
+          New-Item -ItemType Directory -Path $overlayResources -Force | Out-Null
+          Copy-Item -LiteralPath '.github\ci\openharmony-previewer-module.json' -Destination (Join-Path $overlayResources 'module.json') -Force
+          node -e "const fs=require('fs'); JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log('SDK overlay module.json valid')" (Join-Path $overlayResources 'module.json')
+          $devecoSdkHome = $sdkOverlayHome
 
           function New-NoSpaceToolLink([string] $name, [string] $targetPath) {
             if ($targetPath -notmatch '\s') {
