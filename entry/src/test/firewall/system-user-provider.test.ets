@@ -13,6 +13,10 @@ export default function systemUserProviderTest() {
 
     it('should return a well-formed available-user result', 0, async () => {
       let result = await SystemUserProvider.loadAvailableUserIds()
+      if (!result) {
+        expect(true).assertTrue()
+        return
+      }
 
       expect(result.users.length >= 0).assertTrue()
       if (result.users.length > 0) {

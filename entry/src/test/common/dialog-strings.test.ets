@@ -25,7 +25,7 @@ export default function dialogStringsTest() {
       expect(FirewallDialogStrings.RULE_NAME_PLACEHOLDER.length > 0).assertTrue()
       expect(FirewallDialogStrings.MODE_ALLOWLIST.length > 0).assertTrue()
       expect(buildFirewallConflictNotice(1, 1, 1).length > 0).assertTrue()
-      expect(FirewallDialogStrings.buildApplyModeSuccess(3).length > 0).assertTrue()
+      expect(FirewallDialogStrings.APPLY_MODE_SUCCESS.length > 0).assertTrue()
     })
 
     it('should expose device detail and shared label strings', 0, () => {
