@@ -785,15 +785,32 @@ static async switchMode(
 
 1. 读取用户列表。
 2. 对每个目标 `userId` 调 `clearRules(userId)`。
-3. 调 `FirewallLocalRepository.clearAllRuleDeployments(context)`，清空旧 deployments，不清 intents。
-4. 调 `FirewallModeStrategy.buildRulesForMode(context, mode)`，得到 `FirewallPreparedRule[]`。
-5. 逐条调用 `FirewallSystemRepository.addRule(prepared.rule)`。
-6. 对携带 `localRuleId` 的 `FirewallPreparedRule`，系统下发成功后收集新的 `FirewallRuleDeployment`。
-7. 如果存在新的 custom deployments，按 `localRuleId` 写回成功 deployments。
-8. 无论是否存在 `failedItems`，都保存目标模式。
-9. 失败只写日志和返回 `failedItems`，不回滚。
+3. 按目标模式为每个用户写入目标 `NetFirewallPolicy`。
+4. 调 `FirewallLocalRepository.clearAllRuleDeployments(context)`，清空旧 deployments，不清 intents。
+5. 调 `FirewallModeStrategy.buildRulesForMode(context, mode)`，得到 `FirewallPreparedRule[]`。
+6. 逐条调用 `FirewallSystemRepository.addRule(prepared.rule)`。
+7. 对携带 `localRuleId` 的 `FirewallPreparedRule`，系统下发成功后收集新的 `FirewallRuleDeployment`。
+8. 如果存在新的 custom deployments，按 `localRuleId` 写回成功 deployments。
+9. 无论是否存在 `failedItems`，都保存目标模式。
+10. 失败只写日志和返回 `failedItems`，不回滚。
 
 来源：改造旧 `FirewallModeStrategyFactory.switchMode`。
+
+policy 生成规则：
+
+1. `public` 和 `private` 模式统一写入 `isOpen=true`、`inAction=RULE_ALLOW`、`outAction=RULE_ALLOW`。
+2. `custom` 模式读取本地 `userId -> FirewallUserPolicyMode` 记录恢复 policy。
+3. `custom` 模式下，`allowlist` 恢复为 `isOpen=true`、`inAction=RULE_DENY`、`outAction=RULE_DENY`。
+4. `custom` 模式下，`denylist` 恢复为 `isOpen=true`、`inAction=RULE_ALLOW`、`outAction=RULE_ALLOW`。
+5. `custom` 模式下，没有本地记录的用户默认恢复为 `isOpen=true`、`inAction=RULE_ALLOW`、`outAction=RULE_ALLOW`。
+
+实现约束：
+
+1. 不新增 `buildPolicyForHomeMode` 或其它第二套首页 policy 构造函数。
+2. 复用并改造 `FirewallService.buildPolicyForUserMode(mode?: FirewallUserPolicyMode)` 作为唯一 policy 构造入口。
+3. `applyUserPolicyMode(context, userId, mode)` 继续传入明确的 `allowlist / denylist`，原有用户弹窗 policy-only 行为不变。
+4. 首页模式切换调用 `buildPolicyForUserMode(undefined)` 时，应得到 `ALLOW / ALLOW` 默认 policy。
+5. 不允许在 `switchMode` 中散落 `{ isOpen, inAction, outAction }` 字面量。
 
 ```ts
 static async listRulesForDisplay(context): Promise<FirewallRuleDisplayItem[]>
@@ -1000,16 +1017,18 @@ AuthService.authenticate(AuthMethod.PIN)
 
 按此前讨论确认的语义执行：
 
-- 白名单模式：写入完整 `NetFirewallPolicy`
-- 黑名单模式：写入完整 `NetFirewallPolicy`
+- 白名单模式 `allowlist`：写入完整 `NetFirewallPolicy`，`isOpen=true`、`inAction=RULE_DENY`、`outAction=RULE_DENY`
+- 黑名单模式 `denylist`：写入完整 `NetFirewallPolicy`，`isOpen=true`、`inAction=RULE_ALLOW`、`outAction=RULE_ALLOW`
 
-具体 `inAction/outAction` 常量值以实现阶段的最终枚举映射为准，但不得重新引入“用户模式读取规则模板并筛选规则下发”的旧语义。
+不得重新引入“用户模式读取规则模板并筛选规则下发”的旧语义。
 
 成功后保存本地：
 
 ```text
 userId -> FirewallUserPolicyMode
 ```
+
+该本地记录同时作为首页切回 `custom` 模式时恢复用户 policy 的输入。
 
 ## 16. 模式切换语义
 
@@ -1021,6 +1040,7 @@ userId -> FirewallUserPolicyMode
 
 `public/private`：
 
+- `FirewallService` 先为所有目标用户写入 `isOpen=true`、`inAction=RULE_ALLOW`、`outAction=RULE_ALLOW`。
 - 由 `FirewallModeStrategy` 生成系统规则。
 - `FirewallModeStrategy` 调用 `SystemUserProvider.loadAvailableUserIds()`，按所有可用用户生成 `FirewallPreparedRule`。
 - 不写入 `FirewallRuleIntentMappingData`。
@@ -1029,6 +1049,10 @@ userId -> FirewallUserPolicyMode
 
 `custom`：
 
+- `FirewallService` 先按本地 `userId -> FirewallUserPolicyMode` 记录为所有目标用户恢复 policy。
+- `allowlist` 用户恢复为 `DENY / DENY`。
+- `denylist` 用户恢复为 `ALLOW / ALLOW`。
+- 没有本地记录的用户恢复为 `ALLOW / ALLOW`。
 - 从 `FirewallRuleIntentMappingData.ruleIntents` 读取本地自定义规则。
 - 每条规则按自身 `targetUserIds` 下发。
 - 不强行给所有用户下发。
@@ -1142,6 +1166,9 @@ entry/src/main/ets/services/firewall/FirewallRuleUtils.ets
 9. 除 `FirewallSystemRepository` 之外调用 `netFirewall` 防火墙系统 API 的代码。
 10. 除 `FirewallLocalRepository` 之外读写防火墙本地 Preferences 的代码。
 11. 只为兼容旧目录存在且无长期职责的 wrapper 文件。
+12. 除 `FirewallService.buildPolicyForUserMode(mode?)` 之外新增第二套首页 policy 构造函数。
+13. 在 `switchMode` 中直接散落 `{ isOpen, inAction, outAction }` policy 字面量。
+14. 在 `FirewallModeStrategy`、`FirewallSystemRepository` 或 ViewModel 中写入首页模式 policy 业务判断。
 
 ## 22. 验收信号
 
@@ -1170,6 +1197,11 @@ entry/src/main/ets/services/firewall/FirewallRuleUtils.ets
 21. `public/private` 模式 prepared rules 按所有可用用户生成。
 22. `custom` 模式 prepared rules 只按 intent 自身 `targetUserIds` 生成。
 23. `FirewallModeStrategy` 不写系统规则、不写本地数据、不写 policy。
+24. `switchMode(public/private)` 会为所有目标用户写入 `ALLOW / ALLOW` policy。
+25. `switchMode(custom)` 会按本地 `userId -> FirewallUserPolicyMode` 记录恢复用户 policy。
+26. `custom` 历史 `allowlist` 用户恢复为 `DENY / DENY`。
+27. `custom` 历史 `denylist` 用户或无历史记录用户恢复为 `ALLOW / ALLOW`。
+28. 首页顶部开关仍只修改 `isOpen`，不重建 policy 和规则。
 
 ## 23. 后续更新规则
 
@@ -1181,6 +1213,8 @@ entry/src/main/ets/services/firewall/FirewallRuleUtils.ets
 4. `createRule/updateRule/deleteRule` 失败处理语义。
 5. `switchMode` 是否允许清空目标用户全部规则。
 6. 用户黑/白名单 policy-only 语义。
-7. 是否恢复快照、回滚、metadata 或只删除本应用规则语义。
+7. 首页模式切换是否写入 `NetFirewallPolicy`。
+8. 首页顶部开关是否只修改 `isOpen`。
+9. 是否恢复快照、回滚、metadata 或只删除本应用规则语义。
 
 未经本文档更新，不得在实现中引入与本文冲突的第二套真相。

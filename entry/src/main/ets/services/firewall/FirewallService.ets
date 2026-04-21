@@ -20,6 +20,7 @@ import {
   FirewallToggleOperationResult,
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyMode,
+  FirewallUserPolicyModeRecord,
   FirewallUserPolicyStateResult,
   UserFirewallOption
 } from './FirewallModels'
@@ -113,6 +114,9 @@ export class FirewallService {
       let clearResult = await FirewallSystemRepository.clearRules(userId)
       failedItems.push(...clearResult.failedItems)
     }
+
+    let policyFailedItems = await FirewallService.applyPolicyForMode(context, targetMode, usersResult.users)
+    failedItems.push(...policyFailedItems)
 
     let deploymentsCleared = await FirewallLocalRepository.clearAllRuleDeployments(context)
     if (!deploymentsCleared) {
@@ -415,7 +419,40 @@ export class FirewallService {
     return failedItems
   }
 
-  private static buildPolicyForUserMode(mode: FirewallUserPolicyMode): netFirewall.NetFirewallPolicy {
+  private static async applyPolicyForMode(
+    context: common.UIAbilityContext,
+    targetMode: FirewallPresetMode,
+    users: UserFirewallOption[]
+  ): Promise<FirewallFailedItem[]> {
+    let failedItems: FirewallFailedItem[] = []
+    let modeRecords = targetMode === 'custom'
+      ? await FirewallLocalRepository.listUserPolicyModes(context)
+      : []
+
+    for (let i = 0; i < users.length; i++) {
+      let userId = users[i].userId
+      let userMode = FirewallService.resolveUserPolicyModeForSwitch(targetMode, userId, modeRecords)
+      let policy = FirewallService.buildPolicyForUserMode(userMode)
+      let applied = await FirewallSystemRepository.setPolicy(userId, policy)
+      if (!applied) {
+        failedItems.push({ userId: userId, errorMessage: 'set mode policy failed' })
+      }
+    }
+    return failedItems
+  }
+
+  private static resolveUserPolicyModeForSwitch(
+    targetMode: FirewallPresetMode,
+    userId: number,
+    modeRecords: FirewallUserPolicyModeRecord[]
+  ): FirewallUserPolicyMode | undefined {
+    if (targetMode !== 'custom') {
+      return undefined
+    }
+    return modeRecords.find((item: FirewallUserPolicyModeRecord): boolean => item.userId === userId)?.mode
+  }
+
+  private static buildPolicyForUserMode(mode?: FirewallUserPolicyMode): netFirewall.NetFirewallPolicy {
     if (mode === 'allowlist') {
       return {
         isOpen: true,
