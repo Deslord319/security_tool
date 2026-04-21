@@ -164,9 +164,31 @@ jobs:
             Write-Error 'Downloaded source archive is empty.'
           }
 
+          function Remove-WorkspaceItem([System.IO.FileSystemInfo] $item) {
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              if (-not (Test-Path -LiteralPath $item.FullName)) {
+                return
+              }
+              try {
+                Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
+                return
+              } catch [System.IO.DirectoryNotFoundException] {
+                return
+              } catch [System.IO.FileNotFoundException] {
+                return
+              } catch {
+                if ($attempt -eq 3) {
+                  Write-Warning "Workspace cleanup skipped stale item after retries: $($item.FullName) - $($_.Exception.Message)"
+                  return
+                }
+                Start-Sleep -Milliseconds (200 * $attempt)
+              }
+            }
+          }
+
           Get-ChildItem -LiteralPath (Get-Location) -Force |
             Where-Object { $_.Name -ne '.git' } |
-            Remove-Item -Recurse -Force
+            ForEach-Object { Remove-WorkspaceItem $_ }
           Get-ChildItem -LiteralPath $sourceRoot.FullName -Force |
             Copy-Item -Destination (Get-Location) -Recurse -Force
 
@@ -645,9 +667,31 @@ jobs:
             Write-Error 'Downloaded source archive is empty.'
           }
 
+          function Remove-WorkspaceItem([System.IO.FileSystemInfo] $item) {
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              if (-not (Test-Path -LiteralPath $item.FullName)) {
+                return
+              }
+              try {
+                Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
+                return
+              } catch [System.IO.DirectoryNotFoundException] {
+                return
+              } catch [System.IO.FileNotFoundException] {
+                return
+              } catch {
+                if ($attempt -eq 3) {
+                  Write-Warning "Workspace cleanup skipped stale item after retries: $($item.FullName) - $($_.Exception.Message)"
+                  return
+                }
+                Start-Sleep -Milliseconds (200 * $attempt)
+              }
+            }
+          }
+
           Get-ChildItem -LiteralPath (Get-Location) -Force |
             Where-Object { $_.Name -ne '.git' } |
-            Remove-Item -Recurse -Force
+            ForEach-Object { Remove-WorkspaceItem $_ }
           Get-ChildItem -LiteralPath $sourceRoot.FullName -Force |
             Copy-Item -Destination (Get-Location) -Recurse -Force
 
