@@ -9,6 +9,7 @@ interface BuildIpIntentOptions {
   localPorts?: netFirewall.NetFirewallPortParams[]
   remotePorts?: netFirewall.NetFirewallPortParams[]
   protocol?: number
+  targetUserIds?: number[]
 }
 
 function buildIpv4Address(address: string, mask: number): netFirewall.NetFirewallIpParams {
@@ -42,12 +43,52 @@ function buildIpIntent(
     direction: direction,
     action: action,
     isEnabled: true,
-    targetUserIds: [100],
+    targetUserIds: options.targetUserIds ?? [100],
     protocol: options.protocol ?? 6,
     localIps: options.localIps,
     remoteIps: options.remoteIps,
     localPorts: options.localPorts,
     remotePorts: options.remotePorts,
+    createdAt: 1,
+    updatedAt: 1
+  }
+}
+
+function buildDomainIntent(
+  localRuleId: string,
+  domain: string,
+  action: netFirewall.FirewallRuleAction,
+  targetUserIds: number[] = [100]
+): FirewallRuleIntent {
+  return {
+    localRuleId: localRuleId,
+    name: localRuleId,
+    type: netFirewall.NetFirewallRuleType.RULE_DOMAIN,
+    direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+    action: action,
+    isEnabled: true,
+    targetUserIds: targetUserIds,
+    domains: [{ domain: domain, isWildcard: false }],
+    createdAt: 1,
+    updatedAt: 1
+  }
+}
+
+function buildDnsIntent(
+  localRuleId: string,
+  primaryDns: string,
+  action: netFirewall.FirewallRuleAction,
+  targetUserIds: number[] = [100]
+): FirewallRuleIntent {
+  return {
+    localRuleId: localRuleId,
+    name: localRuleId,
+    type: netFirewall.NetFirewallRuleType.RULE_DNS,
+    direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+    action: action,
+    isEnabled: true,
+    targetUserIds: targetUserIds,
+    dns: { primaryDns: primaryDns },
     createdAt: 1,
     updatedAt: 1
   }
@@ -80,6 +121,56 @@ export default function firewallRuleUtilsTest() {
         targetUserIds: [100]
       })
       expect(result.success).assertTrue()
+    })
+
+    it('should reject invalid rule intent inputs with concrete messages', 0, () => {
+      let emptyName = FirewallRuleUtils.validateRuleIntentInput({
+        name: ' ',
+        type: netFirewall.NetFirewallRuleType.RULE_IP,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        targetUserIds: [100]
+      })
+      expect(emptyName.success).assertFalse()
+      expect(emptyName.errorMessage).assertEqual('rule name is required')
+
+      let missingUsers = FirewallRuleUtils.validateRuleIntentInput({
+        name: 'missing-users',
+        type: netFirewall.NetFirewallRuleType.RULE_IP,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        targetUserIds: [-1]
+      })
+      expect(missingUsers.success).assertFalse()
+      expect(missingUsers.errorMessage).assertEqual('target users are required')
+
+      let missingDomain = FirewallRuleUtils.validateRuleIntentInput({
+        name: 'missing-domain',
+        type: netFirewall.NetFirewallRuleType.RULE_DOMAIN,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        targetUserIds: [100]
+      })
+      expect(missingDomain.success).assertFalse()
+      expect(missingDomain.errorMessage).assertEqual('domain rule requires domain')
+
+      let missingDns = FirewallRuleUtils.validateRuleIntentInput({
+        name: 'missing-dns',
+        type: netFirewall.NetFirewallRuleType.RULE_DNS,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        targetUserIds: [100]
+      })
+      expect(missingDns.success).assertFalse()
+      expect(missingDns.errorMessage).assertEqual('dns rule requires primary dns')
+    })
+
+    it('should normalize user ids by filtering, deduplicating and sorting', 0, () => {
+      let userIds = FirewallRuleUtils.normalizeUserIds([101, -1, 100, 101, 1.5])
+
+      expect(userIds.length).assertEqual(2)
+      expect(userIds[0]).assertEqual(100)
+      expect(userIds[1]).assertEqual(101)
     })
 
     it('should use local fields for inbound ip conflict comparison', 0, () => {
@@ -131,6 +222,182 @@ export default function firewallRuleUtilsTest() {
 
       let conflict = FirewallRuleUtils.findRuleConflict([existing], target)
       expect(conflict?.kind).assertEqual('overlap_conflict')
+    })
+
+    it('should classify duplicate, none, protocol mismatch and user-scope mismatch for ip rules', 0, () => {
+      let existing = buildIpIntent(
+        'existing',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_ALLOW,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          protocol: 6,
+          targetUserIds: [100]
+        }
+      )
+      let duplicate = buildIpIntent(
+        'duplicate',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_ALLOW,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          protocol: 6,
+          targetUserIds: [100]
+        }
+      )
+      let protocolMismatch = buildIpIntent(
+        'protocol-mismatch',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_DENY,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          protocol: 17,
+          targetUserIds: [100]
+        }
+      )
+      let userMismatch = buildIpIntent(
+        'user-mismatch',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_DENY,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          protocol: 6,
+          targetUserIds: [101]
+        }
+      )
+      let noOverlap = buildIpIntent(
+        'no-overlap',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_DENY,
+        {
+          remoteIps: [buildIpv4Address('1.1.1.1', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          protocol: 6,
+          targetUserIds: [100]
+        }
+      )
+
+      expect(FirewallRuleUtils.findRuleConflict([existing], duplicate)?.kind).assertEqual('duplicate')
+      expect(FirewallRuleUtils.findRuleConflict([existing], protocolMismatch)).assertEqual(null)
+      expect(FirewallRuleUtils.findRuleConflict([existing], userMismatch)).assertEqual(null)
+      expect(FirewallRuleUtils.findRuleConflict([existing], noOverlap)).assertEqual(null)
+    })
+
+    it('should treat empty ip and ports as all ranges for conflict detection', 0, () => {
+      let allOutbound = buildIpIntent(
+        'all-outbound',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_ALLOW,
+        {
+          protocol: 0,
+          targetUserIds: [100]
+        }
+      )
+      let specificOutbound = buildIpIntent(
+        'specific-outbound',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_DENY,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          protocol: 6,
+          targetUserIds: [100]
+        }
+      )
+
+      let conflict = FirewallRuleUtils.findRuleConflict([allOutbound], specificOutbound)
+      expect(conflict?.kind).assertEqual('overlap_conflict')
+    })
+
+    it('should classify exact domain conflicts without wildcard semantics', 0, () => {
+      let existing = buildDomainIntent('domain-1', 'Example.COM.', netFirewall.FirewallRuleAction.RULE_ALLOW)
+      let duplicate = buildDomainIntent('domain-2', 'example.com', netFirewall.FirewallRuleAction.RULE_ALLOW)
+      let hardConflict = buildDomainIntent('domain-3', 'example.com', netFirewall.FirewallRuleAction.RULE_DENY)
+      let different = buildDomainIntent('domain-4', 'other.example.com', netFirewall.FirewallRuleAction.RULE_DENY)
+
+      expect(FirewallRuleUtils.findRuleConflict([existing], duplicate)?.kind).assertEqual('duplicate')
+      expect(FirewallRuleUtils.findRuleConflict([existing], hardConflict)?.kind).assertEqual('hard_conflict')
+      expect(FirewallRuleUtils.findRuleConflict([existing], different)).assertEqual(null)
+    })
+
+    it('should classify dns conflicts by primary dns only', 0, () => {
+      let existing = buildDnsIntent('dns-1', '8.8.8.8', netFirewall.FirewallRuleAction.RULE_ALLOW)
+      let duplicate = buildDnsIntent('dns-2', ' 8.8.8.8 ', netFirewall.FirewallRuleAction.RULE_ALLOW)
+      let hardConflict = buildDnsIntent('dns-3', '8.8.8.8', netFirewall.FirewallRuleAction.RULE_DENY)
+      let different = buildDnsIntent('dns-4', '1.1.1.1', netFirewall.FirewallRuleAction.RULE_DENY)
+
+      expect(FirewallRuleUtils.findRuleConflict([existing], duplicate)?.kind).assertEqual('duplicate')
+      expect(FirewallRuleUtils.findRuleConflict([existing], hardConflict)?.kind).assertEqual('hard_conflict')
+      expect(FirewallRuleUtils.findRuleConflict([existing], different)).assertEqual(null)
+    })
+
+    it('should summarize conflicts and count by type and direction', 0, () => {
+      let duplicateLeft = buildIpIntent(
+        'dup-left',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_ALLOW,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          targetUserIds: [100]
+        }
+      )
+      let duplicateRight = buildIpIntent(
+        'dup-right',
+        netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        netFirewall.FirewallRuleAction.RULE_ALLOW,
+        {
+          remoteIps: [buildIpv4Address('8.8.8.8', 32)],
+          remotePorts: [{ startPort: 443, endPort: 443 }],
+          targetUserIds: [100]
+        }
+      )
+      let hardLeft = buildDomainIntent('hard-left', 'example.com', netFirewall.FirewallRuleAction.RULE_ALLOW, [101])
+      let hardRight = buildDomainIntent('hard-right', 'example.com', netFirewall.FirewallRuleAction.RULE_DENY, [101])
+      let overlapLeft = buildIpIntent(
+        'overlap-left',
+        netFirewall.NetFirewallRuleDirection.RULE_IN,
+        netFirewall.FirewallRuleAction.RULE_ALLOW,
+        {
+          localIps: [buildIpv4Address('192.168.1.0', 24)],
+          localPorts: [{ startPort: 80, endPort: 100 }],
+          targetUserIds: [102]
+        }
+      )
+      let overlapRight = buildIpIntent(
+        'overlap-right',
+        netFirewall.NetFirewallRuleDirection.RULE_IN,
+        netFirewall.FirewallRuleAction.RULE_DENY,
+        {
+          localIps: [buildIpv4Address('192.168.1.20', 32)],
+          localPorts: [{ startPort: 100, endPort: 100 }],
+          targetUserIds: [102]
+        }
+      )
+      let dnsRule = buildDnsIntent('dns-count', '8.8.4.4', netFirewall.FirewallRuleAction.RULE_ALLOW, [103])
+      let intents: FirewallRuleIntent[] = [
+        duplicateLeft,
+        duplicateRight,
+        hardLeft,
+        hardRight,
+        overlapLeft,
+        overlapRight,
+        dnsRule
+      ]
+
+      let summary = FirewallRuleUtils.summarizeConflicts(intents)
+      expect(summary.duplicates).assertEqual(1)
+      expect(summary.hardConflicts).assertEqual(1)
+      expect(summary.overlapConflicts).assertEqual(1)
+      expect(FirewallRuleUtils.countByType(intents, netFirewall.NetFirewallRuleType.RULE_IP)).assertEqual(4)
+      expect(FirewallRuleUtils.countByType(intents, netFirewall.NetFirewallRuleType.RULE_DOMAIN)).assertEqual(2)
+      expect(FirewallRuleUtils.countByType(intents, netFirewall.NetFirewallRuleType.RULE_DNS)).assertEqual(1)
+      expect(FirewallRuleUtils.countByDirection(intents, netFirewall.NetFirewallRuleDirection.RULE_OUT)).assertEqual(5)
+      expect(FirewallRuleUtils.countByDirection(intents, netFirewall.NetFirewallRuleDirection.RULE_IN)).assertEqual(2)
     })
   })
 }
