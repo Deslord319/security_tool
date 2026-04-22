@@ -12,11 +12,21 @@ import { statusBarManager } from '@kit.DeskTopExtensionKit';
 import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
 import { LogPowerLifecycleSource } from '../services/log-manage/source/LogPowerLifecycleSource';
 import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager';
+import {
+  ACCOUNT_EVENT_COMMON_EVENT,
+  ACCOUNT_EVENT_PARAM_TIMESTAMP,
+  ACCOUNT_EVENT_PARAM_TYPE,
+  ACCOUNT_EVENT_PARAM_USER_ID,
+  AccountEventPayload,
+  AccountEventType
+} from '../services/account/AccountEventContract';
+import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider';
 
 const ENTRYABILITY_TAG = 'entryAbility'
 
 let globalContext: common.UIAbilityContext | null = null
 let terminateSubscriber: commonEventManager.CommonEventSubscriber | null = null
+let accountEventSubscriber: commonEventManager.CommonEventSubscriber | null = null
 
 interface EntryLoggableError {
   code?: number
@@ -59,6 +69,7 @@ export default class EntryAbility extends UIAbility {
     }
     globalContext = this.context
     this.createTerminateSubscriber()
+    this.createAccountEventSubscriber()
     LogPowerLifecycleSource.init(this.context).catch((err: Error) => {
       LogUtils.warn(ENTRYABILITY_TAG, 'LogPowerLifecycleSource init failed: %{public}s', JSON.stringify(err))
     })
@@ -77,6 +88,7 @@ export default class EntryAbility extends UIAbility {
       })
       terminateSubscriber = null
     }
+    this.destroyAccountEventSubscriber()
   }
 
   onNewWant(_want: Want): void {
@@ -217,6 +229,103 @@ export default class EntryAbility extends UIAbility {
         }, 200)
       });
     })
+  }
+
+  private createAccountEventSubscriber(): void {
+    if (accountEventSubscriber) {
+      return
+    }
+    let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
+      events: [ACCOUNT_EVENT_COMMON_EVENT]
+    }
+    commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
+      if (err) {
+        LogUtils.warn(ENTRYABILITY_TAG, 'createAccountEventSubscriber failed: %{public}s', JSON.stringify(err))
+        return
+      }
+      accountEventSubscriber = subscriber
+      commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
+        if (callbackErr) {
+          LogUtils.warn(ENTRYABILITY_TAG, 'account event callback failed: %{public}s', JSON.stringify(callbackErr))
+          return
+        }
+        void this.handleAccountEvent(data)
+      })
+      LogUtils.info(ENTRYABILITY_TAG, 'createAccountEventSubscriber success')
+    })
+  }
+
+  private destroyAccountEventSubscriber(): void {
+    if (!accountEventSubscriber) {
+      return
+    }
+    commonEventManager.unsubscribe(accountEventSubscriber, (err?: BusinessError) => {
+      if (err) {
+        LogUtils.warn(ENTRYABILITY_TAG, 'unsubscribe account event failed: %{public}s', JSON.stringify(err))
+      }
+      accountEventSubscriber = null
+    })
+  }
+
+  private async handleAccountEvent(data: commonEventManager.CommonEventData): Promise<void> {
+    let payload = this.parseAccountEventPayload(data)
+    if (!payload) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'handleAccountEvent skipped invalid payload')
+      return
+    }
+    try {
+      if (payload.type === AccountEventType.ADDED) {
+        await SystemUserProvider.trackAddedUser(payload.userId)
+        LogUtils.info(ENTRYABILITY_TAG, 'account added tracked in UIAbility: userId=%{public}d', payload.userId)
+        return
+      }
+      if (payload.type === AccountEventType.REMOVED) {
+        await SystemUserProvider.trackRemovedUser(payload.userId)
+        LogUtils.info(ENTRYABILITY_TAG, 'account removed tracked in UIAbility: userId=%{public}d', payload.userId)
+      }
+    } catch (err) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'handleAccountEvent failed: %{public}s', JSON.stringify(err))
+    }
+  }
+
+  private parseAccountEventPayload(data: commonEventManager.CommonEventData): AccountEventPayload | null {
+    let parameters = data.parameters as Record<string, Object | string | number> | undefined
+    let payload = this.parseAccountEventRecord(parameters)
+    if (payload) {
+      return payload
+    }
+    if (typeof data.data !== 'string' || data.data.length === 0) {
+      return null
+    }
+    try {
+      let parsed = JSON.parse(data.data) as Record<string, Object | string | number>
+      return this.parseAccountEventRecord(parsed)
+    } catch (err) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'parse account event data failed: %{public}s', JSON.stringify(err))
+      return null
+    }
+  }
+
+  private parseAccountEventRecord(source: Record<string, Object | string | number> | undefined): AccountEventPayload | null {
+    if (!source) {
+      return null
+    }
+    let rawType = source[ACCOUNT_EVENT_PARAM_TYPE]
+    let rawUserId = source[ACCOUNT_EVENT_PARAM_USER_ID]
+    let rawTimestamp = source[ACCOUNT_EVENT_PARAM_TIMESTAMP]
+    if (rawType !== AccountEventType.ADDED && rawType !== AccountEventType.REMOVED) {
+      return null
+    }
+    if (typeof rawUserId !== 'number' || !Number.isFinite(rawUserId) || rawUserId < 0) {
+      return null
+    }
+    let eventType = rawType as AccountEventType
+    let timestamp = typeof rawTimestamp === 'number' && Number.isFinite(rawTimestamp) ? rawTimestamp : Date.now()
+    return {
+      type: eventType,
+      userId: rawUserId,
+      timestamp: timestamp
+    }
   }
 
   onWindowStageDestroy(): void {

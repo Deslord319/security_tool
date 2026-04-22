@@ -1,11 +1,18 @@
 import { adminManager, applicationManager, EnterpriseAdminExtensionAbility } from '@kit.MDMKit'
 import type { Want } from '@kit.AbilityKit'
+import { commonEventManager } from '@kit.BasicServicesKit'
 import osAccount from '@ohos.account.osAccount'
 import { ADMIN_WANT, ENTRY_WANT } from '../constants/AppConstants'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
-import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
 import { LogUtils } from '../utils/LogUtils'
 import { ErrorLike } from '../types/LooseValueTypes'
+import {
+  ACCOUNT_EVENT_COMMON_EVENT,
+  ACCOUNT_EVENT_PARAM_TIMESTAMP,
+  ACCOUNT_EVENT_PARAM_TYPE,
+  ACCOUNT_EVENT_PARAM_USER_ID,
+  AccountEventType
+} from '../services/account/AccountEventContract'
 
 
 const TAG = 'EnterpriseAdminAbility'
@@ -37,14 +44,39 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
 
   onAccountAdded(accountId: number): void {
     LogUtils.info(TAG, 'Account added: %{public}d', accountId)
-    SystemUserProvider.trackAddedUser(accountId)
+    this.publishAccountEvent(AccountEventType.ADDED, accountId)
     this.ensureKeepAliveAppRegistered('onAccountAdded', accountId)
   }
 
   onAccountRemoved(accountId: number): void {
     LogUtils.info(TAG, 'Account removed: %{public}d', accountId)
     this.removeKeepAliveAppRegistration('onAccountRemoved', accountId)
-    SystemUserProvider.trackRemovedUser(accountId)
+    this.publishAccountEvent(AccountEventType.REMOVED, accountId)
+  }
+
+  private publishAccountEvent(type: AccountEventType, userId: number): void {
+    if (!Number.isFinite(userId) || userId < 0) {
+      LogUtils.warn(TAG, 'publishAccountEvent skipped invalid userId=%{public}s, type=%{public}s', String(userId), type)
+      return
+    }
+    let timestamp = Date.now()
+    let parameters: Record<string, Object> = {}
+    parameters[ACCOUNT_EVENT_PARAM_TYPE] = type
+    parameters[ACCOUNT_EVENT_PARAM_USER_ID] = userId
+    parameters[ACCOUNT_EVENT_PARAM_TIMESTAMP] = timestamp
+
+    let publishData: commonEventManager.CommonEventPublishData = {
+      data: JSON.stringify(parameters),
+      parameters: parameters
+    }
+    commonEventManager.publish(ACCOUNT_EVENT_COMMON_EVENT, publishData, (err) => {
+      if (err) {
+        LogUtils.warn(TAG, 'publishAccountEvent failed: type=%{public}s, userId=%{public}d, err=%{public}s',
+          type, userId, JSON.stringify(err))
+        return
+      }
+      LogUtils.info(TAG, 'publishAccountEvent success: type=%{public}s, userId=%{public}d', type, userId)
+    })
   }
 
   private subscribeAccountManagedEvents(): void {
