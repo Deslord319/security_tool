@@ -665,6 +665,7 @@ export struct AddRuleDialog {
             selectedValues: this.selectedUserIds,
             placeholder: FirewallDialogStrings.USER_SCOPE_PLACEHOLDER,
             allLabel: FirewallDialogStrings.ALL_VALUE,
+            currentTheme: this.currentTheme,
             onChange: (selectedUserIds: number[]) => {
               this.selectedUserIds = normalizeFirewallRuleUserIds(selectedUserIds)
             }

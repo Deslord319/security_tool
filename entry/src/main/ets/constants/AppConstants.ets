@@ -52,7 +52,6 @@ export class AppStyles {
   static readonly RADIUS_SM: number = 4
   static readonly RADIUS_MD: number = 8
   static readonly RADIUS_LG: number = 12
-  static readonly RADIUS_XL: number = 16
 
   static readonly PADDING_XS: number = 4
   static readonly PADDING_SM: number = 8

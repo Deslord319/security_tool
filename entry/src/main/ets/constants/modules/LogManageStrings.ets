@@ -14,9 +14,7 @@ export class LogManageDetailStrings {
   static readonly RESULT_LABEL: string = '结果'
   static readonly STRUCTURED_DETAILS: string = '结构化详情'
   static readonly EMPTY: string = '暂无详情'
-  static readonly ADDITIONAL_INFO: string = '附加信息'
   static readonly PROCESS_LABEL: string = '进程'
-  static readonly FILE_PATH_LABEL: string = '文件路径'
 }
 
 export class LogManageFilterStrings {
