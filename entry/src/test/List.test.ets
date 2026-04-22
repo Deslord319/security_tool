@@ -11,6 +11,8 @@ import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
 import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
 import firewallModelsTest from './firewall/models.test'
+import firewallLocalRepositoryTest from './firewall/local-repository.test'
+import firewallModeStrategyTest from './firewall/mode-strategy.test'
 import firewallRuleUtilsTest from './firewall/rule-utils.test'
 import firewallServiceTest from './firewall/service.test'
 import systemUserProviderTest from './firewall/system-user-provider.test'
@@ -84,6 +86,8 @@ export default function testsuite() {
   enterpriseAdminAbilityTest()
   adminServiceTest()
   firewallModelsTest()
+  firewallLocalRepositoryTest()
+  firewallModeStrategyTest()
   firewallRuleUtilsTest()
   firewallServiceTest()
   systemUserProviderTest()
