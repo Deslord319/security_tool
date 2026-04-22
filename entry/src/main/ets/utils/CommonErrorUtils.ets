@@ -6,11 +6,6 @@ import { PermissionErrorStrings, SystemServiceErrorStrings, ErrorTemplates } fro
 import { RequestText } from '../constants/StringCatalog'
 import { ErrorLike, LooseValue } from '../types/LooseValueTypes'
 
-interface ErrorRecorder {
-  lastErrorCode: number | undefined
-  lastErrorMessage: string
-}
-
 export class CommonErrorUtils {
   private static getField(err: ErrorLike, key: string): LooseValue {
     return (err as Record<string, LooseValue>)[key]
@@ -43,14 +38,6 @@ export class CommonErrorUtils {
       return dataValue
     }
     return ''
-  }
-
-  /**
-   * 清除错误状态
-   */
-  static clearLastError(recorder: ErrorRecorder): void {
-    recorder.lastErrorCode = undefined
-    recorder.lastErrorMessage = ''
   }
 
   /**
