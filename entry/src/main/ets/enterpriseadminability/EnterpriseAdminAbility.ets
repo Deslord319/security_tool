@@ -12,7 +12,7 @@ import {
   ACCOUNT_EVENT_PARAM_TYPE,
   ACCOUNT_EVENT_PARAM_USER_ID,
   AccountEventType
-} from '../services/account/AccountEventContract'
+} from '../contracts/AccountEventContract'
 
 
 const TAG = 'EnterpriseAdminAbility'

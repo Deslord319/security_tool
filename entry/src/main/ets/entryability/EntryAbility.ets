@@ -19,7 +19,7 @@ import {
   ACCOUNT_EVENT_PARAM_USER_ID,
   AccountEventPayload,
   AccountEventType
-} from '../services/account/AccountEventContract';
+} from '../contracts/AccountEventContract';
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider';
 
 const ENTRYABILITY_TAG = 'entryAbility'
