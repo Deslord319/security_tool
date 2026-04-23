@@ -132,14 +132,6 @@ export class FirewallRuleUtils {
     return summary
   }
 
-  static countByType(intents: FirewallRuleIntent[], type: number): number {
-    return intents.filter((intent: FirewallRuleIntent): boolean => intent.type === type).length
-  }
-
-  static countByDirection(intents: FirewallRuleIntent[], direction: number): number {
-    return intents.filter((intent: FirewallRuleIntent): boolean => intent.direction === direction).length
-  }
-
   static buildIntentFromInput(
     localRuleId: string,
     input: FirewallRuleIntentInput,

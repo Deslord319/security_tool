@@ -393,11 +393,6 @@ export default function firewallRuleUtilsTest() {
       expect(summary.duplicates).assertEqual(1)
       expect(summary.hardConflicts).assertEqual(1)
       expect(summary.overlapConflicts).assertEqual(1)
-      expect(FirewallRuleUtils.countByType(intents, netFirewall.NetFirewallRuleType.RULE_IP)).assertEqual(4)
-      expect(FirewallRuleUtils.countByType(intents, netFirewall.NetFirewallRuleType.RULE_DOMAIN)).assertEqual(2)
-      expect(FirewallRuleUtils.countByType(intents, netFirewall.NetFirewallRuleType.RULE_DNS)).assertEqual(1)
-      expect(FirewallRuleUtils.countByDirection(intents, netFirewall.NetFirewallRuleDirection.RULE_OUT)).assertEqual(5)
-      expect(FirewallRuleUtils.countByDirection(intents, netFirewall.NetFirewallRuleDirection.RULE_IN)).assertEqual(2)
     })
   })
 }

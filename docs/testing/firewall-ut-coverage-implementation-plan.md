@@ -755,7 +755,7 @@ export default function testsuite() {
 - 空 IP/空端口按确认结果固化。
 - 本步新增和既有 UT 全部通过。
 
-### 步骤 8：补 Domain exact、DNS primaryDns、统计 UT
+### 步骤 8：补 Domain exact、DNS primaryDns、冲突汇总 UT
 
 修改文件：
 
@@ -765,8 +765,6 @@ export default function testsuite() {
 
 - `FirewallRuleUtils.findRuleConflict`
 - `FirewallRuleUtils.summarizeConflicts`
-- `FirewallRuleUtils.countByType`
-- `FirewallRuleUtils.countByDirection`
 
 新增用例：
 
@@ -777,8 +775,6 @@ export default function testsuite() {
 5. DNS primaryDns hard conflict。
 6. DNS primaryDns 不同 none。
 7. `summarizeConflicts` 统计 duplicate/hard/overlap。
-8. `countByType` 统计 IP/Domain/DNS。
-9. `countByDirection` 统计入站/出站。
 
 不写：
 
@@ -786,7 +782,7 @@ export default function testsuite() {
 
 输出：
 
-- RuleUtils 冲突和统计覆盖完成。
+- RuleUtils 冲突覆盖完成。
 - 本地 UT 通过。
 
 验收标准：
