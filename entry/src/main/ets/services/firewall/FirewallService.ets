@@ -312,14 +312,6 @@ export class FirewallService {
     )
   }
 
-  static countByType(rules: netFirewall.NetFirewallRule[], type: netFirewall.NetFirewallRuleType): number {
-    return rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === type).length
-  }
-
-  static countByDirection(rules: netFirewall.NetFirewallRule[], direction: netFirewall.NetFirewallRuleDirection): number {
-    return rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.direction === direction).length
-  }
-
   private static async createRuleWithLocalRuleId(
     context: common.UIAbilityContext,
     localRuleId: string,
