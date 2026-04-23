@@ -11,7 +11,7 @@
 - `dashboard/`
   - 安全总览模块 RFC 目录，聚焦摘要聚合、导航元数据、刷新边界和首页扩展位。
 - `firewall/`
-  - 防火墙模块重构文档目录，聚焦防火墙模块的 SSOT、Story 拆分和分轮实施。
+  - 防火墙模块重构文档已收敛到 `docs/03-模块设计/防火墙管理组件设计说明.md`，目录不再保留长期真相源。
 - `identity/`
   - 身份鉴别模块 RFC 目录，聚焦编辑态、系统态、管理员感知和保存链路收口。
 - `log-manage/`
@@ -36,23 +36,11 @@
 
 ## firewall
 
-目录用途：记录防火墙管理模块的重构真相源和按 PR/Story/Round 切分的实施计划。
-
-- `firewall/firewall-refactor-single-source-of-truth.md`
-  - 防火墙管理模块的唯一真相文档。
-  - 主要内容包括现有真相来源、目标目录职责、旧职责替代关系、分步迁移计划和完成判定。
-- `firewall/firewall-refactor-rfc-story-rounds.md`
-  - 防火墙模块重构的 RFC 与执行拆分文档。
-  - 主要内容包括 In Scope / Out of Scope、文件范围、Story 切分、Round 切分、并行开发约束和与 SSOT 的一致性声明。
-- `firewall/firewall-refactor-follow-up-open-items.md`
-  - 防火墙重构完成后的后续未完成工作清单。
-  - 主要内容包括 rules/provider/auth/user-dispatch 四类后续抽象与合并议题，以及建议后续顺序。
+目录状态：防火墙模块重构文档已完成收口，历史 SSOT、专项结论和一次性实施计划不再作为长期维护入口。
 
 建议阅读顺序：
 
-1. 先看 `firewall-refactor-single-source-of-truth.md`
-2. 再看 `firewall-refactor-rfc-story-rounds.md`
-3. 若要继续做后续抽象或跨模块公共化，再看 `firewall-refactor-follow-up-open-items.md`
+1. 只看 `docs/03-模块设计/防火墙管理组件设计说明.md`
 
 ## identity
 
