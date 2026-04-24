@@ -17,7 +17,7 @@
 - `log-manage/`
   - 日志管理模块 RFC 目录，聚焦状态收敛、详情快照、导出链路和稳定性补强。
 - `peripheral-management/`
-  - 外设管理模块重构文档目录，现已包含模块总 RFC，并继续覆盖“设备连接记录”链路重构、测试补齐、死代码清理、黑白名单单设备策略真实下发方案，以及 USB 接口异步回退对齐方案。
+  - 外设管理模块历史重构文档目录，已完成收口，不再作为长期维护入口。
 - `tool-settings/`
   - 工具设置模块 RFC 目录，聚焦启动认证、认证方式可用性和工具级设置边界。
 
@@ -87,53 +87,11 @@
 
 ## peripheral-management
 
-目录用途：记录外设管理模块总 RFC，以及“设备连接记录”链路的重构方案、迁移计划、Mock 测试设计、测试执行追踪、死代码清理计划、黑白名单单设备策略真实下发方案，以及 USB 接口异步回退对齐方案。
-
-- `peripheral-management/peripheral-management-module-rfc.md`
-  - 外设管理模块执行层总 RFC。
-  - 主要内容包括三条子域边界、主从 ViewModel 职责、Story / Round 拆分和与专项文档的挂靠关系。
-- `peripheral-management/device-connection-record.md`
-  - “设备连接记录”链路的主重构计划，也是该主题的 SSOT。
-  - 适合先建立整体背景、边界、目标架构和最小改动策略。
-- `peripheral-management/device-connection-record-rfc-story-rounds.md`
-  - 将设备连接记录重构拆成 Story / PR / Round 的执行文档。
-  - 适合并行开发或分阶段推进时使用。
-- `peripheral-management/device-connection-record-runtime-service-migration-plan.md`
-  - 删除 `PeripheralRuntimeEventService` 参与设备连接记录落地链路的专项迁移计划。
-  - 聚焦从旧 RuntimeService 退出时的步骤、范围和约束。
-- `peripheral-management/device-connection-record-runtime-service-migration-report.md`
-  - RuntimeService 删除相关改造的收口报告。
-  - 适合回顾阶段结果、核对计划与实际落地差异。
-- `peripheral-management/device-connection-record-mock-test-design.md`
-  - 设备连接记录 Mock 测试设计与用例总表。
-  - 汇总测试目标、分组、场景和覆盖面。
-- `peripheral-management/device-connection-record-mock-test-implementation-plan.md`
-  - Mock 测试实施计划。
-  - 重点是按 Session 拆分执行步骤、输入输出、改动文件和验收方式。
-- `peripheral-management/device-connection-record-mock-test-tracker.md`
-  - Mock 测试追踪表。
-  - 用于记录执行状态、覆盖进度和回填结果。
-- `peripheral-management/device-connection-record-dead-code-cleanup-plan.md`
-  - 设备连接记录链路死代码清理计划。
-  - 聚焦死代码判定、清理步骤、证据要求和退出条件。
-- `peripheral-management/device-policy-dispatch-plan.md`
-  - 黑白名单单设备策略真实下发改造方案。
-  - 聚焦 USB / 蓝牙设备策略从“仅本地保存”改为“先真实下发、成功后保存”，并定义冲突处理原则。
-- `peripheral-management/usb-interface-async-select-alignment-plan.md`
-  - USB 接口接入 `AsyncSelectRow` 的最小改动方案。
-  - 聚焦在不改变 MVVM 分层的前提下，实现 USB 接口失败回退、页面 loading 和提示逻辑保持不变。
+目录状态：外设管理模块重构文档已完成收口，历史专项方案和阶段性计划不再作为长期维护入口。
 
 建议阅读顺序：
 
-1. 先看 `docs/03-模块设计/外设管理组件设计说明.md`
-2. 再看 `peripheral-management-module-rfc.md`
-3. 若要推进设备连接记录专项，再看 `device-connection-record.md`
-4. 若要落地连接记录重构，再看 `device-connection-record-rfc-story-rounds.md`
-5. 若要处理 RuntimeService 退出，再看 `device-connection-record-runtime-service-migration-plan.md` 和对应 report
-6. 若要补测试，再看 `device-connection-record-mock-test-design.md`、`device-connection-record-mock-test-implementation-plan.md`、`device-connection-record-mock-test-tracker.md`
-7. 若要收尾清理，再看 `device-connection-record-dead-code-cleanup-plan.md`
-8. 若要推进黑白名单真实策略生效，再看 `device-policy-dispatch-plan.md`
-9. 若要推进 USB 接口失败回退改造，再看 `usb-interface-async-select-alignment-plan.md`
+1. 只看 `docs/03-模块设计/外设管理组件设计说明.md`
 
 ## tool-settings
 
