@@ -22,6 +22,7 @@ import {
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
 } from '../../../models/DataModels'
+import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
@@ -38,7 +39,6 @@ import { LogDetailDialog } from '../../../components/log-manage/detail/LogDetail
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 
 const TAG = 'LogManagePage'
-const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
 @ComponentV2
 export struct LogManagePage {
@@ -80,6 +80,7 @@ export struct LogManagePage {
         let initResult = await viewModel.initialize(context)
         if (!initResult.success) {
           LogUtils.warn(TAG, `initializeViewModels list init failed: ${initResult.code}`)
+          return
         }
       }
       viewModel.activate()
@@ -417,7 +418,7 @@ export struct LogManagePage {
               summaryState: this.getActiveViewModel().state.summary,
               paginationState: this.getActiveViewModel().state.pagination,
               currentTheme: this.currentTheme,
-              pageSizeOptions: PAGE_SIZE_OPTIONS,
+              pageSizeOptions: LOG_PAGE_SIZE_OPTIONS,
               onSelectPageSize: (index: number) => this.getActiveViewModel().setPageSizeIndex(index),
               onChangePageInput: (value: string) => this.getActiveViewModel().setPageInputText(value),
               onJumpPage: () => this.getActiveViewModel().jumpToInputPage(),
