@@ -7,7 +7,7 @@ import {
   LogEventResult,
   LOG_EVENT_TYPE_OPTIONS
 } from '../../../models/DataModels'
-import { LogManageMode, LogManageState } from '../../../models/LogManageModels'
+import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
 import {
   ClearLogsResult,
   CollectorStatus,
@@ -31,7 +31,6 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { LogStorageSettingsViewModel } from '../storage-settings/LogStorageSettingsViewModel'
 
 const TAG = 'LogManageViewModel'
-const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
 class DefaultLogManageStorage implements LogStoragePort {
   init(context: common.UIAbilityContext): Promise<InitializeResult> {
@@ -117,11 +116,12 @@ export class LogManageViewModel {
   async initialize(context: common.UIAbilityContext): Promise<ListViewInitializeResult> {
     this.state.initialized = false
     this.state.loading = true
+    let initializeResult: ListViewInitializeResult = { success: false, code: 'storage_init_failed' }
     try {
       if (!this.initialized) {
         let initResult = await this.storage.init(context)
         if (!initResult.success) {
-          return { success: false, code: 'storage_init_failed' }
+          return initializeResult
         }
         this.registerStorageListener()
         this.initialized = true
@@ -129,12 +129,13 @@ export class LogManageViewModel {
       await this.settingsViewModel.load()
       this.state.mode = 'list'
       this.state.autoRefreshEnabled = true
-      return await this.initializeSnapshot()
+      initializeResult = await this.initializeSnapshot()
+      return initializeResult
     } catch (err) {
       LogUtils.error(TAG, `initialize failed: ${JSON.stringify(err)}`)
-      return { success: false, code: 'storage_init_failed' }
+      return initializeResult
     } finally {
-      this.state.initialized = true
+      this.state.initialized = initializeResult.success
       this.state.loading = false
     }
   }
@@ -307,7 +308,7 @@ export class LogManageViewModel {
   }
 
   private async rebuildStateFromSnapshot(): Promise<void> {
-    let pageSize = PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? PAGE_SIZE_OPTIONS[0]
+    let pageSize = LOG_PAGE_SIZE_OPTIONS[this.state.pagination.pageSizeIndex] ?? LOG_PAGE_SIZE_OPTIONS[0]
     let currentQuery = this.buildQuery()
     let filteredCount = await this.storage.count(currentQuery)
     let totalPages = this.calcTotalPages(filteredCount, pageSize)
@@ -399,8 +400,8 @@ export class LogManageViewModel {
     if (index < 0) {
       return 0
     }
-    if (index >= PAGE_SIZE_OPTIONS.length) {
-      return PAGE_SIZE_OPTIONS.length - 1
+    if (index >= LOG_PAGE_SIZE_OPTIONS.length) {
+      return LOG_PAGE_SIZE_OPTIONS.length - 1
     }
     return index
   }
