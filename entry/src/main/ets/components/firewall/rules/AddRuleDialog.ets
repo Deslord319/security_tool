@@ -10,12 +10,12 @@ import { DetailDialogShell } from '../../DetailDialogShell'
 import { MultiCheckSelect } from '../../MultiCheckSelect'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
-import { UserFirewallOption } from '../../../services/firewall/FirewallModels'
-import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 import {
   attachFirewallRuleUserIds,
-  getFirewallRuleUserIds
-} from '../../../models/DataModels'
+  getFirewallRuleUserIds,
+  UserFirewallOption
+} from '../../../services/firewall/FirewallModels'
+import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 import { normalizeFirewallRuleUserIds } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 
 interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
