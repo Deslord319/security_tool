@@ -27,7 +27,7 @@ export class LogCollectorService {
   private static crashReady: boolean = false
   private static pendingEntries: LogEntry[] = []
   private static flushTimerId: number = -1
-  private static isFlushingEntries: boolean = false
+  private static flushPromise: Promise<void> | null = null
   private static readonly BATCH_FLUSH_INTERVAL_MS: number = 200
   private static readonly MAX_PENDING_ENTRIES: number = 1200
   private static readonly INTERNAL_LOG_PATH_KEYWORDS: string[] = [
@@ -191,10 +191,21 @@ export class LogCollectorService {
   }
 
   private static async flushPendingEntries(): Promise<void> {
-    if (LogCollectorService.isFlushingEntries || LogCollectorService.pendingEntries.length === 0) {
+    if (LogCollectorService.flushPromise) {
+      return LogCollectorService.flushPromise
+    }
+    if (LogCollectorService.pendingEntries.length === 0) {
       return
     }
-    LogCollectorService.isFlushingEntries = true
+    LogCollectorService.flushPromise = LogCollectorService.doFlush()
+    try {
+      await LogCollectorService.flushPromise
+    } finally {
+      LogCollectorService.flushPromise = null
+    }
+  }
+
+  private static async doFlush(): Promise<void> {
     let batch = LogCollectorService.pendingEntries.slice()
     LogCollectorService.pendingEntries = []
     try {
@@ -206,8 +217,6 @@ export class LogCollectorService {
     } catch (err) {
       LogCollectorService.requeueFailedBatch(batch, 'flushPendingEntries exception')
       LogUtils.error(TAG, `flushPendingEntries exception: ${JSON.stringify(err)}`)
-    } finally {
-      LogCollectorService.isFlushingEntries = false
     }
     if (LogCollectorService.running && LogCollectorService.pendingEntries.length > 0) {
       LogCollectorService.scheduleFlushPendingEntries()

@@ -1,7 +1,44 @@
+import { cryptoFramework } from '@kit.CryptoArchitectureKit'
 import { LooseRecord } from '../types/LooseValueTypes'
 
+const RANDOM_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
+let fallbackSuffixCounter = 0
+
 export function generateRandomSuffix(length: number = 8): string {
-  return Math.random().toString(36).substring(2, 2 + length)
+  let normalizedLength = normalizeSuffixLength(length)
+  if (normalizedLength === 0) {
+    return ''
+  }
+  try {
+    let randomBytes = cryptoFramework.createRandom().generateRandomSync(normalizedLength).data
+    let result = ''
+    for (let i = 0; i < randomBytes.length && result.length < normalizedLength; i++) {
+      result += RANDOM_ALPHABET.charAt(randomBytes[i] % RANDOM_ALPHABET.length)
+    }
+    if (result.length === normalizedLength) {
+      return result
+    }
+    return generateFallbackSuffix(normalizedLength)
+  } catch (_err) {
+    return generateFallbackSuffix(normalizedLength)
+  }
+}
+
+function normalizeSuffixLength(length: number): number {
+  if (!Number.isFinite(length) || length <= 0) {
+    return 0
+  }
+  return Math.floor(length)
+}
+
+function generateFallbackSuffix(length: number): string {
+  fallbackSuffixCounter++
+  let seed = `${Date.now().toString(36)}${fallbackSuffixCounter.toString(36)}`
+  while (seed.length < length) {
+    fallbackSuffixCounter++
+    seed += fallbackSuffixCounter.toString(36)
+  }
+  return seed.slice(-length)
 }
 
 export function pickStringFromRecords(

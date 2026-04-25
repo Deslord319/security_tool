@@ -13,6 +13,7 @@ const TAG = 'PreferencesAccessor'
 
 export class PreferencesAccessor {
   private static cache: Map<string, preferences.Preferences> = new Map()
+  private static pendingPromises: Map<string, Promise<preferences.Preferences | null>> = new Map()
   private context: common.Context
   private storeName: string
 
@@ -35,6 +36,18 @@ export class PreferencesAccessor {
     if (cached) {
       return cached
     }
+    let pending = PreferencesAccessor.pendingPromises.get(key)
+    if (pending) {
+      return pending
+    }
+    let promise = this.createStore(key)
+    PreferencesAccessor.pendingPromises.set(key, promise)
+    let result = await promise
+    PreferencesAccessor.pendingPromises.delete(key)
+    return result
+  }
+
+  private async createStore(key: string): Promise<preferences.Preferences | null> {
     try {
       let instance = await preferences.getPreferences(this.context, this.storeName)
       PreferencesAccessor.cache.set(key, instance)
