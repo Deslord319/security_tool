@@ -7,16 +7,14 @@ import {
   buildFirewallConflictNotice
 } from '../../../constants/modules/FirewallStrings'
 import {
+  attachFirewallRuleUserIds,
   FirewallOperationResult,
   FirewallPresetMode,
   FirewallRuleMutationResult,
+  getFirewallRuleUserIds,
+  normalizeFirewallRuleUserIds as normalizeScopedUserIds,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
-import {
-  attachFirewallRuleUserIds,
-  getFirewallRuleUserIds,
-  normalizeFirewallRuleUserIds as normalizeScopedUserIds
-} from '../../../models/DataModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'

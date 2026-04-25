@@ -1,5 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { userAuth } from '@kit.UserAuthenticationKit'
+import { cryptoFramework } from '@kit.CryptoArchitectureKit'
 
 import { BusinessError } from '@kit.BasicServicesKit'
 import { LabelText } from '../../../constants/StringCatalog'
@@ -91,10 +92,15 @@ export class AuthService {
       if (challenge && challenge.length >= 8) {
         authChallenge = challenge
       } else {
-        authChallenge = new Uint8Array(8)
-        for (let i = 0; i < 8; i++) {
-          authChallenge[i] = Math.floor(Math.random() * 256)
+        let generatedChallenge = AuthService.generateAuthChallenge()
+        if (generatedChallenge === null) {
+          return {
+            success: false,
+            reason: 'unavailable',
+            message: IdentityAuthStrings.buildUnavailable(AuthService.getAuthMethodLabel(authMethod))
+          }
         }
+        authChallenge = generatedChallenge
       }
 
       let authParam: userAuth.AuthParam = {
@@ -245,6 +251,15 @@ export class AuthService {
       errorCode === 12500006 ||
       errorCode === 12500013 ||
       errorCode === 201
+  }
+
+  private static generateAuthChallenge(): Uint8Array | null {
+    try {
+      return cryptoFramework.createRandom().generateRandomSync(8).data
+    } catch (err) {
+      LogUtils.error(TAG, `generateAuthChallenge failed: ${JSON.stringify(err)}`)
+      return null
+    }
   }
 
   private static convertAuthMethod(method: AuthMethod): userAuth.UserAuthType | null {

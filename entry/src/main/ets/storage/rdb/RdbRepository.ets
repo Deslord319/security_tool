@@ -93,11 +93,18 @@ export abstract class RdbRepository<TRecord, TQuery> {
       return false
     }
     try {
+      store.beginTransaction()
       for (let record of records) {
         await store.executeSql(insertSql, buildArgs(record))
       }
+      store.commit()
       return true
     } catch (err) {
+      try {
+        store.rollBack()
+      } catch (rollbackErr) {
+        LogUtils.warn(this.tag, `${operationName} rollback failed: ${this.stringifyError(rollbackErr)}`)
+      }
       LogUtils.error(this.tag, `${operationName} failed: ${this.stringifyError(err)}`)
       return false
     }

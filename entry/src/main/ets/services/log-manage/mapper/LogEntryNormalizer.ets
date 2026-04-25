@@ -6,6 +6,7 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/DataModels'
+import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const MAX_IN_MEMORY_ENTRIES = 5000
 const MAX_DETAIL_LENGTH = 1024
@@ -21,7 +22,6 @@ const MAX_DETAIL_ROW_VALUE_LENGTH = 1024
 
 export class LogEntryNormalizer {
   private static nowProvider: () => number = () => Date.now()
-  private static randomProvider: () => number = () => Math.random()
 
   static normalizeMaxEntries(maxEntries: number): number {
     if (!Number.isFinite(maxEntries) || maxEntries <= 0) {
@@ -127,7 +127,7 @@ export class LogEntryNormalizer {
     if (id && id.trim().length > 0) {
       return id.trim()
     }
-    return `persist_${LogEntryNormalizer.nowProvider()}_${LogEntryNormalizer.randomProvider().toString(36).substring(2, 9)}`
+    return `persist_${LogEntryNormalizer.nowProvider()}_${generateRandomSuffix(7)}`
   }
 
   private static truncateString(value: string | undefined, limit: number): string | undefined {
