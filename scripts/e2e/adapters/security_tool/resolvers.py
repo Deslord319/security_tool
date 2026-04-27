@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import deque
 from typing import Any
 
 from scripts.e2e.core.resolver_contracts import DialogDescriptor, FieldDescriptor, OptionDescriptor, PageDescriptor
@@ -30,13 +31,13 @@ def _node_bounds(node: dict[str, Any]) -> tuple[int, int, int, int]:
 
 def _descendant_texts(node: dict[str, Any]) -> set[str]:
     texts: set[str] = set()
-    queue = [node]
+    queue = deque([node])
     while queue:
-        current = queue.pop(0)
+        current = queue.popleft()
         text = str(_node_props(current).get("text", "")).strip()
         if text:
             texts.add(text)
-        queue[0:0] = current.get("children", [])
+        queue.extend(current.get("children", []))
     return texts
 
 

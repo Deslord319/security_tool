@@ -84,7 +84,7 @@ class RealHarmonyOsMcpBackend(
         if action == "save_tool_settings":
             return await self._save_tool_settings(payload)
         if action == "set_tool_password":
-            return await self._set_tool_password(payload)
+            return await self._open_tool_password_settings(payload)
         if action == "open_browser_url":
             return await self._open_browser_url(payload)
         if action == "export_logs":
@@ -503,18 +503,6 @@ class RealHarmonyOsMcpBackend(
             normalized_fallback = ""
         chosen_target = normalized_target or normalized_fallback
 
-        def collect_descendant_texts(node: dict[str, Any]) -> set[str]:
-            texts: set[str] = set()
-            queue = [node]
-            while queue:
-                current = queue.pop(0)
-                props = current.get("properties", {})
-                text = str(props.get("text", "")).strip()
-                if text:
-                    texts.add(text)
-                queue[0:0] = current.get("children", [])
-            return texts
-
         def pick_delete_button(ui_tree: dict[str, Any]) -> dict[str, Any] | None:
             candidates: list[dict[str, Any]] = []
             for node in self._iter_nodes(ui_tree):
@@ -527,7 +515,7 @@ class RealHarmonyOsMcpBackend(
                     continue
                 if left < 2200 or top < 800 or top > 1150 or width < 40 or height < 24:
                     continue
-                texts = collect_descendant_texts(node)
+                texts = self._collect_descendant_texts(node)
                 if not texts.intersection(DELETE_ACTION_LABELS):
                     continue
                 candidates.append(self._node_to_element(node))

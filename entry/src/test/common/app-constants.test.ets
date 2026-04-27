@@ -34,7 +34,7 @@ export default function appConstantsTest() {
       expect(ActionButtonStyles.getPrimaryBackground(ThemeMode.DARK, false)).assertEqual('rgba(94,161,255,0.24)')
       expect(ActionButtonStyles.getPrimaryBackground(ThemeMode.LIGHT, true)).assertEqual('rgba(10,132,255,0.14)')
       expect(ActionButtonStyles.getDangerBackground(ThemeMode.DARK, true)).assertEqual('rgba(255,59,48,0.32)')
-      expect(ActionButtonStyles.getDangerForeground(ThemeMode.LIGHT)).assertEqual(AppColors.getColors(ThemeMode.LIGHT).TEXT_PRIMARY)
+      expect(ActionButtonStyles.getDangerForeground(ThemeMode.LIGHT)).assertEqual(AppColors.DANGER)
     })
 
     it('should map interactive item styles by theme and state', 0, () => {

@@ -56,7 +56,7 @@ export class PeripheralDevicePolicyRepository {
   static get(deviceId: string): PeripheralDevicePolicyRecord | null {
     const normalized = normalizeDeviceId(deviceId)
     const found = PeripheralDevicePolicyRepository.records.find((item: PeripheralDevicePolicyRecord) => {
-      return item.deviceId === normalized
+      return normalizeDeviceId(item.deviceId) === normalized
     })
     return found ? PeripheralDevicePolicyRepository.cloneRecord(found) : null
   }
@@ -65,7 +65,7 @@ export class PeripheralDevicePolicyRepository {
     try {
       const normalized = PeripheralDevicePolicyRepository.normalizeRecord(record)
       const index = PeripheralDevicePolicyRepository.records.findIndex((item: PeripheralDevicePolicyRecord) => {
-        return item.deviceId === normalized.deviceId
+        return normalizeDeviceId(item.deviceId) === normalized.deviceId
       })
       if (index >= 0) {
         PeripheralDevicePolicyRepository.records[index] = normalized
@@ -85,7 +85,7 @@ export class PeripheralDevicePolicyRepository {
     try {
       const normalized = normalizeDeviceId(deviceId)
       PeripheralDevicePolicyRepository.records = PeripheralDevicePolicyRepository.records.filter(
-        (item: PeripheralDevicePolicyRecord) => item.deviceId !== normalized
+        (item: PeripheralDevicePolicyRecord) => normalizeDeviceId(item.deviceId) !== normalized
       )
       await PeripheralDevicePolicyRepository.saveRecords()
       PeripheralDevicePolicyRepository.notifyChanged()

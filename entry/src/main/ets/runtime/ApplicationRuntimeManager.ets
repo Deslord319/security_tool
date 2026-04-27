@@ -67,7 +67,8 @@ export class ApplicationRuntimeManager {
     }
     try {
       viewModel.activate()
-    } catch (_err) {
+    } catch (err) {
+      LogUtils.warn(TAG, `LogManageViewModel activate failed: ${JSON.stringify(err)}`)
     }
     let refreshResult = await viewModel.refreshAll()
     if (!refreshResult.success) {

@@ -5,7 +5,7 @@ export type LogManageMode = 'list' | 'settings'
 export const LOG_PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
 @ObservedV2
-class LogCollectorState implements CollectorStatus {
+export class LogCollectorState implements CollectorStatus {
   @Trace running: boolean = false
   @Trace auditReady: boolean = false
   @Trace crashReady: boolean = false
@@ -44,7 +44,7 @@ export class LogListState {
 }
 
 @ObservedV2
-class LogDetailState {
+export class LogDetailState {
   @Trace visible: boolean = false
   @Trace entryId: string = ''
 }
