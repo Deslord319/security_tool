@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from typing import Any
 
 from fastmcp import Client  # type: ignore
@@ -130,11 +131,23 @@ class UiRuntimeHelpersMixin:
         }
 
     def _iter_nodes(self, ui_tree: dict[str, Any]):
-        stack = list(ui_tree.get("nodes", []))
-        while stack:
-            node = stack.pop(0)
+        queue = deque(ui_tree.get("nodes", []))
+        while queue:
+            node = queue.popleft()
             yield node
-            stack[0:0] = node.get("children", [])
+            queue.extend(node.get("children", []))
+
+    def _collect_descendant_texts(self, node: dict[str, Any]) -> set[str]:
+        texts: set[str] = set()
+        queue = deque([node])
+        while queue:
+            current = queue.popleft()
+            props = current.get("properties", {})
+            text = str(props.get("text", "")).strip()
+            if text:
+                texts.add(text)
+            queue.extend(current.get("children", []))
+        return texts
 
     def _filter_ui_tree_by_bundle(self, ui_tree: dict[str, Any], bundle_name: str) -> dict[str, Any]:
         if not isinstance(ui_tree, dict):
@@ -255,6 +268,7 @@ class UiRuntimeHelpersMixin:
             if enter_evidence:
                 enriched["result"]["commit"] = enter_evidence
             return enriched
+        verify_after_enter: dict[str, Any] = {}
         if commit_enter:
             enter_result = await asyncio.to_thread(self._press_hdc_enter)
             if enter_result.returncode != 0:

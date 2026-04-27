@@ -47,7 +47,6 @@ def normalize_case_definition(case: dict[str, Any]) -> dict[str, Any]:
                 "type": "assertion_action",
                 "assertion_type": assertion.get("type", ""),
                 "value": assertion.get("value"),
-                "level": assertion.get("level", "secondary"),
                 "params": assertion.get("params", {}),
             }
         )

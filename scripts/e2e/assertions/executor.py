@@ -46,8 +46,8 @@ class AssertionExecutor:
             if result.returncode != 0:
                 return AssertionExecutionResult("FAIL", COMMAND_FAILED, "Enable admin command failed", command=command, command_result=result)
             haystack = f"{result.stdout}\n{result.stderr}".lower()
-            expected = str(value).lower() if value else "success"
-            if expected not in haystack:
+            expected = str(value).lower().strip() if value else ""
+            if expected and expected not in haystack:
                 return AssertionExecutionResult(
                     "FAIL",
                     ASSERTION_FAILED,

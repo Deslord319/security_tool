@@ -133,7 +133,7 @@ export class FirewallUserDispatchViewModel {
   }
 
   private applyLoadedMode(result: FirewallUserPolicyStateResult): void {
-    if (result.errorCode !== undefined) {
+    if (!result.isManaged || result.errorCode !== undefined) {
       this.statusHintText = result.message ?? FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
       this.selectedModeIndex = 0
       return

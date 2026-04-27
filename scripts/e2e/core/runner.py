@@ -21,7 +21,7 @@ from .failures import (
 )
 from .models import CaseResult, FAIL, PASS, UNKNOWN, StepResult, SuiteSummary
 from .normalizer import normalize_case_definition
-from .registry import load_adapter, load_adapter_flow_executor, load_adapter_flow_registry, load_adapter_suite, list_adapter_suites
+from .registry import load_adapter, load_adapter_flow_executor, load_adapter_suite, list_adapter_suites
 from .reporters import write_case_result, write_suite_summary
 from .utils import format_command, resolve_placeholders, utc_now
 from scripts.e2e.assertions.executor import AssertionExecutor
@@ -41,7 +41,6 @@ def step_success(
     result: Any | None = None,
     message: str | None = None,
     evidence: dict[str, Any] | None = None,
-    failure_code: str = "",
 ) -> StepResult:
     return StepResult(
         name=name,
@@ -49,7 +48,7 @@ def step_success(
         status=PASS,
         started_at=started_at,
         finished_at=utc_now(),
-        failure_code=failure_code,
+        failure_code="",
         command=format_command(command) if command else None,
         returncode=result.returncode if result is not None and hasattr(result, "returncode") else None,
         stdout=result.stdout.strip() if result is not None and hasattr(result, "stdout") else None,
@@ -114,7 +113,6 @@ class E2ERunner:
             detected_device = self.hdc.detect_single_device()
             self.hdc.device_id = detected_device
         self.mcp = McpDriver(project_root, dry_run)
-        self.flow_registry = load_adapter_flow_registry(adapter.adapter_name)
         flow_executor_cls = load_adapter_flow_executor(adapter.adapter_name)
         self.assertion_executor = AssertionExecutor(self.hdc, self.mcp, dry_run)
         self.flow_executor = flow_executor_cls(
@@ -180,9 +178,6 @@ class E2ERunner:
 
             if result.evidence:
                 secondary_evidence.append({"step_name": step.get("name", ""), **result.evidence})
-
-        if status == PASS and any(step.status == UNKNOWN for step in steps):
-            status = UNKNOWN
 
         if status == UNKNOWN and not case["result_policy"].get("allow_unknown", True):
             status = FAIL

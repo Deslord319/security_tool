@@ -17,18 +17,6 @@ from scripts.e2e.adapters.security_tool.strategies import (
 
 
 class ComplexHooksMixin:
-    def _collect_descendant_texts(self, node: dict[str, Any]) -> set[str]:
-        texts: set[str] = set()
-        queue = [node]
-        while queue:
-            current = queue.pop(0)
-            props = current.get("properties", {})
-            text = str(props.get("text", "")).strip()
-            if text:
-                texts.add(text)
-            queue[0:0] = current.get("children", [])
-        return texts
-
     def _pick_firewall_custom_mode_card(self, ui_tree: dict[str, Any]) -> dict[str, Any] | None:
         candidates: list[dict[str, Any]] = []
         for node in self._iter_nodes(ui_tree):
@@ -121,8 +109,6 @@ class ComplexHooksMixin:
                     {"navigation": nav_result, "rule_type": str(rule_type).lower()},
                 )
 
-            if not click_result.get("ok", False) and custom_rule_entry:
-                click_result = await self._call_tool("click_element", {"x": custom_rule_entry["x"], "y": custom_rule_entry["y"]})
             if not click_result.get("ok", False):
                 return self._fail(
                     "MCP_EXECUTION_FAILED",
@@ -216,7 +202,7 @@ class ComplexHooksMixin:
             return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule dialog closed but target rule was not observed")
         return self._pass("Firewall rule dialog submitted", evidence)
 
-    async def _set_tool_password(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _open_tool_password_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
         ui_tree = await self._get_ui_tree()
         password_button = self._pick_button_by_text(ui_tree, ["修改密码"], min_left=2200)

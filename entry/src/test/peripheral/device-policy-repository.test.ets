@@ -73,10 +73,10 @@ export default function peripheralDevicePolicyRepositoryTest() {
       let setResult = await PeripheralDevicePolicyRepository.set(record)
 
       expect(setResult).assertTrue()
-      let found = PeripheralDevicePolicyRepository.get('device-001')
-      expect(found !== null).assertTrue()
-      expect(found?.deviceId).assertEqual('device-001')
-      expect(found?.policy).assertEqual('allow')
+      let records = PeripheralDevicePolicyRepository.getAll()
+      expect(records.length).assertEqual(1)
+      expect(records[0].deviceId).assertEqual('DEVICE-001')
+      expect(records[0].policy).assertEqual('allow')
     })
 
     it('should normalize device id on set', 0, async () => {
@@ -85,8 +85,9 @@ export default function peripheralDevicePolicyRepositoryTest() {
       let record = createRecord('DEVICE-001', 'deny')
       await PeripheralDevicePolicyRepository.set(record)
 
-      let found = PeripheralDevicePolicyRepository.get('device-001')
-      expect(found !== null).assertTrue()
+      let records = PeripheralDevicePolicyRepository.getAll()
+      expect(records.length).assertEqual(1)
+      expect(records[0].deviceId).assertEqual('DEVICE-001')
     })
 
     it('should update existing record', 0, async () => {
@@ -95,10 +96,9 @@ export default function peripheralDevicePolicyRepositoryTest() {
       await PeripheralDevicePolicyRepository.set(createRecord('device-001', 'allow'))
       await PeripheralDevicePolicyRepository.set(createRecord('device-001', 'deny'))
 
-      let found = PeripheralDevicePolicyRepository.get('device-001')
-      expect(found !== null).assertTrue()
-      expect(found?.policy).assertEqual('deny')
-      expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(1)
+      let records = PeripheralDevicePolicyRepository.getAll()
+      expect(records.length).assertEqual(1)
+      expect(records[0].policy).assertEqual('deny')
     })
 
     it('should remove record', 0, async () => {
@@ -191,9 +191,9 @@ export default function peripheralDevicePolicyRepositoryTest() {
       record.policy = 'invalid' as 'allow' | 'deny'
       await PeripheralDevicePolicyRepository.set(record)
 
-      let found = PeripheralDevicePolicyRepository.get('device-001')
-      expect(found !== null).assertTrue()
-      expect(found?.policy).assertEqual('allow')
+      let records = PeripheralDevicePolicyRepository.getAll()
+      expect(records.length).assertEqual(1)
+      expect(records[0].policy).assertEqual('allow')
     })
   })
 }

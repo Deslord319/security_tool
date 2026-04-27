@@ -52,7 +52,7 @@ export class LogPathUtils {
         cutIndex = index
       }
     }
-    return cutIndex >= 0 ? path.substring(0, cutIndex) : path
+    return cutIndex < path.length ? path.substring(0, cutIndex) : path
   }
   private static sanitizeRawPathCandidate(pathOrUri: string | undefined): string {
     if (!pathOrUri) {

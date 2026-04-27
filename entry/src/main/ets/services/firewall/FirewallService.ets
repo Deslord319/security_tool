@@ -369,11 +369,12 @@ export class FirewallService {
     let deploymentsSaved = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, deployments)
     if (!intentSaved || !deploymentsSaved) {
       LogUtils.error(TAG, `createRule local save failed: localRuleId=${localRuleId}`)
+      let rollbackFailedItems = await FirewallService.rollbackCreatedRule(context, localRuleId, deployments, intentSaved)
       return {
         success: false,
         localRuleId: localRuleId,
         successDeployments: deployments,
-        failedItems: failedItems,
+        failedItems: [...failedItems, ...rollbackFailedItems],
         errorMessage: 'local save failed'
       }
     }
@@ -408,6 +409,38 @@ export class FirewallService {
     let localRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
     if (!localRemoved) {
       failedItems.push({ localRuleId: localRuleId, errorMessage: 'remove deployments failed' })
+    }
+    return failedItems
+  }
+
+  private static async rollbackCreatedRule(
+    context: common.UIAbilityContext,
+    localRuleId: string,
+    deployments: FirewallRuleDeployment[],
+    intentSaved: boolean
+  ): Promise<FirewallFailedItem[]> {
+    let failedItems: FirewallFailedItem[] = []
+    for (let i = 0; i < deployments.length; i++) {
+      let deployment = deployments[i]
+      let removed = await FirewallSystemRepository.removeRule(deployment.userId, deployment.systemRuleId)
+      if (!removed) {
+        failedItems.push({
+          localRuleId: localRuleId,
+          userId: deployment.userId,
+          systemRuleId: deployment.systemRuleId,
+          errorMessage: 'rollback system rule failed'
+        })
+      }
+    }
+    let deploymentsRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
+    if (!deploymentsRemoved) {
+      failedItems.push({ localRuleId: localRuleId, errorMessage: 'rollback local deployments failed' })
+    }
+    if (intentSaved) {
+      let intentRemoved = await FirewallLocalRepository.removeRuleIntent(context, localRuleId)
+      if (!intentRemoved) {
+        failedItems.push({ localRuleId: localRuleId, errorMessage: 'rollback local intent failed' })
+      }
     }
     return failedItems
   }

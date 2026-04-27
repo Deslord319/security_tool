@@ -209,7 +209,7 @@ class NavigationRuntimeMixin:
             close_result = await self._click_first_available_text(["我知道了", "知道了"], bundle_name="com.huawei.securitytool")
             if close_result.get("ok", False):
                 continue
-            return
+            break
 
     async def _is_top_menu_visible(self) -> bool:
         wait_result = await self._wait_for_any_texts(["关于", "跟随系统"], timeout_sec=0.6, interval_sec=0.2)
