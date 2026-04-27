@@ -19,18 +19,6 @@ from scripts.e2e.adapters.security_tool.strategies import (
 
 
 class SelectorHelpersMixin:
-    def _collect_descendant_texts(self, node: dict[str, Any]) -> set[str]:
-        texts: set[str] = set()
-        queue = [node]
-        while queue:
-            current = queue.pop(0)
-            props = current.get("properties", {})
-            text = str(props.get("text", "")).strip()
-            if text:
-                texts.add(text)
-            queue[0:0] = current.get("children", [])
-        return texts
-
     def _find_page_marker_node(self, ui_tree: dict[str, Any], *, marker_text: str, page_text: str) -> dict[str, Any] | None:
         return resolve_page_marker_node(
             ui_tree,
@@ -146,12 +134,14 @@ class SelectorHelpersMixin:
             return toggles[0]
 
         normalized_text = text.strip()
+        for toggle in toggles:
+            props = toggle.get("properties", {})
+            if element_id and toggle.get("id") == element_id:
+                return toggle
+            if normalized_text and str(toggle.get("text", "")).strip() == normalized_text:
+                return toggle
         for node in self._iter_nodes(ui_tree):
             props = node.get("properties", {})
-            if element_id and props.get("id") == element_id and node.get("type") == "Toggle":
-                return self._node_to_element(node)
-            if normalized_text and props.get("text") == normalized_text and node.get("type") == "Toggle":
-                return self._node_to_element(node)
             if normalized_text and props.get("text") == normalized_text:
                 parent = self._find_first_child_toggle(node)
                 if parent:
@@ -263,12 +253,12 @@ class SelectorHelpersMixin:
         return self._unknown({"action": "confirm_dialog", "params": {}}, "MCP_ACTION_PENDING", "Confirmation button was not found")
 
     def _find_first_child_toggle(self, node: dict[str, Any]) -> dict[str, Any] | None:
-        queue = list(node.get("children", []))
+        queue = list(reversed(node.get("children", [])))
         while queue:
-            current = queue.pop(0)
+            current = queue.pop()
             if current.get("type") == "Toggle":
                 return self._node_to_element(current)
-            queue[0:0] = current.get("children", [])
+            queue.extend(reversed(current.get("children", [])))
         return None
 
     def _pick_dialog_button_by_text(self, ui_tree: dict[str, Any], labels: list[str]) -> dict[str, Any] | None:

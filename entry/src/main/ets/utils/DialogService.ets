@@ -2,12 +2,10 @@ import { LogUtils } from './LogUtils'
 
 import { AppColors } from '../constants/AppConstants'
 import { ActionText, MessageText } from '../constants/StringCatalog'
-import { ThemeMode, getThemeColors } from '../theme/ThemeColors'
 
 export type ActionDialogStatus = 'success' | 'failure'
 
 const TAG = 'DialogService'
-const LIGHT_THEME_COLORS = getThemeColors(ThemeMode.LIGHT)
 
 export interface ConfirmDialogOptions {
   title: string
@@ -52,7 +50,6 @@ export class DialogService {
         },
         secondaryButton: {
           value: options.cancelText ?? ActionText.CANCEL,
-          fontColor: `${LIGHT_THEME_COLORS.TEXT_PRIMARY}`,
           action: () => {
             options.onCancel?.()
           }

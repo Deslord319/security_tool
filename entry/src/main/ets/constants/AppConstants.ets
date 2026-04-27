@@ -131,7 +131,7 @@ export class ActionButtonStyles {
     if (theme === ThemeMode.DARK) {
       return Color.White
     }
-    return AppColors.getColors(theme).TEXT_PRIMARY
+    return AppColors.DANGER
   }
 
   static getPrimaryIconColor(theme: ThemeMode): ResourceColor {
@@ -245,5 +245,6 @@ export const NAV_ITEMS: NavItem[] = [
   { id: RouteIds.LOG_MANAGE, label: ModuleText.LOG_MANAGE, icon: AppResources.LOG_ICON },
   { id: RouteIds.PERIPHERAL_MANAGE, label: ModuleText.PERIPHERAL_MANAGE, icon: AppResources.PERIPHERAL_ICON },
   { id: RouteIds.IDENTITY, label: ModuleText.IDENTITY, icon: AppResources.IDENTITY_ICON },
+  // Help feedback is exposed from the top menu so the sidebar remains task-focused.
   { id: RouteIds.TOOL_SETTINGS, label: ModuleText.TOOL_SETTINGS, icon: AppResources.SETTINGS_ICON }
 ]

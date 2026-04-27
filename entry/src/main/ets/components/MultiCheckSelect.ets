@@ -23,9 +23,9 @@ export struct MultiCheckSelect {
     return this.options.map((option: MultiCheckSelectOption): number => option.userId)
   }
 
-  private normalizeValues(values: number[]): number[] {
-    let availableValues = this.getAvailableValues()
-    let availableValueSet = new Set<number>(availableValues)
+  private normalizeValues(values: number[], availableValues?: number[]): number[] {
+    let scopedAvailableValues = availableValues ?? this.getAvailableValues()
+    let availableValueSet = new Set<number>(scopedAvailableValues)
     let filtered = values.filter((value: number): boolean => availableValueSet.size === 0 || availableValueSet.has(value))
     return Array.from(new Set<number>(filtered)).sort((left: number, right: number): number => left - right)
   }
@@ -34,13 +34,13 @@ export struct MultiCheckSelect {
     return this.normalizeValues(this.selectedValues)
   }
 
-  private isAllSelected(): boolean {
-    let availableValues = this.getAvailableValues()
-    if (availableValues.length === 0) {
+  private isAllSelected(availableValues?: number[], selectedValues?: number[]): boolean {
+    let scopedAvailableValues = availableValues ?? this.getAvailableValues()
+    if (scopedAvailableValues.length === 0) {
       return false
     }
-    let selectedValues = this.getNormalizedSelectedValues()
-    return selectedValues.length === availableValues.length
+    let scopedSelectedValues = selectedValues ?? this.normalizeValues(this.selectedValues, scopedAvailableValues)
+    return scopedSelectedValues.length === scopedAvailableValues.length
   }
 
   private getSelectedLabel(value: number): string {
@@ -52,7 +52,8 @@ export struct MultiCheckSelect {
       return FirewallDialogStrings.USER_SCOPE_EMPTY
     }
 
-    let selectedValues = this.getNormalizedSelectedValues()
+    let availableValues = this.getAvailableValues()
+    let selectedValues = this.normalizeValues(this.selectedValues, availableValues)
     if (selectedValues.length === 0) {
       return this.placeholder
     }
@@ -62,7 +63,7 @@ export struct MultiCheckSelect {
       return label.length > 0 ? label : this.placeholder
     }
 
-    if (this.isAllSelected()) {
+    if (this.isAllSelected(availableValues, selectedValues)) {
       return this.allLabel
     }
 
@@ -74,11 +75,12 @@ export struct MultiCheckSelect {
   }
 
   private handleToggleAll(): void {
-    if (this.isAllSelected()) {
+    let availableValues = this.getAvailableValues()
+    if (this.isAllSelected(availableValues)) {
       this.handleChange([])
       return
     }
-    this.handleChange(this.getAvailableValues())
+    this.handleChange(availableValues)
   }
 
   private handleToggleValue(value: number): void {

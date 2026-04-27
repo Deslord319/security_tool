@@ -16,7 +16,7 @@ export class Ipv4Utils {
       return false
     }
     let maskValue = Number(mask)
-    return Number.isInteger(maskValue) && maskValue >= 0 && maskValue <= 32
+    return maskValue >= 0 && maskValue <= 32
   }
 
   static parseIpv4(address: string): number | null {
@@ -31,7 +31,7 @@ export class Ipv4Utils {
         return null
       }
       let value = Number(segment)
-      if (!Number.isInteger(value) || value < 0 || value > 255 || `${value}` !== segment) {
+      if (value < 0 || value > 255 || `${value}` !== segment) {
         return null
       }
       result = result * 256 + value

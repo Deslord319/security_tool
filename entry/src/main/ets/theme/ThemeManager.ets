@@ -69,7 +69,10 @@ export class ThemeManager {
     try {
       let pref = PreferencesAccessor.of(this.context!, PREFERENCES_NAME)
       // 读取保存的选项（新逻辑：system/light/dark 三选一）
-      const savedOption = await pref.getString(KEY_THEME_OPTION, ThemeOption.SYSTEM) as ThemeOption
+      let savedOption = await pref.getString(KEY_THEME_OPTION, '') as ThemeOption
+      if (savedOption !== ThemeOption.SYSTEM && savedOption !== ThemeOption.LIGHT && savedOption !== ThemeOption.DARK) {
+        savedOption = await this.loadLegacyThemeOption(pref)
+      }
 
       // 更新 AppStorage
       AppStorage.setOrCreate<ThemeOption>(STORAGE_KEY_OPTION, savedOption)
@@ -280,9 +283,13 @@ export class ThemeManager {
 
     try {
       let pref = PreferencesAccessor.of(this.context, PREFERENCES_NAME)
+      let option = preference === ThemePreference.SYSTEM
+        ? ThemeOption.SYSTEM
+        : (theme === ThemeMode.DARK ? ThemeOption.DARK : ThemeOption.LIGHT)
       let saved = await pref.setMany([
         { key: KEY_THEME_MODE, value: theme },
-        { key: KEY_THEME_PREFERENCE, value: preference }
+        { key: KEY_THEME_PREFERENCE, value: preference },
+        { key: KEY_THEME_OPTION, value: option }
       ])
       if (!saved) {
         LogUtils.error(TAG, 'savePreferences failed: preferences_write_failed')
@@ -290,5 +297,14 @@ export class ThemeManager {
     } catch (err) {
       LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
     }
+  }
+
+  private async loadLegacyThemeOption(pref: PreferencesAccessor): Promise<ThemeOption> {
+    let savedPreference = await pref.getString(KEY_THEME_PREFERENCE, ThemePreference.SYSTEM) as ThemePreference
+    if (savedPreference === ThemePreference.SYSTEM) {
+      return ThemeOption.SYSTEM
+    }
+    let savedTheme = await pref.getString(KEY_THEME_MODE, ThemeMode.LIGHT) as ThemeMode
+    return savedTheme === ThemeMode.DARK ? ThemeOption.DARK : ThemeOption.LIGHT
   }
 }

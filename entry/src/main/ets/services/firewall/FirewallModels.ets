@@ -35,7 +35,7 @@ export interface UserFirewallPolicyResult {
 }
 
 export interface FirewallScopedRule extends netFirewall.NetFirewallRule {
-  userIds: number[]
+  userIds?: number[]
   targetUserIds?: number[]
   localRuleId?: string
 }
@@ -52,10 +52,10 @@ export function normalizeFirewallRuleUserIds(userIds: number[]): number[] {
 
 export function getFirewallRuleUserIds(rule: netFirewall.NetFirewallRule): number[] {
   let scopedRule = rule as FirewallScopedRule
-  if (!Array.isArray(scopedRule.userIds)) {
-    return Array.isArray(scopedRule.targetUserIds) ? normalizeFirewallRuleUserIds(scopedRule.targetUserIds) : []
+  if (Array.isArray(scopedRule.targetUserIds)) {
+    return normalizeFirewallRuleUserIds(scopedRule.targetUserIds)
   }
-  return normalizeFirewallRuleUserIds(scopedRule.userIds)
+  return Array.isArray(scopedRule.userIds) ? normalizeFirewallRuleUserIds(scopedRule.userIds) : []
 }
 
 export function attachFirewallRuleUserIds(
@@ -64,7 +64,6 @@ export function attachFirewallRuleUserIds(
 ): FirewallScopedRule {
   let scopedRule = rule as FirewallScopedRule
   let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
-  scopedRule.userIds = normalizedUserIds
   scopedRule.targetUserIds = normalizedUserIds
   return scopedRule
 }

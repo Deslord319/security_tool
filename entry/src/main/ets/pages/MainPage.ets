@@ -136,14 +136,10 @@ struct MainPage {
 
   private async handleThemeToggle(): Promise<void> {
     await ThemeManager.getInstance().toggleTheme()
-    this.syncThemeState()
-    this.syncDecorButtonStyle()
   }
 
   private async handleThemeOptionSelect(option: ThemeOption): Promise<void> {
     await ThemeManager.getInstance().setOption(option)
-    this.syncThemeState()
-    this.syncDecorButtonStyle()
   }
 
   private openAboutDialog(): void {
@@ -386,12 +382,14 @@ struct MainPage {
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
 
       if (this.currentTheme === ThemeMode.DARK) {
+        // Hidden marker used by E2E checks to verify the active theme without parsing colors.
         Column()
           .id('theme-marker-dark')
           .width(1)
           .height(1)
           .opacity(0)
       } else {
+        // Hidden marker used by E2E checks to verify the active theme without parsing colors.
         Column()
           .id('theme-marker-light')
           .width(1)
