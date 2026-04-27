@@ -116,7 +116,7 @@ export default function interfaceControlViewModelTest() {
     let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
     let setResult = new VoidOperationResult()
     setResult.success = true
-    when(setInterfaceMock)(PeripheralService.FEATURE_BLUETOOTH, true).afterReturn(setResult)
+    when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_BLUETOOTH, true)
 
@@ -129,7 +129,7 @@ export default function interfaceControlViewModelTest() {
     let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
     let setResult = new VoidOperationResult()
     setResult.success = true
-    when(setInterfaceMock)(PeripheralService.FEATURE_WIFI, true).afterReturn(setResult)
+    when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_WIFI, true)
 

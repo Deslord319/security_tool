@@ -1,12 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import EntryAbility from '../../main/ets/entryability/EntryAbility'
-import {
-  ACCOUNT_EVENT_PARAM_TIMESTAMP,
-  ACCOUNT_EVENT_PARAM_TYPE,
-  ACCOUNT_EVENT_PARAM_USER_ID,
-  AccountEventType
-} from '../../main/ets/contracts/AccountEventContract'
+import { AccountEventType } from '../../main/ets/contracts/AccountEventContract'
 import { AuthMethod } from '../../main/ets/models/DataModels'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { AuthAvailabilityResult, AuthExecutionResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
@@ -152,13 +147,24 @@ interface EntryAbilityRepositoryHolder {
 }
 
 interface AccountEventHandlerHolder {
-  handleAccountEvent(data: Object): Promise<void>
+  handleAccountEvent(data: FakeAccountEventData): Promise<void>
 }
 
 class FakeWant {
 }
 
 class FakeLaunchParam {
+}
+
+class FakeAccountEventParameters {
+  accountEventType: string = ''
+  accountEventUserId: number = 0
+  accountEventTimestamp: number = 0
+}
+
+class FakeAccountEventData {
+  parameters?: FakeAccountEventParameters
+  data?: string
 }
 
 export default function entryAbilityTest() {
@@ -260,13 +266,14 @@ export default function entryAbilityTest() {
         return Promise.resolve()
       })
 
-      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent({
-        parameters: {
-          [ACCOUNT_EVENT_PARAM_TYPE]: AccountEventType.ADDED,
-          [ACCOUNT_EVENT_PARAM_USER_ID]: 101,
-          [ACCOUNT_EVENT_PARAM_TIMESTAMP]: 1
-        }
-      })
+      let parameters = new FakeAccountEventParameters()
+      parameters.accountEventType = AccountEventType.ADDED
+      parameters.accountEventUserId = 101
+      parameters.accountEventTimestamp = 1
+      let eventData = new FakeAccountEventData()
+      eventData.parameters = parameters
+
+      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent(eventData)
 
       expect(trackedUserId).assertEqual(101)
       done()
@@ -280,13 +287,14 @@ export default function entryAbilityTest() {
         return Promise.resolve()
       })
 
-      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent({
-        data: JSON.stringify({
-          [ACCOUNT_EVENT_PARAM_TYPE]: AccountEventType.REMOVED,
-          [ACCOUNT_EVENT_PARAM_USER_ID]: 101,
-          [ACCOUNT_EVENT_PARAM_TIMESTAMP]: 1
-        })
-      })
+      let parameters = new FakeAccountEventParameters()
+      parameters.accountEventType = AccountEventType.REMOVED
+      parameters.accountEventUserId = 101
+      parameters.accountEventTimestamp = 1
+      let eventData = new FakeAccountEventData()
+      eventData.data = JSON.stringify(parameters)
+
+      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent(eventData)
 
       expect(trackedUserId).assertEqual(101)
       done()
