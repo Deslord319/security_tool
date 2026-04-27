@@ -7,6 +7,7 @@
 ## 判定口径
 
 - `已有UT覆盖`：当前本地 UT 已能支撑该用例在 UT 范围内的核心结论。
+- `UT部分覆盖`：当前本地 UT 已覆盖该用例在 UT 范围内的核心分发或模型逻辑，但真实系统 API、持久化落盘、页面刷新等链路不纳入本地 UT。
 - `待补UT`：该用例存在可单元化的业务逻辑缺口，后续应补本地 UT。
 - `不补UT`：该用例核心是 UI、导航、弹窗、真实设备、系统触发或集成语义，本轮不补 UT。
 
@@ -14,7 +15,8 @@
 
 - 基线用例总数：`105`
 - `已有UT覆盖`：`71`
-- `待补UT`：`12`
+- `UT部分覆盖`：`4`
+- `待补UT`：`8`
 - `不补UT`：`22`
 
 ## 安全总览
@@ -57,10 +59,10 @@
 | FW-026 | 模式切换 | 验证防火墙开启时可以从私有网络模式切换到自定义模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
 | FW-027 | 模式切换 | 验证防火墙开启时可以从自定义模式切换到公共网络模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
 | FW-028 | 模式切换 | 验证防火墙开启时可以从自定义模式切换到私有网络模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
-| FW-029 | 规则新增 | 验证新增用户后重新打开新增规则弹窗，用户范围列表包含新用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
-| FW-030 | 规则新增 | 验证删除用户后重新打开新增规则弹窗，用户范围列表不再包含已删除用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
-| FW-031 | 用户级策略下发 | 验证新增用户后重新打开全局策略弹窗，目标用户列表包含新用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
-| FW-032 | 用户级策略下发 | 验证删除用户后重新打开全局策略弹窗，目标用户列表不再包含已删除用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
+| FW-029 | 规则新增 | 验证新增用户后重新打开新增规则弹窗，用户范围列表包含新用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户新增事件分发到 SystemUserProvider.trackAddedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-030 | 规则新增 | 验证删除用户后重新打开新增规则弹窗，用户范围列表不再包含已删除用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户删除事件分发到 SystemUserProvider.trackRemovedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-031 | 用户级策略下发 | 验证新增用户后重新打开全局策略弹窗，目标用户列表包含新用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户新增事件分发到 SystemUserProvider.trackAddedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-032 | 用户级策略下发 | 验证删除用户后重新打开全局策略弹窗，目标用户列表不再包含已删除用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户删除事件分发到 SystemUserProvider.trackRemovedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
 
 ## 日志管理
 
@@ -172,10 +174,6 @@
 - `FW-017`：entry/src/test/firewall/rule-utils.test.ets：补 wildcard 单级域名重叠判定。
 - `FW-019`：entry/src/test/firewall/service.test.ets：补用户级白名单策略下发 + PIN 成功/失败。
 - `FW-020`：entry/src/test/firewall/service.test.ets：补用户级黑名单策略下发 + PIN 成功/失败。
-- `FW-029`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `FW-030`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `FW-031`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `FW-032`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
 - `PER-006`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。
 - `PER-007`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。
 - `PER-008`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。
@@ -185,5 +183,6 @@
 ## 不补 UT 的边界
 
 - 页面渲染、导航、弹窗交互、菜单开关和空状态展示不纳入本轮 UT。
+- 依赖鸿蒙运行时的 `application.getApplicationContext()`、真实 Preferences 落盘、页面弹窗刷新等链路不作为 Local UT 补充目标；如需验证，应进入 ohosTest 或设备侧集成测试范围。
 - `LOG-002/003/017/018` 的真实系统触发步骤是给人工执行看的；UT 已覆盖事件映射和采集处理，不再补。
 - `PER-025/026` 的 Select 显示回滚属于 `AsyncSelectRow` 组件本地交互状态，不再补 UT。
