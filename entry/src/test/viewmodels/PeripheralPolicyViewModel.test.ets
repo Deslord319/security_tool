@@ -166,6 +166,28 @@ export default function peripheralPolicyViewModelTest() {
       expect(records[0].policy).assertEqual('deny')
     })
 
+    it('should restore bluetooth device allow policy with normalized id', 0, async () => {
+      records = [{
+        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+        policy: 'deny',
+        updatedAt: Date.now(),
+        deviceName: 'Bluetooth Device',
+        deviceType: PeripheralType.BLUETOOTH
+      }]
+
+      const reason = await viewModel.setDevicePolicy(
+        'aa-bb-cc-dd-ee-ff',
+        'Bluetooth Device',
+        PeripheralType.BLUETOOTH,
+        0
+      )
+
+      expect(reason).assertNull()
+      expect(records.length).assertEqual(1)
+      expect(records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
+      expect(records[0].policy).assertEqual('allow')
+    })
+
     it('should rebuild bluetooth policy records with normalized ids', 0, async () => {
       records = [{
         deviceId: 'aa-bb-cc-dd-ee-ff',
@@ -191,6 +213,21 @@ export default function peripheralPolicyViewModelTest() {
       expect(viewModel.state.records.length).assertEqual(1)
       expect(viewModel.state.records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
       expect(viewModel.state.records[0].policyIndex).assertEqual(1)
+    })
+
+    it('should map usb global interface conflict when changing single-device policy', 0, async () => {
+      let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      when(dispatchMock)(ArgumentMatchers.any).afterReturn(createDispatchResult(false, 'usb_conflict_global_disabled'))
+
+      const reason = await viewModel.setDevicePolicy(
+        'VID:1234 PID:5678',
+        'USB Device',
+        PeripheralType.USB_STORAGE,
+        1
+      )
+
+      expect(reason).assertEqual('usb_conflict_global_disabled')
+      expect(records.length).assertEqual(0)
     })
 
     it('should clear all explicit device policies', 0, async () => {

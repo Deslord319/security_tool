@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import EntryAbility from '../../main/ets/entryability/EntryAbility'
+import { AccountEventType } from '../../main/ets/contracts/AccountEventContract'
 import { AuthMethod } from '../../main/ets/models/DataModels'
+import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { AuthAvailabilityResult, AuthExecutionResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { PreferencesToolSettingsRepository } from '../../main/ets/services/tool-settings/system-settings/ToolSettingsRepository'
 import { ThemeManager } from '../../main/ets/theme/ThemeManager'
@@ -144,10 +146,25 @@ interface EntryAbilityRepositoryHolder {
   toolSettingsRepository: PreferencesToolSettingsRepository
 }
 
+interface AccountEventHandlerHolder {
+  handleAccountEvent(data: FakeAccountEventData): Promise<void>
+}
+
 class FakeWant {
 }
 
 class FakeLaunchParam {
+}
+
+class FakeAccountEventParameters {
+  accountEventType: string = ''
+  accountEventUserId: number = 0
+  accountEventTimestamp: number = 0
+}
+
+class FakeAccountEventData {
+  parameters?: FakeAccountEventParameters
+  data?: string
 }
 
 export default function entryAbilityTest() {
@@ -238,6 +255,48 @@ export default function entryAbilityTest() {
       terminated = context.terminated
       expect(terminated).assertTrue()
       expect(windowStage.loadCalls).assertEqual(0)
+      done()
+    })
+
+    it('should dispatch account added event to system user provider', 0, async (done: Function) => {
+      let trackedUserId = -1
+      let trackAddedMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.trackAddedUser)
+      when(trackAddedMock)(ArgumentMatchers.any).afterAction((userId: number): Promise<void> => {
+        trackedUserId = userId
+        return Promise.resolve()
+      })
+
+      let parameters = new FakeAccountEventParameters()
+      parameters.accountEventType = AccountEventType.ADDED
+      parameters.accountEventUserId = 101
+      parameters.accountEventTimestamp = 1
+      let eventData = new FakeAccountEventData()
+      eventData.parameters = parameters
+
+      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent(eventData)
+
+      expect(trackedUserId).assertEqual(101)
+      done()
+    })
+
+    it('should dispatch account removed event to system user provider', 0, async (done: Function) => {
+      let trackedUserId = -1
+      let trackRemovedMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.trackRemovedUser)
+      when(trackRemovedMock)(ArgumentMatchers.any).afterAction((userId: number): Promise<void> => {
+        trackedUserId = userId
+        return Promise.resolve()
+      })
+
+      let parameters = new FakeAccountEventParameters()
+      parameters.accountEventType = AccountEventType.REMOVED
+      parameters.accountEventUserId = 101
+      parameters.accountEventTimestamp = 1
+      let eventData = new FakeAccountEventData()
+      eventData.data = JSON.stringify(parameters)
+
+      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent(eventData)
+
+      expect(trackedUserId).assertEqual(101)
       done()
     })
   })

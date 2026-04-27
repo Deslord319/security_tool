@@ -211,6 +211,33 @@ function stubSwitchModeDependencies(
   })
 }
 
+function stubUserPolicyModeDependencies(
+  mockKit: MockKit,
+  appliedPolicies: AppliedPolicyRecord[],
+  setPolicyResult: boolean = true,
+  saveModeResult: boolean = true
+): void {
+  let setPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.setPolicy)
+  let saveModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveUserPolicyMode)
+
+  when(setPolicyMock)(ArgumentMatchers.any).afterAction((
+    userId: number,
+    policy: netFirewall.NetFirewallPolicy
+  ): boolean => {
+    if (!setPolicyResult) {
+      return false
+    }
+    appliedPolicies.push({
+      userId: userId,
+      isOpen: policy.isOpen,
+      inAction: policy.inAction,
+      outAction: policy.outAction
+    })
+    return true
+  })
+  when(saveModeMock)(ArgumentMatchers.any).afterReturn(saveModeResult)
+}
+
 export default function firewallServiceTest() {
   describe('FirewallService', () => {
     let mockKit: MockKit
@@ -398,6 +425,66 @@ export default function firewallServiceTest() {
       expect(defaultPolicy?.inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
       expect(defaultPolicy?.outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
       done()
+    })
+
+    describe('user policy mode', () => {
+      it('should apply allowlist policy after PIN succeeds', 0, async (done: Function) => {
+        let appliedPolicies: AppliedPolicyRecord[] = []
+        stubAuthResult(mockKit, true)
+        stubUserPolicyModeDependencies(mockKit, appliedPolicies)
+
+        let result = await FirewallService.applyUserPolicyMode(context, 101, 'allowlist')
+
+        expect(result.success).assertTrue()
+        expect(result.userId).assertEqual(101)
+        expect(result.mode).assertEqual('allowlist')
+        expect(appliedPolicies.length).assertEqual(1)
+        expect(appliedPolicies[0].inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_DENY)
+        expect(appliedPolicies[0].outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_DENY)
+        done()
+      })
+
+      it('should apply denylist policy after PIN succeeds', 0, async (done: Function) => {
+        let appliedPolicies: AppliedPolicyRecord[] = []
+        stubAuthResult(mockKit, true)
+        stubUserPolicyModeDependencies(mockKit, appliedPolicies)
+
+        let result = await FirewallService.applyUserPolicyMode(context, 101, 'denylist')
+
+        expect(result.success).assertTrue()
+        expect(result.userId).assertEqual(101)
+        expect(result.mode).assertEqual('denylist')
+        expect(appliedPolicies.length).assertEqual(1)
+        expect(appliedPolicies[0].inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
+        expect(appliedPolicies[0].outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
+        done()
+      })
+
+      it('should not write user policy when PIN fails', 0, async (done: Function) => {
+        let appliedPolicies: AppliedPolicyRecord[] = []
+        stubAuthResult(mockKit, false, 'failed')
+        stubUserPolicyModeDependencies(mockKit, appliedPolicies)
+
+        let result = await FirewallService.applyUserPolicyMode(context, 101, 'allowlist')
+
+        expect(result.success).assertFalse()
+        expect(result.errorCode).assertEqual(12500010)
+        expect(appliedPolicies.length).assertEqual(0)
+        done()
+      })
+
+      it('should report failure when user policy write fails', 0, async (done: Function) => {
+        let appliedPolicies: AppliedPolicyRecord[] = []
+        stubAuthResult(mockKit, true)
+        stubUserPolicyModeDependencies(mockKit, appliedPolicies, false)
+
+        let result = await FirewallService.applyUserPolicyMode(context, 101, 'denylist')
+
+        expect(result.success).assertFalse()
+        expect(result.errorMessage).assertEqual('set policy failed')
+        expect(appliedPolicies.length).assertEqual(0)
+        done()
+      })
     })
 
     describe('rule mutations', () => {
