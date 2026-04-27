@@ -324,6 +324,15 @@ export default function firewallRuleUtilsTest() {
       expect(FirewallRuleUtils.findRuleConflict([existing], different)).assertEqual(null)
     })
 
+    it('should classify single wildcard domain overlap only for one subdomain level', 0, () => {
+      let wildcard = buildDomainIntent('wildcard', '*.baidu.com', netFirewall.FirewallRuleAction.RULE_ALLOW)
+      let exactSubdomain = buildDomainIntent('exact', 'www.baidu.com', netFirewall.FirewallRuleAction.RULE_DENY)
+      let deepSubdomain = buildDomainIntent('deep', 'a.b.baidu.com', netFirewall.FirewallRuleAction.RULE_DENY)
+
+      expect(FirewallRuleUtils.findRuleConflict([wildcard], exactSubdomain)?.kind).assertEqual('overlap_conflict')
+      expect(FirewallRuleUtils.findRuleConflict([wildcard], deepSubdomain)).assertEqual(null)
+    })
+
     it('should classify dns conflicts by primary dns only', 0, () => {
       let existing = buildDnsIntent('dns-1', '8.8.8.8', netFirewall.FirewallRuleAction.RULE_ALLOW)
       let duplicate = buildDnsIntent('dns-2', ' 8.8.8.8 ', netFirewall.FirewallRuleAction.RULE_ALLOW)

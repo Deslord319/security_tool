@@ -15,6 +15,7 @@
 - 页面渲染、导航、弹窗、菜单交互、真实设备接入、系统设置触发、权限变更真实触发、真实崩溃和应用生命周期集成场景，不进入 UT 补充范围。
 - 日志管理的人工触发步骤只作为手工说明；UT 已覆盖事件映射和采集处理时，不再额外补 UT。
 - `PER-025/PER-026` 的 Select 显示回滚属于 `AsyncSelectRow` 组件本地交互状态，本轮不补 UT。
+- 远程 `origin/master` 已覆盖 `PER-005` 和 `PER-023`，本轮不再重复补充。
 
 ## 目的
 
@@ -163,22 +164,13 @@ it('should remove tracked user from available user list after removed event', 0,
 
 ### 外设接口与存储策略
 
-覆盖用例：`PER-005`、`PER-006`、`PER-007`、`PER-008`
+覆盖用例：`PER-006`、`PER-007`、`PER-008`
 
 修改文件：`entry/src/test/viewmodels/InterfaceControlViewModel.test.ets`
 
 伪代码：
 
 ```ts
-it('should update usb storage policy to disabled/prohibited', 0, async () => {
-  mockDispatchSuccess()
-
-  const result = await viewModel.updateUsbStoragePolicy('disabled')
-
-  expect(result.success).assertTrue()
-  expect(viewModel.state.usbStoragePolicy).assertEqual('disabled')
-})
-
 it('should reject usb storage policy change when usb interface is disabled', 0, async () => {
   setUsbInterfaceState('disabled')
 
@@ -203,7 +195,7 @@ it('should toggle wifi interface policy', 0, async () => {
 
 ### 外设单设备策略冲突与蓝牙策略
 
-覆盖用例：`PER-015`、`PER-023`、`PER-024`
+覆盖用例：`PER-015`、`PER-024`
 
 修改文件：`entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets`
 
@@ -217,13 +209,6 @@ it('should reject single-device policy change when usb interface conflict exists
 
   expect(result.success).assertFalse()
   expect(result.reason).assertEqual('interface_disabled_conflict')
-})
-
-it('should persist bluetooth device deny policy with normalized id', 0, async () => {
-  const result = await viewModel.changeDevicePolicy('AA:BB:CC:DD:EE:FF', 'deny')
-
-  expect(result.success).assertTrue()
-  expect(savedPolicyDeviceId()).assertEqual('aa:bb:cc:dd:ee:ff')
 })
 
 it('should restore bluetooth device allow policy with normalized id', 0, async () => {
@@ -250,6 +235,7 @@ it('should restore bluetooth device allow policy with normalized id', 0, async (
 ## 验收标准
 
 - `测试用例基线.xlsx` 已包含 `UT覆盖状态` 和 `UT覆盖位置/不覆盖原因` 两列。
+- UT 覆盖统计为：`已有UT覆盖 71`、`待补UT 12`、`不补UT 22`。
 - UT 调研矩阵与 Excel 中的覆盖结论一致。
 - 文档提交后，再进入代码补 UT 阶段。
 - 代码阶段完成后运行本地 UT：`hvigorw test --mode module -p product=default -p module=entry@default`。

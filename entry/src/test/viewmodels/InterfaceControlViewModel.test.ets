@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { OperationResult } from '../../main/ets/models/DataModels'
+import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 
@@ -95,6 +96,45 @@ export default function interfaceControlViewModelTest() {
     const reason = await viewModel.setUsbStoragePolicy(0)
 
     expect(reason).assertEqual('set_usb_storage_policy')
+    done()
+  })
+
+  it('should surface conflict reason for usb storage policy change when usb interface is disabled', 0, async (done: Function) => {
+    let setUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbStoragePolicyWithCleanupResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = false
+    setResult.stage = PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT
+    when(setUsbStorageMock)(edmUsbManager.UsbPolicy.READ_ONLY).afterReturn(setResult)
+
+    const reason = await viewModel.setUsbStoragePolicy(0)
+
+    expect(reason).assertEqual(PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT)
+    done()
+  })
+
+  it('should toggle bluetooth interface successfully', 0, async (done: Function) => {
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = true
+    when(setInterfaceMock)(PeripheralService.FEATURE_BLUETOOTH, true).afterReturn(setResult)
+
+    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_BLUETOOTH, true)
+
+    expect(reason).assertNull()
+    expect(viewModel.state.btDisabled).assertTrue()
+    done()
+  })
+
+  it('should toggle wifi interface successfully', 0, async (done: Function) => {
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = true
+    when(setInterfaceMock)(PeripheralService.FEATURE_WIFI, true).afterReturn(setResult)
+
+    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_WIFI, true)
+
+    expect(reason).assertNull()
+    expect(viewModel.state.wifiDisabled).assertTrue()
     done()
   })
   })

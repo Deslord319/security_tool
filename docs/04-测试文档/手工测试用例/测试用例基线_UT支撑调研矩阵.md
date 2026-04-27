@@ -13,8 +13,8 @@
 ## 总览
 
 - 基线用例总数：`105`
-- `已有UT覆盖`：`69`
-- `待补UT`：`14`
+- `已有UT覆盖`：`71`
+- `待补UT`：`12`
 - `不补UT`：`22`
 
 ## 安全总览
@@ -93,7 +93,7 @@
 | PER-002 | USB接口策略 | 验证 USB 接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-003 | USB接口策略 | 验证 USB 接口策略可从禁用切换为启用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-004 | USB存储策略 | 验证 USB 存储策略可从读写切换为只读 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
-| PER-005 | USB存储策略 | 验证 USB 存储策略可从读写切换为禁止访问 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 存储禁止访问 prohibited/disabled 分支。 |
+| PER-005 | USB存储策略 | 验证 USB 存储策略可从读写切换为禁止访问 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-006 | 策略冲突处理 | 验证 USB 接口禁用时切换 USB 存储策略提示冲突 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。 |
 | PER-007 | 蓝牙策略 | 验证蓝牙接口策略可从启用切换为禁用 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。 |
 | PER-008 | Wi-Fi策略 | 验证 Wi-Fi 接口策略可从启用切换为禁用 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。 |
@@ -111,7 +111,7 @@
 | PER-020 | 设备连接记录 | 验证蓝牙设备连接后生成连接记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-021 | 设备连接记录 | 验证蓝牙设备断开后生成断开记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-022 | 设备详情 | 验证点击蓝牙设备记录后展示设备详情 | 不补UT | 蓝牙详情展示属于 UI 侧场景；蓝牙记录建模已有 UT，不再补展示 UT。 |
-| PER-023 | 单设备策略切换 | 验证蓝牙设备可切换为禁止接入策略 | 待补UT | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 allow -> deny，含 deviceId normalize。 |
+| PER-023 | 单设备策略切换 | 验证蓝牙设备可切换为禁止接入策略 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-024 | 单设备策略切换 | 验证蓝牙设备可从禁止接入恢复为允许接入 | 待补UT | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 deny -> allow，含 deviceId normalize。 |
 | PER-025 | USB接口策略 | 验证 USB 接口策略下发失败时 Select 从禁用回滚到启用 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-026 | USB存储策略 | 验证 USB 存储策略下发失败时 Select 从只读回滚到读写 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
@@ -176,12 +176,10 @@
 - `FW-030`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
 - `FW-031`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
 - `FW-032`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `PER-005`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 存储禁止访问 prohibited/disabled 分支。
 - `PER-006`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。
 - `PER-007`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。
 - `PER-008`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。
 - `PER-015`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补接口禁用时单设备策略冲突拒绝与提示原因。
-- `PER-023`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 allow -> deny，含 deviceId normalize。
 - `PER-024`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 deny -> allow，含 deviceId normalize。
 
 ## 不补 UT 的边界

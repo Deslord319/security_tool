@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import EntryAbility from '../../main/ets/entryability/EntryAbility'
+import {
+  ACCOUNT_EVENT_PARAM_TIMESTAMP,
+  ACCOUNT_EVENT_PARAM_TYPE,
+  ACCOUNT_EVENT_PARAM_USER_ID,
+  AccountEventType
+} from '../../main/ets/contracts/AccountEventContract'
 import { AuthMethod } from '../../main/ets/models/DataModels'
+import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { AuthAvailabilityResult, AuthExecutionResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { PreferencesToolSettingsRepository } from '../../main/ets/services/tool-settings/system-settings/ToolSettingsRepository'
 import { ThemeManager } from '../../main/ets/theme/ThemeManager'
@@ -144,6 +151,10 @@ interface EntryAbilityRepositoryHolder {
   toolSettingsRepository: PreferencesToolSettingsRepository
 }
 
+interface AccountEventHandlerHolder {
+  handleAccountEvent(data: Object): Promise<void>
+}
+
 class FakeWant {
 }
 
@@ -238,6 +249,46 @@ export default function entryAbilityTest() {
       terminated = context.terminated
       expect(terminated).assertTrue()
       expect(windowStage.loadCalls).assertEqual(0)
+      done()
+    })
+
+    it('should dispatch account added event to system user provider', 0, async (done: Function) => {
+      let trackedUserId = -1
+      let trackAddedMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.trackAddedUser)
+      when(trackAddedMock)(ArgumentMatchers.any).afterAction((userId: number): Promise<void> => {
+        trackedUserId = userId
+        return Promise.resolve()
+      })
+
+      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent({
+        parameters: {
+          [ACCOUNT_EVENT_PARAM_TYPE]: AccountEventType.ADDED,
+          [ACCOUNT_EVENT_PARAM_USER_ID]: 101,
+          [ACCOUNT_EVENT_PARAM_TIMESTAMP]: 1
+        }
+      })
+
+      expect(trackedUserId).assertEqual(101)
+      done()
+    })
+
+    it('should dispatch account removed event to system user provider', 0, async (done: Function) => {
+      let trackedUserId = -1
+      let trackRemovedMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.trackRemovedUser)
+      when(trackRemovedMock)(ArgumentMatchers.any).afterAction((userId: number): Promise<void> => {
+        trackedUserId = userId
+        return Promise.resolve()
+      })
+
+      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent({
+        data: JSON.stringify({
+          [ACCOUNT_EVENT_PARAM_TYPE]: AccountEventType.REMOVED,
+          [ACCOUNT_EVENT_PARAM_USER_ID]: 101,
+          [ACCOUNT_EVENT_PARAM_TIMESTAMP]: 1
+        })
+      })
+
+      expect(trackedUserId).assertEqual(101)
       done()
     })
   })
