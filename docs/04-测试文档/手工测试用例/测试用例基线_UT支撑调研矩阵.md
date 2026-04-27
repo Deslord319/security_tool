@@ -14,9 +14,9 @@
 ## 总览
 
 - 基线用例总数：`105`
-- `已有UT覆盖`：`71`
+- `已有UT覆盖`：`79`
 - `UT部分覆盖`：`4`
-- `待补UT`：`8`
+- `待补UT`：`0`
 - `不补UT`：`22`
 
 ## 安全总览
@@ -50,9 +50,9 @@
 | FW-014 | 规则删除 | 验证删除已有规则成功 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 | FW-015 | 规则重复检测 | 验证重复新增域名规则 `www.baidu.com / 出站 / 允许` 时被识别为重复 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-016 | 规则冲突检测 | 验证新增规则 `www.baidu.com / 出站 / 阻止` 时触发冲突提示 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
-| FW-017 | 规则重叠检测 | 验证新增规则 `www.baidu.com / 出站 / 阻止` 时与 `*.baidu.com / 出站 / 允许` 触发重叠提示 | 待补UT | entry/src/test/firewall/rule-utils.test.ets：补 wildcard 单级域名重叠判定。 |
-| FW-019 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发白名单模式策略 | 待补UT | entry/src/test/firewall/service.test.ets：补用户级白名单策略下发 + PIN 成功/失败。 |
-| FW-020 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发黑名单模式策略 | 待补UT | entry/src/test/firewall/service.test.ets：补用户级黑名单策略下发 + PIN 成功/失败。 |
+| FW-017 | 规则重叠检测 | 验证新增规则 `www.baidu.com / 出站 / 阻止` 时与 `*.baidu.com / 出站 / 允许` 触发重叠提示 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
+| FW-019 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发白名单模式策略 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-020 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发黑名单模式策略 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 | FW-023 | 规则新增 | 验证新增 DNS 规则 `8.8.8.8 / 出站 / 允许` 成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-024 | 规则参数校验 | 验证新增 DNS 规则时非法地址 `999.999.1.1` 被拦截 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-025 | 模式切换 | 验证防火墙开启时可以从公共网络模式切换到自定义模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
@@ -96,16 +96,16 @@
 | PER-003 | USB接口策略 | 验证 USB 接口策略可从禁用切换为启用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-004 | USB存储策略 | 验证 USB 存储策略可从读写切换为只读 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-005 | USB存储策略 | 验证 USB 存储策略可从读写切换为禁止访问 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
-| PER-006 | 策略冲突处理 | 验证 USB 接口禁用时切换 USB 存储策略提示冲突 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。 |
-| PER-007 | 蓝牙策略 | 验证蓝牙接口策略可从启用切换为禁用 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。 |
-| PER-008 | Wi-Fi策略 | 验证 Wi-Fi 接口策略可从启用切换为禁用 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。 |
+| PER-006 | 策略冲突处理 | 验证 USB 接口禁用时切换 USB 存储策略提示冲突 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
+| PER-007 | 蓝牙策略 | 验证蓝牙接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
+| PER-008 | Wi-Fi策略 | 验证 Wi-Fi 接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-009 | 设备连接记录 | 验证 USB 设备接入后生成连接记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-010 | 设备连接记录 | 验证 USB 设备断开后生成断开记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-011 | 设备详情 | 验证点击设备记录后展示设备详情 | 不补UT | 设备详情展示属于 UI 侧场景，不进入本轮 UT 补充范围。 |
 | PER-012 | 黑白名单策略 | 验证黑白名单页签展示可管理设备 | 不补UT | 黑白名单页签展示属于页面渲染场景，不进入本轮 UT 补充范围。 |
 | PER-013 | 单设备策略切换 | 验证单设备策略可从允许接入切换为禁止接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-014 | 单设备策略切换 | 验证单设备策略可从禁止接入切换为允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
-| PER-015 | 策略冲突处理 | 验证 USB 接口禁用时单设备策略切换提示冲突 | 待补UT | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补接口禁用时单设备策略冲突拒绝与提示原因。 |
+| PER-015 | 策略冲突处理 | 验证 USB 接口禁用时单设备策略切换提示冲突 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-016 | 记录导出 | 验证设备连接记录可以导出 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralRecordViewModel.test.ets |
 | PER-017 | 记录清理 | 验证设备连接记录可以清理 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralViewModel.test.ets |
 | PER-018 | 策略导出 | 验证黑白名单策略可以导出 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
@@ -114,7 +114,7 @@
 | PER-021 | 设备连接记录 | 验证蓝牙设备断开后生成断开记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-022 | 设备详情 | 验证点击蓝牙设备记录后展示设备详情 | 不补UT | 蓝牙详情展示属于 UI 侧场景；蓝牙记录建模已有 UT，不再补展示 UT。 |
 | PER-023 | 单设备策略切换 | 验证蓝牙设备可切换为禁止接入策略 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
-| PER-024 | 单设备策略切换 | 验证蓝牙设备可从禁止接入恢复为允许接入 | 待补UT | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 deny -> allow，含 deviceId normalize。 |
+| PER-024 | 单设备策略切换 | 验证蓝牙设备可从禁止接入恢复为允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-025 | USB接口策略 | 验证 USB 接口策略下发失败时 Select 从禁用回滚到启用 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-026 | USB存储策略 | 验证 USB 存储策略下发失败时 Select 从只读回滚到读写 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-027 | 单设备策略切换 | 验证黑白名单策略下发失败时 Select 从禁止接入回滚到允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
@@ -171,14 +171,7 @@
 
 ## 待补 UT 清单
 
-- `FW-017`：entry/src/test/firewall/rule-utils.test.ets：补 wildcard 单级域名重叠判定。
-- `FW-019`：entry/src/test/firewall/service.test.ets：补用户级白名单策略下发 + PIN 成功/失败。
-- `FW-020`：entry/src/test/firewall/service.test.ets：补用户级黑名单策略下发 + PIN 成功/失败。
-- `PER-006`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。
-- `PER-007`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。
-- `PER-008`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。
-- `PER-015`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补接口禁用时单设备策略冲突拒绝与提示原因。
-- `PER-024`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 deny -> allow，含 deviceId normalize。
+当前无待补本地 UT。
 
 ## 不补 UT 的边界
 
