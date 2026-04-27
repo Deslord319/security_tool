@@ -625,6 +625,21 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value 'coverageReport.json not found'
           }
 
+      - name: Check GitHub artifact upload connectivity
+        if: always()
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $hosts = @(
+            'api.github.com',
+            'results-receiver.actions.githubusercontent.com'
+          )
+          foreach ($hostName in $hosts) {
+            Write-Host "Checking HTTPS connectivity to $hostName..."
+            Test-NetConnection -ComputerName $hostName -Port 443 -InformationLevel Detailed
+          }
+          Write-Host 'Artifact upload also requires outbound HTTPS access to *.blob.core.windows.net.'
+
       - name: Upload unit test report
         if: always()
         uses: actions/upload-artifact@v6
@@ -633,6 +648,7 @@ jobs:
           path: |
             entry/.test/default/intermediates/test/coverage_data/test_result.txt
             entry/.test/default/outputs/test/reports
+          if-no-files-found: warn
           retention-days: 7
 
   harmonyos_build:
@@ -983,6 +999,20 @@ jobs:
             Pop-Location
           }
 
+      - name: Check GitHub artifact upload connectivity
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $hosts = @(
+            'api.github.com',
+            'results-receiver.actions.githubusercontent.com'
+          )
+          foreach ($hostName in $hosts) {
+            Write-Host "Checking HTTPS connectivity to $hostName..."
+            Test-NetConnection -ComputerName $hostName -Port 443 -InformationLevel Detailed
+          }
+          Write-Host 'Artifact upload also requires outbound HTTPS access to *.blob.core.windows.net.'
+
       - name: Upload HAP artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -990,6 +1020,8 @@ jobs:
           path: |
             entry/build/default/outputs/default/entry-default-unsigned.hap
             hapsigner/signApp.hap
+          if-no-files-found: error
+          compression-level: 0
           retention-days: 7
 
       - name: Publish build summary

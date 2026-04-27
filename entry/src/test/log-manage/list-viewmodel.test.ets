@@ -218,6 +218,24 @@ export default function logManageViewModelTest() {
       expect(storage.snapshotCallCount).assertEqual(1)
     })
 
+    it('should keep initialized false after failed initialize and allow retry', 0, async () => {
+      storage.initResult = { success: false, code: 'storage_init_failed' }
+
+      let failedResult: ListViewInitializeResult = await viewModel.initialize(context)
+
+      expect(failedResult.success).assertFalse()
+      expect(viewModel.state.initialized).assertFalse()
+      expect(viewModel.state.loading).assertFalse()
+      expect(storage.snapshotCallCount).assertEqual(0)
+
+      storage.initResult = { success: true, code: 'ok' }
+      let successResult: ListViewInitializeResult = await viewModel.initialize(context)
+
+      expect(successResult.success).assertTrue()
+      expect(viewModel.state.initialized).assertTrue()
+      expect(storage.snapshotCallCount).assertEqual(1)
+    })
+
     it('should reset to first page when filter changes', 0, async () => {
       await viewModel.initialize(context)
       viewModel.setPageSizeIndex(0)

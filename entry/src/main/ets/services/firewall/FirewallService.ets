@@ -3,6 +3,7 @@ import { netFirewall } from '@kit.NetworkKit'
 import { buildFirewallAddRuleFailedMessage } from '../../constants/modules/FirewallStrings'
 import { AuthMethod } from '../../models/DataModels'
 import { LogUtils } from '../../utils/LogUtils'
+import { generateRandomSuffix } from '../../utils/ValuePicker'
 import { AuthService } from '../identity/auth/AuthService'
 import { FirewallLocalRepository } from './FirewallLocalRepository'
 import {
@@ -312,14 +313,6 @@ export class FirewallService {
     )
   }
 
-  static countByType(rules: netFirewall.NetFirewallRule[], type: netFirewall.NetFirewallRuleType): number {
-    return rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === type).length
-  }
-
-  static countByDirection(rules: netFirewall.NetFirewallRule[], direction: netFirewall.NetFirewallRuleDirection): number {
-    return rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.direction === direction).length
-  }
-
   private static async createRuleWithLocalRuleId(
     context: common.UIAbilityContext,
     localRuleId: string,
@@ -497,7 +490,7 @@ export class FirewallService {
   }
 
   private static generateLocalRuleId(): string {
-    return `fw_rule_${Date.now()}_${Math.floor(Math.random() * 1000000000).toString(36)}`
+    return `fw_rule_${Date.now()}_${generateRandomSuffix(10)}`
   }
 }
 

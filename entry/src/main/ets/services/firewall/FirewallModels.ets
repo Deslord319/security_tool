@@ -3,6 +3,15 @@ import { netFirewall } from '@kit.NetworkKit'
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 export type FirewallUserPolicyMode = 'allowlist' | 'denylist'
 
+export interface FirewallPresetConfig {
+  fixedPublicIp: string
+  privateCidrs: string[]
+  privateTcpPorts: number[]
+  privateUdpPorts: number[]
+}
+
+export type FirewallToggleRejectReason = 'lockout' | 'pin_unavailable' | 'pin_failed' | 'policy_apply_failed'
+
 export interface UserFirewallOption {
   userId: number
   label: string
@@ -23,6 +32,41 @@ export interface UserFirewallPolicyResult {
   outAction: number
   errorCode?: number
   message?: string
+}
+
+export interface FirewallScopedRule extends netFirewall.NetFirewallRule {
+  userIds: number[]
+  targetUserIds?: number[]
+  localRuleId?: string
+}
+
+export function normalizeFirewallRuleUserIds(userIds: number[]): number[] {
+  let uniqueValues = new Set<number>()
+  userIds.forEach((value: number) => {
+    if (Number.isInteger(value) && value >= 0) {
+      uniqueValues.add(value)
+    }
+  })
+  return Array.from(uniqueValues).sort((left: number, right: number) => left - right)
+}
+
+export function getFirewallRuleUserIds(rule: netFirewall.NetFirewallRule): number[] {
+  let scopedRule = rule as FirewallScopedRule
+  if (!Array.isArray(scopedRule.userIds)) {
+    return Array.isArray(scopedRule.targetUserIds) ? normalizeFirewallRuleUserIds(scopedRule.targetUserIds) : []
+  }
+  return normalizeFirewallRuleUserIds(scopedRule.userIds)
+}
+
+export function attachFirewallRuleUserIds(
+  rule: netFirewall.NetFirewallRule,
+  userIds: number[]
+): FirewallScopedRule {
+  let scopedRule = rule as FirewallScopedRule
+  let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
+  scopedRule.userIds = normalizedUserIds
+  scopedRule.targetUserIds = normalizedUserIds
+  return scopedRule
 }
 
 export interface FirewallOverviewState {
@@ -51,8 +95,6 @@ export interface FirewallBatchOperationResult extends FirewallOperationResult {
   failedCount: number
   failedItems: FirewallFailedItem[]
 }
-
-export type FirewallToggleRejectReason = 'pin_unavailable' | 'pin_failed' | 'policy_apply_failed'
 
 export interface FirewallToggleOperationResult extends FirewallOperationResult {
   targetEnabled: boolean
@@ -164,13 +206,6 @@ export interface FirewallUserPolicyStateResult {
 export interface FirewallUserPolicyApplyResult extends FirewallOperationResult {
   userId: number
   mode: FirewallUserPolicyMode
-}
-
-export interface FirewallPresetConfig {
-  fixedPublicIp: string
-  privateCidrs: string[]
-  privateTcpPorts: number[]
-  privateUdpPorts: number[]
 }
 
 export const FIREWALL_RULE_MAPPING_VERSION = 1

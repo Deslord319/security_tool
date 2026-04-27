@@ -2,6 +2,7 @@ import { LogEntry } from './DataModels'
 import { CollectorStatus } from '../services/log-manage/common/LogManagePorts'
 
 export type LogManageMode = 'list' | 'settings'
+export const LOG_PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
 @ObservedV2
 class LogCollectorState implements CollectorStatus {

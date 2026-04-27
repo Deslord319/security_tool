@@ -1,4 +1,4 @@
-import { FirewallPresetMode, FirewallToggleRejectReason } from '../../models/DataModels'
+import { FirewallPresetMode, FirewallToggleRejectReason } from '../../services/firewall/FirewallModels'
 import { AppColors } from '../AppConstants'
 
 export class FirewallPageStrings {

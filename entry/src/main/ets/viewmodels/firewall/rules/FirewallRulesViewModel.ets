@@ -7,16 +7,14 @@ import {
   buildFirewallConflictNotice
 } from '../../../constants/modules/FirewallStrings'
 import {
+  attachFirewallRuleUserIds,
   FirewallOperationResult,
   FirewallPresetMode,
   FirewallRuleMutationResult,
+  getFirewallRuleUserIds,
+  normalizeFirewallRuleUserIds as normalizeScopedUserIds,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
-import {
-  attachFirewallRuleUserIds,
-  getFirewallRuleUserIds,
-  normalizeFirewallRuleUserIds as normalizeScopedUserIds
-} from '../../../models/DataModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
@@ -142,11 +140,11 @@ export class FirewallRulesViewModel {
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
-    return FirewallService.countByType(this.rules, type)
+    return this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === type).length
   }
 
   countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
-    return FirewallService.countByDirection(this.rules, direction)
+    return this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.direction === direction).length
   }
 
   getTabCount(index: number): number {
