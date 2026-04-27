@@ -64,6 +64,7 @@ export function attachFirewallRuleUserIds(
 ): FirewallScopedRule {
   let scopedRule = rule as FirewallScopedRule
   let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
+  scopedRule.userIds = normalizedUserIds
   scopedRule.targetUserIds = normalizedUserIds
   return scopedRule
 }
