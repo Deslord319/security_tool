@@ -78,16 +78,6 @@ export class FirewallSystemRepository {
     }
   }
 
-  static async updateRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
-    try {
-      await netFirewall.updateNetFirewallRule(rule)
-      return true
-    } catch (err) {
-      LogUtils.error(TAG, `updateRule failed: payload=${JSON.stringify(rule)}, err=${JSON.stringify(err)}`)
-      return false
-    }
-  }
-
   static async clearRules(userId: number): Promise<FirewallBatchOperationResult> {
     let rules = await FirewallSystemRepository.listRules(userId)
     let failedItems: FirewallFailedItem[] = []

@@ -7,7 +7,6 @@ import { generateRandomSuffix } from '../../utils/ValuePicker'
 import { AuthService } from '../identity/auth/AuthService'
 import { FirewallLocalRepository } from './FirewallLocalRepository'
 import {
-  FirewallBatchOperationResult,
   FirewallFailedItem,
   FirewallOperationResult,
   FirewallOverviewState,
@@ -199,6 +198,15 @@ export class FirewallService {
         success: false,
         localRuleId: localRuleId,
         errorMessage: 'rule intent not found'
+      }
+    }
+
+    let validation = FirewallRuleUtils.validateRuleIntentInput(input)
+    if (!validation.success) {
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        errorMessage: validation.errorMessage
       }
     }
 

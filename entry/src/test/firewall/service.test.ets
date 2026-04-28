@@ -723,6 +723,42 @@ export default function firewallServiceTest() {
         done()
       })
 
+      it('should reject invalid update before removing existing deployments', 0, async (done: Function) => {
+        let removedSystemRuleIds: number[] = []
+        let savedIntents: FirewallRuleIntent[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let removeDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleDeployments)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([buildDeployment('rule-1', 100, 8001)])
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(removeDeploymentsMock)(ArgumentMatchers.any).afterReturn(true)
+        when(addRuleMock)(ArgumentMatchers.any).afterReturn(new FakeAddRuleRawResult(8101))
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          intent: FirewallRuleIntent
+        ): boolean => {
+          savedIntents.push(intent)
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildIpRuleInput('', [100]))
+
+        expect(result.success).assertFalse()
+        expect(result.localRuleId).assertEqual('rule-1')
+        expect(result.errorMessage).assertEqual('rule name is required')
+        expect(removedSystemRuleIds.length).assertEqual(0)
+        expect(savedIntents.length).assertEqual(0)
+        done()
+      })
+
       it('should delete a rule and remove local intent', 0, async (done: Function) => {
         let removedSystemRuleIds: number[] = []
         let removedIntentIds: string[] = []
