@@ -7,14 +7,16 @@
 ## 判定口径
 
 - `已有UT覆盖`：当前本地 UT 已能支撑该用例在 UT 范围内的核心结论。
+- `UT部分覆盖`：当前本地 UT 已覆盖该用例在 UT 范围内的核心分发或模型逻辑，但真实系统 API、持久化落盘、页面刷新等链路不纳入本地 UT。
 - `待补UT`：该用例存在可单元化的业务逻辑缺口，后续应补本地 UT。
 - `不补UT`：该用例核心是 UI、导航、弹窗、真实设备、系统触发或集成语义，本轮不补 UT。
 
 ## 总览
 
 - 基线用例总数：`105`
-- `已有UT覆盖`：`71`
-- `待补UT`：`12`
+- `已有UT覆盖`：`79`
+- `UT部分覆盖`：`4`
+- `待补UT`：`0`
 - `不补UT`：`22`
 
 ## 安全总览
@@ -48,19 +50,19 @@
 | FW-014 | 规则删除 | 验证删除已有规则成功 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 | FW-015 | 规则重复检测 | 验证重复新增域名规则 `www.baidu.com / 出站 / 允许` 时被识别为重复 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-016 | 规则冲突检测 | 验证新增规则 `www.baidu.com / 出站 / 阻止` 时触发冲突提示 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
-| FW-017 | 规则重叠检测 | 验证新增规则 `www.baidu.com / 出站 / 阻止` 时与 `*.baidu.com / 出站 / 允许` 触发重叠提示 | 待补UT | entry/src/test/firewall/rule-utils.test.ets：补 wildcard 单级域名重叠判定。 |
-| FW-019 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发白名单模式策略 | 待补UT | entry/src/test/firewall/service.test.ets：补用户级白名单策略下发 + PIN 成功/失败。 |
-| FW-020 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发黑名单模式策略 | 待补UT | entry/src/test/firewall/service.test.ets：补用户级黑名单策略下发 + PIN 成功/失败。 |
+| FW-017 | 规则重叠检测 | 验证新增规则 `www.baidu.com / 出站 / 阻止` 时与 `*.baidu.com / 出站 / 允许` 触发重叠提示 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
+| FW-019 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发白名单模式策略 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-020 | 用户级策略下发 | 验证选择目标用户后通过 PIN 校验下发黑名单模式策略 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 | FW-023 | 规则新增 | 验证新增 DNS 规则 `8.8.8.8 / 出站 / 允许` 成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-024 | 规则参数校验 | 验证新增 DNS 规则时非法地址 `999.999.1.1` 被拦截 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-025 | 模式切换 | 验证防火墙开启时可以从公共网络模式切换到自定义模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
 | FW-026 | 模式切换 | 验证防火墙开启时可以从私有网络模式切换到自定义模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
 | FW-027 | 模式切换 | 验证防火墙开启时可以从自定义模式切换到公共网络模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
 | FW-028 | 模式切换 | 验证防火墙开启时可以从自定义模式切换到私有网络模式 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets；entry/src/test/firewall/mode-strategy.test.ets |
-| FW-029 | 规则新增 | 验证新增用户后重新打开新增规则弹窗，用户范围列表包含新用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
-| FW-030 | 规则新增 | 验证删除用户后重新打开新增规则弹窗，用户范围列表不再包含已删除用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
-| FW-031 | 用户级策略下发 | 验证新增用户后重新打开全局策略弹窗，目标用户列表包含新用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
-| FW-032 | 用户级策略下发 | 验证删除用户后重新打开全局策略弹窗，目标用户列表不再包含已删除用户 | 待补UT | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。 |
+| FW-029 | 规则新增 | 验证新增用户后重新打开新增规则弹窗，用户范围列表包含新用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户新增事件分发到 SystemUserProvider.trackAddedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-030 | 规则新增 | 验证删除用户后重新打开新增规则弹窗，用户范围列表不再包含已删除用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户删除事件分发到 SystemUserProvider.trackRemovedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-031 | 用户级策略下发 | 验证新增用户后重新打开全局策略弹窗，目标用户列表包含新用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户新增事件分发到 SystemUserProvider.trackAddedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-032 | 用户级策略下发 | 验证删除用户后重新打开全局策略弹窗，目标用户列表不再包含已删除用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户删除事件分发到 SystemUserProvider.trackRemovedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
 
 ## 日志管理
 
@@ -94,16 +96,16 @@
 | PER-003 | USB接口策略 | 验证 USB 接口策略可从禁用切换为启用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-004 | USB存储策略 | 验证 USB 存储策略可从读写切换为只读 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-005 | USB存储策略 | 验证 USB 存储策略可从读写切换为禁止访问 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
-| PER-006 | 策略冲突处理 | 验证 USB 接口禁用时切换 USB 存储策略提示冲突 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。 |
-| PER-007 | 蓝牙策略 | 验证蓝牙接口策略可从启用切换为禁用 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。 |
-| PER-008 | Wi-Fi策略 | 验证 Wi-Fi 接口策略可从启用切换为禁用 | 待补UT | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。 |
+| PER-006 | 策略冲突处理 | 验证 USB 接口禁用时切换 USB 存储策略提示冲突 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
+| PER-007 | 蓝牙策略 | 验证蓝牙接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
+| PER-008 | Wi-Fi策略 | 验证 Wi-Fi 接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-009 | 设备连接记录 | 验证 USB 设备接入后生成连接记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-010 | 设备连接记录 | 验证 USB 设备断开后生成断开记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-011 | 设备详情 | 验证点击设备记录后展示设备详情 | 不补UT | 设备详情展示属于 UI 侧场景，不进入本轮 UT 补充范围。 |
 | PER-012 | 黑白名单策略 | 验证黑白名单页签展示可管理设备 | 不补UT | 黑白名单页签展示属于页面渲染场景，不进入本轮 UT 补充范围。 |
 | PER-013 | 单设备策略切换 | 验证单设备策略可从允许接入切换为禁止接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-014 | 单设备策略切换 | 验证单设备策略可从禁止接入切换为允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
-| PER-015 | 策略冲突处理 | 验证 USB 接口禁用时单设备策略切换提示冲突 | 待补UT | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补接口禁用时单设备策略冲突拒绝与提示原因。 |
+| PER-015 | 策略冲突处理 | 验证 USB 接口禁用时单设备策略切换提示冲突 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-016 | 记录导出 | 验证设备连接记录可以导出 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralRecordViewModel.test.ets |
 | PER-017 | 记录清理 | 验证设备连接记录可以清理 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralViewModel.test.ets |
 | PER-018 | 策略导出 | 验证黑白名单策略可以导出 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
@@ -112,7 +114,7 @@
 | PER-021 | 设备连接记录 | 验证蓝牙设备断开后生成断开记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-022 | 设备详情 | 验证点击蓝牙设备记录后展示设备详情 | 不补UT | 蓝牙详情展示属于 UI 侧场景；蓝牙记录建模已有 UT，不再补展示 UT。 |
 | PER-023 | 单设备策略切换 | 验证蓝牙设备可切换为禁止接入策略 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
-| PER-024 | 单设备策略切换 | 验证蓝牙设备可从禁止接入恢复为允许接入 | 待补UT | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 deny -> allow，含 deviceId normalize。 |
+| PER-024 | 单设备策略切换 | 验证蓝牙设备可从禁止接入恢复为允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-025 | USB接口策略 | 验证 USB 接口策略下发失败时 Select 从禁用回滚到启用 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-026 | USB存储策略 | 验证 USB 存储策略下发失败时 Select 从只读回滚到读写 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-027 | 单设备策略切换 | 验证黑白名单策略下发失败时 Select 从禁止接入回滚到允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
@@ -169,21 +171,11 @@
 
 ## 待补 UT 清单
 
-- `FW-017`：entry/src/test/firewall/rule-utils.test.ets：补 wildcard 单级域名重叠判定。
-- `FW-019`：entry/src/test/firewall/service.test.ets：补用户级白名单策略下发 + PIN 成功/失败。
-- `FW-020`：entry/src/test/firewall/service.test.ets：补用户级黑名单策略下发 + PIN 成功/失败。
-- `FW-029`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `FW-030`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `FW-031`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `FW-032`：entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：补账户新增/删除事件分发与可用用户列表更新。
-- `PER-006`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 USB 接口禁用时 USB 存储策略冲突拒绝。
-- `PER-007`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补蓝牙接口策略切换。
-- `PER-008`：entry/src/test/viewmodels/InterfaceControlViewModel.test.ets：补 Wi-Fi 接口策略切换。
-- `PER-015`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补接口禁用时单设备策略冲突拒绝与提示原因。
-- `PER-024`：entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets：补蓝牙设备 deny -> allow，含 deviceId normalize。
+当前无待补本地 UT。
 
 ## 不补 UT 的边界
 
 - 页面渲染、导航、弹窗交互、菜单开关和空状态展示不纳入本轮 UT。
+- 依赖鸿蒙运行时的 `application.getApplicationContext()`、真实 Preferences 落盘、页面弹窗刷新等链路不作为 Local UT 补充目标；如需验证，应进入 ohosTest 或设备侧集成测试范围。
 - `LOG-002/003/017/018` 的真实系统触发步骤是给人工执行看的；UT 已覆盖事件映射和采集处理，不再补。
 - `PER-025/026` 的 Select 显示回滚属于 `AsyncSelectRow` 组件本地交互状态，不再补 UT。
