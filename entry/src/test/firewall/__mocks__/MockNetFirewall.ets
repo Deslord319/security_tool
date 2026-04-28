@@ -214,26 +214,6 @@ export async function removeNetFirewallRule(userId: number, ruleId: number): Pro
   mockRules = newRules
 }
 
-/**
- * 更新防火墙规则
- */
-export async function updateNetFirewallRule(rule: MockNetFirewallRule): Promise<void> {
-  if (shouldFail) {
-    throw new Error(failErrorMessage)
-  }
-  for (let i = 0; i < mockRules.length; i++) {
-    if (mockRules[i].ruleId === rule.ruleId) {
-      mockRules[i].name = rule.name
-      mockRules[i].direction = rule.direction
-      mockRules[i].action = rule.action
-      mockRules[i].type = rule.type
-      mockRules[i].isEnabled = rule.isEnabled
-      mockRules[i].protocol = rule.protocol
-      break
-    }
-  }
-}
-
 // 模拟枚举值（与真实 API 保持一致）
 export class MockNetFirewallRuleType {
   static readonly RULE_IP: number = 1
