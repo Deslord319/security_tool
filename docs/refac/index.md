@@ -16,8 +16,6 @@
   - 防火墙模块重构文档已收敛到 `docs/03-模块设计/防火墙管理组件设计说明.md`，目录不再保留长期真相源。
 - `identity/`
   - 身份鉴别模块 RFC 目录，聚焦编辑态、系统态、管理员感知和保存链路收口。
-- `log-manage/`
-  - 日志管理模块 RFC 目录，聚焦状态收敛、详情快照、导出链路和稳定性补强。
 - `peripheral-management/`
   - 外设管理模块历史重构文档目录，已完成收口，不再作为长期维护入口。
 - `tool-settings/`
@@ -56,36 +54,6 @@
 
 1. 先看 `docs/03-模块设计/身份鉴别组件设计说明.md`
 2. 再看 `identity/identity-module-rfc.md`
-
-## log-manage
-
-目录用途：记录日志管理模块的状态收敛和持续演进设计，重点解决页面镜像态、详情稳定性、导出链路与高频刷新稳定性问题。
-
-- `log-manage/log-manage-module-rfc.md`
-  - 日志管理模块执行层 RFC。
-  - 主要内容包括单一真相源约束、Story / Round 拆分、文件白名单建议和验收信号。
-- `log-manage/log-manage-audit-event-materials.md`
-  - 日志管理模块系统审计事件材料归档。
-  - 主要内容包括当前讨论范围、`ACCOUNT / PERMISSION / FILE` 原型样例，以及当前已确认可抽取字段。
-- `log-manage/log-manage-detail-table-plan.md`
-  - 日志管理模块详情结构化展示方案。
-  - 主要内容包括结构化详情字段方向、可复用表格组件目标，以及本轮严格限定的代码文件范围。
-- `log-manage/log-manage-detail-table-implementation-plan.md`
-  - 日志管理模块详情结构化展示实施计划。
-  - 主要内容包括背景和目的、严格文件范围、分步实施、输入输出、验收标准、并行拆分和死代码清理要求。
-- `log-manage/log-manage-audit-result-mapping-analysis-2026-04-14.md`
-  - 日志管理模块审计结果映射问题分析。
-  - 主要内容包括列表与详情弹窗结果展示逻辑、`entry.result` 来源、`Fail -> SUCCESS` 根因和修复方向。
-
-建议阅读顺序：
-
-1. 先看 `docs/03-模块设计/日志管理模块V2状态收敛与实施设计.md`
-2. 再看 `docs/03-模块设计/日志管理模块重构方案.md`
-3. 再看 `log-manage/log-manage-module-rfc.md`
-4. 若要查看系统审计事件的当前材料归档，再看 `log-manage/log-manage-audit-event-materials.md`
-5. 若要推进详情弹窗结构化展示，再看 `log-manage/log-manage-detail-table-plan.md`
-6. 若要按多 Session 方式落地实施，再看 `log-manage/log-manage-detail-table-implementation-plan.md`
-7. 若要回看一次真实审计失败事件为何被展示成“成功”，再看 `log-manage/log-manage-audit-result-mapping-analysis-2026-04-14.md`
 
 ## peripheral-management
 
