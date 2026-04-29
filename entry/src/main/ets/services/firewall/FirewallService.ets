@@ -17,6 +17,7 @@ import {
   FirewallRuleIntent,
   FirewallRuleIntentInput,
   FirewallRuleMutationResult,
+  FirewallScopedRule,
   FirewallToggleOperationResult,
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyMode,
@@ -521,21 +522,16 @@ export class FirewallService {
   }
 
   private static readDisplayLocalRuleId(rule: netFirewall.NetFirewallRule): string | undefined {
-    let source = rule as FirewallDisplayRuleCarrier
+    let source = rule as FirewallScopedRule
     return source.localRuleId
   }
 
   private static readDisplayTargetUserIds(rule: netFirewall.NetFirewallRule): number[] {
-    let source = rule as FirewallDisplayRuleCarrier
+    let source = rule as FirewallScopedRule
     return Array.isArray(source.targetUserIds) ? source.targetUserIds : []
   }
 
   private static generateLocalRuleId(): string {
     return `fw_rule_${Date.now()}_${generateRandomSuffix(10)}`
   }
-}
-
-interface FirewallDisplayRuleCarrier extends netFirewall.NetFirewallRule {
-  localRuleId?: string
-  targetUserIds?: number[]
 }

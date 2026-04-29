@@ -25,19 +25,15 @@ export interface UserFirewallListResult {
   message?: string
 }
 
-export interface UserFirewallPolicyResult {
-  userId: number
-  isOpen: boolean
-  inAction: number
-  outAction: number
-  errorCode?: number
-  message?: string
-}
-
 export interface FirewallScopedRule extends netFirewall.NetFirewallRule {
   userIds?: number[]
   targetUserIds?: number[]
   localRuleId?: string
+  deployments?: FirewallRuleDeployment[]
+  createdAt?: number
+  updatedAt?: number
+  id?: number
+  ruleId?: number
 }
 
 export function normalizeFirewallRuleUserIds(userIds: number[]): number[] {

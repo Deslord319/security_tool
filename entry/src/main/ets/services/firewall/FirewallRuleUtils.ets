@@ -2,11 +2,13 @@ import { netFirewall } from '@kit.NetworkKit'
 import { Ipv4Utils } from '../../utils/Ipv4Utils'
 import {
   FirewallConflictSummary,
+  FirewallRuleDeployment,
   FirewallRuleConflictKind,
   FirewallRuleConflictMatch,
   FirewallRuleIntent,
   FirewallRuleIntentInput,
-  FirewallRuleValidationResult
+  FirewallRuleValidationResult,
+  FirewallScopedRule
 } from './FirewallModels'
 
 export class FirewallRuleUtils {
@@ -159,7 +161,7 @@ export class FirewallRuleUtils {
   }
 
   static buildIntentInputFromRule(rule: netFirewall.NetFirewallRule, targetUserIds: number[]): FirewallRuleIntentInput {
-    let localRuleId = (rule as FirewallDisplayRuleCarrier).localRuleId
+    let localRuleId = (rule as FirewallScopedRule).localRuleId
     return {
       localRuleId: localRuleId,
       name: rule.name ?? '',
@@ -199,10 +201,10 @@ export class FirewallRuleUtils {
     intent: FirewallRuleIntent,
     deployments: Object[] = []
   ): netFirewall.NetFirewallRule {
-    let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, intent.targetUserIds[0] ?? 0) as FirewallDisplayRuleCarrier
+    let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, intent.targetUserIds[0] ?? 0) as FirewallScopedRule
     rule.localRuleId = intent.localRuleId
     rule.targetUserIds = FirewallRuleUtils.normalizeUserIds(intent.targetUserIds)
-    rule.deployments = deployments
+    rule.deployments = deployments as FirewallRuleDeployment[]
     rule.createdAt = intent.createdAt
     rule.updatedAt = intent.updatedAt
     return rule
@@ -595,14 +597,6 @@ export class FirewallRuleUtils {
     }
     return undefined
   }
-}
-
-interface FirewallDisplayRuleCarrier extends netFirewall.NetFirewallRule {
-  localRuleId?: string
-  targetUserIds?: number[]
-  deployments?: Object[]
-  createdAt?: number
-  updatedAt?: number
 }
 
 interface NormalizedIpRange {

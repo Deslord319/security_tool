@@ -87,7 +87,11 @@ struct MainPage {
 
   private async loadFirewallState(): Promise<void> {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    await this.firewallOverviewViewModel.initialize(context)
+    if (!this.firewallOverviewViewModel.state.initialized) {
+      await this.firewallOverviewViewModel.initialize(context)
+      return
+    }
+    await this.firewallOverviewViewModel.refresh(context)
   }
 
   private handlePageActivated(source: 'onPageShow'): void {

@@ -2,7 +2,6 @@ import { describe, expect, it } from '@ohos/hypium'
 import { netFirewall } from '@kit.NetworkKit'
 import { LabelText, ResultText } from '../../main/ets/constants/StringCatalog'
 import {
-  FirewallActionPresentationStrings,
   FirewallDialogStrings,
   FirewallRuleLabelStrings
 } from '../../main/ets/constants/modules/FirewallStrings'
@@ -32,7 +31,7 @@ export default function firewallModelsTest() {
       expect(FirewallDialogStrings.DIRECTION_INBOUND.length > 0).assertTrue()
       expect(FirewallDialogStrings.DIRECTION_OUTBOUND.length > 0).assertTrue()
       expect(FirewallDialogStrings.ACTION_ALLOW.length > 0).assertTrue()
-      expect(FirewallActionPresentationStrings.DENY.length > 0).assertTrue()
+      expect(FirewallDialogStrings.ACTION_DENY.length > 0).assertTrue()
       expect(LabelText.UNKNOWN.length > 0).assertTrue()
       expect(ResultText.FAILED).assertEqual('失败')
     })
