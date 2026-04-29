@@ -1,11 +1,10 @@
 import { application, common } from '@kit.AbilityKit'
 import osAccount from '@ohos.account.osAccount'
 
-import { UserFirewallListResult, UserFirewallOption, UserFirewallPolicyResult } from '../FirewallModels'
+import { UserFirewallListResult, UserFirewallOption } from '../FirewallModels'
 import { FirewallUserStrings, buildFirewallUserLabel } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
-import { FirewallSystemRepository } from '../FirewallSystemRepository'
 
 const TAG = 'SystemUserProvider'
 const TRACKED_USERS_STORE = 'firewall_tracked_users'
@@ -86,25 +85,6 @@ export class SystemUserProvider {
         message: FirewallUserStrings.NO_ACTIVATED_USERS
       } as UserFirewallListResult
     }
-  }
-
-  static async getPolicy(userId: number): Promise<UserFirewallPolicyResult> {
-    let policy = await FirewallSystemRepository.getPolicy(userId)
-    if (policy !== null) {
-      return {
-        userId: userId,
-        isOpen: policy.isOpen,
-        inAction: policy.inAction,
-        outAction: policy.outAction
-      } as UserFirewallPolicyResult
-    }
-    return {
-      userId: userId,
-      isOpen: false,
-      inAction: 0,
-      outAction: 0,
-      message: FirewallUserStrings.NO_ACTIVATED_USERS
-    } as UserFirewallPolicyResult
   }
 
   private static async loadTrackedUserIds(): Promise<number[]> {

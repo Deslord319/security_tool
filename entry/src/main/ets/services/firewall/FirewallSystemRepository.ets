@@ -1,7 +1,7 @@
 import { netFirewall } from '@kit.NetworkKit'
 import { LogUtils } from '../../utils/LogUtils'
 import { CommonErrorUtils } from '../../utils/CommonErrorUtils'
-import { FirewallBatchOperationResult, FirewallFailedItem } from './FirewallModels'
+import { FirewallBatchOperationResult, FirewallFailedItem, FirewallScopedRule } from './FirewallModels'
 
 const TAG = 'FirewallSystemRepository'
 
@@ -102,13 +102,9 @@ export class FirewallSystemRepository {
   }
 
   private static readSystemRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
-    let source = rule as FirewallRuleWithId
+    let source = rule as FirewallScopedRule
     return typeof source.id === 'number' ? source.id : undefined
   }
-}
-
-interface FirewallRuleWithId extends netFirewall.NetFirewallRule {
-  id?: number
 }
 
 export interface FirewallAddRuleRawResult {

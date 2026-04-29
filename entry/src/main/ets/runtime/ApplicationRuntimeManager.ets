@@ -45,10 +45,6 @@ export class ApplicationRuntimeManager {
     return this.logManageViewModel
   }
 
-  async initializeAll(): Promise<void> {
-    await this.ensureRuntimeServices()
-  }
-
   async ensureRuntimeServices(): Promise<void> {
     await this.ensureLogRuntimeInitialized()
     await this.ensurePeripheralRuntimeInitialized()

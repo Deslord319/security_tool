@@ -12,17 +12,12 @@ import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
 import {
   attachFirewallRuleUserIds,
+  FirewallScopedRule,
   getFirewallRuleUserIds,
+  normalizeFirewallRuleUserIds,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
-import { normalizeFirewallRuleUserIds } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
-
-interface FirewallRuleWithKey extends netFirewall.NetFirewallRule {
-  id?: number
-  ruleId?: number
-  localRuleId?: string
-}
 
 interface DialogParseResult<T> {
   success: boolean
@@ -374,19 +369,16 @@ export struct AddRuleDialog {
       isEnabled: this.initialRule?.isEnabled ?? true,
       description: this.initialRule?.description
     }
-    let originalRule = this.initialRule as FirewallRuleWithKey
-    let targetRule = baseRule as FirewallRuleWithKey
-    if (typeof originalRule.ruleId === 'number') {
-      targetRule.ruleId = originalRule.ruleId
-    }
+    let originalRule = this.initialRule as FirewallScopedRule
+    let scopedRule = baseRule as FirewallScopedRule
     if (typeof originalRule.id === 'number') {
-      targetRule.id = originalRule.id
+      scopedRule.id = originalRule.id
     }
     if (typeof originalRule.localRuleId === 'string') {
-      targetRule.localRuleId = originalRule.localRuleId
+      scopedRule.localRuleId = originalRule.localRuleId
     }
-    this.applyRuleSpecificFields(baseRule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
-    return attachFirewallRuleUserIds(baseRule, this.getSelectedUserIdsForSave())
+    this.applyRuleSpecificFields(scopedRule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
+    return attachFirewallRuleUserIds(scopedRule, this.getSelectedUserIdsForSave())
   }
 
   private applyRuleSpecificFields(

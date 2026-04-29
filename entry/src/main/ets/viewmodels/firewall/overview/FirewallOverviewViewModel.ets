@@ -18,19 +18,24 @@ export class FirewallOverviewViewModel {
   @Trace state: FirewallOverviewViewModelState = new FirewallOverviewViewModelState()
 
   async initialize(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
+    let overview = await this.loadAndApply(context)
+    this.state.initialized = true
+    return overview
+  }
+
+  async refresh(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
+    return await this.loadAndApply(context)
+  }
+
+  private async loadAndApply(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
     this.state.isLoading = true
     try {
       let overview = await FirewallService.loadOverviewState(context)
       this.applyOverview(overview)
-      this.state.initialized = true
       return overview
     } finally {
       this.state.isLoading = false
     }
-  }
-
-  async refresh(context: common.UIAbilityContext): Promise<FirewallOverviewState> {
-    return this.initialize(context)
   }
 
   async requestToggle(

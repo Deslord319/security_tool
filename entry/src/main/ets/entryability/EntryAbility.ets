@@ -24,39 +24,19 @@ import { SystemUserProvider } from '../services/firewall/providers/SystemUserPro
 
 const ENTRYABILITY_TAG = 'entryAbility'
 
-let globalContext: common.UIAbilityContext | null = null
-let terminateSubscriber: commonEventManager.CommonEventSubscriber | null = null
-let accountEventSubscriber: commonEventManager.CommonEventSubscriber | null = null
-
 interface EntryLoggableError {
   code?: number
   message?: string
 }
 
-function showEntryAbilityFromStatusBar(): void {
-  if (!globalContext) {
-    LogUtils.warn(ENTRYABILITY_TAG, 'showEntryAbilityFromStatusBar skipped: context unavailable')
-    return
-  }
-  globalContext.showAbility().then(() => {
-    LogUtils.info(ENTRYABILITY_TAG, 'showAbility success | source=statusBarIconClick')
-  }).catch((err: Error) => {
-    LogUtils.warn(ENTRYABILITY_TAG, 'showAbility failed | source=statusBarIconClick, err=%{public}s', JSON.stringify(err))
-  })
-}
-
-function onStatusBarIconClick(eventData: emitter.EventData): void {
-  let data = eventData.data as Record<string, Object | string | number | boolean> | undefined
-  if (!data) {
-    return
-  }
-  if (data['iconClickType'] === 'leftClick') {
-    showEntryAbilityFromStatusBar()
-  }
-}
-
 export default class EntryAbility extends UIAbility {
   private toolSettingsRepository: PreferencesToolSettingsRepository = new PreferencesToolSettingsRepository()
+  private terminateSubscriber: commonEventManager.CommonEventSubscriber | null = null
+  private accountEventSubscriber: commonEventManager.CommonEventSubscriber | null = null
+  private readonly statusBarIconClickHandler: (eventData: emitter.EventData) => void =
+    (eventData: emitter.EventData) => {
+      this.handleStatusBarIconClick(eventData)
+    }
 
   onCreate(_want: Want, _launchParam: AbilityConstant.LaunchParam): void {
     // 初始化主题管理器
@@ -67,7 +47,6 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       LogUtils.error(ENTRYABILITY_TAG, 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
-    globalContext = this.context
     this.createTerminateSubscriber()
     this.createAccountEventSubscriber()
     LogPowerLifecycleSource.init(this.context).catch((err: Error) => {
@@ -78,15 +57,14 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     LogPowerLifecycleSource.destroy()
-    globalContext = null
-    statusBarManager.off('statusBarIconClick', onStatusBarIconClick)
-    if (terminateSubscriber) {
-      commonEventManager.unsubscribe(terminateSubscriber, (err?: BusinessError) => {
+    statusBarManager.off('statusBarIconClick', this.statusBarIconClickHandler)
+    if (this.terminateSubscriber) {
+      commonEventManager.unsubscribe(this.terminateSubscriber, (err?: BusinessError) => {
         if (err) {
           LogUtils.warn(ENTRYABILITY_TAG, 'unsubscribe terminate event failed: %{public}s', JSON.stringify(err))
         }
       })
-      terminateSubscriber = null
+      this.terminateSubscriber = null
     }
     this.destroyAccountEventSubscriber()
   }
@@ -167,7 +145,7 @@ export default class EntryAbility extends UIAbility {
       // 需要在此重新应用正确的主题
       ThemeManager.getInstance().reapplyTheme();
 
-      ApplicationRuntimeManager.getInstance().initializeAll().catch((runtimeErr: Error) => {
+      ApplicationRuntimeManager.getInstance().ensureRuntimeServices().catch((runtimeErr: Error) => {
         LogUtils.warn(ENTRYABILITY_TAG, 'Application runtime init failed: %{public}s', JSON.stringify(runtimeErr))
       })
 
@@ -193,8 +171,8 @@ export default class EntryAbility extends UIAbility {
   private async initStatusBar(): Promise<void> {
     try {
       await loadStatusBar(this.context)
-      statusBarManager.off('statusBarIconClick', onStatusBarIconClick)
-      statusBarManager.on('statusBarIconClick', onStatusBarIconClick)
+      statusBarManager.off('statusBarIconClick', this.statusBarIconClickHandler)
+      statusBarManager.on('statusBarIconClick', this.statusBarIconClickHandler)
       await holdStatusBar(this.context)
       LogUtils.info(ENTRYABILITY_TAG, 'initStatusBar success')
     } catch (err) {
@@ -203,7 +181,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   private createTerminateSubscriber(): void {
-    if (terminateSubscriber) {
+    if (this.terminateSubscriber) {
       return
     }
     let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
@@ -214,7 +192,7 @@ export default class EntryAbility extends UIAbility {
         LogUtils.warn(ENTRYABILITY_TAG, 'createTerminateSubscriber failed: %{public}s', JSON.stringify(err))
         return
       }
-      terminateSubscriber = subscriber
+      this.terminateSubscriber = subscriber
       commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, _data: commonEventManager.CommonEventData) => {
         if (callbackErr) {
           LogUtils.warn(ENTRYABILITY_TAG, 'terminate event callback failed: %{public}s', JSON.stringify(callbackErr))
@@ -232,7 +210,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   private createAccountEventSubscriber(): void {
-    if (accountEventSubscriber) {
+    if (this.accountEventSubscriber) {
       return
     }
     let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
@@ -243,7 +221,7 @@ export default class EntryAbility extends UIAbility {
         LogUtils.warn(ENTRYABILITY_TAG, 'createAccountEventSubscriber failed: %{public}s', JSON.stringify(err))
         return
       }
-      accountEventSubscriber = subscriber
+      this.accountEventSubscriber = subscriber
       commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
         if (callbackErr) {
           LogUtils.warn(ENTRYABILITY_TAG, 'account event callback failed: %{public}s', JSON.stringify(callbackErr))
@@ -256,15 +234,33 @@ export default class EntryAbility extends UIAbility {
   }
 
   private destroyAccountEventSubscriber(): void {
-    if (!accountEventSubscriber) {
+    if (!this.accountEventSubscriber) {
       return
     }
-    commonEventManager.unsubscribe(accountEventSubscriber, (err?: BusinessError) => {
+    commonEventManager.unsubscribe(this.accountEventSubscriber, (err?: BusinessError) => {
       if (err) {
         LogUtils.warn(ENTRYABILITY_TAG, 'unsubscribe account event failed: %{public}s', JSON.stringify(err))
       }
-      accountEventSubscriber = null
+      this.accountEventSubscriber = null
     })
+  }
+
+  private showEntryAbilityFromStatusBar(): void {
+    this.context.showAbility().then(() => {
+      LogUtils.info(ENTRYABILITY_TAG, 'showAbility success | source=statusBarIconClick')
+    }).catch((err: Error) => {
+      LogUtils.warn(ENTRYABILITY_TAG, 'showAbility failed | source=statusBarIconClick, err=%{public}s', JSON.stringify(err))
+    })
+  }
+
+  private handleStatusBarIconClick(eventData: emitter.EventData): void {
+    let data = eventData.data as Record<string, Object | string | number | boolean> | undefined
+    if (!data) {
+      return
+    }
+    if (data['iconClickType'] === 'leftClick') {
+      this.showEntryAbilityFromStatusBar()
+    }
   }
 
   private async handleAccountEvent(data: commonEventManager.CommonEventData): Promise<void> {

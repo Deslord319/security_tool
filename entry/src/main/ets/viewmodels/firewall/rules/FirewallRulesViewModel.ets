@@ -11,8 +11,9 @@ import {
   FirewallOperationResult,
   FirewallPresetMode,
   FirewallRuleMutationResult,
+  FirewallScopedRule,
   getFirewallRuleUserIds,
-  normalizeFirewallRuleUserIds as normalizeScopedUserIds,
+  normalizeFirewallRuleUserIds,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
@@ -22,17 +23,9 @@ import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'FirewallRulesViewModel'
 
-interface LocalRuleIdCarrier {
-  localRuleId?: string
-}
-
 export interface FirewallRulesConflictInfo {
   kind: string
   existingRule: netFirewall.NetFirewallRule | null
-}
-
-export function normalizeFirewallRuleUserIds(userIds: number[] | undefined | null): number[] {
-  return normalizeScopedUserIds(userIds ?? [])
 }
 
 export function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFirewallOption[]): boolean {
@@ -67,8 +60,8 @@ export function buildFirewallRuleUserScopeLabel(
 
 function cloneScopedRule(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
   let clonedRule = FirewallRuleUtils.cloneSystemRule(rule)
-  let carrier = clonedRule as LocalRuleIdCarrier
-  carrier.localRuleId = (rule as LocalRuleIdCarrier).localRuleId
+  let carrier = clonedRule as FirewallScopedRule
+  carrier.localRuleId = (rule as FirewallScopedRule).localRuleId
   return attachFirewallRuleUserIds(clonedRule, getFirewallRuleUserIds(rule))
 }
 
@@ -163,7 +156,7 @@ export class FirewallRulesViewModel {
   }
 
   getLocalRuleId(rule: netFirewall.NetFirewallRule): string | undefined {
-    return (rule as LocalRuleIdCarrier).localRuleId
+    return (rule as FirewallScopedRule).localRuleId
   }
 
   findConflict(

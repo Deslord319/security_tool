@@ -225,7 +225,3 @@ export class FirewallDialogStrings {
     return `已选择 ${userCount} 个用户`
   }
 }
-
-export class FirewallActionPresentationStrings {
-  static readonly DENY: string = '阻止'
-}

@@ -69,10 +69,10 @@ export class IdentitySettingsViewModel {
   private initialState: IdentitySettingsSnapshot = IdentitySettingsViewModel.buildDefaultSnapshot()
   private adminState: AdminActivationState = IdentitySettingsViewModel.buildDefaultAdminState()
 
-  initialize(): void {
+  async initialize(): Promise<void> {
     this.state.loading = true
     this.state.initialized = false
-    this.refreshAdminActivationState()
+    await this.refreshAdminActivationStateAsync()
     if (!this.adminState.activated) {
       LogUtils.warn(TAG, 'initialize skipped | admin not activated, reset to defaults')
       this.reset()
@@ -81,7 +81,7 @@ export class IdentitySettingsViewModel {
       return
     }
 
-    let result = IdentityService.getPasswordPolicyWithResult()
+    let result = await IdentityService.getPasswordPolicyWithResultAsync()
     if (!result.success) {
       LogUtils.warn(TAG,
         `initialize failed | reset to defaults, errorCode=${result.errorCode ?? 0}, errorMessage=${result.errorMessage ?? ''}`
@@ -480,6 +480,16 @@ export class IdentitySettingsViewModel {
 
   private refreshAdminActivationState(): void {
     this.adminState = EnterpriseAdminService.probeActivation()
+    this.state.adminActivated = this.adminState.activated
+    this.state.adminMessage = this.adminState.errorMessage ?? ''
+    LogUtils.info(TAG,
+      `refreshAdminActivationState | activated=${this.adminState.activated}, errorCode=${this.adminState.errorCode ?? 0}, message=${this.adminState.errorMessage ?? ''}`
+    )
+    this.refreshDerivedState()
+  }
+
+  private async refreshAdminActivationStateAsync(): Promise<void> {
+    this.adminState = await EnterpriseAdminService.probeActivationAsync()
     this.state.adminActivated = this.adminState.activated
     this.state.adminMessage = this.adminState.errorMessage ?? ''
     LogUtils.info(TAG,

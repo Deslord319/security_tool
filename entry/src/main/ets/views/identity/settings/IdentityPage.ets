@@ -15,12 +15,15 @@ import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { DialogService } from '../../../utils/DialogService'
+import { LogUtils } from '../../../utils/LogUtils'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsActionRequest,
   IdentitySettingsViewModel
 } from '../../../viewmodels/identity/settings/IdentitySettingsViewModel'
+
+const TAG = 'IdentityPage'
 
 @ComponentV2
 export struct IdentityPage {
@@ -40,7 +43,9 @@ export struct IdentityPage {
   ]
 
   aboutToAppear() {
-    this.viewModel.initialize()
+    this.viewModel.initialize().catch((err: Error) => {
+      LogUtils.warn(TAG, `initialize failed: ${JSON.stringify(err)}`)
+    })
   }
 
   private async saveConfig(skipImmediateExpiryConfirm: boolean = false): Promise<void> {
