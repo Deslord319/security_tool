@@ -8,7 +8,7 @@ import {
 } from '../../../models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import { LogUtils } from '../../../utils/LogUtils'
-import { LabelText, PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
+import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
 import {
   collectPayloadSources,
   pickNumber,

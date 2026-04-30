@@ -18,8 +18,6 @@ export class FirewallRuleStrings {
   static readonly APPLY_FAILED_PERMISSION: string = '规则添加失败，请检查权限和企业管理员状态'
   static readonly APPLY_FAILED_INVALID_PARAM: string = '规则参数不合法，请检查输入'
   static readonly APPLY_FAILED_DNS_UNSUPPORTED: string = '当前系统不支持该 DNS 规则参数，请联系厂家确认接口约束'
-  static readonly LOCAL_SAVE_FAILED: string = '本地规则保存失败，且回滚远端规则失败'
-  static readonly ROLLBACK_SUCCESS: string = '本地规则保存失败，已回滚远端规则'
   static readonly DUPLICATE: string = '已存在完全相同的规则'
   static readonly CONFLICT_TITLE: string = '规则冲突'
   static readonly CONFLICT_REPLACE_MESSAGE: string = '发现与现有规则冲突的记录，是否使用新规则覆盖？'
@@ -29,8 +27,6 @@ export class FirewallRuleStrings {
   static readonly OVERLAP_EDIT_MESSAGE: string = '检测到规则范围存在重叠，仍要继续保存吗？'
   static readonly ADD_SUCCESS: string = '规则添加成功'
   static readonly UPDATE_SUCCESS: string = '规则更新成功'
-  static readonly REPLACE_SUCCESS: string = '冲突规则已替换并保存'
-  static readonly OVERWRITE_SUCCESS: string = '冲突规则已覆盖'
   static readonly DELETE_TITLE: string = '删除规则'
   static readonly DELETE_MESSAGE: string = '确认删除这条规则吗？'
   static readonly DELETE_SUCCESS: string = '规则删除成功'
@@ -38,18 +34,10 @@ export class FirewallRuleStrings {
   static readonly CUSTOM_MODE_TITLE: string = '自定义模式'
   static readonly CUSTOM_RULES_SUBTITLE: string = '支持IP、域名和DNS规则自定义配置'
   static readonly ADD_BUTTON: string = '新增规则'
-  static readonly REAPPLY_PARTIAL_FAILED: string = '共享规则已保存，但部分已绑定用户重下发失败'
   static readonly INBOUND: string = '入站规则'
   static readonly OUTBOUND: string = '出站规则'
   static readonly INBOUND_DESCRIPTION: string = '自定义入站规则'
   static readonly OUTBOUND_DESCRIPTION: string = '自定义出站规则'
-}
-
-export class FirewallOperationStrings {
-  static readonly SAVE_USER_MODE_BINDINGS: string = '保存用户模式绑定'
-  static readonly READ_USER_RULES: string = '读取用户防火墙规则'
-  static readonly DELETE_USER_RULES: string = '删除用户防火墙规则'
-  static readonly WRITE_USER_POLICY: string = '写入用户防火墙策略'
 }
 
 export class FirewallUserStrings {
@@ -122,10 +110,6 @@ export function buildFirewallConflictNotice(duplicates: number, hardConflicts: n
     parts.push(`范围重叠 ${overlapConflicts} 条`)
   }
   return parts.length > 0 ? `当前自定义规则集中存在：${parts.join('，')}` : ''
-}
-
-export function buildFirewallReapplyPartialFailedMessage(successCount: number, failedCount: number): string {
-  return `${FirewallRuleStrings.REAPPLY_PARTIAL_FAILED}（成功 ${successCount} 个，失败 ${failedCount} 个）`
 }
 
 export function buildFirewallAddRuleFailedMessage(errorCode?: number): string {

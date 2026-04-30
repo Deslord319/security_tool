@@ -28,34 +28,6 @@ import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/Firew
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 
 const TAG = 'FirewallRulesPage'
-const RULE_CARD_WIDTH_PERCENT = '100%'
-
-class FirewallRuleListDataSource implements IDataSource {
-  private rules: netFirewall.NetFirewallRule[] = []
-  private listeners: DataChangeListener[] = []
-
-  constructor(rules: netFirewall.NetFirewallRule[]) {
-    this.rules = rules
-  }
-
-  totalCount(): number {
-    return this.rules.length
-  }
-
-  getData(index: number): Object {
-    return this.rules[index]
-  }
-
-  registerDataChangeListener(listener: DataChangeListener): void {
-    if (!this.listeners.includes(listener)) {
-      this.listeners.push(listener)
-    }
-  }
-
-  unregisterDataChangeListener(listener: DataChangeListener): void {
-    this.listeners = this.listeners.filter((item: DataChangeListener): boolean => item !== listener)
-  }
-}
 
 @ComponentV2
 export struct FirewallRulesPage {
@@ -575,9 +547,7 @@ export struct FirewallRulesPage {
         .alignItems(HorizontalAlign.Center)
       } else {
         List({ space: 12 }) {
-          LazyForEach(
-            new FirewallRuleListDataSource(this.getRulesByTab(tabIndex)),
-            (rule: netFirewall.NetFirewallRule) => {
+          ForEach(this.getRulesByTab(tabIndex), (rule: netFirewall.NetFirewallRule) => {
             ListItem() {
               Column() {
                 BaseCard({
@@ -687,9 +657,8 @@ export struct FirewallRulesPage {
               .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
               .clip(false)
             }
-          },
-          (rule: netFirewall.NetFirewallRule): string => this.rulesViewModel.getLocalRuleId(rule) ?? `${rule.name ?? 'rule'}_${rule.direction}_${rule.action}_${rule.type}`
-          )
+          }, (rule: netFirewall.NetFirewallRule): string =>
+            this.rulesViewModel.getLocalRuleId(rule) ?? `${rule.name ?? 'rule'}_${rule.direction}_${rule.action}_${rule.type}`)
         }
         .width('100%')
         .layoutWeight(1)

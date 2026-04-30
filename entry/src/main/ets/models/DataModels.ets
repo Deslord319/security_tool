@@ -389,9 +389,9 @@ export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
   subscribedTypes: ALL_LOG_EVENT_TYPES
 }
 
-export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 60, 90]
+export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 90, 180]
 
-export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 2000, 5000]
+export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000, 10000, 20000, 50000]
 
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'

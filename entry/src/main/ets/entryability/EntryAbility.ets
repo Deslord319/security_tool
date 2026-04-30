@@ -1,5 +1,5 @@
 import { LogUtils } from '../utils/LogUtils'
-import { AbilityConstant, common, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { ThemeManager } from '../theme/ThemeManager';
 import { AuthService } from '../services/identity/auth/AuthService';

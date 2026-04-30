@@ -44,7 +44,7 @@
 | FW-008 | 规则列表展示 | 验证无自定义规则时展示空状态 | 不补UT | 空状态展示属于页面渲染场景；service 层空数组返回已有基础支撑，不再补 UT。 |
 | FW-009 | 规则新增 | 验证新增 IP 规则 `8.8.8.8/32`、出站、TCP、443、允许 成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-010 | 规则新增 | 验证新增域名规则 `www.baidu.com`、出站、允许 成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
-| FW-011 | 规则参数校验 | 验证新增 IP 规则时地址为空会被拦截 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
+| FW-011 | 规则参数校验 | 验证新增 IP 规则时地址为空按全部地址保存成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-012 | 规则参数校验 | 验证新增 IP 规则时非法地址 `999.1.1.1` 被拦截 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-013 | 规则编辑 | 验证将域名规则 `www.baidu.com / 出站 / 允许` 编辑为 `阻止` 成功 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 | FW-014 | 规则删除 | 验证删除已有规则成功 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
@@ -126,7 +126,7 @@
 | ID-001 | 口令复杂度策略 | 验证保存口令复杂度策略：最小长度 8，大写/小写/数字开启，特殊字符关闭 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 | ID-002 | 密码有效期策略 | 验证将密码有效期设置为 180 天后保存成功 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 | ID-003 | 密码有效期策略 | 验证将自定义密码有效期设置为 30 天后保存成功 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
-| ID-004 | 输入参数校验 | 验证自定义密码有效期输入非法值时被拦截 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
+| ID-004 | 输入参数校验 | 验证自定义密码有效期非法字符被过滤，空值保存时被拦截 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 | ID-007 | 策略保存 | 验证自定义密码有效期输入 0 天时触发风险提示 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 
 ## 工具设置
