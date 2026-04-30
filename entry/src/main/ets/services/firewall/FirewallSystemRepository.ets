@@ -94,9 +94,6 @@ export class FirewallSystemRepository {
     }
     return {
       success: failedItems.length === 0,
-      totalCount: rules.length,
-      successCount: rules.length - failedItems.length,
-      failedCount: failedItems.length,
       failedItems: failedItems
     }
   }

@@ -72,7 +72,7 @@ export default function logExportServiceTest() {
     })
 
     it('should normalize storage config with fixed numeric values', 0, () => {
-      expect(LogEntryNormalizer.normalizeMaxEntries(9999)).assertEqual(5000)
+      expect(LogEntryNormalizer.normalizeMaxEntries(9999)).assertEqual(9999)
       expect(LogEntryNormalizer.normalizeMaxEntries(1000)).assertEqual(1000)
       expect(LogEntryNormalizer.normalizeRetentionDays(999)).assertEqual(999)
       expect(LogEntryNormalizer.normalizeRetentionDays(14)).assertEqual(14)

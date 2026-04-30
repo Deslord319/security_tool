@@ -466,8 +466,13 @@ export class FirewallService {
 
     for (let i = 0; i < users.length; i++) {
       let userId = users[i].userId
+      let existingPolicy = await FirewallSystemRepository.getPolicy(userId)
+      if (existingPolicy === null) {
+        failedItems.push({ userId: userId, errorMessage: 'read mode policy failed' })
+        continue
+      }
       let userMode = FirewallService.resolveUserPolicyModeForSwitch(targetMode, userId, modeRecords)
-      let policy = FirewallService.buildPolicyForUserMode(userMode)
+      let policy = FirewallService.buildPolicyForUserMode(userMode, existingPolicy.isOpen)
       let applied = await FirewallSystemRepository.setPolicy(userId, policy)
       if (!applied) {
         failedItems.push({ userId: userId, errorMessage: 'set mode policy failed' })
@@ -487,16 +492,16 @@ export class FirewallService {
     return modeRecords.find((item: FirewallUserPolicyModeRecord): boolean => item.userId === userId)?.mode
   }
 
-  private static buildPolicyForUserMode(mode?: FirewallUserPolicyMode): netFirewall.NetFirewallPolicy {
+  private static buildPolicyForUserMode(mode?: FirewallUserPolicyMode, isOpen: boolean = true): netFirewall.NetFirewallPolicy {
     if (mode === 'allowlist') {
       return {
-        isOpen: true,
+        isOpen: isOpen,
         inAction: netFirewall.FirewallRuleAction.RULE_DENY,
         outAction: netFirewall.FirewallRuleAction.RULE_DENY
       }
     }
     return {
-      isOpen: true,
+      isOpen: isOpen,
       inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
       outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
     }

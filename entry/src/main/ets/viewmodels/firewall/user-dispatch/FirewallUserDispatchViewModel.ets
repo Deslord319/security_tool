@@ -25,14 +25,12 @@ export class FirewallUserDispatchViewModel {
   @Trace lastApplyResult: FirewallUserPolicyApplyResult | null = null
 
   private readonly modeOptions: FirewallUserPolicyMode[] = ['allowlist', 'denylist']
-  private context: common.UIAbilityContext | null = null
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
-    this.context = context
-    await this.loadUsers()
+    await this.loadUsers(context)
   }
 
-  async loadUsers(): Promise<void> {
+  async loadUsers(context: common.UIAbilityContext): Promise<void> {
     this.isLoadingUsers = true
     this.statusHintText = ''
     try {
@@ -50,7 +48,7 @@ export class FirewallUserDispatchViewModel {
       this.selectedIndex = 0
       this.selectedUserId = result.users[0].userId
       this.selectedModeIndex = 0
-      await this.loadStateForSelectedUser()
+      await this.loadStateForSelectedUser(context)
     } catch (err) {
       this.users = []
       this.selectedIndex = 0
@@ -63,13 +61,13 @@ export class FirewallUserDispatchViewModel {
     }
   }
 
-  async selectUser(index: number): Promise<void> {
+  async selectUser(context: common.UIAbilityContext, index: number): Promise<void> {
     if (index < 0 || index >= this.users.length) {
       return
     }
     this.selectedIndex = index
     this.selectedUserId = this.users[index].userId
-    await this.loadStateForSelectedUser()
+    await this.loadStateForSelectedUser(context)
   }
 
   async selectMode(index: number): Promise<void> {
@@ -79,15 +77,15 @@ export class FirewallUserDispatchViewModel {
     this.selectedModeIndex = index
   }
 
-  async loadStateForSelectedUser(): Promise<void> {
-    if (this.selectedUserId < 0 || this.context === null) {
+  async loadStateForSelectedUser(context: common.UIAbilityContext): Promise<void> {
+    if (this.selectedUserId < 0) {
       return
     }
 
     this.isLoadingPolicy = true
     this.statusHintText = ''
     try {
-      const result = await FirewallService.loadUserPolicyState(this.context, this.selectedUserId)
+      const result = await FirewallService.loadUserPolicyState(context, this.selectedUserId)
       this.applyLoadedMode(result)
     } catch (err) {
       this.statusHintText = FirewallDialogStrings.ERROR_CANNOT_GET_STATUS
@@ -97,22 +95,22 @@ export class FirewallUserDispatchViewModel {
     }
   }
 
-  async applySelectedMode(): Promise<boolean> {
-    if (this.context === null || this.selectedUserId < 0) {
+  async applySelectedMode(context: common.UIAbilityContext): Promise<boolean> {
+    if (this.selectedUserId < 0) {
       return false
     }
 
     this.isSubmitting = true
     try {
       const targetMode = this.modeOptions[this.selectedModeIndex]
-      const result = await FirewallService.applyUserPolicyMode(this.context, this.selectedUserId, targetMode)
+      const result = await FirewallService.applyUserPolicyMode(context, this.selectedUserId, targetMode)
       this.lastApplyResult = result
       if (!result.success) {
         this.statusHintText = result.errorMessage ?? FirewallDialogStrings.APPLY_MODE_FAILED
         return false
       }
       this.statusHintText = ''
-      await this.loadStateForSelectedUser()
+      await this.loadStateForSelectedUser(context)
       return true
     } catch (err) {
       this.statusHintText = FirewallDialogStrings.APPLY_MODE_FAILED
