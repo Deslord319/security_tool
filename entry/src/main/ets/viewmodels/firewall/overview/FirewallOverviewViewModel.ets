@@ -53,9 +53,7 @@ export class FirewallOverviewViewModel {
     this.state.isToggleProcessing = true
     try {
       let result = await FirewallService.setFirewallEnabledForAllUsers(context, targetEnabled)
-      if (result.success) {
-        this.state.enabled = targetEnabled
-      }
+      await this.loadAndApply(context)
       return result
     } finally {
       this.state.isToggleProcessing = false
@@ -76,9 +74,7 @@ export class FirewallOverviewViewModel {
     this.state.isModeProcessing = true
     try {
       let result = await FirewallService.switchMode(context, targetMode)
-      if (result.success) {
-        this.state.currentMode = targetMode
-      }
+      await this.loadAndApply(context)
       return result
     } finally {
       this.state.isModeProcessing = false

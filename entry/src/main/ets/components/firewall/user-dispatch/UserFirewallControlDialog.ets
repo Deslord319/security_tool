@@ -100,7 +100,8 @@ export struct UserFirewallControlDialog {
               .borderRadius(AppStyles.RADIUS_MD)
               .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
               .onSelect((index: number) => {
-                this.viewModel.selectUser(index)
+                let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+                this.viewModel.selectUser(context, index)
               })
           }
           .width('100%')
@@ -161,7 +162,8 @@ export struct UserFirewallControlDialog {
               .enabled(!this.viewModel.isSubmitting && !this.viewModel.isLoadingPolicy)
               .opacity(!this.viewModel.isSubmitting && !this.viewModel.isLoadingPolicy ? 1 : 0.5)
               .onClick(async () => {
-                let success = await this.viewModel.applySelectedMode()
+                let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+                let success = await this.viewModel.applySelectedMode(context)
                 if (!success) {
                   DialogService.openFailure(
                     this.getUIContext(),

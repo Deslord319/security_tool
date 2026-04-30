@@ -86,9 +86,6 @@ export interface FirewallOperationResult {
 }
 
 export interface FirewallBatchOperationResult extends FirewallOperationResult {
-  totalCount: number
-  successCount: number
-  failedCount: number
   failedItems: FirewallFailedItem[]
 }
 

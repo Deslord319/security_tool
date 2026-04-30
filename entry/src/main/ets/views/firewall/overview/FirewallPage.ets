@@ -32,7 +32,6 @@ export struct FirewallPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Local isToggleProcessing: boolean = false
   @Local isModeProcessing: boolean = false
-  @Local firewallSwitchValue: boolean = false
   @Local hoveredMode: string = ''
   @Event onNavigateToRules: () => void = () => {}
   @Event onBack: () => void = () => {}
@@ -40,7 +39,6 @@ export struct FirewallPage {
   @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
 
   aboutToAppear() {
-    this.firewallSwitchValue = this.overviewViewModel.state.enabled
     LogUtils.info(
       TAG,
       `page enter: firewallEnabled=${this.overviewViewModel.state.enabled}, currentMode=${this.overviewViewModel.state.currentMode}`
@@ -57,12 +55,10 @@ export struct FirewallPage {
 
   async handleToggleWithAuth(isOn: boolean) {
     if (this.isToggleProcessing) {
-      this.firewallSwitchValue = this.overviewViewModel.state.enabled
       return
     }
     let currentEnabled = this.overviewViewModel.state.enabled
     if (isOn === currentEnabled) {
-      this.firewallSwitchValue = currentEnabled
       return
     }
 
@@ -71,17 +67,14 @@ export struct FirewallPage {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       let result = await this.overviewViewModel.requestToggle(context, isOn)
       if (result.success) {
-        this.firewallSwitchValue = this.overviewViewModel.state.enabled
         return
       }
 
-      this.firewallSwitchValue = currentEnabled
       DialogService.openFailure(
         this.getUIContext(),
         result.errorMessage ?? this.buildToggleFailedMessage(result.reason, result.lockRemainingSec)
       )
     } catch (err) {
-      this.firewallSwitchValue = currentEnabled
       DialogService.openFailure(this.getUIContext(), FirewallToggleStrings.TOGGLE_FAILED)
       LogUtils.error(TAG, `handleToggleWithAuth failed: ${JSON.stringify(err)}`)
     } finally {
@@ -455,7 +448,7 @@ export struct FirewallPage {
 
   @Builder
   private headerActions() {
-    Toggle({ type: ToggleType.Switch, isOn: this.firewallSwitchValue })
+    Toggle({ type: ToggleType.Switch, isOn: this.overviewViewModel.state.enabled })
       .selectedColor(AppColors.BRAND_PRIMARY)
       .switchPointColor(Color.White)
       .enabled(!this.isToggleProcessing)

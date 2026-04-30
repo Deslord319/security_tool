@@ -9,7 +9,6 @@ import { FirewallDialogStrings, FirewallRuleLabelStrings, FirewallUserStrings } 
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { MultiCheckSelect } from '../../MultiCheckSelect'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
-import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
 import {
   attachFirewallRuleUserIds,
   FirewallScopedRule,
@@ -28,11 +27,13 @@ interface DialogParseResult<T> {
 @CustomDialog
 export struct AddRuleDialog {
   controller: CustomDialogController
-  onConfirm: (rule: netFirewall.NetFirewallRule) => void = () => {}
+  onConfirm: (rule: netFirewall.NetFirewallRule) => Promise<boolean> = async (_rule: netFirewall.NetFirewallRule) => true
   onClose: () => void = () => {}
   initialRule?: netFirewall.NetFirewallRule
   isEditMode: boolean = false
   currentTheme: ThemeMode = ThemeMode.LIGHT
+  userOptions: UserFirewallOption[] = []
+  isSubmitting: boolean = false
 
   @State ruleName: string = ''
   @State ruleType: number = netFirewall.NetFirewallRuleType.RULE_IP
@@ -42,19 +43,45 @@ export struct AddRuleDialog {
   @State localPort: string = ''
   @State remotePort: string = ''
   @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
-  @State userOptions: UserFirewallOption[] = []
   @State selectedUserIds: number[] = []
+  @State submitting: boolean = false
+  private readonly ruleTypeOptions: SelectOption[] = [
+    { value: FirewallRuleLabelStrings.IP_RULE },
+    { value: FirewallRuleLabelStrings.DOMAIN_RULE },
+    { value: FirewallRuleLabelStrings.DNS_RULE }
+  ]
+  private readonly ruleTypeValues: number[] = [
+    netFirewall.NetFirewallRuleType.RULE_IP,
+    netFirewall.NetFirewallRuleType.RULE_DOMAIN,
+    netFirewall.NetFirewallRuleType.RULE_DNS
+  ]
+  private readonly directionOptions: SelectOption[] = [
+    { value: FirewallDialogStrings.DIRECTION_INBOUND },
+    { value: FirewallDialogStrings.DIRECTION_OUTBOUND }
+  ]
+  private readonly directionValues: number[] = [
+    netFirewall.NetFirewallRuleDirection.RULE_IN,
+    netFirewall.NetFirewallRuleDirection.RULE_OUT
+  ]
   private readonly protocolOptions: SelectOption[] = [
     { value: FirewallDialogStrings.PROTOCOL_TCP },
     { value: FirewallDialogStrings.PROTOCOL_UDP },
     { value: FirewallDialogStrings.PROTOCOL_ICMP }
   ]
   private readonly protocolValues: number[] = [6, 17, 1]
+  private readonly actionOptions: SelectOption[] = [
+    { value: FirewallDialogStrings.ACTION_ALLOW },
+    { value: FirewallDialogStrings.ACTION_DENY }
+  ]
+  private readonly actionValues: number[] = [
+    netFirewall.FirewallRuleAction.RULE_ALLOW,
+    netFirewall.FirewallRuleAction.RULE_DENY
+  ]
   private readonly maxPortItemCount: number = 10
 
   aboutToAppear(): void {
     this.applyInitialRule()
-    void this.loadUserOptions()
+    this.applyInitialRuleScope()
   }
 
   private applyInitialRule(): void {
@@ -71,16 +98,6 @@ export struct AddRuleDialog {
     let resolvedPort = this.resolvePortForDirection(rule)
     this.localPort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? resolvedPort : ''
     this.remotePort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ? resolvedPort : ''
-  }
-
-  private async loadUserOptions(): Promise<void> {
-    try {
-      let result = await SystemUserProvider.loadAvailableUserIds()
-      this.userOptions = result.users ?? []
-    } catch (_err) {
-      this.userOptions = []
-    }
-    this.applyInitialRuleScope()
   }
 
   private applyInitialRuleScope(): void {
@@ -102,7 +119,7 @@ export struct AddRuleDialog {
 
   private resolveRemoteAddress(rule: netFirewall.NetFirewallRule): string {
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      return this.resolveIpAddressForDirection(rule)
+      return FirewallRuleUtils.formatIpParamsForDisplay(rule.remoteIps)
     }
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return rule.domains?.[0]?.domain ?? ''
@@ -119,7 +136,7 @@ export struct AddRuleDialog {
 
   private resolveIpAddressForDirection(rule: netFirewall.NetFirewallRule): string {
     if (rule.type !== netFirewall.NetFirewallRuleType.RULE_IP) {
-      return this.resolveRemoteAddress(rule)
+      return ''
     }
     let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
     return FirewallRuleUtils.formatIpParamsForDisplay(ipParams)
@@ -142,6 +159,9 @@ export struct AddRuleDialog {
   private parseIpInput(raw: string): DialogParseResult<netFirewall.NetFirewallIpParams[] | undefined> {
     let value = raw.trim()
     if (value.length === 0) {
+      return { success: true, value: undefined }
+    }
+    if (value.toUpperCase() === FirewallDialogStrings.ALL_VALUE) {
       return { success: true, value: undefined }
     }
     let rangeParts = value.split('-')
@@ -209,7 +229,7 @@ export struct AddRuleDialog {
       return { success: true, value: undefined }
     }
     if (value.toUpperCase() === FirewallDialogStrings.ALL_VALUE) {
-      return { success: false, errorMessage: invalidMessage }
+      return { success: true, value: undefined }
     }
     let tokens = value.split(',')
     let result: netFirewall.NetFirewallPortParams[] = []
@@ -328,7 +348,10 @@ export struct AddRuleDialog {
     return ''
   }
 
-  private handleSubmit(): void {
+  private async handleSubmit(): Promise<void> {
+    if (this.submitting || this.isSubmitting) {
+      return
+    }
     let validationMessage = this.validateForm()
     if (validationMessage.length > 0) {
       DialogService.openFailure(this.getUIContext(), validationMessage)
@@ -336,8 +359,15 @@ export struct AddRuleDialog {
     }
 
     let rule = this.isEditMode ? this.buildUpdateRule() : this.buildCreateRule()
-    this.onConfirm(rule)
-    this.closeDialog()
+    this.submitting = true
+    try {
+      let shouldClose = await this.onConfirm(rule)
+      if (shouldClose) {
+        this.closeDialog()
+      }
+    } finally {
+      this.submitting = false
+    }
   }
 
   private closeDialog(): void {
@@ -445,6 +475,33 @@ export struct AddRuleDialog {
     return (this.protocolOptions[this.getSelectedProtocolIndex()]?.value as string) ?? FirewallDialogStrings.PROTOCOL_TCP
   }
 
+  private getSelectedRuleTypeIndex(): number {
+    let index = this.ruleTypeValues.indexOf(this.ruleType)
+    return index >= 0 ? index : 0
+  }
+
+  private getSelectedRuleTypeLabel(): string {
+    return (this.ruleTypeOptions[this.getSelectedRuleTypeIndex()]?.value as string) ?? FirewallRuleLabelStrings.IP_RULE
+  }
+
+  private getSelectedDirectionIndex(): number {
+    let index = this.directionValues.indexOf(this.ruleDirection)
+    return index >= 0 ? index : 0
+  }
+
+  private getSelectedDirectionLabel(): string {
+    return (this.directionOptions[this.getSelectedDirectionIndex()]?.value as string) ?? FirewallDialogStrings.DIRECTION_INBOUND
+  }
+
+  private getSelectedActionIndex(): number {
+    let index = this.actionValues.indexOf(this.action)
+    return index >= 0 ? index : 0
+  }
+
+  private getSelectedActionLabel(): string {
+    return (this.actionOptions[this.getSelectedActionIndex()]?.value as string) ?? FirewallDialogStrings.ACTION_ALLOW
+  }
+
   private getRuleTypeLabel(): string {
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return FirewallRuleLabelStrings.DOMAIN_RULE
@@ -492,15 +549,9 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Select([
-          { value: FirewallRuleLabelStrings.IP_RULE },
-          { value: FirewallRuleLabelStrings.DOMAIN_RULE },
-          { value: FirewallRuleLabelStrings.DNS_RULE }
-        ])
-          .selected(this.ruleType - 1)
-          .value(this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN ? FirewallRuleLabelStrings.DOMAIN_RULE :
-            this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS ? FirewallRuleLabelStrings.DNS_RULE :
-            FirewallRuleLabelStrings.IP_RULE)
+        Select(this.ruleTypeOptions)
+          .selected(this.getSelectedRuleTypeIndex())
+          .value(this.getSelectedRuleTypeLabel())
           .fontColor(FormControlUtils.text(this.currentTheme))
           .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
           .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
@@ -510,7 +561,7 @@ export struct AddRuleDialog {
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.ruleType = index + 1 })
+          .onSelect((index: number) => { this.ruleType = this.ruleTypeValues[index] ?? this.ruleTypeValues[0] })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -521,14 +572,9 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Select([
-          { value: FirewallDialogStrings.DIRECTION_INBOUND },
-          { value: FirewallDialogStrings.DIRECTION_OUTBOUND }
-        ])
-          .selected(this.ruleDirection - 1)
-          .value(this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ?
-            FirewallDialogStrings.DIRECTION_OUTBOUND :
-            FirewallDialogStrings.DIRECTION_INBOUND)
+        Select(this.directionOptions)
+          .selected(this.getSelectedDirectionIndex())
+          .value(this.getSelectedDirectionLabel())
           .fontColor(FormControlUtils.text(this.currentTheme))
           .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
           .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
@@ -539,7 +585,7 @@ export struct AddRuleDialog {
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
           .onSelect((index: number) => {
-            let nextDirection = index + 1
+            let nextDirection = this.directionValues[index] ?? this.directionValues[0]
             if (nextDirection === this.ruleDirection) {
               return
             }
@@ -673,14 +719,9 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Select([
-          { value: FirewallDialogStrings.ACTION_ALLOW },
-          { value: FirewallDialogStrings.ACTION_DENY }
-        ])
-          .selected(this.action)
-          .value(this.action === netFirewall.FirewallRuleAction.RULE_DENY ?
-            FirewallDialogStrings.ACTION_DENY :
-            FirewallDialogStrings.ACTION_ALLOW)
+        Select(this.actionOptions)
+          .selected(this.getSelectedActionIndex())
+          .value(this.getSelectedActionLabel())
           .fontColor(FormControlUtils.text(this.currentTheme))
           .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
           .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
@@ -690,7 +731,7 @@ export struct AddRuleDialog {
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.action = index })
+          .onSelect((index: number) => { this.action = this.actionValues[index] ?? this.actionValues[0] })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -704,6 +745,8 @@ export struct AddRuleDialog {
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
           .height(40)
+          .enabled(!this.submitting && !this.isSubmitting)
+          .opacity(!this.submitting && !this.isSubmitting ? 1 : 0.5)
           .onClick(() => {
             this.closeDialog()
           })
@@ -714,6 +757,8 @@ export struct AddRuleDialog {
           .borderRadius(AppStyles.RADIUS_MD)
           .layoutWeight(1)
           .height(40)
+          .enabled(!this.submitting && !this.isSubmitting)
+          .opacity(!this.submitting && !this.isSubmitting ? 1 : 0.5)
           .onClick(() => {
             this.handleSubmit()
           })

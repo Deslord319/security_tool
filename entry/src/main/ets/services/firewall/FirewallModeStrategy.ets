@@ -138,33 +138,32 @@ export class FirewallModeStrategy {
     localPorts?: number[],
     remoteCidrs?: string[]
   ): netFirewall.NetFirewallRule[] {
-    let ports = localPorts && localPorts.length > 0 ? localPorts : [undefined]
     let usingAnyScope = !remoteCidrs || remoteCidrs.length === 0
     let scopes: Array<string | undefined> = usingAnyScope ? [undefined] : (remoteCidrs as string[])
     let rules: netFirewall.NetFirewallRule[] = []
     scopes.forEach((cidr: string | undefined) => {
-      ports.forEach((port: number | undefined) => {
-        let rule: netFirewall.NetFirewallRule = {
-          userId: AppInfo.DEFAULT_USER_ID,
-          name: name,
-          direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
-          action: action,
-          type: netFirewall.NetFirewallRuleType.RULE_IP,
-          isEnabled: true,
-          protocol: protocol
+      let rule: netFirewall.NetFirewallRule = {
+        userId: AppInfo.DEFAULT_USER_ID,
+        name: name,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
+        action: action,
+        type: netFirewall.NetFirewallRuleType.RULE_IP,
+        isEnabled: true,
+        protocol: protocol
+      }
+      if (localPorts && localPorts.length > 0) {
+        rule.localPorts = localPorts.map((port: number): netFirewall.NetFirewallPortParams => {
+          return { startPort: port, endPort: port }
+        })
+      }
+      if (!usingAnyScope) {
+        let ipParam = FirewallModeStrategy.toIpParam(cidr ?? '')
+        if (!ipParam) {
+          return
         }
-        if (port !== undefined) {
-          rule.localPorts = [{ startPort: port, endPort: port }]
-        }
-        if (!usingAnyScope) {
-          let ipParam = FirewallModeStrategy.toIpParam(cidr ?? '')
-          if (!ipParam) {
-            return
-          }
-          rule.remoteIps = [ipParam]
-        }
-        rules.push(rule)
-      })
+        rule.remoteIps = [ipParam]
+      }
+      rules.push(rule)
     })
     return rules
   }
@@ -237,7 +236,42 @@ export class FirewallModeStrategy {
   private static bytesToString(data: Uint8Array): string {
     let chars: string[] = []
     for (let i = 0; i < data.length; i++) {
-      chars.push(String.fromCharCode(data[i]))
+      let first = data[i]
+      if (first <= 0x7F) {
+        chars.push(String.fromCharCode(first))
+        continue
+      }
+      if (first >= 0xC2 && first <= 0xDF && i + 1 < data.length) {
+        let second = data[i + 1]
+        if ((second & 0xC0) === 0x80) {
+          chars.push(String.fromCharCode(((first & 0x1F) << 6) | (second & 0x3F)))
+          i += 1
+          continue
+        }
+      }
+      if (first >= 0xE0 && first <= 0xEF && i + 2 < data.length) {
+        let second = data[i + 1]
+        let third = data[i + 2]
+        if ((second & 0xC0) === 0x80 && (third & 0xC0) === 0x80) {
+          chars.push(String.fromCharCode(((first & 0x0F) << 12) | ((second & 0x3F) << 6) | (third & 0x3F)))
+          i += 2
+          continue
+        }
+      }
+      if (first >= 0xF0 && first <= 0xF4 && i + 3 < data.length) {
+        let second = data[i + 1]
+        let third = data[i + 2]
+        let fourth = data[i + 3]
+        if ((second & 0xC0) === 0x80 && (third & 0xC0) === 0x80 && (fourth & 0xC0) === 0x80) {
+          let codePoint = ((first & 0x07) << 18) | ((second & 0x3F) << 12) | ((third & 0x3F) << 6) | (fourth & 0x3F)
+          let adjusted = codePoint - 0x10000
+          chars.push(String.fromCharCode(0xD800 + (adjusted >> 10)))
+          chars.push(String.fromCharCode(0xDC00 + (adjusted & 0x3FF)))
+          i += 3
+          continue
+        }
+      }
+      chars.push('\uFFFD')
     }
     return chars.join('')
   }

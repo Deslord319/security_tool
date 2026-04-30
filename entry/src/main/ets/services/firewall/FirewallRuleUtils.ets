@@ -8,7 +8,8 @@ import {
   FirewallRuleIntent,
   FirewallRuleIntentInput,
   FirewallRuleValidationResult,
-  FirewallScopedRule
+  FirewallScopedRule,
+  normalizeFirewallRuleUserIds
 } from './FirewallModels'
 
 export class FirewallRuleUtils {
@@ -86,13 +87,7 @@ export class FirewallRuleUtils {
   }
 
   static normalizeUserIds(userIds: number[]): number[] {
-    let uniqueValues = new Set<number>()
-    userIds.forEach((value: number) => {
-      if (Number.isInteger(value) && value >= 0) {
-        uniqueValues.add(value)
-      }
-    })
-    return Array.from(uniqueValues).sort((left: number, right: number): number => left - right)
+    return normalizeFirewallRuleUserIds(userIds)
   }
 
   static findRuleConflict(

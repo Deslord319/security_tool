@@ -40,9 +40,6 @@ function buildUserResult(users: UserFirewallOption[]): UserFirewallListResult {
 function buildClearResult(): FirewallBatchOperationResult {
   return {
     success: true,
-    totalCount: 0,
-    successCount: 0,
-    failedCount: 0,
     failedItems: []
   }
 }
@@ -181,10 +178,12 @@ function stubSwitchModeDependencies(
   mockKit: MockKit,
   users: UserFirewallOption[],
   modeRecords: FirewallUserPolicyModeRecord[],
-  appliedPolicies: AppliedPolicyRecord[]
+  appliedPolicies: AppliedPolicyRecord[],
+  policies?: Map<number, netFirewall.NetFirewallPolicy>
 ): void {
   let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
   let clearRulesMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.clearRules)
+  let getPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.getPolicy)
   let setPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.setPolicy)
   let clearDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.clearAllRuleDeployments)
   let listModesMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listUserPolicyModes)
@@ -193,6 +192,9 @@ function stubSwitchModeDependencies(
 
   when(userMock)().afterReturn(buildUserResult(users))
   when(clearRulesMock)(ArgumentMatchers.any).afterReturn(buildClearResult())
+  when(getPolicyMock)(ArgumentMatchers.any).afterAction((userId: number): netFirewall.NetFirewallPolicy | null => {
+    return policies?.get(userId) ?? buildPolicy(true, netFirewall.FirewallRuleAction.RULE_ALLOW, netFirewall.FirewallRuleAction.RULE_ALLOW)
+  })
   when(clearDeploymentsMock)(ArgumentMatchers.any).afterReturn(true)
   when(listModesMock)(ArgumentMatchers.any).afterReturn(modeRecords)
   when(buildRulesMock)(ArgumentMatchers.any).afterReturn([])
@@ -371,17 +373,21 @@ export default function firewallServiceTest() {
       })
     })
 
-    it('should set public and private mode policy to allow all for every user', 0, async (done: Function) => {
+    it('should set public and private mode policy actions while preserving isOpen', 0, async (done: Function) => {
       let users = buildUsers()
       let appliedPolicies: AppliedPolicyRecord[] = []
-      stubSwitchModeDependencies(mockKit, users, [], appliedPolicies)
+      let policies = new Map<number, netFirewall.NetFirewallPolicy>()
+      policies.set(100, buildPolicy(true, netFirewall.FirewallRuleAction.RULE_DENY, netFirewall.FirewallRuleAction.RULE_DENY))
+      policies.set(101, buildPolicy(false, netFirewall.FirewallRuleAction.RULE_DENY, netFirewall.FirewallRuleAction.RULE_DENY))
+      policies.set(102, buildPolicy(true, netFirewall.FirewallRuleAction.RULE_DENY, netFirewall.FirewallRuleAction.RULE_DENY))
+      stubSwitchModeDependencies(mockKit, users, [], appliedPolicies, policies)
 
       await FirewallService.switchMode(context, 'public')
 
       expect(appliedPolicies.length).assertEqual(users.length)
       for (let i = 0; i < users.length; i++) {
         let policy = findPolicy(appliedPolicies, users[i].userId)
-        expect(policy?.isOpen).assertTrue()
+        expect(policy?.isOpen).assertEqual(policies.get(users[i].userId)?.isOpen)
         expect(policy?.inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
         expect(policy?.outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
       }
@@ -392,7 +398,7 @@ export default function firewallServiceTest() {
       expect(appliedPolicies.length).assertEqual(users.length)
       for (let i = 0; i < users.length; i++) {
         let policy = findPolicy(appliedPolicies, users[i].userId)
-        expect(policy?.isOpen).assertTrue()
+        expect(policy?.isOpen).assertEqual(policies.get(users[i].userId)?.isOpen)
         expect(policy?.inAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
         expect(policy?.outAction).assertEqual(netFirewall.FirewallRuleAction.RULE_ALLOW)
       }
