@@ -44,7 +44,7 @@
 | FW-008 | 规则列表展示 | 验证无自定义规则时展示空状态 | 不补UT | 空状态展示属于页面渲染场景；service 层空数组返回已有基础支撑，不再补 UT。 |
 | FW-009 | 规则新增 | 验证新增 IP 规则 `8.8.8.8/32`、出站、TCP、443、允许 成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-010 | 规则新增 | 验证新增域名规则 `www.baidu.com`、出站、允许 成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
-| FW-011 | 规则参数校验 | 验证新增 IP 规则时地址为空会被拦截 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
+| FW-011 | 规则参数校验 | 验证新增 IP 规则时地址为空按全部地址保存成功 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-012 | 规则参数校验 | 验证新增 IP 规则时非法地址 `999.1.1.1` 被拦截 | 已有UT覆盖 | entry/src/test/firewall/rule-utils.test.ets |
 | FW-013 | 规则编辑 | 验证将域名规则 `www.baidu.com / 出站 / 允许` 编辑为 `阻止` 成功 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 | FW-014 | 规则删除 | 验证删除已有规则成功 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
