@@ -8,7 +8,7 @@ import {
 } from '../../../models/DataModels'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
-const MAX_IN_MEMORY_ENTRIES = 5000
+const MAX_IN_MEMORY_ENTRIES = 50000
 const MAX_DETAIL_LENGTH = 1024
 const MAX_PROCESS_NAME_LENGTH = 128
 const MAX_FILE_PATH_LENGTH = 512
