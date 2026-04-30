@@ -146,7 +146,19 @@ export struct IdentityPage {
 
   @Builder
   private passwordComplexityContent() {
-    SectionSelectRow({
+    if (!this.viewModel.state.initialized) {
+      Row() {
+        LoadingProgress()
+          .width(24)
+          .height(24)
+          .color(AppColors.BRAND_PRIMARY)
+      }
+      .width('100%')
+      .height(96)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+    } else {
+      SectionSelectRow({
       title: IdentitySectionStrings.MIN_PASSWORD_LENGTH,
       description: IdentitySectionStrings.MIN_PASSWORD_LENGTH_DESC,
       options: this.lengthOptions,
@@ -239,5 +251,6 @@ export struct IdentityPage {
         this.viewModel.setCustomValidityPeriodText(value)
       }
     })
+    }
   }
 }
