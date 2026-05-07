@@ -117,19 +117,6 @@ export struct AddRuleDialog {
     return normalizeFirewallRuleUserIds(this.selectedUserIds)
   }
 
-  private resolveRemoteAddress(rule: netFirewall.NetFirewallRule): string {
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      return FirewallRuleUtils.formatIpParamsForDisplay(rule.remoteIps)
-    }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return rule.domains?.[0]?.domain ?? ''
-    }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return rule.dns?.primaryDns ?? ''
-    }
-    return ''
-  }
-
   private resolvePort(ports?: netFirewall.NetFirewallPortParams[]): string {
     return FirewallRuleUtils.formatPortParamsForDisplay(ports)
   }
