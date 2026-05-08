@@ -62,6 +62,7 @@ import hoverUtilsTest from './utils/HoverUtils.test'
 import exportMessageUtilsTest from './utils/ExportMessageUtils.test'
 import formControlUtilsTest from './utils/FormControlUtils.test'
 import logUtilsTest from './utils/LogUtils.test'
+import routeStateUtilsTest from './utils/RouteStateUtils.test'
 import scrollBarStyleUtilsTest from './utils/ScrollBarStyleUtils.test'
 import timedLoadingDialogRunnerTest from './utils/TimedLoadingDialogRunner.test'
 import valuePickerTest from './utils/ValuePicker.test'
@@ -137,6 +138,7 @@ export default function testsuite() {
   exportMessageUtilsTest()
   formControlUtilsTest()
   logUtilsTest()
+  routeStateUtilsTest()
   scrollBarStyleUtilsTest()
   timedLoadingDialogRunnerTest()
   valuePickerTest()
