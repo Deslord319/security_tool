@@ -13,8 +13,8 @@
 
 ## 总览
 
-- 基线用例总数：`110`
-- `已有UT覆盖`：`84`
+- 基线用例总数：`111`
+- `已有UT覆盖`：`85`
 - `UT部分覆盖`：`4`
 - `待补UT`：`0`
 - `不补UT`：`22`
@@ -123,6 +123,7 @@
 | PER-030 | 首次连接自动拉黑 | 验证已有允许接入策略的设备再次连接时不被自动改回禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-031 | 首次连接自动拉黑 | 验证已有禁止接入策略的设备再次连接时不重复下发策略 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-032 | 首次连接自动拉黑 | 验证自动拉黑系统下发失败时不保存本地黑名单策略，连接记录仍保留失败原因 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
+| PER-033 | 首次连接自动拉黑 | 验证 USB 存储总策略为禁止访问时，首次接入 USB 存储设备不自动下发设备级黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 
 ## 身份鉴别
 
