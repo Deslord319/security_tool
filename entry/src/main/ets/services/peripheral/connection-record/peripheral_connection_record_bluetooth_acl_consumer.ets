@@ -6,6 +6,10 @@ import {
   formatBluetoothDeviceId
 } from '../../../models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
+import {
+  PeripheralDevicePolicyDispatchService,
+  PeripheralPolicyDispatchReason
+} from '../device-policy/peripheral_device_policy_dispatch_service'
 import { LogUtils } from '../../../utils/LogUtils'
 import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
 import {
@@ -27,6 +31,17 @@ const TAG = 'ConnectionRecordBtConsumer'
 
 type BluetoothAclAction = 'connect' | 'disconnect' | 'unknown'
 type EventPayloadRecord = LooseRecord
+type FirstConnectAutoDenyStatus =
+  'not_applicable' |
+  'skipped_existing_policy' |
+  'saved' |
+  'dispatch_failed' |
+  'save_failed'
+
+interface FirstConnectAutoDenyResult {
+  status: FirstConnectAutoDenyStatus
+  reason?: PeripheralPolicyDispatchReason | string
+}
 
 interface BluetoothAclEventInfo {
   occurAt: number
@@ -57,8 +72,10 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!eventInfo || eventInfo.action === 'unknown') {
       return null
     }
+    const autoDenyResult = await PeripheralConnectionRecordBluetoothAclConsumer.applyFirstConnectAutoDeny(eventInfo)
     const devicePolicy = PeripheralDevicePolicyRepository.get(eventInfo.deviceId)
     const denied = devicePolicy?.policy === 'deny'
+    const detail = PeripheralConnectionRecordBluetoothAclConsumer.buildDetail(eventInfo, autoDenyResult)
 
     return {
       recordId: `runtime_bt_acl_${eventInfo.occurAt}_${generateRandomSuffix()}`,
@@ -69,16 +86,64 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceId: eventInfo.deviceId,
       action: eventInfo.action,
       decision: denied ? 'deny' : 'allow',
-      result: LogEventResult.SUCCESS,
+      result: eventInfo.action === 'connect' && denied ? LogEventResult.BLOCKED : LogEventResult.SUCCESS,
       source: 'runtime_event',
       summary: eventInfo.action === 'connect' ? PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED : PeripheralConnectionRecordStrings.BLUETOOTH_DISCONNECTED,
       rawEventName: rawData.event,
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,
-      detail: `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`,
+      detail: detail,
       effectivePolicyLabel: denied ? StatusText.DISABLED : StatusText.ENABLED,
       matchedPolicyKind: 'bluetooth_connection_event'
     }
+  }
+
+  private static async applyFirstConnectAutoDeny(
+    eventInfo: BluetoothAclEventInfo
+  ): Promise<FirstConnectAutoDenyResult> {
+    if (eventInfo.action !== 'connect') {
+      return { status: 'not_applicable' }
+    }
+    if (PeripheralDevicePolicyRepository.get(eventInfo.deviceId)) {
+      return { status: 'skipped_existing_policy' }
+    }
+
+    const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
+      deviceId: eventInfo.deviceId,
+      deviceType: PeripheralType.BLUETOOTH,
+      policy: 'deny'
+    })
+    if (!dispatchResult.success) {
+      return {
+        status: 'dispatch_failed',
+        reason: dispatchResult.reason ?? dispatchResult.errorMessage ?? 'unknown'
+      }
+    }
+
+    const saved = await PeripheralDevicePolicyRepository.set({
+      deviceId: eventInfo.deviceId,
+      deviceName: eventInfo.deviceName,
+      deviceType: PeripheralType.BLUETOOTH,
+      policy: 'deny',
+      updatedAt: Date.now()
+    })
+    if (!saved) {
+      return { status: 'save_failed', reason: 'repository_set_failed' }
+    }
+    return { status: 'saved' }
+  }
+
+  private static buildDetail(
+    eventInfo: BluetoothAclEventInfo,
+    autoDenyResult: FirstConnectAutoDenyResult
+  ): string {
+    let detail = `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
+    if (autoDenyResult.status === 'saved') {
+      detail = `${detail}; 首次接入已自动加入黑名单`
+    } else if (autoDenyResult.status === 'dispatch_failed' || autoDenyResult.status === 'save_failed') {
+      detail = `${detail}; 自动加入黑名单失败：${autoDenyResult.reason ?? 'unknown'}`
+    }
+    return detail
   }
 
   private static async resolveBluetoothAclEventInfo(

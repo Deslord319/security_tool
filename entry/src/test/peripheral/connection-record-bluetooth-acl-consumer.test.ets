@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { MockKit, when } from '@ohos/hamock'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { LogEventResult, PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import {
+  PeripheralDevicePolicyDispatchService,
+  PeripheralPolicyDispatchResult
+} from '../../main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 
@@ -92,30 +96,56 @@ function buildBluetoothAclEvent(
   return event
 }
 
+function createDispatchResult(success: boolean, reason?: string): PeripheralPolicyDispatchResult {
+  let result: PeripheralPolicyDispatchResult = {
+    success: success
+  }
+  if (reason !== undefined) {
+    result.reason = reason as never
+  }
+  return result
+}
+
 export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
   describe('PeripheralConnectionRecordBluetoothAclConsumer', () => {
     let mockKit: MockKit
+    let dispatchResult: PeripheralPolicyDispatchResult
+    let dispatchCount: number
 
-    beforeEach(() => {
+    beforeEach(async () => {
       mockKit = new MockKit()
+      dispatchResult = createDispatchResult(true)
+      dispatchCount = 0
+      await PeripheralDevicePolicyRepository.clearAll()
+      const dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      when(dispatchMock)(ArgumentMatchers.any).afterAction(() => {
+        dispatchCount += 1
+        return Promise.resolve(dispatchResult)
+      })
     })
 
-    afterEach(() => {
+    afterEach(async () => {
+      mockKit.clear(PeripheralDevicePolicyDispatchService)
       mockKit.clearAll()
+      await PeripheralDevicePolicyRepository.clearAll()
     })
 
-    it('U-BT-001 should map bluetooth acl connect event to connection record', 0, async () => {
+    it('U-BT-001 should auto deny first bluetooth acl connect event', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
       const record = await consumer.consume(buildBluetoothAclEvent())
 
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('connect')
-      expect(record?.decision).assertEqual('allow')
+      expect(record?.decision).assertEqual('deny')
+      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
       expect(record?.summary).assertEqual('蓝牙设备已连接')
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
-      expect(record?.effectivePolicyLabel).assertEqual('已启用')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.deviceType).assertEqual(PeripheralType.BLUETOOTH)
+      expect(record?.detail?.includes('首次接入已自动加入黑名单')).assertTrue()
+      expect(dispatchCount).assertEqual(1)
+      expect(PeripheralDevicePolicyRepository.get('MAC: 11:22:33:44:55:66')?.policy).assertEqual('deny')
     })
 
     it('U-BT-002 should map bluetooth acl disconnect event to disconnect record', 0, async () => {
@@ -221,8 +251,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
         deviceType: PeripheralType.BLUETOOTH,
         deviceName: 'Bluetooth Keyboard'
       }
-      const getMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.get)
-      when(getMock)('MAC: 11:22:33:44:55:66').afterReturn(deniedPolicy)
+      await PeripheralDevicePolicyRepository.set(deniedPolicy)
 
       const record = await consumer.consume(buildBluetoothAclEvent())
 
@@ -230,6 +259,75 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.decision).assertEqual('deny')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
+    })
+
+    it('U-BT-010 should keep explicit allow policy and skip auto deny dispatch', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+      await PeripheralDevicePolicyRepository.set({
+        deviceId: 'MAC: 11:22:33:44:55:66',
+        policy: 'allow',
+        updatedAt: 1,
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceName: 'Bluetooth Keyboard'
+      })
+      dispatchCount = 0
+
+      const record = await consumer.consume(buildBluetoothAclEvent())
+
+      expect(record !== null).assertTrue()
+      expect(record?.decision).assertEqual('allow')
+      expect(record?.effectivePolicyLabel).assertEqual('已启用')
+      expect(dispatchCount).assertEqual(0)
+      expect(PeripheralDevicePolicyRepository.get('MAC: 11:22:33:44:55:66')?.policy).assertEqual('allow')
+    })
+
+    it('U-BT-011 should keep explicit deny policy and skip repeated auto deny dispatch', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+      await PeripheralDevicePolicyRepository.set({
+        deviceId: 'MAC: 11:22:33:44:55:66',
+        policy: 'deny',
+        updatedAt: 1,
+        deviceType: PeripheralType.BLUETOOTH,
+        deviceName: 'Bluetooth Keyboard'
+      })
+      dispatchCount = 0
+
+      const record = await consumer.consume(buildBluetoothAclEvent())
+
+      expect(record !== null).assertTrue()
+      expect(record?.decision).assertEqual('deny')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
+      expect(dispatchCount).assertEqual(0)
+      expect(PeripheralDevicePolicyRepository.get('MAC: 11:22:33:44:55:66')?.policy).assertEqual('deny')
+    })
+
+    it('U-BT-012 should not save local deny when auto deny dispatch fails', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+      dispatchResult = createDispatchResult(false, 'bluetooth_dispatch_failed')
+
+      const record = await consumer.consume(buildBluetoothAclEvent())
+
+      expect(record !== null).assertTrue()
+      expect(record?.decision).assertEqual('allow')
+      expect(record?.effectivePolicyLabel).assertEqual('已启用')
+      expect(record?.detail?.includes('自动加入黑名单失败：bluetooth_dispatch_failed')).assertTrue()
+      expect(dispatchCount).assertEqual(1)
+      expect(PeripheralDevicePolicyRepository.get('MAC: 11:22:33:44:55:66') === null).assertTrue()
+    })
+
+    it('U-BT-013 should not trigger auto deny for bluetooth disconnect events', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+      let disconnectOverrides: BluetoothAclParameterOverrides = {
+        stateName: 'STATE_DISCONNECTED',
+        reason: 'REMOTE_DISCONNECT'
+      }
+
+      const record = await consumer.consume(buildBluetoothAclEvent(disconnectOverrides))
+
+      expect(record !== null).assertTrue()
+      expect(record?.action).assertEqual('disconnect')
+      expect(dispatchCount).assertEqual(0)
+      expect(PeripheralDevicePolicyRepository.get('MAC: 11:22:33:44:55:66') === null).assertTrue()
     })
   })
 }
