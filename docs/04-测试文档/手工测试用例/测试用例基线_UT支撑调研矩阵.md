@@ -13,8 +13,8 @@
 
 ## 总览
 
-- 基线用例总数：`105`
-- `已有UT覆盖`：`79`
+- 基线用例总数：`113`
+- `已有UT覆盖`：`87`
 - `UT部分覆盖`：`4`
 - `待补UT`：`0`
 - `不补UT`：`22`
@@ -118,6 +118,14 @@
 | PER-025 | USB接口策略 | 验证 USB 接口策略下发失败时 Select 从禁用回滚到启用 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-026 | USB存储策略 | 验证 USB 存储策略下发失败时 Select 从只读回滚到读写 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-027 | 单设备策略切换 | 验证黑白名单策略下发失败时 Select 从禁止接入回滚到允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
+| PER-028 | 首次连接自动拉黑 | 验证 USB 设备首次连接且本地无策略时自动下发禁止接入并写入黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
+| PER-029 | 首次连接自动拉黑 | 验证蓝牙设备首次连接且本地无策略时按 MAC 自动下发禁止接入并写入黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
+| PER-030 | 首次连接自动拉黑 | 验证已有允许接入策略的设备再次连接时不被自动改回禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
+| PER-031 | 首次连接自动拉黑 | 验证已有禁止接入策略的设备再次连接时不重复下发策略 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
+| PER-032 | 首次连接自动拉黑 | 验证自动拉黑系统下发失败时不保存本地黑名单策略，连接记录仍保留失败原因 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
+| PER-033 | 首次连接自动拉黑 | 验证 USB 存储总策略为禁止访问时，首次接入 USB 存储设备不自动下发设备级黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
+| PER-034 | 设备连接记录 | 验证 USB 存储只读且本地存在禁止接入策略时，连接记录优先展示禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
+| PER-035 | 单设备策略切换 | 验证 USB 存储总策略为禁止访问时，黑白名单不允许将 USB 存储设备切换为禁止接入 | 不补UT | 该场景依赖系统 MDM USB 存储账户级策略读取与 USB 设备策略下发，当前 UT 环境无法稳定 mock 系统命名空间对象；保留为手工验收场景，相关连接记录行为由 entry/src/test/peripheral/connection-record-usb-consumer.test.ets 覆盖。 |
 
 ## 身份鉴别
 
