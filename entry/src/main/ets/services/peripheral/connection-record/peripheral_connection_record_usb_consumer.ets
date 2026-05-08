@@ -17,6 +17,10 @@ import {
   PeripheralConnectionRecordProducerEvent
 } from './peripheral_connection_record_producer_contract'
 import {
+  PeripheralDevicePolicyDispatchService,
+  PeripheralPolicyDispatchReason
+} from '../device-policy/peripheral_device_policy_dispatch_service'
+import {
   collectPayloadSources,
   pickNumber,
   pickString,
@@ -64,6 +68,18 @@ interface UsbEventPolicyEvaluation {
 
 type UsbEventAction = 'connect' | 'disconnect' | 'unknown'
 type EventPayloadRecord = LooseRecord
+type FirstConnectAutoDenyStatus =
+  'not_applicable' |
+  'skipped_invalid_device_id' |
+  'skipped_existing_policy' |
+  'saved' |
+  'dispatch_failed' |
+  'save_failed'
+
+interface FirstConnectAutoDenyResult {
+  status: FirstConnectAutoDenyStatus
+  reason?: PeripheralPolicyDispatchReason | string
+}
 
 export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnectionRecordConsumer {
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean {
@@ -86,7 +102,11 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
 
     const info = PeripheralConnectionRecordUsbConsumer.resolveUsbEventInfo(rawData)
-    const evaluation = PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(info, action)
+    const autoDenyResult = await PeripheralConnectionRecordUsbConsumer.applyFirstConnectAutoDeny(info, action)
+    const evaluation = PeripheralConnectionRecordUsbConsumer.decorateAutoDenyEvaluation(
+      PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(info, action),
+      autoDenyResult
+    )
     let rawPayload = ''
     try {
       rawPayload = JSON.stringify(rawData)
@@ -208,6 +228,74 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       effectivePolicyLabel: effectivePolicyLabel,
       matchedPolicyKind: 'default_allow'
     }
+  }
+
+  private static async applyFirstConnectAutoDeny(
+    info: ResolvedUsbEventInfo,
+    action: UsbEventAction
+  ): Promise<FirstConnectAutoDenyResult> {
+    if (action !== 'connect') {
+      return { status: 'not_applicable' }
+    }
+    if (!Number.isFinite(info.vendorId) || !Number.isFinite(info.productId)) {
+      return { status: 'skipped_invalid_device_id' }
+    }
+    if (PeripheralDevicePolicyRepository.get(info.deviceId)) {
+      return { status: 'skipped_existing_policy' }
+    }
+
+    const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
+      deviceId: info.deviceId,
+      deviceType: info.deviceType,
+      policy: 'deny'
+    })
+    if (!dispatchResult.success) {
+      return {
+        status: 'dispatch_failed',
+        reason: dispatchResult.reason ?? dispatchResult.errorMessage ?? 'unknown'
+      }
+    }
+
+    const saved = await PeripheralDevicePolicyRepository.set({
+      deviceId: info.deviceId,
+      deviceName: info.deviceName,
+      deviceType: info.deviceType,
+      policy: 'deny',
+      updatedAt: Date.now()
+    })
+    if (!saved) {
+      return { status: 'save_failed', reason: 'repository_set_failed' }
+    }
+    return { status: 'saved' }
+  }
+
+  private static decorateAutoDenyEvaluation(
+    evaluation: UsbEventPolicyEvaluation,
+    autoDenyResult: FirstConnectAutoDenyResult
+  ): UsbEventPolicyEvaluation {
+    if (autoDenyResult.status === 'saved') {
+      return {
+        policyHit: 'deny',
+        result: LogEventResult.BLOCKED,
+        summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
+        detail: `${evaluation.detail}; 首次接入已自动加入黑名单`,
+        usbPolicy: evaluation.usbPolicy,
+        effectivePolicyLabel: StatusText.DISABLED,
+        matchedPolicyKind: 'device_deny'
+      }
+    }
+    if (autoDenyResult.status === 'dispatch_failed' || autoDenyResult.status === 'save_failed') {
+      return {
+        policyHit: evaluation.policyHit,
+        result: evaluation.result,
+        summary: evaluation.summary,
+        detail: `${evaluation.detail}; 自动加入黑名单失败：${autoDenyResult.reason ?? 'unknown'}`,
+        usbPolicy: evaluation.usbPolicy,
+        effectivePolicyLabel: evaluation.effectivePolicyLabel,
+        matchedPolicyKind: evaluation.matchedPolicyKind
+      }
+    }
+    return evaluation
   }
 
   private static readCurrentUsbPolicySnapshot(): UsbPolicySnapshot {
