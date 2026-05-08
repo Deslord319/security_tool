@@ -115,7 +115,15 @@ export class FirewallRulesViewModel {
   }
 
   setCurrentTab(index: number): void {
-    this.currentTab = index < 0 ? 0 : index
+    if (index < 0) {
+      this.currentTab = 0
+      return
+    }
+    if (index > 3) {
+      this.currentTab = 3
+      return
+    }
+    this.currentTab = index
   }
 
   getRulesByTab(index: number): netFirewall.NetFirewallRule[] {

@@ -19,6 +19,7 @@ import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
+import { FirewallRulesViewModel } from '../viewmodels/firewall/rules/FirewallRulesViewModel'
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
@@ -33,6 +34,7 @@ struct MainPage {
   private readonly applicationRuntime: ApplicationRuntimeManager = ApplicationRuntimeManager.getInstance()
   @Local currentPage: string = RouteIds.DASHBOARD
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
+  @Local firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   @Local identitySettingsViewModel: IdentitySettingsViewModel = this.applicationRuntime.getIdentitySettingsViewModel()
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
@@ -308,6 +310,7 @@ struct MainPage {
         FirewallRulesPage({
           currentMode: this.firewallOverviewViewModel.state.currentMode,
           currentTheme: this.currentTheme,
+          rulesViewModel: this.firewallRulesViewModel,
           onBack: () => {
             this.setCurrentPage(RouteIds.FIREWALL)
           }

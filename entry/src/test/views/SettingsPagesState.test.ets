@@ -1,8 +1,13 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { AuthMethod } from '../../main/ets/models/DataModels'
 import { ApplicationRuntimeManager } from '../../main/ets/runtime/ApplicationRuntimeManager'
+import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
 import { IdentitySettingsViewModel } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { ToolSettingsViewModel } from '../../main/ets/viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
+
+interface FirewallRulesPageBoundaryHost {
+  viewModel: FirewallRulesViewModel
+}
 
 interface IdentityPageBoundaryHost {
   viewModel: IdentitySettingsViewModel
@@ -14,6 +19,24 @@ interface ToolSettingsPageBoundaryHost {
 
 export default function settingsPagesStateTest() {
   describe('Settings pages state boundary', () => {
+    it('should keep firewall rules tab when page remounts with shared viewModel', 0, () => {
+      const sharedViewModel = new FirewallRulesViewModel()
+      sharedViewModel.setCurrentTab(2)
+
+      const firstPage: FirewallRulesPageBoundaryHost = {
+        viewModel: sharedViewModel
+      }
+      const remountedPage: FirewallRulesPageBoundaryHost = {
+        viewModel: sharedViewModel
+      }
+
+      expect(firstPage.viewModel === remountedPage.viewModel).assertTrue()
+      expect(remountedPage.viewModel.currentTab).assertEqual(2)
+
+      sharedViewModel.setCurrentTab(9)
+      expect(sharedViewModel.currentTab).assertEqual(3)
+    })
+
     it('should keep identity edits when page remounts with shared viewModel', 0, () => {
       const sharedViewModel = new IdentitySettingsViewModel()
       sharedViewModel.state.initialized = true
