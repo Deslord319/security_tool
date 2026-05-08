@@ -24,8 +24,8 @@ const TAG = 'ToolSettings.Page'
 @ComponentV2
 export struct ToolSettingsPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   @Event onBack: () => void = () => {}
-  @Local viewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private authMethodOptions: SelectOption[] =
     AUTH_METHOD_OPTIONS.map((opt): SelectOption => ({ value: opt.label }))
 
@@ -39,6 +39,9 @@ export struct ToolSettingsPage {
   }
 
   private async initializeViewModel(): Promise<void> {
+    if (this.viewModel.state.initialized) {
+      return
+    }
     await this.viewModel.initialize(this.getPageContext())
   }
 
