@@ -35,12 +35,11 @@ const TAG = 'PeripheralPage'
 @ComponentV2
 export struct PeripheralPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param viewModel: PeripheralViewModel = new PeripheralViewModel()
   @Event onBack: () => void = () => {}
-  @Local viewModel: PeripheralViewModel = new PeripheralViewModel()
   @Local currentTabIndex: number = 0
   @Local hoveredPanelIndex: number = -1
 
-  private tabsController: TabsController = new TabsController()
   private policyListOptions: PolicyOption[] = [
     { value: PeripheralOptionStrings.POLICY_OPTIONS[0] },
     { value: PeripheralOptionStrings.POLICY_OPTIONS[1] }
@@ -49,6 +48,7 @@ export struct PeripheralPage {
   private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
+    this.syncCurrentTabFromViewModel()
     LogUtils.info(TAG,
       `page enter: tab=${this.currentTabIndex}, records=${this.viewModel.records.state.records.length}, policyRecords=${this.viewModel.policy.state.records.length}`
     )
@@ -68,7 +68,7 @@ export struct PeripheralPage {
     try {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await this.viewModel.initialize(context)
-      this.currentTabIndex = this.viewModel.currentTab
+      this.syncCurrentTabFromViewModel()
     } catch (err) {
       LogUtils.error(TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(PeripheralReasonCodes.INIT_FAILED))
@@ -84,6 +84,20 @@ export struct PeripheralPage {
   private handleTabChange(index: number): void {
     this.currentTabIndex = index
     this.viewModel.switchToTab(index)
+  }
+
+  private syncCurrentTabFromViewModel(): void {
+    this.currentTabIndex = this.normalizeTabIndex(this.viewModel.currentTab)
+  }
+
+  private normalizeTabIndex(index: number): number {
+    if (index < 0) {
+      return 0
+    }
+    if (index > 2) {
+      return 2
+    }
+    return index
   }
 
   private openDetailDialog(record: PeripheralConnectionRecord): void {
@@ -207,7 +221,7 @@ export struct PeripheralPage {
 
   @Builder
   private tabs() {
-    Tabs({ barPosition: BarPosition.Start, controller: this.tabsController }) {
+    Tabs({ barPosition: BarPosition.Start, index: this.currentTabIndex }) {
       TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.INTERFACE_TAB, 0))
       TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.DEVICE_TAB, 1))
       TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.POLICY_TAB, 2))

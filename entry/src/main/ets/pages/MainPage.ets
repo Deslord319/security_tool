@@ -20,6 +20,7 @@ import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
+import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
 import { ErrorLike } from '../types/LooseValueTypes'
 
 const TAG = 'MainPage'
@@ -32,6 +33,7 @@ struct MainPage {
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
+  @Local peripheralViewModel: PeripheralViewModel = this.applicationRuntime.getPeripheralViewModel()
   @Local pageEnterOpacity: number = 1
   @Local pageEnterOffset: number = 0
   @Local menuTriggerHovered: boolean = false
@@ -219,6 +221,7 @@ struct MainPage {
     Column() {
       PeripheralPage({
         currentTheme: this.currentTheme,
+        viewModel: this.peripheralViewModel,
         onBack: () => {
           this.setCurrentPage(RouteIds.DASHBOARD)
         }

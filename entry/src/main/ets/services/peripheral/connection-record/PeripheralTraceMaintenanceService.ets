@@ -1,14 +1,10 @@
 import { common } from '@kit.AbilityKit'
 import {
-  LogEventResult,
   normalizeDeviceId,
   normalizeLogEventResult,
   normalizePeripheralAction,
   normalizePeripheralDecision,
   normalizePeripheralSource,
-  PeripheralRecordAction,
-  PeripheralRecordPolicyHit,
-  PeripheralRecordSource,
   PeripheralTraceRecord,
   PeripheralType
 } from '../../../models/DataModels'

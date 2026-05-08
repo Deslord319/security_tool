@@ -7,6 +7,7 @@ import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/c
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
 import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
+import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
 import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'ApplicationRuntime'
@@ -22,6 +23,7 @@ export class ApplicationRuntimeManager {
   private logRuntimeInitPromise: Promise<void> | null = null
   private peripheralRuntimeInitPromise: Promise<void> | null = null
   private readonly logManageViewModel: LogManageViewModel = new LogManageViewModel()
+  private readonly peripheralViewModel: PeripheralViewModel = new PeripheralViewModel()
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
   private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
@@ -43,6 +45,10 @@ export class ApplicationRuntimeManager {
 
   getLogManageViewModel(): LogManageViewModel {
     return this.logManageViewModel
+  }
+
+  getPeripheralViewModel(): PeripheralViewModel {
+    return this.peripheralViewModel
   }
 
   async ensureRuntimeServices(): Promise<void> {

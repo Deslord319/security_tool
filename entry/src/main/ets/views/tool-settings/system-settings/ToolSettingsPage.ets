@@ -12,7 +12,6 @@ import { common } from '@kit.AbilityKit'
 import { AUTH_METHOD_OPTIONS } from '../../../models/DataModels'
 
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SectionActionRow, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'

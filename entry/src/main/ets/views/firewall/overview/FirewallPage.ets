@@ -4,7 +4,6 @@ import { AppResources } from '../../../constants/AppResources'
 import { ModuleText, StatusText } from '../../../constants/StringCatalog'
 import { LoadingStrings } from '../../../constants/modules/DialogStrings'
 import {
-  FirewallDialogStrings,
   FirewallPageStrings,
   FirewallToggleStrings,
   buildFirewallToggleFailedMessage,

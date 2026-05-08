@@ -3,8 +3,7 @@ import {
   PeripheralConnectionRecord,
   LogEventResult,
   PeripheralMatchedPolicyKind,
-  PeripheralRecordPolicyHit,
-  PeripheralType
+  PeripheralRecordPolicyHit
 } from '../../../models/DataModels'
 import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'

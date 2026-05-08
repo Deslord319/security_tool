@@ -10,7 +10,6 @@ import {
   FirewallFailedItem,
   FirewallOperationResult,
   FirewallOverviewState,
-  FirewallPreparedRule,
   FirewallPresetMode,
   FirewallRuleDeployment,
   FirewallRuleDisplayItem,

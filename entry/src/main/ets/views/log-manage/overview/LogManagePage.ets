@@ -8,7 +8,6 @@ import {
   LogManageActionStrings,
   LogManageClearingStrings,
   LogManageDetailStrings,
-  LogManageEmptyStateStrings,
   LogManageFilterStrings,
   LogManagePageStrings,
   LogManageSettingStrings,
