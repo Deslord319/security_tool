@@ -36,7 +36,6 @@ import logPathUtilsTest from './log-manage/path-utils.test'
 import logEntryRepositoryTest from './log-manage/entry-repository.test'
 import logSettingsViewModelTest from './log-manage/settings-viewmodel.test'
 import logTimestampResolverTest from './log-manage/timestamp-resolver.test'
-import logValuePickerTest from './log-manage/value-picker.test'
 import logPowerLifecycleSourceTest from './log-manage/power-lifecycle-source.test'
 import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
@@ -112,7 +111,6 @@ export default function testsuite() {
   logEntryRepositoryTest()
   logSettingsViewModelTest()
   logTimestampResolverTest()
-  logValuePickerTest()
   logPowerLifecycleSourceTest()
   dataModelsTest()
   peripheralBluetoothAclConsumerTest()

@@ -142,7 +142,7 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
   }
 
   async getStatistics(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
-    let actionCounts = await this.groupCountByColumn('action', query)
+    let actionCounts = await this.groupCountByAction(query)
     return {
       total: await this.countByQuery(query),
       connects: actionCounts.get('connect') ?? 0,
@@ -150,11 +150,8 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
     }
   }
 
-  private async groupCountByColumn(
-    column: 'action' | 'decision' | 'source',
-    query?: PeripheralTraceQuery
-  ): Promise<Map<string, number>> {
-    return this.queryGroupCounts(column, this.buildWhereClause(query), 'groupCountByColumn')
+  private async groupCountByAction(query?: PeripheralTraceQuery): Promise<Map<string, number>> {
+    return this.queryGroupCounts('action', this.buildWhereClause(query), 'groupCountByAction')
   }
 
   private buildSelectSqlForQuery(query?: PeripheralTraceQuery): SqlBundle {
@@ -317,15 +314,15 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
   }
 
   private parseAction(rawValue: string): PeripheralRecordAction {
-    return normalizePeripheralAction(rawValue as PeripheralRecordAction)
+    return normalizePeripheralAction(rawValue)
   }
 
   private parseDecision(rawValue: string): PeripheralRecordPolicyHit {
-    return normalizePeripheralDecision(rawValue as PeripheralRecordPolicyHit)
+    return normalizePeripheralDecision(rawValue)
   }
 
   private parseSource(rawValue: string): PeripheralRecordSource {
-    return normalizePeripheralSource(rawValue as PeripheralRecordSource)
+    return normalizePeripheralSource(rawValue)
   }
 
   private parseDeviceType(rawValue: string): PeripheralType {

@@ -63,7 +63,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!this.canHandle(event)) {
       return null
     }
-    const rawData = event.rawData as commonEventManager.CommonEventData | undefined
+    const rawData = event.rawData
     if (!rawData) {
       return null
     }
@@ -149,7 +149,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   private static async resolveBluetoothAclEventInfo(
     data: commonEventManager.CommonEventData
   ): Promise<BluetoothAclEventInfo | null> {
-    const payloads = collectPayloadSources(data as Object)
+    const payloads = collectPayloadSources(data)
     const rawDeviceId = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothDeviceId(payloads)
     if (rawDeviceId.length === 0) {
       LogUtils.warn(

@@ -11,7 +11,10 @@ import {
 } from '../../../models/DataModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { LogQuery } from '../common/LogManagePorts'
-import { pickNumber, pickString } from '../common/LogValuePicker'
+import {
+  pickNumberFromRecords as pickNumber,
+  pickStringFromRecords as pickString
+} from '../../../utils/ValuePicker'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 import { LooseRecord } from '../../../types/LooseValueTypes'

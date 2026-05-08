@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import { IdentityPasswordPolicyMapper } from '../../main/ets/services/identity/settings/IdentityPasswordPolicyMapper'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 
 class PasswordConfig implements PasswordComplexityConfig {
@@ -16,8 +17,8 @@ export default function identityServiceBehaviorTest() {
     it('should build regex and description from config', 0, () => {
       let config = new PasswordConfig()
 
-      let regex = IdentityService.buildComplexityRegex(config)
-      let description = IdentityService.buildDescription(config)
+      let regex = IdentityPasswordPolicyMapper.buildComplexityRegex(config)
+      let description = IdentityPasswordPolicyMapper.buildDescription(config)
 
       expect(regex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{10,}$')
       expect(description.indexOf('至少10个字符') >= 0).assertTrue()

@@ -60,7 +60,6 @@ class MissingRawDataUsbEvent implements PeripheralConnectionRecordProducerEvent 
   source: 'runtime' = 'runtime'
   channel: 'usb' = 'usb'
   eventName: string
-  rawData: Object = undefined as never as Object
 
   constructor(eventName: string) {
     this.eventName = eventName
@@ -144,7 +143,7 @@ function buildUsbEvent(
     source: 'runtime',
     channel: 'usb',
     eventName: eventName,
-    rawData: rawData as Object
+    rawData: rawData as commonEventManager.CommonEventData
   }
   return event
 }

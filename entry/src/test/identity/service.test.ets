@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
 import { PasswordComplexityConfig } from '../../main/ets/models/DataModels'
-import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
+import { IdentityPasswordPolicyMapper } from '../../main/ets/services/identity/settings/IdentityPasswordPolicyMapper'
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000
 
@@ -26,14 +26,14 @@ function createConfig(): PasswordComplexityConfig {
 }
 
 export default function identityServiceTest() {
-  describe('IdentityService', () => {
+  describe('IdentityPasswordPolicyMapper', () => {
     it('should convert config to password policy', 0, () => {
       let config = createConfig()
       config.minLength = 10
       config.requireSpecialChar = true
       config.validityPeriod = 365
 
-      let policy = IdentityService.toPasswordPolicy(config)
+      let policy = IdentityPasswordPolicyMapper.toPasswordPolicy(config)
 
       expect(policy.complexityRegex).assertEqual('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[a-zA-Z\\d!@#$%^&*]{10,}$')
       expect(policy.additionalDescription).assertEqual('至少10个字符，包含大写字母，包含小写字母，包含数字，包含特殊字符(!@#$%^&*)')
@@ -44,7 +44,7 @@ export default function identityServiceTest() {
       let config = createConfig()
       config.validityPeriod = undefined
 
-      let policy = IdentityService.toPasswordPolicy(config)
+      let policy = IdentityPasswordPolicyMapper.toPasswordPolicy(config)
 
       expect(policy.validityPeriod === undefined).assertTrue()
     })
@@ -54,7 +54,7 @@ export default function identityServiceTest() {
       policy.complexityRegex = '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{12,}$'
       policy.validityPeriod = 184 * DAY_IN_MS
 
-      let config = IdentityService.toConfig(policy)
+      let config = IdentityPasswordPolicyMapper.toConfig(policy)
 
       expect(config !== null).assertTrue()
       if (config) {
@@ -68,7 +68,7 @@ export default function identityServiceTest() {
     })
 
     it('should return null config for empty policy', 0, () => {
-      let config = IdentityService.toConfig(null)
+      let config = IdentityPasswordPolicyMapper.toConfig(null)
 
       expect(config).assertEqual(null)
     })
@@ -76,7 +76,7 @@ export default function identityServiceTest() {
     it('should fall back to minLength zero when regex does not contain length marker', 0, () => {
       let policy = new TestPasswordPolicy()
       policy.complexityRegex = '^(?=.*[a-z])(?=.*[A-Z]).*$'
-      let config = IdentityService.toConfig(policy)
+      let config = IdentityPasswordPolicyMapper.toConfig(policy)
 
       expect(config !== null).assertTrue()
       if (config) {
@@ -93,7 +93,7 @@ export default function identityServiceTest() {
       config.requireUppercase = false
       config.requireDigit = false
       config.requireSpecialChar = false
-      let regex = IdentityService.buildComplexityRegex(config)
+      let regex = IdentityPasswordPolicyMapper.buildComplexityRegex(config)
 
       expect(regex).assertEqual('^.{6,}$')
     })
@@ -103,7 +103,7 @@ export default function identityServiceTest() {
       config.minLength = 12
       config.requireUppercase = false
       config.requireSpecialChar = true
-      let description = IdentityService.buildDescription(config)
+      let description = IdentityPasswordPolicyMapper.buildDescription(config)
 
       expect(description).assertEqual('至少12个字符，包含小写字母，包含数字，包含特殊字符(!@#$%^&*)')
     })

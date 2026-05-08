@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
+import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEventResult,
@@ -29,7 +30,7 @@ class FixedEvent implements PeripheralConnectionRecordProducerEvent {
   source: 'runtime' = 'runtime'
   channel: 'usb' | 'bluetooth_acl'
   eventName: string
-  rawData: Object = new EmptyRawData()
+  rawData?: commonEventManager.CommonEventData = new EmptyRawData() as commonEventManager.CommonEventData
 
   constructor(channel: 'usb' | 'bluetooth_acl', eventName: string) {
     this.channel = channel

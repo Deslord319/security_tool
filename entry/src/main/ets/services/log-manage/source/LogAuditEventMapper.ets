@@ -12,7 +12,10 @@ import {
   getLogEventResultLabel
 } from '../../../models/DataModels'
 import { LooseRecord } from '../../../types/LooseValueTypes'
-import { pickNumber, pickString } from '../common/LogValuePicker'
+import {
+  pickNumberFromRecords as pickNumber,
+  pickStringFromRecords as pickString
+} from '../../../utils/ValuePicker'
 import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
 
 const TAG = 'LogAuditEventMapper'

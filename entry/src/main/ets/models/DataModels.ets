@@ -491,23 +491,23 @@ export function parseLogEventResult(rawValue: string, fallback: LogEventResult =
   return fallback
 }
 
-export function normalizePeripheralAction(action: PeripheralRecordAction): PeripheralRecordAction {
-  if (action === 'connect' || action === 'disconnect' || action === 'discover' || action === 'intercept' || action === 'unknown') {
-    return action
+export function normalizePeripheralAction(value: string | undefined): PeripheralRecordAction {
+  if (value === 'connect' || value === 'disconnect' || value === 'discover' || value === 'intercept' || value === 'unknown') {
+    return value
   }
   return 'unknown'
 }
 
-export function normalizePeripheralDecision(decision: PeripheralRecordPolicyHit): PeripheralRecordPolicyHit {
-  if (decision === 'allow' || decision === 'deny' || decision === 'unknown') {
-    return decision
+export function normalizePeripheralDecision(value: string | undefined): PeripheralRecordPolicyHit {
+  if (value === 'allow' || value === 'deny' || value === 'unknown') {
+    return value
   }
   return 'unknown'
 }
 
-export function normalizePeripheralSource(source: PeripheralRecordSource): PeripheralRecordSource {
-  if (source === 'runtime_event' || source === 'audit_event' || source === 'policy_snapshot') {
-    return source
+export function normalizePeripheralSource(value: string | undefined): PeripheralRecordSource {
+  if (value === 'runtime_event' || value === 'audit_event' || value === 'policy_snapshot') {
+    return value
   }
   return 'audit_event'
 }
