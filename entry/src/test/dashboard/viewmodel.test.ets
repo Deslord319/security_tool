@@ -42,14 +42,7 @@ function createPeripheralStats(total: number = 10, connects: number = 7, disconn
   return {
     total: total,
     connects: connects,
-    disconnects: disconnects,
-    intercepts: 0,
-    allows: 0,
-    denies: 0,
-    unknowns: 0,
-    runtimeCount: 0,
-    auditCount: 0,
-    snapshotCount: 0
+    disconnects: disconnects
   }
 }
 

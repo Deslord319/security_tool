@@ -36,8 +36,7 @@ function asUIContext(value: Object): UIContext {
 
 export default function dialogServiceTest() {
   describe('DialogService', () => {
-    it('should display fallback location and reason when values are empty', 0, () => {
-      expect(DialogService.displayLocation('  ')).assertEqual(MessageText.RETRY_LATER)
+    it('should display fallback reason when values are empty', 0, () => {
       expect(DialogService.displayReason('')).assertEqual(MessageText.RETRY_LATER)
       expect(DialogService.displayReason('', 'fallback')).assertEqual('fallback')
     })

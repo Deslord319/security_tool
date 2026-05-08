@@ -4,7 +4,6 @@ import { AppInfo, ADMIN_WANT } from '../../../constants/AppConstants'
 import { AdminText } from '../../../constants/StringCatalog'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
-import { AdminErrorStrings } from '../../../constants/modules/ErrorStrings'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 
 @Concurrent
@@ -22,7 +21,7 @@ export function probeActivationTask(adminType: EnterpriseAdminType): AdminActiva
     const code: number | undefined = CommonErrorUtils.extractErrorCode(error)
     const message: string = code === 9200001
       ? AdminText.NOT_ACTIVATED
-      : AdminErrorStrings.buildCheckFailed(code)
+      : AdminText.buildCheckFailed(code)
     LogUtils.warn('EnterpriseAdminService', `probeActivation failed: ${JSON.stringify(err)}`)
     return {
       activated: false,

@@ -8,6 +8,7 @@ import {
 } from '../../../constants/modules/FirewallStrings'
 import {
   attachFirewallRuleUserIds,
+  FIREWALL_RULE_TAB_TYPES,
   FirewallOperationResult,
   FirewallPresetMode,
   FirewallRuleMutationResult,
@@ -119,25 +120,19 @@ export class FirewallRulesViewModel {
       this.currentTab = 0
       return
     }
-    if (index > 3) {
-      this.currentTab = 3
+    let maxTabIndex = FIREWALL_RULE_TAB_TYPES.length - 1
+    if (index > maxTabIndex) {
+      this.currentTab = maxTabIndex
       return
     }
     this.currentTab = index
   }
 
   getRulesByTab(index: number): netFirewall.NetFirewallRule[] {
-    switch (index) {
-      case 1:
-        return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === netFirewall.NetFirewallRuleType.RULE_IP)
-      case 2:
-        return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN)
-      case 3:
-        return this.rules.filter((rule: netFirewall.NetFirewallRule) => rule.type === netFirewall.NetFirewallRuleType.RULE_DNS)
-      case 0:
-      default:
-        return this.rules
-    }
+    let ruleType = FIREWALL_RULE_TAB_TYPES[index]
+    return ruleType === undefined
+      ? this.rules
+      : this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.type === ruleType)
   }
 
   countRulesByType(type: netFirewall.NetFirewallRuleType): number {
@@ -146,21 +141,6 @@ export class FirewallRulesViewModel {
 
   countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
     return this.rules.filter((rule: netFirewall.NetFirewallRule): boolean => rule.direction === direction).length
-  }
-
-  getTabCount(index: number): number {
-    switch (index) {
-      case 0:
-        return this.rules.length
-      case 1:
-        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_IP)
-      case 2:
-        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DOMAIN)
-      case 3:
-        return this.countRulesByType(netFirewall.NetFirewallRuleType.RULE_DNS)
-      default:
-        return 0
-    }
   }
 
   getLocalRuleId(rule: netFirewall.NetFirewallRule): string | undefined {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { AppInfo } from '../../main/ets/constants/AppConstants'
-import { AdminErrorStrings } from '../../main/ets/constants/modules/ErrorStrings'
 import { AdminText } from '../../main/ets/constants/StringCatalog'
 import { AdminActivationState } from '../../main/ets/models/DataModels'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
@@ -78,7 +77,7 @@ export default function enterpriseAdminServiceTest() {
 
       expect(isMissing).assertTrue()
       expect(AdminText.NOT_ACTIVATED.length > 0).assertTrue()
-      expect(AdminErrorStrings.buildCheckFailed(1).length > 0).assertTrue()
+      expect(AdminText.buildCheckFailed(1).length > 0).assertTrue()
     })
   })
 }

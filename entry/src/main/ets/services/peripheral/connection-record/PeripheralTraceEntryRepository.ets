@@ -143,19 +143,10 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
 
   async getStatistics(query?: PeripheralTraceQuery): Promise<PeripheralTraceStats> {
     let actionCounts = await this.groupCountByColumn('action', query)
-    let decisionCounts = await this.groupCountByColumn('decision', query)
-    let sourceCounts = await this.groupCountByColumn('source', query)
     return {
       total: await this.countByQuery(query),
       connects: actionCounts.get('connect') ?? 0,
-      disconnects: actionCounts.get('disconnect') ?? 0,
-      intercepts: actionCounts.get('intercept') ?? 0,
-      allows: decisionCounts.get('allow') ?? 0,
-      denies: decisionCounts.get('deny') ?? 0,
-      unknowns: decisionCounts.get('unknown') ?? 0,
-      runtimeCount: sourceCounts.get('runtime_event') ?? 0,
-      auditCount: sourceCounts.get('audit_event') ?? 0,
-      snapshotCount: sourceCounts.get('policy_snapshot') ?? 0
+      disconnects: actionCounts.get('disconnect') ?? 0
     }
   }
 

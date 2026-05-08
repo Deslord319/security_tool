@@ -33,18 +33,6 @@ export class IdentityService {
     return setPasswordPolicyWithResultTask(config)
   }
 
-  static async setPasswordPolicyWithResultAsync(config: PasswordComplexityConfig): Promise<OperationResult<void>> {
-    try {
-      let result = await taskpool.execute(setPasswordPolicyWithResultTask, config) as OperationResult<void> | undefined
-      if (result && typeof result.success === 'boolean') {
-        return result
-      }
-      return IdentityService.setPasswordPolicyWithResult(config)
-    } catch (err) {
-      return OperationResultUtils.buildFailureResult<void>(IdentityActionStrings.PASSWORD_POLICY, err as ErrorLike)
-    }
-  }
-
   static getPasswordPolicyWithResult(): OperationResult<securityManager.PasswordPolicy | null> {
     return getPasswordPolicyWithResultTask()
   }

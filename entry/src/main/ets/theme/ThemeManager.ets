@@ -161,17 +161,6 @@ export class ThemeManager {
     this.notifyThemeChanged()
   }
 
-  // 设置主题（手动切换）
-  async setTheme(mode: ThemeMode): Promise<void> {
-    // 切换为手动模式
-    AppStorage.setOrCreate<ThemePreference>(STORAGE_KEY_PREFERENCE, ThemePreference.MANUAL)
-    AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, mode)
-    this.notifyThemeChanged()
-
-    // 持久化
-    await this.savePreferences(mode, ThemePreference.MANUAL)
-  }
-
   // 切换主题（在当前主题和另一主题间切换），同步更新 Option
   async toggleTheme(): Promise<void> {
     const current = AppStorage.get<ThemeMode>(STORAGE_KEY_THEME) || ThemeMode.LIGHT
@@ -186,31 +175,9 @@ export class ThemeManager {
     await this.saveOption(newOption)
   }
 
-  // 设置用户偏好
-  async setPreference(preference: ThemePreference): Promise<void> {
-    AppStorage.setOrCreate<ThemePreference>(STORAGE_KEY_PREFERENCE, preference)
-
-    if (preference === ThemePreference.SYSTEM) {
-      // 切换为跟随系统时，立即应用系统主题
-      const systemTheme = this.getSystemTheme()
-      AppStorage.setOrCreate<ThemeMode>(STORAGE_KEY_THEME, systemTheme)
-      await this.savePreferences(systemTheme, ThemePreference.SYSTEM)
-    } else {
-      // 手动模式保持当前主题
-      const currentTheme = AppStorage.get<ThemeMode>(STORAGE_KEY_THEME) || ThemeMode.LIGHT
-      await this.savePreferences(currentTheme, ThemePreference.MANUAL)
-    }
-    this.notifyThemeChanged()
-  }
-
   // 获取当前主题
   getCurrentTheme(): ThemeMode {
     return AppStorage.get<ThemeMode>(STORAGE_KEY_THEME) || ThemeMode.LIGHT
-  }
-
-  // 获取当前偏好
-  getCurrentPreference(): ThemePreference {
-    return AppStorage.get<ThemePreference>(STORAGE_KEY_PREFERENCE) || ThemePreference.SYSTEM
   }
 
   // 获取当前选项
@@ -271,31 +238,7 @@ export class ThemeManager {
         LogUtils.error(TAG, 'saveOption failed: preferences_write_failed')
       }
     } catch (err) {
-      LogUtils.error(TAG, 'savePreferences failed: %{public}s', JSON.stringify(err))
-    }
-  }
-
-  // 保存偏好到 Preferences
-  private async savePreferences(theme: ThemeMode, preference: ThemePreference): Promise<void> {
-    if (!this.context) {
-      return
-    }
-
-    try {
-      let pref = PreferencesAccessor.of(this.context, PREFERENCES_NAME)
-      let option = preference === ThemePreference.SYSTEM
-        ? ThemeOption.SYSTEM
-        : (theme === ThemeMode.DARK ? ThemeOption.DARK : ThemeOption.LIGHT)
-      let saved = await pref.setMany([
-        { key: KEY_THEME_MODE, value: theme },
-        { key: KEY_THEME_PREFERENCE, value: preference },
-        { key: KEY_THEME_OPTION, value: option }
-      ])
-      if (!saved) {
-        LogUtils.error(TAG, 'savePreferences failed: preferences_write_failed')
-      }
-    } catch (err) {
-      LogUtils.error(TAG, 'ThemeManager initAsync failed: %{public}s', JSON.stringify(err))
+      LogUtils.error(TAG, 'saveOption failed: %{public}s', JSON.stringify(err))
     }
   }
 

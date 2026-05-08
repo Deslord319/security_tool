@@ -75,7 +75,6 @@ export class AppStyles {
   static readonly SPACING_TAB_BAR_ITEM_HORIZONTAL: number = 16
   static readonly SPACING_TAB_BAR_ITEM_VERTICAL: number = 10
   static readonly SPACING_CHIP: number = 4
-  static readonly SPACING_CARD: number = 20
   
   // 圆角常量
   static readonly RADIUS_CHIP: number = 10

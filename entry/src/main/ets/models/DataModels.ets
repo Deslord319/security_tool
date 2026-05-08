@@ -151,21 +151,12 @@ export interface PeripheralTraceQuery {
   decisions?: PeripheralRecordPolicyHit[]
   results?: LogEventResult[]
   sources?: PeripheralRecordSource[]
-  pageSize?: number
-  pageOffset?: number
 }
 
 export interface PeripheralTraceStats {
   total: number
   connects: number
   disconnects: number
-  intercepts: number
-  allows: number
-  denies: number
-  unknowns: number
-  runtimeCount: number
-  auditCount: number
-  snapshotCount: number
 }
 
 export interface PeripheralPolicyRecord {

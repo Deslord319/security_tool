@@ -32,6 +32,10 @@ function resetStorage(): void {
   AppStorage.setOrCreate<ThemeOption>(STORAGE_KEY_OPTION, ThemeOption.SYSTEM)
 }
 
+function getStoredPreference(): ThemePreference {
+  return AppStorage.get<ThemePreference>(STORAGE_KEY_PREFERENCE) || ThemePreference.SYSTEM
+}
+
 export default function themeManagerTest() {
   describe('ThemeManager', () => {
     let manager: ThemeManager
@@ -57,7 +61,7 @@ export default function themeManagerTest() {
       access.initSync(createContext(ConfigurationConstant.ColorMode.COLOR_MODE_DARK))
 
       expect(manager.getCurrentTheme()).assertEqual(ThemeMode.DARK)
-      expect(manager.getCurrentPreference()).assertEqual(ThemePreference.SYSTEM)
+      expect(getStoredPreference()).assertEqual(ThemePreference.SYSTEM)
       expect(manager.getCurrentOption()).assertEqual(ThemeOption.SYSTEM)
     })
 
@@ -75,7 +79,7 @@ export default function themeManagerTest() {
     })
 
     it('should ignore configuration updates in manual mode', 0, async () => {
-      await manager.setTheme(ThemeMode.LIGHT)
+      await manager.setOption(ThemeOption.LIGHT)
       let notified = 0
       manager.subscribe(() => {
         notified++
@@ -84,7 +88,7 @@ export default function themeManagerTest() {
       manager.onConfigurationUpdate(ConfigurationConstant.ColorMode.COLOR_MODE_DARK)
 
       expect(manager.getCurrentTheme()).assertEqual(ThemeMode.LIGHT)
-      expect(manager.getCurrentPreference()).assertEqual(ThemePreference.MANUAL)
+      expect(getStoredPreference()).assertEqual(ThemePreference.MANUAL)
       expect(notified).assertEqual(0)
     })
 
@@ -94,18 +98,18 @@ export default function themeManagerTest() {
       await manager.toggleTheme()
 
       expect(manager.getCurrentTheme()).assertEqual(ThemeMode.DARK)
-      expect(manager.getCurrentPreference()).assertEqual(ThemePreference.MANUAL)
+      expect(getStoredPreference()).assertEqual(ThemePreference.MANUAL)
       expect(manager.getCurrentOption()).assertEqual(ThemeOption.DARK)
     })
 
     it('should switch back to system preference using detected context theme', 0, async () => {
       access.context = createContext(ConfigurationConstant.ColorMode.COLOR_MODE_DARK)
       access.lastDetectedSystemTheme = ThemeMode.DARK
-      await manager.setTheme(ThemeMode.LIGHT)
+      await manager.setOption(ThemeOption.LIGHT)
 
-      await manager.setPreference(ThemePreference.SYSTEM)
+      await manager.setOption(ThemeOption.SYSTEM)
 
-      expect(manager.getCurrentPreference()).assertEqual(ThemePreference.SYSTEM)
+      expect(getStoredPreference()).assertEqual(ThemePreference.SYSTEM)
       expect(manager.getCurrentTheme()).assertEqual(ThemeMode.DARK)
     })
 
@@ -113,7 +117,7 @@ export default function themeManagerTest() {
       await manager.setOption(ThemeOption.DARK)
 
       expect(manager.getCurrentTheme()).assertEqual(ThemeMode.DARK)
-      expect(manager.getCurrentPreference()).assertEqual(ThemePreference.MANUAL)
+      expect(getStoredPreference()).assertEqual(ThemePreference.MANUAL)
       expect(manager.getCurrentOption()).assertEqual(ThemeOption.DARK)
     })
 

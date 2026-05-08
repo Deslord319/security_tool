@@ -189,7 +189,6 @@ export class FirewallDialogStrings {
   static readonly MODE_DENYLIST: string = '黑名单模式'
   static readonly ERROR_DOMAIN_REQUIRED: string = '请输入域名'
   static readonly ERROR_DNS_REQUIRED: string = '请输入 DNS 地址'
-  static readonly ERROR_IP_REQUIRED: string = '请输入远端 IP 或 CIDR'
   static readonly ERROR_INVALID_IP: string = 'IP 输入格式不正确'
   static readonly ERROR_INVALID_IP_RANGE: string = 'IP 段格式不正确'
   static readonly ERROR_INVALID_CIDR_MASK: string = 'CIDR mask 范围必须为 0-32'

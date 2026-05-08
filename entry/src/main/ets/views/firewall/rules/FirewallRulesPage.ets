@@ -22,7 +22,13 @@ import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
-import { FirewallPresetMode, FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
+import {
+  FIREWALL_PROTOCOL_ICMP,
+  FIREWALL_PROTOCOL_TCP,
+  FIREWALL_PROTOCOL_UDP,
+  FirewallPresetMode,
+  FirewallUserPolicyMode
+} from '../../../services/firewall/FirewallModels'
 import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
@@ -281,19 +287,6 @@ export struct FirewallRulesPage {
     }
   }
 
-  getRuleTypeBgColor(type: netFirewall.NetFirewallRuleType): string {
-    switch (type) {
-      case netFirewall.NetFirewallRuleType.RULE_IP:
-        return ActionButtonStyles.getPrimaryBackground(this.currentTheme, false) as string
-      case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return AppColors.getColors(this.currentTheme).TAG_PURPLE_BG
-      case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return AppColors.getColors(this.currentTheme).TAG_GREEN_BG
-      default:
-        return AppColors.getColors(this.currentTheme).TAG_GRAY_BG
-    }
-  }
-
   getRuleTypeTextColor(type: netFirewall.NetFirewallRuleType): string {
     switch (type) {
       case netFirewall.NetFirewallRuleType.RULE_IP:
@@ -328,12 +321,6 @@ export struct FirewallRulesPage {
 
   getActionLabel(action: netFirewall.FirewallRuleAction): string {
     return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? FirewallDialogStrings.ACTION_ALLOW : FirewallDialogStrings.ACTION_DENY
-  }
-
-  getActionBgColor(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW
-      ? AppColors.getColors(this.currentTheme).TAG_GREEN_BG
-      : ActionButtonStyles.getDangerBackground(this.currentTheme, false) as string
   }
 
   getActionTextColor(action: netFirewall.FirewallRuleAction): string {
@@ -381,11 +368,11 @@ export struct FirewallRulesPage {
       return FirewallDialogStrings.ALL_VALUE
     }
     switch (rule.protocol) {
-      case 6:
+      case FIREWALL_PROTOCOL_TCP:
         return FirewallDialogStrings.PROTOCOL_TCP
-      case 17:
+      case FIREWALL_PROTOCOL_UDP:
         return FirewallDialogStrings.PROTOCOL_UDP
-      case 1:
+      case FIREWALL_PROTOCOL_ICMP:
         return FirewallDialogStrings.PROTOCOL_ICMP
       default:
         return FirewallDialogStrings.ALL_VALUE
@@ -616,15 +603,15 @@ export struct FirewallRulesPage {
                       .alignItems(HorizontalAlign.Start)
 
                       Row({ space: 8 }) {
-                        Button(ActionText.DELETE)
-                          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                          .fontColor(AppColors.DANGER)
-                          .backgroundColor(ActionButtonStyles.getDangerBackground(this.currentTheme, false))
-                          .borderRadius(AppStyles.RADIUS_SM)
-                          .height(30)
-                          .onClick(() => {
+                        IconTextActionButton({
+                          label: FirewallRuleStrings.DELETE_TITLE,
+                          icon: AppResources.TRASH_ICON,
+                          kind: 'danger',
+                          currentTheme: this.currentTheme,
+                          onTap: () => {
                             this.handleDeleteRule(rule)
-                          })
+                          }
+                        })
                       }
                     }
                     .width('100%')

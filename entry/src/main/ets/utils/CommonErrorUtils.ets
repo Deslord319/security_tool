@@ -2,8 +2,6 @@
  * 通用错误处理工具类
  * 提供统一的错误处理相关方法
  */
-import { PermissionErrorStrings, SystemServiceErrorStrings, ErrorTemplates } from '../constants/modules/ErrorStrings'
-import { RequestText } from '../constants/StringCatalog'
 import { ErrorLike, LooseValue } from '../types/LooseValueTypes'
 
 export class CommonErrorUtils {
@@ -40,35 +38,4 @@ export class CommonErrorUtils {
     return ''
   }
 
-  /**
-   * 根据操作和错误码解析错误消息
-   */
-  static resolveErrorMessage(action: string, code: number | undefined): string {
-    if (action === RequestText.READ_USER_LIST) {
-      switch (code) {
-        case 201:
-      return PermissionErrorStrings.missingUserListPermission
-        case 12300001:
-        case 2100002:
-      return SystemServiceErrorStrings.accountServiceConnectionFailed
-        default:
-          return ErrorTemplates.actionFailedTemplate.replace('${action}', action)
-      }
-    }
-    switch (code) {
-      case 201:
-      return PermissionErrorStrings.missingAccountOrFirewallPermission
-      case 401:
-      case 2100001:
-      return PermissionErrorStrings.invalidUserIdParam
-      case 2100002:
-      return SystemServiceErrorStrings.serviceConnectionFailed
-      case 2100003:
-      return SystemServiceErrorStrings.internalError
-      case 29400000:
-      return SystemServiceErrorStrings.userNotExistOrInvalid
-      default:
-        return ErrorTemplates.actionFailedTemplate.replace('${action}', action)
-    }
-  }
 }
