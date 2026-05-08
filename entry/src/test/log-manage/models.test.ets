@@ -12,7 +12,7 @@ import {
   DEFAULT_LOG_STORAGE_CONFIG
 } from '../../main/ets/models/DataModels'
 
-export default function logManageModelsTest() {
+export default function logManageDataModelsTest() {
   describe('LogManage DataModels', () => {
     it('should expose only four final log event types', 0, () => {
       expect(ALL_LOG_EVENT_TYPES.length).assertEqual(5)
