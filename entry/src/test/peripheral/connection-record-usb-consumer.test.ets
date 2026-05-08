@@ -53,8 +53,6 @@ interface UsbTypeCase {
   expectedType: PeripheralType
 }
 
-type HamockMockFunction = (...args: Object[]) => Object
-
 class EmptyUsbParameters {
 }
 
@@ -166,11 +164,11 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       usbDisabledResult.data = false
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_WRITE
-      let getInterfaceMock: HamockMockFunction =
+      let getInterfaceMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
-      let getUsbStorageMock: HamockMockFunction =
+      let getUsbStorageMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-      let dispatchMock: HamockMockFunction =
+      let dispatchMock: Function =
         mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
       when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
@@ -188,7 +186,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbDisabledResult = new BooleanOperationResult()
       usbDisabledResult.data = true
-      let getInterfaceMock: HamockMockFunction =
+      let getInterfaceMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
       when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
 
@@ -206,7 +204,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.DISABLED
-      let getUsbStorageMock: HamockMockFunction =
+      let getUsbStorageMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
       dispatchCount = 0
@@ -228,7 +226,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
-      let getUsbStorageMock: HamockMockFunction =
+      let getUsbStorageMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
 
@@ -246,7 +244,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
-      let getUsbStorageMock: HamockMockFunction =
+      let getUsbStorageMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
       await PeripheralDevicePolicyRepository.set({
