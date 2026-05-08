@@ -9,6 +9,7 @@ import {
   PasswordComplexityConfig
 } from '../../../models/DataModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
+import { IdentityPasswordPolicyMapper } from '../../../services/identity/settings/IdentityPasswordPolicyMapper'
 import { IdentityService } from '../../../services/identity/settings/IdentityService'
 import { ActionDialogStatus, DialogService } from '../../../utils/DialogService'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -136,7 +137,7 @@ export class IdentitySettingsViewModel {
 
   private applyPolicy(policy?: securityManager.PasswordPolicy | null): void {
     let nextState = IdentitySettingsViewModel.buildDefaultState()
-    this.applyConfig(nextState, IdentityService.toConfig(policy), policy)
+    this.applyConfig(nextState, IdentityPasswordPolicyMapper.toConfig(policy), policy)
     nextState.hasChanges = false
     this.initialState = IdentitySettingsViewModel.toSnapshot(nextState)
     this.state.minLengthIndex = nextState.minLengthIndex
@@ -200,7 +201,7 @@ export class IdentitySettingsViewModel {
 
   private executeSave(config: PasswordComplexityConfig): IdentitySettingsActionRequest {
     let currentPolicy = IdentityService.getPasswordPolicyWithResult().data
-    let currentConfig = IdentityService.toConfig(currentPolicy)
+    let currentConfig = IdentityPasswordPolicyMapper.toConfig(currentPolicy)
     if (this.areConfigsEqual(currentConfig, config)) {
       this.refreshDerivedState()
       return {

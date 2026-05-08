@@ -7,6 +7,7 @@ import {
   FirewallRuleConflictMatch,
   FirewallRuleIntent,
   FirewallRuleIntentInput,
+  FirewallRuleDisplayItem,
   FirewallRuleValidationResult,
   FirewallScopedRule,
   normalizeFirewallRuleUserIds
@@ -194,15 +195,15 @@ export class FirewallRuleUtils {
 
   static cloneDisplayRuleFromIntent(
     intent: FirewallRuleIntent,
-    deployments: Object[] = []
-  ): netFirewall.NetFirewallRule {
+    deployments: FirewallRuleDeployment[] = []
+  ): FirewallRuleDisplayItem {
     let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, intent.targetUserIds[0] ?? 0) as FirewallScopedRule
     rule.localRuleId = intent.localRuleId
     rule.targetUserIds = FirewallRuleUtils.normalizeUserIds(intent.targetUserIds)
-    rule.deployments = deployments as FirewallRuleDeployment[]
+    rule.deployments = deployments
     rule.createdAt = intent.createdAt
     rule.updatedAt = intent.updatedAt
-    return rule
+    return rule as FirewallRuleDisplayItem
   }
 
   private static copyRuleFieldsFromIntent(rule: netFirewall.NetFirewallRule, intent: FirewallRuleIntent): void {
@@ -586,8 +587,8 @@ export class FirewallRuleUtils {
     return result
   }
 
-  private static normalizeNumber(value: Object | number | undefined): number | undefined {
-    if (typeof value === 'number' && Number.isFinite(value)) {
+  private static normalizeNumber(value?: number): number | undefined {
+    if (value !== undefined && Number.isFinite(value)) {
       return value
     }
     return undefined

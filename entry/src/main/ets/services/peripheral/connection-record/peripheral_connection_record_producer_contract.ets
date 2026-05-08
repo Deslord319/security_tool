@@ -1,4 +1,5 @@
 import type { common } from '@kit.AbilityKit'
+import type { commonEventManager } from '@kit.BasicServicesKit'
 import type { PeripheralTraceRecord } from '../../../models/DataModels'
 
 export interface PeripheralConnectionRecordProducerCapabilities {
@@ -17,7 +18,7 @@ export interface PeripheralConnectionRecordProducerEvent {
   channel: 'usb' | 'bluetooth_acl'
   eventName: string
   payload?: Object
-  rawData: Object
+  rawData?: commonEventManager.CommonEventData
 }
 
 export type PeripheralConnectionRecordProducerListener = (event: PeripheralConnectionRecordProducerEvent) => void

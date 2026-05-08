@@ -36,7 +36,6 @@ import logPathUtilsTest from './log-manage/path-utils.test'
 import logEntryRepositoryTest from './log-manage/entry-repository.test'
 import logSettingsViewModelTest from './log-manage/settings-viewmodel.test'
 import logTimestampResolverTest from './log-manage/timestamp-resolver.test'
-import logValuePickerTest from './log-manage/value-picker.test'
 import logPowerLifecycleSourceTest from './log-manage/power-lifecycle-source.test'
 import dataModelsTest from './models/data-models.test'
 import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-bluetooth-acl-consumer.test'
@@ -63,6 +62,7 @@ import hoverUtilsTest from './utils/HoverUtils.test'
 import exportMessageUtilsTest from './utils/ExportMessageUtils.test'
 import formControlUtilsTest from './utils/FormControlUtils.test'
 import logUtilsTest from './utils/LogUtils.test'
+import routeStateUtilsTest from './utils/RouteStateUtils.test'
 import scrollBarStyleUtilsTest from './utils/ScrollBarStyleUtils.test'
 import timedLoadingDialogRunnerTest from './utils/TimedLoadingDialogRunner.test'
 import valuePickerTest from './utils/ValuePicker.test'
@@ -112,7 +112,6 @@ export default function testsuite() {
   logEntryRepositoryTest()
   logSettingsViewModelTest()
   logTimestampResolverTest()
-  logValuePickerTest()
   logPowerLifecycleSourceTest()
   dataModelsTest()
   peripheralBluetoothAclConsumerTest()
@@ -139,6 +138,7 @@ export default function testsuite() {
   exportMessageUtilsTest()
   formControlUtilsTest()
   logUtilsTest()
+  routeStateUtilsTest()
   scrollBarStyleUtilsTest()
   timedLoadingDialogRunnerTest()
   valuePickerTest()

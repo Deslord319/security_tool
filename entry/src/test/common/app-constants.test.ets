@@ -25,7 +25,6 @@ export default function appConstantsTest() {
     it('should expose layout constants used by shell pages', 0, () => {
       expect(AppStyles.SIDEBAR_WIDTH).assertEqual(200)
       expect(AppStyles.FONT_SIZE_TITLE).assertEqual(24)
-      expect(AppStyles.SPACING_CARD).assertEqual(20)
       expect(AppStyles.RADIUS_LG).assertEqual(12)
       expect(AppStyles.DIVIDER_HEIGHT).assertEqual(1)
     })

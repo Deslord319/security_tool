@@ -3,6 +3,33 @@ import { netFirewall } from '@kit.NetworkKit'
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 export type FirewallUserPolicyMode = 'allowlist' | 'denylist'
 
+export const FIREWALL_USER_POLICY_MODE_OPTIONS: FirewallUserPolicyMode[] = ['allowlist', 'denylist']
+
+export const FIREWALL_PROTOCOL_TCP = 6
+export const FIREWALL_PROTOCOL_UDP = 17
+export const FIREWALL_PROTOCOL_ICMP = 1
+export const FIREWALL_RULE_PROTOCOL_OPTIONS: number[] = [
+  FIREWALL_PROTOCOL_TCP,
+  FIREWALL_PROTOCOL_UDP,
+  FIREWALL_PROTOCOL_ICMP
+]
+export const FIREWALL_IPV4_PARAM_TYPE = 1
+export const FIREWALL_IPV4_FAMILY = 1
+export const FIREWALL_PORT_MIN = 1
+export const FIREWALL_PORT_MAX = 65535
+export const FIREWALL_MAX_PORT_ITEM_COUNT = 10
+export const FIREWALL_RULE_TYPE_OPTIONS: number[] = [
+  netFirewall.NetFirewallRuleType.RULE_IP,
+  netFirewall.NetFirewallRuleType.RULE_DOMAIN,
+  netFirewall.NetFirewallRuleType.RULE_DNS
+]
+export const FIREWALL_RULE_TAB_TYPES: Array<number | undefined> = [
+  undefined,
+  netFirewall.NetFirewallRuleType.RULE_IP,
+  netFirewall.NetFirewallRuleType.RULE_DOMAIN,
+  netFirewall.NetFirewallRuleType.RULE_DNS
+]
+
 export interface FirewallPresetConfig {
   fixedPublicIp: string
   privateCidrs: string[]

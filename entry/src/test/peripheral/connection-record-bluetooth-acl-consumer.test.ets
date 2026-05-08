@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
+import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { LogEventResult, PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
@@ -91,7 +92,7 @@ function buildBluetoothAclEvent(
     source: 'runtime',
     channel: 'bluetooth_acl',
     eventName: 'usual.event.BLUETOOTH_ACL',
-    rawData: rawData as Object
+    rawData: rawData as commonEventManager.CommonEventData
   }
   return event
 }

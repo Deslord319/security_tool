@@ -26,11 +26,6 @@ export interface ResultDialogOptions {
 }
 
 export class DialogService {
-  static displayLocation(directory?: string): string {
-    let value = directory?.trim() ?? ''
-    return value.length > 0 ? value : MessageText.RETRY_LATER
-  }
-
   static displayReason(reason?: string, fallback: string = MessageText.RETRY_LATER): string {
     let value = reason?.trim() ?? ''
     return value.length > 0 ? value : fallback

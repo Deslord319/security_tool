@@ -11,6 +11,14 @@ import { MultiCheckSelect } from '../../MultiCheckSelect'
 import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import {
   attachFirewallRuleUserIds,
+  FIREWALL_IPV4_FAMILY,
+  FIREWALL_IPV4_PARAM_TYPE,
+  FIREWALL_MAX_PORT_ITEM_COUNT,
+  FIREWALL_PORT_MAX,
+  FIREWALL_PORT_MIN,
+  FIREWALL_PROTOCOL_TCP,
+  FIREWALL_RULE_PROTOCOL_OPTIONS,
+  FIREWALL_RULE_TYPE_OPTIONS,
   FirewallScopedRule,
   getFirewallRuleUserIds,
   normalizeFirewallRuleUserIds,
@@ -38,7 +46,7 @@ export struct AddRuleDialog {
   @State ruleName: string = ''
   @State ruleType: number = netFirewall.NetFirewallRuleType.RULE_IP
   @State ruleDirection: number = netFirewall.NetFirewallRuleDirection.RULE_IN
-  @State protocol: number = 6
+  @State protocol: number = FIREWALL_PROTOCOL_TCP
   @State remoteAddress: string = ''
   @State localPort: string = ''
   @State remotePort: string = ''
@@ -50,11 +58,7 @@ export struct AddRuleDialog {
     { value: FirewallRuleLabelStrings.DOMAIN_RULE },
     { value: FirewallRuleLabelStrings.DNS_RULE }
   ]
-  private readonly ruleTypeValues: number[] = [
-    netFirewall.NetFirewallRuleType.RULE_IP,
-    netFirewall.NetFirewallRuleType.RULE_DOMAIN,
-    netFirewall.NetFirewallRuleType.RULE_DNS
-  ]
+  private readonly ruleTypeValues: number[] = FIREWALL_RULE_TYPE_OPTIONS
   private readonly directionOptions: SelectOption[] = [
     { value: FirewallDialogStrings.DIRECTION_INBOUND },
     { value: FirewallDialogStrings.DIRECTION_OUTBOUND }
@@ -68,7 +72,7 @@ export struct AddRuleDialog {
     { value: FirewallDialogStrings.PROTOCOL_UDP },
     { value: FirewallDialogStrings.PROTOCOL_ICMP }
   ]
-  private readonly protocolValues: number[] = [6, 17, 1]
+  private readonly protocolValues: number[] = FIREWALL_RULE_PROTOCOL_OPTIONS
   private readonly actionOptions: SelectOption[] = [
     { value: FirewallDialogStrings.ACTION_ALLOW },
     { value: FirewallDialogStrings.ACTION_DENY }
@@ -77,7 +81,7 @@ export struct AddRuleDialog {
     netFirewall.FirewallRuleAction.RULE_ALLOW,
     netFirewall.FirewallRuleAction.RULE_DENY
   ]
-  private readonly maxPortItemCount: number = 10
+  private readonly maxPortItemCount: number = FIREWALL_MAX_PORT_ITEM_COUNT
 
   aboutToAppear(): void {
     this.applyInitialRule()
@@ -93,7 +97,7 @@ export struct AddRuleDialog {
     this.ruleType = rule.type ?? netFirewall.NetFirewallRuleType.RULE_IP
     this.ruleDirection = rule.direction ?? netFirewall.NetFirewallRuleDirection.RULE_IN
     this.action = rule.action ?? netFirewall.FirewallRuleAction.RULE_ALLOW
-    this.protocol = rule.protocol ?? 6
+    this.protocol = rule.protocol ?? FIREWALL_PROTOCOL_TCP
     this.remoteAddress = this.resolveAddressForRule(rule)
     let resolvedPort = this.resolvePortForDirection(rule)
     this.localPort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? resolvedPort : ''
@@ -175,8 +179,8 @@ export struct AddRuleDialog {
       return {
         success: true,
         value: [{
-          type: 1,
-          family: 1,
+          type: FIREWALL_IPV4_PARAM_TYPE,
+          family: FIREWALL_IPV4_FAMILY,
           startIp: startIp,
           endIp: endIp
         }]
@@ -198,8 +202,8 @@ export struct AddRuleDialog {
       return {
         success: true,
         value: [{
-          type: 1,
-          family: 1,
+          type: FIREWALL_IPV4_PARAM_TYPE,
+          family: FIREWALL_IPV4_FAMILY,
           address: cidrParts[0].trim(),
           mask: maskValue
         }]
@@ -208,8 +212,8 @@ export struct AddRuleDialog {
     return {
       success: true,
       value: [{
-        type: 1,
-        family: 1,
+        type: FIREWALL_IPV4_PARAM_TYPE,
+        family: FIREWALL_IPV4_FAMILY,
         address: value,
         mask: 32
       }]
@@ -240,7 +244,7 @@ export struct AddRuleDialog {
           return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_INVALID_PORT_TOKEN}: ${token}` }
         }
         let port = parseInt(token, 10)
-        if (port < 1 || port > 65535) {
+        if (port < FIREWALL_PORT_MIN || port > FIREWALL_PORT_MAX) {
           return { success: false, errorMessage: invalidMessage }
         }
         result.push({ startPort: port, endPort: port })
@@ -253,7 +257,8 @@ export struct AddRuleDialog {
       }
       let startPort = parseInt(startRaw, 10)
       let endPort = parseInt(endRaw, 10)
-      if (startPort < 1 || startPort > 65535 || endPort < 1 || endPort > 65535) {
+      if (startPort < FIREWALL_PORT_MIN || startPort > FIREWALL_PORT_MAX ||
+        endPort < FIREWALL_PORT_MIN || endPort > FIREWALL_PORT_MAX) {
         return { success: false, errorMessage: invalidMessage }
       }
       if (startPort > endPort) {

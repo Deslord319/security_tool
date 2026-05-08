@@ -81,8 +81,8 @@ export class StorageAccessText {
 
 export class AdminText {
   static readonly NOT_ACTIVATED: string = '企业管理员未激活'
-}
 
-export class RequestText {
-  static readonly READ_USER_LIST: string = '读取用户列表'
+  static buildCheckFailed(code?: number): string {
+    return code !== undefined ? `管理员状态检查失败（错误码 ${code}）` : '管理员状态检查失败'
+  }
 }

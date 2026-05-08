@@ -1,12 +1,14 @@
+import type { commonEventManager } from '@kit.BasicServicesKit'
 import { LooseRecord, LooseValue } from '../../../types/LooseValueTypes'
 import { pickNumberFromRecords, pickStringFromRecords } from '../../../utils/ValuePicker'
 
 type EventPayloadRecord = LooseRecord
+type EventPayloadInput = commonEventManager.CommonEventData | LooseValue | null
 
-export function collectPayloadSources(data: Object): EventPayloadRecord[] {
+export function collectPayloadSources(data: EventPayloadInput): EventPayloadRecord[] {
   const sources: EventPayloadRecord[] = []
   const root = toRecord(data)
-  const parameters = toRecord((data as LooseRecord).parameters)
+  const parameters = readObjectField(root, 'parameters')
   const want = readObjectField(root, 'want')
   const wantParameters = readObjectField(want, 'parameters')
   const rootData = parseJsonObjectField(root, 'data')
@@ -47,7 +49,7 @@ export function pushRecord(target: EventPayloadRecord[], value: EventPayloadReco
   target.push(value)
 }
 
-export function toRecord(value: LooseValue | null): EventPayloadRecord | undefined {
+export function toRecord(value: EventPayloadInput): EventPayloadRecord | undefined {
   if (!value || typeof value !== 'object') {
     return undefined
   }

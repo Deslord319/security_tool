@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { FirewallDialogStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
+  FIREWALL_USER_POLICY_MODE_OPTIONS,
   FirewallUserPolicyMode,
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyStateResult,
@@ -24,7 +25,7 @@ export class FirewallUserDispatchViewModel {
   @Trace statusHintText: string = ''
   @Trace lastApplyResult: FirewallUserPolicyApplyResult | null = null
 
-  private readonly modeOptions: FirewallUserPolicyMode[] = ['allowlist', 'denylist']
+  private readonly modeOptions: FirewallUserPolicyMode[] = FIREWALL_USER_POLICY_MODE_OPTIONS
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     await this.loadUsers(context)

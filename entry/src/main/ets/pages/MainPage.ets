@@ -25,6 +25,11 @@ import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageV
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
 import { ToolSettingsViewModel } from '../viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 import { ErrorLike } from '../types/LooseValueTypes'
+import {
+  rememberFirewallRoute,
+  resolveNavigationRoute,
+  resolveSidebarSelectedRoute
+} from '../utils/RouteStateUtils'
 
 const TAG = 'MainPage'
 
@@ -33,6 +38,7 @@ const TAG = 'MainPage'
 struct MainPage {
   private readonly applicationRuntime: ApplicationRuntimeManager = ApplicationRuntimeManager.getInstance()
   @Local currentPage: string = RouteIds.DASHBOARD
+  private lastFirewallRoute: string = RouteIds.FIREWALL
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Local firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   @Local identitySettingsViewModel: IdentitySettingsViewModel = this.applicationRuntime.getIdentitySettingsViewModel()
@@ -114,8 +120,13 @@ struct MainPage {
   }
 
   private setCurrentPage(page: string): void {
+    this.lastFirewallRoute = rememberFirewallRoute(this.lastFirewallRoute, page)
     this.currentPage = page
     this.handlePageRouteChange()
+  }
+
+  private navigateToRoute(route: string): void {
+    this.setCurrentPage(resolveNavigationRoute(route, this.lastFirewallRoute))
   }
 
   private handlePageRouteChange(): void {
@@ -197,7 +208,7 @@ struct MainPage {
       DashboardPage({
         currentTheme: this.currentTheme,
         onNavigate: (route: string) => {
-          this.setCurrentPage(route)
+          this.navigateToRoute(route)
         }
       })
     }
@@ -338,10 +349,10 @@ struct MainPage {
     Stack({ alignContent: Alignment.TopEnd }) {
       Row() {
         SideBar({
-          selectedId: this.currentPage,
+          selectedId: resolveSidebarSelectedRoute(this.currentPage),
           currentTheme: this.currentTheme,
           onItemSelect: (id: string) => {
-            this.setCurrentPage(id)
+            this.navigateToRoute(id)
           },
           onToggleTheme: () => {
             this.handleThemeToggle()
@@ -432,7 +443,7 @@ struct MainPage {
               this.showMenu = false
             },
             onNavigate: (route: string) => {
-              this.setCurrentPage(route)
+              this.navigateToRoute(route)
             },
             onSelectOption: (option: ThemeOption) => {
               this.handleThemeOptionSelect(option).catch((err: ErrorLike) => {

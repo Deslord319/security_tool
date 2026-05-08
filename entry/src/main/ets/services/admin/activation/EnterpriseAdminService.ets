@@ -1,9 +1,9 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { taskpool } from '@kit.ArkTS'
 import { AppInfo } from '../../../constants/AppConstants'
+import { AdminText } from '../../../constants/StringCatalog'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
-import { AdminErrorStrings } from '../../../constants/modules/ErrorStrings'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 import { probeActivationTask } from './EnterpriseAdminProbeTask'
 
@@ -44,7 +44,7 @@ export class EnterpriseAdminService {
       return {
         activated: false,
         errorCode: code,
-        errorMessage: AdminErrorStrings.buildCheckFailed(code),
+        errorMessage: AdminText.buildCheckFailed(code),
         enableCommand: EnterpriseAdminService.buildEnableCommand(adminType),
         adminType: adminType
       } as AdminActivationState
