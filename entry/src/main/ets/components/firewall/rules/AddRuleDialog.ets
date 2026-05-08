@@ -94,7 +94,7 @@ export struct AddRuleDialog {
     this.ruleDirection = rule.direction ?? netFirewall.NetFirewallRuleDirection.RULE_IN
     this.action = rule.action ?? netFirewall.FirewallRuleAction.RULE_ALLOW
     this.protocol = rule.protocol ?? 6
-    this.remoteAddress = this.resolveIpAddressForDirection(rule)
+    this.remoteAddress = this.resolveAddressForRule(rule)
     let resolvedPort = this.resolvePortForDirection(rule)
     this.localPort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? resolvedPort : ''
     this.remotePort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ? resolvedPort : ''
@@ -115,6 +115,19 @@ export struct AddRuleDialog {
 
   private getSelectedUserIdsForSave(): number[] {
     return normalizeFirewallRuleUserIds(this.selectedUserIds)
+  }
+
+  private resolveAddressForRule(rule: netFirewall.NetFirewallRule): string {
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
+      return this.resolveIpAddressForDirection(rule)
+    }
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
+      return rule.domains?.[0]?.domain ?? ''
+    }
+    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      return rule.dns?.primaryDns ?? ''
+    }
+    return ''
   }
 
   private resolvePort(ports?: netFirewall.NetFirewallPortParams[]): string {

@@ -1,6 +1,6 @@
 import { ThemeMode, ThemeColorSet, getThemeColors } from '../theme/ThemeColors'
 import { AppResources } from './AppResources'
-import { AppText, ModuleText } from './StringCatalog'
+import { ModuleText } from './StringCatalog'
 import { RouteIds } from './RouteIds'
 import { Want } from '@kit.AbilityKit'
 
