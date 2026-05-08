@@ -28,8 +28,8 @@ const TAG = 'IdentityPage'
 @ComponentV2
 export struct IdentityPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @Param viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
   @Event onBack: () => void = () => {}
-  @Local viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
     value: `${value} ${IdentityFormStrings.BYTE_UNIT_SUFFIX}`
@@ -43,6 +43,13 @@ export struct IdentityPage {
   ]
 
   aboutToAppear() {
+    this.initializeViewModel()
+  }
+
+  private initializeViewModel(): void {
+    if (this.viewModel.state.initialized || this.viewModel.state.loading) {
+      return
+    }
     this.viewModel.initialize().catch((err: Error) => {
       LogUtils.warn(TAG, `initialize failed: ${JSON.stringify(err)}`)
     })

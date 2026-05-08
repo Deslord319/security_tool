@@ -5,9 +5,9 @@
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2-blue)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-orange)](https://developer.huawei.com/consumer/cn/doc/)
 [![Target](https://img.shields.io/badge/Device-2in1-0A84FF)](https://developer.huawei.com/consumer/cn/)
-[![Version](https://img.shields.io/badge/Version-1.7.0-brightgreen)](#项目基线)
+[![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)](#项目基线)
 
-`SecurityTool` 是一个基于 ArkTS 的 HarmonyOS 企业安全管理工具，面向 `2in1` 设备，聚合安全总览、防火墙、日志管理、外设管控、身份鉴别和工具设置能力。应用主入口为 `pages/MainPage`，包名为 `com.huawei.securitytool`，当前应用版本为 `1.7.0`。
+`SecurityTool` 是一个基于 ArkTS 的 HarmonyOS 企业安全管理工具，面向 `2in1` 设备，聚合安全总览、防火墙、日志管理、外设管控、身份鉴别和工具设置能力。应用主入口为 `pages/MainPage`，包名为 `com.huawei.securitytool`，当前应用版本为 `1.0.0`。
 
 ## 当前能力
 
@@ -28,7 +28,7 @@
 | 应用名称 | 安全管理中心 |
 | 项目名称 | `SecurityTool` |
 | 包名 | `com.huawei.securitytool` |
-| 版本 | `1.7.0` (`versionCode: 1700000`) |
+| 版本 | `1.0.0` (`versionCode: 1000000`) |
 | 目标设备 | `2in1` |
 | 语言 | ArkTS (ETS) |
 | SDK 基线 | HarmonyOS `6.0.2` |
@@ -193,7 +193,7 @@ docs/04-测试文档/                  # 手工测试与 E2E 设计
 ### 环境要求
 
 - DevEco Studio / HarmonyOS SDK `6.0.2`
-- Java `11+`
+- DevEco Studio 自带 JBR 或 Java `11+`，需能被 `hvigorw` 所在 shell 访问
 - `hdc`
 - Windows 本地开发推荐直接使用仓库脚本 `build_hap.bat`
 
@@ -265,9 +265,9 @@ hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 
 当前仓库中，按文件数统计包含：
 
-- `40` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
-- `20` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
-- `22` 个 E2E case：`scripts/e2e/cases/**/*.json`
+- `75` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
+- `19` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
+- `35` 个 E2E case：`scripts/e2e/cases/**/*.json`
 
 常用命令：
 

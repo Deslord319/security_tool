@@ -4,24 +4,20 @@ import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
-import { getPeripheralTypeLabel, PeripheralPolicyRecord, PeripheralType } from '../../../models/DataModels'
+import { getPeripheralTypeLabel, PeripheralPolicyRecord, PeripheralType, isUsbPeripheralType } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
-
-export interface PolicyOption {
-  value: string
-}
+import { PeripheralDeviceIdentityCell, PeripheralHeaderCell, PeripheralTypeTag } from '../common/PeripheralTableCells'
 
 @ComponentV2
 export struct PolicyList {
   @Param policyRecords: PeripheralPolicyRecord[] = []
-  @Param policyListOptions: PolicyOption[] = []
+  @Param policyListOptions: SelectOption[] = []
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param hoveredPanelIndex: number = -1
   @Event onPolicyChange?: (index: number, policyIndex: number) => void = undefined
-  @Param getPolicyLabel?: (index: number) => string = undefined
   @Param isUpdating?: (deviceId: string) => boolean = undefined
   @Event onPanelHover?: (isHover: boolean) => void = undefined
   @Local private scrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
@@ -110,11 +106,11 @@ export struct PolicyList {
   @Builder
   private tableHeader() {
     Row() {
-      this.headerCell(PeripheralPageStrings.DEVICE_NAME_LABEL, 2.6)
-      this.headerCell(PeripheralPageStrings.DEVICE_TYPE_LABEL, 1.5)
-      this.headerCell(FirewallDialogStrings.CURRENT_STATUS, 1.5)
-      this.headerCell(PeripheralPageStrings.LATEST_CONNECTION_TIME_LABEL, 1.8)
-      this.headerCell(PeripheralPageStrings.ACTION_LABEL, 1.4)
+      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_NAME_LABEL, weight: 2.6, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_TYPE_LABEL, weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: FirewallDialogStrings.CURRENT_STATUS, weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.LATEST_CONNECTION_TIME_LABEL, weight: 1.8, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.ACTION_LABEL, weight: 1.4, currentTheme: this.currentTheme })
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -124,30 +120,17 @@ export struct PolicyList {
   @Builder
   private tableRow(record: PeripheralPolicyRecord, index: number) {
     Row() {
-      Column({ space: 6 }) {
-        Text(record.deviceName)
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      PeripheralDeviceIdentityCell({
+        deviceName: record.deviceName,
+        deviceId: this.getDisplayDeviceId(record.deviceType, record.deviceId),
+        currentTheme: this.currentTheme,
+        weight: 2.6
+      })
 
-        if (this.getDisplayDeviceId(record.deviceType, record.deviceId).length > 0) {
-          Text(this.getDisplayDeviceId(record.deviceType, record.deviceId))
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(2.6)
-
-      this.typeTag(this.getDeviceTypeLabel(record), 1.5)
+      PeripheralTypeTag({ label: this.getDeviceTypeLabel(record), weight: 1.5, currentTheme: this.currentTheme })
 
       Row() {
-        Text(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
+        Text(this.getPolicyLabel(record.policyIndex))
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -167,9 +150,9 @@ export struct PolicyList {
       .layoutWeight(1.8)
       .justifyContent(FlexAlign.Center)
 
-      Select(this.policyListOptions as SelectOption[])
+      Select(this.policyListOptions)
         .selected(record.policyIndex)
-        .value(this.getPolicyLabel ? this.getPolicyLabel(record.policyIndex) : String(record.policyIndex))
+        .value(this.getPolicyLabel(record.policyIndex))
         .font({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
         .fontColor(FormControlUtils.text(this.currentTheme))
         .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
@@ -195,54 +178,16 @@ export struct PolicyList {
     .alignItems(VerticalAlign.Center)
   }
 
-  @Builder
-  private headerCell(label: string, weight: number, textAlign: TextAlign = TextAlign.Center) {
-    Text(label)
-      .fontSize(AppStyles.FONT_SIZE_SMALL)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .layoutWeight(weight)
-      .textAlign(textAlign)
-  }
-
-  @Builder
-  private typeTag(label: string, weight: number) {
-    Row() {
-      Row() {
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .borderRadius(6)
-      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-    }
-    .layoutWeight(weight)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-  }
-
   private getDeviceTypeLabel(record: PeripheralPolicyRecord): string {
     return getPeripheralTypeLabel(record.deviceType)
   }
 
-  private getDisplayDeviceId(deviceType: PeripheralType, deviceId: string): string {
-    return this.isUsbDevice(deviceType) ? '' : deviceId
+  private getPolicyLabel(policyIndex: number): string {
+    const option = this.policyListOptions[policyIndex]
+    return option ? `${option.value}` : String(policyIndex)
   }
 
-  private isUsbDevice(deviceType: PeripheralType): boolean {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-      case PeripheralType.USB_CAMERA:
-      case PeripheralType.USB_PRINTER:
-      case PeripheralType.USB_HID:
-      case PeripheralType.USB_OTHER:
-        return true
-      default:
-        return false
-    }
+  private getDisplayDeviceId(deviceType: PeripheralType, deviceId: string): string {
+    return isUsbPeripheralType(deviceType) ? '' : deviceId
   }
 }

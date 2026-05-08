@@ -2,7 +2,7 @@
  * 安全存储服务单元测试
  * 测试 SecureStorageService 的敏感数据加密存储逻辑
  */
-import { describe, beforeEach, it, expect } from '@ohos/hypium'
+import { describe, it, expect } from '@ohos/hypium'
 
 // Mock AssetStore 数据结构
 interface MockAssetAttributes {

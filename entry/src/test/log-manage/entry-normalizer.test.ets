@@ -46,6 +46,7 @@ export default function entryNormalizerTest() {
   describe('LogEntryNormalizer', () => {
     it('should normalize invalid storage config values', 0, () => {
       expect(LogEntryNormalizer.normalizeMaxEntries(-1) > 0).assertTrue()
+      expect(LogEntryNormalizer.normalizeMaxEntries(100001)).assertEqual(100000)
       expect(LogEntryNormalizer.normalizeRetentionDays(0) > 0).assertTrue()
       expect(LogEntryNormalizer.normalizeRetentionDays(5000)).assertEqual(3650)
     })

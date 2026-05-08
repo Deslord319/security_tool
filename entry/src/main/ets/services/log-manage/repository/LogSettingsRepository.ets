@@ -4,6 +4,7 @@ import {
   ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG,
   DEFAULT_SUBSCRIPTION_CONFIG,
+  LOG_MAX_ENTRIES_OPTIONS,
   LogStorageConfig,
   LogSubscriptionConfig,
   PREF_KEY_LOG_MAX_ENTRIES,
@@ -41,7 +42,7 @@ export class LogSettingsRepository {
     }
     try {
       let normalizedConfig: LogStorageConfig = {
-        maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(config.maxLocalEntries),
+        maxLocalEntries: LogSettingsRepository.normalizeMaxEntriesOption(config.maxLocalEntries),
         retentionDays: LogEntryNormalizer.normalizeRetentionDays(config.retentionDays)
       }
       let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
@@ -99,7 +100,7 @@ export class LogSettingsRepository {
       let maxEntries = await pref.getNumber(PREF_KEY_LOG_MAX_ENTRIES, DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
       let retentionDays = await pref.getNumber(PREF_KEY_LOG_RETENTION_DAYS, DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
       return {
-        maxLocalEntries: LogEntryNormalizer.normalizeMaxEntries(maxEntries),
+        maxLocalEntries: LogSettingsRepository.normalizeMaxEntriesOption(maxEntries),
         retentionDays: LogEntryNormalizer.normalizeRetentionDays(retentionDays)
       }
     } catch (err) {
@@ -116,5 +117,12 @@ export class LogSettingsRepository {
       }
     }
     return result
+  }
+
+  private static normalizeMaxEntriesOption(maxEntries: number): number {
+    let normalized = LogEntryNormalizer.normalizeMaxEntries(maxEntries)
+    return LOG_MAX_ENTRIES_OPTIONS.includes(normalized)
+      ? normalized
+      : DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
   }
 }

@@ -2,7 +2,6 @@ import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { connection } from '@kit.ConnectivityKit'
 import {
   LogEventResult,
-  PeripheralTraceRecord,
   PeripheralType,
   formatBluetoothDeviceId
 } from '../../../models/DataModels'
@@ -110,7 +109,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
 
     return {
       occurAt: Number.isFinite(occurAt) && occurAt > 0 ? occurAt : Date.now(),
-      deviceId: PeripheralConnectionRecordBluetoothAclConsumer.normalizeBluetoothDeviceId(rawDeviceId),
+      deviceId: formatBluetoothDeviceId(rawDeviceId),
       rawDeviceId: rawDeviceId,
       deviceName: nameResolution,
       action: action,
@@ -118,10 +117,6 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       reasonLabel: reasonLabel,
       rawPayload: rawPayload
     }
-  }
-
-  private static normalizeBluetoothDeviceId(deviceId: string): string {
-    return formatBluetoothDeviceId(deviceId)
   }
 
   private static resolveBluetoothDeviceId(sources: EventPayloadRecord[]): string {

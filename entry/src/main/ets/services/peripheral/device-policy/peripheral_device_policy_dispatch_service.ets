@@ -1,7 +1,13 @@
 import restrictions from '@ohos.enterprise.restrictions'
 import { bluetoothManager, usbManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
-import { OperationResult, PeripheralDevicePolicy, PeripheralType } from '../../../models/DataModels'
+import {
+  OperationResult,
+  PeripheralDevicePolicy,
+  PeripheralType,
+  getUsbPeripheralBaseClass,
+  isUsbPeripheralType
+} from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -37,7 +43,7 @@ export class PeripheralDevicePolicyDispatchService {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('unsupported_policy')
     }
 
-    if (PeripheralDevicePolicyDispatchService.isUsbType(request.deviceType)) {
+    if (isUsbPeripheralType(request.deviceType)) {
       return PeripheralDevicePolicyDispatchService.dispatchUsbPolicy(request)
     }
 
@@ -50,19 +56,6 @@ export class PeripheralDevicePolicyDispatchService {
 
   private static isSupportedPolicy(policy: PeripheralDevicePolicy): boolean {
     return policy === 'allow' || policy === 'deny'
-  }
-
-  private static isUsbType(deviceType: PeripheralType): boolean {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-      case PeripheralType.USB_CAMERA:
-      case PeripheralType.USB_PRINTER:
-      case PeripheralType.USB_HID:
-      case PeripheralType.USB_OTHER:
-        return true
-      default:
-        return false
-    }
   }
 
   private static async dispatchUsbPolicy(
@@ -92,7 +85,7 @@ export class PeripheralDevicePolicyDispatchService {
     return PeripheralDevicePolicyDispatchService.dispatchUsbAllow(request)
   }
 
-  private static async dispatchBluetoothPolicy(_request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> {
+  private static async dispatchBluetoothPolicy(request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> {
     const bluetoothDisabledResult = PeripheralDevicePolicyDispatchService.getBluetoothDisabledState()
     if (!bluetoothDisabledResult.success) {
       return PeripheralDevicePolicyDispatchService.copyFailureResult(bluetoothDisabledResult, 'bluetooth_dispatch_failed')
@@ -101,12 +94,12 @@ export class PeripheralDevicePolicyDispatchService {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_conflict_global_disabled')
     }
 
-    const bluetoothDeviceId = PeripheralDevicePolicyDispatchService.toBluetoothDeviceId(_request.deviceId)
+    const bluetoothDeviceId = PeripheralDevicePolicyDispatchService.toBluetoothDeviceId(request.deviceId)
     if (!bluetoothDeviceId) {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_dispatch_failed')
     }
 
-    if (_request.policy === 'deny') {
+    if (request.policy === 'deny') {
       return PeripheralDevicePolicyDispatchService.dispatchBluetoothDeny(bluetoothDeviceId)
     }
     return PeripheralDevicePolicyDispatchService.dispatchBluetoothAllow(bluetoothDeviceId)
@@ -216,20 +209,8 @@ export class PeripheralDevicePolicyDispatchService {
   }
 
   private static toUsbDeviceType(deviceType: PeripheralType): usbManager.UsbDeviceType | null {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-        return PeripheralDevicePolicyDispatchService.buildUsbDeviceType(0x08)
-      case PeripheralType.USB_CAMERA:
-        return PeripheralDevicePolicyDispatchService.buildUsbDeviceType(0x0E)
-      case PeripheralType.USB_PRINTER:
-        return PeripheralDevicePolicyDispatchService.buildUsbDeviceType(0x07)
-      case PeripheralType.USB_HID:
-        return PeripheralDevicePolicyDispatchService.buildUsbDeviceType(0x03)
-      case PeripheralType.USB_OTHER:
-        return null
-      default:
-        return null
-    }
+    const baseClass = getUsbPeripheralBaseClass(deviceType)
+    return baseClass === null ? null : PeripheralDevicePolicyDispatchService.buildUsbDeviceType(baseClass)
   }
 
   private static toBluetoothDeviceId(deviceId: string): string | null {

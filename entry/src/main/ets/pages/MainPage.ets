@@ -19,7 +19,11 @@ import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager'
 import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
+import { FirewallRulesViewModel } from '../viewmodels/firewall/rules/FirewallRulesViewModel'
+import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
+import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
+import { ToolSettingsViewModel } from '../viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 import { ErrorLike } from '../types/LooseValueTypes'
 
 const TAG = 'MainPage'
@@ -30,8 +34,12 @@ struct MainPage {
   private readonly applicationRuntime: ApplicationRuntimeManager = ApplicationRuntimeManager.getInstance()
   @Local currentPage: string = RouteIds.DASHBOARD
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
+  @Local firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
+  @Local identitySettingsViewModel: IdentitySettingsViewModel = this.applicationRuntime.getIdentitySettingsViewModel()
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
+  @Local peripheralViewModel: PeripheralViewModel = this.applicationRuntime.getPeripheralViewModel()
+  @Local toolSettingsViewModel: ToolSettingsViewModel = this.applicationRuntime.getToolSettingsViewModel()
   @Local pageEnterOpacity: number = 1
   @Local pageEnterOffset: number = 0
   @Local menuTriggerHovered: boolean = false
@@ -219,6 +227,7 @@ struct MainPage {
     Column() {
       PeripheralPage({
         currentTheme: this.currentTheme,
+        viewModel: this.peripheralViewModel,
         onBack: () => {
           this.setCurrentPage(RouteIds.DASHBOARD)
         }
@@ -234,6 +243,7 @@ struct MainPage {
     Column() {
       IdentityPage({
         currentTheme: this.currentTheme,
+        viewModel: this.identitySettingsViewModel,
         onBack: () => {
           this.setCurrentPage(RouteIds.DASHBOARD)
         }
@@ -249,6 +259,7 @@ struct MainPage {
     Column() {
       ToolSettingsPage({
         currentTheme: this.currentTheme,
+        viewModel: this.toolSettingsViewModel,
         onBack: () => {
           this.setCurrentPage(RouteIds.DASHBOARD)
         }
@@ -299,6 +310,7 @@ struct MainPage {
         FirewallRulesPage({
           currentMode: this.firewallOverviewViewModel.state.currentMode,
           currentTheme: this.currentTheme,
+          rulesViewModel: this.firewallRulesViewModel,
           onBack: () => {
             this.setCurrentPage(RouteIds.FIREWALL)
           }

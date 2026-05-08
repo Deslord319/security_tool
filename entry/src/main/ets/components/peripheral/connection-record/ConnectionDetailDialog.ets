@@ -2,9 +2,9 @@ import { DetailDialogShell } from '../../DetailDialogShell'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   PeripheralConnectionRecord,
-  PeripheralType,
   getPeripheralRecordActionLabel,
-  getPeripheralRecordSourceLabel
+  getPeripheralRecordSourceLabel,
+  isUsbPeripheralType
 } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import {
@@ -161,20 +161,7 @@ export struct ConnectionDetailDialog {
   }
 
   private getDetailDeviceId(record: PeripheralConnectionRecord): string {
-    return this.isUsbDevice(record.deviceType) ? PLACEHOLDER_TEXT : record.deviceId
-  }
-
-  private isUsbDevice(deviceType: PeripheralType): boolean {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-      case PeripheralType.USB_CAMERA:
-      case PeripheralType.USB_PRINTER:
-      case PeripheralType.USB_HID:
-      case PeripheralType.USB_OTHER:
-        return true
-      default:
-        return false
-    }
+    return isUsbPeripheralType(record.deviceType) ? PLACEHOLDER_TEXT : record.deviceId
   }
 
   build() {

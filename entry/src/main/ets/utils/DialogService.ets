@@ -1,7 +1,8 @@
 import { LogUtils } from './LogUtils'
-
 import { AppColors } from '../constants/AppConstants'
 import { ActionText, MessageText } from '../constants/StringCatalog'
+import { CommonLoadingDialog } from '../components/CommonLoadingDialog'
+import { ThemeMode } from '../theme/ThemeColors'
 
 export type ActionDialogStatus = 'success' | 'failure'
 
@@ -33,6 +34,26 @@ export class DialogService {
   static displayReason(reason?: string, fallback: string = MessageText.RETRY_LATER): string {
     let value = reason?.trim() ?? ''
     return value.length > 0 ? value : fallback
+  }
+
+  static createLoadingController(message: string, currentTheme: ThemeMode): CustomDialogController {
+    return new CustomDialogController({
+      builder: CommonLoadingDialog({
+        message: message,
+        currentTheme: currentTheme
+      }),
+      alignment: DialogAlignment.Center,
+      autoCancel: false,
+      customStyle: true
+    })
+  }
+
+  static closeController(controller?: CustomDialogController): CustomDialogController | undefined {
+    try {
+      controller?.close()
+    } catch (_err) {
+    }
+    return undefined
   }
 
   static async openConfirm(uiContext: UIContext, options: ConfirmDialogOptions): Promise<void> {

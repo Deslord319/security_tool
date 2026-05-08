@@ -4,7 +4,6 @@ import {
   PeripheralDevicePolicy,
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit,
-  PeripheralTraceRecord,
   PeripheralType,
   UsbStoragePolicy,
   formatUsbDeviceId,
@@ -21,8 +20,6 @@ import {
   collectPayloadSources,
   pickNumber,
   pickString,
-  readDeviceField,
-  toRecord,
   toRecordArray
 } from './peripheral_connection_record_payload_utils'
 import { LogUtils } from '../../../utils/LogUtils'

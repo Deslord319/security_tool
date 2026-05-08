@@ -121,6 +121,7 @@ jobs:
 
       - name: Upload test report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v6
         with:
           name: test-report
@@ -157,7 +158,28 @@ jobs:
             'User-Agent' = 'security-tool-ci'
             Accept = 'application/vnd.github+json'
           }
-          Invoke-WebRequest -Uri "https://api.github.com/repos/$repo/zipball/$sha" -Headers $headers -OutFile $zipPath
+
+          function Invoke-DownloadWithRetry([string] $uri, [hashtable] $headers, [string] $outFile) {
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              try {
+                Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $outFile -TimeoutSec 120 -ErrorAction Stop
+                return
+              } catch {
+                if ($attempt -eq 5) {
+                  throw
+                }
+                $delaySeconds = [int][Math]::Min(60, [Math]::Pow(2, $attempt) * 5)
+                Write-Warning "GitHub source download failed on attempt $attempt/5: $($_.Exception.Message). Retrying in $delaySeconds seconds."
+                Remove-Item -LiteralPath $outFile -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds $delaySeconds
+              }
+            }
+          }
+
+          Invoke-DownloadWithRetry `
+            -uri "https://api.github.com/repos/$repo/zipball/$sha" `
+            -headers $headers `
+            -outFile $zipPath
           Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
           $sourceRoot = Get-ChildItem -LiteralPath $extractPath -Directory | Select-Object -First 1
           if (-not $sourceRoot) {
@@ -642,6 +664,7 @@ jobs:
 
       - name: Upload unit test report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v6
         with:
           name: entry-default-unit-test-report
@@ -676,7 +699,28 @@ jobs:
             'User-Agent' = 'security-tool-ci'
             Accept = 'application/vnd.github+json'
           }
-          Invoke-WebRequest -Uri "https://api.github.com/repos/$repo/zipball/$sha" -Headers $headers -OutFile $zipPath
+
+          function Invoke-DownloadWithRetry([string] $uri, [hashtable] $headers, [string] $outFile) {
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              try {
+                Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $outFile -TimeoutSec 120 -ErrorAction Stop
+                return
+              } catch {
+                if ($attempt -eq 5) {
+                  throw
+                }
+                $delaySeconds = [int][Math]::Min(60, [Math]::Pow(2, $attempt) * 5)
+                Write-Warning "GitHub source download failed on attempt $attempt/5: $($_.Exception.Message). Retrying in $delaySeconds seconds."
+                Remove-Item -LiteralPath $outFile -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds $delaySeconds
+              }
+            }
+          }
+
+          Invoke-DownloadWithRetry `
+            -uri "https://api.github.com/repos/$repo/zipball/$sha" `
+            -headers $headers `
+            -outFile $zipPath
           Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
           $sourceRoot = Get-ChildItem -LiteralPath $extractPath -Directory | Select-Object -First 1
           if (-not $sourceRoot) {

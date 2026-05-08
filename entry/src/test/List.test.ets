@@ -71,6 +71,7 @@ import peripheralPolicyViewModelTest from './viewmodels/PeripheralPolicyViewMode
 import peripheralRecordViewModelTest from './viewmodels/PeripheralRecordViewModel.test'
 import peripheralViewModelTest from './viewmodels/PeripheralViewModel.test'
 import peripheralPageTest from './views/PeripheralPage.test'
+import settingsPagesStateTest from './views/SettingsPagesState.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -146,4 +147,5 @@ export default function testsuite() {
   peripheralRecordViewModelTest()
   peripheralViewModelTest()
   peripheralPageTest()
+  settingsPagesStateTest()
 }

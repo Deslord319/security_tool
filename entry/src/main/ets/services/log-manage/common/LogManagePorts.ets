@@ -2,9 +2,7 @@ import { common } from '@kit.AbilityKit'
 import {
   LogEntry,
   LogEventResult,
-  LogEventType,
-  LogStorageConfig,
-  LogSubscriptionConfig
+  LogEventType
 } from '../../../models/DataModels'
 import { StorageResult } from '../../../storage/StorageResult'
 

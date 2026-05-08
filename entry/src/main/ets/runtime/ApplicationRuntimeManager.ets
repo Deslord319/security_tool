@@ -6,7 +6,10 @@ import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peri
 import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
 import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
+import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
+import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
+import { ToolSettingsViewModel } from '../viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'ApplicationRuntime'
@@ -21,7 +24,10 @@ export class ApplicationRuntimeManager {
   private peripheralRuntimeInitialized: boolean = false
   private logRuntimeInitPromise: Promise<void> | null = null
   private peripheralRuntimeInitPromise: Promise<void> | null = null
+  private readonly identitySettingsViewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
   private readonly logManageViewModel: LogManageViewModel = new LogManageViewModel()
+  private readonly peripheralViewModel: PeripheralViewModel = new PeripheralViewModel()
+  private readonly toolSettingsViewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
   private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
@@ -43,6 +49,18 @@ export class ApplicationRuntimeManager {
 
   getLogManageViewModel(): LogManageViewModel {
     return this.logManageViewModel
+  }
+
+  getIdentitySettingsViewModel(): IdentitySettingsViewModel {
+    return this.identitySettingsViewModel
+  }
+
+  getPeripheralViewModel(): PeripheralViewModel {
+    return this.peripheralViewModel
+  }
+
+  getToolSettingsViewModel(): ToolSettingsViewModel {
+    return this.toolSettingsViewModel
   }
 
   async ensureRuntimeServices(): Promise<void> {

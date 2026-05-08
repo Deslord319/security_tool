@@ -8,6 +8,7 @@ import {
   formatLogTimestamp,
   generateLogEntryId,
   LOG_EVENT_TYPE_OPTIONS,
+  LOG_MAX_ENTRIES_OPTIONS,
   ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG
 } from '../../main/ets/models/DataModels'
@@ -52,8 +53,11 @@ export default function logManageDataModelsTest() {
     it('should keep options aligned with final event types and storage defaults', 0, () => {
       expect(LOG_EVENT_TYPE_OPTIONS.length).assertEqual(5)
       expect(LOG_EVENT_TYPE_OPTIONS.map((item) => item.value).every((item) => ALL_LOG_EVENT_TYPES.includes(item))).assertTrue()
-      expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(5000)
+      expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(20000)
       expect(DEFAULT_LOG_STORAGE_CONFIG.retentionDays).assertEqual(30)
+      expect(LOG_MAX_ENTRIES_OPTIONS.length).assertEqual(5)
+      expect(LOG_MAX_ENTRIES_OPTIONS.includes(1000)).assertFalse()
+      expect(LOG_MAX_ENTRIES_OPTIONS.includes(100000)).assertTrue()
     })
   })
 }

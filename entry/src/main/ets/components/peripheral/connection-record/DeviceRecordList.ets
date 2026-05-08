@@ -3,7 +3,8 @@ import {
   getPeripheralRecordActionLabel,
   getPeripheralTypeLabel,
   PeripheralConnectionRecord,
-  PeripheralType
+  PeripheralType,
+  isUsbPeripheralType
 } from '../../../models/DataModels'
 import { LabelText } from '../../../constants/StringCatalog'
 import { DeviceDetailStrings, PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
@@ -13,6 +14,7 @@ import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } f
 import { getPeripheralConnectionListPolicyLabel, formatPeripheralTimestamp } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
+import { PeripheralDeviceIdentityCell, PeripheralHeaderCell, PeripheralTypeTag } from '../common/PeripheralTableCells'
 
 @ComponentV2
 export struct DeviceRecordList {
@@ -89,12 +91,12 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      this.headerCell(PeripheralPageStrings.DEVICE_NAME_LABEL, 2.6)
-      this.headerCell(PeripheralPageStrings.DEVICE_TYPE_LABEL, 1.5)
-      this.headerCell(DeviceDetailStrings.CONNECTION_EVENT, 1.3)
-      this.headerCell(PeripheralPageStrings.POLICY_LABEL, 1.2)
-      this.headerCell(PeripheralPageStrings.CONNECTION_TIME_LABEL, 1.9)
-      this.headerCell(PeripheralPageStrings.ACTION_LABEL, 1.0)
+      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_NAME_LABEL, weight: 2.6, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_TYPE_LABEL, weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: DeviceDetailStrings.CONNECTION_EVENT, weight: 1.3, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.POLICY_LABEL, weight: 1.2, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.CONNECTION_TIME_LABEL, weight: 1.9, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.ACTION_LABEL, weight: 1.0, currentTheme: this.currentTheme })
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 14, bottom: 14 })
@@ -104,26 +106,14 @@ export struct DeviceRecordList {
   @Builder
   private row(record: PeripheralConnectionRecord) {
     Row() {
-      Column({ space: 6 }) {
-        Text(record.deviceName)
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        if (this.getDisplayDeviceId(record.deviceType, record.deviceId).length > 0) {
-          Text(this.getDisplayDeviceId(record.deviceType, record.deviceId))
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(2.6)
+      PeripheralDeviceIdentityCell({
+        deviceName: record.deviceName,
+        deviceId: this.getDisplayDeviceId(record.deviceType, record.deviceId),
+        currentTheme: this.currentTheme,
+        weight: 2.6
+      })
 
-      this.typeTag(this.getDeviceTypeLabel(record), 1.5)
+      PeripheralTypeTag({ label: this.getDeviceTypeLabel(record), weight: 1.5, currentTheme: this.currentTheme })
 
       Row() {
         Text(this.getActionLabel(record))
@@ -194,36 +184,6 @@ export struct DeviceRecordList {
     .alignItems(VerticalAlign.Center)
   }
 
-  @Builder
-  private headerCell(label: string, weight: number, textAlign: TextAlign = TextAlign.Center) {
-    Text(label)
-      .fontSize(AppStyles.FONT_SIZE_SMALL)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-      .layoutWeight(weight)
-      .textAlign(textAlign)
-  }
-
-  @Builder
-  private typeTag(label: string, weight: number) {
-    Row() {
-      Row() {
-        Text(label)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .borderRadius(6)
-      .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
-    }
-    .layoutWeight(weight)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-  }
-
   private getDeviceTypeLabel(record: PeripheralConnectionRecord): string {
     return getPeripheralTypeLabel(record.deviceType)
   }
@@ -241,20 +201,7 @@ export struct DeviceRecordList {
   }
 
   private getDisplayDeviceId(deviceType: PeripheralType, deviceId: string): string {
-    return this.isUsbDevice(deviceType) ? '' : deviceId
-  }
-
-  private isUsbDevice(deviceType: PeripheralType): boolean {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-      case PeripheralType.USB_CAMERA:
-      case PeripheralType.USB_PRINTER:
-      case PeripheralType.USB_HID:
-      case PeripheralType.USB_OTHER:
-        return true
-      default:
-        return false
-    }
+    return isUsbPeripheralType(deviceType) ? '' : deviceId
   }
 
   private eventTextColor(record: PeripheralConnectionRecord): ResourceColor {

@@ -1,5 +1,4 @@
 import { LogUtils } from '../../../utils/LogUtils'
-import restrictions from '@ohos.enterprise.restrictions'
 import { taskpool } from '@kit.ArkTS'
 import { AppInfo } from '../../../constants/AppConstants'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'

@@ -18,17 +18,22 @@ export default function peripheralPageBoundaryTest() {
       expect(viewModel.records.state.connectionDetailDialog.historyItems.length).assertEqual(0)
     })
 
-    it('should allow replacing page viewModel instance for boundary setup', 0, () => {
-      const page: PeripheralPageBoundaryHost = {
-        viewModel: new PeripheralViewModel(),
-        currentTabIndex: 0
+    it('should preserve selected tab when page remounts with shared viewModel', 0, () => {
+      const sharedViewModel = new PeripheralViewModel()
+      sharedViewModel.switchToTab(2)
+
+      const firstPage: PeripheralPageBoundaryHost = {
+        viewModel: sharedViewModel,
+        currentTabIndex: sharedViewModel.currentTab
       }
-      const nextViewModel = new PeripheralViewModel()
+      const remountedPage: PeripheralPageBoundaryHost = {
+        viewModel: sharedViewModel,
+        currentTabIndex: sharedViewModel.currentTab
+      }
 
-      page.viewModel = nextViewModel
-
-      expect(page.viewModel === nextViewModel).assertTrue()
-      expect(page.currentTabIndex).assertEqual(0)
+      expect(firstPage.viewModel === remountedPage.viewModel).assertTrue()
+      expect(firstPage.currentTabIndex).assertEqual(2)
+      expect(remountedPage.currentTabIndex).assertEqual(2)
     })
   })
 }

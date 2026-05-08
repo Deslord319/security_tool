@@ -481,7 +481,7 @@ export struct FirewallRulesPage {
         .margin({ top: 6 })
         .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
 
-        Tabs({ barPosition: BarPosition.Start }) {
+        Tabs({ barPosition: BarPosition.Start, index: this.rulesViewModel.currentTab }) {
           TabContent() {
             this.ruleListBuilder(0)
           }.tabBar(this.tabBuilder(FirewallRuleLabelStrings.ALL_RULES, 0))

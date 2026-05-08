@@ -78,18 +78,27 @@ export default function logSettingsRepositoryTest() {
       expect(config.retentionDays).assertEqual(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
     })
 
-    it('should save normalized storage config after init', 0, async () => {
+    it('should save supported max entries option after init', 0, async () => {
       await LogSettingsRepository.init({} as common.UIAbilityContext)
 
       let result = await LogSettingsRepository.saveStorageConfig({
-        maxLocalEntries: 2001,
+        maxLocalEntries: 100000,
         retentionDays: 0
       })
 
       expect(result.success).assertTrue()
-      expect(fakeAccessor.get(PREF_KEY_LOG_MAX_ENTRIES) as number).assertEqual(2001)
+      expect(fakeAccessor.get(PREF_KEY_LOG_MAX_ENTRIES) as number).assertEqual(100000)
       expect(fakeAccessor.get(PREF_KEY_LOG_RETENTION_DAYS) as number)
         .assertEqual(DEFAULT_LOG_STORAGE_CONFIG.retentionDays)
+    })
+
+    it('should migrate removed max entries option to default on load', 0, async () => {
+      await LogSettingsRepository.init({} as common.UIAbilityContext)
+      fakeAccessor.set(PREF_KEY_LOG_MAX_ENTRIES, 1000)
+
+      let config = await LogSettingsRepository.loadStorageConfig()
+
+      expect(config.maxLocalEntries).assertEqual(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries)
     })
 
   })
