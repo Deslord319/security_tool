@@ -125,7 +125,7 @@
 | PER-032 | 首次连接自动拉黑 | 验证自动拉黑系统下发失败时不保存本地黑名单策略，连接记录仍保留失败原因 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets；entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-033 | 首次连接自动拉黑 | 验证 USB 存储总策略为禁止访问时，首次接入 USB 存储设备不自动下发设备级黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-034 | 设备连接记录 | 验证 USB 存储只读且本地存在禁止接入策略时，连接记录优先展示禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
-| PER-035 | 单设备策略切换 | 验证 USB 存储总策略为禁止访问时，黑白名单不允许将 USB 存储设备切换为禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/device-policy-dispatch-service.test.ets |
+| PER-035 | 单设备策略切换 | 验证 USB 存储总策略为禁止访问时，黑白名单不允许将 USB 存储设备切换为禁止接入 | 不补UT | 该场景依赖系统 MDM USB 存储账户级策略读取与 USB 设备策略下发，当前 UT 环境无法稳定 mock 系统命名空间对象；保留为手工验收场景，相关连接记录行为由 entry/src/test/peripheral/connection-record-usb-consumer.test.ets 覆盖。 |
 
 ## 身份鉴别
 

@@ -53,6 +53,8 @@ interface UsbTypeCase {
   expectedType: PeripheralType
 }
 
+type HamockMockFunction = (...args: Object[]) => Object
+
 class EmptyUsbParameters {
 }
 
@@ -164,9 +166,12 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       usbDisabledResult.data = false
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_WRITE
-      let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
-      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-      let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      let getInterfaceMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+      let getUsbStorageMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      let dispatchMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
       when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
       when(dispatchMock)(ArgumentMatchers.any).afterAction(() => {
@@ -183,7 +188,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbDisabledResult = new BooleanOperationResult()
       usbDisabledResult.data = true
-      let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+      let getInterfaceMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
       when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
 
       const record = await consumer.consume(buildUsbEvent())
@@ -200,7 +206,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.DISABLED
-      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      let getUsbStorageMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
       dispatchCount = 0
 
@@ -221,7 +228,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
-      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      let getUsbStorageMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
 
       const record = await consumer.consume(buildUsbEvent())
@@ -238,7 +246,8 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
-      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      let getUsbStorageMock: HamockMockFunction =
+        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
       await PeripheralDevicePolicyRepository.set({
         deviceId: 'VID:1234 PID:5678',
