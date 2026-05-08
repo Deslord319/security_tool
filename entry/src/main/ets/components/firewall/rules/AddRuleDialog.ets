@@ -119,7 +119,8 @@ export struct AddRuleDialog {
 
   private resolveAddressForRule(rule: netFirewall.NetFirewallRule): string {
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      return this.resolveIpAddressForDirection(rule)
+      let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
+      return FirewallRuleUtils.formatIpParamsForDisplay(ipParams)
     }
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
       return rule.domains?.[0]?.domain ?? ''
@@ -132,14 +133,6 @@ export struct AddRuleDialog {
 
   private resolvePort(ports?: netFirewall.NetFirewallPortParams[]): string {
     return FirewallRuleUtils.formatPortParamsForDisplay(ports)
-  }
-
-  private resolveIpAddressForDirection(rule: netFirewall.NetFirewallRule): string {
-    if (rule.type !== netFirewall.NetFirewallRuleType.RULE_IP) {
-      return ''
-    }
-    let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
-    return FirewallRuleUtils.formatIpParamsForDisplay(ipParams)
   }
 
   private resolvePortForDirection(rule: netFirewall.NetFirewallRule): string {
