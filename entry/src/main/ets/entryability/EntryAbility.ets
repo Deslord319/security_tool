@@ -21,6 +21,7 @@ import {
   AccountEventType
 } from '../contracts/AccountEventContract';
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider';
+import { LooseRecord } from '../types/LooseValueTypes';
 
 const ENTRYABILITY_TAG = 'entryAbility'
 
@@ -254,7 +255,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   private handleStatusBarIconClick(eventData: emitter.EventData): void {
-    let data = eventData.data as Record<string, Object | string | number | boolean> | undefined
+    let data = eventData.data as LooseRecord | undefined
     if (!data) {
       return
     }
@@ -285,7 +286,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   private parseAccountEventPayload(data: commonEventManager.CommonEventData): AccountEventPayload | null {
-    let parameters = data.parameters as Record<string, Object | string | number> | undefined
+    let parameters = data.parameters as LooseRecord | undefined
     let payload = this.parseAccountEventRecord(parameters)
     if (payload) {
       return payload
@@ -294,7 +295,7 @@ export default class EntryAbility extends UIAbility {
       return null
     }
     try {
-      let parsed = JSON.parse(data.data) as Record<string, Object | string | number>
+      let parsed = JSON.parse(data.data) as LooseRecord
       return this.parseAccountEventRecord(parsed)
     } catch (err) {
       LogUtils.warn(ENTRYABILITY_TAG, 'parse account event data failed: %{public}s', JSON.stringify(err))
@@ -302,7 +303,7 @@ export default class EntryAbility extends UIAbility {
     }
   }
 
-  private parseAccountEventRecord(source: Record<string, Object | string | number> | undefined): AccountEventPayload | null {
+  private parseAccountEventRecord(source: LooseRecord | undefined): AccountEventPayload | null {
     if (!source) {
       return null
     }

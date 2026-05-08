@@ -1,23 +1,20 @@
 import { describe, expect, it } from '@ohos/hypium'
 
 import { pickNumber, pickString } from '../../main/ets/services/log-manage/common/LogValuePicker'
+import { LooseRecord } from '../../main/ets/types/LooseValueTypes'
 
-interface StringSource {
+interface PickerRecord extends LooseRecord {
   detail?: string
   message?: string
   summary?: string
-}
-
-interface NumberSource {
   pid?: string | number
   uid?: number
-  detail?: string
 }
 
 export default function logValuePickerTest() {
   describe('LogValuePicker', () => {
     it('should pick trimmed string from a single source', 0, () => {
-      let source: StringSource = {
+      let source: PickerRecord = {
         detail: '  audit detail  '
       }
 
@@ -25,18 +22,18 @@ export default function logValuePickerTest() {
     })
 
     it('should pick string from the first matching source and key', 0, () => {
-      let sources: StringSource[] = [
-        { message: '' } as StringSource,
-        { summary: ' crash summary ' } as StringSource
+      let sources: PickerRecord[] = [
+        { message: '' },
+        { summary: ' crash summary ' }
       ]
 
       expect(pickString(sources, ['message', 'summary'])).assertEqual('crash summary')
     })
 
     it('should pick finite number from numeric or string field', 0, () => {
-      let sources: NumberSource[] = [
-        { pid: '321' } as NumberSource,
-        { uid: 100 } as NumberSource
+      let sources: PickerRecord[] = [
+        { pid: '321' },
+        { uid: 100 }
       ]
 
       expect(pickNumber(sources, ['pid'])).assertEqual(321)
@@ -44,9 +41,9 @@ export default function logValuePickerTest() {
     })
 
     it('should ignore empty and invalid values', 0, () => {
-      let sources: NumberSource[] = [
-        { pid: 'NaN', detail: '   ' } as NumberSource,
-        { pid: Number.POSITIVE_INFINITY } as NumberSource
+      let sources: PickerRecord[] = [
+        { pid: 'NaN', detail: '   ' },
+        { pid: Number.POSITIVE_INFINITY }
       ]
 
       expect(pickString(sources, ['detail'])).assertEqual(undefined)

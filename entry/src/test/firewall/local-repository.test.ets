@@ -56,7 +56,7 @@ class FakePreferencesAccessor {
     return true
   }
 
-  async setJson(key: string, value: object | object[], flush: boolean = true): Promise<boolean> {
+  async setJson(key: string, value: object, flush: boolean = true): Promise<boolean> {
     return this.setValue(key, JSON.stringify(value), flush)
   }
 

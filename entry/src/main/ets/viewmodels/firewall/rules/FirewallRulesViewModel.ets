@@ -157,7 +157,7 @@ export class FirewallRulesViewModel {
     }
     return {
       kind: conflict.kind,
-      existingRule: FirewallRuleUtils.cloneDisplayRuleFromIntent(conflict.existingRule) ?? null
+      existingRule: FirewallRuleUtils.cloneDisplayRuleFromIntent(conflict.existingRule)
     }
   }
 

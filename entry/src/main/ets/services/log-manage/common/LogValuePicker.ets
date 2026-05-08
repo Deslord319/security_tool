@@ -1,23 +1,22 @@
 import { pickNumberFromRecords, pickStringFromRecords } from '../../../utils/ValuePicker'
-
-type LogValuePickerObject = Object
+import { LooseRecord } from '../../../types/LooseValueTypes'
 
 function normalizeSources(
-  sources: LogValuePickerObject | LogValuePickerObject[]
-): LogValuePickerObject[] {
+  sources: LooseRecord | LooseRecord[]
+): LooseRecord[] {
   return Array.isArray(sources) ? sources : [sources]
 }
 
 export function pickString(
-  sources: LogValuePickerObject | LogValuePickerObject[],
+  sources: LooseRecord | LooseRecord[],
   keys: string[]
 ): string | undefined {
-  return pickStringFromRecords(normalizeSources(sources) as Record<string, Object | string | number | boolean | undefined>[], keys)
+  return pickStringFromRecords(normalizeSources(sources), keys)
 }
 
 export function pickNumber(
-  sources: LogValuePickerObject | LogValuePickerObject[],
+  sources: LooseRecord | LooseRecord[],
   keys: string[]
 ): number | undefined {
-  return pickNumberFromRecords(normalizeSources(sources) as Record<string, Object | string | number | boolean | undefined>[], keys)
+  return pickNumberFromRecords(normalizeSources(sources), keys)
 }

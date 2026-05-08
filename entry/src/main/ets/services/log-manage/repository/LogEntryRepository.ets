@@ -244,14 +244,14 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
         result: this.parseResult(reader.getRequiredString(resultIndex)),
         detail: reader.getRequiredString(detailIndex),
         processName: reader.getOptionalString(processNameIndex),
-        pid: pickNumber(extra, ['pid']),
-        uid: pickNumber(extra, ['uid']),
+        pid: extra.pid,
+        uid: extra.uid,
         filePath: reader.getOptionalString(filePathIndex),
-        remoteAddr: pickString(extra, ['remoteAddr']),
-        sourceEventId: pickNumber(extra, ['sourceEventId']),
-        rawEventName: pickString(extra, ['rawEventName']),
-        rawOutcome: pickString(extra, ['rawOutcome']),
-        rawAction: pickString(extra, ['rawAction']),
+        remoteAddr: extra.remoteAddr,
+        sourceEventId: extra.sourceEventId,
+        rawEventName: extra.rawEventName,
+        rawOutcome: extra.rawOutcome,
+        rawAction: extra.rawAction,
         detailRows: LogEntryNormalizer.normalizeDetailRows(extra.detailRows)
       })
     } while (reader.moveToNext())

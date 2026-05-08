@@ -138,34 +138,44 @@ export class FirewallModeStrategy {
     localPorts?: number[],
     remoteCidrs?: string[]
   ): netFirewall.NetFirewallRule[] {
-    let usingAnyScope = !remoteCidrs || remoteCidrs.length === 0
-    let scopes: Array<string | undefined> = usingAnyScope ? [undefined] : (remoteCidrs as string[])
     let rules: netFirewall.NetFirewallRule[] = []
-    scopes.forEach((cidr: string | undefined) => {
-      let rule: netFirewall.NetFirewallRule = {
-        userId: AppInfo.DEFAULT_USER_ID,
-        name: name,
-        direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
-        action: action,
-        type: netFirewall.NetFirewallRuleType.RULE_IP,
-        isEnabled: true,
-        protocol: protocol
+    if (!remoteCidrs || remoteCidrs.length === 0) {
+      rules.push(FirewallModeStrategy.createInboundRuleTemplate(name, action, protocol, localPorts))
+      return rules
+    }
+    remoteCidrs.forEach((cidr: string) => {
+      let ipParam = FirewallModeStrategy.toIpParam(cidr)
+      if (!ipParam) {
+        return
       }
-      if (localPorts && localPorts.length > 0) {
-        rule.localPorts = localPorts.map((port: number): netFirewall.NetFirewallPortParams => {
-          return { startPort: port, endPort: port }
-        })
-      }
-      if (!usingAnyScope) {
-        let ipParam = FirewallModeStrategy.toIpParam(cidr ?? '')
-        if (!ipParam) {
-          return
-        }
-        rule.remoteIps = [ipParam]
-      }
+      let rule = FirewallModeStrategy.createInboundRuleTemplate(name, action, protocol, localPorts)
+      rule.remoteIps = [ipParam]
       rules.push(rule)
     })
     return rules
+  }
+
+  private static createInboundRuleTemplate(
+    name: string,
+    action: netFirewall.FirewallRuleAction,
+    protocol: number,
+    localPorts?: number[]
+  ): netFirewall.NetFirewallRule {
+    let rule: netFirewall.NetFirewallRule = {
+      userId: AppInfo.DEFAULT_USER_ID,
+      name: name,
+      direction: netFirewall.NetFirewallRuleDirection.RULE_IN,
+      action: action,
+      type: netFirewall.NetFirewallRuleType.RULE_IP,
+      isEnabled: true,
+      protocol: protocol
+    }
+    if (localPorts && localPorts.length > 0) {
+      rule.localPorts = localPorts.map((port: number): netFirewall.NetFirewallPortParams => {
+        return { startPort: port, endPort: port }
+      })
+    }
+    return rule
   }
 
   private static toIpParam(value: string): netFirewall.NetFirewallIpParams | null {
@@ -225,9 +235,8 @@ export class FirewallModeStrategy {
     }
     let ports: number[] = []
     value.forEach((item: LooseValue) => {
-      let num = typeof item === 'number' ? item : Number(item)
-      if (Number.isInteger(num) && num >= 1 && num <= 65535) {
-        ports.push(num)
+      if (typeof item === 'number' && Number.isInteger(item) && item >= 1 && item <= 65535) {
+        ports.push(item)
       }
     })
     return ports

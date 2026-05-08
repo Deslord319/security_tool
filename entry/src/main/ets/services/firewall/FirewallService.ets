@@ -175,7 +175,7 @@ export class FirewallService {
     let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
     return data.ruleIntents.map((intent: FirewallRuleIntent): FirewallRuleDisplayItem => {
       let deployments = data.ruleDeployments.filter((item: FirewallRuleDeployment): boolean => item.localRuleId === intent.localRuleId)
-      return FirewallRuleUtils.cloneDisplayRuleFromIntent(intent, deployments) as FirewallRuleDisplayItem
+      return FirewallRuleUtils.cloneDisplayRuleFromIntent(intent, deployments)
     })
   }
 
