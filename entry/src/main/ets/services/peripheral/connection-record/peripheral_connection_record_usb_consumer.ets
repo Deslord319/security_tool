@@ -102,9 +102,13 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
 
     const info = PeripheralConnectionRecordUsbConsumer.resolveUsbEventInfo(rawData)
-    const autoDenyResult = await PeripheralConnectionRecordUsbConsumer.applyFirstConnectAutoDeny(info, action)
+    const baseEvaluation = PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(info, action)
+    let autoDenyResult: FirstConnectAutoDenyResult = { status: 'not_applicable' }
+    if (baseEvaluation.matchedPolicyKind !== 'usb_storage_disabled') {
+      autoDenyResult = await PeripheralConnectionRecordUsbConsumer.applyFirstConnectAutoDeny(info, action)
+    }
     const evaluation = PeripheralConnectionRecordUsbConsumer.decorateAutoDenyEvaluation(
-      PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(info, action),
+      baseEvaluation,
       autoDenyResult
     )
     let rawPayload = ''

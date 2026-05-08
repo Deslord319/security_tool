@@ -196,12 +196,13 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.summary).assertEqual('USB 接口已禁用')
     })
 
-    it('U-USB-002 should block usb storage event when storage policy is disabled', 0, async () => {
+    it('U-USB-002 should block usb storage event without auto deny when storage policy is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.DISABLED
       let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
+      dispatchCount = 0
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -211,6 +212,9 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_disabled')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('USB 存储已禁用')
+      expect(record?.detail?.includes('首次接入已自动加入黑名单')).assertFalse()
+      expect(dispatchCount).assertEqual(0)
+      expect(PeripheralDevicePolicyRepository.get('VID:1234 PID:5678') === null).assertTrue()
     })
 
     it('U-USB-003 should map usb storage read only policy to allow record with enabled label', 0, async () => {
