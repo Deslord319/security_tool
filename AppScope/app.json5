@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.huawei.securitytool",
     "vendor": "example",
-    "versionCode": 1700000,
-    "versionName": "1.7.0",
+    "versionCode": 1000000,
+    "versionName": "1.0.0",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
   }

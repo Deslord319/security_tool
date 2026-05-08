@@ -1,12 +1,12 @@
 import { LogManagePageStrings, LogManageSettingStrings } from '../../../constants/modules/LogManageStrings'
-import { LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS } from '../../../models/DataModels'
+import { DEFAULT_LOG_STORAGE_CONFIG, LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../SettingsSectionCard'
 import { SectionSelectRow } from '../../SectionRows'
 
 @ComponentV2
 export struct LogStorageSettingsPanel {
-  @Param maxLocalEntries: number = LOG_MAX_ENTRIES_OPTIONS[0]
+  @Param maxLocalEntries: number = DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
   @Param retentionDays: number = LOG_RETENTION_OPTIONS[0]
   @Param formControlWidth: number = 140
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT

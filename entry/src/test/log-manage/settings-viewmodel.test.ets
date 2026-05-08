@@ -17,7 +17,7 @@ interface LogStorageConfigRepositoryPort {
 
 class FakeLogStorageConfigRepository implements LogStorageConfigRepositoryPort {
   config: LogStorageConfig = {
-    maxLocalEntries: 5000,
+    maxLocalEntries: 20000,
     retentionDays: 30
   }
   saveResult: ServiceResult = { success: true, code: 'ok' }
@@ -92,30 +92,41 @@ export default function logStorageSettingsViewModelTest() {
       let result: ServiceResult = await viewModel.load()
 
       expect(result.success).assertTrue()
-      expect(viewModel.state.maxLocalEntries).assertEqual(5000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(20000)
       expect(viewModel.state.retentionDays).assertEqual(30)
       expect(viewModel.state.dirty).assertFalse()
     })
 
     it('should mark form dirty after changing values', 0, async () => {
       await viewModel.load()
-      viewModel.setMaxLocalEntries(10000)
+      viewModel.setMaxLocalEntries(100000)
       viewModel.setRetentionDays(14)
 
       expect(viewModel.state.dirty).assertTrue()
-      expect(viewModel.state.maxLocalEntries).assertEqual(10000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(100000)
       expect(viewModel.state.retentionDays).assertEqual(14)
     })
 
     it('should save numeric config values and clear dirty state', 0, async () => {
       await viewModel.load()
-      viewModel.setMaxLocalEntries(10000)
+      viewModel.setMaxLocalEntries(100000)
 
       let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertTrue()
-      expect(configRepository.config.maxLocalEntries).assertEqual(10000)
+      expect(configRepository.config.maxLocalEntries).assertEqual(100000)
       expect(viewModel.state.dirty).assertFalse()
+    })
+
+    it('should reject removed max entries option', 0, async () => {
+      await viewModel.load()
+      viewModel.setMaxLocalEntries(1000)
+
+      let result: ServiceResult = await viewModel.save()
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('invalid_max_entries')
+      expect(configRepository.config.maxLocalEntries).assertEqual(20000)
     })
 
     it('should reject save when no changes exist', 0, async () => {
@@ -129,29 +140,29 @@ export default function logStorageSettingsViewModelTest() {
 
     it('should rollback persisted config when reconcile fails after save', 0, async () => {
       await viewModel.load()
-      viewModel.setMaxLocalEntries(10000)
+      viewModel.setMaxLocalEntries(100000)
       storageMaintenance.reconcileResult = { success: false, code: 'save_failed' }
 
       let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(configRepository.config.maxLocalEntries).assertEqual(5000)
-      expect(viewModel.state.maxLocalEntries).assertEqual(5000)
+      expect(configRepository.config.maxLocalEntries).assertEqual(20000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(20000)
       expect(viewModel.state.dirty).assertFalse()
       expect(storageMaintenance.reconcileCallCount).assertEqual(2)
     })
 
     it('should reload current persisted config when rollback save fails', 0, async () => {
       await viewModel.load()
-      viewModel.setMaxLocalEntries(10000)
+      viewModel.setMaxLocalEntries(100000)
       storageMaintenance.reconcileResult = { success: false, code: 'save_failed' }
       configRepository.failOnSaveCallNumbers = [2]
 
       let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(configRepository.config.maxLocalEntries).assertEqual(10000)
-      expect(viewModel.state.maxLocalEntries).assertEqual(10000)
+      expect(configRepository.config.maxLocalEntries).assertEqual(100000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(100000)
       expect(viewModel.state.dirty).assertFalse()
       expect(configRepository.loadCallCount >= 2).assertTrue()
       expect(storageMaintenance.reconcileCallCount).assertEqual(1)
@@ -159,7 +170,7 @@ export default function logStorageSettingsViewModelTest() {
 
     it('should reload rolled-back config when rollback reconcile also fails', 0, async () => {
       await viewModel.load()
-      viewModel.setMaxLocalEntries(10000)
+      viewModel.setMaxLocalEntries(100000)
       storageMaintenance.queuedResults = [
         { success: false, code: 'save_failed' },
         { success: false, code: 'save_failed' }
@@ -168,8 +179,8 @@ export default function logStorageSettingsViewModelTest() {
       let result: ServiceResult = await viewModel.save()
 
       expect(result.success).assertFalse()
-      expect(configRepository.config.maxLocalEntries).assertEqual(5000)
-      expect(viewModel.state.maxLocalEntries).assertEqual(5000)
+      expect(configRepository.config.maxLocalEntries).assertEqual(20000)
+      expect(viewModel.state.maxLocalEntries).assertEqual(20000)
       expect(viewModel.state.dirty).assertFalse()
       expect(storageMaintenance.reconcileCallCount).assertEqual(2)
     })

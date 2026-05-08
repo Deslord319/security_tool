@@ -13,6 +13,19 @@ export enum PeripheralType {
   BLUETOOTH = 'bluetooth'
 }
 
+interface UsbPeripheralTypeMapping {
+  type: PeripheralType
+  baseClass: number | null
+}
+
+const USB_PERIPHERAL_TYPE_MAPPINGS: UsbPeripheralTypeMapping[] = [
+  { type: PeripheralType.USB_STORAGE, baseClass: 0x08 },
+  { type: PeripheralType.USB_CAMERA, baseClass: 0x0E },
+  { type: PeripheralType.USB_PRINTER, baseClass: 0x07 },
+  { type: PeripheralType.USB_HID, baseClass: 0x03 },
+  { type: PeripheralType.USB_OTHER, baseClass: null }
+]
+
 export enum UsbStoragePolicy {
   READ_WRITE = 0,
   READ_ONLY = 1,
@@ -183,6 +196,24 @@ export function getPeripheralTypeLabel(type: PeripheralType): string {
   }
 }
 
+export function isUsbPeripheralType(type: PeripheralType): boolean {
+  for (const item of USB_PERIPHERAL_TYPE_MAPPINGS) {
+    if (item.type === type) {
+      return true
+    }
+  }
+  return false
+}
+
+export function getUsbPeripheralBaseClass(type: PeripheralType): number | null {
+  for (const item of USB_PERIPHERAL_TYPE_MAPPINGS) {
+    if (item.type === type) {
+      return item.baseClass
+    }
+  }
+  return null
+}
+
 export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
   switch (source) {
     case 'runtime_event':
@@ -248,18 +279,12 @@ export function formatBluetoothDeviceId(deviceId: string): string {
 }
 
 export function inferPeripheralTypeFromBaseClass(baseClass: number): PeripheralType {
-  switch (baseClass) {
-    case 0x08:
-      return PeripheralType.USB_STORAGE
-    case 0x0E:
-      return PeripheralType.USB_CAMERA
-    case 0x07:
-      return PeripheralType.USB_PRINTER
-    case 0x03:
-      return PeripheralType.USB_HID
-    default:
-      return PeripheralType.USB_OTHER
+  for (const item of USB_PERIPHERAL_TYPE_MAPPINGS) {
+    if (item.baseClass === baseClass) {
+      return item.type
+    }
   }
+  return PeripheralType.USB_OTHER
 }
 
 export interface PasswordComplexityConfig {
@@ -372,7 +397,7 @@ interface LogEventTypeOption {
 }
 
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
-  maxLocalEntries: 5000,
+  maxLocalEntries: 20000,
   retentionDays: 30
 }
 
@@ -391,7 +416,7 @@ export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
 
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 90, 180]
 
-export const LOG_MAX_ENTRIES_OPTIONS: number[] = [1000, 5000, 10000, 20000, 50000]
+export const LOG_MAX_ENTRIES_OPTIONS: number[] = [5000, 10000, 20000, 50000, 100000]
 
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'

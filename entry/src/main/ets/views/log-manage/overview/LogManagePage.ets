@@ -108,7 +108,7 @@ export struct LogManagePage {
 
   private openLogDetailDialog(entry: LogEntry): void {
     let viewModel = this.getActiveViewModel()
-    this.closeDetailDialogController()
+    this.detailDialogController = DialogService.closeController(this.detailDialogController)
     viewModel.openDetail(entry.id)
     try {
       this.detailDialogController = new CustomDialogController({
@@ -297,17 +297,8 @@ export struct LogManagePage {
     })
   }
 
-  private closeDetailDialogController(): void {
-    try {
-      this.detailDialogController?.close()
-    } catch (_err) {
-    } finally {
-      this.detailDialogController = undefined
-    }
-  }
-
   private closeDetailDialog(): void {
-    this.closeDetailDialogController()
+    this.detailDialogController = DialogService.closeController(this.detailDialogController)
     this.getActiveViewModel().closeDetail()
   }
 

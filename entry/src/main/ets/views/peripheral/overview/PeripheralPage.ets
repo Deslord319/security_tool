@@ -5,7 +5,7 @@ import { SubPageHeader } from '../../../components/SubPageHeader'
 import { ConnectionDetailDialog } from '../../../components/peripheral/connection-record/ConnectionDetailDialog'
 import { DeviceRecordList } from '../../../components/peripheral/connection-record/DeviceRecordList'
 import { InterfaceControlTab } from '../../../components/peripheral/interface-control/InterfaceControlTab'
-import { PolicyList, PolicyOption } from '../../../components/peripheral/device-policy/PolicyList'
+import { PolicyList } from '../../../components/peripheral/device-policy/PolicyList'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
@@ -28,7 +28,6 @@ import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
 import { PeripheralViewModel } from '../../../viewmodels/peripheral/overview/PeripheralViewModel'
 import { DialogService } from '../../../utils/DialogService'
 import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunner'
-import { CommonLoadingDialog } from '../../../components/CommonLoadingDialog'
 
 const TAG = 'PeripheralPage'
 
@@ -40,7 +39,7 @@ export struct PeripheralPage {
   @Local currentTabIndex: number = 0
   @Local hoveredPanelIndex: number = -1
 
-  private policyListOptions: PolicyOption[] = [
+  private policyListOptions: SelectOption[] = [
     { value: PeripheralOptionStrings.POLICY_OPTIONS[0] },
     { value: PeripheralOptionStrings.POLICY_OPTIONS[1] }
   ]
@@ -101,7 +100,7 @@ export struct PeripheralPage {
   }
 
   private openDetailDialog(record: PeripheralConnectionRecord): void {
-    this.closeDetailDialogController()
+    this.detailDialogController = DialogService.closeController(this.detailDialogController)
     this.viewModel.openConnectionDetailDialog(record)
     let detailRecord = this.viewModel.records.state.connectionDetailDialog.record
     if (!detailRecord) {
@@ -133,30 +132,9 @@ export struct PeripheralPage {
     }
   }
 
-  private closeDetailDialogController(): void {
-    try {
-      this.detailDialogController?.close()
-    } catch (_err) {
-    } finally {
-      this.detailDialogController = undefined
-    }
-  }
-
   private closeDetailDialog(): void {
-    this.closeDetailDialogController()
+    this.detailDialogController = DialogService.closeController(this.detailDialogController)
     this.viewModel.closeConnectionDetailDialog()
-  }
-
-  private createUsbLoadingDialogController(message: string): CustomDialogController {
-    return new CustomDialogController({
-      builder: CommonLoadingDialog({
-        message: message,
-        currentTheme: this.currentTheme
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
   }
 
   @Builder
@@ -292,7 +270,6 @@ export struct PeripheralPage {
             this.handlePolicyChange(record, policyIndex)
           }
         },
-        getPolicyLabel: (index: number) => this.policyListOptions[index].value,
         isUpdating: (deviceId: string) => this.viewModel.policy.isUpdating(deviceId.toUpperCase()),
         onPanelHover: (isHover: boolean) => this.setPanelHover(2, isHover)
       })
@@ -311,7 +288,7 @@ export struct PeripheralPage {
         LogUtils.info(TAG, `usb interface switch start: disallow=${disallow}`)
         return await this.viewModel.toggleInterface(PeripheralService.FEATURE_USB, disallow)
       },
-      (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
+      (dialogMessage: string): CustomDialogController => DialogService.createLoadingController(dialogMessage, this.currentTheme)
     )
     if (!success) {
       if (!this.viewModel.adminState.activated) {
@@ -348,7 +325,7 @@ export struct PeripheralPage {
         LogUtils.info(TAG, `usb storage policy switch start: index=${index}`)
         return await this.viewModel.setUsbStoragePolicy(index)
       },
-      (dialogMessage: string): CustomDialogController => this.createUsbLoadingDialogController(dialogMessage)
+      (dialogMessage: string): CustomDialogController => DialogService.createLoadingController(dialogMessage, this.currentTheme)
     )
     if (!success) {
       LogUtils.warn(TAG, `usb storage policy switch failed: index=${index}, reason=${this.viewModel.reasonCode ?? 'unknown'}`)

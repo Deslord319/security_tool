@@ -13,7 +13,8 @@ import {
   PeripheralDevicePolicyRecord,
   PeripheralPolicyRecord,
   getPeripheralTypeLabel,
-  PeripheralType
+  PeripheralType,
+  isUsbPeripheralType
 } from '../../../models/DataModels'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import {
@@ -196,17 +197,7 @@ export class PeripheralPolicyViewModel {
   }
 
   private shouldDispatchBeforeSave(deviceType: PeripheralType): boolean {
-    switch (deviceType) {
-      case PeripheralType.USB_STORAGE:
-      case PeripheralType.USB_CAMERA:
-      case PeripheralType.USB_PRINTER:
-      case PeripheralType.USB_HID:
-      case PeripheralType.USB_OTHER:
-      case PeripheralType.BLUETOOTH:
-        return true
-      default:
-        return false
-    }
+    return isUsbPeripheralType(deviceType) || deviceType === PeripheralType.BLUETOOTH
   }
 
   private resolveDispatchFailure(result: PeripheralPolicyDispatchResult | null | undefined): string {

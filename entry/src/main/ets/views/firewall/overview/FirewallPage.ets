@@ -21,7 +21,6 @@ import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunner'
-import { CommonLoadingDialog } from '../../../components/CommonLoadingDialog'
 
 const TAG = 'FirewallPage'
 
@@ -215,18 +214,6 @@ export struct FirewallPage {
     DialogService.openFailure(this.getUIContext(), FirewallToggleStrings.MODE_APPLY_FAILED)
   }
 
-  private createModeLoadingDialogController(message: string): CustomDialogController {
-    return new CustomDialogController({
-      builder: CommonLoadingDialog({
-        message: message,
-        currentTheme: this.currentTheme
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: false,
-      customStyle: true
-    })
-  }
-
   private async handleModeSelect(mode: FirewallPresetMode): Promise<void> {
     if (!this.canOperateModeCards()) {
       return
@@ -252,7 +239,7 @@ export struct FirewallPage {
           let result = await this.overviewViewModel.requestModeSwitch(context, mode)
           return result.success
         },
-        (dialogMessage: string): CustomDialogController => this.createModeLoadingDialogController(dialogMessage)
+        (dialogMessage: string): CustomDialogController => DialogService.createLoadingController(dialogMessage, this.currentTheme)
       )
     } catch (err) {
       LogUtils.error(TAG, `handleModeSelect failed: ${JSON.stringify(err)}`)
