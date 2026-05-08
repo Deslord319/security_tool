@@ -124,8 +124,10 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       })
     })
 
-    afterEach(() => {
+    afterEach(async () => {
+      mockKit.clear(PeripheralDevicePolicyDispatchService)
       mockKit.clearAll()
+      await PeripheralDevicePolicyRepository.clearAll()
     })
 
     it('U-BT-001 should auto deny first bluetooth acl connect event', 0, async () => {
@@ -249,8 +251,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
         deviceType: PeripheralType.BLUETOOTH,
         deviceName: 'Bluetooth Keyboard'
       }
-      const getMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.get)
-      when(getMock)('MAC: 11:22:33:44:55:66').afterReturn(deniedPolicy)
+      await PeripheralDevicePolicyRepository.set(deniedPolicy)
 
       const record = await consumer.consume(buildBluetoothAclEvent())
 

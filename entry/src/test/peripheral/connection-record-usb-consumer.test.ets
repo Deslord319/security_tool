@@ -154,15 +154,17 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
     let mockKit: MockKit
     let dispatchResult: PeripheralPolicyDispatchResult
     let dispatchCount: number
+    let usbDisabledResult: BooleanOperationResult
+    let usbStorageResult: UsbPolicyOperationResult
 
     beforeEach(async () => {
       mockKit = new MockKit()
       dispatchResult = createDispatchResult(true)
       dispatchCount = 0
       await PeripheralDevicePolicyRepository.clearAll()
-      let usbDisabledResult = new BooleanOperationResult()
+      usbDisabledResult = new BooleanOperationResult()
       usbDisabledResult.data = false
-      let usbStorageResult = new UsbPolicyOperationResult()
+      usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_WRITE
       let getInterfaceMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
@@ -178,17 +180,24 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       })
     })
 
-    afterEach(() => {
+    afterEach(async () => {
+      mockKit.clear(PeripheralService)
+      mockKit.clear(PeripheralDevicePolicyDispatchService)
       mockKit.clearAll()
+      await PeripheralDevicePolicyRepository.clearAll()
     })
 
     it('U-USB-001 should map usb attached event to blocked record when usb interface is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      let usbDisabledResult = new BooleanOperationResult()
       usbDisabledResult.data = true
-      let getInterfaceMock: Function =
-        mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
-      when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
+      await PeripheralDevicePolicyRepository.set({
+        deviceId: 'VID:1234 PID:5678',
+        policy: 'allow',
+        updatedAt: 1,
+        deviceName: 'Allowed Storage',
+        deviceType: PeripheralType.USB_STORAGE
+      })
+      dispatchCount = 0
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -198,15 +207,12 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.matchedPolicyKind).assertEqual('usb_disabled')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('USB 接口已禁用')
+      expect(dispatchCount).assertEqual(0)
     })
 
     it('U-USB-002 should block usb storage event without auto deny when storage policy is disabled', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.DISABLED
-      let getUsbStorageMock: Function =
-        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-      when(getUsbStorageMock)().afterReturn(usbStorageResult)
       dispatchCount = 0
 
       const record = await consumer.consume(buildUsbEvent())
@@ -224,11 +230,15 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-003 should map usb storage read only policy to allow record with enabled label', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
-      let getUsbStorageMock: Function =
-        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-      when(getUsbStorageMock)().afterReturn(usbStorageResult)
+      await PeripheralDevicePolicyRepository.set({
+        deviceId: 'VID:1234 PID:5678',
+        policy: 'allow',
+        updatedAt: 1,
+        deviceName: 'Allowed Storage',
+        deviceType: PeripheralType.USB_STORAGE
+      })
+      dispatchCount = 0
 
       const record = await consumer.consume(buildUsbEvent())
 
@@ -238,15 +248,12 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_read_only')
       expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.summary).assertEqual('USB 存储只读')
+      expect(dispatchCount).assertEqual(0)
     })
 
     it('U-USB-003A should prefer device deny over usb storage read only on attach', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      let usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_ONLY
-      let getUsbStorageMock: Function =
-        mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
-      when(getUsbStorageMock)().afterReturn(usbStorageResult)
       await PeripheralDevicePolicyRepository.set({
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
