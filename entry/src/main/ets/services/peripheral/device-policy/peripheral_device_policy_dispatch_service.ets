@@ -69,7 +69,7 @@ export class PeripheralDevicePolicyDispatchService {
       return PeripheralDevicePolicyDispatchService.buildFailureResult('usb_conflict_global_disabled')
     }
 
-    if (request.policy === 'allow' && request.deviceType === PeripheralType.USB_STORAGE) {
+    if (request.deviceType === PeripheralType.USB_STORAGE) {
       const storagePolicyResult = PeripheralDevicePolicyDispatchService.getUsbStoragePolicy()
       if (!storagePolicyResult.success) {
         return PeripheralDevicePolicyDispatchService.copyFailureResult(storagePolicyResult, 'usb_dispatch_failed')

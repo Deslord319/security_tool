@@ -234,6 +234,32 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.summary).assertEqual('USB 存储只读')
     })
 
+    it('U-USB-003A should prefer device deny over usb storage read only on attach', 0, async () => {
+      const consumer = new PeripheralConnectionRecordUsbConsumer()
+      let usbStorageResult = new UsbPolicyOperationResult()
+      usbStorageResult.data = UsbStoragePolicy.READ_ONLY
+      let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+      when(getUsbStorageMock)().afterReturn(usbStorageResult)
+      await PeripheralDevicePolicyRepository.set({
+        deviceId: 'VID:1234 PID:5678',
+        policy: 'deny',
+        updatedAt: 1,
+        deviceName: 'Denied Storage',
+        deviceType: PeripheralType.USB_STORAGE
+      })
+      dispatchCount = 0
+
+      const record = await consumer.consume(buildUsbEvent())
+
+      expect(record !== null).assertTrue()
+      expect(record?.decision).assertEqual('deny')
+      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.matchedPolicyKind).assertEqual('device_deny')
+      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
+      expect(record?.summary).assertEqual('命中单设备禁止接入')
+      expect(dispatchCount).assertEqual(0)
+    })
+
     it('U-USB-004 should block usb attach event when device policy is deny', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
       let deniedPolicy: PeripheralDevicePolicyRecord = {

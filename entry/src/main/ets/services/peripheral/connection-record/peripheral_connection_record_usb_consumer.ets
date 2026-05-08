@@ -198,17 +198,6 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
           matchedPolicyKind: 'usb_storage_disabled'
         }
       }
-      if (snapshot.usbStoragePolicy === UsbStoragePolicy.READ_ONLY) {
-        return {
-          policyHit: 'allow',
-          result: LogEventResult.SUCCESS,
-          summary: PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY,
-          detail: PeripheralConnectionRecordStrings.USB_STORAGE_READ_ONLY_DETAIL,
-          usbPolicy: snapshot.usbStoragePolicy,
-          effectivePolicyLabel: StatusText.ENABLED,
-          matchedPolicyKind: 'usb_storage_read_only'
-        }
-      }
     }
 
     if (snapshot.devicePolicies.get(info.deviceId.toUpperCase()) === 'deny') {
@@ -220,6 +209,18 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: StatusText.DISABLED,
         matchedPolicyKind: 'device_deny'
+      }
+    }
+
+    if (info.deviceType === PeripheralType.USB_STORAGE && snapshot.usbStoragePolicy === UsbStoragePolicy.READ_ONLY) {
+      return {
+        policyHit: 'allow',
+        result: LogEventResult.SUCCESS,
+        summary: PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY,
+        detail: PeripheralConnectionRecordStrings.USB_STORAGE_READ_ONLY_DETAIL,
+        usbPolicy: snapshot.usbStoragePolicy,
+        effectivePolicyLabel: StatusText.ENABLED,
+        matchedPolicyKind: 'usb_storage_read_only'
       }
     }
 
