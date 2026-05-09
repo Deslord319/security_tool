@@ -32,7 +32,7 @@ from scripts.e2e.tools.test_asset_common import (
     validate_test_assets,
 )
 
-HTML_PATH = PROJECT_ROOT / "docs/test-assets-dashboard.html"
+HTML_PATH = PROJECT_ROOT / "docs/04-测试文档/e2e测试/test-assets-dashboard.html"
 
 
 def read_json_body(handler: BaseHTTPRequestHandler) -> dict:

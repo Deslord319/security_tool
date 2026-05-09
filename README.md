@@ -121,7 +121,6 @@ security_tool/
 ├── docs/                          # 需求、总体设计、模块设计、测试文档
 ├── build_hap.bat                  # 本地构建并同步 unsigned HAP
 ├── AGENTS.md                      # 项目级开发与签名/测试规范
-├── CI_QUICKSTART.md               # 历史 CI 说明文档
 ├── hvigorfile.ts                  # Hvigor 构建入口
 ├── oh-package.json5               # 依赖定义
 └── README.md
@@ -329,15 +328,18 @@ security_tool/
 - [AGENTS.md](AGENTS.md)：开发规范、签名流程、权限一致性、测试基线
 - [scripts/e2e/README.md](scripts/e2e/README.md)：E2E 测试框架与运行方式
 - [docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md](docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md)：设备侧测试基线
+- [docs/04-测试文档/e2e测试/端到端测试框架设计.md](docs/04-测试文档/e2e测试/端到端测试框架设计.md)：E2E 框架设计
 - [docs/02-总体设计/总体设计RFC.md](docs/02-总体设计/总体设计RFC.md)：总体设计说明
 - [docs/02-总体设计/PRD.md](docs/02-总体设计/PRD.md)：产品需求范围
+- [docs/storage-architecture-standard.md](docs/storage-architecture-standard.md)：存储架构与迁移标准
+- [docs/03-模块设计/安全总览组件设计说明.md](docs/03-模块设计/安全总览组件设计说明.md)：安全总览模块设计
 - [docs/03-模块设计/防火墙管理组件设计说明.md](docs/03-模块设计/防火墙管理组件设计说明.md)：防火墙模块设计
 - [docs/03-模块设计/外设管理组件设计说明.md](docs/03-模块设计/外设管理组件设计说明.md)：外设模块设计
 - [docs/03-模块设计/身份鉴别组件设计说明.md](docs/03-模块设计/身份鉴别组件设计说明.md)：身份鉴别模块设计
 - [docs/03-模块设计/日志管理组件设计说明.md](docs/03-模块设计/日志管理组件设计说明.md)：日志管理模块设计
 - [docs/03-模块设计/工具设置组件设计说明.md](docs/03-模块设计/工具设置组件设计说明.md)：工具设置模块设计
+- [docs/03-模块设计/帮助与反馈组件设计说明.md](docs/03-模块设计/帮助与反馈组件设计说明.md)：帮助与反馈辅助页设计
 - [docs/01-UX设计/index.html](docs/01-UX设计/index.html)：UX 原型入口
-- [docs/05-agent-observer/recorder/README.md](docs/05-agent-observer/recorder/README.md)：observer recorder 说明
 
 ## 常见问题
 

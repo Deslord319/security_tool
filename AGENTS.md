@@ -137,6 +137,7 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 | `peripheral-manage` | 外设管理 | `docs/03-模块设计/外设管理组件设计说明.md` |
 | `identity` | 身份鉴别 | `docs/03-模块设计/身份鉴别组件设计说明.md` |
 | `tool-settings` | 工具设置 | `docs/03-模块设计/工具设置组件设计说明.md` |
+| `help-feedback` | 帮助与反馈 | `docs/03-模块设计/帮助与反馈组件设计说明.md` |
 
 ### 必须先更新模块设计文档的场景
 
@@ -274,47 +275,42 @@ ohos.permission.PRIVACY_WINDOW
 
 | 事件 | 分支/标签 | 执行流程 |
 |------|----------|---------|
-| Push | `develop` | 构建 + 测试 |
-| Push | `main` | 构建 + 测试 + 签名 |
-| Tag | `v*` | 构建 + 测试 + 签名 + GitHub Release |
-| Pull Request | `main` | 构建 + 测试 |
+| Push | `main` / `master` / `develop` / `codex/**` | 仓库检查 + 测试清单；启用自托管 Runner 时执行单元测试、构建和签名 |
+| Tag | `v*` | 仓库检查 + 测试清单；启用自托管 Runner 时执行单元测试、构建和签名 |
+| Pull Request | `main` / `master` | 仓库检查 + 测试清单；启用自托管 Runner 时执行单元测试 |
 
 #### 工作流说明
 
-**Job 1: Build** - 构建验证
-- 安装 HarmonyOS SDK 6.0.2
-- 执行 `hvigorw assembleHap` 构建
-- 生成未签名 HAP 包
-- 上传为 Artifact（保留 7 天）
+**Job 1: Repository Checks** - 仓库基础检查
+- 在 GitHub 托管 runner 上检出代码，准备 Node.js / Java
+- 说明 GitHub 托管 runner 不提供 HarmonyOS SDK，真实构建测试由自托管 `windows,harmonyos` runner 执行
 
-**Job 2: Test** - 组件测试
+**Job 2: List Test Cases** - 测试清单
+- 统计 `entry/src/test/**/*.test.ets`
+- 生成并上传 `test-report.txt`，该 job 不执行 HarmonyOS 单元测试
+
+**Job 3: Run entry@default Unit Tests** - 自托管单元测试
+- 仅当仓库变量 `HARMONYOS_CI_ENABLED == 'true'` 且存在自托管 `windows,harmonyos` runner 时执行
+- 按本文件前述 DevEco Studio / `hvigorw.bat` 查找规则解析工具链
 - 执行 `hvigorw test --mode module -p product=default -p module=entry@default`
-- 生成测试报告
-- 测试报告上传为 Artifact
+- 上传 `entry-default-unit-test-report`（保留 7 天）
 
-**Job 3: Sign** - 自动签名（仅 main/标签）
-- 从 GitHub Secrets 读取签名密钥
-- 执行 Java 签名命令
-- 生成已签名 HAP 包
-- 上传为 Artifact（保留 30 天）
+**Job 4: Build entry@default HAP** - 自托管构建与签名
+- 仅 Push 事件执行，且要求 `HARMONYOS_CI_ENABLED == 'true'`
+- 使用自托管 runner 上的 DevEco Studio / SDK / ohpm / Java
+- 构建 `entry-default-unsigned.hap`
+- 将 unsigned HAP 同步到 `hapsigner/`，使用仓库内 `hapsigner` 工具链生成 `signApp.hap`
+- 上传 Artifact `entry-default-hap`（保留 7 天）
 
-**Job 4: Release** - 发布（仅标签）
-- 创建 GitHub Release
-- 自动上传已签名 HAP
-- 生成发布说明
+当前 `.github/workflows/ci.yml` 没有启用 GitHub Release job，也没有从 GitHub Secrets 动态解码签名密钥；若后续改为 Secrets 签名或标签发布，必须同步更新本文档和 `.github/` 下相关说明。
 
-#### Secrets 配置
+#### Actions 变量
 
-在 GitHub 仓库 Settings → Secrets and variables → Actions 配置以下密钥：
+在 GitHub 仓库 Settings → Secrets and variables → Actions 中配置仓库变量：
 
-| Secret 名称 | 值 | 说明 |
+| Variable 名称 | 值 | 说明 |
 |------------|-----|------|
-| `SIGNING_KEYSTORE` | base64 编码的 `.p12` 文件 | 密钥库 |
-| `SIGNING_KEYSTORE_PASSWORD` | `123456` | 密钥库密码 |
-| `SIGNING_KEY_ALIAS` | `openharmony application release` | 密钥别名 |
-| `SIGNING_KEY_PASSWORD` | `123456` | 密钥密码 |
-
-配置指南详见：`.github/SECRETS_SETUP.md`
+| `HARMONYOS_CI_ENABLED` | `true` | 启用自托管 HarmonyOS 单元测试、构建和签名 job |
 
 #### 本地调试 CI
 
@@ -322,11 +318,11 @@ ohos.permission.PRIVACY_WINDOW
 # 1. 使用 act 工具在本地运行 GitHub Actions
 npm install -g @act-js/cli
 
-# 2. 运行构建作业
-act push
+# 2. 查看可运行 job
+act -l
 
-# 3. 运行测试作业
-act -j test
+# 3. 运行托管 runner 上可执行的检查类 job
+act -j checks
 ```
 
 #### 状态徽章

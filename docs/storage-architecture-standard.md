@@ -90,7 +90,7 @@ Move these to `@ohos.data.relationalStore`:
 
 ## PreferencesAccessor
 
-Add:
+Current implementation:
 
 - `entry/src/main/ets/storage/preferences/PreferencesAccessor.ets`
 
@@ -128,7 +128,7 @@ Do not use it for:
 
 ## Relational Storage Design
 
-Add:
+Current implementation:
 
 - `entry/src/main/ets/storage/rdb/RdbStoreProvider.ets`
 - `entry/src/main/ets/storage/rdb/DatabaseVersionManager.ets`
@@ -285,7 +285,7 @@ Rules:
 
 ## Migration Standard
 
-Add:
+Future target:
 
 - `entry/src/main/ets/storage/preferences/PreferencesMigrationService.ets`
 
@@ -311,6 +311,8 @@ Migration responsibilities:
   - `XxxExportService`
 
 ## File-by-File Migration Targets
+
+This section records migration targets and retired historical owners. Paths under "Runtime replacement completed" and long-term split targets are not active source files unless the current state line says so.
 
 ### Keep and refactor internally
 
