@@ -42,7 +42,6 @@ def write_suite_markdown(output_dir: Path, summary: SuiteSummary) -> Path:
                 f"- Execution Backend: `{summary.execution_backend or '-'}`",
                 f"- Bridge Command: `{summary.bridge_command or '-'}`",
                 f"- Bridge Backend Module: `{summary.bridge_backend_module or '-'}`",
-                f"- Mock Results Allowed: `{summary.mock_results_allowed}`",
                 f"- Overall: `{summary.overall_status}`",
                 f"- Total: `{summary.total_cases}`",
                 f"- PASS: `{summary.pass_count}`",

@@ -33,7 +33,7 @@ DIALOG_REGION_PRESETS = {
 
 FIREWALL_DIALOG_REGION = DIALOG_REGION_PRESETS["firewall"]
 
-DELETE_ACTION_LABELS = ["删除", "移除"]
+DELETE_ACTION_LABELS = ["删除规则", "删除", "移除"]
 CONFIRM_DIALOG_LABELS = ["确定", "确认", "保存", "提交", "添加", "新增"]
 CONFIRM_DELETE_LABELS = ["确定", "确认", "删除", "移除"]
 

@@ -33,6 +33,9 @@ class HdcDriver:
     def shell(self, shell_command: str, timeout_sec: int = 20):
         return run_command(self.command(["shell", shell_command]), self.project_root, timeout_sec, self.dry_run)
 
+    def wake_device(self, timeout_sec: int = 10):
+        return self.shell("power-shell wakeup", timeout_sec)
+
     def enable_admin(
         self,
         *,

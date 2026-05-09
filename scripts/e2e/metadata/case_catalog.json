@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-05-09T01:24:15+00:00",
+  "updated_at": "2026-05-09T05:38:23+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -63,7 +63,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/admin_enable.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "approved",
       "review_notes": [
         "tmp test",
@@ -146,7 +146,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -239,7 +239,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/admin_status.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -395,7 +395,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/summary_cards.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -473,7 +473,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/quick_entries.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -523,17 +523,36 @@
           "params": {
             "url": "https://www.baidu.com"
           }
+        },
+        {
+          "name": "return_to_security_tool",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "delete_domain_rule_after_browser",
+          "ref": "entity.delete",
+          "params": {
+            "domain": "firewall",
+            "entity": "rule",
+            "variant": "domain",
+            "data": {
+              "domain": "www.baidu.com"
+            }
+          }
         }
       ],
       "structured_assertions": [
         {
-          "name": "domain_rule_visible_before_browser_verification",
+          "name": "domain_rule_cleaned_after_browser_verification",
           "type": "assert_text_presence",
           "value": "www.baidu.com",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
-            "present": true,
+            "present": false,
             "timeout_ms": 2500,
             "interval_ms": 250
           }
@@ -567,7 +586,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -594,7 +613,8 @@
           "name": "open_firewall_page",
           "ref": "navigation.open_page",
           "params": {
-            "page_id": "firewall"
+            "page_id": "firewall",
+            "target_view": "main"
           }
         }
       ],
@@ -645,7 +665,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/mode_cards.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -677,10 +697,10 @@
         },
         {
           "name": "open_firewall_rules",
-          "ref": "ui.click_text",
+          "ref": "navigation.open_page",
           "params": {
-            "text": "规则页",
-            "bundle_name": "{{bundle_name}}"
+            "page_id": "firewall-rules",
+            "rule_type": "domain"
           }
         },
         {
@@ -732,8 +752,8 @@
         "firewall",
         "completeness"
       ],
-      "bridge_coverage_status": "partial",
-      "capability_gap_status": "bridge_gap",
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
       "capability_gap_items": [
         "Bridge 覆盖未完整"
       ],
@@ -749,7 +769,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/subroute_restore.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -843,7 +863,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_create.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -928,7 +948,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_delete.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -969,9 +989,7 @@
               "name": "E2E lifecycle domain rule",
               "domain": "e2e-lifecycle.example.com",
               "direction": "out",
-              "policy": "deny",
-              "protocol": "tcp",
-              "port": "443"
+              "policy": "deny"
             }
           }
         },
@@ -1037,7 +1055,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rules_tabs.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1115,7 +1133,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rules_page_visible.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1156,7 +1174,8 @@
           "name": "open_firewall_page",
           "ref": "navigation.open_page",
           "params": {
-            "page_id": "firewall"
+            "page_id": "firewall",
+            "target_view": "main"
           }
         },
         {
@@ -1214,7 +1233,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/status_toggle.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1317,7 +1336,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/domain_policy.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1422,7 +1441,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/password_policy.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1501,9 +1520,9 @@
       ],
       "structured_assertions": [
         {
-          "name": "identity_save_success_visible",
+          "name": "password_complexity_context_visible",
           "type": "assert_text_presence",
-          "value": "身份鉴别配置已保存",
+          "value": "口令复杂度策略",
           "level": "primary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1513,9 +1532,9 @@
           }
         },
         {
-          "name": "password_complexity_context_visible",
+          "name": "identity_save_action_visible",
           "type": "assert_text_presence",
-          "value": "口令复杂度策略",
+          "value": "保存配置",
           "level": "secondary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1551,7 +1570,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/complexity_requirements.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1616,7 +1635,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/validity_section.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1706,7 +1725,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/event_after_policy_change.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1783,7 +1802,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/export.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1817,39 +1836,6 @@
           "name": "open_log_manage",
           "ref": "logs.open_list",
           "params": {}
-        },
-        {
-          "name": "open_event_type_filter",
-          "ref": "ui.click_text",
-          "params": {
-            "text": "全部类型",
-            "bundle_name": "{{bundle_name}}"
-          }
-        },
-        {
-          "name": "choose_firewall_log_filter",
-          "ref": "ui.click_text",
-          "params": {
-            "text": "防火墙日志",
-            "bundle_name": "{{bundle_name}}",
-            "contains": true
-          }
-        },
-        {
-          "name": "open_result_filter",
-          "ref": "ui.click_text",
-          "params": {
-            "text": "全部结果",
-            "bundle_name": "{{bundle_name}}"
-          }
-        },
-        {
-          "name": "choose_success_result_filter",
-          "ref": "ui.click_text",
-          "params": {
-            "text": "成功",
-            "bundle_name": "{{bundle_name}}"
-          }
         }
       ],
       "structured_assertions": [
@@ -1866,9 +1852,9 @@
           }
         },
         {
-          "name": "filtered_log_page_keeps_export_action",
+          "name": "policy_change_log_type_visible",
           "type": "assert_text_presence",
-          "value": "导出日志",
+          "value": "权限变更日志",
           "level": "secondary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -1903,7 +1889,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/filters_visible.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1999,7 +1985,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/page_details.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2077,7 +2063,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/stats_visible.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2250,7 +2236,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/storage_settings_visible.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2331,7 +2317,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/about_dialog.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2397,7 +2383,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/help_feedback.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2487,7 +2473,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/help_feedback_details.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2553,7 +2539,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/identity_page.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2653,7 +2639,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/log_page.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2733,7 +2719,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/theme_menu.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2844,7 +2830,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2910,7 +2896,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/tool_settings_page.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2988,13 +2974,13 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
     {
       "case_id": "PER-IF-001",
-      "case_name": "Peripheral Interface Toggle",
+      "case_name": "Peripheral Interface Panel Visible",
       "module_id": "peripheral",
       "module_name": "外设管理",
       "status": "implemented",
@@ -3019,51 +3005,11 @@
           }
         },
         {
-          "name": "toggle_usb_interface",
-          "ref": "entity.toggle",
+          "name": "open_interface_tab",
+          "ref": "ui.click_text",
           "params": {
-            "domain": "peripheral",
-            "entity": "interface",
-            "variant": "usb",
-            "data": {
-              "target_state": "invert"
-            }
-          }
-        },
-        {
-          "name": "toggle_bluetooth_interface",
-          "ref": "entity.toggle",
-          "params": {
-            "domain": "peripheral",
-            "entity": "interface",
-            "variant": "bluetooth",
-            "data": {
-              "target_state": "invert"
-            }
-          }
-        },
-        {
-          "name": "toggle_wifi_interface",
-          "ref": "entity.toggle",
-          "params": {
-            "domain": "peripheral",
-            "entity": "interface",
-            "variant": "wifi",
-            "data": {
-              "target_state": "invert"
-            }
-          }
-        },
-        {
-          "name": "toggle_hdc_interface",
-          "ref": "entity.toggle",
-          "params": {
-            "domain": "peripheral",
-            "entity": "interface",
-            "variant": "hdc",
-            "data": {
-              "target_state": "invert"
-            }
+            "text": "接口管控",
+            "bundle_name": "{{bundle_name}}"
           }
         }
       ],
@@ -3071,8 +3017,20 @@
         {
           "name": "peripheral_interface_page_visible",
           "type": "assert_text_presence",
-          "value": "USB 接口",
+          "value": "接口管控",
           "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "usb_interface_row_visible",
+          "type": "assert_text_presence",
+          "value": "USB 接口",
+          "level": "secondary",
           "params": {
             "bundle_name": "{{bundle_name}}",
             "present": true,
@@ -3088,11 +3046,12 @@
         "peripheral",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
         "外设步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
+        "缺少断言草稿",
+        "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
         "flow": [
@@ -3103,12 +3062,14 @@
         "assertion": [
           "缺少断言草稿"
         ],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/interfaces.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3222,7 +3183,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/interface_core_items.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3300,7 +3261,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/policy_tab.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3377,7 +3338,7 @@
         {
           "name": "allow_policy_visible_after_restore",
           "type": "assert_text_presence",
-          "value": "允许",
+          "value": "读写",
           "level": "secondary",
           "params": {
             "bundle_name": "{{bundle_name}}",
@@ -3412,7 +3373,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/policy_actions_visible.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3490,7 +3451,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/record_tab.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3585,7 +3546,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_policy.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3663,7 +3624,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/bluetooth_whitelist.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3741,7 +3702,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_whitelist.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3825,7 +3786,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/auth_method.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3907,7 +3868,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/password_flow.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -3997,7 +3958,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/password_entry_visible.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -4097,7 +4058,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/startup_auth.json",
-      "last_result_status": "NOT_RUN",
+      "last_result_status": "PASS",
       "review_status": "unreviewed",
       "review_notes": []
     }

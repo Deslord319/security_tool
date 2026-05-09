@@ -7,7 +7,6 @@ bridge 是 Python E2E runner 和 HarmonyOS MCP UI 执行环境之间的运行时
 - [`harmonyos_mcp_bridge.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/harmonyos_mcp_bridge.py)
 - [`action_plans.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/action_plans.py)
 - [`backend_template.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/backend_template.py)
-- [`scripted_backend.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/scripted_backend.py)
 - [`real_harmonyos_mcp_backend.py`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/bridges/real_harmonyos_mcp_backend.py)
 - [`MCP_BRIDGE_PROTOCOL.md`](/C:/Users/mu/Desktop/code/security_tool/scripts/e2e/docs/MCP_BRIDGE_PROTOCOL.md)
 
@@ -40,13 +39,6 @@ $env:HARMONYOS_E2E_MCP_BACKEND_MODULE="scripts\\e2e\\bridges\\real_harmonyos_mcp
 
 ```powershell
 pip install harmonyos_dev_mcp
-```
-
-如果要使用 scripted backend：
-
-```powershell
-$env:HARMONYOS_E2E_MCP_BACKEND_MODULE="scripts\\e2e\\bridges\\scripted_backend.py"
-$env:HARMONYOS_E2E_SCRIPTED_RESULTS="scripts\\e2e\\bridges\\scripted_results.sample.json"
 ```
 
 ## 4. Backend 契约

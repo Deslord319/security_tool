@@ -81,6 +81,17 @@ class SecurityToolFlowExecutor:
             return execution
 
         if flow_ref == "app.launch":
+            wake_result = None
+            if not self.dry_run:
+                wake_result = self.hdc.wake_device()
+                if wake_result.returncode != 0:
+                    return FlowExecutionResult(
+                        "FAIL",
+                        COMMAND_FAILED,
+                        "Device wakeup command failed",
+                        command=self.hdc.command(["shell", "power-shell wakeup"]),
+                        command_result=wake_result,
+                    )
             launch_args = [
                 "aa start",
                 f"-a {self.main_ability}",
@@ -92,7 +103,8 @@ class SecurityToolFlowExecutor:
             if self.dry_run:
                 return FlowExecutionResult("PASS", "", "Dry run: skipped execution", command=command)
             result = self.hdc.shell(shell_command, params.get("timeout_sec", 20))
-            if result.returncode != 0:
+            launch_output = f"{result.stdout}\n{result.stderr}".lower()
+            if result.returncode != 0 or "failed to start ability" in launch_output or "error:" in launch_output:
                 return FlowExecutionResult("FAIL", COMMAND_FAILED, "App launch command failed", command=command, command_result=result)
             password_result = self.mcp.input_password_if_prompted(bundle_name=self.bundle_name)
             require_auth_prompt = bool(params.get("require_auth_prompt", False))
@@ -121,7 +133,14 @@ class SecurityToolFlowExecutor:
                 "Flow executed",
                 command=command,
                 command_result=result,
-                evidence={"password_prompt": password_result},
+                evidence={
+                    "wakeup": {
+                        "returncode": wake_result.returncode if wake_result is not None else None,
+                        "stdout": wake_result.stdout.strip() if wake_result is not None else "",
+                        "stderr": wake_result.stderr.strip() if wake_result is not None else "",
+                    },
+                    "password_prompt": password_result,
+                },
             )
 
         if flow_ref == "navigation.open_page":

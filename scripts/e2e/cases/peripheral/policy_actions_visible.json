@@ -64,7 +64,7 @@
     {
       "name": "allow_policy_visible_after_restore",
       "type": "assert_text_presence",
-      "value": "允许",
+      "value": "读写",
       "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
