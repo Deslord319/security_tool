@@ -1,6 +1,6 @@
 # SecurityTool 总体设计 RFC
 
-> 状态：Draft
+> 状态：Active
 > 日期：2026-04-08
 > 适用范围：SecurityTool 商业项目当前交付版本与后续版本规划
 > 配套文档：
@@ -145,6 +145,68 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 - `MainPage` 直接承担模块业务逻辑
 - 子组件自行维护完整业务状态副本
 - 为了修局部 bug 在页面层补镜像态
+
+### 5.4 架构落地视图
+
+当前代码按“应用入口 + 页面路由 + 模块 MVVM + 领域服务 + 平台能力适配”落地：
+
+```text
+EntryAbility
+  -> ApplicationRuntimeManager
+  -> MainPage(RouteIds)
+  -> Module Page
+  -> Module ViewModel
+  -> Module Service / Domain Use Case
+  -> Repository / Provider / Adapter
+  -> HarmonyOS API / MDM API / Preferences / RDB
+```
+
+各入口职责：
+
+| 架构节点 | 当前落点 | 职责 |
+|---|---|---|
+| 应用启动 | `entry/src/main/ets/entryability/EntryAbility.ets` | 初始化主题、执行启动认证、加载 `pages/MainPage`、处理生命周期事件 |
+| 运行时服务 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` | 管理跨页面运行态，如日志采集、外设连接记录采集、共享 ViewModel |
+| 路由壳层 | `entry/src/main/ets/pages/MainPage.ets` | 持有当前路由，装配侧边栏、顶部菜单和模块页面，不承载模块内部业务 |
+| 页面层 | `entry/src/main/ets/views/**` | 展示、交互转发、弹窗、局部 UI 状态 |
+| 状态层 | `entry/src/main/ets/viewmodels/**` | 初始化、刷新、保存、提交、结果映射和页面状态收口 |
+| 领域层 | `entry/src/main/ets/services/**` | 系统能力编排、策略下发、采集、导出、认证等业务动作 |
+| 持久化层 | `entry/src/main/ets/storage/**`、模块 Repository | Preferences / RDB 访问、表结构、配置读写、查询和裁剪 |
+| 公共能力 | `entry/src/main/ets/components/**`、`utils/**`、`constants/**`、`theme/**` | UI 复用、日志、弹窗、导出文案、路径处理、主题和文案常量 |
+
+跨模块依赖边界：
+
+- 安全总览可以读取管理员、防火墙、日志和外设摘要，但不直接改写其它模块状态。
+- 工具设置负责工具自身启动认证；防火墙敏感操作认证直接复用身份认证能力，不消费工具设置配置。
+- 日志管理作为审计留痕模块，运行时采集由 `ApplicationRuntimeManager` 拉起，页面只展示和操作日志查询/导出。
+- 外设运行时采集由 `ApplicationRuntimeManager` 拉起，外设页面不直接启动后台采集管线。
+- 帮助与反馈是静态辅助页，不进入核心安全闭环，不引入 Service、Repository 或权限依赖。
+
+### 5.5 实施步骤
+
+新增或调整业务模块时，按以下顺序实施：
+
+1. 明确产品范围：先更新 `docs/02-总体设计/PRD.md` 和本文档中的模块范围、交付能力、非目标。
+2. 更新模块设计：在 `docs/03-模块设计/` 中补齐入口路由、状态模型、数据流、ViewModel / Service / Repository 职责、系统能力、权限、异常兜底和测试边界。
+3. 更新配置契约：如涉及包名、权限或签名能力，同步检查 `AppScope/app.json5`、`entry/src/main/module.json5`、`hapsigner/UnsgnedDebugProfileTemplate.json`。
+4. 实施代码：按 Page -> ViewModel -> Service -> Repository/Provider/Adapter 的方向落地；页面只转发交互，业务状态在 ViewModel 收口。
+5. 补齐测试：低风险纯函数补 UT；状态流、仓储和服务补本地 UT；页面路由和设备能力补 ohosTest；端到端闭环补 `scripts/e2e/cases`。
+6. 构建签名：按 `AGENTS.md` 的 hvigor 查找和签名流程构建 unsigned HAP、同步到 `hapsigner/`、签名生成 `signApp.hap`。
+7. 设备验收：安装主包和测试包，激活企业管理员，执行默认设备冒烟和模块相关可选场景。
+8. 回写文档：如验证中发现行为边界、失败策略或验收口径变化，先回写模块设计文档，再提交代码。
+
+### 5.6 验收闭环
+
+每个模块最少需要具备以下验收证据：
+
+| 验收维度 | 文档落点 | 代码/测试落点 |
+|---|---|---|
+| 入口可达 | PRD、总体 RFC、模块设计第 1/3 章 | `RouteIds`、`MainPage`、ohosTest 路由用例 |
+| 状态可信 | 模块设计第 2 章 | ViewModel UT、Repository/Service UT |
+| 系统能力边界 | 模块设计第 3.2/4 章 | Service/Adapter 实现、权限声明、签名模板 |
+| 异常兜底 | 模块设计第 4 章 | 失败分支 UT、页面提示、日志输出 |
+| 设备可验收 | README、AGENTS、测试文档 | HAP 构建、签名、安装、`aa test`、E2E case |
+| 文档一致性 | README 关键文档索引、模块设计变更日志 | Markdown 链接检查、UTF-8 回读、权限/路由/测试数量核对 |
 
 ## 6. 模块级交付说明
 
@@ -644,7 +706,7 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 
 ## 10. 结论
 
-当前版本不是概念验证，而是一个面向商业项目交付的本地安全管理工具。总体设计的重点不是描述抽象架构，而是确保六个模块各自有明确交付内容、可演示动作、可验收标准和清晰边界。后续所有模块变更，都应回到这四个问题：
+当前版本不是概念验证，而是一个面向商业项目交付的本地安全管理工具。总体设计的重点不是描述抽象架构，而是确保六个核心模块和一个辅助页各自有明确交付内容、可演示动作、可验收标准和清晰边界。后续所有模块变更，都应回到这四个问题：
 
 1. 客户能看到什么
 2. 用户能操作什么
