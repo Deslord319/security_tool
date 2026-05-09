@@ -1,11 +1,12 @@
 {
-  "updated_at": "2026-04-09T10:35:13+00:00",
-  "total_cases": 35,
+  "updated_at": "2026-05-09T01:24:18+00:00",
+  "total_cases": 45,
   "status_stats": {
-    "implemented": 35
+    "implemented": 45
   },
   "result_stats": {
-    "PASS": 35
+    "NOT_RUN": 44,
+    "PASS": 1
   },
   "module_stats": {
     "bootstrap": {
@@ -16,50 +17,50 @@
       "deprecated": 0
     },
     "dashboard": {
-      "total": 3,
-      "implemented": 3,
-      "draft": 0,
-      "planned": 0,
-      "deprecated": 0
-    },
-    "firewall": {
-      "total": 6,
-      "implemented": 6,
-      "draft": 0,
-      "planned": 0,
-      "deprecated": 0
-    },
-    "identity": {
-      "total": 3,
-      "implemented": 3,
-      "draft": 0,
-      "planned": 0,
-      "deprecated": 0
-    },
-    "log-manage": {
       "total": 4,
       "implemented": 4,
       "draft": 0,
       "planned": 0,
       "deprecated": 0
     },
+    "firewall": {
+      "total": 8,
+      "implemented": 8,
+      "draft": 0,
+      "planned": 0,
+      "deprecated": 0
+    },
+    "identity": {
+      "total": 4,
+      "implemented": 4,
+      "draft": 0,
+      "planned": 0,
+      "deprecated": 0
+    },
+    "log-manage": {
+      "total": 6,
+      "implemented": 6,
+      "draft": 0,
+      "planned": 0,
+      "deprecated": 0
+    },
     "navigation": {
-      "total": 7,
-      "implemented": 7,
+      "total": 8,
+      "implemented": 8,
       "draft": 0,
       "planned": 0,
       "deprecated": 0
     },
     "peripheral": {
-      "total": 7,
-      "implemented": 7,
+      "total": 9,
+      "implemented": 9,
       "draft": 0,
       "planned": 0,
       "deprecated": 0
     },
     "tool-settings": {
-      "total": 3,
-      "implemented": 3,
+      "total": 4,
+      "implemented": 4,
       "draft": 0,
       "planned": 0,
       "deprecated": 0
@@ -67,46 +68,49 @@
   },
   "suite_stats": {
     "smoke": 3,
-    "navigation": 9,
-    "completeness": 35,
-    "dashboard": 3,
-    "firewall": 6,
-    "identity": 3,
-    "logs": 4,
-    "peripheral": 7,
-    "tool_settings": 3
+    "navigation": 10,
+    "completeness": 45,
+    "dashboard": 4,
+    "firewall": 8,
+    "identity": 4,
+    "logs": 6,
+    "peripheral": 9,
+    "tool_settings": 4
   },
   "flow_stats": {
-    "app.launch": 40,
-    "navigation.open_page": 35,
-    "entity.create": 2,
+    "app.launch": 51,
+    "navigation.open_page": 49,
+    "entity.create": 3,
     "browser.open_url": 1,
+    "ui.click_text": 19,
     "ui.capture_screenshot": 2,
-    "entity.delete": 1,
-    "ui.press_key": 6,
+    "entity.delete": 2,
+    "ui.press_key": 7,
     "firewall.toggle_status": 1,
-    "entity.update": 4,
-    "logs.change_any_policy": 1,
+    "entity.update": 12,
+    "logs.change_any_policy": 2,
     "logs.export": 1,
+    "logs.open_list": 3,
+    "logs.open_storage_settings": 4,
+    "logs.save_storage_settings": 2,
     "theme_menu.open": 3,
-    "ui.click_text": 7,
-    "entity.toggle": 5,
-    "tool_settings.set_password": 1
+    "entity.toggle": 7,
+    "tool_settings.set_password": 2
   },
   "bridge_action_stats": {
-    "navigate_page": 35,
-    "execute_template_action": 12,
+    "navigate_page": 49,
+    "execute_template_action": 24,
     "open_browser_url": 1,
     "capture_screenshot": 2,
     "toggle_firewall": 1,
-    "change_any_policy": 1,
+    "change_any_policy": 2,
     "export_logs": 1,
     "open_top_menu": 3,
-    "set_tool_password": 1
+    "set_tool_password": 2
   },
   "bridge_coverage": {
-    "covered": 22,
-    "partial": 12,
+    "covered": 24,
+    "partial": 20,
     "missing": 1
   }
 }

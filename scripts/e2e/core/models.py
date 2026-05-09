@@ -69,4 +69,8 @@ class SuiteSummary:
     pass_count: int
     fail_count: int
     unknown_count: int
+    execution_backend: str = ""
+    bridge_command: str = ""
+    bridge_backend_module: str = ""
+    mock_results_allowed: bool = False
     result_files: list[str] = field(default_factory=list)

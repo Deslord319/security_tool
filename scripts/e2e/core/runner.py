@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Any
 from .adapter import AdapterConfig
 from .contracts import ContractError, validate_case_contract, validate_result_contract
 from .context import ExecutionContext
+from .execution_backend import classify_execution_backend
 from .failures import (
     ASSERTION_FAILED,
     ASSERTION_NOT_IMPLEMENTED,
@@ -31,6 +33,10 @@ from scripts.e2e.drivers.mcp_driver import McpDriver, MpcActionRequest
 
 class RunnerError(RuntimeError):
     pass
+
+
+DEFAULT_OUTPUT_DIR = "scripts/e2e/results"
+DEFAULT_MOCK_OUTPUT_DIR = "scripts/e2e/results/mock"
 
 
 def step_success(
@@ -396,6 +402,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--adapter", default="security_tool", help="Project adapter to load.")
     parser.add_argument("--list-suites", action="store_true", help="List suites exposed by the selected adapter and exit.")
     parser.add_argument("--dry-run", action="store_true", help="Print logical flow without executing device commands.")
+    parser.add_argument(
+        "--allow-mock-results",
+        action="store_true",
+        help="Allow mock_bridge execution. Default mock output is isolated under scripts/e2e/results/mock.",
+    )
     return parser.parse_args()
 
 
@@ -417,6 +428,20 @@ def find_cases(project_root: Path, explicit_cases: list[str] | None, cases_dir: 
 def find_suite_cases(project_root: Path, adapter_name: str, suite_name: str, cases_dir: str) -> list[Path]:
     case_dir = project_root / cases_dir
     return [case_dir / file_name for file_name in load_adapter_suite(adapter_name, suite_name)]
+
+
+def resolve_output_dir_arg(output_dir: str, execution_backend: str, allow_mock_results: bool) -> str:
+    if execution_backend != "mock_bridge":
+        return output_dir
+    if not allow_mock_results:
+        raise RunnerError(
+            "mock_bridge cannot write official E2E results. Use --dry-run for structure checks, "
+            "or pass --allow-mock-results to write isolated diagnostics under scripts/e2e/results/mock."
+        )
+    normalized = output_dir.replace("\\", "/").rstrip("/")
+    if normalized == DEFAULT_OUTPUT_DIR:
+        return DEFAULT_MOCK_OUTPUT_DIR
+    return output_dir
 
 
 def main() -> int:
@@ -453,9 +478,21 @@ def main() -> int:
         print("No case files found.", file=sys.stderr)
         return 1
 
+    bridge_command = os.environ.get("HARMONYOS_E2E_MCP_BRIDGE", "").strip()
+    bridge_backend_module = os.environ.get("HARMONYOS_E2E_MCP_BACKEND_MODULE", "").strip()
+    execution_backend = classify_execution_backend(args.dry_run, bridge_command, bridge_backend_module)
+    try:
+        output_dir_arg = resolve_output_dir_arg(args.output_dir, execution_backend, args.allow_mock_results)
+    except RunnerError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if execution_backend == "mock_bridge" and output_dir_arg != args.output_dir:
+        print(f"Mock bridge diagnostics redirected to: {output_dir_arg}", file=sys.stderr)
+    output_dir = project_root / output_dir_arg
+
     runner = E2ERunner(
         project_root=project_root,
-        output_dir=project_root / args.output_dir,
+        output_dir=output_dir,
         adapter=adapter,
         device_id=args.device_id,
         dry_run=args.dry_run,
@@ -474,7 +511,7 @@ def main() -> int:
         except ContractError as exc:
             print(f"[FAIL] {case_path.name} -> contract error: {exc}", file=sys.stderr)
             return 2
-        result_path = write_case_result(project_root / args.output_dir, case_result)
+        result_path = write_case_result(output_dir, case_result)
         result_files.append(str(result_path.relative_to(project_root)))
         print(f"[{case_result.status}] {case_result.case_id} -> {result_path}")
         if case_result.status == FAIL:
@@ -500,9 +537,13 @@ def main() -> int:
         pass_count=pass_count,
         fail_count=fail_count,
         unknown_count=unknown_count,
+        execution_backend=execution_backend,
+        bridge_command=bridge_command,
+        bridge_backend_module=bridge_backend_module,
+        mock_results_allowed=args.allow_mock_results,
         result_files=result_files,
     )
-    suite_json_path, suite_md_path = write_suite_summary(project_root / args.output_dir, summary)
+    suite_json_path, suite_md_path = write_suite_summary(output_dir, summary)
 
     print(f"Suite JSON: {suite_json_path}")
     print(f"Suite Markdown: {suite_md_path}")

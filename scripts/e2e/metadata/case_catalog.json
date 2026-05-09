@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-04-09T10:35:11+00:00",
+  "updated_at": "2026-05-09T01:24:15+00:00",
   "records": [
     {
       "case_id": "APP-ADMIN-001",
@@ -63,7 +63,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/admin_enable.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "approved",
       "review_notes": [
         "tmp test",
@@ -146,7 +146,100 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/install_bootstrap.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "DASH-ADMIN-001",
+      "case_name": "Dashboard Admin Status And Entry Roundtrip",
+      "module_id": "dashboard",
+      "module_name": "安全总览",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_dashboard",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        },
+        {
+          "name": "open_firewall_from_dashboard_context",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "firewall"
+          }
+        },
+        {
+          "name": "return_dashboard_after_entry",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "dashboard_page_recovered",
+          "type": "assert_text_presence",
+          "value": "安全总览",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "dashboard_quick_entries_still_visible",
+          "type": "assert_text_presence",
+          "value": "快捷方式",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "This is a full dashboard navigation roundtrip: enter a security module from the dashboard context and verify dashboard state is restored.",
+        "安全总览",
+        "快捷方式"
+      ],
+      "suite_membership": [
+        "dashboard",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/dashboard/admin_status.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -302,7 +395,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/summary_cards.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -380,7 +473,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/dashboard/quick_entries.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -474,7 +567,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/domain_browser.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -552,7 +645,111 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/mode_cards.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "FW-ROUTE-001",
+      "case_name": "Firewall Rules Subroute Restore After Module Switch",
+      "module_id": "firewall",
+      "module_name": "防火墙管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_firewall_page",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "firewall"
+          }
+        },
+        {
+          "name": "open_firewall_rules",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "规则页",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "switch_to_identity",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "identity"
+          }
+        },
+        {
+          "name": "return_to_firewall",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "firewall"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "rules_subroute_restored",
+          "type": "assert_text_presence",
+          "value": "新增规则",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2500,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "firewall_main_card_not_restored_over_rules",
+          "type": "assert_text_presence",
+          "value": "公共网络模式",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": false,
+            "timeout_ms": 1500,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "新增规则",
+        "公共网络模式"
+      ],
+      "suite_membership": [
+        "firewall",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/firewall/subroute_restore.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -646,7 +843,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_create.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -731,7 +928,116 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rule_delete.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "FW-RULE-003",
+      "case_name": "Firewall Domain Rule Lifecycle Cleanup",
+      "module_id": "firewall",
+      "module_name": "防火墙管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_firewall_page",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "firewall"
+          }
+        },
+        {
+          "name": "create_domain_rule_for_cleanup",
+          "ref": "entity.create",
+          "params": {
+            "domain": "firewall",
+            "entity": "rule",
+            "variant": "domain",
+            "data": {
+              "name": "E2E lifecycle domain rule",
+              "domain": "e2e-lifecycle.example.com",
+              "direction": "out",
+              "policy": "deny",
+              "protocol": "tcp",
+              "port": "443"
+            }
+          }
+        },
+        {
+          "name": "delete_domain_rule_for_cleanup",
+          "ref": "entity.delete",
+          "params": {
+            "domain": "firewall",
+            "entity": "rule",
+            "variant": "domain",
+            "data": {
+              "name": "E2E lifecycle domain rule",
+              "domain": "e2e-lifecycle.example.com"
+            }
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "domain_rule_removed_after_lifecycle",
+          "type": "assert_text_presence",
+          "value": "e2e-lifecycle.example.com",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": false,
+            "timeout_ms": 2500,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "rules_page_still_usable_after_delete",
+          "type": "assert_text_presence",
+          "value": "新增规则",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "This is a complete firewall rule lifecycle: create a domain rule, delete the same rule, and verify the page remains operable.",
+        "e2e-lifecycle.example.com",
+        "新增规则"
+      ],
+      "suite_membership": [
+        "firewall",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/firewall/rules_tabs.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -809,7 +1115,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/rules_page_visible.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -908,7 +1214,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/firewall/status_toggle.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1011,7 +1317,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/domain_policy.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1116,7 +1422,136 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/password_policy.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "ID-PWD-002",
+      "case_name": "Identity Password Complexity Save Roundtrip",
+      "module_id": "identity",
+      "module_name": "身份鉴别",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_identity_page",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "identity"
+          }
+        },
+        {
+          "name": "set_password_min_length",
+          "ref": "entity.update",
+          "params": {
+            "domain": "identity",
+            "entity": "password_policy",
+            "data": {
+              "min_length": 10,
+              "require_uppercase": true,
+              "require_lowercase": true,
+              "require_digit": true,
+              "require_special_char": true
+            }
+          }
+        },
+        {
+          "name": "save_identity_config",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "保存配置",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "restore_password_min_length",
+          "ref": "entity.update",
+          "params": {
+            "domain": "identity",
+            "entity": "password_policy",
+            "data": {
+              "min_length": 8,
+              "require_uppercase": true,
+              "require_lowercase": true,
+              "require_digit": true,
+              "require_special_char": true
+            }
+          }
+        },
+        {
+          "name": "save_restored_identity_config",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "保存配置",
+            "bundle_name": "{{bundle_name}}"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "identity_save_success_visible",
+          "type": "assert_text_presence",
+          "value": "身份鉴别配置已保存",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 3000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "password_complexity_context_visible",
+          "type": "assert_text_presence",
+          "value": "口令复杂度策略",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "This is a complete identity-policy flow: update password complexity, submit the configuration, then restore the baseline min length and verify the save result.",
+        "身份鉴别配置已保存",
+        "口令复杂度策略"
+      ],
+      "suite_membership": [
+        "identity",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/identity/complexity_requirements.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1181,7 +1616,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/identity/validity_section.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1271,7 +1706,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/event_after_policy_change.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1348,7 +1783,127 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/export.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "LOG-FILTER-001",
+      "case_name": "Log Filter After Policy Change",
+      "module_id": "log-manage",
+      "module_name": "日志管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "create_recent_policy_log",
+          "ref": "logs.change_any_policy",
+          "params": {
+            "preferred_module": "firewall"
+          }
+        },
+        {
+          "name": "open_log_manage",
+          "ref": "logs.open_list",
+          "params": {}
+        },
+        {
+          "name": "open_event_type_filter",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "全部类型",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "choose_firewall_log_filter",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "防火墙日志",
+            "bundle_name": "{{bundle_name}}",
+            "contains": true
+          }
+        },
+        {
+          "name": "open_result_filter",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "全部结果",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "choose_success_result_filter",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "成功",
+            "bundle_name": "{{bundle_name}}"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "log_filter_summary_visible",
+          "type": "assert_text_presence",
+          "value": "当前显示",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2500,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "filtered_log_page_keeps_export_action",
+          "type": "assert_text_presence",
+          "value": "导出日志",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "当前显示",
+        "导出日志"
+      ],
+      "suite_membership": [
+        "logs",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/logs/filters_visible.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1444,7 +1999,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/page_details.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1522,7 +2077,180 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/logs/stats_visible.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "LOG-STORAGE-001",
+      "case_name": "Log Storage Max Entries 100000 Roundtrip",
+      "module_id": "log-manage",
+      "module_name": "日志管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_dashboard_for_route_reset",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        },
+        {
+          "name": "open_log_manage",
+          "ref": "logs.open_list",
+          "params": {}
+        },
+        {
+          "name": "open_storage_settings",
+          "ref": "logs.open_storage_settings",
+          "params": {}
+        },
+        {
+          "name": "prepare_50000_max_entries",
+          "ref": "entity.update",
+          "params": {
+            "domain": "logs",
+            "entity": "storage_settings",
+            "data": {
+              "max_entries": "50000"
+            }
+          }
+        },
+        {
+          "name": "select_100000_max_entries",
+          "ref": "entity.update",
+          "params": {
+            "domain": "logs",
+            "entity": "storage_settings",
+            "data": {
+              "max_entries": "100000"
+            }
+          }
+        },
+        {
+          "name": "save_log_storage_settings",
+          "ref": "logs.save_storage_settings",
+          "params": {}
+        },
+        {
+          "name": "close_first_save_result",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "我知道了",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "open_storage_settings_for_restore",
+          "ref": "logs.open_storage_settings",
+          "params": {}
+        },
+        {
+          "name": "restore_50000_intermediate_entries",
+          "ref": "entity.update",
+          "params": {
+            "domain": "logs",
+            "entity": "storage_settings",
+            "data": {
+              "max_entries": "50000"
+            }
+          }
+        },
+        {
+          "name": "restore_20000_max_entries",
+          "ref": "entity.update",
+          "params": {
+            "domain": "logs",
+            "entity": "storage_settings",
+            "data": {
+              "max_entries": "20000"
+            }
+          }
+        },
+        {
+          "name": "save_restored_log_storage_settings",
+          "ref": "logs.save_storage_settings",
+          "params": {}
+        },
+        {
+          "name": "close_restored_save_result",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "我知道了",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "open_storage_settings_after_restore",
+          "ref": "logs.open_storage_settings",
+          "params": {}
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "max_entries_restored_to_default",
+          "type": "assert_text_presence",
+          "value": "20000",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "removed_1000_option_absent",
+          "type": "assert_text_presence",
+          "value": "1000",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": false,
+            "match_mode": "exact",
+            "timeout_ms": 1500,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "20000",
+        "1000"
+      ],
+      "suite_membership": [
+        "logs",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/logs/storage_settings_visible.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1603,7 +2331,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/about_dialog.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1669,7 +2397,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/help_feedback.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1759,7 +2487,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/help_feedback_details.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1825,7 +2553,107 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/identity_page.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "NAV-LOG-001",
+      "case_name": "Navigation Log Page Settings Roundtrip",
+      "module_id": "navigation",
+      "module_name": "导航",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_dashboard_for_route_reset",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "dashboard"
+          }
+        },
+        {
+          "name": "open_log_manage",
+          "ref": "logs.open_list",
+          "params": {}
+        },
+        {
+          "name": "open_storage_settings",
+          "ref": "logs.open_storage_settings",
+          "params": {}
+        },
+        {
+          "name": "return_log_list",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "日志列表",
+            "bundle_name": "{{bundle_name}}"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "log_manage_page_recovered",
+          "type": "assert_text_presence",
+          "value": "日志管理",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "log_export_action_visible_after_roundtrip",
+          "type": "assert_text_presence",
+          "value": "导出日志",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "日志管理",
+        "导出日志"
+      ],
+      "suite_membership": [
+        "navigation",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/navigation/log_page.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -1905,7 +2733,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/theme_menu.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2016,7 +2844,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/smoke/navigation_smoke.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2082,7 +2910,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/navigation/tool_settings_page.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2160,7 +2988,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_blacklist.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2280,7 +3108,121 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/interfaces.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "PER-IF-002",
+      "case_name": "Peripheral USB Interface Toggle Roundtrip",
+      "module_id": "peripheral",
+      "module_name": "外设管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_peripheral_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "peripheral-manage"
+          }
+        },
+        {
+          "name": "open_interface_tab",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "接口管控",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "toggle_usb_interface_once",
+          "ref": "entity.toggle",
+          "params": {
+            "domain": "peripheral",
+            "entity": "interface",
+            "variant": "usb",
+            "data": {
+              "target_state": "off"
+            }
+          }
+        },
+        {
+          "name": "toggle_usb_interface_restore",
+          "ref": "entity.toggle",
+          "params": {
+            "domain": "peripheral",
+            "entity": "interface",
+            "variant": "usb",
+            "data": {
+              "target_state": "on"
+            }
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "usb_interface_row_visible_after_roundtrip",
+          "type": "assert_text_presence",
+          "value": "USB",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "interface_tab_context_visible",
+          "type": "assert_text_presence",
+          "value": "接口管控",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "USB",
+        "接口管控"
+      ],
+      "suite_membership": [
+        "peripheral",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/peripheral/interface_core_items.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2358,7 +3300,119 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/policy_tab.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "PER-POLICY-002",
+      "case_name": "Peripheral USB Storage Policy Roundtrip",
+      "module_id": "peripheral",
+      "module_name": "外设管理",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_peripheral_manage",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "peripheral-manage"
+          }
+        },
+        {
+          "name": "open_interface_tab",
+          "ref": "ui.click_text",
+          "params": {
+            "text": "接口管控",
+            "bundle_name": "{{bundle_name}}"
+          }
+        },
+        {
+          "name": "set_usb_storage_read_only",
+          "ref": "entity.update",
+          "params": {
+            "domain": "peripheral",
+            "entity": "usb_storage_policy",
+            "data": {
+              "policy": "read_only"
+            }
+          }
+        },
+        {
+          "name": "restore_usb_storage_allow",
+          "ref": "entity.update",
+          "params": {
+            "domain": "peripheral",
+            "entity": "usb_storage_policy",
+            "data": {
+              "policy": "allow"
+            }
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "usb_storage_policy_row_visible_after_restore",
+          "type": "assert_text_presence",
+          "value": "USB 存储设备",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "allow_policy_visible_after_restore",
+          "type": "assert_text_presence",
+          "value": "允许",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "USB 存储设备",
+        "允许"
+      ],
+      "suite_membership": [
+        "peripheral",
+        "completeness"
+      ],
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
+      "capability_gap_items": [
+        "Bridge 覆盖未完整"
+      ],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/peripheral/policy_actions_visible.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2436,7 +3490,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/record_tab.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2531,7 +3585,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_policy.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2609,7 +3663,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/bluetooth_whitelist.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2687,7 +3741,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/peripheral/usb_whitelist.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2771,7 +3825,7 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/auth_method.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2853,7 +3907,97 @@
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/password_flow.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
+      "review_status": "unreviewed",
+      "review_notes": []
+    },
+    {
+      "case_id": "SET-PASSWORD-002",
+      "case_name": "Tool Settings System Password Entry Roundtrip",
+      "module_id": "tool-settings",
+      "module_name": "工具设置",
+      "status": "implemented",
+      "source": "manual",
+      "preconditions_text": "",
+      "steps_text": "",
+      "checkpoints_text": "",
+      "notes": [],
+      "structured_flow": [
+        {
+          "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "open_tool_settings",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "tool-settings"
+          }
+        },
+        {
+          "name": "open_system_password_settings_entry",
+          "ref": "tool_settings.set_password",
+          "params": {}
+        },
+        {
+          "name": "return_tool_settings",
+          "ref": "navigation.open_page",
+          "params": {
+            "page_id": "tool-settings"
+          }
+        }
+      ],
+      "structured_assertions": [
+        {
+          "name": "tool_settings_page_recovered",
+          "type": "assert_text_presence",
+          "value": "工具设置",
+          "level": "primary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        },
+        {
+          "name": "system_password_entry_still_available",
+          "type": "assert_text_presence",
+          "value": "修改密码",
+          "level": "secondary",
+          "params": {
+            "bundle_name": "{{bundle_name}}",
+            "present": true,
+            "timeout_ms": 2000,
+            "interval_ms": 250
+          }
+        }
+      ],
+      "checkpoint_summary": [
+        "工具设置",
+        "修改密码"
+      ],
+      "suite_membership": [
+        "tool_settings",
+        "completeness"
+      ],
+      "bridge_coverage_status": "covered",
+      "capability_gap_status": "none",
+      "capability_gap_items": [],
+      "capability_gap_breakdown": {
+        "flow": [],
+        "template": [],
+        "params": [],
+        "assertion": [],
+        "bridge": [],
+        "module": [],
+        "other": []
+      },
+      "case_path": "scripts/e2e/cases/tool_settings/password_entry_visible.json",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     },
@@ -2871,6 +4015,20 @@
       "structured_flow": [
         {
           "name": "launch_app",
+          "ref": "app.launch",
+          "params": {
+            "timeout_sec": 20
+          }
+        },
+        {
+          "name": "reset_previous_page",
+          "ref": "ui.press_key",
+          "params": {
+            "key": "BACK"
+          }
+        },
+        {
+          "name": "relaunch_app",
           "ref": "app.launch",
           "params": {
             "timeout_sec": 20
@@ -2916,11 +4074,12 @@
         "tool_settings",
         "completeness"
       ],
-      "bridge_coverage_status": "covered",
-      "capability_gap_status": "none",
+      "bridge_coverage_status": "partial",
+      "capability_gap_status": "bridge_gap",
       "capability_gap_items": [
         "工具设置步骤未能稳定映射到具体 flow",
-        "缺少断言草稿"
+        "缺少断言草稿",
+        "Bridge 覆盖未完整"
       ],
       "capability_gap_breakdown": {
         "flow": [
@@ -2931,12 +4090,14 @@
         "assertion": [
           "缺少断言草稿"
         ],
-        "bridge": [],
+        "bridge": [
+          "Bridge 覆盖未完整"
+        ],
         "module": [],
         "other": []
       },
       "case_path": "scripts/e2e/cases/tool_settings/startup_auth.json",
-      "last_result_status": "PASS",
+      "last_result_status": "NOT_RUN",
       "review_status": "unreviewed",
       "review_notes": []
     }

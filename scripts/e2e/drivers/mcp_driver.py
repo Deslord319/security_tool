@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from scripts.e2e.core.execution_backend import build_bridge_evidence, classify_execution_backend
 from scripts.e2e.core.failures import (
     MCP_ACTION_PENDING,
     MCP_BACKEND_NOT_CONFIGURED,
@@ -47,6 +48,8 @@ class McpDriver:
         self.project_root = project_root
         self.dry_run = dry_run
         self.bridge_command = os.environ.get("HARMONYOS_E2E_MCP_BRIDGE", "").strip()
+        self.backend_module = os.environ.get("HARMONYOS_E2E_MCP_BACKEND_MODULE", "").strip()
+        self.execution_backend = classify_execution_backend(dry_run, self.bridge_command, self.backend_module)
 
     def describe(self, request: MpcActionRequest) -> dict[str, Any]:
         return {
@@ -58,12 +61,13 @@ class McpDriver:
 
     def execute(self, request: MpcActionRequest) -> McpExecutionResult:
         evidence = self.describe(request)
+        bridge_evidence = build_bridge_evidence(self.bridge_command, self.backend_module, self.execution_backend)
         if self.dry_run:
             return McpExecutionResult(
                 status="UNKNOWN",
                 failure_code=MCP_ACTION_PENDING,
                 message="Dry run: MCP action execution skipped",
-                evidence=evidence,
+                evidence={**evidence, **bridge_evidence},
             )
 
         if not self.bridge_command:
@@ -71,7 +75,7 @@ class McpDriver:
                 status="UNKNOWN",
                 failure_code=MCP_BACKEND_NOT_CONFIGURED,
                 message="MCP bridge command is not configured",
-                evidence=evidence,
+                evidence={**evidence, **bridge_evidence},
             )
 
         command = shlex.split(self.bridge_command, posix=False)
@@ -115,6 +119,8 @@ class McpDriver:
         failure_code = parsed.get("failure_code", "" if status == "PASS" else MCP_ACTION_PENDING)
         message = parsed.get("message", "MCP bridge executed")
         merged_evidence = {**evidence, **parsed.get("evidence", {})}
+        for key, value in bridge_evidence.items():
+            merged_evidence.setdefault(key, value)
         return McpExecutionResult(
             status=status,
             failure_code=failure_code,
