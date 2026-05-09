@@ -232,8 +232,17 @@ class RealHarmonyOsMcpBackend(
 
     async def _open_log_list(self, payload: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()
+        await self._dismiss_notice_dialogs()
+        await self._dismiss_firewall_rule_dialog()
+        await self._dismiss_delete_confirmation_dialog()
+        await self._dismiss_top_menu_overlay()
         sidebar_result = await self._click_log_sidebar_if_needed()
-        page_ready = await self._find_texts_in_current_tree(["导出日志", "日志存储配置", "最大存储条数"], timeout_sec=4.0)
+        page_ready = await self._find_texts_in_current_tree(["日志管理", "日志列表", "导出日志", "日志存储配置", "最大存储条数"], timeout_sec=4.0)
+        if not page_ready.get("ok", False):
+            fallback_click = await self._click_first_available_text(["日志管理"], bundle_name="com.huawei.securitytool")
+            if fallback_click.get("ok", False):
+                page_ready = await self._find_texts_in_current_tree(["日志管理", "日志列表", "导出日志", "日志存储配置", "最大存储条数"], timeout_sec=4.0)
+            sidebar_result = {**sidebar_result, "fallback_click": fallback_click}
         if not page_ready.get("ok", False):
             return self._unknown(payload, "MCP_ACTION_PENDING", "Log management page did not appear")
 
@@ -661,7 +670,23 @@ class RealHarmonyOsMcpBackend(
             normalized_fallback = ""
         chosen_target = normalized_target or normalized_fallback
 
-        def pick_delete_button(ui_tree: dict[str, Any]) -> dict[str, Any] | None:
+        def find_target_node(ui_tree: dict[str, Any]) -> dict[str, Any] | None:
+            targets = [item for item in [chosen_target, normalized_target, normalized_fallback] if item]
+            if not targets:
+                return None
+            matches: list[dict[str, Any]] = []
+            for node in self._nodes_by_type(ui_tree, "Text"):
+                text = str(node.get("text", "")).strip()
+                if text not in targets:
+                    continue
+                if (node.get("left") or 0) < 800:
+                    continue
+                matches.append(node)
+            if not matches:
+                return None
+            return min(matches, key=lambda node: ((node.get("top") or 0), (node.get("left") or 0)))
+
+        def pick_delete_button(ui_tree: dict[str, Any], target_node: dict[str, Any] | None) -> dict[str, Any] | None:
             candidates: list[dict[str, Any]] = []
             for node in self._iter_nodes(ui_tree):
                 props = node.get("properties", {})
@@ -671,7 +696,7 @@ class RealHarmonyOsMcpBackend(
                 height = int(props.get("height", 0))
                 if not props.get("clickable"):
                     continue
-                if left < 2200 or top < 800 or top > 1150 or width < 40 or height < 24:
+                if left < 2000 or top < 650 or top > 1850 or width < 40 or height < 24:
                     continue
                 texts = self._collect_descendant_texts(node)
                 if not texts.intersection(DELETE_ACTION_LABELS):
@@ -679,28 +704,69 @@ class RealHarmonyOsMcpBackend(
                 candidates.append(self._node_to_element(node))
             if not candidates:
                 return None
+            if target_node:
+                target_y = int(target_node.get("top", 0)) + int(target_node.get("height", 0)) // 2
+                row_candidates = [
+                    node for node in candidates
+                    if abs((int(node.get("top", 0)) + int(node.get("height", 0)) // 2) - target_y) <= 180
+                ]
+                if row_candidates:
+                    return max(row_candidates, key=lambda node: (node.get("left") or 0, -(node.get("top") or 0)))
+                return min(
+                    candidates,
+                    key=lambda node: abs((int(node.get("top", 0)) + int(node.get("height", 0)) // 2) - target_y),
+                )
             return max(candidates, key=lambda node: (node.get("left") or 0, -(node.get("top") or 0)))
 
-        ui_tree = await self._get_ui_tree()
-        delete_button = pick_delete_button(ui_tree)
-        delete_click = {"ok": False}
-        if delete_button:
-            delete_click = await self._call_tool("click_element", {"x": delete_button["x"], "y": delete_button["y"]})
-        if not delete_click.get("ok", False):
-            delete_click = await self._click_first_available_text(DELETE_ACTION_LABELS, bundle_name="com.huawei.securitytool")
-        if not delete_click.get("ok", False):
+        attempts: list[dict[str, Any]] = []
+        for attempt in range(1, 5):
             ui_tree = await self._get_ui_tree()
-            delete_button = pick_delete_button(ui_tree)
+            target_node = find_target_node(ui_tree)
+            if chosen_target and not target_node:
+                return self._pass("Firewall rule already absent", {"target": chosen_target, "attempts": attempts})
+
+            delete_button = pick_delete_button(ui_tree, target_node)
+            delete_click = {"ok": False}
             if delete_button:
                 delete_click = await self._call_tool("click_element", {"x": delete_button["x"], "y": delete_button["y"]})
-        if not delete_click.get("ok", False):
-            return self._unknown({"action": "delete_visible_rule"}, "MCP_ACTION_PENDING", "Delete action was not found")
-        confirm_result = await self._confirm_dialog(allow_cancel=False)
-        if confirm_result.get("status") != "PASS":
-            return confirm_result
-        if chosen_target:
-            await self._wait_for_element(text=chosen_target, state="gone", timeout_sec=3.0)
-        return self._pass("Firewall rule delete triggered", {"target": chosen_target})
+            if not delete_click.get("ok", False) and not chosen_target:
+                delete_click = await self._click_first_available_text(DELETE_ACTION_LABELS, bundle_name="com.huawei.securitytool")
+            if not delete_click.get("ok", False):
+                return self._unknown(
+                    {"action": "delete_visible_rule"},
+                    "MCP_ACTION_PENDING",
+                    "Delete action was not found for the target rule",
+                )
+
+            confirm_result = await self._confirm_dialog(allow_cancel=False)
+            if confirm_result.get("status") != "PASS":
+                return confirm_result
+
+            actual_target = str((target_node or {}).get("text", chosen_target)).strip()
+            if actual_target:
+                await self._wait_for_element(text=actual_target, state="gone", timeout_sec=2.0)
+            attempts.append(
+                {
+                    "attempt": attempt,
+                    "target": actual_target or chosen_target,
+                    "target_node": target_node or {},
+                    "delete_button": delete_button or {},
+                    "delete_click": delete_click,
+                    "confirm": confirm_result.get("evidence", {}),
+                }
+            )
+            await asyncio.sleep(0.6)
+            if not chosen_target:
+                return self._pass("Firewall rule delete triggered", {"target": chosen_target, "attempts": attempts})
+
+        ui_tree = await self._get_ui_tree()
+        if not find_target_node(ui_tree):
+            return self._pass("Firewall rule delete triggered", {"target": chosen_target, "attempts": attempts})
+        return self._unknown(
+            {"action": "delete_visible_rule"},
+            "MCP_ACTION_PENDING",
+            "Target firewall rule remained visible after repeated delete attempts",
+        )
 
     async def _toggle_indexed_control(self, *, control_type: str, index: int, feature: str = "") -> dict[str, Any]:
         await self._ensure_auth_dialog_cleared()

@@ -19,10 +19,10 @@
     },
     {
       "name": "open_firewall_rules",
-      "ref": "ui.click_text",
+      "ref": "navigation.open_page",
       "params": {
-        "text": "规则页",
-        "bundle_name": "{{bundle_name}}"
+        "page_id": "firewall-rules",
+        "rule_type": "domain"
       }
     },
     {

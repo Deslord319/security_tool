@@ -84,15 +84,6 @@ python scripts/e2e/run_e2e.py --adapter security_tool --case scripts/e2e/cases/f
 
 ## Bridge 运行方式
 
-使用 mock bridge：
-
-```powershell
-$env:HARMONYOS_E2E_MCP_BRIDGE="python scripts\\e2e\\bridges\\mock_bridge.py"
-python scripts/e2e/run_e2e.py --adapter security_tool --suite smoke --allow-mock-results
-```
-
-Mock bridge 默认不能写入正式 E2E 结果；只有显式传入 `--allow-mock-results` 才允许运行。使用默认输出目录时，mock 诊断结果会自动写到 `scripts/e2e/results/mock`，不会覆盖 `scripts/e2e/results` 下的真实设备结果。
-
 使用真实 HarmonyOS MCP bridge：
 
 ```powershell

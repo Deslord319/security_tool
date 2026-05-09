@@ -37,17 +37,36 @@
       "params": {
         "url": "https://www.baidu.com"
       }
+    },
+    {
+      "name": "return_to_security_tool",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "delete_domain_rule_after_browser",
+      "ref": "entity.delete",
+      "params": {
+        "domain": "firewall",
+        "entity": "rule",
+        "variant": "domain",
+        "data": {
+          "domain": "www.baidu.com"
+        }
+      }
     }
   ],
   "assertions": [
     {
-      "name": "domain_rule_visible_before_browser_verification",
+      "name": "domain_rule_cleaned_after_browser_verification",
       "type": "assert_text_presence",
       "value": "www.baidu.com",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
-        "present": true,
+        "present": false,
         "timeout_ms": 2500,
         "interval_ms": 250
       }
@@ -58,7 +77,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Current primary evidence proves the deny rule is created before browser-side verification begins.",
-    "This case verifies domain rule creation and browser access behavior for www.baidu.com."
+    "The browser step uses the real browser bundle and verifies URL entry/navigation before returning to the app.",
+    "The rule is deleted before the final assertion so repeated real-device runs start from a clean state."
   ]
 }

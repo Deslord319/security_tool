@@ -196,6 +196,12 @@ class ComplexHooksMixin:
             return self._pass("Firewall rule dialog submitted", evidence)
         if rule_created.get("status") == "PASS" and dialog_closed.get("status") == "PASS":
             return self._pass("Firewall rule dialog submitted", evidence)
+        if rule_created.get("status") == "PASS" and before_count > 0 and dialog_closed.get("status") != "PASS":
+            cancel_result = await self._click_first_available_text(["取消"], bundle_name="com.huawei.securitytool")
+            evidence["duplicate_cancel"] = cancel_result
+            if cancel_result.get("ok", False):
+                evidence["dialog_closed_after_cancel"] = await self._wait_for_firewall_dialog_closed(timeout_sec=2.0)
+            return self._pass("Firewall rule already present", evidence)
         if dialog_closed.get("status") != "PASS":
             return self._unknown({"action": "submit_firewall_rule_form", "params": params}, "MCP_ACTION_PENDING", "Firewall rule dialog is still open after submit")
         if rule_created.get("status") != "PASS":

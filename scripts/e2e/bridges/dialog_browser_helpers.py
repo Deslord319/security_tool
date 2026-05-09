@@ -21,12 +21,14 @@ class DialogBrowserHelpersMixin:
 
         dialog_inputs = self._dialog_nodes_by_type(ui_tree, "TextInput")
         dialog_selects = self._dialog_nodes_by_type(ui_tree, "Select")
+        dialog_texts = {str(node.get("text", "")).strip() for node in self._dialog_nodes_by_type(ui_tree, "Text")}
         dialog_buttons = [
             node
             for node in self._dialog_nodes_by_type(ui_tree, "Button")
-            if str(node.get("text", "")).strip() in {"新增", "保存", "取消"}
+            if str(node.get("text", "")).strip() in {"新增", "保存", "取消", "添加"}
         ]
-        return bool(dialog_inputs and dialog_selects and dialog_buttons)
+        has_rule_dialog_labels = bool(dialog_texts.intersection({"目标用户", "目标模式", "规则名称", "域名", "IP 地址", "端口"}))
+        return bool((dialog_inputs or has_rule_dialog_labels) and dialog_selects and dialog_buttons)
 
     async def _wait_for_firewall_dialog_closed(self, *, timeout_sec: float = 5.0) -> dict[str, Any]:
         deadline = time.time() + timeout_sec

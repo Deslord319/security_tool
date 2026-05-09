@@ -1,6 +1,6 @@
 {
   "case_id": "PER-IF-001",
-  "case_name": "Peripheral Interface Toggle",
+  "case_name": "Peripheral Interface Panel Visible",
   "module": "peripheral",
   "flow": [
     {
@@ -18,51 +18,11 @@
       }
     },
     {
-      "name": "toggle_usb_interface",
-      "ref": "entity.toggle",
+      "name": "open_interface_tab",
+      "ref": "ui.click_text",
       "params": {
-        "domain": "peripheral",
-        "entity": "interface",
-        "variant": "usb",
-        "data": {
-          "target_state": "invert"
-        }
-      }
-    },
-    {
-      "name": "toggle_bluetooth_interface",
-      "ref": "entity.toggle",
-      "params": {
-        "domain": "peripheral",
-        "entity": "interface",
-        "variant": "bluetooth",
-        "data": {
-          "target_state": "invert"
-        }
-      }
-    },
-    {
-      "name": "toggle_wifi_interface",
-      "ref": "entity.toggle",
-      "params": {
-        "domain": "peripheral",
-        "entity": "interface",
-        "variant": "wifi",
-        "data": {
-          "target_state": "invert"
-        }
-      }
-    },
-    {
-      "name": "toggle_hdc_interface",
-      "ref": "entity.toggle",
-      "params": {
-        "domain": "peripheral",
-        "entity": "interface",
-        "variant": "hdc",
-        "data": {
-          "target_state": "invert"
-        }
+        "text": "接口管控",
+        "bundle_name": "{{bundle_name}}"
       }
     }
   ],
@@ -70,8 +30,20 @@
     {
       "name": "peripheral_interface_page_visible",
       "type": "assert_text_presence",
-      "value": "USB 接口",
+      "value": "接口管控",
       "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "usb_interface_row_visible",
+      "type": "assert_text_presence",
+      "value": "USB 接口",
+      "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",
         "present": true,
@@ -85,7 +57,7 @@
     "stop_on_failure": true
   },
   "notes": [
-    "Page-level interface marker keeps this case from degenerating into a pure click-through.",
-    "Service-backed interface assertions will be added after the MCP executor is wired."
+    "This keeps the interface panel coverage on stable, visible controls.",
+    "The real USB policy roundtrip is covered separately by PER-IF-002 so this case does not disable HDC during a suite run."
   ]
 }

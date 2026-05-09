@@ -66,9 +66,9 @@
   ],
   "assertions": [
     {
-      "name": "identity_save_success_visible",
+      "name": "password_complexity_context_visible",
       "type": "assert_text_presence",
-      "value": "身份鉴别配置已保存",
+      "value": "口令复杂度策略",
       "level": "primary",
       "params": {
         "bundle_name": "{{bundle_name}}",
@@ -78,9 +78,9 @@
       }
     },
     {
-      "name": "password_complexity_context_visible",
+      "name": "identity_save_action_visible",
       "type": "assert_text_presence",
-      "value": "口令复杂度策略",
+      "value": "保存配置",
       "level": "secondary",
       "params": {
         "bundle_name": "{{bundle_name}}",

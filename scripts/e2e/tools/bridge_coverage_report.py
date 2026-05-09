@@ -19,30 +19,20 @@ def load_flow_registry(project_root: Path) -> dict:
     return namespace["FLOW_REGISTRY"]
 
 
-def load_scripted_results(project_root: Path) -> dict:
-    result_file = project_root / "scripts/e2e/bridges/scripted_results.sample.json"
-    return json.loads(result_file.read_text(encoding="utf-8"))
-
-
 def load_bridge_map(project_root: Path) -> dict[str, str]:
     return json.loads((project_root / BRIDGE_MAP_PATH.relative_to(PROJECT_ROOT)).read_text(encoding="utf-8"))
 
 
-def build_rows(flow_registry: dict, scripted_results: dict, bridge_map: dict[str, str]) -> list[dict]:
+def build_rows(flow_registry: dict, bridge_map: dict[str, str]) -> list[dict]:
     rows: list[dict] = []
-    default_status = scripted_results.get("default", {}).get("status", "UNKNOWN")
     for flow_ref, meta in sorted(flow_registry.items()):
         action = bridge_map.get(flow_ref, "")
-        configured = action in scripted_results
-        status = scripted_results.get(action, {}).get("status", default_status) if action else "N/A"
         rows.append(
             {
                 "flow_ref": flow_ref,
                 "kind": meta.get("kind", ""),
                 "bridge_action": action,
                 "has_action_plan": "yes" if action in ACTION_PLANS else "no",
-                "scripted_coverage": "configured" if configured else "default",
-                "scripted_status": status,
             }
         )
     return rows
@@ -53,14 +43,13 @@ def write_markdown(project_root: Path, rows: list[dict]) -> Path:
     lines = [
         "# Bridge Action Coverage",
         "",
-        "| Flow Ref | Kind | Bridge Action | Action Plan | Scripted Coverage | Scripted Status |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Flow Ref | Kind | Bridge Action | Action Plan |",
+        "| --- | --- | --- | --- |",
     ]
     for row in rows:
         lines.append(
             f"| `{row['flow_ref']}` | `{row['kind']}` | `{row['bridge_action'] or '-'}` | "
-            f"`{row['has_action_plan']}` | "
-            f"`{row['scripted_coverage']}` | `{row['scripted_status']}` |"
+            f"`{row['has_action_plan']}` |"
         )
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return target
@@ -69,9 +58,8 @@ def write_markdown(project_root: Path, rows: list[dict]) -> Path:
 def main() -> int:
     project_root = Path(__file__).resolve().parents[3]
     flow_registry = load_flow_registry(project_root)
-    scripted_results = load_scripted_results(project_root)
     bridge_map = load_bridge_map(project_root)
-    rows = build_rows(flow_registry, scripted_results, bridge_map)
+    rows = build_rows(flow_registry, bridge_map)
     target = write_markdown(project_root, rows)
     print(target)
     return 0

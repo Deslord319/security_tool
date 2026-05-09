@@ -14,7 +14,8 @@
       "name": "open_firewall_page",
       "ref": "navigation.open_page",
       "params": {
-        "page_id": "firewall"
+        "page_id": "firewall",
+        "target_view": "main"
       }
     }
   ],

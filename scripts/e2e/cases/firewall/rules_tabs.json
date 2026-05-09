@@ -28,9 +28,7 @@
           "name": "E2E lifecycle domain rule",
           "domain": "e2e-lifecycle.example.com",
           "direction": "out",
-          "policy": "deny",
-          "protocol": "tcp",
-          "port": "443"
+          "policy": "deny"
         }
       }
     },
