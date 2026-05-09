@@ -60,7 +60,7 @@ SecurityTool 是面向 HarmonyOS 2in1 设备的企业安全管理工具，交付
 | 外设管理 | `peripheral-manage` | 是 |
 | 身份鉴别 | `identity` | 是 |
 | 工具设置 | `tool-settings` | 是 |
-| 帮助反馈 | `help-feedback` | 辅助页，不是核心卖点 |
+| 帮助与反馈 | `help-feedback` | 辅助页，不是核心卖点 |
 
 ### 3.2 不包含的范围
 
@@ -90,7 +90,7 @@ MainPage
   -> 外设管理
   -> 身份鉴别
   -> 工具设置
-  -> 帮助反馈
+  -> 帮助与反馈
 ```
 
 ### 4.3 商业演示顺序建议
@@ -182,6 +182,18 @@ EntryAbility
 - 外设运行时采集由 `ApplicationRuntimeManager` 拉起，外设页面不直接启动后台采集管线。
 - 帮助与反馈是静态辅助页，不进入核心安全闭环，不引入 Service、Repository 或权限依赖。
 
+#### 5.4.1 文档与实现对齐矩阵
+
+| 模块 | 路由 | 页面 / 状态落点 | 领域 / 存储落点 | 测试落点 |
+|---|---|---|---|---|
+| 安全总览 | `dashboard` | `DashboardPage.ets`、`DashboardViewModel.ets` | 无独立 Service；只读管理员、防火墙、日志、外设摘要 | `entry/src/test/dashboard/*`、`entry/src/ohosTest/ets/test/dashboard/*`、`scripts/e2e/cases/dashboard/*` |
+| 防火墙管理 | `firewall`、`firewall-rules` | `FirewallPage.ets`、`FirewallRulesPage.ets`、`FirewallOverviewViewModel.ets`、`FirewallRulesViewModel.ets` | `services/firewall/**`、Preferences 本地意图与系统防火墙 Provider | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/*`、`scripts/e2e/cases/firewall/*` |
+| 日志管理 | `log-manage` | `LogManagePage.ets`、`LogManageViewModel.ets`、`LogStorageSettingsViewModel.ets` | `services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/log-manage/*`、`scripts/e2e/cases/logs/*` |
+| 外设管理 | `peripheral-manage` | `PeripheralPage.ets`、`PeripheralViewModel.ets`、`InterfaceControlViewModel.ets`、`PeripheralRecordViewModel.ets`、`PeripheralPolicyViewModel.ets` | `services/peripheral/**`、运行时 Producer / Pipeline、RDB trace、设备策略 Preferences | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/*`、`scripts/e2e/cases/peripheral/*` |
+| 身份鉴别 | `identity` | `IdentityPage.ets`、`IdentitySettingsViewModel.ets` | `IdentityService.ets`、`IdentityPasswordPolicyMapper.ets`、`AuthService.ets` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/identity/*`、`scripts/e2e/cases/identity/*` |
+| 工具设置 | `tool-settings` | `ToolSettingsPage.ets`、`ToolSettingsViewModel.ets` | `ToolSettingsRepository.ets`、`SystemSettingsService.ets`、`EntryAbility.ets` 启动消费链路 | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/*`、`entry/src/ohosTest/ets/test/tool-settings/*`、`scripts/e2e/cases/tool_settings/*` |
+| 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 无 Service / Repository / Storage；静态内容来自 `HelpFeedbackStrings.ets` | `entry/src/test/help/*`、`entry/src/ohosTest/ets/test/help/*`、`scripts/e2e/cases/navigation/help_feedback*.json` |
+
 ### 5.5 实施步骤
 
 新增或调整业务模块时，按以下顺序实施：
@@ -194,6 +206,100 @@ EntryAbility
 6. 构建签名：按 `AGENTS.md` 的 hvigor 查找和签名流程构建 unsigned HAP、同步到 `hapsigner/`、签名生成 `signApp.hap`。
 7. 设备验收：安装主包和测试包，激活企业管理员，执行默认设备冒烟和模块相关可选场景。
 8. 回写文档：如验证中发现行为边界、失败策略或验收口径变化，先回写模块设计文档，再提交代码。
+
+#### 5.5.1 总体执行伪码
+
+启动和运行时伪码：
+
+```text
+onCreate():
+  init ThemeManager
+  subscribe terminate event and account event
+  init LogPowerLifecycleSource
+  init status bar
+
+onWindowStageCreate(windowStage):
+  ApplicationRuntimeManager.bindContext(context)
+  config = ToolSettingsRepository.loadConfig(context)
+  if config.startupAuthEnabled is false:
+    load MainPage
+  else if AuthService.checkAuthMethodAvailability(config.authMethod) is unavailable:
+    load MainPage with degraded message
+  else if AuthService.authenticate(config.authMethod) succeeds:
+    load MainPage
+  else:
+    terminate ability
+
+after MainPage loaded:
+  ThemeManager.reapplyTheme()
+  ApplicationRuntimeManager.ensureRuntimeServices()
+```
+
+路由分发伪码：
+
+```text
+currentPage defaults to RouteIds.DASHBOARD
+lastFirewallRoute defaults to RouteIds.FIREWALL
+
+navigateToRoute(target):
+  next = resolveNavigationRoute(target, lastFirewallRoute)
+  lastFirewallRoute = rememberFirewallRoute(lastFirewallRoute, next)
+  currentPage = next
+  if currentPage == LOG_MANAGE:
+    ApplicationRuntimeManager.refreshLogManageData()
+  render currentRoutePage()
+
+currentRoutePage():
+  if DASHBOARD: render DashboardPage(onNavigate)
+  if FIREWALL: render FirewallPage(shared overview ViewModel)
+  if FIREWALL_RULES: render FirewallRulesPage(shared rules ViewModel)
+  if LOG_MANAGE: render LogManagePage(shared log ViewModel)
+  if PERIPHERAL_MANAGE: render PeripheralPage(shared peripheral ViewModel)
+  if IDENTITY: render IdentityPage(shared identity ViewModel)
+  if TOOL_SETTINGS: render ToolSettingsPage(shared settings ViewModel)
+  if HELP_FEEDBACK: render HelpFeedbackPage()
+  otherwise: render DashboardPage()
+```
+
+模块写操作统一伪码：
+
+```text
+handleUserAction(input):
+  Page validates only UI-local shape
+  ViewModel maps input to domain command and sets submitting/loading state
+  if action needs admin:
+    Service probes EnterpriseAdminService
+  if action needs auth:
+    Service calls AuthService
+  Service calls Repository / Provider / Adapter
+  Repository persists only after system operation success when contract requires it
+  ViewModel maps result to state, dialog message and failedItems
+  Page renders state and never becomes business truth source
+```
+
+运行时采集伪码：
+
+```text
+ApplicationRuntimeManager.ensureRuntimeServices():
+  if log runtime not initialized:
+    init LogManageViewModel and LogCollectorService
+    start collector if not running
+  if peripheral runtime not initialized:
+    init trace repository, policy repository and retention
+    attach USB / Bluetooth producers to pipeline
+    start runtime producer if capability is available
+```
+
+#### 5.5.2 拆分步骤与不走路径
+
+| 拆分阶段 | 必须做 | 明确不走 |
+|---|---|---|
+| PRD | 更新产品范围、模块状态、验收目标和 PRD/RFC/实现对齐矩阵 | 不在 PRD 里写代码级细节或临时过程记录 |
+| 总体 RFC | 更新架构边界、跨模块依赖、总体伪码、拆分步骤、权限/运行时约束 | 不把单模块内部实现细节散落到独立过程目录 |
+| 模块设计 | 更新状态模型、数据模型、组件职责、核心伪码、测试覆盖和验收口径 | 不只在文件末尾追加一句说明，不保留与代码冲突的旧 RFC |
+| 代码实现 | 按 Page -> ViewModel -> Service -> Repository/Provider/Adapter 分层落地 | 不让页面直连系统 API、RDB、Preferences 或多个 Service 拼业务 |
+| 测试验证 | 按 UT / ohosTest / E2E 分层补证据，权限变更要补签名验证 | 不用只跑单个页面截图替代状态流和失败分支验证 |
+| 提交前自检 | 检查路径、权限、路由、测试用例、UTF-8 和变更日志一致 | 不提交乱码、无引用过程文档或未解释的无用文件 |
 
 ### 5.6 验收闭环
 
@@ -241,7 +347,7 @@ EntryAbility
 - 外设管理
 - 身份鉴别
 - 工具设置
-- 帮助反馈
+- 帮助与反馈
 
 ### 6.1.3 用户在本模块具体做什么
 
@@ -640,6 +746,56 @@ EntryAbility
 - 不把所有系统设置项塞进来
 - 不承载其它模块的业务认证逻辑
 
+## 6.7 帮助与反馈
+
+### 6.7.1 模块定位
+
+帮助与反馈是辅助信息页，不属于核心安全控制闭环。它用于在演示、验收和日常排障时提供产品使用指南、常见问题和反馈邮箱。
+
+### 6.7.2 当前版本具体功能
+
+当前交付三类静态内容：
+
+1. 使用指南
+2. 常见问题
+3. 联系与反馈
+
+具体动作包括：
+
+- 从顶部菜单进入帮助与反馈页
+- 从安全总览快捷入口进入帮助与反馈页
+- 展开或收起使用指南条目
+- 展开或收起常见问题条目
+- 查看反馈邮箱
+
+### 6.7.3 关键动作链路
+
+```text
+open help-feedback:
+  MainPage.setCurrentPage(RouteIds.HELP_FEEDBACK)
+  HelpFeedbackPage reads HelpFeedbackStrings
+  render guide / FAQ / contact sections
+
+toggle item(index):
+  expandedIndex = expandedIndex == index ? -1 : index
+
+back:
+  MainPage.setCurrentPage(RouteIds.DASHBOARD)
+```
+
+### 6.7.4 成功标准
+
+- 顶部菜单和首页快捷入口均可进入页面
+- 使用指南、FAQ 和反馈邮箱完整可见
+- 展开/收起只影响当前页面局部状态
+- 不申请系统权限，不写本地存储，不依赖企业管理员激活
+
+### 6.7.5 当前不做
+
+- 不提交在线工单
+- 不拉起邮件客户端
+- 不引入后台反馈服务、Repository 或存储表
+
 ## 7. 商业验收口径
 
 ### 7.1 功能验收
@@ -652,6 +808,7 @@ EntryAbility
 4. 身份策略可读取和保存
 5. 日志可查询和导出
 6. 工具设置可启用启动认证
+7. 帮助与反馈可进入并展示使用说明、FAQ 和反馈邮箱
 
 ### 7.2 演示验收
 
@@ -663,6 +820,7 @@ EntryAbility
 4. 演示身份鉴别策略编辑
 5. 演示日志筛选与导出
 6. 演示启动认证设置
+7. 演示帮助与反馈辅助入口
 
 ### 7.3 工程验收
 
