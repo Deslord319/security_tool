@@ -1,0 +1,84 @@
+{
+  "case_id": "PER-POLICY-002",
+  "case_name": "Peripheral USB Storage Policy Roundtrip",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "open_interface_tab",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "接口管控",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "set_usb_storage_read_only",
+      "ref": "entity.update",
+      "params": {
+        "domain": "peripheral",
+        "entity": "usb_storage_policy",
+        "data": {
+          "policy": "read_only"
+        }
+      }
+    },
+    {
+      "name": "restore_usb_storage_allow",
+      "ref": "entity.update",
+      "params": {
+        "domain": "peripheral",
+        "entity": "usb_storage_policy",
+        "data": {
+          "policy": "allow"
+        }
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "usb_storage_policy_row_visible_after_restore",
+      "type": "assert_text_presence",
+      "value": "USB 存储设备",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "allow_policy_visible_after_restore",
+      "type": "assert_text_presence",
+      "value": "允许",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This performs a policy change and restores the USB storage policy to the less restrictive allow state."
+  ]
+}

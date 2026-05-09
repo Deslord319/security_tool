@@ -66,6 +66,12 @@ hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTes
 
 # peripheral contract scenario
 hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode peripheral_contract -w 60000
+
+# theme menu scenario
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode theme_menu -w 60000
+
+# firewall subroute restore scenario
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode firewall_subroute -w 60000
 ```
 
 ## Community-Aligned Setup Notes
@@ -80,4 +86,4 @@ This setup follows the common community pattern for Stage-model HarmonyOS tests:
 ## Known Limits
 
 - The route scenario still emits ArkTS warnings in `entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`
-- The default device suite intentionally avoids route and peripheral UI flows until those scenarios are stabilized
+- The default device suite intentionally stays small; heavier UI scenarios are selected explicitly through `mode`

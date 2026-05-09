@@ -71,6 +71,14 @@ PERIPHERAL_USB_POLICY_OPTION_LABELS = {
     "allow": ["允许", "可读写", "读写"],
 }
 
+LOG_MAX_ENTRIES_OPTION_LABELS = {
+    "5000": ["5000"],
+    "10000": ["10000"],
+    "20000": ["20000"],
+    "50000": ["50000"],
+    "100000": ["100000"],
+}
+
 DIALOG_STRATEGIES = {
     "firewall.rule.create": {
         "labels": FIREWALL_ADD_RULE_TEXTS,
@@ -96,6 +104,7 @@ OPTION_GROUP_STRATEGIES = {
     "firewall_policy": FIREWALL_POLICY_OPTION_LABELS,
     "firewall_direction": FIREWALL_DIRECTION_OPTION_LABELS,
     "firewall_protocol": FIREWALL_PROTOCOL_OPTION_LABELS,
+    "log_max_entries": LOG_MAX_ENTRIES_OPTION_LABELS,
 }
 
 FIELD_GROUP_STRATEGIES = {

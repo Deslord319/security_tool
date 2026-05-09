@@ -54,6 +54,8 @@ case -> entity.* -> execute_template_action -> backend step runtime
 - `entity.toggle`
 - `entity.submit`
 
+当前 `completeness` suite 维持 45 条主链 case，新增用例按完整功能闭环组织：防火墙规则创建/删除、日志筛选与存储设置保存、外设策略变更后恢复、身份策略保存，以及工具设置系统入口跳转返回。
+
 ## 常用命令
 
 列出 suite：
@@ -86,8 +88,10 @@ python scripts/e2e/run_e2e.py --adapter security_tool --case scripts/e2e/cases/f
 
 ```powershell
 $env:HARMONYOS_E2E_MCP_BRIDGE="python scripts\\e2e\\bridges\\mock_bridge.py"
-python scripts/e2e/run_e2e.py --adapter security_tool --suite smoke
+python scripts/e2e/run_e2e.py --adapter security_tool --suite smoke --allow-mock-results
 ```
+
+Mock bridge 默认不能写入正式 E2E 结果；只有显式传入 `--allow-mock-results` 才允许运行。使用默认输出目录时，mock 诊断结果会自动写到 `scripts/e2e/results/mock`，不会覆盖 `scripts/e2e/results` 下的真实设备结果。
 
 使用真实 HarmonyOS MCP bridge：
 

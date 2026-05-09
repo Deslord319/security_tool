@@ -1,0 +1,146 @@
+{
+  "case_id": "LOG-STORAGE-001",
+  "case_name": "Log Storage Max Entries 100000 Roundtrip",
+  "module": "log-manage",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_dashboard_for_route_reset",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "dashboard"
+      }
+    },
+    {
+      "name": "open_log_manage",
+      "ref": "logs.open_list",
+      "params": {}
+    },
+    {
+      "name": "open_storage_settings",
+      "ref": "logs.open_storage_settings",
+      "params": {}
+    },
+    {
+      "name": "prepare_50000_max_entries",
+      "ref": "entity.update",
+      "params": {
+        "domain": "logs",
+        "entity": "storage_settings",
+        "data": {
+          "max_entries": "50000"
+        }
+      }
+    },
+    {
+      "name": "select_100000_max_entries",
+      "ref": "entity.update",
+      "params": {
+        "domain": "logs",
+        "entity": "storage_settings",
+        "data": {
+          "max_entries": "100000"
+        }
+      }
+    },
+    {
+      "name": "save_log_storage_settings",
+      "ref": "logs.save_storage_settings",
+      "params": {}
+    },
+    {
+      "name": "close_first_save_result",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "我知道了",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "open_storage_settings_for_restore",
+      "ref": "logs.open_storage_settings",
+      "params": {}
+    },
+    {
+      "name": "restore_50000_intermediate_entries",
+      "ref": "entity.update",
+      "params": {
+        "domain": "logs",
+        "entity": "storage_settings",
+        "data": {
+          "max_entries": "50000"
+        }
+      }
+    },
+    {
+      "name": "restore_20000_max_entries",
+      "ref": "entity.update",
+      "params": {
+        "domain": "logs",
+        "entity": "storage_settings",
+        "data": {
+          "max_entries": "20000"
+        }
+      }
+    },
+    {
+      "name": "save_restored_log_storage_settings",
+      "ref": "logs.save_storage_settings",
+      "params": {}
+    },
+    {
+      "name": "close_restored_save_result",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "我知道了",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "open_storage_settings_after_restore",
+      "ref": "logs.open_storage_settings",
+      "params": {}
+    }
+  ],
+  "assertions": [
+    {
+      "name": "max_entries_restored_to_default",
+      "type": "assert_text_presence",
+      "value": "20000",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "removed_1000_option_absent",
+      "type": "assert_text_presence",
+      "value": "1000",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": false,
+        "match_mode": "exact",
+        "timeout_ms": 1500,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This validates the full storage-setting path requested for the 100000 max-entry option, then restores the baseline 20000 value so device state is not left changed.",
+    "The legacy 1000 option is checked with exact text matching so it is not confused with 100000."
+  ]
+}

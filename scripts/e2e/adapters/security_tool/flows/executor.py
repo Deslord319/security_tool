@@ -179,6 +179,18 @@ class SecurityToolFlowExecutor:
             request = MpcActionRequest(action="export_logs", params=params, expected="Log export flow completes")
             return self._from_mcp(request)
 
+        if flow_ref == "logs.open_list":
+            request = MpcActionRequest(action="open_log_list", params=params, expected="Log management list view is visible")
+            return self._from_mcp(request)
+
+        if flow_ref == "logs.open_storage_settings":
+            request = MpcActionRequest(action="open_log_storage_settings", params=params, expected="Log storage settings panel is visible")
+            return self._from_mcp(request)
+
+        if flow_ref == "logs.save_storage_settings":
+            request = MpcActionRequest(action="save_log_storage_settings", params=params, expected="Log storage settings are saved")
+            return self._from_mcp(request)
+
         if flow_ref == "logs.change_any_policy":
             request = MpcActionRequest(action="change_any_policy", params=params, expected="A policy change is applied")
             return self._from_mcp(request)

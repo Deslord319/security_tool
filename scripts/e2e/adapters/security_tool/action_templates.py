@@ -80,6 +80,12 @@ ACTION_TEMPLATES = {
             {"type": "select_indexed_option", "params": {"index": 0, "value": "${data.policy}", "option_group": "peripheral_usb_policy"}},
         ],
     },
+    "logs.storage_settings.update": {
+        "description": "Update the log storage max-entry setting through generic select steps.",
+        "sequence": [
+            {"type": "select_indexed_option", "params": {"index": 0, "value": "${data.max_entries}", "option_group": "log_max_entries"}},
+        ],
+    },
     "peripheral.whitelist.create.usb": {
         "description": "Add a USB device to the peripheral whitelist.",
         "sequence": [

@@ -18,6 +18,7 @@ import {
   LogSnapshot,
   LogStoragePort,
   MutationResult,
+  RefreshResult,
   SaveSettingsResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import { LogManageViewModel } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
@@ -49,6 +50,7 @@ class FakeLogListStorage implements LogStoragePort {
   listCallCount: number = 0
   snapshotCallCount: number = 0
   hasEntryCallCount: number = 0
+  failSnapshot: boolean = false
   lastLimit?: number
   lastOffset?: number
 
@@ -107,6 +109,9 @@ class FakeLogListStorage implements LogStoragePort {
 
   async snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot> {
     this.snapshotCallCount++
+    if (this.failSnapshot) {
+      throw new Error('snapshot failed')
+    }
     let filtered = this.filterEntries(query)
     let paged = await this.list(query, limit, offset)
     let blockedCount = this.entries.filter((entry: LogEntry) => entry.result === LogEventResult.BLOCKED).length
@@ -430,6 +435,24 @@ export default function logManageViewModelTest() {
       expect(storage.listCallCount).assertEqual(1)
       expect(storage.lastLimit).assertEqual(20)
       expect(storage.lastOffset).assertEqual(40)
+    })
+
+    it('should return query_failed and restore pagination when page refresh fails', 0, async () => {
+      storage.entries = []
+      for (let index = 0; index < 25; index++) {
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+      }
+      await viewModel.initialize(context)
+      let previousFirstEntryId = viewModel.state.list.pagedEntries[0].id
+      storage.failSnapshot = true
+
+      let result: RefreshResult = await viewModel.goToNextPage()
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('query_failed')
+      expect(viewModel.state.pagination.currentPage).assertEqual(1)
+      expect(viewModel.state.pagination.pageInputText).assertEqual('1')
+      expect(viewModel.state.list.pagedEntries[0].id).assertEqual(previousFirstEntryId)
     })
 
     it('should switch mode and restore list after saving settings', 0, async () => {

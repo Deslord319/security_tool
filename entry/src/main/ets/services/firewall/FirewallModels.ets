@@ -37,7 +37,12 @@ export interface FirewallPresetConfig {
   privateUdpPorts: number[]
 }
 
-export type FirewallToggleRejectReason = 'lockout' | 'pin_unavailable' | 'pin_failed' | 'policy_apply_failed'
+export type FirewallToggleRejectReason =
+  'lockout' |
+  'pin_unavailable' |
+  'pin_failed' |
+  'no_available_users' |
+  'policy_apply_failed'
 
 export interface UserFirewallOption {
   userId: number

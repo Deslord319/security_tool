@@ -409,11 +409,11 @@ export struct LogManagePage {
               paginationState: this.getActiveViewModel().state.pagination,
               currentTheme: this.currentTheme,
               pageSizeOptions: LOG_PAGE_SIZE_OPTIONS,
-              onSelectPageSize: (index: number) => this.getActiveViewModel().setPageSizeIndex(index),
+              onSelectPageSize: (index: number) => { void this.getActiveViewModel().setPageSizeIndex(index) },
               onChangePageInput: (value: string) => this.getActiveViewModel().setPageInputText(value),
-              onJumpPage: () => this.getActiveViewModel().jumpToInputPage(),
-              onPrevPage: () => this.getActiveViewModel().goToPreviousPage(),
-              onNextPage: () => this.getActiveViewModel().goToNextPage()
+              onJumpPage: () => { void this.getActiveViewModel().jumpToInputPage() },
+              onPrevPage: () => { void this.getActiveViewModel().goToPreviousPage() },
+              onNextPage: () => { void this.getActiveViewModel().goToNextPage() }
             })
           } else {
             Column({ space: 12 }) {

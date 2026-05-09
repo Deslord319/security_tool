@@ -91,6 +91,8 @@ export function buildFirewallToggleFailedMessage(
       return '当前设备未配置 PIN'
     case 'pin_failed':
       return 'PIN 校验失败'
+    case 'no_available_users':
+      return '未读取到可用系统用户'
     case 'policy_apply_failed':
       return '防火墙状态写入失败'
     default:
