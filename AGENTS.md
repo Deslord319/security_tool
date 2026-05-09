@@ -2,6 +2,8 @@
 
 本文档为 AI 编码助手（如 Qoder、Cursor、Copilot 等）提供本项目的关键开发规范和操作指南。
 
+常见开发任务的具体读法、实施顺序和验证矩阵见 `docs/05-AI开发/AI常见任务手册.md`。
+
 ## 项目概述
 
 - **项目名称**：SecurityTool（HarmonyOS 安全管理中心）
@@ -205,6 +207,7 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 4. 确认模块设计文档没有破坏既有模板结构。
 5. 确认模块设计文档与代码、测试、验收说明一致。
 6. 确认中文文档按 UTF-8 回读正常，无乱码、无 `�`、无异常 `?`。
+7. 运行 `python scripts/check_docs_consistency.py`，确认路由、权限、测试路径、模块设计索引、AI 开发手册入口和乱码检查通过。
 
 ## 签名密钥别名速查
 

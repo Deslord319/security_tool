@@ -119,7 +119,7 @@ security_tool/
 ├── entry/                         # 主模块与测试模块
 ├── hapsigner/                     # 签名工具链与签名模板
 ├── scripts/e2e/                   # E2E 测试框架与 case
-├── docs/                          # 需求、总体设计、模块设计、测试文档
+├── docs/                          # 需求、总体设计、模块设计、测试文档、AI 开发手册
 ├── build_hap.bat                  # 本地构建并同步 unsigned HAP
 ├── AGENTS.md                      # 项目级开发与签名/测试规范
 ├── hvigorfile.ts                  # Hvigor 构建入口
@@ -186,6 +186,7 @@ scripts/e2e/bridges/               # 运行时 bridge 与 HarmonyOS MCP 适配
 docs/02-总体设计/                  # 总体设计与产品定义
 docs/03-模块设计/                  # 各模块设计说明
 docs/04-测试文档/                  # 手工测试与 E2E 设计
+docs/05-AI开发/                    # AI 继续开发任务手册
 ```
 
 ## 快速开始
@@ -280,6 +281,9 @@ hvigorw test --mode module -p product=default -p module=entry@default
 # 编译 ohosTest
 hvigorw test --mode module -p product=default -p module=entry@ohosTest
 
+# 文档、路由、权限和测试路径一致性检查
+python scripts/check_docs_consistency.py
+
 # 构建设备侧测试 HAP
 hvigorw assembleHap --mode module -p product=default -p module=entry@ohosTest
 
@@ -318,7 +322,7 @@ security_tool/
 │   └── src/ohosTest/              # 设备侧测试
 ├── hapsigner/                     # 签名工具、证书和模板
 ├── scripts/e2e/                   # E2E runner、bridge、case、reporter
-├── docs/                          # PRD、总体设计、模块设计、测试文档
+├── docs/                          # PRD、总体设计、模块设计、测试文档、AI 开发手册
 ├── build_hap.bat                  # 本地构建脚本
 ├── AGENTS.md                      # 开发规范
 └── README.md
@@ -327,6 +331,7 @@ security_tool/
 ## 关键文档
 
 - [AGENTS.md](AGENTS.md)：开发规范、签名流程、权限一致性、测试基线
+- [docs/05-AI开发/AI常见任务手册.md](docs/05-AI开发/AI常见任务手册.md)：AI 常见开发任务、实施顺序与验证矩阵
 - [scripts/e2e/README.md](scripts/e2e/README.md)：E2E 测试框架与运行方式
 - [docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md](docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md)：设备侧测试基线
 - [docs/04-测试文档/e2e测试/端到端测试框架设计.md](docs/04-测试文档/e2e测试/端到端测试框架设计.md)：E2E 框架设计
