@@ -2,10 +2,10 @@
 
 ## 1. 目的
 
-本文档基于日志管理模块从 V1/V2 混用迁移到纯 V2 链路的实际过程，总结已经遇到的问题、已验证有效的处理方式，以及后续其它仍为 V1 的页面接入 V2 时的适配建议。
+本文档基于日志管理模块从 V1/V2 混用迁移到纯 V2 链路的实际过程，总结已经遇到的问题、已验证有效的处理方式，以及后续页面或公共组件继续维护 V2 响应式链路时的适配建议。当前主页面、业务页、主要公共组件和主要 ViewModel 已完成 V2 化；后续如果新增页面、组件或重构状态链路，应优先参考本文档，避免重新引入 V1/V2 混用和中间镜像态。
 
 时间：2026-04-03  
-项目：`C:\Users\mu\Desktop\code\security_tool`
+项目：`security_tool`
 
 ## 2. 本次迁移中暴露的核心问题
 
@@ -86,8 +86,8 @@
 结论：
 
 - 每次 fresh deploy 前必须先删除：
-  - `C:\Users\mu\Desktop\code\security_tool\hapsigner\entry-default-unsigned.hap`
-  - `C:\Users\mu\Desktop\code\security_tool\hapsigner\signApp.hap`
+  - `hapsigner/entry-default-unsigned.hap`
+  - `hapsigner/signApp.hap`
 - 再重新拷贝 unsigned、重新签名、重新安装，避免包残留造成误判。
 
 ## 3. 这次已经验证有效的做法
@@ -159,11 +159,11 @@
 
 - 先把子组件切成 V2，但仍挂在 V1 宿主下，容易出现“局部看起来好了、首屏仍不稳定”的问题。
 
-## 5. 后续其它页面接入 V2 的适配指导
+## 5. 后续 V2 维护与新增页面适配指导
 
 ### 5.1 建议优先级
 
-优先处理公共宿主和跨页面公用链，再处理具体业务页。
+优先保证公共宿主和跨页面公用链继续保持 V2，再处理具体业务页或新增组件。
 
 推荐顺序：
 
@@ -172,37 +172,21 @@
 3. `ThemeMenuPopup.ets`
 4. 各业务页及其 ViewModel
 
-### 5.2 当前仍明显属于 V1 的页面/组件/ViewModel
+### 5.2 当前 V2 基线
 
-#### 页面
+当前实现已经完成以下 V2 化基线：
 
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\DashboardPage.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\FirewallPage.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\FirewallRulesPage.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\HelpFeedbackPage.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\IdentityPage.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\PeripheralPage.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\views\ToolSettingsPage.ets`
+- 页面宿主：`entry/src/main/ets/pages/MainPage.ets`
+- 业务页：`entry/src/main/ets/views/**`
+- 主要公共组件：`entry/src/main/ets/components/**`
+- 主要 ViewModel：`entry/src/main/ets/viewmodels/**`
 
-#### 公共组件
+维护要求：
 
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\BaseCard.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\CompactSummaryCard.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\EmptyStatePanel.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\MetricSummaryCard.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\ToolCard.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\peripheral\DeviceRecordList.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\peripheral\InterfaceControlTab.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\components\peripheral\PolicyList.ets`
-
-#### ViewModel
-
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\viewmodels\DashboardViewModel.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\viewmodels\InterfaceControlViewModel.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\viewmodels\PeripheralPolicyViewModel.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\viewmodels\PeripheralRecordViewModel.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\viewmodels\PeripheralViewModel.ets`
-- `C:\Users\mu\Desktop\code\security_tool\entry\src\main\ets\viewmodels\ToolSettingsViewModel.ets`
+- 新增页面和可复用组件默认使用 `@ComponentV2`。
+- 新增 ViewModel 或页面状态容器默认使用 `@ObservedV2 + @Trace`。
+- 不要恢复旧的绝对路径清单；路径统一使用仓库相对路径。
+- 如果确实需要 V1 组件或 `@State` 局部态，必须限定为弹窗、输入框、hover、局部动画等 UI 层临时状态，且不得作为业务状态真源。
 
 ### 5.3 单页迁移模板
 
@@ -231,8 +215,8 @@
 
 1. 构建 HAP
 2. 删除旧包：
-   - `C:\Users\mu\Desktop\code\security_tool\hapsigner\entry-default-unsigned.hap`
-   - `C:\Users\mu\Desktop\code\security_tool\hapsigner\signApp.hap`
+   - `hapsigner/entry-default-unsigned.hap`
+   - `hapsigner/signApp.hap`
 3. 拷贝新的 unsigned HAP 到 `hapsigner`
 4. 重新签名
 5. 覆盖安装到真机
@@ -244,6 +228,5 @@
 
 - 纯 V2 状态链是可行的。
 - 问题主要出在 V1/V2 混用、状态拷贝、Builder 桥接、方法级派生。
-- 后续其它页面如果继续迁移，必须优先消除公共宿主和公共组件的 V1 残留，否则仍会遇到首屏不同步、局部不刷新的问题。
+- 当前公共宿主和主要业务页面已完成 V2 化；后续维护重点是防止新增代码重新引入 V1/V2 混用、跨层镜像态和不稳定的 Builder 桥接。
 - 当前日志管理里保留的 `listReady` 属于页面首屏引导态，不是业务中间态；后续可以继续并回 `loading/initialized`，但它不应扩散成新的镜像状态模式。
-

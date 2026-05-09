@@ -1,6 +1,6 @@
 # SecurityTool 总体设计 RFC
 
-> 状态：Draft
+> 状态：Active
 > 日期：2026-04-08
 > 适用范围：SecurityTool 商业项目当前交付版本与后续版本规划
 > 配套文档：
@@ -11,6 +11,7 @@
 > - `docs/03-模块设计/身份鉴别组件设计说明.md`
 > - `docs/03-模块设计/日志管理组件设计说明.md`
 > - `docs/03-模块设计/工具设置组件设计说明.md`
+> - `docs/03-模块设计/帮助与反馈组件设计说明.md`
 
 ## 1. 文档定位
 
@@ -59,7 +60,7 @@ SecurityTool 是面向 HarmonyOS 2in1 设备的企业安全管理工具，交付
 | 外设管理 | `peripheral-manage` | 是 |
 | 身份鉴别 | `identity` | 是 |
 | 工具设置 | `tool-settings` | 是 |
-| 帮助反馈 | `help-feedback` | 辅助页，不是核心卖点 |
+| 帮助与反馈 | `help-feedback` | 辅助页，不是核心卖点 |
 
 ### 3.2 不包含的范围
 
@@ -89,7 +90,7 @@ MainPage
   -> 外设管理
   -> 身份鉴别
   -> 工具设置
-  -> 帮助反馈
+  -> 帮助与反馈
 ```
 
 ### 4.3 商业演示顺序建议
@@ -145,6 +146,107 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 - 子组件自行维护完整业务状态副本
 - 为了修局部 bug 在页面层补镜像态
 
+### 5.4 架构落地视图
+
+当前代码按“应用入口 + 页面路由 + 模块 MVVM + 领域服务 + 平台能力适配”落地：
+
+```text
+EntryAbility
+  -> ApplicationRuntimeManager
+  -> MainPage(RouteIds)
+  -> Module Page
+  -> Module ViewModel
+  -> Module Service / Domain Use Case
+  -> Repository / Provider / Adapter
+  -> HarmonyOS API / MDM API / Preferences / RDB
+```
+
+各入口职责：
+
+| 架构节点 | 当前落点 | 职责 |
+|---|---|---|
+| 应用启动 | `entry/src/main/ets/entryability/EntryAbility.ets` | 初始化主题、执行启动认证、加载 `pages/MainPage`、处理生命周期事件 |
+| 运行时服务 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` | 管理跨页面运行态，如日志采集、外设连接记录采集、共享 ViewModel |
+| 路由壳层 | `entry/src/main/ets/pages/MainPage.ets` | 持有当前路由，装配侧边栏、顶部菜单和模块页面，不承载模块内部业务 |
+| 页面层 | `entry/src/main/ets/views/**` | 展示、交互转发、弹窗、局部 UI 状态 |
+| 状态层 | `entry/src/main/ets/viewmodels/**` | 初始化、刷新、保存、提交、结果映射和页面状态收口 |
+| 领域层 | `entry/src/main/ets/services/**` | 系统能力编排、策略下发、采集、导出、认证等业务动作 |
+| 持久化层 | `entry/src/main/ets/storage/**`、模块 Repository | Preferences / RDB 访问、表结构、配置读写、查询和裁剪 |
+| 公共能力 | `entry/src/main/ets/components/**`、`utils/**`、`constants/**`、`theme/**` | UI 复用、日志、弹窗、导出文案、路径处理、主题和文案常量 |
+
+跨模块依赖边界：
+
+- 安全总览可以读取管理员、防火墙、日志和外设摘要，但不直接改写其它模块状态。
+- 工具设置负责工具自身启动认证；防火墙敏感操作认证直接复用身份认证能力，不消费工具设置配置。
+- 日志管理作为审计留痕模块，运行时采集由 `ApplicationRuntimeManager` 拉起，页面只展示和操作日志查询/导出。
+- 外设运行时采集由 `ApplicationRuntimeManager` 拉起，外设页面不直接启动后台采集管线。
+- 帮助与反馈是静态辅助页，不进入核心安全闭环，不引入 Service、Repository 或权限依赖。
+
+#### 5.4.1 文档与实现对齐矩阵
+
+| 模块 | 路由 | 页面 / 状态落点 | 领域 / 存储落点 | 测试落点 |
+|---|---|---|---|---|
+| 安全总览 | `dashboard` | `DashboardPage.ets`、`DashboardViewModel.ets` | 无独立 Service；只读管理员、防火墙、日志、外设摘要 | `entry/src/test/dashboard/*`、`entry/src/ohosTest/ets/test/dashboard/*`、`scripts/e2e/cases/dashboard/*` |
+| 防火墙管理 | `firewall`、`firewall-rules` | `FirewallPage.ets`、`FirewallRulesPage.ets`、`FirewallOverviewViewModel.ets`、`FirewallRulesViewModel.ets` | `services/firewall/**`、Preferences 本地意图与系统防火墙 Provider | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/*`、`scripts/e2e/cases/firewall/*` |
+| 日志管理 | `log-manage` | `LogManagePage.ets`、`LogManageViewModel.ets`、`LogStorageSettingsViewModel.ets` | `services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/log-manage/*`、`scripts/e2e/cases/logs/*` |
+| 外设管理 | `peripheral-manage` | `PeripheralPage.ets`、`PeripheralViewModel.ets`、`InterfaceControlViewModel.ets`、`PeripheralRecordViewModel.ets`、`PeripheralPolicyViewModel.ets` | `services/peripheral/**`、运行时 Producer / Pipeline、RDB trace、设备策略 Preferences | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/*`、`scripts/e2e/cases/peripheral/*` |
+| 身份鉴别 | `identity` | `IdentityPage.ets`、`IdentitySettingsViewModel.ets` | `IdentityService.ets`、`IdentityPasswordPolicyMapper.ets`、`AuthService.ets` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/identity/*`、`scripts/e2e/cases/identity/*` |
+| 工具设置 | `tool-settings` | `ToolSettingsPage.ets`、`ToolSettingsViewModel.ets` | `ToolSettingsRepository.ets`、`SystemSettingsService.ets`、`EntryAbility.ets` 启动消费链路 | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/*`、`entry/src/ohosTest/ets/test/tool-settings/*`、`scripts/e2e/cases/tool_settings/*` |
+| 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 无 Service / Repository / Storage；静态内容来自 `HelpFeedbackStrings.ets` | `entry/src/test/help/*`、`entry/src/ohosTest/ets/test/help/*`、`scripts/e2e/cases/navigation/help_feedback*.json` |
+
+### 5.5 实施步骤
+
+新增或调整业务模块时，按以下顺序实施：
+
+1. 明确产品范围：先更新 `docs/02-总体设计/PRD.md` 和本文档中的模块范围、交付能力、非目标。
+2. 更新模块设计：在 `docs/03-模块设计/` 中补齐入口路由、状态模型、数据流、ViewModel / Service / Repository 职责、系统能力、权限、异常兜底和测试边界。
+3. 更新配置契约：如涉及包名、权限或签名能力，同步检查 `AppScope/app.json5`、`entry/src/main/module.json5`、`hapsigner/UnsgnedDebugProfileTemplate.json`。
+4. 实施代码：按 Page -> ViewModel -> Service -> Repository/Provider/Adapter 的方向落地；页面只转发交互，业务状态在 ViewModel 收口。
+5. 补齐测试：低风险纯函数补 UT；状态流、仓储和服务补本地 UT；页面路由和设备能力补 ohosTest；端到端闭环补 `scripts/e2e/cases`。
+6. 构建签名：按 `AGENTS.md` 的 hvigor 查找和签名流程构建 unsigned HAP、同步到 `hapsigner/`、签名生成 `signApp.hap`。
+7. 设备验收：安装主包和测试包，激活企业管理员，执行默认设备冒烟和模块相关可选场景。
+8. 回写文档：如验证中发现行为边界、失败策略或验收口径变化，先回写模块设计文档，再提交代码。
+
+#### 5.5.1 RFC 分层与实现走样检查
+
+当前检查结论：总体 RFC 的主分层与现有实现基本一致，未发现页面绕过 ViewModel 直接下发系统能力、`MainPage` 承担模块核心业务、或模块专项设计散落到独立过程目录的走样。需要记录的实现差异是：共享 ViewModel 并非全部由 `ApplicationRuntimeManager` 持有，防火墙总览和规则页 ViewModel 目前由 `MainPage` 持有，用于保持防火墙子路由和规则页状态；该差异仍在“路由壳层装配页面、不承载模块业务”的边界内。
+
+| RFC 分层 | RFC 预期职责 | 当前实现落点 | 走样检查结论 |
+|---|---|---|---|
+| 应用启动层 | 负责主题初始化、启动认证、加载 `pages/MainPage`、拉起应用级运行时 | `entry/src/main/ets/entryability/EntryAbility.ets`、`ToolSettingsRepository.ets`、`AuthService.ets`、`ApplicationRuntimeManager.ets` | 一致。启动认证由工具设置配置驱动，认证失败/不可用分支有降级或终止处理。 |
+| 运行时服务层 | 管理跨页面运行态和后台采集，不让页面直接启动采集管线 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` 管理日志采集、外设运行时、共享身份/日志/外设/工具设置 ViewModel | 基本一致。防火墙 ViewModel 由 `MainPage` 持有是子路由状态需要，不涉及系统能力直接下发。 |
+| 路由壳层 | 持有当前路由、装配侧边栏/顶部菜单/模块页面，不承载模块业务 | `entry/src/main/ets/pages/MainPage.ets`、`RouteStateUtils.ets`、`RouteIds.ets` | 一致。`MainPage` 只做路由、主题、弹窗入口和 ViewModel 注入；防火墙子路由恢复通过 `lastFirewallRoute` 收口。 |
+| 页面层 | 负责展示、交互转发、弹窗和局部 UI 状态 | `entry/src/main/ets/views/**`、`entry/src/main/ets/components/**` | 一致。页面消费 ViewModel state 和回调；`FirewallRulesPage` 引入 `netFirewall` 仅用于规则类型/枚举展示和弹窗参数，新增/编辑/删除仍经 `FirewallRulesViewModel`，不是页面直接下发系统能力。 |
+| 状态层 | 收口初始化、刷新、保存、提交、结果映射和页面状态 | `entry/src/main/ets/viewmodels/**` | 一致。业务状态集中在各模块 ViewModel，页面没有成为持久业务真相源。 |
+| 领域服务层 | 编排系统能力、认证、策略下发、采集、导出等业务动作 | `entry/src/main/ets/services/**`、`entry/src/main/ets/services/admin/**` | 一致。防火墙、身份、日志、外设、工具设置均有明确 Service / task / adapter 边界。 |
+| 仓储/适配层 | 负责 Preferences、RDB、系统 Provider / Adapter，不把存储细节泄漏给页面 | `entry/src/main/ets/storage/**`、`services/**/repository/**`、`services/**/providers/**`、`UserAuthAdapter.ets` | 一致。仓储分布在模块 service 目录和公共 storage 目录，没有单独根 `repositories` 目录，但职责符合 RFC。 |
+| 测试层 | 用 UT / ohosTest / E2E 分别覆盖纯逻辑、页面/设备能力和端到端链路 | `entry/src/test/**`、`entry/src/ohosTest/ets/test/**`、`scripts/e2e/cases/**` | 一致。各模块已有对应测试入口，具体覆盖边界以模块设计 4.1 为准。 |
+| 文档层 | PRD 管范围，RFC 管分层和拆分，模块设计管状态/职责/异常/测试 | `docs/02-总体设计/**`、`docs/03-模块设计/**` | 一致。本次移除简化流程摘要，避免把低层流程描述误当 RFC 设计契约。 |
+
+#### 5.5.2 拆分步骤与不走路径
+
+| 拆分阶段 | 必须做 | 明确不走 |
+|---|---|---|
+| PRD | 更新产品范围、模块状态、验收目标和 PRD/RFC/实现对齐矩阵 | 不在 PRD 里写代码级细节或临时过程记录 |
+| 总体 RFC | 更新架构边界、跨模块依赖、分层实现对照、拆分步骤、权限/运行时约束 | 不把单模块内部实现细节散落到独立过程目录 |
+| 模块设计 | 更新状态模型、数据模型、组件职责、测试覆盖和验收口径 | 不只在文件末尾追加一句说明，不保留与代码冲突的旧 RFC |
+| 代码实现 | 按 Page -> ViewModel -> Service -> Repository/Provider/Adapter 分层落地 | 不让页面直连系统 API、RDB、Preferences 或多个 Service 拼业务；页面可消费平台类型/枚举作为展示数据契约，但不能直接执行系统读写 |
+| 测试验证 | 按 UT / ohosTest / E2E 分层补证据，权限变更要补签名验证 | 不用只跑单个页面截图替代状态流和失败分支验证 |
+| 提交前自检 | 检查路径、权限、路由、测试用例、UTF-8 和变更日志一致 | 不提交乱码、无引用过程文档或未解释的无用文件 |
+
+### 5.6 验收闭环
+
+每个模块最少需要具备以下验收证据：
+
+| 验收维度 | 文档落点 | 代码/测试落点 |
+|---|---|---|
+| 入口可达 | PRD、总体 RFC、模块设计第 1/3 章 | `RouteIds`、`MainPage`、ohosTest 路由用例 |
+| 状态可信 | 模块设计第 2 章 | ViewModel UT、Repository/Service UT |
+| 系统能力边界 | 模块设计第 3.2/4 章 | Service/Adapter 实现、权限声明、签名模板 |
+| 异常兜底 | 模块设计第 4 章 | 失败分支 UT、页面提示、日志输出 |
+| 设备可验收 | README、AGENTS、测试文档 | HAP 构建、签名、安装、`aa test`、E2E case |
+| 文档一致性 | README 关键文档索引、模块设计变更日志 | Markdown 链接检查、UTF-8 回读、权限/路由/测试数量核对 |
+
 ## 6. 模块级交付说明
 
 ## 6.1 安全总览
@@ -178,7 +280,7 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 - 外设管理
 - 身份鉴别
 - 工具设置
-- 帮助反馈
+- 帮助与反馈
 
 ### 6.1.3 用户在本模块具体做什么
 
@@ -577,6 +679,56 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 - 不把所有系统设置项塞进来
 - 不承载其它模块的业务认证逻辑
 
+## 6.7 帮助与反馈
+
+### 6.7.1 模块定位
+
+帮助与反馈是辅助信息页，不属于核心安全控制闭环。它用于在演示、验收和日常排障时提供产品使用指南、常见问题和反馈邮箱。
+
+### 6.7.2 当前版本具体功能
+
+当前交付三类静态内容：
+
+1. 使用指南
+2. 常见问题
+3. 联系与反馈
+
+具体动作包括：
+
+- 从顶部菜单进入帮助与反馈页
+- 从安全总览快捷入口进入帮助与反馈页
+- 展开或收起使用指南条目
+- 展开或收起常见问题条目
+- 查看反馈邮箱
+
+### 6.7.3 关键动作链路
+
+```text
+open help-feedback:
+  MainPage.setCurrentPage(RouteIds.HELP_FEEDBACK)
+  HelpFeedbackPage reads HelpFeedbackStrings
+  render guide / FAQ / contact sections
+
+toggle item(index):
+  expandedIndex = expandedIndex == index ? -1 : index
+
+back:
+  MainPage.setCurrentPage(RouteIds.DASHBOARD)
+```
+
+### 6.7.4 成功标准
+
+- 顶部菜单和首页快捷入口均可进入页面
+- 使用指南、FAQ 和反馈邮箱完整可见
+- 展开/收起只影响当前页面局部状态
+- 不申请系统权限，不写本地存储，不依赖企业管理员激活
+
+### 6.7.5 当前不做
+
+- 不提交在线工单
+- 不拉起邮件客户端
+- 不引入后台反馈服务、Repository 或存储表
+
 ## 7. 商业验收口径
 
 ### 7.1 功能验收
@@ -589,6 +741,7 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 4. 身份策略可读取和保存
 5. 日志可查询和导出
 6. 工具设置可启用启动认证
+7. 帮助与反馈可进入并展示使用说明、FAQ 和反馈邮箱
 
 ### 7.2 演示验收
 
@@ -600,6 +753,7 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 4. 演示身份鉴别策略编辑
 5. 演示日志筛选与导出
 6. 演示启动认证设置
+7. 演示帮助与反馈辅助入口
 
 ### 7.3 工程验收
 
@@ -643,7 +797,7 @@ Page -> ViewModel -> Service -> Repository/Store/Provider -> HarmonyOS API
 
 ## 10. 结论
 
-当前版本不是概念验证，而是一个面向商业项目交付的本地安全管理工具。总体设计的重点不是描述抽象架构，而是确保六个模块各自有明确交付内容、可演示动作、可验收标准和清晰边界。后续所有模块变更，都应回到这四个问题：
+当前版本不是概念验证，而是一个面向商业项目交付的本地安全管理工具。总体设计的重点不是描述抽象架构，而是确保六个核心模块和一个辅助页各自有明确交付内容、可演示动作、可验收标准和清晰边界。后续所有模块变更，都应回到这四个问题：
 
 1. 客户能看到什么
 2. 用户能操作什么

@@ -107,6 +107,7 @@ Page -> ViewModel -> Service -> Repository / Store / Provider -> HarmonyOS API
 | 外设管理 | 体现终端设备侧控制能力 | 接口开关、连接记录、单设备策略 |
 | 身份鉴别 | 提供账户安全基线设置 | 密码复杂度、有效期、管理员激活态感知 |
 | 工具设置 | 保护工具自身访问入口 | 启动认证、认证方式选择、系统密码入口 |
+| 帮助与反馈 | 提供辅助说明与支持入口 | 使用指南、FAQ、反馈邮箱 |
 
 ## 源码结构
 
@@ -118,10 +119,9 @@ security_tool/
 ├── entry/                         # 主模块与测试模块
 ├── hapsigner/                     # 签名工具链与签名模板
 ├── scripts/e2e/                   # E2E 测试框架与 case
-├── docs/                          # 需求、总体设计、模块设计、测试文档
+├── docs/                          # 需求、总体设计、模块设计、测试文档、AI 开发手册
 ├── build_hap.bat                  # 本地构建并同步 unsigned HAP
 ├── AGENTS.md                      # 项目级开发与签名/测试规范
-├── CI_QUICKSTART.md               # 历史 CI 说明文档
 ├── hvigorfile.ts                  # Hvigor 构建入口
 ├── oh-package.json5               # 依赖定义
 └── README.md
@@ -186,6 +186,7 @@ scripts/e2e/bridges/               # 运行时 bridge 与 HarmonyOS MCP 适配
 docs/02-总体设计/                  # 总体设计与产品定义
 docs/03-模块设计/                  # 各模块设计说明
 docs/04-测试文档/                  # 手工测试与 E2E 设计
+docs/05-AI开发/                    # AI 继续开发任务手册
 ```
 
 ## 快速开始
@@ -280,6 +281,9 @@ hvigorw test --mode module -p product=default -p module=entry@default
 # 编译 ohosTest
 hvigorw test --mode module -p product=default -p module=entry@ohosTest
 
+# 文档、路由、权限和测试路径一致性检查
+python scripts/check_docs_consistency.py
+
 # 构建设备侧测试 HAP
 hvigorw assembleHap --mode module -p product=default -p module=entry@ohosTest
 
@@ -318,7 +322,7 @@ security_tool/
 │   └── src/ohosTest/              # 设备侧测试
 ├── hapsigner/                     # 签名工具、证书和模板
 ├── scripts/e2e/                   # E2E runner、bridge、case、reporter
-├── docs/                          # PRD、总体设计、模块设计、测试文档
+├── docs/                          # PRD、总体设计、模块设计、测试文档、AI 开发手册
 ├── build_hap.bat                  # 本地构建脚本
 ├── AGENTS.md                      # 开发规范
 └── README.md
@@ -327,17 +331,21 @@ security_tool/
 ## 关键文档
 
 - [AGENTS.md](AGENTS.md)：开发规范、签名流程、权限一致性、测试基线
+- [docs/05-AI开发/AI常见任务手册.md](docs/05-AI开发/AI常见任务手册.md)：AI 常见开发任务、实施顺序与验证矩阵
 - [scripts/e2e/README.md](scripts/e2e/README.md)：E2E 测试框架与运行方式
 - [docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md](docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md)：设备侧测试基线
+- [docs/04-测试文档/e2e测试/端到端测试框架设计.md](docs/04-测试文档/e2e测试/端到端测试框架设计.md)：E2E 框架设计
 - [docs/02-总体设计/总体设计RFC.md](docs/02-总体设计/总体设计RFC.md)：总体设计说明
 - [docs/02-总体设计/PRD.md](docs/02-总体设计/PRD.md)：产品需求范围
+- [docs/storage-architecture-standard.md](docs/storage-architecture-standard.md)：存储架构与迁移标准
+- [docs/03-模块设计/安全总览组件设计说明.md](docs/03-模块设计/安全总览组件设计说明.md)：安全总览模块设计
 - [docs/03-模块设计/防火墙管理组件设计说明.md](docs/03-模块设计/防火墙管理组件设计说明.md)：防火墙模块设计
 - [docs/03-模块设计/外设管理组件设计说明.md](docs/03-模块设计/外设管理组件设计说明.md)：外设模块设计
 - [docs/03-模块设计/身份鉴别组件设计说明.md](docs/03-模块设计/身份鉴别组件设计说明.md)：身份鉴别模块设计
 - [docs/03-模块设计/日志管理组件设计说明.md](docs/03-模块设计/日志管理组件设计说明.md)：日志管理模块设计
 - [docs/03-模块设计/工具设置组件设计说明.md](docs/03-模块设计/工具设置组件设计说明.md)：工具设置模块设计
+- [docs/03-模块设计/帮助与反馈组件设计说明.md](docs/03-模块设计/帮助与反馈组件设计说明.md)：帮助与反馈辅助页设计
 - [docs/01-UX设计/index.html](docs/01-UX设计/index.html)：UX 原型入口
-- [docs/05-agent-observer/recorder/README.md](docs/05-agent-observer/recorder/README.md)：observer recorder 说明
 
 ## 常见问题
 

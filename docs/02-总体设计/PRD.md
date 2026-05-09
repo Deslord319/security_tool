@@ -11,6 +11,7 @@
 > - `docs/03-模块设计/身份鉴别组件设计说明.md`
 > - `docs/03-模块设计/日志管理组件设计说明.md`
 > - `docs/03-模块设计/工具设置组件设计说明.md`
+> - `docs/03-模块设计/帮助与反馈组件设计说明.md`
 
 ## 1. 文档目的
 
@@ -285,11 +286,26 @@ flowchart TB
 | 模块 | 当前状态 | 说明 |
 |---|---|---|
 | 安全总览 | 已完成 | 已具备摘要卡、快捷入口和基础刷新机制 |
-| 防火墙管理 | 已完成并进入持续重构 | 已有设计说明与 refac RFC |
-| 日志管理 | 已完成并进入状态收敛阶段 | 已有模块设计，缺少统一 refac RFC |
-| 外设管理 | 已完成并持续补齐连接记录链路 | 已有局部 refac 文档 |
-| 身份鉴别 | 已完成 | 已有模块设计，缺少统一 refac RFC |
-| 工具设置 | 已完成 | 已有模块设计，缺少统一 refac RFC |
+| 防火墙管理 | 已完成并持续增强 | 已具备总开关、模式切换、自定义规则和用户级模式下发设计说明 |
+| 日志管理 | 已完成并持续增强 | 已具备采集、查询、分页、详情、导出和存储配置设计说明 |
+| 外设管理 | 已完成并持续增强 | 已具备接口管控、连接记录、设备策略和运行时采集设计说明 |
+| 身份鉴别 | 已完成 | 已具备密码复杂度、有效期、管理员激活态和保存流程设计说明 |
+| 工具设置 | 已完成 | 已具备启动认证、认证方式、系统密码入口和启动阶段消费链路设计说明 |
+| 帮助与反馈 | 已完成 | 辅助页，已具备使用指南、FAQ、反馈邮箱和静态页面边界设计说明 |
+
+### 10.1 PRD / RFC / 实现对齐矩阵
+
+当前 PRD 描述的是产品范围，总体 RFC 描述架构与拆分方式，模块设计文档描述实际开发细节。三者与当前代码基线的对齐关系如下：
+
+| 产品模块 | PRD 交付能力 | RFC / 模块设计落点 | 当前代码落点 | 测试证据 |
+|---|---|---|---|---|
+| 安全总览 | 摘要卡、快捷入口、管理员状态入口 | 总体 RFC 6.1；`docs/03-模块设计/安全总览组件设计说明.md` | `views/dashboard/overview/DashboardPage.ets`、`viewmodels/dashboard/overview/DashboardViewModel.ets` | `entry/src/test/dashboard/viewmodel.test.ets`、`entry/src/ohosTest/ets/test/dashboard/*`、`scripts/e2e/cases/dashboard/*` |
+| 防火墙管理 | 总开关、模式切换、自定义规则、规则页 | 总体 RFC 6.2；`docs/03-模块设计/防火墙管理组件设计说明.md` | `views/firewall/**`、`viewmodels/firewall/**`、`services/firewall/**` | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/*`、`scripts/e2e/cases/firewall/*` |
+| 日志管理 | 采集、查询、筛选、分页、详情、导出、留存配置 | 总体 RFC 6.3；`docs/03-模块设计/日志管理组件设计说明.md` | `views/log-manage/**`、`viewmodels/log-manage/**`、`services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/log-manage/*`、`scripts/e2e/cases/logs/*` |
+| 外设管理 | 接口管控、USB/蓝牙策略、连接记录、运行时采集 | 总体 RFC 6.4；`docs/03-模块设计/外设管理组件设计说明.md` | `views/peripheral/**`、`viewmodels/peripheral/**`、`services/peripheral/**`、`runtime/ApplicationRuntimeManager.ets` | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/*`、`scripts/e2e/cases/peripheral/*` |
+| 身份鉴别 | 口令复杂度、有效期、企业管理员状态、认证能力 | 总体 RFC 6.5；`docs/03-模块设计/身份鉴别组件设计说明.md` | `views/identity/**`、`viewmodels/identity/**`、`services/identity/**` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/identity/*`、`scripts/e2e/cases/identity/*` |
+| 工具设置 | 启动认证、认证方式、系统密码入口 | 总体 RFC 6.6；`docs/03-模块设计/工具设置组件设计说明.md` | `views/tool-settings/**`、`viewmodels/tool-settings/**`、`services/tool-settings/**`、`entryability/EntryAbility.ets` | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/entryability.test.ets`、`entry/src/ohosTest/ets/test/tool-settings/*`、`scripts/e2e/cases/tool_settings/*` |
+| 帮助与反馈 | 使用指南、FAQ、反馈邮箱、辅助入口 | 总体 RFC 6.7；`docs/03-模块设计/帮助与反馈组件设计说明.md` | `views/help-feedback/overview/HelpFeedbackPage.ets`、`constants/modules/HelpFeedbackStrings.ets` | `entry/src/test/help/strings.test.ets`、`entry/src/ohosTest/ets/test/help/feedback-page.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
 
 ## 11. 后续文档约束
 
@@ -298,20 +314,23 @@ flowchart TB
 3. 不再保留独立过程文档目录；模块专项演进内容应收敛到对应模块设计文档。
 4. 后续若新增模块能力，必须先更新本 PRD 的模块范围，再同步总体 RFC 和对应模块设计。
 5. 若路由、能力边界或核心术语发生变化，优先更新本 PRD 和总体 RFC，再同步模块文档。
+6. PRD 只记录产品范围、模块状态和验收目标；总体 RFC 记录架构分层、实现对照、拆分步骤和不走路径；模块设计记录具体类、状态、数据、异常、测试和验收口径。
+7. 若代码新增页面、ViewModel、Service、Repository、权限、路由或 E2E 场景，必须能在上表和对应模块设计文档中找到文档落点。
 
 ## 12. 里程碑建议
 
 ### M1：当前可用基线
 
 - 六大核心模块均已可进入和使用
+- 帮助与反馈辅助页可从顶部菜单和首页快捷入口进入
 - 构建、签名、安装链路稳定
 - 基础文档已与代码结构对齐
 
 ### M2：模块收口
 
-- 日志管理、身份鉴别、工具设置、安全总览补齐 RFC
-- 外设管理补足“模块总 RFC”，不再只覆盖设备连接记录子链路
-- 首页与各模块状态同步口径统一
+- 维持 PRD / 总体 RFC / 模块设计 / 实现 / 测试的对齐矩阵，不再新增分散的过程文档目录
+- 所有模块变更继续先落到对应模块设计文档的实施步骤、测试覆盖和验收口径
+- 首页与各模块状态同步口径持续收敛，新增摘要或快捷入口必须同步路由、E2E 和对应模块设计
 
 ### M3：质量强化
 
