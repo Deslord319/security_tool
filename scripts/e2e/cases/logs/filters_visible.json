@@ -1,0 +1,92 @@
+{
+  "case_id": "LOG-FILTER-001",
+  "case_name": "Log Filter After Policy Change",
+  "module": "log-manage",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "create_recent_policy_log",
+      "ref": "logs.change_any_policy",
+      "params": {
+        "preferred_module": "firewall"
+      }
+    },
+    {
+      "name": "open_log_manage",
+      "ref": "logs.open_list",
+      "params": {}
+    },
+    {
+      "name": "open_event_type_filter",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "全部类型",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "choose_firewall_log_filter",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "防火墙日志",
+        "bundle_name": "{{bundle_name}}",
+        "contains": true
+      }
+    },
+    {
+      "name": "open_result_filter",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "全部结果",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "choose_success_result_filter",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "成功",
+        "bundle_name": "{{bundle_name}}"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "log_filter_summary_visible",
+      "type": "assert_text_presence",
+      "value": "当前显示",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2500,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "filtered_log_page_keeps_export_action",
+      "type": "assert_text_presence",
+      "value": "导出日志",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case produces a real policy operation, enters the log page, applies both event-type and result filters, and validates the filtered list context."
+  ]
+}

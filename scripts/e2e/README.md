@@ -54,6 +54,8 @@ case -> entity.* -> execute_template_action -> backend step runtime
 - `entity.toggle`
 - `entity.submit`
 
+当前 `completeness` suite 维持 45 条主链 case，新增用例按完整功能闭环组织：防火墙规则创建/删除、日志筛选与存储设置保存、外设策略变更后恢复、身份策略保存，以及工具设置系统入口跳转返回。
+
 ## 常用命令
 
 列出 suite：

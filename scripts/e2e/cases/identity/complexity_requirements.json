@@ -1,0 +1,100 @@
+{
+  "case_id": "ID-PWD-002",
+  "case_name": "Identity Password Complexity Save Roundtrip",
+  "module": "identity",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_identity_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "identity"
+      }
+    },
+    {
+      "name": "set_password_min_length",
+      "ref": "entity.update",
+      "params": {
+        "domain": "identity",
+        "entity": "password_policy",
+        "data": {
+          "min_length": 10,
+          "require_uppercase": true,
+          "require_lowercase": true,
+          "require_digit": true,
+          "require_special_char": true
+        }
+      }
+    },
+    {
+      "name": "save_identity_config",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "保存配置",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "restore_password_min_length",
+      "ref": "entity.update",
+      "params": {
+        "domain": "identity",
+        "entity": "password_policy",
+        "data": {
+          "min_length": 8,
+          "require_uppercase": true,
+          "require_lowercase": true,
+          "require_digit": true,
+          "require_special_char": true
+        }
+      }
+    },
+    {
+      "name": "save_restored_identity_config",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "保存配置",
+        "bundle_name": "{{bundle_name}}"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "identity_save_success_visible",
+      "type": "assert_text_presence",
+      "value": "身份鉴别配置已保存",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 3000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "password_complexity_context_visible",
+      "type": "assert_text_presence",
+      "value": "口令复杂度策略",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This is a complete identity-policy flow: update password complexity, submit the configuration, then restore the baseline min length and verify the save result."
+  ]
+}

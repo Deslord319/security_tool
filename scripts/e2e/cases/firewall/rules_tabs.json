@@ -1,0 +1,84 @@
+{
+  "case_id": "FW-RULE-003",
+  "case_name": "Firewall Domain Rule Lifecycle Cleanup",
+  "module": "firewall",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_firewall_page",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "firewall"
+      }
+    },
+    {
+      "name": "create_domain_rule_for_cleanup",
+      "ref": "entity.create",
+      "params": {
+        "domain": "firewall",
+        "entity": "rule",
+        "variant": "domain",
+        "data": {
+          "name": "E2E lifecycle domain rule",
+          "domain": "e2e-lifecycle.example.com",
+          "direction": "out",
+          "policy": "deny",
+          "protocol": "tcp",
+          "port": "443"
+        }
+      }
+    },
+    {
+      "name": "delete_domain_rule_for_cleanup",
+      "ref": "entity.delete",
+      "params": {
+        "domain": "firewall",
+        "entity": "rule",
+        "variant": "domain",
+        "data": {
+          "name": "E2E lifecycle domain rule",
+          "domain": "e2e-lifecycle.example.com"
+        }
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "domain_rule_removed_after_lifecycle",
+      "type": "assert_text_presence",
+      "value": "e2e-lifecycle.example.com",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": false,
+        "timeout_ms": 2500,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "rules_page_still_usable_after_delete",
+      "type": "assert_text_presence",
+      "value": "新增规则",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This is a complete firewall rule lifecycle: create a domain rule, delete the same rule, and verify the page remains operable."
+  ]
+}

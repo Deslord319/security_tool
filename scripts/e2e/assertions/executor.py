@@ -64,12 +64,15 @@ class AssertionExecutor:
             timeout_ms = int(params.get("timeout_ms", 1500))
             interval_ms = int(params.get("interval_ms", 250))
             window_id = str(params.get("window_id", ""))
+            match_mode = str(params.get("match_mode", "contains"))
             if self.dry_run:
                 expectation = "exists" if present else "does not exist"
                 return AssertionExecutionResult("PASS", "", f"Dry run: assumed text {expectation}: {text}")
             presence = self.mcp.text_presence(
                 bundle_name=bundle_name,
                 text=text,
+                expected_present=present,
+                match_mode=match_mode,
                 timeout_ms=timeout_ms,
                 interval_ms=interval_ms,
                 window_id=window_id,

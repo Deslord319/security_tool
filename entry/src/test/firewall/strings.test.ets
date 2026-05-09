@@ -34,6 +34,7 @@ export default function firewallStringsTest() {
     it('should map toggle rejection reasons to actionable copy', 0, () => {
       expect(buildFirewallToggleFailedMessage('lockout', 30).length > 0).assertTrue()
       expect(buildFirewallToggleFailedMessage('pin_unavailable', undefined).length > 0).assertTrue()
+      expect(buildFirewallToggleFailedMessage('no_available_users', undefined).length > 0).assertTrue()
       expect(buildFirewallToggleFailedMessage('policy_apply_failed', undefined).length > 0).assertTrue()
       expect(buildFirewallToggleFailedMessage(undefined, undefined).length > 0).assertTrue()
     })

@@ -265,9 +265,11 @@ hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 
 当前仓库中，按文件数统计包含：
 
-- `75` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
-- `19` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
-- `35` 个 E2E case：`scripts/e2e/cases/**/*.json`
+- `76` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
+- `21` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
+- `45` 个 E2E case：`scripts/e2e/cases/**/*.json`
+
+E2E case 以端到端功能闭环为主，覆盖规则创建/删除、日志筛选与存储设置保存、外设策略可逆变更、身份策略保存、工具设置系统入口跳转等场景。
 
 常用命令：
 
@@ -291,6 +293,8 @@ hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTes
 # 可选场景
 hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode route_action -w 60000
 hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode peripheral_contract -w 60000
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode theme_menu -w 60000
+hdc shell aa test -b com.huawei.securitytool -m entry -s unittest OpenHarmonyTestRunner -s mode firewall_subroute -w 60000
 ```
 
 E2E 测试入口：
@@ -324,13 +328,13 @@ security_tool/
 
 - [AGENTS.md](AGENTS.md)：开发规范、签名流程、权限一致性、测试基线
 - [scripts/e2e/README.md](scripts/e2e/README.md)：E2E 测试框架与运行方式
-- [docs/testing/DEVICE_TEST_FRAMEWORK.md](docs/testing/DEVICE_TEST_FRAMEWORK.md)：设备侧测试基线
+- [docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md](docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md)：设备侧测试基线
 - [docs/02-总体设计/总体设计RFC.md](docs/02-总体设计/总体设计RFC.md)：总体设计说明
 - [docs/02-总体设计/PRD.md](docs/02-总体设计/PRD.md)：产品需求范围
 - [docs/03-模块设计/防火墙管理组件设计说明.md](docs/03-模块设计/防火墙管理组件设计说明.md)：防火墙模块设计
 - [docs/03-模块设计/外设管理组件设计说明.md](docs/03-模块设计/外设管理组件设计说明.md)：外设模块设计
 - [docs/03-模块设计/身份鉴别组件设计说明.md](docs/03-模块设计/身份鉴别组件设计说明.md)：身份鉴别模块设计
-- [docs/03-模块设计/日志管理模块V2状态收敛与实施设计.md](docs/03-模块设计/日志管理模块V2状态收敛与实施设计.md)：日志管理模块设计
+- [docs/03-模块设计/日志管理组件设计说明.md](docs/03-模块设计/日志管理组件设计说明.md)：日志管理模块设计
 - [docs/03-模块设计/工具设置组件设计说明.md](docs/03-模块设计/工具设置组件设计说明.md)：工具设置模块设计
 - [docs/01-UX设计/index.html](docs/01-UX设计/index.html)：UX 原型入口
 - [docs/05-agent-observer/recorder/README.md](docs/05-agent-observer/recorder/README.md)：observer recorder 说明

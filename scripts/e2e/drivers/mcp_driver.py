@@ -337,6 +337,8 @@ class McpDriver:
         *,
         bundle_name: str,
         text: str,
+        expected_present: bool | None = None,
+        match_mode: str = "contains",
         timeout_ms: int = 1500,
         interval_ms: int = 250,
         window_id: str = "",
@@ -346,6 +348,8 @@ class McpDriver:
             params={
                 "bundle_name": bundle_name,
                 "text": text,
+                "expected_present": expected_present,
+                "match_mode": match_mode,
                 "timeout_ms": timeout_ms,
                 "interval_ms": interval_ms,
                 "window_id": window_id,

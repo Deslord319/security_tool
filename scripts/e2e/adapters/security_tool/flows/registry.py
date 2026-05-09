@@ -76,6 +76,18 @@ FLOW_REGISTRY = {
         "description": "Trigger the log export flow.",
         "kind": "ui",
     },
+    "logs.open_list": {
+        "description": "Open the log management list view regardless of the previous log substate.",
+        "kind": "ui",
+    },
+    "logs.open_storage_settings": {
+        "description": "Open the log storage settings panel from the log management page.",
+        "kind": "ui",
+    },
+    "logs.save_storage_settings": {
+        "description": "Save the current log storage settings form.",
+        "kind": "ui",
+    },
     "logs.change_any_policy": {
         "description": "Apply one policy change to trigger a log event.",
         "kind": "ui",

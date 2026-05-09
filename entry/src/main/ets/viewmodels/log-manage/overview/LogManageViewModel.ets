@@ -32,6 +32,13 @@ import { LogStorageSettingsViewModel } from '../storage-settings/LogStorageSetti
 
 const TAG = 'LogManageViewModel'
 
+interface LogPaginationSnapshot {
+  currentPage: number
+  pageSizeIndex: number
+  pageInputText: string
+  totalPages: number
+}
+
 class DefaultLogManageStorage implements LogStoragePort {
   init(context: common.UIAbilityContext): Promise<InitializeResult> {
     return LogStorageMaintenanceService.initialize(context)
@@ -207,32 +214,33 @@ export class LogManageViewModel {
     await this.refreshAll()
   }
 
-  setPageSizeIndex(index: number): void {
+  async setPageSizeIndex(index: number): Promise<RefreshResult> {
+    let previousPagination = this.capturePaginationState()
     this.state.pagination.pageSizeIndex = this.normalizePageSizeIndex(index)
     this.resetToFirstPage()
-    this.rebuildStateFromSnapshot()
+    return this.rebuildPaginationSafely('setPageSizeIndex', previousPagination)
   }
 
   setPageInputText(text: string): void {
     this.state.pagination.pageInputText = text.replace(/[^0-9]/g, '')
   }
 
-  jumpToInputPage(): void {
-    this.changePage(this.normalizePage(this.state.pagination.pageInputText, this.state.pagination.totalPages))
+  async jumpToInputPage(): Promise<RefreshResult> {
+    return this.changePage(this.normalizePage(this.state.pagination.pageInputText, this.state.pagination.totalPages))
   }
 
-  goToPreviousPage(): void {
+  async goToPreviousPage(): Promise<RefreshResult> {
     if (this.state.pagination.currentPage <= 1) {
-      return
+      return { success: true, code: 'ok' }
     }
-    this.changePage(this.state.pagination.currentPage - 1)
+    return this.changePage(this.state.pagination.currentPage - 1)
   }
 
-  goToNextPage(): void {
+  async goToNextPage(): Promise<RefreshResult> {
     if (this.state.pagination.currentPage >= this.state.pagination.totalPages) {
-      return
+      return { success: true, code: 'ok' }
     }
-    this.changePage(this.state.pagination.currentPage + 1)
+    return this.changePage(this.state.pagination.currentPage + 1)
   }
 
   openDetail(entryId: string): void {
@@ -424,11 +432,42 @@ export class LogManageViewModel {
     return Math.max(1, Math.ceil(totalCount / pageSize))
   }
 
-  private async changePage(targetPage: number): Promise<void> {
+  private async changePage(targetPage: number): Promise<RefreshResult> {
+    let previousPagination = this.capturePaginationState()
     let currentPage = this.normalizePage(`${targetPage}`, this.state.pagination.totalPages)
     this.state.pagination.currentPage = currentPage
     this.state.pagination.pageInputText = `${currentPage}`
-    await this.rebuildStateFromSnapshot()
+    return this.rebuildPaginationSafely('changePage', previousPagination)
+  }
+
+  private capturePaginationState(): LogPaginationSnapshot {
+    return {
+      currentPage: this.state.pagination.currentPage,
+      pageSizeIndex: this.state.pagination.pageSizeIndex,
+      pageInputText: this.state.pagination.pageInputText,
+      totalPages: this.state.pagination.totalPages
+    }
+  }
+
+  private restorePaginationState(snapshot: LogPaginationSnapshot): void {
+    this.state.pagination.currentPage = snapshot.currentPage
+    this.state.pagination.pageSizeIndex = snapshot.pageSizeIndex
+    this.state.pagination.pageInputText = snapshot.pageInputText
+    this.state.pagination.totalPages = snapshot.totalPages
+  }
+
+  private async rebuildPaginationSafely(
+    operationName: string,
+    previousPagination: LogPaginationSnapshot
+  ): Promise<RefreshResult> {
+    try {
+      await this.rebuildStateFromSnapshot()
+      return { success: true, code: 'ok' }
+    } catch (err) {
+      this.restorePaginationState(previousPagination)
+      LogUtils.error(TAG, `${operationName} failed: ${JSON.stringify(err)}`)
+      return { success: false, code: 'query_failed' }
+    }
   }
 
   private mapResultIndexToValue(index: number): LogEventResult {

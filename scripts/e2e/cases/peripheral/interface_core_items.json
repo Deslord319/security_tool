@@ -1,0 +1,86 @@
+{
+  "case_id": "PER-IF-002",
+  "case_name": "Peripheral USB Interface Toggle Roundtrip",
+  "module": "peripheral",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_peripheral_manage",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "peripheral-manage"
+      }
+    },
+    {
+      "name": "open_interface_tab",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "接口管控",
+        "bundle_name": "{{bundle_name}}"
+      }
+    },
+    {
+      "name": "toggle_usb_interface_once",
+      "ref": "entity.toggle",
+      "params": {
+        "domain": "peripheral",
+        "entity": "interface",
+        "variant": "usb",
+        "data": {
+          "target_state": "off"
+        }
+      }
+    },
+    {
+      "name": "toggle_usb_interface_restore",
+      "ref": "entity.toggle",
+      "params": {
+        "domain": "peripheral",
+        "entity": "interface",
+        "variant": "usb",
+        "data": {
+          "target_state": "on"
+        }
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "usb_interface_row_visible_after_roundtrip",
+      "type": "assert_text_presence",
+      "value": "USB",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "interface_tab_context_visible",
+      "type": "assert_text_presence",
+      "value": "接口管控",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This is a reversible device-management flow: toggle the USB interface and restore it so the device is not left in a restricted state."
+  ]
+}

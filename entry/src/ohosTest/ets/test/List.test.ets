@@ -4,6 +4,7 @@ import abilityTest from './common/Ability.test'
 import peripheralConnectionRecordContractTest from './peripheral/connection-record-contract.test'
 import routeActionTest from './simple/RouteAction.test'
 import themeMenuPopupTest from './theme/theme-menu-popup.test'
+import firewallSubrouteStateTest from './firewall/subroute-state.test'
 
 export default function testsuite() {
   const args = abilityDelegatorRegistry.getArguments()
@@ -24,6 +25,11 @@ export default function testsuite() {
 
   if (mode === 'theme_menu' || argsText.indexOf('theme_menu') >= 0) {
     themeMenuPopupTest()
+    return
+  }
+
+  if (mode === 'firewall_subroute' || argsText.indexOf('firewall_subroute') >= 0) {
+    firewallSubrouteStateTest()
     return
   }
 

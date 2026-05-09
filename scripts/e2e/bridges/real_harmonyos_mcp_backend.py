@@ -89,6 +89,12 @@ class RealHarmonyOsMcpBackend(
             return await self._open_browser_url(payload)
         if action == "export_logs":
             return await self._export_logs(payload)
+        if action == "open_log_list":
+            return await self._open_log_list(payload)
+        if action == "open_log_storage_settings":
+            return await self._open_log_storage_settings(payload)
+        if action == "save_log_storage_settings":
+            return await self._save_log_storage_settings(payload)
         if action == "change_any_policy":
             return await self._change_any_policy(payload)
 
@@ -199,6 +205,7 @@ class RealHarmonyOsMcpBackend(
         params = payload.get("params", {})
         bundle_name = params.get("bundle_name") or "com.huawei.securitytool"
         text = str(params.get("text", ""))
+        match_mode = str(params.get("match_mode", "contains")).strip().lower()
         timeout_ms = int(params.get("timeout_ms", 1500))
         interval_ms = int(params.get("interval_ms", 250))
         deadline = time.time() + (timeout_ms / 1000)
@@ -209,17 +216,168 @@ class RealHarmonyOsMcpBackend(
                 node_text = str(props.get("text", "")).strip()
                 if not node_text:
                     continue
-                if text == node_text or text in node_text:
+                matched = text == node_text if match_mode == "exact" else text == node_text or text in node_text
+                if matched:
                     return self._pass(
                         "Text presence resolved",
                         {
                             "exists": True,
                             "element": self._node_to_element(node),
                             "source": "ui_tree",
+                            "match_mode": match_mode,
                         },
                     )
             await asyncio.sleep(max(interval_ms, 50) / 1000)
-        return self._pass("Text presence resolved", {"exists": False, "element": {}, "source": "ui_tree"})
+        return self._pass("Text presence resolved", {"exists": False, "element": {}, "source": "ui_tree", "match_mode": match_mode})
+
+    async def _open_log_list(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        sidebar_result = await self._click_log_sidebar_if_needed()
+        page_ready = await self._find_texts_in_current_tree(["导出日志", "日志存储配置", "最大存储条数"], timeout_sec=4.0)
+        if not page_ready.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log management page did not appear")
+
+        list_ready = await self._find_texts_in_current_tree(["导出日志"], timeout_sec=0.8)
+        if list_ready.get("ok", False):
+            return self._pass("Log list already visible", {"sidebar": sidebar_result, "match": list_ready.get("match", {})})
+
+        back_result = await self._click_button_by_descendant_text("日志列表", min_left=2400, max_top=700)
+        click_result = back_result.get("click_result", {"ok": False})
+        if not click_result.get("ok", False):
+            click_result = await self._click_first_available_text(["日志列表"], bundle_name="com.huawei.securitytool")
+            back_result = {"button": {}, "click_result": click_result}
+        if not click_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log list action was not found")
+
+        list_ready = await self._find_texts_in_current_tree(["导出日志"], timeout_sec=4.0)
+        if not list_ready.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log list did not appear after clicking the list action")
+
+        return self._pass(
+            "Log list opened",
+            {
+                "sidebar": sidebar_result,
+                "button": back_result.get("button", {}),
+                "match": list_ready.get("match", {}),
+            },
+        )
+
+    async def _click_log_sidebar_if_needed(self) -> dict[str, Any]:
+        ui_tree = await self._get_ui_tree()
+        sidebar = self._pick_sidebar_entry(ui_tree, "log-manage")
+        if not sidebar:
+            return {"clicked": False, "reason": "sidebar_not_found"}
+        click_result = await self._call_tool("click_element", {"x": sidebar["x"], "y": sidebar["y"]})
+        return {"clicked": bool(click_result.get("ok", False)), "sidebar": sidebar}
+
+    async def _open_log_storage_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        already_open = await self._find_texts_in_current_tree(["日志存储配置", "最大存储条数"], timeout_sec=1.0)
+        if already_open.get("ok", False):
+            return self._pass("Log storage settings already visible", {"match": already_open.get("match", {})})
+
+        ui_tree = await self._get_ui_tree()
+        candidates: list[dict[str, Any]] = []
+        for node in self._iter_nodes(ui_tree):
+            props = node.get("properties", {}) or {}
+            if not props.get("clickable"):
+                continue
+            left = int(props.get("left", 0))
+            top = int(props.get("top", 0))
+            if left < 2100 or top > 700:
+                continue
+            if "存储设置" not in self._collect_descendant_texts(node):
+                continue
+            candidates.append(self._node_to_element(node))
+
+        click_result = {"ok": False}
+        storage_button = None
+        if candidates:
+            storage_button = max(candidates, key=lambda item: (item.get("left") or 0, -(item.get("top") or 0)))
+            click_result = await self._call_tool("click_element", {"x": storage_button["x"], "y": storage_button["y"]})
+
+        if not click_result.get("ok", False):
+            click_result = await self._click_first_available_text(["存储设置"], bundle_name="com.huawei.securitytool")
+
+        if not click_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log storage settings entry was not found")
+
+        ready = await self._find_texts_in_current_tree(["日志存储配置", "最大存储条数"], timeout_sec=4.0)
+        if not ready.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log storage settings panel did not appear after click")
+
+        return self._pass(
+            "Log storage settings opened",
+            {
+                "button": storage_button or {},
+                "match": ready.get("match", {}),
+            },
+        )
+
+    async def _save_log_storage_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self._ensure_auth_dialog_cleared()
+        save_button = await self._click_button_by_descendant_text("保存设置", min_left=2200, max_top=700)
+        click_result = save_button.get("click_result", {"ok": False})
+        if not click_result.get("ok", False):
+            click_result = await self._click_first_available_text(["保存设置"], bundle_name="com.huawei.securitytool")
+            save_button = {"button": {}, "click_result": click_result}
+
+        if not click_result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log storage save button was not found")
+
+        result = await self._find_texts_in_current_tree(["设置已保存"], timeout_sec=4.0)
+        if not result.get("ok", False):
+            return self._unknown(payload, "MCP_ACTION_PENDING", "Log storage save result did not appear after click")
+
+        return self._pass(
+            "Log storage settings saved",
+            {
+                "button": save_button.get("button", {}),
+                "result": result.get("match", {}),
+            },
+        )
+
+    async def _click_button_by_descendant_text(self, text: str, *, min_left: int, max_top: int) -> dict[str, Any]:
+        ui_tree = await self._get_ui_tree()
+        candidates: list[dict[str, Any]] = []
+        for node in self._iter_nodes(ui_tree):
+            props = node.get("properties", {}) or {}
+            if not props.get("clickable"):
+                continue
+            left = int(props.get("left", 0))
+            top = int(props.get("top", 0))
+            if left < min_left or top > max_top:
+                continue
+            if text not in self._collect_descendant_texts(node):
+                continue
+            candidates.append(self._node_to_element(node))
+        if not candidates:
+            return {"button": {}, "click_result": {"ok": False}}
+        button = max(candidates, key=lambda item: (item.get("left") or 0, -(item.get("top") or 0)))
+        click_result = await self._call_tool("click_element", {"x": button["x"], "y": button["y"]})
+        return {"button": button, "click_result": click_result}
+
+    async def _find_texts_in_current_tree(self, texts: list[str], *, timeout_sec: float) -> dict[str, Any]:
+        wanted = [text for text in texts if text.strip()]
+        deadline = time.time() + timeout_sec
+        while time.time() < deadline:
+            ui_tree = await self._get_ui_tree()
+            for node in self._iter_nodes(ui_tree):
+                props = node.get("properties", {}) or {}
+                node_text = str(props.get("text", "")).strip()
+                if not node_text:
+                    continue
+                for text in wanted:
+                    if text == node_text or text in node_text:
+                        return {
+                            "ok": True,
+                            "match": {
+                                "query": {"text": text},
+                                "element": self._node_to_element(node),
+                            },
+                        }
+            await asyncio.sleep(0.25)
+        return {"ok": False}
 
     async def _capture_screenshot(self, params: dict[str, Any]) -> dict[str, Any]:
         name = params.get("name", "screenshot")

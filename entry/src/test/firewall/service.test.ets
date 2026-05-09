@@ -279,6 +279,23 @@ export default function firewallServiceTest() {
         done()
       })
 
+      it('should reject toggle when no available users are loaded', 0, async (done: Function) => {
+        let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+        stubAuthResult(mockKit, true)
+        when(userMock)().afterReturn({
+          users: [],
+          message: 'no activated users'
+        } as UserFirewallListResult)
+
+        let result = await FirewallService.setFirewallEnabledForAllUsers(context, true)
+
+        expect(result.success).assertFalse()
+        expect(result.targetEnabled).assertTrue()
+        expect(result.reason).assertEqual('no_available_users')
+        expect(result.errorMessage).assertEqual('no activated users')
+        done()
+      })
+
       it('should enable firewall for every user while keeping existing actions', 0, async (done: Function) => {
         let users = buildUsers()
         let appliedPolicies: AppliedPolicyRecord[] = []
@@ -726,6 +743,46 @@ export default function firewallServiceTest() {
         expect(savedIntents[0].name).assertEqual('Updated Rule')
         expect(savedDeployments[0].localRuleId).assertEqual('rule-1')
         expect(savedDeployments[0].systemRuleId).assertEqual(8101)
+        done()
+      })
+
+      it('should keep old deployments when updated rule cannot be deployed', 0, async (done: Function) => {
+        let removedSystemRuleIds: number[] = []
+        let savedIntents: FirewallRuleIntent[] = []
+        let savedDeploymentCount = 0
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100]))
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterReturn(new FakeAddRuleRawResult(undefined, 401, 'invalid'))
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          intent: FirewallRuleIntent
+        ): boolean => {
+          savedIntents.push(intent)
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((): boolean => {
+          savedDeploymentCount++
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildIpRuleInput('Updated Rule', [100]))
+
+        expect(result.success).assertFalse()
+        expect(result.localRuleId).assertEqual('rule-1')
+        expect(result.errorCode).assertEqual(401)
+        expect(result.failedItems?.length).assertEqual(1)
+        expect(removedSystemRuleIds.length).assertEqual(0)
+        expect(savedIntents.length).assertEqual(0)
+        expect(savedDeploymentCount).assertEqual(0)
         done()
       })
 

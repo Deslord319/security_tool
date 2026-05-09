@@ -1,0 +1,68 @@
+{
+  "case_id": "DASH-ADMIN-001",
+  "case_name": "Dashboard Admin Status And Entry Roundtrip",
+  "module": "dashboard",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_dashboard",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "dashboard"
+      }
+    },
+    {
+      "name": "open_firewall_from_dashboard_context",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "firewall"
+      }
+    },
+    {
+      "name": "return_dashboard_after_entry",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "dashboard"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "dashboard_page_recovered",
+      "type": "assert_text_presence",
+      "value": "安全总览",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "dashboard_quick_entries_still_visible",
+      "type": "assert_text_presence",
+      "value": "快捷方式",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This is a full dashboard navigation roundtrip: enter a security module from the dashboard context and verify dashboard state is restored."
+  ]
+}

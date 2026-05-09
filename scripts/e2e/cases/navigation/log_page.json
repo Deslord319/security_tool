@@ -1,0 +1,72 @@
+{
+  "case_id": "NAV-LOG-001",
+  "case_name": "Navigation Log Page Settings Roundtrip",
+  "module": "navigation",
+  "flow": [
+    {
+      "name": "launch_app",
+      "ref": "app.launch",
+      "params": {
+        "timeout_sec": 20
+      }
+    },
+    {
+      "name": "open_dashboard_for_route_reset",
+      "ref": "navigation.open_page",
+      "params": {
+        "page_id": "dashboard"
+      }
+    },
+    {
+      "name": "open_log_manage",
+      "ref": "logs.open_list",
+      "params": {}
+    },
+    {
+      "name": "open_storage_settings",
+      "ref": "logs.open_storage_settings",
+      "params": {}
+    },
+    {
+      "name": "return_log_list",
+      "ref": "ui.click_text",
+      "params": {
+        "text": "日志列表",
+        "bundle_name": "{{bundle_name}}"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "name": "log_manage_page_recovered",
+      "type": "assert_text_presence",
+      "value": "日志管理",
+      "level": "primary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    },
+    {
+      "name": "log_export_action_visible_after_roundtrip",
+      "type": "assert_text_presence",
+      "value": "导出日志",
+      "level": "secondary",
+      "params": {
+        "bundle_name": "{{bundle_name}}",
+        "present": true,
+        "timeout_ms": 2000,
+        "interval_ms": 250
+      }
+    }
+  ],
+  "result_policy": {
+    "allow_unknown": true,
+    "stop_on_failure": true
+  },
+  "notes": [
+    "This case validates the log route can enter storage settings and return to the functional log list surface."
+  ]
+}

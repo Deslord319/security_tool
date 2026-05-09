@@ -26,7 +26,7 @@ entry/build/default/outputs/default/entry-default-unsigned.hap
 3. 定位到 IDE 根目录后，统一从 `tools\hvigor\bin\hvigorw.bat` 获取 `hvigorw`
 4. `JAVA_HOME` 仅作为兜底，不应再在脚本或测试命令中写死本机绝对路径
 
-测试、构建或子 agent 验证时，如果出现“找不到 `hvigorw`”，默认先按以上顺序排查，不要直接假设系统全局 `PATH` 已配置。
+测试、构建或子 agent 验证时，如果出现“找不到 `hvigorw`”或 `spawn java ENOENT`，默认先按以上顺序排查，不要直接假设系统全局 `PATH` 已配置，也不要在脚本或测试命令中写死本机绝对路径。
 
 ### 签名（重要）
 
@@ -133,7 +133,7 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 |---|---|---|
 | `dashboard` | 安全总览 | `docs/03-模块设计/安全总览组件设计说明.md` |
 | `firewall` / `firewall-rules` | 防火墙管理 | `docs/03-模块设计/防火墙管理组件设计说明.md` |
-| `log-manage` | 日志管理 | `docs/03-模块设计/日志管理模块V2状态收敛与实施设计.md` |
+| `log-manage` | 日志管理 | `docs/03-模块设计/日志管理组件设计说明.md` |
 | `peripheral-manage` | 外设管理 | `docs/03-模块设计/外设管理组件设计说明.md` |
 | `identity` | 身份鉴别 | `docs/03-模块设计/身份鉴别组件设计说明.md` |
 | `tool-settings` | 工具设置 | `docs/03-模块设计/工具设置组件设计说明.md` |
@@ -218,15 +218,25 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 ```
 ohos.permission.MANAGE_NET_FIREWALL
 ohos.permission.GET_NET_FIREWALL
+ohos.permission.PREPARE_APP_TERMINATE
 ohos.permission.ENTERPRISE_MANAGE_NETWORK
 ohos.permission.ENTERPRISE_MANAGE_USB
 ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS
 ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH
+ohos.permission.ACCESS_BLUETOOTH
+ohos.permission.PERSISTENT_BLUETOOTH_PEERS_MAC
 ohos.permission.ENTERPRISE_GET_DEVICE_INFO
 ohos.permission.ENTERPRISE_MANAGE_WIFI
 ohos.permission.ENTERPRISE_ADMIN_MANAGE
+ohos.permission.ENTERPRISE_SUBSCRIBE_MANAGED_EVENT
+ohos.permission.START_PROVISIONING_MESSAGE
 ohos.permission.ENTERPRISE_MANAGE_SECURITY
 ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY
+ohos.permission.ENTERPRISE_MANAGE_APPLICATION
+ohos.permission.ACCESS_BIOMETRIC
+ohos.permission.QUERY_AUDIT_EVENT
+ohos.permission.GET_LOCAL_ACCOUNTS
+ohos.permission.PRIVACY_WINDOW
 ```
 
 新增权限时，需要同时在 `module.json5` 的 `requestPermissions` 和 `UnsgnedDebugProfileTemplate.json` 的 `acls.allowed-acls` + `permissions.restricted-permissions` 中添加。
@@ -238,10 +248,11 @@ ohos.permission.ENTERPRISE_SET_ACCOUNT_POLICY
 | `dashboard` | DashboardPage | 安全总览 |
 | `firewall` | FirewallPage | 防火墙管理 |
 | `firewall-rules` | FirewallRulesPage | 防火墙规则详情 |
-| `log-manage` | PlaceholderPage | 日志管理（待开发） |
+| `log-manage` | LogManagePage | 日志管理（已完成） |
 | `peripheral-manage` | PeripheralPage | 外设管理（已完成） |
 | `identity` | IdentityPage | 身份鉴别（已完成） |
 | `tool-settings` | ToolSettingsPage | 工具设置（已完成） |
+| `help-feedback` | HelpFeedbackPage | 帮助与反馈 |
 
 ## 常见问题
 

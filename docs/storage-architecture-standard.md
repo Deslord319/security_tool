@@ -1,5 +1,19 @@
 # Storage Architecture Standard
 
+## Status
+
+This document is still useful as the long-term storage architecture standard and migration checklist.
+It is not the only source of truth for current module behavior; runtime flow, UI state, and module-level
+acceptance criteria live in `docs/03-模块设计/`.
+
+Current implemented baseline:
+
+- `PreferencesAccessor`, `RdbStoreProvider`, and `DatabaseVersionManager` are in place.
+- Log settings are owned by `LogSettingsRepository`; log records are owned by `LogEntryRepository`.
+- Peripheral trace records are owned by `PeripheralTraceEntryRepository`.
+- Legacy runtime owners for log entries and peripheral trace payloads have been removed from the active path.
+- Firewall local state is currently centralized in `FirewallLocalRepository`; splitting it into narrower repositories remains a long-term cleanup target.
+
 ## Goal
 
 Establish a long-term storage standard for the project to solve:
@@ -49,7 +63,7 @@ Use exactly these layers:
 1. One store or table must have exactly one owner repository.
 2. Page, ViewModel, strategy, and service layers must not call `preferences.getPreferences(...)` directly.
 3. Page, ViewModel, strategy, and service layers must not call SQL directly.
-4. `JSON.parse/stringify` is only allowed in accessor or repository layers.
+4. Persisted payload `JSON.parse/stringify` is only allowed in accessor or repository layers.
 5. Small configuration remains in Preferences.
 6. Log and trace records must move to relational storage.
 
@@ -215,17 +229,25 @@ Current state:
 
 - `PeripheralTraceEntryRepository` is the relational owner of `peripheral_trace_entries`
 - `PeripheralTraceMaintenanceService` owns initialization, append, retention cleanup, max-entry trimming, and clear-all flow
+- statistics are SQL-backed through grouped count queries
 - the old Preferences payload path for peripheral traces has been removed
 - the old `PeripheralTraceRepository` compatibility owner has been retired from the runtime storage path
 
 Remaining alignment work:
 
-- move peripheral statistics from in-memory aggregation to SQL aggregation
 - add pagination-oriented query flow for connection record pages instead of always loading the full record set
 - upgrade peripheral maintenance results from raw `boolean` to typed result objects aligned with log maintenance
 - make peripheral pipeline return semantics distinguish between "handled by consumer" and "persisted successfully"
 
 ## Firewall Long-Term Design
+
+Current state:
+
+- `FirewallLocalRepository` owns mode, custom rule mapping, rule deployments, and user policy bindings through `PreferencesAccessor`.
+- `SystemUserProvider` owns tracked user persistence through `PreferencesAccessor`.
+- Strategy and service classes do not directly create Preferences stores.
+
+Long-term split target:
 
 Split storage ownership into:
 
@@ -238,7 +260,7 @@ Keep business orchestration separate:
 
 - `FirewallUserModeService`
 
-`FirewallModeStrategyFactory`, `CustomModeStrategy`, and `FirewallStore` must stop directly owning Preferences stores.
+Firewall strategy and service classes must not directly own Preferences stores.
 
 ## Failure Handling Standard
 
@@ -302,7 +324,7 @@ Migration responsibilities:
 - `entry/src/main/ets/services/firewall/mode-strategies/CustomModeStrategy.ets`
 - `entry/src/main/ets/services/firewall/stores/FirewallStore.ets`
 
-### Replace long-term persistence approach
+### Runtime replacement completed
 
 - `entry/src/main/ets/services/log-manage/repository/LogConfigRepository.ets`
 - `entry/src/main/ets/services/log-manage/repository/LogRepository.ets`
@@ -359,8 +381,8 @@ Remove or eliminate patterns such as:
 - migration completed for runtime storage ownership:
   - `PeripheralTraceEntryRepository` owns relational persistence
   - `PeripheralTraceMaintenanceService` owns append and cleanup flow
+  - statistics use SQL grouped count queries
 - follow-up work:
-  - SQL-backed statistics
   - paged list queries for peripheral record pages
   - typed maintenance result model
   - stricter pipeline persistence result semantics
@@ -373,8 +395,8 @@ Search and eliminate direct persistence leakage:
 - `store.get(`
 - `store.put(`
 - `store.flush(`
-- `JSON.parse(`
-- `JSON.stringify(`
+- persisted payload `JSON.parse(`
+- persisted payload `JSON.stringify(`
 
 ## Acceptance Criteria
 
