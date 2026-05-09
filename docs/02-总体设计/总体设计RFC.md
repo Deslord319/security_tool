@@ -207,97 +207,30 @@ EntryAbility
 7. 设备验收：安装主包和测试包，激活企业管理员，执行默认设备冒烟和模块相关可选场景。
 8. 回写文档：如验证中发现行为边界、失败策略或验收口径变化，先回写模块设计文档，再提交代码。
 
-#### 5.5.1 总体执行伪码
+#### 5.5.1 RFC 分层与实现走样检查
 
-启动和运行时伪码：
+当前检查结论：总体 RFC 的主分层与现有实现基本一致，未发现页面绕过 ViewModel 直接下发系统能力、`MainPage` 承担模块核心业务、或模块专项设计散落到独立过程目录的走样。需要记录的实现差异是：共享 ViewModel 并非全部由 `ApplicationRuntimeManager` 持有，防火墙总览和规则页 ViewModel 目前由 `MainPage` 持有，用于保持防火墙子路由和规则页状态；该差异仍在“路由壳层装配页面、不承载模块业务”的边界内。
 
-```text
-onCreate():
-  init ThemeManager
-  subscribe terminate event and account event
-  init LogPowerLifecycleSource
-  init status bar
-
-onWindowStageCreate(windowStage):
-  ApplicationRuntimeManager.bindContext(context)
-  config = ToolSettingsRepository.loadConfig(context)
-  if config.startupAuthEnabled is false:
-    load MainPage
-  else if AuthService.checkAuthMethodAvailability(config.authMethod) is unavailable:
-    load MainPage with degraded message
-  else if AuthService.authenticate(config.authMethod) succeeds:
-    load MainPage
-  else:
-    terminate ability
-
-after MainPage loaded:
-  ThemeManager.reapplyTheme()
-  ApplicationRuntimeManager.ensureRuntimeServices()
-```
-
-路由分发伪码：
-
-```text
-currentPage defaults to RouteIds.DASHBOARD
-lastFirewallRoute defaults to RouteIds.FIREWALL
-
-navigateToRoute(target):
-  next = resolveNavigationRoute(target, lastFirewallRoute)
-  lastFirewallRoute = rememberFirewallRoute(lastFirewallRoute, next)
-  currentPage = next
-  if currentPage == LOG_MANAGE:
-    ApplicationRuntimeManager.refreshLogManageData()
-  render currentRoutePage()
-
-currentRoutePage():
-  if DASHBOARD: render DashboardPage(onNavigate)
-  if FIREWALL: render FirewallPage(shared overview ViewModel)
-  if FIREWALL_RULES: render FirewallRulesPage(shared rules ViewModel)
-  if LOG_MANAGE: render LogManagePage(shared log ViewModel)
-  if PERIPHERAL_MANAGE: render PeripheralPage(shared peripheral ViewModel)
-  if IDENTITY: render IdentityPage(shared identity ViewModel)
-  if TOOL_SETTINGS: render ToolSettingsPage(shared settings ViewModel)
-  if HELP_FEEDBACK: render HelpFeedbackPage()
-  otherwise: render DashboardPage()
-```
-
-模块写操作统一伪码：
-
-```text
-handleUserAction(input):
-  Page validates only UI-local shape
-  ViewModel maps input to domain command and sets submitting/loading state
-  if action needs admin:
-    Service probes EnterpriseAdminService
-  if action needs auth:
-    Service calls AuthService
-  Service calls Repository / Provider / Adapter
-  Repository persists only after system operation success when contract requires it
-  ViewModel maps result to state, dialog message and failedItems
-  Page renders state and never becomes business truth source
-```
-
-运行时采集伪码：
-
-```text
-ApplicationRuntimeManager.ensureRuntimeServices():
-  if log runtime not initialized:
-    init LogManageViewModel and LogCollectorService
-    start collector if not running
-  if peripheral runtime not initialized:
-    init trace repository, policy repository and retention
-    attach USB / Bluetooth producers to pipeline
-    start runtime producer if capability is available
-```
+| RFC 分层 | RFC 预期职责 | 当前实现落点 | 走样检查结论 |
+|---|---|---|---|
+| 应用启动层 | 负责主题初始化、启动认证、加载 `pages/MainPage`、拉起应用级运行时 | `entry/src/main/ets/entryability/EntryAbility.ets`、`ToolSettingsRepository.ets`、`AuthService.ets`、`ApplicationRuntimeManager.ets` | 一致。启动认证由工具设置配置驱动，认证失败/不可用分支有降级或终止处理。 |
+| 运行时服务层 | 管理跨页面运行态和后台采集，不让页面直接启动采集管线 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` 管理日志采集、外设运行时、共享身份/日志/外设/工具设置 ViewModel | 基本一致。防火墙 ViewModel 由 `MainPage` 持有是子路由状态需要，不涉及系统能力直接下发。 |
+| 路由壳层 | 持有当前路由、装配侧边栏/顶部菜单/模块页面，不承载模块业务 | `entry/src/main/ets/pages/MainPage.ets`、`RouteStateUtils.ets`、`RouteIds.ets` | 一致。`MainPage` 只做路由、主题、弹窗入口和 ViewModel 注入；防火墙子路由恢复通过 `lastFirewallRoute` 收口。 |
+| 页面层 | 负责展示、交互转发、弹窗和局部 UI 状态 | `entry/src/main/ets/views/**`、`entry/src/main/ets/components/**` | 一致。页面消费 ViewModel state 和回调；`FirewallRulesPage` 引入 `netFirewall` 仅用于规则类型/枚举展示和弹窗参数，新增/编辑/删除仍经 `FirewallRulesViewModel`，不是页面直接下发系统能力。 |
+| 状态层 | 收口初始化、刷新、保存、提交、结果映射和页面状态 | `entry/src/main/ets/viewmodels/**` | 一致。业务状态集中在各模块 ViewModel，页面没有成为持久业务真相源。 |
+| 领域服务层 | 编排系统能力、认证、策略下发、采集、导出等业务动作 | `entry/src/main/ets/services/**`、`entry/src/main/ets/services/admin/**` | 一致。防火墙、身份、日志、外设、工具设置均有明确 Service / task / adapter 边界。 |
+| 仓储/适配层 | 负责 Preferences、RDB、系统 Provider / Adapter，不把存储细节泄漏给页面 | `entry/src/main/ets/storage/**`、`services/**/repository/**`、`services/**/providers/**`、`UserAuthAdapter.ets` | 一致。仓储分布在模块 service 目录和公共 storage 目录，没有单独根 `repositories` 目录，但职责符合 RFC。 |
+| 测试层 | 用 UT / ohosTest / E2E 分别覆盖纯逻辑、页面/设备能力和端到端链路 | `entry/src/test/**`、`entry/src/ohosTest/ets/test/**`、`scripts/e2e/cases/**` | 一致。各模块已有对应测试入口，具体覆盖边界以模块设计 4.1 为准。 |
+| 文档层 | PRD 管范围，RFC 管分层和拆分，模块设计管状态/职责/异常/测试 | `docs/02-总体设计/**`、`docs/03-模块设计/**` | 一致。本次移除简化流程摘要，避免把低层流程描述误当 RFC 设计契约。 |
 
 #### 5.5.2 拆分步骤与不走路径
 
 | 拆分阶段 | 必须做 | 明确不走 |
 |---|---|---|
 | PRD | 更新产品范围、模块状态、验收目标和 PRD/RFC/实现对齐矩阵 | 不在 PRD 里写代码级细节或临时过程记录 |
-| 总体 RFC | 更新架构边界、跨模块依赖、总体伪码、拆分步骤、权限/运行时约束 | 不把单模块内部实现细节散落到独立过程目录 |
-| 模块设计 | 更新状态模型、数据模型、组件职责、核心伪码、测试覆盖和验收口径 | 不只在文件末尾追加一句说明，不保留与代码冲突的旧 RFC |
-| 代码实现 | 按 Page -> ViewModel -> Service -> Repository/Provider/Adapter 分层落地 | 不让页面直连系统 API、RDB、Preferences 或多个 Service 拼业务 |
+| 总体 RFC | 更新架构边界、跨模块依赖、分层实现对照、拆分步骤、权限/运行时约束 | 不把单模块内部实现细节散落到独立过程目录 |
+| 模块设计 | 更新状态模型、数据模型、组件职责、测试覆盖和验收口径 | 不只在文件末尾追加一句说明，不保留与代码冲突的旧 RFC |
+| 代码实现 | 按 Page -> ViewModel -> Service -> Repository/Provider/Adapter 分层落地 | 不让页面直连系统 API、RDB、Preferences 或多个 Service 拼业务；页面可消费平台类型/枚举作为展示数据契约，但不能直接执行系统读写 |
 | 测试验证 | 按 UT / ohosTest / E2E 分层补证据，权限变更要补签名验证 | 不用只跑单个页面截图替代状态流和失败分支验证 |
 | 提交前自检 | 检查路径、权限、路由、测试用例、UTF-8 和变更日志一致 | 不提交乱码、无引用过程文档或未解释的无用文件 |
 
