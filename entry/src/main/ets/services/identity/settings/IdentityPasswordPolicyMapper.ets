@@ -6,7 +6,7 @@ export class IdentityPasswordPolicyMapper {
   static readonly DAY_IN_MS: number = 24 * 60 * 60 * 1000
 
   static toConfig(policy?: securityManager.PasswordPolicy | null): PasswordComplexityConfig | null {
-    if (!policy) {
+    if (!policy || IdentityPasswordPolicyMapper.isEmptyPolicy(policy)) {
       return null
     }
 
@@ -116,5 +116,13 @@ export class IdentityPasswordPolicyMapper {
       return undefined
     }
     return Math.round(milliseconds / IdentityPasswordPolicyMapper.DAY_IN_MS)
+  }
+
+  private static isEmptyPolicy(policy: securityManager.PasswordPolicy): boolean {
+    let complexityRegex = policy.complexityRegex?.trim() ?? ''
+    let additionalDescription = policy.additionalDescription?.trim() ?? ''
+    let validityPeriod = policy.validityPeriod
+    let hasNoValidityLimit = typeof validityPeriod !== 'number' || validityPeriod === 0
+    return complexityRegex.length === 0 && additionalDescription.length === 0 && hasNoValidityLimit
   }
 }

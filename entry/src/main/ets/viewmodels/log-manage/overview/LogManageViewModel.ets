@@ -4,7 +4,7 @@ import { LogManageClearingStrings } from '../../../constants/modules/LogManageSt
 import {
   ExportActionResult,
   LogEntry,
-  LogEventResult,
+  LOG_EVENT_RESULT_OPTIONS,
   LOG_EVENT_TYPE_OPTIONS
 } from '../../../models/DataModels'
 import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
@@ -187,7 +187,7 @@ export class LogManageViewModel {
   }
 
   async setResultIndex(index: number): Promise<void> {
-    this.state.filter.resultIndex = this.normalizeFilterIndex(index, 4)
+    this.state.filter.resultIndex = this.normalizeFilterIndex(index, LOG_EVENT_RESULT_OPTIONS.length + 1)
     this.resetToFirstPage()
     await this.refreshAll()
   }
@@ -322,8 +322,11 @@ export class LogManageViewModel {
       hasQuery = true
     }
     if (this.state.filter.resultIndex > 0) {
-      query.results = [this.mapResultIndexToValue(this.state.filter.resultIndex)]
-      hasQuery = true
+      let resultOption = LOG_EVENT_RESULT_OPTIONS[this.state.filter.resultIndex - 1]
+      if (resultOption) {
+        query.results = [resultOption.value]
+        hasQuery = true
+      }
     }
     let keyword = this.state.filter.keyword.trim()
     if (keyword.length > 0) {
@@ -440,19 +443,6 @@ export class LogManageViewModel {
       this.restorePaginationState(previousPagination)
       LogUtils.error(TAG, `${operationName} failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'query_failed' }
-    }
-  }
-
-  private mapResultIndexToValue(index: number): LogEventResult {
-    switch (index) {
-      case 1:
-        return LogEventResult.SUCCESS
-      case 2:
-        return LogEventResult.BLOCKED
-      case 3:
-        return LogEventResult.FAILED
-      default:
-        return LogEventResult.SUCCESS
     }
   }
 

@@ -10,6 +10,13 @@ import {
   FirewallRuleDisplayItem,
   FirewallRuleValidationResult,
   FirewallScopedRule,
+  FIREWALL_IPV4_FAMILY,
+  FIREWALL_IPV4_MASK_MAX,
+  FIREWALL_IPV4_MASK_MIN,
+  FIREWALL_IPV4_PARAM_TYPE,
+  FIREWALL_IPV4_RANGE_PARAM_TYPE,
+  FIREWALL_PORT_MAX,
+  FIREWALL_PORT_MIN,
   normalizeFirewallRuleUserIds
 } from './FirewallModels'
 
@@ -28,7 +35,7 @@ export class FirewallRuleUtils {
     }
     let address = ip.address.trim()
     let mask = FirewallRuleUtils.normalizeNumber(ip.mask)
-    return mask === undefined || mask >= 32 ? address : `${address}/${mask}`
+    return mask === undefined || mask >= FIREWALL_IPV4_MASK_MAX ? address : `${address}/${mask}`
   }
 
   static formatPortParamsForDisplay(params?: netFirewall.NetFirewallPortParams[]): string {
@@ -424,14 +431,14 @@ export class FirewallRuleUtils {
     if (ipValue === null) {
       return null
     }
-    let mask = maskValue === undefined ? 32 : maskValue
-    if (mask < 0 || mask > 32) {
+    let mask = maskValue === undefined ? FIREWALL_IPV4_MASK_MAX : maskValue
+    if (mask < FIREWALL_IPV4_MASK_MIN || mask > FIREWALL_IPV4_MASK_MAX) {
       return null
     }
-    if (mask === 0) {
+    if (mask === FIREWALL_IPV4_MASK_MIN) {
       return { start: 0, end: 0xFFFFFFFF }
     }
-    let hostBits = 32 - mask
+    let hostBits = FIREWALL_IPV4_MASK_MAX - mask
     let blockSize = Math.pow(2, hostBits)
     let start = Math.floor(ipValue / blockSize) * blockSize
     return { start: start, end: start + blockSize - 1 }
@@ -441,12 +448,12 @@ export class FirewallRuleUtils {
     let sourcePorts = intent.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? intent.localPorts : intent.remotePorts
     let normalizedPorts = FirewallRuleUtils.clonePortParams(sourcePorts)
     if (!normalizedPorts || normalizedPorts.length === 0) {
-      return [{ start: 0, end: 65535 }]
+      return [{ start: 0, end: FIREWALL_PORT_MAX }]
     }
     return normalizedPorts.map((port: netFirewall.NetFirewallPortParams): NormalizedPortRange => {
       return {
         start: port.startPort ?? 0,
-        end: port.endPort ?? port.startPort ?? 65535
+        end: port.endPort ?? port.startPort ?? FIREWALL_PORT_MAX
       }
     })
   }
@@ -514,16 +521,16 @@ export class FirewallRuleUtils {
     }
     let result: netFirewall.NetFirewallIpParams[] = []
     source.forEach((item: netFirewall.NetFirewallIpParams) => {
-      let family = FirewallRuleUtils.normalizeNumber(item.family) ?? 1
-      if (item.type === 2 || (item.startIp !== undefined && item.endIp !== undefined)) {
+      let family = FirewallRuleUtils.normalizeNumber(item.family) ?? FIREWALL_IPV4_FAMILY
+      if (item.type === FIREWALL_IPV4_RANGE_PARAM_TYPE || (item.startIp !== undefined && item.endIp !== undefined)) {
         if (item.startIp !== undefined && item.endIp !== undefined) {
-          result.push({ type: 2, family: family, startIp: item.startIp, endIp: item.endIp })
+          result.push({ type: FIREWALL_IPV4_RANGE_PARAM_TYPE, family: family, startIp: item.startIp, endIp: item.endIp })
         }
         return
       }
       let mask = FirewallRuleUtils.normalizeNumber(item.mask)
       if (item.address !== undefined && mask !== undefined) {
-        result.push({ type: 1, family: family, address: item.address, mask: mask })
+        result.push({ type: FIREWALL_IPV4_PARAM_TYPE, family: family, address: item.address, mask: mask })
       }
     })
     return result.length > 0 ? result : undefined
@@ -540,7 +547,7 @@ export class FirewallRuleUtils {
       if (startPort === undefined && endPort === undefined) {
         return
       }
-      let resolvedStartPort = startPort ?? endPort ?? 0
+      let resolvedStartPort = startPort ?? endPort ?? FIREWALL_PORT_MIN
       let resolvedEndPort = endPort ?? startPort ?? resolvedStartPort
       result.push({ startPort: resolvedStartPort, endPort: resolvedEndPort })
     })

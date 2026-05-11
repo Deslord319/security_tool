@@ -382,6 +382,11 @@ interface LogEventTypeOption {
   icon?: Resource
 }
 
+export interface LogEventResultOption {
+  label: string
+  value: LogEventResult
+}
+
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   maxLocalEntries: 20000,
   retentionDays: 30
@@ -452,6 +457,12 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: LogEventPresentationStrings.ACCOUNT, value: LogEventType.ACCOUNT },
   { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION },
   { label: LogEventPresentationStrings.POWER, value: LogEventType.POWER }
+]
+
+export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = [
+  { label: ResultText.SUCCESS, value: LogEventResult.SUCCESS },
+  { label: LogResultPresentationStrings.BLOCKED, value: LogEventResult.BLOCKED },
+  { label: ResultText.FAILED, value: LogEventResult.FAILED }
 ]
 
 export function formatLogTimestamp(timestamp: number): string {

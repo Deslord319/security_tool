@@ -5,6 +5,7 @@ import { DeviceTypeLabels,
   PeripheralExportStrings,
   PeripheralMatchedPolicyStrings,
   PeripheralOptionStrings,
+  PeripheralPolicyOptionIndexes,
   PeripheralReasonCodes
 } from '../../../constants/modules/PeripheralStrings'
 import {
@@ -80,7 +81,7 @@ export class PeripheralPolicyViewModel {
     }
 
     try {
-      const policy = policyIndex === 1 ? 'deny' : 'allow'
+      const policy = policyIndex === PeripheralPolicyOptionIndexes.DENY ? 'deny' : 'allow'
       if (this.shouldDispatchBeforeSave(deviceType)) {
         const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
           deviceId: normalizedDeviceId,
@@ -246,7 +247,8 @@ export class PeripheralPolicyViewModel {
   }
 
   private getPolicyLabel(policyIndex: number): string {
-    return PeripheralOptionStrings.POLICY_OPTIONS[policyIndex] ?? PeripheralOptionStrings.POLICY_OPTIONS[0]
+    return PeripheralOptionStrings.POLICY_OPTIONS[policyIndex] ??
+      PeripheralOptionStrings.POLICY_OPTIONS[PeripheralPolicyOptionIndexes.DEFAULT]
   }
 
   private getDeviceTypeLabel(deviceType: PeripheralType): string {

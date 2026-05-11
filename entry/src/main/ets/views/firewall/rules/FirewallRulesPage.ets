@@ -231,14 +231,7 @@ export struct FirewallRulesPage {
     isEditMode: boolean
   ): Promise<void> {
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let deleteResult = await this.rulesViewModel.deleteRule(context, conflictRule)
-    if (!deleteResult.success) {
-      DialogService.openFailure(this.getUIContext(), deleteResult.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
-      return
-    }
-    let result = isEditMode
-      ? await this.rulesViewModel.updateRule(context, nextRule)
-      : await this.rulesViewModel.addRule(context, nextRule)
+    let result = await this.rulesViewModel.replaceConflictRule(context, conflictRule, nextRule, isEditMode)
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
     }

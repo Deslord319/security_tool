@@ -7,7 +7,7 @@ import { SectionSelectRow } from '../../SectionRows'
 @ComponentV2
 export struct LogStorageSettingsPanel {
   @Param maxLocalEntries: number = DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries
-  @Param retentionDays: number = LOG_RETENTION_OPTIONS[0]
+  @Param retentionDays: number = DEFAULT_LOG_STORAGE_CONFIG.retentionDays
   @Param formControlWidth: number = 140
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelectMaxEntries: (index: number) => void = () => {}

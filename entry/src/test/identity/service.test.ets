@@ -49,6 +49,15 @@ export default function identityServiceTest() {
       expect(policy.validityPeriod === undefined).assertTrue()
     })
 
+    it('should preserve zero validityPeriod for immediate-expiry password policy', 0, () => {
+      let config = createConfig()
+      config.validityPeriod = 0
+
+      let policy = IdentityPasswordPolicyMapper.toPasswordPolicy(config)
+
+      expect(policy.validityPeriod).assertEqual(0)
+    })
+
     it('should convert password policy to config', 0, () => {
       let policy = new TestPasswordPolicy()
       policy.complexityRegex = '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{12,}$'
@@ -69,6 +78,15 @@ export default function identityServiceTest() {
 
     it('should return null config for empty policy', 0, () => {
       let config = IdentityPasswordPolicyMapper.toConfig(null)
+
+      expect(config).assertEqual(null)
+    })
+
+    it('should return null config for system empty zero-validity policy', 0, () => {
+      let policy = new TestPasswordPolicy()
+      policy.validityPeriod = 0
+
+      let config = IdentityPasswordPolicyMapper.toConfig(policy)
 
       expect(config).assertEqual(null)
     })

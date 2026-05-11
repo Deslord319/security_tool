@@ -19,6 +19,7 @@ const MAX_RAW_ACTION_LENGTH = 64
 const MAX_DETAIL_ROW_KEY_LENGTH = 64
 const MAX_DETAIL_ROW_LABEL_LENGTH = 128
 const MAX_DETAIL_ROW_VALUE_LENGTH = 1024
+const TRUNCATION_SUFFIX = '...'
 
 export class LogEntryNormalizer {
   private static nowProvider: () => number = () => Date.now()
@@ -137,6 +138,9 @@ export class LogEntryNormalizer {
     if (value.length <= limit) {
       return value
     }
-    return `${value.substring(0, limit)}...`
+    if (limit <= TRUNCATION_SUFFIX.length) {
+      return value.substring(0, limit)
+    }
+    return `${value.substring(0, limit - TRUNCATION_SUFFIX.length)}${TRUNCATION_SUFFIX}`
   }
 }

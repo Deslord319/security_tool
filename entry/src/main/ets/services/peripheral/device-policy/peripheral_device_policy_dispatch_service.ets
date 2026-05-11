@@ -1,6 +1,7 @@
 import restrictions from '@ohos.enterprise.restrictions'
 import { bluetoothManager, usbManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
+import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
 import {
   OperationResult,
   PeripheralDevicePolicy,
@@ -264,7 +265,7 @@ export class PeripheralDevicePolicyDispatchService {
       LogUtils.error(TAG, `${channel} dispatch failed: code=${code ?? -1}, message=${CommonErrorUtils.extractErrorMessage(error)}`)
       return {
         success: false,
-        reason: code === 9200010 ? conflictReason : defaultReason,
+        reason: code === PeripheralErrorCodes.POLICY_CONFLICT ? conflictReason : defaultReason,
         errorCode: code,
         errorMessage: CommonErrorUtils.extractErrorMessage(error),
         isAdminMissing: adminMissing,

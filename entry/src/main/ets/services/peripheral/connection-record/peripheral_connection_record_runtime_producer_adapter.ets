@@ -2,6 +2,7 @@ import { abilityAccessCtrl, bundleManager, common, Permissions } from '@kit.Abil
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { access } from '@kit.ConnectivityKit'
 import { LogUtils } from '../../../utils/LogUtils'
+import { CommonSystemErrorCodes } from '../../../constants/SystemErrorCodes'
 import {
   PeripheralConnectionRecordProducer,
   PeripheralConnectionRecordProducerEvent,
@@ -380,7 +381,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   }
 
   private isBluetoothPermissionDeniedError(error: BusinessError): boolean {
-    if (error.code === 201) {
+    if (error.code === CommonSystemErrorCodes.PERMISSION_DENIED) {
       return true
     }
     const message = (error.message ?? '').toLowerCase()

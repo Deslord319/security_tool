@@ -28,6 +28,10 @@ import { LooseRecord } from '../../../types/LooseValueTypes'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const TAG = 'ConnectionRecordBtConsumer'
+const BLUETOOTH_ACL_STATE_DISCONNECTED = 0
+const BLUETOOTH_ACL_STATE_CONNECTED = 1
+const BLUETOOTH_ACL_STATE_CONNECTING = 2
+const BLUETOOTH_ACL_STATE_DISCONNECTING = 3
 
 type BluetoothAclAction = 'connect' | 'disconnect' | 'unknown'
 type EventPayloadRecord = LooseRecord
@@ -204,10 +208,10 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       sources,
       ['connectionstate', 'connectionState', 'aclState', 'aclstate', 'state', 'linkState', 'linkstate', 'status']
     )
-    if (stateValue === 0) {
+    if (stateValue === BLUETOOTH_ACL_STATE_DISCONNECTED) {
       return 'disconnect'
     }
-    if (stateValue === 1 || stateValue === 2) {
+    if (stateValue === BLUETOOTH_ACL_STATE_CONNECTED || stateValue === BLUETOOTH_ACL_STATE_CONNECTING) {
       return 'connect'
     }
     return 'unknown'
@@ -241,12 +245,12 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     )
     if (Number.isFinite(rawState)) {
       switch (rawState) {
-        case 0:
+        case BLUETOOTH_ACL_STATE_DISCONNECTED:
           return 'STATE_DISCONNECTED'
-        case 1:
-        case 2:
+        case BLUETOOTH_ACL_STATE_CONNECTED:
+        case BLUETOOTH_ACL_STATE_CONNECTING:
           return 'STATE_CONNECTED'
-        case 3:
+        case BLUETOOTH_ACL_STATE_DISCONNECTING:
           return 'STATE_DISCONNECTING'
         default:
           return `${rawState}`

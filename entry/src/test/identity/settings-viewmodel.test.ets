@@ -225,7 +225,7 @@ export default function identitySettingsViewModelTest() {
       let viewModel = new IdentitySettingsViewModel()
       await viewModel.initialize()
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expectResultFailure(result, MessageText.NO_CHANGES)
     })
@@ -243,7 +243,7 @@ export default function identitySettingsViewModelTest() {
       await viewModel.initialize()
       viewModel.setRequirement('requireSpecialChar', false)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('success')
@@ -265,7 +265,7 @@ export default function identitySettingsViewModelTest() {
       await viewModel.initialize()
       viewModel.setRequirement('requireSpecialChar', true)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expectResultFailure(result, DialogService.displayReason('edm missing', AdminText.NOT_ACTIVATED))
     })
@@ -283,7 +283,7 @@ export default function identitySettingsViewModelTest() {
       await viewModel.initialize()
       viewModel.setRequirement('requireSpecialChar', true)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expectResultFailure(
         result,
@@ -299,7 +299,7 @@ export default function identitySettingsViewModelTest() {
       viewModel.reset()
       viewModel.setRequirement('requireDigit', true)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expectResultFailure(result, 'admin inactive')
     })
@@ -313,7 +313,7 @@ export default function identitySettingsViewModelTest() {
       viewModel.reset()
       viewModel.setRequirement('requireDigit', true)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expectResultFailure(result, `${IdentityActionStrings.SAVE}${IdentityMessageStrings.ADMIN_REQUIRED_WITH_ACTION_SUFFIX}`)
     })
@@ -358,6 +358,48 @@ export default function identitySettingsViewModelTest() {
 
       expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
       expect(viewModel.state.customValidityPeriodText).assertEqual('90')
+    })
+
+    it('should keep zero validity as custom immediate expiry value', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$', 0)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('0')
+    })
+
+    it('should map empty zero-validity policy to default permanent option', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('', 0)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+    })
+
+    it('should map legacy hundred-year validity period to permanent option', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$', 36525 * DAY_IN_MS)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('')
     })
 
     it('should default validity option when policy has no validity period', 0, async () => {
@@ -420,7 +462,7 @@ export default function identitySettingsViewModelTest() {
       await viewModel.initialize()
       viewModel.setRequirement('requireDigit', true)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('success')
@@ -534,7 +576,7 @@ export default function identitySettingsViewModelTest() {
       await viewModel.initialize()
       viewModel.setValidityPeriodIndex(ONE_YEAR_VALIDITY_OPTION_INDEX)
 
-      let result = viewModel.requestSave(true)
+      let result = viewModel.requestSave()
 
       expect(result.kind).assertEqual('result')
       expect(result.status).assertEqual('success')

@@ -4,6 +4,7 @@ import { cryptoFramework } from '@kit.CryptoArchitectureKit'
 
 import { BusinessError } from '@kit.BasicServicesKit'
 import { LabelText } from '../../../constants/StringCatalog'
+import { AuthErrorCodes, CommonSystemErrorCodes } from '../../../constants/SystemErrorCodes'
 import { AuthMethod } from '../../../models/DataModels'
 import { IdentityAuthStrings } from '../../../constants/modules/IdentityStrings'
 import { UserAuthAdapter, UserAuthInstanceResult, UserAuthStatusResult } from './UserAuthAdapter'
@@ -205,31 +206,31 @@ export class AuthService {
   ): AuthAvailabilityResult {
     let authLabel = AuthService.getAuthMethodLabel(authMethod)
     switch (errorCode) {
-      case 12500010:
+      case AuthErrorCodes.METHOD_NOT_ENROLLED:
         return {
           available: false,
           errorCode: errorCode,
           message: IdentityAuthStrings.buildNotEnrolled(authLabel)
         }
-      case 12500006:
+      case AuthErrorCodes.TRUST_LEVEL_INSUFFICIENT:
         return {
           available: false,
           errorCode: errorCode,
           message: IdentityAuthStrings.TRUST_LEVEL_INSUFFICIENT
         }
-      case 12500013:
+      case AuthErrorCodes.PIN_EXPIRED:
         return {
           available: false,
           errorCode: errorCode,
           message: IdentityAuthStrings.PIN_EXPIRED
         }
-      case 201:
+      case CommonSystemErrorCodes.PERMISSION_DENIED:
         return {
           available: false,
           errorCode: errorCode,
           message: IdentityAuthStrings.PERMISSION_DENIED
         }
-      case 401:
+      case CommonSystemErrorCodes.INVALID_PARAMS:
         return {
           available: false,
           errorCode: errorCode,
@@ -247,10 +248,7 @@ export class AuthService {
   }
 
   private static isUnavailableErrorCode(errorCode?: number): boolean {
-    return errorCode === 12500010 ||
-      errorCode === 12500006 ||
-      errorCode === 12500013 ||
-      errorCode === 201
+    return errorCode !== undefined && AuthErrorCodes.getUnavailableCodes().includes(errorCode)
   }
 
   private static generateAuthChallenge(): Uint8Array | null {

@@ -7,6 +7,7 @@ import {
   formatUsbDeviceId,
   parseUsbDeviceId
 } from '../../../models/DataModels'
+import { PeripheralPolicyOptionIndexes } from '../../../constants/modules/PeripheralStrings'
 import { formatPeripheralTimestamp } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 
 const POLICY_CANDIDATE_RECORD_TYPES: PeripheralType[] = [
@@ -60,7 +61,7 @@ export class PeripheralPolicyService {
         deviceId: deviceKey,
         lastSeenAt: lastSeenAt,
         lastSeenLabel: formatPeripheralTimestamp(lastSeenAt),
-        policyIndex: policy?.policy === 'deny' ? 1 : 0
+        policyIndex: policy?.policy === 'deny' ? PeripheralPolicyOptionIndexes.DENY : PeripheralPolicyOptionIndexes.ALLOW
       } as PeripheralPolicyRecord
     })
 

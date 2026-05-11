@@ -1,5 +1,6 @@
 import { FirewallPresetMode, FirewallToggleRejectReason } from '../../services/firewall/FirewallModels'
 import { AppColors } from '../AppConstants'
+import { CommonSystemErrorCodes } from '../SystemErrorCodes'
 
 export class FirewallPageStrings {
   static readonly SUBTITLE: string = '统一配置设备防火墙策略，支持按网络场景选择预置模式并维护自定义访问规则'
@@ -125,9 +126,9 @@ export function buildFirewallConflictNotice(duplicates: number, hardConflicts: n
 
 export function buildFirewallAddRuleFailedMessage(errorCode?: number): string {
   switch (errorCode) {
-    case 201:
+    case CommonSystemErrorCodes.PERMISSION_DENIED:
       return FirewallRuleStrings.APPLY_FAILED_PERMISSION
-    case 401:
+    case CommonSystemErrorCodes.INVALID_PARAMS:
     case 2100001:
       return FirewallRuleStrings.APPLY_FAILED_INVALID_PARAM
     case 29400007:
