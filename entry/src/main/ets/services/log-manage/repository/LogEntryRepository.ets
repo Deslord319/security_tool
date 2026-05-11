@@ -7,6 +7,7 @@ import {
   LogEventResult,
   LogEventType,
   LogStatistics,
+  ALL_LOG_EVENT_TYPES,
   parseLogEventResult
 } from '../../../models/LogModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
@@ -181,11 +182,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
 
   async getStatistics(): Promise<LogStatistics> {
     let byType = new Map<LogEventType, number>()
-    byType.set(LogEventType.CRASH, 0)
-    byType.set(LogEventType.FILE, 0)
-    byType.set(LogEventType.ACCOUNT, 0)
-    byType.set(LogEventType.PERMISSION, 0)
-    byType.set(LogEventType.POWER, 0)
+    ALL_LOG_EVENT_TYPES.forEach((type: LogEventType) => byType.set(type, 0))
     let todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
     let todayTimestamp = todayStart.getTime()
@@ -323,9 +320,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
 
   private parseEventType(rawValue: string): LogEventType {
     let numeric = Number(rawValue)
-    if (numeric === LogEventType.CRASH || numeric === LogEventType.FILE ||
-      numeric === LogEventType.ACCOUNT || numeric === LogEventType.PERMISSION ||
-      numeric === LogEventType.POWER) {
+    if (ALL_LOG_EVENT_TYPES.includes(numeric as LogEventType)) {
       return numeric as LogEventType
     }
     return LogEventType.FILE

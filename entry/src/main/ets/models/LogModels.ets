@@ -12,7 +12,9 @@ export enum LogEventType {
   FILE = 1,
   ACCOUNT = 2,
   PERMISSION = 3,
-  POWER = 4
+  POWER = 4,
+  SYSTEM = 5,
+  KERNEL = 6
 }
 
 export interface LogDetailTableRow {
@@ -61,7 +63,9 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.FILE,
   LogEventType.ACCOUNT,
   LogEventType.PERMISSION,
-  LogEventType.POWER
+  LogEventType.POWER,
+  LogEventType.SYSTEM,
+  LogEventType.KERNEL
 ]
 
 export const ALL_LOG_EVENT_RESULTS: SecurityEventResult[] = [

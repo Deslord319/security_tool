@@ -25,10 +25,36 @@ export class LogManageFilterStrings {
 }
 
 export class LogManageActionStrings {
+  static readonly IMPORT_LOGS: string = '添加日志'
   static readonly EXPORT_LOGS: string = '导出日志'
   static readonly CLEAR_LOGS: string = '清空日志'
   static readonly OPEN_STORAGE_SETTINGS: string = '存储设置'
   static readonly BACK_TO_LOG_LIST: string = '日志列表'
+}
+
+export class LogManageImportStrings {
+  static readonly USER_CANCELED: string = '已取消导入'
+  static readonly INVALID_ARCHIVE: string = '请选择 zip 格式日志包'
+  static readonly EXTRACT_FAILED: string = '日志包解压失败'
+  static readonly SAVE_FAILED: string = '日志入库失败'
+
+  static buildSuccessMessage(inserted: number, skipped: number, dropped: number, failed: number): string {
+    return `导入完成：新增 ${inserted} 条，重复跳过 ${skipped} 条，丢弃 ${dropped} 条，失败 ${failed} 条。`
+  }
+}
+
+export class LogManageImportDetailStrings {
+  static readonly RULE_ID: string = '规则ID'
+  static readonly CATEGORY: string = '类别'
+  static readonly SOURCE_FILE: string = '来源文件'
+  static readonly LINE_NUMBER: string = '原始行号'
+}
+
+export class LogManageKernelImportStrings {
+  static readonly CATEGORY_SECURITY_DENIED: string = '安全访问控制拒绝'
+  static readonly CATEGORY_BINDER_PERMISSION: string = 'Binder/IPC 权限失败'
+  static readonly CATEGORY_HMDEC: string = 'DEC 规则设置'
+  static readonly CATEGORY_FS_DEVFS: string = 'DEC 设备文件事件'
 }
 
 export class LogManageStatStrings {
@@ -107,6 +133,8 @@ export class LogEventPresentationStrings {
   static readonly ACCOUNT: string = '用户认证日志'
   static readonly PERMISSION: string = '权限变更日志'
   static readonly POWER: string = '开关机日志'
+  static readonly SYSTEM: string = '系统日志'
+  static readonly KERNEL: string = '内核日志'
 }
 
 export class LogDeviceLifecycleStrings {
@@ -130,6 +158,10 @@ export function resolveLogEventTypeLabel(type: LogEventType): string {
       return LogEventPresentationStrings.PERMISSION
     case LogEventType.POWER:
       return LogEventPresentationStrings.POWER
+    case LogEventType.SYSTEM:
+      return LogEventPresentationStrings.SYSTEM
+    case LogEventType.KERNEL:
+      return LogEventPresentationStrings.KERNEL
     default:
       return LabelText.UNKNOWN
   }
