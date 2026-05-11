@@ -1,4 +1,3 @@
-import util from '@ohos.util'
 import fileIo from '@ohos.file.fs'
 import {
   LogDetailTableRow,
@@ -15,6 +14,7 @@ import {
   LogImportRuleResult,
   createEmptyLogImportRuleResult
 } from './LogImportRule'
+import { LogImportLineReader } from './LogImportLineReader'
 
 type SystemParseStrategy = 'whole_failed' | 'time_blocks' | 'title_blocks' | 'snapshot' | 'memory_leak' | 'key_lines'
 
@@ -54,7 +54,6 @@ type SystemLogLineReader = (
 ) => Promise<void>
 
 const TAG = 'SystemLogImportRule'
-const READ_CHUNK_SIZE = 64 * 1024
 const YIELD_EVERY_LINES = 200
 const MAX_DETAIL_LENGTH = 280
 const MAX_ROW_VALUE_LENGTH = 360
@@ -351,40 +350,9 @@ export class SystemLogImportRule implements LogImportRule {
       await SystemLogImportRule.lineReaderForTest(file, onLine)
       return
     }
-    let fd = fileIo.openSync(file.path, fileIo.OpenMode.READ_ONLY)
-    let decoder = util.TextDecoder.create('utf-8')
-    let pending = ''
-    let lineNumber = 0
-    let readOffset = 0
-    try {
-      while (true) {
-        let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
-        let readCount = fileIo.readSync(fd.fd, buffer, {
-          offset: readOffset,
-          length: READ_CHUNK_SIZE
-        })
-        if (readCount <= 0) {
-          break
-        }
-        readOffset += readCount
-        let chunk = decoder.decodeToString(new Uint8Array(buffer, 0, readCount))
-        let lines = `${pending}${chunk}`.split(/\r?\n/)
-        pending = lines.pop() ?? ''
-        for (let line of lines) {
-          lineNumber++
-          await onLine(line, lineNumber)
-          if (lineNumber % YIELD_EVERY_LINES === 0) {
-            await SystemLogImportRule.yieldToEventLoop()
-          }
-        }
-      }
-      if (pending.length > 0) {
-        lineNumber++
-        await onLine(pending, lineNumber)
-      }
-    } finally {
-      fileIo.closeSync(fd.fd)
-    }
+    await LogImportLineReader.forEachUtf8Line(file.path, onLine, {
+      yieldEveryLines: YIELD_EVERY_LINES
+    })
   }
 
   private static async resolveFallbackTimestamp(file: ImportedLogFile): Promise<number> {
@@ -560,12 +528,6 @@ export class SystemLogImportRule implements LogImportRule {
       }
     }
     return true
-  }
-
-  private static async yieldToEventLoop(): Promise<void> {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => resolve(), 0)
-    })
   }
 }
 

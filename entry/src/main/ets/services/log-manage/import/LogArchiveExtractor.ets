@@ -52,7 +52,7 @@ export class LogArchiveExtractor {
       return
     }
     await LogArchiveExtractor.ensureDirectory(targetDirectory)
-    await zlib.decompressFile(zipPath, targetDirectory)
+    await LogArchiveExtractor.decompressZip(zipPath, targetDirectory)
     let nestedZipPaths = await LogArchiveExtractor.findFiles(targetDirectory, (path: string) => LogArchiveExtractor.isZipFile(path))
     for (let nestedZipPath of nestedZipPaths) {
       if (LogArchiveExtractor.normalizePath(nestedZipPath) === LogArchiveExtractor.normalizePath(zipPath)) {
@@ -81,14 +81,14 @@ export class LogArchiveExtractor {
 
   private static async findFiles(rootPath: string, predicate: (path: string) => boolean): Promise<string[]> {
     let result: string[] = []
-    let entries = await fileIo.listFile(rootPath)
+    let entries = await LogArchiveExtractor.listFile(rootPath)
     for (let entry of entries) {
       let path = LogArchiveExtractor.joinPath(rootPath, entry)
-      let stat = await fileIo.stat(path)
-      if (stat.isDirectory()) {
+      let stat = await LogArchiveExtractor.stat(path)
+      if (LogArchiveExtractor.isDirectory(stat, path)) {
         let nested = await LogArchiveExtractor.findFiles(path, predicate)
         result = result.concat(nested)
-      } else if (stat.isFile() && predicate(path)) {
+      } else if (LogArchiveExtractor.isFile(stat, path) && predicate(path)) {
         result.push(path)
       }
     }
@@ -102,7 +102,55 @@ export class LogArchiveExtractor {
       }
     } catch (_) {
     }
-    await fileIo.mkdir(path, true)
+    await LogArchiveExtractor.mkdir(path)
+  }
+
+  private static async decompressZip(zipPath: string, targetDirectory: string): Promise<void> {
+    try {
+      await zlib.decompressFile(zipPath, targetDirectory)
+    } catch (err) {
+      throw LogArchiveExtractor.toIoError(`decompress zip ${zipPath}`, err)
+    }
+  }
+
+  private static async listFile(path: string): Promise<string[]> {
+    try {
+      return await fileIo.listFile(path)
+    } catch (err) {
+      throw LogArchiveExtractor.toIoError(`list directory ${path}`, err)
+    }
+  }
+
+  private static async stat(path: string): Promise<fileIo.Stat> {
+    try {
+      return await fileIo.stat(path)
+    } catch (err) {
+      throw LogArchiveExtractor.toIoError(`stat ${path}`, err)
+    }
+  }
+
+  private static isDirectory(stat: fileIo.Stat, path: string): boolean {
+    try {
+      return stat.isDirectory()
+    } catch (err) {
+      throw LogArchiveExtractor.toIoError(`check directory ${path}`, err)
+    }
+  }
+
+  private static isFile(stat: fileIo.Stat, path: string): boolean {
+    try {
+      return stat.isFile()
+    } catch (err) {
+      throw LogArchiveExtractor.toIoError(`check file ${path}`, err)
+    }
+  }
+
+  private static async mkdir(path: string): Promise<void> {
+    try {
+      await fileIo.mkdir(path, true)
+    } catch (err) {
+      throw LogArchiveExtractor.toIoError(`mkdir ${path}`, err)
+    }
   }
 
   private static toPath(uriOrPath: string): string {
@@ -139,6 +187,10 @@ export class LogArchiveExtractor {
 
   private static normalizePath(path: string): string {
     return path.replace(/\\/g, '/').replace(/\/+/g, '/')
+  }
+
+  private static toIoError(action: string, err: Object): Error {
+    return new Error(`${action} failed: ${JSON.stringify(err)}`)
   }
 
   private static buildFailedResult(

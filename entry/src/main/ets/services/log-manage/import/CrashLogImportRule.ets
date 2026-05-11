@@ -1,5 +1,3 @@
-import util from '@ohos.util'
-import fileIo from '@ohos.file.fs'
 import {
   LogDetailTableRow,
   LogEntry,
@@ -15,6 +13,7 @@ import {
   LogImportRuleResult,
   createEmptyLogImportRuleResult
 } from './LogImportRule'
+import { LogImportLineReader } from './LogImportLineReader'
 
 interface ParsedCrashLog {
   crashType: string
@@ -35,7 +34,6 @@ type CrashLogLineReader = (
 ) => Promise<void>
 
 const TAG = 'CrashLogImportRule'
-const READ_CHUNK_SIZE = 64 * 1024
 const YIELD_EVERY_LINES = 200
 const MAX_FIELD_LENGTH = 240
 
@@ -101,40 +99,9 @@ export class CrashLogImportRule implements LogImportRule {
       await CrashLogImportRule.lineReaderForTest(file, onLine)
       return
     }
-    let fd = fileIo.openSync(file.path, fileIo.OpenMode.READ_ONLY)
-    let decoder = util.TextDecoder.create('utf-8')
-    let pending = ''
-    let lineNumber = 0
-    let readOffset = 0
-    try {
-      while (true) {
-        let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
-        let readCount = fileIo.readSync(fd.fd, buffer, {
-          offset: readOffset,
-          length: READ_CHUNK_SIZE
-        })
-        if (readCount <= 0) {
-          break
-        }
-        readOffset += readCount
-        let chunk = decoder.decodeToString(new Uint8Array(buffer, 0, readCount))
-        let lines = `${pending}${chunk}`.split(/\r?\n/)
-        pending = lines.pop() ?? ''
-        for (let line of lines) {
-          lineNumber++
-          await onLine(line, lineNumber)
-          if (lineNumber % YIELD_EVERY_LINES === 0) {
-            await CrashLogImportRule.yieldToEventLoop()
-          }
-        }
-      }
-      if (pending.length > 0) {
-        lineNumber++
-        await onLine(pending, lineNumber)
-      }
-    } finally {
-      fileIo.closeSync(fd.fd)
-    }
+    await LogImportLineReader.forEachUtf8Line(file.path, onLine, {
+      yieldEveryLines: YIELD_EVERY_LINES
+    })
   }
 
   private static buildEntry(parsed: ParsedCrashLog, file: ImportedLogFile): LogEntry {
@@ -261,12 +228,6 @@ export class CrashLogImportRule implements LogImportRule {
   private static isUnderFaultloggerDirectory(path: string): boolean {
     let normalized = path.replace(/\\/g, '/').toLowerCase()
     return normalized.includes('/faultlogger/') || normalized.startsWith('faultlogger/')
-  }
-
-  private static async yieldToEventLoop(): Promise<void> {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => resolve(), 0)
-    })
   }
 }
 
