@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEventResult } from '../../main/ets/models/LogModels'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralDevicePolicyRecord,
   PeripheralType
@@ -143,7 +143,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('connect')
       expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.summary).assertEqual('蓝牙设备已连接')
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
@@ -165,7 +165,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('disconnect')
       expect(record?.decision).assertEqual('allow')
-      expect(record?.result).assertEqual(LogEventResult.SUCCESS)
+      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.summary).assertEqual('蓝牙设备已断开')
       expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=REMOTE_DISCONNECT')

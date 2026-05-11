@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEventResult } from '../../main/ets/models/LogModels'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralTraceRecord,
   PeripheralType
@@ -74,7 +74,7 @@ class ThrowingDeviceIdRecord implements PeripheralTraceRecord {
   deviceId: string = 'VID:1234 PID:5678'
   action: 'connect' = 'connect'
   decision: 'allow' = 'allow'
-  result: LogEventResult = LogEventResult.SUCCESS
+  result: SecurityEventResult = SecurityEventResult.SUCCESS
   source: 'runtime_event' = 'runtime_event'
   summary: string = 'broken'
   rawEventName: string = 'usual.event.USB_ATTACHED'
@@ -141,7 +141,7 @@ function buildUsbRecord(): PeripheralTraceRecord {
     deviceId: 'VID:1234 PID:5678',
     action: 'connect',
     decision: 'allow',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     source: 'runtime_event',
     summary: 'usb',
     rawEventName: 'usual.event.USB_ATTACHED'
@@ -159,7 +159,7 @@ function buildBluetoothRecord(): PeripheralTraceRecord {
     deviceId: 'MAC: 11:22:33:44:55:66',
     action: 'connect',
     decision: 'unknown',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     source: 'runtime_event',
     summary: 'bt',
     rawEventName: 'usual.event.BLUETOOTH_ACL'

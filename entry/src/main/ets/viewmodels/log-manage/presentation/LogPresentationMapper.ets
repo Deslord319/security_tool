@@ -1,11 +1,13 @@
 import {
-  LogEventPresentationStrings,
-  LogResultPresentationStrings,
   resolveLogEventResultLabel,
   resolveLogEventTypeLabel
 } from '../../../constants/modules/LogManageStrings'
-import { ResultText } from '../../../constants/StringCatalog'
-import { LogEventResult, LogEventType } from '../../../models/LogModels'
+import {
+  ALL_LOG_EVENT_RESULTS,
+  ALL_LOG_EVENT_TYPES,
+  LogEventResult,
+  LogEventType
+} from '../../../models/LogModels'
 import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 
 export interface LogEventTypeOption {
@@ -19,19 +21,15 @@ export interface LogEventResultOption {
   value: LogEventResult
 }
 
-export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: LogEventPresentationStrings.CRASH, value: LogEventType.CRASH },
-  { label: LogEventPresentationStrings.FILE, value: LogEventType.FILE },
-  { label: LogEventPresentationStrings.ACCOUNT, value: LogEventType.ACCOUNT },
-  { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION },
-  { label: LogEventPresentationStrings.POWER, value: LogEventType.POWER }
-]
+export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = ALL_LOG_EVENT_TYPES.map((value: LogEventType): LogEventTypeOption => ({
+  label: resolveLogEventTypeLabel(value),
+  value: value
+}))
 
-export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = [
-  { label: ResultText.SUCCESS, value: LogEventResult.SUCCESS },
-  { label: LogResultPresentationStrings.BLOCKED, value: LogEventResult.BLOCKED },
-  { label: ResultText.FAILED, value: LogEventResult.FAILED }
-]
+export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = ALL_LOG_EVENT_RESULTS.map((value: LogEventResult): LogEventResultOption => ({
+  label: resolveLogEventResultLabel(value),
+  value: value
+}))
 
 export function getLogEventTypeLabel(type: LogEventType): string {
   return resolveLogEventTypeLabel(type)

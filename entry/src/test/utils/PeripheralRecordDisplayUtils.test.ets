@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { LogEventResult } from '../../main/ets/models/LogModels'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralConnectionRecord,
   PeripheralType
@@ -20,7 +20,7 @@ function createConnectionRecord(): PeripheralConnectionRecord {
     deviceType: PeripheralType.USB_STORAGE,
     deviceId: 'VID:1234 PID:5678',
     action: 'connect',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     policyHit: 'allow',
     source: 'runtime_event',
     summary: 'base'
@@ -30,7 +30,7 @@ function createConnectionRecord(): PeripheralConnectionRecord {
 function createUnexpectedResultRecord(): PeripheralConnectionRecord {
   let record = createConnectionRecord()
   record.id = 'runtime-unexpected'
-  record.result = -1 as LogEventResult
+  record.result = -1 as SecurityEventResult
   return record
 }
 
@@ -59,7 +59,7 @@ export default function peripheralRecordDisplayUtilsTest() {
     it('should prefer matched policy kind labels', 0, () => {
       const record = createConnectionRecord()
       record.id = 'runtime-1'
-      record.result = LogEventResult.BLOCKED
+      record.result = SecurityEventResult.BLOCKED
       record.policyHit = 'deny'
       record.summary = 'runtime'
       record.matchedPolicyKind = 'device_deny'
@@ -78,7 +78,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       denyRecord.id = 'runtime-deny'
       denyRecord.deviceId = 'VID:0001 PID:0001'
       denyRecord.policyHit = 'deny'
-      denyRecord.result = LogEventResult.BLOCKED
+      denyRecord.result = SecurityEventResult.BLOCKED
       denyRecord.summary = 'deny'
       const unknownRecord = createConnectionRecord()
       unknownRecord.id = 'runtime-unknown'
@@ -135,9 +135,9 @@ export default function peripheralRecordDisplayUtilsTest() {
     it('should map all result states to stable labels', 0, () => {
       const baseRecord = createConnectionRecord()
       const blockedRecord = createConnectionRecord()
-      blockedRecord.result = LogEventResult.BLOCKED
+      blockedRecord.result = SecurityEventResult.BLOCKED
       const failedRecord = createConnectionRecord()
-      failedRecord.result = LogEventResult.FAILED
+      failedRecord.result = SecurityEventResult.FAILED
       const unexpectedRecord = createUnexpectedResultRecord()
 
       expect(getPeripheralConnectionResultLabel(baseRecord)).assertEqual('成功')

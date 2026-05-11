@@ -6,7 +6,7 @@ import {
   PeripheralRecordSource,
   PeripheralType
 } from '../../../models/PeripheralModels'
-import { LogEventResult } from '../../../models/LogModels'
+import { SecurityEventResult } from '../../../models/CommonModels'
 import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 import {
@@ -131,11 +131,11 @@ export function getPeripheralConnectionResultLabel(record: PeripheralConnectionR
     return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
   }
   switch (record.result) {
-    case LogEventResult.SUCCESS:
+    case SecurityEventResult.SUCCESS:
       return ResultText.SUCCESS
-    case LogEventResult.BLOCKED:
+    case SecurityEventResult.BLOCKED:
       return LogResultPresentationStrings.BLOCKED
-    case LogEventResult.FAILED:
+    case SecurityEventResult.FAILED:
       return ResultText.FAILED
     default:
       return LabelText.UNKNOWN

@@ -1,4 +1,11 @@
 import { generateRandomSuffix } from '../utils/ValuePicker'
+import {
+  parseSecurityEventResult,
+  normalizeSecurityEventResult,
+  SecurityEventResult
+} from './CommonModels'
+
+export { SecurityEventResult as LogEventResult } from './CommonModels'
 
 export enum LogEventType {
   CRASH = 0,
@@ -6,12 +13,6 @@ export enum LogEventType {
   ACCOUNT = 2,
   PERMISSION = 3,
   POWER = 4
-}
-
-export enum LogEventResult {
-  SUCCESS = 0,
-  BLOCKED = 1,
-  FAILED = 2
 }
 
 export interface LogDetailTableRow {
@@ -35,7 +36,7 @@ export interface LogEntry {
   rawOutcome?: string
   rawAction?: string
   detailRows?: LogDetailTableRow[]
-  result: LogEventResult
+  result: SecurityEventResult
 }
 
 export interface LogStorageConfig {
@@ -63,6 +64,12 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.POWER
 ]
 
+export const ALL_LOG_EVENT_RESULTS: SecurityEventResult[] = [
+  SecurityEventResult.SUCCESS,
+  SecurityEventResult.BLOCKED,
+  SecurityEventResult.FAILED
+]
+
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 90, 180]
 
 export const LOG_MAX_ENTRIES_OPTIONS: number[] = [5000, 10000, 20000, 50000, 100000]
@@ -75,17 +82,16 @@ export function generateLogEntryId(): string {
   return `log_${Date.now()}_${generateRandomSuffix(9)}`
 }
 
-export function normalizeLogEventResult(value: LogEventResult, fallback: LogEventResult = LogEventResult.FAILED): LogEventResult {
-  if (value === LogEventResult.SUCCESS || value === LogEventResult.BLOCKED || value === LogEventResult.FAILED) {
-    return value
-  }
-  return fallback
+export function normalizeLogEventResult(
+  value: SecurityEventResult,
+  fallback: SecurityEventResult = SecurityEventResult.FAILED
+): SecurityEventResult {
+  return normalizeSecurityEventResult(value, fallback)
 }
 
-export function parseLogEventResult(rawValue: string, fallback: LogEventResult = LogEventResult.FAILED): LogEventResult {
-  let numeric = Number(rawValue)
-  if (numeric === LogEventResult.SUCCESS || numeric === LogEventResult.BLOCKED || numeric === LogEventResult.FAILED) {
-    return numeric as LogEventResult
-  }
-  return fallback
+export function parseLogEventResult(
+  rawValue: string,
+  fallback: SecurityEventResult = SecurityEventResult.FAILED
+): SecurityEventResult {
+  return parseSecurityEventResult(rawValue, fallback)
 }

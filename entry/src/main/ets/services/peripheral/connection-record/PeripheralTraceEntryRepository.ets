@@ -1,9 +1,9 @@
 import relationalStore from '@ohos.data.relationalStore'
 import { AppInfo } from '../../../constants/AppConstants'
 import {
-  LogEventResult,
-  parseLogEventResult
-} from '../../../models/LogModels'
+  parseSecurityEventResult,
+  SecurityEventResult
+} from '../../../models/CommonModels'
 import {
   normalizeDeviceId,
   normalizePeripheralAction,
@@ -205,7 +205,7 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
     if (query.results && query.results.length > 0) {
       let placeholders = query.results.map(() => '?').join(', ')
       clauses.push(`result IN (${placeholders})`)
-      query.results.forEach((result: LogEventResult) => args.push(this.serializeResult(result)))
+      query.results.forEach((result: SecurityEventResult) => args.push(this.serializeResult(result)))
     }
     if (query.sources && query.sources.length > 0) {
       let placeholders = query.sources.map(() => '?').join(', ')
@@ -225,7 +225,7 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
     }
   }
 
-  private serializeResult(result: LogEventResult): string {
+  private serializeResult(result: SecurityEventResult): string {
     return result.toString()
   }
 
@@ -311,8 +311,8 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
     return this.parseJsonObject<PeripheralTraceExtraData>(rawValue, 'parseExtraJson') ?? {}
   }
 
-  private parseResult(rawValue: string): LogEventResult {
-    return parseLogEventResult(rawValue, LogEventResult.FAILED)
+  private parseResult(rawValue: string): SecurityEventResult {
+    return parseSecurityEventResult(rawValue, SecurityEventResult.FAILED)
   }
 
   private parseAction(rawValue: string): PeripheralRecordAction {

@@ -2,9 +2,12 @@ import { common } from '@kit.AbilityKit'
 import { MessageText } from '../../../constants/StringCatalog'
 import { LogManageClearingStrings } from '../../../constants/modules/LogManageStrings'
 import { ExportActionResult } from '../../../models/CommonModels'
-import { LogEntry } from '../../../models/LogModels'
+import {
+  ALL_LOG_EVENT_RESULTS,
+  ALL_LOG_EVENT_TYPES,
+  LogEntry
+} from '../../../models/LogModels'
 import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
-import { LOG_EVENT_RESULT_OPTIONS, LOG_EVENT_TYPE_OPTIONS } from '../presentation/LogPresentationMapper'
 import {
   ClearLogsResult,
   ExportLogsResult,
@@ -178,13 +181,13 @@ export class LogManageViewModel {
   }
 
   async setEventTypeIndex(index: number): Promise<void> {
-    this.state.filter.eventTypeIndex = this.normalizeFilterIndex(index, LOG_EVENT_TYPE_OPTIONS.length + 1)
+    this.state.filter.eventTypeIndex = this.normalizeFilterIndex(index, ALL_LOG_EVENT_TYPES.length + 1)
     this.resetToFirstPage()
     await this.refreshAll()
   }
 
   async setResultIndex(index: number): Promise<void> {
-    this.state.filter.resultIndex = this.normalizeFilterIndex(index, LOG_EVENT_RESULT_OPTIONS.length + 1)
+    this.state.filter.resultIndex = this.normalizeFilterIndex(index, ALL_LOG_EVENT_RESULTS.length + 1)
     this.resetToFirstPage()
     await this.refreshAll()
   }
@@ -315,13 +318,13 @@ export class LogManageViewModel {
     let query: LogQuery = {}
     let hasQuery = false
     if (this.state.filter.eventTypeIndex > 0) {
-      query.eventTypes = [LOG_EVENT_TYPE_OPTIONS[this.state.filter.eventTypeIndex - 1].value]
+      query.eventTypes = [ALL_LOG_EVENT_TYPES[this.state.filter.eventTypeIndex - 1]]
       hasQuery = true
     }
     if (this.state.filter.resultIndex > 0) {
-      let resultOption = LOG_EVENT_RESULT_OPTIONS[this.state.filter.resultIndex - 1]
-      if (resultOption) {
-        query.results = [resultOption.value]
+      let result = ALL_LOG_EVENT_RESULTS[this.state.filter.resultIndex - 1]
+      if (result !== undefined) {
+        query.results = [result]
         hasQuery = true
       }
     }

@@ -1,4 +1,4 @@
-import { LogEventResult } from './LogModels'
+import { SecurityEventResult } from './CommonModels'
 
 export enum PeripheralType {
   USB_STORAGE = 'usb_storage',
@@ -63,7 +63,7 @@ export interface PeripheralConnectionRecord {
   deviceType: PeripheralType
   deviceId: string
   action: PeripheralRecordAction
-  result: LogEventResult
+  result: SecurityEventResult
   policyHit: PeripheralRecordPolicyHit
   source: PeripheralRecordSource
   summary: string
@@ -83,7 +83,7 @@ export interface PeripheralConnectionRecord {
 
 export interface PeripheralConnectionFilter {
   deviceTypes?: PeripheralType[]
-  results?: LogEventResult[]
+  results?: SecurityEventResult[]
   sources?: PeripheralRecordSource[]
   startTime?: number
   endTime?: number
@@ -99,7 +99,7 @@ export interface PeripheralTraceRecord {
   deviceId: string
   action: PeripheralRecordAction
   decision: PeripheralRecordPolicyHit
-  result: LogEventResult
+  result: SecurityEventResult
   source: PeripheralRecordSource
   summary: string
   correlationId?: string
@@ -124,7 +124,7 @@ export interface PeripheralTraceQuery {
   deviceTypes?: PeripheralType[]
   actions?: PeripheralRecordAction[]
   decisions?: PeripheralRecordPolicyHit[]
-  results?: LogEventResult[]
+  results?: SecurityEventResult[]
   sources?: PeripheralRecordSource[]
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { LogEventResult } from '../../main/ets/models/LogModels'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralConnectionRecord,
   PeripheralDevicePolicyRecord,
@@ -20,7 +20,7 @@ function createConnectionRecord(id: string, timestamp: number): PeripheralConnec
     deviceName: 'USB Device',
     deviceType: PeripheralType.USB_STORAGE,
     action: 'connect',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     policyHit: 'allow',
     source: 'runtime_event',
     summary: 'connected'
@@ -49,7 +49,7 @@ export default function peripheralRecordViewDataUtilsTest() {
       record.deviceId = ' VID:1234  PID:5678 '
       const blockedRecord = createConnectionRecord('record-2', timestamp + 1)
       blockedRecord.deviceId = 'VID:1234 PID:5678'
-      blockedRecord.result = LogEventResult.BLOCKED
+      blockedRecord.result = SecurityEventResult.BLOCKED
       blockedRecord.policyHit = 'deny'
       blockedRecord.matchedPolicyKind = 'device_deny'
       blockedRecord.summary = 'blocked'

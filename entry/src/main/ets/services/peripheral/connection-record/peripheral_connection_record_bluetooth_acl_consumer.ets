@@ -1,6 +1,6 @@
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { connection } from '@kit.ConnectivityKit'
-import { LogEventResult } from '../../../models/LogModels'
+import { SecurityEventResult } from '../../../models/CommonModels'
 import {
   PeripheralType,
   formatBluetoothDeviceId
@@ -90,7 +90,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceId: eventInfo.deviceId,
       action: eventInfo.action,
       decision: denied ? 'deny' : 'allow',
-      result: eventInfo.action === 'connect' && denied ? LogEventResult.BLOCKED : LogEventResult.SUCCESS,
+      result: eventInfo.action === 'connect' && denied ? SecurityEventResult.BLOCKED : SecurityEventResult.SUCCESS,
       source: 'runtime_event',
       summary: eventInfo.action === 'connect' ? PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED : PeripheralConnectionRecordStrings.BLUETOOTH_DISCONNECTED,
       rawEventName: rawData.event,

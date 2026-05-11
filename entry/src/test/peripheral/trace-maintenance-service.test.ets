@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEventResult } from '../../main/ets/models/LogModels'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralTraceRecord,
   PeripheralType
@@ -22,7 +22,7 @@ function createRecord(id: string): PeripheralTraceRecord {
     action: 'connect',
     decision: 'allow',
     source: 'runtime_event',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     summary: 'test summary'
   }
 }

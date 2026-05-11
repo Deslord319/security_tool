@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEventResult } from '../../main/ets/models/LogModels'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralDevicePolicyRecord,
   PeripheralType
@@ -103,7 +103,7 @@ export default function peripheralPolicyViewModelTest() {
         deviceType: PeripheralType.USB_STORAGE,
         source: 'runtime_event',
         action: 'connect',
-        result: LogEventResult.SUCCESS,
+        result: SecurityEventResult.SUCCESS,
         policyHit: 'allow',
         summary: 'connected'
       }])
@@ -121,7 +121,7 @@ export default function peripheralPolicyViewModelTest() {
         deviceType: PeripheralType.USB_STORAGE,
         source: 'runtime_event',
         action: 'connect',
-        result: LogEventResult.SUCCESS,
+        result: SecurityEventResult.SUCCESS,
         policyHit: 'allow',
         summary: 'connected'
       }])
@@ -199,7 +199,7 @@ export default function peripheralPolicyViewModelTest() {
         deviceType: PeripheralType.BLUETOOTH,
         source: 'runtime_event',
         action: 'connect',
-        result: LogEventResult.SUCCESS,
+        result: SecurityEventResult.SUCCESS,
         policyHit: 'allow',
         summary: 'connected'
       }])

@@ -3,9 +3,9 @@ import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   AdminActivationState,
-  ExportActionResult
+  ExportActionResult,
+  SecurityEventResult
 } from '../../main/ets/models/CommonModels'
-import { LogEventResult } from '../../main/ets/models/LogModels'
 import {
   PeripheralConnectionRecord,
   PeripheralTraceRecord,
@@ -102,7 +102,7 @@ function createConnectionRecord(
     deviceType: PeripheralType.USB_STORAGE,
     source: 'runtime_event',
     action: 'connect',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     policyHit: 'allow',
     summary: 'connected',
     matchedPolicyKind: 'default_allow'
@@ -119,7 +119,7 @@ function createTraceRecord(recordId: string, occurAt: number, deviceId: string =
     deviceId,
     action: 'connect',
     decision: 'allow',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     source: 'runtime_event',
     summary: 'connected',
     matchedPolicyKind: 'default_allow'
