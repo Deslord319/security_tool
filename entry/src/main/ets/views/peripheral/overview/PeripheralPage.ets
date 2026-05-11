@@ -17,7 +17,9 @@ import {
   PeripheralLoadingStrings,
   PeripheralOptionStrings,
   PeripheralPageStrings,
+  PeripheralPolicyOptionIndexes,
   PeripheralReasonCodes,
+  PeripheralTabIndexes,
   resolvePeripheralReason
 } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../../../models/DataModels'
@@ -36,12 +38,12 @@ export struct PeripheralPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param viewModel: PeripheralViewModel = new PeripheralViewModel()
   @Event onBack: () => void = () => {}
-  @Local currentTabIndex: number = 0
+  @Local currentTabIndex: number = PeripheralTabIndexes.INTERFACE_CONTROL
   @Local hoveredPanelIndex: number = -1
 
   private policyListOptions: SelectOption[] = [
-    { value: PeripheralOptionStrings.POLICY_OPTIONS[0] },
-    { value: PeripheralOptionStrings.POLICY_OPTIONS[1] }
+    { value: PeripheralOptionStrings.POLICY_OPTIONS[PeripheralPolicyOptionIndexes.ALLOW] },
+    { value: PeripheralOptionStrings.POLICY_OPTIONS[PeripheralPolicyOptionIndexes.DENY] }
   ]
   private detailDialogController?: CustomDialogController
   private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
@@ -90,13 +92,7 @@ export struct PeripheralPage {
   }
 
   private normalizeTabIndex(index: number): number {
-    if (index < 0) {
-      return 0
-    }
-    if (index > 2) {
-      return 2
-    }
-    return index
+    return PeripheralTabIndexes.normalize(index)
   }
 
   private openDetailDialog(record: PeripheralConnectionRecord): void {
@@ -180,14 +176,14 @@ export struct PeripheralPage {
 
   @Builder
   private headerRightActions() {
-    if (this.currentTabIndex === 1) {
+    if (this.currentTabIndex === PeripheralTabIndexes.CONNECTION_RECORD) {
       this.headerActions(
         PeripheralExportStrings.HISTORY_LABEL,
         PeripheralExportStrings.CLEAR_HISTORY_LABEL,
         () => void this.handleExportConnectionHistory(),
         () => this.showClearHistoryConfirmDialog()
       )
-    } else if (this.currentTabIndex === 2) {
+    } else if (this.currentTabIndex === PeripheralTabIndexes.DEVICE_POLICY) {
       this.headerActions(
         PeripheralExportStrings.EXPORT_POLICY_LABEL,
         PeripheralExportStrings.CLEAR_POLICY_LABEL,
@@ -200,9 +196,9 @@ export struct PeripheralPage {
   @Builder
   private tabs() {
     Tabs({ barPosition: BarPosition.Start, index: this.currentTabIndex }) {
-      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.INTERFACE_TAB, 0))
-      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.DEVICE_TAB, 1))
-      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.POLICY_TAB, 2))
+      TabContent() { this.interfaceTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.INTERFACE_TAB, PeripheralTabIndexes.INTERFACE_CONTROL))
+      TabContent() { this.deviceTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.DEVICE_TAB, PeripheralTabIndexes.CONNECTION_RECORD))
+      TabContent() { this.policyTab() }.tabBar(this.tabBarBuilder(PeripheralPageStrings.POLICY_TAB, PeripheralTabIndexes.DEVICE_POLICY))
     }
     .barMode(BarMode.Fixed)
     .barWidth('100%')

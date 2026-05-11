@@ -17,6 +17,7 @@ import {
 import {
   ExportActionResult,
   LogEntry,
+  LOG_EVENT_RESULT_OPTIONS,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
@@ -54,9 +55,7 @@ export struct LogManagePage {
   ]
   private resultFilterOptions: SelectOption[] = [
     { value: LogManageFilterStrings.ALL_RESULTS } as SelectOption,
-    { value: ResultText.SUCCESS } as SelectOption,
-    { value: LogResultPresentationStrings.BLOCKED } as SelectOption,
-    { value: ResultText.FAILED } as SelectOption
+    ...LOG_EVENT_RESULT_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
   ]
 
   aboutToAppear() {

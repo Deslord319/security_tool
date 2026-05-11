@@ -299,7 +299,7 @@ export class IdentitySettingsViewModel {
       return
     }
 
-    if (validityPeriodDays <= 0) {
+    if (validityPeriodDays < 0) {
       state.validityPeriodIndex = PERMANENT_VALIDITY_OPTION_INDEX
       state.customValidityPeriodText = ''
       return

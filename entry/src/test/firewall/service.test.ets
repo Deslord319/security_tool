@@ -450,6 +450,38 @@ export default function firewallServiceTest() {
       done()
     })
 
+    it('should not save target mode when mode switch has failed items', 0, async (done: Function) => {
+      let users = buildUsers()
+      let savedModeCount = 0
+      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let clearRulesMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.clearRules)
+      let getPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.getPolicy)
+      let setPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.setPolicy)
+      let clearDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.clearAllRuleDeployments)
+      let buildRulesMock = mockKit.mockFunc(FirewallModeStrategy, FirewallModeStrategy.buildRulesForMode)
+      let saveModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveCurrentMode)
+
+      when(userMock)().afterReturn(buildUserResult(users))
+      when(clearRulesMock)(ArgumentMatchers.any).afterReturn({
+        success: false,
+        failedItems: [{ userId: 100, errorMessage: 'clear failed' }]
+      } as FirewallBatchOperationResult)
+      when(getPolicyMock)(ArgumentMatchers.any).afterReturn(buildPolicy(true, netFirewall.FirewallRuleAction.RULE_ALLOW, netFirewall.FirewallRuleAction.RULE_ALLOW))
+      when(setPolicyMock)(ArgumentMatchers.any).afterReturn(true)
+      when(clearDeploymentsMock)(ArgumentMatchers.any).afterReturn(true)
+      when(buildRulesMock)(ArgumentMatchers.any).afterReturn([])
+      when(saveModeMock)(ArgumentMatchers.any).afterAction((): boolean => {
+        savedModeCount++
+        return true
+      })
+
+      let result = await FirewallService.switchMode(context, 'public')
+
+      expect(result.success).assertFalse()
+      expect(savedModeCount).assertEqual(0)
+      done()
+    })
+
     describe('user policy mode', () => {
       it('should apply allowlist policy after PIN succeeds', 0, async (done: Function) => {
         let appliedPolicies: AppliedPolicyRecord[] = []
@@ -852,6 +884,101 @@ export default function firewallServiceTest() {
         expect(removedSystemRuleIds[1]).assertEqual(8002)
         expect(removedIntentIds.length).assertEqual(1)
         expect(removedIntentIds[0]).assertEqual('rule-1')
+        done()
+      })
+
+      it('should keep local intent and failed deployments when delete partially fails', 0, async (done: Function) => {
+        let removedIntentIds: string[] = []
+        let preservedDeployments: FirewallRuleDeployment[] = []
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+        let removeIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleIntent)
+
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
+          buildDeployment('rule-1', 100, 8001),
+          buildDeployment('rule-1', 101, 8002)
+        ])
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          return systemRuleId !== 8002
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          preservedDeployments = deployments
+          return true
+        })
+        when(removeIntentMock)(ArgumentMatchers.any).afterAction((_context: common.Context, localRuleId: string): boolean => {
+          removedIntentIds.push(localRuleId)
+          return true
+        })
+
+        let result = await FirewallService.deleteRule(context, 'rule-1')
+
+        expect(result.success).assertFalse()
+        expect(result.failedItems?.length).assertEqual(1)
+        expect(preservedDeployments.length).assertEqual(1)
+        expect(preservedDeployments[0].systemRuleId).assertEqual(8002)
+        expect(removedIntentIds.length).assertEqual(0)
+        done()
+      })
+
+      it('should restore deleted conflict rule when replacement create fails', 0, async (done: Function) => {
+        let restoredIntents: FirewallRuleIntent[] = []
+        let restoredDeployments: FirewallRuleDeployment[] = []
+        let addRuleCount = 0
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let removeDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleDeployments)
+        let removeIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleIntent)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('conflict-rule', 'Conflict Rule', [100]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([buildDeployment('conflict-rule', 100, 9001)])
+        when(removeRuleMock)(ArgumentMatchers.any).afterReturn(true)
+        when(removeDeploymentsMock)(ArgumentMatchers.any).afterReturn(true)
+        when(removeIntentMock)(ArgumentMatchers.any).afterReturn(true)
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((): Object => {
+          addRuleCount++
+          if (addRuleCount === 1) {
+            return new FakeAddRuleRawResult(undefined, 401, 'invalid')
+          }
+          return new FakeAddRuleRawResult(9101)
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          intent: FirewallRuleIntent
+        ): boolean => {
+          restoredIntents.push(intent)
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          restoredDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.replaceConflictRule(
+          context,
+          'conflict-rule',
+          undefined,
+          buildIpRuleInput('Replacement Rule', [100]),
+          false
+        )
+
+        expect(result.success).assertFalse()
+        expect(restoredIntents.length).assertEqual(1)
+        expect(restoredIntents[0].localRuleId).assertEqual('conflict-rule')
+        expect(restoredDeployments.length).assertEqual(1)
+        expect(restoredDeployments[0].systemRuleId).assertEqual(9101)
         done()
       })
     })

@@ -1,6 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralReasonCodes, PeripheralTabIndexes } from '../../../constants/modules/PeripheralStrings'
 import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../../../models/DataModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
@@ -23,7 +23,7 @@ export class PeripheralViewModel {
 
   @Trace isLoading: boolean = false
   @Trace reasonCode: string | null = null
-  @Trace currentTab: number = 0
+  @Trace currentTab: number = PeripheralTabIndexes.INTERFACE_CONTROL
   @Trace interfaceControl: InterfaceControlViewModel = new InterfaceControlViewModel()
   @Trace records: PeripheralRecordViewModel = new PeripheralRecordViewModel()
   @Trace policy: PeripheralPolicyViewModel = new PeripheralPolicyViewModel()
@@ -210,7 +210,7 @@ export class PeripheralViewModel {
   }
 
   switchToTab(index: number): void {
-    if (index < 0 || index > 2 || index === this.currentTab) {
+    if (!PeripheralTabIndexes.isValid(index) || index === this.currentTab) {
       return
     }
     this.currentTab = index

@@ -3,6 +3,7 @@ import restrictions from '@ohos.enterprise.restrictions'
 import { networkManager, usbManager } from '@kit.MDMKit'
 
 import { ADMIN_WANT } from '../../../constants/AppConstants'
+import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
 import { OperationResult } from '../../../models/DataModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
@@ -90,7 +91,7 @@ export class PeripheralService {
       } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setUsbStoragePolicyWithCleanupResult failed: ${JSON.stringify(err)}`)
-      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === 9200010) {
+      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_storage_policy',
           'system detected usb policy conflict'
@@ -155,7 +156,7 @@ export class PeripheralService {
       } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setUsbInterfaceDisabledWithCleanup failed: ${JSON.stringify(err)}`)
-      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === 9200010) {
+      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_interface',
           'system detected usb interface conflict'

@@ -5,6 +5,20 @@ import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStri
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 
 const TAG = 'InterfaceControlViewModel'
+const USB_STORAGE_POLICY_INDEX_READ_ONLY = 0
+const USB_STORAGE_POLICY_INDEX_READ_WRITE = 1
+const USB_STORAGE_POLICY_INDEX_DISABLED = 2
+
+interface UsbStoragePolicyOption {
+  index: number
+  policy: edmUsbManager.UsbPolicy
+}
+
+const USB_STORAGE_POLICY_OPTIONS: UsbStoragePolicyOption[] = [
+  { index: USB_STORAGE_POLICY_INDEX_READ_ONLY, policy: edmUsbManager.UsbPolicy.READ_ONLY },
+  { index: USB_STORAGE_POLICY_INDEX_READ_WRITE, policy: edmUsbManager.UsbPolicy.READ_WRITE },
+  { index: USB_STORAGE_POLICY_INDEX_DISABLED, policy: edmUsbManager.UsbPolicy.DISABLED }
+]
 
 @ObservedV2
 export class InterfaceControlStateModel {
@@ -16,7 +30,7 @@ export class InterfaceControlStateModel {
   @Trace printerDisabled: boolean = false
   @Trace microphoneDisabled: boolean = false
   @Trace cameraDisabled: boolean = false
-  @Trace usbStoragePolicyIndex: number = 1
+  @Trace usbStoragePolicyIndex: number = USB_STORAGE_POLICY_INDEX_READ_WRITE
 }
 
 @ObservedV2
@@ -75,12 +89,8 @@ export class InterfaceControlViewModel {
   async setUsbStoragePolicy(index: number): Promise<string | null> {
     this.processingKey = 'usb-storage-policy'
     try {
-      const policy = index === 0
-        ? edmUsbManager.UsbPolicy.READ_ONLY
-        : index === 1
-          ? edmUsbManager.UsbPolicy.READ_WRITE
-          : edmUsbManager.UsbPolicy.DISABLED
-      const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(policy)
+      const option = this.resolveUsbStoragePolicyOption(index)
+      const result = PeripheralService.setUsbStoragePolicyWithCleanupResult(option.policy)
       if (!result.success) {
         return this.normalizeReason(result.stage, PeripheralReasonCodes.USB_STORAGE_POLICY_FAILED)
       }
@@ -93,7 +103,7 @@ export class InterfaceControlViewModel {
         printerDisabled: this.state.printerDisabled,
         microphoneDisabled: this.state.microphoneDisabled,
         cameraDisabled: this.state.cameraDisabled,
-        usbStoragePolicyIndex: index
+        usbStoragePolicyIndex: option.index
       })
       return null
     } catch (err) {
@@ -131,13 +141,16 @@ export class InterfaceControlViewModel {
   }
 
   private getUsbStoragePolicyIndex(policy: edmUsbManager.UsbPolicy): number {
-    if (policy === edmUsbManager.UsbPolicy.READ_ONLY) {
-      return 0
+    let option = USB_STORAGE_POLICY_OPTIONS.find((item: UsbStoragePolicyOption) => item.policy === policy)
+    return option ? option.index : USB_STORAGE_POLICY_INDEX_READ_WRITE
+  }
+
+  private resolveUsbStoragePolicyOption(index: number): UsbStoragePolicyOption {
+    let option = USB_STORAGE_POLICY_OPTIONS.find((item: UsbStoragePolicyOption) => item.index === index)
+    if (option) {
+      return option
     }
-    if (policy === edmUsbManager.UsbPolicy.READ_WRITE) {
-      return 1
-    }
-    return 2
+    return USB_STORAGE_POLICY_OPTIONS[USB_STORAGE_POLICY_INDEX_READ_WRITE]
   }
 
   private normalizeReason(stage: string | undefined, fallbackReason: string): string {

@@ -2,13 +2,13 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { taskpool } from '@kit.ArkTS'
 import { AppInfo } from '../../../constants/AppConstants'
 import { AdminText } from '../../../constants/StringCatalog'
+import { AdminErrorCodes } from '../../../constants/SystemErrorCodes'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 import { probeActivationTask } from './EnterpriseAdminProbeTask'
 
 const TAG = 'EnterpriseAdminService'
-const ADMIN_MISSING_ERROR_CODE = 9200001
 
 export class EnterpriseAdminService {
   static readonly DEFAULT_ADMIN_TYPE: EnterpriseAdminType = 'byod'
@@ -18,7 +18,13 @@ export class EnterpriseAdminService {
   }
 
   static isAdminMissingError(err: ErrorLike): boolean {
-    return CommonErrorUtils.extractErrorCode(err) === ADMIN_MISSING_ERROR_CODE
+    return CommonErrorUtils.extractErrorCode(err) === AdminErrorCodes.ADMIN_NOT_ACTIVATED
+  }
+
+  static buildActivationErrorMessage(code?: number): string {
+    return code === AdminErrorCodes.ADMIN_NOT_ACTIVATED
+      ? AdminText.NOT_ACTIVATED
+      : AdminText.buildCheckFailed(code)
   }
 
   static probeActivation(adminType: EnterpriseAdminType = EnterpriseAdminService.DEFAULT_ADMIN_TYPE): AdminActivationState {
@@ -44,7 +50,7 @@ export class EnterpriseAdminService {
       return {
         activated: false,
         errorCode: code,
-        errorMessage: AdminText.buildCheckFailed(code),
+        errorMessage: EnterpriseAdminService.buildActivationErrorMessage(code),
         enableCommand: EnterpriseAdminService.buildEnableCommand(adminType),
         adminType: adminType
       } as AdminActivationState

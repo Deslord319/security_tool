@@ -3,6 +3,7 @@ import osAccount from '@ohos.account.osAccount'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogPathUtils } from '../../../utils/LogPathUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
+import { AuditErrorCodes, CommonSystemErrorCodes } from '../../../constants/SystemErrorCodes'
 import {
   ALL_LOG_EVENT_TYPES,
   LogEntry,
@@ -13,7 +14,6 @@ import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogAuditSource'
-const FILE_FILTER_UNSUPPORTED_CODE = 1012000005
 const DEFAULT_FOREGROUND_USER_ID = 100
 const FILE_EVENT_IDS: number[] = [
   securityAudit.NotifyEvent.FILE,
@@ -71,7 +71,7 @@ export class LogAuditSource {
       const eventIds = LogAuditSource.mapTypesToIds(LogAuditSource.normalizeAuditTypes(eventTypes))
       if (eventIds.length === 0) {
         LogAuditSource.callback = null
-        LogAuditSource.lastSubscribeErrorCode = 401
+        LogAuditSource.lastSubscribeErrorCode = CommonSystemErrorCodes.INVALID_PARAMS
         return LogAuditSource.buildSubscribeResult(false, [], 'permission_denied', [])
       }
 
@@ -272,7 +272,7 @@ export class LogAuditSource {
       if (LogAuditSource.lastSubscribeErrorCode === undefined) {
         LogAuditSource.lastSubscribeErrorCode = code
       }
-      if (code === FILE_FILTER_UNSUPPORTED_CODE) {
+      if (code === AuditErrorCodes.FILE_FILTER_UNSUPPORTED) {
         return false
       }
       LogUtils.warn(TAG,

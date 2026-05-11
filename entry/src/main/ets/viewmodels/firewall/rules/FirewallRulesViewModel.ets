@@ -243,6 +243,40 @@ export class FirewallRulesViewModel {
     }
   }
 
+  async replaceConflictRule(
+    context: common.UIAbilityContext,
+    conflictRule: netFirewall.NetFirewallRule,
+    nextRule: netFirewall.NetFirewallRule,
+    isEditMode: boolean
+  ): Promise<FirewallRuleMutationResult> {
+    const conflictLocalRuleId = this.getLocalRuleId(conflictRule)
+    const nextLocalRuleId = this.getLocalRuleId(nextRule)
+    if (conflictLocalRuleId === undefined || (isEditMode && nextLocalRuleId === undefined)) {
+      return { success: false, errorMessage: FirewallRuleStrings.APPLY_FAILED }
+    }
+    this.isLoading = true
+    try {
+      const result = await FirewallService.replaceConflictRule(
+        context,
+        conflictLocalRuleId,
+        nextLocalRuleId,
+        FirewallRuleUtils.buildIntentInputFromRule(nextRule, getFirewallRuleUserIds(nextRule)),
+        isEditMode
+      )
+      this.lastSaveResult = result
+      if (result.success) {
+        await this.reloadRules(context)
+        this.lastOperationMessage = isEditMode ? FirewallRuleStrings.UPDATE_SUCCESS : FirewallRuleStrings.ADD_SUCCESS
+      } else {
+        await this.reloadRules(context)
+        this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
+      }
+      return result
+    } finally {
+      this.isLoading = false
+    }
+  }
+
   refreshConflictNotice(): void {
     const summary = FirewallService.summarizeConflicts(this.rules)
     this.conflictNotice = buildFirewallConflictNotice(summary.duplicates, summary.hardConflicts, summary.overlapConflicts)

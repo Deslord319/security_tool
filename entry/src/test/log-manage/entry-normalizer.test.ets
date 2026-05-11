@@ -107,7 +107,8 @@ export default function entryNormalizerTest() {
       expect(normalized.detailRows![0].key).assertEqual('sourceEventId')
       expect(normalized.detailRows![0].label).assertEqual('事件 ID')
       expect(normalized.detailRows![0].value).assertEqual('12345')
-      expect(normalized.detailRows![1].value.length <= 1027).assertTrue()
+      expect(normalized.detailRows![1].value.length <= 1024).assertTrue()
+      expect(normalized.detailRows![1].value.endsWith('...')).assertTrue()
     })
 
   })

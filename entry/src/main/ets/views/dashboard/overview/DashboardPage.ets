@@ -15,12 +15,12 @@ export struct DashboardPage {
   @Local viewModel: DashboardViewModel = new DashboardViewModel()
   @Local titleEnterOpacity: number = 0
   @Local titleEnterOffset: number = 20
-  @Local moduleEnterOpacity: number[] = [0, 0, 0, 0]
-  @Local moduleEnterOffset: number[] = [18, 18, 18, 18]
+  @Local moduleEnterOpacity: number[] = []
+  @Local moduleEnterOffset: number[] = []
   @Local sectionTitleEnterOpacity: number = 0
   @Local sectionTitleEnterOffset: number = 16
-  @Local quickEnterOpacity: number[] = [0, 0, 0, 0, 0, 0]
-  @Local quickEnterOffset: number[] = [18, 18, 18, 18, 18, 18]
+  @Local quickEnterOpacity: number[] = []
+  @Local quickEnterOffset: number[] = []
   private enterTimerIds: number[] = []
   private initialized: boolean = false
 
@@ -52,12 +52,20 @@ export struct DashboardPage {
   private resetEnterState(): void {
     this.titleEnterOpacity = 0
     this.titleEnterOffset = 20
-    this.moduleEnterOpacity = [0, 0, 0, 0]
-    this.moduleEnterOffset = [18, 18, 18, 18]
+    this.moduleEnterOpacity = this.buildAnimationValues(this.viewModel.moduleCards.length, 0)
+    this.moduleEnterOffset = this.buildAnimationValues(this.viewModel.moduleCards.length, 18)
     this.sectionTitleEnterOpacity = 0
     this.sectionTitleEnterOffset = 16
-    this.quickEnterOpacity = [0, 0, 0, 0, 0, 0]
-    this.quickEnterOffset = [18, 18, 18, 18, 18, 18]
+    this.quickEnterOpacity = this.buildAnimationValues(this.viewModel.quickEntries.length, 0)
+    this.quickEnterOffset = this.buildAnimationValues(this.viewModel.quickEntries.length, 18)
+  }
+
+  private buildAnimationValues(count: number, value: number): number[] {
+    let values: number[] = []
+    for (let index = 0; index < count; index++) {
+      values.push(value)
+    }
+    return values
   }
 
   private clearEnterTimers(): void {
@@ -84,7 +92,7 @@ export struct DashboardPage {
       this.titleEnterOffset = 0
     })
 
-    for (let index = 0; index < 4; index++) {
+    for (let index = 0; index < this.viewModel.moduleCards.length; index++) {
       this.scheduleEnter(140 + index * 70, () => {
         let nextOpacity = [...this.moduleEnterOpacity]
         let nextOffset = [...this.moduleEnterOffset]
@@ -100,7 +108,7 @@ export struct DashboardPage {
       this.sectionTitleEnterOffset = 0
     })
 
-    for (let index = 0; index < 6; index++) {
+    for (let index = 0; index < this.viewModel.quickEntries.length; index++) {
       this.scheduleEnter(520 + index * 55, () => {
         let nextOpacity = [...this.quickEnterOpacity]
         let nextOffset = [...this.quickEnterOffset]

@@ -6,12 +6,41 @@ import { LooseValue } from '../../types/LooseValueTypes'
 import { Ipv4Utils } from '../../utils/Ipv4Utils'
 import { LogUtils } from '../../utils/LogUtils'
 import { FirewallLocalRepository } from './FirewallLocalRepository'
-import { FirewallPreparedRule, FirewallPresetConfig, FirewallPresetMode, UserFirewallOption } from './FirewallModels'
+import {
+  FIREWALL_IPV4_FAMILY,
+  FIREWALL_IPV4_MASK_MAX,
+  FIREWALL_IPV4_MASK_MIN,
+  FIREWALL_IPV4_PARAM_TYPE,
+  FIREWALL_PORT_MAX,
+  FIREWALL_PORT_MIN,
+  FIREWALL_PROTOCOL_ICMP,
+  FIREWALL_PROTOCOL_TCP,
+  FIREWALL_PROTOCOL_UDP,
+  FirewallPreparedRule,
+  FirewallPresetConfig,
+  FirewallPresetMode,
+  UserFirewallOption
+} from './FirewallModels'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { SystemUserProvider } from './providers/SystemUserProvider'
 
 const TAG = 'FirewallModeStrategy'
 const CONFIG_RAW_FILE = 'firewall_preset_config.json'
+const FIREWALL_PORT_HTTP = 80
+const FIREWALL_PORT_HTTPS = 443
+const FIREWALL_PORT_SSH = 22
+const FIREWALL_PORT_RDP = 3389
+const FIREWALL_PORT_VNC = 5900
+const FIREWALL_PORT_SMB_RPC = 135
+const FIREWALL_PORT_SMB_NETBIOS = 139
+const FIREWALL_PORT_SMB_DIRECT = 445
+const FIREWALL_PORT_NETBIOS_NAME = 137
+const FIREWALL_PORT_NETBIOS_DATAGRAM = 138
+const PUBLIC_SERVICE_PORTS: number[] = [FIREWALL_PORT_HTTP, FIREWALL_PORT_HTTPS]
+const PUBLIC_REMOTE_MANAGEMENT_PORTS: number[] = [FIREWALL_PORT_SSH, FIREWALL_PORT_RDP]
+const PRIVATE_REMOTE_MANAGEMENT_PORTS: number[] = [FIREWALL_PORT_SSH, FIREWALL_PORT_RDP, FIREWALL_PORT_VNC]
+const SMB_PORTS: number[] = [FIREWALL_PORT_SMB_RPC, FIREWALL_PORT_SMB_NETBIOS, FIREWALL_PORT_SMB_DIRECT]
+const NETBIOS_PORTS: number[] = [FIREWALL_PORT_NETBIOS_NAME, FIREWALL_PORT_NETBIOS_DATAGRAM]
 
 const DEFAULT_CONFIG: FirewallPresetConfig = {
   fixedPublicIp: '',
@@ -99,13 +128,13 @@ export class FirewallModeStrategy {
 
   private static buildPublicRuleTemplates(fixedPublicIp: string): netFirewall.NetFirewallRule[] {
     let rules: netFirewall.NetFirewallRule[] = []
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_ICMPV4, netFirewall.FirewallRuleAction.RULE_ALLOW, 1))
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_SERVICE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [80, 443]))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_ICMPV4, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_ICMP))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_SERVICE, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, PUBLIC_SERVICE_PORTS))
     if (fixedPublicIp.length > 0) {
-      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [22, 3389], [fixedPublicIp]))
+      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, PUBLIC_REMOTE_MANAGEMENT_PORTS, [fixedPublicIp]))
     }
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_SMB, netFirewall.FirewallRuleAction.RULE_DENY, 6, [135, 139, 445]))
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_NETBIOS, netFirewall.FirewallRuleAction.RULE_DENY, 17, [137, 138]))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_SMB, netFirewall.FirewallRuleAction.RULE_DENY, FIREWALL_PROTOCOL_TCP, SMB_PORTS))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PUBLIC_DENY_NETBIOS, netFirewall.FirewallRuleAction.RULE_DENY, FIREWALL_PROTOCOL_UDP, NETBIOS_PORTS))
     return rules
   }
 
@@ -118,15 +147,15 @@ export class FirewallModeStrategy {
     if (cidrs.length === 0) {
       return rules
     }
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_ICMP, netFirewall.FirewallRuleAction.RULE_ALLOW, 1, undefined, cidrs))
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [22, 3389, 5900], cidrs))
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_SHARE, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, [135, 139, 445], cidrs))
-    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_DISCOVERY, netFirewall.FirewallRuleAction.RULE_ALLOW, 17, [137, 138], cidrs))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_ICMP, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_ICMP, undefined, cidrs))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_REMOTE_MANAGE, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, PRIVATE_REMOTE_MANAGEMENT_PORTS, cidrs))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_SHARE, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, SMB_PORTS, cidrs))
+    rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_DISCOVERY, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_UDP, NETBIOS_PORTS, cidrs))
     if (privateTcpPorts.length > 0) {
-      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_TCP, netFirewall.FirewallRuleAction.RULE_ALLOW, 6, privateTcpPorts, cidrs))
+      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_TCP, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_TCP, privateTcpPorts, cidrs))
     }
     if (privateUdpPorts.length > 0) {
-      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_UDP, netFirewall.FirewallRuleAction.RULE_ALLOW, 17, privateUdpPorts, cidrs))
+      rules.push(...FirewallModeStrategy.createInboundRules(FirewallPresetRuleNameStrings.PRIVATE_ALLOW_UDP, netFirewall.FirewallRuleAction.RULE_ALLOW, FIREWALL_PROTOCOL_UDP, privateUdpPorts, cidrs))
     }
     return rules
   }
@@ -188,17 +217,17 @@ export class FirewallModeStrategy {
     if (!Ipv4Utils.isValidIpv4(address)) {
       return null
     }
-    let mask = 32
+    let mask = FIREWALL_IPV4_MASK_MAX
     if (parts.length > 1) {
       let parsedMask = Number(parts[1].trim())
-      if (!Number.isInteger(parsedMask) || parsedMask < 0 || parsedMask > 32) {
+      if (!Number.isInteger(parsedMask) || parsedMask < FIREWALL_IPV4_MASK_MIN || parsedMask > FIREWALL_IPV4_MASK_MAX) {
         return null
       }
       mask = parsedMask
     }
     return {
-      type: 1,
-      family: 1,
+      type: FIREWALL_IPV4_PARAM_TYPE,
+      family: FIREWALL_IPV4_FAMILY,
       address: address,
       mask: mask
     }
@@ -235,7 +264,7 @@ export class FirewallModeStrategy {
     }
     let ports: number[] = []
     value.forEach((item: LooseValue) => {
-      if (typeof item === 'number' && Number.isInteger(item) && item >= 1 && item <= 65535) {
+      if (typeof item === 'number' && Number.isInteger(item) && item >= FIREWALL_PORT_MIN && item <= FIREWALL_PORT_MAX) {
         ports.push(item)
       }
     })

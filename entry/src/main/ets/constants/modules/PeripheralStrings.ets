@@ -39,6 +39,39 @@ export class PeripheralOptionStrings {
   ]
 }
 
+export class PeripheralTabIndexes {
+  static readonly INTERFACE_CONTROL: number = 0
+  static readonly CONNECTION_RECORD: number = 1
+  static readonly DEVICE_POLICY: number = 2
+  static values(): number[] {
+    return [
+      PeripheralTabIndexes.INTERFACE_CONTROL,
+      PeripheralTabIndexes.CONNECTION_RECORD,
+      PeripheralTabIndexes.DEVICE_POLICY
+    ]
+  }
+
+  static normalize(index: number): number {
+    if (index < PeripheralTabIndexes.INTERFACE_CONTROL) {
+      return PeripheralTabIndexes.INTERFACE_CONTROL
+    }
+    if (index > PeripheralTabIndexes.DEVICE_POLICY) {
+      return PeripheralTabIndexes.DEVICE_POLICY
+    }
+    return index
+  }
+
+  static isValid(index: number): boolean {
+    return PeripheralTabIndexes.values().includes(index)
+  }
+}
+
+export class PeripheralPolicyOptionIndexes {
+  static readonly ALLOW: number = 0
+  static readonly DENY: number = 1
+  static readonly DEFAULT: number = 0
+}
+
 export class PeripheralLoadingStrings {
   static readonly USB_INTERFACE: string = '正在设置 USB 接口策略，请稍候...'
   static readonly USB_STORAGE: string = '正在设置 USB 存储策略，请稍候...'

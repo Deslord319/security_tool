@@ -2,6 +2,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
 import { AppInfo, ADMIN_WANT } from '../../../constants/AppConstants'
 import { AdminText } from '../../../constants/StringCatalog'
+import { AdminErrorCodes } from '../../../constants/SystemErrorCodes'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
@@ -19,7 +20,7 @@ export function probeActivationTask(adminType: EnterpriseAdminType): AdminActiva
   } catch (err) {
     const error: ErrorLike = err as ErrorLike
     const code: number | undefined = CommonErrorUtils.extractErrorCode(error)
-    const message: string = code === 9200001
+    const message: string = code === AdminErrorCodes.ADMIN_NOT_ACTIVATED
       ? AdminText.NOT_ACTIVATED
       : AdminText.buildCheckFailed(code)
     LogUtils.warn('EnterpriseAdminService', `probeActivation failed: ${JSON.stringify(err)}`)

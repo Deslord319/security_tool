@@ -360,6 +360,20 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.customValidityPeriodText).assertEqual('90')
     })
 
+    it('should keep zero validity as custom immediate expiry value', 0, async () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
+      let policy = createPolicy('^.{6,}$', 0)
+      when(adminMock)().afterReturn(createActivatedAdminState())
+      when(getPolicyMock)().afterReturn(createPolicyResult(policy))
+
+      let viewModel = new IdentitySettingsViewModel()
+      await viewModel.initialize()
+
+      expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('0')
+    })
+
     it('should default validity option when policy has no validity period', 0, async () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
