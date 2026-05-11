@@ -35,6 +35,7 @@ export interface ExportLogsResult extends ServiceResult<'ok' | 'empty' | 'user_c
 export interface LogQuery {
   eventTypes?: LogEventType[]
   results?: LogEventResult[]
+  startTimestamp?: number
   keyword?: string
 }
 

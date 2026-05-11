@@ -2,6 +2,18 @@ import { LogEntry } from './LogModels'
 export type LogManageMode = 'list' | 'settings'
 export const LOG_PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 
+export interface LogTimeRangeDefinition {
+  durationMs?: number
+}
+
+export const LOG_TIME_RANGE_DEFINITIONS: LogTimeRangeDefinition[] = [
+  {},
+  { durationMs: 60 * 60 * 1000 },
+  { durationMs: 12 * 60 * 60 * 1000 },
+  { durationMs: 24 * 60 * 60 * 1000 },
+  { durationMs: 3 * 24 * 60 * 60 * 1000 }
+]
+
 @ObservedV2
 export class LogSummaryState {
   @Trace totalCount: number = 0
@@ -15,6 +27,7 @@ export class LogSummaryState {
 export class LogFilterState {
   @Trace eventTypeIndex: number = 0
   @Trace resultIndex: number = 0
+  @Trace timeRangeIndex: number = 0
   @Trace keyword: string = ''
 }
 

@@ -22,7 +22,11 @@ import {
   LOG_RETENTION_OPTIONS
 } from '../../../models/LogModels'
 import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
-import { LOG_EVENT_RESULT_OPTIONS, LOG_EVENT_TYPE_OPTIONS } from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
+import {
+  LOG_EVENT_RESULT_OPTIONS,
+  LOG_EVENT_TYPE_OPTIONS,
+  LOG_TIME_RANGE_OPTIONS
+} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
@@ -58,6 +62,7 @@ export struct LogManagePage {
     { value: LogManageFilterStrings.ALL_RESULTS } as SelectOption,
     ...LOG_EVENT_RESULT_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
   ]
+  private timeRangeFilterOptions: SelectOption[] = LOG_TIME_RANGE_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
 
   aboutToAppear() {
     this.initializeViewModels()
@@ -377,6 +382,23 @@ export struct LogManagePage {
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => { void this.getActiveViewModel().setResultIndex(index) })
+
+      Select(this.timeRangeFilterOptions)
+        .selected(this.getActiveViewModel().state.filter.timeRangeIndex)
+        .value((this.timeRangeFilterOptions[this.getActiveViewModel().state.filter.timeRangeIndex]?.value as string) ??
+          LogManageFilterStrings.ALL_TIME)
+        .font({ size: AppStyles.FONT_SIZE_BODY })
+        .fontColor(FormControlUtils.text(this.currentTheme))
+        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
+        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
+        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
+        .width(128)
+        .height(36)
+        .backgroundColor(FormControlUtils.background(this.currentTheme))
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
+        .onSelect((index: number) => { void this.getActiveViewModel().setTimeRangeIndex(index) })
 
       TextInput({
         placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER,

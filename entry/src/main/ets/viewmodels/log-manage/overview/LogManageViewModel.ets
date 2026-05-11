@@ -7,7 +7,12 @@ import {
   ALL_LOG_EVENT_TYPES,
   LogEntry
 } from '../../../models/LogModels'
-import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
+import {
+  LOG_PAGE_SIZE_OPTIONS,
+  LOG_TIME_RANGE_DEFINITIONS,
+  LogManageMode,
+  LogManageState
+} from '../../../models/LogManageModels'
 import {
   ClearLogsResult,
   ExportLogsResult,
@@ -206,6 +211,12 @@ export class LogManageViewModel {
     await this.refreshAll()
   }
 
+  async setTimeRangeIndex(index: number): Promise<void> {
+    this.state.filter.timeRangeIndex = this.normalizeFilterIndex(index, LOG_TIME_RANGE_DEFINITIONS.length)
+    this.resetToFirstPage()
+    await this.refreshAll()
+  }
+
   async setKeyword(keyword: string): Promise<void> {
     this.state.filter.keyword = keyword
     this.resetToFirstPage()
@@ -347,6 +358,13 @@ export class LogManageViewModel {
       let result = ALL_LOG_EVENT_RESULTS[this.state.filter.resultIndex - 1]
       if (result !== undefined) {
         query.results = [result]
+        hasQuery = true
+      }
+    }
+    if (this.state.filter.timeRangeIndex > 0) {
+      let timeRangeDefinition = LOG_TIME_RANGE_DEFINITIONS[this.state.filter.timeRangeIndex]
+      if (timeRangeDefinition?.durationMs !== undefined) {
+        query.startTimestamp = Date.now() - timeRangeDefinition.durationMs
         hasQuery = true
       }
     }

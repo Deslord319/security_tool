@@ -25,6 +25,7 @@ export struct LogEntriesPanel {
   private getEmptyStateTitle(): string {
     return (this.filterState.eventTypeIndex > 0 ||
       this.filterState.resultIndex > 0 ||
+      this.filterState.timeRangeIndex > 0 ||
       this.filterState.keyword.trim().length > 0) ?
       EmptyStateStrings.NO_RESULTS :
       LogManageEmptyStateStrings.TITLE

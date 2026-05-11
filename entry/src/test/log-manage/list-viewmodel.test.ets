@@ -23,10 +23,16 @@ import { LogImportServicePort } from '../../main/ets/viewmodels/log-manage/overv
 import { LogStorageSettingsViewModel } from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
 import { ImportLogsResult } from '../../main/ets/services/log-manage/import/LogImportService'
 
-function createEntry(id: string, eventType: LogEventType, result: LogEventResult, detail: string): LogEntry {
+function createEntry(
+  id: string,
+  eventType: LogEventType,
+  result: LogEventResult,
+  detail: string,
+  timestamp: number = Date.now()
+): LogEntry {
   return {
     id,
-    timestamp: Date.now(),
+    timestamp,
     eventType,
     detail,
     result
@@ -59,6 +65,9 @@ class FakeLogListStorage implements LogStoragePort {
         return false
       }
       if (query?.results && query.results.length > 0 && !query.results.includes(entry.result)) {
+        return false
+      }
+      if (query?.startTimestamp !== undefined && entry.timestamp < query.startTimestamp) {
         return false
       }
       if (query?.keyword && entry.detail.toLowerCase().indexOf(query.keyword.toLowerCase()) < 0) {
@@ -136,6 +145,7 @@ class FakeLogListStorage implements LogStoragePort {
 }
 
 class FakeLogListExporter implements LogExportServicePort {
+  lastQuery?: LogQuery
   result: ExportLogsResult = {
     success: true,
     code: 'ok',
@@ -144,9 +154,10 @@ class FakeLogListExporter implements LogExportServicePort {
 
   async export(
     _context: common.UIAbilityContext | null,
-    _query?: LogQuery,
+    query?: LogQuery,
     _fileNamePrefix?: string
   ): Promise<ExportLogsResult> {
+    this.lastQuery = query
     return this.result
   }
 }
@@ -249,6 +260,26 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.list.pagedEntries.length).assertEqual(1)
     })
 
+    it('should filter by recent time range and reset pagination', 0, async () => {
+      let now = Date.now()
+      storage.entries = [
+        createEntry('old', LogEventType.FILE, LogEventResult.SUCCESS, 'old file', now - 2 * 60 * 60 * 1000),
+        createEntry('recent', LogEventType.FILE, LogEventResult.SUCCESS, 'recent file', now - 30 * 60 * 1000)
+      ]
+      await viewModel.initialize(context)
+      viewModel.setPageInputText('2')
+      await viewModel.jumpToInputPage()
+
+      await viewModel.setTimeRangeIndex(1)
+
+      expect(viewModel.state.filter.timeRangeIndex).assertEqual(1)
+      expect(viewModel.state.pagination.currentPage).assertEqual(1)
+      expect(viewModel.state.pagination.pageInputText).assertEqual('1')
+      expect(viewModel.state.summary.filteredCount).assertEqual(1)
+      expect(viewModel.state.list.pagedEntries.length).assertEqual(1)
+      expect(viewModel.state.list.pagedEntries[0].id).assertEqual('recent')
+    })
+
     it('should refresh from listener only when active and auto refresh enabled', 0, async () => {
       await viewModel.initialize(context)
       storage.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
@@ -281,6 +312,10 @@ export default function logManageViewModelTest() {
       let successResult: ExportActionResult = await viewModel.exportLogs(context)
       expect(successResult.success).assertTrue()
       expect(successResult.fileName).assertEqual('security_log.csv')
+
+      await viewModel.setTimeRangeIndex(2)
+      await viewModel.exportLogs(context)
+      expect(exporter.lastQuery?.startTimestamp !== undefined).assertTrue()
 
       exporter.result = {
         success: false,

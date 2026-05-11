@@ -120,6 +120,34 @@ export function deserializeLogEntryExtraData(rawValue: string | undefined): LogE
   }
 }
 
+export function buildLogEntryWhereClause(query?: LogQuery): SqlBundle {
+  let clauses: string[] = []
+  let args: Array<relationalStore.ValueType> = []
+  if (query?.eventTypes && query.eventTypes.length > 0) {
+    let placeholders = query.eventTypes.map(() => '?').join(', ')
+    clauses.push(`event_type IN (${placeholders})`)
+    query.eventTypes.forEach((type: LogEventType) => args.push(type.toString()))
+  }
+  if (query?.results && query.results.length > 0) {
+    let placeholders = query.results.map(() => '?').join(', ')
+    clauses.push(`result IN (${placeholders})`)
+    query.results.forEach((result: LogEventResult) => args.push(result.toString()))
+  }
+  if (query?.startTimestamp !== undefined) {
+    clauses.push('timestamp >= ?')
+    args.push(query.startTimestamp)
+  }
+  if (query?.keyword && query.keyword.trim().length > 0) {
+    let pattern = `%${query.keyword.trim().toLowerCase()}%`
+    clauses.push('(LOWER(detail) LIKE ? OR LOWER(COALESCE(process_name, \'\')) LIKE ? OR LOWER(COALESCE(file_path, \'\')) LIKE ?)')
+    args.push(pattern, pattern, pattern)
+  }
+  return {
+    sql: clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : '',
+    args
+  }
+}
+
 class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   constructor() {
     super({
@@ -273,27 +301,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   }
 
   private buildWhereClause(query?: LogQuery): SqlBundle {
-    let clauses: string[] = []
-    let args: Array<relationalStore.ValueType> = []
-    if (query?.eventTypes && query.eventTypes.length > 0) {
-      let placeholders = query.eventTypes.map(() => '?').join(', ')
-      clauses.push(`event_type IN (${placeholders})`)
-      query.eventTypes.forEach((type: LogEventType) => args.push(this.serializeEventType(type)))
-    }
-    if (query?.results && query.results.length > 0) {
-      let placeholders = query.results.map(() => '?').join(', ')
-      clauses.push(`result IN (${placeholders})`)
-      query.results.forEach((result: LogEventResult) => args.push(this.serializeResult(result)))
-    }
-    if (query?.keyword && query.keyword.trim().length > 0) {
-      let pattern = `%${query.keyword.trim().toLowerCase()}%`
-      clauses.push('(LOWER(detail) LIKE ? OR LOWER(COALESCE(process_name, \'\')) LIKE ? OR LOWER(COALESCE(file_path, \'\')) LIKE ?)')
-      args.push(pattern, pattern, pattern)
-    }
-    return {
-      sql: clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : '',
-      args
-    }
+    return buildLogEntryWhereClause(query)
   }
 
   private serializeEventType(eventType: LogEventType): string {
