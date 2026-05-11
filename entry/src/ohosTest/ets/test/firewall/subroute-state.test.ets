@@ -2,8 +2,9 @@
  * Firewall subroute restore device test.
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Component, Driver, ON } from '@kit.TestKit'
+import { abilityDelegatorRegistry, Driver } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
+import { clickByText, existsById, existsByText, safeDelay, sleep } from '../../utils/TestDriverUtils'
 
 const TAG = 'FirewallSubrouteStateTest'
 const BUNDLE_NAME = 'com.huawei.securitytool'
@@ -46,55 +47,6 @@ export default function firewallSubrouteStateTest() {
       await waitForRulesPage(driver)
     })
   })
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-async function safeDelay(driver: Driver, ms: number): Promise<void> {
-  try {
-    await driver.delayMs(ms)
-  } catch (_err) {
-    // ignore
-  }
-}
-
-async function findByText(driver: Driver, text: string): Promise<Component | null> {
-  try {
-    return await driver.findComponent(ON.text(text))
-  } catch (_err) {
-    return null
-  }
-}
-
-async function findById(driver: Driver, id: string): Promise<Component | null> {
-  try {
-    return await driver.findComponent(ON.id(id))
-  } catch (_err) {
-    return null
-  }
-}
-
-async function existsByText(driver: Driver, text: string): Promise<boolean> {
-  return await findByText(driver, text) !== null
-}
-
-async function existsById(driver: Driver, id: string): Promise<boolean> {
-  return await findById(driver, id) !== null
-}
-
-async function clickByText(driver: Driver, text: string): Promise<boolean> {
-  const component = await findByText(driver, text)
-  if (component === null) {
-    return false
-  }
-  try {
-    await component.click()
-    return true
-  } catch (_err) {
-    return false
-  }
 }
 
 async function clickAndExpect(driver: Driver, text: string): Promise<void> {

@@ -23,37 +23,46 @@ MODULE_DOCS = sorted(set(ROUTE_DOCS.values()))
 TEST_PATHS = {
     "dashboard": {
         "unit": ["entry/src/test/dashboard"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/dashboard"],
+        "ohosTest": ["entry/src/ohosTest/ets/test/simple/RouteAction.test.ets"],
         "e2e": ["scripts/e2e/cases/dashboard"],
     },
     "firewall": {
         "unit": ["entry/src/test/firewall"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/firewall"],
+        "ohosTest": [
+            "entry/src/ohosTest/ets/test/firewall/subroute-state.test.ets",
+            "entry/src/ohosTest/ets/test/simple/RouteAction.test.ets",
+        ],
         "e2e": ["scripts/e2e/cases/firewall"],
     },
     "log-manage": {
         "unit": ["entry/src/test/log-manage"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/log-manage"],
+        "ohosTest": ["entry/src/ohosTest/ets/test/simple/RouteAction.test.ets"],
         "e2e": ["scripts/e2e/cases/logs"],
     },
     "peripheral-manage": {
         "unit": ["entry/src/test/peripheral"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/peripheral"],
+        "ohosTest": [
+            "entry/src/ohosTest/ets/test/peripheral/connection-record-contract.test.ets",
+            "entry/src/ohosTest/ets/test/simple/RouteAction.test.ets",
+        ],
         "e2e": ["scripts/e2e/cases/peripheral"],
     },
     "identity": {
         "unit": ["entry/src/test/identity"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/identity"],
+        "ohosTest": ["entry/src/ohosTest/ets/test/simple/RouteAction.test.ets"],
         "e2e": ["scripts/e2e/cases/identity"],
     },
     "tool-settings": {
         "unit": ["entry/src/test/tool-settings"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/tool-settings"],
+        "ohosTest": ["entry/src/ohosTest/ets/test/simple/RouteAction.test.ets"],
         "e2e": ["scripts/e2e/cases/tool_settings"],
     },
     "help-feedback": {
         "unit": ["entry/src/test/help"],
-        "ohosTest": ["entry/src/ohosTest/ets/test/help"],
+        "ohosTest": [
+            "entry/src/ohosTest/ets/test/simple/RouteAction.test.ets",
+            "entry/src/ohosTest/ets/test/theme/theme-menu-popup.test.ets",
+        ],
         "e2e": ["scripts/e2e/cases/navigation"],
     },
 }

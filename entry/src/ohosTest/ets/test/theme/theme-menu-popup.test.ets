@@ -2,8 +2,9 @@
  * Theme menu popup smoke test.
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Component, Driver, ON } from '@kit.TestKit'
+import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
+import { clickById, existsById, existsByText, safeDelay, sleep } from '../../utils/TestDriverUtils'
 
 const TAG = 'ThemeMenuPopupTest'
 const BUNDLE_NAME = 'com.huawei.securitytool'
@@ -67,58 +68,6 @@ export default function themeMenuPopupTest() {
       expect(darkThemeMarker).assertTrue()
     })
   })
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-async function findById(driver: Driver, id: string): Promise<Component | null> {
-  try {
-    return await driver.findComponent(ON.id(id))
-  } catch (_err) {
-    return null
-  }
-}
-
-async function findByText(driver: Driver, text: string): Promise<Component | null> {
-  try {
-    return await driver.findComponent(ON.text(text))
-  } catch (_err) {
-    return null
-  }
-}
-
-async function clickComponent(component: Component | null): Promise<boolean> {
-  if (component === null) {
-    return false
-  }
-  try {
-    await component.click()
-    return true
-  } catch (_err) {
-    return false
-  }
-}
-
-async function clickById(driver: Driver, id: string): Promise<boolean> {
-  return await clickComponent(await findById(driver, id))
-}
-
-async function existsById(driver: Driver, id: string): Promise<boolean> {
-  return await findById(driver, id) !== null
-}
-
-async function existsByText(driver: Driver, text: string): Promise<boolean> {
-  return await findByText(driver, text) !== null
-}
-
-async function safeDelay(driver: Driver, ms: number): Promise<void> {
-  try {
-    await driver.delayMs(ms)
-  } catch (_err) {
-    // ignore
-  }
 }
 
 async function ensureMenuOpen(driver: Driver): Promise<boolean> {

@@ -1,6 +1,7 @@
 import { describe, beforeAll, it, expect } from '@ohos/hypium'
-import { abilityDelegatorRegistry, Component, Driver, ON } from '@kit.TestKit'
+import { abilityDelegatorRegistry, Driver } from '@kit.TestKit'
 import { TestLogUtils } from '../../utils/TestLogUtils'
+import { clickById, clickByText, existsById, existsByText, safeDelay, sleep } from '../../utils/TestDriverUtils'
 
 const TAG = 'RouteActionTest'
 const BUNDLE_NAME = 'com.huawei.securitytool'
@@ -128,62 +129,6 @@ function themeSequence(theme: ThemeId): SingleThemeId[] {
     return ['light', 'dark', 'system']
   }
   return [theme]
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-async function safeDelay(driver: Driver, ms: number): Promise<void> {
-  try {
-    await driver.delayMs(ms)
-  } catch (_err) {
-    // ignore
-  }
-}
-
-async function findByText(driver: Driver, text: string): Promise<Component | null> {
-  try {
-    return await driver.findComponent(ON.text(text))
-  } catch (_err) {
-    return null
-  }
-}
-
-async function findById(driver: Driver, id: string): Promise<Component | null> {
-  try {
-    return await driver.findComponent(ON.id(id))
-  } catch (_err) {
-    return null
-  }
-}
-
-async function clickComponent(component: Component | null): Promise<boolean> {
-  if (component === null) {
-    return false
-  }
-  try {
-    await component.click()
-    return true
-  } catch (_err) {
-    return false
-  }
-}
-
-async function clickByText(driver: Driver, text: string): Promise<boolean> {
-  return await clickComponent(await findByText(driver, text))
-}
-
-async function clickById(driver: Driver, id: string): Promise<boolean> {
-  return await clickComponent(await findById(driver, id))
-}
-
-async function existsByText(driver: Driver, text: string): Promise<boolean> {
-  return await findByText(driver, text) !== null
-}
-
-async function existsById(driver: Driver, id: string): Promise<boolean> {
-  return await findById(driver, id) !== null
 }
 
 async function openTopMenu(driver: Driver): Promise<void> {
