@@ -1,5 +1,6 @@
 import {
   resolveLogEventResultLabel,
+  LogManageFilterStrings,
   resolveLogEventTypeLabel
 } from '../../../constants/modules/LogManageStrings'
 import {
@@ -8,6 +9,7 @@ import {
   LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
+import { LOG_TIME_RANGE_DEFINITIONS } from '../../../models/LogManageModels'
 import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 
 export interface LogEventTypeOption {
@@ -26,10 +28,29 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = ALL_LOG_EVENT_TYPES.
   value: value
 }))
 
+export interface LogTimeRangeOption {
+  label: string
+  durationMs?: number
+}
+
 export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = ALL_LOG_EVENT_RESULTS.map((value: LogEventResult): LogEventResultOption => ({
   label: resolveLogEventResultLabel(value),
   value: value
 }))
+
+const LOG_TIME_RANGE_LABELS: string[] = [
+  LogManageFilterStrings.ALL_TIME,
+  LogManageFilterStrings.LAST_1_HOUR,
+  LogManageFilterStrings.LAST_12_HOURS,
+  LogManageFilterStrings.LAST_24_HOURS,
+  LogManageFilterStrings.LAST_3_DAYS
+]
+
+export const LOG_TIME_RANGE_OPTIONS: LogTimeRangeOption[] =
+  LOG_TIME_RANGE_DEFINITIONS.map((definition, index): LogTimeRangeOption => ({
+    label: LOG_TIME_RANGE_LABELS[index] ?? LogManageFilterStrings.ALL_TIME,
+    durationMs: definition.durationMs
+  }))
 
 export function getLogEventTypeLabel(type: LogEventType): string {
   return resolveLogEventTypeLabel(type)

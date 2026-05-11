@@ -8,6 +8,7 @@ import {
 } from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 import {
+  buildLogEntryWhereClause,
   deserializeLogEntryExtraData,
   LogEntryRepository,
   serializeLogEntryExtraData
@@ -45,6 +46,23 @@ export default function logEntryRepositoryTest() {
       expect(restored.detailRows![0].key).assertEqual('sourceEventId')
       expect(restored.detailRows![0].label).assertEqual('事件 ID')
       expect(restored.detailRows![0].value).assertEqual('268435712')
+    })
+
+    it('should build timestamp lower bound query with existing filters', 0, () => {
+      let where = buildLogEntryWhereClause({
+        eventTypes: [LogEventType.FILE],
+        results: [LogEventResult.BLOCKED],
+        startTimestamp: 1700000000000,
+        keyword: 'Alpha'
+      })
+
+      expect(where.sql.indexOf('event_type IN (?)') >= 0).assertTrue()
+      expect(where.sql.indexOf('result IN (?)') >= 0).assertTrue()
+      expect(where.sql.indexOf('timestamp >= ?') >= 0).assertTrue()
+      expect(where.sql.indexOf('LOWER(detail) LIKE ?') >= 0).assertTrue()
+      expect(where.args.length).assertEqual(6)
+      expect(where.args[2] as number).assertEqual(1700000000000)
+      expect(where.args[3] as string).assertEqual('%alpha%')
     })
   })
 

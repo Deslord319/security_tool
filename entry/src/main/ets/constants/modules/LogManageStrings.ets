@@ -21,6 +21,11 @@ export class LogManageDetailStrings {
 export class LogManageFilterStrings {
   static readonly ALL_EVENT_TYPES: string = '全部类型'
   static readonly ALL_RESULTS: string = '全部结果'
+  static readonly ALL_TIME: string = '全部时间'
+  static readonly LAST_1_HOUR: string = '最近1小时'
+  static readonly LAST_12_HOURS: string = '最近12小时'
+  static readonly LAST_24_HOURS: string = '最近24小时'
+  static readonly LAST_3_DAYS: string = '最近3天'
   static readonly SEARCH_PLACEHOLDER: string = '搜索日志内容...'
 }
 
