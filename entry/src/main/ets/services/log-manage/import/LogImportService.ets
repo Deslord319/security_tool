@@ -5,6 +5,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 import { LogArchiveExtractor } from './LogArchiveExtractor'
+import { CrashLogImportRule } from './CrashLogImportRule'
 import { KernelLogImportRule } from './KernelLogImportRule'
 import { ImportedLogFile, LogImportRule } from './LogImportRule'
 
@@ -64,7 +65,7 @@ class DefaultLogImportPicker implements LogImportPickerPort {
 }
 
 export class LogImportService {
-  private static rules: LogImportRule[] = [new KernelLogImportRule()]
+  private static rules: LogImportRule[] = [new KernelLogImportRule(), new CrashLogImportRule()]
   private static pickerPort: LogImportPickerPort = new DefaultLogImportPicker()
 
   static setRulesForTest(rules: LogImportRule[]): void {
@@ -76,7 +77,7 @@ export class LogImportService {
   }
 
   static resetTestPorts(): void {
-    LogImportService.rules = [new KernelLogImportRule()]
+    LogImportService.rules = [new KernelLogImportRule(), new CrashLogImportRule()]
     LogImportService.pickerPort = new DefaultLogImportPicker()
   }
 

@@ -31,6 +31,7 @@ import logExportServiceTest from './log-manage/export-service.test'
 import logArchiveExtractorTest from './log-manage/archive-extractor.test'
 import logImportHashTest from './log-manage/import-hash.test'
 import logImportServiceTest from './log-manage/import-service.test'
+import crashImportRuleTest from './log-manage/crash-import-rule.test'
 import kernelImportRuleTest from './log-manage/kernel-import-rule.test'
 import logListViewModelTest from './log-manage/list-viewmodel.test'
 import logMaintenanceServiceTest from './log-manage/maintenance-service.test'
@@ -111,6 +112,7 @@ export default function testsuite() {
   logArchiveExtractorTest()
   logImportHashTest()
   logImportServiceTest()
+  crashImportRuleTest()
   kernelImportRuleTest()
   logListViewModelTest()
   logMaintenanceServiceTest()
