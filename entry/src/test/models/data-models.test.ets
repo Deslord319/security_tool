@@ -5,8 +5,6 @@ import {
   PeripheralType,
   formatBluetoothDeviceId,
   formatUsbDeviceId,
-  getPeripheralRecordActionLabel,
-  getPeripheralRecordSourceLabel,
   getUsbPeripheralBaseClass,
   inferPeripheralTypeFromBaseClass,
   isUsbPeripheralType,
@@ -46,14 +44,6 @@ export default function dataModelsTest() {
       expect(isUsbPeripheralType(PeripheralType.BLUETOOTH)).assertFalse()
       expect(getUsbPeripheralBaseClass(PeripheralType.USB_CAMERA)).assertEqual(0x0E)
       expect(getUsbPeripheralBaseClass(PeripheralType.USB_OTHER) === null).assertTrue()
-    })
-
-    it('should keep current action and source labels populated', 0, () => {
-      expect(getPeripheralRecordActionLabel('discover').length > 0).assertTrue()
-      expect(getPeripheralRecordActionLabel('intercept').length > 0).assertTrue()
-      expect(getPeripheralRecordSourceLabel('runtime_event').length > 0).assertTrue()
-      expect(getPeripheralRecordSourceLabel('audit_event').length > 0).assertTrue()
-      expect(getPeripheralRecordSourceLabel('policy_snapshot').length > 0).assertTrue()
     })
 
     it('should expose the current default tool settings contract', 0, () => {

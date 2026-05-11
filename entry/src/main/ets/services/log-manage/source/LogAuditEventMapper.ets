@@ -3,14 +3,16 @@ import { LogPathUtils } from '../../../utils/LogPathUtils'
 import { LogManageAuditStrings } from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
-  formatLogTimestamp,
   generateLogEntryId,
   LogDetailTableRow,
   LogEntry,
   LogEventResult,
-  LogEventType,
-  getLogEventResultLabel
+  LogEventType
 } from '../../../models/DataModels'
+import {
+  formatLogTimestamp,
+  getLogEventResultLabel
+} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { LooseRecord } from '../../../types/LooseValueTypes'
 import {
   pickNumberFromRecords as pickNumber,

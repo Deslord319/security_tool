@@ -13,10 +13,10 @@ import {
   PeripheralConnectionRecord,
   PeripheralDevicePolicyRecord,
   PeripheralPolicyRecord,
-  getPeripheralTypeLabel,
   PeripheralType,
   isUsbPeripheralType
 } from '../../../models/DataModels'
+import { getPeripheralTypeLabel } from '../connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import {
   PeripheralDevicePolicyDispatchService,

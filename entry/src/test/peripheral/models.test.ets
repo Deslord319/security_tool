@@ -5,10 +5,10 @@
 import { describe, it, expect } from '@ohos/hypium'
 import {
   PeripheralType,
-  getPeripheralTypeLabel,
   parseUsbDeviceId, formatUsbDeviceId, formatBluetoothDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../../main/ets/models/DataModels'
+import { getPeripheralTypeLabel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 
 export default function peripheralModelsTest() {
   describe('Peripheral Models', () => {

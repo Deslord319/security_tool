@@ -2,13 +2,15 @@ import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/App
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { LogManageDetailStrings, LogManageEmptyStateStrings } from '../../../constants/modules/LogManageStrings'
 import {
-  formatLogTimestamp,
-  getLogEventResultColor,
-  getLogEventResultLabel,
-  getLogEventTypeLabel,
   LogEntry
 } from '../../../models/DataModels'
 import { LogFilterState, LogListState } from '../../../models/LogManageModels'
+import {
+  formatLogTimestamp,
+  getLogEventResultColor,
+  getLogEventResultLabel,
+  getLogEventTypeLabel
+} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { EmptyStatePanel } from '../../EmptyStatePanel'

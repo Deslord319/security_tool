@@ -1,7 +1,3 @@
-import { LabelText, ResultText } from '../constants/StringCatalog'
-import { DeviceTypeLabels, PeripheralRecordActionPresentationStrings, PeripheralSourcePresentationStrings } from '../constants/modules/PeripheralStrings'
-import { LogEventPresentationStrings, LogResultPresentationStrings } from '../constants/modules/LogManageStrings'
-import { IdentityAuthStrings } from '../constants/modules/IdentityStrings'
 import { generateRandomSuffix } from '../utils/ValuePicker'
 
 export enum PeripheralType {
@@ -168,25 +164,6 @@ export interface PeripheralPolicyRecord {
   policyIndex: number
 }
 
-export function getPeripheralTypeLabel(type: PeripheralType): string {
-  switch (type) {
-    case PeripheralType.USB_STORAGE:
-      return DeviceTypeLabels.USB_STORAGE
-    case PeripheralType.USB_CAMERA:
-      return DeviceTypeLabels.USB_CAMERA
-    case PeripheralType.USB_PRINTER:
-      return DeviceTypeLabels.USB_PRINTER
-    case PeripheralType.USB_HID:
-      return DeviceTypeLabels.USB_HID
-    case PeripheralType.USB_OTHER:
-      return DeviceTypeLabels.USB_OTHER
-    case PeripheralType.BLUETOOTH:
-      return DeviceTypeLabels.BLUETOOTH
-    default:
-      return LabelText.UNKNOWN
-  }
-}
-
 export function isUsbPeripheralType(type: PeripheralType): boolean {
   for (const item of USB_PERIPHERAL_TYPE_MAPPINGS) {
     if (item.type === type) {
@@ -203,34 +180,6 @@ export function getUsbPeripheralBaseClass(type: PeripheralType): number | null {
     }
   }
   return null
-}
-
-export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
-  switch (source) {
-    case 'runtime_event':
-      return PeripheralSourcePresentationStrings.RUNTIME_EVENT
-    case 'audit_event':
-      return PeripheralSourcePresentationStrings.AUDIT_EVENT
-    case 'policy_snapshot':
-      return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
-    default:
-      return PeripheralSourcePresentationStrings.UNKNOWN
-  }
-}
-
-export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
-  switch (action) {
-    case 'connect':
-      return PeripheralRecordActionPresentationStrings.CONNECT
-    case 'disconnect':
-      return PeripheralRecordActionPresentationStrings.DISCONNECT
-    case 'discover':
-      return PeripheralRecordActionPresentationStrings.DISCOVER
-    case 'intercept':
-      return PeripheralRecordActionPresentationStrings.INTERCEPT
-    default:
-      return PeripheralRecordActionPresentationStrings.UNKNOWN
-  }
 }
 
 // ==================== 设备 ID 解析工具函数 ====================
@@ -306,16 +255,6 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettingsConfig = {
   authMethod: AuthMethod.PIN
 }
 
-export interface AuthMethodOption {
-  label: string
-  value: AuthMethod
-}
-
-export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
-  { label: IdentityAuthStrings.METHOD_PIN, value: AuthMethod.PIN } as AuthMethodOption,
-  { label: IdentityAuthStrings.METHOD_FINGERPRINT, value: AuthMethod.FINGERPRINT } as AuthMethodOption
-]
-
 export const PREF_KEY_STARTUP_AUTH = 'startup_auth_enabled'
 export const PREF_KEY_AUTH_METHOD = 'auth_method'
 export const PREF_STORE_NAME_TOOL = 'tool_settings'
@@ -376,17 +315,6 @@ export interface ExportActionResult {
   reason?: string
 }
 
-interface LogEventTypeOption {
-  label: string
-  value: LogEventType
-  icon?: Resource
-}
-
-export interface LogEventResultOption {
-  label: string
-  value: LogEventResult
-}
-
 export const DEFAULT_LOG_STORAGE_CONFIG: LogStorageConfig = {
   maxLocalEntries: 20000,
   retentionDays: 30
@@ -407,69 +335,6 @@ export const LOG_MAX_ENTRIES_OPTIONS: number[] = [5000, 10000, 20000, 50000, 100
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
 export const PREF_STORE_NAME_LOG = 'log_settings'
-
-export function getLogEventTypeLabel(type: LogEventType): string {
-  switch (type) {
-    case LogEventType.CRASH:
-      return LogEventPresentationStrings.CRASH
-    case LogEventType.FILE:
-      return LogEventPresentationStrings.FILE
-    case LogEventType.ACCOUNT:
-      return LogEventPresentationStrings.ACCOUNT
-    case LogEventType.PERMISSION:
-      return LogEventPresentationStrings.PERMISSION
-    case LogEventType.POWER:
-      return LogEventPresentationStrings.POWER
-    default:
-      return LabelText.UNKNOWN
-  }
-}
-
-export function getLogEventResultLabel(result: LogEventResult): string {
-  switch (result) {
-    case LogEventResult.SUCCESS:
-      return ResultText.SUCCESS
-    case LogEventResult.BLOCKED:
-      return LogResultPresentationStrings.BLOCKED
-    case LogEventResult.FAILED:
-      return ResultText.FAILED
-    default:
-      return LabelText.UNKNOWN
-  }
-}
-
-export function getLogEventResultColor(result: LogEventResult): string {
-  switch (result) {
-    case LogEventResult.SUCCESS:
-      return '#4CAF50'
-    case LogEventResult.BLOCKED:
-      return '#FF9800'
-    case LogEventResult.FAILED:
-      return '#F44336'
-    default:
-      return '#9E9E9E'
-  }
-}
-
-export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
-  { label: LogEventPresentationStrings.CRASH, value: LogEventType.CRASH },
-  { label: LogEventPresentationStrings.FILE, value: LogEventType.FILE },
-  { label: LogEventPresentationStrings.ACCOUNT, value: LogEventType.ACCOUNT },
-  { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION },
-  { label: LogEventPresentationStrings.POWER, value: LogEventType.POWER }
-]
-
-export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = [
-  { label: ResultText.SUCCESS, value: LogEventResult.SUCCESS },
-  { label: LogResultPresentationStrings.BLOCKED, value: LogEventResult.BLOCKED },
-  { label: ResultText.FAILED, value: LogEventResult.FAILED }
-]
-
-export function formatLogTimestamp(timestamp: number): string {
-  let date = new Date(timestamp)
-  let pad = (n: number): string => n.toString().padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
 
 export function generateLogEntryId(): string {
   return `log_${Date.now()}_${generateRandomSuffix(9)}`
