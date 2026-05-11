@@ -1,6 +1,11 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { DeviceTypeLabels, PeripheralInterfaceStrings, PeripheralOptionStrings } from '../../../constants/modules/PeripheralStrings'
+import {
+  DeviceTypeLabels,
+  PeripheralInterfaceStrings,
+  PeripheralInterfaceToggleOptionIndexes,
+  PeripheralOptionStrings
+} from '../../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
@@ -81,7 +86,9 @@ export struct InterfaceControlTab {
       label: PeripheralInterfaceStrings.USB_INTERFACE_TITLE,
       description: PeripheralInterfaceStrings.USB_INTERFACE_DESCRIPTION,
       options: PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
-      selectedIndex: this.usbDisabled ? 1 : 0,
+      selectedIndex: this.usbDisabled ?
+        PeripheralInterfaceToggleOptionIndexes.DISABLED :
+        PeripheralInterfaceToggleOptionIndexes.ENABLED,
       processing: this.interfaceControlProcessingKey === PeripheralService.FEATURE_USB,
       currentTheme: this.currentTheme,
       optimistic: true,
@@ -89,7 +96,7 @@ export struct InterfaceControlTab {
         if (!this.onUsbInterfaceToggleAsync) {
           return false
         }
-        return await this.onUsbInterfaceToggleAsync(nextIndex === 1)
+        return await this.onUsbInterfaceToggleAsync(nextIndex === PeripheralInterfaceToggleOptionIndexes.DISABLED)
       }
     })
   }
@@ -100,11 +107,13 @@ export struct InterfaceControlTab {
       label,
       description,
       PeripheralOptionStrings.INTERFACE_TOGGLE_OPTIONS,
-      disabled ? 1 : 0,
+      disabled ?
+        PeripheralInterfaceToggleOptionIndexes.DISABLED :
+        PeripheralInterfaceToggleOptionIndexes.ENABLED,
       this.interfaceControlProcessingKey === feature,
       (index: number) => {
         if (this.onInterfaceToggle) {
-          this.onInterfaceToggle(feature, index === 1)
+          this.onInterfaceToggle(feature, index === PeripheralInterfaceToggleOptionIndexes.DISABLED)
         }
       }
     )

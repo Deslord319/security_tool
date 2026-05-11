@@ -39,6 +39,12 @@ export class PeripheralOptionStrings {
   ]
 }
 
+export class PeripheralInterfaceToggleOptionIndexes {
+  static readonly ENABLED: number = 0
+  static readonly DISABLED: number = 1
+  static readonly DEFAULT: number = PeripheralInterfaceToggleOptionIndexes.ENABLED
+}
+
 export class PeripheralTabIndexes {
   static readonly INTERFACE_CONTROL: number = 0
   static readonly CONNECTION_RECORD: number = 1

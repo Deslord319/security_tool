@@ -1,11 +1,11 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { taskpool } from '@kit.ArkTS'
 import { AppInfo } from '../../../constants/AppConstants'
-import { AdminText } from '../../../constants/StringCatalog'
 import { AdminErrorCodes } from '../../../constants/SystemErrorCodes'
 import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
+import { buildAdminActivationErrorMessage } from './EnterpriseAdminActivationMessages'
 import { probeActivationTask } from './EnterpriseAdminProbeTask'
 
 const TAG = 'EnterpriseAdminService'
@@ -22,9 +22,7 @@ export class EnterpriseAdminService {
   }
 
   static buildActivationErrorMessage(code?: number): string {
-    return code === AdminErrorCodes.ADMIN_NOT_ACTIVATED
-      ? AdminText.NOT_ACTIVATED
-      : AdminText.buildCheckFailed(code)
+    return buildAdminActivationErrorMessage(code)
   }
 
   static probeActivation(adminType: EnterpriseAdminType = EnterpriseAdminService.DEFAULT_ADMIN_TYPE): AdminActivationState {
