@@ -7,7 +7,6 @@ import {
   getPeripheralTypeLabel,
   LogEventResult,
   PeripheralConnectionRecord,
-  PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
 import {
@@ -15,9 +14,9 @@ import {
   PeripheralReasonCodes
 } from '../../main/ets/constants/modules/PeripheralStrings'
 import {
-  CsvFileExportResult,
   CsvFileExportService
 } from '../../main/ets/services/common/export/CsvFileExportService'
+import { createCsvFileExportResult } from '../common/CsvExportResultFactory'
 import { PeripheralConnectionRecordService } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordService'
 import {
   formatPeripheralTimestamp,
@@ -25,43 +24,6 @@ import {
   getPeripheralConnectionResultLabel
 } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
-
-function createExportResult(
-  success: boolean,
-  code: 'ok' | 'empty' | 'user_canceled' | 'io_failed' | 'context_missing',
-  fileName?: string,
-  fullPath?: string
-): CsvFileExportResult {
-  let result: CsvFileExportResult = {
-    success,
-    code,
-    fileName,
-    fullPath
-  }
-  return result
-}
-
-function createTraceRecord(
-  recordId: string,
-  occurAt: number,
-  deviceId: string = 'VID:1234 PID:5678',
-  deviceName: string = 'USB Device'
-): PeripheralTraceRecord {
-  return {
-    recordId,
-    occurAt,
-    collectAt: occurAt + 1,
-    deviceName,
-    deviceType: PeripheralType.USB_STORAGE,
-    deviceId,
-    action: 'connect',
-    decision: 'allow',
-    result: LogEventResult.SUCCESS,
-    source: 'runtime_event',
-    summary: 'connected',
-    matchedPolicyKind: 'default_allow'
-  }
-}
 
 function createConnectionRecord(
   id: string,
@@ -156,7 +118,7 @@ export default function peripheralRecordViewModelTest() {
     it('U-RVM-005 should export connection history and return generated file name', 0, async (done: Function) => {
       viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createExportResult(
+      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createCsvFileExportResult(
         true,
         'ok',
         'peripheral_connection_history_20250115_083000.csv',
@@ -193,7 +155,7 @@ export default function peripheralRecordViewModelTest() {
     it('U-RVM-008 should map export service failure and thrown errors to export failure reason', 0, async (done: Function) => {
       viewModel.state.records = [createConnectionRecord('record-1', 1700000000000)]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
+      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createCsvFileExportResult(false, 'user_canceled')))
 
       const failedResult = await viewModel.exportConnectionHistory({} as common.UIAbilityContext)
       expect(failedResult.success).assertFalse()
@@ -218,7 +180,7 @@ export default function peripheralRecordViewModelTest() {
         content: string
       ) => {
         capturedCsv = content
-        return Promise.resolve(createExportResult(
+        return Promise.resolve(createCsvFileExportResult(
           true,
           'ok',
           'peripheral_connection_history_mock.csv',
@@ -255,7 +217,7 @@ export default function peripheralRecordViewModelTest() {
         content: string
       ) => {
         capturedCsv = content
-        return Promise.resolve(createExportResult(
+        return Promise.resolve(createCsvFileExportResult(
           true,
           'ok',
           'peripheral_connection_history_mock.csv',

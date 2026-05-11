@@ -7,10 +7,10 @@ import {
   LogEventType
 } from '../../main/ets/models/DataModels'
 import {
-  CsvFileExportResult,
   CsvFileExportService,
   CsvFileWritePort
 } from '../../main/ets/services/common/export/CsvFileExportService'
+import { createCsvFileExportResult } from '../common/CsvExportResultFactory'
 import { LogExportService } from '../../main/ets/services/log-manage/export/LogExportService'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
@@ -30,21 +30,6 @@ function createLogEntry(
     detail,
     processName: 'TestProcess'
   }
-}
-
-function createExportResult(
-  success: boolean,
-  code: 'ok' | 'empty' | 'user_canceled' | 'io_failed' | 'context_missing',
-  fileName?: string,
-  fullPath?: string
-): CsvFileExportResult {
-  let result: CsvFileExportResult = {
-    success,
-    code,
-    fileName,
-    fullPath
-  }
-  return result
 }
 
 class CapturingWritePort implements CsvFileWritePort {
@@ -116,7 +101,7 @@ export default function logExportServiceTest() {
       let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
       when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
       when(saveMock)(ArgumentMatchers.any)
-        .afterReturn(Promise.resolve(createExportResult(false, 'user_canceled')))
+        .afterReturn(Promise.resolve(createCsvFileExportResult(false, 'user_canceled')))
 
       let result = await LogExportService.export({} as common.UIAbilityContext)
 
@@ -142,7 +127,7 @@ export default function logExportServiceTest() {
       ) => {
         let port = new CapturingWritePort(captured)
         return writer(port).then(() => {
-          return Promise.resolve(createExportResult(
+          return Promise.resolve(createCsvFileExportResult(
             true,
             'ok',
             `${fileNamePrefix}_mock.${fileExtension}`,
