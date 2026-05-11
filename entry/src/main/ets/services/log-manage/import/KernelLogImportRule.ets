@@ -11,6 +11,7 @@ import {
   LogManageImportDetailStrings,
   LogManageKernelImportStrings
 } from '../../../constants/modules/LogManageStrings'
+import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
 import {
   ImportedLogFile,
@@ -53,8 +54,11 @@ const KERNEL_RULE_FS_DEVFS: KernelRuleDefinition = {
   id: 'kernel_fs_devfs_dec',
   category: LogManageKernelImportStrings.CATEGORY_FS_DEVFS
 }
+const TAG = 'KernelLogImportRule'
 const READ_CHUNK_SIZE = 64 * 1024
 const YIELD_EVERY_LINES = 200
+const PROGRESS_BYTES = 4 * 1024 * 1024
+const PROGRESS_LINES = 50000
 
 export class KernelLogImportRule implements LogImportRule {
   readonly name: string = 'kernel'
@@ -75,15 +79,27 @@ export class KernelLogImportRule implements LogImportRule {
   }
 
   async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
+    let startedAt = Date.now()
     let result = createEmptyLogImportRuleResult()
+    LogUtils.info(TAG, `parse start: file=${file.relativePath}, path=${file.path}`)
     if (KernelLogImportRule.lineReaderForTest) {
       await KernelLogImportRule.lineReaderForTest(file, async (rawLine: string, lineNumber: number): Promise<void> => {
         KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
       })
+      LogUtils.info(TAG, `parse done(test): file=${file.relativePath}, entries=${result.entries.length}, dropped=${result.droppedCount}, failed=${result.failedCount}, elapsedMs=${Date.now() - startedAt}`)
       return result
     }
     let textPath = await KernelLogImportRule.prepareTextFile(file)
     await KernelLogImportRule.forEachLine(textPath, async (rawLine: string, lineNumber: number): Promise<void> => {
+      KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
+    }, file, result, startedAt)
+    LogUtils.info(TAG, `parse done: file=${file.relativePath}, entries=${result.entries.length}, dropped=${result.droppedCount}, failed=${result.failedCount}, elapsedMs=${Date.now() - startedAt}`)
+    return result
+  }
+
+  static async parseTextForTest(file: ImportedLogFile, path: string): Promise<LogImportRuleResult> {
+    let result = createEmptyLogImportRuleResult()
+    await KernelLogImportRule.forEachLine(path, async (rawLine: string, lineNumber: number): Promise<void> => {
       KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
     })
     return result
@@ -126,13 +142,19 @@ export class KernelLogImportRule implements LogImportRule {
     let targetPath = KernelLogImportRule.stripGzipSuffix(gzipPath)
     try {
       if (await fileIo.access(targetPath)) {
+        let stat = await fileIo.stat(targetPath)
+        LogUtils.info(TAG, `gunzip reuse: gzip=${gzipPath}, target=${targetPath}, targetSize=${stat.size}`)
         return targetPath
       }
     } catch (_) {
     }
+    let startedAt = Date.now()
     let gzip = zlib.createGZipSync()
     let output = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
     await gzip.gzopen(gzipPath, 'rb')
+    let writeOffset = 0
+    let nextProgress = PROGRESS_BYTES
+    LogUtils.info(TAG, `gunzip start: gzip=${gzipPath}, target=${targetPath}`)
     try {
       while ((await gzip.gzeof()) === 0) {
         let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
@@ -140,29 +162,49 @@ export class KernelLogImportRule implements LogImportRule {
         if (readCount <= 0) {
           break
         }
-        fileIo.writeSync(output.fd, buffer, { offset: 0, length: readCount })
+        fileIo.writeSync(output.fd, buffer, { offset: writeOffset, length: readCount })
+        writeOffset += readCount
+        if (writeOffset >= nextProgress) {
+          LogUtils.info(TAG, `gunzip progress: target=${targetPath}, bytes=${writeOffset}, elapsedMs=${Date.now() - startedAt}`)
+          nextProgress += PROGRESS_BYTES
+        }
       }
     } finally {
       await gzip.gzclose()
       fileIo.closeSync(output.fd)
     }
+    LogUtils.info(TAG, `gunzip done: gzip=${gzipPath}, target=${targetPath}, bytes=${writeOffset}, elapsedMs=${Date.now() - startedAt}`)
     return targetPath
   }
 
-  private static async forEachLine(path: string, onLine: (line: string, lineNumber: number) => Promise<void>): Promise<void> {
+  private static async forEachLine(
+    path: string,
+    onLine: (line: string, lineNumber: number) => Promise<void>,
+    sourceFile?: ImportedLogFile,
+    result?: LogImportRuleResult,
+    startedAt?: number
+  ): Promise<void> {
     let file = fileIo.openSync(path, fileIo.OpenMode.READ_ONLY)
     let decoder = util.TextDecoder.create('utf-8')
     let pending = ''
     let lineNumber = 0
+    let readOffset = 0
+    let nextByteProgress = PROGRESS_BYTES
+    let nextLineProgress = PROGRESS_LINES
     try {
       while (true) {
         let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
         let readCount = fileIo.readSync(file.fd, buffer, {
-          offset: 0,
+          offset: readOffset,
           length: READ_CHUNK_SIZE
         })
         if (readCount <= 0) {
           break
+        }
+        readOffset += readCount
+        if (readOffset >= nextByteProgress) {
+          LogUtils.info(TAG, `parse byte progress: file=${sourceFile?.relativePath ?? path}, bytes=${readOffset}, lines=${lineNumber}, entries=${result?.entries.length ?? 0}, dropped=${result?.droppedCount ?? 0}, elapsedMs=${startedAt ? Date.now() - startedAt : 0}`)
+          nextByteProgress += PROGRESS_BYTES
         }
         let chunk = decoder.decodeToString(new Uint8Array(buffer, 0, readCount))
         let lines = `${pending}${chunk}`.split(/\r?\n/)
@@ -173,6 +215,10 @@ export class KernelLogImportRule implements LogImportRule {
           if (lineNumber % YIELD_EVERY_LINES === 0) {
             await KernelLogImportRule.yieldToEventLoop()
           }
+          if (lineNumber >= nextLineProgress) {
+            LogUtils.info(TAG, `parse line progress: file=${sourceFile?.relativePath ?? path}, bytes=${readOffset}, lines=${lineNumber}, entries=${result?.entries.length ?? 0}, dropped=${result?.droppedCount ?? 0}, elapsedMs=${startedAt ? Date.now() - startedAt : 0}`)
+            nextLineProgress += PROGRESS_LINES
+          }
         }
       }
       if (pending.length > 0) {
@@ -182,6 +228,7 @@ export class KernelLogImportRule implements LogImportRule {
     } finally {
       fileIo.closeSync(file.fd)
     }
+    LogUtils.info(TAG, `read done: file=${sourceFile?.relativePath ?? path}, bytes=${readOffset}, lines=${lineNumber}`)
   }
 
   private static async yieldToEventLoop(): Promise<void> {
