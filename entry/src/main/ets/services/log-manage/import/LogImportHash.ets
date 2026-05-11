@@ -11,7 +11,23 @@ export class LogImportHash {
   }
 
   static normalizeText(text: string): string {
-    return text.trim().replace(/\s+/g, ' ')
+    let trimmed = text.trim()
+    let normalized = ''
+    let inWhitespace = false
+    for (let index = 0; index < trimmed.length; index++) {
+      let code = trimmed.charCodeAt(index)
+      let whitespace = code === 32 || code === 9 || code === 10 || code === 13 || code === 12
+      if (whitespace) {
+        if (!inWhitespace) {
+          normalized += ' '
+          inWhitespace = true
+        }
+        continue
+      }
+      normalized += trimmed.charAt(index)
+      inWhitespace = false
+    }
+    return normalized
   }
 
   private static hash(value: string): string {

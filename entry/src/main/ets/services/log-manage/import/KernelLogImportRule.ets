@@ -32,7 +32,10 @@ interface ParsedKernelLine {
   path?: string
 }
 
-type KernelLogLineReader = (file: ImportedLogFile, onLine: (line: string, lineNumber: number) => void) => Promise<void>
+type KernelLogLineReader = (
+  file: ImportedLogFile,
+  onLine: (line: string, lineNumber: number) => Promise<void>
+) => Promise<void>
 
 const KERNEL_RULE_HMSEH_DENIED: KernelRuleDefinition = {
   id: 'kernel_hmseh_denied',
@@ -51,6 +54,7 @@ const KERNEL_RULE_FS_DEVFS: KernelRuleDefinition = {
   category: LogManageKernelImportStrings.CATEGORY_FS_DEVFS
 }
 const READ_CHUNK_SIZE = 64 * 1024
+const YIELD_EVERY_LINES = 200
 
 export class KernelLogImportRule implements LogImportRule {
   readonly name: string = 'kernel'
@@ -73,13 +77,13 @@ export class KernelLogImportRule implements LogImportRule {
   async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
     let result = createEmptyLogImportRuleResult()
     if (KernelLogImportRule.lineReaderForTest) {
-      await KernelLogImportRule.lineReaderForTest(file, (rawLine: string, lineNumber: number): void => {
+      await KernelLogImportRule.lineReaderForTest(file, async (rawLine: string, lineNumber: number): Promise<void> => {
         KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
       })
       return result
     }
     let textPath = await KernelLogImportRule.prepareTextFile(file)
-    await KernelLogImportRule.forEachLine(textPath, (rawLine: string, lineNumber: number): void => {
+    await KernelLogImportRule.forEachLine(textPath, async (rawLine: string, lineNumber: number): Promise<void> => {
       KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
     })
     return result
@@ -145,7 +149,7 @@ export class KernelLogImportRule implements LogImportRule {
     return targetPath
   }
 
-  private static async forEachLine(path: string, onLine: (line: string, lineNumber: number) => void): Promise<void> {
+  private static async forEachLine(path: string, onLine: (line: string, lineNumber: number) => Promise<void>): Promise<void> {
     let file = fileIo.openSync(path, fileIo.OpenMode.READ_ONLY)
     let decoder = util.TextDecoder.create('utf-8')
     let pending = ''
@@ -165,16 +169,25 @@ export class KernelLogImportRule implements LogImportRule {
         pending = lines.pop() ?? ''
         for (let line of lines) {
           lineNumber++
-          onLine(line, lineNumber)
+          await onLine(line, lineNumber)
+          if (lineNumber % YIELD_EVERY_LINES === 0) {
+            await KernelLogImportRule.yieldToEventLoop()
+          }
         }
       }
       if (pending.length > 0) {
         lineNumber++
-        onLine(pending, lineNumber)
+        await onLine(pending, lineNumber)
       }
     } finally {
       fileIo.closeSync(file.fd)
     }
+  }
+
+  private static async yieldToEventLoop(): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), 0)
+    })
   }
 
   private static buildEntry(
@@ -288,17 +301,39 @@ export class KernelLogImportRule implements LogImportRule {
   }
 
   private static parseModulePrefix(line: string): string {
-    let matches = line.match(/\[([^:\]\s]+)(?::[^\]]*)?\]/g)
-    if (!matches) {
-      return ''
-    }
-    for (let match of matches) {
-      let value = match.replace(/^\[/, '').replace(/\].*$/, '').split(':')[0]
-      if (!/^\d+(\.\d+)?$/.test(value) && !/^\d+$/.test(value)) {
-        return value
+    let start = line.indexOf('[')
+    while (start >= 0) {
+      let end = line.indexOf(']', start + 1)
+      if (end < 0) {
+        break
       }
+      let token = line.substring(start + 1, end)
+      let separator = token.indexOf(':')
+      let prefix = separator >= 0 ? token.substring(0, separator).trim() : token.trim()
+      if (prefix.length > 0 && !KernelLogImportRule.isNumericToken(prefix)) {
+        return prefix
+      }
+      start = line.indexOf('[', end + 1)
     }
     return ''
+  }
+
+  private static isNumericToken(value: string): boolean {
+    let hasDigit = false
+    let hasDot = false
+    for (let index = 0; index < value.length; index++) {
+      let code = value.charCodeAt(index)
+      if (code >= 48 && code <= 57) {
+        hasDigit = true
+        continue
+      }
+      if (code === 46 && !hasDot) {
+        hasDot = true
+        continue
+      }
+      return false
+    }
+    return hasDigit
   }
 
   private static firstMatch(value: string, pattern: RegExp): string | undefined {

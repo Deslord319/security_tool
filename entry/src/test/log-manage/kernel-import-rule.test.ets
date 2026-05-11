@@ -22,11 +22,11 @@ export default function kernelImportRuleTest() {
   describe('KernelLogImportRule', () => {
     beforeEach(() => {
       testContents = new Map<string, string>()
-      KernelLogImportRule.setLineReaderForTest(async (file: ImportedLogFile, onLine: (line: string, lineNumber: number) => void): Promise<void> => {
+      KernelLogImportRule.setLineReaderForTest(async (file: ImportedLogFile, onLine: (line: string, lineNumber: number) => Promise<void>): Promise<void> => {
         let content = testContents.get(file.path) ?? ''
         let lines = content.split(/\r?\n/)
         for (let index = 0; index < lines.length; index++) {
-          onLine(lines[index], index + 1)
+          await onLine(lines[index], index + 1)
         }
       })
     })
