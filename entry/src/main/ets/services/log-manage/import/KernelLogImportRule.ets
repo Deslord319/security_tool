@@ -1,5 +1,4 @@
 import zlib from '@ohos.zlib'
-import util from '@ohos.util'
 import fileIo from '@ohos.file.fs'
 import {
   LogDetailTableRow,
@@ -19,6 +18,10 @@ import {
   LogImportRuleResult,
   createEmptyLogImportRuleResult
 } from './LogImportRule'
+import {
+  LogImportLineProgress,
+  LogImportLineReader
+} from './LogImportLineReader'
 
 interface KernelRuleDefinition {
   id: string
@@ -150,19 +153,24 @@ export class KernelLogImportRule implements LogImportRule {
     }
     let startedAt = Date.now()
     let gzip = zlib.createGZipSync()
-    let output = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
-    await gzip.gzopen(gzipPath, 'rb')
+    let output = KernelLogImportRule.openWritableFile(targetPath)
+    try {
+      await gzip.gzopen(gzipPath, 'rb')
+    } catch (err) {
+      KernelLogImportRule.closeFileQuietly(output.fd, targetPath)
+      throw KernelLogImportRule.toIoError(`open gzip ${gzipPath}`, err)
+    }
     let writeOffset = 0
     let nextProgress = PROGRESS_BYTES
     LogUtils.info(TAG, `gunzip start: gzip=${gzipPath}, target=${targetPath}`)
     try {
-      while ((await gzip.gzeof()) === 0) {
+      while ((await KernelLogImportRule.isGzipEof(gzip, gzipPath)) === 0) {
         let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
-        let readCount = await gzip.gzfread(buffer, 1, READ_CHUNK_SIZE)
+        let readCount = await KernelLogImportRule.readGzip(gzip, gzipPath, buffer)
         if (readCount <= 0) {
           break
         }
-        fileIo.writeSync(output.fd, buffer, { offset: writeOffset, length: readCount })
+        KernelLogImportRule.writeFile(output.fd, buffer, writeOffset, readCount)
         writeOffset += readCount
         if (writeOffset >= nextProgress) {
           LogUtils.info(TAG, `gunzip progress: target=${targetPath}, bytes=${writeOffset}, elapsedMs=${Date.now() - startedAt}`)
@@ -170,8 +178,8 @@ export class KernelLogImportRule implements LogImportRule {
         }
       }
     } finally {
-      await gzip.gzclose()
-      fileIo.closeSync(output.fd)
+      await KernelLogImportRule.closeGzipQuietly(gzip, gzipPath)
+      KernelLogImportRule.closeFileQuietly(output.fd, targetPath)
     }
     LogUtils.info(TAG, `gunzip done: gzip=${gzipPath}, target=${targetPath}, bytes=${writeOffset}, elapsedMs=${Date.now() - startedAt}`)
     return targetPath
@@ -184,57 +192,70 @@ export class KernelLogImportRule implements LogImportRule {
     result?: LogImportRuleResult,
     startedAt?: number
   ): Promise<void> {
-    let file = fileIo.openSync(path, fileIo.OpenMode.READ_ONLY)
-    let decoder = util.TextDecoder.create('utf-8')
-    let pending = ''
-    let lineNumber = 0
-    let readOffset = 0
-    let nextByteProgress = PROGRESS_BYTES
-    let nextLineProgress = PROGRESS_LINES
-    try {
-      while (true) {
-        let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
-        let readCount = fileIo.readSync(file.fd, buffer, {
-          offset: readOffset,
-          length: READ_CHUNK_SIZE
-        })
-        if (readCount <= 0) {
-          break
-        }
-        readOffset += readCount
-        if (readOffset >= nextByteProgress) {
-          LogUtils.info(TAG, `parse byte progress: file=${sourceFile?.relativePath ?? path}, bytes=${readOffset}, lines=${lineNumber}, entries=${result?.entries.length ?? 0}, dropped=${result?.droppedCount ?? 0}, elapsedMs=${startedAt ? Date.now() - startedAt : 0}`)
-          nextByteProgress += PROGRESS_BYTES
-        }
-        let chunk = decoder.decodeToString(new Uint8Array(buffer, 0, readCount))
-        let lines = `${pending}${chunk}`.split(/\r?\n/)
-        pending = lines.pop() ?? ''
-        for (let line of lines) {
-          lineNumber++
-          await onLine(line, lineNumber)
-          if (lineNumber % YIELD_EVERY_LINES === 0) {
-            await KernelLogImportRule.yieldToEventLoop()
-          }
-          if (lineNumber >= nextLineProgress) {
-            LogUtils.info(TAG, `parse line progress: file=${sourceFile?.relativePath ?? path}, bytes=${readOffset}, lines=${lineNumber}, entries=${result?.entries.length ?? 0}, dropped=${result?.droppedCount ?? 0}, elapsedMs=${startedAt ? Date.now() - startedAt : 0}`)
-            nextLineProgress += PROGRESS_LINES
-          }
-        }
+    let readResult = await LogImportLineReader.forEachUtf8Line(path, onLine, {
+      yieldEveryLines: YIELD_EVERY_LINES,
+      byteProgressInterval: PROGRESS_BYTES,
+      lineProgressInterval: PROGRESS_LINES,
+      onByteProgress: (progress: LogImportLineProgress): void => {
+        LogUtils.info(TAG, `parse byte progress: file=${sourceFile?.relativePath ?? path}, bytes=${progress.bytesRead}, lines=${progress.linesRead}, entries=${result?.entries.length ?? 0}, dropped=${result?.droppedCount ?? 0}, elapsedMs=${startedAt ? Date.now() - startedAt : 0}`)
+      },
+      onLineProgress: (progress: LogImportLineProgress): void => {
+        LogUtils.info(TAG, `parse line progress: file=${sourceFile?.relativePath ?? path}, bytes=${progress.bytesRead}, lines=${progress.linesRead}, entries=${result?.entries.length ?? 0}, dropped=${result?.droppedCount ?? 0}, elapsedMs=${startedAt ? Date.now() - startedAt : 0}`)
       }
-      if (pending.length > 0) {
-        lineNumber++
-        await onLine(pending, lineNumber)
-      }
-    } finally {
-      fileIo.closeSync(file.fd)
-    }
-    LogUtils.info(TAG, `read done: file=${sourceFile?.relativePath ?? path}, bytes=${readOffset}, lines=${lineNumber}`)
+    })
+    LogUtils.info(TAG, `read done: file=${sourceFile?.relativePath ?? path}, bytes=${readResult.bytesRead}, lines=${readResult.linesRead}`)
   }
 
-  private static async yieldToEventLoop(): Promise<void> {
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(() => resolve(), 0)
-    })
+  private static openWritableFile(path: string): fileIo.File {
+    try {
+      return fileIo.openSync(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+    } catch (err) {
+      throw KernelLogImportRule.toIoError(`open output ${path}`, err)
+    }
+  }
+
+  private static writeFile(fd: number, buffer: ArrayBuffer, offset: number, length: number): void {
+    try {
+      fileIo.writeSync(fd, buffer, { offset, length })
+    } catch (err) {
+      throw KernelLogImportRule.toIoError('write gunzip output', err)
+    }
+  }
+
+  private static closeFileQuietly(fd: number, path: string): void {
+    try {
+      fileIo.closeSync(fd)
+    } catch (err) {
+      LogUtils.warn(TAG, `close file failed: path=${path}, err=${JSON.stringify(err)}`)
+    }
+  }
+
+  private static async isGzipEof(gzip: zlib.GZip, path: string): Promise<number> {
+    try {
+      return await gzip.gzeof()
+    } catch (err) {
+      throw KernelLogImportRule.toIoError(`check gzip eof ${path}`, err)
+    }
+  }
+
+  private static async readGzip(gzip: zlib.GZip, path: string, buffer: ArrayBuffer): Promise<number> {
+    try {
+      return await gzip.gzfread(buffer, 1, READ_CHUNK_SIZE)
+    } catch (err) {
+      throw KernelLogImportRule.toIoError(`read gzip ${path}`, err)
+    }
+  }
+
+  private static async closeGzipQuietly(gzip: zlib.GZip, path: string): Promise<void> {
+    try {
+      await gzip.gzclose()
+    } catch (err) {
+      LogUtils.warn(TAG, `close gzip failed: path=${path}, err=${JSON.stringify(err)}`)
+    }
+  }
+
+  private static toIoError(action: string, err: Object): Error {
+    return new Error(`${action} failed: ${JSON.stringify(err)}`)
   }
 
   private static buildEntry(
