@@ -1,16 +1,11 @@
 import { common } from '@kit.AbilityKit'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
-  ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG,
-  DEFAULT_SUBSCRIPTION_CONFIG,
   LOG_MAX_ENTRIES_OPTIONS,
   LogStorageConfig,
-  LogSubscriptionConfig,
   PREF_KEY_LOG_MAX_ENTRIES,
   PREF_KEY_LOG_RETENTION_DAYS,
-  PREF_KEY_LOG_SUBSCRIBE_ALL,
-  PREF_KEY_LOG_SUBSCRIBED_TYPES,
   PREF_STORE_NAME_LOG
 } from '../../../models/DataModels'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
@@ -60,37 +55,6 @@ export class LogSettingsRepository {
     }
   }
 
-  static async loadSubscriptionConfig(): Promise<LogSubscriptionConfig> {
-    if (!LogSettingsRepository.context) {
-      return {
-        subscribeAll: DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll,
-        subscribedTypes: [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
-      }
-    }
-    try {
-      let pref = PreferencesAccessor.of(LogSettingsRepository.context, PREF_STORE_NAME_LOG)
-      let subscribeAll = await pref.getBoolean(PREF_KEY_LOG_SUBSCRIBE_ALL, DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll)
-      let parsedTypes = await pref.getJsonArray<number>(
-        PREF_KEY_LOG_SUBSCRIBED_TYPES,
-        [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
-      )
-      let subscribedTypes = subscribeAll ? [...ALL_LOG_EVENT_TYPES] : LogSettingsRepository.sanitizeSubscribedTypes(parsedTypes)
-      if (subscribedTypes.length === 0) {
-        subscribedTypes = [...ALL_LOG_EVENT_TYPES]
-      }
-      return {
-        subscribeAll: subscribeAll,
-        subscribedTypes: subscribedTypes
-      }
-    } catch (err) {
-      LogUtils.error(TAG, `loadSubscriptionConfig failed: ${JSON.stringify(err)}`)
-      return {
-        subscribeAll: DEFAULT_SUBSCRIPTION_CONFIG.subscribeAll,
-        subscribedTypes: [...DEFAULT_SUBSCRIPTION_CONFIG.subscribedTypes]
-      }
-    }
-  }
-
   private static async readStorageConfig(): Promise<LogStorageConfig | null> {
     if (!LogSettingsRepository.context) {
       return null
@@ -107,16 +71,6 @@ export class LogSettingsRepository {
       LogUtils.error(TAG, `readStorageConfig failed: ${JSON.stringify(err)}`)
       return null
     }
-  }
-
-  private static sanitizeSubscribedTypes(types: number[]): number[] {
-    let result: number[] = []
-    for (let value of types) {
-      if (ALL_LOG_EVENT_TYPES.includes(value as number) && !result.includes(value)) {
-        result.push(value)
-      }
-    }
-    return result
   }
 
   private static normalizeMaxEntriesOption(maxEntries: number): number {

@@ -1,17 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEntry, LogEventResult, LogEventType, LogSubscriptionConfig } from '../../main/ets/models/DataModels'
+import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
 import {
   AuditSubscribeResult,
   CrashSubscribeResult,
   InitializeResult,
-  MutationResult,
-  ServiceResult
+  MutationResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import { LogCollectorService } from '../../main/ets/services/log-manage/collector/LogCollectorService'
 import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
-import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
 import { LogAuditSource } from '../../main/ets/services/log-manage/source/LogAuditSource'
 import { LogCrashSource } from '../../main/ets/services/log-manage/source/LogCrashSource'
 
@@ -29,12 +27,6 @@ class FakeCollectorRepository {
   initResult: InitializeResult = { success: true, code: 'ok' }
   addEntriesResult: MutationResult = { success: true, code: 'ok' }
   savedBatches: LogEntry[][] = []
-}
-
-class FakeCollectorConfig {
-  initResult: ServiceResult = { success: true, code: 'ok' }
-  subscribeAll: boolean = true
-  subscribedTypes: LogEventType[] = [LogEventType.FILE, LogEventType.CRASH]
 }
 
 class FakeAuditSource {
@@ -58,7 +50,6 @@ class FakeCrashSource {
 export default function logCollectorServiceTest() {
   describe('LogCollectorService', () => {
     let repository: FakeCollectorRepository
-    let config: FakeCollectorConfig
     let auditSource: FakeAuditSource
     let crashSource: FakeCrashSource
     let context: common.UIAbilityContext
@@ -67,7 +58,6 @@ export default function logCollectorServiceTest() {
     beforeEach(async () => {
       await LogCollectorService.stop()
       repository = new FakeCollectorRepository()
-      config = new FakeCollectorConfig()
       auditSource = new FakeAuditSource()
       crashSource = new FakeCrashSource()
       context = {} as common.UIAbilityContext
@@ -75,7 +65,6 @@ export default function logCollectorServiceTest() {
 
       let initStorageMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.initialize)
       let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
-      let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadSubscriptionConfig)
       let auditSubscribeMock = mockKit.mockFunc(LogAuditSource, LogAuditSource.subscribe)
       let auditUnsubscribeMock = mockKit.mockFunc(LogAuditSource, LogAuditSource.unsubscribe)
       let crashSubscribeMock = mockKit.mockFunc(LogCrashSource, LogCrashSource.subscribe)
@@ -87,13 +76,6 @@ export default function logCollectorServiceTest() {
       when(appendEntriesMock)(ArgumentMatchers.any).afterAction((entries: LogEntry[]) => {
         repository.savedBatches.push(entries.slice())
         return Promise.resolve(repository.addEntriesResult)
-      })
-      when(loadConfigMock)().afterAction(() => {
-        let result: LogSubscriptionConfig = {
-          subscribeAll: config.subscribeAll,
-          subscribedTypes: config.subscribedTypes.slice()
-        }
-        return Promise.resolve(result)
       })
       when(auditSubscribeMock)(ArgumentMatchers.any).afterAction((
         onEntry: (entry: LogEntry) => void,
@@ -121,10 +103,7 @@ export default function logCollectorServiceTest() {
       mockKit.clearAll()
     })
 
-    it('should return ok when only enabled audit source is ready', 0, async (done: Function) => {
-      config.subscribeAll = false
-      config.subscribedTypes = [LogEventType.FILE]
-
+    it('should return ok when audit and crash sources are ready', 0, async (done: Function) => {
       let initResult = await LogCollectorService.init(context)
       let startResult = await LogCollectorService.start()
 
@@ -132,7 +111,7 @@ export default function logCollectorServiceTest() {
       expect(startResult.success).assertTrue()
       expect(startResult.code).assertEqual('ok')
       expect(startResult.status.auditReady).assertTrue()
-      expect(startResult.status.crashReady).assertFalse()
+      expect(startResult.status.crashReady).assertTrue()
       expect(startResult.status.degraded).assertFalse()
       done()
     })

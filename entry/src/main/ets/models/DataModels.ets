@@ -363,11 +363,6 @@ export interface LogStorageConfig {
   retentionDays: number
 }
 
-export interface LogSubscriptionConfig {
-  subscribeAll: boolean
-  subscribedTypes: LogEventType[]
-}
-
 export interface LogStatistics {
   totalCount: number
   todayCount: number
@@ -400,19 +395,12 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.POWER
 ]
 
-export const DEFAULT_SUBSCRIPTION_CONFIG: LogSubscriptionConfig = {
-  subscribeAll: true,
-  subscribedTypes: ALL_LOG_EVENT_TYPES
-}
-
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 90, 180]
 
 export const LOG_MAX_ENTRIES_OPTIONS: number[] = [5000, 10000, 20000, 50000, 100000]
 
 export const PREF_KEY_LOG_MAX_ENTRIES = 'log_max_entries'
 export const PREF_KEY_LOG_RETENTION_DAYS = 'log_retention_days'
-export const PREF_KEY_LOG_SUBSCRIBE_ALL = 'log_subscribe_all'
-export const PREF_KEY_LOG_SUBSCRIBED_TYPES = 'log_subscribed_types'
 export const PREF_STORE_NAME_LOG = 'log_settings'
 
 export function getLogEventTypeLabel(type: LogEventType): string {

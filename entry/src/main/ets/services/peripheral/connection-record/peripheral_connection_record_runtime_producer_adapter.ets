@@ -146,13 +146,22 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     try {
       this.bluetoothStateListener = (state: access.BluetoothState): void => {
         this.handleBluetoothStateChange(state)
+          .then((ready: boolean) => {
+            this.updateBluetoothRuntimeCapability(ready)
+          })
+          .catch((err: BusinessError) => {
+            LogUtils.warn(
+              TAG,
+              `bluetooth state handler failed: code=${err.code ?? -1}, message=${err.message ?? JSON.stringify(err)}`
+            )
+            this.updateBluetoothRuntimeCapability(false)
+          })
       }
       access.on('stateChange', this.bluetoothStateListener)
 
       const currentState = access.getState()
       LogUtils.info(TAG, `bluetooth state queried: state=${this.getBluetoothStateLabel(currentState)}`)
-      await this.handleBluetoothStateChange(currentState)
-      return true
+      return await this.handleBluetoothStateChange(currentState)
     } catch (err) {
       const error = err as BusinessError
       LogUtils.error(
@@ -176,40 +185,40 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     this.bluetoothCurrentState = access.BluetoothState.STATE_OFF
   }
 
-  private async handleBluetoothStateChange(state: access.BluetoothState): Promise<void> {
+  private async handleBluetoothStateChange(state: access.BluetoothState): Promise<boolean> {
     this.bluetoothCurrentState = state
     const stateLabel = this.getBluetoothStateLabel(state)
     LogUtils.info(TAG, `bluetooth state change: state=${stateLabel}`)
     if (state === access.BluetoothState.STATE_ON || state === access.BluetoothState.STATE_BLE_ON) {
-      await this.resumeBluetoothAclSubscriptionIfNeeded(`state=${stateLabel}`)
-      return
+      return await this.resumeBluetoothAclSubscriptionIfNeeded(`state=${stateLabel}`)
     }
     this.cleanupBluetoothAclSubscriber(`state=${stateLabel}`)
+    return !this.bluetoothPermissionBlocked
   }
 
-  private async resumeBluetoothAclSubscriptionIfNeeded(trigger: string): Promise<void> {
+  private async resumeBluetoothAclSubscriptionIfNeeded(trigger: string): Promise<boolean> {
     if (!this.isBluetoothRuntimeActive()) {
       LogUtils.info(
         TAG,
         `skip resumeBluetoothAclSubscriptionIfNeeded: trigger=${trigger}, state=${this.getBluetoothStateLabel(this.bluetoothCurrentState)}`
       )
-      return
+      return !this.bluetoothPermissionBlocked
     }
     if (this.bluetoothAclSubscriber) {
-      return
+      return true
     }
     const permissionGranted = await this.ensureBluetoothRuntimePermission(trigger)
     if (!permissionGranted) {
-      return
+      return false
     }
-    await this.subscribeBluetoothAclStateChange(trigger)
+    return await this.subscribeBluetoothAclStateChange(trigger)
   }
 
-  private async subscribeBluetoothAclStateChange(trigger: string): Promise<void> {
+  private async subscribeBluetoothAclStateChange(trigger: string): Promise<boolean> {
     if (this.bluetoothAclSubscriber) {
-      return
+      return true
     }
-    await new Promise<void>((resolve) => {
+    return await new Promise<boolean>((resolve) => {
       try {
         const subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
           events: [BLUETOOTH_ACL_EVENT]
@@ -223,7 +232,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
               TAG,
               `bluetooth acl createSubscriber failed: trigger=${trigger}, code=${err.code}, message=${err.message}`
             )
-            resolve()
+            resolve(false)
             return
           }
           commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
@@ -239,7 +248,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
           this.bluetoothAclSubscriber = subscriber
           this.bluetoothPermissionBlocked = false
           LogUtils.info(TAG, `bluetooth acl subscriber ready: trigger=${trigger}`)
-          resolve()
+          resolve(true)
         })
       } catch (err) {
         const error = err as BusinessError
@@ -250,7 +259,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
           TAG,
           `bluetooth acl subscribe failed: trigger=${trigger}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
         )
-        resolve()
+        resolve(false)
       }
     })
   }
@@ -366,6 +375,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   private enterBluetoothPermissionBlocked(reason: string): void {
     this.bluetoothPermissionBlocked = true
     this.cleanupBluetoothAclSubscriber(reason)
+    this.updateBluetoothRuntimeCapability(false)
     LogUtils.warn(TAG, `bluetooth runtime paused: reason=${reason}`)
   }
 
@@ -407,6 +417,21 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
       reasons.push('bluetooth_acl_runtime_register_failed')
     }
     return reasons.length > 0 ? reasons.join('|') : undefined
+  }
+
+  private updateBluetoothRuntimeCapability(bluetoothReady: boolean): void {
+    if (!this.context) {
+      return
+    }
+    const usbReady = this.status.capabilities.usbRuntimeEvents
+    this.status = {
+      running: usbReady || bluetoothReady,
+      capabilities: {
+        usbRuntimeEvents: usbReady,
+        bluetoothRuntimeEvents: bluetoothReady,
+        degradedReason: this.buildDegradedReason(usbReady, bluetoothReady)
+      }
+    }
   }
 
   private buildProducerEvent(
