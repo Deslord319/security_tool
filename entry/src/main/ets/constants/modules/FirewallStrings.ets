@@ -141,8 +141,10 @@ export function buildFirewallRuleCountText(count: number): string {
   return `${count} 条`
 }
 
-export function buildFirewallUserLabel(userId: number, isForeground: boolean): string {
-  return isForeground ? `用户 ${userId}（当前）` : `用户 ${userId}`
+export function buildFirewallUserLabel(userId: number, isForeground: boolean, userName?: string): string {
+  let normalizedName = userName?.trim()
+  let baseLabel = normalizedName && normalizedName.length > 0 ? normalizedName : `用户 ${userId}`
+  return isForeground ? `${baseLabel}（当前）` : baseLabel
 }
 
 export class FirewallPresetRuleNameStrings {

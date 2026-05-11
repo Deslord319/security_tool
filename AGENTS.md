@@ -240,6 +240,7 @@ ohos.permission.ENTERPRISE_MANAGE_APPLICATION
 ohos.permission.ACCESS_BIOMETRIC
 ohos.permission.QUERY_AUDIT_EVENT
 ohos.permission.GET_LOCAL_ACCOUNTS
+ohos.permission.MANAGE_LOCAL_ACCOUNTS
 ohos.permission.PRIVACY_WINDOW
 ```
 

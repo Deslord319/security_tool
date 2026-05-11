@@ -15,6 +15,10 @@ interface TrackedUserRecord {
   updatedAt: number
 }
 
+interface AccountManagerWithAccountInfoQuery {
+  queryOsAccountById?: (localId: number) => Promise<osAccount.OsAccountInfo>
+}
+
 export class SystemUserProvider {
   static async trackAddedUser(userId: number): Promise<void> {
     if (!Number.isFinite(userId) || userId < 0) {
@@ -62,11 +66,12 @@ export class SystemUserProvider {
         LogUtils.warn(TAG, 'getForegroundOsAccountLocalId failed: %{public}s', JSON.stringify(err))
       }
 
+      let userNameMap = await SystemUserProvider.loadUserNameMap(accountManager, mergedIds, foregroundId)
       let users: UserFirewallOption[] = mergedIds.map((userId: number): UserFirewallOption => {
         let isForeground = foregroundId === userId
         return {
           userId: userId,
-          label: buildFirewallUserLabel(userId, isForeground),
+          label: buildFirewallUserLabel(userId, isForeground, userNameMap.get(userId)),
           isForeground: isForeground
         } as UserFirewallOption
       })
@@ -90,6 +95,66 @@ export class SystemUserProvider {
   private static async loadTrackedUserIds(): Promise<number[]> {
     let trackedUsers = await SystemUserProvider.loadTrackedUsers()
     return trackedUsers.map((item: TrackedUserRecord): number => item.userId)
+  }
+
+  private static async loadUserNameMap(
+    accountManager: osAccount.AccountManager,
+    userIds: number[],
+    foregroundId?: number
+  ): Promise<Map<number, string>> {
+    let userNameMap = new Map<number, string>()
+    for (let i = 0; i < userIds.length; i++) {
+      let userId = userIds[i]
+      let userName = await SystemUserProvider.loadUserName(accountManager, userId, foregroundId === userId)
+      if (userName !== undefined) {
+        userNameMap.set(userId, userName)
+      }
+    }
+    return userNameMap
+  }
+
+  private static async loadUserName(
+    accountManager: osAccount.AccountManager,
+    userId: number,
+    isForeground: boolean
+  ): Promise<string | undefined> {
+    let accountInfo = await SystemUserProvider.queryOsAccountInfoById(accountManager, userId)
+    let accountInfoName = SystemUserProvider.normalizeUserName(accountInfo?.localName)
+    if (accountInfoName !== undefined) {
+      return accountInfoName
+    }
+
+    if (!isForeground) {
+      return undefined
+    }
+
+    try {
+      return SystemUserProvider.normalizeUserName(await accountManager.getOsAccountName())
+    } catch (err) {
+      LogUtils.warn(TAG, 'getOsAccountName failed: userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
+    }
+    return undefined
+  }
+
+  private static async queryOsAccountInfoById(
+    accountManager: osAccount.AccountManager,
+    userId: number
+  ): Promise<osAccount.OsAccountInfo | undefined> {
+    let extendedAccountManager = accountManager as AccountManagerWithAccountInfoQuery
+    if (extendedAccountManager.queryOsAccountById === undefined) {
+      return undefined
+    }
+    try {
+      return await extendedAccountManager.queryOsAccountById(userId)
+    } catch (err) {
+      LogUtils.warn(TAG, 'queryOsAccountById failed: userId=%{public}d, err=%{public}s', userId, JSON.stringify(err))
+      return undefined
+    }
+  }
+
+  private static normalizeUserName(userName?: string): string | undefined {
+    let normalizedName = userName?.trim()
+    return normalizedName && normalizedName.length > 0 ? normalizedName : undefined
   }
 
   private static async loadTrackedUsers(): Promise<TrackedUserRecord[]> {
