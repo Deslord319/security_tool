@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
+import {
+  PeripheralDevicePolicyRecord,
+  PeripheralType
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PreferencesAccessor } from '../../main/ets/storage/preferences/PreferencesAccessor'
 

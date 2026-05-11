@@ -1,6 +1,7 @@
 import { securityManager } from '@kit.MDMKit'
 import { taskpool } from '@kit.ArkTS'
-import { OperationResult, PasswordComplexityConfig } from '../../../models/DataModels'
+import { OperationResult } from '../../../models/CommonModels'
+import { PasswordComplexityConfig } from '../../../models/IdentityModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
 import { IdentityActionStrings } from '../../../constants/modules/IdentityStrings'
 import { ErrorLike } from '../../../types/LooseValueTypes'

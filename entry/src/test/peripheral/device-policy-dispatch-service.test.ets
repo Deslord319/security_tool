@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { PeripheralType } from '../../main/ets/models/DataModels'
+import { PeripheralType } from '../../main/ets/models/PeripheralModels'
 import { PeripheralDevicePolicyDispatchService } from '../../main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
 
 export default function peripheralDevicePolicyDispatchServiceTest() {

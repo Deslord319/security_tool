@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogStorageConfig } from '../../main/ets/models/DataModels'
+import { LogStorageConfig } from '../../main/ets/models/LogModels'
 import {
   buildLogStorageNaturalDayCutoff,
   LogStorageMaintenanceService

@@ -3,14 +3,14 @@ import { common } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
+import { AuthMethod } from '../../../models/AuthModels'
 import {
-  AuthMethod,
   DEFAULT_TOOL_SETTINGS,
   PREF_KEY_AUTH_METHOD,
   PREF_KEY_STARTUP_AUTH,
   PREF_STORE_NAME_TOOL,
   ToolSettingsConfig
-} from '../../../models/DataModels'
+} from '../../../models/ToolSettingsModels'
 
 const TAG = 'ToolSettings.Repository'
 

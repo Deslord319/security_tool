@@ -6,7 +6,7 @@ import {
   LOG_MAX_ENTRIES_OPTIONS,
   ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/LogModels'
 import {
   formatLogTimestamp,
   getLogEventResultColor,

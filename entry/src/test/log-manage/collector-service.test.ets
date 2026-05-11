@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import {
+  LogEntry,
+  LogEventResult,
+  LogEventType
+} from '../../main/ets/models/LogModels'
 import {
   AuditSubscribeResult,
   CrashSubscribeResult,

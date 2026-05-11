@@ -3,12 +3,14 @@ import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   AdminActivationState,
-  ExportActionResult,
-  LogEventResult,
+  ExportActionResult
+} from '../../main/ets/models/CommonModels'
+import { LogEventResult } from '../../main/ets/models/LogModels'
+import {
   PeripheralConnectionRecord,
   PeripheralTraceRecord,
   PeripheralType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'

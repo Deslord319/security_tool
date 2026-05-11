@@ -1,6 +1,12 @@
-import { LabelText, ResultText } from '../../../constants/StringCatalog'
-import { LogEventPresentationStrings, LogResultPresentationStrings } from '../../../constants/modules/LogManageStrings'
-import { LogEventResult, LogEventType } from '../../../models/DataModels'
+import {
+  LogEventPresentationStrings,
+  LogResultPresentationStrings,
+  resolveLogEventResultLabel,
+  resolveLogEventTypeLabel
+} from '../../../constants/modules/LogManageStrings'
+import { ResultText } from '../../../constants/StringCatalog'
+import { LogEventResult, LogEventType } from '../../../models/LogModels'
+import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 
 export interface LogEventTypeOption {
   label: string
@@ -28,33 +34,11 @@ export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = [
 ]
 
 export function getLogEventTypeLabel(type: LogEventType): string {
-  switch (type) {
-    case LogEventType.CRASH:
-      return LogEventPresentationStrings.CRASH
-    case LogEventType.FILE:
-      return LogEventPresentationStrings.FILE
-    case LogEventType.ACCOUNT:
-      return LogEventPresentationStrings.ACCOUNT
-    case LogEventType.PERMISSION:
-      return LogEventPresentationStrings.PERMISSION
-    case LogEventType.POWER:
-      return LogEventPresentationStrings.POWER
-    default:
-      return LabelText.UNKNOWN
-  }
+  return resolveLogEventTypeLabel(type)
 }
 
 export function getLogEventResultLabel(result: LogEventResult): string {
-  switch (result) {
-    case LogEventResult.SUCCESS:
-      return ResultText.SUCCESS
-    case LogEventResult.BLOCKED:
-      return LogResultPresentationStrings.BLOCKED
-    case LogEventResult.FAILED:
-      return ResultText.FAILED
-    default:
-      return LabelText.UNKNOWN
-  }
+  return resolveLogEventResultLabel(result)
 }
 
 export function getLogEventResultColor(result: LogEventResult): string {
@@ -71,7 +55,5 @@ export function getLogEventResultColor(result: LogEventResult): string {
 }
 
 export function formatLogTimestamp(timestamp: number): string {
-  let date = new Date(timestamp)
-  let pad = (n: number): string => n.toString().padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  return formatStandardDateTime(timestamp)
 }

@@ -1,5 +1,5 @@
 import { common } from '@kit.AbilityKit'
-import { PeripheralTraceRecord } from '../../../models/DataModels'
+import { PeripheralTraceRecord } from '../../../models/PeripheralModels'
 import { PeripheralTraceMaintenanceService } from './PeripheralTraceMaintenanceService'
 import { LogUtils } from '../../../utils/LogUtils'
 import {

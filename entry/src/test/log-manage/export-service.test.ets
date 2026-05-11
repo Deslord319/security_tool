@@ -5,7 +5,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/LogModels'
 import {
   CsvFileExportService,
   CsvFileWritePort
@@ -140,8 +140,44 @@ export default function logExportServiceTest() {
 
       expect(result.success).assertTrue()
       expect(captured.length >= 2).assertTrue()
-      expect(captured[0].indexOf('时间,事件类型,详情,进程名,PID,结果')).assertEqual(0)
+      expect(captured[0].charCodeAt(0)).assertEqual(0xFEFF)
+      expect(captured[0].substring(1).indexOf('时间,事件类型,详情,进程名,PID,结果')).assertEqual(0)
       expect(captured[1].indexOf('alpha') > -1).assertTrue()
+      done()
+    })
+
+    it('should escape every exported csv field', 0, async (done: Function) => {
+      let countMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.countByQuery)
+      let listMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.listByQuery)
+      let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
+      let captured: string[] = []
+      let entry = createLogEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'alpha, \"quoted\"\\nline', 1700000000000)
+      entry.processName = 'Test,Process'
+      entry.pid = 1234
+      when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
+      when(listMock)(ArgumentMatchers.any).afterReturn(Promise.resolve([entry]))
+      when(saveMock)(ArgumentMatchers.any).afterAction((
+        context: common.UIAbilityContext,
+        fileNamePrefix: string,
+        writer: (port: CsvFileWritePort) => Promise<void>,
+        fileExtension: string
+      ) => {
+        let port = new CapturingWritePort(captured)
+        return writer(port).then(() => {
+          return Promise.resolve(createCsvFileExportResult(
+            true,
+            'ok',
+            `${fileNamePrefix}_mock.${fileExtension}`,
+            `/mock/${fileNamePrefix}_mock.${fileExtension}`
+          ))
+        })
+      })
+
+      let result = await LogExportService.export({} as common.UIAbilityContext)
+
+      expect(result.success).assertTrue()
+      expect(captured[1].indexOf('\"alpha, \"\"quoted\"\"\\nline\"') > -1).assertTrue()
+      expect(captured[1].indexOf('\"Test,Process\"') > -1).assertTrue()
       done()
     })
 

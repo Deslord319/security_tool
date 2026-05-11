@@ -5,7 +5,7 @@ import {
   PeripheralConnectionRecord,
   PeripheralTraceQuery,
   PeripheralTraceRecord
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { PeripheralTraceEntryRepository } from './PeripheralTraceEntryRepository'
 
 const TAG = 'PeripheralConnectionRecordService'

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { LogEventResult } from '../../main/ets/models/LogModels'
 import {
-  LogEventResult,
   PeripheralTraceRecord,
   PeripheralType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import {
   PeripheralTraceMaintenanceService
 } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'

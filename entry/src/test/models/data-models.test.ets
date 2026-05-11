@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium'
+import { AuthMethod } from '../../main/ets/models/AuthModels'
+import { DEFAULT_TOOL_SETTINGS } from '../../main/ets/models/ToolSettingsModels'
 import {
-  AuthMethod,
-  DEFAULT_TOOL_SETTINGS,
   PeripheralType,
   formatBluetoothDeviceId,
   formatUsbDeviceId,
@@ -9,8 +9,7 @@ import {
   inferPeripheralTypeFromBaseClass,
   isUsbPeripheralType,
   parseUsbDeviceId
-} from '../../main/ets/models/DataModels'
-
+} from '../../main/ets/models/PeripheralModels'
 export default function dataModelsTest() {
   describe('DataModels', () => {
     it('should parse and format USB ids with stable uppercase formatting', 0, () => {

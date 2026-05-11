@@ -4,7 +4,11 @@ import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
-import { PeripheralPolicyRecord, PeripheralType, isUsbPeripheralType } from '../../../models/DataModels'
+import {
+  PeripheralPolicyRecord,
+  PeripheralType,
+  isUsbPeripheralType
+} from '../../../models/PeripheralModels'
 import { getPeripheralTypeLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'

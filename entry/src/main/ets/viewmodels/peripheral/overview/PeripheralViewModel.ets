@@ -1,7 +1,14 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { PeripheralReasonCodes, PeripheralTabIndexes } from '../../../constants/modules/PeripheralStrings'
-import { AdminActivationState, ExportActionResult, PeripheralConnectionRecord, PeripheralType } from '../../../models/DataModels'
+import {
+  AdminActivationState,
+  ExportActionResult
+} from '../../../models/CommonModels'
+import {
+  PeripheralConnectionRecord,
+  PeripheralType
+} from '../../../models/PeripheralModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralTraceEntryRepository } from '../../../services/peripheral/connection-record/PeripheralTraceEntryRepository'

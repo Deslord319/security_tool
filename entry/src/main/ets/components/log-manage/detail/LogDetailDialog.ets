@@ -5,7 +5,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import {
   formatLogTimestamp,
   getLogEventResultColor,

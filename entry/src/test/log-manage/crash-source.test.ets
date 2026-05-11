@@ -1,6 +1,9 @@
 import { describe, expect, it } from '@ohos/hypium'
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
-import { LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import {
+  LogEventResult,
+  LogEventType
+} from '../../main/ets/models/LogModels'
 import { mapCrashInfoToLogEntry } from '../../main/ets/services/log-manage/source/LogCrashEventMapper'
 
 export default function logCrashSourceTest() {

@@ -1,10 +1,10 @@
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import { connection } from '@kit.ConnectivityKit'
+import { LogEventResult } from '../../../models/LogModels'
 import {
-  LogEventResult,
   PeripheralType,
   formatBluetoothDeviceId
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import {
   PeripheralDevicePolicyDispatchService,

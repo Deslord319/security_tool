@@ -2,12 +2,12 @@ import { securityManager } from '@kit.MDMKit'
 import { AdminText, MessageText } from '../../../constants/StringCatalog'
 import { IdentityActionStrings } from '../../../constants/modules/IdentityStrings'
 import { IdentityMessageStrings } from '../../../constants/modules/IdentityStrings'
+import { AdminActivationState } from '../../../models/CommonModels'
 import {
-  AdminActivationState,
   PASSWORD_LENGTH_OPTIONS,
   PASSWORD_VALIDITY_PRESETS,
   PasswordComplexityConfig
-} from '../../../models/DataModels'
+} from '../../../models/IdentityModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { IdentityPasswordPolicyMapper } from '../../../services/identity/settings/IdentityPasswordPolicyMapper'
 import { IdentityService } from '../../../services/identity/settings/IdentityService'

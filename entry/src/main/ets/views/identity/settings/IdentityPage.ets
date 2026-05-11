@@ -6,10 +6,7 @@ import {
   IdentityPageStrings,
   IdentitySectionStrings
 } from '../../../constants/modules/IdentityStrings'
-import {
-  PASSWORD_LENGTH_OPTIONS
-} from '../../../models/DataModels'
-
+import { PASSWORD_LENGTH_OPTIONS } from '../../../models/IdentityModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'

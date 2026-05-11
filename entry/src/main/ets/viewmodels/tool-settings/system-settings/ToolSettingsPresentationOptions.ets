@@ -1,6 +1,5 @@
 import { IdentityAuthStrings } from '../../../constants/modules/IdentityStrings'
-import { AuthMethod } from '../../../models/DataModels'
-
+import { AuthMethod } from '../../../models/AuthModels'
 export interface AuthMethodOption {
   label: string
   value: AuthMethod

@@ -8,7 +8,7 @@ import {
   LogEventType,
   LogStatistics,
   parseLogEventResult
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { LogQuery } from '../common/LogManagePorts'
 import {

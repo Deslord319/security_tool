@@ -4,7 +4,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { LooseRecord } from '../../../types/LooseValueTypes'
 import {
   pickNumberFromRecords as pickNumber,

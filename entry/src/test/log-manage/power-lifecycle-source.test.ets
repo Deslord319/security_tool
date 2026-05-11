@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import {
+  LogEntry,
+  LogEventResult,
+  LogEventType
+} from '../../main/ets/models/LogModels'
 import { LogPowerLifecycleSource } from '../../main/ets/services/log-manage/source/LogPowerLifecycleSource'
 import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
 import { InitializeResult, MutationResult } from '../../main/ets/services/log-manage/common/LogManagePorts'

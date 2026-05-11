@@ -1,5 +1,5 @@
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
-import { LogEntry } from '../../../models/DataModels'
+import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { CrashSubscribeResult, SourceStatus } from '../common/LogManagePorts'

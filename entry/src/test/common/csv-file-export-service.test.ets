@@ -37,6 +37,16 @@ export default function csvFileExportServiceTest() {
       expect(escaped).assertEqual('')
     })
 
+    it('should build csv content with bom header and escaped rows', 0, () => {
+      let content = CsvFileExportService.buildCsvContent(
+        ['时间', '详情'],
+        [['2026-05-11 10:00:00', 'alpha,beta']]
+      )
+
+      expect(content.charCodeAt(0)).assertEqual(0xFEFF)
+      expect(content.substring(1)).assertEqual('时间,详情\n2026-05-11 10:00:00,"alpha,beta"')
+    })
+
     it('should return context_missing when context is null for saveText', 0, async () => {
       let result = await CsvFileExportService.saveText(null, 'content')
 

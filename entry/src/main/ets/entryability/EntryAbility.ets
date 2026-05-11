@@ -3,7 +3,7 @@ import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want 
 import { window } from '@kit.ArkUI';
 import { ThemeManager } from '../theme/ThemeManager';
 import { AuthService } from '../services/identity/auth/AuthService';
-import { AuthMethod } from '../models/DataModels';
+import { AuthMethod } from '../models/AuthModels'
 import { DialogService } from '../utils/DialogService';
 import { AppInfo } from '../constants/AppConstants'
 import { PreferencesToolSettingsRepository } from '../services/tool-settings/system-settings/ToolSettingsRepository';

@@ -1,10 +1,8 @@
 import { common } from '@kit.AbilityKit'
 import { MessageText } from '../../../constants/StringCatalog'
 import { LogManageClearingStrings } from '../../../constants/modules/LogManageStrings'
-import {
-  ExportActionResult,
-  LogEntry
-} from '../../../models/DataModels'
+import { ExportActionResult } from '../../../models/CommonModels'
+import { LogEntry } from '../../../models/LogModels'
 import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
 import { LOG_EVENT_RESULT_OPTIONS, LOG_EVENT_TYPE_OPTIONS } from '../presentation/LogPresentationMapper'
 import {

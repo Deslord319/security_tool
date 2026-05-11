@@ -2,10 +2,8 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 
 import { PeripheralExportStrings, PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
-import {
-  ExportActionResult,
-  PeripheralConnectionRecord
-} from '../../../models/DataModels'
+import { ExportActionResult } from '../../../models/CommonModels'
+import { PeripheralConnectionRecord } from '../../../models/PeripheralModels'
 import { PeripheralConnectionRecordService } from '../../../services/peripheral/connection-record/PeripheralConnectionRecordService'
 import {
   buildConnectionHistoryItems,
@@ -87,7 +85,7 @@ export class PeripheralRecordViewModel {
 
   private buildConnectionHistoryCsv(records: PeripheralConnectionRecord[]): string {
     const headers: string[] = PeripheralExportStrings.CONNECTION_HISTORY_CSV_HEADERS
-    const rows = records.map((record: PeripheralConnectionRecord) => {
+    const rows: string[][] = records.map((record: PeripheralConnectionRecord) => {
       return [
         formatPeripheralTimestamp(record.timestamp),
         record.deviceName,
@@ -97,8 +95,8 @@ export class PeripheralRecordViewModel {
         getPeripheralConnectionPolicyLabel(record),
         getPeripheralConnectionResultLabel(record),
         getPeripheralRecordSourceLabel(record.source)
-      ].map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')
+      ]
     })
-    return `\uFEFF${headers.map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
+    return CsvFileExportService.buildCsvContent(headers, rows)
   }
 }

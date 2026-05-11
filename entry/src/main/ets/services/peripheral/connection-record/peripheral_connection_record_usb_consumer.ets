@@ -1,6 +1,6 @@
 import { commonEventManager } from '@kit.BasicServicesKit'
+import { LogEventResult } from '../../../models/LogModels'
 import {
-  LogEventResult,
   PeripheralDevicePolicy,
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit,
@@ -8,7 +8,7 @@ import {
   UsbStoragePolicy,
   formatUsbDeviceId,
   inferPeripheralTypeFromBaseClass
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralService } from '../interface-control/PeripheralService'
 import {

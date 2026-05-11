@@ -22,7 +22,10 @@ import {
   PeripheralTabIndexes,
   resolvePeripheralReason
 } from '../../../constants/modules/PeripheralStrings'
-import { PeripheralConnectionRecord, PeripheralPolicyRecord } from '../../../models/DataModels'
+import {
+  PeripheralConnectionRecord,
+  PeripheralPolicyRecord
+} from '../../../models/PeripheralModels'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'

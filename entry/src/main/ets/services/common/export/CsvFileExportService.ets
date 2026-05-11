@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { fileIo, fileUri, picker } from '@kit.CoreFileKit'
 import { LogUtils } from '../../../utils/LogUtils'
+import { formatCompactDateTime } from '../../../utils/DateTimeFormatUtils'
 
 const TAG = 'CsvFileExportService'
 
@@ -30,6 +31,8 @@ class CsvFileWritePortImpl implements CsvFileWritePort {
 }
 
 export class CsvFileExportService {
+  static readonly UTF8_BOM: string = '\uFEFF'
+
   static async saveText(
     context: common.UIAbilityContext | null,
     content: string,
@@ -118,12 +121,22 @@ export class CsvFileExportService {
     return normalized
   }
 
+  static buildCsvLine(values: string[]): string {
+    return values.map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')
+  }
+
+  static buildCsvContent(headers: string[], rows: string[][], lineBreak: string = '\n', includeBom: boolean = true): string {
+    let lines: string[] = [
+      CsvFileExportService.buildCsvLine(headers)
+    ]
+    for (const row of rows) {
+      lines.push(CsvFileExportService.buildCsvLine(row))
+    }
+    return `${includeBom ? CsvFileExportService.UTF8_BOM : ''}${lines.join(lineBreak)}`
+  }
+
   private static buildExportFileName(timestamp: number, prefix: string, extension: string): string {
-    let date = new Date(timestamp)
-    let pad = (n: number): string => n.toString().padStart(2, '0')
-    let datePart = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
-    let timePart = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-    return `${prefix}_${datePart}_${timePart}.${extension}`
+    return `${prefix}_${formatCompactDateTime(timestamp)}.${extension}`
   }
 
   static writeChunk(fd: number, content: string): void {

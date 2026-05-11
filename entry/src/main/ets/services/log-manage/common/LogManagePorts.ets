@@ -3,7 +3,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { StorageResult } from '../../../storage/StorageResult'
 
 export interface ServiceResult<TCode extends string = string, TData = void> extends StorageResult<TCode, TData> {

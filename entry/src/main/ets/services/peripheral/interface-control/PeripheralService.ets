@@ -4,7 +4,7 @@ import { networkManager, usbManager } from '@kit.MDMKit'
 
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
-import { OperationResult } from '../../../models/DataModels'
+import { OperationResult } from '../../../models/CommonModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'

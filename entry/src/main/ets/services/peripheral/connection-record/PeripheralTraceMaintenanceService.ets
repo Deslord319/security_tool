@@ -1,13 +1,13 @@
 import { common } from '@kit.AbilityKit'
 import {
   normalizeDeviceId,
-  normalizeLogEventResult,
   normalizePeripheralAction,
   normalizePeripheralDecision,
   normalizePeripheralSource,
   PeripheralTraceRecord,
   PeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
+import { normalizeLogEventResult } from '../../../models/LogModels'
 import { StorageResult } from '../../../storage/StorageResult'
 import { LogUtils } from '../../../utils/LogUtils'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'

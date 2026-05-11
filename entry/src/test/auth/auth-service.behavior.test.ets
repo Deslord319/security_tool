@@ -3,7 +3,7 @@ import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { userAuth } from '@kit.UserAuthenticationKit'
 import { LabelText } from '../../main/ets/constants/StringCatalog'
 import { IdentityAuthStrings } from '../../main/ets/constants/modules/IdentityStrings'
-import { AuthMethod } from '../../main/ets/models/DataModels'
+import { AuthMethod } from '../../main/ets/models/AuthModels'
 import { AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { UserAuthAdapter } from '../../main/ets/services/identity/auth/UserAuthAdapter'
 

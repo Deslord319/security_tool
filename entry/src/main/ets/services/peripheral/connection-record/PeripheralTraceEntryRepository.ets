@@ -2,11 +2,13 @@ import relationalStore from '@ohos.data.relationalStore'
 import { AppInfo } from '../../../constants/AppConstants'
 import {
   LogEventResult,
+  parseLogEventResult
+} from '../../../models/LogModels'
+import {
   normalizeDeviceId,
   normalizePeripheralAction,
   normalizePeripheralDecision,
   normalizePeripheralSource,
-  parseLogEventResult,
   PeripheralMatchedPolicyKind,
   PeripheralRecordAction,
   PeripheralRecordPolicyHit,
@@ -16,7 +18,7 @@ import {
   PeripheralTraceStats,
   PeripheralType,
   UsbStoragePolicy
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { RdbResultSetReader } from '../../../storage/rdb/RdbResultSetReader'
 

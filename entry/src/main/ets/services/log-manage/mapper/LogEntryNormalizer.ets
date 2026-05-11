@@ -5,7 +5,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const MAX_IN_MEMORY_ENTRIES = 100000

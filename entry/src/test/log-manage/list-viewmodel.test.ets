@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { ExportActionResult } from '../../main/ets/models/CommonModels'
 import {
-  ExportActionResult,
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/LogModels'
 import {
   ClearLogsResult,
   ExportLogsResult,

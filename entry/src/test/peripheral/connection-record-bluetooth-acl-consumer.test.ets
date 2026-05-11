@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { LogEventResult, PeripheralDevicePolicyRecord, PeripheralType } from '../../main/ets/models/DataModels'
+import { LogEventResult } from '../../main/ets/models/LogModels'
+import {
+  PeripheralDevicePolicyRecord,
+  PeripheralType
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import {
   PeripheralDevicePolicyDispatchService,

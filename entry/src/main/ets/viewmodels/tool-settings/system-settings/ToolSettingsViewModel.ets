@@ -2,7 +2,11 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { ActionDialogStatus } from '../../../utils/DialogService'
 import { MessageText } from '../../../constants/StringCatalog'
-import { AuthMethod, DEFAULT_TOOL_SETTINGS, ToolSettingsConfig } from '../../../models/DataModels'
+import { AuthMethod } from '../../../models/AuthModels'
+import {
+  DEFAULT_TOOL_SETTINGS,
+  ToolSettingsConfig
+} from '../../../models/ToolSettingsModels'
 import { AUTH_METHOD_OPTIONS } from './ToolSettingsPresentationOptions'
 import {
   ToolSettingsConfirmationStrings,

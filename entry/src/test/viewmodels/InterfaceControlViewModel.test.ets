@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import { OperationResult } from '../../main/ets/models/DataModels'
+import { OperationResult } from '../../main/ets/models/CommonModels'
 import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'

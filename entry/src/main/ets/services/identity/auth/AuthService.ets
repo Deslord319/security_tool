@@ -5,7 +5,7 @@ import { cryptoFramework } from '@kit.CryptoArchitectureKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { LabelText } from '../../../constants/StringCatalog'
 import { AuthErrorCodes, CommonSystemErrorCodes } from '../../../constants/SystemErrorCodes'
-import { AuthMethod } from '../../../models/DataModels'
+import { AuthMethod } from '../../../models/AuthModels'
 import { IdentityAuthStrings } from '../../../constants/modules/IdentityStrings'
 import { UserAuthAdapter, UserAuthInstanceResult, UserAuthStatusResult } from './UserAuthAdapter'
 

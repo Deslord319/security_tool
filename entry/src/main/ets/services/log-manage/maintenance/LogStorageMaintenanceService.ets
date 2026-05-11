@@ -1,5 +1,5 @@
 import { common } from '@kit.AbilityKit'
-import { LogEntry } from '../../../models/DataModels'
+import { LogEntry } from '../../../models/LogModels'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogEntryRepository } from '../repository/LogEntryRepository'

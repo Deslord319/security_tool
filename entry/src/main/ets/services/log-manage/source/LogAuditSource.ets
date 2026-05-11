@@ -8,7 +8,7 @@ import {
   ALL_LOG_EVENT_TYPES,
   LogEntry,
   LogEventType
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'

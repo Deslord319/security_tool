@@ -1,7 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { buildFirewallAddRuleFailedMessage } from '../../constants/modules/FirewallStrings'
-import { AuthMethod } from '../../models/DataModels'
+import { AuthMethod } from '../../models/AuthModels'
 import { LogUtils } from '../../utils/LogUtils'
 import { generateRandomSuffix } from '../../utils/ValuePicker'
 import { AuthService } from '../identity/auth/AuthService'

@@ -1,6 +1,6 @@
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { LogManageDetailStrings } from '../../../constants/modules/LogManageStrings'
-import { LogDetailTableRow } from '../../../models/DataModels'
+import { LogDetailTableRow } from '../../../models/LogModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 
 @ComponentV2

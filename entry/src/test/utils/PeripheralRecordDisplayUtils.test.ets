@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { LogEventResult, PeripheralConnectionRecord, PeripheralType } from '../../main/ets/models/DataModels'
+import { LogEventResult } from '../../main/ets/models/LogModels'
+import {
+  PeripheralConnectionRecord,
+  PeripheralType
+} from '../../main/ets/models/PeripheralModels'
 import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,

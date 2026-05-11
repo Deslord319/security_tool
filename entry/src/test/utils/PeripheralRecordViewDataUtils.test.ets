@@ -1,10 +1,10 @@
 import { describe, expect, it } from '@ohos/hypium'
+import { LogEventResult } from '../../main/ets/models/LogModels'
 import {
-  LogEventResult,
   PeripheralConnectionRecord,
   PeripheralDevicePolicyRecord,
   PeripheralType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp,

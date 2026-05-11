@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { LogEventResult } from '../../main/ets/models/LogModels'
 import {
-  LogEventResult,
   PeripheralConnectionFilter,
   PeripheralTraceQuery,
   PeripheralTraceRecord,
   PeripheralType,
   UsbStoragePolicy
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralConnectionRecordService } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordService'
 import { PeripheralTraceEntryRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceEntryRepository'
 

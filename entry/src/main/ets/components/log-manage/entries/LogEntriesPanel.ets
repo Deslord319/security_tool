@@ -1,9 +1,7 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { LogManageDetailStrings, LogManageEmptyStateStrings } from '../../../constants/modules/LogManageStrings'
-import {
-  LogEntry
-} from '../../../models/DataModels'
+import { LogEntry } from '../../../models/LogModels'
 import { LogFilterState, LogListState } from '../../../models/LogManageModels'
 import {
   formatLogTimestamp,
