@@ -267,7 +267,7 @@ hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 当前仓库中，按文件数统计包含：
 
 - `76` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
-- `21` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
+- `6` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
 - `45` 个 E2E case：`scripts/e2e/cases/**/*.json`
 
 E2E case 以端到端功能闭环为主，覆盖规则创建/删除、日志筛选与存储设置保存、外设策略可逆变更、身份策略保存、工具设置系统入口跳转等场景。
