@@ -1,11 +1,13 @@
 import { common } from '@kit.AbilityKit'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
-  LogEntry,
+  LogEntry
+} from '../../../models/DataModels'
+import {
   formatLogTimestamp,
   getLogEventResultLabel,
   getLogEventTypeLabel
-} from '../../../models/DataModels'
+} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { LogManageCsvStrings } from '../../../constants/modules/LogManageStrings'
 import { ExportLogsResult, LogQuery } from '../common/LogManagePorts'
 import { LogEntryRepository } from '../repository/LogEntryRepository'

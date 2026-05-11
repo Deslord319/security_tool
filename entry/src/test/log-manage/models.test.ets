@@ -2,16 +2,18 @@ import { describe, it, expect } from '@ohos/hypium'
 import {
   LogEventType,
   LogEventResult,
-  getLogEventTypeLabel,
-  getLogEventResultLabel,
-  getLogEventResultColor,
-  formatLogTimestamp,
   generateLogEntryId,
-  LOG_EVENT_TYPE_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   ALL_LOG_EVENT_TYPES,
   DEFAULT_LOG_STORAGE_CONFIG
 } from '../../main/ets/models/DataModels'
+import {
+  formatLogTimestamp,
+  getLogEventResultColor,
+  getLogEventResultLabel,
+  getLogEventTypeLabel,
+  LOG_EVENT_TYPE_OPTIONS
+} from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 
 export default function logManageDataModelsTest() {
   describe('LogManage DataModels', () => {

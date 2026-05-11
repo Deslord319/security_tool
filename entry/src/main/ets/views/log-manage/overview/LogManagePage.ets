@@ -17,12 +17,11 @@ import {
 import {
   ExportActionResult,
   LogEntry,
-  LOG_EVENT_RESULT_OPTIONS,
-  LOG_EVENT_TYPE_OPTIONS,
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
 } from '../../../models/DataModels'
 import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
+import { LOG_EVENT_RESULT_OPTIONS, LOG_EVENT_TYPE_OPTIONS } from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'

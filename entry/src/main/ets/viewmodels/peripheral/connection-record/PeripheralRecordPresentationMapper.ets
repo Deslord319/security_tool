@@ -1,22 +1,74 @@
 import {
-  formatLogTimestamp,
   PeripheralConnectionRecord,
   LogEventResult,
   PeripheralMatchedPolicyKind,
-  PeripheralRecordPolicyHit
+  PeripheralRecordAction,
+  PeripheralRecordPolicyHit,
+  PeripheralRecordSource,
+  PeripheralType
 } from '../../../models/DataModels'
 import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 import {
+  DeviceTypeLabels,
   PeripheralMatchedPolicyStrings,
+  PeripheralRecordActionPresentationStrings,
   PeripheralSourcePresentationStrings
 } from '../../../constants/modules/PeripheralStrings'
 import { LogResultPresentationStrings } from '../../../constants/modules/LogManageStrings'
+import { formatLogTimestamp } from '../../log-manage/presentation/LogPresentationMapper'
 
 export interface PeripheralConnectionHistoryItem {
   time: string
   policy: string
   result: string
+}
+
+export function getPeripheralTypeLabel(type: PeripheralType): string {
+  switch (type) {
+    case PeripheralType.USB_STORAGE:
+      return DeviceTypeLabels.USB_STORAGE
+    case PeripheralType.USB_CAMERA:
+      return DeviceTypeLabels.USB_CAMERA
+    case PeripheralType.USB_PRINTER:
+      return DeviceTypeLabels.USB_PRINTER
+    case PeripheralType.USB_HID:
+      return DeviceTypeLabels.USB_HID
+    case PeripheralType.USB_OTHER:
+      return DeviceTypeLabels.USB_OTHER
+    case PeripheralType.BLUETOOTH:
+      return DeviceTypeLabels.BLUETOOTH
+    default:
+      return LabelText.UNKNOWN
+  }
+}
+
+export function getPeripheralRecordSourceLabel(source: PeripheralRecordSource): string {
+  switch (source) {
+    case 'runtime_event':
+      return PeripheralSourcePresentationStrings.RUNTIME_EVENT
+    case 'audit_event':
+      return PeripheralSourcePresentationStrings.AUDIT_EVENT
+    case 'policy_snapshot':
+      return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
+    default:
+      return PeripheralSourcePresentationStrings.UNKNOWN
+  }
+}
+
+export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): string {
+  switch (action) {
+    case 'connect':
+      return PeripheralRecordActionPresentationStrings.CONNECT
+    case 'disconnect':
+      return PeripheralRecordActionPresentationStrings.DISCONNECT
+    case 'discover':
+      return PeripheralRecordActionPresentationStrings.DISCOVER
+    case 'intercept':
+      return PeripheralRecordActionPresentationStrings.INTERCEPT
+    default:
+      return PeripheralRecordActionPresentationStrings.UNKNOWN
+  }
 }
 
 export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPolicyKind): string {

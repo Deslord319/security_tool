@@ -1,13 +1,15 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import {
-  formatLogTimestamp,
-  getLogEventResultLabel,
   LogDetailTableRow,
   LogEventResult,
   LogEventType,
   LogEntry
 } from '../../main/ets/models/DataModels'
+import {
+  formatLogTimestamp,
+  getLogEventResultLabel
+} from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {

@@ -3,11 +3,10 @@ import { MessageText } from '../../../constants/StringCatalog'
 import { LogManageClearingStrings } from '../../../constants/modules/LogManageStrings'
 import {
   ExportActionResult,
-  LogEntry,
-  LOG_EVENT_RESULT_OPTIONS,
-  LOG_EVENT_TYPE_OPTIONS
+  LogEntry
 } from '../../../models/DataModels'
 import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
+import { LOG_EVENT_RESULT_OPTIONS, LOG_EVENT_TYPE_OPTIONS } from '../presentation/LogPresentationMapper'
 import {
   ClearLogsResult,
   ExportLogsResult,

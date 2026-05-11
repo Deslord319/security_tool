@@ -2,13 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
-  getPeripheralRecordActionLabel,
-  getPeripheralRecordSourceLabel,
-  getPeripheralTypeLabel,
   LogEventResult,
   PeripheralConnectionRecord,
   PeripheralType
 } from '../../main/ets/models/DataModels'
+import {
+  getPeripheralRecordActionLabel,
+  getPeripheralRecordSourceLabel,
+  getPeripheralTypeLabel
+} from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import {
   PeripheralExportStrings,
   PeripheralReasonCodes

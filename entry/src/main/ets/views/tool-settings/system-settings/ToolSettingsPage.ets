@@ -9,7 +9,7 @@ import {
   ToolSettingsStartupAuthStrings
 } from '../../../constants/modules/ToolSettingsStrings'
 import { common } from '@kit.AbilityKit'
-import { AUTH_METHOD_OPTIONS } from '../../../models/DataModels'
+import { AUTH_METHOD_OPTIONS } from '../../../viewmodels/tool-settings/system-settings/ToolSettingsPresentationOptions'
 
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../../components/SettingsSectionCard'

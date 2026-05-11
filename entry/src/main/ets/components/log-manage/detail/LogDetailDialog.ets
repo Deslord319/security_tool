@@ -4,12 +4,14 @@ import {
   LogDetailTableRow,
   LogEntry,
   LogEventResult,
-  LogEventType,
+  LogEventType
+} from '../../../models/DataModels'
+import {
   formatLogTimestamp,
   getLogEventResultColor,
   getLogEventResultLabel,
   getLogEventTypeLabel
-} from '../../../models/DataModels'
+} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { LogDetailTable } from './LogDetailTable'

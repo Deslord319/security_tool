@@ -3,7 +3,9 @@ import { LogEventResult, PeripheralConnectionRecord, PeripheralType } from '../.
 import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
-  getPeripheralMatchedPolicyKindLabel
+  getPeripheralMatchedPolicyKindLabel,
+  getPeripheralRecordActionLabel,
+  getPeripheralRecordSourceLabel
 } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 
 function createConnectionRecord(): PeripheralConnectionRecord {
@@ -30,6 +32,14 @@ function createUnexpectedResultRecord(): PeripheralConnectionRecord {
 
 export default function peripheralRecordDisplayUtilsTest() {
   describe('PeripheralRecordDisplayUtils', () => {
+    it('should keep current action and source labels populated', 0, () => {
+      expect(getPeripheralRecordActionLabel('discover').length > 0).assertTrue()
+      expect(getPeripheralRecordActionLabel('intercept').length > 0).assertTrue()
+      expect(getPeripheralRecordSourceLabel('runtime_event').length > 0).assertTrue()
+      expect(getPeripheralRecordSourceLabel('audit_event').length > 0).assertTrue()
+      expect(getPeripheralRecordSourceLabel('policy_snapshot').length > 0).assertTrue()
+    })
+
     it('should expose stable labels for all matched policy kinds', 0, () => {
       expect(getPeripheralMatchedPolicyKindLabel('usb_disabled')).assertEqual('USB 接口已禁用')
       expect(getPeripheralMatchedPolicyKindLabel('usb_storage_disabled')).assertEqual('USB 存储已禁用')

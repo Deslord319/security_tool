@@ -4,10 +4,7 @@ import { common } from '@kit.AbilityKit'
 import { PeripheralExportStrings, PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import {
   ExportActionResult,
-  PeripheralConnectionRecord,
-  getPeripheralRecordActionLabel,
-  getPeripheralRecordSourceLabel,
-  getPeripheralTypeLabel
+  PeripheralConnectionRecord
 } from '../../../models/DataModels'
 import { PeripheralConnectionRecordService } from '../../../services/peripheral/connection-record/PeripheralConnectionRecordService'
 import {
@@ -15,6 +12,9 @@ import {
   formatPeripheralTimestamp,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
+  getPeripheralRecordActionLabel,
+  getPeripheralRecordSourceLabel,
+  getPeripheralTypeLabel,
   PeripheralConnectionHistoryItem
 } from './PeripheralRecordPresentationMapper'
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'

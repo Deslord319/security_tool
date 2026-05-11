@@ -2,8 +2,6 @@ import { DetailDialogShell } from '../../DetailDialogShell'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   PeripheralConnectionRecord,
-  getPeripheralRecordActionLabel,
-  getPeripheralRecordSourceLabel,
   isUsbPeripheralType
 } from '../../../models/DataModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -12,6 +10,8 @@ import {
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel,
+  getPeripheralRecordActionLabel,
+  getPeripheralRecordSourceLabel,
   PeripheralConnectionHistoryItem
 } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { DeviceDetailStrings } from '../../../constants/modules/PeripheralStrings'

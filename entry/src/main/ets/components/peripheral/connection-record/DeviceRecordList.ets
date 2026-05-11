@@ -1,7 +1,5 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
-  getPeripheralRecordActionLabel,
-  getPeripheralTypeLabel,
   PeripheralConnectionRecord,
   PeripheralType,
   isUsbPeripheralType
@@ -11,7 +9,12 @@ import { DeviceDetailStrings, PeripheralPageStrings } from '../../../constants/m
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
-import { getPeripheralConnectionListPolicyLabel, formatPeripheralTimestamp } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import {
+  getPeripheralConnectionListPolicyLabel,
+  formatPeripheralTimestamp,
+  getPeripheralRecordActionLabel,
+  getPeripheralTypeLabel
+} from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralDeviceIdentityCell, PeripheralHeaderCell, PeripheralTypeTag } from '../common/PeripheralTableCells'
