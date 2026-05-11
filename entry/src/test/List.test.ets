@@ -33,6 +33,7 @@ import logImportHashTest from './log-manage/import-hash.test'
 import logImportServiceTest from './log-manage/import-service.test'
 import crashImportRuleTest from './log-manage/crash-import-rule.test'
 import kernelImportRuleTest from './log-manage/kernel-import-rule.test'
+import systemImportRuleTest from './log-manage/system-import-rule.test'
 import logListViewModelTest from './log-manage/list-viewmodel.test'
 import logMaintenanceServiceTest from './log-manage/maintenance-service.test'
 import logManageModelsTest from './log-manage/models.test'
@@ -114,6 +115,7 @@ export default function testsuite() {
   logImportServiceTest()
   crashImportRuleTest()
   kernelImportRuleTest()
+  systemImportRuleTest()
   logListViewModelTest()
   logMaintenanceServiceTest()
   logManageModelsTest()

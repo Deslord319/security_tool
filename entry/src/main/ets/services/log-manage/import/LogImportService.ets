@@ -8,6 +8,7 @@ import { LogArchiveExtractor } from './LogArchiveExtractor'
 import { CrashLogImportRule } from './CrashLogImportRule'
 import { KernelLogImportRule } from './KernelLogImportRule'
 import { ImportedLogFile, LogImportRule } from './LogImportRule'
+import { SystemLogImportRule } from './SystemLogImportRule'
 
 const TAG = 'LogImportService'
 
@@ -65,7 +66,7 @@ class DefaultLogImportPicker implements LogImportPickerPort {
 }
 
 export class LogImportService {
-  private static rules: LogImportRule[] = [new KernelLogImportRule(), new CrashLogImportRule()]
+  private static rules: LogImportRule[] = [new KernelLogImportRule(), new CrashLogImportRule(), new SystemLogImportRule()]
   private static pickerPort: LogImportPickerPort = new DefaultLogImportPicker()
 
   static setRulesForTest(rules: LogImportRule[]): void {
@@ -77,7 +78,7 @@ export class LogImportService {
   }
 
   static resetTestPorts(): void {
-    LogImportService.rules = [new KernelLogImportRule(), new CrashLogImportRule()]
+    LogImportService.rules = [new KernelLogImportRule(), new CrashLogImportRule(), new SystemLogImportRule()]
     LogImportService.pickerPort = new DefaultLogImportPicker()
   }
 
