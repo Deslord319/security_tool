@@ -1,7 +1,10 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
 import { AppInfo, ADMIN_WANT } from '../../../constants/AppConstants'
-import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
+import {
+  AdminActivationState,
+  EnterpriseAdminType
+} from '../../../models/CommonModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 import { buildAdminActivationErrorMessage } from './EnterpriseAdminActivationMessages'

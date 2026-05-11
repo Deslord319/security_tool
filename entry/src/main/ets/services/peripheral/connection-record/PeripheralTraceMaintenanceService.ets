@@ -1,13 +1,13 @@
 import { common } from '@kit.AbilityKit'
+import { normalizeSecurityEventResult } from '../../../models/CommonModels'
 import {
   normalizeDeviceId,
-  normalizeLogEventResult,
   normalizePeripheralAction,
   normalizePeripheralDecision,
   normalizePeripheralSource,
   PeripheralTraceRecord,
   PeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { StorageResult } from '../../../storage/StorageResult'
 import { LogUtils } from '../../../utils/LogUtils'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
@@ -139,7 +139,7 @@ export class PeripheralTraceMaintenanceService {
     let now = PeripheralTraceMaintenanceService.nowProvider()
     let occurAt = Number.isFinite(record.occurAt) && record.occurAt > 0 ? Math.floor(record.occurAt) : now
     let collectAt = Number.isFinite(record.collectAt) && record.collectAt > 0 ? Math.floor(record.collectAt) : now
-    let result = normalizeLogEventResult(record.result)
+    let result = normalizeSecurityEventResult(record.result)
     let action = normalizePeripheralAction(record.action)
     let decision = normalizePeripheralDecision(record.decision)
     let source = normalizePeripheralSource(record.source)

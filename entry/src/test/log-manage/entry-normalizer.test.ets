@@ -4,7 +4,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 
 class InvalidLogEntry implements LogEntry {

@@ -2,13 +2,13 @@ import restrictions from '@ohos.enterprise.restrictions'
 import { bluetoothManager, usbManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
+import { OperationResult } from '../../../models/CommonModels'
 import {
-  OperationResult,
   PeripheralDevicePolicy,
   PeripheralType,
   getUsbPeripheralBaseClass,
   isUsbPeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { EnterpriseAdminService } from '../../admin/activation/EnterpriseAdminService'
 import { LogUtils } from '../../../utils/LogUtils'

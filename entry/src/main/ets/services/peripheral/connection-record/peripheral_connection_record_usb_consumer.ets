@@ -1,6 +1,6 @@
 import { commonEventManager } from '@kit.BasicServicesKit'
+import { SecurityEventResult } from '../../../models/CommonModels'
 import {
-  LogEventResult,
   PeripheralDevicePolicy,
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit,
@@ -8,7 +8,7 @@ import {
   UsbStoragePolicy,
   formatUsbDeviceId,
   inferPeripheralTypeFromBaseClass
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralService } from '../interface-control/PeripheralService'
 import {
@@ -58,7 +58,7 @@ interface UsbPolicySnapshot {
 
 interface UsbEventPolicyEvaluation {
   policyHit: PeripheralRecordPolicyHit
-  result: LogEventResult
+  result: SecurityEventResult
   summary: string
   detail: string
   usbPolicy?: UsbStoragePolicy
@@ -165,7 +165,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (action === 'disconnect') {
       return {
         policyHit: 'unknown',
-        result: LogEventResult.SUCCESS,
+        result: SecurityEventResult.SUCCESS,
         summary: PeripheralConnectionRecordStrings.USB_DISCONNECTED,
         detail: PeripheralConnectionRecordUsbConsumer.buildDisconnectDetail(info, effectivePolicyLabel),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
@@ -177,7 +177,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (snapshot.usbDisabled) {
       return {
         policyHit: 'deny',
-        result: LogEventResult.BLOCKED,
+        result: SecurityEventResult.BLOCKED,
         summary: PeripheralMatchedPolicyStrings.USB_DISABLED,
         detail: PeripheralConnectionRecordStrings.USB_INTERFACE_DISABLED_DETAIL,
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
@@ -190,7 +190,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       if (snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
         return {
           policyHit: 'deny',
-          result: LogEventResult.BLOCKED,
+          result: SecurityEventResult.BLOCKED,
           summary: PeripheralMatchedPolicyStrings.USB_STORAGE_DISABLED,
           detail: PeripheralConnectionRecordStrings.USB_STORAGE_DISABLED_DETAIL,
           usbPolicy: snapshot.usbStoragePolicy,
@@ -203,7 +203,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (snapshot.devicePolicies.get(info.deviceId.toUpperCase()) === 'deny') {
       return {
         policyHit: 'deny',
-        result: LogEventResult.BLOCKED,
+        result: SecurityEventResult.BLOCKED,
         summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
         detail: PeripheralConnectionRecordStrings.buildDeviceDenyDetail(info.deviceId),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
@@ -215,7 +215,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (info.deviceType === PeripheralType.USB_STORAGE && snapshot.usbStoragePolicy === UsbStoragePolicy.READ_ONLY) {
       return {
         policyHit: 'allow',
-        result: LogEventResult.SUCCESS,
+        result: SecurityEventResult.SUCCESS,
         summary: PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY,
         detail: PeripheralConnectionRecordStrings.USB_STORAGE_READ_ONLY_DETAIL,
         usbPolicy: snapshot.usbStoragePolicy,
@@ -226,7 +226,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
     return {
       policyHit: 'allow',
-      result: LogEventResult.SUCCESS,
+      result: SecurityEventResult.SUCCESS,
       summary: PeripheralConnectionRecordStrings.DEFAULT_ALLOW,
       detail: PeripheralConnectionRecordStrings.DEFAULT_ALLOW_DETAIL,
       usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
@@ -281,7 +281,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (autoDenyResult.status === 'saved') {
       return {
         policyHit: 'deny',
-        result: LogEventResult.BLOCKED,
+        result: SecurityEventResult.BLOCKED,
         summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
         detail: `${evaluation.detail}; 首次接入已自动加入黑名单`,
         usbPolicy: evaluation.usbPolicy,

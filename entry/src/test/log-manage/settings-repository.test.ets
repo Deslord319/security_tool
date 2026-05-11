@@ -6,7 +6,7 @@ import {
   DEFAULT_LOG_STORAGE_CONFIG,
   PREF_KEY_LOG_MAX_ENTRIES,
   PREF_KEY_LOG_RETENTION_DAYS
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/LogModels'
 import { PreferencesAccessor } from '../../main/ets/storage/preferences/PreferencesAccessor'
 import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
 

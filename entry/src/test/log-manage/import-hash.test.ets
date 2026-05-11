@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/LogModels'
 import { LogImportHash } from '../../main/ets/services/log-manage/import/LogImportHash'
 
 function createEntry(detail: string, sourceFile: string): LogEntry {

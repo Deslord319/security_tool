@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@ohos/hypium'
-import { LogStorageConfig } from '../../main/ets/models/DataModels'
+import { LogStorageConfig } from '../../main/ets/models/LogModels'
 import {
   LogStorageMaintenancePort,
   MutationResult,

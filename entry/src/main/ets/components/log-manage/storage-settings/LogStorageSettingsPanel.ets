@@ -1,5 +1,9 @@
 import { LogManagePageStrings, LogManageSettingStrings } from '../../../constants/modules/LogManageStrings'
-import { DEFAULT_LOG_STORAGE_CONFIG, LOG_MAX_ENTRIES_OPTIONS, LOG_RETENTION_OPTIONS } from '../../../models/DataModels'
+import {
+  DEFAULT_LOG_STORAGE_CONFIG,
+  LOG_MAX_ENTRIES_OPTIONS,
+  LOG_RETENTION_OPTIONS
+} from '../../../models/LogModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../SettingsSectionCard'
 import { SectionSelectRow } from '../../SectionRows'

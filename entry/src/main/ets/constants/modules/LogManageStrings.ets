@@ -1,4 +1,5 @@
-import { LabelText } from '../StringCatalog'
+import { LabelText, ResultText } from '../StringCatalog'
+import { LogEventResult, LogEventType } from '../../models/LogModels'
 
 export class LogManagePageStrings {
   static readonly SETTINGS_TITLE: string = '日志存储配置'
@@ -106,7 +107,7 @@ export class LogManageCsvStrings {
   static readonly PID: string = 'PID'
   static readonly RESULT: string = '结果'
 
-  static buildHeader(): string {
+  static get HEADERS(): string[] {
     return [
       LabelText.TIME,
       LogManageCsvStrings.EVENT_TYPE,
@@ -114,7 +115,11 @@ export class LogManageCsvStrings {
       LogManageCsvStrings.PROCESS_NAME,
       LogManageCsvStrings.PID,
       LogManageCsvStrings.RESULT
-    ].join(',')
+    ]
+  }
+
+  static buildHeader(): string {
+    return LogManageCsvStrings.HEADERS.join(',')
   }
 }
 
@@ -139,4 +144,38 @@ export class LogDeviceLifecycleStrings {
 
 export class LogResultPresentationStrings {
   static readonly BLOCKED: string = '已阻止'
+}
+
+export function resolveLogEventTypeLabel(type: LogEventType): string {
+  switch (type) {
+    case LogEventType.CRASH:
+      return LogEventPresentationStrings.CRASH
+    case LogEventType.FILE:
+      return LogEventPresentationStrings.FILE
+    case LogEventType.ACCOUNT:
+      return LogEventPresentationStrings.ACCOUNT
+    case LogEventType.PERMISSION:
+      return LogEventPresentationStrings.PERMISSION
+    case LogEventType.POWER:
+      return LogEventPresentationStrings.POWER
+    case LogEventType.SYSTEM:
+      return LogEventPresentationStrings.SYSTEM
+    case LogEventType.KERNEL:
+      return LogEventPresentationStrings.KERNEL
+    default:
+      return LabelText.UNKNOWN
+  }
+}
+
+export function resolveLogEventResultLabel(result: LogEventResult): string {
+  switch (result) {
+    case LogEventResult.SUCCESS:
+      return ResultText.SUCCESS
+    case LogEventResult.BLOCKED:
+      return LogResultPresentationStrings.BLOCKED
+    case LogEventResult.FAILED:
+      return ResultText.FAILED
+    default:
+      return LabelText.UNKNOWN
+  }
 }

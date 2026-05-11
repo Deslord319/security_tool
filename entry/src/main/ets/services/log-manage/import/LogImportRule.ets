@@ -1,4 +1,4 @@
-import { LogEntry } from '../../../models/DataModels'
+import { LogEntry } from '../../../models/LogModels'
 
 export interface ImportedLogFile {
   path: string

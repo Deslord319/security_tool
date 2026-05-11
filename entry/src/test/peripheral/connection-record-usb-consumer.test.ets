@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
-  LogEventResult,
   OperationResult,
+  SecurityEventResult
+} from '../../main/ets/models/CommonModels'
+import {
   PeripheralDevicePolicyRecord,
   PeripheralType,
   UsbStoragePolicy
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { PeripheralConnectionRecordUsbConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
@@ -202,7 +204,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('usb_disabled')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('USB 接口已禁用')
@@ -218,7 +220,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_disabled')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('USB 存储已禁用')
@@ -243,7 +245,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('allow')
-      expect(record?.result).assertEqual(LogEventResult.SUCCESS)
+      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.matchedPolicyKind).assertEqual('usb_storage_read_only')
       expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.summary).assertEqual('USB 存储只读')
@@ -266,7 +268,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('命中单设备禁止接入')
@@ -288,7 +290,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
       expect(record?.summary).assertEqual('命中单设备禁止接入')
@@ -310,7 +312,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
       expect(record !== null).assertTrue()
       expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(LogEventResult.BLOCKED)
+      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
       expect(record?.matchedPolicyKind).assertEqual('device_deny')
       expect(record?.deviceType).assertEqual(PeripheralType.USB_HID)
       expect(record?.effectivePolicyLabel).assertEqual('已禁用')
@@ -328,7 +330,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record !== null).assertTrue()
       expect(record?.action).assertEqual('disconnect')
       expect(record?.decision).assertEqual('unknown')
-      expect(record?.result).assertEqual(LogEventResult.SUCCESS)
+      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
       expect(record?.matchedPolicyKind).assertEqual('disconnect_event')
       expect(record?.summary).assertEqual('设备已断开')
       expect(record?.detail?.includes('断开前生效策略为')).assertTrue()

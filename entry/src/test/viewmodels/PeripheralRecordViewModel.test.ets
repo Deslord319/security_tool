@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
-  LogEventResult,
   PeripheralConnectionRecord,
   PeripheralType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import {
   getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
@@ -41,7 +41,7 @@ function createConnectionRecord(
     deviceType: PeripheralType.USB_STORAGE,
     source: 'runtime_event',
     action: 'connect',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     policyHit: 'allow',
     summary: 'connected',
     matchedPolicyKind: 'default_allow'

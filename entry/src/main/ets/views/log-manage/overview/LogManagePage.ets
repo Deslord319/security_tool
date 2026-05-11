@@ -15,12 +15,12 @@ import {
   LogManageStatStrings,
   LogResultPresentationStrings
 } from '../../../constants/modules/LogManageStrings'
+import { ExportActionResult } from '../../../models/CommonModels'
 import {
-  ExportActionResult,
   LogEntry,
   LOG_MAX_ENTRIES_OPTIONS,
   LOG_RETENTION_OPTIONS
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
 import { LOG_EVENT_RESULT_OPTIONS, LOG_EVENT_TYPE_OPTIONS } from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'

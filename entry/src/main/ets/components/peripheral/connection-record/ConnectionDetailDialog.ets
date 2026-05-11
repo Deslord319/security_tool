@@ -3,7 +3,7 @@ import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   PeripheralConnectionRecord,
   isUsbPeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import {
   formatPeripheralTimestamp,

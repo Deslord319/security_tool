@@ -7,7 +7,7 @@ import {
   PREF_KEY_LOG_MAX_ENTRIES,
   PREF_KEY_LOG_RETENTION_DAYS,
   PREF_STORE_NAME_LOG
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { ServiceResult } from '../common/LogManagePorts'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'

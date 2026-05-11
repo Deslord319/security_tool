@@ -1,7 +1,6 @@
 import type { common } from '@kit.AbilityKit'
 import type { commonEventManager } from '@kit.BasicServicesKit'
-import type { PeripheralTraceRecord } from '../../../models/DataModels'
-
+import type { PeripheralTraceRecord } from '../../../models/PeripheralModels'
 export interface PeripheralConnectionRecordProducerCapabilities {
   usbRuntimeEvents: boolean
   bluetoothRuntimeEvents: boolean

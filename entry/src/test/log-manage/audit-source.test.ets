@@ -5,7 +5,7 @@ import {
   LogEventResult,
   LogEventType,
   LogEntry
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/LogModels'
 import {
   formatLogTimestamp,
   getLogEventResultLabel

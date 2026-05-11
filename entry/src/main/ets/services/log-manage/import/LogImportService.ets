@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { fileUri, picker } from '@kit.CoreFileKit'
-import { LogEntry } from '../../../models/DataModels'
+import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'

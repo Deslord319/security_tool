@@ -1,6 +1,9 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { normalizeDeviceId, PeripheralDevicePolicyRecord } from '../../../models/DataModels'
+import {
+  normalizeDeviceId,
+  PeripheralDevicePolicyRecord
+} from '../../../models/PeripheralModels'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
 
 const TAG = 'PeripheralDevicePolicyRepo'

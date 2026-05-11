@@ -1,5 +1,4 @@
-import { LogEntry } from './DataModels'
-
+import { LogEntry } from './LogModels'
 export type LogManageMode = 'list' | 'settings'
 export const LOG_PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
 

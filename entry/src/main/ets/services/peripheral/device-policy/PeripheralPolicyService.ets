@@ -6,9 +6,10 @@ import {
   formatBluetoothDeviceId,
   formatUsbDeviceId,
   parseUsbDeviceId
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { PeripheralPolicyOptionIndexes } from '../../../constants/modules/PeripheralStrings'
-import { formatPeripheralTimestamp } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
+import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
+import { formatStandardDateTimeOrFallback } from '../../../utils/DateTimeFormatUtils'
 
 const POLICY_CANDIDATE_RECORD_TYPES: PeripheralType[] = [
   PeripheralType.USB_STORAGE,
@@ -60,7 +61,7 @@ export class PeripheralPolicyService {
         deviceType: latestConnection.deviceType,
         deviceId: deviceKey,
         lastSeenAt: lastSeenAt,
-        lastSeenLabel: formatPeripheralTimestamp(lastSeenAt),
+        lastSeenLabel: formatStandardDateTimeOrFallback(lastSeenAt, PLACEHOLDER_TEXT),
         policyIndex: policy?.policy === 'deny' ? PeripheralPolicyOptionIndexes.DENY : PeripheralPolicyOptionIndexes.ALLOW
       } as PeripheralPolicyRecord
     })

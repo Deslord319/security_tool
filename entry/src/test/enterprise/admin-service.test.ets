@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { AppInfo } from '../../main/ets/constants/AppConstants'
 import { AdminText } from '../../main/ets/constants/StringCatalog'
-import { AdminActivationState } from '../../main/ets/models/DataModels'
+import { AdminActivationState } from '../../main/ets/models/CommonModels'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
 
 interface ErrorPayload {

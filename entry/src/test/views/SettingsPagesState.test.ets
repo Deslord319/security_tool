@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { AuthMethod } from '../../main/ets/models/DataModels'
+import { AuthMethod } from '../../main/ets/models/AuthModels'
 import { ApplicationRuntimeManager } from '../../main/ets/runtime/ApplicationRuntimeManager'
 import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
 import { IdentitySettingsViewModel } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'

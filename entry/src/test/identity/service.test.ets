@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { securityManager } from '@kit.MDMKit'
-import { PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import { PasswordComplexityConfig } from '../../main/ets/models/IdentityModels'
 import { IdentityPasswordPolicyMapper } from '../../main/ets/services/identity/settings/IdentityPasswordPolicyMapper'
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000

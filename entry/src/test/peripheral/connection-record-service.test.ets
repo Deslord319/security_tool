@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
-  LogEventResult,
   PeripheralConnectionFilter,
   PeripheralTraceQuery,
   PeripheralTraceRecord,
   PeripheralType,
   UsbStoragePolicy
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralConnectionRecordService } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordService'
 import { PeripheralTraceEntryRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceEntryRepository'
 
@@ -21,7 +21,7 @@ function buildTraceRecord(recordId: string, occurAt: number): PeripheralTraceRec
     deviceId: 'VID:1111 PID:0001',
     action: 'connect',
     decision: 'allow',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     source: 'runtime_event',
     summary: 'runtime summary'
   }
@@ -89,7 +89,7 @@ export default function peripheralConnectionRecordServiceTest() {
       record.deviceType = PeripheralType.USB_CAMERA
       record.deviceId = 'VID:9999 PID:8888'
       record.decision = 'deny'
-      record.result = LogEventResult.BLOCKED
+      record.result = SecurityEventResult.BLOCKED
       record.summary = 'rich runtime record'
       record.correlationId = 'corr-1'
       record.policyVersion = 'policy-v1'
@@ -121,14 +121,14 @@ export default function peripheralConnectionRecordServiceTest() {
       let runtimeRecord = buildTraceRecord('runtime_keyboard', base + 600)
       runtimeRecord.deviceName = 'Bluetooth Keyboard'
       runtimeRecord.deviceType = PeripheralType.BLUETOOTH
-      runtimeRecord.result = LogEventResult.BLOCKED
+      runtimeRecord.result = SecurityEventResult.BLOCKED
       runtimeRecord.summary = 'keyboard blocked'
 
       let auditRecord = buildTraceRecord('audit_keyboard', base + 601)
       auditRecord.source = 'audit_event'
       auditRecord.deviceName = 'Bluetooth Keyboard'
       auditRecord.deviceType = PeripheralType.BLUETOOTH
-      auditRecord.result = LogEventResult.BLOCKED
+      auditRecord.result = SecurityEventResult.BLOCKED
       auditRecord.summary = 'keyboard blocked audit'
 
       let capturedQuery: PeripheralTraceQuery | null = null
@@ -142,7 +142,7 @@ export default function peripheralConnectionRecordServiceTest() {
         startTime: base + 500,
         endTime: base + 700,
         deviceTypes: [PeripheralType.BLUETOOTH],
-        results: [LogEventResult.BLOCKED],
+        results: [SecurityEventResult.BLOCKED],
         keyword: 'keyboard'
       }
 

@@ -1,10 +1,13 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { MessageText } from '../../../constants/StringCatalog'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
-import { PeripheralPolicyRecord, PeripheralType, isUsbPeripheralType } from '../../../models/DataModels'
+import {
+  PeripheralPolicyRecord,
+  PeripheralType,
+  isUsbPeripheralType
+} from '../../../models/PeripheralModels'
 import { getPeripheralTypeLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
@@ -79,17 +82,10 @@ export struct PolicyList {
 
   @Builder
   private emptyCard() {
-    Column({ space: 10 }) {
+    Column() {
       Text(EmptyStateStrings.NO_DEVICES)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .textAlign(TextAlign.Center)
-
-      Text(MessageText.CHECK_PERMISSIONS)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         .textAlign(TextAlign.Center)
     }
     .width('100%')

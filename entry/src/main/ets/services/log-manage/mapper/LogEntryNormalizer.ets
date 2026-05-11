@@ -4,8 +4,9 @@ import {
   LogDetailTableRow,
   LogEntry,
   LogEventResult,
-  LogEventType
-} from '../../../models/DataModels'
+  LogEventType,
+  normalizeLogEventResult
+} from '../../../models/LogModels'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const MAX_IN_MEMORY_ENTRIES = 100000
@@ -91,10 +92,7 @@ export class LogEntryNormalizer {
   }
 
   private static normalizeEventResult(result: LogEventResult): LogEventResult {
-    if (result === LogEventResult.SUCCESS || result === LogEventResult.BLOCKED || result === LogEventResult.FAILED) {
-      return result
-    }
-    return LogEventResult.SUCCESS
+    return normalizeLogEventResult(result, LogEventResult.SUCCESS)
   }
 
   static normalizeDetailRows(rows?: LogDetailTableRow[] | null): LogDetailTableRow[] | undefined {

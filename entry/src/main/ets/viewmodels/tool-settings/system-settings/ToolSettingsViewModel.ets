@@ -2,8 +2,12 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { ActionDialogStatus } from '../../../utils/DialogService'
 import { MessageText } from '../../../constants/StringCatalog'
-import { AuthMethod, DEFAULT_TOOL_SETTINGS, ToolSettingsConfig } from '../../../models/DataModels'
-import { AUTH_METHOD_OPTIONS } from './ToolSettingsPresentationOptions'
+import { AuthMethod } from '../../../models/AuthModels'
+import {
+  DEFAULT_TOOL_SETTINGS,
+  SUPPORTED_TOOL_AUTH_METHODS,
+  ToolSettingsConfig
+} from '../../../models/ToolSettingsModels'
 import {
   ToolSettingsConfirmationStrings,
   ToolSettingsPageStrings
@@ -51,7 +55,7 @@ export class ToolSettingsViewModel {
   }
 
   get selectedAuthMethodIndex(): number {
-    let index = AUTH_METHOD_OPTIONS.findIndex((option) => option.value === this.state.config.authMethod)
+    let index = SUPPORTED_TOOL_AUTH_METHODS.indexOf(this.state.config.authMethod)
     return index >= 0 ? index : 0
   }
 

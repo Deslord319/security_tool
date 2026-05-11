@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import { PasswordComplexityConfig } from '../../main/ets/models/IdentityModels'
 import { IdentityPasswordPolicyMapper } from '../../main/ets/services/identity/settings/IdentityPasswordPolicyMapper'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 

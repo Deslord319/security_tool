@@ -1,7 +1,15 @@
 import { describe, it, expect } from '@ohos/hypium'
+import { AuthMethod } from '../../main/ets/models/AuthModels'
 import {
-  AuthMethod,
+  parseSecurityEventResult,
+  SecurityEventResult,
+  normalizeSecurityEventResult
+} from '../../main/ets/models/CommonModels'
+import {
   DEFAULT_TOOL_SETTINGS,
+  SUPPORTED_TOOL_AUTH_METHODS
+} from '../../main/ets/models/ToolSettingsModels'
+import {
   PeripheralType,
   formatBluetoothDeviceId,
   formatUsbDeviceId,
@@ -9,8 +17,7 @@ import {
   inferPeripheralTypeFromBaseClass,
   isUsbPeripheralType,
   parseUsbDeviceId
-} from '../../main/ets/models/DataModels'
-
+} from '../../main/ets/models/PeripheralModels'
 export default function dataModelsTest() {
   describe('DataModels', () => {
     it('should parse and format USB ids with stable uppercase formatting', 0, () => {
@@ -49,6 +56,17 @@ export default function dataModelsTest() {
     it('should expose the current default tool settings contract', 0, () => {
       expect(DEFAULT_TOOL_SETTINGS.startupAuthEnabled).assertFalse()
       expect(DEFAULT_TOOL_SETTINGS.authMethod).assertEqual(AuthMethod.PIN)
+      expect(SUPPORTED_TOOL_AUTH_METHODS.length).assertEqual(2)
+      expect(SUPPORTED_TOOL_AUTH_METHODS[0]).assertEqual(AuthMethod.PIN)
+      expect(SUPPORTED_TOOL_AUTH_METHODS[1]).assertEqual(AuthMethod.FINGERPRINT)
+    })
+
+    it('should normalize shared security event results', 0, () => {
+      expect(normalizeSecurityEventResult(SecurityEventResult.BLOCKED)).assertEqual(SecurityEventResult.BLOCKED)
+      expect(normalizeSecurityEventResult(999 as SecurityEventResult)).assertEqual(SecurityEventResult.FAILED)
+      expect(parseSecurityEventResult('0')).assertEqual(SecurityEventResult.SUCCESS)
+      expect(parseSecurityEventResult('1')).assertEqual(SecurityEventResult.BLOCKED)
+      expect(parseSecurityEventResult('invalid')).assertEqual(SecurityEventResult.FAILED)
     })
   })
 }

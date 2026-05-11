@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
-  LogEventResult,
   PeripheralTraceRecord,
   PeripheralType
-} from '../../main/ets/models/DataModels'
+} from '../../main/ets/models/PeripheralModels'
 import {
   PeripheralTraceMaintenanceService
 } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
@@ -22,7 +22,7 @@ function createRecord(id: string): PeripheralTraceRecord {
     action: 'connect',
     decision: 'allow',
     source: 'runtime_event',
-    result: LogEventResult.SUCCESS,
+    result: SecurityEventResult.SUCCESS,
     summary: 'test summary'
   }
 }

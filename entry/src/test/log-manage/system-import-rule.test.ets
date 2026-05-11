@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import { LogEventResult, LogEventType } from '../../main/ets/models/LogModels'
 import { ImportedLogFile } from '../../main/ets/services/log-manage/import/LogImportRule'
 import { SystemLogImportRule } from '../../main/ets/services/log-manage/import/SystemLogImportRule'
 

@@ -1,6 +1,9 @@
 import { common } from '@kit.AbilityKit'
 import { AppInfo } from '../../../constants/AppConstants'
-import { LogEntry, LogEventType } from '../../../models/DataModels'
+import {
+  LogEntry,
+  LogEventType
+} from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   AuditSubscribeResult,

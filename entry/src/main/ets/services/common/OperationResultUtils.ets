@@ -1,4 +1,4 @@
-import { OperationResult } from '../../models/DataModels'
+import { OperationResult } from '../../models/CommonModels'
 import { EnterpriseAdminService } from '../admin/activation/EnterpriseAdminService'
 import { ErrorLike } from '../../types/LooseValueTypes'
 import { CommonErrorUtils } from '../../utils/CommonErrorUtils'

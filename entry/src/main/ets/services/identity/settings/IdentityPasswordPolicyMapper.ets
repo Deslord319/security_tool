@@ -1,5 +1,5 @@
 import { securityManager } from '@kit.MDMKit'
-import { PasswordComplexityConfig } from '../../../models/DataModels'
+import { PasswordComplexityConfig } from '../../../models/IdentityModels'
 import { IdentityRequirementStrings } from '../../../constants/modules/IdentityStrings'
 
 export class IdentityPasswordPolicyMapper {

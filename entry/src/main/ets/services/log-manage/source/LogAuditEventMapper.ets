@@ -8,11 +8,9 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../../models/DataModels'
-import {
-  formatLogTimestamp,
-  getLogEventResultLabel
-} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
+} from '../../../models/LogModels'
+import { resolveLogEventResultLabel } from '../../../constants/modules/LogManageStrings'
+import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 import { LooseRecord } from '../../../types/LooseValueTypes'
 import {
   pickNumberFromRecords as pickNumber,
@@ -126,8 +124,8 @@ function buildDetailRows(
       const callerSources = compactSources(caller, contentJson, metadataJson, ...sources)
       appendTextRow(rows, 'account.userName', '用户名', pickString(callerSources, ['userName', 'user_name']))
       appendNumberRow(rows, 'account.userId', '用户 ID', pickNumber(callerSources, ['userId', 'user_id']))
-      appendTextRow(rows, 'account.result', '结果', getLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
-      appendTextRow(rows, 'account.timestamp', '事件时间', formatLogTimestamp(timestamp))
+      appendTextRow(rows, 'account.result', '结果', resolveLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
+      appendTextRow(rows, 'account.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'account.eventId', '事件 ID', event.eventId)
       break
     }
@@ -141,7 +139,7 @@ function buildDetailRows(
       appendNumberRow(rows, 'permission.uid', 'UID', pickNumber(extraSources, ['uid', 'userId', 'user_id']))
       appendTextRow(rows, 'permission.newPermissionName', '新权限名称', pickString(newPermissionSources, ['PermissionName', 'permissionName', 'name']))
       appendTextRow(rows, 'permission.newPermissionState', '新权限状态', pickString(newPermissionSources, ['PermissionState', 'permissionState', 'state']))
-      appendTextRow(rows, 'permission.timestamp', '事件时间', formatLogTimestamp(timestamp))
+      appendTextRow(rows, 'permission.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'permission.eventId', '事件 ID', event.eventId)
       break
     }
@@ -151,8 +149,8 @@ function buildDetailRows(
       appendTextRow(rows, 'file.processName', '进程名', pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']))
       appendNumberRow(rows, 'file.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'file.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
-      appendTextRow(rows, 'file.result', '结果', getLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
-      appendTextRow(rows, 'file.timestamp', '事件时间', formatLogTimestamp(timestamp))
+      appendTextRow(rows, 'file.result', '结果', resolveLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
+      appendTextRow(rows, 'file.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'file.eventId', '事件 ID', event.eventId)
       break
     }

@@ -3,7 +3,7 @@ import {
   PeripheralConnectionRecord,
   PeripheralType,
   isUsbPeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { LabelText } from '../../../constants/StringCatalog'
 import { DeviceDetailStrings, PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'

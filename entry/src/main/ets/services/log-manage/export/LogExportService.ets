@@ -2,13 +2,13 @@ import { common } from '@kit.AbilityKit'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   LogEntry
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import {
-  formatLogTimestamp,
-  getLogEventResultLabel,
-  getLogEventTypeLabel
-} from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
-import { LogManageCsvStrings } from '../../../constants/modules/LogManageStrings'
+  LogManageCsvStrings,
+  resolveLogEventResultLabel,
+  resolveLogEventTypeLabel
+} from '../../../constants/modules/LogManageStrings'
+import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 import { ExportLogsResult, LogQuery } from '../common/LogManagePorts'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { CsvFileExportService, CsvFileWritePort } from '../../common/export/CsvFileExportService'
@@ -34,7 +34,7 @@ export class LogExportService {
         context,
         fileNamePrefix,
         async (writer: CsvFileWritePort): Promise<void> => {
-          writer.append(`${LogManageCsvStrings.buildHeader()}\r\n`)
+          writer.append(`${CsvFileExportService.UTF8_BOM}${CsvFileExportService.buildCsvLine(LogManageCsvStrings.HEADERS)}\r\n`)
           let offset = 0
           while (offset < totalCount) {
             let entries = await LogEntryRepository.listByQuery(query, EXPORT_PAGE_SIZE, offset)
@@ -57,13 +57,13 @@ export class LogExportService {
   private static buildCsvBody(entries: LogEntry[]): string {
     let lines: string[] = []
     for (let entry of entries) {
-      let time = formatLogTimestamp(entry.timestamp)
-      let type = getLogEventTypeLabel(entry.eventType)
-      let detail = `"${entry.detail.replace(/"/g, '""')}"`
+      let time = formatStandardDateTime(entry.timestamp)
+      let type = resolveLogEventTypeLabel(entry.eventType)
+      let detail = entry.detail
       let process = entry.processName || ''
       let pid = entry.pid !== undefined ? entry.pid.toString() : ''
-      let result = getLogEventResultLabel(entry.result)
-      lines.push(`${time},${type},${detail},${process},${pid},${result}`)
+      let result = resolveLogEventResultLabel(entry.result)
+      lines.push(CsvFileExportService.buildCsvLine([time, type, detail, process, pid, result]))
     }
     return lines.length > 0 ? `${lines.join('\r\n')}\r\n` : ''
   }

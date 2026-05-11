@@ -5,7 +5,7 @@ import {
   LogEntry,
   LogEventResult,
   LogEventType
-} from '../../../models/DataModels'
+} from '../../../models/LogModels'
 import { LogManageImportDetailStrings } from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'

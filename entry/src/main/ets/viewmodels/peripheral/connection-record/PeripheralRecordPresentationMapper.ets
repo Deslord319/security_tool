@@ -1,12 +1,12 @@
 import {
   PeripheralConnectionRecord,
-  LogEventResult,
   PeripheralMatchedPolicyKind,
   PeripheralRecordAction,
   PeripheralRecordPolicyHit,
   PeripheralRecordSource,
   PeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
+import { SecurityEventResult } from '../../../models/CommonModels'
 import { LabelText, PLACEHOLDER_TEXT, ResultText, StatusText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 import {
@@ -16,7 +16,7 @@ import {
   PeripheralSourcePresentationStrings
 } from '../../../constants/modules/PeripheralStrings'
 import { LogResultPresentationStrings } from '../../../constants/modules/LogManageStrings'
-import { formatLogTimestamp } from '../../log-manage/presentation/LogPresentationMapper'
+import { formatStandardDateTimeOrFallback } from '../../../utils/DateTimeFormatUtils'
 
 export interface PeripheralConnectionHistoryItem {
   time: string
@@ -131,11 +131,11 @@ export function getPeripheralConnectionResultLabel(record: PeripheralConnectionR
     return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
   }
   switch (record.result) {
-    case LogEventResult.SUCCESS:
+    case SecurityEventResult.SUCCESS:
       return ResultText.SUCCESS
-    case LogEventResult.BLOCKED:
+    case SecurityEventResult.BLOCKED:
       return LogResultPresentationStrings.BLOCKED
-    case LogEventResult.FAILED:
+    case SecurityEventResult.FAILED:
       return ResultText.FAILED
     default:
       return LabelText.UNKNOWN
@@ -143,10 +143,7 @@ export function getPeripheralConnectionResultLabel(record: PeripheralConnectionR
 }
 
 export function formatPeripheralTimestamp(timestamp: number): string {
-  if (timestamp <= 0) {
-    return PLACEHOLDER_TEXT
-  }
-  return formatLogTimestamp(timestamp)
+  return formatStandardDateTimeOrFallback(timestamp, PLACEHOLDER_TEXT)
 }
 
 export function buildConnectionHistoryItems(

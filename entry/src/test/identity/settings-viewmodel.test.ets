@@ -3,7 +3,11 @@ import { securityManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { AdminText, MessageText } from '../../main/ets/constants/StringCatalog'
 import { IdentityActionStrings, IdentityMessageStrings } from '../../main/ets/constants/modules/IdentityStrings'
-import { AdminActivationState, OperationResult, PasswordComplexityConfig } from '../../main/ets/models/DataModels'
+import {
+  AdminActivationState,
+  OperationResult
+} from '../../main/ets/models/CommonModels'
+import { PasswordComplexityConfig } from '../../main/ets/models/IdentityModels'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
 import { IdentityService } from '../../main/ets/services/identity/settings/IdentityService'
 import {

@@ -8,14 +8,14 @@ import { DeviceTypeLabels,
   PeripheralPolicyOptionIndexes,
   PeripheralReasonCodes
 } from '../../../constants/modules/PeripheralStrings'
+import { ExportActionResult } from '../../../models/CommonModels'
 import {
-  ExportActionResult,
   PeripheralConnectionRecord,
   PeripheralDevicePolicyRecord,
   PeripheralPolicyRecord,
   PeripheralType,
   isUsbPeripheralType
-} from '../../../models/DataModels'
+} from '../../../models/PeripheralModels'
 import { getPeripheralTypeLabel } from '../connection-record/PeripheralRecordPresentationMapper'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import {
@@ -234,16 +234,16 @@ export class PeripheralPolicyViewModel {
 
   private buildPolicyCsv(records: PeripheralPolicyRecord[]): string {
     const headers: string[] = PeripheralExportStrings.POLICY_LIST_CSV_HEADERS
-    const rows = records.map((record: PeripheralPolicyRecord) => {
+    const rows: string[][] = records.map((record: PeripheralPolicyRecord) => {
       return [
         record.deviceName,
         this.getDeviceTypeLabel(record.deviceType),
         record.deviceId,
         record.lastSeenLabel,
         this.getPolicyLabel(record.policyIndex)
-      ].map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')
+      ]
     })
-    return `\uFEFF${headers.map((value: string) => CsvFileExportService.escapeCsvValue(value)).join(',')}\n${rows.join('\n')}`
+    return CsvFileExportService.buildCsvContent(headers, rows)
   }
 
   private getPolicyLabel(policyIndex: number): string {

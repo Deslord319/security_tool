@@ -1,6 +1,11 @@
 import { describe, expect, it } from '@ohos/hypium'
 
-import { LogDetailTableRow, LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/DataModels'
+import {
+  LogDetailTableRow,
+  LogEntry,
+  LogEventResult,
+  LogEventType
+} from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
 import {
   deserializeLogEntryExtraData,

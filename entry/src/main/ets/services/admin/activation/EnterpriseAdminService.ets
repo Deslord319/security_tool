@@ -2,7 +2,10 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { taskpool } from '@kit.ArkTS'
 import { AppInfo } from '../../../constants/AppConstants'
 import { AdminErrorCodes } from '../../../constants/SystemErrorCodes'
-import { AdminActivationState, EnterpriseAdminType } from '../../../models/DataModels'
+import {
+  AdminActivationState,
+  EnterpriseAdminType
+} from '../../../models/CommonModels'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 import { buildAdminActivationErrorMessage } from './EnterpriseAdminActivationMessages'
