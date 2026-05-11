@@ -49,7 +49,6 @@ export class MessageText {
   static readonly RETRY_LATER: string = '请稍后重试'
   static readonly SUCCESS_TITLE: string = '操作成功'
   static readonly FAILURE_TITLE: string = '操作失败'
-  static readonly CHECK_PERMISSIONS: string = '请重新插拔连接设备或检查账号权限'
 }
 
 export class LabelText {

@@ -2,7 +2,7 @@ import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
-import { ActionText, MessageText } from '../../../constants/StringCatalog'
+import { ActionText } from '../../../constants/StringCatalog'
 import { FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
 import { FirewallUserDispatchViewModel } from '../../../viewmodels/firewall/user-dispatch/FirewallUserDispatchViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -62,16 +62,11 @@ export struct UserFirewallControlDialog {
         .padding({ top: 20, bottom: 20 })
         .alignItems(HorizontalAlign.Center)
       } else if (this.viewModel.users.length === 0) {
-        Column({ space: 10 }) {
+        Column() {
           Text(EmptyStateStrings.NO_USERS)
             .fontSize(AppStyles.FONT_SIZE_BODY)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-          Text(this.viewModel.statusHintText.length > 0 ? this.viewModel.statusHintText : MessageText.CHECK_PERMISSIONS)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
         }
         .width('100%')
         .padding({ top: 20, bottom: 20 })

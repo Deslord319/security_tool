@@ -9,7 +9,7 @@ import {
   FirewallRuleLabelStrings
 } from '../../main/ets/constants/modules/FirewallStrings'
 import { DeviceDetailStrings, DeviceTypeLabels } from '../../main/ets/constants/modules/PeripheralStrings'
-import { ActionText, LabelText, MessageText, ResultText } from '../../main/ets/constants/StringCatalog'
+import { ActionText, LabelText, ResultText } from '../../main/ets/constants/StringCatalog'
 
 export default function dialogStringsTest() {
   describe('DialogStrings', () => {
@@ -17,7 +17,6 @@ export default function dialogStringsTest() {
       expect(ActionText.CONFIRM.length > 0).assertTrue()
       expect(ActionText.CANCEL.length > 0).assertTrue()
       expect(LoadingStrings.LOADING.length > 0).assertTrue()
-      expect(MessageText.CHECK_PERMISSIONS.length > 0).assertTrue()
       expect(ResultText.SUCCESS.length > 0).assertTrue()
     })
 
