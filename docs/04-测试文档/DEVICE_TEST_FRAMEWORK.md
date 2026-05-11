@@ -6,9 +6,10 @@ This document records the validated HarmonyOS device-side test framework setup f
 
 - Main-module test runner entry: `entry/src/main/ets/testrunner/OpenHarmonyTestRunner.ets`
 - Main-module test runner declaration: `entry/src/main/module.json5`
-- ohosTest runner source: `entry/src/ohosTest/ets/testrunner/OpenHarmonyTestRunner.ets`
 - ohosTest suite dispatcher: `entry/src/ohosTest/ets/test/List.test.ets`
 - ohosTest test ability: `entry/src/ohosTest/ets/testability/TestAbility.ets`
+- ohosTest page shell: `entry/src/ohosTest/ets/testrunner/pages/Index.ets`
+- ohosTest compile placeholder page: `entry/src/ohosTest/ets/pages/MainPage.ets`
 
 ## Verified Commands
 
@@ -87,3 +88,4 @@ This setup follows the common community pattern for Stage-model HarmonyOS tests:
 
 - The route scenario still emits ArkTS warnings in `entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`
 - The default device suite intentionally stays small; heavier UI scenarios are selected explicitly through `mode`
+- Historical ohosTest pages and scenarios that were not routed by `test/List.test.ets` have been removed; add new device scenarios through the dispatcher instead of leaving standalone test files.

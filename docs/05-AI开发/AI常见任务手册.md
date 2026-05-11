@@ -84,7 +84,7 @@ python scripts/e2e/tools/validate_test_assets.py
 python scripts/check_docs_consistency.py
 ```
 
-`scripts/check_docs_consistency.py` 会同步检查模块的 UT、ohosTest 和 E2E 用例目录是否仍存在，避免新增模块或改路由后遗漏测试入口。
+`scripts/check_docs_consistency.py` 会同步检查模块的 UT、ohosTest 和 E2E 用例路径是否仍存在，避免新增模块或改路由后遗漏测试入口。
 
 ### 3.4 调整 RDB、缓存或持久化结构
 

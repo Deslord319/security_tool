@@ -8,16 +8,13 @@ import {
 } from '../../main/ets/models/DataModels'
 import {
   ClearLogsResult,
-  CollectorStatus,
   ExportLogsResult,
   InitializeResult,
   ListViewInitializeResult,
-  LogCollectorStatusPort,
   LogExportServicePort,
   LogQuery,
   LogSnapshot,
   LogStoragePort,
-  MutationResult,
   RefreshResult,
   SaveSettingsResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
@@ -73,11 +70,6 @@ class FakeLogListStorage implements LogStoragePort {
     return this.initResult
   }
 
-  async addEntries(entries: LogEntry[]): Promise<MutationResult> {
-    this.entries = entries.concat(this.entries)
-    return { success: true, code: 'ok' }
-  }
-
   async count(query?: LogQuery): Promise<number> {
     this.countCallCount++
     return this.filterEntries(query).length
@@ -107,7 +99,7 @@ class FakeLogListStorage implements LogStoragePort {
     return false
   }
 
-  async snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot> {
+  async snapshot(query?: LogQuery, limit?: number, offset?: number, filteredCount?: number): Promise<LogSnapshot> {
     this.snapshotCallCount++
     if (this.failSnapshot) {
       throw new Error('snapshot failed')
@@ -119,7 +111,7 @@ class FakeLogListStorage implements LogStoragePort {
       totalCount: this.entries.length,
       todayCount: this.entries.length,
       blockedCount: blockedCount,
-      filteredCount: filtered.length,
+      filteredCount: filteredCount ?? filtered.length,
       entries: paged
     }
   }
@@ -157,21 +149,6 @@ class FakeLogListExporter implements LogExportServicePort {
   }
 }
 
-class FakeLogListCollector implements LogCollectorStatusPort {
-  status: CollectorStatus = {
-    running: true,
-    auditReady: true,
-    crashReady: false,
-    pendingCount: 2,
-    degraded: true,
-    degradedReason: 'crash_failed'
-  }
-
-  getStatus(): CollectorStatus {
-    return this.status
-  }
-}
-
 class FakeLogStorageSettingsViewModel extends LogStorageSettingsViewModel {
   loadResult: SaveSettingsResult = { success: true, code: 'ok' }
   saveResult: SaveSettingsResult = { success: true, code: 'ok' }
@@ -189,7 +166,6 @@ export default function logManageViewModelTest() {
   describe('LogManageViewModel', () => {
     let storage: FakeLogListStorage
     let exporter: FakeLogListExporter
-    let collector: FakeLogListCollector
     let settingsViewModel: FakeLogStorageSettingsViewModel
     let viewModel: LogManageViewModel
     let context: common.UIAbilityContext
@@ -202,9 +178,8 @@ export default function logManageViewModelTest() {
         createEntry('3', LogEventType.FILE, LogEventResult.FAILED, 'file gamma')
       ]
       exporter = new FakeLogListExporter()
-      collector = new FakeLogListCollector()
       settingsViewModel = new FakeLogStorageSettingsViewModel()
-      viewModel = new LogManageViewModel(storage, exporter, collector, settingsViewModel)
+      viewModel = new LogManageViewModel(storage, exporter, settingsViewModel)
       context = {} as common.UIAbilityContext
     })
 
@@ -214,8 +189,6 @@ export default function logManageViewModelTest() {
       expect(result.success).assertTrue()
       expect(viewModel.state.summary.totalCount).assertEqual(3)
       expect(viewModel.state.summary.blockedCount).assertEqual(1)
-      expect(viewModel.state.collector.running).assertTrue()
-      expect(viewModel.state.collector.crashReady).assertFalse()
       expect(storage.lastLimit).assertEqual(20)
       expect(storage.lastOffset).assertEqual(0)
       expect(storage.countCallCount).assertEqual(1)
