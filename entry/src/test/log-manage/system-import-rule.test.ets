@@ -125,6 +125,44 @@ export default function systemImportRuleTest() {
       expect(result.entries[3].result).assertEqual(LogEventResult.FAILED)
     })
 
+    it('should normalize second based fallback timestamps to milliseconds', 0, () => {
+      expect(SystemLogImportRule.normalizeEpochMillis(1778489523)).assertEqual(1778489523000)
+      expect(SystemLogImportRule.normalizeEpochMillis(1778489523000)).assertEqual(1778489523000)
+    })
+
+    it('should parse key line timestamps without year using fallback year', 0, () => {
+      let fallback = new Date(2026, 4, 11, 16, 52, 3, 0).getTime()
+      let parsed = SystemLogImportRule.parseTimestampFromText(
+        '03-13 12:31:59.908 Updater 599 I utils_ext.cpp 568 : updater mode',
+        fallback
+      )
+      let crossYear = SystemLogImportRule.parseTimestampFromText(
+        '12-31 23:59:59.001 Updater 599 E update failed',
+        new Date(2026, 0, 1, 0, 1, 0, 0).getTime()
+      )
+
+      expect(parsed).assertEqual(new Date(2026, 2, 13, 12, 31, 59, 908).getTime())
+      expect(crossYear).assertEqual(new Date(2025, 11, 31, 23, 59, 59, 1).getTime())
+    })
+
+    it('should keep updater and installer key lines with valid event timestamps', 0, async () => {
+      let updaterResult = await new SystemLogImportRule().parse(createFile(
+        'remoteLog/updater/updater_log',
+        '03-13 12:31:59.908 Updater 599 I utils_ext.cpp 568 : updater mode'
+      ))
+      let installerResult = await new SystemLogImportRule().parse(createFile(
+        'remoteLog/log/sys_installer.log',
+        '03-16 16:30:44.773 SysInstaller 27555 I action_processer.cpp 78 : Start verify'
+      ))
+
+      expect(updaterResult.entries.length).assertEqual(1)
+      expect(updaterResult.entries[0].rawEventName).assertEqual('system_updater_log')
+      expect(updaterResult.entries[0].timestamp > 1700000000000).assertTrue()
+      expect(installerResult.entries.length).assertEqual(1)
+      expect(installerResult.entries[0].rawEventName).assertEqual('system_installer')
+      expect(installerResult.entries[0].timestamp > 1700000000000).assertTrue()
+    })
+
     it('should keep useful memory leak reports and drop low value files', 0, async () => {
       let useful = [
         'Timestamp:2026-05-09 10:00:00.000',

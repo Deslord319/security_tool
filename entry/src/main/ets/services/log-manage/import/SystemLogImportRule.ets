@@ -58,6 +58,8 @@ const READ_CHUNK_SIZE = 64 * 1024
 const YIELD_EVERY_LINES = 200
 const MAX_DETAIL_LENGTH = 280
 const MAX_ROW_VALUE_LENGTH = 360
+const EPOCH_MILLIS_THRESHOLD = 100000000000
+const FUTURE_SKEW_TOLERANCE_MS = 24 * 60 * 60 * 1000
 
 const SYSTEM_RULES: SystemRuleDefinition[] = [
   new SystemRuleDefinition('system_service_timeout', '服务超时异常', 'whole_failed',
@@ -144,7 +146,7 @@ export class SystemLogImportRule implements LogImportRule {
       case 'memory_leak':
         return SystemLogImportRule.parseMemoryLeak(file, rule, fallbackTimestamp)
       case 'key_lines':
-        return SystemLogImportRule.parseKeyLines(file, rule)
+        return SystemLogImportRule.parseKeyLines(file, rule, fallbackTimestamp)
       default:
         return []
     }
@@ -256,7 +258,11 @@ export class SystemLogImportRule implements LogImportRule {
     }]
   }
 
-  private static async parseKeyLines(file: ImportedLogFile, rule: SystemRuleDefinition): Promise<SystemParsedEvent[]> {
+  private static async parseKeyLines(
+    file: ImportedLogFile,
+    rule: SystemRuleDefinition,
+    fallbackTimestamp: number
+  ): Promise<SystemParsedEvent[]> {
     let events: SystemParsedEvent[] = []
     await SystemLogImportRule.forEachLine(file, async (line: string, lineNumber: number): Promise<void> => {
       if (!SystemLogImportRule.isKeyLine(line)) {
@@ -265,7 +271,7 @@ export class SystemLogImportRule implements LogImportRule {
       let normalized = SystemLogImportRule.truncate(line)
       events.push({
         rule,
-        timestamp: SystemLogImportRule.parseTimestampFromText(line),
+        timestamp: SystemLogImportRule.parseTimestampFromText(line, fallbackTimestamp),
         processName: SystemLogImportRule.processNameFromPath(file.relativePath),
         detail: SystemLogImportRule.buildSummary(rule.category, normalized),
         sourceText: normalized,
@@ -389,7 +395,7 @@ export class SystemLogImportRule implements LogImportRule {
     try {
       let stat = await fileIo.stat(file.path)
       if (stat.mtime > 0) {
-        return stat.mtime
+        return SystemLogImportRule.normalizeEpochMillis(stat.mtime)
       }
     } catch (_) {
     }
@@ -404,7 +410,7 @@ export class SystemLogImportRule implements LogImportRule {
     return SystemLogImportRule.parseCompactTimestamp(matched[1])
   }
 
-  static parseTimestampFromText(text: string): number | undefined {
+  static parseTimestampFromText(text: string, fallbackTimestamp?: number): number | undefined {
     let matched = text.match(/(\d{4})[/-](\d{2})[/-](\d{2})[- T](\d{2}):(\d{2}):(\d{2})(?:[.:](\d{1,3}))?/)
     if (matched) {
       return new Date(
@@ -418,7 +424,10 @@ export class SystemLogImportRule implements LogImportRule {
       ).getTime()
     }
     let compact = text.match(/\b(\d{17}|\d{14})\b/)
-    return compact ? SystemLogImportRule.parseCompactTimestamp(compact[1]) : undefined
+    if (compact) {
+      return SystemLogImportRule.parseCompactTimestamp(compact[1])
+    }
+    return SystemLogImportRule.parseMonthDayTimestamp(text, fallbackTimestamp)
   }
 
   private static parseCompactTimestamp(value: string): number | undefined {
@@ -435,6 +444,36 @@ export class SystemLogImportRule implements LogImportRule {
       Number(full.substring(12, 14)),
       Number(full.substring(14, 17))
     ).getTime()
+  }
+
+  static normalizeEpochMillis(value: number): number {
+    return value > 0 && value < EPOCH_MILLIS_THRESHOLD ? value * 1000 : value
+  }
+
+  private static parseMonthDayTimestamp(text: string, fallbackTimestamp?: number): number | undefined {
+    if (fallbackTimestamp === undefined || !Number.isFinite(fallbackTimestamp) || fallbackTimestamp < 0) {
+      return undefined
+    }
+    let matched = text.match(/(^|[^\d])(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/)
+    if (!matched) {
+      return undefined
+    }
+    let fallback = new Date(fallbackTimestamp)
+    let parsed = new Date(
+      fallback.getFullYear(),
+      Number(matched[2]) - 1,
+      Number(matched[3]),
+      Number(matched[4]),
+      Number(matched[5]),
+      Number(matched[6]),
+      Number((matched[7] ?? '0').padEnd(3, '0'))
+    ).getTime()
+    if (parsed > fallbackTimestamp + FUTURE_SKEW_TOLERANCE_MS) {
+      let previousYear = new Date(parsed)
+      previousYear.setFullYear(previousYear.getFullYear() - 1)
+      return previousYear.getTime()
+    }
+    return parsed
   }
 
   private static parseHisiTimeLine(line: string): number | undefined {
