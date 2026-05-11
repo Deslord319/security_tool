@@ -10,7 +10,6 @@ import {
   CrashSubscribeResult,
   InitializeResult
 } from '../common/LogManagePorts'
-import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 import { LogAuditSource } from '../source/LogAuditSource'
 import { LogCrashSource } from '../source/LogCrashSource'
@@ -57,26 +56,17 @@ export class LogCollectorService {
     if (!LogCollectorService.initialized) {
       return LogCollectorService.buildStartResult(false, 'not_initialized')
     }
-    let subscribeConfig = await LogSettingsRepository.loadSubscriptionConfig()
-    let targetTypes = subscribeConfig.subscribeAll ? undefined : subscribeConfig.subscribedTypes
-    let auditTypes = targetTypes?.filter((type: LogEventType) => type !== LogEventType.CRASH)
-    let shouldCollectCrash = targetTypes === undefined || targetTypes.includes(LogEventType.CRASH)
-    let shouldCollectAudit = auditTypes === undefined || auditTypes.length > 0
-    LogCollectorService.auditEnabled = shouldCollectAudit
-    LogCollectorService.crashEnabled = shouldCollectCrash
-    let auditResult: AuditSubscribeResult = auditTypes === undefined || auditTypes.length > 0 ?
-      await LogAuditSource.subscribe((entry: LogEntry) => {
-        LogCollectorService.handleIncomingEntry(entry)
-      }, auditTypes) :
-      LogCollectorService.buildSkippedAuditSubscribeResult()
-    let crashResult: CrashSubscribeResult = shouldCollectCrash ?
-      LogCrashSource.subscribe((entry: LogEntry) => {
-        LogCollectorService.handleIncomingEntry(entry)
-      }) :
-      LogCollectorService.buildSkippedCrashSubscribeResult()
+    LogCollectorService.auditEnabled = true
+    LogCollectorService.crashEnabled = true
+    let auditResult: AuditSubscribeResult = await LogAuditSource.subscribe((entry: LogEntry) => {
+      LogCollectorService.handleIncomingEntry(entry)
+    })
+    let crashResult: CrashSubscribeResult = LogCrashSource.subscribe((entry: LogEntry) => {
+      LogCollectorService.handleIncomingEntry(entry)
+    })
 
-    LogCollectorService.auditReady = shouldCollectAudit && auditResult.success
-    LogCollectorService.crashReady = shouldCollectCrash && crashResult.success
+    LogCollectorService.auditReady = auditResult.success
+    LogCollectorService.crashReady = crashResult.success
     let success = LogCollectorService.auditReady || LogCollectorService.crashReady
     LogCollectorService.running = success
     if (!success) {
@@ -248,21 +238,4 @@ export class LogCollectorService {
     return result
   }
 
-  private static buildSkippedAuditSubscribeResult(): AuditSubscribeResult {
-    let result: AuditSubscribeResult = {
-      success: false,
-      code: 'unsupported',
-      subscribedEventIds: [],
-      failedEventIds: []
-    }
-    return result
-  }
-
-  private static buildSkippedCrashSubscribeResult(): CrashSubscribeResult {
-    let result: CrashSubscribeResult = {
-      success: false,
-      code: 'unsupported'
-    }
-    return result
-  }
 }
