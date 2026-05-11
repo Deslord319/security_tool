@@ -9,20 +9,10 @@ import {
   PeripheralPolicyDispatchResult
 } from '../../main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
 import {
-  CsvFileExportResult,
   CsvFileExportService
 } from '../../main/ets/services/common/export/CsvFileExportService'
+import { createSuccessfulCsvFileExportResult } from '../common/CsvExportResultFactory'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
-
-function createExportResult(fileName: string, fullPath: string): CsvFileExportResult {
-  let result: CsvFileExportResult = {
-    success: true,
-    code: 'ok',
-    fileName,
-    fullPath
-  }
-  return result
-}
 
 function clonePolicyRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
   let cloned: PeripheralDevicePolicyRecord = {
@@ -286,7 +276,7 @@ export default function peripheralPolicyViewModelTest() {
         policyIndex: 0
       }]
       let exportMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveText)
-      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createExportResult(
+      when(exportMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createSuccessfulCsvFileExportResult(
         'peripheral_policy_list_20260326_120000.csv',
         '/mock/peripheral_policy_list_20260326_120000.csv'
       )))
