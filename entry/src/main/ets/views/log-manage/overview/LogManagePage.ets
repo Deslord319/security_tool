@@ -78,7 +78,7 @@ export struct LogManagePage {
       if (!viewModel.state.initialized) {
         let initResult = await viewModel.initialize(context)
         if (!initResult.success) {
-          LogUtils.warn(TAG, `initializeViewModels list init failed: ${initResult.code}`)
+          LogUtils.error(TAG, `initializeViewModels list init failed: ${initResult.code}`)
           return
         }
       }

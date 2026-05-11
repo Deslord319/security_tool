@@ -1,18 +1,7 @@
 import { LogEntry } from './DataModels'
-import { CollectorStatus } from '../services/log-manage/common/LogManagePorts'
 
 export type LogManageMode = 'list' | 'settings'
 export const LOG_PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
-
-@ObservedV2
-export class LogCollectorState implements CollectorStatus {
-  @Trace running: boolean = false
-  @Trace auditReady: boolean = false
-  @Trace crashReady: boolean = false
-  @Trace pendingCount: number = 0
-  @Trace degraded: boolean = false
-  @Trace degradedReason?: 'audit_failed' | 'crash_failed' | 'partial'
-}
 
 @ObservedV2
 export class LogSummaryState {
@@ -57,7 +46,6 @@ export class LogManageState {
   @Trace autoRefreshEnabled: boolean = true
   @Trace mode: LogManageMode = 'list'
   @Trace summary: LogSummaryState = new LogSummaryState()
-  @Trace collector: LogCollectorState = new LogCollectorState()
   @Trace filter: LogFilterState = new LogFilterState()
   @Trace pagination: LogPaginationState = new LogPaginationState()
   @Trace list: LogListState = new LogListState()

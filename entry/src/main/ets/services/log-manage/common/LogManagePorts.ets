@@ -76,17 +76,12 @@ export interface CollectorStopResult extends ServiceResult<'ok' | 'not_running' 
   status: CollectorStatus
 }
 
-export interface LogCollectorStatusPort {
-  getStatus(): CollectorStatus
-}
-
 export interface LogStoragePort {
   init(context: common.UIAbilityContext): Promise<InitializeResult>
-  addEntries(entries: LogEntry[]): Promise<MutationResult>
   count(query?: LogQuery): Promise<number>
   list(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]>
   hasEntry(entryId: string, query?: LogQuery): Promise<boolean>
-  snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot>
+  snapshot(query?: LogQuery, limit?: number, offset?: number, filteredCount?: number): Promise<LogSnapshot>
   clear(): Promise<ClearLogsResult>
   addChangeListener(listener: () => void): number
   removeChangeListener(id: number): void

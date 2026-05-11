@@ -10,20 +10,16 @@ import {
 import { LOG_PAGE_SIZE_OPTIONS, LogManageMode, LogManageState } from '../../../models/LogManageModels'
 import {
   ClearLogsResult,
-  CollectorStatus,
   ExportLogsResult,
   InitializeResult,
   ListViewInitializeResult,
-  LogCollectorStatusPort,
   LogExportServicePort,
   LogQuery,
   LogStoragePort,
   LogSnapshot,
-  MutationResult,
   RefreshResult,
   SaveSettingsResult
 } from '../../../services/log-manage/common/LogManagePorts'
-import { LogCollectorService } from '../../../services/log-manage/collector/LogCollectorService'
 import { LogExportService } from '../../../services/log-manage/export/LogExportService'
 import { LogStorageMaintenanceService } from '../../../services/log-manage/maintenance/LogStorageMaintenanceService'
 import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
@@ -44,10 +40,6 @@ class DefaultLogManageStorage implements LogStoragePort {
     return LogStorageMaintenanceService.initialize(context)
   }
 
-  addEntries(entries: LogEntry[]): Promise<MutationResult> {
-    return LogStorageMaintenanceService.appendEntries(entries)
-  }
-
   count(query?: LogQuery): Promise<number> {
     return LogEntryRepository.countByQuery(query)
   }
@@ -60,15 +52,15 @@ class DefaultLogManageStorage implements LogStoragePort {
     return LogEntryRepository.hasEntry(entryId, query)
   }
 
-  async snapshot(query?: LogQuery, limit?: number, offset?: number): Promise<LogSnapshot> {
+  async snapshot(query?: LogQuery, limit?: number, offset?: number, filteredCount?: number): Promise<LogSnapshot> {
     let statistics = await LogEntryRepository.getStatistics()
-    let filteredCount = await this.count(query)
+    let resolvedFilteredCount = filteredCount ?? await this.count(query)
     let entries = await this.list(query, limit, offset)
     return {
       totalCount: statistics.totalCount,
       todayCount: statistics.todayCount,
       blockedCount: statistics.blockedCount,
-      filteredCount,
+      filteredCount: resolvedFilteredCount,
       entries
     }
   }
@@ -92,12 +84,6 @@ class DefaultLogManageExporter implements LogExportServicePort {
   }
 }
 
-class DefaultLogManageCollector implements LogCollectorStatusPort {
-  getStatus(): CollectorStatus {
-    return LogCollectorService.getStatus()
-  }
-}
-
 @ObservedV2
 export class LogManageViewModel {
   @Trace state: LogManageState = new LogManageState()
@@ -106,17 +92,14 @@ export class LogManageViewModel {
   private initialized: boolean = false
   private storage: LogStoragePort
   private exporter: LogExportServicePort
-  private collector: LogCollectorStatusPort
 
   constructor(
     storage: LogStoragePort = new DefaultLogManageStorage(),
     exporter: LogExportServicePort = new DefaultLogManageExporter(),
-    collector: LogCollectorStatusPort = new DefaultLogManageCollector(),
     settingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
   ) {
     this.storage = storage
     this.exporter = exporter
-    this.collector = collector
     this.settingsViewModel = settingsViewModel
   }
 
@@ -128,6 +111,7 @@ export class LogManageViewModel {
       if (!this.initialized) {
         let initResult = await this.storage.init(context)
         if (!initResult.success) {
+          LogUtils.error(TAG, `initialize storage failed: ${initResult.code}`)
           return initializeResult
         }
         this.registerStorageListener()
@@ -322,9 +306,8 @@ export class LogManageViewModel {
     let totalPages = this.calcTotalPages(filteredCount, pageSize)
     let currentPage = this.normalizePage(`${this.state.pagination.currentPage}`, totalPages)
     let pageStart = (currentPage - 1) * pageSize
-    let snapshot = await this.storage.snapshot(currentQuery, pageSize, pageStart)
+    let snapshot = await this.storage.snapshot(currentQuery, pageSize, pageStart, filteredCount)
 
-    this.applyCollectorState()
     this.applySummaryState(snapshot, snapshot.entries.length)
     this.applyListState(snapshot)
     this.applyPaginationState(currentPage, totalPages)
@@ -348,16 +331,6 @@ export class LogManageViewModel {
       hasQuery = true
     }
     return hasQuery ? query : undefined
-  }
-
-  private applyCollectorState(): void {
-    let source = this.collector.getStatus()
-    this.state.collector.running = source.running
-    this.state.collector.auditReady = source.auditReady
-    this.state.collector.crashReady = source.crashReady
-    this.state.collector.pendingCount = source.pendingCount
-    this.state.collector.degraded = source.degraded
-    this.state.collector.degradedReason = source.degradedReason
   }
 
   private applySummaryState(snapshot: LogSnapshot, currentShownCount: number): void {
