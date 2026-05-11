@@ -18,7 +18,9 @@ export const LOG_EVENT_TYPE_OPTIONS: LogEventTypeOption[] = [
   { label: LogEventPresentationStrings.FILE, value: LogEventType.FILE },
   { label: LogEventPresentationStrings.ACCOUNT, value: LogEventType.ACCOUNT },
   { label: LogEventPresentationStrings.PERMISSION, value: LogEventType.PERMISSION },
-  { label: LogEventPresentationStrings.POWER, value: LogEventType.POWER }
+  { label: LogEventPresentationStrings.POWER, value: LogEventType.POWER },
+  { label: LogEventPresentationStrings.SYSTEM, value: LogEventType.SYSTEM },
+  { label: LogEventPresentationStrings.KERNEL, value: LogEventType.KERNEL }
 ]
 
 export const LOG_EVENT_RESULT_OPTIONS: LogEventResultOption[] = [
@@ -39,6 +41,10 @@ export function getLogEventTypeLabel(type: LogEventType): string {
       return LogEventPresentationStrings.PERMISSION
     case LogEventType.POWER:
       return LogEventPresentationStrings.POWER
+    case LogEventType.SYSTEM:
+      return LogEventPresentationStrings.SYSTEM
+    case LogEventType.KERNEL:
+      return LogEventPresentationStrings.KERNEL
     default:
       return LabelText.UNKNOWN
   }
