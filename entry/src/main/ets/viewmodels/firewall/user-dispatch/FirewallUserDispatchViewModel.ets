@@ -6,6 +6,7 @@ import {
   FirewallUserPolicyMode,
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyStateResult,
+  resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
@@ -138,7 +139,9 @@ export class FirewallUserDispatchViewModel {
       return
     }
 
-    const selectedMode = result.bindingMode ?? this.modeOptions[0]
+    const selectedMode = result.bindingMode ??
+      resolveFirewallUserPolicyModeFromActions(result.inAction, result.outAction) ??
+      this.modeOptions[0]
     this.selectedModeIndex = this.modeOptions.findIndex((item: FirewallUserPolicyMode): boolean => item === selectedMode)
     if (this.selectedModeIndex < 0) {
       this.selectedModeIndex = 0

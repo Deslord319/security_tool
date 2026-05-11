@@ -2,6 +2,7 @@ import { netFirewall } from '@kit.NetworkKit'
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 export type FirewallUserPolicyMode = 'allowlist' | 'denylist'
+export type FirewallDefaultPolicyMode = FirewallUserPolicyMode | 'custom' | 'unknown'
 
 export const FIREWALL_USER_POLICY_MODE_OPTIONS: FirewallUserPolicyMode[] = ['allowlist', 'denylist']
 
@@ -228,9 +229,37 @@ export interface FirewallUserPolicyStateResult {
   message?: string
 }
 
+export interface FirewallDefaultPolicyDisplayItem {
+  userId: number
+  label: string
+  mode: FirewallDefaultPolicyMode
+  isOpen: boolean
+  inAction: number
+  outAction: number
+}
+
 export interface FirewallUserPolicyApplyResult extends FirewallOperationResult {
   userId: number
   mode: FirewallUserPolicyMode
+}
+
+export function resolveFirewallUserPolicyModeFromActions(
+  inAction: number,
+  outAction: number
+): FirewallUserPolicyMode | undefined {
+  if (
+    inAction === netFirewall.FirewallRuleAction.RULE_DENY &&
+      outAction === netFirewall.FirewallRuleAction.RULE_DENY
+  ) {
+    return 'allowlist'
+  }
+  if (
+    inAction === netFirewall.FirewallRuleAction.RULE_ALLOW &&
+      outAction === netFirewall.FirewallRuleAction.RULE_ALLOW
+  ) {
+    return 'denylist'
+  }
+  return undefined
 }
 
 export const FIREWALL_RULE_MAPPING_VERSION = 1

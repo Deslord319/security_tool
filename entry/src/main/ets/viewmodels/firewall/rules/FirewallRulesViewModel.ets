@@ -9,12 +9,14 @@ import {
 import {
   attachFirewallRuleUserIds,
   FIREWALL_RULE_TAB_TYPES,
+  FirewallDefaultPolicyDisplayItem,
   FirewallOperationResult,
   FirewallPresetMode,
   FirewallRuleMutationResult,
   FirewallScopedRule,
   getFirewallRuleUserIds,
   normalizeFirewallRuleUserIds,
+  resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
@@ -27,6 +29,16 @@ const TAG = 'FirewallRulesViewModel'
 export interface FirewallRulesConflictInfo {
   kind: string
   existingRule: netFirewall.NetFirewallRule | null
+}
+
+export function buildFirewallDefaultPolicyEmptyHint(items: FirewallDefaultPolicyDisplayItem[]): string {
+  if (items.some((item: FirewallDefaultPolicyDisplayItem): boolean => item.mode === 'allowlist' || item.inAction === netFirewall.FirewallRuleAction.RULE_DENY || item.outAction === netFirewall.FirewallRuleAction.RULE_DENY)) {
+    return FirewallRuleStrings.EMPTY_RULES_WITH_DEFAULT_DENY
+  }
+  if (items.some((item: FirewallDefaultPolicyDisplayItem): boolean => item.mode === 'unknown')) {
+    return FirewallRuleStrings.EMPTY_RULES_WITH_UNKNOWN_POLICY
+  }
+  return FirewallRuleStrings.EMPTY_RULES_WITH_DEFAULT_ALLOW
 }
 
 export function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFirewallOption[]): boolean {
@@ -70,6 +82,7 @@ function cloneScopedRule(rule: netFirewall.NetFirewallRule): netFirewall.NetFire
 export class FirewallRulesViewModel {
   @Trace currentMode: FirewallPresetMode = 'custom'
   @Trace rules: netFirewall.NetFirewallRule[] = []
+  @Trace defaultPolicyItems: FirewallDefaultPolicyDisplayItem[] = []
   @Trace conflictNotice: string = ''
   @Trace currentTab: number = 0
   @Trace isLoading: boolean = false
@@ -84,6 +97,7 @@ export class FirewallRulesViewModel {
     this.currentMode = currentMode
     if (currentMode !== 'custom') {
       this.rules = []
+      this.defaultPolicyItems = []
       this.conflictNotice = ''
       this.lastSaveResult = null
       this.lastOperationMessage = FirewallRuleStrings.ONLY_CUSTOM_MODE
@@ -100,12 +114,14 @@ export class FirewallRulesViewModel {
     this.isLoading = true
     try {
       await this.reloadUserOptions()
+      await this.reloadDefaultPolicies(context)
       await this.reloadRules(context)
       this.lastOperationMessage = ''
       return { success: true }
     } catch (err) {
       LogUtils.error(TAG, `loadRules failed: ${JSON.stringify(err)}`)
       this.rules = []
+      this.defaultPolicyItems = []
       this.conflictNotice = ''
       this.lastSaveResult = null
       this.lastOperationMessage = FirewallRuleStrings.APPLY_FAILED
@@ -234,6 +250,42 @@ export class FirewallRulesViewModel {
 
   getRuleUserScopeLabel(rule: netFirewall.NetFirewallRule): string {
     return buildFirewallRuleUserScopeLabel(rule, this.userOptions)
+  }
+
+  getEmptyRuleHint(): string {
+    return buildFirewallDefaultPolicyEmptyHint(this.defaultPolicyItems)
+  }
+
+  private async reloadDefaultPolicies(context: common.UIAbilityContext): Promise<void> {
+    let items: FirewallDefaultPolicyDisplayItem[] = []
+    for (let i = 0; i < this.userOptions.length; i++) {
+      let user = this.userOptions[i]
+      try {
+        let policyState = await FirewallService.loadUserPolicyState(context, user.userId)
+        let inferredMode = policyState.isManaged
+          ? resolveFirewallUserPolicyModeFromActions(policyState.inAction, policyState.outAction)
+          : undefined
+        items.push({
+          userId: user.userId,
+          label: user.label,
+          mode: policyState.isManaged ? (inferredMode ?? 'custom') : 'unknown',
+          isOpen: policyState.isOpen,
+          inAction: policyState.inAction,
+          outAction: policyState.outAction
+        })
+      } catch (err) {
+        LogUtils.error(TAG, `reloadDefaultPolicies failed: userId=${user.userId}, err=${JSON.stringify(err)}`)
+        items.push({
+          userId: user.userId,
+          label: user.label,
+          mode: 'unknown',
+          isOpen: false,
+          inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
+          outAction: netFirewall.FirewallRuleAction.RULE_ALLOW
+        })
+      }
+    }
+    this.defaultPolicyItems = items
   }
 
   private async reloadRules(context: common.UIAbilityContext): Promise<void> {

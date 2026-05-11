@@ -38,6 +38,15 @@ export class FirewallRuleStrings {
   static readonly OUTBOUND: string = '出站规则'
   static readonly INBOUND_DESCRIPTION: string = '自定义入站规则'
   static readonly OUTBOUND_DESCRIPTION: string = '自定义出站规则'
+  static readonly DEFAULT_POLICY_ALLOWLIST_USERS: string = '白名单用户'
+  static readonly DEFAULT_POLICY_DENYLIST_USERS: string = '黑名单用户'
+  static readonly DEFAULT_POLICY_EMPTY_USERS: string = '无'
+  static readonly DEFAULT_POLICY_CUSTOM: string = '方向自定义'
+  static readonly DEFAULT_POLICY_UNKNOWN: string = '读取失败'
+  static readonly DEFAULT_POLICY_DISABLED: string = '防火墙关闭，开启后生效'
+  static readonly EMPTY_RULES_WITH_DEFAULT_DENY: string = '暂无自定义规则；当前存在默认阻止用户，请新增允许规则放行业务访问。'
+  static readonly EMPTY_RULES_WITH_DEFAULT_ALLOW: string = '暂无自定义规则；当前未命中流量默认允许，可新增阻止规则限制访问。'
+  static readonly EMPTY_RULES_WITH_UNKNOWN_POLICY: string = '暂无自定义规则；部分用户默认策略读取失败，请确认全局策略后再新增规则。'
 }
 
 export class FirewallUserStrings {
