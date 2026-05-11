@@ -20,6 +20,7 @@ import {
   SaveSettingsResult
 } from '../../../services/log-manage/common/LogManagePorts'
 import { LogExportService } from '../../../services/log-manage/export/LogExportService'
+import { ImportLogsResult, LogImportService } from '../../../services/log-manage/import/LogImportService'
 import { LogStorageMaintenanceService } from '../../../services/log-manage/maintenance/LogStorageMaintenanceService'
 import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -83,6 +84,16 @@ class DefaultLogManageExporter implements LogExportServicePort {
   }
 }
 
+export interface LogImportServicePort {
+  import(context: common.UIAbilityContext): Promise<ImportLogsResult>
+}
+
+class DefaultLogManageImporter implements LogImportServicePort {
+  import(context: common.UIAbilityContext): Promise<ImportLogsResult> {
+    return LogImportService.import(context)
+  }
+}
+
 @ObservedV2
 export class LogManageViewModel {
   @Trace state: LogManageState = new LogManageState()
@@ -91,15 +102,18 @@ export class LogManageViewModel {
   private initialized: boolean = false
   private storage: LogStoragePort
   private exporter: LogExportServicePort
+  private importer: LogImportServicePort
 
   constructor(
     storage: LogStoragePort = new DefaultLogManageStorage(),
     exporter: LogExportServicePort = new DefaultLogManageExporter(),
-    settingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel()
+    settingsViewModel: LogStorageSettingsViewModel = new LogStorageSettingsViewModel(),
+    importer: LogImportServicePort = new DefaultLogManageImporter()
   ) {
     this.storage = storage
     this.exporter = exporter
     this.settingsViewModel = settingsViewModel
+    this.importer = importer
   }
 
   async initialize(context: common.UIAbilityContext): Promise<ListViewInitializeResult> {
@@ -261,6 +275,14 @@ export class LogManageViewModel {
       success: false,
       reason: this.mapExportError(result.code)
     }
+  }
+
+  async importLogs(context: common.UIAbilityContext): Promise<ImportLogsResult> {
+    let result = await this.importer.import(context)
+    if (result.success) {
+      await this.refreshAll()
+    }
+    return result
   }
 
   async saveStorageSettings(): Promise<SaveSettingsResult> {

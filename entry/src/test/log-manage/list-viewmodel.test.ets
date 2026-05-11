@@ -19,7 +19,9 @@ import {
   SaveSettingsResult
 } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import { LogManageViewModel } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
+import { LogImportServicePort } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
 import { LogStorageSettingsViewModel } from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
+import { ImportLogsResult } from '../../main/ets/services/log-manage/import/LogImportService'
 
 function createEntry(id: string, eventType: LogEventType, result: LogEventResult, detail: string): LogEntry {
   return {
@@ -149,6 +151,24 @@ class FakeLogListExporter implements LogExportServicePort {
   }
 }
 
+class FakeLogListImporter implements LogImportServicePort {
+  result: ImportLogsResult = {
+    success: true,
+    code: 'ok',
+    extractedFileCount: 1,
+    scannedFileCount: 1,
+    parsedEntryCount: 1,
+    insertedEntryCount: 1,
+    skippedDuplicateCount: 0,
+    droppedEntryCount: 0,
+    failedEntryCount: 0
+  }
+
+  async import(_context: common.UIAbilityContext): Promise<ImportLogsResult> {
+    return this.result
+  }
+}
+
 class FakeLogStorageSettingsViewModel extends LogStorageSettingsViewModel {
   loadResult: SaveSettingsResult = { success: true, code: 'ok' }
   saveResult: SaveSettingsResult = { success: true, code: 'ok' }
@@ -166,6 +186,7 @@ export default function logManageViewModelTest() {
   describe('LogManageViewModel', () => {
     let storage: FakeLogListStorage
     let exporter: FakeLogListExporter
+    let importer: FakeLogListImporter
     let settingsViewModel: FakeLogStorageSettingsViewModel
     let viewModel: LogManageViewModel
     let context: common.UIAbilityContext
@@ -178,8 +199,9 @@ export default function logManageViewModelTest() {
         createEntry('3', LogEventType.FILE, LogEventResult.FAILED, 'file gamma')
       ]
       exporter = new FakeLogListExporter()
+      importer = new FakeLogListImporter()
       settingsViewModel = new FakeLogStorageSettingsViewModel()
-      viewModel = new LogManageViewModel(storage, exporter, settingsViewModel)
+      viewModel = new LogManageViewModel(storage, exporter, settingsViewModel, importer)
       context = {} as common.UIAbilityContext
     })
 
@@ -267,6 +289,35 @@ export default function logManageViewModelTest() {
       let failedResult: ExportActionResult = await viewModel.exportLogs(context)
       expect(failedResult.success).assertFalse()
       expect((failedResult.reason ?? '').length > 0).assertTrue()
+    })
+
+    it('should refresh list after successful import and keep state after failed import', 0, async () => {
+      await viewModel.initialize(context)
+      storage.entries = [createEntry('4', LogEventType.KERNEL, LogEventResult.FAILED, 'kernel imported')]
+
+      let successResult = await viewModel.importLogs(context)
+
+      expect(successResult.success).assertTrue()
+      expect(viewModel.state.summary.totalCount).assertEqual(1)
+      expect(viewModel.state.list.pagedEntries[0].id).assertEqual('4')
+
+      importer.result = {
+        success: false,
+        code: 'extract_failed',
+        extractedFileCount: 0,
+        scannedFileCount: 0,
+        parsedEntryCount: 0,
+        insertedEntryCount: 0,
+        skippedDuplicateCount: 0,
+        droppedEntryCount: 0,
+        failedEntryCount: 0
+      }
+      storage.entries = [createEntry('5', LogEventType.KERNEL, LogEventResult.FAILED, 'should not refresh')]
+
+      let failedResult = await viewModel.importLogs(context)
+
+      expect(failedResult.success).assertFalse()
+      expect(viewModel.state.list.pagedEntries[0].id).assertEqual('4')
     })
 
     it('should clear logs even when current filter result is empty', 0, async () => {
