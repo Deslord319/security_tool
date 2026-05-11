@@ -17,13 +17,15 @@ import {
 
 export default function logManageDataModelsTest() {
   describe('LogManage DataModels', () => {
-    it('should expose only four final log event types', 0, () => {
-      expect(ALL_LOG_EVENT_TYPES.length).assertEqual(5)
+    it('should expose final log event types including offline import types', 0, () => {
+      expect(ALL_LOG_EVENT_TYPES.length).assertEqual(7)
       expect(ALL_LOG_EVENT_TYPES[0]).assertEqual(LogEventType.CRASH)
       expect(ALL_LOG_EVENT_TYPES[1]).assertEqual(LogEventType.FILE)
       expect(ALL_LOG_EVENT_TYPES[2]).assertEqual(LogEventType.ACCOUNT)
       expect(ALL_LOG_EVENT_TYPES[3]).assertEqual(LogEventType.PERMISSION)
       expect(ALL_LOG_EVENT_TYPES[4]).assertEqual(LogEventType.POWER)
+      expect(ALL_LOG_EVENT_TYPES[5]).assertEqual(LogEventType.SYSTEM)
+      expect(ALL_LOG_EVENT_TYPES[6]).assertEqual(LogEventType.KERNEL)
     })
 
     it('should return stable labels for final event types', 0, () => {
@@ -32,6 +34,8 @@ export default function logManageDataModelsTest() {
       expect(getLogEventTypeLabel(LogEventType.ACCOUNT)).assertEqual('用户认证日志')
       expect(getLogEventTypeLabel(LogEventType.PERMISSION)).assertEqual('权限变更日志')
       expect(getLogEventTypeLabel(LogEventType.POWER)).assertEqual('开关机日志')
+      expect(getLogEventTypeLabel(LogEventType.SYSTEM)).assertEqual('系统日志')
+      expect(getLogEventTypeLabel(LogEventType.KERNEL)).assertEqual('内核日志')
     })
 
     it('should keep result labels and colors stable', 0, () => {
@@ -53,7 +57,7 @@ export default function logManageDataModelsTest() {
     })
 
     it('should keep options aligned with final event types and storage defaults', 0, () => {
-      expect(LOG_EVENT_TYPE_OPTIONS.length).assertEqual(5)
+      expect(LOG_EVENT_TYPE_OPTIONS.length).assertEqual(7)
       expect(LOG_EVENT_TYPE_OPTIONS.map((item) => item.value).every((item) => ALL_LOG_EVENT_TYPES.includes(item))).assertTrue()
       expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(20000)
       expect(DEFAULT_LOG_STORAGE_CONFIG.retentionDays).assertEqual(30)

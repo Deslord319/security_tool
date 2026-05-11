@@ -9,6 +9,7 @@ import {
   LogManageClearingStrings,
   LogManageDetailStrings,
   LogManageFilterStrings,
+  LogManageImportStrings,
   LogManagePageStrings,
   LogManageSettingStrings,
   LogManageStatStrings,
@@ -28,6 +29,7 @@ import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
 import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { LogManageViewModel } from '../../../viewmodels/log-manage/overview/LogManageViewModel'
+import { ImportLogsResult } from '../../../services/log-manage/import/LogImportService'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntriesPanel } from '../../../components/log-manage/entries/LogEntriesPanel'
 import { LogPaginationBar } from '../../../components/log-manage/entries/LogPaginationBar'
@@ -144,6 +146,37 @@ export struct LogManagePage {
     DialogService.openFailure(this.getUIContext(), result.reason ?? MessageText.RETRY_LATER)
   }
 
+  private async handleImportLogs(): Promise<void> {
+    let context = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result: ImportLogsResult = await this.getActiveViewModel().importLogs(context)
+    if (result.success) {
+      DialogService.openSuccess(this.getUIContext(), LogManageImportStrings.buildSuccessMessage(
+        result.insertedEntryCount,
+        result.skippedDuplicateCount,
+        result.droppedEntryCount,
+        result.failedEntryCount
+      ))
+      return
+    }
+    DialogService.openFailure(this.getUIContext(), this.mapImportFailureText(result.code))
+  }
+
+  private mapImportFailureText(code: string): string {
+    if (code === 'user_canceled') {
+      return LogManageImportStrings.USER_CANCELED
+    }
+    if (code === 'invalid_archive') {
+      return LogManageImportStrings.INVALID_ARCHIVE
+    }
+    if (code === 'extract_failed') {
+      return LogManageImportStrings.EXTRACT_FAILED
+    }
+    if (code === 'save_failed') {
+      return LogManageImportStrings.SAVE_FAILED
+    }
+    return MessageText.RETRY_LATER
+  }
+
   private handleClearLogs(): void {
     let viewModel = this.getActiveViewModel()
     DialogService.openConfirm(this.getUIContext(), {
@@ -238,6 +271,14 @@ export struct LogManagePage {
           currentTheme: this.currentTheme,
           onTap: () => {
             this.handleExportLogs()
+          }
+        })
+        IconTextActionButton({
+          label: LogManageActionStrings.IMPORT_LOGS,
+          icon: AppResources.LOG_ICON,
+          currentTheme: this.currentTheme,
+          onTap: () => {
+            this.handleImportLogs()
           }
         })
         IconTextActionButton({

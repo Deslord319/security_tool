@@ -28,6 +28,12 @@ import logSettingsRepositoryTest from './log-manage/settings-repository.test'
 import logCrashSourceTest from './log-manage/crash-source.test'
 import logEntryNormalizerTest from './log-manage/entry-normalizer.test'
 import logExportServiceTest from './log-manage/export-service.test'
+import logArchiveExtractorTest from './log-manage/archive-extractor.test'
+import logImportHashTest from './log-manage/import-hash.test'
+import logImportServiceTest from './log-manage/import-service.test'
+import crashImportRuleTest from './log-manage/crash-import-rule.test'
+import kernelImportRuleTest from './log-manage/kernel-import-rule.test'
+import systemImportRuleTest from './log-manage/system-import-rule.test'
 import logListViewModelTest from './log-manage/list-viewmodel.test'
 import logMaintenanceServiceTest from './log-manage/maintenance-service.test'
 import logManageModelsTest from './log-manage/models.test'
@@ -104,6 +110,12 @@ export default function testsuite() {
   logCrashSourceTest()
   logEntryNormalizerTest()
   logExportServiceTest()
+  logArchiveExtractorTest()
+  logImportHashTest()
+  logImportServiceTest()
+  crashImportRuleTest()
+  kernelImportRuleTest()
+  systemImportRuleTest()
   logListViewModelTest()
   logMaintenanceServiceTest()
   logManageModelsTest()
