@@ -1,3 +1,6 @@
+import zlib from '@ohos.zlib'
+import util from '@ohos.util'
+import fileIo from '@ohos.file.fs'
 import {
   LogDetailTableRow,
   LogEntry,
@@ -29,6 +32,8 @@ interface ParsedKernelLine {
   path?: string
 }
 
+type KernelLogLineReader = (file: ImportedLogFile, onLine: (line: string, lineNumber: number) => void) => Promise<void>
+
 const KERNEL_RULE_HMSEH_DENIED: KernelRuleDefinition = {
   id: 'kernel_hmseh_denied',
   category: LogManageKernelImportStrings.CATEGORY_SECURITY_DENIED
@@ -45,41 +50,131 @@ const KERNEL_RULE_FS_DEVFS: KernelRuleDefinition = {
   id: 'kernel_fs_devfs_dec',
   category: LogManageKernelImportStrings.CATEGORY_FS_DEVFS
 }
+const READ_CHUNK_SIZE = 64 * 1024
 
 export class KernelLogImportRule implements LogImportRule {
   readonly name: string = 'kernel'
+  private static lineReaderForTest: KernelLogLineReader | null = null
+
+  static setLineReaderForTest(reader: KernelLogLineReader): void {
+    KernelLogImportRule.lineReaderForTest = reader
+  }
+
+  static resetTestPorts(): void {
+    KernelLogImportRule.lineReaderForTest = null
+  }
 
   canHandle(file: ImportedLogFile): boolean {
-    let logicalName = KernelLogImportRule.stripGzipSuffix(file.fileName)
+    let logicalName = KernelLogImportRule.stripGzipSuffix(file.fileName).toLowerCase()
     return KernelLogImportRule.isUnderHilogDirectory(file.normalizedPath) &&
       logicalName.startsWith('hilog_kmsg')
   }
 
   async parse(file: ImportedLogFile): Promise<LogImportRuleResult> {
     let result = createEmptyLogImportRuleResult()
-    let lines = file.content.split(/\r?\n/)
-    for (let index = 0; index < lines.length; index++) {
-      let rawLine = lines[index]
-      let line = rawLine.trim()
-      if (line.length === 0 || !line.includes('comm=')) {
-        result.droppedCount++
-        continue
-      }
-      let rule = KernelLogImportRule.matchRule(line)
-      if (!rule) {
-        result.droppedCount++
-        continue
-      }
-      let parsed = KernelLogImportRule.parseLine(line)
-      if (!parsed) {
-        result.droppedCount++
-        continue
-      }
-      let entry = KernelLogImportRule.buildEntry(line, parsed, rule, file, index + 1)
-      entry.id = LogImportHash.buildId(entry)
-      result.entries.push(entry)
+    if (KernelLogImportRule.lineReaderForTest) {
+      await KernelLogImportRule.lineReaderForTest(file, (rawLine: string, lineNumber: number): void => {
+        KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
+      })
+      return result
     }
+    let textPath = await KernelLogImportRule.prepareTextFile(file)
+    await KernelLogImportRule.forEachLine(textPath, (rawLine: string, lineNumber: number): void => {
+      KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
+    })
     return result
+  }
+
+  private static parseLineIntoResult(
+    rawLine: string,
+    lineNumber: number,
+    file: ImportedLogFile,
+    result: LogImportRuleResult
+  ): void {
+    let line = rawLine.trim()
+    if (line.length === 0 || !line.includes('comm=')) {
+      result.droppedCount++
+      return
+    }
+    let rule = KernelLogImportRule.matchRule(line)
+    if (!rule) {
+      result.droppedCount++
+      return
+    }
+    let parsed = KernelLogImportRule.parseLine(line)
+    if (!parsed) {
+      result.droppedCount++
+      return
+    }
+    let entry = KernelLogImportRule.buildEntry(line, parsed, rule, file, lineNumber)
+    entry.id = LogImportHash.buildId(entry)
+    result.entries.push(entry)
+  }
+
+  private static async prepareTextFile(file: ImportedLogFile): Promise<string> {
+    if (!file.path.toLowerCase().endsWith('.gz')) {
+      return file.path
+    }
+    return KernelLogImportRule.gunzipToSameDirectory(file.path)
+  }
+
+  private static async gunzipToSameDirectory(gzipPath: string): Promise<string> {
+    let targetPath = KernelLogImportRule.stripGzipSuffix(gzipPath)
+    try {
+      if (await fileIo.access(targetPath)) {
+        return targetPath
+      }
+    } catch (_) {
+    }
+    let gzip = zlib.createGZipSync()
+    let output = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+    await gzip.gzopen(gzipPath, 'rb')
+    try {
+      while ((await gzip.gzeof()) === 0) {
+        let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
+        let readCount = await gzip.gzfread(buffer, 1, READ_CHUNK_SIZE)
+        if (readCount <= 0) {
+          break
+        }
+        fileIo.writeSync(output.fd, buffer, { offset: 0, length: readCount })
+      }
+    } finally {
+      await gzip.gzclose()
+      fileIo.closeSync(output.fd)
+    }
+    return targetPath
+  }
+
+  private static async forEachLine(path: string, onLine: (line: string, lineNumber: number) => void): Promise<void> {
+    let file = fileIo.openSync(path, fileIo.OpenMode.READ_ONLY)
+    let decoder = util.TextDecoder.create('utf-8')
+    let pending = ''
+    let lineNumber = 0
+    try {
+      while (true) {
+        let buffer = new ArrayBuffer(READ_CHUNK_SIZE)
+        let readCount = fileIo.readSync(file.fd, buffer, {
+          offset: 0,
+          length: READ_CHUNK_SIZE
+        })
+        if (readCount <= 0) {
+          break
+        }
+        let chunk = decoder.decodeToString(new Uint8Array(buffer, 0, readCount))
+        let lines = `${pending}${chunk}`.split(/\r?\n/)
+        pending = lines.pop() ?? ''
+        for (let line of lines) {
+          lineNumber++
+          onLine(line, lineNumber)
+        }
+      }
+      if (pending.length > 0) {
+        lineNumber++
+        onLine(pending, lineNumber)
+      }
+    } finally {
+      fileIo.closeSync(file.fd)
+    }
   }
 
   private static buildEntry(
@@ -220,7 +315,7 @@ export class KernelLogImportRule implements LogImportRule {
   }
 
   private static stripGzipSuffix(fileName: string): string {
-    return fileName.endsWith('.gz') ? fileName.substring(0, fileName.length - 3) : fileName
+    return fileName.toLowerCase().endsWith('.gz') ? fileName.substring(0, fileName.length - 3) : fileName
   }
 
   private static isUnderHilogDirectory(path: string): boolean {

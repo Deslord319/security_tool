@@ -73,10 +73,10 @@ export default function logImportServiceTest() {
 
       let result = await LogImportService.importFiles([
         {
+          path: '/tmp/hilog_kmsg.1',
           fileName: 'hilog_kmsg.1',
           relativePath: 'hilog/hilog_kmsg.1',
-          normalizedPath: 'hilog/hilog_kmsg.1',
-          content: 'content'
+          normalizedPath: 'hilog/hilog_kmsg.1'
         }
       ])
 

@@ -1,10 +1,10 @@
 import { LogEntry } from '../../../models/DataModels'
 
 export interface ImportedLogFile {
+  path: string
   fileName: string
   relativePath: string
   normalizedPath: string
-  content: string
 }
 
 export interface LogImportRuleResult {

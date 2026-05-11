@@ -1,5 +1,4 @@
 import zlib from '@ohos.zlib'
-import util from '@ohos.util'
 import fileIo from '@ohos.file.fs'
 import { fileUri } from '@kit.CoreFileKit'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -7,7 +6,6 @@ import { ImportedLogFile } from './LogImportRule'
 
 const TAG = 'LogArchiveExtractor'
 const MAX_RECURSION_DEPTH = 4
-const GZIP_READ_CHUNK_SIZE = 64 * 1024
 
 export interface ExtractedLogFilesResult {
   success: boolean
@@ -33,7 +31,7 @@ export class LogArchiveExtractor {
     try {
       await LogArchiveExtractor.ensureDirectory(rootPath)
       await LogArchiveExtractor.extractZipRecursively(archivePath, rootPath, 0)
-      let files = await LogArchiveExtractor.collectImportedFiles(rootPath)
+      let files = await LogArchiveExtractor.collectFiles(rootPath)
       return {
         success: true,
         code: 'ok',
@@ -66,57 +64,19 @@ export class LogArchiveExtractor {
     }
   }
 
-  private static async collectImportedFiles(rootPath: string): Promise<ImportedLogFile[]> {
-    let paths = await LogArchiveExtractor.findFiles(rootPath, (path: string) => {
-      let normalized = path.toLowerCase()
-      return normalized.endsWith('.txt') ||
-        normalized.endsWith('.log') ||
-        normalized.endsWith('.csv') ||
-        normalized.endsWith('.gz') ||
-        normalized.includes('hilog_kmsg')
-    })
+  private static async collectFiles(rootPath: string): Promise<ImportedLogFile[]> {
+    let paths = await LogArchiveExtractor.findFiles(rootPath, (_path: string) => true)
     let files: ImportedLogFile[] = []
     for (let path of paths) {
-      try {
-        let content = await LogArchiveExtractor.readFileContent(path)
-        files.push({
-          fileName: LogArchiveExtractor.basename(path),
-          relativePath: LogArchiveExtractor.relativePath(rootPath, path),
-          normalizedPath: LogArchiveExtractor.normalizePath(LogArchiveExtractor.relativePath(rootPath, path)),
-          content
-        })
-      } catch (err) {
-        LogUtils.warn(TAG, `read candidate failed: path=${path}, err=${JSON.stringify(err)}`)
-      }
+      let relativePath = LogArchiveExtractor.relativePath(rootPath, path)
+      files.push({
+        path,
+        fileName: LogArchiveExtractor.basename(path),
+        relativePath,
+        normalizedPath: LogArchiveExtractor.normalizePath(relativePath)
+      })
     }
     return files
-  }
-
-  private static async readFileContent(path: string): Promise<string> {
-    if (path.toLowerCase().endsWith('.gz')) {
-      return LogArchiveExtractor.readGzipText(path)
-    }
-    return fileIo.readText(path)
-  }
-
-  private static async readGzipText(path: string): Promise<string> {
-    let gzip = zlib.createGZipSync()
-    await gzip.gzopen(path, 'rb')
-    let decoder = util.TextDecoder.create('utf-8')
-    let chunks: string[] = []
-    try {
-      while ((await gzip.gzeof()) === 0) {
-        let buffer = new ArrayBuffer(GZIP_READ_CHUNK_SIZE)
-        let readCount = await gzip.gzfread(buffer, 1, GZIP_READ_CHUNK_SIZE)
-        if (readCount <= 0) {
-          break
-        }
-        chunks.push(decoder.decodeToString(new Uint8Array(buffer, 0, readCount)))
-      }
-    } finally {
-      await gzip.gzclose()
-    }
-    return chunks.join('')
   }
 
   private static async findFiles(rootPath: string, predicate: (path: string) => boolean): Promise<string[]> {
