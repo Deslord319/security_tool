@@ -70,15 +70,6 @@ export class DashboardViewModel {
     await this.refreshAll()
   }
 
-  ensureVisibleState(): void {
-    if (this.quickEntries.length === 0) {
-      this.quickEntries = this.buildQuickEntries()
-    }
-    if (this.moduleCards.length === 0) {
-      this.moduleCards = this.buildFallbackModuleCards()
-    }
-  }
-
   private registerListeners(): void {
     if (this.logListenerId <= 0) {
       this.logListenerId = LogEntryRepository.addChangeListener(() => {

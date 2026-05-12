@@ -287,19 +287,6 @@ export default function dashboardViewModelTest() {
       done()
     })
 
-    it('should restore fallback cards and quick entries for page initialization failure', 0, () => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let adminState = new MockAdminState()
-      adminState.activated = false
-      when(adminMock)().afterReturn(adminState)
-
-      let viewModel = new DashboardViewModel()
-      viewModel.ensureVisibleState()
-
-      expect(viewModel.moduleCards.length).assertEqual(4)
-      expect(viewModel.quickEntries.length).assertEqual(6)
-    })
-
     it('should remove listeners on destroy', 0, async (done: Function) => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)

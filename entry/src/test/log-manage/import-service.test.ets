@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { common } from '@kit.AbilityKit'
-import { LogEntry, LogEventType } from '../../main/ets/models/LogModels'
+import { LogEntry, LogEventType, LogStorageConfig } from '../../main/ets/models/LogModels'
 import { LogImportPickerPort, LogImportService } from '../../main/ets/services/log-manage/import/LogImportService'
 import { MutationResult } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import {

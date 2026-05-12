@@ -34,7 +34,6 @@ export struct DashboardPage {
   onPageShow(): void {
     this.viewModel.refreshStaticStatuses().catch((err: Error) => {
       LogUtils.warn(TAG, `refreshStaticStatuses failed: ${JSON.stringify(err)}`)
-      this.viewModel.ensureVisibleState()
     })
   }
 
@@ -55,7 +54,6 @@ export struct DashboardPage {
       this.initialized = true
     } catch (err) {
       LogUtils.warn(TAG, `initializePage failed: ${JSON.stringify(err)}`)
-      this.viewModel.ensureVisibleState()
       this.initialized = true
     } finally {
       this.playEnterAnimation()
@@ -174,8 +172,8 @@ export struct DashboardPage {
                 currentTheme: this.currentTheme
               })
             }
-            .opacity(this.moduleEnterOpacity[index] ?? 1)
-            .translate({ y: this.moduleEnterOffset[index] ?? 0 })
+            .opacity(this.moduleEnterOpacity[index] ?? 0)
+            .translate({ y: this.moduleEnterOffset[index] ?? 18 })
           })
         }
         .width('100%')
@@ -202,8 +200,8 @@ export struct DashboardPage {
                   onPress: () => { this.onNavigate(entry.route) }
                 })
               }
-              .opacity(this.quickEnterOpacity[index] ?? 1)
-              .translate({ y: this.quickEnterOffset[index] ?? 0 })
+              .opacity(this.quickEnterOpacity[index] ?? 0)
+              .translate({ y: this.quickEnterOffset[index] ?? 18 })
             })
           }
           .width('100%')
