@@ -13,6 +13,7 @@ import adminServiceTest from './enterprise/admin-service.test'
 import firewallModelsTest from './firewall/models.test'
 import firewallLocalRepositoryTest from './firewall/local-repository.test'
 import firewallModeStrategyTest from './firewall/mode-strategy.test'
+import firewallRuleFormModelTest from './firewall/rule-form-model.test'
 import firewallRuleUtilsTest from './firewall/rule-utils.test'
 import firewallServiceTest from './firewall/service.test'
 import systemUserProviderTest from './firewall/system-user-provider.test'
@@ -96,6 +97,7 @@ export default function testsuite() {
   firewallModelsTest()
   firewallLocalRepositoryTest()
   firewallModeStrategyTest()
+  firewallRuleFormModelTest()
   firewallRuleUtilsTest()
   firewallServiceTest()
   systemUserProviderTest()
