@@ -448,8 +448,24 @@ export class SystemLogImportRule implements LogImportRule {
     if (normalized.length < 8 || SystemLogImportRule.isSeparatorLine(normalized)) {
       return false
     }
-    let lower = normalized.toLowerCase()
-    return !(lower.includes(' info ') || lower.startsWith('info ') || lower.startsWith('i '))
+    return SystemLogImportRule.hasKeySignal(normalized)
+  }
+
+  private static hasKeySignal(value: string): boolean {
+    let lower = value.toLowerCase()
+    if (/(^|[\s\[\]():;,])([ew])($|[\s\[\]():;,])/.test(value)) {
+      return true
+    }
+    if (/(error|warn|warning|critical|failed|fail|exception|timeout|panic|crash|\[failed\])/.test(lower)) {
+      return true
+    }
+    if (/\bret\s*:\s*-?[1-9]\d*\b/i.test(value)) {
+      return true
+    }
+    if (/(success|successful|succeed|completed|complete|start verify|verifypackage success|performaction ret:|startupdate|updater mode|recovery|erecovery)/.test(lower)) {
+      return true
+    }
+    return false
   }
 
   private static buildSummary(category: string, text: string): string {

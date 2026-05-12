@@ -2,6 +2,9 @@ import { common } from '@kit.AbilityKit'
 
 import { FirewallOperationResult, FirewallOverviewState, FirewallPresetMode, FirewallToggleOperationResult } from '../../../services/firewall/FirewallModels'
 import { FirewallService } from '../../../services/firewall/FirewallService'
+import { LogUtils } from '../../../utils/LogUtils'
+
+const TAG = 'FirewallOverviewVM'
 
 @ObservedV2
 export class FirewallOverviewViewModelState {
@@ -49,6 +52,13 @@ export class FirewallOverviewViewModel {
         errorMessage: 'toggle in progress'
       }
     }
+    if (this.state.isModeProcessing) {
+      return {
+        success: false,
+        targetEnabled: targetEnabled,
+        errorMessage: 'mode switch in progress'
+      }
+    }
 
     this.state.isToggleProcessing = true
     try {
@@ -70,15 +80,30 @@ export class FirewallOverviewViewModel {
         errorMessage: 'mode switch in progress'
       }
     }
+    if (this.state.isToggleProcessing) {
+      return {
+        success: false,
+        errorMessage: 'toggle in progress'
+      }
+    }
 
     this.state.isModeProcessing = true
-    try {
-      let result = await FirewallService.switchMode(context, targetMode)
-      await this.loadAndApply(context)
-      return result
-    } finally {
-      this.state.isModeProcessing = false
+    let result: FirewallOperationResult = {
+      success: false,
+      errorMessage: 'mode switch failed'
     }
+    try {
+      result = await FirewallService.switchMode(context, targetMode)
+    } catch (err) {
+      LogUtils.error(TAG, `requestModeSwitch failed: ${JSON.stringify(err)}`)
+    }
+    try {
+      await this.loadAndApply(context)
+    } catch (err) {
+      LogUtils.error(TAG, `reload overview after mode switch failed: ${JSON.stringify(err)}`)
+    }
+    this.state.isModeProcessing = false
+    return result
   }
 
   private applyOverview(overview: FirewallOverviewState): void {
