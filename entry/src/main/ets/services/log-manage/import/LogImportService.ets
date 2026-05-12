@@ -3,7 +3,9 @@ import { fileUri, picker } from '@kit.CoreFileKit'
 import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
-import { LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
+import { buildLogStorageNaturalDayCutoff, LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
+import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
+import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogArchiveExtractor } from './LogArchiveExtractor'
 import { CrashLogImportRule } from './CrashLogImportRule'
 import { KernelLogImportRule } from './KernelLogImportRule'
@@ -22,6 +24,7 @@ export interface ImportLogsResult {
   parsedEntryCount: number
   insertedEntryCount: number
   skippedDuplicateCount: number
+  skippedExpiredCount: number
   droppedEntryCount: number
   failedEntryCount: number
 }
@@ -35,6 +38,7 @@ interface ImportResultStats extends ImportBaseStats {
   parsedEntryCount?: number
   insertedEntryCount?: number
   skippedDuplicateCount?: number
+  skippedExpiredCount?: number
   droppedEntryCount?: number
   failedEntryCount?: number
 }
@@ -111,7 +115,7 @@ export class LogImportService {
         scannedFileCount: extractResult.scannedFileCount
       }
       let result = await LogImportService.importFiles(extractResult.files, baseStats, importId, startedAt)
-      LogUtils.info(TAG, `import done: importId=${importId}, code=${result.code}, extracted=${result.extractedFileCount}, scanned=${result.scannedFileCount}, parsed=${result.parsedEntryCount}, inserted=${result.insertedEntryCount}, skipped=${result.skippedDuplicateCount}, dropped=${result.droppedEntryCount}, failed=${result.failedEntryCount}, elapsedMs=${Date.now() - startedAt}`)
+      LogUtils.info(TAG, `import done: importId=${importId}, code=${result.code}, extracted=${result.extractedFileCount}, scanned=${result.scannedFileCount}, parsed=${result.parsedEntryCount}, inserted=${result.insertedEntryCount}, skipped=${result.skippedDuplicateCount}, expired=${result.skippedExpiredCount}, dropped=${result.droppedEntryCount}, failed=${result.failedEntryCount}, elapsedMs=${Date.now() - startedAt}`)
       return result
     } catch (err) {
       LogUtils.error(TAG, `import failed: importId=${importId}, err=${JSON.stringify(err)}, elapsedMs=${Date.now() - startedAt}`)
@@ -152,9 +156,17 @@ export class LogImportService {
     }
     let uniqueEntries = LogImportService.uniqueById(parsedEntries)
     let skippedDuplicateCount = parsedEntries.length - uniqueEntries.length
+    let skippedExpiredCount = 0
     let newEntries: LogEntry[] = []
     LogUtils.info(TAG, `dedupe done: importId=${importId}, handledFiles=${handledFileCount}, parsed=${parsedEntries.length}, unique=${uniqueEntries.length}, batchDuplicates=${skippedDuplicateCount}, elapsedMs=${Date.now() - startedAt}`)
+    let storageConfig = await LogSettingsRepository.loadStorageConfig()
+    let retentionDays = LogEntryNormalizer.normalizeRetentionDays(storageConfig.retentionDays)
+    let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
     for (let entry of uniqueEntries) {
+      if (entry.timestamp < cutoff) {
+        skippedExpiredCount++
+        continue
+      }
       if (await LogEntryRepository.hasEntry(entry.id)) {
         skippedDuplicateCount++
         continue
@@ -170,18 +182,20 @@ export class LogImportService {
           scannedFileCount: baseStats?.scannedFileCount ?? files.length,
           parsedEntryCount: parsedEntries.length,
           skippedDuplicateCount,
+          skippedExpiredCount,
           droppedEntryCount,
           failedEntryCount
         })
       }
     }
-    LogUtils.info(TAG, `save done: importId=${importId}, newEntries=${newEntries.length}, skipped=${skippedDuplicateCount}, elapsedMs=${Date.now() - startedAt}`)
+    LogUtils.info(TAG, `save done: importId=${importId}, newEntries=${newEntries.length}, skipped=${skippedDuplicateCount}, expired=${skippedExpiredCount}, elapsedMs=${Date.now() - startedAt}`)
     return LogImportService.buildResult('ok', {
       extractedFileCount: baseStats?.extractedFileCount ?? files.length,
       scannedFileCount: baseStats?.scannedFileCount ?? files.length,
       parsedEntryCount: parsedEntries.length,
       insertedEntryCount: newEntries.length,
       skippedDuplicateCount,
+      skippedExpiredCount,
       droppedEntryCount,
       failedEntryCount
     })
@@ -216,6 +230,7 @@ export class LogImportService {
       parsedEntryCount: stats?.parsedEntryCount ?? 0,
       insertedEntryCount: stats?.insertedEntryCount ?? 0,
       skippedDuplicateCount: stats?.skippedDuplicateCount ?? 0,
+      skippedExpiredCount: stats?.skippedExpiredCount ?? 0,
       droppedEntryCount: stats?.droppedEntryCount ?? 0,
       failedEntryCount: stats?.failedEntryCount ?? 0
     }
