@@ -52,7 +52,7 @@ export struct FirewallPage {
   }
 
   async handleToggleWithAuth(isOn: boolean) {
-    if (this.isToggleProcessing) {
+    if (this.isToggleProcessing || this.isModeSwitching()) {
       return
     }
     let currentEnabled = this.overviewViewModel.state.enabled
@@ -123,8 +123,16 @@ export struct FirewallPage {
     return this.canOperateModeCards() && this.hoveredMode === mode
   }
 
+  private isToggleSwitching(): boolean {
+    return this.isToggleProcessing || this.overviewViewModel.state.isToggleProcessing
+  }
+
+  private isModeSwitching(): boolean {
+    return this.isModeProcessing || this.overviewViewModel.state.isModeProcessing
+  }
+
   private canOperateModeCards(): boolean {
-    return this.overviewViewModel.state.enabled && !this.isToggleProcessing && !this.isModeProcessing
+    return this.overviewViewModel.state.enabled && !this.isToggleSwitching() && !this.isModeSwitching()
   }
 
   private getModeCardBackground(mode: FirewallPresetMode): string {
@@ -437,7 +445,7 @@ export struct FirewallPage {
     Toggle({ type: ToggleType.Switch, isOn: this.overviewViewModel.state.enabled })
       .selectedColor(AppColors.BRAND_PRIMARY)
       .switchPointColor(Color.White)
-      .enabled(!this.isToggleProcessing)
+      .enabled(!this.isToggleSwitching() && !this.isModeSwitching())
       .onChange((isOn: boolean) => {
         this.handleToggleWithAuth(isOn)
       })

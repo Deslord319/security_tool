@@ -147,7 +147,6 @@ Required columns:
 - `record_id TEXT UNIQUE`
 - `timestamp INTEGER NOT NULL`
 - `event_type TEXT NOT NULL`
-- `result TEXT NOT NULL`
 - `source TEXT NOT NULL`
 - `detail TEXT NOT NULL`
 - `process_name TEXT`
@@ -158,7 +157,6 @@ Required indexes:
 
 - `idx_log_entries_timestamp`
 - `idx_log_entries_event_type`
-- `idx_log_entries_result`
 
 ### Peripheral Trace Table
 

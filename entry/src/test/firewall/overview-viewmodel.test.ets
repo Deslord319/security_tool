@@ -47,5 +47,30 @@ export default function firewallOverviewViewModelTest() {
       expect(viewModel.state.isModeProcessing).assertFalse()
       done()
     })
+
+    it('should reject toggle while mode switch is processing', 0, async (done: Function) => {
+      let viewModel = new FirewallOverviewViewModel()
+      viewModel.state.isModeProcessing = true
+
+      let result = await viewModel.requestToggle(context, true)
+
+      expect(result.success).assertFalse()
+      expect(result.targetEnabled).assertTrue()
+      expect(result.errorMessage).assertEqual('mode switch in progress')
+      expect(viewModel.state.isToggleProcessing).assertFalse()
+      done()
+    })
+
+    it('should reject mode switch while toggle is processing', 0, async (done: Function) => {
+      let viewModel = new FirewallOverviewViewModel()
+      viewModel.state.isToggleProcessing = true
+
+      let result = await viewModel.requestModeSwitch(context, 'private')
+
+      expect(result.success).assertFalse()
+      expect(result.errorMessage).assertEqual('toggle in progress')
+      expect(viewModel.state.isModeProcessing).assertFalse()
+      done()
+    })
   })
 }

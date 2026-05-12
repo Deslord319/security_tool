@@ -52,6 +52,13 @@ export class FirewallOverviewViewModel {
         errorMessage: 'toggle in progress'
       }
     }
+    if (this.state.isModeProcessing) {
+      return {
+        success: false,
+        targetEnabled: targetEnabled,
+        errorMessage: 'mode switch in progress'
+      }
+    }
 
     this.state.isToggleProcessing = true
     try {
@@ -71,6 +78,12 @@ export class FirewallOverviewViewModel {
       return {
         success: false,
         errorMessage: 'mode switch in progress'
+      }
+    }
+    if (this.state.isToggleProcessing) {
+      return {
+        success: false,
+        errorMessage: 'toggle in progress'
       }
     }
 
