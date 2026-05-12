@@ -17,7 +17,7 @@
 | 防火墙管理 | 模式切换、规则详情、规则新增删除、用户分发控制 | `firewall` / `firewall-rules` |
 | 日志管理 | 审计与崩溃日志采集、分页展示、详情查看、导出、存储设置 | `log-manage` |
 | 外设管理 | USB/蓝牙接口控制、设备策略、连接记录 | `peripheral-manage` |
-| 身份鉴别 | 启动认证相关策略与身份配置 | `identity` |
+| 身份鉴别 | 口令复杂度、密码有效期策略、PIN / 指纹认证基础能力 | `identity` |
 | 工具设置 | 启动认证、认证方式、系统设置相关项 | `tool-settings` |
 | 帮助与反馈 | 帮助入口、关于信息 | 顶部菜单 `help-feedback` |
 
@@ -131,19 +131,24 @@ security_tool/
 
 ```text
 entry/src/main/ets/
+├── backgroundability/             # 后台扩展能力
 ├── components/                    # 通用组件与模块子组件
 │   ├── firewall/
 │   ├── log-manage/
 │   └── peripheral/
 ├── constants/                     # 路由、字符串、样式与模块常量
+├── contracts/                     # 跨层接口与契约定义
 ├── enterpriseadminability/        # 企业管理员扩展能力
 ├── entryability/                  # UIAbility 入口
 ├── entrybackupability/            # 备份扩展能力
 ├── models/                        # 页面和领域模型
 ├── pages/                         # 主页面入口容器
+├── runtime/                       # 运行期上下文与能力适配
 ├── services/                      # 业务服务层
+├── storage/                       # 存储访问与持久化基础设施
 ├── testrunner/                    # 主模块测试运行器
 ├── theme/                         # 主题定义与主题管理
+├── types/                         # 共享类型定义
 ├── utils/                         # 日志、弹窗、路径、表单等工具
 ├── viewmodels/                    # 页面状态与交互编排
 └── views/                         # 各模块页面实现
@@ -167,8 +172,10 @@ entry/src/main/ets/
 
 ```text
 services/
+├── account/                       # 账户相关系统能力与策略辅助
 ├── admin/activation/              # 企业管理员激活能力
-├── firewall/                      # 防火墙总服务、模式策略、规则、用户分发、状态存储
+├── common/                        # 通用结果、导出等跨模块服务
+├── firewall/                      # 防火墙模式、策略、规则展示/变更/下发与状态存储
 ├── identity/                      # 认证服务与身份设置服务
 ├── log-manage/                    # 日志采集、导出、归一化、仓储、数据源
 ├── peripheral/                    # 外设接口、连接记录、设备策略
@@ -266,7 +273,7 @@ hdc shell aa start -a EntryAbility -b com.huawei.securitytool
 
 当前仓库中，按文件数统计包含：
 
-- `76` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
+- `84` 个本地单元测试文件：`entry/src/test/**/*.test.ets`
 - `6` 个 `ohosTest` 设备侧测试文件：`entry/src/ohosTest/ets/test/**/*.test.ets`
 - `45` 个 E2E case：`scripts/e2e/cases/**/*.json`
 
@@ -331,10 +338,13 @@ security_tool/
 ## 关键文档
 
 - [AGENTS.md](AGENTS.md)：开发规范、签名流程、权限一致性、测试基线
+- [docs/05-AI开发/AI执行原则.md](docs/05-AI开发/AI执行原则.md)：AI 执行原则、影响面判断、最小改动范围与验证闭环
 - [docs/05-AI开发/AI常见任务手册.md](docs/05-AI开发/AI常见任务手册.md)：AI 常见开发任务、实施顺序与验证矩阵
 - [scripts/e2e/README.md](scripts/e2e/README.md)：E2E 测试框架与运行方式
 - [docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md](docs/04-测试文档/DEVICE_TEST_FRAMEWORK.md)：设备侧测试基线
 - [docs/04-测试文档/e2e测试/端到端测试框架设计.md](docs/04-测试文档/e2e测试/端到端测试框架设计.md)：E2E 框架设计
+- [docs/04-测试文档/手工测试用例/测试检查清单.md](docs/04-测试文档/手工测试用例/测试检查清单.md)：手工测试检查清单
+- [docs/04-测试文档/手工测试用例/测试用例基线_UT支撑调研矩阵.md](docs/04-测试文档/手工测试用例/测试用例基线_UT支撑调研矩阵.md)：手工用例与 UT 支撑关系矩阵
 - [docs/02-总体设计/总体设计RFC.md](docs/02-总体设计/总体设计RFC.md)：总体设计说明
 - [docs/02-总体设计/PRD.md](docs/02-总体设计/PRD.md)：产品需求范围
 - [docs/storage-architecture-standard.md](docs/storage-architecture-standard.md)：存储架构与迁移标准
