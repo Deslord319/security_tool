@@ -16,6 +16,11 @@ export const AUTH_AUDIT_EVENT_IDS: number[] = [
   0x27000005
 ]
 
+export const CRASH_AUDIT_EVENT_IDS: number[] = [
+  0x2700000D,
+  0x1C001401
+]
+
 export const AUDIT_EVENT_TYPES_BY_ID: Map<number, LogEventType> = new Map<number, LogEventType>([
   [securityAudit.NotifyEvent.FILE, LogEventType.FILE],
   [securityAudit.NotifyEvent.FILE_INTERCEPTED, LogEventType.FILE],
@@ -26,5 +31,7 @@ export const AUDIT_EVENT_TYPES_BY_ID: Map<number, LogEventType> = new Map<number
   [securityAudit.NotifyEvent.ACCOUNT, LogEventType.ACCOUNT],
   [0x27000004, LogEventType.ACCOUNT],
   [0x27000005, LogEventType.ACCOUNT],
+  [0x2700000D, LogEventType.CRASH],
+  [0x1C001401, LogEventType.CRASH],
   [securityAudit.NotifyEvent.PERMISSION, LogEventType.PERMISSION]
 ])

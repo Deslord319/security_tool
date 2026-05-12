@@ -12,7 +12,7 @@ import {
 import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
-import { AUTH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
+import { AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
 
 const TAG = 'LogAuditSource'
 const DEFAULT_FOREGROUND_USER_ID = 100
@@ -45,6 +45,7 @@ export class LogAuditSource {
   private static lastSubscribeFailedEventIds: number[] = []
   private static nowProvider: () => number = () => Date.now()
   private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
+    [LogEventType.CRASH, CRASH_AUDIT_EVENT_IDS],
     [LogEventType.FILE, FILE_AUDIT_EVENT_IDS],
     [LogEventType.ACCOUNT, AUTH_AUDIT_EVENT_IDS],
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]]

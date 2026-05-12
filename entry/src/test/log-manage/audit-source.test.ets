@@ -11,7 +11,7 @@ import {
   getLogEventResultLabel
 } from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
-import { AUTH_AUDIT_EVENT_IDS } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
+import { AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {
   detailRows?: LogDetailTableRow[]
@@ -195,6 +195,51 @@ export default function logAuditSourceTest() {
       expect(failedEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
       expect(failedEntry!.processName).assertEqual('com.ohos.sceneboard')
       expect(failedEntry!.result).assertEqual(LogEventResult.FAILED)
+    })
+
+    it('should map crash audit event ids into crash log entries', 0, () => {
+      const timestamp = '20260415162544'
+      let appCrashEvent = {
+        eventId: CRASH_AUDIT_EVENT_IDS[0],
+        timestamp,
+        userId: 100,
+        content: JSON.stringify({
+          eventName: 'app_crash',
+          processName: 'com.example.demo',
+          pid: 2345,
+          uid: 20020123,
+          message: 'application crash'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+      let systemCrashEvent = {
+        eventId: CRASH_AUDIT_EVENT_IDS[1],
+        timestamp,
+        userId: 100,
+        content: JSON.stringify({
+          EVENT_NAME: 'system_crash',
+          process_name: 'foundation',
+          pid: 3456,
+          uid: 1000
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let appCrashEntry = parseAuditEventToLogEntry(appCrashEvent)
+      let systemCrashEntry = parseAuditEventToLogEntry(systemCrashEvent)
+      let appRows = getDetailRows(appCrashEntry)
+
+      expect(!!appCrashEntry).assertTrue()
+      expect(appCrashEntry!.eventType).assertEqual(LogEventType.CRASH)
+      expect(appCrashEntry!.result).assertEqual(LogEventResult.FAILED)
+      expect(appCrashEntry!.processName).assertEqual('com.example.demo')
+      expect(getRowValue(appRows, 'crash.eventName')).assertEqual('app_crash')
+      expect(getRowValue(appRows, 'crash.pid')).assertEqual('2345')
+      expect(getRowValue(appRows, 'crash.eventId')).assertEqual(`${CRASH_AUDIT_EVENT_IDS[0]}`)
+      expect(!!systemCrashEntry).assertTrue()
+      expect(systemCrashEntry!.eventType).assertEqual(LogEventType.CRASH)
+      expect(systemCrashEntry!.result).assertEqual(LogEventResult.FAILED)
+      expect(systemCrashEntry!.processName).assertEqual('foundation')
     })
 
     it('should map permission audit payload into detail rows', 0, () => {

@@ -86,7 +86,7 @@ function parseAuditPayload(
   return {
     detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
       content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
-    result: mapResult(rawOutcome),
+    result: mapResultByEventType(eventType, rawOutcome),
     detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources),
     processName: pickString(sources, [
       'processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name',
@@ -151,6 +151,19 @@ function buildDetailRows(
       appendTextRow(rows, 'file.result', '结果', resolveLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
       appendTextRow(rows, 'file.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'file.eventId', '事件 ID', event.eventId)
+      break
+    }
+    case LogEventType.CRASH: {
+      appendTextRow(rows, 'crash.eventName', '事件名称', pickString(sources, ['event_name', 'eventName', 'name', 'name_', 'EVENT_NAME']))
+      appendTextRow(rows, 'crash.processName', '进程名称', pickString(sources, [
+        'processName', 'procName', 'proc_name', 'process', 'process_name', 'bundleName', 'bundle_name',
+        'CALLER_NAME', 'CALLER_PNAMEID', 'PNAMEID'
+      ]))
+      appendNumberRow(rows, 'crash.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
+      appendNumberRow(rows, 'crash.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
+      appendTextRow(rows, 'crash.result', '结果', resolveLogEventResultLabel(LogEventResult.FAILED))
+      appendTextRow(rows, 'crash.timestamp', '事件时间', formatStandardDateTime(timestamp))
+      appendNumberRow(rows, 'crash.eventId', '事件 ID', event.eventId)
       break
     }
     default:
@@ -271,6 +284,13 @@ function pickNumberOrFirstArrayNumber(sources: LooseRecord[], keys: string[]): s
 
 function isLooseValueArray(value: LooseValue): boolean {
   return Array.isArray(value)
+}
+
+function mapResultByEventType(eventType: LogEventType, rawOutcome?: string): LogEventResult {
+  if (eventType === LogEventType.CRASH) {
+    return LogEventResult.FAILED
+  }
+  return mapResult(rawOutcome)
 }
 
 function mapResult(rawOutcome?: string): LogEventResult {
