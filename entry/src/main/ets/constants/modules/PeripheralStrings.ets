@@ -302,3 +302,7 @@ export class PeripheralRecordActionPresentationStrings {
   static readonly INTERCEPT: string = '拦截'
   static readonly UNKNOWN: string = '未知动作'
 }
+
+export class PeripheralRecordResultPresentationStrings {
+  static readonly BLOCKED: string = '已阻止'
+}

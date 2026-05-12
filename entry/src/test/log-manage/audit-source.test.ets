@@ -2,13 +2,11 @@ import { describe, expect, it } from '@ohos/hypium'
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import {
   LogDetailTableRow,
-  LogEventResult,
   LogEventType,
   LogEntry
 } from '../../main/ets/models/LogModels'
 import {
-  formatLogTimestamp,
-  getLogEventResultLabel
+  formatLogTimestamp
 } from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
 import { AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
@@ -101,7 +99,6 @@ export default function logAuditSourceTest() {
 
       expect(!!entry).assertTrue()
       expect(entry!.eventType).assertEqual(LogEventType.FILE)
-      expect(entry!.result).assertEqual(LogEventResult.BLOCKED)
       expect(entry!.processName).assertEqual('demo-app')
       expect((entry!.filePath ?? '').length > 0).assertTrue()
       expect(entry!.rawOutcome).assertEqual('blocked')
@@ -142,10 +139,9 @@ export default function logAuditSourceTest() {
       let rows = getDetailRows(entry)
 
       expect(!!entry).assertTrue()
-      expect(rows.length).assertEqual(5)
+      expect(rows.length).assertEqual(4)
       expect(getRowValue(rows, 'account.userName')).assertEqual('111')
       expect(getRowValue(rows, 'account.userId')).assertEqual('100')
-      expect(getRowValue(rows, 'account.result')).assertEqual(getLogEventResultLabel(LogEventResult.SUCCESS))
       expect(getRowValue(rows, 'account.timestamp')).assertEqual(formatLogTimestamp(entry!.timestamp))
       expect(getRowValue(rows, 'account.eventId')).assertEqual(`${securityAudit.NotifyEvent.ACCOUNT}`)
     })
@@ -186,7 +182,6 @@ export default function logAuditSourceTest() {
       expect(!!successEntry).assertTrue()
       expect(successEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
       expect(successEntry!.processName).assertEqual('com.huawei.securitytool')
-      expect(successEntry!.result).assertEqual(LogEventResult.SUCCESS)
       expect(getRowValue(successRows, 'account.callerName')).assertEqual('com.huawei.securitytool')
       expect(getRowValue(successRows, 'account.authType')).assertEqual('1')
       expect(getRowValue(successRows, 'account.authResultRaw')).assertEqual('0')
@@ -194,7 +189,6 @@ export default function logAuditSourceTest() {
       expect(!!failedEntry).assertTrue()
       expect(failedEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
       expect(failedEntry!.processName).assertEqual('com.ohos.sceneboard')
-      expect(failedEntry!.result).assertEqual(LogEventResult.FAILED)
     })
 
     it('should map crash audit event ids into crash log entries', 0, () => {
@@ -231,14 +225,12 @@ export default function logAuditSourceTest() {
 
       expect(!!appCrashEntry).assertTrue()
       expect(appCrashEntry!.eventType).assertEqual(LogEventType.CRASH)
-      expect(appCrashEntry!.result).assertEqual(LogEventResult.FAILED)
       expect(appCrashEntry!.processName).assertEqual('com.example.demo')
       expect(getRowValue(appRows, 'crash.eventName')).assertEqual('app_crash')
       expect(getRowValue(appRows, 'crash.pid')).assertEqual('2345')
       expect(getRowValue(appRows, 'crash.eventId')).assertEqual(`${CRASH_AUDIT_EVENT_IDS[0]}`)
       expect(!!systemCrashEntry).assertTrue()
       expect(systemCrashEntry!.eventType).assertEqual(LogEventType.CRASH)
-      expect(systemCrashEntry!.result).assertEqual(LogEventResult.FAILED)
       expect(systemCrashEntry!.processName).assertEqual('foundation')
     })
 
@@ -331,13 +323,12 @@ export default function logAuditSourceTest() {
       let rows = getDetailRows(entry)
 
       expect(!!entry).assertTrue()
-      expect(rows.length).assertEqual(8)
+      expect(rows.length).assertEqual(7)
       expect(getRowValue(rows, 'file.operation')).assertEqual('file_write')
       expect(getRowValue(rows, 'file.filePath')).assertEqual('/data/storage/el2/base/files/demo.txt')
       expect(getRowValue(rows, 'file.processName')).assertEqual('demo-app')
       expect(getRowValue(rows, 'file.pid')).assertEqual('123')
       expect(getRowValue(rows, 'file.uid')).assertEqual('100')
-      expect(getRowValue(rows, 'file.result')).assertEqual(getLogEventResultLabel(LogEventResult.BLOCKED))
       expect(getRowValue(rows, 'file.timestamp')).assertEqual(formatLogTimestamp(entry!.timestamp))
       expect(getRowValue(rows, 'file.eventId')).assertEqual(`${securityAudit.NotifyEvent.FILE}`)
     })

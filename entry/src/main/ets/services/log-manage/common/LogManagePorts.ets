@@ -1,7 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import {
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import { StorageResult } from '../../../storage/StorageResult'
@@ -34,7 +33,6 @@ export interface ExportLogsResult extends ServiceResult<'ok' | 'empty' | 'user_c
 
 export interface LogQuery {
   eventTypes?: LogEventType[]
-  results?: LogEventResult[]
   startTimestamp?: number
   keyword?: string
 }
@@ -42,7 +40,6 @@ export interface LogQuery {
 export interface LogSnapshot {
   totalCount: number
   todayCount: number
-  blockedCount: number
   filteredCount: number
   entries: LogEntry[]
 }

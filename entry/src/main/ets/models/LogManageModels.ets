@@ -19,14 +19,12 @@ export class LogSummaryState {
   @Trace totalCount: number = 0
   @Trace filteredCount: number = 0
   @Trace todayCount: number = 0
-  @Trace blockedCount: number = 0
   @Trace currentShownCount: number = 0
 }
 
 @ObservedV2
 export class LogFilterState {
   @Trace eventTypeIndex: number = 0
-  @Trace resultIndex: number = 0
   @Trace timeRangeIndex: number = 0
   @Trace keyword: string = ''
 }

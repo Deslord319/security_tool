@@ -33,11 +33,15 @@ export class DashboardViewModel {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
-    let initialized = await PeripheralTraceMaintenanceService.initialize(context)
-    if (!initialized.success) {
-      LogUtils.warn(TAG, `initialize peripheral trace storage failed: ${initialized.code}`)
-    }
     this.quickEntries = this.buildQuickEntries()
+    try {
+      let initialized = await PeripheralTraceMaintenanceService.initialize(context)
+      if (!initialized.success) {
+        LogUtils.warn(TAG, `initialize peripheral trace storage failed: ${initialized.code}`)
+      }
+    } catch (err) {
+      LogUtils.warn(TAG, `initialize peripheral trace storage failed: ${JSON.stringify(err)}`)
+    }
     await this.refreshAll()
     this.registerListeners()
   }
@@ -54,7 +58,12 @@ export class DashboardViewModel {
   }
 
   async refreshAll(): Promise<void> {
-    this.moduleCards = await this.buildModuleCards()
+    try {
+      this.moduleCards = await this.buildModuleCards()
+    } catch (err) {
+      LogUtils.warn(TAG, `refreshAll failed: ${JSON.stringify(err)}`)
+      this.moduleCards = this.buildFallbackModuleCards()
+    }
   }
 
   async refreshStaticStatuses(): Promise<void> {
@@ -84,7 +93,12 @@ export class DashboardViewModel {
   }
 
   private buildAdminCard(): DashboardModuleCardState {
-    let activated = EnterpriseAdminService.probeActivation().activated
+    let activated = false
+    try {
+      activated = EnterpriseAdminService.probeActivation().activated
+    } catch (err) {
+      LogUtils.warn(TAG, `buildAdminCard failed: ${JSON.stringify(err)}`)
+    }
     return this.createModuleCard(
       'admin-status',
       DashboardAdminStrings.TITLE,
@@ -121,12 +135,20 @@ export class DashboardViewModel {
   }
 
   private async buildLogCard(): Promise<DashboardModuleCardState> {
-    let statistics = await LogEntryRepository.getStatistics()
+    let todayCount = 0
+    let totalCount = 0
+    try {
+      let statistics = await LogEntryRepository.getStatistics()
+      todayCount = statistics.todayCount
+      totalCount = statistics.totalCount
+    } catch (err) {
+      LogUtils.warn(TAG, `buildLogCard failed: ${JSON.stringify(err)}`)
+    }
     return this.createModuleCard(
       RouteIds.LOG_MANAGE,
       DashboardLogCardStrings.TITLE,
-      `${statistics.todayCount}`,
-      `${DashboardLogCardStrings.TODAY_DETAIL_PREFIX}${statistics.totalCount}${DashboardLogCardStrings.TODAY_DETAIL_SUFFIX}`,
+      `${todayCount}`,
+      `${DashboardLogCardStrings.TODAY_DETAIL_PREFIX}${totalCount}${DashboardLogCardStrings.TODAY_DETAIL_SUFFIX}`,
       DashboardGradientPalette.logManageGradient.start,
       DashboardGradientPalette.logManageGradient.end,
       AppResources.LOG_ICON
@@ -134,12 +156,22 @@ export class DashboardViewModel {
   }
 
   private async buildPeripheralCard(): Promise<DashboardModuleCardState> {
-    let stats = await PeripheralTraceEntryRepository.getStatistics()
+    let total = 0
+    let connects = 0
+    let disconnects = 0
+    try {
+      let stats = await PeripheralTraceEntryRepository.getStatistics()
+      total = stats.total
+      connects = stats.connects
+      disconnects = stats.disconnects
+    } catch (err) {
+      LogUtils.warn(TAG, `buildPeripheralCard failed: ${JSON.stringify(err)}`)
+    }
     return this.createModuleCard(
       RouteIds.PERIPHERAL_MANAGE,
       DashboardPeripheralCardStrings.TITLE,
-      `${stats.total}`,
-      `${DashboardPeripheralCardStrings.DETAIL_PREFIX}${stats.connects}${DashboardPeripheralCardStrings.DETAIL_MIDDLE}${stats.disconnects}${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+      `${total}`,
+      `${DashboardPeripheralCardStrings.DETAIL_PREFIX}${connects}${DashboardPeripheralCardStrings.DETAIL_MIDDLE}${disconnects}${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
       DashboardGradientPalette.peripheralGradient.start,
       DashboardGradientPalette.peripheralGradient.end,
       AppResources.PERIPHERAL_ICON
@@ -161,6 +193,39 @@ export class DashboardViewModel {
     } catch (err) {
       LogUtils.warn(TAG, `refreshLiveCards failed: ${JSON.stringify(err)}`)
     }
+  }
+
+  private buildFallbackModuleCards(): DashboardModuleCardState[] {
+    return [
+      this.buildAdminCard(),
+      this.createModuleCard(
+        RouteIds.FIREWALL,
+        DashboardFirewallCardStrings.TITLE,
+        StatusText.DISABLED,
+        getFirewallModeTitle('custom'),
+        DashboardGradientPalette.firewallGradient.start,
+        DashboardGradientPalette.firewallGradient.end,
+        AppResources.FIREWALL_ICON
+      ),
+      this.createModuleCard(
+        RouteIds.LOG_MANAGE,
+        DashboardLogCardStrings.TITLE,
+        '0',
+        `${DashboardLogCardStrings.TODAY_DETAIL_PREFIX}0${DashboardLogCardStrings.TODAY_DETAIL_SUFFIX}`,
+        DashboardGradientPalette.logManageGradient.start,
+        DashboardGradientPalette.logManageGradient.end,
+        AppResources.LOG_ICON
+      ),
+      this.createModuleCard(
+        RouteIds.PERIPHERAL_MANAGE,
+        DashboardPeripheralCardStrings.TITLE,
+        '0',
+        `${DashboardPeripheralCardStrings.DETAIL_PREFIX}0${DashboardPeripheralCardStrings.DETAIL_MIDDLE}0${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+        DashboardGradientPalette.peripheralGradient.start,
+        DashboardGradientPalette.peripheralGradient.end,
+        AppResources.PERIPHERAL_ICON
+      )
+    ]
   }
 
   private buildQuickEntries(): DashboardQuickEntryState[] {

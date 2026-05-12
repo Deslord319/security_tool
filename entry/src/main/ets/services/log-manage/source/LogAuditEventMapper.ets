@@ -6,10 +6,8 @@ import {
   generateLogEntryId,
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
-import { resolveLogEventResultLabel } from '../../../constants/modules/LogManageStrings'
 import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
 import { LooseRecord, LooseValue } from '../../../types/LooseValueTypes'
 import {
@@ -23,7 +21,6 @@ const TAG = 'LogAuditEventMapper'
 
 interface ParsedAuditPayload {
   detail: string
-  result: LogEventResult
   detailRows: LogDetailTableRow[]
   processName?: string
   pid?: number
@@ -48,7 +45,7 @@ export function parseAuditEventToLogEntry(
   const parsed = parseAuditPayload(event.content || '', event.metadata, mappedType, event, timestamp)
   LogUtils.info(
     TAG,
-    `AUDIT_MAPPED_RESULT eventId=${event.eventId}, eventType=${mappedType}, rawEventName=${parsed.rawEventName || '-'}, rawAction=${parsed.rawAction || '-'}, rawOutcome=${parsed.rawOutcome || '-'}, mappedResult=${parsed.result}, processName=${parsed.processName || '-'}, filePath=${parsed.filePath || '-'}, detail=${parsed.detail}`
+    `AUDIT_MAPPED eventId=${event.eventId}, eventType=${mappedType}, rawEventName=${parsed.rawEventName || '-'}, rawAction=${parsed.rawAction || '-'}, rawOutcome=${parsed.rawOutcome || '-'}, processName=${parsed.processName || '-'}, filePath=${parsed.filePath || '-'}, detail=${parsed.detail}`
   )
   return {
     id: generateLogEntryId(),
@@ -64,7 +61,6 @@ export function parseAuditEventToLogEntry(
     rawEventName: parsed.rawEventName,
     rawOutcome: parsed.rawOutcome,
     rawAction: parsed.rawAction,
-    result: parsed.result,
     detailRows: parsed.detailRows
   } as LogEntry
 }
@@ -86,7 +82,6 @@ function parseAuditPayload(
   return {
     detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
       content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
-    result: mapResultByEventType(eventType, rawOutcome),
     detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources),
     processName: pickString(sources, [
       'processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name',
@@ -123,7 +118,6 @@ function buildDetailRows(
       appendTextRow(rows, 'account.authResultRaw', 'AUTH_RESULT', resolveAuthRawOutcome(callerSources))
       appendNumberRow(rows, 'account.authTimeSpan', 'AUTH_TIME_SPAN', pickNumber(callerSources, ['AUTH_TIME_SPAN']))
       appendTextRow(rows, 'account.operationTime', 'OPERATION_TIME', pickString(callerSources, ['OPERATION_TIME', 'HAPPEN_TIME']))
-      appendTextRow(rows, 'account.result', '结果', resolveLogEventResultLabel(mapResult(resolveRawOutcome(sources))))
       appendTextRow(rows, 'account.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'account.eventId', '事件 ID', event.eventId)
       break
@@ -148,7 +142,6 @@ function buildDetailRows(
       appendTextRow(rows, 'file.processName', '进程名', pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']))
       appendNumberRow(rows, 'file.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'file.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
-      appendTextRow(rows, 'file.result', '结果', resolveLogEventResultLabel(mapResult(pickString(sources, ['outcome', 'result', 'status', 'decision', 'actionResult', 'action_result']))))
       appendTextRow(rows, 'file.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'file.eventId', '事件 ID', event.eventId)
       break
@@ -161,7 +154,6 @@ function buildDetailRows(
       ]))
       appendNumberRow(rows, 'crash.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'crash.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
-      appendTextRow(rows, 'crash.result', '结果', resolveLogEventResultLabel(LogEventResult.FAILED))
       appendTextRow(rows, 'crash.timestamp', '事件时间', formatStandardDateTime(timestamp))
       appendNumberRow(rows, 'crash.eventId', '事件 ID', event.eventId)
       break
@@ -284,37 +276,6 @@ function pickNumberOrFirstArrayNumber(sources: LooseRecord[], keys: string[]): s
 
 function isLooseValueArray(value: LooseValue): boolean {
   return Array.isArray(value)
-}
-
-function mapResultByEventType(eventType: LogEventType, rawOutcome?: string): LogEventResult {
-  if (eventType === LogEventType.CRASH) {
-    return LogEventResult.FAILED
-  }
-  return mapResult(rawOutcome)
-}
-
-function mapResult(rawOutcome?: string): LogEventResult {
-  if (!rawOutcome) {
-    LogUtils.info(TAG, 'AUDIT_RESULT_MAPPING rawOutcome=-, mappedResult=0')
-    return LogEventResult.SUCCESS
-  }
-  const normalized = rawOutcome.trim().toLowerCase()
-  const numeric = Number(normalized)
-  if (Number.isFinite(numeric)) {
-    const mappedResult = numeric === 0 ? LogEventResult.SUCCESS : LogEventResult.FAILED
-    LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=${mappedResult}`)
-    return mappedResult
-  }
-  if (normalized.includes('blocked') || normalized.includes('deny') || normalized.includes('intercept')) {
-    LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=1`)
-    return LogEventResult.BLOCKED
-  }
-  if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('reject')) {
-    LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=2`)
-    return LogEventResult.FAILED
-  }
-  LogUtils.info(TAG, `AUDIT_RESULT_MAPPING rawOutcome=${rawOutcome}, mappedResult=0`)
-  return LogEventResult.SUCCESS
 }
 
 function collectJsonSources(contentJson?: LooseRecord, metadataJson?: LooseRecord): LooseRecord[] {

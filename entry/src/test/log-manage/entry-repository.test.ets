@@ -3,7 +3,6 @@ import { describe, expect, it } from '@ohos/hypium'
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
@@ -33,7 +32,6 @@ export default function logEntryRepositoryTest() {
         timestamp: Date.now(),
         eventType: LogEventType.FILE,
         detail: 'detail',
-        result: LogEventResult.SUCCESS,
         detailRows: detailRows
       }
 
@@ -51,18 +49,16 @@ export default function logEntryRepositoryTest() {
     it('should build timestamp lower bound query with existing filters', 0, () => {
       let where = buildLogEntryWhereClause({
         eventTypes: [LogEventType.FILE],
-        results: [LogEventResult.BLOCKED],
         startTimestamp: 1700000000000,
         keyword: 'Alpha'
       })
 
       expect(where.sql.indexOf('event_type IN (?)') >= 0).assertTrue()
-      expect(where.sql.indexOf('result IN (?)') >= 0).assertTrue()
       expect(where.sql.indexOf('timestamp >= ?') >= 0).assertTrue()
       expect(where.sql.indexOf('LOWER(detail) LIKE ?') >= 0).assertTrue()
-      expect(where.args.length).assertEqual(6)
-      expect(where.args[2] as number).assertEqual(1700000000000)
-      expect(where.args[3] as string).assertEqual('%alpha%')
+      expect(where.args.length).assertEqual(5)
+      expect(where.args[1] as number).assertEqual(1700000000000)
+      expect(where.args[2] as string).assertEqual('%alpha%')
     })
   })
 
@@ -73,15 +69,13 @@ export default function logEntryRepositoryTest() {
           id: '1',
           timestamp: Date.now(),
           eventType: LogEventType.FILE,
-          detail: 'alpha',
-          result: LogEventResult.SUCCESS
+          detail: 'alpha'
         },
         {
           id: '2',
           timestamp: Date.now(),
           eventType: LogEventType.PERMISSION,
-          detail: 'beta',
-          result: LogEventResult.BLOCKED
+          detail: 'beta'
         }
       ])
 
@@ -97,14 +91,12 @@ export default function logEntryRepositoryTest() {
           id: ' ',
           timestamp: Date.now(),
           eventType: 999 as LogEventType,
-          detail: longText,
-          result: 999 as LogEventResult
+          detail: longText
         }
       ])
 
       expect(entries.length).assertEqual(1)
       expect(entries[0].eventType).assertEqual(LogEventType.FILE)
-      expect(entries[0].result).assertEqual(LogEventResult.SUCCESS)
       expect(entries[0].detail.length <= 1027).assertTrue()
       expect(entries[0].id.length > 0).assertTrue()
     })

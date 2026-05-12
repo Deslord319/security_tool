@@ -1,5 +1,5 @@
-import { LabelText, ResultText } from '../StringCatalog'
-import { LogEventResult, LogEventType } from '../../models/LogModels'
+import { LabelText } from '../StringCatalog'
+import { LogEventType } from '../../models/LogModels'
 
 export class LogManagePageStrings {
   static readonly SETTINGS_TITLE: string = '日志存储配置'
@@ -12,7 +12,6 @@ export class LogManageDetailStrings {
   static readonly SUMMARY: string = '摘要'
   static readonly TIME_LABEL: string = '时间'
   static readonly EVENT_TYPE_LABEL: string = '事件类型'
-  static readonly RESULT_LABEL: string = '结果'
   static readonly STRUCTURED_DETAILS: string = '结构化详情'
   static readonly EMPTY: string = '暂无详情'
   static readonly PROCESS_LABEL: string = '进程'
@@ -20,7 +19,6 @@ export class LogManageDetailStrings {
 
 export class LogManageFilterStrings {
   static readonly ALL_EVENT_TYPES: string = '全部类型'
-  static readonly ALL_RESULTS: string = '全部结果'
   static readonly ALL_TIME: string = '全部时间'
   static readonly LAST_1_HOUR: string = '最近1小时'
   static readonly LAST_12_HOURS: string = '最近12小时'
@@ -65,10 +63,11 @@ export class LogManageKernelImportStrings {
 export class LogManageStatStrings {
   static readonly TOTAL: string = '总计'
   static readonly TODAY: string = '今日'
+  static readonly FILTERED: string = '过滤后'
   static readonly CURRENT_SHOWN: string = '当前显示'
   static readonly TOTAL_DESCRIPTION: string = '全部日志数量'
   static readonly TODAY_DESCRIPTION: string = '今日新增日志'
-  static readonly BLOCKED_DESCRIPTION: string = '阻止结果事件'
+  static readonly FILTERED_DESCRIPTION: string = '当前筛选结果数量'
   static readonly CURRENT_SHOWN_DESCRIPTION: string = '当前页显示数量'
 }
 
@@ -110,7 +109,6 @@ export class LogManageCsvStrings {
   static readonly EVENT_TYPE: string = '事件类型'
   static readonly PROCESS_NAME: string = '进程名'
   static readonly PID: string = 'PID'
-  static readonly RESULT: string = '结果'
 
   static get HEADERS(): string[] {
     return [
@@ -118,8 +116,7 @@ export class LogManageCsvStrings {
       LogManageCsvStrings.EVENT_TYPE,
       LabelText.DETAIL,
       LogManageCsvStrings.PROCESS_NAME,
-      LogManageCsvStrings.PID,
-      LogManageCsvStrings.RESULT
+      LogManageCsvStrings.PID
     ]
   }
 
@@ -147,10 +144,6 @@ export class LogDeviceLifecycleStrings {
   static readonly SHUTDOWN_REQUESTED: string = '设备关闭'
 }
 
-export class LogResultPresentationStrings {
-  static readonly BLOCKED: string = '已阻止'
-}
-
 export function resolveLogEventTypeLabel(type: LogEventType): string {
   switch (type) {
     case LogEventType.CRASH:
@@ -167,19 +160,6 @@ export function resolveLogEventTypeLabel(type: LogEventType): string {
       return LogEventPresentationStrings.SYSTEM
     case LogEventType.KERNEL:
       return LogEventPresentationStrings.KERNEL
-    default:
-      return LabelText.UNKNOWN
-  }
-}
-
-export function resolveLogEventResultLabel(result: LogEventResult): string {
-  switch (result) {
-    case LogEventResult.SUCCESS:
-      return ResultText.SUCCESS
-    case LogEventResult.BLOCKED:
-      return LogResultPresentationStrings.BLOCKED
-    case LogEventResult.FAILED:
-      return ResultText.FAILED
     default:
       return LabelText.UNKNOWN
   }

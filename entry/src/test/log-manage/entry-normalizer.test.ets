@@ -2,7 +2,6 @@ import { describe, expect, it } from '@ohos/hypium'
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import { LogEntryNormalizer } from '../../main/ets/services/log-manage/mapper/LogEntryNormalizer'
@@ -12,13 +11,11 @@ class InvalidLogEntry implements LogEntry {
   timestamp: number = -1
   eventType: LogEventType = 999 as LogEventType
   detail: string = 'detail'
-  result: LogEventResult = 999 as LogEventResult
 }
 
 function createEntry(
   id: string = 'entry-1',
   detail: string = 'detail',
-  result: LogEventResult = LogEventResult.SUCCESS,
   eventType: LogEventType = LogEventType.FILE,
   timestamp: number = Date.now(),
   detailRows?: LogDetailTableRow[]
@@ -28,7 +25,6 @@ function createEntry(
     timestamp: timestamp,
     eventType: eventType,
     detail: detail,
-    result: result,
     detailRows: detailRows
   }
   return entry
@@ -57,7 +53,6 @@ export default function entryNormalizerTest() {
       expect(normalized.id.length > 0).assertTrue()
       expect(normalized.timestamp >= 0).assertTrue()
       expect(normalized.eventType).assertEqual(LogEventType.FILE)
-      expect(normalized.result).assertEqual(LogEventResult.SUCCESS)
     })
 
     it('should preserve append batch order and ignore invalid items', 0, () => {
@@ -80,7 +75,6 @@ export default function entryNormalizerTest() {
       let normalized = LogEntryNormalizer.normalizeEntry(createEntry(
         'entry-3',
         'detail',
-        LogEventResult.SUCCESS,
         LogEventType.FILE,
         Date.now(),
         [

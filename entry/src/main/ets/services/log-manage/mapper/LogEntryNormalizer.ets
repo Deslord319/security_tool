@@ -3,9 +3,7 @@ import {
   DEFAULT_LOG_STORAGE_CONFIG,
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
-  LogEventType,
-  normalizeLogEventResult
+  LogEventType
 } from '../../../models/LogModels'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
@@ -61,8 +59,7 @@ export class LogEntryNormalizer {
       rawEventName: LogEntryNormalizer.truncateString(entry.rawEventName, MAX_RAW_EVENT_NAME_LENGTH),
       rawOutcome: LogEntryNormalizer.truncateString(entry.rawOutcome, MAX_RAW_OUTCOME_LENGTH),
       rawAction: LogEntryNormalizer.truncateString(entry.rawAction, MAX_RAW_ACTION_LENGTH),
-      detailRows: LogEntryNormalizer.normalizeDetailRows(entry.detailRows),
-      result: LogEntryNormalizer.normalizeEventResult(entry.result)
+      detailRows: LogEntryNormalizer.normalizeDetailRows(entry.detailRows)
     }
   }
 
@@ -89,10 +86,6 @@ export class LogEntryNormalizer {
       return type
     }
     return LogEventType.FILE
-  }
-
-  private static normalizeEventResult(result: LogEventResult): LogEventResult {
-    return normalizeLogEventResult(result, LogEventResult.SUCCESS)
   }
 
   static normalizeDetailRows(rows?: LogDetailTableRow[] | null): LogDetailTableRow[] | undefined {

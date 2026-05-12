@@ -5,7 +5,6 @@ import {
 } from '../../../models/LogModels'
 import {
   LogManageCsvStrings,
-  resolveLogEventResultLabel,
   resolveLogEventTypeLabel
 } from '../../../constants/modules/LogManageStrings'
 import { formatStandardDateTime } from '../../../utils/DateTimeFormatUtils'
@@ -62,8 +61,7 @@ export class LogExportService {
       let detail = entry.detail
       let process = entry.processName || ''
       let pid = entry.pid !== undefined ? entry.pid.toString() : ''
-      let result = resolveLogEventResultLabel(entry.result)
-      lines.push(CsvFileExportService.buildCsvLine([time, type, detail, process, pid, result]))
+      lines.push(CsvFileExportService.buildCsvLine([time, type, detail, process, pid]))
     }
     return lines.length > 0 ? `${lines.join('\r\n')}\r\n` : ''
   }

@@ -3,7 +3,6 @@ import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import { LogPowerLifecycleSource } from '../../main/ets/services/log-manage/source/LogPowerLifecycleSource'
@@ -165,7 +164,6 @@ export default function logPowerLifecycleSourceTest() {
       let shutdownEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'usual.event.SHUTDOWN')
       expect(shutdownEntry !== undefined).assertTrue()
       expect(shutdownEntry!.eventType).assertEqual(LogEventType.POWER)
-      expect(shutdownEntry!.result).assertEqual(LogEventResult.SUCCESS)
       let bootEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'app.boot')
       expect(bootEntry !== undefined).assertTrue()
       expect(bootEntry!.detailRows![1].value).assertEqual('startup_recovery')

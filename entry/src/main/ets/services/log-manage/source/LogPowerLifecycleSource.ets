@@ -3,7 +3,6 @@ import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import {
   generateLogEntryId,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import { LogDeviceLifecycleStrings } from '../../../constants/modules/LogManageStrings'
@@ -179,8 +178,7 @@ export class LogPowerLifecycleSource {
       detailRows: [
         { key: 'event', label: '事件', value: SHUTDOWN_EVENT },
         { key: 'source', label: '来源', value: source }
-      ],
-      result: LogEventResult.SUCCESS
+      ]
     }
     let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {
@@ -208,8 +206,7 @@ export class LogPowerLifecycleSource {
       detailRows: [
         { key: 'event', label: '事件', value: BOOT_EVENT },
         { key: 'source', label: '来源', value: source }
-      ],
-      result: LogEventResult.SUCCESS
+      ]
     }
     let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {

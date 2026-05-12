@@ -15,7 +15,6 @@ export default function logManageModelsTest() {
 
       expect(state.totalCount).assertEqual(0)
       expect(state.todayCount).assertEqual(0)
-      expect(state.blockedCount).assertEqual(0)
       expect(state.currentShownCount).assertEqual(0)
     })
 
@@ -23,7 +22,7 @@ export default function logManageModelsTest() {
       let state = new LogFilterState()
 
       expect(state.eventTypeIndex).assertEqual(0)
-      expect(state.resultIndex).assertEqual(0)
+      expect(state.timeRangeIndex).assertEqual(0)
       expect(state.keyword).assertEqual('')
     })
 

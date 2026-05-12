@@ -13,9 +13,9 @@ import {
   DeviceTypeLabels,
   PeripheralMatchedPolicyStrings,
   PeripheralRecordActionPresentationStrings,
+  PeripheralRecordResultPresentationStrings,
   PeripheralSourcePresentationStrings
 } from '../../../constants/modules/PeripheralStrings'
-import { LogResultPresentationStrings } from '../../../constants/modules/LogManageStrings'
 import { formatStandardDateTimeOrFallback } from '../../../utils/DateTimeFormatUtils'
 
 export interface PeripheralConnectionHistoryItem {
@@ -134,7 +134,7 @@ export function getPeripheralConnectionResultLabel(record: PeripheralConnectionR
     case SecurityEventResult.SUCCESS:
       return ResultText.SUCCESS
     case SecurityEventResult.BLOCKED:
-      return LogResultPresentationStrings.BLOCKED
+      return PeripheralRecordResultPresentationStrings.BLOCKED
     case SecurityEventResult.FAILED:
       return ResultText.FAILED
     default:
