@@ -16,6 +16,8 @@ export interface CsvFileWritePort {
   append(content: string): void
 }
 
+type CsvExportWriter = (fd: number) => Promise<void>
+
 class CsvFileWritePortImpl implements CsvFileWritePort {
   private fd: number
 
@@ -46,32 +48,14 @@ export class CsvFileExportService {
       return { success: false, code: 'empty' }
     }
     let fileName = CsvFileExportService.buildExportFileName(Date.now(), fileNamePrefix, fileExtension)
-    try {
-      let documentViewPicker = new picker.DocumentViewPicker(context)
-      let saveOptions = new picker.DocumentSaveOptions()
-      saveOptions.pickerMode = picker.DocumentPickerMode.DOWNLOAD
-      let result = await documentViewPicker.save(saveOptions)
-      if (result.length === 0) {
-        return { success: false, code: 'user_canceled' }
+    return CsvFileExportService.withExportFile(
+      context,
+      fileName,
+      'saveText',
+      async (fd: number): Promise<void> => {
+        CsvFileExportService.writeChunk(fd, content)
       }
-      let directoryUri = result[0]
-      let targetPath = new fileUri.FileUri(`${directoryUri}/${fileName}`).path
-      let file = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
-      try {
-        fileIo.writeSync(file.fd, content)
-      } finally {
-        fileIo.closeSync(file.fd)
-      }
-      return {
-        success: true,
-        code: 'ok',
-        fileName,
-        fullPath: targetPath
-      }
-    } catch (err) {
-      LogUtils.error(TAG, `saveText failed: ${JSON.stringify(err)}`)
-      return { success: false, code: 'io_failed' }
-    }
+    )
   }
 
   static async saveByWriter(
@@ -84,22 +68,33 @@ export class CsvFileExportService {
       return { success: false, code: 'context_missing' }
     }
     let fileName = CsvFileExportService.buildExportFileName(Date.now(), fileNamePrefix, fileExtension)
+    return CsvFileExportService.withExportFile(
+      context,
+      fileName,
+      'saveByWriter',
+      async (fd: number): Promise<void> => {
+        let port: CsvFileWritePort = new CsvFileWritePortImpl(fd)
+        await writer(port)
+      }
+    )
+  }
+
+  private static async withExportFile(
+    context: common.UIAbilityContext,
+    fileName: string,
+    operationName: string,
+    writer: CsvExportWriter
+  ): Promise<CsvFileExportResult> {
     try {
-      let documentViewPicker = new picker.DocumentViewPicker(context)
-      let saveOptions = new picker.DocumentSaveOptions()
-      saveOptions.pickerMode = picker.DocumentPickerMode.DOWNLOAD
-      let result = await documentViewPicker.save(saveOptions)
-      if (result.length === 0) {
+      let targetPath = await CsvFileExportService.pickTargetPath(context, fileName)
+      if (!targetPath) {
         return { success: false, code: 'user_canceled' }
       }
-      let directoryUri = result[0]
-      let targetPath = new fileUri.FileUri(`${directoryUri}/${fileName}`).path
-      let file = fileIo.openSync(targetPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+      let file = CsvFileExportService.openExportFile(targetPath)
       try {
-        let port: CsvFileWritePort = new CsvFileWritePortImpl(file.fd)
-        await writer(port)
+        await writer(file.fd)
       } finally {
-        fileIo.closeSync(file.fd)
+        CsvFileExportService.closeExportFile(file.fd, targetPath)
       }
       return {
         success: true,
@@ -108,8 +103,36 @@ export class CsvFileExportService {
         fullPath: targetPath
       }
     } catch (err) {
-      LogUtils.error(TAG, `saveByWriter failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `${operationName} failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'io_failed' }
+    }
+  }
+
+  private static async pickTargetPath(context: common.UIAbilityContext, fileName: string): Promise<string | null> {
+    let documentViewPicker = new picker.DocumentViewPicker(context)
+    let saveOptions = new picker.DocumentSaveOptions()
+    saveOptions.pickerMode = picker.DocumentPickerMode.DOWNLOAD
+    let result = await documentViewPicker.save(saveOptions)
+    if (result.length === 0) {
+      return null
+    }
+    let directoryUri = result[0]
+    return new fileUri.FileUri(`${directoryUri}/${fileName}`).path
+  }
+
+  private static openExportFile(path: string): fileIo.File {
+    try {
+      return fileIo.openSync(path, CsvFileExportService.buildWritableOpenMode())
+    } catch (err) {
+      throw new Error(`open export file failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private static closeExportFile(fd: number, path: string): void {
+    try {
+      fileIo.closeSync(fd)
+    } catch (err) {
+      throw new Error(`close export file failed: path=${path}, err=${JSON.stringify(err)}`)
     }
   }
 
@@ -137,6 +160,14 @@ export class CsvFileExportService {
 
   private static buildExportFileName(timestamp: number, prefix: string, extension: string): string {
     return `${prefix}_${formatCompactDateTime(timestamp)}.${extension}`
+  }
+
+  private static buildWritableOpenMode(): number {
+    return fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.TRUNC
+  }
+
+  static buildWritableOpenModeForTest(): number {
+    return CsvFileExportService.buildWritableOpenMode()
   }
 
   static writeChunk(fd: number, content: string): void {

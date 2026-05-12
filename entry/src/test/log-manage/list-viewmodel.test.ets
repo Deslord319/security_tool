@@ -55,6 +55,7 @@ class FakeLogListStorage implements LogStoragePort {
   listCallCount: number = 0
   snapshotCallCount: number = 0
   hasEntryCallCount: number = 0
+  failCount: boolean = false
   failSnapshot: boolean = false
   lastLimit?: number
   lastOffset?: number
@@ -83,6 +84,9 @@ class FakeLogListStorage implements LogStoragePort {
 
   async count(query?: LogQuery): Promise<number> {
     this.countCallCount++
+    if (this.failCount) {
+      throw new Error('count failed')
+    }
     return this.filterEntries(query).length
   }
 
@@ -512,6 +516,16 @@ export default function logManageViewModelTest() {
       expect(viewModel.state.pagination.currentPage).assertEqual(1)
       expect(viewModel.state.pagination.pageInputText).assertEqual('1')
       expect(viewModel.state.list.pagedEntries[0].id).assertEqual(previousFirstEntryId)
+    })
+
+    it('should return query_failed when count query fails', 0, async () => {
+      await viewModel.initialize(context)
+      storage.failCount = true
+
+      let result: RefreshResult = await viewModel.refreshAll()
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('query_failed')
     })
 
     it('should switch mode and restore list after saving settings', 0, async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
+import { fileIo } from '@kit.CoreFileKit'
 import { CsvFileExportService } from '../../main/ets/services/common/export/CsvFileExportService'
 
 class FakeContext {
@@ -66,6 +67,14 @@ export default function csvFileExportServiceTest() {
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('context_missing')
+    })
+
+    it('should open writable export files with truncation', 0, () => {
+      let mode = CsvFileExportService.buildWritableOpenModeForTest()
+
+      expect((mode & fileIo.OpenMode.CREATE) !== 0).assertTrue()
+      expect((mode & fileIo.OpenMode.READ_WRITE) !== 0).assertTrue()
+      expect((mode & fileIo.OpenMode.TRUNC) !== 0).assertTrue()
     })
 
     it('should expose writeChunk helper', 0, () => {

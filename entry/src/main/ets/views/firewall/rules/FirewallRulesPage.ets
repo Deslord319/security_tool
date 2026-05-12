@@ -1,39 +1,28 @@
 import { LogUtils } from '../../../utils/LogUtils'
-import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
-import { ActionText, LabelText } from '../../../constants/StringCatalog'
-import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
+import { ActionText } from '../../../constants/StringCatalog'
 import {
-  FirewallDialogStrings,
   FirewallRuleLabelStrings,
   FirewallPageStrings,
-  FirewallRuleStrings,
-  buildFirewallRuleCountText
+  FirewallRuleStrings
 } from '../../../constants/modules/FirewallStrings'
 import { AddRuleDialog } from '../../../components/firewall/rules/AddRuleDialog'
+import { FirewallRuleList } from '../../../components/firewall/rules/FirewallRuleList'
+import { FirewallRulesSummaryCards } from '../../../components/firewall/rules/FirewallRulesSummaryCards'
 import { UserFirewallControlDialog } from '../../../components/firewall/user-dispatch/UserFirewallControlDialog'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { SubPageHeader } from '../../../components/SubPageHeader'
-import { BaseCard } from '../../../components/BaseCard'
-import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { netFirewall } from '@kit.NetworkKit'
 
 import { common } from '@kit.AbilityKit'
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { HoverUtils } from '../../../utils/HoverUtils'
-import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import {
-  FIREWALL_PROTOCOL_ICMP,
-  FIREWALL_PROTOCOL_TCP,
-  FIREWALL_PROTOCOL_UDP,
-  FirewallDefaultPolicyDisplayItem,
-  FirewallDefaultPolicyMode,
   FirewallPresetMode,
   FirewallUserPolicyMode
 } from '../../../services/firewall/FirewallModels'
 import { DialogService } from '../../../utils/DialogService'
 import { FirewallRulesViewModel } from '../../../viewmodels/firewall/rules/FirewallRulesViewModel'
-import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 
 const TAG = 'FirewallRulesPage'
 
@@ -45,8 +34,6 @@ export struct FirewallRulesPage {
   @Event onBack: () => void = () => {}
   private userFirewallDialogController?: CustomDialogController
   private addRuleDialogController?: CustomDialogController
-  @Local private listScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
-  @Local private hoveredRuleId: string = ''
 
   aboutToAppear() {
     LogUtils.info(TAG, 'aboutToAppear')
@@ -257,161 +244,12 @@ export struct FirewallRulesPage {
     }
   }
 
-  countRulesByType(type: netFirewall.NetFirewallRuleType): number {
-    return this.rulesViewModel.countRulesByType(type)
-  }
-
   countRulesByDirection(direction: netFirewall.NetFirewallRuleDirection): number {
     return this.rulesViewModel.countRulesByDirection(direction)
   }
 
   getRulesByTab(tabIndex: number): netFirewall.NetFirewallRule[] {
     return this.rulesViewModel.getRulesByTab(tabIndex)
-  }
-
-  getRuleTypeLabel(type: netFirewall.NetFirewallRuleType): string {
-    switch (type) {
-      case netFirewall.NetFirewallRuleType.RULE_IP:
-        return FirewallRuleLabelStrings.IP_RULE
-      case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return FirewallRuleLabelStrings.DOMAIN_RULE
-      case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return FirewallRuleLabelStrings.DNS_RULE
-      default:
-      return LabelText.UNKNOWN
-    }
-  }
-
-  getRuleTypeTextColor(type: netFirewall.NetFirewallRuleType): string {
-    switch (type) {
-      case netFirewall.NetFirewallRuleType.RULE_IP:
-        return AppColors.getColors(this.currentTheme).TAG_BLUE_TEXT
-      case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return AppColors.getColors(this.currentTheme).TAG_PURPLE_TEXT
-      case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
-      default:
-        return AppColors.getColors(this.currentTheme).TAG_GRAY_TEXT
-    }
-  }
-
-  getRuleIcon(type: netFirewall.NetFirewallRuleType): Resource {
-    switch (type) {
-      case netFirewall.NetFirewallRuleType.RULE_IP:
-        return AppResources.NETWORK_ICON
-      case netFirewall.NetFirewallRuleType.RULE_DOMAIN:
-        return AppResources.GLOBE_ICON
-      case netFirewall.NetFirewallRuleType.RULE_DNS:
-        return AppResources.SERVER_ICON
-      default:
-        return AppResources.FIREWALL_ICON
-    }
-  }
-
-  getDirectionLabel(dir: netFirewall.NetFirewallRuleDirection): string {
-    return dir === netFirewall.NetFirewallRuleDirection.RULE_IN
-      ? FirewallDialogStrings.DIRECTION_INBOUND
-      : FirewallDialogStrings.DIRECTION_OUTBOUND
-  }
-
-  getActionLabel(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW ? FirewallDialogStrings.ACTION_ALLOW : FirewallDialogStrings.ACTION_DENY
-  }
-
-  getActionTextColor(action: netFirewall.FirewallRuleAction): string {
-    return action === netFirewall.FirewallRuleAction.RULE_ALLOW
-      ? AppColors.getColors(this.currentTheme).TAG_GREEN_TEXT
-      : AppColors.getColors(this.currentTheme).TAG_RED_TEXT
-  }
-
-  private getDefaultPolicyUserCount(mode: FirewallDefaultPolicyMode): number {
-    return this.rulesViewModel.defaultPolicyItems.filter((item: FirewallDefaultPolicyDisplayItem): boolean => item.mode === mode).length
-  }
-
-  private getDefaultPolicyUserCountText(mode: FirewallDefaultPolicyMode): string {
-    return `${this.getDefaultPolicyUserCount(mode)} 个`
-  }
-
-  private getDefaultPolicyUserListText(mode: FirewallDefaultPolicyMode): string {
-    const labels = this.rulesViewModel.defaultPolicyItems
-      .filter((item: FirewallDefaultPolicyDisplayItem): boolean => item.mode === mode)
-      .map((item: FirewallDefaultPolicyDisplayItem): string => item.label)
-    return labels.length > 0 ? labels.join('、') : FirewallRuleStrings.DEFAULT_POLICY_EMPTY_USERS
-  }
-
-  private getDefaultPolicyOtherSummaryText(): string {
-    const customCount = this.getDefaultPolicyUserCount('custom')
-    const unknownCount = this.getDefaultPolicyUserCount('unknown')
-    const disabledCount = this.rulesViewModel.defaultPolicyItems.filter((item: FirewallDefaultPolicyDisplayItem): boolean => !item.isOpen).length
-    let parts: string[] = []
-    if (customCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_CUSTOM} ${customCount} 个`)
-    }
-    if (unknownCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_UNKNOWN} ${unknownCount} 个`)
-    }
-    if (disabledCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_DISABLED} ${disabledCount} 个`)
-    }
-    return parts.join(' · ')
-  }
-
-  getRuleAddress(rule: netFirewall.NetFirewallRule): string {
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
-      return FirewallRuleUtils.formatIpParamsForDisplay(ipParams) || FirewallDialogStrings.ALL_VALUE
-    }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return rule.domains?.[0]?.domain ?? '-'
-    }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return rule.dns?.primaryDns ?? '-'
-    }
-    return '-'
-  }
-
-  getRuleLocalPort(rule: netFirewall.NetFirewallRule): string {
-    return FirewallRuleUtils.formatPortParamsForDisplay(rule.localPorts) || FirewallDialogStrings.ALL_VALUE
-  }
-
-  getRuleRemotePort(rule: netFirewall.NetFirewallRule): string {
-    return FirewallRuleUtils.formatPortParamsForDisplay(rule.remotePorts) || FirewallDialogStrings.ALL_VALUE
-  }
-
-  getIpAddressLabel(rule: netFirewall.NetFirewallRule): string {
-    return rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN
-      ? FirewallDialogStrings.LOCAL_ADDRESS
-      : FirewallDialogStrings.REMOTE_ADDRESS
-  }
-
-  getPrimaryPortLabel(rule: netFirewall.NetFirewallRule): string {
-    return rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN
-      ? FirewallDialogStrings.LOCAL_PORT
-      : FirewallDialogStrings.REMOTE_PORT
-  }
-
-  getProtocolLabel(rule: netFirewall.NetFirewallRule): string {
-    if (rule.protocol === undefined || rule.protocol === null) {
-      return FirewallDialogStrings.ALL_VALUE
-    }
-    switch (rule.protocol) {
-      case FIREWALL_PROTOCOL_TCP:
-        return FirewallDialogStrings.PROTOCOL_TCP
-      case FIREWALL_PROTOCOL_UDP:
-        return FirewallDialogStrings.PROTOCOL_UDP
-      case FIREWALL_PROTOCOL_ICMP:
-        return FirewallDialogStrings.PROTOCOL_ICMP
-      default:
-        return FirewallDialogStrings.ALL_VALUE
-    }
-  }
-
-  private getHoveredRuleId(rule: netFirewall.NetFirewallRule): string {
-    return this.rulesViewModel.getLocalRuleId(rule) ?? ''
-  }
-
-  private isRuleHovered(rule: netFirewall.NetFirewallRule): boolean {
-    return this.hoveredRuleId === this.getHoveredRuleId(rule)
   }
 
   @Builder
@@ -468,7 +306,12 @@ export struct FirewallRulesPage {
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.FIREWALL_CONFLICT_BORDER })
         }
 
-        this.summaryCardsRow()
+        FirewallRulesSummaryCards({
+          defaultPolicyItems: this.rulesViewModel.defaultPolicyItems,
+          inboundRuleCount: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN),
+          outboundRuleCount: this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT),
+          currentTheme: this.currentTheme
+        })
 
         Tabs({ barPosition: BarPosition.Start, index: this.rulesViewModel.currentTab }) {
           TabContent() {
@@ -509,253 +352,18 @@ export struct FirewallRulesPage {
 
   @Builder
   ruleListBuilder(tabIndex: number) {
-    Column() {
-      if (this.rulesViewModel.isLoading) {
-        Column({ space: 10 }) {
-          LoadingProgress()
-            .width(42)
-            .height(42)
-          Text(LoadingStrings.LOADING_RULES)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else if (this.getRulesByTab(tabIndex).length === 0) {
-        Column({ space: 10 }) {
-          Text(EmptyStateStrings.NO_RULES)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          Text(this.rulesViewModel.getEmptyRuleHint())
-            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-            .maxLines(2)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-      } else {
-        List({ space: 12 }) {
-          ForEach(this.getRulesByTab(tabIndex), (rule: netFirewall.NetFirewallRule) => {
-            ListItem() {
-              Column() {
-                BaseCard({
-                  useAutoHeight: true,
-                  clickable: true,
-                  currentTheme: this.currentTheme,
-                  onPress: () => {
-                    this.openEditRuleDialog(rule)
-                  },
-                  onHoverChange: (isHovered: boolean) => {
-                    let ruleId = this.getHoveredRuleId(rule)
-                    this.hoveredRuleId = isHovered ? ruleId : (this.hoveredRuleId === ruleId ? '' : this.hoveredRuleId)
-                  }
-                }) {
-                  Column({ space: 14 }) {
-                    Row({ space: 12 }) {
-                      Column() {
-                        Image(this.getRuleIcon(rule.type))
-                          .width(this.isRuleHovered(rule) ? 19 : 18)
-                          .height(this.isRuleHovered(rule) ? 19 : 18)
-                          .fillColor(Color.White)
-                          .draggable(false)
-                      }
-                      .width(40)
-                      .height(40)
-                      .borderRadius(12)
-                      .justifyContent(FlexAlign.Center)
-                      .alignItems(HorizontalAlign.Center)
-                      .backgroundColor(this.getRuleTypeTextColor(rule.type))
-                      .shadow(this.isRuleHovered(rule) ? HoverUtils.getShadow(this.currentTheme, true, false) : ShadowStyle.OUTER_DEFAULT_SM)
-                      .scale({
-                        x: HoverUtils.getScale(this.isRuleHovered(rule), 1.04),
-                        y: HoverUtils.getScale(this.isRuleHovered(rule), 1.04)
-                      })
-
-                      Column({ space: 6 }) {
-                        Text(rule.name ?? '-')
-                          .fontSize(AppStyles.FONT_SIZE_BODY)
-                          .fontWeight(this.isRuleHovered(rule) ? FontWeight.Bold : FontWeight.Medium)
-                          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-                          .opacity(this.isRuleHovered(rule) ? 1 : AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-                          .maxLines(1)
-                          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                        Row({ space: 8 }) {
-                          Text(this.getRuleTypeLabel(rule.type))
-                            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                            .fontColor(this.getRuleTypeTextColor(rule.type))
-                            .borderRadius(10)
-                            .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-
-                          Text(this.getDirectionLabel(rule.direction))
-                            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                            .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
-                            .borderRadius(10)
-                            .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-
-                          Text(this.getActionLabel(rule.action))
-                            .fontSize(AppStyles.FONT_SIZE_CAPTION)
-                            .fontColor(this.getActionTextColor(rule.action))
-                            .borderRadius(10)
-                            .padding({ left: AppStyles.SPACING_CHIP, right: AppStyles.SPACING_CHIP, top: AppStyles.PADDING_XS, bottom: AppStyles.PADDING_XS })
-                        }
-                      }
-                      .layoutWeight(1)
-                      .alignItems(HorizontalAlign.Start)
-
-                      Row({ space: 8 }) {
-                        IconTextActionButton({
-                          label: FirewallRuleStrings.DELETE_TITLE,
-                          icon: AppResources.TRASH_ICON,
-                          kind: 'danger',
-                          currentTheme: this.currentTheme,
-                          onTap: () => {
-                            this.handleDeleteRule(rule)
-                          }
-                        })
-                      }
-                    }
-                    .width('100%')
-
-                    Column({ space: 10 }) {
-                      this.detailRow(FirewallDialogStrings.USER_SCOPE, this.rulesViewModel.getRuleUserScopeLabel(rule), this.isRuleHovered(rule))
-                      if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-                        this.detailRow(this.getIpAddressLabel(rule), this.getRuleAddress(rule), this.isRuleHovered(rule))
-                        this.detailRow(
-                          this.getPrimaryPortLabel(rule),
-                          rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN
-                            ? this.getRuleLocalPort(rule)
-                            : this.getRuleRemotePort(rule),
-                          this.isRuleHovered(rule)
-                        )
-                      } else {
-                        this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress(rule), this.isRuleHovered(rule))
-                        this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort(rule), this.isRuleHovered(rule))
-                        this.detailRow(FirewallDialogStrings.REMOTE_PORT, this.getRuleRemotePort(rule), this.isRuleHovered(rule))
-                      }
-                      this.detailRow(FirewallDialogStrings.PROTOCOL, this.getProtocolLabel(rule), this.isRuleHovered(rule))
-                    }
-                    .width('100%')
-                  }
-                  .width('100%')
-                  .padding(AppStyles.PADDING_XL)
-                }
-              }
-              .width('100%')
-              .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
-              .clip(false)
-            }
-          }, (rule: netFirewall.NetFirewallRule): string =>
-            this.rulesViewModel.getLocalRuleId(rule) ?? `${rule.name ?? 'rule'}_${rule.direction}_${rule.action}_${rule.type}`)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .clip(false)
-        .scrollBar(BarState.Auto)
-        .scrollBarColor(getScrollBarColor(this.currentTheme))
-        .scrollBarWidth(this.listScrollBarWidth)
-        .onHover((isHover: boolean) => {
-          this.listScrollBarWidth = isHover ? SCROLL_BAR_WIDTH_HOVER : SCROLL_BAR_WIDTH_DEFAULT
-        })
+    FirewallRuleList({
+      rules: this.getRulesByTab(tabIndex),
+      isLoading: this.rulesViewModel.isLoading,
+      currentTheme: this.currentTheme,
+      getUserScopeLabel: (rule: netFirewall.NetFirewallRule): string => this.rulesViewModel.getRuleUserScopeLabel(rule),
+      onEditRule: (rule: netFirewall.NetFirewallRule) => {
+        this.openEditRuleDialog(rule)
+      },
+      onDeleteRule: (rule: netFirewall.NetFirewallRule) => {
+        this.handleDeleteRule(rule)
       }
-    }
-    .width('100%')
-    .height('100%')
-    .padding({ top: 6, bottom: 0 })
-  }
-
-  @Builder
-  private summaryCardsRow() {
-    Column({ space: 12 }) {
-      Row({ space: AppStyles.PADDING_LG }) {
-        CompactSummaryCard({
-          title: FirewallRuleStrings.DEFAULT_POLICY_ALLOWLIST_USERS,
-          valueText: this.getDefaultPolicyUserCountText('allowlist'),
-          description: this.getDefaultPolicyUserListText('allowlist'),
-          accentStart: AppColors.DANGER,
-          accentEnd: AppColors.WARNING,
-          icon: AppResources.SHIELD_ICON,
-          currentTheme: this.currentTheme
-        })
-          .layoutWeight(1)
-
-        CompactSummaryCard({
-          title: FirewallRuleStrings.DEFAULT_POLICY_DENYLIST_USERS,
-          valueText: this.getDefaultPolicyUserCountText('denylist'),
-          description: this.getDefaultPolicyUserListText('denylist'),
-          accentStart: AppColors.SUCCESS,
-          accentEnd: AppColors.GRADIENT_LOG_END,
-          icon: AppResources.SHIELD_ICON,
-          currentTheme: this.currentTheme
-        })
-          .layoutWeight(1)
-
-        CompactSummaryCard({
-          title: FirewallRuleStrings.INBOUND,
-          valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_IN)),
-          description: FirewallRuleStrings.INBOUND_DESCRIPTION,
-          accentStart: AppColors.WARNING,
-          accentEnd: AppColors.GRADIENT_IDENTITY_END,
-          icon: AppResources.ARROW_DOWN_ICON,
-          currentTheme: this.currentTheme
-        })
-          .layoutWeight(1)
-
-        CompactSummaryCard({
-          title: FirewallRuleStrings.OUTBOUND,
-          valueText: buildFirewallRuleCountText(this.countRulesByDirection(netFirewall.NetFirewallRuleDirection.RULE_OUT)),
-          description: FirewallRuleStrings.OUTBOUND_DESCRIPTION,
-          accentStart: AppColors.BRAND_PRIMARY,
-          accentEnd: AppColors.GRADIENT_FIREWALL_END,
-          icon: AppResources.ARROW_UP_ICON,
-          currentTheme: this.currentTheme
-        })
-          .layoutWeight(1)
-      }
-      .width('100%')
-
-      if (this.getDefaultPolicyOtherSummaryText().length > 0) {
-        Text(this.getDefaultPolicyOtherSummaryText())
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-    }
-    .width('100%')
-    .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: 6 })
-  }
-
-  @Builder
-  detailRow(label: string, value: string, isHovered: boolean = false) {
-    Row() {
-      Text(label)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(isHovered
-          ? AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY
-          : AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .width(92)
-
-      Text(value)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(isHovered ? AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY :
-          AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .layoutWeight(1)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .alignItems(VerticalAlign.Center)
+    })
   }
 
   @Builder

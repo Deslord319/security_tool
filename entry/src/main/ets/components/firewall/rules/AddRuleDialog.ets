@@ -1,5 +1,5 @@
 import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
-import { AppColors, AppStyles, AppInfo } from '../../../constants/AppConstants'
+import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
 import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -8,29 +8,14 @@ import { ActionText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings, FirewallRuleLabelStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
 import { MultiCheckSelect } from '../../MultiCheckSelect'
-import { Ipv4Utils } from '../../../utils/Ipv4Utils'
 import {
-  attachFirewallRuleUserIds,
-  FIREWALL_IPV4_FAMILY,
-  FIREWALL_IPV4_PARAM_TYPE,
-  FIREWALL_MAX_PORT_ITEM_COUNT,
-  FIREWALL_PORT_MAX,
-  FIREWALL_PORT_MIN,
   FIREWALL_PROTOCOL_TCP,
   FIREWALL_RULE_PROTOCOL_OPTIONS,
   FIREWALL_RULE_TYPE_OPTIONS,
-  FirewallScopedRule,
-  getFirewallRuleUserIds,
   normalizeFirewallRuleUserIds,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
-import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
-
-interface DialogParseResult<T> {
-  success: boolean
-  value?: T
-  errorMessage?: string
-}
+import { FirewallRuleFormModel, FirewallRuleFormState } from './FirewallRuleFormModel'
 
 @CustomDialog
 export struct AddRuleDialog {
@@ -81,70 +66,35 @@ export struct AddRuleDialog {
     netFirewall.FirewallRuleAction.RULE_ALLOW,
     netFirewall.FirewallRuleAction.RULE_DENY
   ]
-  private readonly maxPortItemCount: number = FIREWALL_MAX_PORT_ITEM_COUNT
 
   aboutToAppear(): void {
-    this.applyInitialRule()
-    this.applyInitialRuleScope()
+    this.applyFormState(FirewallRuleFormModel.buildInitialState(this.initialRule, this.userOptions))
   }
 
-  private applyInitialRule(): void {
-    let rule = this.initialRule
-    if (!rule) {
-      return
+  private applyFormState(state: FirewallRuleFormState): void {
+    this.ruleName = state.ruleName
+    this.ruleType = state.ruleType
+    this.ruleDirection = state.ruleDirection
+    this.protocol = state.protocol
+    this.remoteAddress = state.remoteAddress
+    this.localPort = state.localPort
+    this.remotePort = state.remotePort
+    this.action = state.action
+    this.selectedUserIds = state.selectedUserIds
+  }
+
+  private getFormState(): FirewallRuleFormState {
+    return {
+      ruleName: this.ruleName,
+      ruleType: this.ruleType,
+      ruleDirection: this.ruleDirection,
+      protocol: this.protocol,
+      remoteAddress: this.remoteAddress,
+      localPort: this.localPort,
+      remotePort: this.remotePort,
+      action: this.action,
+      selectedUserIds: this.selectedUserIds
     }
-    this.ruleName = rule.name ?? ''
-    this.ruleType = rule.type ?? netFirewall.NetFirewallRuleType.RULE_IP
-    this.ruleDirection = rule.direction ?? netFirewall.NetFirewallRuleDirection.RULE_IN
-    this.action = rule.action ?? netFirewall.FirewallRuleAction.RULE_ALLOW
-    this.protocol = rule.protocol ?? FIREWALL_PROTOCOL_TCP
-    this.remoteAddress = this.resolveAddressForRule(rule)
-    let resolvedPort = this.resolvePortForDirection(rule)
-    this.localPort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? resolvedPort : ''
-    this.remotePort = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ? resolvedPort : ''
-  }
-
-  private applyInitialRuleScope(): void {
-    if (!this.initialRule) {
-      this.selectedUserIds = this.getAllAvailableUserIds()
-      return
-    }
-    let ruleUserIds = normalizeFirewallRuleUserIds(getFirewallRuleUserIds(this.initialRule))
-    this.selectedUserIds = ruleUserIds.length > 0 ? ruleUserIds : this.getAllAvailableUserIds()
-  }
-
-  private getAllAvailableUserIds(): number[] {
-    return normalizeFirewallRuleUserIds(this.userOptions.map((item: UserFirewallOption): number => item.userId))
-  }
-
-  private getSelectedUserIdsForSave(): number[] {
-    return normalizeFirewallRuleUserIds(this.selectedUserIds)
-  }
-
-  private resolveAddressForRule(rule: netFirewall.NetFirewallRule): string {
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
-      let ipParams = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localIps : rule.remoteIps
-      return FirewallRuleUtils.formatIpParamsForDisplay(ipParams)
-    }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      return rule.domains?.[0]?.domain ?? ''
-    }
-    if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return rule.dns?.primaryDns ?? ''
-    }
-    return ''
-  }
-
-  private resolvePort(ports?: netFirewall.NetFirewallPortParams[]): string {
-    return FirewallRuleUtils.formatPortParamsForDisplay(ports)
-  }
-
-  private resolvePortForDirection(rule: netFirewall.NetFirewallRule): string {
-    if (rule.type !== netFirewall.NetFirewallRuleType.RULE_IP) {
-      return ''
-    }
-    let ports = rule.direction === netFirewall.NetFirewallRuleDirection.RULE_IN ? rule.localPorts : rule.remotePorts
-    return this.resolvePort(ports)
   }
 
   private getIpFieldLabel(): string {
@@ -153,197 +103,8 @@ export struct AddRuleDialog {
       : FirewallDialogStrings.REMOTE_ADDRESS
   }
 
-  private parseIpInput(raw: string): DialogParseResult<netFirewall.NetFirewallIpParams[] | undefined> {
-    let value = raw.trim()
-    if (value.length === 0) {
-      return { success: true, value: undefined }
-    }
-    if (value.toUpperCase() === FirewallDialogStrings.ALL_VALUE) {
-      return { success: true, value: undefined }
-    }
-    let rangeParts = value.split('-')
-    if (rangeParts.length > 2) {
-      return { success: false, errorMessage: FirewallDialogStrings.ERROR_INVALID_IP_RANGE }
-    }
-    if (rangeParts.length === 2) {
-      let startIp = rangeParts[0].trim()
-      let endIp = rangeParts[1].trim()
-      if (!Ipv4Utils.isValidIpv4(startIp) || !Ipv4Utils.isValidIpv4(endIp)) {
-        return { success: false, errorMessage: FirewallDialogStrings.ERROR_INVALID_IP_RANGE }
-      }
-      let startValue = Ipv4Utils.parseIpv4(startIp)
-      let endValue = Ipv4Utils.parseIpv4(endIp)
-      if (startValue === null || endValue === null || startValue > endValue) {
-        return { success: false, errorMessage: FirewallDialogStrings.ERROR_INVALID_IP_RANGE }
-      }
-      return {
-        success: true,
-        value: [{
-          type: FIREWALL_IPV4_PARAM_TYPE,
-          family: FIREWALL_IPV4_FAMILY,
-          startIp: startIp,
-          endIp: endIp
-        }]
-      }
-    }
-    let cidrParts = value.split('/')
-    if (cidrParts.length > 2 || !Ipv4Utils.isValidIpv4(cidrParts[0].trim())) {
-      return { success: false, errorMessage: FirewallDialogStrings.ERROR_INVALID_IP }
-    }
-    if (cidrParts.length === 2) {
-      let maskRaw = cidrParts[1].trim()
-      if (!/^\d+$/.test(maskRaw)) {
-        return { success: false, errorMessage: FirewallDialogStrings.ERROR_INVALID_CIDR_MASK }
-      }
-      let maskValue = parseInt(maskRaw, 10)
-      if (maskValue < 0 || maskValue > 32) {
-        return { success: false, errorMessage: FirewallDialogStrings.ERROR_INVALID_CIDR_MASK }
-      }
-      return {
-        success: true,
-        value: [{
-          type: FIREWALL_IPV4_PARAM_TYPE,
-          family: FIREWALL_IPV4_FAMILY,
-          address: cidrParts[0].trim(),
-          mask: maskValue
-        }]
-      }
-    }
-    return {
-      success: true,
-      value: [{
-        type: FIREWALL_IPV4_PARAM_TYPE,
-        family: FIREWALL_IPV4_FAMILY,
-        address: value,
-        mask: 32
-      }]
-    }
-  }
-
-  private parsePortInput(raw: string, invalidMessage: string): DialogParseResult<netFirewall.NetFirewallPortParams[] | undefined> {
-    let value = raw.trim()
-    if (value.length === 0) {
-      return { success: true, value: undefined }
-    }
-    if (value.toUpperCase() === FirewallDialogStrings.ALL_VALUE) {
-      return { success: true, value: undefined }
-    }
-    let tokens = value.split(',')
-    let result: netFirewall.NetFirewallPortParams[] = []
-    for (let i = 0; i < tokens.length; i++) {
-      let token = tokens[i].trim()
-      if (token.length === 0) {
-        return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_INVALID_PORT_TOKEN}: ${i + 1}` }
-      }
-      let rangeParts = token.split('-')
-      if (rangeParts.length > 2) {
-        return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_INVALID_PORT_RANGE}: ${token}` }
-      }
-      if (rangeParts.length === 1) {
-        if (!/^\d+$/.test(token)) {
-          return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_INVALID_PORT_TOKEN}: ${token}` }
-        }
-        let port = parseInt(token, 10)
-        if (port < FIREWALL_PORT_MIN || port > FIREWALL_PORT_MAX) {
-          return { success: false, errorMessage: invalidMessage }
-        }
-        result.push({ startPort: port, endPort: port })
-        continue
-      }
-      let startRaw = rangeParts[0].trim()
-      let endRaw = rangeParts[1].trim()
-      if (!/^\d+$/.test(startRaw) || !/^\d+$/.test(endRaw)) {
-        return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_INVALID_PORT_RANGE}: ${token}` }
-      }
-      let startPort = parseInt(startRaw, 10)
-      let endPort = parseInt(endRaw, 10)
-      if (startPort < FIREWALL_PORT_MIN || startPort > FIREWALL_PORT_MAX ||
-        endPort < FIREWALL_PORT_MIN || endPort > FIREWALL_PORT_MAX) {
-        return { success: false, errorMessage: invalidMessage }
-      }
-      if (startPort > endPort) {
-        return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_INVALID_PORT_RANGE}: ${token}` }
-      }
-      result.push({ startPort: startPort, endPort: endPort })
-    }
-    let normalized = result.sort((left: netFirewall.NetFirewallPortParams, right: netFirewall.NetFirewallPortParams): number => {
-      let startDiff = (left.startPort ?? 0) - (right.startPort ?? 0)
-      if (startDiff !== 0) {
-        return startDiff
-      }
-      return (left.endPort ?? left.startPort ?? 0) - (right.endPort ?? right.startPort ?? 0)
-    }).reduce((items: netFirewall.NetFirewallPortParams[], current: netFirewall.NetFirewallPortParams) => {
-      let previous = items[items.length - 1]
-      if (previous &&
-        previous.startPort === current.startPort &&
-        previous.endPort === current.endPort) {
-        return items
-      }
-      items.push(current)
-      return items
-    }, [])
-    if ((normalized?.length ?? 0) > this.maxPortItemCount) {
-      return { success: false, errorMessage: `${FirewallDialogStrings.ERROR_PORT_ITEM_LIMIT}: ${this.maxPortItemCount}` }
-    }
-    return { success: true, value: normalized.length > 0 ? normalized : undefined }
-  }
-
-  private isValidDomain(value: string): boolean {
-    return /^(?:\*\.)?(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/.test(value)
-  }
-
   private validateForm(): string {
-    let ruleName = this.ruleName.trim()
-    let remoteAddress = this.remoteAddress.trim()
-    let portValue = this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN
-      ? this.localPort.trim()
-      : this.remotePort.trim()
-
-    if (ruleName.length === 0) {
-      return FirewallDialogStrings.RULE_NAME_PLACEHOLDER
-    }
-
-    if (remoteAddress.length === 0) {
-      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-        return FirewallDialogStrings.ERROR_DOMAIN_REQUIRED
-      }
-      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-        return FirewallDialogStrings.ERROR_DNS_REQUIRED
-      }
-    }
-
-    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
-      let ipResult = this.parseIpInput(remoteAddress)
-      if (!ipResult.success) {
-        return ipResult.errorMessage ?? FirewallDialogStrings.ERROR_INVALID_IP
-      }
-      let portResult = this.parsePortInput(
-        portValue,
-        this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN
-          ? FirewallDialogStrings.ERROR_INVALID_LOCAL_PORT
-          : FirewallDialogStrings.ERROR_INVALID_REMOTE_PORT
-      )
-      if (!portResult.success) {
-        return portResult.errorMessage ??
-          (this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN
-            ? FirewallDialogStrings.ERROR_INVALID_LOCAL_PORT
-            : FirewallDialogStrings.ERROR_INVALID_REMOTE_PORT)
-      }
-    }
-
-    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN && !this.isValidDomain(remoteAddress)) {
-      return FirewallDialogStrings.ERROR_INVALID_DOMAIN
-    }
-
-    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS && !Ipv4Utils.isValidIpv4(remoteAddress)) {
-      return FirewallDialogStrings.ERROR_INVALID_DNS
-    }
-
-    if (this.getSelectedUserIdsForSave().length === 0) {
-      return FirewallDialogStrings.ERROR_USER_SCOPE_REQUIRED
-    }
-
-    return ''
+    return FirewallRuleFormModel.validate(this.getFormState())
   }
 
   private async handleSubmit(): Promise<void> {
@@ -356,7 +117,7 @@ export struct AddRuleDialog {
       return
     }
 
-    let rule = this.isEditMode ? this.buildUpdateRule() : this.buildCreateRule()
+    let rule = FirewallRuleFormModel.buildRule(this.getFormState(), this.initialRule, this.isEditMode)
     this.submitting = true
     try {
       let shouldClose = await this.onConfirm(rule)
@@ -370,88 +131,6 @@ export struct AddRuleDialog {
 
   private closeDialog(): void {
     this.onClose()
-  }
-
-  private buildCreateRule(): netFirewall.NetFirewallRule {
-    let rule: netFirewall.NetFirewallRule = {
-      userId: this.initialRule?.userId ?? AppInfo.DEFAULT_USER_ID,
-      name: this.ruleName.trim(),
-      direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
-      action: this.action as netFirewall.FirewallRuleAction,
-      type: this.ruleType as netFirewall.NetFirewallRuleType,
-      isEnabled: this.initialRule?.isEnabled ?? true,
-      description: this.initialRule?.description
-    }
-
-    this.applyRuleSpecificFields(rule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
-    return attachFirewallRuleUserIds(rule, this.getSelectedUserIdsForSave())
-  }
-
-  private buildUpdateRule(): netFirewall.NetFirewallRule {
-    let baseRule: netFirewall.NetFirewallRule = {
-      userId: this.initialRule?.userId ?? AppInfo.DEFAULT_USER_ID,
-      name: this.ruleName.trim(),
-      direction: this.ruleDirection as netFirewall.NetFirewallRuleDirection,
-      action: this.action as netFirewall.FirewallRuleAction,
-      type: this.ruleType as netFirewall.NetFirewallRuleType,
-      isEnabled: this.initialRule?.isEnabled ?? true,
-      description: this.initialRule?.description
-    }
-    let originalRule = this.initialRule as FirewallScopedRule
-    let scopedRule = baseRule as FirewallScopedRule
-    if (typeof originalRule.id === 'number') {
-      scopedRule.id = originalRule.id
-    }
-    if (typeof originalRule.localRuleId === 'string') {
-      scopedRule.localRuleId = originalRule.localRuleId
-    }
-    this.applyRuleSpecificFields(scopedRule, this.remoteAddress.trim(), this.localPort.trim(), this.remotePort.trim())
-    return attachFirewallRuleUserIds(scopedRule, this.getSelectedUserIdsForSave())
-  }
-
-  private applyRuleSpecificFields(
-    rule: netFirewall.NetFirewallRule,
-    remoteAddress: string,
-    localPort: string,
-    remotePort: string
-  ): void {
-    if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
-      let ipResult = this.parseIpInput(remoteAddress)
-      let portResult = this.parsePortInput(
-        this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? localPort : remotePort,
-        this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN
-          ? FirewallDialogStrings.ERROR_INVALID_LOCAL_PORT
-          : FirewallDialogStrings.ERROR_INVALID_REMOTE_PORT
-      )
-      if (this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN) {
-        rule.localIps = ipResult.value
-        rule.localPorts = portResult.value
-        rule.remoteIps = undefined
-        rule.remotePorts = undefined
-      } else {
-        rule.remoteIps = ipResult.value
-        rule.remotePorts = portResult.value
-        rule.localIps = undefined
-        rule.localPorts = undefined
-      }
-      rule.protocol = this.protocol
-      rule.domains = undefined
-      rule.dns = undefined
-    } else if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DOMAIN) {
-      rule.domains = [{ domain: remoteAddress, isWildcard: remoteAddress.includes('*') }]
-      rule.remoteIps = undefined
-      rule.localPorts = undefined
-      rule.remotePorts = undefined
-      rule.protocol = undefined
-      rule.dns = undefined
-    } else if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      rule.dns = { primaryDns: remoteAddress }
-      rule.remoteIps = undefined
-      rule.localPorts = undefined
-      rule.remotePorts = undefined
-      rule.protocol = undefined
-      rule.domains = undefined
-    }
   }
 
   private getPrimaryButtonText(): string {

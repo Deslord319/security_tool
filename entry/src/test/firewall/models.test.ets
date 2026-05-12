@@ -7,28 +7,8 @@ import {
   FirewallRuleLabelStrings
 } from '../../main/ets/constants/modules/FirewallStrings'
 import {
-  FirewallDefaultPolicyDisplayItem,
   resolveFirewallUserPolicyModeFromActions
 } from '../../main/ets/services/firewall/FirewallModels'
-import {
-  buildFirewallDefaultPolicyEmptyHint
-} from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
-
-function buildDefaultPolicyItem(
-  userId: number,
-  mode: 'allowlist' | 'denylist' | 'custom' | 'unknown',
-  inAction: number,
-  outAction: number
-): FirewallDefaultPolicyDisplayItem {
-  return {
-    userId: userId,
-    label: `用户 ${userId}`,
-    mode: mode,
-    isOpen: true,
-    inAction: inAction,
-    outAction: outAction
-  }
-}
 
 export default function firewallModelsTest() {
   describe('Firewall Models', () => {
@@ -78,15 +58,5 @@ export default function firewallModelsTest() {
       )).assertEqual(undefined)
     })
 
-    it('should derive empty rule hint from multi-user default policy visibility', 0, () => {
-      const items: FirewallDefaultPolicyDisplayItem[] = [
-        buildDefaultPolicyItem(100, 'allowlist', netFirewall.FirewallRuleAction.RULE_DENY, netFirewall.FirewallRuleAction.RULE_DENY),
-        buildDefaultPolicyItem(101, 'denylist', netFirewall.FirewallRuleAction.RULE_ALLOW, netFirewall.FirewallRuleAction.RULE_ALLOW),
-        buildDefaultPolicyItem(102, 'custom', netFirewall.FirewallRuleAction.RULE_DENY, netFirewall.FirewallRuleAction.RULE_ALLOW),
-        buildDefaultPolicyItem(103, 'unknown', netFirewall.FirewallRuleAction.RULE_ALLOW, netFirewall.FirewallRuleAction.RULE_ALLOW)
-      ]
-
-      expect(buildFirewallDefaultPolicyEmptyHint(items)).assertEqual('暂无自定义规则；当前存在默认阻止用户，请新增允许规则放行业务访问。')
-    })
   })
 }

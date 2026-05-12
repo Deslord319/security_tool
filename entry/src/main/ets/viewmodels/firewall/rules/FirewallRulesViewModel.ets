@@ -31,16 +31,6 @@ export interface FirewallRulesConflictInfo {
   existingRule: netFirewall.NetFirewallRule | null
 }
 
-export function buildFirewallDefaultPolicyEmptyHint(items: FirewallDefaultPolicyDisplayItem[]): string {
-  if (items.some((item: FirewallDefaultPolicyDisplayItem): boolean => item.mode === 'allowlist' || item.inAction === netFirewall.FirewallRuleAction.RULE_DENY || item.outAction === netFirewall.FirewallRuleAction.RULE_DENY)) {
-    return FirewallRuleStrings.EMPTY_RULES_WITH_DEFAULT_DENY
-  }
-  if (items.some((item: FirewallDefaultPolicyDisplayItem): boolean => item.mode === 'unknown')) {
-    return FirewallRuleStrings.EMPTY_RULES_WITH_UNKNOWN_POLICY
-  }
-  return FirewallRuleStrings.EMPTY_RULES_WITH_DEFAULT_ALLOW
-}
-
 export function isFirewallRuleAllUsers(userIds: number[], availableUsers: UserFirewallOption[]): boolean {
   let normalizedUserIds = normalizeFirewallRuleUserIds(userIds)
   let normalizedAvailableUserIds = normalizeFirewallRuleUserIds(
@@ -284,10 +274,6 @@ export class FirewallRulesViewModel {
 
   getRuleUserScopeLabel(rule: netFirewall.NetFirewallRule): string {
     return buildFirewallRuleUserScopeLabel(rule, this.userOptions)
-  }
-
-  getEmptyRuleHint(): string {
-    return buildFirewallDefaultPolicyEmptyHint(this.defaultPolicyItems)
   }
 
   private async reloadDefaultPolicies(context: common.UIAbilityContext): Promise<void> {
