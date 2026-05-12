@@ -13,6 +13,7 @@ import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAcc
 
 const TAG = 'LogPowerLifecycle'
 const SHUTDOWN_EVENT = 'usual.event.SHUTDOWN'
+const BOOT_EVENT = 'app.boot'
 const POWER_LIFECYCLE_STORE = 'power_lifecycle'
 const PENDING_SHUTDOWN_AT_KEY = 'pending_shutdown_at'
 const PENDING_SHUTDOWN_LOGGED_KEY = 'pending_shutdown_logged'
@@ -25,7 +26,6 @@ export class LogPowerLifecycleSource {
   static async init(context: common.UIAbilityContext): Promise<void> {
     LogPowerLifecycleSource.context = context
     if (LogPowerLifecycleSource.initialized) {
-      await LogPowerLifecycleSource.recordPendingShutdownIfNeeded()
       return
     }
     let initialized = await LogStorageMaintenanceService.initialize(context)
@@ -34,20 +34,21 @@ export class LogPowerLifecycleSource {
       return
     }
     LogPowerLifecycleSource.initialized = true
-    await LogPowerLifecycleSource.recordPendingShutdownIfNeeded()
+    let recoveredShutdown = await LogPowerLifecycleSource.recordPendingShutdownIfNeeded()
+    await LogPowerLifecycleSource.appendBootEntry(recoveredShutdown ? 'startup_recovery' : 'app_start')
     LogPowerLifecycleSource.subscribeShutdownEvent()
   }
 
   static destroy(): void {
     if (!LogPowerLifecycleSource.subscriber) {
+      LogPowerLifecycleSource.initialized = false
+      LogPowerLifecycleSource.context = null
       return
     }
     commonEventManager.unsubscribe(LogPowerLifecycleSource.subscriber, (err?: BusinessError) => {
       if (err) {
         LogUtils.warn(TAG, 'unsubscribe shutdown event failed: %{public}s', JSON.stringify(err))
-        return
       }
-      LogUtils.info(TAG, 'unsubscribe shutdown event success')
     })
     LogPowerLifecycleSource.subscriber = null
     LogPowerLifecycleSource.initialized = false
@@ -72,25 +73,31 @@ export class LogPowerLifecycleSource {
           LogUtils.warn(TAG, 'shutdown event callback failed: %{public}s', JSON.stringify(callbackErr))
           return
         }
-        await LogPowerLifecycleSource.markPendingShutdown()
-        await LogPowerLifecycleSource.appendShutdownEntry(Date.now(), 'common_event', true)
+        try {
+          await LogPowerLifecycleSource.markPendingShutdown()
+          await LogPowerLifecycleSource.appendShutdownEntry(Date.now(), 'common_event', true)
+        } catch (err) {
+          LogUtils.warn(TAG, 'shutdown event handling exception: %{public}s', JSON.stringify(err))
+        }
       })
-      LogUtils.info(TAG, 'subscribe shutdown event success')
     })
   }
 
-  private static async recordPendingShutdownIfNeeded(): Promise<void> {
+  private static async recordPendingShutdownIfNeeded(): Promise<boolean> {
     let timestamp = await LogPowerLifecycleSource.getPendingShutdownTimestamp()
     if (timestamp <= 0) {
-      LogUtils.info(TAG, 'recordPendingShutdownIfNeeded skipped: no pending marker')
-      return
+      return false
     }
     let logged = await LogPowerLifecycleSource.isPendingShutdownLogged()
     if (!logged) {
-      await LogPowerLifecycleSource.appendShutdownEntry(timestamp, 'startup_recovery', true)
+      let recovered = await LogPowerLifecycleSource.appendShutdownEntry(timestamp, 'startup_recovery', true)
+      if (!recovered) {
+        LogUtils.warn(TAG, 'recordPendingShutdownIfNeeded keep marker: recovery append failed')
+        return true
+      }
     }
-    await LogPowerLifecycleSource.appendBootEntry('startup_recovery')
     await LogPowerLifecycleSource.clearPendingShutdownMarker()
+    return true
   }
 
   private static async markPendingShutdown(): Promise<void> {
@@ -109,12 +116,12 @@ export class LogPowerLifecycleSource {
       LogUtils.warn(TAG, 'markPendingShutdown failed: timestamp=%{public}d', timestamp)
       return
     }
-    LogUtils.info(TAG, 'markPendingShutdown success: timestamp=%{public}d', timestamp)
   }
 
   private static async getPendingShutdownTimestamp(): Promise<number> {
     let context = LogPowerLifecycleSource.context
     if (!context) {
+      LogUtils.warn(TAG, 'getPendingShutdownTimestamp skipped: context unavailable')
       return 0
     }
     let pref = PreferencesAccessor.of(context, POWER_LIFECYCLE_STORE)
@@ -124,27 +131,32 @@ export class LogPowerLifecycleSource {
   private static async isPendingShutdownLogged(): Promise<boolean> {
     let context = LogPowerLifecycleSource.context
     if (!context) {
+      LogUtils.warn(TAG, 'isPendingShutdownLogged skipped: context unavailable')
       return false
     }
     let pref = PreferencesAccessor.of(context, POWER_LIFECYCLE_STORE)
     return (await pref.getNumber(PENDING_SHUTDOWN_LOGGED_KEY, 0)) > 0
   }
 
-  private static async markPendingShutdownLogged(): Promise<void> {
+  private static async markPendingShutdownLogged(): Promise<boolean> {
     let context = LogPowerLifecycleSource.context
     if (!context) {
-      return
+      LogUtils.warn(TAG, 'markPendingShutdownLogged skipped: context unavailable')
+      return false
     }
     let pref = PreferencesAccessor.of(context, POWER_LIFECYCLE_STORE)
     let saved = await pref.setValue(PENDING_SHUTDOWN_LOGGED_KEY, 1)
     if (!saved) {
       LogUtils.warn(TAG, 'markPendingShutdownLogged failed')
+      return false
     }
+    return true
   }
 
   private static async clearPendingShutdownMarker(): Promise<void> {
     let context = LogPowerLifecycleSource.context
     if (!context) {
+      LogUtils.warn(TAG, 'clearPendingShutdownMarker skipped: context unavailable')
       return
     }
     let pref = PreferencesAccessor.of(context, POWER_LIFECYCLE_STORE)
@@ -157,7 +169,7 @@ export class LogPowerLifecycleSource {
     }
   }
 
-  private static async appendShutdownEntry(timestamp: number, source: string, preservePendingMarker: boolean = false): Promise<void> {
+  private static async appendShutdownEntry(timestamp: number, source: string, preservePendingMarker: boolean = false): Promise<boolean> {
     let entry: LogEntry = {
       id: generateLogEntryId(),
       timestamp,
@@ -173,25 +185,28 @@ export class LogPowerLifecycleSource {
     let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {
       LogUtils.warn(TAG, 'appendShutdownEntry failed: source=%{public}s, code=%{public}s', source, saved.code)
-      return
+      return false
     }
     if (preservePendingMarker) {
-      await LogPowerLifecycleSource.markPendingShutdownLogged()
+      let marked = await LogPowerLifecycleSource.markPendingShutdownLogged()
+      if (!marked) {
+        LogUtils.warn(TAG, 'appendShutdownEntry marker logged flag not updated: source=%{public}s', source)
+        return false
+      }
     }
-    LogUtils.info(TAG, 'appendShutdownEntry success: source=%{public}s, event=%{public}s, timestamp=%{public}d',
-      source, SHUTDOWN_EVENT, timestamp)
+    return true
   }
 
-  private static async appendBootEntry(source: string): Promise<void> {
+  private static async appendBootEntry(source: string): Promise<boolean> {
     let timestamp = Date.now()
     let entry: LogEntry = {
       id: generateLogEntryId(),
       timestamp,
       eventType: LogEventType.POWER,
       detail: LogDeviceLifecycleStrings.BOOT,
-      rawEventName: 'app.boot.recovery',
+      rawEventName: BOOT_EVENT,
       detailRows: [
-        { key: 'event', label: '事件', value: 'app.boot.recovery' },
+        { key: 'event', label: '事件', value: BOOT_EVENT },
         { key: 'source', label: '来源', value: source }
       ],
       result: LogEventResult.SUCCESS
@@ -199,8 +214,8 @@ export class LogPowerLifecycleSource {
     let saved = await LogStorageMaintenanceService.appendEntries([entry])
     if (!saved.success) {
       LogUtils.warn(TAG, 'appendBootEntry failed: source=%{public}s, code=%{public}s', source, saved.code)
-      return
+      return false
     }
-    LogUtils.info(TAG, 'appendBootEntry success: source=%{public}s, timestamp=%{public}d', source, timestamp)
+    return true
   }
 }

@@ -111,14 +111,17 @@ export default function logPowerLifecycleSourceTest() {
       await LogPowerLifecycleSource.init(context)
       await LogPowerLifecycleSource.init(context)
 
-      expect(true).assertTrue()
+      let bootEntries = appendedEntries.filter((entry: LogEntry) => entry.rawEventName === 'app.boot')
+      expect(bootEntries.length).assertEqual(1)
     })
 
-    it('should skip recording when no pending shutdown marker exists', 0, async () => {
+    it('should append boot entry when no pending shutdown marker exists', 0, async () => {
       await LogPowerLifecycleSource.init(context)
 
       let powerEntries = appendedEntries.filter((entry: LogEntry) => entry.eventType === LogEventType.POWER)
-      expect(powerEntries.length).assertEqual(0)
+      expect(powerEntries.length).assertEqual(1)
+      expect(powerEntries[0].rawEventName).assertEqual('app.boot')
+      expect(powerEntries[0].detailRows![1].value).assertEqual('app_start')
     })
 
     it('should destroy and cleanup resources', 0, async () => {
@@ -163,6 +166,9 @@ export default function logPowerLifecycleSourceTest() {
       expect(shutdownEntry !== undefined).assertTrue()
       expect(shutdownEntry!.eventType).assertEqual(LogEventType.POWER)
       expect(shutdownEntry!.result).assertEqual(LogEventResult.SUCCESS)
+      let bootEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'app.boot')
+      expect(bootEntry !== undefined).assertTrue()
+      expect(bootEntry!.detailRows![1].value).assertEqual('startup_recovery')
     })
 
     it('should skip recording when shutdown already logged', 0, async () => {
@@ -173,17 +179,22 @@ export default function logPowerLifecycleSourceTest() {
 
       let shutdownEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'usual.event.SHUTDOWN')
       expect(shutdownEntry).assertEqual(undefined)
+      let bootEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'app.boot')
+      expect(bootEntry !== undefined).assertTrue()
+      expect(bootEntry!.detailRows![1].value).assertEqual('startup_recovery')
     })
 
-    it('should append boot entry after shutdown recovery', 0, async () => {
+    it('should append one boot entry after shutdown recovery', 0, async () => {
       storedNumbers.set('pending_shutdown_at', 1712732400000)
       storedNumbers.set('pending_shutdown_logged', 0)
 
       await LogPowerLifecycleSource.init(context)
 
-      let bootEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'app.boot.recovery')
+      let bootEntry = appendedEntries.find((entry: LogEntry) => entry.rawEventName === 'app.boot')
       expect(bootEntry !== undefined).assertTrue()
       expect(bootEntry!.eventType).assertEqual(LogEventType.POWER)
+      let bootEntries = appendedEntries.filter((entry: LogEntry) => entry.rawEventName === 'app.boot')
+      expect(bootEntries.length).assertEqual(1)
     })
   })
 }
