@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/LogModels'
+import { LogEntry, LogEventType } from '../../main/ets/models/LogModels'
 import { LogImportHash } from '../../main/ets/services/log-manage/import/LogImportHash'
 
 function createEntry(detail: string, sourceFile: string): LogEntry {
@@ -12,8 +12,7 @@ function createEntry(detail: string, sourceFile: string): LogEntry {
     rawEventName: 'kernel_hmseh_denied',
     detailRows: [
       { key: 'import.sourceFile', label: '来源文件', value: sourceFile }
-    ],
-    result: LogEventResult.FAILED
+    ]
   }
 }
 

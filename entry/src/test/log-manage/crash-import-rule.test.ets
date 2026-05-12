@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { LogEventResult, LogEventType } from '../../main/ets/models/LogModels'
+import { LogEventType } from '../../main/ets/models/LogModels'
 import { CrashLogImportRule } from '../../main/ets/services/log-manage/import/CrashLogImportRule'
 import { ImportedLogFile } from '../../main/ets/services/log-manage/import/LogImportRule'
 
@@ -59,7 +59,7 @@ export default function crashImportRuleTest() {
       expect(rule.canHandle(createFile('remoteLog/hilog/appfreeze-com.huawei.securitytool-20020153-20260511141712858.log'))).assertFalse()
     })
 
-    it('should parse appfreeze file into one failed crash entry', 0, async () => {
+    it('should parse appfreeze file into one crash entry without result inference', 0, async () => {
       let result = await new CrashLogImportRule().parse(createFile(
         'remoteLog/faultlogger/appfreeze-com.huawei.securitytool-20020153-20260511141712858.log',
         sampleAppFreeze()
@@ -69,9 +69,8 @@ export default function crashImportRuleTest() {
       expect(result.droppedCount).assertEqual(0)
       expect(result.failedCount).assertEqual(0)
       expect(result.entries[0].eventType).assertEqual(LogEventType.CRASH)
-      expect(result.entries[0].result).assertEqual(LogEventResult.FAILED)
       expect(result.entries[0].rawEventName).assertEqual('appfreeze')
-      expect(result.entries[0].rawOutcome).assertEqual('freeze')
+      expect(result.entries[0].rawOutcome).assertEqual(undefined)
       expect(result.entries[0].processName).assertEqual('com.huawei.securitytool')
       expect(result.entries[0].pid).assertEqual(23766)
       expect(result.entries[0].uid).assertEqual(20020153)
@@ -110,7 +109,7 @@ export default function crashImportRuleTest() {
 
       expect(jsResult.entries.length).assertEqual(1)
       expect(jsResult.entries[0].rawEventName).assertEqual('jscrash')
-      expect(jsResult.entries[0].rawOutcome).assertEqual('crash')
+      expect(jsResult.entries[0].rawOutcome).assertEqual(undefined)
       expect(jsResult.entries[0].detail.indexOf('OutOfMemoryError') >= 0).assertTrue()
       expect(cppResult.entries.length).assertEqual(1)
       expect(cppResult.entries[0].rawEventName).assertEqual('cppcrash')

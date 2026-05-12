@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { LogEventResult, LogEventType } from '../../main/ets/models/LogModels'
+import { LogEventType } from '../../main/ets/models/LogModels'
 import { ImportedLogFile } from '../../main/ets/services/log-manage/import/LogImportRule'
 import { SystemLogImportRule } from '../../main/ets/services/log-manage/import/SystemLogImportRule'
 
@@ -50,7 +50,7 @@ export default function systemImportRuleTest() {
       expect(rule.canHandle(createFile('remoteLog/eventlog/random.log'))).assertFalse()
     })
 
-    it('should parse service timeout and window exception as failed one-file events', 0, async () => {
+    it('should parse service timeout and window exception as one-file events without result inference', 0, async () => {
       let serviceContent = [
         'EVENTNAME = SERVICE_TIMEOUT_WARNING',
         'TIMESTAMP = 2026/05/09-16:05:26:448',
@@ -75,11 +75,9 @@ export default function systemImportRuleTest() {
 
       expect(serviceResult.entries.length).assertEqual(1)
       expect(serviceResult.entries[0].eventType).assertEqual(LogEventType.SYSTEM)
-      expect(serviceResult.entries[0].result).assertEqual(LogEventResult.FAILED)
       expect(serviceResult.entries[0].rawEventName).assertEqual('system_service_timeout')
       expect(serviceResult.entries[0].filePath).assertEqual('remoteLog/eventlog/SERVICE_TIMEOUT_WARNING-1764-20260509160526.log')
       expect(windowResult.entries.length).assertEqual(1)
-      expect(windowResult.entries[0].result).assertEqual(LogEventResult.FAILED)
       expect(windowResult.entries[0].rawEventName).assertEqual('system_window_exception')
     })
 
@@ -103,8 +101,8 @@ export default function systemImportRuleTest() {
       expect(hisiResult.entries.length).assertEqual(2)
       expect(hisiResult.entries[0].rawEventName).assertEqual('system_hisi_diag')
       expect(fsckResult.entries.length).assertEqual(2)
-      expect(fsckResult.entries[0].result).assertEqual(LogEventResult.SUCCESS)
-      expect(fsckResult.entries[1].result).assertEqual(LogEventResult.FAILED)
+      expect(fsckResult.entries[0].rawEventName).assertEqual('system_fsck')
+      expect(fsckResult.entries[1].rawEventName).assertEqual('system_fsck')
     })
 
     it('should parse key line files one entry per matched line', 0, async () => {
@@ -120,9 +118,9 @@ export default function systemImportRuleTest() {
       let result = await new SystemLogImportRule().parse(createFile('remoteLog/updater/updater_log', content))
 
       expect(result.entries.length).assertEqual(4)
-      expect(result.entries[0].result).assertEqual(LogEventResult.SUCCESS)
-      expect(result.entries[2].result).assertEqual(LogEventResult.FAILED)
-      expect(result.entries[3].result).assertEqual(LogEventResult.FAILED)
+      expect(result.entries[0].rawEventName).assertEqual('system_updater_log')
+      expect(result.entries[2].rawEventName).assertEqual('system_updater_log')
+      expect(result.entries[3].rawEventName).assertEqual('system_updater_log')
     })
 
     it('should normalize second based fallback timestamps to milliseconds', 0, () => {

@@ -198,7 +198,7 @@ export class LogAuditSource {
       if (entry && LogAuditSource.callback) {
         LogUtils.info(
           TAG,
-          `AUDIT_RAW_INPUT_ACCEPTED eventId=${event.eventId}, recordId=${entry.id}, result=${entry.result}, rawOutcome=${entry.rawOutcome || '-'}`
+          `AUDIT_RAW_INPUT_ACCEPTED eventId=${event.eventId}, recordId=${entry.id}, rawOutcome=${entry.rawOutcome || '-'}`
         )
         LogAuditSource.callback(entry)
       }
@@ -227,7 +227,7 @@ export class LogAuditSource {
     }
     if (entry.eventType === LogEventType.FILE) {
       LogUtils.info(TAG,
-        `FILE event accepted: eventId=${event.eventId}, eventName=${entry.rawEventName || '-'}, action=${entry.rawAction || '-'}, result=${entry.result}, normalizedPath=${entry.filePath || '-'}`
+        `FILE event accepted: eventId=${event.eventId}, eventName=${entry.rawEventName || '-'}, action=${entry.rawAction || '-'}, normalizedPath=${entry.filePath || '-'}`
       )
     }
     return entry

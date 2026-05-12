@@ -12,8 +12,7 @@ import {
   LogManageImportStrings,
   LogManagePageStrings,
   LogManageSettingStrings,
-  LogManageStatStrings,
-  LogResultPresentationStrings
+  LogManageStatStrings
 } from '../../../constants/modules/LogManageStrings'
 import { ExportActionResult } from '../../../models/CommonModels'
 import {
@@ -23,7 +22,6 @@ import {
 } from '../../../models/LogModels'
 import { LOG_PAGE_SIZE_OPTIONS } from '../../../models/LogManageModels'
 import {
-  LOG_EVENT_RESULT_OPTIONS,
   LOG_EVENT_TYPE_OPTIONS,
   LOG_TIME_RANGE_OPTIONS
 } from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
@@ -57,10 +55,6 @@ export struct LogManagePage {
   private eventTypeFilterOptions: SelectOption[] = [
     { value: LogManageFilterStrings.ALL_EVENT_TYPES } as SelectOption,
     ...LOG_EVENT_TYPE_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
-  ]
-  private resultFilterOptions: SelectOption[] = [
-    { value: LogManageFilterStrings.ALL_RESULTS } as SelectOption,
-    ...LOG_EVENT_RESULT_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
   ]
   private timeRangeFilterOptions: SelectOption[] = LOG_TIME_RANGE_OPTIONS.map((option) => ({ value: option.label } as SelectOption))
 
@@ -239,9 +233,9 @@ export struct LogManagePage {
       }
       GridCol() {
         CompactSummaryCard({
-          title: LogResultPresentationStrings.BLOCKED,
-          valueText: `${this.getActiveViewModel().state.summary.blockedCount}`,
-          description: LogManageStatStrings.BLOCKED_DESCRIPTION,
+          title: LogManageStatStrings.FILTERED,
+          valueText: `${this.getActiveViewModel().state.summary.filteredCount}`,
+          description: LogManageStatStrings.FILTERED_DESCRIPTION,
           icon: AppResources.ALERT_ICON,
           accentStart: AppColors.WARNING,
           accentEnd: AppColors.GRADIENT_IDENTITY_END,
@@ -365,23 +359,6 @@ export struct LogManagePage {
         .borderRadius(AppStyles.RADIUS_SM)
         .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
         .onSelect((index: number) => { void this.getActiveViewModel().setEventTypeIndex(index) })
-
-      Select(this.resultFilterOptions)
-        .selected(this.getActiveViewModel().state.filter.resultIndex)
-        .value((this.resultFilterOptions[this.getActiveViewModel().state.filter.resultIndex]?.value as string) ??
-          LogManageFilterStrings.ALL_RESULTS)
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(110)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.getActiveViewModel().setResultIndex(index) })
 
       Select(this.timeRangeFilterOptions)
         .selected(this.getActiveViewModel().state.filter.timeRangeIndex)

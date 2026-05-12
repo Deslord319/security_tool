@@ -1,7 +1,6 @@
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import { LogManageImportDetailStrings } from '../../../constants/modules/LogManageStrings'
@@ -115,10 +114,8 @@ export class CrashLogImportRule implements LogImportRule {
       pid: parsed.pid,
       uid: parsed.uid,
       rawEventName: parsed.crashType,
-      rawOutcome: parsed.crashType === 'appfreeze' ? 'freeze' : 'crash',
       rawAction: parsed.reason,
-      detailRows: CrashLogImportRule.buildDetailRows(parsed, file),
-      result: LogEventResult.FAILED
+      detailRows: CrashLogImportRule.buildDetailRows(parsed, file)
     }
   }
 

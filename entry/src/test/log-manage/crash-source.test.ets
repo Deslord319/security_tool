@@ -1,14 +1,13 @@
 import { describe, expect, it } from '@ohos/hypium'
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 import {
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import { mapCrashInfoToLogEntry } from '../../main/ets/services/log-manage/source/LogCrashEventMapper'
 
 export default function logCrashSourceTest() {
   describe('LogCrashSource', () => {
-    it('should map crash event into failed crash log entry', 0, () => {
+    it('should map crash event into crash log entry without result inference', 0, () => {
       let info = {
         name: hiAppEvent.event.APP_CRASH,
         params: {
@@ -20,12 +19,10 @@ export default function logCrashSourceTest() {
       } as hiAppEvent.AppEventInfo
 
       let entry = mapCrashInfoToLogEntry(info)
-      let expectedOutcome = info.name === hiAppEvent.event.APP_FREEZE ? 'freeze' : 'crash'
 
       expect(entry.eventType).assertEqual(LogEventType.CRASH)
-      expect(entry.result).assertEqual(LogEventResult.FAILED)
       expect((entry.processName ?? '').length >= 0).assertTrue()
-      expect(entry.rawOutcome).assertEqual(expectedOutcome)
+      expect(entry.rawOutcome).assertEqual(undefined)
       expect(entry.detail.indexOf('native crash') >= 0).assertTrue()
     })
 
@@ -37,7 +34,7 @@ export default function logCrashSourceTest() {
 
       let entry = mapCrashInfoToLogEntry(info)
 
-      expect(entry.rawOutcome).assertEqual('freeze')
+      expect(entry.rawOutcome).assertEqual(undefined)
       expect(entry.detail).assertEqual(hiAppEvent.event.APP_FREEZE)
     })
 

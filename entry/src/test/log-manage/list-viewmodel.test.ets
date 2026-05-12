@@ -3,7 +3,6 @@ import { common } from '@kit.AbilityKit'
 import { ExportActionResult } from '../../main/ets/models/CommonModels'
 import {
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import {
@@ -26,7 +25,6 @@ import { ImportLogsResult } from '../../main/ets/services/log-manage/import/LogI
 function createEntry(
   id: string,
   eventType: LogEventType,
-  result: LogEventResult,
   detail: string,
   timestamp: number = Date.now()
 ): LogEntry {
@@ -34,8 +32,7 @@ function createEntry(
     id,
     timestamp,
     eventType,
-    detail,
-    result
+    detail
   }
 }
 
@@ -63,9 +60,6 @@ class FakeLogListStorage implements LogStoragePort {
   private filterEntries(query?: LogQuery): LogEntry[] {
     return this.entries.filter((entry: LogEntry) => {
       if (query?.eventTypes && query.eventTypes.length > 0 && !query.eventTypes.includes(entry.eventType)) {
-        return false
-      }
-      if (query?.results && query.results.length > 0 && !query.results.includes(entry.result)) {
         return false
       }
       if (query?.startTimestamp !== undefined && entry.timestamp < query.startTimestamp) {
@@ -121,11 +115,9 @@ class FakeLogListStorage implements LogStoragePort {
     }
     let filtered = this.filterEntries(query)
     let paged = await this.list(query, limit, offset)
-    let blockedCount = this.entries.filter((entry: LogEntry) => entry.result === LogEventResult.BLOCKED).length
     return {
       totalCount: this.entries.length,
       todayCount: this.entries.length,
-      blockedCount: blockedCount,
       filteredCount: filteredCount ?? filtered.length,
       entries: paged
     }
@@ -209,9 +201,9 @@ export default function logManageViewModelTest() {
     beforeEach(() => {
       storage = new FakeLogListStorage()
       storage.entries = [
-        createEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'file alpha'),
-        createEntry('2', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'permission beta'),
-        createEntry('3', LogEventType.FILE, LogEventResult.FAILED, 'file gamma')
+        createEntry('1', LogEventType.FILE, 'file alpha'),
+        createEntry('2', LogEventType.PERMISSION, 'permission beta'),
+        createEntry('3', LogEventType.FILE, 'file gamma')
       ]
       exporter = new FakeLogListExporter()
       importer = new FakeLogListImporter()
@@ -225,7 +217,6 @@ export default function logManageViewModelTest() {
 
       expect(result.success).assertTrue()
       expect(viewModel.state.summary.totalCount).assertEqual(3)
-      expect(viewModel.state.summary.blockedCount).assertEqual(1)
       expect(storage.lastLimit).assertEqual(20)
       expect(storage.lastOffset).assertEqual(0)
       expect(storage.countCallCount).assertEqual(1)
@@ -267,8 +258,8 @@ export default function logManageViewModelTest() {
     it('should filter by recent time range and reset pagination', 0, async () => {
       let now = Date.now()
       storage.entries = [
-        createEntry('old', LogEventType.FILE, LogEventResult.SUCCESS, 'old file', now - 2 * 60 * 60 * 1000),
-        createEntry('recent', LogEventType.FILE, LogEventResult.SUCCESS, 'recent file', now - 30 * 60 * 1000)
+        createEntry('old', LogEventType.FILE, 'old file', now - 2 * 60 * 60 * 1000),
+        createEntry('recent', LogEventType.FILE, 'recent file', now - 30 * 60 * 1000)
       ]
       await viewModel.initialize(context)
       viewModel.setPageInputText('2')
@@ -286,7 +277,7 @@ export default function logManageViewModelTest() {
 
     it('should refresh from listener only when active and auto refresh enabled', 0, async () => {
       await viewModel.initialize(context)
-      storage.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
+      storage.entries = [createEntry('4', LogEventType.FILE, 'new entry')]
 
       if (storage.listener) {
         storage.listener()
@@ -301,7 +292,7 @@ export default function logManageViewModelTest() {
       await flushAsyncWork()
       expect(viewModel.state.list.pagedEntries.length).assertEqual(1)
 
-      storage.entries = [createEntry('5', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry 2')]
+      storage.entries = [createEntry('5', LogEventType.FILE, 'new entry 2')]
       await viewModel.setMode('settings')
       if (storage.listener) {
         storage.listener()
@@ -332,7 +323,7 @@ export default function logManageViewModelTest() {
 
     it('should refresh list after successful import and keep state after failed import', 0, async () => {
       await viewModel.initialize(context)
-      storage.entries = [createEntry('4', LogEventType.KERNEL, LogEventResult.FAILED, 'kernel imported')]
+      storage.entries = [createEntry('4', LogEventType.KERNEL, 'kernel imported')]
 
       let successResult = await viewModel.importLogs(context)
 
@@ -351,7 +342,7 @@ export default function logManageViewModelTest() {
         droppedEntryCount: 0,
         failedEntryCount: 0
       }
-      storage.entries = [createEntry('5', LogEventType.KERNEL, LogEventResult.FAILED, 'should not refresh')]
+      storage.entries = [createEntry('5', LogEventType.KERNEL, 'should not refresh')]
 
       let failedResult = await viewModel.importLogs(context)
 
@@ -374,7 +365,7 @@ export default function logManageViewModelTest() {
       await viewModel.initialize(context)
       viewModel.activate()
       viewModel.openDetail('2')
-      storage.entries = [createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'new entry')]
+      storage.entries = [createEntry('4', LogEventType.FILE, 'new entry')]
 
       if (storage.listener) {
         storage.listener()
@@ -390,8 +381,8 @@ export default function logManageViewModelTest() {
       viewModel.activate()
       viewModel.openDetail('2')
       storage.entries = [
-        createEntry('2', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'permission beta updated'),
-        createEntry('4', LogEventType.FILE, LogEventResult.SUCCESS, 'file delta')
+        createEntry('2', LogEventType.PERMISSION, 'permission beta updated'),
+        createEntry('4', LogEventType.FILE, 'file delta')
       ]
 
       if (storage.listener) {
@@ -407,7 +398,7 @@ export default function logManageViewModelTest() {
     it('should keep detail open when entry is off current page but still exists in filtered result', 0, async () => {
       storage.entries = []
       for (let index = 0; index < 30; index++) {
-        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, `entry-${index}`))
       }
       await viewModel.initialize(context)
       viewModel.openDetail('25')
@@ -441,7 +432,7 @@ export default function logManageViewModelTest() {
     it('should keep pagination state in sync after moving to next page', 0, async () => {
       storage.entries = []
       for (let index = 0; index < 25; index++) {
-        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, `entry-${index}`))
       }
       await viewModel.initialize(context)
       viewModel.setPageSizeIndex(0)
@@ -461,7 +452,7 @@ export default function logManageViewModelTest() {
     it('should request repository pagination instead of slicing full filtered entries locally', 0, async () => {
       storage.entries = []
       for (let index = 0; index < 55; index++) {
-        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, `entry-${index}`))
       }
       await viewModel.initialize(context)
       viewModel.setPageSizeIndex(1)
@@ -481,7 +472,7 @@ export default function logManageViewModelTest() {
     it('should avoid redundant list queries when jumping directly to a later page', 0, async () => {
       storage.entries = []
       for (let index = 0; index < 120; index++) {
-        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, `entry-${index}`))
       }
       await viewModel.initialize(context)
       storage.listCallCount = 0
@@ -503,7 +494,7 @@ export default function logManageViewModelTest() {
     it('should return query_failed and restore pagination when page refresh fails', 0, async () => {
       storage.entries = []
       for (let index = 0; index < 25; index++) {
-        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, LogEventResult.SUCCESS, `entry-${index}`))
+        storage.entries.push(createEntry(`${index}`, LogEventType.FILE, `entry-${index}`))
       }
       await viewModel.initialize(context)
       let previousFirstEntryId = viewModel.state.list.pagedEntries[0].id

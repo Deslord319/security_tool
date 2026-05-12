@@ -3,7 +3,6 @@ import fileIo from '@ohos.file.fs'
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import {
@@ -303,8 +302,7 @@ export class KernelLogImportRule implements LogImportRule {
       filePath: parsed.path,
       rawEventName: rule.id,
       rawAction: rule.category,
-      detailRows: KernelLogImportRule.buildDetailRows(rule, file, lineNumber),
-      result: LogEventResult.FAILED
+      detailRows: KernelLogImportRule.buildDetailRows(rule, file, lineNumber)
     }
   }
 

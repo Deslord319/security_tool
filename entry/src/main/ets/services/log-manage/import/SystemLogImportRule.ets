@@ -2,7 +2,6 @@ import fileIo from '@ohos.file.fs'
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import { LogManageImportDetailStrings } from '../../../constants/modules/LogManageStrings'
@@ -43,8 +42,6 @@ interface SystemParsedEvent {
   timestamp?: number
   processName?: string
   detail: string
-  sourceText: string
-  resultOverride?: LogEventResult
   detailRows?: LogDetailTableRow[]
 }
 
@@ -135,7 +132,7 @@ export class SystemLogImportRule implements LogImportRule {
   ): Promise<SystemParsedEvent[]> {
     switch (rule.strategy) {
       case 'whole_failed':
-        return SystemLogImportRule.parseWholeFile(file, rule, fallbackTimestamp, LogEventResult.FAILED)
+        return SystemLogImportRule.parseWholeFile(file, rule, fallbackTimestamp)
       case 'time_blocks':
         return SystemLogImportRule.parseTimeBlocks(file, rule)
       case 'title_blocks':
@@ -154,8 +151,7 @@ export class SystemLogImportRule implements LogImportRule {
   private static async parseWholeFile(
     file: ImportedLogFile,
     rule: SystemRuleDefinition,
-    fallbackTimestamp: number,
-    resultOverride?: LogEventResult
+    fallbackTimestamp: number
   ): Promise<SystemParsedEvent[]> {
     let state = new SummaryState()
     await SystemLogImportRule.forEachLine(file, async (line: string): Promise<void> => {
@@ -169,8 +165,6 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? fallbackTimestamp,
       processName: state.processName ?? SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, state.summary()),
-      sourceText: state.summary(),
-      resultOverride,
       detailRows: SystemLogImportRule.buildCommonRows(rule, file, state.summary())
     }]
   }
@@ -230,7 +224,6 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? fallbackTimestamp,
       processName: SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, state.summary()),
-      sourceText: state.summary(),
       detailRows: SystemLogImportRule.buildCommonRows(rule, file, state.summary())
     }]
   }
@@ -252,7 +245,6 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? fallbackTimestamp,
       processName: state.processName ?? SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, state.summary()),
-      sourceText: state.summary(),
       detailRows: SystemLogImportRule.buildCommonRows(rule, file, state.summary())
     }]
   }
@@ -273,7 +265,6 @@ export class SystemLogImportRule implements LogImportRule {
         timestamp: SystemLogImportRule.parseTimestampFromText(line, fallbackTimestamp),
         processName: SystemLogImportRule.processNameFromPath(file.relativePath),
         detail: SystemLogImportRule.buildSummary(rule.category, normalized),
-        sourceText: normalized,
         detailRows: SystemLogImportRule.buildCommonRows(rule, file, normalized, lineNumber)
       })
     })
@@ -297,7 +288,6 @@ export class SystemLogImportRule implements LogImportRule {
       timestamp: state.timestamp ?? timestamp,
       processName: state.processName ?? SystemLogImportRule.processNameFromPath(file.relativePath),
       detail: SystemLogImportRule.buildSummary(rule.category, title.length > 0 ? `${title} ${summary}` : summary),
-      sourceText: summary,
       detailRows: SystemLogImportRule.buildCommonRows(rule, file, summary)
     })
   }
@@ -314,8 +304,7 @@ export class SystemLogImportRule implements LogImportRule {
       filePath: file.relativePath,
       rawEventName: event.rule.id,
       rawAction: event.rule.category,
-      detailRows: event.detailRows,
-      result: event.resultOverride ?? SystemLogImportRule.mapResult(event.sourceText)
+      detailRows: event.detailRows
     }
   }
 
@@ -460,43 +449,7 @@ export class SystemLogImportRule implements LogImportRule {
       return false
     }
     let lower = normalized.toLowerCase()
-    if (lower.includes(' info ') || lower.startsWith('info ') || lower.startsWith('i ')) {
-      if (!SystemLogImportRule.hasKeySignal(normalized)) {
-        return false
-      }
-    }
-    return SystemLogImportRule.hasKeySignal(normalized)
-  }
-
-  private static hasKeySignal(value: string): boolean {
-    let lower = value.toLowerCase()
-    if (/(^|[\s\[\]():;,])([ew])($|[\s\[\]():;,])/.test(value)) {
-      return true
-    }
-    if (/(error|warn|warning|critical|failed|fail|exception|timeout|panic|crash|\[failed\])/.test(lower)) {
-      return true
-    }
-    if (/\bret\s*:\s*-?[1-9]\d*\b/i.test(value)) {
-      return true
-    }
-    if (/(success|successful|succeed|completed|complete|start verify|verifypackage success|performaction ret:|startupdate|updater mode|recovery|erecovery)/.test(lower)) {
-      return true
-    }
-    return false
-  }
-
-  private static mapResult(text: string): LogEventResult {
-    let lower = text.toLowerCase()
-    if (/\bret\s*:\s*-?[1-9]\d*\b/i.test(text)) {
-      return LogEventResult.FAILED
-    }
-    if (/(failed|fail|error|exception|timeout|panic|crash|critical|warn|warning|\[failed\])/.test(lower)) {
-      return LogEventResult.FAILED
-    }
-    if (/(success|succeed|successful|completed|complete|\bok\b)/.test(lower)) {
-      return LogEventResult.SUCCESS
-    }
-    return LogEventResult.SUCCESS
+    return !(lower.includes(' info ') || lower.startsWith('info ') || lower.startsWith('i '))
   }
 
   private static buildSummary(category: string, text: string): string {

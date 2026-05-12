@@ -3,7 +3,6 @@ import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import {
@@ -22,8 +21,7 @@ function createEntry(id: string, detail: string): LogEntry {
     id,
     timestamp: Date.now(),
     eventType: LogEventType.FILE,
-    detail,
-    result: LogEventResult.SUCCESS
+    detail
   }
 }
 

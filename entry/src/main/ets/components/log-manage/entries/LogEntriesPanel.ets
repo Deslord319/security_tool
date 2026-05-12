@@ -5,8 +5,6 @@ import { LogEntry } from '../../../models/LogModels'
 import { LogFilterState, LogListState } from '../../../models/LogManageModels'
 import {
   formatLogTimestamp,
-  getLogEventResultColor,
-  getLogEventResultLabel,
   getLogEventTypeLabel
 } from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -24,7 +22,6 @@ export struct LogEntriesPanel {
 
   private getEmptyStateTitle(): string {
     return (this.filterState.eventTypeIndex > 0 ||
-      this.filterState.resultIndex > 0 ||
       this.filterState.timeRangeIndex > 0 ||
       this.filterState.keyword.trim().length > 0) ?
       EmptyStateStrings.NO_RESULTS :
@@ -66,12 +63,6 @@ export struct LogEntriesPanel {
       .alignItems(HorizontalAlign.Start)
       .margin({ left: 8 })
 
-      Text(getLogEventResultLabel(entry.result))
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(getLogEventResultColor(entry.result))
-        .fontWeight(FontWeight.Medium)
-        .width(50)
-        .textAlign(TextAlign.End)
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })

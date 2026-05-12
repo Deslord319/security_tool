@@ -3,7 +3,6 @@ import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../main/ets/models/LogModels'
 import {
@@ -18,7 +17,6 @@ import { LogEntryRepository } from '../../main/ets/services/log-manage/repositor
 function createLogEntry(
   id: string,
   eventType: LogEventType,
-  result: LogEventResult,
   detail: string,
   timestamp?: number
 ): LogEntry {
@@ -26,7 +24,6 @@ function createLogEntry(
     id,
     timestamp: timestamp ?? Date.now(),
     eventType,
-    result,
     detail,
     processName: 'TestProcess'
   }
@@ -66,8 +63,8 @@ export default function logExportServiceTest() {
 
     it('should normalize export entries and keep list order stable', 0, () => {
       let entries: LogEntry[] = [
-        createLogEntry('old', LogEventType.FILE, LogEventResult.SUCCESS, 'older', 1000),
-        createLogEntry('new', LogEventType.PERMISSION, LogEventResult.BLOCKED, 'newer', 2000)
+        createLogEntry('old', LogEventType.FILE, 'older', 1000),
+        createLogEntry('new', LogEventType.PERMISSION, 'newer', 2000)
       ]
 
       let normalized = LogEntryNormalizer.normalizeEntriesForAppend(entries)
@@ -117,7 +114,7 @@ export default function logExportServiceTest() {
       let captured: string[] = []
       when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))
       when(listMock)(ArgumentMatchers.any).afterReturn(Promise.resolve([
-        createLogEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'alpha', 1700000000000)
+        createLogEntry('1', LogEventType.FILE, 'alpha', 1700000000000)
       ]))
       when(saveMock)(ArgumentMatchers.any).afterAction((
         context: common.UIAbilityContext,
@@ -141,7 +138,8 @@ export default function logExportServiceTest() {
       expect(result.success).assertTrue()
       expect(captured.length >= 2).assertTrue()
       expect(captured[0].charCodeAt(0)).assertEqual(0xFEFF)
-      expect(captured[0].substring(1).indexOf('时间,事件类型,详情,进程名,PID,结果')).assertEqual(0)
+      expect(captured[0].substring(1).indexOf('时间,事件类型,详情,进程名,PID')).assertEqual(0)
+      expect(captured[0].indexOf('结果')).assertEqual(-1)
       expect(captured[1].indexOf('alpha') > -1).assertTrue()
       done()
     })
@@ -151,7 +149,7 @@ export default function logExportServiceTest() {
       let listMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.listByQuery)
       let saveMock = mockKit.mockFunc(CsvFileExportService, CsvFileExportService.saveByWriter)
       let captured: string[] = []
-      let entry = createLogEntry('1', LogEventType.FILE, LogEventResult.SUCCESS, 'alpha, \"quoted\"\\nline', 1700000000000)
+      let entry = createLogEntry('1', LogEventType.FILE, 'alpha, \"quoted\"\\nline', 1700000000000)
       entry.processName = 'Test,Process'
       entry.pid = 1234
       when(countMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(1))

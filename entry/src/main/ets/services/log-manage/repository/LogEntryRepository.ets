@@ -4,11 +4,9 @@ import { LogUtils } from '../../../utils/LogUtils'
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType,
   LogStatistics,
-  ALL_LOG_EVENT_TYPES,
-  parseLogEventResult
+  ALL_LOG_EVENT_TYPES
 } from '../../../models/LogModels'
 import { RdbRepository, SqlBundle } from '../../../storage/rdb/RdbRepository'
 import { LogQuery } from '../common/LogManagePorts'
@@ -29,7 +27,6 @@ CREATE TABLE IF NOT EXISTS log_entries (
   record_id TEXT UNIQUE,
   timestamp INTEGER NOT NULL,
   event_type TEXT NOT NULL,
-  result TEXT NOT NULL,
   source TEXT NOT NULL,
   detail TEXT NOT NULL,
   process_name TEXT,
@@ -45,11 +42,6 @@ ON log_entries(timestamp DESC, id DESC)
 const CREATE_INDEX_EVENT_TYPE_SQL = `
 CREATE INDEX IF NOT EXISTS idx_log_entries_event_type
 ON log_entries(event_type)
-`
-
-const CREATE_INDEX_RESULT_SQL = `
-CREATE INDEX IF NOT EXISTS idx_log_entries_result
-ON log_entries(result)
 `
 
 interface LogEntryExtraData {
@@ -128,11 +120,6 @@ export function buildLogEntryWhereClause(query?: LogQuery): SqlBundle {
     clauses.push(`event_type IN (${placeholders})`)
     query.eventTypes.forEach((type: LogEventType) => args.push(type.toString()))
   }
-  if (query?.results && query.results.length > 0) {
-    let placeholders = query.results.map(() => '?').join(', ')
-    clauses.push(`result IN (${placeholders})`)
-    query.results.forEach((result: LogEventResult) => args.push(result.toString()))
-  }
   if (query?.startTimestamp !== undefined) {
     clauses.push('timestamp >= ?')
     args.push(query.startTimestamp)
@@ -157,8 +144,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       createStatements: [
         CREATE_TABLE_SQL,
         CREATE_INDEX_TIMESTAMP_SQL,
-        CREATE_INDEX_EVENT_TYPE_SQL,
-        CREATE_INDEX_RESULT_SQL
+        CREATE_INDEX_EVENT_TYPE_SQL
       ]
     })
   }
@@ -167,14 +153,13 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     return this.replaceBatch(
       entries,
       `INSERT OR REPLACE INTO ${TABLE_NAME} (
-        record_id, timestamp, event_type, result, source, detail,
+        record_id, timestamp, event_type, source, detail,
         process_name, file_path, extra_json
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       (entry: LogEntry) => [
         entry.id,
         entry.timestamp,
         this.serializeEventType(entry.eventType),
-        this.serializeResult(entry.result),
         this.resolveSource(entry),
         entry.detail,
         entry.processName ?? null,
@@ -216,7 +201,6 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     let todayTimestamp = todayStart.getTime()
     let totalCount = await this.countByQuery()
     let todayCount = await this.countByRawWhereStrict('timestamp >= ?', [todayTimestamp])
-    let blockedCount = await this.countByRawWhereStrict('result = ?', [this.serializeResult(LogEventResult.BLOCKED)])
     let grouped = await this.groupCountByEventType()
     grouped.forEach((count: number, type: LogEventType) => {
       byType.set(type, count)
@@ -224,7 +208,6 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     return {
       totalCount,
       todayCount,
-      blockedCount,
       byType
     }
   }
@@ -258,7 +241,6 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     let recordIdIndex = reader.getColumnIndex('record_id')
     let timestampIndex = reader.getColumnIndex('timestamp')
     let eventTypeIndex = reader.getColumnIndex('event_type')
-    let resultIndex = reader.getColumnIndex('result')
     let detailIndex = reader.getColumnIndex('detail')
     let processNameIndex = reader.getColumnIndex('process_name')
     let filePathIndex = reader.getColumnIndex('file_path')
@@ -269,7 +251,6 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
         id: reader.getRequiredString(recordIdIndex),
         timestamp: reader.getRequiredNumber(timestampIndex),
         eventType: this.parseEventType(reader.getRequiredString(eventTypeIndex)),
-        result: this.parseResult(reader.getRequiredString(resultIndex)),
         detail: reader.getRequiredString(detailIndex),
         processName: reader.getOptionalString(processNameIndex),
         pid: extra.pid,
@@ -288,7 +269,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
 
   private buildSelectSqlForQuery(query?: LogQuery, limit?: number, offset?: number): SqlBundle {
     return this.buildSelectSql(
-      'record_id, timestamp, event_type, result, detail, process_name, file_path, extra_json',
+      'record_id, timestamp, event_type, detail, process_name, file_path, extra_json',
       this.buildWhereClause(query),
       'timestamp DESC, id DESC',
       limit,
@@ -306,10 +287,6 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
 
   private serializeEventType(eventType: LogEventType): string {
     return eventType.toString()
-  }
-
-  private serializeResult(result: LogEventResult): string {
-    return result.toString()
   }
 
   private resolveSource(entry: LogEntry): string {
@@ -332,10 +309,6 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       return numeric as LogEventType
     }
     return LogEventType.FILE
-  }
-
-  private parseResult(rawValue: string): LogEventResult {
-    return parseLogEventResult(rawValue, LogEventResult.SUCCESS)
   }
 
   private parseExtraJson(rawValue: string | undefined): LogEntryExtraData {

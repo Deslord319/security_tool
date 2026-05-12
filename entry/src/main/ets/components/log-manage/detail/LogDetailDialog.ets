@@ -3,13 +3,10 @@ import { LogManageDetailStrings } from '../../../constants/modules/LogManageStri
 import {
   LogDetailTableRow,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import {
   formatLogTimestamp,
-  getLogEventResultColor,
-  getLogEventResultLabel,
   getLogEventTypeLabel
 } from '../../../viewmodels/log-manage/presentation/LogPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -25,8 +22,7 @@ export struct LogDetailDialog {
     id: '',
     timestamp: 0,
     eventType: LogEventType.FILE,
-    detail: '',
-    result: LogEventResult.SUCCESS
+    detail: ''
   } as LogEntry
   onClose: () => void = () => {}
 
@@ -72,11 +68,6 @@ export struct LogDetailDialog {
             LogManageDetailStrings.EVENT_TYPE_LABEL,
             getLogEventTypeLabel(this.entry.eventType),
             AppColors.getColors(this.currentTheme).TEXT_PRIMARY
-          )
-          this.summaryMetric(
-            LogManageDetailStrings.RESULT_LABEL,
-            getLogEventResultLabel(this.entry.result),
-            getLogEventResultColor(this.entry.result)
           )
         }
         .width('100%')

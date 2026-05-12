@@ -3,7 +3,6 @@ import { MessageText } from '../../../constants/StringCatalog'
 import { LogManageClearingStrings } from '../../../constants/modules/LogManageStrings'
 import { ExportActionResult } from '../../../models/CommonModels'
 import {
-  ALL_LOG_EVENT_RESULTS,
   ALL_LOG_EVENT_TYPES,
   LogEntry
 } from '../../../models/LogModels'
@@ -65,7 +64,6 @@ class DefaultLogManageStorage implements LogStoragePort {
     return {
       totalCount: statistics.totalCount,
       todayCount: statistics.todayCount,
-      blockedCount: statistics.blockedCount,
       filteredCount: resolvedFilteredCount,
       entries
     }
@@ -201,12 +199,6 @@ export class LogManageViewModel {
 
   async setEventTypeIndex(index: number): Promise<void> {
     this.state.filter.eventTypeIndex = this.normalizeFilterIndex(index, ALL_LOG_EVENT_TYPES.length + 1)
-    this.resetToFirstPage()
-    await this.refreshAll()
-  }
-
-  async setResultIndex(index: number): Promise<void> {
-    this.state.filter.resultIndex = this.normalizeFilterIndex(index, ALL_LOG_EVENT_RESULTS.length + 1)
     this.resetToFirstPage()
     await this.refreshAll()
   }
@@ -354,13 +346,6 @@ export class LogManageViewModel {
       query.eventTypes = [ALL_LOG_EVENT_TYPES[this.state.filter.eventTypeIndex - 1]]
       hasQuery = true
     }
-    if (this.state.filter.resultIndex > 0) {
-      let result = ALL_LOG_EVENT_RESULTS[this.state.filter.resultIndex - 1]
-      if (result !== undefined) {
-        query.results = [result]
-        hasQuery = true
-      }
-    }
     if (this.state.filter.timeRangeIndex > 0) {
       let timeRangeDefinition = LOG_TIME_RANGE_DEFINITIONS[this.state.filter.timeRangeIndex]
       if (timeRangeDefinition?.durationMs !== undefined) {
@@ -380,7 +365,6 @@ export class LogManageViewModel {
     this.state.summary.totalCount = snapshot.totalCount
     this.state.summary.filteredCount = snapshot.filteredCount
     this.state.summary.todayCount = snapshot.todayCount
-    this.state.summary.blockedCount = snapshot.blockedCount
     this.state.summary.currentShownCount = currentShownCount
   }
 

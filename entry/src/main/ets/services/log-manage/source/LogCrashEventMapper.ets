@@ -2,7 +2,6 @@ import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 import {
   generateLogEntryId,
   LogEntry,
-  LogEventResult,
   LogEventType
 } from '../../../models/LogModels'
 import { LooseRecord } from '../../../types/LooseValueTypes'
@@ -46,9 +45,7 @@ export function mapCrashInfoToLogEntry(
     uid: pickNumber(params, ['uid', 'userId', 'user_id']),
     sourceEventId: undefined,
     rawEventName: info.name,
-    rawOutcome: info.name === hiAppEvent.event.APP_FREEZE ? 'freeze' : 'crash',
-    rawAction: rawAction,
-    result: LogEventResult.FAILED
+    rawAction: rawAction
   }
 }
 
@@ -64,4 +61,3 @@ function resolveCrashTimestamp(params: LooseRecord, nowProvider: () => number): 
     params['happen_time']
   ], nowProvider)
 }
-
