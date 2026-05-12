@@ -13,11 +13,11 @@
 
 ## 总览
 
-- 基线用例总数：`113`
-- `已有UT覆盖`：`87`
+- 基线用例总数：`117`
+- `已有UT覆盖`：`90`
 - `UT部分覆盖`：`4`
 - `待补UT`：`0`
-- `不补UT`：`22`
+- `不补UT`：`23`
 
 ## 安全总览
 
@@ -86,6 +86,10 @@
 | LOG-016 | 空状态展示 | 验证无日志时页面展示空状态 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
 | LOG-017 | 日志采集 | 验证应用新增或删除权限后记录 PERMISSION 权限变更事件 | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-018 | 日志采集 | 验证应用自身崩溃后记录 CRASH 崩溃事件 | 已有UT覆盖 | entry/src/test/log-manage/crash-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
+| LOG-026 | 导入异常 | 验证选择非 zip 文件作为离线日志包时被拦截 | 已有UT覆盖 | entry/src/test/log-manage/archive-extractor.test.ets |
+| LOG-027 | 导入异常 | 验证用户取消选择日志包或解压目录时导入流程取消且不入库 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
+| LOG-028 | 导入异常 | 验证单个导入规则解析异常不会中断整批导入 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
+| LOG-029 | 导入异常 | 验证导入结果入库失败时返回明确失败结果 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 
 ## 外设管理
 
