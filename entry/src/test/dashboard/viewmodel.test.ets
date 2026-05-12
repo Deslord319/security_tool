@@ -34,7 +34,6 @@ function createLogStatistics(todayCount: number = 5, totalCount: number = 120): 
   return {
     totalCount: totalCount,
     todayCount: todayCount,
-    blockedCount: 0,
     byType: new Map()
   }
 }
@@ -253,6 +252,52 @@ export default function dashboardViewModelTest() {
 
       expect(viewModel.moduleCards.length).assertEqual(4)
       done()
+    })
+
+    it('should keep visible dashboard state when statistics are unavailable', 0, async (done: Function) => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
+      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
+      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
+      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
+      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
+      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
+
+      let adminState = new MockAdminState()
+      adminState.activated = true
+      when(adminMock)().afterReturn(adminState)
+      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
+      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
+      when(logStatsMock)().afterAction((): LogStatistics => {
+        throw new Error('log statistics unavailable')
+      })
+      when(peripheralStatsMock)().afterAction((): PeripheralTraceStats => {
+        throw new Error('peripheral statistics unavailable')
+      })
+      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
+      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+
+      let viewModel = new DashboardViewModel()
+      await viewModel.initialize(context)
+
+      expect(viewModel.moduleCards.length).assertEqual(4)
+      expect(viewModel.quickEntries.length).assertEqual(6)
+      expect(viewModel.moduleCards[2].primaryText).assertEqual('0')
+      expect(viewModel.moduleCards[3].primaryText).assertEqual('0')
+      done()
+    })
+
+    it('should restore fallback cards and quick entries for page initialization failure', 0, () => {
+      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let adminState = new MockAdminState()
+      adminState.activated = false
+      when(adminMock)().afterReturn(adminState)
+
+      let viewModel = new DashboardViewModel()
+      viewModel.ensureVisibleState()
+
+      expect(viewModel.moduleCards.length).assertEqual(4)
+      expect(viewModel.quickEntries.length).assertEqual(6)
     })
 
     it('should remove listeners on destroy', 0, async (done: Function) => {

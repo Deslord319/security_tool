@@ -7,6 +7,9 @@ import { ToolCard } from '../../../components/ToolCard'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DashboardModuleCardState, DashboardQuickEntryState } from '../../../models/DashboardModels'
 import { DashboardViewModel } from '../../../viewmodels/dashboard/overview/DashboardViewModel'
+import { LogUtils } from '../../../utils/LogUtils'
+
+const TAG = 'DashboardPage'
 
 @ComponentV2
 export struct DashboardPage {
@@ -29,7 +32,10 @@ export struct DashboardPage {
   }
 
   onPageShow(): void {
-    this.viewModel.refreshStaticStatuses()
+    this.viewModel.refreshStaticStatuses().catch((err: Error) => {
+      LogUtils.warn(TAG, `refreshStaticStatuses failed: ${JSON.stringify(err)}`)
+      this.viewModel.ensureVisibleState()
+    })
   }
 
   aboutToDisappear(): void {
@@ -39,14 +45,21 @@ export struct DashboardPage {
   }
 
   private async initializePage(): Promise<void> {
-    if (!this.initialized) {
-      let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-      await this.viewModel.initialize(context)
+    try {
+      if (!this.initialized) {
+        let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+        await this.viewModel.initialize(context)
+      } else {
+        await this.viewModel.refreshAll()
+      }
       this.initialized = true
-    } else {
-      await this.viewModel.refreshAll()
+    } catch (err) {
+      LogUtils.warn(TAG, `initializePage failed: ${JSON.stringify(err)}`)
+      this.viewModel.ensureVisibleState()
+      this.initialized = true
+    } finally {
+      this.playEnterAnimation()
     }
-    this.playEnterAnimation()
   }
 
   private resetEnterState(): void {
