@@ -14,9 +14,9 @@
 ## 总览
 
 - 基线用例总数：`117`
-- `已有UT覆盖`：`87`
+- `已有UT覆盖`：`90`
 - `UT部分覆盖`：`4`
-- `待补UT`：`3`
+- `待补UT`：`0`
 - `不补UT`：`23`
 
 ## 安全总览
@@ -87,9 +87,9 @@
 | LOG-017 | 日志采集 | 验证应用新增或删除权限后记录 PERMISSION 权限变更事件 | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-018 | 日志采集 | 验证应用自身崩溃后记录 CRASH 崩溃事件 | 已有UT覆盖 | entry/src/test/log-manage/crash-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-026 | 导入异常 | 验证选择非 zip 文件作为离线日志包时被拦截 | 已有UT覆盖 | entry/src/test/log-manage/archive-extractor.test.ets |
-| LOG-027 | 导入异常 | 验证用户取消选择日志包或解压目录时导入流程取消且不入库 | 待补UT | 待补 entry/src/test/log-manage/import-service.test.ets：覆盖 `pickZip()` 返回 `null` 与 `pickDirectory()` 返回 `null`。 |
-| LOG-028 | 导入异常 | 验证单个导入规则解析异常不会中断整批导入 | 待补UT | 待补 entry/src/test/log-manage/import-service.test.ets：覆盖规则 `parse()` 抛异常时 `failedEntryCount` 增加且流程不中断。 |
-| LOG-029 | 导入异常 | 验证导入结果入库失败时返回明确失败结果 | 待补UT | 待补 entry/src/test/log-manage/import-service.test.ets：覆盖 `appendEntries()` 返回失败时结果为 `save_failed`。 |
+| LOG-027 | 导入异常 | 验证用户取消选择日志包或解压目录时导入流程取消且不入库 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
+| LOG-028 | 导入异常 | 验证单个导入规则解析异常不会中断整批导入 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
+| LOG-029 | 导入异常 | 验证导入结果入库失败时返回明确失败结果 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 
 ## 外设管理
 
@@ -183,9 +183,7 @@
 
 ## 待补 UT 清单
 
-- `LOG-027`: `entry/src/test/log-manage/import-service.test.ets` 补充 `pickZip()` 返回 `null` 与 `pickDirectory()` 返回 `null` 的用户取消导入分支。
-- `LOG-028`: `entry/src/test/log-manage/import-service.test.ets` 补充规则 `parse()` 抛异常时失败计数累加且不阻断整批导入的分支。
-- `LOG-029`: `entry/src/test/log-manage/import-service.test.ets` 补充 `appendEntries()` 返回失败时导入结果为 `save_failed` 的分支。
+当前无待补本地 UT。
 
 ## 不补 UT 的边界
 
