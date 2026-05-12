@@ -30,6 +30,7 @@ import logEntryNormalizerTest from './log-manage/entry-normalizer.test'
 import logExportServiceTest from './log-manage/export-service.test'
 import logArchiveExtractorTest from './log-manage/archive-extractor.test'
 import logImportHashTest from './log-manage/import-hash.test'
+import logImportLineReaderTest from './log-manage/import-line-reader.test'
 import logImportServiceTest from './log-manage/import-service.test'
 import crashImportRuleTest from './log-manage/crash-import-rule.test'
 import kernelImportRuleTest from './log-manage/kernel-import-rule.test'
@@ -112,6 +113,7 @@ export default function testsuite() {
   logExportServiceTest()
   logArchiveExtractorTest()
   logImportHashTest()
+  logImportLineReaderTest()
   logImportServiceTest()
   crashImportRuleTest()
   kernelImportRuleTest()

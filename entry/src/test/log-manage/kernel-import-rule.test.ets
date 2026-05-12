@@ -44,6 +44,15 @@ export default function kernelImportRuleTest() {
       expect(rule.canHandle(createFile('remoteLog/cmd_output/hilog_kmsg.1'))).assertFalse()
     })
 
+    it('should build unique temporary gunzip targets', 0, () => {
+      let first = KernelLogImportRule.buildGunzipTargetPathForTest('/data/log/hilog/hilog_kmsg.1.gz')
+      let second = KernelLogImportRule.buildGunzipTargetPathForTest('/data/log/hilog/hilog_kmsg.1.gz')
+
+      expect(first === second).assertFalse()
+      expect(first.indexOf('/data/log/hilog/hilog_kmsg.1.import_') >= 0).assertTrue()
+      expect(first.endsWith('.txt')).assertTrue()
+    })
+
     it('should map retained kernel rules into kernel log entries', 0, async () => {
       let content = [
         '05-09 16:03:52.300 <3> [6.050299] -;[6] pid=1 tid=2 comm=proc [hmseh:10] avc: denied permissive=0 path="/data/a"',

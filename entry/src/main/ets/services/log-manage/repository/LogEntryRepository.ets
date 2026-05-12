@@ -186,7 +186,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   }
 
   async listByQuery(query?: LogQuery, limit?: number, offset?: number): Promise<LogEntry[]> {
-    return this.queryRows(
+    return this.queryRowsStrict(
       this.buildSelectSqlForQuery(query, limit, offset),
       (reader: RdbResultSetReader) => this.mapResultSet(reader),
       'listByQuery'
@@ -194,7 +194,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
   }
 
   async countByQuery(query?: LogQuery): Promise<number> {
-    return this.countByQueryBuilt(query, (nextQuery?: LogQuery) => this.buildCountSqlForQuery(nextQuery), 'countByQuery')
+    return this.queryCountStrict(this.buildCountSqlForQuery(query), 'countByQuery')
   }
 
   async hasEntry(entryId: string, query?: LogQuery): Promise<boolean> {
@@ -205,7 +205,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
       sql += ` AND (${where.sql.substring(' WHERE '.length)})`
       args = args.concat(where.args)
     }
-    return (await this.queryCount({ sql, args }, 'hasEntry')) > 0
+    return (await this.queryCountStrict({ sql, args }, 'hasEntry')) > 0
   }
 
   async getStatistics(): Promise<LogStatistics> {
@@ -215,8 +215,8 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
     todayStart.setHours(0, 0, 0, 0)
     let todayTimestamp = todayStart.getTime()
     let totalCount = await this.countByQuery()
-    let todayCount = await this.countByRawWhere('timestamp >= ?', [todayTimestamp])
-    let blockedCount = await this.countByRawWhere('result = ?', [this.serializeResult(LogEventResult.BLOCKED)])
+    let todayCount = await this.countByRawWhereStrict('timestamp >= ?', [todayTimestamp])
+    let blockedCount = await this.countByRawWhereStrict('result = ?', [this.serializeResult(LogEventResult.BLOCKED)])
     let grouped = await this.groupCountByEventType()
     grouped.forEach((count: number, type: LogEventType) => {
       byType.set(type, count)
@@ -243,7 +243,7 @@ class LogEntryRdbRepository extends RdbRepository<LogEntry, LogQuery> {
 
   private async groupCountByEventType(): Promise<Map<LogEventType, number>> {
     let result = new Map<LogEventType, number>()
-    let entries = await this.queryGroupCounts('event_type', { sql: '', args: [] }, 'groupCountByEventType')
+    let entries = await this.queryGroupCountsStrict('event_type', { sql: '', args: [] }, 'groupCountByEventType')
     entries.forEach((count: number, rawType: string) => {
       result.set(this.parseEventType(rawType), count)
     })

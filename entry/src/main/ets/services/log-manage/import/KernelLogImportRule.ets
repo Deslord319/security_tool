@@ -41,6 +41,11 @@ type KernelLogLineReader = (
   onLine: (line: string, lineNumber: number) => Promise<void>
 ) => Promise<void>
 
+interface PreparedKernelTextFile {
+  path: string
+  temporary: boolean
+}
+
 const KERNEL_RULE_HMSEH_DENIED: KernelRuleDefinition = {
   id: 'kernel_hmseh_denied',
   category: LogManageKernelImportStrings.CATEGORY_SECURITY_DENIED
@@ -66,6 +71,7 @@ const PROGRESS_LINES = 50000
 export class KernelLogImportRule implements LogImportRule {
   readonly name: string = 'kernel'
   private static lineReaderForTest: KernelLogLineReader | null = null
+  private static gunzipTargetSequence: number = 0
 
   static setLineReaderForTest(reader: KernelLogLineReader): void {
     KernelLogImportRule.lineReaderForTest = reader
@@ -73,6 +79,10 @@ export class KernelLogImportRule implements LogImportRule {
 
   static resetTestPorts(): void {
     KernelLogImportRule.lineReaderForTest = null
+  }
+
+  static buildGunzipTargetPathForTest(gzipPath: string): string {
+    return KernelLogImportRule.buildGunzipTargetPath(gzipPath)
   }
 
   canHandle(file: ImportedLogFile): boolean {
@@ -92,10 +102,16 @@ export class KernelLogImportRule implements LogImportRule {
       LogUtils.info(TAG, `parse done(test): file=${file.relativePath}, entries=${result.entries.length}, dropped=${result.droppedCount}, failed=${result.failedCount}, elapsedMs=${Date.now() - startedAt}`)
       return result
     }
-    let textPath = await KernelLogImportRule.prepareTextFile(file)
-    await KernelLogImportRule.forEachLine(textPath, async (rawLine: string, lineNumber: number): Promise<void> => {
-      KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
-    }, file, result, startedAt)
+    let textFile = await KernelLogImportRule.prepareTextFile(file)
+    try {
+      await KernelLogImportRule.forEachLine(textFile.path, async (rawLine: string, lineNumber: number): Promise<void> => {
+        KernelLogImportRule.parseLineIntoResult(rawLine, lineNumber, file, result)
+      }, file, result, startedAt)
+    } finally {
+      if (textFile.temporary) {
+        KernelLogImportRule.unlinkFileQuietly(textFile.path)
+      }
+    }
     LogUtils.info(TAG, `parse done: file=${file.relativePath}, entries=${result.entries.length}, dropped=${result.droppedCount}, failed=${result.failedCount}, elapsedMs=${Date.now() - startedAt}`)
     return result
   }
@@ -134,23 +150,21 @@ export class KernelLogImportRule implements LogImportRule {
     result.entries.push(entry)
   }
 
-  private static async prepareTextFile(file: ImportedLogFile): Promise<string> {
+  private static async prepareTextFile(file: ImportedLogFile): Promise<PreparedKernelTextFile> {
     if (!file.path.toLowerCase().endsWith('.gz')) {
-      return file.path
+      return {
+        path: file.path,
+        temporary: false
+      }
     }
-    return KernelLogImportRule.gunzipToSameDirectory(file.path)
+    return {
+      path: await KernelLogImportRule.gunzipToTemporaryFile(file.path),
+      temporary: true
+    }
   }
 
-  private static async gunzipToSameDirectory(gzipPath: string): Promise<string> {
-    let targetPath = KernelLogImportRule.stripGzipSuffix(gzipPath)
-    try {
-      if (await fileIo.access(targetPath)) {
-        let stat = await fileIo.stat(targetPath)
-        LogUtils.info(TAG, `gunzip reuse: gzip=${gzipPath}, target=${targetPath}, targetSize=${stat.size}`)
-        return targetPath
-      }
-    } catch (_) {
-    }
+  private static async gunzipToTemporaryFile(gzipPath: string): Promise<string> {
+    let targetPath = KernelLogImportRule.buildGunzipTargetPath(gzipPath)
     let startedAt = Date.now()
     let gzip = zlib.createGZipSync()
     let output = KernelLogImportRule.openWritableFile(targetPath)
@@ -185,6 +199,11 @@ export class KernelLogImportRule implements LogImportRule {
     return targetPath
   }
 
+  private static buildGunzipTargetPath(gzipPath: string): string {
+    KernelLogImportRule.gunzipTargetSequence++
+    return `${KernelLogImportRule.stripGzipSuffix(gzipPath)}.import_${Date.now()}_${KernelLogImportRule.gunzipTargetSequence}.txt`
+  }
+
   private static async forEachLine(
     path: string,
     onLine: (line: string, lineNumber: number) => Promise<void>,
@@ -208,7 +227,7 @@ export class KernelLogImportRule implements LogImportRule {
 
   private static openWritableFile(path: string): fileIo.File {
     try {
-      return fileIo.openSync(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE)
+      return fileIo.openSync(path, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.TRUNC)
     } catch (err) {
       throw KernelLogImportRule.toIoError(`open output ${path}`, err)
     }
@@ -227,6 +246,14 @@ export class KernelLogImportRule implements LogImportRule {
       fileIo.closeSync(fd)
     } catch (err) {
       LogUtils.warn(TAG, `close file failed: path=${path}, err=${JSON.stringify(err)}`)
+    }
+  }
+
+  private static unlinkFileQuietly(path: string): void {
+    try {
+      fileIo.unlinkSync(path)
+    } catch (err) {
+      LogUtils.warn(TAG, `delete temporary file failed: path=${path}, err=${JSON.stringify(err)}`)
     }
   }
 

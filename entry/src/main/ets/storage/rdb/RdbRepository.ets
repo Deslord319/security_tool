@@ -132,6 +132,26 @@ export abstract class RdbRepository<TRecord, TQuery> {
     }
   }
 
+  protected async queryRowsStrict<TRow>(
+    sqlBundle: SqlBundle,
+    mapResultSet: (reader: RdbResultSetReader) => TRow[],
+    operationName: string
+  ): Promise<TRow[]> {
+    let store = await this.getRequiredStore(operationName)
+    let reader: RdbResultSetReader | null = null
+    try {
+      let resultSet = await store.querySql(sqlBundle.sql, sqlBundle.args)
+      reader = new RdbResultSetReader(resultSet, this.tag)
+      return mapResultSet(reader)
+    } catch (err) {
+      let message = `${operationName} failed: ${this.stringifyError(err)}`
+      LogUtils.error(this.tag, message)
+      throw new Error(message)
+    } finally {
+      reader?.close()
+    }
+  }
+
   protected async countByQueryBuilt(
     query: TQuery | undefined,
     buildCountSql: (query?: TQuery) => SqlBundle,
@@ -167,6 +187,16 @@ export abstract class RdbRepository<TRecord, TQuery> {
 
   protected async countByRawWhere(whereClause: string, args: Array<relationalStore.ValueType>): Promise<number> {
     return this.queryCount(
+      {
+        sql: `SELECT COUNT(1) AS count FROM ${this.tableName} WHERE ${whereClause}`,
+        args
+      },
+      'countByRawWhere'
+    )
+  }
+
+  protected async countByRawWhereStrict(whereClause: string, args: Array<relationalStore.ValueType>): Promise<number> {
+    return this.queryCountStrict(
       {
         sql: `SELECT COUNT(1) AS count FROM ${this.tableName} WHERE ${whereClause}`,
         args
@@ -243,6 +273,22 @@ export abstract class RdbRepository<TRecord, TQuery> {
     }
   }
 
+  protected async queryCountStrict(sqlBundle: SqlBundle, operationName: string): Promise<number> {
+    let store = await this.getRequiredStore(operationName)
+    let reader: RdbResultSetReader | null = null
+    try {
+      let resultSet = await store.querySql(sqlBundle.sql, sqlBundle.args)
+      reader = new RdbResultSetReader(resultSet, this.tag)
+      return reader.readFirstLong('count')
+    } catch (err) {
+      let message = `${operationName} failed: ${this.stringifyError(err)}`
+      LogUtils.error(this.tag, message)
+      throw new Error(message)
+    } finally {
+      reader?.close()
+    }
+  }
+
   protected async queryGroupCounts(
     column: string,
     where: SqlBundle,
@@ -250,6 +296,26 @@ export abstract class RdbRepository<TRecord, TQuery> {
   ): Promise<Map<string, number>> {
     let result = new Map<string, number>()
     let rows = await this.queryRows(
+      {
+        sql: `SELECT ${column} AS grouped_key, COUNT(1) AS count
+              FROM ${this.tableName}${where.sql}
+              GROUP BY ${column}`,
+        args: where.args
+      },
+      (reader: RdbResultSetReader) => this.mapGroupCountRows(reader),
+      operationName
+    )
+    rows.forEach((item: GroupCountRow) => result.set(item.key, item.count))
+    return result
+  }
+
+  protected async queryGroupCountsStrict(
+    column: string,
+    where: SqlBundle,
+    operationName: string
+  ): Promise<Map<string, number>> {
+    let result = new Map<string, number>()
+    let rows = await this.queryRowsStrict(
       {
         sql: `SELECT ${column} AS grouped_key, COUNT(1) AS count
               FROM ${this.tableName}${where.sql}
@@ -307,6 +373,16 @@ export abstract class RdbRepository<TRecord, TQuery> {
       return null
     }
     return RdbStoreProvider.getStore(this.context, this.dbName)
+  }
+
+  private async getRequiredStore(operationName: string): Promise<relationalStore.RdbStore> {
+    let store = await this.getStore()
+    if (!store) {
+      let error = new Error(`${operationName} failed: rdb store not ready`)
+      LogUtils.error(this.tag, error.message)
+      throw error
+    }
+    return store
   }
 
   private async executeSql(
