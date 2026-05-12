@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { common } from '@kit.AbilityKit'
-import { LogEntry, LogEventResult, LogEventType } from '../../main/ets/models/LogModels'
+import { LogEntry, LogEventResult, LogEventType, LogStorageConfig } from '../../main/ets/models/LogModels'
 import { LogImportPickerPort, LogImportService } from '../../main/ets/services/log-manage/import/LogImportService'
 import { MutationResult } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import {
@@ -10,6 +10,7 @@ import {
   LogImportRuleResult
 } from '../../main/ets/services/log-manage/import/LogImportRule'
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
+import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
 import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
 
 function createEntry(id: string): LogEntry {
@@ -88,10 +89,16 @@ export default function logImportServiceTest() {
       LogImportService.setRulesForTest([new FakeRule()])
 
       let hasEntryMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.hasEntry)
+      let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadStorageConfig)
       let appendEntriesMock = mockKit.mockFunc(LogStorageMaintenanceService, LogStorageMaintenanceService.appendEntries)
+      let storageConfig: LogStorageConfig = {
+        maxLocalEntries: 20000,
+        retentionDays: 30
+      }
       when(hasEntryMock)(ArgumentMatchers.any).afterAction((entryId: string) => {
         return Promise.resolve(existingIds.has(entryId))
       })
+      when(loadConfigMock)().afterReturn(Promise.resolve(storageConfig))
       when(appendEntriesMock)(ArgumentMatchers.any).afterAction((entries: LogEntry[]) => {
         savedEntries = entries.slice()
         return Promise.resolve(saveResult)
@@ -119,6 +126,7 @@ export default function logImportServiceTest() {
       expect(result.parsedEntryCount).assertEqual(3)
       expect(result.insertedEntryCount).assertEqual(1)
       expect(result.skippedDuplicateCount).assertEqual(2)
+      expect(result.skippedExpiredCount).assertEqual(0)
       expect(result.droppedEntryCount).assertEqual(2)
       expect(result.failedEntryCount).assertEqual(1)
       expect(savedEntries.length).assertEqual(1)
@@ -163,9 +171,40 @@ export default function logImportServiceTest() {
       expect(result.parsedEntryCount).assertEqual(3)
       expect(result.insertedEntryCount).assertEqual(2)
       expect(result.skippedDuplicateCount).assertEqual(1)
+      expect(result.skippedExpiredCount).assertEqual(0)
       expect(result.droppedEntryCount).assertEqual(2)
       expect(result.failedEntryCount).assertEqual(2)
       expect(savedEntries.length).assertEqual(2)
+    })
+
+    it('should skip expired entries before appending imported logs', 0, async () => {
+      let rule = new FakeRule()
+      let expiredEntry = createEntry('expired')
+      expiredEntry.timestamp = Date.now() - 40 * 24 * 60 * 60 * 1000
+      let validEntry = createEntry('valid')
+      rule.result = {
+        entries: [expiredEntry, validEntry],
+        droppedCount: 0,
+        failedCount: 0
+      }
+      LogImportService.setRulesForTest([rule])
+
+      let result = await LogImportService.importFiles([
+        {
+          path: '/tmp/hilog_kmsg.1',
+          fileName: 'hilog_kmsg.1',
+          relativePath: 'hilog/hilog_kmsg.1',
+          normalizedPath: 'hilog/hilog_kmsg.1'
+        }
+      ])
+
+      expect(result.success).assertTrue()
+      expect(result.parsedEntryCount).assertEqual(2)
+      expect(result.insertedEntryCount).assertEqual(1)
+      expect(result.skippedDuplicateCount).assertEqual(0)
+      expect(result.skippedExpiredCount).assertEqual(1)
+      expect(savedEntries.length).assertEqual(1)
+      expect(savedEntries[0].id).assertEqual('valid')
     })
 
     it('should return save_failed when parsed entries cannot be appended', 0, async () => {
@@ -185,6 +224,7 @@ export default function logImportServiceTest() {
       expect(result.parsedEntryCount).assertEqual(3)
       expect(result.insertedEntryCount).assertEqual(0)
       expect(result.skippedDuplicateCount).assertEqual(1)
+      expect(result.skippedExpiredCount).assertEqual(0)
       expect(result.droppedEntryCount).assertEqual(2)
       expect(result.failedEntryCount).assertEqual(1)
       expect(savedEntries.length).assertEqual(2)
