@@ -11,6 +11,7 @@ import {
   getLogEventResultLabel
 } from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
+import { AUTH_AUDIT_EVENT_IDS } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {
   detailRows?: LogDetailTableRow[]
@@ -147,6 +148,53 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'account.result')).assertEqual(getLogEventResultLabel(LogEventResult.SUCCESS))
       expect(getRowValue(rows, 'account.timestamp')).assertEqual(formatLogTimestamp(entry!.timestamp))
       expect(getRowValue(rows, 'account.eventId')).assertEqual(`${securityAudit.NotifyEvent.ACCOUNT}`)
+    })
+
+    it('should map authentication audit event ids into account log entries', 0, () => {
+      const timestamp = '20260415162544'
+      let successEvent = {
+        eventId: AUTH_AUDIT_EVENT_IDS[1],
+        timestamp,
+        userId: 100,
+        content: JSON.stringify({
+          OPERATION_TIME: '2026-04-15 16:25:44',
+          CALLER_NAME: 'com.huawei.securitytool',
+          AUTH_TYPE: 1,
+          AUTH_RESULT: 0,
+          AUTH_TIME_SPAN: 197,
+          AUTH_FINISH_REASON: 'SimpleAuthContext InvokeResultCallback'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+      let failedEvent = {
+        eventId: AUTH_AUDIT_EVENT_IDS[2],
+        timestamp,
+        userId: 100,
+        content: JSON.stringify({
+          HAPPEN_TIME: '2026-04-15 16:25:45.001',
+          PNAMEID: 'com.ohos.sceneboard',
+          AUTH_TYPE: 1,
+          RESULT_CODE_LIST: [1]
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let successEntry = parseAuditEventToLogEntry(successEvent)
+      let failedEntry = parseAuditEventToLogEntry(failedEvent)
+      let successRows = getDetailRows(successEntry)
+
+      expect(!!successEntry).assertTrue()
+      expect(successEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
+      expect(successEntry!.processName).assertEqual('com.huawei.securitytool')
+      expect(successEntry!.result).assertEqual(LogEventResult.SUCCESS)
+      expect(getRowValue(successRows, 'account.callerName')).assertEqual('com.huawei.securitytool')
+      expect(getRowValue(successRows, 'account.authType')).assertEqual('1')
+      expect(getRowValue(successRows, 'account.authResultRaw')).assertEqual('0')
+      expect(getRowValue(successRows, 'account.operationTime')).assertEqual('2026-04-15 16:25:44')
+      expect(!!failedEntry).assertTrue()
+      expect(failedEntry!.eventType).assertEqual(LogEventType.ACCOUNT)
+      expect(failedEntry!.processName).assertEqual('com.ohos.sceneboard')
+      expect(failedEntry!.result).assertEqual(LogEventResult.FAILED)
     })
 
     it('should map permission audit payload into detail rows', 0, () => {

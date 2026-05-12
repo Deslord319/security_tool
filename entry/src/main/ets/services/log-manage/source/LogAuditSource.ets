@@ -12,17 +12,10 @@ import {
 import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
+import { AUTH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
 
 const TAG = 'LogAuditSource'
 const DEFAULT_FOREGROUND_USER_ID = 100
-const FILE_EVENT_IDS: number[] = [
-  securityAudit.NotifyEvent.FILE,
-  securityAudit.NotifyEvent.FILE_INTERCEPTED,
-  securityAudit.NotifyEvent.KIA_CREATE,
-  securityAudit.NotifyEvent.KIA_READ,
-  securityAudit.NotifyEvent.KIA_VARIANT,
-  securityAudit.NotifyEvent.KIA_INTERCEPT
-]
 
 type LogEntryCallback = (entry: LogEntry) => void
 
@@ -52,8 +45,8 @@ export class LogAuditSource {
   private static lastSubscribeFailedEventIds: number[] = []
   private static nowProvider: () => number = () => Date.now()
   private static readonly EVENT_IDS_BY_TYPE: Map<LogEventType, number[]> = new Map<LogEventType, number[]>([
-    [LogEventType.FILE, FILE_EVENT_IDS],
-    [LogEventType.ACCOUNT, [securityAudit.NotifyEvent.ACCOUNT]],
+    [LogEventType.FILE, FILE_AUDIT_EVENT_IDS],
+    [LogEventType.ACCOUNT, AUTH_AUDIT_EVENT_IDS],
     [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]]
   ])
 
@@ -244,7 +237,7 @@ export class LogAuditSource {
     eventId: number,
     fileFilterContext?: FileFilterContext
   ): boolean {
-    if (!FILE_EVENT_IDS.includes(eventId)) {
+    if (!FILE_AUDIT_EVENT_IDS.includes(eventId)) {
       return true
     }
     if (!fileFilterContext) {
@@ -283,7 +276,7 @@ export class LogAuditSource {
   }
 
   private static async prepareFileFilterContext(eventIds: number[]): Promise<FileFilterContext | undefined> {
-    if (!eventIds.some((eventId: number) => FILE_EVENT_IDS.includes(eventId))) {
+    if (!eventIds.some((eventId: number) => FILE_AUDIT_EVENT_IDS.includes(eventId))) {
       return undefined
     }
     const foregroundUserId = await LogAuditSource.resolveForegroundUserId()
