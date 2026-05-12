@@ -167,6 +167,7 @@ class FakeLogListImporter implements LogImportServicePort {
     parsedEntryCount: 1,
     insertedEntryCount: 1,
     skippedDuplicateCount: 0,
+    skippedExpiredCount: 0,
     droppedEntryCount: 0,
     failedEntryCount: 0
   }
@@ -339,6 +340,7 @@ export default function logManageViewModelTest() {
         parsedEntryCount: 0,
         insertedEntryCount: 0,
         skippedDuplicateCount: 0,
+        skippedExpiredCount: 0,
         droppedEntryCount: 0,
         failedEntryCount: 0
       }

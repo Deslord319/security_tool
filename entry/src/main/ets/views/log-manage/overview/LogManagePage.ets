@@ -152,6 +152,7 @@ export struct LogManagePage {
       DialogService.openSuccess(this.getUIContext(), LogManageImportStrings.buildSuccessMessage(
         result.insertedEntryCount,
         result.skippedDuplicateCount,
+        result.skippedExpiredCount,
         result.droppedEntryCount,
         result.failedEntryCount
       ))
