@@ -1,10 +1,11 @@
 import { securityManager } from '@kit.MDMKit'
-import { PasswordComplexityConfig } from '../../../models/IdentityModels'
+import {
+  PASSWORD_VALIDITY_DAY_IN_MS,
+  PasswordComplexityConfig
+} from '../../../models/IdentityModels'
 import { IdentityRequirementStrings } from '../../../constants/modules/IdentityStrings'
 
 export class IdentityPasswordPolicyMapper {
-  static readonly DAY_IN_MS: number = 24 * 60 * 60 * 1000
-
   static toConfig(policy?: securityManager.PasswordPolicy | null): PasswordComplexityConfig | null {
     if (!policy || IdentityPasswordPolicyMapper.isEmptyPolicy(policy)) {
       return null
@@ -108,14 +109,14 @@ export class IdentityPasswordPolicyMapper {
     if (typeof days !== 'number') {
       return undefined
     }
-    return days * IdentityPasswordPolicyMapper.DAY_IN_MS
+    return days * PASSWORD_VALIDITY_DAY_IN_MS
   }
 
   private static toDays(milliseconds?: number): number | undefined {
     if (typeof milliseconds !== 'number') {
       return undefined
     }
-    return Math.round(milliseconds / IdentityPasswordPolicyMapper.DAY_IN_MS)
+    return Math.round(milliseconds / PASSWORD_VALIDITY_DAY_IN_MS)
   }
 
   private static isEmptyPolicy(policy: securityManager.PasswordPolicy): boolean {
@@ -127,6 +128,6 @@ export class IdentityPasswordPolicyMapper {
   }
 
   private static isEmptyPolicyValidity(validityPeriod?: number): boolean {
-    return typeof validityPeriod !== 'number' || validityPeriod === 0
+    return typeof validityPeriod !== 'number'
   }
 }
