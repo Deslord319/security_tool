@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { fileUri, picker } from '@kit.CoreFileKit'
+import { taskpool } from '@kit.ArkTS'
 import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
@@ -11,6 +12,7 @@ import { CrashLogImportRule } from './CrashLogImportRule'
 import { KernelLogImportRule } from './KernelLogImportRule'
 import { ImportedLogFile, LogImportRule } from './LogImportRule'
 import { SystemLogImportRule } from './SystemLogImportRule'
+import { LogImportParseTaskResult, runLogImportParseTask } from './LogImportBackgroundTask'
 
 const TAG = 'LogImportService'
 
@@ -27,6 +29,13 @@ export interface ImportLogsResult {
   skippedExpiredCount: number
   droppedEntryCount: number
   failedEntryCount: number
+}
+
+export interface LogImportSelectionResult {
+  success: boolean
+  code: 'ok' | 'user_canceled'
+  archivePath: string
+  targetDirectory: string
 }
 
 interface ImportBaseStats {
@@ -87,40 +96,113 @@ export class LogImportService {
   }
 
   static async import(context: common.UIAbilityContext): Promise<ImportLogsResult> {
+    let selection = await LogImportService.pickImportTargets(context)
+    if (!selection.success) {
+      return LogImportService.buildResult(selection.code)
+    }
+    return LogImportService.importSelected(selection.archivePath, selection.targetDirectory)
+  }
+
+  static async pickImportTargets(context: common.UIAbilityContext): Promise<LogImportSelectionResult> {
     let importId = LogImportService.buildImportId()
-    let startedAt = Date.now()
     try {
       let archivePath = await LogImportService.pickerPort.pickZip(context)
       if (!archivePath) {
         LogUtils.info(TAG, `import canceled: importId=${importId}, stage=pickZip`)
-        return LogImportService.buildResult('user_canceled')
+        return LogImportService.buildSelectionResult('user_canceled')
       }
       let targetDirectory = await LogImportService.pickerPort.pickDirectory(context)
       if (!targetDirectory) {
         LogUtils.info(TAG, `import canceled: importId=${importId}, stage=pickDirectory`)
-        return LogImportService.buildResult('user_canceled')
+        return LogImportService.buildSelectionResult('user_canceled')
       }
+      return {
+        success: true,
+        code: 'ok',
+        archivePath,
+        targetDirectory
+      }
+    } catch (err) {
+      LogUtils.error(TAG, `pick import targets failed: importId=${importId}, err=${JSON.stringify(err)}`)
+      return LogImportService.buildSelectionResult('user_canceled')
+    }
+  }
+
+  static async importSelected(archivePath: string, targetDirectory: string): Promise<ImportLogsResult> {
+    let importId = LogImportService.buildImportId()
+    let startedAt = Date.now()
+    try {
       LogUtils.info(TAG, `import start: importId=${importId}, archive=${archivePath}, target=${targetDirectory}`)
-      let extractResult = await LogArchiveExtractor.extract(archivePath, targetDirectory)
-      if (!extractResult.success) {
-        LogUtils.warn(TAG, `import extract failed: importId=${importId}, code=${extractResult.code}, root=${extractResult.rootPath}, elapsedMs=${Date.now() - startedAt}`)
-        let failedStats: ImportResultStats = {
-          extractedFileCount: extractResult.extractedFileCount,
-          scannedFileCount: extractResult.scannedFileCount
-        }
-        return LogImportService.buildResult(extractResult.code, failedStats)
-      }
-      let baseStats: ImportBaseStats = {
-        extractedFileCount: extractResult.extractedFileCount,
-        scannedFileCount: extractResult.scannedFileCount
-      }
-      let result = await LogImportService.importFiles(extractResult.files, baseStats, importId, startedAt)
+      let parseResult = await taskpool.execute(runLogImportParseTask, archivePath, targetDirectory) as LogImportParseTaskResult
+      let result = await LogImportService.importParsedEntries(parseResult, importId, startedAt)
       LogUtils.info(TAG, `import done: importId=${importId}, code=${result.code}, extracted=${result.extractedFileCount}, scanned=${result.scannedFileCount}, parsed=${result.parsedEntryCount}, inserted=${result.insertedEntryCount}, skipped=${result.skippedDuplicateCount}, expired=${result.skippedExpiredCount}, dropped=${result.droppedEntryCount}, failed=${result.failedEntryCount}, elapsedMs=${Date.now() - startedAt}`)
       return result
     } catch (err) {
       LogUtils.error(TAG, `import failed: importId=${importId}, err=${JSON.stringify(err)}, elapsedMs=${Date.now() - startedAt}`)
       return LogImportService.buildResult('extract_failed')
     }
+  }
+
+  static async importParsedEntries(
+    parseResult: LogImportParseTaskResult,
+    importId: string = LogImportService.buildImportId(),
+    startedAt: number = Date.now()
+  ): Promise<ImportLogsResult> {
+    if (!parseResult.success) {
+      return LogImportService.buildResult(parseResult.code, {
+        extractedFileCount: parseResult.extractedFileCount,
+        scannedFileCount: parseResult.scannedFileCount,
+        parsedEntryCount: parseResult.parsedEntryCount,
+        skippedDuplicateCount: parseResult.skippedBatchDuplicateCount,
+        droppedEntryCount: parseResult.droppedEntryCount,
+        failedEntryCount: parseResult.failedEntryCount
+      })
+    }
+
+    let skippedDuplicateCount = parseResult.skippedBatchDuplicateCount
+    let skippedExpiredCount = 0
+    let newEntries: LogEntry[] = []
+    LogUtils.info(TAG, `persist parsed entries start: importId=${importId}, unique=${parseResult.entries.length}, batchDuplicates=${skippedDuplicateCount}, elapsedMs=${Date.now() - startedAt}`)
+    let storageConfig = await LogSettingsRepository.loadStorageConfig()
+    let retentionDays = LogEntryNormalizer.normalizeRetentionDays(storageConfig.retentionDays)
+    let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
+    for (let entry of parseResult.entries) {
+      if (entry.timestamp < cutoff) {
+        skippedExpiredCount++
+        continue
+      }
+      if (await LogEntryRepository.hasEntry(entry.id)) {
+        skippedDuplicateCount++
+        continue
+      }
+      newEntries.push(entry)
+    }
+    if (newEntries.length > 0) {
+      let saveResult = await LogStorageMaintenanceService.appendEntries(newEntries)
+      if (!saveResult.success) {
+        LogUtils.warn(TAG, `save failed: importId=${importId}, newEntries=${newEntries.length}, elapsedMs=${Date.now() - startedAt}`)
+        return LogImportService.buildResult('save_failed', {
+          extractedFileCount: parseResult.extractedFileCount,
+          scannedFileCount: parseResult.scannedFileCount,
+          parsedEntryCount: parseResult.parsedEntryCount,
+          skippedDuplicateCount,
+          skippedExpiredCount,
+          droppedEntryCount: parseResult.droppedEntryCount,
+          failedEntryCount: parseResult.failedEntryCount
+        })
+      }
+    }
+    LogUtils.info(TAG, `save done: importId=${importId}, newEntries=${newEntries.length}, skipped=${skippedDuplicateCount}, expired=${skippedExpiredCount}, elapsedMs=${Date.now() - startedAt}`)
+    return LogImportService.buildResult('ok', {
+      extractedFileCount: parseResult.extractedFileCount,
+      scannedFileCount: parseResult.scannedFileCount,
+      parsedEntryCount: parseResult.parsedEntryCount,
+      insertedEntryCount: newEntries.length,
+      skippedDuplicateCount,
+      skippedExpiredCount,
+      droppedEntryCount: parseResult.droppedEntryCount,
+      failedEntryCount: parseResult.failedEntryCount
+    })
   }
 
   static async importFiles(
@@ -216,6 +298,15 @@ export class LogImportService {
       result.push(entry)
     }
     return result
+  }
+
+  private static buildSelectionResult(code: 'user_canceled'): LogImportSelectionResult {
+    return {
+      success: false,
+      code,
+      archivePath: '',
+      targetDirectory: ''
+    }
   }
 
   private static buildResult(

@@ -36,6 +36,7 @@ export class LogManageActionStrings {
 }
 
 export class LogManageImportStrings {
+  static readonly IMPORTING: string = '正在导入日志，请稍候...'
   static readonly USER_CANCELED: string = '已取消导入'
   static readonly INVALID_ARCHIVE: string = '请选择 zip 格式日志包'
   static readonly EXTRACT_FAILED: string = '日志包解压失败'

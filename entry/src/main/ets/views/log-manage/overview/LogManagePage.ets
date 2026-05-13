@@ -29,7 +29,7 @@ import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } f
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { LogManageViewModel } from '../../../viewmodels/log-manage/overview/LogManageViewModel'
-import { ImportLogsResult } from '../../../services/log-manage/import/LogImportService'
+import { ImportLogsResult, LogImportSelectionResult } from '../../../services/log-manage/import/LogImportService'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntriesPanel } from '../../../components/log-manage/entries/LogEntriesPanel'
 import { LogPaginationBar } from '../../../components/log-manage/entries/LogPaginationBar'
@@ -51,6 +51,7 @@ export struct LogManagePage {
   @Param viewModel: LogManageViewModel | null = null
   @Local ownedViewModel: LogManageViewModel = new LogManageViewModel()
   @Local private settingsScrollBarWidth: number = SCROLL_BAR_WIDTH_DEFAULT
+  @Local private isImportProcessing: boolean = false
   private detailDialogController?: CustomDialogController
 
   private eventTypeFilterOptions: SelectOption[] = [
@@ -147,8 +148,35 @@ export struct LogManagePage {
   }
 
   private async handleImportLogs(): Promise<void> {
+    if (this.isImportProcessing) {
+      return
+    }
     let context = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let result: ImportLogsResult = await this.getActiveViewModel().importLogs(context)
+    let viewModel = this.getActiveViewModel()
+    let selection: LogImportSelectionResult = await viewModel.pickImportTargets(context)
+    if (!selection.success) {
+      DialogService.openFailure(this.getUIContext(), this.mapImportFailureText(selection.code))
+      return
+    }
+    this.isImportProcessing = true
+    let result: ImportLogsResult = {
+      success: false,
+      code: 'extract_failed',
+      extractedFileCount: 0,
+      scannedFileCount: 0,
+      parsedEntryCount: 0,
+      insertedEntryCount: 0,
+      skippedDuplicateCount: 0,
+      skippedExpiredCount: 0,
+      droppedEntryCount: 0,
+      failedEntryCount: 0
+    }
+    try {
+      await this.waitImportOverlayReady()
+      result = await viewModel.importSelectedLogs(selection.archivePath, selection.targetDirectory)
+    } finally {
+      this.isImportProcessing = false
+    }
     if (result.success) {
       DialogService.openSuccess(this.getUIContext(), LogManageImportStrings.buildSuccessMessage(
         result.insertedEntryCount,
@@ -176,6 +204,12 @@ export struct LogManagePage {
       return LogManageImportStrings.SAVE_FAILED
     }
     return MessageText.RETRY_LATER
+  }
+
+  private async waitImportOverlayReady(): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), 180)
+    })
   }
 
   private handleClearLogs(): void {
@@ -278,6 +312,7 @@ export struct LogManagePage {
           label: LogManageActionStrings.IMPORT_LOGS,
           icon: AppResources.LOG_ICON,
           currentTheme: this.currentTheme,
+          isEnabled: !this.isImportProcessing,
           onTap: () => {
             this.handleImportLogs()
           }
@@ -335,6 +370,41 @@ export struct LogManagePage {
           LOG_RETENTION_OPTIONS[0])
       }
     })
+  }
+
+  @Builder
+  private importLoadingOverlay() {
+    Column() {
+      Column({ space: 14 }) {
+        LoadingProgress()
+          .width(44)
+          .height(44)
+
+        Text(LogManageImportStrings.IMPORTING)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          .textAlign(TextAlign.Center)
+      }
+      .width(280)
+      .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+      .alignItems(HorizontalAlign.Center)
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
+      .borderRadius(AppStyles.RADIUS_LG)
+      .shadow({
+        radius: 18,
+        color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)',
+        offsetX: 0,
+        offsetY: 8
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(AppColors.OVERLAY_BACKGROUND)
+    .zIndex(10)
   }
 
   private closeDetailDialog(): void {
@@ -455,6 +525,10 @@ export struct LogManagePage {
       .width('100%')
       .height('100%')
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+
+      if (this.isImportProcessing) {
+        this.importLoadingOverlay()
+      }
     }
     .width('100%')
     .height('100%')

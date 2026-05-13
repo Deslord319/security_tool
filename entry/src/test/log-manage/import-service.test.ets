@@ -12,6 +12,7 @@ import {
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
 import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
 import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
+import { LogImportParseTaskResult } from '../../main/ets/services/log-manage/import/LogImportBackgroundTask'
 
 function createEntry(id: string): LogEntry {
   return {
@@ -20,6 +21,20 @@ function createEntry(id: string): LogEntry {
     eventType: LogEventType.KERNEL,
     detail: id,
     rawEventName: 'kernel_hmseh_denied'
+  }
+}
+
+function createParseResult(entries: LogEntry[], batchDuplicates: number = 0): LogImportParseTaskResult {
+  return {
+    success: true,
+    code: 'ok',
+    extractedFileCount: 2,
+    scannedFileCount: 2,
+    parsedEntryCount: entries.length + batchDuplicates,
+    skippedBatchDuplicateCount: batchDuplicates,
+    droppedEntryCount: 3,
+    failedEntryCount: 1,
+    entries
   }
 }
 
@@ -154,6 +169,17 @@ export default function logImportServiceTest() {
       expect(savedEntries.length).assertEqual(0)
     })
 
+    it('should pick import targets when zip and directory are selected', 0, async () => {
+      LogImportService.setPickerForTest(new FakePicker('/tmp/logs.zip', '/tmp/out'))
+
+      let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
+
+      expect(result.success).assertTrue()
+      expect(result.code).assertEqual('ok')
+      expect(result.archivePath).assertEqual('/tmp/logs.zip')
+      expect(result.targetDirectory).assertEqual('/tmp/out')
+    })
+
     it('should continue importing when one rule throws during parse', 0, async () => {
       LogImportService.setRulesForTest([new ThrowingRule(), new FakeRule()])
 
@@ -227,6 +253,44 @@ export default function logImportServiceTest() {
       expect(result.droppedEntryCount).assertEqual(2)
       expect(result.failedEntryCount).assertEqual(1)
       expect(savedEntries.length).assertEqual(2)
+    })
+
+    it('should persist parsed entries and keep background batch duplicate count', 0, async () => {
+      existingIds.add('existing')
+      let expiredEntry = createEntry('expired')
+      expiredEntry.timestamp = Date.now() - 40 * 24 * 60 * 60 * 1000
+      let validEntry = createEntry('valid')
+      let existingEntry = createEntry('existing')
+
+      let result = await LogImportService.importParsedEntries(
+        createParseResult([expiredEntry, validEntry, existingEntry], 2)
+      )
+
+      expect(result.success).assertTrue()
+      expect(result.parsedEntryCount).assertEqual(5)
+      expect(result.insertedEntryCount).assertEqual(1)
+      expect(result.skippedDuplicateCount).assertEqual(3)
+      expect(result.skippedExpiredCount).assertEqual(1)
+      expect(result.droppedEntryCount).assertEqual(3)
+      expect(result.failedEntryCount).assertEqual(1)
+      expect(savedEntries.length).assertEqual(1)
+      expect(savedEntries[0].id).assertEqual('valid')
+    })
+
+    it('should return save_failed when parsed entries cannot be persisted', 0, async () => {
+      saveResult = { success: false, code: 'save_failed' }
+
+      let result = await LogImportService.importParsedEntries(createParseResult([createEntry('valid')], 1))
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('save_failed')
+      expect(result.parsedEntryCount).assertEqual(2)
+      expect(result.insertedEntryCount).assertEqual(0)
+      expect(result.skippedDuplicateCount).assertEqual(1)
+      expect(result.skippedExpiredCount).assertEqual(0)
+      expect(result.droppedEntryCount).assertEqual(3)
+      expect(result.failedEntryCount).assertEqual(1)
+      expect(savedEntries.length).assertEqual(1)
     })
   })
 }

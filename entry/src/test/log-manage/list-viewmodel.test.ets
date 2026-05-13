@@ -20,7 +20,7 @@ import {
 import { LogManageViewModel } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
 import { LogImportServicePort } from '../../main/ets/viewmodels/log-manage/overview/LogManageViewModel'
 import { LogStorageSettingsViewModel } from '../../main/ets/viewmodels/log-manage/storage-settings/LogStorageSettingsViewModel'
-import { ImportLogsResult } from '../../main/ets/services/log-manage/import/LogImportService'
+import { ImportLogsResult, LogImportSelectionResult } from '../../main/ets/services/log-manage/import/LogImportService'
 
 function createEntry(
   id: string,
@@ -159,6 +159,12 @@ class FakeLogListExporter implements LogExportServicePort {
 }
 
 class FakeLogListImporter implements LogImportServicePort {
+  selection: LogImportSelectionResult = {
+    success: true,
+    code: 'ok',
+    archivePath: '/tmp/logs.zip',
+    targetDirectory: '/tmp/out'
+  }
   result: ImportLogsResult = {
     success: true,
     code: 'ok',
@@ -173,6 +179,14 @@ class FakeLogListImporter implements LogImportServicePort {
   }
 
   async import(_context: common.UIAbilityContext): Promise<ImportLogsResult> {
+    return this.result
+  }
+
+  async pickImportTargets(_context: common.UIAbilityContext): Promise<LogImportSelectionResult> {
+    return this.selection
+  }
+
+  async importSelected(_archivePath: string, _targetDirectory: string): Promise<ImportLogsResult> {
     return this.result
   }
 }
