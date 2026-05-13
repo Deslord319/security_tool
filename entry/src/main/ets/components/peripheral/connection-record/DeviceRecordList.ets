@@ -62,7 +62,10 @@ export struct DeviceRecordList {
                   Divider()
                     .color(AppColors.getColors(this.currentTheme).BORDER)
                     .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-                    .margin({ left: 20, right: 20 })
+                    .margin({
+                      left: AppStyles.TABLE_DIVIDER_MARGIN,
+                      right: AppStyles.TABLE_DIVIDER_MARGIN
+                    })
                 }
               }
             }, (record: PeripheralConnectionRecord) => record.id)
@@ -102,7 +105,12 @@ export struct DeviceRecordList {
       PeripheralHeaderCell({ label: PeripheralPageStrings.ACTION_LABEL, weight: 1.0, currentTheme: this.currentTheme })
     }
     .width('100%')
-    .padding({ left: 22, right: 22, top: 14, bottom: 14 })
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.TABLE_HEADER_VERTICAL_PADDING,
+      bottom: AppStyles.TABLE_HEADER_VERTICAL_PADDING
+    })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
@@ -182,7 +190,12 @@ export struct DeviceRecordList {
       })
     }
     .width('100%')
-    .padding({ left: 22, right: 22, top: 18, bottom: 18 })
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.TABLE_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.TABLE_ROW_VERTICAL_PADDING
+    })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .alignItems(VerticalAlign.Center)
   }

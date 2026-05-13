@@ -220,6 +220,12 @@ export class FirewallRuleMutationService {
       conflictIntent,
       conflictDeployments
     )
+    if (restoreFailedItems.length > 0) {
+      LogUtils.error(TAG,
+        `replaceConflictRule restore old rule failed: conflictLocalRuleId=${conflictLocalRuleId}, ` +
+          `nextLocalRuleId=${nextResult.localRuleId ?? ''}, failedItems=${restoreFailedItems.length}`
+      )
+    }
     return {
       success: false,
       localRuleId: nextResult.localRuleId,

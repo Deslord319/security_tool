@@ -64,7 +64,10 @@ export struct PolicyList {
             Divider()
               .color(AppColors.getColors(this.currentTheme).BORDER)
               .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-              .margin({ left: 20, right: 20 })
+              .margin({
+                left: AppStyles.TABLE_DIVIDER_MARGIN,
+                right: AppStyles.TABLE_DIVIDER_MARGIN
+              })
           }
         }
       }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}`)
@@ -89,7 +92,12 @@ export struct PolicyList {
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
-    .padding({ left: 22, right: 22, top: 24, bottom: 24 })
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.PADDING_LG,
+      bottom: AppStyles.PADDING_LG
+    })
     .borderRadius(AppStyles.RADIUS_LG)
     .clip(true)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
@@ -109,7 +117,12 @@ export struct PolicyList {
       PeripheralHeaderCell({ label: PeripheralPageStrings.ACTION_LABEL, weight: 1.4, currentTheme: this.currentTheme })
     }
     .width('100%')
-    .padding({ left: 22, right: 22, top: 14, bottom: 14 })
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.TABLE_HEADER_VERTICAL_PADDING,
+      bottom: AppStyles.TABLE_HEADER_VERTICAL_PADDING
+    })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
   }
 
@@ -165,7 +178,12 @@ export struct PolicyList {
         .layoutWeight(1.4)
     }
     .width('100%')
-    .padding({ left: 22, right: 22, top: 18, bottom: 18 })
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.TABLE_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.TABLE_ROW_VERTICAL_PADDING
+    })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .alignItems(VerticalAlign.Center)
   }
