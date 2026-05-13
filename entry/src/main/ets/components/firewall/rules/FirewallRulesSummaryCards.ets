@@ -12,6 +12,8 @@ import {
   FirewallDefaultPolicyMode
 } from '../../../services/firewall/FirewallModels'
 
+const USER_POLICY_DESCRIPTION_MAX_LINES: number = 2
+
 @ComponentV2
 export struct FirewallRulesSummaryCards {
   @Param defaultPolicyItems: FirewallDefaultPolicyDisplayItem[] = []
@@ -61,6 +63,7 @@ export struct FirewallRulesSummaryCards {
           accentStart: AppColors.DANGER,
           accentEnd: AppColors.WARNING,
           icon: AppResources.SHIELD_ICON,
+          secondaryMaxLines: USER_POLICY_DESCRIPTION_MAX_LINES,
           currentTheme: this.currentTheme
         })
           .layoutWeight(1)
@@ -72,6 +75,7 @@ export struct FirewallRulesSummaryCards {
           accentStart: AppColors.SUCCESS,
           accentEnd: AppColors.GRADIENT_LOG_END,
           icon: AppResources.SHIELD_ICON,
+          secondaryMaxLines: USER_POLICY_DESCRIPTION_MAX_LINES,
           currentTheme: this.currentTheme
         })
           .layoutWeight(1)
