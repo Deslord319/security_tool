@@ -378,7 +378,7 @@ export default function identitySettingsViewModelTest() {
       expect(viewModel.state.customValidityPeriodText).assertEqual('0')
     })
 
-    it('should map empty zero-validity policy to default permanent option', 0, async () => {
+    it('should keep zero-validity policy as immediate-expiry custom option', 0, async () => {
       let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let getPolicyMock = mockKit.mockFunc(IdentityService, IdentityService.getPasswordPolicyWithResult)
       let policy = createPolicy('', 0)
@@ -388,8 +388,8 @@ export default function identitySettingsViewModelTest() {
       let viewModel = new IdentitySettingsViewModel()
       await viewModel.initialize()
 
-      expect(viewModel.state.validityPeriodIndex).assertEqual(PERMANENT_VALIDITY_OPTION_INDEX)
-      expect(viewModel.state.customValidityPeriodText).assertEqual('')
+      expect(viewModel.state.validityPeriodIndex).assertEqual(CUSTOM_VALIDITY_OPTION_INDEX)
+      expect(viewModel.state.customValidityPeriodText).assertEqual('0')
     })
 
     it('should map legacy hundred-year validity period to permanent option', 0, async () => {

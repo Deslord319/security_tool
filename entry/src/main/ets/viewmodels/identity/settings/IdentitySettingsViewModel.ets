@@ -4,7 +4,12 @@ import { IdentityActionStrings } from '../../../constants/modules/IdentityString
 import { IdentityMessageStrings } from '../../../constants/modules/IdentityStrings'
 import { AdminActivationState } from '../../../models/CommonModels'
 import {
+  PASSWORD_HALF_YEAR_VALIDITY_DAY_OPTIONS,
   PASSWORD_LENGTH_OPTIONS,
+  PASSWORD_ONE_YEAR_VALIDITY_DAY_OPTIONS,
+  PASSWORD_PERMANENT_VALIDITY_DAY_OPTIONS,
+  PASSWORD_PERMANENT_VALIDITY_YEARS,
+  PASSWORD_VALIDITY_DAY_IN_MS,
   PASSWORD_VALIDITY_PRESETS,
   PasswordComplexityConfig
 } from '../../../models/IdentityModels'
@@ -20,11 +25,6 @@ export const PERMANENT_VALIDITY_OPTION_INDEX: number = 2
 export const CUSTOM_VALIDITY_OPTION_INDEX: number = PASSWORD_VALIDITY_PRESETS.length
 const DEFAULT_PASSWORD_LENGTH_INDEX: number = 0
 const DEFAULT_VALIDITY_OPTION_INDEX: number = PERMANENT_VALIDITY_OPTION_INDEX
-const DEFAULT_VALIDITY_YEARS: number = 100
-const PERMANENT_VALIDITY_DAY_OPTIONS: number[] = [36524, 36525, 36526]
-const HALF_YEAR_VALIDITY_DAY_OPTIONS: number[] = [181, 182, 183, 184]
-const ONE_YEAR_VALIDITY_DAY_OPTIONS: number[] = [365, 366]
-const DAY_IN_MS: number = 24 * 60 * 60 * 1000
 const TAG = 'IdentitySettings.ViewModel'
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
 
@@ -371,7 +371,10 @@ export class IdentitySettingsViewModel {
   }
 
   private static buildPermanentValidityDays(referenceDate: Date = new Date()): number {
-    return IdentitySettingsViewModel.diffDays(referenceDate, IdentitySettingsViewModel.addYears(referenceDate, DEFAULT_VALIDITY_YEARS))
+    return IdentitySettingsViewModel.diffDays(
+      referenceDate,
+      IdentitySettingsViewModel.addYears(referenceDate, PASSWORD_PERMANENT_VALIDITY_YEARS)
+    )
   }
 
   private static buildHalfYearValidityDays(referenceDate: Date = new Date()): number {
@@ -421,29 +424,26 @@ export class IdentitySettingsViewModel {
   }
 
   private static diffDays(startDate: Date, endDate: Date): number {
-    return Math.round((endDate.getTime() - startDate.getTime()) / DAY_IN_MS)
+    return Math.round((endDate.getTime() - startDate.getTime()) / PASSWORD_VALIDITY_DAY_IN_MS)
   }
 
   private static isHalfYearPresetValidity(validityPeriodMs?: number): boolean {
-    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, HALF_YEAR_VALIDITY_DAY_OPTIONS)
+    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, PASSWORD_HALF_YEAR_VALIDITY_DAY_OPTIONS)
   }
 
   private static isOneYearPresetValidity(validityPeriodMs?: number): boolean {
-    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, ONE_YEAR_VALIDITY_DAY_OPTIONS)
+    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, PASSWORD_ONE_YEAR_VALIDITY_DAY_OPTIONS)
   }
 
   private static isPermanentPresetValidity(validityPeriodMs?: number): boolean {
-    if (typeof validityPeriodMs !== 'number') {
-      return true
-    }
-    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, PERMANENT_VALIDITY_DAY_OPTIONS)
+    return IdentitySettingsViewModel.matchesPresetMs(validityPeriodMs, PASSWORD_PERMANENT_VALIDITY_DAY_OPTIONS)
   }
 
   private static matchesPresetMs(validityPeriodMs: number | undefined, candidateDays: number[]): boolean {
     if (typeof validityPeriodMs !== 'number') {
       return false
     }
-    return candidateDays.some((days: number): boolean => validityPeriodMs === days * DAY_IN_MS)
+    return candidateDays.some((days: number): boolean => validityPeriodMs === days * PASSWORD_VALIDITY_DAY_IN_MS)
   }
 
   private static toSnapshot(state: IdentitySettingsState): IdentitySettingsSnapshot {

@@ -143,10 +143,25 @@ export function buildFirewallUserCountText(count: number): string {
   return `${count} 个`
 }
 
+export class FirewallUserLabelStrings {
+  static readonly FALLBACK_USER_LABEL_PREFIX: string = '用户'
+  static readonly CURRENT_USER_SUFFIX: string = '（当前）'
+
+  static buildFallbackUserLabel(userId: number): string {
+    return `${FirewallUserLabelStrings.FALLBACK_USER_LABEL_PREFIX} ${userId}`
+  }
+
+  static buildCurrentUserLabel(label: string): string {
+    return `${label}${FirewallUserLabelStrings.CURRENT_USER_SUFFIX}`
+  }
+}
+
 export function buildFirewallUserLabel(userId: number, isForeground: boolean, userName?: string): string {
   let normalizedName = userName?.trim()
-  let baseLabel = normalizedName && normalizedName.length > 0 ? normalizedName : `用户 ${userId}`
-  return isForeground ? `${baseLabel}（当前）` : baseLabel
+  let baseLabel = normalizedName && normalizedName.length > 0 ?
+    normalizedName :
+    FirewallUserLabelStrings.buildFallbackUserLabel(userId)
+  return isForeground ? FirewallUserLabelStrings.buildCurrentUserLabel(baseLabel) : baseLabel
 }
 
 export class FirewallPresetRuleNameStrings {
