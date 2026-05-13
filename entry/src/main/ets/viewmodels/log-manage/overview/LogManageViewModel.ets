@@ -25,7 +25,7 @@ import {
   SaveSettingsResult
 } from '../../../services/log-manage/common/LogManagePorts'
 import { LogExportService } from '../../../services/log-manage/export/LogExportService'
-import { ImportLogsResult, LogImportService } from '../../../services/log-manage/import/LogImportService'
+import { ImportLogsResult, LogImportSelectionResult, LogImportService } from '../../../services/log-manage/import/LogImportService'
 import { LogStorageMaintenanceService } from '../../../services/log-manage/maintenance/LogStorageMaintenanceService'
 import { LogEntryRepository } from '../../../services/log-manage/repository/LogEntryRepository'
 import { LogUtils } from '../../../utils/LogUtils'
@@ -90,11 +90,21 @@ class DefaultLogManageExporter implements LogExportServicePort {
 
 export interface LogImportServicePort {
   import(context: common.UIAbilityContext): Promise<ImportLogsResult>
+  pickImportTargets(context: common.UIAbilityContext): Promise<LogImportSelectionResult>
+  importSelected(archivePath: string, targetDirectory: string): Promise<ImportLogsResult>
 }
 
 class DefaultLogManageImporter implements LogImportServicePort {
   import(context: common.UIAbilityContext): Promise<ImportLogsResult> {
     return LogImportService.import(context)
+  }
+
+  pickImportTargets(context: common.UIAbilityContext): Promise<LogImportSelectionResult> {
+    return LogImportService.pickImportTargets(context)
+  }
+
+  importSelected(archivePath: string, targetDirectory: string): Promise<ImportLogsResult> {
+    return LogImportService.importSelected(archivePath, targetDirectory)
   }
 }
 
@@ -283,6 +293,18 @@ export class LogManageViewModel {
 
   async importLogs(context: common.UIAbilityContext): Promise<ImportLogsResult> {
     let result = await this.importer.import(context)
+    if (result.success) {
+      await this.refreshAll()
+    }
+    return result
+  }
+
+  async pickImportTargets(context: common.UIAbilityContext): Promise<LogImportSelectionResult> {
+    return this.importer.pickImportTargets(context)
+  }
+
+  async importSelectedLogs(archivePath: string, targetDirectory: string): Promise<ImportLogsResult> {
+    let result = await this.importer.importSelected(archivePath, targetDirectory)
     if (result.success) {
       await this.refreshAll()
     }
