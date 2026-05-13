@@ -167,8 +167,8 @@ export struct ConnectionDetailDialog {
   build() {
     DetailDialogShell({
       title: DeviceDetailStrings.TITLE,
-      dialogWidth: 760,
-      maxBodyHeight: 460,
+      dialogWidth: AppStyles.DIALOG_WIDTH_LARGE,
+      maxBodyHeight: AppStyles.DIALOG_BODY_MAX_HEIGHT_MEDIUM,
       currentTheme: this.currentTheme,
       showHeader: true,
       showCloseAction: true,

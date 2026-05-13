@@ -274,8 +274,8 @@ export struct FirewallPage {
           .fillColor(Color.White)
           .draggable(false)
       }
-      .width(48)
-      .height(48)
+      .width(AppStyles.ICON_TILE_SIZE_LG)
+      .height(AppStyles.ICON_TILE_SIZE_LG)
       .borderRadius(24)
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)

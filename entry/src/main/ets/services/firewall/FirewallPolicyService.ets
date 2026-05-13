@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
+import { FirewallPolicyErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { AuthMethod } from '../../models/AuthModels'
 import { LogUtils } from '../../utils/LogUtils'
 import { AuthService } from '../identity/auth/AuthService'
@@ -76,7 +77,7 @@ export class FirewallPolicyService {
       let userId = users[i].userId
       let existingPolicy = await FirewallSystemRepository.getPolicy(userId)
       if (existingPolicy === null) {
-        failedItems.push({ userId: userId, errorMessage: 'read policy failed' })
+        failedItems.push({ userId: userId, errorMessage: FirewallPolicyErrorStrings.READ_POLICY_FAILED })
         continue
       }
       let nextPolicy: netFirewall.NetFirewallPolicy = {
@@ -86,7 +87,7 @@ export class FirewallPolicyService {
       }
       let applied = await FirewallSystemRepository.setPolicy(userId, nextPolicy)
       if (!applied) {
-        failedItems.push({ userId: userId, errorMessage: 'set policy failed' })
+        failedItems.push({ userId: userId, errorMessage: FirewallPolicyErrorStrings.SET_POLICY_FAILED })
       }
     }
 
@@ -95,7 +96,7 @@ export class FirewallPolicyService {
       targetEnabled: enabled,
       reason: failedItems.length === 0 ? undefined : 'policy_apply_failed',
       failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : 'policy apply failed'
+      errorMessage: failedItems.length === 0 ? undefined : FirewallPolicyErrorStrings.POLICY_APPLY_FAILED
     }
   }
 
@@ -113,14 +114,14 @@ export class FirewallPolicyService {
       let userId = users[i].userId
       let existingPolicy = await FirewallSystemRepository.getPolicy(userId)
       if (existingPolicy === null) {
-        failedItems.push({ userId: userId, errorMessage: 'read mode policy failed' })
+        failedItems.push({ userId: userId, errorMessage: FirewallPolicyErrorStrings.READ_MODE_POLICY_FAILED })
         continue
       }
       let userMode = FirewallPolicyService.resolveUserPolicyModeForSwitch(targetMode, userId, modeRecords)
       let policy = FirewallPolicyService.buildPolicyForUserMode(userMode, existingPolicy.isOpen)
       let applied = await FirewallSystemRepository.setPolicy(userId, policy)
       if (!applied) {
-        failedItems.push({ userId: userId, errorMessage: 'set mode policy failed' })
+        failedItems.push({ userId: userId, errorMessage: FirewallPolicyErrorStrings.SET_MODE_POLICY_FAILED })
       }
     }
     return failedItems
@@ -149,7 +150,7 @@ export class FirewallPolicyService {
         success: false,
         userId: userId,
         mode: mode,
-        errorMessage: 'set policy failed'
+        errorMessage: FirewallPolicyErrorStrings.SET_POLICY_FAILED
       }
     }
 
@@ -158,7 +159,7 @@ export class FirewallPolicyService {
       success: saved,
       userId: userId,
       mode: mode,
-      errorMessage: saved ? undefined : 'save user policy mode failed'
+      errorMessage: saved ? undefined : FirewallPolicyErrorStrings.SAVE_USER_POLICY_MODE_FAILED
     }
   }
 
@@ -174,7 +175,7 @@ export class FirewallPolicyService {
         isOpen: false,
         inAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
         outAction: netFirewall.FirewallRuleAction.RULE_ALLOW,
-        message: 'read policy failed'
+        message: FirewallPolicyErrorStrings.READ_POLICY_FAILED
       }
     }
     return {

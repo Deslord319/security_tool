@@ -121,8 +121,12 @@ export class IdentityPasswordPolicyMapper {
   private static isEmptyPolicy(policy: securityManager.PasswordPolicy): boolean {
     let complexityRegex = policy.complexityRegex?.trim() ?? ''
     let additionalDescription = policy.additionalDescription?.trim() ?? ''
-    let validityPeriod = policy.validityPeriod
-    let hasNoValidityLimit = typeof validityPeriod !== 'number' || validityPeriod === 0
-    return complexityRegex.length === 0 && additionalDescription.length === 0 && hasNoValidityLimit
+    return complexityRegex.length === 0 &&
+      additionalDescription.length === 0 &&
+      IdentityPasswordPolicyMapper.isEmptyPolicyValidity(policy.validityPeriod)
+  }
+
+  private static isEmptyPolicyValidity(validityPeriod?: number): boolean {
+    return typeof validityPeriod !== 'number'
   }
 }

@@ -7,8 +7,8 @@ import { IconTextActionButton } from './IconTextActionButton'
 @ComponentV2
 export struct DetailDialogShell {
   @Param title: string = ''
-  @Param dialogWidth: number = 560
-  @Param maxBodyHeight: number = 420
+  @Param dialogWidth: number = AppStyles.DIALOG_WIDTH_DEFAULT
+  @Param maxBodyHeight: number = AppStyles.DIALOG_BODY_MAX_HEIGHT_DEFAULT
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param showHeader: boolean = true
   @Param showCloseAction: boolean = true

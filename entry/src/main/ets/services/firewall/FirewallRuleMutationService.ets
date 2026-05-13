@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit'
+import { FirewallRuleMutationErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { buildFirewallAddRuleFailedMessage } from '../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../utils/LogUtils'
 import { generateRandomSuffix } from '../../utils/ValuePicker'
@@ -34,7 +35,7 @@ export class FirewallRuleMutationService {
       return {
         success: false,
         localRuleId: localRuleId,
-        errorMessage: 'rule intent not found'
+        errorMessage: FirewallRuleMutationErrorStrings.RULE_INTENT_NOT_FOUND
       }
     }
 
@@ -67,7 +68,7 @@ export class FirewallRuleMutationService {
       let rollbackNewFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
         localRuleId,
         nextApplyResult.deployments,
-        'rollback new system rule failed'
+        FirewallRuleMutationErrorStrings.ROLLBACK_NEW_SYSTEM_RULE_FAILED
       )
       let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(context, existingIntent, oldDeployments, removeResult.removedDeployments)
       return {
@@ -80,7 +81,7 @@ export class FirewallRuleMutationService {
           ...rollbackNewFailedItems,
           ...restoreResult.failedItems
         ],
-        errorMessage: 'update rule failed while removing old deployments'
+        errorMessage: FirewallRuleMutationErrorStrings.UPDATE_FAILED_WHILE_REMOVING_OLD_DEPLOYMENTS
       }
     }
 
@@ -91,13 +92,13 @@ export class FirewallRuleMutationService {
       let rollbackNewFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
         localRuleId,
         nextApplyResult.deployments,
-        'rollback new system rule failed'
+        FirewallRuleMutationErrorStrings.ROLLBACK_NEW_SYSTEM_RULE_FAILED
       )
       let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(context, existingIntent, oldDeployments, oldDeployments)
       if (intentSaved) {
         let restoredIntent = await FirewallLocalRepository.saveRuleIntent(context, existingIntent)
         if (!restoredIntent) {
-          restoreResult.failedItems.push({ localRuleId: localRuleId, errorMessage: 'restore old intent failed' })
+          restoreResult.failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.RESTORE_OLD_INTENT_FAILED })
         }
       }
       return {
@@ -109,7 +110,7 @@ export class FirewallRuleMutationService {
           ...rollbackNewFailedItems,
           ...restoreResult.failedItems
         ],
-        errorMessage: 'local save failed'
+        errorMessage: FirewallRuleMutationErrorStrings.LOCAL_SAVE_FAILED
       }
     }
 
@@ -118,7 +119,7 @@ export class FirewallRuleMutationService {
       localRuleId: localRuleId,
       successDeployments: nextApplyResult.deployments,
       failedItems: nextApplyResult.failedItems,
-      errorMessage: nextApplyResult.failedItems.length === 0 ? undefined : 'rule updated with failed items'
+      errorMessage: nextApplyResult.failedItems.length === 0 ? undefined : FirewallRuleMutationErrorStrings.RULE_UPDATED_WITH_FAILED_ITEMS
     }
   }
 
@@ -132,19 +133,19 @@ export class FirewallRuleMutationService {
         success: false,
         localRuleId: localRuleId,
         failedItems: failedItems,
-        errorMessage: 'delete rule completed with failed items'
+        errorMessage: FirewallRuleMutationErrorStrings.DELETE_RULE_COMPLETED_WITH_FAILED_ITEMS
       }
     }
 
     let intentRemoved = await FirewallLocalRepository.removeRuleIntent(context, localRuleId)
     if (!intentRemoved) {
-      failedItems.push({ localRuleId: localRuleId, errorMessage: 'remove rule intent failed' })
+      failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.REMOVE_RULE_INTENT_FAILED })
     }
     return {
       success: failedItems.length === 0,
       localRuleId: localRuleId,
       failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : 'delete rule completed with failed items'
+      errorMessage: failedItems.length === 0 ? undefined : FirewallRuleMutationErrorStrings.DELETE_RULE_COMPLETED_WITH_FAILED_ITEMS
     }
   }
 
@@ -160,14 +161,14 @@ export class FirewallRuleMutationService {
       return {
         success: false,
         localRuleId: conflictLocalRuleId,
-        errorMessage: 'conflict rule intent not found'
+        errorMessage: FirewallRuleMutationErrorStrings.CONFLICT_RULE_INTENT_NOT_FOUND
       }
     }
     if (isEditMode && nextLocalRuleId === undefined) {
       return {
         success: false,
         localRuleId: conflictLocalRuleId,
-        errorMessage: 'target rule intent not found'
+        errorMessage: FirewallRuleMutationErrorStrings.TARGET_RULE_INTENT_NOT_FOUND
       }
     }
 
@@ -179,7 +180,7 @@ export class FirewallRuleMutationService {
         return {
           success: false,
           localRuleId: nextLocalRuleId,
-          errorMessage: 'target rule intent not found'
+          errorMessage: FirewallRuleMutationErrorStrings.TARGET_RULE_INTENT_NOT_FOUND
         }
       }
       targetDeployments = await FirewallLocalRepository.listRuleDeployments(context, nextLocalRuleId as string)
@@ -230,8 +231,8 @@ export class FirewallRuleMutationService {
       ],
       errorCode: nextResult.errorCode,
       errorMessage: restoreFailedItems.length > 0
-        ? 'replace conflict rule failed and restore old rule failed'
-        : 'replace conflict rule failed and restored old rule'
+        ? FirewallRuleMutationErrorStrings.REPLACE_FAILED_AND_RESTORE_OLD_FAILED
+        : FirewallRuleMutationErrorStrings.REPLACE_FAILED_AND_RESTORED_OLD
     }
   }
 
@@ -277,7 +278,7 @@ export class FirewallRuleMutationService {
         localRuleId: localRuleId,
         successDeployments: deployments,
         failedItems: [...failedItems, ...rollbackFailedItems],
-        errorMessage: 'local save failed'
+        errorMessage: FirewallRuleMutationErrorStrings.LOCAL_SAVE_FAILED
       }
     }
 
@@ -286,7 +287,7 @@ export class FirewallRuleMutationService {
       localRuleId: localRuleId,
       successDeployments: deployments,
       failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : 'rule created with failed items'
+      errorMessage: failedItems.length === 0 ? undefined : FirewallRuleMutationErrorStrings.RULE_CREATED_WITH_FAILED_ITEMS
     }
   }
 
@@ -298,7 +299,7 @@ export class FirewallRuleMutationService {
     let failedItems: FirewallFailedItem[] = []
     let intentSaved = await FirewallLocalRepository.saveRuleIntent(context, intent)
     if (!intentSaved) {
-      failedItems.push({ localRuleId: intent.localRuleId, errorMessage: 'restore old intent failed' })
+      failedItems.push({ localRuleId: intent.localRuleId, errorMessage: FirewallRuleMutationErrorStrings.RESTORE_OLD_INTENT_FAILED })
     }
     let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(
       context,
@@ -319,11 +320,11 @@ export class FirewallRuleMutationService {
     let failedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
       intent.localRuleId,
       nextDeployments,
-      'rollback updated system rule failed'
+      FirewallRuleMutationErrorStrings.ROLLBACK_UPDATED_SYSTEM_RULE_FAILED
     )
     let intentSaved = await FirewallLocalRepository.saveRuleIntent(context, intent)
     if (!intentSaved) {
-      failedItems.push({ localRuleId: intent.localRuleId, errorMessage: 'restore target intent failed' })
+      failedItems.push({ localRuleId: intent.localRuleId, errorMessage: FirewallRuleMutationErrorStrings.RESTORE_TARGET_INTENT_FAILED })
     }
     let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(
       context,
@@ -344,16 +345,16 @@ export class FirewallRuleMutationService {
     let failedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
       localRuleId,
       deployments,
-      'rollback system rule failed'
+      FirewallRuleMutationErrorStrings.ROLLBACK_SYSTEM_RULE_FAILED
     )
     let deploymentsRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
     if (!deploymentsRemoved) {
-      failedItems.push({ localRuleId: localRuleId, errorMessage: 'rollback local deployments failed' })
+      failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.ROLLBACK_LOCAL_DEPLOYMENTS_FAILED })
     }
     if (intentSaved) {
       let intentRemoved = await FirewallLocalRepository.removeRuleIntent(context, localRuleId)
       if (!intentRemoved) {
-        failedItems.push({ localRuleId: localRuleId, errorMessage: 'rollback local intent failed' })
+        failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.ROLLBACK_LOCAL_INTENT_FAILED })
       }
     }
     return failedItems

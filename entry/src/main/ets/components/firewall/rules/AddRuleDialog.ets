@@ -209,7 +209,7 @@ export struct AddRuleDialog {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
         TextInput({ text: this.ruleName, placeholder: FirewallDialogStrings.RULE_NAME_PLACEHOLDER })
-          .height(40)
+          .height(AppStyles.INPUT_HEIGHT)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
           .backgroundColor(FormControlUtils.background(this.currentTheme))
@@ -234,7 +234,7 @@ export struct AddRuleDialog {
           .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
-          .height(40)
+          .height(AppStyles.INPUT_HEIGHT)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
@@ -257,7 +257,7 @@ export struct AddRuleDialog {
           .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
-          .height(40)
+          .height(AppStyles.INPUT_HEIGHT)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
@@ -295,7 +295,7 @@ export struct AddRuleDialog {
             .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
             .font({ size: AppStyles.FONT_SIZE_BODY })
             .width('100%')
-            .height(40)
+            .height(AppStyles.INPUT_HEIGHT)
             .backgroundColor(FormControlUtils.background(this.currentTheme))
             .borderRadius(AppStyles.RADIUS_MD)
             .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
@@ -317,7 +317,7 @@ export struct AddRuleDialog {
           text: this.remoteAddress,
           placeholder: this.getRuleTypePlaceholder()
         })
-          .height(40)
+          .height(AppStyles.INPUT_HEIGHT)
           .fontColor(FormControlUtils.text(this.currentTheme))
           .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
           .backgroundColor(FormControlUtils.background(this.currentTheme))
@@ -341,7 +341,7 @@ export struct AddRuleDialog {
             text: this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? this.localPort : this.remotePort,
             placeholder: FirewallDialogStrings.PORT_PLACEHOLDER
           })
-            .height(40)
+            .height(AppStyles.INPUT_HEIGHT)
             .fontColor(FormControlUtils.text(this.currentTheme))
             .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
             .backgroundColor(FormControlUtils.background(this.currentTheme))
@@ -404,7 +404,7 @@ export struct AddRuleDialog {
           .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
           .font({ size: AppStyles.FONT_SIZE_BODY })
           .width('100%')
-          .height(40)
+          .height(AppStyles.INPUT_HEIGHT)
           .backgroundColor(FormControlUtils.background(this.currentTheme))
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
@@ -421,7 +421,7 @@ export struct AddRuleDialog {
           .borderRadius(AppStyles.RADIUS_MD)
           .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
           .layoutWeight(1)
-          .height(40)
+          .height(AppStyles.BUTTON_HEIGHT)
           .enabled(!this.submitting && !this.isSubmitting)
           .opacity(!this.submitting && !this.isSubmitting ? 1 : 0.5)
           .onClick(() => {
@@ -433,7 +433,7 @@ export struct AddRuleDialog {
           .backgroundColor(AppColors.BRAND_PRIMARY)
           .borderRadius(AppStyles.RADIUS_MD)
           .layoutWeight(1)
-          .height(40)
+          .height(AppStyles.BUTTON_HEIGHT)
           .enabled(!this.submitting && !this.isSubmitting)
           .opacity(!this.submitting && !this.isSubmitting ? 1 : 0.5)
           .onClick(() => {
@@ -449,8 +449,8 @@ export struct AddRuleDialog {
 
   build() {
     DetailDialogShell({
-      dialogWidth: 620,
-      maxBodyHeight: 760,
+      dialogWidth: AppStyles.DIALOG_WIDTH_MEDIUM,
+      maxBodyHeight: AppStyles.DIALOG_BODY_MAX_HEIGHT_LARGE,
       currentTheme: this.currentTheme,
       showHeader: false,
       showCloseAction: false,

@@ -457,8 +457,8 @@ export struct LogManagePage {
           } else {
             Column({ space: 12 }) {
               LoadingProgress()
-                .width(42)
-                .height(42)
+                .width(AppStyles.LOADING_INDICATOR_SIZE)
+                .height(AppStyles.LOADING_INDICATOR_SIZE)
               Text(LoadingStrings.LOADING)
                 .fontSize(AppStyles.FONT_SIZE_BODY)
                 .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

@@ -84,7 +84,9 @@ export struct LogEntriesPanel {
   build() {
     if (this.loading) {
       Column() {
-        LoadingProgress().width(48).height(48)
+        LoadingProgress()
+          .width(AppStyles.LOADING_INDICATOR_SIZE_LG)
+          .height(AppStyles.LOADING_INDICATOR_SIZE_LG)
         Text(LoadingStrings.LOADING).fontSize(AppStyles.FONT_SIZE_BODY).margin({ top: 8 })
       }
       .width('100%')

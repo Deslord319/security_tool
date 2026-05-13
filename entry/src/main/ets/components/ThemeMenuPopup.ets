@@ -112,7 +112,7 @@ export struct AboutDialogContent {
 
       Button(ActionText.CONFIRM)
         .width(180)
-        .height(40)
+        .height(AppStyles.BUTTON_HEIGHT)
         .fontSize(16)
         .fontColor(Color.White)
         .backgroundColor(AppColors.BRAND_PRIMARY)
