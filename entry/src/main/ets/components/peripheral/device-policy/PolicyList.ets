@@ -1,4 +1,3 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { EmptyStateStrings } from '../../../constants/modules/DialogStrings'
 import { PeripheralPageStrings } from '../../../constants/modules/PeripheralStrings'
@@ -10,10 +9,10 @@ import {
 } from '../../../models/PeripheralModels'
 import { getPeripheralTypeLabel } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { PeripheralDeviceIdentityCell, PeripheralHeaderCell, PeripheralTypeTag } from '../common/PeripheralTableCells'
+import { StyledSelect } from '../../StyledSelect'
 
 @ComponentV2
 export struct PolicyList {
@@ -147,27 +146,23 @@ export struct PolicyList {
       .layoutWeight(1.8)
       .justifyContent(FlexAlign.Center)
 
-      Select(this.policyListOptions)
-        .selected(record.policyIndex)
-        .value(this.getPolicyLabel(record.policyIndex))
-        .font({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
-        .optionFont({ size: AppStyles.FONT_SIZE_CAPTION, weight: FontWeight.Regular })
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(8)
-        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .height(32)
-        .layoutWeight(1.4)
-        .enabled(!(this.isUpdating ? this.isUpdating(record.deviceId) : false))
-        .opacity((this.isUpdating ? this.isUpdating(record.deviceId) : false) ? 0.6 : 1)
-        .onSelect((selectIndex: number) => {
+      StyledSelect({
+        options: this.policyListOptions,
+        selectedIndex: record.policyIndex,
+        value: this.getPolicyLabel(record.policyIndex),
+        controlHeight: 32,
+        radius: 8,
+        fontSize: AppStyles.FONT_SIZE_CAPTION,
+        enabledValue: !(this.isUpdating ? this.isUpdating(record.deviceId) : false),
+        opacityValue: (this.isUpdating ? this.isUpdating(record.deviceId) : false) ? 0.6 : 1,
+        currentTheme: this.currentTheme,
+        onSelect: (selectIndex: number) => {
           if (this.onPolicyChange) {
             this.onPolicyChange(index, selectIndex)
           }
-        })
+        }
+      })
+        .layoutWeight(1.4)
     }
     .width('100%')
     .padding({ left: 22, right: 22, top: 18, bottom: 18 })

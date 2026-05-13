@@ -10,6 +10,7 @@ import {
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
+import { LoadingStatePanel } from '../../LoadingStatePanel'
 
 @ComponentV2
 export struct LogEntriesPanel {
@@ -83,15 +84,12 @@ export struct LogEntriesPanel {
 
   build() {
     if (this.loading) {
-      Column() {
-        LoadingProgress()
-          .width(AppStyles.LOADING_INDICATOR_SIZE_LG)
-          .height(AppStyles.LOADING_INDICATOR_SIZE_LG)
-        Text(LoadingStrings.LOADING).fontSize(AppStyles.FONT_SIZE_BODY).margin({ top: 8 })
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .justifyContent(FlexAlign.Center)
+      LoadingStatePanel({
+        message: LoadingStrings.LOADING,
+        indicatorSize: AppStyles.LOADING_INDICATOR_SIZE_LG,
+        currentTheme: this.currentTheme
+      })
+        .layoutWeight(1)
     } else if (this.listState.pagedEntries.length === 0) {
       Scroll() {
         Column() {

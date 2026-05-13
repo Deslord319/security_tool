@@ -1,12 +1,12 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { netFirewall } from '@kit.NetworkKit'
 import { DialogService } from '../../../utils/DialogService'
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { ActionText } from '../../../constants/StringCatalog'
 import { FirewallDialogStrings, FirewallRuleLabelStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
+import { StyledSelect } from '../../StyledSelect'
+import { StyledTextInput } from '../../StyledTextInput'
 import { MultiCheckSelect } from '../../MultiCheckSelect'
 import {
   FIREWALL_PROTOCOL_TCP,
@@ -208,14 +208,12 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        TextInput({ text: this.ruleName, placeholder: FirewallDialogStrings.RULE_NAME_PLACEHOLDER })
-          .height(AppStyles.INPUT_HEIGHT)
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onChange((value: string) => { this.ruleName = value })
+        StyledTextInput({
+          text: this.ruleName,
+          placeholder: FirewallDialogStrings.RULE_NAME_PLACEHOLDER,
+          currentTheme: this.currentTheme,
+          onChange: (value: string) => { this.ruleName = value }
+        })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -226,19 +224,13 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Select(this.ruleTypeOptions)
-          .selected(this.getSelectedRuleTypeIndex())
-          .value(this.getSelectedRuleTypeLabel())
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .width('100%')
-          .height(AppStyles.INPUT_HEIGHT)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.ruleType = this.ruleTypeValues[index] ?? this.ruleTypeValues[0] })
+        StyledSelect({
+          options: this.ruleTypeOptions,
+          selectedIndex: this.getSelectedRuleTypeIndex(),
+          value: this.getSelectedRuleTypeLabel(),
+          currentTheme: this.currentTheme,
+          onSelect: (index: number) => { this.ruleType = this.ruleTypeValues[index] ?? this.ruleTypeValues[0] }
+        })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -249,19 +241,12 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Select(this.directionOptions)
-          .selected(this.getSelectedDirectionIndex())
-          .value(this.getSelectedDirectionLabel())
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .width('100%')
-          .height(AppStyles.INPUT_HEIGHT)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => {
+        StyledSelect({
+          options: this.directionOptions,
+          selectedIndex: this.getSelectedDirectionIndex(),
+          value: this.getSelectedDirectionLabel(),
+          currentTheme: this.currentTheme,
+          onSelect: (index: number) => {
             let nextDirection = this.directionValues[index] ?? this.directionValues[0]
             if (nextDirection === this.ruleDirection) {
               return
@@ -275,7 +260,8 @@ export struct AddRuleDialog {
             }
             this.remotePort = currentPort
             this.localPort = ''
-          })
+          }
+        })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -287,21 +273,15 @@ export struct AddRuleDialog {
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          Select(this.protocolOptions)
-            .selected(this.getSelectedProtocolIndex())
-            .value(this.getSelectedProtocolLabel())
-            .fontColor(FormControlUtils.text(this.currentTheme))
-            .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-            .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-            .font({ size: AppStyles.FONT_SIZE_BODY })
-            .width('100%')
-            .height(AppStyles.INPUT_HEIGHT)
-            .backgroundColor(FormControlUtils.background(this.currentTheme))
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-            .onSelect((index: number) => {
+          StyledSelect({
+            options: this.protocolOptions,
+            selectedIndex: this.getSelectedProtocolIndex(),
+            value: this.getSelectedProtocolLabel(),
+            currentTheme: this.currentTheme,
+            onSelect: (index: number) => {
               this.protocol = this.protocolValues[index] ?? this.protocolValues[0]
-            })
+            }
+          })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -313,17 +293,12 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        TextInput({
+        StyledTextInput({
           text: this.remoteAddress,
-          placeholder: this.getRuleTypePlaceholder()
+          placeholder: this.getRuleTypePlaceholder(),
+          currentTheme: this.currentTheme,
+          onChange: (value: string) => { this.remoteAddress = value }
         })
-          .height(AppStyles.INPUT_HEIGHT)
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onChange((value: string) => { this.remoteAddress = value })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -337,17 +312,11 @@ export struct AddRuleDialog {
             .fontWeight(FontWeight.Medium)
             .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
             .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-          TextInput({
+          StyledTextInput({
             text: this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? this.localPort : this.remotePort,
-            placeholder: FirewallDialogStrings.PORT_PLACEHOLDER
-          })
-            .height(AppStyles.INPUT_HEIGHT)
-            .fontColor(FormControlUtils.text(this.currentTheme))
-            .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-            .backgroundColor(FormControlUtils.background(this.currentTheme))
-            .borderRadius(AppStyles.RADIUS_MD)
-            .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-            .onChange((value: string) => {
+            placeholder: FirewallDialogStrings.PORT_PLACEHOLDER,
+            currentTheme: this.currentTheme,
+            onChange: (value: string) => {
               if (this.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN) {
                 this.localPort = value
                 this.remotePort = ''
@@ -355,7 +324,8 @@ export struct AddRuleDialog {
               }
               this.remotePort = value
               this.localPort = ''
-            })
+            }
+          })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -396,19 +366,13 @@ export struct AddRuleDialog {
           .fontWeight(FontWeight.Medium)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        Select(this.actionOptions)
-          .selected(this.getSelectedActionIndex())
-          .value(this.getSelectedActionLabel())
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .width('100%')
-          .height(AppStyles.INPUT_HEIGHT)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => { this.action = this.actionValues[index] ?? this.actionValues[0] })
+        StyledSelect({
+          options: this.actionOptions,
+          selectedIndex: this.getSelectedActionIndex(),
+          value: this.getSelectedActionLabel(),
+          currentTheme: this.currentTheme,
+          onSelect: (index: number) => { this.action = this.actionValues[index] ?? this.actionValues[0] }
+        })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)

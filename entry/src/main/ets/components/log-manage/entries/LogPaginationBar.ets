@@ -1,11 +1,11 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText } from '../../../constants/StringCatalog'
 import { LogManagePaginationStrings } from '../../../constants/modules/LogManageStrings'
 import { LogListState, LogPaginationState, LogSummaryState } from '../../../models/LogManageModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { IconTextActionButton } from '../../IconTextActionButton'
+import { StyledSelect } from '../../StyledSelect'
+import { StyledTextInput } from '../../StyledTextInput'
 
 @ComponentV2
 export struct LogPaginationBar {
@@ -44,21 +44,17 @@ export struct LogPaginationBar {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .layoutWeight(1)
 
-        Select(this.getPageSizeOptions())
-          .selected(this.paginationState.pageSizeIndex)
-          .value(LogManagePaginationStrings.buildPageSizeText(this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20))
-          .font({ size: AppStyles.FONT_SIZE_CAPTION })
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .selectedOptionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-          .optionFont({ size: AppStyles.FONT_SIZE_CAPTION })
-          .width(126)
-          .height(32)
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_SM)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .onSelect((index: number) => this.onSelectPageSize(index))
+        StyledSelect({
+          options: this.getPageSizeOptions(),
+          selectedIndex: this.paginationState.pageSizeIndex,
+          value: LogManagePaginationStrings.buildPageSizeText(this.pageSizeOptions[this.paginationState.pageSizeIndex] ?? this.pageSizeOptions[0] ?? 20),
+          controlWidth: 126,
+          controlHeight: 32,
+          radius: AppStyles.RADIUS_SM,
+          fontSize: AppStyles.FONT_SIZE_CAPTION,
+          currentTheme: this.currentTheme,
+          onSelect: (index: number) => this.onSelectPageSize(index)
+        })
 
         IconTextActionButton({
           label: ActionText.PREVIOUS_PAGE,
@@ -74,17 +70,18 @@ export struct LogPaginationBar {
           .width(52)
           .textAlign(TextAlign.Center)
 
-        TextInput({ text: this.paginationState.pageInputText, placeholder: LogManagePaginationStrings.PAGE_INPUT_PLACEHOLDER })
-          .type(InputType.Number)
-          .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .borderRadius(AppStyles.RADIUS_SM)
-          .height(32)
-          .width(62)
-          .onChange((value: string) => this.onChangePageInput(value))
-          .onSubmit(this.onJumpPage)
+        StyledTextInput({
+          text: this.paginationState.pageInputText,
+          placeholder: LogManagePaginationStrings.PAGE_INPUT_PLACEHOLDER,
+          inputType: InputType.Number,
+          controlWidth: 62,
+          controlHeight: 32,
+          radius: AppStyles.RADIUS_SM,
+          fontSize: AppStyles.FONT_SIZE_CAPTION,
+          currentTheme: this.currentTheme,
+          onChange: (value: string) => this.onChangePageInput(value),
+          onSubmit: this.onJumpPage
+        })
 
         IconTextActionButton({
           label: ActionText.JUMP,

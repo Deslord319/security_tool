@@ -11,6 +11,7 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SectionSelectInputRow, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
+import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
 import { DialogService } from '../../../utils/DialogService'
 import { LogUtils } from '../../../utils/LogUtils'
 import { SubPageHeader } from '../../../components/SubPageHeader'
@@ -151,16 +152,11 @@ export struct IdentityPage {
   @Builder
   private passwordComplexityContent() {
     if (!this.viewModel.state.initialized) {
-      Row() {
-        LoadingProgress()
-          .width(24)
-          .height(24)
-          .color(AppColors.BRAND_PRIMARY)
-      }
-      .width('100%')
-      .height(96)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(VerticalAlign.Center)
+      LoadingStatePanel({
+        indicatorSize: 24,
+        currentTheme: this.currentTheme
+      })
+        .height(96)
     } else {
       SectionSelectRow({
       title: IdentitySectionStrings.MIN_PASSWORD_LENGTH,

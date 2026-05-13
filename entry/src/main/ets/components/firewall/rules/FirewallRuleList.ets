@@ -13,6 +13,7 @@ import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { BaseCard } from '../../BaseCard'
 import { IconTextActionButton } from '../../IconTextActionButton'
+import { LoadingStatePanel } from '../../LoadingStatePanel'
 import {
   FIREWALL_PROTOCOL_ICMP,
   FIREWALL_PROTOCOL_TCP,
@@ -38,18 +39,12 @@ export struct FirewallRuleList {
   build() {
     Column() {
       if (this.isLoading) {
-        Column({ space: 10 }) {
-          LoadingProgress()
-            .width(AppStyles.LOADING_INDICATOR_SIZE)
-            .height(AppStyles.LOADING_INDICATOR_SIZE)
-          Text(LoadingStrings.LOADING_RULES)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
+        LoadingStatePanel({
+          message: LoadingStrings.LOADING_RULES,
+          indicatorSize: AppStyles.LOADING_INDICATOR_SIZE,
+          currentTheme: this.currentTheme
+        })
+          .layoutWeight(1)
       } else if (this.rules.length === 0) {
         Column({ space: 10 }) {
           Text(EmptyStateStrings.NO_RULES)
