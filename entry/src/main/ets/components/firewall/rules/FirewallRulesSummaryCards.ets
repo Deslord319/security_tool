@@ -12,7 +12,6 @@ import {
   FirewallDefaultPolicyMode
 } from '../../../services/firewall/FirewallModels'
 
-const SUMMARY_CARD_HEIGHT: number = 108
 const USER_POLICY_DESCRIPTION_MAX_LINES: number = 2
 
 @ComponentV2
@@ -64,7 +63,6 @@ export struct FirewallRulesSummaryCards {
           accentStart: AppColors.DANGER,
           accentEnd: AppColors.WARNING,
           icon: AppResources.SHIELD_ICON,
-          cardHeight: SUMMARY_CARD_HEIGHT,
           secondaryMaxLines: USER_POLICY_DESCRIPTION_MAX_LINES,
           currentTheme: this.currentTheme
         })
@@ -77,7 +75,6 @@ export struct FirewallRulesSummaryCards {
           accentStart: AppColors.SUCCESS,
           accentEnd: AppColors.GRADIENT_LOG_END,
           icon: AppResources.SHIELD_ICON,
-          cardHeight: SUMMARY_CARD_HEIGHT,
           secondaryMaxLines: USER_POLICY_DESCRIPTION_MAX_LINES,
           currentTheme: this.currentTheme
         })
@@ -90,7 +87,6 @@ export struct FirewallRulesSummaryCards {
           accentStart: AppColors.WARNING,
           accentEnd: AppColors.GRADIENT_IDENTITY_END,
           icon: AppResources.ARROW_DOWN_ICON,
-          cardHeight: SUMMARY_CARD_HEIGHT,
           currentTheme: this.currentTheme
         })
           .layoutWeight(1)
@@ -102,7 +98,6 @@ export struct FirewallRulesSummaryCards {
           accentStart: AppColors.BRAND_PRIMARY,
           accentEnd: AppColors.GRADIENT_FIREWALL_END,
           icon: AppResources.ARROW_UP_ICON,
-          cardHeight: SUMMARY_CARD_HEIGHT,
           currentTheme: this.currentTheme
         })
           .layoutWeight(1)
