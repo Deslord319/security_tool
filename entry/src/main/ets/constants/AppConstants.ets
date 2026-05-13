@@ -72,6 +72,7 @@ export class AppStyles {
   static readonly INPUT_HEIGHT: number = 40
   static readonly LOADING_INDICATOR_SIZE: number = 42
   static readonly LOADING_INDICATOR_SIZE_LG: number = 48
+  static readonly INLINE_LOADING_INDICATOR_SIZE: number = 18
   static readonly DIALOG_WIDTH_DEFAULT: number = 560
   static readonly DIALOG_WIDTH_MEDIUM: number = 620
   static readonly DIALOG_WIDTH_LARGE: number = 760
@@ -84,6 +85,13 @@ export class AppStyles {
   static readonly ICON_TILE_SIZE_LG: number = 48
   static readonly TOP_BAR_HEIGHT: number = 56
   static readonly RADIUS_PILL: number = 999
+  static readonly CONTROL_ROW_ACTION_GAP: number = 10
+  static readonly CONTROL_ROW_HORIZONTAL_PADDING: number = 20
+  static readonly CONTROL_ROW_VERTICAL_PADDING: number = 16
+  static readonly TABLE_HORIZONTAL_PADDING: number = 22
+  static readonly TABLE_HEADER_VERTICAL_PADDING: number = 14
+  static readonly TABLE_ROW_VERTICAL_PADDING: number = 18
+  static readonly TABLE_DIVIDER_MARGIN: number = 20
   
   // 间距常量（按需定义）
   static readonly SPACING_TAB_BAR_ITEM_HORIZONTAL: number = 16

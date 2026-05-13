@@ -153,11 +153,11 @@ export struct InterfaceControlTab {
         currentTheme: this.currentTheme
       })
 
-      Row({ space: 10 }) {
+      Row({ space: AppStyles.CONTROL_ROW_ACTION_GAP }) {
         if (isProcessing) {
           LoadingProgress()
-            .width(18)
-            .height(18)
+            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
             .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         }
 
@@ -178,7 +178,12 @@ export struct InterfaceControlTab {
       }
     }
     .width('100%')
-    .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+    .padding({
+      left: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      right: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
+    })
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .opacity(isProcessing ? 0.8 : 1)
   }
