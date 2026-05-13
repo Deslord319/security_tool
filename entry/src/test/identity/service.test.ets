@@ -82,21 +82,13 @@ export default function identityServiceTest() {
       expect(config).assertEqual(null)
     })
 
-    it('should preserve system zero-validity policy as immediate expiry', 0, () => {
+    it('should return null config for system empty zero-validity policy', 0, () => {
       let policy = new TestPasswordPolicy()
       policy.validityPeriod = 0
 
       let config = IdentityPasswordPolicyMapper.toConfig(policy)
 
-      expect(config !== null).assertTrue()
-      if (config) {
-        expect(config.minLength).assertEqual(0)
-        expect(config.requireLowercase).assertFalse()
-        expect(config.requireUppercase).assertFalse()
-        expect(config.requireDigit).assertFalse()
-        expect(config.requireSpecialChar).assertFalse()
-        expect(config.validityPeriod).assertEqual(0)
-      }
+      expect(config).assertEqual(null)
     })
 
     it('should fall back to minLength zero when regex does not contain length marker', 0, () => {

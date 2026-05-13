@@ -127,6 +127,6 @@ export class IdentityPasswordPolicyMapper {
   }
 
   private static isEmptyPolicyValidity(validityPeriod?: number): boolean {
-    return typeof validityPeriod !== 'number'
+    return typeof validityPeriod !== 'number' || validityPeriod === 0
   }
 }
