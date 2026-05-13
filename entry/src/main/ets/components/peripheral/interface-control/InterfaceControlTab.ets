@@ -165,6 +165,7 @@ export struct InterfaceControlTab {
           options: options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
           selectedIndex: selectedIndex,
           value: options[selectedIndex] ?? '',
+          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
           enabledValue: !isProcessing,
           opacityValue: isProcessing ? 0.72 : 1,
           currentTheme: this.currentTheme,

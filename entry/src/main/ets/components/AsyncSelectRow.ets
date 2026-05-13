@@ -111,6 +111,7 @@ export struct AsyncSelectRow {
           options: this.options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
           selectedIndex: this.getEffectiveSelectedIndex(),
           value: this.getDisplayValue(),
+          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
           enabledValue: !this.isBusy(),
           opacityValue: this.isBusy() ? 0.72 : 1,
           currentTheme: this.currentTheme,
