@@ -4,7 +4,8 @@ import { netFirewall } from '@kit.NetworkKit'
 import {
   FirewallDialogStrings,
   FirewallRuleStrings,
-  buildFirewallConflictNotice
+  buildFirewallConflictNotice,
+  buildFirewallUserLabel
 } from '../../../constants/modules/FirewallStrings'
 import {
   attachFirewallRuleUserIds,
@@ -57,7 +58,7 @@ export function buildFirewallRuleUserScopeLabel(
   availableUsers.forEach((item: UserFirewallOption) => {
     userLabelMap.set(item.userId, item.label)
   })
-  let labels = userIds.map((userId: number): string => userLabelMap.get(userId) ?? `用户 ${userId}`)
+  let labels = userIds.map((userId: number): string => userLabelMap.get(userId) ?? buildFirewallUserLabel(userId, false))
   return labels.join('、')
 }
 

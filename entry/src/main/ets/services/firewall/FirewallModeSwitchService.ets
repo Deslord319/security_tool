@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
+import { FirewallModeSwitchErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import {
   FirewallFailedItem,
   FirewallOperationResult,
@@ -41,7 +42,7 @@ export class FirewallModeSwitchService {
       return {
         success: false,
         failedItems: failedItems,
-        errorMessage: 'mode switch snapshot failed'
+        errorMessage: FirewallModeSwitchErrorStrings.SNAPSHOT_FAILED
       }
     }
     let snapshot = snapshotResult.snapshot as FirewallModeSwitchSnapshot
@@ -57,7 +58,7 @@ export class FirewallModeSwitchService {
 
     let deploymentsCleared = await FirewallLocalRepository.clearAllRuleDeployments(context)
     if (!deploymentsCleared) {
-      failedItems.push({ errorMessage: 'clear local deployments failed' })
+        failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.CLEAR_LOCAL_DEPLOYMENTS_FAILED })
     }
 
     let preparedRules = await FirewallModeStrategy.buildRulesForMode(context, targetMode)
@@ -79,7 +80,7 @@ export class FirewallModeSwitchService {
         localRuleId: prepared.localRuleId,
         userId: prepared.userId,
         errorCode: addRuleResult.errorCode,
-        errorMessage: addRuleResult.errorMessage ?? 'add rule failed'
+        errorMessage: addRuleResult.errorMessage ?? FirewallModeSwitchErrorStrings.ADD_RULE_FAILED
       })
     }
 
@@ -92,14 +93,14 @@ export class FirewallModeSwitchService {
         deploymentsByLocalRuleId.get(localRuleId) ?? []
       )
       if (!saved) {
-        failedItems.push({ localRuleId: localRuleId, errorMessage: 'save deployments failed' })
+        failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallModeSwitchErrorStrings.SAVE_DEPLOYMENTS_FAILED })
       }
     }
 
     if (failedItems.length === 0) {
       let modeSaved = await FirewallLocalRepository.saveCurrentMode(context, targetMode)
       if (!modeSaved) {
-        failedItems.push({ errorMessage: 'save target mode failed' })
+        failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.SAVE_TARGET_MODE_FAILED })
       }
     }
     if (failedItems.length > 0) {
@@ -109,7 +110,7 @@ export class FirewallModeSwitchService {
     return {
       success: failedItems.length === 0,
       failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : 'mode switch completed with failed items'
+      errorMessage: failedItems.length === 0 ? undefined : FirewallModeSwitchErrorStrings.COMPLETED_WITH_FAILED_ITEMS
     }
   }
 
@@ -135,7 +136,7 @@ export class FirewallModeSwitchService {
       let userId = users[i].userId
       let policy = await FirewallSystemRepository.getPolicy(userId)
       if (policy === null) {
-        failedItems.push({ userId: userId, errorMessage: 'read previous policy failed' })
+        failedItems.push({ userId: userId, errorMessage: FirewallModeSwitchErrorStrings.READ_PREVIOUS_POLICY_FAILED })
         continue
       }
       policies.set(userId, FirewallModeSwitchService.clonePolicy(policy))
@@ -167,7 +168,7 @@ export class FirewallModeSwitchService {
       let clearResult = await FirewallSystemRepository.clearRules(userId)
       if (!clearResult.success) {
         failedItems.push(...clearResult.failedItems.map((item: FirewallFailedItem): FirewallFailedItem => {
-          item.errorMessage = item.errorMessage ?? 'rollback clear current rules failed'
+          item.errorMessage = item.errorMessage ?? FirewallModeSwitchErrorStrings.ROLLBACK_CLEAR_CURRENT_RULES_FAILED
           return item
         }))
       }
@@ -176,7 +177,7 @@ export class FirewallModeSwitchService {
       if (previousPolicy !== undefined) {
         let policyRestored = await FirewallSystemRepository.setPolicy(userId, previousPolicy)
         if (!policyRestored) {
-          failedItems.push({ userId: userId, errorMessage: 'rollback policy failed' })
+          failedItems.push({ userId: userId, errorMessage: FirewallModeSwitchErrorStrings.ROLLBACK_POLICY_FAILED })
         }
       }
 
@@ -195,7 +196,7 @@ export class FirewallModeSwitchService {
           userId: userId,
           systemRuleId: previousRuleId,
           errorCode: addRuleResult.errorCode,
-          errorMessage: addRuleResult.errorMessage ?? 'rollback restore rule failed'
+          errorMessage: addRuleResult.errorMessage ?? FirewallModeSwitchErrorStrings.ROLLBACK_RESTORE_RULE_FAILED
         })
       }
     }
@@ -203,11 +204,11 @@ export class FirewallModeSwitchService {
     let restoredMapping = FirewallModeSwitchService.remapDeployments(snapshot.mappingData, restoredRuleIds)
     let mappingRestored = await FirewallLocalRepository.saveRuleIntentMappingData(context, restoredMapping)
     if (!mappingRestored) {
-      failedItems.push({ errorMessage: 'rollback local deployments failed' })
+      failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.ROLLBACK_LOCAL_DEPLOYMENTS_FAILED })
     }
     let modeRestored = await FirewallLocalRepository.saveCurrentMode(context, snapshot.previousMode)
     if (!modeRestored) {
-      failedItems.push({ errorMessage: 'rollback current mode failed' })
+      failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.ROLLBACK_CURRENT_MODE_FAILED })
     }
     return failedItems
   }

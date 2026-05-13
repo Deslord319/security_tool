@@ -1,4 +1,3 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import {
   DeviceTypeLabels,
@@ -9,10 +8,10 @@ import {
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { AsyncSelectRow } from '../../AsyncSelectRow'
 import { SectionLabel } from '../../SectionRows'
+import { StyledSelect } from '../../StyledSelect'
 
 @ComponentV2
 export struct InterfaceControlTab {
@@ -162,23 +161,20 @@ export struct InterfaceControlTab {
             .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         }
 
-        Select(options.map((value: string): SelectOption => ({ value: value } as SelectOption)))
-          .selected(selectedIndex)
-          .value(options[selectedIndex] ?? '')
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .enabled(!isProcessing)
-          .opacity(isProcessing ? 0.72 : 1)
-          .onSelect((index: number) => {
+        StyledSelect({
+          options: options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
+          selectedIndex: selectedIndex,
+          value: options[selectedIndex] ?? '',
+          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
+          enabledValue: !isProcessing,
+          opacityValue: isProcessing ? 0.72 : 1,
+          currentTheme: this.currentTheme,
+          onSelect: (index: number) => {
             if (onSelect) {
               onSelect(index)
             }
-          })
+          }
+        })
       }
     }
     .width('100%')

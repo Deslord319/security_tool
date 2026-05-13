@@ -143,6 +143,8 @@ export class PeripheralConnectionRecordStrings {
   static readonly UNRECOGNIZED_USB_DEVICE: string = '未识别 USB 设备'
   static readonly DEVICE_DENY_DETAIL_TEMPLATE: string = '设备 {deviceId} 命中禁止接入策略，已被阻止。'
   static readonly DISCONNECT_DETAIL_TEMPLATE: string = '{deviceName} 已断开连接，断开前生效策略为：{policyLabel}。'
+  static readonly FIRST_CONNECT_AUTO_DENY_DETAIL: string = '首次接入已自动加入黑名单'
+  static readonly FIRST_CONNECT_AUTO_DENY_FAILED_PREFIX: string = '自动加入黑名单失败：'
 
   static buildDeviceDenyDetail(deviceId: string): string {
     return PeripheralConnectionRecordStrings.DEVICE_DENY_DETAIL_TEMPLATE.replace('{deviceId}', deviceId)
@@ -152,6 +154,14 @@ export class PeripheralConnectionRecordStrings {
     return PeripheralConnectionRecordStrings.DISCONNECT_DETAIL_TEMPLATE
       .replace('{deviceName}', deviceName)
       .replace('{policyLabel}', policyLabel)
+  }
+
+  static appendAutoDenySavedDetail(detail: string): string {
+    return `${detail}; ${PeripheralConnectionRecordStrings.FIRST_CONNECT_AUTO_DENY_DETAIL}`
+  }
+
+  static appendAutoDenyFailedDetail(detail: string, reason?: string): string {
+    return `${detail}; ${PeripheralConnectionRecordStrings.FIRST_CONNECT_AUTO_DENY_FAILED_PREFIX}${reason ?? 'unknown'}`
   }
 }
 

@@ -131,7 +131,7 @@ export struct MultiCheckSelect {
           .fontColor(FormControlUtils.selectArrow(this.currentTheme))
       }
       .width('100%')
-      .height(40)
+      .height(AppStyles.INPUT_HEIGHT)
       .padding({ left: 12, right: 12 })
       .alignItems(VerticalAlign.Center)
       .backgroundColor(FormControlUtils.background(this.currentTheme))

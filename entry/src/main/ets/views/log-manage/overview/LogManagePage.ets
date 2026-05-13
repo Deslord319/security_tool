@@ -1,4 +1,3 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
@@ -28,7 +27,6 @@ import {
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { LogManageViewModel } from '../../../viewmodels/log-manage/overview/LogManageViewModel'
 import { ImportLogsResult } from '../../../services/log-manage/import/LogImportService'
@@ -40,6 +38,9 @@ import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { LogStorageSettingsPanel } from '../../../components/log-manage/storage-settings/LogStorageSettingsPanel'
 import { LogDetailDialog } from '../../../components/log-manage/detail/LogDetailDialog'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
+import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
+import { StyledSelect } from '../../../components/StyledSelect'
+import { StyledTextInput } from '../../../components/StyledTextInput'
 
 const TAG = 'LogManagePage'
 
@@ -344,53 +345,39 @@ export struct LogManagePage {
   @Builder
   private filterToolbar() {
     Row({ space: 8 }) {
-      Select(this.eventTypeFilterOptions)
-        .selected(this.getActiveViewModel().state.filter.eventTypeIndex)
-        .value((this.eventTypeFilterOptions[this.getActiveViewModel().state.filter.eventTypeIndex]?.value as string) ??
-          LogManageFilterStrings.ALL_EVENT_TYPES)
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(120)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.getActiveViewModel().setEventTypeIndex(index) })
-
-      Select(this.timeRangeFilterOptions)
-        .selected(this.getActiveViewModel().state.filter.timeRangeIndex)
-        .value((this.timeRangeFilterOptions[this.getActiveViewModel().state.filter.timeRangeIndex]?.value as string) ??
-          LogManageFilterStrings.ALL_TIME)
-        .font({ size: AppStyles.FONT_SIZE_BODY })
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-        .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-        .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-        .width(128)
-        .height(36)
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .borderRadius(AppStyles.RADIUS_SM)
-        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .onSelect((index: number) => { void this.getActiveViewModel().setTimeRangeIndex(index) })
-
-      TextInput({
-        placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER,
-        text: this.getActiveViewModel().state.filter.keyword
+      StyledSelect({
+        options: this.eventTypeFilterOptions,
+        selectedIndex: this.getActiveViewModel().state.filter.eventTypeIndex,
+        value: (this.eventTypeFilterOptions[this.getActiveViewModel().state.filter.eventTypeIndex]?.value as string) ??
+          LogManageFilterStrings.ALL_EVENT_TYPES,
+        controlWidth: 120,
+        controlHeight: 36,
+        radius: AppStyles.RADIUS_SM,
+        currentTheme: this.currentTheme,
+        onSelect: (index: number) => { void this.getActiveViewModel().setEventTypeIndex(index) }
       })
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(FormControlUtils.text(this.currentTheme))
-        .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-        .backgroundColor(FormControlUtils.background(this.currentTheme))
-        .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-        .borderRadius(AppStyles.RADIUS_SM)
-        .height(36)
+
+      StyledSelect({
+        options: this.timeRangeFilterOptions,
+        selectedIndex: this.getActiveViewModel().state.filter.timeRangeIndex,
+        value: (this.timeRangeFilterOptions[this.getActiveViewModel().state.filter.timeRangeIndex]?.value as string) ??
+          LogManageFilterStrings.ALL_TIME,
+        controlWidth: 128,
+        controlHeight: 36,
+        radius: AppStyles.RADIUS_SM,
+        currentTheme: this.currentTheme,
+        onSelect: (index: number) => { void this.getActiveViewModel().setTimeRangeIndex(index) }
+      })
+
+      StyledTextInput({
+        placeholder: LogManageFilterStrings.SEARCH_PLACEHOLDER,
+        text: this.getActiveViewModel().state.filter.keyword,
+        controlHeight: 36,
+        radius: AppStyles.RADIUS_SM,
+        currentTheme: this.currentTheme,
+        onChange: (value: string) => { void this.getActiveViewModel().setKeyword(value) }
+      })
         .layoutWeight(1)
-        .onChange((value: string) => { void this.getActiveViewModel().setKeyword(value) })
     }
     .width('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG, top: AppStyles.PADDING_SM })
@@ -455,18 +442,13 @@ export struct LogManagePage {
               onNextPage: () => { void this.getActiveViewModel().goToNextPage() }
             })
           } else {
-            Column({ space: 12 }) {
-              LoadingProgress()
-                .width(42)
-                .height(42)
-              Text(LoadingStrings.LOADING)
-                .fontSize(AppStyles.FONT_SIZE_BODY)
-                .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            }
-            .layoutWeight(1)
-            .width('100%')
-            .justifyContent(FlexAlign.Center)
-            .alignItems(HorizontalAlign.Center)
+            LoadingStatePanel({
+              message: LoadingStrings.LOADING,
+              indicatorSize: AppStyles.LOADING_INDICATOR_SIZE,
+              spacing: 12,
+              currentTheme: this.currentTheme
+            })
+              .layoutWeight(1)
           }
         }
       }

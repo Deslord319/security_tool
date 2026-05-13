@@ -1,4 +1,3 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
@@ -6,11 +5,12 @@ import { ActionText } from '../../../constants/StringCatalog'
 import { FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
 import { FirewallUserDispatchViewModel } from '../../../viewmodels/firewall/user-dispatch/FirewallUserDispatchViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
-import { FormControlUtils } from '../../../utils/FormControlUtils'
 import { DialogService } from '../../../utils/DialogService'
 import { EmptyStateStrings, LoadingStrings } from '../../../constants/modules/DialogStrings'
 import { FirewallDialogStrings } from '../../../constants/modules/FirewallStrings'
 import { DetailDialogShell } from '../../DetailDialogShell'
+import { LoadingStatePanel } from '../../LoadingStatePanel'
+import { StyledSelect } from '../../StyledSelect'
 
 const TAG = 'UserFirewallDialog'
 
@@ -49,18 +49,12 @@ export struct UserFirewallControlDialog {
   private dialogContent() {
     Column({ space: 20 }) {
       if (this.viewModel.isLoadingUsers) {
-        Column({ space: 10 }) {
-          LoadingProgress()
-            .width(36)
-            .height(36)
-          Text(LoadingStrings.LOADING_USERS)
-            .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        }
-        .width('100%')
-        .padding({ top: 20, bottom: 20 })
-        .alignItems(HorizontalAlign.Center)
+        LoadingStatePanel({
+          message: LoadingStrings.LOADING_USERS,
+          indicatorSize: 36,
+          currentTheme: this.currentTheme
+        })
+          .padding({ top: 20, bottom: 20 })
       } else if (this.viewModel.users.length === 0) {
         Column() {
           Text(EmptyStateStrings.NO_USERS)
@@ -80,24 +74,18 @@ export struct UserFirewallControlDialog {
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-            Select(this.viewModel.users.map((item): SelectOption => {
-              return { value: item.label } as SelectOption
-            }))
-              .selected(this.viewModel.selectedIndex)
-              .value(this.viewModel.users.length > 0 ? this.viewModel.users[this.viewModel.selectedIndex].label : '')
-              .fontColor(FormControlUtils.text(this.currentTheme))
-              .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-              .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-              .font({ size: AppStyles.FONT_SIZE_BODY })
-              .width('100%')
-              .height(40)
-              .backgroundColor(FormControlUtils.background(this.currentTheme))
-              .borderRadius(AppStyles.RADIUS_MD)
-              .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-              .onSelect((index: number) => {
+            StyledSelect({
+              options: this.viewModel.users.map((item): SelectOption => {
+                return { value: item.label } as SelectOption
+              }),
+              selectedIndex: this.viewModel.selectedIndex,
+              value: this.viewModel.users.length > 0 ? this.viewModel.users[this.viewModel.selectedIndex].label : '',
+              currentTheme: this.currentTheme,
+              onSelect: (index: number) => {
                 let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
                 this.viewModel.selectUser(context, index)
-              })
+              }
+            })
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
@@ -109,23 +97,17 @@ export struct UserFirewallControlDialog {
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
-            Select(this.modeOptions.map((item: ModeOption): SelectOption => {
-              return { value: item.label } as SelectOption
-            }))
-              .selected(this.viewModel.selectedModeIndex)
-              .value(this.modeOptions[this.viewModel.selectedModeIndex].label)
-              .fontColor(FormControlUtils.text(this.currentTheme))
-              .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-              .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-              .font({ size: AppStyles.FONT_SIZE_BODY })
-              .width('100%')
-              .height(40)
-              .backgroundColor(FormControlUtils.background(this.currentTheme))
-              .borderRadius(AppStyles.RADIUS_MD)
-              .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-              .onSelect((index: number) => {
+            StyledSelect({
+              options: this.modeOptions.map((item: ModeOption): SelectOption => {
+                return { value: item.label } as SelectOption
+              }),
+              selectedIndex: this.viewModel.selectedModeIndex,
+              value: this.modeOptions[this.viewModel.selectedModeIndex].label,
+              currentTheme: this.currentTheme,
+              onSelect: (index: number) => {
                 this.viewModel.selectMode(index)
-              })
+              }
+            })
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
@@ -140,7 +122,7 @@ export struct UserFirewallControlDialog {
               .borderRadius(AppStyles.RADIUS_MD)
               .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
               .layoutWeight(1)
-              .height(40)
+              .height(AppStyles.BUTTON_HEIGHT)
               .enabled(!this.viewModel.isSubmitting)
               .opacity(this.viewModel.isSubmitting ? 0.5 : 1)
               .onClick(() => {
@@ -153,7 +135,7 @@ export struct UserFirewallControlDialog {
               .backgroundColor(AppColors.BRAND_PRIMARY)
               .borderRadius(AppStyles.RADIUS_MD)
               .layoutWeight(1)
-              .height(40)
+              .height(AppStyles.BUTTON_HEIGHT)
               .enabled(!this.viewModel.isSubmitting && !this.viewModel.isLoadingPolicy)
               .opacity(!this.viewModel.isSubmitting && !this.viewModel.isLoadingPolicy ? 1 : 0.5)
               .onClick(async () => {

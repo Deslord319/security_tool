@@ -1,7 +1,7 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
-import { FormControlUtils } from '../utils/FormControlUtils'
+import { StyledSelect } from './StyledSelect'
+import { StyledTextInput } from './StyledTextInput'
 
 interface SectionRowPadding {
   left: number
@@ -55,25 +55,20 @@ interface SectionSelectParams {
 
 @Builder
 function SectionSelectBuilder(params: SectionSelectParams) {
-  Select(params.options)
-    .selected(params.selectedIndex)
-    .value(params.value)
-    .font({ size: AppStyles.FONT_SIZE_BODY })
-    .fontColor(FormControlUtils.text(params.currentTheme))
-    .textModifier(new TextModifier().fontColor(FormControlUtils.text(params.currentTheme)))
-    .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(params.currentTheme)]))
-    .selectedOptionFont({ size: AppStyles.FONT_SIZE_BODY })
-    .optionFont({ size: AppStyles.FONT_SIZE_BODY })
-    .width(params.selectWidth)
-    .height(36)
-    .backgroundColor(FormControlUtils.background(params.currentTheme))
-    .borderRadius(AppStyles.RADIUS_SM)
-    .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(params.currentTheme), style: BorderStyle.Solid })
-    .enabled(params.enabled)
-    .opacity(params.opacity)
-    .onSelect((index: number) => {
+  StyledSelect({
+    options: params.options,
+    selectedIndex: params.selectedIndex,
+    value: params.value,
+    controlWidth: params.selectWidth,
+    controlHeight: 36,
+    radius: AppStyles.RADIUS_SM,
+    enabledValue: params.enabled,
+    opacityValue: params.opacity,
+    currentTheme: params.currentTheme,
+    onSelect: (index: number) => {
       params.onSelect(index)
-    })
+    }
+  })
 }
 
 @ComponentV2
@@ -239,19 +234,18 @@ export struct SectionSelectInputRow {
 
         if (this.showInput) {
           Row({ space: 6 }) {
-            TextInput({ placeholder: this.inputPlaceholder, text: this.inputText })
-              .type(InputType.Number)
-              .width(this.inputWidth)
-              .height(36)
-              .fontSize(AppStyles.FONT_SIZE_BODY)
-              .fontColor(FormControlUtils.text(this.currentTheme))
-              .placeholderColor(FormControlUtils.placeholder(this.currentTheme))
-              .backgroundColor(FormControlUtils.background(this.currentTheme))
-              .borderRadius(AppStyles.RADIUS_SM)
-              .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-              .onChange((value: string) => {
+            StyledTextInput({
+              text: this.inputText,
+              placeholder: this.inputPlaceholder,
+              inputType: InputType.Number,
+              controlWidth: this.inputWidth,
+              controlHeight: 36,
+              radius: AppStyles.RADIUS_SM,
+              currentTheme: this.currentTheme,
+              onChange: (value: string) => {
                 this.onInputChange(value)
-              })
+              }
+            })
 
             if (this.inputSuffix.length > 0) {
               Text(this.inputSuffix)

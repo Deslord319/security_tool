@@ -99,8 +99,8 @@ export struct LogDetailDialog {
   build() {
     DetailDialogShell({
       title: this.title,
-      dialogWidth: 560,
-      maxBodyHeight: 420,
+      dialogWidth: AppStyles.DIALOG_WIDTH_DEFAULT,
+      maxBodyHeight: AppStyles.DIALOG_BODY_MAX_HEIGHT_DEFAULT,
       currentTheme: this.currentTheme,
       showHeader: true,
       showCloseAction: true,

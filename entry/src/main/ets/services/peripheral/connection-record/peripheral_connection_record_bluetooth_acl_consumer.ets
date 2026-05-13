@@ -143,9 +143,9 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   ): string {
     let detail = `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
     if (autoDenyResult.status === 'saved') {
-      detail = `${detail}; 首次接入已自动加入黑名单`
+      detail = PeripheralConnectionRecordStrings.appendAutoDenySavedDetail(detail)
     } else if (autoDenyResult.status === 'dispatch_failed' || autoDenyResult.status === 'save_failed') {
-      detail = `${detail}; 自动加入黑名单失败：${autoDenyResult.reason ?? 'unknown'}`
+      detail = PeripheralConnectionRecordStrings.appendAutoDenyFailedDetail(detail, autoDenyResult.reason)
     }
     return detail
   }

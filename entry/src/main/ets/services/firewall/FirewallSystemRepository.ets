@@ -1,4 +1,5 @@
 import { netFirewall } from '@kit.NetworkKit'
+import { FirewallSystemErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { LogUtils } from '../../utils/LogUtils'
 import { CommonErrorUtils } from '../../utils/CommonErrorUtils'
 import { FirewallBatchOperationResult, FirewallFailedItem, FirewallScopedRule } from './FirewallModels'
@@ -84,7 +85,7 @@ export class FirewallSystemRepository {
     for (let i = 0; i < rules.length; i++) {
       let ruleId = FirewallSystemRepository.readSystemRuleId(rules[i])
       if (ruleId === undefined) {
-        failedItems.push({ userId: userId, errorMessage: 'missing system rule id' })
+        failedItems.push({ userId: userId, errorMessage: FirewallSystemErrorStrings.MISSING_SYSTEM_RULE_ID })
         continue
       }
       let removed = await FirewallSystemRepository.removeRule(userId, ruleId)

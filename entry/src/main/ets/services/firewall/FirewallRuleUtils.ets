@@ -1,4 +1,5 @@
 import { netFirewall } from '@kit.NetworkKit'
+import { FirewallRuleValidationErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { Ipv4Utils } from '../../utils/Ipv4Utils'
 import {
   FirewallConflictSummary,
@@ -80,16 +81,16 @@ export class FirewallRuleUtils {
 
   static validateRuleIntentInput(input: FirewallRuleIntentInput): FirewallRuleValidationResult {
     if (input.name.trim().length === 0) {
-      return { success: false, errorMessage: 'rule name is required' }
+      return { success: false, errorMessage: FirewallRuleValidationErrorStrings.RULE_NAME_REQUIRED }
     }
     if (FirewallRuleUtils.normalizeUserIds(input.targetUserIds).length === 0) {
-      return { success: false, errorMessage: 'target users are required' }
+      return { success: false, errorMessage: FirewallRuleValidationErrorStrings.TARGET_USERS_REQUIRED }
     }
     if (input.type === netFirewall.NetFirewallRuleType.RULE_DOMAIN && !input.domains?.[0]) {
-      return { success: false, errorMessage: 'domain rule requires domain' }
+      return { success: false, errorMessage: FirewallRuleValidationErrorStrings.DOMAIN_REQUIRED }
     }
     if (input.type === netFirewall.NetFirewallRuleType.RULE_DNS && !input.dns?.primaryDns) {
-      return { success: false, errorMessage: 'dns rule requires primary dns' }
+      return { success: false, errorMessage: FirewallRuleValidationErrorStrings.DNS_REQUIRED }
     }
     return { success: true }
   }

@@ -1,9 +1,8 @@
-import { SymbolGlyphModifier, TextModifier } from '@kit.ArkUI'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { SectionLabel } from './SectionRows'
 import { ThemeMode } from '../theme/ThemeColors'
-import { FormControlUtils } from '../utils/FormControlUtils'
 import { LogUtils } from '../utils/LogUtils'
+import { StyledSelect } from './StyledSelect'
 
 const TAG = 'AsyncSelectRow'
 
@@ -108,21 +107,18 @@ export struct AsyncSelectRow {
             .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         }
 
-        Select(this.options.map((value: string): SelectOption => ({ value: value } as SelectOption)))
-          .selected(this.getEffectiveSelectedIndex())
-          .value(this.getDisplayValue())
-          .fontColor(FormControlUtils.text(this.currentTheme))
-          .textModifier(new TextModifier().fontColor(FormControlUtils.text(this.currentTheme)))
-          .arrowModifier(new SymbolGlyphModifier().fontColor([FormControlUtils.selectArrow(this.currentTheme)]))
-          .font({ size: AppStyles.FONT_SIZE_BODY })
-          .backgroundColor(FormControlUtils.background(this.currentTheme))
-          .borderRadius(AppStyles.RADIUS_MD)
-          .border({ width: AppStyles.DIVIDER_HEIGHT, color: FormControlUtils.border(this.currentTheme), style: BorderStyle.Solid })
-          .enabled(!this.isBusy())
-          .opacity(this.isBusy() ? 0.72 : 1)
-          .onSelect((index: number) => {
+        StyledSelect({
+          options: this.options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
+          selectedIndex: this.getEffectiveSelectedIndex(),
+          value: this.getDisplayValue(),
+          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
+          enabledValue: !this.isBusy(),
+          opacityValue: this.isBusy() ? 0.72 : 1,
+          currentTheme: this.currentTheme,
+          onSelect: (index: number) => {
             this.handleSelectChange(index)
-          })
+          }
+        })
       }
     }
     .width('100%')

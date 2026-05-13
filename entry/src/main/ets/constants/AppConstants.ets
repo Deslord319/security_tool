@@ -68,6 +68,20 @@ export class AppStyles {
   static readonly FONT_SIZE_MICRO: number = 11
 
   static readonly SELECT_WIDTH_DEFAULT: number = 140
+  static readonly BUTTON_HEIGHT: number = 40
+  static readonly INPUT_HEIGHT: number = 40
+  static readonly LOADING_INDICATOR_SIZE: number = 42
+  static readonly LOADING_INDICATOR_SIZE_LG: number = 48
+  static readonly DIALOG_WIDTH_DEFAULT: number = 560
+  static readonly DIALOG_WIDTH_MEDIUM: number = 620
+  static readonly DIALOG_WIDTH_LARGE: number = 760
+  static readonly DIALOG_BODY_MAX_HEIGHT_DEFAULT: number = 420
+  static readonly DIALOG_BODY_MAX_HEIGHT_MEDIUM: number = 460
+  static readonly DIALOG_BODY_MAX_HEIGHT_LARGE: number = 760
+  static readonly ICON_SIZE_SM: number = 18
+  static readonly ICON_SIZE_MD: number = 20
+  static readonly ICON_SIZE_LG: number = 28
+  static readonly ICON_TILE_SIZE_LG: number = 48
   static readonly TOP_BAR_HEIGHT: number = 56
   static readonly RADIUS_PILL: number = 999
   

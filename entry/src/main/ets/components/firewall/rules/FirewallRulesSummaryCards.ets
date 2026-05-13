@@ -2,7 +2,8 @@ import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
 import {
   FirewallRuleStrings,
-  buildFirewallRuleCountText
+  buildFirewallRuleCountText,
+  buildFirewallUserCountText
 } from '../../../constants/modules/FirewallStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { CompactSummaryCard } from '../../CompactSummaryCard'
@@ -23,7 +24,7 @@ export struct FirewallRulesSummaryCards {
   }
 
   private getDefaultPolicyUserCountText(mode: FirewallDefaultPolicyMode): string {
-    return `${this.getDefaultPolicyUserCount(mode)} 个`
+    return buildFirewallUserCountText(this.getDefaultPolicyUserCount(mode))
   }
 
   private getDefaultPolicyUserListText(mode: FirewallDefaultPolicyMode): string {
@@ -39,13 +40,13 @@ export struct FirewallRulesSummaryCards {
     const disabledCount = this.defaultPolicyItems.filter((item: FirewallDefaultPolicyDisplayItem): boolean => !item.isOpen).length
     let parts: string[] = []
     if (customCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_CUSTOM} ${customCount} 个`)
+      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_CUSTOM} ${buildFirewallUserCountText(customCount)}`)
     }
     if (unknownCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_UNKNOWN} ${unknownCount} 个`)
+      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_UNKNOWN} ${buildFirewallUserCountText(unknownCount)}`)
     }
     if (disabledCount > 0) {
-      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_DISABLED} ${disabledCount} 个`)
+      parts.push(`${FirewallRuleStrings.DEFAULT_POLICY_DISABLED} ${buildFirewallUserCountText(disabledCount)}`)
     }
     return parts.join(' · ')
   }

@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit'
+import { FirewallRuleDeploymentErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { FirewallLocalRepository } from './FirewallLocalRepository'
 import {
   FirewallFailedItem,
@@ -42,7 +43,7 @@ export class FirewallRuleDeploymentService {
         localRuleId: intent.localRuleId,
         userId: userId,
         errorCode: addRuleResult.errorCode,
-        errorMessage: addRuleResult.errorMessage ?? 'add rule failed'
+        errorMessage: addRuleResult.errorMessage ?? FirewallRuleDeploymentErrorStrings.ADD_RULE_FAILED
       })
     }
 
@@ -69,7 +70,7 @@ export class FirewallRuleDeploymentService {
         localRuleId: localRuleId,
         userId: deployment.userId,
         systemRuleId: deployment.systemRuleId,
-        errorMessage: 'remove system rule failed'
+        errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_SYSTEM_RULE_FAILED
       })
     }
     return {
@@ -134,13 +135,13 @@ export class FirewallRuleDeploymentService {
         localRuleId: intent.localRuleId,
         userId: removedDeployment.userId,
         errorCode: addRuleResult.errorCode,
-        errorMessage: addRuleResult.errorMessage ?? 'restore old system rule failed'
+        errorMessage: addRuleResult.errorMessage ?? FirewallRuleDeploymentErrorStrings.RESTORE_OLD_SYSTEM_RULE_FAILED
       })
     }
 
     let saved = await FirewallLocalRepository.replaceRuleDeployments(context, intent.localRuleId, restoredDeployments)
     if (!saved) {
-      failedItems.push({ localRuleId: intent.localRuleId, errorMessage: 'restore old deployments failed' })
+      failedItems.push({ localRuleId: intent.localRuleId, errorMessage: FirewallRuleDeploymentErrorStrings.RESTORE_OLD_DEPLOYMENTS_FAILED })
     }
 
     return {
@@ -165,21 +166,21 @@ export class FirewallRuleDeploymentService {
           localRuleId: localRuleId,
           userId: deployment.userId,
           systemRuleId: deployment.systemRuleId,
-          errorMessage: 'remove system rule failed'
+          errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_SYSTEM_RULE_FAILED
         })
       }
     }
     if (failedItems.length > 0) {
       let localSaved = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, remainingDeployments)
       if (!localSaved) {
-        failedItems.push({ localRuleId: localRuleId, errorMessage: 'preserve failed deployments failed' })
+        failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleDeploymentErrorStrings.PRESERVE_FAILED_DEPLOYMENTS_FAILED })
       }
       return failedItems
     }
 
     let localRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
     if (!localRemoved) {
-      failedItems.push({ localRuleId: localRuleId, errorMessage: 'remove deployments failed' })
+      failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_DEPLOYMENTS_FAILED })
     }
     return failedItems
   }

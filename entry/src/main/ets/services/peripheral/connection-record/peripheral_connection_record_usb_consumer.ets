@@ -283,7 +283,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         policyHit: 'deny',
         result: SecurityEventResult.BLOCKED,
         summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
-        detail: `${evaluation.detail}; 首次接入已自动加入黑名单`,
+        detail: PeripheralConnectionRecordStrings.appendAutoDenySavedDetail(evaluation.detail),
         usbPolicy: evaluation.usbPolicy,
         effectivePolicyLabel: StatusText.DISABLED,
         matchedPolicyKind: 'device_deny'
@@ -294,7 +294,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
         policyHit: evaluation.policyHit,
         result: evaluation.result,
         summary: evaluation.summary,
-        detail: `${evaluation.detail}; 自动加入黑名单失败：${autoDenyResult.reason ?? 'unknown'}`,
+        detail: PeripheralConnectionRecordStrings.appendAutoDenyFailedDetail(evaluation.detail, autoDenyResult.reason),
         usbPolicy: evaluation.usbPolicy,
         effectivePolicyLabel: evaluation.effectivePolicyLabel,
         matchedPolicyKind: evaluation.matchedPolicyKind

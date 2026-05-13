@@ -3,6 +3,7 @@ import restrictions from '@ohos.enterprise.restrictions'
 import { networkManager, usbManager } from '@kit.MDMKit'
 
 import { ADMIN_WANT } from '../../../constants/AppConstants'
+import { PeripheralServiceErrorStrings } from '../../../constants/modules/PeripheralErrorStrings'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
 import { OperationResult } from '../../../models/CommonModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
@@ -86,7 +87,7 @@ export class PeripheralService {
       usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, policy)
       return {
         success: true,
-        userMessage: 'USB storage policy updated',
+        userMessage: PeripheralServiceErrorStrings.USB_STORAGE_POLICY_UPDATED,
         stage: 'completed'
       } as OperationResult<void>
     } catch (err) {
@@ -94,7 +95,7 @@ export class PeripheralService {
       if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_storage_policy',
-          'system detected usb policy conflict'
+          PeripheralServiceErrorStrings.USB_POLICY_CONFLICT
         )
       }
       return PeripheralService.buildFailureResult<void>('set usb storage policy', err as ErrorLike)
@@ -151,7 +152,7 @@ export class PeripheralService {
       restrictions.setDisallowedPolicy(ADMIN_WANT, PeripheralService.FEATURE_USB, disallow)
       return {
         success: true,
-        userMessage: 'usb interface policy updated',
+        userMessage: PeripheralServiceErrorStrings.USB_INTERFACE_POLICY_UPDATED,
         stage: 'completed'
       } as OperationResult<void>
     } catch (err) {
@@ -159,7 +160,7 @@ export class PeripheralService {
       if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
         return PeripheralService.buildUserFailureResult<void>(
           'set_usb_interface',
-          'system detected usb interface conflict'
+          PeripheralServiceErrorStrings.USB_INTERFACE_CONFLICT
         )
       }
       return PeripheralService.buildFailureResult<void>('set usb interface', err as ErrorLike)
@@ -173,7 +174,7 @@ export class PeripheralService {
         success: false,
         errorCode: storagePolicyResult.errorCode,
         errorMessage: storagePolicyResult.errorMessage,
-        userMessage: 'failed to read usb storage policy',
+        userMessage: PeripheralServiceErrorStrings.READ_USB_STORAGE_POLICY_FAILED,
         suggestion: storagePolicyResult.suggestion,
         isAdminMissing: storagePolicyResult.isAdminMissing,
         stage: 'read_usb_storage_policy'
@@ -196,7 +197,7 @@ export class PeripheralService {
       LogUtils.error(TAG, `resetUsbStoragePolicyToReadWrite failed: ${JSON.stringify(err)}`)
       return PeripheralService.buildUserFailureResult<void>(
         'reset_usb_storage_policy',
-        'failed to restore usb storage policy to read-write'
+        PeripheralServiceErrorStrings.RESTORE_USB_STORAGE_READ_WRITE_FAILED
       )
     }
   }
