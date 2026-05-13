@@ -7,11 +7,6 @@ import { LogEntryRepository } from '../repository/LogEntryRepository'
 import { buildLogStorageNaturalDayCutoff, LogStorageMaintenanceService } from '../maintenance/LogStorageMaintenanceService'
 import { LogEntryNormalizer } from '../mapper/LogEntryNormalizer'
 import { LogSettingsRepository } from '../repository/LogSettingsRepository'
-import { LogArchiveExtractor } from './LogArchiveExtractor'
-import { CrashLogImportRule } from './CrashLogImportRule'
-import { KernelLogImportRule } from './KernelLogImportRule'
-import { ImportedLogFile, LogImportRule } from './LogImportRule'
-import { SystemLogImportRule } from './SystemLogImportRule'
 import { LogImportParseTaskResult, runLogImportParseTask } from './LogImportBackgroundTask'
 
 const TAG = 'LogImportService'
@@ -79,19 +74,13 @@ class DefaultLogImportPicker implements LogImportPickerPort {
 }
 
 export class LogImportService {
-  private static rules: LogImportRule[] = [new KernelLogImportRule(), new CrashLogImportRule(), new SystemLogImportRule()]
   private static pickerPort: LogImportPickerPort = new DefaultLogImportPicker()
-
-  static setRulesForTest(rules: LogImportRule[]): void {
-    LogImportService.rules = rules
-  }
 
   static setPickerForTest(pickerPort: LogImportPickerPort): void {
     LogImportService.pickerPort = pickerPort
   }
 
   static resetTestPorts(): void {
-    LogImportService.rules = [new KernelLogImportRule(), new CrashLogImportRule(), new SystemLogImportRule()]
     LogImportService.pickerPort = new DefaultLogImportPicker()
   }
 
@@ -205,99 +194,8 @@ export class LogImportService {
     })
   }
 
-  static async importFiles(
-    files: ImportedLogFile[],
-    baseStats?: ImportBaseStats,
-    importId: string = LogImportService.buildImportId(),
-    startedAt: number = Date.now()
-  ): Promise<ImportLogsResult> {
-    let parsedEntries: LogEntry[] = []
-    let droppedEntryCount = 0
-    let failedEntryCount = 0
-    let handledFileCount = 0
-    LogUtils.info(TAG, `importFiles start: importId=${importId}, files=${files.length}`)
-    for (let file of files) {
-      for (let rule of LogImportService.rules) {
-        if (!rule.canHandle(file)) {
-          continue
-        }
-        try {
-          handledFileCount++
-          let fileStartedAt = Date.now()
-          LogUtils.info(TAG, `rule parse start: importId=${importId}, rule=${rule.name}, file=${file.relativePath}, path=${file.path}`)
-          let ruleResult = await rule.parse(file)
-          parsedEntries = parsedEntries.concat(ruleResult.entries)
-          droppedEntryCount += ruleResult.droppedCount
-          failedEntryCount += ruleResult.failedCount
-          LogUtils.info(TAG, `rule parse done: importId=${importId}, rule=${rule.name}, file=${file.relativePath}, entries=${ruleResult.entries.length}, dropped=${ruleResult.droppedCount}, failed=${ruleResult.failedCount}, elapsedMs=${Date.now() - fileStartedAt}`)
-        } catch (err) {
-          failedEntryCount++
-          LogUtils.warn(TAG, `rule parse failed: importId=${importId}, rule=${rule.name}, file=${file.relativePath}, err=${JSON.stringify(err)}`)
-        }
-      }
-    }
-    let uniqueEntries = LogImportService.uniqueById(parsedEntries)
-    let skippedDuplicateCount = parsedEntries.length - uniqueEntries.length
-    let skippedExpiredCount = 0
-    let newEntries: LogEntry[] = []
-    LogUtils.info(TAG, `dedupe done: importId=${importId}, handledFiles=${handledFileCount}, parsed=${parsedEntries.length}, unique=${uniqueEntries.length}, batchDuplicates=${skippedDuplicateCount}, elapsedMs=${Date.now() - startedAt}`)
-    let storageConfig = await LogSettingsRepository.loadStorageConfig()
-    let retentionDays = LogEntryNormalizer.normalizeRetentionDays(storageConfig.retentionDays)
-    let cutoff = buildLogStorageNaturalDayCutoff(Date.now(), retentionDays)
-    for (let entry of uniqueEntries) {
-      if (entry.timestamp < cutoff) {
-        skippedExpiredCount++
-        continue
-      }
-      if (await LogEntryRepository.hasEntry(entry.id)) {
-        skippedDuplicateCount++
-        continue
-      }
-      newEntries.push(entry)
-    }
-    if (newEntries.length > 0) {
-      let saveResult = await LogStorageMaintenanceService.appendEntries(newEntries)
-      if (!saveResult.success) {
-        LogUtils.warn(TAG, `save failed: importId=${importId}, newEntries=${newEntries.length}, elapsedMs=${Date.now() - startedAt}`)
-        return LogImportService.buildResult('save_failed', {
-          extractedFileCount: baseStats?.extractedFileCount ?? files.length,
-          scannedFileCount: baseStats?.scannedFileCount ?? files.length,
-          parsedEntryCount: parsedEntries.length,
-          skippedDuplicateCount,
-          skippedExpiredCount,
-          droppedEntryCount,
-          failedEntryCount
-        })
-      }
-    }
-    LogUtils.info(TAG, `save done: importId=${importId}, newEntries=${newEntries.length}, skipped=${skippedDuplicateCount}, expired=${skippedExpiredCount}, elapsedMs=${Date.now() - startedAt}`)
-    return LogImportService.buildResult('ok', {
-      extractedFileCount: baseStats?.extractedFileCount ?? files.length,
-      scannedFileCount: baseStats?.scannedFileCount ?? files.length,
-      parsedEntryCount: parsedEntries.length,
-      insertedEntryCount: newEntries.length,
-      skippedDuplicateCount,
-      skippedExpiredCount,
-      droppedEntryCount,
-      failedEntryCount
-    })
-  }
-
   private static buildImportId(): string {
     return `import_${Date.now()}`
-  }
-
-  private static uniqueById(entries: LogEntry[]): LogEntry[] {
-    let ids = new Set<string>()
-    let result: LogEntry[] = []
-    for (let entry of entries) {
-      if (ids.has(entry.id)) {
-        continue
-      }
-      ids.add(entry.id)
-      result.push(entry)
-    }
-    return result
   }
 
   private static buildSelectionResult(code: 'user_canceled'): LogImportSelectionResult {

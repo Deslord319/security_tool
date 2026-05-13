@@ -4,11 +4,6 @@ import { common } from '@kit.AbilityKit'
 import { LogEntry, LogEventType, LogStorageConfig } from '../../main/ets/models/LogModels'
 import { LogImportPickerPort, LogImportService } from '../../main/ets/services/log-manage/import/LogImportService'
 import { MutationResult } from '../../main/ets/services/log-manage/common/LogManagePorts'
-import {
-  ImportedLogFile,
-  LogImportRule,
-  LogImportRuleResult
-} from '../../main/ets/services/log-manage/import/LogImportRule'
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
 import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
 import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage/maintenance/LogStorageMaintenanceService'
@@ -38,32 +33,17 @@ function createParseResult(entries: LogEntry[], batchDuplicates: number = 0): Lo
   }
 }
 
-class FakeRule implements LogImportRule {
-  readonly name: string = 'fake'
-  result: LogImportRuleResult = {
-    entries: [createEntry('a'), createEntry('a'), createEntry('b')],
-    droppedCount: 2,
-    failedCount: 1
-  }
-
-  canHandle(_file: ImportedLogFile): boolean {
-    return true
-  }
-
-  async parse(_file: ImportedLogFile): Promise<LogImportRuleResult> {
-    return this.result
-  }
-}
-
-class ThrowingRule implements LogImportRule {
-  readonly name: string = 'throwing'
-
-  canHandle(_file: ImportedLogFile): boolean {
-    return true
-  }
-
-  async parse(_file: ImportedLogFile): Promise<LogImportRuleResult> {
-    throw new Error('parse failed')
+function createFailedParseResult(code: 'invalid_archive' | 'extract_failed'): LogImportParseTaskResult {
+  return {
+    success: false,
+    code,
+    extractedFileCount: 1,
+    scannedFileCount: 1,
+    parsedEntryCount: 0,
+    skippedBatchDuplicateCount: 0,
+    droppedEntryCount: 2,
+    failedEntryCount: 1,
+    entries: []
   }
 }
 
@@ -100,7 +80,6 @@ export default function logImportServiceTest() {
       savedEntries = []
       existingIds = new Set<string>()
       saveResult = { success: true, code: 'ok' }
-      LogImportService.setRulesForTest([new FakeRule()])
 
       let hasEntryMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.hasEntry)
       let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadStorageConfig)
@@ -124,30 +103,7 @@ export default function logImportServiceTest() {
       mockKit.clearAll()
     })
 
-    it('should dedupe batch entries and skip existing database records', 0, async () => {
-      existingIds.add('b')
-
-      let result = await LogImportService.importFiles([
-        {
-          path: '/tmp/hilog_kmsg.1',
-          fileName: 'hilog_kmsg.1',
-          relativePath: 'hilog/hilog_kmsg.1',
-          normalizedPath: 'hilog/hilog_kmsg.1'
-        }
-      ])
-
-      expect(result.success).assertTrue()
-      expect(result.parsedEntryCount).assertEqual(3)
-      expect(result.insertedEntryCount).assertEqual(1)
-      expect(result.skippedDuplicateCount).assertEqual(2)
-      expect(result.skippedExpiredCount).assertEqual(0)
-      expect(result.droppedEntryCount).assertEqual(2)
-      expect(result.failedEntryCount).assertEqual(1)
-      expect(savedEntries.length).assertEqual(1)
-      expect(savedEntries[0].id).assertEqual('a')
-    })
-
-    it('should return user_canceled when zip picker is canceled', 0, async () => {
+    it('should return user_canceled when import zip picker is canceled', 0, async () => {
       LogImportService.setPickerForTest(new FakePicker(null, '/tmp/out'))
 
       let result = await LogImportService.import({} as common.UIAbilityContext)
@@ -158,15 +114,26 @@ export default function logImportServiceTest() {
       expect(savedEntries.length).assertEqual(0)
     })
 
-    it('should return user_canceled when directory picker is canceled', 0, async () => {
-      LogImportService.setPickerForTest(new FakePicker('/tmp/logs.zip', null))
+    it('should return user_canceled when zip picker is canceled', 0, async () => {
+      LogImportService.setPickerForTest(new FakePicker(null, '/tmp/out'))
 
-      let result = await LogImportService.import({} as common.UIAbilityContext)
+      let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
 
       expect(result.success).assertFalse()
       expect(result.code).assertEqual('user_canceled')
-      expect(result.scannedFileCount).assertEqual(0)
-      expect(savedEntries.length).assertEqual(0)
+      expect(result.archivePath).assertEqual('')
+      expect(result.targetDirectory).assertEqual('')
+    })
+
+    it('should return user_canceled when directory picker is canceled', 0, async () => {
+      LogImportService.setPickerForTest(new FakePicker('/tmp/logs.zip', null))
+
+      let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('user_canceled')
+      expect(result.archivePath).assertEqual('')
+      expect(result.targetDirectory).assertEqual('')
     })
 
     it('should pick import targets when zip and directory are selected', 0, async () => {
@@ -178,81 +145,6 @@ export default function logImportServiceTest() {
       expect(result.code).assertEqual('ok')
       expect(result.archivePath).assertEqual('/tmp/logs.zip')
       expect(result.targetDirectory).assertEqual('/tmp/out')
-    })
-
-    it('should continue importing when one rule throws during parse', 0, async () => {
-      LogImportService.setRulesForTest([new ThrowingRule(), new FakeRule()])
-
-      let result = await LogImportService.importFiles([
-        {
-          path: '/tmp/hilog_kmsg.1',
-          fileName: 'hilog_kmsg.1',
-          relativePath: 'hilog/hilog_kmsg.1',
-          normalizedPath: 'hilog/hilog_kmsg.1'
-        }
-      ])
-
-      expect(result.success).assertTrue()
-      expect(result.parsedEntryCount).assertEqual(3)
-      expect(result.insertedEntryCount).assertEqual(2)
-      expect(result.skippedDuplicateCount).assertEqual(1)
-      expect(result.skippedExpiredCount).assertEqual(0)
-      expect(result.droppedEntryCount).assertEqual(2)
-      expect(result.failedEntryCount).assertEqual(2)
-      expect(savedEntries.length).assertEqual(2)
-    })
-
-    it('should skip expired entries before appending imported logs', 0, async () => {
-      let rule = new FakeRule()
-      let expiredEntry = createEntry('expired')
-      expiredEntry.timestamp = Date.now() - 40 * 24 * 60 * 60 * 1000
-      let validEntry = createEntry('valid')
-      rule.result = {
-        entries: [expiredEntry, validEntry],
-        droppedCount: 0,
-        failedCount: 0
-      }
-      LogImportService.setRulesForTest([rule])
-
-      let result = await LogImportService.importFiles([
-        {
-          path: '/tmp/hilog_kmsg.1',
-          fileName: 'hilog_kmsg.1',
-          relativePath: 'hilog/hilog_kmsg.1',
-          normalizedPath: 'hilog/hilog_kmsg.1'
-        }
-      ])
-
-      expect(result.success).assertTrue()
-      expect(result.parsedEntryCount).assertEqual(2)
-      expect(result.insertedEntryCount).assertEqual(1)
-      expect(result.skippedDuplicateCount).assertEqual(0)
-      expect(result.skippedExpiredCount).assertEqual(1)
-      expect(savedEntries.length).assertEqual(1)
-      expect(savedEntries[0].id).assertEqual('valid')
-    })
-
-    it('should return save_failed when parsed entries cannot be appended', 0, async () => {
-      saveResult = { success: false, code: 'save_failed' }
-
-      let result = await LogImportService.importFiles([
-        {
-          path: '/tmp/hilog_kmsg.1',
-          fileName: 'hilog_kmsg.1',
-          relativePath: 'hilog/hilog_kmsg.1',
-          normalizedPath: 'hilog/hilog_kmsg.1'
-        }
-      ])
-
-      expect(result.success).assertFalse()
-      expect(result.code).assertEqual('save_failed')
-      expect(result.parsedEntryCount).assertEqual(3)
-      expect(result.insertedEntryCount).assertEqual(0)
-      expect(result.skippedDuplicateCount).assertEqual(1)
-      expect(result.skippedExpiredCount).assertEqual(0)
-      expect(result.droppedEntryCount).assertEqual(2)
-      expect(result.failedEntryCount).assertEqual(1)
-      expect(savedEntries.length).assertEqual(2)
     })
 
     it('should persist parsed entries and keep background batch duplicate count', 0, async () => {
@@ -291,6 +183,22 @@ export default function logImportServiceTest() {
       expect(result.droppedEntryCount).assertEqual(3)
       expect(result.failedEntryCount).assertEqual(1)
       expect(savedEntries.length).assertEqual(1)
+    })
+
+    it('should return parse failure result when background parse fails', 0, async () => {
+      let result = await LogImportService.importParsedEntries(createFailedParseResult('invalid_archive'))
+
+      expect(result.success).assertFalse()
+      expect(result.code).assertEqual('invalid_archive')
+      expect(result.extractedFileCount).assertEqual(1)
+      expect(result.scannedFileCount).assertEqual(1)
+      expect(result.parsedEntryCount).assertEqual(0)
+      expect(result.insertedEntryCount).assertEqual(0)
+      expect(result.skippedDuplicateCount).assertEqual(0)
+      expect(result.skippedExpiredCount).assertEqual(0)
+      expect(result.droppedEntryCount).assertEqual(2)
+      expect(result.failedEntryCount).assertEqual(1)
+      expect(savedEntries.length).assertEqual(0)
     })
   })
 }
