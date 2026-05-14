@@ -71,7 +71,7 @@ export struct SubPageHeader {
     .padding({
       left: AppStyles.PADDING_LG,
       right: AppStyles.PADDING_LG,
-      top: AppStyles.PADDING_LG
+      top: AppStyles.PADDING_MD
     })
     .alignItems(VerticalAlign.Top)
   }

@@ -14,6 +14,29 @@ export class AppColors {
   static readonly THEME_MODE_ICON_COLOR_DARK: string = '#8E8E93'
   static readonly THEME_MODE_ICON_COLOR_LIGHT: string = '#FFD60A'
   static readonly OVERLAY_BACKGROUND: string = '#66000000'
+  static readonly INTERACTIVE_BUTTON_HOVER_LIGHT: string = 'rgba(0,0,0,0.05)'
+  static readonly INTERACTIVE_BUTTON_PRESSED_LIGHT: string = 'rgba(0,0,0,0.08)'
+  static readonly INTERACTIVE_BUTTON_HOVER_DARK: string = 'rgba(255,255,255,0.10)'
+  static readonly INTERACTIVE_BUTTON_PRESSED_DARK: string = 'rgba(255,255,255,0.14)'
+  static readonly TRANSPARENT: string = 'rgba(0,0,0,0)'
+  static readonly ACTION_PRIMARY_BG_DARK: string = 'rgba(94,161,255,0.24)'
+  static readonly ACTION_PRIMARY_HOVER_DARK: string = 'rgba(94,161,255,0.32)'
+  static readonly ACTION_PRIMARY_PRESSED_DARK: string = 'rgba(94,161,255,0.42)'
+  static readonly ACTION_PRIMARY_HOVER_LIGHT: string = 'rgba(10,132,255,0.14)'
+  static readonly ACTION_PRIMARY_PRESSED_LIGHT: string = 'rgba(10,132,255,0.20)'
+  static readonly ACTION_DANGER_BG_DARK: string = 'rgba(255,59,48,0.24)'
+  static readonly ACTION_DANGER_HOVER_DARK: string = 'rgba(255,59,48,0.32)'
+  static readonly ACTION_DANGER_PRESSED_DARK: string = 'rgba(255,59,48,0.42)'
+  static readonly ACTION_DANGER_HOVER_LIGHT: string = 'rgba(255,59,48,0.14)'
+  static readonly ACTION_DANGER_PRESSED_LIGHT: string = 'rgba(255,59,48,0.20)'
+  static readonly SIDEBAR_SELECTED_HOVER_LIGHT: string = 'rgba(10,132,255,0.84)'
+  static readonly SIDEBAR_SELECTED_PRESSED_LIGHT: string = 'rgba(10,132,255,0.92)'
+  static readonly SIDEBAR_SELECTED_HOVER_DARK: string = 'rgba(94,161,255,0.82)'
+  static readonly SIDEBAR_SELECTED_PRESSED_DARK: string = 'rgba(94,161,255,0.90)'
+  static readonly SIDEBAR_ICON_TILE_BG_LIGHT: string = 'rgba(10,132,255,0.08)'
+  static readonly SIDEBAR_ICON_TILE_BG_DARK: string = 'rgba(10,132,255,0.14)'
+  static readonly THEME_MODE_ICON_TILE_BG_LIGHT: string = 'rgba(255,214,10,0.14)'
+  static readonly THEME_MODE_ICON_TILE_BG_DARK: string = 'rgba(142,142,147,0.18)'
 
   static readonly SUCCESS: string = '#34C759'
   static readonly WARNING: string = '#FF9500'
@@ -68,6 +91,17 @@ export class AppStyles {
   static readonly FONT_SIZE_MICRO: number = 11
 
   static readonly SELECT_WIDTH_DEFAULT: number = 140
+  static readonly TOP_BAR_HEIGHT: number = 42
+  static readonly TITLE_BAR_SYSTEM_BUTTON_COUNT: number = 3
+  static readonly TITLE_BAR_CONTROL_BACKGROUND_SIZE: number = 28
+  static readonly TITLE_BAR_CONTROL_BACKGROUND_RADIUS: number = 4
+  static readonly TITLE_BAR_CONTROL_SPACING: number = 12
+  static readonly TITLE_BAR_CLOSE_BUTTON_RIGHT_MARGIN: number = 20
+  static readonly TITLE_BAR_CONTROL_VERTICAL_OFFSET: number = 8
+  static readonly WINDOW_CONTROL_RESERVED_WIDTH: number =
+    AppStyles.TITLE_BAR_CLOSE_BUTTON_RIGHT_MARGIN +
+      AppStyles.TITLE_BAR_SYSTEM_BUTTON_COUNT * AppStyles.TITLE_BAR_CONTROL_BACKGROUND_SIZE +
+      AppStyles.TITLE_BAR_SYSTEM_BUTTON_COUNT * AppStyles.TITLE_BAR_CONTROL_SPACING
   static readonly BUTTON_HEIGHT: number = 40
   static readonly INPUT_HEIGHT: number = 40
   static readonly LOADING_INDICATOR_SIZE: number = 42
@@ -83,7 +117,6 @@ export class AppStyles {
   static readonly ICON_SIZE_MD: number = 20
   static readonly ICON_SIZE_LG: number = 28
   static readonly ICON_TILE_SIZE_LG: number = 48
-  static readonly TOP_BAR_HEIGHT: number = 56
   static readonly RADIUS_PILL: number = 999
   static readonly CONTROL_ROW_ACTION_GAP: number = 10
   static readonly CONTROL_ROW_HORIZONTAL_PADDING: number = 20
@@ -118,27 +151,27 @@ export class ActionButtonStyles {
   static getPrimaryBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (theme === ThemeMode.DARK) {
       if (isPressed) {
-        return 'rgba(94,161,255,0.42)'
+        return AppColors.ACTION_PRIMARY_PRESSED_DARK
       }
-      return isHovered ? 'rgba(94,161,255,0.32)' : 'rgba(94,161,255,0.24)'
+      return isHovered ? AppColors.ACTION_PRIMARY_HOVER_DARK : AppColors.ACTION_PRIMARY_BG_DARK
     }
     if (isPressed) {
-      return 'rgba(10,132,255,0.20)'
+      return AppColors.ACTION_PRIMARY_PRESSED_LIGHT
     }
-    return isHovered ? 'rgba(10,132,255,0.14)' : AppColors.getColors(theme).TAG_BLUE_BG
+    return isHovered ? AppColors.ACTION_PRIMARY_HOVER_LIGHT : AppColors.getColors(theme).TAG_BLUE_BG
   }
 
   static getDangerBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (theme === ThemeMode.DARK) {
       if (isPressed) {
-        return 'rgba(255,59,48,0.42)'
+        return AppColors.ACTION_DANGER_PRESSED_DARK
       }
-      return isHovered ? 'rgba(255,59,48,0.32)' : 'rgba(255,59,48,0.24)'
+      return isHovered ? AppColors.ACTION_DANGER_HOVER_DARK : AppColors.ACTION_DANGER_BG_DARK
     }
     if (isPressed) {
-      return 'rgba(255,59,48,0.20)'
+      return AppColors.ACTION_DANGER_PRESSED_LIGHT
     }
-    return isHovered ? 'rgba(255,59,48,0.14)' : AppColors.getColors(theme).TAG_RED_BG
+    return isHovered ? AppColors.ACTION_DANGER_HOVER_LIGHT : AppColors.getColors(theme).TAG_RED_BG
   }
 
   static getPrimaryForeground(theme: ThemeMode): ResourceColor {
@@ -178,12 +211,12 @@ export class InteractiveItemStyles {
 
   static getMenuItemBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): string {
     if (!isHovered && !isPressed) {
-      return 'rgba(0,0,0,0)'
+      return AppColors.TRANSPARENT
     }
     if (theme === ThemeMode.DARK) {
-      return isPressed ? 'rgba(94,94,98,0.92)' : 'rgba(84,84,88,0.78)'
+      return isPressed ? AppColors.INTERACTIVE_BUTTON_PRESSED_DARK : AppColors.INTERACTIVE_BUTTON_HOVER_DARK
     }
-    return isPressed ? 'rgba(209,209,214,0.95)' : 'rgba(229,229,234,0.92)'
+    return isPressed ? AppColors.INTERACTIVE_BUTTON_PRESSED_LIGHT : AppColors.INTERACTIVE_BUTTON_HOVER_LIGHT
   }
 
   static getMenuIconColor(theme: ThemeMode): ResourceColor {
@@ -201,9 +234,9 @@ export class InteractiveItemStyles {
   static getSidebarItemBackground(theme: ThemeMode, isSelected: boolean, isHovered: boolean, isPressed: boolean = false): string {
     if (isSelected) {
       if (theme === ThemeMode.DARK) {
-        return isPressed ? 'rgba(94,161,255,0.90)' : (isHovered ? 'rgba(94,161,255,0.82)' : AppColors.BRAND_PRIMARY)
+        return isPressed ? AppColors.SIDEBAR_SELECTED_PRESSED_DARK : (isHovered ? AppColors.SIDEBAR_SELECTED_HOVER_DARK : AppColors.BRAND_PRIMARY)
       }
-      return isPressed ? 'rgba(10,132,255,0.92)' : (isHovered ? 'rgba(10,132,255,0.84)' : AppColors.BRAND_PRIMARY)
+      return isPressed ? AppColors.SIDEBAR_SELECTED_PRESSED_LIGHT : (isHovered ? AppColors.SIDEBAR_SELECTED_HOVER_LIGHT : AppColors.BRAND_PRIMARY)
     }
     return InteractiveItemStyles.getMenuItemBackground(theme, isHovered, isPressed)
   }
@@ -212,7 +245,7 @@ export class InteractiveItemStyles {
     if (isSelected) {
       return AppColors.SIDEBAR_SELECTED_TILE
     }
-    return theme === ThemeMode.DARK ? 'rgba(10,132,255,0.14)' : 'rgba(10,132,255,0.08)'
+    return theme === ThemeMode.DARK ? AppColors.SIDEBAR_ICON_TILE_BG_DARK : AppColors.SIDEBAR_ICON_TILE_BG_LIGHT
   }
 
   static getSidebarIconColor(theme: ThemeMode, isSelected: boolean): ResourceColor {
@@ -228,7 +261,7 @@ export class InteractiveItemStyles {
   }
 
   static getThemeModeIconTileBackground(theme: ThemeMode): string {
-    return theme === ThemeMode.DARK ? 'rgba(142,142,147,0.18)' : 'rgba(255,214,10,0.14)'
+    return theme === ThemeMode.DARK ? AppColors.THEME_MODE_ICON_TILE_BG_DARK : AppColors.THEME_MODE_ICON_TILE_BG_LIGHT
   }
 }
 
