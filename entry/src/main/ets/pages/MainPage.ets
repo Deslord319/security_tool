@@ -377,9 +377,10 @@ struct MainPage {
             }
             .type(ButtonType.Normal)
             .id('top-menu-trigger')
-            .width(32)
-            .height(32)
-            .borderRadius(AppStyles.RADIUS_MD)
+            .width(AppStyles.TITLE_BAR_CONTROL_BACKGROUND_SIZE)
+            .height(AppStyles.TITLE_BAR_CONTROL_BACKGROUND_SIZE)
+            .translate({ y: AppStyles.TITLE_BAR_CONTROL_VERTICAL_OFFSET })
+            .borderRadius(AppStyles.TITLE_BAR_CONTROL_BACKGROUND_RADIUS)
             .backgroundColor(InteractiveItemStyles.getMenuItemBackground(this.currentTheme, this.menuTriggerHovered))
             .onHover((isHover: boolean) => {
               this.menuTriggerHovered = isHover
@@ -390,7 +391,7 @@ struct MainPage {
           }
           .width('100%')
           .height(AppStyles.TOP_BAR_HEIGHT)
-          .padding({ left: AppStyles.PADDING_LG, right: AppStyles.SELECT_WIDTH_DEFAULT })
+          .padding({ left: AppStyles.PADDING_LG, right: AppStyles.WINDOW_CONTROL_RESERVED_WIDTH })
           .alignItems(VerticalAlign.Center)
           .backgroundColor(this.currentTheme === ThemeMode.DARK ? AppColors.getColors(this.currentTheme).BG_COMPONENT : Color.Transparent)
 
@@ -455,7 +456,7 @@ struct MainPage {
             }
           })
         }
-        .margin({ top: AppStyles.TOP_BAR_HEIGHT, right: AppStyles.SELECT_WIDTH_DEFAULT })
+        .margin({ top: AppStyles.TOP_BAR_HEIGHT, right: AppStyles.WINDOW_CONTROL_RESERVED_WIDTH })
       }
     }
     .width('100%')
