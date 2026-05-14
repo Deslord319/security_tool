@@ -1,4 +1,3 @@
-import restrictions from '@ohos.enterprise.restrictions'
 import { usbManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
@@ -55,14 +54,6 @@ export class PeripheralDevicePolicyDispatchService {
   private static async dispatchUsbPolicy(
     request: PeripheralPolicyDispatchRequest
   ): Promise<PeripheralPolicyDispatchResult> {
-    const usbDisabledResult = PeripheralDevicePolicyDispatchService.getUsbDisabledState()
-    if (!usbDisabledResult.success) {
-      return PeripheralDevicePolicyDispatchService.copyFailureResult(usbDisabledResult, 'usb_dispatch_failed')
-    }
-    if (usbDisabledResult.data === true) {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('usb_conflict_global_disabled')
-    }
-
     if (request.deviceType === PeripheralType.USB_STORAGE) {
       const storagePolicyResult = PeripheralDevicePolicyDispatchService.getUsbStoragePolicy()
       if (!storagePolicyResult.success) {
@@ -110,18 +101,6 @@ export class PeripheralDevicePolicyDispatchService {
       'usb',
       'usb_dispatch_conflict_unresolved'
     )
-  }
-
-  private static getUsbDisabledState(): OperationResult<boolean> {
-    try {
-      return {
-        success: true,
-        data: restrictions.getDisallowedPolicy(ADMIN_WANT, 'usb')
-      } as OperationResult<boolean>
-    } catch (err) {
-      LogUtils.error(TAG, `getUsbDisabledState failed: ${JSON.stringify(err)}`)
-      return PeripheralDevicePolicyDispatchService.buildOperationFailureResult<boolean>('read usb disabled state', err as ErrorLike, false)
-    }
   }
 
   private static getUsbStoragePolicy(): OperationResult<usbManager.UsbPolicy> {

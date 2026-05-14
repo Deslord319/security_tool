@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
-import {
-  OperationResult,
-  SecurityEventResult
-} from '../../main/ets/models/CommonModels'
+import { OperationResult, SecurityEventResult } from '../../main/ets/models/CommonModels'
 import {
   PeripheralDevicePolicyRecord,
   PeripheralType,
@@ -66,11 +63,6 @@ class MissingRawDataUsbEvent implements PeripheralConnectionRecordProducerEvent 
   constructor(eventName: string) {
     this.eventName = eventName
   }
-}
-
-class BooleanOperationResult implements OperationResult<boolean> {
-  success: boolean = true
-  data?: boolean
 }
 
 class UsbPolicyOperationResult implements OperationResult<number> {
@@ -155,30 +147,30 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
     let mockKit: MockKit
     let dispatchResult: PeripheralPolicyDispatchResult
     let dispatchCount: number
-    let usbDisabledResult: BooleanOperationResult
+    let usbDefaultDeny: boolean
     let usbStorageResult: UsbPolicyOperationResult
 
     beforeEach(async () => {
+      PeripheralDevicePolicyRepository.resetForTest()
       mockKit = new MockKit()
       dispatchResult = createDispatchResult(true)
       dispatchCount = 0
+      usbDefaultDeny = false
       await PeripheralDevicePolicyRepository.clearAll()
-      usbDisabledResult = new BooleanOperationResult()
-      usbDisabledResult.data = false
       usbStorageResult = new UsbPolicyOperationResult()
       usbStorageResult.data = UsbStoragePolicy.READ_WRITE
-      let getInterfaceMock: Function =
-        mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
       let getUsbStorageMock: Function =
         mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
       let dispatchMock: Function =
         mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
-      when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(usbDisabledResult)
+      let isUsbDefaultDenyMock: Function =
+        mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.isUsbDefaultDeny)
       when(getUsbStorageMock)().afterReturn(usbStorageResult)
       when(dispatchMock)(ArgumentMatchers.any).afterAction(() => {
         dispatchCount += 1
         return Promise.resolve(dispatchResult)
       })
+      when(isUsbDefaultDenyMock)().afterAction(() => usbDefaultDeny)
     })
 
     afterEach(async () => {
@@ -186,11 +178,12 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       mockKit.clear(PeripheralDevicePolicyDispatchService)
       mockKit.clearAll()
       await PeripheralDevicePolicyRepository.clearAll()
+      PeripheralDevicePolicyRepository.resetForTest()
     })
 
-    it('U-USB-001 should map usb attached event to blocked record when usb interface is disabled', 0, async () => {
+    it('U-USB-001 should not treat usb default deny as system usb disabled policy', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
-      usbDisabledResult.data = true
+      usbDefaultDeny = true
       await PeripheralDevicePolicyRepository.set({
         deviceId: 'VID:1234 PID:5678',
         policy: 'allow',
@@ -203,11 +196,10 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       const record = await consumer.consume(buildUsbEvent())
 
       expect(record !== null).assertTrue()
-      expect(record?.decision).assertEqual('deny')
-      expect(record?.result).assertEqual(SecurityEventResult.BLOCKED)
-      expect(record?.matchedPolicyKind).assertEqual('usb_disabled')
-      expect(record?.effectivePolicyLabel).assertEqual('已禁用')
-      expect(record?.summary).assertEqual('USB 接口已禁用')
+      expect(record?.decision).assertEqual('allow')
+      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
+      expect(record?.matchedPolicyKind).assertEqual('default_allow')
+      expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(dispatchCount).assertEqual(0)
     })
 
@@ -296,8 +288,9 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.summary).assertEqual('命中单设备禁止接入')
     })
 
-    it('U-USB-005 should auto deny first usb attach event when no explicit policy exists', 0, async () => {
+    it('U-USB-005 should auto deny first usb attach event when default policy is deny and no explicit policy exists', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
+      usbDefaultDeny = true
       let hidOverrides: UsbEventParameterOverrides = {
         deviceName: 'USB Keyboard',
         productName: 'USB Keyboard',
@@ -320,6 +313,29 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(record?.detail?.includes('首次接入已自动加入黑名单')).assertTrue()
       expect(dispatchCount).assertEqual(1)
       expect(PeripheralDevicePolicyRepository.get('VID:1234 PID:5678')?.policy).assertEqual('deny')
+    })
+
+    it('U-USB-005A should not auto deny first usb attach event when default policy is allow', 0, async () => {
+      const consumer = new PeripheralConnectionRecordUsbConsumer()
+      let hidOverrides: UsbEventParameterOverrides = {
+        deviceName: 'USB Keyboard',
+        productName: 'USB Keyboard',
+        baseClass: 0x03,
+        class: 0x03
+      }
+
+      const record = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        hidOverrides
+      ))
+
+      expect(record !== null).assertTrue()
+      expect(record?.decision).assertEqual('allow')
+      expect(record?.result).assertEqual(SecurityEventResult.SUCCESS)
+      expect(record?.matchedPolicyKind).assertEqual('default_allow')
+      expect(record?.deviceType).assertEqual(PeripheralType.USB_HID)
+      expect(dispatchCount).assertEqual(0)
+      expect(PeripheralDevicePolicyRepository.get('VID:1234 PID:5678') === null).assertTrue()
     })
 
     it('U-USB-006 should map usb detached event to disconnect record without blocked summary', 0, async () => {
@@ -464,6 +480,7 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
 
     it('U-USB-013 should not save local deny when auto deny dispatch fails', 0, async () => {
       const consumer = new PeripheralConnectionRecordUsbConsumer()
+      usbDefaultDeny = true
       dispatchResult = createDispatchResult(false, 'usb_dispatch_failed')
 
       const record = await consumer.consume(buildUsbEvent())

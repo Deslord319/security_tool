@@ -51,7 +51,6 @@ interface ResolvedUsbEventInfo {
 }
 
 interface UsbPolicySnapshot {
-  usbDisabled: boolean
   usbStoragePolicy: UsbStoragePolicy
   devicePolicies: Map<string, PeripheralDevicePolicy>
 }
@@ -182,18 +181,6 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       }
     }
 
-    if (snapshot.usbDisabled) {
-      return {
-        policyHit: 'deny',
-        result: SecurityEventResult.BLOCKED,
-        summary: PeripheralMatchedPolicyStrings.USB_DISABLED,
-        detail: PeripheralConnectionRecordStrings.USB_INTERFACE_DISABLED_DETAIL,
-        usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
-        effectivePolicyLabel: StatusText.DISABLED,
-        matchedPolicyKind: 'usb_disabled'
-      }
-    }
-
     if (info.deviceType === PeripheralType.USB_STORAGE) {
       if (snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
         return {
@@ -256,6 +243,9 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     if (PeripheralDevicePolicyRepository.get(info.deviceId)) {
       return { status: 'skipped_existing_policy' }
     }
+    if (!PeripheralDevicePolicyRepository.isUsbDefaultDeny()) {
+      return { status: 'not_applicable' }
+    }
 
     const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
       deviceId: info.deviceId,
@@ -317,7 +307,6 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       devicePolicies.set(item.deviceId.toUpperCase(), item.policy)
     })
     return {
-      usbDisabled: PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB).data ?? false,
       usbStoragePolicy: PeripheralConnectionRecordUsbConsumer.readCurrentUsbStoragePolicy(),
       devicePolicies: devicePolicies
     }
@@ -342,9 +331,6 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     deviceType: PeripheralType,
     snapshot: UsbPolicySnapshot
   ): string {
-    if (snapshot.usbDisabled) {
-      return StatusText.DISABLED
-    }
     if (snapshot.devicePolicies.get(deviceId.toUpperCase()) === 'deny') {
       return StatusText.DISABLED
     }

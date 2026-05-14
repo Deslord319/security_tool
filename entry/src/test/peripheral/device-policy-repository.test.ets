@@ -10,17 +10,30 @@ import { PreferencesAccessor } from '../../main/ets/storage/preferences/Preferen
 
 class FakePreferencesAccessor {
   private storedRecords: PeripheralDevicePolicyRecord[]
+  private usbDefaultPolicy: string
 
-  constructor(storedRecords: PeripheralDevicePolicyRecord[]) {
+  constructor(storedRecords: PeripheralDevicePolicyRecord[], usbDefaultPolicy: string = 'allow') {
     this.storedRecords = storedRecords
+    this.usbDefaultPolicy = usbDefaultPolicy
   }
 
   async getJsonArray<T>(_key: string, defaultValue: T[]): Promise<T[]> {
     return this.storedRecords.length > 0 ? this.storedRecords as T[] : defaultValue
   }
 
+  async getString(key: string, defaultValue: string): Promise<string> {
+    return key === 'usb_default_policy' ? this.usbDefaultPolicy : defaultValue
+  }
+
   async setJson(_key: string, value: PeripheralDevicePolicyRecord[], _flush: boolean = true): Promise<boolean> {
     this.storedRecords.splice(0, this.storedRecords.length, ...value)
+    return true
+  }
+
+  async setValue(key: string, value: string | number | boolean, _flush: boolean = true): Promise<boolean> {
+    if (key === 'usb_default_policy' && typeof value === 'string') {
+      this.usbDefaultPolicy = value
+    }
     return true
   }
 }
@@ -42,6 +55,7 @@ export default function peripheralDevicePolicyRepositoryTest() {
     let storedRecords: PeripheralDevicePolicyRecord[]
 
     beforeEach(() => {
+      PeripheralDevicePolicyRepository.resetForTest()
       mockKit = new MockKit()
       context = {} as common.UIAbilityContext
       storedRecords = []
@@ -53,6 +67,7 @@ export default function peripheralDevicePolicyRepositoryTest() {
     afterEach(() => {
       mockKit.clearAll()
       storedRecords = []
+      PeripheralDevicePolicyRepository.resetForTest()
     })
 
     it('should initialize successfully', 0, async () => {
@@ -197,6 +212,33 @@ export default function peripheralDevicePolicyRepositoryTest() {
       let records = PeripheralDevicePolicyRepository.getAll()
       expect(records.length).assertEqual(1)
       expect(records[0].policy).assertEqual('allow')
+    })
+
+    it('should default usb default policy to allow when no value exists', 0, async () => {
+      await PeripheralDevicePolicyRepository.init(context)
+
+      expect(PeripheralDevicePolicyRepository.getUsbDefaultPolicy()).assertEqual('allow')
+    })
+
+    it('should set usb default policy to deny and allow', 0, async () => {
+      await PeripheralDevicePolicyRepository.init(context)
+
+      let denyResult = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy('deny')
+      expect(denyResult ? 'success' : 'failed').assertEqual('success')
+      expect(PeripheralDevicePolicyRepository.getUsbDefaultPolicy()).assertEqual('deny')
+
+      let allowResult = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy('allow')
+      expect(allowResult ? 'success' : 'failed').assertEqual('success')
+      expect(PeripheralDevicePolicyRepository.getUsbDefaultPolicy()).assertEqual('allow')
+    })
+
+    it('should normalize invalid usb default policy to allow', 0, async () => {
+      await PeripheralDevicePolicyRepository.init(context)
+
+      let result = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy('invalid' as 'allow' | 'deny')
+
+      expect(result).assertTrue()
+      expect(PeripheralDevicePolicyRepository.getUsbDefaultPolicy()).assertEqual('allow')
     })
   })
 }
