@@ -27,5 +27,17 @@ export default function peripheralDevicePolicyDispatchServiceTest() {
       expect(result.reason).assertEqual('unsupported_device_type')
       expect(result.stage).assertEqual('device_policy_dispatch')
     })
+
+    it('should reject bluetooth device type before dispatch', 0, async () => {
+      const result = await PeripheralDevicePolicyDispatchService.dispatch({
+        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+        deviceType: PeripheralType.BLUETOOTH,
+        policy: 'deny'
+      })
+
+      expect(result.success).assertFalse()
+      expect(result.reason).assertEqual('unsupported_device_type')
+      expect(result.stage).assertEqual('device_policy_dispatch')
+    })
   })
 }

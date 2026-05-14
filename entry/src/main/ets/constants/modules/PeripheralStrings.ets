@@ -18,9 +18,6 @@ export class PeripheralReasonCodes {
   static readonly USB_CONFLICT_ACCOUNT_STORAGE: string = 'usb_conflict_account_storage'
   static readonly USB_DISPATCH_FAILED: string = 'usb_dispatch_failed'
   static readonly USB_DISPATCH_CONFLICT_UNRESOLVED: string = 'usb_dispatch_conflict_unresolved'
-  static readonly BLUETOOTH_CONFLICT_GLOBAL_DISABLED: string = 'bluetooth_conflict_global_disabled'
-  static readonly BLUETOOTH_DISPATCH_FAILED: string = 'bluetooth_dispatch_failed'
-  static readonly BLUETOOTH_DISPATCH_CONFLICT_UNRESOLVED: string = 'bluetooth_dispatch_conflict_unresolved'
   static readonly EXPORT_CONNECTION_HISTORY_FAILED: string = 'export_connection_history_failed'
   static readonly EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
   static readonly READ_USB_STATUS_FAILED: string = 'read_usb_status'
@@ -249,12 +246,6 @@ export function resolvePeripheralReason(reason?: string | null): string {
       return 'USB 单设备策略下发失败，请稍后重试'
     case PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED:
       return '系统检测到 USB 冲突规则未完成消解，暂时无法修改单设备策略'
-    case PeripheralReasonCodes.BLUETOOTH_CONFLICT_GLOBAL_DISABLED:
-      return '蓝牙当前处于更高层禁用状态，暂时无法修改单设备策略'
-    case PeripheralReasonCodes.BLUETOOTH_DISPATCH_FAILED:
-      return '蓝牙单设备策略下发失败，请稍后重试'
-    case PeripheralReasonCodes.BLUETOOTH_DISPATCH_CONFLICT_UNRESOLVED:
-      return '系统检测到蓝牙冲突规则未完成消解，暂时无法修改单设备策略'
     case PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED:
       return '导出记录失败，请稍后重试'
     case PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED:

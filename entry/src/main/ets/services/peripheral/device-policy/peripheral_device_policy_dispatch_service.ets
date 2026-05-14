@@ -1,5 +1,5 @@
 import restrictions from '@ohos.enterprise.restrictions'
-import { bluetoothManager, usbManager } from '@kit.MDMKit'
+import { usbManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
 import { OperationResult } from '../../../models/CommonModels'
@@ -21,10 +21,7 @@ export type PeripheralPolicyDispatchReason =
   'usb_conflict_global_disabled' |
   'usb_conflict_account_storage' |
   'usb_dispatch_failed' |
-  'usb_dispatch_conflict_unresolved' |
-  'bluetooth_conflict_global_disabled' |
-  'bluetooth_dispatch_failed' |
-  'bluetooth_dispatch_conflict_unresolved'
+  'usb_dispatch_conflict_unresolved'
 
 export interface PeripheralPolicyDispatchRequest {
   deviceId: string
@@ -46,10 +43,6 @@ export class PeripheralDevicePolicyDispatchService {
 
     if (isUsbPeripheralType(request.deviceType)) {
       return PeripheralDevicePolicyDispatchService.dispatchUsbPolicy(request)
-    }
-
-    if (request.deviceType === PeripheralType.BLUETOOTH) {
-      return PeripheralDevicePolicyDispatchService.dispatchBluetoothPolicy(request)
     }
 
     return PeripheralDevicePolicyDispatchService.buildFailureResult('unsupported_device_type')
@@ -84,52 +77,6 @@ export class PeripheralDevicePolicyDispatchService {
       return PeripheralDevicePolicyDispatchService.dispatchUsbDeny(request)
     }
     return PeripheralDevicePolicyDispatchService.dispatchUsbAllow(request)
-  }
-
-  private static async dispatchBluetoothPolicy(request: PeripheralPolicyDispatchRequest): Promise<PeripheralPolicyDispatchResult> {
-    const bluetoothDisabledResult = PeripheralDevicePolicyDispatchService.getBluetoothDisabledState()
-    if (!bluetoothDisabledResult.success) {
-      return PeripheralDevicePolicyDispatchService.copyFailureResult(bluetoothDisabledResult, 'bluetooth_dispatch_failed')
-    }
-    if (bluetoothDisabledResult.data === true) {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_conflict_global_disabled')
-    }
-
-    const bluetoothDeviceId = PeripheralDevicePolicyDispatchService.toBluetoothDeviceId(request.deviceId)
-    if (!bluetoothDeviceId) {
-      return PeripheralDevicePolicyDispatchService.buildFailureResult('bluetooth_dispatch_failed')
-    }
-
-    if (request.policy === 'deny') {
-      return PeripheralDevicePolicyDispatchService.dispatchBluetoothDeny(bluetoothDeviceId)
-    }
-    return PeripheralDevicePolicyDispatchService.dispatchBluetoothAllow(bluetoothDeviceId)
-  }
-
-  private static dispatchBluetoothAllow(deviceId: string): PeripheralPolicyDispatchResult {
-    return PeripheralDevicePolicyDispatchService.tryRunOperation(
-      () => {
-        const disallowed = bluetoothManager.getDisallowedBluetoothDevices(ADMIN_WANT)
-        if (PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(disallowed, deviceId)) {
-          bluetoothManager.removeDisallowedBluetoothDevices(ADMIN_WANT, [deviceId])
-        }
-      },
-      'bluetooth',
-      'bluetooth_dispatch_conflict_unresolved'
-    )
-  }
-
-  private static dispatchBluetoothDeny(deviceId: string): PeripheralPolicyDispatchResult {
-    return PeripheralDevicePolicyDispatchService.tryRunOperation(
-      () => {
-        const disallowed = bluetoothManager.getDisallowedBluetoothDevices(ADMIN_WANT)
-        if (!PeripheralDevicePolicyDispatchService.containsBluetoothDeviceId(disallowed, deviceId)) {
-          bluetoothManager.addDisallowedBluetoothDevices(ADMIN_WANT, [deviceId])
-        }
-      },
-      'bluetooth',
-      'bluetooth_dispatch_conflict_unresolved'
-    )
   }
 
   private static dispatchUsbAllow(request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult {
@@ -177,22 +124,6 @@ export class PeripheralDevicePolicyDispatchService {
     }
   }
 
-  private static getBluetoothDisabledState(): OperationResult<boolean> {
-    try {
-      return {
-        success: true,
-        data: restrictions.getDisallowedPolicy(ADMIN_WANT, 'bluetooth')
-      } as OperationResult<boolean>
-    } catch (err) {
-      LogUtils.error(TAG, `getBluetoothDisabledState failed: ${JSON.stringify(err)}`)
-      return PeripheralDevicePolicyDispatchService.buildOperationFailureResult<boolean>(
-        'read bluetooth disabled state',
-        err as ErrorLike,
-        false
-      )
-    }
-  }
-
   private static getUsbStoragePolicy(): OperationResult<usbManager.UsbPolicy> {
     try {
       return {
@@ -212,14 +143,6 @@ export class PeripheralDevicePolicyDispatchService {
   private static toUsbDeviceType(deviceType: PeripheralType): usbManager.UsbDeviceType | null {
     const baseClass = getUsbPeripheralBaseClass(deviceType)
     return baseClass === null ? null : PeripheralDevicePolicyDispatchService.buildUsbDeviceType(baseClass)
-  }
-
-  private static toBluetoothDeviceId(deviceId: string): string | null {
-    const normalized = deviceId.trim().replace(/^MAC:\s*/i, '').replace(/-/g, ':').toUpperCase()
-    if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(normalized)) {
-      return null
-    }
-    return normalized
   }
 
   private static buildUsbDeviceType(baseClass: number): usbManager.UsbDeviceType {
@@ -243,15 +166,9 @@ export class PeripheralDevicePolicyDispatchService {
     })
   }
 
-  private static containsBluetoothDeviceId(items: string[], target: string): boolean {
-    return items.some((item: string) => {
-      return PeripheralDevicePolicyDispatchService.toBluetoothDeviceId(item) === target
-    })
-  }
-
   private static tryRunOperation(
     action: () => void,
-    channel: 'usb' | 'bluetooth',
+    channel: 'usb',
     conflictReason: PeripheralPolicyDispatchReason
   ): PeripheralPolicyDispatchResult {
     try {
@@ -260,12 +177,11 @@ export class PeripheralDevicePolicyDispatchService {
     } catch (err) {
       const error = err as ErrorLike
       const code = CommonErrorUtils.extractErrorCode(error)
-      const defaultReason: PeripheralPolicyDispatchReason = channel === 'usb' ? 'usb_dispatch_failed' : 'bluetooth_dispatch_failed'
       const adminMissing = EnterpriseAdminService.isAdminMissingError(error)
       LogUtils.error(TAG, `${channel} dispatch failed: code=${code ?? -1}, message=${CommonErrorUtils.extractErrorMessage(error)}`)
       return {
         success: false,
-        reason: code === PeripheralErrorCodes.POLICY_CONFLICT ? conflictReason : defaultReason,
+        reason: code === PeripheralErrorCodes.POLICY_CONFLICT ? conflictReason : 'usb_dispatch_failed',
         errorCode: code,
         errorMessage: CommonErrorUtils.extractErrorMessage(error),
         isAdminMissing: adminMissing,

@@ -16,8 +16,7 @@ const POLICY_CANDIDATE_RECORD_TYPES: PeripheralType[] = [
   PeripheralType.USB_CAMERA,
   PeripheralType.USB_PRINTER,
   PeripheralType.USB_HID,
-  PeripheralType.USB_OTHER,
-  PeripheralType.BLUETOOTH
+  PeripheralType.USB_OTHER
 ]
 
 export class PeripheralPolicyService {

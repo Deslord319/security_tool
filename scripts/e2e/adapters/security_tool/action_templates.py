@@ -94,14 +94,6 @@ ACTION_TEMPLATES = {
             {"type": "confirm_dialog", "params": {"allow_cancel": False}},
         ],
     },
-    "peripheral.whitelist.create.bluetooth": {
-        "description": "Add a Bluetooth device to the peripheral whitelist.",
-        "sequence": [
-            {"type": "open_named_dialog", "params": {"dialog_key": "peripheral.whitelist.create.bluetooth"}},
-            {"type": "fill_inputs", "params": {"field_group": "peripheral.whitelist.bluetooth", "values": ["${data.device_id}"]}},
-            {"type": "confirm_dialog", "params": {"allow_cancel": False}},
-        ],
-    },
     "peripheral.blacklist.create.usb": {
         "description": "Add a USB device to the peripheral blacklist.",
         "sequence": [
