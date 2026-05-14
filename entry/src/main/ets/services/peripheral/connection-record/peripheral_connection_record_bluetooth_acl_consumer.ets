@@ -5,11 +5,6 @@ import {
   PeripheralType,
   formatBluetoothDeviceId
 } from '../../../models/PeripheralModels'
-import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
-import {
-  PeripheralDevicePolicyDispatchService,
-  PeripheralPolicyDispatchReason
-} from '../device-policy/peripheral_device_policy_dispatch_service'
 import { LogUtils } from '../../../utils/LogUtils'
 import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
 import {
@@ -35,17 +30,6 @@ const BLUETOOTH_ACL_STATE_DISCONNECTING = 3
 
 type BluetoothAclAction = 'connect' | 'disconnect' | 'unknown'
 type EventPayloadRecord = LooseRecord
-type FirstConnectAutoDenyStatus =
-  'not_applicable' |
-  'skipped_existing_policy' |
-  'saved' |
-  'dispatch_failed' |
-  'save_failed'
-
-interface FirstConnectAutoDenyResult {
-  status: FirstConnectAutoDenyStatus
-  reason?: PeripheralPolicyDispatchReason | string
-}
 
 interface BluetoothAclEventInfo {
   occurAt: number
@@ -76,10 +60,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!eventInfo || eventInfo.action === 'unknown') {
       return null
     }
-    const autoDenyResult = await PeripheralConnectionRecordBluetoothAclConsumer.applyFirstConnectAutoDeny(eventInfo)
-    const devicePolicy = PeripheralDevicePolicyRepository.get(eventInfo.deviceId)
-    const denied = devicePolicy?.policy === 'deny'
-    const detail = PeripheralConnectionRecordBluetoothAclConsumer.buildDetail(eventInfo, autoDenyResult)
+    const detail = PeripheralConnectionRecordBluetoothAclConsumer.buildDetail(eventInfo)
 
     return {
       recordId: `runtime_bt_acl_${eventInfo.occurAt}_${generateRandomSuffix()}`,
@@ -89,65 +70,21 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceType: PeripheralType.BLUETOOTH,
       deviceId: eventInfo.deviceId,
       action: eventInfo.action,
-      decision: denied ? 'deny' : 'allow',
-      result: eventInfo.action === 'connect' && denied ? SecurityEventResult.BLOCKED : SecurityEventResult.SUCCESS,
+      decision: 'allow',
+      result: SecurityEventResult.SUCCESS,
       source: 'runtime_event',
       summary: eventInfo.action === 'connect' ? PeripheralConnectionRecordStrings.BLUETOOTH_CONNECTED : PeripheralConnectionRecordStrings.BLUETOOTH_DISCONNECTED,
       rawEventName: rawData.event,
       rawAction: eventInfo.action,
       rawPayload: eventInfo.rawPayload,
       detail: detail,
-      effectivePolicyLabel: denied ? StatusText.DISABLED : StatusText.ENABLED,
+      effectivePolicyLabel: StatusText.ENABLED,
       matchedPolicyKind: 'bluetooth_connection_event'
     }
   }
 
-  private static async applyFirstConnectAutoDeny(
-    eventInfo: BluetoothAclEventInfo
-  ): Promise<FirstConnectAutoDenyResult> {
-    if (eventInfo.action !== 'connect') {
-      return { status: 'not_applicable' }
-    }
-    if (PeripheralDevicePolicyRepository.get(eventInfo.deviceId)) {
-      return { status: 'skipped_existing_policy' }
-    }
-
-    const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
-      deviceId: eventInfo.deviceId,
-      deviceType: PeripheralType.BLUETOOTH,
-      policy: 'deny'
-    })
-    if (!dispatchResult.success) {
-      return {
-        status: 'dispatch_failed',
-        reason: dispatchResult.reason ?? dispatchResult.errorMessage ?? 'unknown'
-      }
-    }
-
-    const saved = await PeripheralDevicePolicyRepository.set({
-      deviceId: eventInfo.deviceId,
-      deviceName: eventInfo.deviceName,
-      deviceType: PeripheralType.BLUETOOTH,
-      policy: 'deny',
-      updatedAt: Date.now()
-    })
-    if (!saved) {
-      return { status: 'save_failed', reason: 'repository_set_failed' }
-    }
-    return { status: 'saved' }
-  }
-
-  private static buildDetail(
-    eventInfo: BluetoothAclEventInfo,
-    autoDenyResult: FirstConnectAutoDenyResult
-  ): string {
-    let detail = `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
-    if (autoDenyResult.status === 'saved') {
-      detail = PeripheralConnectionRecordStrings.appendAutoDenySavedDetail(detail)
-    } else if (autoDenyResult.status === 'dispatch_failed' || autoDenyResult.status === 'save_failed') {
-      detail = PeripheralConnectionRecordStrings.appendAutoDenyFailedDetail(detail, autoDenyResult.reason)
-    }
-    return detail
+  private static buildDetail(eventInfo: BluetoothAclEventInfo): string {
+    return `aclState=${eventInfo.stateLabel}, reason=${eventInfo.reasonLabel}`
   }
 
   private static async resolveBluetoothAclEventInfo(

@@ -75,6 +75,10 @@ export class PeripheralPolicyViewModel {
     deviceType: PeripheralType,
     policyIndex: number
   ): Promise<string | null> {
+    if (!isUsbPeripheralType(deviceType)) {
+      return PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH
+    }
+
     const normalizedDeviceId = PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId, deviceType)
     if (normalizedDeviceId.length === 0) {
       return PeripheralReasonCodes.INVALID_DEVICE_ID
@@ -198,7 +202,7 @@ export class PeripheralPolicyViewModel {
   }
 
   private shouldDispatchBeforeSave(deviceType: PeripheralType): boolean {
-    return isUsbPeripheralType(deviceType) || deviceType === PeripheralType.BLUETOOTH
+    return isUsbPeripheralType(deviceType)
   }
 
   private resolveDispatchFailure(result: PeripheralPolicyDispatchResult | null | undefined): string {
@@ -221,12 +225,6 @@ export class PeripheralPolicyViewModel {
         return PeripheralReasonCodes.USB_DISPATCH_FAILED
       case 'usb_dispatch_conflict_unresolved':
         return PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED
-      case 'bluetooth_conflict_global_disabled':
-        return PeripheralReasonCodes.BLUETOOTH_CONFLICT_GLOBAL_DISABLED
-      case 'bluetooth_dispatch_failed':
-        return PeripheralReasonCodes.BLUETOOTH_DISPATCH_FAILED
-      case 'bluetooth_dispatch_conflict_unresolved':
-        return PeripheralReasonCodes.BLUETOOTH_DISPATCH_CONFLICT_UNRESOLVED
       default:
         return PeripheralReasonCodes.POLICY_CHANGE_FAILED
     }

@@ -34,9 +34,6 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS"
       },
       {
-        "name": "ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH"
-      },
-      {
         "name": "ohos.permission.ACCESS_BLUETOOTH",
         "reason": "$string:bluetooth_access_reason",
         "usedScene": {

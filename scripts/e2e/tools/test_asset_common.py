@@ -353,7 +353,6 @@ TEMPLATE_REQUIRED_DATA = {
     "peripheral.interface.toggle.hdc": ["target_state"],
     "peripheral.usb_storage_policy.update": ["policy"],
     "peripheral.whitelist.create.usb": ["device_id"],
-    "peripheral.whitelist.create.bluetooth": ["device_id"],
     "peripheral.blacklist.create.usb": ["device_id"],
     "identity.password_policy.update": ["min_length"],
     "identity.domain_policy.update": ["password_max_age_days", "expiration_notify_days", "auth_validity_minutes"],
@@ -775,8 +774,6 @@ def infer_structured_flow(module_id: str, steps_text: str, checkpoints_text: str
             append_flow(flow_items, "entity.update", {"domain": "peripheral", "entity": "usb_storage_policy", "data": {"policy": "read_only"}})
         if has_any_keyword(combined, ("USB 白名单", "usb 白名单")):
             append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "whitelist", "variant": "usb", "data": {"device_id": "USB-DEVICE-001"}})
-        if has_any_keyword(combined, ("蓝牙白名单", "bluetooth")):
-            append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "whitelist", "variant": "bluetooth", "data": {"device_id": "BT-DEVICE-001"}})
         if has_any_keyword(combined, ("USB 黑名单", "usb 黑名单")):
             append_flow(flow_items, "entity.create", {"domain": "peripheral", "entity": "blacklist", "variant": "usb", "data": {"device_id": "USB-DEVICE-002"}})
         if len(flow_items) <= 2:

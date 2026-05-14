@@ -86,7 +86,7 @@ export default function peripheralPolicyViewModelTest() {
       mockKit.clearAll()
     })
 
-    it('should rebuild policy records from connection records and explicit device policies', 0, async () => {
+    it('should rebuild usb policy records from connection records and explicit device policies', 0, async () => {
       records = [{
         deviceId: 'VID:1234 PID:5678',
         policy: 'deny',
@@ -112,6 +112,36 @@ export default function peripheralPolicyViewModelTest() {
       expect(viewModel.state.records[0].policyIndex).assertEqual(1)
     })
 
+    it('should exclude bluetooth connection records from device policy candidates', 0, () => {
+      viewModel.reloadRecords([{
+        id: 'record-usb-1',
+        timestamp: 300,
+        deviceId: 'VID:1234 PID:5678',
+        deviceName: 'USB Device',
+        deviceType: PeripheralType.USB_STORAGE,
+        source: 'runtime_event',
+        action: 'connect',
+        result: SecurityEventResult.SUCCESS,
+        policyHit: 'allow',
+        summary: 'connected'
+      }, {
+        id: 'record-bt-1',
+        timestamp: 400,
+        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+        deviceName: 'Bluetooth Device',
+        deviceType: PeripheralType.BLUETOOTH,
+        source: 'runtime_event',
+        action: 'connect',
+        result: SecurityEventResult.SUCCESS,
+        policyHit: 'allow',
+        summary: 'connected'
+      }])
+
+      expect(viewModel.state.records.length).assertEqual(1)
+      expect(viewModel.state.records[0].deviceType).assertEqual(PeripheralType.USB_STORAGE)
+      expect(viewModel.state.records[0].deviceId).assertEqual('VID:1234 PID:5678')
+    })
+
     it('should expose connected devices as default allow when no explicit policy exists', 0, () => {
       viewModel.reloadRecords([{
         id: 'record-2',
@@ -135,6 +165,18 @@ export default function peripheralPolicyViewModelTest() {
       expect(reason).assertEqual('invalid_device_id')
     })
 
+    it('should reject bluetooth device policies without saving local policy', 0, async () => {
+      const reason = await viewModel.setDevicePolicy(
+        'MAC: AA:BB:CC:DD:EE:FF',
+        'Bluetooth Device',
+        PeripheralType.BLUETOOTH,
+        1
+      )
+
+      expect(reason).assertEqual('unsupported_device_type')
+      expect(records.length).assertEqual(0)
+    })
+
     it('should persist single-device deny policy', 0, async () => {
       const reason = await viewModel.setDevicePolicy(
         'VID:1234 PID:5678',
@@ -145,68 +187,6 @@ export default function peripheralPolicyViewModelTest() {
 
       expect(reason).assertNull()
       expect(records[0].policy).assertEqual('deny')
-    })
-
-    it('should normalize bluetooth device ids when persisting policy', 0, async () => {
-      const reason = await viewModel.setDevicePolicy(
-        'aa-bb-cc-dd-ee-ff',
-        'Bluetooth Device',
-        PeripheralType.BLUETOOTH,
-        1
-      )
-
-      expect(reason).assertNull()
-      expect(records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(records[0].policy).assertEqual('deny')
-    })
-
-    it('should restore bluetooth device allow policy with normalized id', 0, async () => {
-      records = [{
-        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
-        policy: 'deny',
-        updatedAt: Date.now(),
-        deviceName: 'Bluetooth Device',
-        deviceType: PeripheralType.BLUETOOTH
-      }]
-
-      const reason = await viewModel.setDevicePolicy(
-        'aa-bb-cc-dd-ee-ff',
-        'Bluetooth Device',
-        PeripheralType.BLUETOOTH,
-        0
-      )
-
-      expect(reason).assertNull()
-      expect(records.length).assertEqual(1)
-      expect(records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(records[0].policy).assertEqual('allow')
-    })
-
-    it('should rebuild bluetooth policy records with normalized ids', 0, async () => {
-      records = [{
-        deviceId: 'aa-bb-cc-dd-ee-ff',
-        policy: 'deny',
-        updatedAt: Date.now(),
-        deviceName: 'Bluetooth Device',
-        deviceType: PeripheralType.BLUETOOTH
-      }]
-
-      viewModel.reloadRecords([{
-        id: 'record-bt-1',
-        timestamp: 400,
-        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
-        deviceName: 'Bluetooth Device',
-        deviceType: PeripheralType.BLUETOOTH,
-        source: 'runtime_event',
-        action: 'connect',
-        result: SecurityEventResult.SUCCESS,
-        policyHit: 'allow',
-        summary: 'connected'
-      }])
-
-      expect(viewModel.state.records.length).assertEqual(1)
-      expect(viewModel.state.records[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(viewModel.state.records[0].policyIndex).assertEqual(1)
     })
 
     it('should map usb global interface conflict when changing single-device policy', 0, async () => {
@@ -243,10 +223,10 @@ export default function peripheralPolicyViewModelTest() {
         updatedAt: Date.now(),
         deviceType: PeripheralType.USB_STORAGE
       }, {
-        deviceId: 'MAC: AA:BB:CC:DD:EE:FF',
+        deviceId: 'VID:1111 PID:2222',
         policy: 'deny',
         updatedAt: Date.now() + 1,
-        deviceType: PeripheralType.BLUETOOTH
+        deviceType: PeripheralType.USB_CAMERA
       }]
       records = seededRecords.slice()
 
@@ -254,8 +234,8 @@ export default function peripheralPolicyViewModelTest() {
       let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
       when(dispatchMock)(ArgumentMatchers.any).afterAction((request: PeripheralPolicyDispatchRequest): PeripheralPolicyDispatchResult => {
         dispatchCalls.push(`${request.deviceId}:${request.policy}`)
-        if (request.deviceId === 'MAC: AA:BB:CC:DD:EE:FF' && request.policy === 'allow') {
-          return createDispatchResult(false, 'bluetooth_dispatch_failed')
+        if (request.deviceId === 'VID:1111 PID:2222' && request.policy === 'allow') {
+          return createDispatchResult(false, 'usb_dispatch_failed')
         }
         return createDispatchResult(true)
       })
@@ -265,7 +245,7 @@ export default function peripheralPolicyViewModelTest() {
       expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(2)
       expect(dispatchCalls).assertDeepEquals([
         'VID:1234 PID:5678:allow',
-        'MAC: AA:BB:CC:DD:EE:FF:allow',
+        'VID:1111 PID:2222:allow',
         'VID:1234 PID:5678:deny'
       ])
     })

@@ -88,10 +88,6 @@ DIALOG_STRATEGIES = {
         "labels": ["USB白名单", "添加 USB 设备白名单", "添加白名单"],
         "region": {},
     },
-    "peripheral.whitelist.create.bluetooth": {
-        "labels": ["蓝牙白名单", "添加蓝牙白名单", "添加白名单"],
-        "region": {},
-    },
     "peripheral.blacklist.create.usb": {
         "labels": ["USB黑名单", "添加 USB 设备黑名单", "添加黑名单"],
         "region": {},
@@ -112,6 +108,5 @@ FIELD_GROUP_STRATEGIES = {
     "identity.domain_policy": ["password_max_age_days", "expiration_notify_days", "auth_validity_minutes"],
     "firewall.rule.domain": ["name", "domain", "port"],
     "peripheral.whitelist.usb": ["device_id"],
-    "peripheral.whitelist.bluetooth": ["device_id"],
     "peripheral.blacklist.usb": ["device_id"],
 }
