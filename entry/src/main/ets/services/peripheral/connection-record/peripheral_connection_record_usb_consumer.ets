@@ -102,6 +102,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
 
     const info = PeripheralConnectionRecordUsbConsumer.resolveUsbEventInfo(rawData)
+    if (PeripheralConnectionRecordUsbConsumer.isUsbHubEvent(info)) {
+      LogUtils.info(TAG, `ignored usb hub event: baseClass=${info.baseClass}, deviceId=${info.deviceId}`)
+      return null
+    }
     const baseEvaluation = PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(info, action)
     let autoDenyResult: FirstConnectAutoDenyResult = { status: 'not_applicable' }
     if (baseEvaluation.matchedPolicyKind !== 'usb_storage_disabled') {
@@ -149,6 +153,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       default:
         return 'unknown'
     }
+  }
+
+  private static isUsbHubEvent(info: ResolvedUsbEventInfo): boolean {
+    return info.baseClass === 0x09
   }
 
   private static evaluateUsbEventPolicy(

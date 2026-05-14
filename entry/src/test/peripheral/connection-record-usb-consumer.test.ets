@@ -486,5 +486,29 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(dispatchCount).assertEqual(0)
       expect(PeripheralDevicePolicyRepository.get('VID:1234 PID:5678') === null).assertTrue()
     })
+
+    it('U-USB-015 should ignore usb hub events before policy evaluation', 0, async () => {
+      const consumer = new PeripheralConnectionRecordUsbConsumer()
+      const hubOverrides: UsbEventParameterOverrides = {
+        deviceName: 'USB Hub',
+        productName: 'USB Hub',
+        baseClass: 0x09,
+        class: 0x09
+      }
+
+      const attachedRecord = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        hubOverrides
+      ))
+      const detachedRecord = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED,
+        hubOverrides
+      ))
+
+      expect(attachedRecord === null).assertTrue()
+      expect(detachedRecord === null).assertTrue()
+      expect(dispatchCount).assertEqual(0)
+      expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(0)
+    })
   })
 }
