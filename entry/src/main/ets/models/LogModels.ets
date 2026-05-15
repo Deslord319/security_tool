@@ -7,7 +7,8 @@ export enum LogEventType {
   PERMISSION = 3,
   POWER = 4,
   SYSTEM = 5,
-  KERNEL = 6
+  KERNEL = 6,
+  AUDIT = 7
 }
 
 export interface LogDetailTableRow {
@@ -56,7 +57,8 @@ export const ALL_LOG_EVENT_TYPES: LogEventType[] = [
   LogEventType.PERMISSION,
   LogEventType.POWER,
   LogEventType.SYSTEM,
-  LogEventType.KERNEL
+  LogEventType.KERNEL,
+  LogEventType.AUDIT
 ]
 
 export const LOG_RETENTION_OPTIONS: number[] = [7, 14, 30, 90, 180]

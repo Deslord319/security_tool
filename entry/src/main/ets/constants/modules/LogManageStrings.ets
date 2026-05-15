@@ -128,6 +128,8 @@ export class LogManageCsvStrings {
 
 export class LogManageAuditStrings {
   static readonly FALLBACK_DETAIL: string = '安全审计事件'
+  static readonly DESCRIPTION_LABEL: string = '事件说明'
+  static readonly RAW_JSON_LABEL: string = '事件原始JSON'
 }
 
 export class LogEventPresentationStrings {
@@ -138,6 +140,7 @@ export class LogEventPresentationStrings {
   static readonly POWER: string = '开关机日志'
   static readonly SYSTEM: string = '系统日志'
   static readonly KERNEL: string = '内核日志'
+  static readonly AUDIT: string = '审计日志'
 }
 
 export class LogDeviceLifecycleStrings {
@@ -161,6 +164,8 @@ export function resolveLogEventTypeLabel(type: LogEventType): string {
       return LogEventPresentationStrings.SYSTEM
     case LogEventType.KERNEL:
       return LogEventPresentationStrings.KERNEL
+    case LogEventType.AUDIT:
+      return LogEventPresentationStrings.AUDIT
     default:
       return LabelText.UNKNOWN
   }
