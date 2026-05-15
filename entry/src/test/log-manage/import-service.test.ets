@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { common } from '@kit.AbilityKit'
 import { LogEntry, LogEventType, LogStorageConfig } from '../../main/ets/models/LogModels'
-import { LogImportPickerPort, LogImportService } from '../../main/ets/services/log-manage/import/LogImportService'
+import {
+  LogImportPickerPort,
+  LogImportService,
+  LogImportWorkspacePort
+} from '../../main/ets/services/log-manage/import/LogImportService'
 import { MutationResult } from '../../main/ets/services/log-manage/common/LogManagePorts'
 import { LogEntryRepository } from '../../main/ets/services/log-manage/repository/LogEntryRepository'
 import { LogSettingsRepository } from '../../main/ets/services/log-manage/repository/LogSettingsRepository'
@@ -49,22 +53,25 @@ function createFailedParseResult(code: 'invalid_archive' | 'extract_failed'): Lo
 
 class FakePicker implements LogImportPickerPort {
   private readonly zipPath: string | null
-  private readonly directoryPath: string | null
 
-  constructor(
-    zipPath: string | null,
-    directoryPath: string | null
-  ) {
+  constructor(zipPath: string | null) {
     this.zipPath = zipPath
-    this.directoryPath = directoryPath
   }
 
   async pickZip(_context: common.UIAbilityContext): Promise<string | null> {
     return this.zipPath
   }
+}
 
-  async pickDirectory(_context: common.UIAbilityContext): Promise<string | null> {
-    return this.directoryPath
+class FakeWorkspace implements LogImportWorkspacePort {
+  readonly cleanupCalls: string[] = []
+
+  buildRoot(context: common.UIAbilityContext): string {
+    return `${context.filesDir}/log_import_tmp`
+  }
+
+  async cleanupRoot(path: string): Promise<void> {
+    this.cleanupCalls.push(path)
   }
 }
 
@@ -74,12 +81,15 @@ export default function logImportServiceTest() {
     let savedEntries: LogEntry[]
     let existingIds: Set<string>
     let saveResult: MutationResult
+    let workspace: FakeWorkspace
 
     beforeEach(() => {
       mockKit = new MockKit()
       savedEntries = []
       existingIds = new Set<string>()
       saveResult = { success: true, code: 'ok' }
+      workspace = new FakeWorkspace()
+      LogImportService.setWorkspaceForTest(workspace)
 
       let hasEntryMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.hasEntry)
       let loadConfigMock = mockKit.mockFunc(LogSettingsRepository, LogSettingsRepository.loadStorageConfig)
@@ -104,7 +114,7 @@ export default function logImportServiceTest() {
     })
 
     it('should return user_canceled when import zip picker is canceled', 0, async () => {
-      LogImportService.setPickerForTest(new FakePicker(null, '/tmp/out'))
+      LogImportService.setPickerForTest(new FakePicker(null))
 
       let result = await LogImportService.import({} as common.UIAbilityContext)
 
@@ -115,7 +125,7 @@ export default function logImportServiceTest() {
     })
 
     it('should return user_canceled when zip picker is canceled', 0, async () => {
-      LogImportService.setPickerForTest(new FakePicker(null, '/tmp/out'))
+      LogImportService.setPickerForTest(new FakePicker(null))
 
       let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
 
@@ -125,26 +135,19 @@ export default function logImportServiceTest() {
       expect(result.targetDirectory).assertEqual('')
     })
 
-    it('should return user_canceled when directory picker is canceled', 0, async () => {
-      LogImportService.setPickerForTest(new FakePicker('/tmp/logs.zip', null))
+    it('should pick zip and use default import workspace root', 0, async () => {
+      LogImportService.setPickerForTest(new FakePicker('/tmp/logs.zip'))
 
-      let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
-
-      expect(result.success).assertFalse()
-      expect(result.code).assertEqual('user_canceled')
-      expect(result.archivePath).assertEqual('')
-      expect(result.targetDirectory).assertEqual('')
-    })
-
-    it('should pick import targets when zip and directory are selected', 0, async () => {
-      LogImportService.setPickerForTest(new FakePicker('/tmp/logs.zip', '/tmp/out'))
-
-      let result = await LogImportService.pickImportTargets({} as common.UIAbilityContext)
+      let result = await LogImportService.pickImportTargets({
+        filesDir: '/data/storage/el2/base/files'
+      } as common.UIAbilityContext)
 
       expect(result.success).assertTrue()
       expect(result.code).assertEqual('ok')
       expect(result.archivePath).assertEqual('/tmp/logs.zip')
-      expect(result.targetDirectory).assertEqual('/tmp/out')
+      expect(result.targetDirectory).assertEqual('/data/storage/el2/base/files/log_import_tmp')
+      expect(workspace.cleanupCalls.length).assertEqual(1)
+      expect(workspace.cleanupCalls[0]).assertEqual('/data/storage/el2/base/files/log_import_tmp')
     })
 
     it('should persist parsed entries and keep background batch duplicate count', 0, async () => {

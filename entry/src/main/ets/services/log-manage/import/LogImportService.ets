@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { fileUri, picker } from '@kit.CoreFileKit'
 import { taskpool } from '@kit.ArkTS'
+import fileIo from '@ohos.file.fs'
 import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogEntryRepository } from '../repository/LogEntryRepository'
@@ -10,6 +11,7 @@ import { LogSettingsRepository } from '../repository/LogSettingsRepository'
 import { LogImportParseTaskResult, runLogImportParseTask } from './LogImportBackgroundTask'
 
 const TAG = 'LogImportService'
+const IMPORT_WORKSPACE_DIR = 'log_import_tmp'
 
 export type ImportLogsCode = 'ok' | 'user_canceled' | 'invalid_archive' | 'extract_failed' | 'save_failed'
 
@@ -49,7 +51,11 @@ interface ImportResultStats extends ImportBaseStats {
 
 export interface LogImportPickerPort {
   pickZip(context: common.UIAbilityContext): Promise<string | null>
-  pickDirectory(context: common.UIAbilityContext): Promise<string | null>
+}
+
+export interface LogImportWorkspacePort {
+  buildRoot(context: common.UIAbilityContext): string
+  cleanupRoot(path: string): Promise<void>
 }
 
 class DefaultLogImportPicker implements LogImportPickerPort {
@@ -62,26 +68,40 @@ class DefaultLogImportPicker implements LogImportPickerPort {
     let result = await documentViewPicker.select(options)
     return result.length > 0 ? new fileUri.FileUri(result[0]).path : null
   }
+}
 
-  async pickDirectory(context: common.UIAbilityContext): Promise<string | null> {
-    let documentViewPicker = new picker.DocumentViewPicker(context)
-    let options = new picker.DocumentSelectOptions()
-    options.maxSelectNumber = 1
-    options.selectMode = picker.DocumentSelectMode.FOLDER
-    let result = await documentViewPicker.select(options)
-    return result.length > 0 ? new fileUri.FileUri(result[0]).path : null
+class DefaultLogImportWorkspace implements LogImportWorkspacePort {
+  buildRoot(context: common.UIAbilityContext): string {
+    return LogImportService.joinPath(context.filesDir || '', IMPORT_WORKSPACE_DIR)
+  }
+
+  async cleanupRoot(path: string): Promise<void> {
+    let normalizedPath = LogImportService.normalizePath(path)
+    if (!normalizedPath.endsWith(`/${IMPORT_WORKSPACE_DIR}`)) {
+      return
+    }
+    if (normalizedPath.length <= IMPORT_WORKSPACE_DIR.length + 1) {
+      return
+    }
+    await LogImportService.deleteDirectoryRecursively(normalizedPath)
   }
 }
 
 export class LogImportService {
   private static pickerPort: LogImportPickerPort = new DefaultLogImportPicker()
+  private static workspacePort: LogImportWorkspacePort = new DefaultLogImportWorkspace()
 
   static setPickerForTest(pickerPort: LogImportPickerPort): void {
     LogImportService.pickerPort = pickerPort
   }
 
+  static setWorkspaceForTest(workspacePort: LogImportWorkspacePort): void {
+    LogImportService.workspacePort = workspacePort
+  }
+
   static resetTestPorts(): void {
     LogImportService.pickerPort = new DefaultLogImportPicker()
+    LogImportService.workspacePort = new DefaultLogImportWorkspace()
   }
 
   static async import(context: common.UIAbilityContext): Promise<ImportLogsResult> {
@@ -100,11 +120,8 @@ export class LogImportService {
         LogUtils.info(TAG, `import canceled: importId=${importId}, stage=pickZip`)
         return LogImportService.buildSelectionResult('user_canceled')
       }
-      let targetDirectory = await LogImportService.pickerPort.pickDirectory(context)
-      if (!targetDirectory) {
-        LogUtils.info(TAG, `import canceled: importId=${importId}, stage=pickDirectory`)
-        return LogImportService.buildSelectionResult('user_canceled')
-      }
+      let targetDirectory = LogImportService.workspacePort.buildRoot(context)
+      await LogImportService.cleanupWorkspaceRoot(targetDirectory, importId, 'before_import')
       return {
         success: true,
         code: 'ok',
@@ -129,6 +146,8 @@ export class LogImportService {
     } catch (err) {
       LogUtils.error(TAG, `import failed: importId=${importId}, err=${JSON.stringify(err)}, elapsedMs=${Date.now() - startedAt}`)
       return LogImportService.buildResult('extract_failed')
+    } finally {
+      await LogImportService.cleanupWorkspaceRoot(targetDirectory, importId, 'after_import')
     }
   }
 
@@ -196,6 +215,49 @@ export class LogImportService {
 
   private static buildImportId(): string {
     return `import_${Date.now()}`
+  }
+
+  private static async cleanupWorkspaceRoot(path: string, importId: string, stage: string): Promise<void> {
+    try {
+      await LogImportService.workspacePort.cleanupRoot(path)
+    } catch (err) {
+      LogUtils.error(TAG, `cleanup workspace failed: importId=${importId}, stage=${stage}, path=${path}, err=${JSON.stringify(err)}`)
+    }
+  }
+
+  static joinPath(parent: string, child: string): string {
+    let cleanParent = parent.replace(/\\/g, '/').replace(/\/+$/g, '')
+    let cleanChild = child.replace(/\\/g, '/').replace(/^\/+/g, '')
+    if (cleanParent.length === 0) {
+      return cleanChild
+    }
+    return `${cleanParent}/${cleanChild}`
+  }
+
+  static normalizePath(path: string): string {
+    return path.replace(/\\/g, '/').replace(/\/+/g, '/')
+  }
+
+  static async deleteDirectoryRecursively(path: string): Promise<void> {
+    try {
+      if (!await fileIo.access(path)) {
+        return
+      }
+      let entries = await fileIo.listFile(path)
+      for (let entry of entries) {
+        let childPath = LogImportService.joinPath(path, entry)
+        let stat = await fileIo.stat(childPath)
+        if (stat.isDirectory()) {
+          await LogImportService.deleteDirectoryRecursively(childPath)
+        } else {
+          await fileIo.unlink(childPath)
+        }
+      }
+      await fileIo.rmdir(path)
+    } catch (err) {
+      LogUtils.error(TAG, `delete workspace path failed: path=${path}, err=${JSON.stringify(err)}`)
+      return
+    }
   }
 
   private static buildSelectionResult(code: 'user_canceled'): LogImportSelectionResult {
