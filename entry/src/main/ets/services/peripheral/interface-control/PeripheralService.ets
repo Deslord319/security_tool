@@ -9,6 +9,7 @@ import { OperationResult } from '../../../models/CommonModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
+import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 
 const TAG = 'PeripheralService'
 
@@ -31,7 +32,11 @@ export class PeripheralService {
       return PeripheralService.setNetworkInterfaceDisabledWithResult(disallow)
     }
     if (feature === PeripheralService.FEATURE_USB) {
-      return PeripheralService.setUsbInterfaceDisabledWithCleanup(disallow)
+      return {
+        success: false,
+        errorMessage: 'USB default policy requires async repository write',
+        stage: 'set_usb_default_policy'
+      } as OperationResult<void>
     }
 
     try {
@@ -46,6 +51,12 @@ export class PeripheralService {
   static getInterfaceDisabledWithResult(feature: string): OperationResult<boolean> {
     if (feature === PeripheralService.FEATURE_NETWORK) {
       return PeripheralService.getNetworkInterfaceDisabledWithResult()
+    }
+    if (feature === PeripheralService.FEATURE_USB) {
+      return {
+        success: true,
+        data: PeripheralDevicePolicyRepository.isUsbDefaultDeny()
+      } as OperationResult<boolean>
     }
 
     try {
@@ -135,38 +146,6 @@ export class PeripheralService {
     }
   }
 
-  private static setUsbInterfaceDisabledWithCleanup(disallow: boolean): OperationResult<void> {
-    const snapshotResult = PeripheralService.getUsbConflictSnapshot()
-    if (!snapshotResult.success) {
-      return PeripheralService.copyFailureAsVoid(snapshotResult, 'read_usb_storage_policy')
-    }
-    const snapshot = snapshotResult.data!
-    if (snapshot.storagePolicy !== usbManager.UsbPolicy.READ_WRITE) {
-      const resetResult = PeripheralService.resetUsbStoragePolicyToReadWrite()
-      if (!resetResult.success) {
-        return resetResult
-      }
-    }
-
-    try {
-      restrictions.setDisallowedPolicy(ADMIN_WANT, PeripheralService.FEATURE_USB, disallow)
-      return {
-        success: true,
-        userMessage: PeripheralServiceErrorStrings.USB_INTERFACE_POLICY_UPDATED,
-        stage: 'completed'
-      } as OperationResult<void>
-    } catch (err) {
-      LogUtils.error(TAG, `setUsbInterfaceDisabledWithCleanup failed: ${JSON.stringify(err)}`)
-      if (CommonErrorUtils.extractErrorCode(err as ErrorLike) === PeripheralErrorCodes.POLICY_CONFLICT) {
-        return PeripheralService.buildUserFailureResult<void>(
-          'set_usb_interface',
-          PeripheralServiceErrorStrings.USB_INTERFACE_CONFLICT
-        )
-      }
-      return PeripheralService.buildFailureResult<void>('set usb interface', err as ErrorLike)
-    }
-  }
-
   private static getUsbConflictSnapshot(): OperationResult<UsbConflictSnapshot> {
     const storagePolicyResult = PeripheralService.getUsbStoragePolicyWithResult()
     if (!storagePolicyResult.success) {
@@ -187,19 +166,6 @@ export class PeripheralService {
         storagePolicy: storagePolicyResult.data ?? usbManager.UsbPolicy.READ_WRITE
       }
     } as OperationResult<UsbConflictSnapshot>
-  }
-
-  private static resetUsbStoragePolicyToReadWrite(): OperationResult<void> {
-    try {
-      usbManager.setUsbStorageDeviceAccessPolicy(ADMIN_WANT, usbManager.UsbPolicy.READ_WRITE)
-      return { success: true } as OperationResult<void>
-    } catch (err) {
-      LogUtils.error(TAG, `resetUsbStoragePolicyToReadWrite failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildUserFailureResult<void>(
-        'reset_usb_storage_policy',
-        PeripheralServiceErrorStrings.RESTORE_USB_STORAGE_READ_WRITE_FAILED
-      )
-    }
   }
 
   static buildFailureResult<T>(action: string, err: ErrorLike, fallbackData?: T): OperationResult<T> {

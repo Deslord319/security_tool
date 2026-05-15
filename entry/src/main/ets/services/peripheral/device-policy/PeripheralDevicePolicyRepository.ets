@@ -9,6 +9,9 @@ import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAcc
 const TAG = 'PeripheralDevicePolicyRepo'
 const PREF_STORE_NAME = 'peripheral_device_policy'
 const PREF_KEY_DEVICE_POLICIES = 'device_policies'
+const PREF_KEY_USB_DEFAULT_POLICY = 'usb_default_policy'
+
+export type PeripheralUsbDefaultPolicy = 'allow' | 'deny'
 
 interface DevicePolicyChangeEvent {
   totalCount: number
@@ -22,6 +25,7 @@ export class PeripheralDevicePolicyRepository {
   private static initPromise: Promise<boolean> | null = null
   private static initialized: boolean = false
   private static records: PeripheralDevicePolicyRecord[] = []
+  private static usbDefaultPolicy: PeripheralUsbDefaultPolicy = 'allow'
   private static nextListenerId: number = 1
   private static listeners: Map<number, DevicePolicyChangeListener> = new Map()
   private static nowProvider: () => number = () => Date.now()
@@ -38,6 +42,16 @@ export class PeripheralDevicePolicyRepository {
     const ok = await PeripheralDevicePolicyRepository.initPromise
     PeripheralDevicePolicyRepository.initPromise = null
     return ok
+  }
+
+  static resetForTest(): void {
+    PeripheralDevicePolicyRepository.context = null
+    PeripheralDevicePolicyRepository.initPromise = null
+    PeripheralDevicePolicyRepository.initialized = false
+    PeripheralDevicePolicyRepository.records = []
+    PeripheralDevicePolicyRepository.usbDefaultPolicy = 'allow'
+    PeripheralDevicePolicyRepository.nextListenerId = 1
+    PeripheralDevicePolicyRepository.listeners.clear()
   }
 
   static addChangeListener(listener: DevicePolicyChangeListener): number {
@@ -62,6 +76,30 @@ export class PeripheralDevicePolicyRepository {
       return normalizeDeviceId(item.deviceId) === normalized
     })
     return found ? PeripheralDevicePolicyRepository.cloneRecord(found) : null
+  }
+
+  static getUsbDefaultPolicy(): PeripheralUsbDefaultPolicy {
+    return PeripheralDevicePolicyRepository.usbDefaultPolicy
+  }
+
+  static isUsbDefaultDeny(): boolean {
+    return PeripheralDevicePolicyRepository.usbDefaultPolicy === 'deny'
+  }
+
+  static async setUsbDefaultPolicy(policy: PeripheralUsbDefaultPolicy): Promise<boolean> {
+    try {
+      const normalized = PeripheralDevicePolicyRepository.normalizeUsbDefaultPolicy(policy)
+      const saved = await PeripheralDevicePolicyRepository.saveUsbDefaultPolicy(normalized)
+      if (!saved) {
+        return false
+      }
+      PeripheralDevicePolicyRepository.usbDefaultPolicy = normalized
+      PeripheralDevicePolicyRepository.notifyChanged()
+      return true
+    } catch (err) {
+      LogUtils.error(TAG, `setUsbDefaultPolicy failed: ${JSON.stringify(err)}`)
+      return false
+    }
   }
 
   static async set(record: PeripheralDevicePolicyRecord): Promise<boolean> {
@@ -117,13 +155,17 @@ export class PeripheralDevicePolicyRepository {
     try {
       let pref = PreferencesAccessor.of(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
       const parsed = await pref.getJsonArray<PeripheralDevicePolicyRecord>(PREF_KEY_DEVICE_POLICIES, [])
+      const usbDefaultPolicy = await pref.getString(PREF_KEY_USB_DEFAULT_POLICY, 'allow')
       PeripheralDevicePolicyRepository.records = Array.isArray(parsed)
         ? parsed.map((item: PeripheralDevicePolicyRecord) => PeripheralDevicePolicyRepository.normalizeRecord(item))
         : []
+      PeripheralDevicePolicyRepository.usbDefaultPolicy =
+        PeripheralDevicePolicyRepository.normalizeUsbDefaultPolicy(usbDefaultPolicy)
       PeripheralDevicePolicyRepository.initialized = true
       return true
     } catch (err) {
       PeripheralDevicePolicyRepository.records = []
+      PeripheralDevicePolicyRepository.usbDefaultPolicy = 'allow'
       PeripheralDevicePolicyRepository.initialized = false
       LogUtils.error(TAG, `init failed: ${JSON.stringify(err)}`)
       return false
@@ -142,6 +184,19 @@ export class PeripheralDevicePolicyRepository {
     }
   }
 
+  private static async saveUsbDefaultPolicy(policy: PeripheralUsbDefaultPolicy): Promise<boolean> {
+    if (!PeripheralDevicePolicyRepository.context) {
+      return false
+    }
+    try {
+      let pref = PreferencesAccessor.of(PeripheralDevicePolicyRepository.context, PREF_STORE_NAME)
+      return await pref.setValue(PREF_KEY_USB_DEFAULT_POLICY, policy)
+    } catch (err) {
+      LogUtils.error(TAG, `saveUsbDefaultPolicy failed: ${JSON.stringify(err)}`)
+      return false
+    }
+  }
+
   private static normalizeRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
     return {
       deviceId: normalizeDeviceId(record.deviceId),
@@ -152,6 +207,10 @@ export class PeripheralDevicePolicyRepository {
       deviceName: record.deviceName,
       deviceType: record.deviceType
     }
+  }
+
+  private static normalizeUsbDefaultPolicy(policy: string | PeripheralUsbDefaultPolicy): PeripheralUsbDefaultPolicy {
+    return policy === 'deny' ? 'deny' : 'allow'
   }
 
   private static cloneRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {

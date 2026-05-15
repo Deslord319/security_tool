@@ -38,7 +38,7 @@ export default function appConstantsTest() {
 
     it('should map interactive item styles by theme and state', 0, () => {
       expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.LIGHT, false)).assertEqual('rgba(0,0,0,0)')
-      expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.DARK, true)).assertEqual('rgba(84,84,88,0.78)')
+      expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.DARK, true)).assertEqual('rgba(255,255,255,0.10)')
       expect(InteractiveItemStyles.getSidebarItemBackground(ThemeMode.LIGHT, true, false)).assertEqual(AppColors.BRAND_PRIMARY)
       expect(InteractiveItemStyles.getSidebarIconTileBackground(ThemeMode.DARK, false)).assertEqual('rgba(10,132,255,0.14)')
       expect(InteractiveItemStyles.getThemeModeIconColor(ThemeMode.LIGHT)).assertEqual(AppColors.THEME_MODE_ICON_COLOR_LIGHT)

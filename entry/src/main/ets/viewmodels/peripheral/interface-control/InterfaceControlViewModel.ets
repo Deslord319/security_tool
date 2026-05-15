@@ -3,6 +3,7 @@ import { usbManager as edmUsbManager } from '@kit.MDMKit'
 
 import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
+import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 
 const TAG = 'InterfaceControlViewModel'
 const USB_STORAGE_POLICY_INDEX_READ_ONLY = 0
@@ -41,7 +42,6 @@ export class InterfaceControlViewModel {
 
   reloadState(): void {
     try {
-      const usbState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_USB)
       const btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_BLUETOOTH)
       const wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_WIFI)
       const hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_HDC)
@@ -52,7 +52,7 @@ export class InterfaceControlViewModel {
       const storagePolicy = PeripheralService.getUsbStoragePolicyWithResult()
 
       this.commitState({
-        usbDisabled: usbState.data ?? false,
+        usbDisabled: PeripheralDevicePolicyRepository.isUsbDefaultDeny(),
         btDisabled: btState.data ?? false,
         wifiDisabled: wifiState.data ?? false,
         hdcDisabled: hdcState.data ?? false,
@@ -72,6 +72,15 @@ export class InterfaceControlViewModel {
   async toggleInterface(feature: string, disallow: boolean): Promise<string | null> {
     this.processingKey = feature
     try {
+      if (feature === PeripheralService.FEATURE_USB) {
+        const saved = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(disallow ? 'deny' : 'allow')
+        if (!saved) {
+          return PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED
+        }
+        this.updateInterfaceState(feature, disallow)
+        return null
+      }
+
       const result = PeripheralService.setInterfaceDisabledWithResult(feature, disallow)
       if (!result.success) {
         return this.normalizeReason(result.stage, PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
