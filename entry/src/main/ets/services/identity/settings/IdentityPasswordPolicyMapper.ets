@@ -124,10 +124,10 @@ export class IdentityPasswordPolicyMapper {
     let additionalDescription = policy.additionalDescription?.trim() ?? ''
     return complexityRegex.length === 0 &&
       additionalDescription.length === 0 &&
-      IdentityPasswordPolicyMapper.isEmptyPolicyValidity(policy.validityPeriod)
+      IdentityPasswordPolicyMapper.isUnsetOrDefaultPolicyValidity(policy.validityPeriod)
   }
 
-  private static isEmptyPolicyValidity(validityPeriod?: number): boolean {
-    return typeof validityPeriod !== 'number'
+  private static isUnsetOrDefaultPolicyValidity(validityPeriod?: number): boolean {
+    return typeof validityPeriod !== 'number' || validityPeriod === 0
   }
 }
