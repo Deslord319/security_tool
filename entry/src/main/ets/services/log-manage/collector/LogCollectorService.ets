@@ -163,12 +163,19 @@ export class LogCollectorService {
     let content = `${entry.filePath || ''} ${entry.detail || ''}`.toLowerCase()
     let bundleName = AppInfo.BUNDLE_NAME.toLowerCase()
     let fromSelfProcess = process.includes(bundleName)
+    if (LogCollectorService.shouldIgnoreSecurityLogImportTrashEntry(content)) {
+      return true
+    }
     for (let keyword of LogCollectorService.INTERNAL_LOG_PATH_KEYWORDS) {
       if (content.includes(keyword)) {
         return true
       }
     }
     return fromSelfProcess && content.includes(bundleName)
+  }
+
+  private static shouldIgnoreSecurityLogImportTrashEntry(content: string): boolean {
+    return content.includes('.trash') && content.includes('security_log_import_')
   }
 
   private static scheduleFlushPendingEntries(): void {

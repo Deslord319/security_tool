@@ -9,7 +9,13 @@ import {
   formatLogTimestamp
 } from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
-import { AUDIT_LOG_EVENT_IDS, AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
+import {
+  AUDIT_EVENT_DESCRIPTIONS_BY_ID,
+  AUDIT_EVENT_TYPES_BY_ID,
+  AUDIT_LOG_EVENT_IDS,
+  AUTH_AUDIT_EVENT_IDS,
+  CRASH_AUDIT_EVENT_IDS
+} from '../../main/ets/services/log-manage/source/LogAuditEventIds'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {
   detailRows?: LogDetailTableRow[]
@@ -362,6 +368,15 @@ export default function logAuditSourceTest() {
       expect(rawJson.indexOf(`${securityAudit.NotifyEvent.APP}`) >= 0).assertTrue()
       expect(rawJson.indexOf('application_event') >= 0).assertTrue()
       expect(rawJson.indexOf('security_audit') >= 0).assertTrue()
+    })
+
+    it('should exclude high frequency network events from audit log subscription', 0, () => {
+      expect(AUDIT_LOG_EVENT_IDS.includes(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
+      expect(AUDIT_LOG_EVENT_IDS.includes(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
+      expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
+      expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
     })
 
     it('should ignore unknown audit event ids', 0, () => {
