@@ -1,3 +1,4 @@
+import { TimeConstants } from '../constants/TimeConstants'
 import { LogEntry } from './LogModels'
 export type LogManageMode = 'list' | 'settings'
 export const LOG_PAGE_SIZE_OPTIONS: number[] = [20, 50, 100]
@@ -8,10 +9,10 @@ export interface LogTimeRangeDefinition {
 
 export const LOG_TIME_RANGE_DEFINITIONS: LogTimeRangeDefinition[] = [
   {},
-  { durationMs: 60 * 60 * 1000 },
-  { durationMs: 12 * 60 * 60 * 1000 },
-  { durationMs: 24 * 60 * 60 * 1000 },
-  { durationMs: 3 * 24 * 60 * 60 * 1000 }
+  { durationMs: TimeConstants.HOUR_IN_MS },
+  { durationMs: 12 * TimeConstants.HOUR_IN_MS },
+  { durationMs: TimeConstants.DAY_IN_MS },
+  { durationMs: 3 * TimeConstants.DAY_IN_MS }
 ]
 
 @ObservedV2

@@ -82,8 +82,18 @@ export default function identityServiceTest() {
       expect(config).assertEqual(null)
     })
 
-    it('should keep zero validity from system policy as immediate-expiry config', 0, () => {
+    it('should treat empty zero-validity system policy as null config', 0, () => {
       let policy = new TestPasswordPolicy()
+      policy.validityPeriod = 0
+
+      let config = IdentityPasswordPolicyMapper.toConfig(policy)
+
+      expect(config).assertEqual(null)
+    })
+
+    it('should keep zero validity from non-empty system policy as immediate-expiry config', 0, () => {
+      let policy = new TestPasswordPolicy()
+      policy.complexityRegex = '^.{6,}$'
       policy.validityPeriod = 0
 
       let config = IdentityPasswordPolicyMapper.toConfig(policy)

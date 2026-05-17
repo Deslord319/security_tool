@@ -1,3 +1,4 @@
+import { AppColors } from '../constants/AppConstants'
 import { ThemeMode } from '../theme/ThemeColors'
 
 export class HoverUtils {
@@ -14,7 +15,9 @@ export class HoverUtils {
     if (theme === ThemeMode.DARK) {
       return {
         radius: isHovered ? (strong ? 34 : 28) : 10,
-        color: isHovered ? (strong ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.12)') : 'rgba(148,163,184,0.04)',
+        color: isHovered
+          ? (strong ? AppColors.HOVER_SHADOW_STRONG_DARK : AppColors.HOVER_SHADOW_DARK)
+          : AppColors.HOVER_SHADOW_REST_DARK,
         offsetX: 0,
         offsetY: isHovered ? (strong ? 16 : 12) : 3
       }
@@ -22,7 +25,9 @@ export class HoverUtils {
 
     return {
       radius: isHovered ? (strong ? 34 : 28) : 10,
-      color: isHovered ? (strong ? 'rgba(15,23,42,0.20)' : 'rgba(15,23,42,0.15)') : 'rgba(15,23,42,0.06)',
+      color: isHovered
+        ? (strong ? AppColors.HOVER_SHADOW_STRONG_LIGHT : AppColors.HOVER_SHADOW_LIGHT)
+        : AppColors.HOVER_SHADOW_REST_LIGHT,
       offsetX: 0,
       offsetY: isHovered ? (strong ? 16 : 12) : 3
     }

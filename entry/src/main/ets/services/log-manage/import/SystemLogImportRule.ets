@@ -4,6 +4,7 @@ import {
   LogEntry,
   LogEventType
 } from '../../../models/LogModels'
+import { TimeConstants } from '../../../constants/TimeConstants'
 import { LogManageImportDetailStrings } from '../../../constants/modules/LogManageStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import { LogImportHash } from './LogImportHash'
@@ -55,7 +56,7 @@ const YIELD_EVERY_LINES = 200
 const MAX_DETAIL_LENGTH = 280
 const MAX_ROW_VALUE_LENGTH = 360
 const EPOCH_MILLIS_THRESHOLD = 100000000000
-const FUTURE_SKEW_TOLERANCE_MS = 24 * 60 * 60 * 1000
+const FUTURE_SKEW_TOLERANCE_MS = TimeConstants.DAY_IN_MS
 
 const SYSTEM_RULES: SystemRuleDefinition[] = [
   new SystemRuleDefinition('system_service_timeout', '服务超时异常', 'whole_failed',

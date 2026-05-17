@@ -9,6 +9,7 @@ import {
 } from '../../main/ets/constants/AppConstants'
 import { RouteIds } from '../../main/ets/constants/RouteIds'
 import { AppText, ModuleText } from '../../main/ets/constants/StringCatalog'
+import { TimeConstants } from '../../main/ets/constants/TimeConstants'
 import { ThemeMode } from '../../main/ets/theme/ThemeColors'
 
 export default function appConstantsTest() {
@@ -27,6 +28,8 @@ export default function appConstantsTest() {
       expect(AppStyles.FONT_SIZE_TITLE).assertEqual(24)
       expect(AppStyles.RADIUS_LG).assertEqual(12)
       expect(AppStyles.DIVIDER_HEIGHT).assertEqual(1)
+      expect(AppStyles.MODAL_LOADING_INDICATOR_SIZE).assertEqual(44)
+      expect(AppStyles.LOADING_DIALOG_WIDTH).assertEqual(280)
     })
 
     it('should map action button colors for light and dark themes', 0, () => {
@@ -37,10 +40,10 @@ export default function appConstantsTest() {
     })
 
     it('should map interactive item styles by theme and state', 0, () => {
-      expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.LIGHT, false)).assertEqual('rgba(0,0,0,0)')
-      expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.DARK, true)).assertEqual('rgba(255,255,255,0.10)')
+      expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.LIGHT, false)).assertEqual(AppColors.TRANSPARENT)
+      expect(InteractiveItemStyles.getMenuItemBackground(ThemeMode.DARK, true)).assertEqual(AppColors.INTERACTIVE_BUTTON_HOVER_DARK)
       expect(InteractiveItemStyles.getSidebarItemBackground(ThemeMode.LIGHT, true, false)).assertEqual(AppColors.BRAND_PRIMARY)
-      expect(InteractiveItemStyles.getSidebarIconTileBackground(ThemeMode.DARK, false)).assertEqual('rgba(10,132,255,0.14)')
+      expect(InteractiveItemStyles.getSidebarIconTileBackground(ThemeMode.DARK, false)).assertEqual(AppColors.SIDEBAR_ICON_TILE_BG_DARK)
       expect(InteractiveItemStyles.getThemeModeIconColor(ThemeMode.LIGHT)).assertEqual(AppColors.THEME_MODE_ICON_COLOR_LIGHT)
     })
 
@@ -48,8 +51,18 @@ export default function appConstantsTest() {
       expect(AppColors.BRAND_PRIMARY).assertEqual('#0A84FF')
       expect(AppColors.GRADIENT_HELP_END).assertEqual('#FFB4A8')
       expect(AppColors.FIREWALL_CONFLICT_BORDER).assertEqual('#FFD591')
+      expect(AppColors.MODAL_SHADOW_DARK).assertEqual('rgba(0,0,0,0.32)')
+      expect(AppColors.INTERACTIVE_SECONDARY_BG_DARK).assertEqual('rgba(255,255,255,0.08)')
+      expect(AppColors.SCROLL_BAR_DARK).assertEqual('#6B7280')
       expect(AppColors.getColors(ThemeMode.LIGHT).TEXT_PRIMARY.length > 0).assertTrue()
       expect(AppColors.getColors(ThemeMode.DARK).TEXT_PRIMARY.length > 0).assertTrue()
+    })
+
+    it('should expose shared time constants', 0, () => {
+      expect(TimeConstants.SECOND_IN_MS).assertEqual(1000)
+      expect(TimeConstants.MINUTE_IN_MS).assertEqual(60 * 1000)
+      expect(TimeConstants.HOUR_IN_MS).assertEqual(60 * 60 * 1000)
+      expect(TimeConstants.DAY_IN_MS).assertEqual(24 * 60 * 60 * 1000)
     })
   })
 }

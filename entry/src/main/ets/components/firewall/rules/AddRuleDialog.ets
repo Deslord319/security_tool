@@ -139,7 +139,7 @@ export struct AddRuleDialog {
 
   private getTertiaryButtonBackground(): ResourceColor {
     return this.currentTheme === ThemeMode.DARK
-      ? 'rgba(255,255,255,0.08)'
+      ? AppColors.INTERACTIVE_SECONDARY_BG_DARK
       : AppColors.getColors(this.currentTheme).BG_PAGE
   }
 
