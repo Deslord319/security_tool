@@ -48,8 +48,8 @@ export struct BaseCard {
         .linearGradient({
           angle: this.overlayAngle,
           colors: [
-            [this.isHovered ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.03)', 0],
-            ['rgba(255,255,255,0.00)', 1]
+            [this.isHovered ? AppColors.CARD_OVERLAY_HOVER_START : AppColors.CARD_OVERLAY_START, 0],
+            [AppColors.CARD_OVERLAY_END, 1]
           ]
         })
 

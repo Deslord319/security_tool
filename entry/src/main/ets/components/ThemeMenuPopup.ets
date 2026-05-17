@@ -202,7 +202,7 @@ export struct ThemeMenuPopup {
     .borderRadius(AppStyles.RADIUS_LG)
     .shadow({
       radius: 16,
-      color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.15)',
+      color: this.currentTheme === ThemeMode.DARK ? AppColors.POPUP_SHADOW_DARK : AppColors.POPUP_SHADOW_LIGHT,
       offsetX: 0,
       offsetY: 4
     })

@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit'
+import { TimeConstants } from '../../../constants/TimeConstants'
 import { normalizeSecurityEventResult } from '../../../models/CommonModels'
 import {
   normalizeDeviceId,
@@ -100,7 +101,7 @@ export class PeripheralTraceMaintenanceService {
         return { success: false, code: 'not_initialized' }
       }
       let now = PeripheralTraceMaintenanceService.nowProvider()
-      let retentionMs = PeripheralTraceMaintenanceService.retentionDays * 24 * 60 * 60 * 1000
+      let retentionMs = PeripheralTraceMaintenanceService.retentionDays * TimeConstants.DAY_IN_MS
       let cutoff = now - retentionMs
       let deletedExpired = await PeripheralTraceEntryRepository.deleteExpired(cutoff)
       if (!deletedExpired) {

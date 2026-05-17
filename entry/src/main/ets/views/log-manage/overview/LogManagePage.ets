@@ -377,8 +377,8 @@ export struct LogManagePage {
     Column() {
       Column({ space: 14 }) {
         LoadingProgress()
-          .width(44)
-          .height(44)
+          .width(AppStyles.MODAL_LOADING_INDICATOR_SIZE)
+          .height(AppStyles.MODAL_LOADING_INDICATOR_SIZE)
 
         Text(LogManageImportStrings.IMPORTING)
           .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -386,17 +386,22 @@ export struct LogManagePage {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           .textAlign(TextAlign.Center)
       }
-      .width(280)
-      .padding({ left: 24, right: 24, top: 28, bottom: 28 })
+      .width(AppStyles.LOADING_DIALOG_WIDTH)
+      .padding({
+        left: AppStyles.LOADING_DIALOG_PADDING_HORIZONTAL,
+        right: AppStyles.LOADING_DIALOG_PADDING_HORIZONTAL,
+        top: AppStyles.LOADING_DIALOG_PADDING_VERTICAL,
+        bottom: AppStyles.LOADING_DIALOG_PADDING_VERTICAL
+      })
       .alignItems(HorizontalAlign.Center)
       .justifyContent(FlexAlign.Center)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
       .borderRadius(AppStyles.RADIUS_LG)
       .shadow({
-        radius: 18,
-        color: this.currentTheme === ThemeMode.DARK ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.14)',
+        radius: AppStyles.LOADING_DIALOG_SHADOW_RADIUS,
+        color: this.currentTheme === ThemeMode.DARK ? AppColors.MODAL_SHADOW_DARK : AppColors.MODAL_SHADOW_LIGHT,
         offsetX: 0,
-        offsetY: 8
+        offsetY: AppStyles.LOADING_DIALOG_SHADOW_OFFSET_Y
       })
     }
     .width('100%')

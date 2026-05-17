@@ -117,7 +117,7 @@ export struct UserFirewallControlDialog {
               .fontSize(AppStyles.FONT_SIZE_BODY)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .backgroundColor(this.currentTheme === ThemeMode.DARK
-                ? 'rgba(255,255,255,0.08)'
+                ? AppColors.INTERACTIVE_SECONDARY_BG_DARK
                 : AppColors.getColors(this.currentTheme).BG_PAGE)
               .borderRadius(AppStyles.RADIUS_MD)
               .border({ width: AppStyles.DIVIDER_HEIGHT, color: AppColors.getColors(this.currentTheme).BORDER, style: BorderStyle.Solid })
