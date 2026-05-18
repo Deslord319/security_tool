@@ -13,8 +13,8 @@
 
 ## 总览
 
-- 基线用例总数：`117`
-- `已有UT覆盖`：`90`
+- 基线用例总数：`121`
+- `已有UT覆盖`：`94`
 - `UT部分覆盖`：`4`
 - `待补UT`：`0`
 - `不补UT`：`23`
@@ -73,7 +73,7 @@
 | LOG-003 | 日志采集 | 验证在系统设置 > 生物识别和密码 中拉起 PIN 认证后记录用户认证事件 | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-004 | 日志详情 | 验证不同类型日志的详情弹窗展示对应结构化字段 | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets；entry/src/test/log-manage/crash-source.test.ets；entry/src/test/log-manage/entry-normalizer.test.ets |
 | LOG-005 | 事件类型筛选 | 验证按事件类型筛选日志时仅展示指定类型结果 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
-| LOG-006 | 执行结果筛选 | 验证按执行结果筛选日志时仅展示指定结果 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
+| LOG-006 | 时间范围筛选 | 验证按时间范围筛选日志时仅展示指定时间窗口内的结果 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
 | LOG-007 | 关键字搜索 | 验证按关键字 `log_test_file.txt` 搜索日志内容 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
 | LOG-008 | 分页查询 | 验证日志数量超过一页时可以翻页 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
 | LOG-009 | 分页查询 | 验证修改每页条数后分页状态正确 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
@@ -87,9 +87,12 @@
 | LOG-017 | 日志采集 | 验证应用新增或删除权限后记录 PERMISSION 权限变更事件 | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-018 | 日志采集 | 验证应用自身崩溃后记录 CRASH 崩溃事件 | 已有UT覆盖 | entry/src/test/log-manage/crash-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-026 | 导入异常 | 验证选择非 zip 文件作为离线日志包时被拦截 | 已有UT覆盖 | entry/src/test/log-manage/archive-extractor.test.ets |
-| LOG-027 | 导入异常 | 验证用户取消选择日志包或解压目录时导入流程取消且不入库 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
+| LOG-027 | 导入异常 | 验证用户取消选择 zip 日志包时导入流程取消且不入库 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 | LOG-028 | 导入异常 | 验证单个导入规则解析异常不会中断整批导入 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 | LOG-029 | 导入异常 | 验证导入结果入库失败时返回明确失败结果 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
+| LOG-030 | 开关机日志采集 | 验证应用冷启动和关机事件生成 `POWER` 类型日志，并按 pending marker 补偿关机记录 | 已有UT覆盖 | entry/src/test/log-manage/power-lifecycle-source.test.ets |
+| LOG-031 | 审计日志类型 | 验证指定通用审计事件映射为独立 `AUDIT` 日志类型，并保留事件说明和原始 JSON | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets |
+| LOG-032 | 离线日志导入 | 验证离线日志导入只选择 zip，并使用应用私有 `log_import_tmp` 工作区且导入前后清理 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 
 ## 外设管理
 
@@ -140,6 +143,7 @@
 | ID-003 | 密码有效期策略 | 验证将自定义密码有效期设置为 30 天后保存成功 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 | ID-004 | 输入参数校验 | 验证自定义密码有效期非法字符被过滤，空值保存时被拦截 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 | ID-007 | 策略保存 | 验证自定义密码有效期输入 0 天时触发风险提示 | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
+| ID-008 | 密码有效期策略 | 验证系统空策略携带 `validityPeriod = 0` 时仍按未配置处理并回显默认“永久” | 已有UT覆盖 | entry/src/test/identity/settings-viewmodel.test.ets；entry/src/test/identity/service.test.ets |
 
 ## 工具设置
 
