@@ -178,13 +178,7 @@ export struct LogManagePage {
       this.isImportProcessing = false
     }
     if (result.success) {
-      DialogService.openSuccess(this.getUIContext(), LogManageImportStrings.buildSuccessMessage(
-        result.insertedEntryCount,
-        result.skippedDuplicateCount,
-        result.skippedExpiredCount,
-        result.droppedEntryCount,
-        result.failedEntryCount
-      ))
+      DialogService.openSuccess(this.getUIContext(), LogManageImportStrings.ADD_SUCCESS)
       return
     }
     DialogService.openFailure(this.getUIContext(), this.mapImportFailureText(result.code))
