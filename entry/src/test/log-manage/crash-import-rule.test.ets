@@ -2,20 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { LogEventType } from '../../main/ets/models/LogModels'
 import { CrashLogImportRule } from '../../main/ets/services/log-manage/import/CrashLogImportRule'
 import { ImportedLogFile } from '../../main/ets/services/log-manage/import/LogImportRule'
+import { createImportedLogFile, readImportedLogFileLinesForTest } from './ImportedLogFileTestUtils'
 
 let testContents: Map<string, string> = new Map<string, string>()
 
 function createFile(relativePath: string, content?: string): ImportedLogFile {
-  let path = `crash_import_rule_${relativePath.replace(/\//g, '_')}_${Date.now()}_${Math.floor(Math.random() * 100000)}`
-  if (content !== undefined) {
-    testContents.set(path, content)
-  }
-  return {
-    path,
-    fileName: relativePath.substring(relativePath.lastIndexOf('/') + 1),
-    relativePath,
-    normalizedPath: relativePath
-  }
+  return createImportedLogFile(testContents, 'crash_import_rule', relativePath, content)
 }
 
 function sampleAppFreeze(reason: string = 'THREAD_BLOCK_6S'): string {
@@ -37,11 +29,7 @@ export default function crashImportRuleTest() {
     beforeEach(() => {
       testContents = new Map<string, string>()
       CrashLogImportRule.setLineReaderForTest(async (file: ImportedLogFile, onLine: (line: string, lineNumber: number) => Promise<void>): Promise<void> => {
-        let content = testContents.get(file.path) ?? ''
-        let lines = content.split(/\r?\n/)
-        for (let index = 0; index < lines.length; index++) {
-          await onLine(lines[index], index + 1)
-        }
+        await readImportedLogFileLinesForTest(testContents, file, onLine)
       })
     })
 
