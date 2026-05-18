@@ -12,7 +12,7 @@ import {
 import { AuditSubscribeResult, SourceStatus } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
-import { AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
+import { AUDIT_LOG_EVENT_IDS, AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
 
 const TAG = 'LogAuditSource'
 const DEFAULT_FOREGROUND_USER_ID = 100
@@ -48,7 +48,8 @@ export class LogAuditSource {
     [LogEventType.CRASH, CRASH_AUDIT_EVENT_IDS],
     [LogEventType.FILE, FILE_AUDIT_EVENT_IDS],
     [LogEventType.ACCOUNT, AUTH_AUDIT_EVENT_IDS],
-    [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]]
+    [LogEventType.PERMISSION, [securityAudit.NotifyEvent.PERMISSION]],
+    [LogEventType.AUDIT, AUDIT_LOG_EVENT_IDS]
   ])
 
   static async subscribe(onEntry: (entry: LogEntry) => void, eventTypes?: LogEventType[]): Promise<AuditSubscribeResult> {

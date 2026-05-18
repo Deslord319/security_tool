@@ -9,7 +9,13 @@ import {
   formatLogTimestamp
 } from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
-import { AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
+import {
+  AUDIT_EVENT_DESCRIPTIONS_BY_ID,
+  AUDIT_EVENT_TYPES_BY_ID,
+  AUDIT_LOG_EVENT_IDS,
+  AUTH_AUDIT_EVENT_IDS,
+  CRASH_AUDIT_EVENT_IDS
+} from '../../main/ets/services/log-manage/source/LogAuditEventIds'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {
   detailRows?: LogDetailTableRow[]
@@ -331,6 +337,46 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'file.uid')).assertEqual('100')
       expect(getRowValue(rows, 'file.timestamp')).assertEqual(formatLogTimestamp(entry!.timestamp))
       expect(getRowValue(rows, 'file.eventId')).assertEqual(`${securityAudit.NotifyEvent.FILE}`)
+    })
+
+    it('should map general notify events into audit log entries with raw json', 0, () => {
+      const timestamp = '20260415162544'
+      let event = {
+        eventId: securityAudit.NotifyEvent.APP,
+        timestamp,
+        userId: 100,
+        content: JSON.stringify({
+          eventName: 'application_event',
+          bundleName: 'com.example.demo'
+        }),
+        metadata: JSON.stringify({
+          seqNum: 12,
+          source: 'security_audit'
+        })
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event)
+      let rows = getDetailRows(entry)
+      let rawJson = getRowValue(rows, 'audit.rawJson')
+
+      expect(!!entry).assertTrue()
+      expect(entry!.eventType).assertEqual(LogEventType.AUDIT)
+      expect(AUDIT_LOG_EVENT_IDS.includes(securityAudit.NotifyEvent.APP)).assertTrue()
+      expect(rows.length).assertEqual(2)
+      expect(getRowValue(rows, 'audit.description')).assertEqual('应用程序事件')
+      expect(rawJson.indexOf('"eventId"') >= 0).assertTrue()
+      expect(rawJson.indexOf(`${securityAudit.NotifyEvent.APP}`) >= 0).assertTrue()
+      expect(rawJson.indexOf('application_event') >= 0).assertTrue()
+      expect(rawJson.indexOf('security_audit') >= 0).assertTrue()
+    })
+
+    it('should exclude high frequency network events from audit log subscription', 0, () => {
+      expect(AUDIT_LOG_EVENT_IDS.includes(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
+      expect(AUDIT_LOG_EVENT_IDS.includes(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
+      expect(AUDIT_EVENT_TYPES_BY_ID.has(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
+      expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(securityAudit.NotifyEvent.NETWORK_TRAFFIC)).assertFalse()
+      expect(AUDIT_EVENT_DESCRIPTIONS_BY_ID.has(securityAudit.NotifyEvent.NETWORK_CONN)).assertFalse()
     })
 
     it('should ignore unknown audit event ids', 0, () => {

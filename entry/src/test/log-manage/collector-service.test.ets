@@ -16,12 +16,13 @@ import { LogStorageMaintenanceService } from '../../main/ets/services/log-manage
 import { LogAuditSource } from '../../main/ets/services/log-manage/source/LogAuditSource'
 import { LogCrashSource } from '../../main/ets/services/log-manage/source/LogCrashSource'
 
-function createEntry(id: string, detail: string): LogEntry {
+function createEntry(id: string, detail: string, eventType: LogEventType = LogEventType.FILE, filePath?: string): LogEntry {
   return {
     id,
     timestamp: Date.now(),
-    eventType: LogEventType.FILE,
-    detail
+    eventType,
+    detail,
+    filePath
   }
 }
 
@@ -170,5 +171,56 @@ export default function logCollectorServiceTest() {
       expect(stopResult.status.pendingCount > 0).assertTrue()
       done()
     })
+
+    it('should ignore security log import trash file events before persistence', 0, async (done: Function) => {
+      await LogCollectorService.init(context)
+      await LogCollectorService.start()
+      if (auditSource.callback) {
+        auditSource.callback(createEntry(
+          'trash-import-root',
+          'scan /data/service/el2/100/hmdfs/account/files/Docs/.Trash/security_log_import_1778479792823/remoteLog.zip_extracted/hilog',
+          LogEventType.FILE,
+          '/storage/Users/currentUser/Docs/.Trash/security_log_import_1778479792823/remoteLog.zip_extracted/hilog'
+        ))
+        auditSource.callback(createEntry(
+          'trash-import-nested',
+          'scan nested import batch',
+          LogEventType.FILE,
+          '/storage/Users/currentUser/Docs/.Trash/222/security_log_import_1778479792823/remoteLog.zip_extracted/hilog'
+        ))
+        auditSource.callback(createEntry(
+          'trash-normal-file',
+          'normal trash file',
+          LogEventType.FILE,
+          '/storage/Users/currentUser/Docs/.Trash/manual-note.txt'
+        ))
+        auditSource.callback(createEntry(
+          'audit-with-path',
+          'audit mentions /storage/Users/currentUser/Docs/.Trash/security_log_import_1778479792823',
+          LogEventType.AUDIT
+        ))
+      }
+
+      let stopResult = await LogCollectorService.stop()
+      let savedIds = collectSavedIds(repository.savedBatches)
+
+      expect(stopResult.success).assertTrue()
+      expect(repository.savedBatches.length).assertEqual(1)
+      expect(savedIds.includes('trash-import-root')).assertFalse()
+      expect(savedIds.includes('trash-import-nested')).assertFalse()
+      expect(savedIds.includes('trash-normal-file')).assertTrue()
+      expect(savedIds.includes('audit-with-path')).assertTrue()
+      done()
+    })
   })
+}
+
+function collectSavedIds(batches: LogEntry[][]): string[] {
+  let result: string[] = []
+  for (let batch of batches) {
+    for (let entry of batch) {
+      result.push(entry.id)
+    }
+  }
+  return result
 }

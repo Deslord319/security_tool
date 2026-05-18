@@ -15,7 +15,7 @@ import {
   pickStringFromRecords as pickString
 } from '../../../utils/ValuePicker'
 import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
-import { AUDIT_EVENT_TYPES_BY_ID } from './LogAuditEventIds'
+import { AUDIT_EVENT_DESCRIPTIONS_BY_ID, AUDIT_EVENT_TYPES_BY_ID } from './LogAuditEventIds'
 
 const TAG = 'LogAuditEventMapper'
 
@@ -158,10 +158,29 @@ function buildDetailRows(
       appendNumberRow(rows, 'crash.eventId', '事件 ID', event.eventId)
       break
     }
+    case LogEventType.AUDIT: {
+      appendTextRow(rows, 'audit.description', LogManageAuditStrings.DESCRIPTION_LABEL, resolveAuditEventDescription(event.eventId))
+      appendTextRow(rows, 'audit.rawJson', LogManageAuditStrings.RAW_JSON_LABEL, buildRawAuditJson(event))
+      break
+    }
     default:
       break
   }
   return rows
+}
+
+function resolveAuditEventDescription(eventId: number): string {
+  return AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId) || `事件 ID: ${eventId}`
+}
+
+function buildRawAuditJson(event: securityAudit.AuditEvent): string {
+  return JSON.stringify({
+    eventId: event.eventId,
+    timestamp: event.timestamp || '',
+    userId: event.userId,
+    content: event.content || '',
+    metadata: event.metadata || ''
+  })
 }
 
 function rawFilePathFallback(contentJson?: LooseRecord, metadataJson?: LooseRecord, sources: LooseRecord[] = []): string | undefined {

@@ -15,7 +15,7 @@ import {
 export default function logManageDataModelsTest() {
   describe('LogManage DataModels', () => {
     it('should expose final log event types', 0, () => {
-      expect(ALL_LOG_EVENT_TYPES.length).assertEqual(7)
+      expect(ALL_LOG_EVENT_TYPES.length).assertEqual(8)
       expect(ALL_LOG_EVENT_TYPES[0]).assertEqual(LogEventType.CRASH)
       expect(ALL_LOG_EVENT_TYPES[1]).assertEqual(LogEventType.FILE)
       expect(ALL_LOG_EVENT_TYPES[2]).assertEqual(LogEventType.ACCOUNT)
@@ -23,6 +23,7 @@ export default function logManageDataModelsTest() {
       expect(ALL_LOG_EVENT_TYPES[4]).assertEqual(LogEventType.POWER)
       expect(ALL_LOG_EVENT_TYPES[5]).assertEqual(LogEventType.SYSTEM)
       expect(ALL_LOG_EVENT_TYPES[6]).assertEqual(LogEventType.KERNEL)
+      expect(ALL_LOG_EVENT_TYPES[7]).assertEqual(LogEventType.AUDIT)
     })
 
     it('should return stable labels for final event types', 0, () => {
@@ -33,6 +34,7 @@ export default function logManageDataModelsTest() {
       expect(getLogEventTypeLabel(LogEventType.POWER)).assertEqual('开关机日志')
       expect(getLogEventTypeLabel(LogEventType.SYSTEM)).assertEqual('系统日志')
       expect(getLogEventTypeLabel(LogEventType.KERNEL)).assertEqual('内核日志')
+      expect(getLogEventTypeLabel(LogEventType.AUDIT)).assertEqual('审计日志')
     })
 
     it('should format timestamps and generate unique ids', 0, () => {
@@ -45,7 +47,7 @@ export default function logManageDataModelsTest() {
     })
 
     it('should keep options aligned with final event types and storage defaults', 0, () => {
-      expect(LOG_EVENT_TYPE_OPTIONS.length).assertEqual(7)
+      expect(LOG_EVENT_TYPE_OPTIONS.length).assertEqual(8)
       expect(LOG_EVENT_TYPE_OPTIONS.map((item) => item.value).every((item) => ALL_LOG_EVENT_TYPES.includes(item))).assertTrue()
       expect(DEFAULT_LOG_STORAGE_CONFIG.maxLocalEntries).assertEqual(20000)
       expect(DEFAULT_LOG_STORAGE_CONFIG.retentionDays).assertEqual(30)
