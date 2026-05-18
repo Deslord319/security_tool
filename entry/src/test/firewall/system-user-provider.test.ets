@@ -1,14 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
+import { describe, expect, it } from '@ohos/hypium'
 
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 
 export default function systemUserProviderTest() {
   describe('SystemUserProvider', () => {
-
-    beforeEach(() => {})
-
-    afterEach(() => {})
-
     it('should allow tracked-user maintenance methods without throwing', 0, async () => {
       await SystemUserProvider.trackAddedUser(101)
       await SystemUserProvider.trackRemovedUser(101)

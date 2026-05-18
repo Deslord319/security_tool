@@ -2,20 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { LogEventType } from '../../main/ets/models/LogModels'
 import { ImportedLogFile } from '../../main/ets/services/log-manage/import/LogImportRule'
 import { KernelLogImportRule } from '../../main/ets/services/log-manage/import/KernelLogImportRule'
+import { createImportedLogFile, readImportedLogFileLinesForTest } from './ImportedLogFileTestUtils'
 
 let testContents: Map<string, string> = new Map<string, string>()
 
 function createFile(relativePath: string = 'remoteLog/hilog/hilog_kmsg.1', content?: string): ImportedLogFile {
-  let path = `kernel_import_rule_${relativePath.replace(/\//g, '_')}_${Date.now()}_${Math.floor(Math.random() * 100000)}`
-  if (content !== undefined) {
-    testContents.set(path, content)
-  }
-  return {
-    path,
-    fileName: relativePath.substring(relativePath.lastIndexOf('/') + 1),
-    relativePath,
-    normalizedPath: relativePath
-  }
+  return createImportedLogFile(testContents, 'kernel_import_rule', relativePath, content)
 }
 
 export default function kernelImportRuleTest() {
@@ -23,11 +15,7 @@ export default function kernelImportRuleTest() {
     beforeEach(() => {
       testContents = new Map<string, string>()
       KernelLogImportRule.setLineReaderForTest(async (file: ImportedLogFile, onLine: (line: string, lineNumber: number) => Promise<void>): Promise<void> => {
-        let content = testContents.get(file.path) ?? ''
-        let lines = content.split(/\r?\n/)
-        for (let index = 0; index < lines.length; index++) {
-          await onLine(lines[index], index + 1)
-        }
+        await readImportedLogFileLinesForTest(testContents, file, onLine)
       })
     })
 
