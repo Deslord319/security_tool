@@ -37,14 +37,11 @@ export class LogManageActionStrings {
 
 export class LogManageImportStrings {
   static readonly IMPORTING: string = '正在导入日志，请稍候...'
+  static readonly ADD_SUCCESS: string = '日志添加成功'
   static readonly USER_CANCELED: string = '已取消导入'
   static readonly INVALID_ARCHIVE: string = '请选择 zip 格式日志包'
   static readonly EXTRACT_FAILED: string = '日志包解压失败'
   static readonly SAVE_FAILED: string = '日志入库失败'
-
-  static buildSuccessMessage(inserted: number, skipped: number, expired: number, dropped: number, failed: number): string {
-    return `导入完成：新增 ${inserted} 条，重复跳过 ${skipped} 条，过期跳过 ${expired} 条，丢弃 ${dropped} 条，失败 ${failed} 条。`
-  }
 }
 
 export class LogManageImportDetailStrings {
