@@ -4,8 +4,8 @@ export class LogPathUtils {
   static buildHmdfsAccountFilesPrefix(userId: number): string {
     return `/data/service/el2/${userId}/hmdfs/account/files/`
   }
-  static normalizePathCandidate(pathOrUri: string | undefined): string | undefined {
-    let normalized = LogPathUtils.sanitizeRawPathCandidate(pathOrUri)
+  static normalizePathCandidate(pathOrUri: string | undefined, preserveSpaces: boolean = false): string | undefined {
+    let normalized = LogPathUtils.sanitizeRawPathCandidate(pathOrUri, preserveSpaces)
     if (normalized.length === 0) {
       return undefined
     }
@@ -14,7 +14,7 @@ export class LogPathUtils {
     return normalized.length > 0 ? normalized : undefined
   }
   static extractRawAuditPath(structuredCandidate: string | undefined, rawTexts: Array<string | undefined>): string | undefined {
-    let structured = LogPathUtils.sanitizeRawPathCandidate(structuredCandidate)
+    let structured = LogPathUtils.sanitizeRawPathCandidate(structuredCandidate, true)
     if (structured) {
       return structured
     }
@@ -44,9 +44,11 @@ export class LogPathUtils {
     }
     return undefined
   }
-  private static cutPathSuffix(path: string): string {
+  private static cutPathSuffix(path: string, preserveSpaces: boolean): string {
     let cutIndex = path.length
-    for (let sep of ['?', '#', '&', '"', '\'', ',', '}', ']', ' ']) {
+    const separators = preserveSpaces ? ['?', '#', '&', '"', '\'', ',', '}', ']'] :
+      ['?', '#', '&', '"', '\'', ',', '}', ']', ' ']
+    for (let sep of separators) {
       let index = path.indexOf(sep)
       if (index >= 0 && index < cutIndex) {
         cutIndex = index
@@ -54,7 +56,7 @@ export class LogPathUtils {
     }
     return cutIndex < path.length ? path.substring(0, cutIndex) : path
   }
-  private static sanitizeRawPathCandidate(pathOrUri: string | undefined): string {
+  private static sanitizeRawPathCandidate(pathOrUri: string | undefined, preserveSpaces: boolean = false): string {
     if (!pathOrUri) {
       return ''
     }
@@ -67,7 +69,7 @@ export class LogPathUtils {
     } catch (err) {
       LogUtils.warn(TAG, `decodeURIComponent failed: ${JSON.stringify(err)}`)
     }
-    return LogPathUtils.cutPathSuffix(normalized.replace(/\\/g, '/'))
+    return LogPathUtils.cutPathSuffix(normalized.replace(/\\/g, '/'), preserveSpaces)
   }
   private static remapUserAuditPath(path: string): string {
     let docsMatched = path.match(/^\/data\/service\/el2\/\d+\/hmdfs\/account\/files\/Docs\/(Download|Documents|Desktop)(?:\/(.*))?$/)

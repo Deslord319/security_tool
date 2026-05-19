@@ -339,6 +339,35 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'file.eventId')).assertEqual(`${securityAudit.NotifyEvent.FILE}`)
     })
 
+    it('should use renamed target path as primary file detail path and keep old path', 0, () => {
+      const timestamp = '20260519141917'
+      let event = {
+        eventId: securityAudit.NotifyEvent.FILE,
+        timestamp,
+        userId: 100,
+        content: JSON.stringify({
+          event_name: 'file_rename',
+          processName: 'com.huawei.hmos.filemanager',
+          pid: 21556,
+          uid: 20020023,
+          file_path: '',
+          file_oldpath: '/data/service/el2/100/hmdfs/account/files/Docs/Download/新建 文本文档.txt',
+          file_newpath: '/data/service/el2/100/hmdfs/account/files/Docs/Download/333.txt'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event)
+      let rows = getDetailRows(entry)
+
+      expect(!!entry).assertTrue()
+      expect(entry!.filePath).assertEqual('/storage/Users/currentUser/Download/333.txt')
+      expect(getRowValue(rows, 'file.operation')).assertEqual('file_rename')
+      expect(getRowValue(rows, 'file.filePath')).assertEqual('/storage/Users/currentUser/Download/333.txt')
+      expect(getRowValue(rows, 'file.oldPath')).assertEqual('/storage/Users/currentUser/Download/新建 文本文档.txt')
+      expect(getRowValue(rows, 'file.newPath')).assertEqual('/storage/Users/currentUser/Download/333.txt')
+    })
+
     it('should map general notify events into audit log entries with raw json', 0, () => {
       const timestamp = '20260415162544'
       let event = {

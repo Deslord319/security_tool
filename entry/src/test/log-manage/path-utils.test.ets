@@ -25,6 +25,14 @@ export default function logPathUtilsTest() {
       expect(normalized).assertEqual('/storage/Users/currentUser/Download/oh-kia-samples/probe.txt')
     })
 
+    it('should preserve spaces in structured hmdfs audit path candidates', 0, () => {
+      let normalized = LogPathUtils.normalizePathCandidate(
+        '/data/service/el2/100/hmdfs/account/files/Docs/Download/新建 文本文档.txt',
+        true
+      )
+      expect(normalized).assertEqual('/storage/Users/currentUser/Download/新建 文本文档.txt')
+    })
+
     it('should remap generic hmdfs account files path into current user path', 0, () => {
       let normalized = LogPathUtils.normalizePathCandidate(
         '/data/service/el2/100/hmdfs/account/files/Shared/report.txt'

@@ -24,12 +24,17 @@ interface ParsedAuditPayload {
   detailRows: LogDetailTableRow[]
   processName?: string
   pid?: number
-  rawFilePath?: string
   filePath?: string
   remoteAddr?: string
   rawEventName?: string
   rawOutcome?: string
   rawAction?: string
+}
+
+interface FileAuditPathInfo {
+  primaryPath?: string
+  oldPath?: string
+  newPath?: string
 }
 
 export function parseAuditEventToLogEntry(
@@ -76,20 +81,18 @@ function parseAuditPayload(
   const metadataJson = safeParseJson(metadata)
   const sources = collectJsonSources(contentJson, metadataJson)
   const rawOutcome = resolveRawOutcome(sources)
-  const rawFilePath = resolveAuditRawFilePath(content, metadata, sources)
-  const normalizedFilePath = LogPathUtils.normalizePathCandidate(rawFilePath)
+  const fileAuditPathInfo = resolveFileAuditPathInfo(content, metadata, sources)
 
   return {
     detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
       content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
-    detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources),
+    detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources, fileAuditPathInfo),
     processName: pickString(sources, [
       'processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name',
       'CALLER_NAME', 'CALLER_PNAMEID', 'PNAMEID'
     ]),
     pid: pickNumber(sources, ['pid', 'processId', 'process_id']),
-    rawFilePath: rawFilePath,
-    filePath: normalizedFilePath,
+    filePath: fileAuditPathInfo.primaryPath,
     remoteAddr: pickString(sources, ['remoteAddress', 'remoteAddr', 'remote_addr', 'remoteIp', 'remote_ip', 'dstAddr', 'dst_addr', 'dstIp', 'dst_ip', 'peerAddr', 'peer_addr']),
     rawEventName: pickString(sources, ['event_name', 'eventName', 'name', 'name_', 'EVENT_NAME']),
     rawOutcome: rawOutcome,
@@ -104,7 +107,8 @@ function buildDetailRows(
   timestamp: number,
   contentJson?: LooseRecord,
   metadataJson?: LooseRecord,
-  sources: LooseRecord[] = []
+  sources: LooseRecord[] = [],
+  fileAuditPathInfo: FileAuditPathInfo = {}
 ): LogDetailTableRow[] {
   let rows: LogDetailTableRow[] = []
   switch (eventType) {
@@ -138,7 +142,9 @@ function buildDetailRows(
     }
     case LogEventType.FILE: {
       appendTextRow(rows, 'file.operation', '操作类型', pickString(sources, ['event_name', 'eventName', 'name']) || pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state']))
-      appendTextRow(rows, 'file.filePath', '文件路径', pickString(sources, ['filePath', 'file_path', 'path', 'srcPath', 'src_path']) || rawFilePathFallback(contentJson, metadataJson, sources))
+      appendTextRow(rows, 'file.filePath', '文件路径', fileAuditPathInfo.primaryPath)
+      appendTextRow(rows, 'file.oldPath', '原文件路径', fileAuditPathInfo.oldPath)
+      appendTextRow(rows, 'file.newPath', '新文件路径', fileAuditPathInfo.newPath)
       appendTextRow(rows, 'file.processName', '进程名', pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']))
       appendNumberRow(rows, 'file.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'file.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
@@ -183,22 +189,44 @@ function buildRawAuditJson(event: securityAudit.AuditEvent): string {
   })
 }
 
-function rawFilePathFallback(contentJson?: LooseRecord, metadataJson?: LooseRecord, sources: LooseRecord[] = []): string | undefined {
-  const rawSources = compactSources(contentJson, metadataJson, ...sources)
-  return pickString(rawSources, [
-    'path',
-    'filePath',
-    'file_path',
-    'srcPath',
-    'src_path',
+function resolveFileAuditPathInfo(
+  content: string,
+  metadata: string | undefined,
+  sources: LooseRecord[]
+): FileAuditPathInfo {
+  const newPathCandidate = pickString(sources, [
+    'file_newpath',
+    'file_new_path',
+    'newPath',
+    'new_path',
     'targetPath',
     'target_path',
     'dstPath',
-    'dst_path',
+    'dst_path'
+  ])
+  const directPathCandidate = pickString(sources, [
+    'filePath',
+    'file_path',
+    'path',
     'uri',
     'fileUri',
     'file_uri'
   ])
+  const oldPathCandidate = pickString(sources, [
+    'file_oldpath',
+    'file_old_path',
+    'oldPath',
+    'old_path',
+    'srcPath',
+    'src_path'
+  ])
+  const primaryCandidate = newPathCandidate || directPathCandidate || oldPathCandidate
+  const scannedPrimary = LogPathUtils.extractRawAuditPath(primaryCandidate, [content, metadata])
+  return {
+    primaryPath: LogPathUtils.normalizePathCandidate(scannedPrimary, true),
+    oldPath: LogPathUtils.normalizePathCandidate(oldPathCandidate, true),
+    newPath: LogPathUtils.normalizePathCandidate(newPathCandidate, true)
+  }
 }
 
 function appendTextRow(rows: LogDetailTableRow[], key: string, label: string, value?: string): void {
@@ -237,14 +265,6 @@ function findNestedJson(sources: Array<LooseRecord | undefined>, key: string): L
     }
   }
   return undefined
-}
-
-function resolveAuditRawFilePath(content: string, metadata: string | undefined, sources: LooseRecord[]): string | undefined {
-  const structured = pickString(sources, [
-    'targetPath', 'target_path', 'dstPath', 'dst_path', 'uri', 'fileUri', 'file_uri',
-    'filePath', 'file_path', 'path', 'srcPath', 'src_path'
-  ])
-  return LogPathUtils.extractRawAuditPath(structured, [content, metadata])
 }
 
 function resolveRawOutcome(sources: LooseRecord[]): string | undefined {
