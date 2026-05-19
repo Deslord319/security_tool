@@ -43,6 +43,7 @@ export struct PeripheralPage {
   @Event onBack: () => void = () => {}
   @Local currentTabIndex: number = PeripheralTabIndexes.INTERFACE_CONTROL
   @Local hoveredPanelIndex: number = -1
+  @Local isInterfaceControlReady: boolean = false
 
   private policyListOptions: SelectOption[] = [
     { value: PeripheralOptionStrings.POLICY_OPTIONS[PeripheralPolicyOptionIndexes.ALLOW] },
@@ -52,6 +53,7 @@ export struct PeripheralPage {
   private readonly usbLoadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
+    this.isInterfaceControlReady = false
     this.syncCurrentTabFromViewModel()
     LogUtils.info(TAG,
       `page enter: tab=${this.currentTabIndex}, records=${this.viewModel.records.state.records.length}, policyRecords=${this.viewModel.policy.state.records.length}`
@@ -73,7 +75,9 @@ export struct PeripheralPage {
       let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
       await this.viewModel.initialize(context)
       this.syncCurrentTabFromViewModel()
+      this.isInterfaceControlReady = true
     } catch (err) {
+      this.isInterfaceControlReady = false
       LogUtils.error(TAG, `initViewModel failed: ${JSON.stringify(err)}`)
       DialogService.openFailure(this.getUIContext(), resolvePeripheralReason(PeripheralReasonCodes.INIT_FAILED))
     }
@@ -212,25 +216,32 @@ export struct PeripheralPage {
   @Builder
   private interfaceTab() {
     Column() {
-      InterfaceControlTab({
-        usbDisabled: this.viewModel.interfaceControl.state.usbDisabled,
-        btDisabled: this.viewModel.interfaceControl.state.btDisabled,
-        wifiDisabled: this.viewModel.interfaceControl.state.wifiDisabled,
-        hdcDisabled: this.viewModel.interfaceControl.state.hdcDisabled,
-        networkDisabled: this.viewModel.interfaceControl.state.networkDisabled,
-        printerDisabled: this.viewModel.interfaceControl.state.printerDisabled,
-        microphoneDisabled: this.viewModel.interfaceControl.state.microphoneDisabled,
-        cameraDisabled: this.viewModel.interfaceControl.state.cameraDisabled,
-        usbStoragePolicyIndex: this.viewModel.interfaceControl.state.usbStoragePolicyIndex,
-        interfaceControlProcessingKey: this.viewModel.interfaceControl.processingKey,
-        usbStorageControlKey: 'usb-storage-policy',
-        currentTheme: this.currentTheme,
-        hoveredPanelIndex: this.hoveredPanelIndex,
-        onUsbInterfaceToggleAsync: async (disallow: boolean): Promise<boolean> => this.handleUsbInterfaceToggle(disallow),
-        onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
-        onUsbStoragePolicyChange: async (index: number): Promise<boolean> => this.handleUsbStoragePolicyChange(index),
-        onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
-      })
+      if (this.isInterfaceControlReady) {
+        InterfaceControlTab({
+          usbDisabled: this.viewModel.interfaceControl.state.usbDisabled,
+          btDisabled: this.viewModel.interfaceControl.state.btDisabled,
+          wifiDisabled: this.viewModel.interfaceControl.state.wifiDisabled,
+          hdcDisabled: this.viewModel.interfaceControl.state.hdcDisabled,
+          networkDisabled: this.viewModel.interfaceControl.state.networkDisabled,
+          printerDisabled: this.viewModel.interfaceControl.state.printerDisabled,
+          microphoneDisabled: this.viewModel.interfaceControl.state.microphoneDisabled,
+          cameraDisabled: this.viewModel.interfaceControl.state.cameraDisabled,
+          usbStoragePolicyIndex: this.viewModel.interfaceControl.state.usbStoragePolicyIndex,
+          interfaceControlProcessingKey: this.viewModel.interfaceControl.processingKey,
+          usbStorageControlKey: 'usb-storage-policy',
+          currentTheme: this.currentTheme,
+          hoveredPanelIndex: this.hoveredPanelIndex,
+          onUsbInterfaceToggleAsync: async (disallow: boolean): Promise<boolean> => this.handleUsbInterfaceToggle(disallow),
+          onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
+          onUsbStoragePolicyChange: async (index: number): Promise<boolean> => this.handleUsbStoragePolicyChange(index),
+          onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
+        })
+      } else {
+        LoadingProgress()
+          .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      }
     }
     .width('100%')
     .height('100%')
