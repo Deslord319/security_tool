@@ -86,7 +86,7 @@
 | LOG-016 | 空状态展示 | 验证无日志时页面展示空状态 | 已有UT覆盖 | entry/src/test/log-manage/list-viewmodel.test.ets |
 | LOG-017 | 日志采集 | 验证应用新增或删除权限后记录 PERMISSION 权限变更事件 | 已有UT覆盖 | entry/src/test/log-manage/audit-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
 | LOG-018 | 日志采集 | 验证应用自身崩溃后记录 CRASH 崩溃事件 | 已有UT覆盖 | entry/src/test/log-manage/crash-source.test.ets；entry/src/test/log-manage/collector-service.test.ets |
-| LOG-026 | 导入异常 | 验证选择非 zip 文件作为离线日志包时被拦截 | 已有UT覆盖 | entry/src/test/log-manage/archive-extractor.test.ets |
+| LOG-026 | 导入异常 | 验证绕过 picker 传入非 zip 离线日志包路径时被解析层拒绝 | 已有UT覆盖 | entry/src/test/log-manage/archive-extractor.test.ets |
 | LOG-027 | 导入异常 | 验证用户取消选择 zip 日志包时导入流程取消且不入库 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 | LOG-028 | 导入异常 | 验证单个导入规则解析异常不会中断整批导入 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
 | LOG-029 | 导入异常 | 验证导入结果入库失败时返回明确失败结果 | 已有UT覆盖 | entry/src/test/log-manage/import-service.test.ets |
@@ -99,20 +99,18 @@
 | 用例ID | 功能点 | 用例描述 | UT覆盖状态 | UT覆盖位置/不覆盖原因 |
 | --- | --- | --- | --- | --- |
 | PER-001 | 接口管控 | 验证外设管理页默认展示接口管控页签 | 不补UT | 默认页签展示属于页面渲染场景，不进入本轮 UT 补充范围。 |
-| PER-002 | USB接口策略 | 验证 USB 接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
-| PER-003 | USB接口策略 | 验证 USB 接口策略可从禁用切换为启用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
+| PER-002 | USB默认管控策略 | 验证 USB 默认管控策略可从允许切换为拒绝并持久化回显 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
+| PER-003 | USB默认管控策略 | 验证 USB 默认管控策略可从拒绝切换为允许并持久化回显 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-004 | USB存储策略 | 验证 USB 存储策略可从读写切换为只读 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-005 | USB存储策略 | 验证 USB 存储策略可从读写切换为禁止访问 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
-| PER-006 | 策略冲突处理 | 验证 USB 接口禁用时切换 USB 存储策略提示冲突 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-007 | 蓝牙策略 | 验证蓝牙接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-008 | Wi-Fi策略 | 验证 Wi-Fi 接口策略可从启用切换为禁用 | 已有UT覆盖 | entry/src/test/viewmodels/InterfaceControlViewModel.test.ets |
 | PER-009 | 设备连接记录 | 验证 USB 设备接入后生成连接记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-010 | 设备连接记录 | 验证 USB 设备断开后生成断开记录 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-011 | 设备详情 | 验证点击设备记录后展示设备详情 | 不补UT | 设备详情展示属于 UI 侧场景，不进入本轮 UT 补充范围。 |
-| PER-012 | 黑白名单策略 | 验证黑白名单页签展示可管理设备 | 不补UT | 黑白名单页签展示属于页面渲染场景，不进入本轮 UT 补充范围。 |
+| PER-012 | 黑白名单策略 | 验证黑白名单页签只展示 USB 候选设备，蓝牙连接记录不进入候选 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-013 | 单设备策略切换 | 验证单设备策略可从允许接入切换为禁止接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-014 | 单设备策略切换 | 验证单设备策略可从禁止接入切换为允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
-| PER-015 | 策略冲突处理 | 验证 USB 接口禁用时单设备策略切换提示冲突 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
 | PER-016 | 记录导出 | 验证设备连接记录可以导出 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralRecordViewModel.test.ets |
 | PER-017 | 记录清理 | 验证设备连接记录可以清理 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralViewModel.test.ets |
 | PER-018 | 策略导出 | 验证黑白名单策略可以导出 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
@@ -125,14 +123,14 @@
 | PER-025 | USB接口策略 | 验证 USB 接口策略下发失败时 Select 从禁用回滚到启用 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-026 | USB存储策略 | 验证 USB 存储策略下发失败时 Select 从只读回滚到读写 | 不补UT | Select 显示回滚属于 AsyncSelectRow 组件本地交互状态，不进入本轮 UT 补充范围。 |
 | PER-027 | 单设备策略切换 | 验证黑白名单策略下发失败时 Select 从禁止接入回滚到允许接入 | 已有UT覆盖 | entry/src/test/viewmodels/PeripheralPolicyViewModel.test.ets |
-| PER-028 | 首次连接自动拉黑 | 验证 USB 设备首次连接且本地无策略时自动下发禁止接入并写入黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
+| PER-028 | 首次连接自动拉黑 | 验证 USB 默认管控策略为拒绝且本地无策略时，USB 设备首次连接自动下发禁止接入并写入黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-029 | 首次连接自动拉黑 | 验证蓝牙设备首次连接不自动下发禁止接入、不写入黑名单，连接记录按允许接入落库 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-bluetooth-acl-consumer.test.ets |
 | PER-030 | 首次连接自动拉黑 | 验证已有允许接入策略的 USB 设备再次连接时不被自动改回禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-031 | 首次连接自动拉黑 | 验证已有禁止接入策略的 USB 设备再次连接时不重复下发策略 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-032 | 首次连接自动拉黑 | 验证 USB 自动拉黑系统下发失败时不保存本地黑名单策略，连接记录仍保留失败原因 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-033 | 首次连接自动拉黑 | 验证 USB 存储总策略为禁止访问时，首次接入 USB 存储设备不自动下发设备级黑名单 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 | PER-034 | 设备连接记录 | 验证 USB 存储只读且本地存在禁止接入策略时，连接记录优先展示禁止接入 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
-| PER-035 | 单设备策略切换 | 验证 USB 存储总策略为禁止访问时，黑白名单不允许将 USB 存储设备切换为禁止接入 | 不补UT | 该场景依赖系统 MDM USB 存储账户级策略读取与 USB 设备策略下发，当前 UT 环境无法稳定 mock 系统命名空间对象；保留为手工验收场景，相关连接记录行为由 entry/src/test/peripheral/connection-record-usb-consumer.test.ets 覆盖。 |
+| PER-036 | 设备连接记录 | 验证 USB Hub 拓扑节点（baseClass = 0x09）不生成连接记录、不进入黑白名单、不触发自动拉黑且不下发单设备策略 | 已有UT覆盖 | entry/src/test/peripheral/connection-record-usb-consumer.test.ets |
 
 ## 身份鉴别
 
