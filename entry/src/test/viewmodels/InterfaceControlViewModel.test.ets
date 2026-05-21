@@ -125,7 +125,7 @@ export default function interfaceControlViewModelTest() {
     done()
   })
 
-  it('should surface conflict reason for usb storage policy change when usb interface is disabled', 0, async (done: Function) => {
+  it('should surface system conflict reason for usb storage policy change', 0, async (done: Function) => {
     let setUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbStoragePolicyWithCleanupResult)
     let setResult = new VoidOperationResult()
     setResult.success = false

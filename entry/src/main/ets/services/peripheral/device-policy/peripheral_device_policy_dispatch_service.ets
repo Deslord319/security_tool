@@ -17,7 +17,6 @@ export type PeripheralPolicyDispatchReason =
   'unsupported_device_type' |
   'unsupported_policy' |
   'dispatch_not_implemented' |
-  'usb_conflict_global_disabled' |
   'usb_conflict_account_storage' |
   'usb_dispatch_failed' |
   'usb_dispatch_conflict_unresolved'
