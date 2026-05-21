@@ -14,7 +14,6 @@ export class PeripheralReasonCodes {
   static readonly UNSUPPORTED_POLICY_DISPATCH: string = 'unsupported_policy'
   static readonly UNSUPPORTED_DEVICE_TYPE_DISPATCH: string = 'unsupported_device_type'
   static readonly DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED: string = 'device_policy_dispatch_not_implemented'
-  static readonly USB_CONFLICT_GLOBAL_DISABLED: string = 'usb_conflict_global_disabled'
   static readonly USB_CONFLICT_ACCOUNT_STORAGE: string = 'usb_conflict_account_storage'
   static readonly USB_DISPATCH_FAILED: string = 'usb_dispatch_failed'
   static readonly USB_DISPATCH_CONFLICT_UNRESOLVED: string = 'usb_dispatch_conflict_unresolved'
@@ -238,8 +237,6 @@ export function resolvePeripheralReason(reason?: string | null): string {
       return '当前设备类型暂不支持下发，请稍后重试'
     case PeripheralReasonCodes.DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED:
       return '当前设备策略下发能力尚未接入，请稍后重试'
-    case PeripheralReasonCodes.USB_CONFLICT_GLOBAL_DISABLED:
-      return 'USB 接口当前处于更高层禁用状态，暂时无法修改单设备策略'
     case PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE:
       return '系统检测到 USB 存储账户级冲突策略，暂时无法修改单设备策略'
     case PeripheralReasonCodes.USB_DISPATCH_FAILED:

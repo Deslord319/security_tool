@@ -189,21 +189,6 @@ export default function peripheralPolicyViewModelTest() {
       expect(records[0].policy).assertEqual('deny')
     })
 
-    it('should map usb global interface conflict when changing single-device policy', 0, async () => {
-      let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
-      when(dispatchMock)(ArgumentMatchers.any).afterReturn(createDispatchResult(false, 'usb_conflict_global_disabled'))
-
-      const reason = await viewModel.setDevicePolicy(
-        'VID:1234 PID:5678',
-        'USB Device',
-        PeripheralType.USB_STORAGE,
-        1
-      )
-
-      expect(reason).assertEqual('usb_conflict_global_disabled')
-      expect(records.length).assertEqual(0)
-    })
-
     it('should clear all explicit device policies', 0, async () => {
       records = [{
         deviceId: 'VID:1234 PID:5678',

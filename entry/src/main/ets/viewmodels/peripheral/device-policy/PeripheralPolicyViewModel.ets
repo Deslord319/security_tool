@@ -217,8 +217,6 @@ export class PeripheralPolicyViewModel {
         return PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH
       case 'dispatch_not_implemented':
         return PeripheralReasonCodes.DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED
-      case 'usb_conflict_global_disabled':
-        return PeripheralReasonCodes.USB_CONFLICT_GLOBAL_DISABLED
       case 'usb_conflict_account_storage':
         return PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE
       case 'usb_dispatch_failed':
