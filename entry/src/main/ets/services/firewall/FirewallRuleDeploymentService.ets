@@ -4,10 +4,13 @@ import { FirewallLocalRepository } from './FirewallLocalRepository'
 import {
   FirewallFailedItem,
   FirewallRuleDeployment,
-  FirewallRuleIntent
+  FirewallRuleIntent,
+  FirewallScopedRule
 } from './FirewallModels'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { FirewallSystemRepository } from './FirewallSystemRepository'
+
+const UPDATE_SYSTEM_RULE_FAILED = 'update system rule failed'
 
 export interface FirewallRuleDeploymentApplyResult {
   deployments: FirewallRuleDeployment[]
@@ -76,6 +79,27 @@ export class FirewallRuleDeploymentService {
     return {
       removedDeployments: removedDeployments,
       failedItems: failedItems
+    }
+  }
+
+  static async updateDeploymentSystemRule(
+    intent: FirewallRuleIntent,
+    deployment: FirewallRuleDeployment
+  ): Promise<FirewallFailedItem | null> {
+    let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, deployment.userId)
+    let normalizedRule = FirewallRuleUtils.normalizeRuleForCreate(rule)
+    let scopedRule = normalizedRule as FirewallScopedRule
+    scopedRule.id = deployment.systemRuleId
+    let result = await FirewallSystemRepository.updateRule(normalizedRule)
+    if (result.success) {
+      return null
+    }
+    return {
+      localRuleId: intent.localRuleId,
+      userId: deployment.userId,
+      systemRuleId: deployment.systemRuleId,
+      errorCode: result.errorCode,
+      errorMessage: result.errorMessage ?? UPDATE_SYSTEM_RULE_FAILED
     }
   }
 
