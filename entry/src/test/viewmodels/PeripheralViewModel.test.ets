@@ -8,7 +8,6 @@ import {
 } from '../../main/ets/models/CommonModels'
 import {
   PeripheralConnectionRecord,
-  PeripheralTraceRecord,
   PeripheralType
 } from '../../main/ets/models/PeripheralModels'
 import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
@@ -25,8 +24,6 @@ import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/peripheral_connection_record_clear_usecase'
-
-const TEST_CONTEXT = {} as common.UIAbilityContext
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
@@ -109,23 +106,6 @@ function createConnectionRecord(
   }
 }
 
-function createTraceRecord(recordId: string, occurAt: number, deviceId: string = 'VID:1234 PID:5678'): PeripheralTraceRecord {
-  return {
-    recordId,
-    occurAt,
-    collectAt: occurAt + 1,
-    deviceName: 'USB Device',
-    deviceType: PeripheralType.USB_STORAGE,
-    deviceId,
-    action: 'connect',
-    decision: 'allow',
-    result: SecurityEventResult.SUCCESS,
-    source: 'runtime_event',
-    summary: 'connected',
-    matchedPolicyKind: 'default_allow'
-  }
-}
-
 async function flushAsyncWork(): Promise<void> {
   await Promise.resolve()
   await Promise.resolve()
@@ -158,7 +138,7 @@ export default function peripheralViewModelTest() {
     done()
   })
 
-  it('U-CLEAR-002 should return false when trace repository init fails', 0, async (done: Function) => {
+  it('U-CLEAR-002 should return true when trace repository initializes and clear succeeds', 0, async (done: Function) => {
     const result = await usecase.execute({} as common.UIAbilityContext)
 
     expect(result).assertTrue()

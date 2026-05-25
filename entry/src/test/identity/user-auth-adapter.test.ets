@@ -2,19 +2,8 @@ import { describe, expect, it } from '@ohos/hypium'
 import { userAuth } from '@kit.UserAuthenticationKit'
 import {
   UserAuthAdapter,
-  UserAuthInstanceRequest,
-  UserAuthInstanceResult,
-  UserAuthStatusResult
+  UserAuthInstanceRequest
 } from '../../main/ets/services/identity/auth/UserAuthAdapter'
-
-class FakeBusinessError extends Error {
-  code: number
-
-  constructor(code: number, message: string) {
-    super(message)
-    this.code = code
-  }
-}
 
 class FakeAuthParam implements userAuth.AuthParam {
   challenge: Uint8Array = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
@@ -29,19 +18,6 @@ class FakeWidgetParam implements userAuth.WidgetParam {
 class FakeUserAuthInstanceRequest implements UserAuthInstanceRequest {
   authParam: userAuth.AuthParam = new FakeAuthParam()
   widgetParam: userAuth.WidgetParam = new FakeWidgetParam()
-}
-
-class FakeUserAuthStatusResult implements UserAuthStatusResult {
-  success: boolean = false
-  errorCode?: number
-  errorMessage?: string
-}
-
-class FakeUserAuthInstanceResult implements UserAuthInstanceResult {
-  success: boolean = false
-  instance?: userAuth.UserAuthInstance
-  errorCode?: number
-  errorMessage?: string
 }
 
 function buildRequest(authTypes: userAuth.UserAuthType[], title: string): UserAuthInstanceRequest {
