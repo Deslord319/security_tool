@@ -33,6 +33,7 @@ export struct AddRuleDialog {
   @State ruleDirection: number = netFirewall.NetFirewallRuleDirection.RULE_IN
   @State protocol: number = FIREWALL_PROTOCOL_TCP
   @State remoteAddress: string = ''
+  @State standbyDns: string = ''
   @State localPort: string = ''
   @State remotePort: string = ''
   @State action: number = netFirewall.FirewallRuleAction.RULE_ALLOW
@@ -77,6 +78,7 @@ export struct AddRuleDialog {
     this.ruleDirection = state.ruleDirection
     this.protocol = state.protocol
     this.remoteAddress = state.remoteAddress
+    this.standbyDns = state.standbyDns
     this.localPort = state.localPort
     this.remotePort = state.remotePort
     this.action = state.action
@@ -90,6 +92,7 @@ export struct AddRuleDialog {
       ruleDirection: this.ruleDirection,
       protocol: this.protocol,
       remoteAddress: this.remoteAddress,
+      standbyDns: this.standbyDns,
       localPort: this.localPort,
       remotePort: this.remotePort,
       action: this.action,
@@ -184,7 +187,7 @@ export struct AddRuleDialog {
       return FirewallRuleLabelStrings.DOMAIN_RULE
     }
     if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
-      return FirewallRuleLabelStrings.DNS_RULE
+      return FirewallDialogStrings.PRIMARY_DNS
     }
     return this.getIpFieldLabel()
   }
@@ -302,6 +305,24 @@ export struct AddRuleDialog {
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
+
+      if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS) {
+        Column({ space: 6 }) {
+          Text(FirewallDialogStrings.STANDBY_DNS)
+            .fontSize(AppStyles.FONT_SIZE_SMALL)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+          StyledTextInput({
+            text: this.standbyDns,
+            placeholder: FirewallDialogStrings.STANDBY_DNS_PLACEHOLDER,
+            currentTheme: this.currentTheme,
+            onChange: (value: string) => { this.standbyDns = value }
+          })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+      }
 
       if (this.ruleType === netFirewall.NetFirewallRuleType.RULE_IP) {
         Column({ space: 6 }) {

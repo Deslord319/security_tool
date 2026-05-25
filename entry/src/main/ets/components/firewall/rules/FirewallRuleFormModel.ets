@@ -31,6 +31,7 @@ export interface FirewallRuleFormState {
   ruleDirection: number
   protocol: number
   remoteAddress: string
+  standbyDns: string
   localPort: string
   remotePort: string
   action: number
@@ -52,6 +53,9 @@ export class FirewallRuleFormModel {
     state.action = initialRule.action ?? netFirewall.FirewallRuleAction.RULE_ALLOW
     state.protocol = initialRule.protocol ?? FIREWALL_PROTOCOL_TCP
     state.remoteAddress = FirewallRuleFormModel.resolveAddressForRule(initialRule)
+    if (initialRule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
+      state.standbyDns = initialRule.dns?.standbyDns ?? ''
+    }
     let resolvedPort = FirewallRuleFormModel.resolvePortForDirection(initialRule)
     state.localPort = state.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_IN ? resolvedPort : ''
     state.remotePort = state.ruleDirection === netFirewall.NetFirewallRuleDirection.RULE_OUT ? resolvedPort : ''
@@ -69,6 +73,7 @@ export class FirewallRuleFormModel {
       ruleDirection: netFirewall.NetFirewallRuleDirection.RULE_IN,
       protocol: FIREWALL_PROTOCOL_TCP,
       remoteAddress: '',
+      standbyDns: '',
       localPort: '',
       remotePort: '',
       action: netFirewall.FirewallRuleAction.RULE_ALLOW,
@@ -203,6 +208,12 @@ export class FirewallRuleFormModel {
       return FirewallDialogStrings.ERROR_INVALID_DNS
     }
 
+    let standbyDns = state.standbyDns.trim()
+    if (state.ruleType === netFirewall.NetFirewallRuleType.RULE_DNS &&
+      standbyDns.length > 0 && !Ipv4Utils.isValidIpv4(standbyDns)) {
+      return FirewallDialogStrings.ERROR_INVALID_STANDBY_DNS
+    }
+
     if (FirewallRuleFormModel.getSelectedUserIdsForSave(state.selectedUserIds).length === 0) {
       return FirewallDialogStrings.ERROR_USER_SCOPE_REQUIRED
     }
@@ -239,7 +250,8 @@ export class FirewallRuleFormModel {
       rule,
       state.remoteAddress.trim(),
       state.localPort.trim(),
-      state.remotePort.trim()
+      state.remotePort.trim(),
+      state.standbyDns.trim()
     )
     return attachFirewallRuleUserIds(rule, FirewallRuleFormModel.getSelectedUserIdsForSave(state.selectedUserIds))
   }
@@ -381,7 +393,8 @@ export class FirewallRuleFormModel {
     rule: netFirewall.NetFirewallRule,
     remoteAddress: string,
     localPort: string,
-    remotePort: string
+    remotePort: string,
+    standbyDns: string
   ): void {
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
       FirewallRuleFormModel.applyIpRuleFields(rule, remoteAddress, localPort, remotePort)
@@ -398,6 +411,9 @@ export class FirewallRuleFormModel {
     }
     if (rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
       rule.dns = { primaryDns: remoteAddress }
+      if (standbyDns.length > 0) {
+        rule.dns.standbyDns = standbyDns
+      }
       rule.remoteIps = undefined
       rule.localPorts = undefined
       rule.remotePorts = undefined

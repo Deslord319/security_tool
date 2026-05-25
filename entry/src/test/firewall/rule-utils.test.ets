@@ -78,8 +78,13 @@ function buildDnsIntent(
   localRuleId: string,
   primaryDns: string,
   action: netFirewall.FirewallRuleAction,
-  targetUserIds: number[] = [100]
+  targetUserIds: number[] = [100],
+  standbyDns?: string
 ): FirewallRuleIntent {
+  let dnsParams: netFirewall.NetFirewallDnsParams = { primaryDns: primaryDns }
+  if (standbyDns !== undefined) {
+    dnsParams.standbyDns = standbyDns
+  }
   return {
     localRuleId: localRuleId,
     name: localRuleId,
@@ -88,7 +93,7 @@ function buildDnsIntent(
     action: action,
     isEnabled: true,
     targetUserIds: targetUserIds,
-    dns: { primaryDns: primaryDns },
+    dns: dnsParams,
     createdAt: 1,
     updatedAt: 1
   }
@@ -342,6 +347,35 @@ export default function firewallRuleUtilsTest() {
       expect(FirewallRuleUtils.findRuleConflict([existing], duplicate)?.kind).assertEqual('duplicate')
       expect(FirewallRuleUtils.findRuleConflict([existing], hardConflict)?.kind).assertEqual('hard_conflict')
       expect(FirewallRuleUtils.findRuleConflict([existing], different)).assertEqual(null)
+    })
+
+    it('should not classify dns conflict by standby dns only', 0, () => {
+      let existing = buildDnsIntent('dns-1', '8.8.8.8', netFirewall.FirewallRuleAction.RULE_ALLOW, [100], '1.1.1.1')
+      let target = buildDnsIntent('dns-2', '9.9.9.9', netFirewall.FirewallRuleAction.RULE_ALLOW, [100], '1.1.1.1')
+
+      expect(FirewallRuleUtils.findRuleConflict([existing], target)).assertEqual(null)
+    })
+
+    it('should preserve standby dns when converting intent and system rule', 0, () => {
+      let input = FirewallRuleUtils.buildIntentInputFromRule({
+        userId: 100,
+        name: 'DNS Rule',
+        type: netFirewall.NetFirewallRuleType.RULE_DNS,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        isEnabled: true,
+        dns: {
+          primaryDns: '8.8.8.8',
+          standbyDns: '1.1.1.1'
+        }
+      }, [100])
+      let intent = FirewallRuleUtils.buildIntentFromInput('dns-local', input, 1)
+      let systemRule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, 100)
+
+      expect(intent.dns?.primaryDns).assertEqual('8.8.8.8')
+      expect(intent.dns?.standbyDns).assertEqual('1.1.1.1')
+      expect(systemRule.dns?.primaryDns).assertEqual('8.8.8.8')
+      expect(systemRule.dns?.standbyDns).assertEqual('1.1.1.1')
     })
 
     it('should summarize conflicts and count by type and direction', 0, () => {

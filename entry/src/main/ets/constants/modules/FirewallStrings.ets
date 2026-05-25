@@ -18,7 +18,7 @@ export class FirewallRuleStrings {
   static readonly APPLY_FAILED: string = '自定义规则下发失败'
   static readonly APPLY_FAILED_PERMISSION: string = '规则添加失败，请检查权限和企业管理员状态'
   static readonly APPLY_FAILED_INVALID_PARAM: string = '规则参数不合法，请检查输入'
-  static readonly APPLY_FAILED_DNS_UNSUPPORTED: string = '当前系统不支持该 DNS 规则参数，请联系厂家确认接口约束'
+  static readonly APPLY_FAILED_DNS_DUPLICATE: string = 'DNS 规则重复：同一用户下主 DNS 或备用 DNS 与已有规则重复，请调整 DNS 地址后重试'
   static readonly DUPLICATE: string = '已存在完全相同的规则'
   static readonly CONFLICT_TITLE: string = '规则冲突'
   static readonly CONFLICT_REPLACE_MESSAGE: string = '发现与现有规则冲突的记录，是否使用新规则覆盖？'
@@ -129,7 +129,7 @@ export function buildFirewallAddRuleFailedMessage(errorCode?: number): string {
     case 2100001:
       return FirewallRuleStrings.APPLY_FAILED_INVALID_PARAM
     case 29400007:
-      return FirewallRuleStrings.APPLY_FAILED_DNS_UNSUPPORTED
+      return FirewallRuleStrings.APPLY_FAILED_DNS_DUPLICATE
     default:
       return FirewallRuleStrings.APPLY_FAILED
   }
@@ -194,6 +194,8 @@ export class FirewallDialogStrings {
   static readonly REMOTE_ADDRESS: string = '远端地址'
   static readonly LOCAL_PORT: string = '本地端口'
   static readonly REMOTE_PORT: string = '远端端口'
+  static readonly PRIMARY_DNS: string = '主 DNS'
+  static readonly STANDBY_DNS: string = '备用 DNS'
   static readonly PROTOCOL: string = '协议'
   static readonly ACTION: string = '动作'
   static readonly TARGET_USER: string = '目标用户'
@@ -202,6 +204,7 @@ export class FirewallDialogStrings {
   static readonly IP_PLACEHOLDER: string = '例如 110.110.110.110、8.8.8.0/24 或 110.110.110.1-110.110.110.254'
   static readonly DOMAIN_PLACEHOLDER: string = '例如 *.example.com'
   static readonly DNS_PLACEHOLDER: string = '例如 8.8.8.8'
+  static readonly STANDBY_DNS_PLACEHOLDER: string = '可选，例如 1.1.1.1'
   static readonly PORT_PLACEHOLDER: string = '例如 80,443,1000-2000'
   static readonly RULE_NAME_PLACEHOLDER: string = '请输入规则名称'
   static readonly DIRECTION_INBOUND: string = '入站'
@@ -229,6 +232,7 @@ export class FirewallDialogStrings {
   static readonly ERROR_PORT_ITEM_LIMIT: string = '端口项数量超过上限'
   static readonly ERROR_INVALID_DOMAIN: string = '域名格式不正确'
   static readonly ERROR_INVALID_DNS: string = 'DNS 地址格式不正确'
+  static readonly ERROR_INVALID_STANDBY_DNS: string = '备用 DNS 地址格式不正确'
   static readonly ERROR_USER_SCOPE_REQUIRED: string = '请至少选择一个用户'
   static readonly ERROR_CANNOT_GET_STATUS: string = '无法获取该用户当前防火墙策略'
 
