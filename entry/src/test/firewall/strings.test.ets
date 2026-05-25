@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import {
   buildFirewallConflictNotice,
+  buildFirewallAddRuleFailedMessage,
   buildFirewallToggleFailedMessage,
   FirewallDialogStrings,
   FirewallPageStrings,
@@ -46,6 +47,10 @@ export default function firewallStringsTest() {
       expect(FirewallDialogStrings.ERROR_INVALID_IP_RANGE.length > 0).assertTrue()
       expect(FirewallDialogStrings.ERROR_INVALID_PORT_RANGE.length > 0).assertTrue()
       expect(FirewallDialogStrings.ERROR_PORT_ITEM_LIMIT.length > 0).assertTrue()
+    })
+
+    it('should map duplicate DNS system error code to actionable copy', 0, () => {
+      expect(buildFirewallAddRuleFailedMessage(29400007)).assertEqual(FirewallRuleStrings.APPLY_FAILED_DNS_DUPLICATE)
     })
   })
 }

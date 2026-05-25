@@ -23,6 +23,7 @@ import { FirewallModeStrategy } from '../../main/ets/services/firewall/FirewallM
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { FirewallSystemRepository } from '../../main/ets/services/firewall/FirewallSystemRepository'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
+import { FirewallRuleStrings } from '../../main/ets/constants/modules/FirewallStrings'
 
 function buildUsers(): UserFirewallOption[] {
   return [
@@ -85,6 +86,21 @@ function buildIpRuleInput(name: string, targetUserIds: number[] = [100]): Firewa
       mask: 32
     }],
     remotePorts: [{ startPort: 443, endPort: 443 }]
+  }
+}
+
+function buildDnsRuleInput(name: string, targetUserIds: number[] = [100]): FirewallRuleIntentInput {
+  return {
+    name: name,
+    type: netFirewall.NetFirewallRuleType.RULE_DNS,
+    direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+    action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+    isEnabled: true,
+    targetUserIds: targetUserIds,
+    dns: {
+      primaryDns: '8.8.8.8',
+      standbyDns: '1.1.1.1'
+    }
   }
 }
 
@@ -839,6 +855,23 @@ export default function firewallServiceTest() {
         expect(result.failedItems?.length).assertEqual(2)
         expect(savedIntentCount).assertEqual(0)
         expect(savedDeploymentCount).assertEqual(0)
+        done()
+      })
+
+      it('should map duplicate DNS system error when create fails', 0, async (done: Function) => {
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(addRuleMock)(ArgumentMatchers.any).afterReturn(new FakeAddRuleRawResult(undefined, 29400007, 'duplicate dns rule'))
+        when(saveIntentMock)(ArgumentMatchers.any).afterReturn(true)
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterReturn(true)
+
+        let result = await FirewallService.createRule(context, buildDnsRuleInput('DNS Rule', [100]))
+
+        expect(result.success).assertFalse()
+        expect(result.errorCode).assertEqual(29400007)
+        expect(result.errorMessage).assertEqual(FirewallRuleStrings.APPLY_FAILED_DNS_DUPLICATE)
         done()
       })
 

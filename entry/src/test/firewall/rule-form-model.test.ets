@@ -21,6 +21,7 @@ function buildState(overrides: Partial<FirewallRuleFormState> = {}): FirewallRul
     ruleDirection: netFirewall.NetFirewallRuleDirection.RULE_OUT,
     protocol: FIREWALL_PROTOCOL_UDP,
     remoteAddress: '8.8.8.8',
+    standbyDns: '',
     localPort: '',
     remotePort: '53',
     action: netFirewall.FirewallRuleAction.RULE_ALLOW,
@@ -40,6 +41,9 @@ function buildState(overrides: Partial<FirewallRuleFormState> = {}): FirewallRul
   }
   if (overrides.remoteAddress !== undefined) {
     state.remoteAddress = overrides.remoteAddress
+  }
+  if (overrides.standbyDns !== undefined) {
+    state.standbyDns = overrides.standbyDns
   }
   if (overrides.localPort !== undefined) {
     state.localPort = overrides.localPort
@@ -118,11 +122,44 @@ export default function firewallRuleFormModelTest() {
         ruleType: netFirewall.NetFirewallRuleType.RULE_DNS,
         remoteAddress: '999.1.1.1'
       }))).assertEqual(FirewallDialogStrings.ERROR_INVALID_DNS)
+      expect(FirewallRuleFormModel.validate(buildState({
+        ruleType: netFirewall.NetFirewallRuleType.RULE_DNS,
+        remoteAddress: '8.8.8.8',
+        standbyDns: 'bad'
+      }))).assertEqual(FirewallDialogStrings.ERROR_INVALID_STANDBY_DNS)
+      expect(FirewallRuleFormModel.validate(buildState({
+        ruleType: netFirewall.NetFirewallRuleType.RULE_DNS,
+        remoteAddress: '8.8.8.8',
+        standbyDns: ''
+      }))).assertEqual('')
       expect(FirewallRuleFormModel.validate(buildState({ selectedUserIds: [] }))).assertEqual(FirewallDialogStrings.ERROR_USER_SCOPE_REQUIRED)
       expect(FirewallRuleFormModel.validate(buildState({
         ruleType: netFirewall.NetFirewallRuleType.RULE_DOMAIN,
         remoteAddress: '*.example.com'
       }))).assertEqual('')
+    })
+
+    it('should build DNS rules with optional standby DNS', 0, () => {
+      let rule = FirewallRuleFormModel.buildRule(buildState({
+        ruleType: netFirewall.NetFirewallRuleType.RULE_DNS,
+        remoteAddress: '8.8.8.8',
+        standbyDns: '1.1.1.1',
+        remotePort: ''
+      }), undefined, false)
+
+      expect(rule.dns?.primaryDns).assertEqual('8.8.8.8')
+      expect(rule.dns?.standbyDns).assertEqual('1.1.1.1')
+      expect(rule.protocol === undefined).assertTrue()
+      expect(rule.remotePorts === undefined).assertTrue()
+
+      let primaryOnlyRule = FirewallRuleFormModel.buildRule(buildState({
+        ruleType: netFirewall.NetFirewallRuleType.RULE_DNS,
+        remoteAddress: '8.8.4.4',
+        standbyDns: ' ',
+        remotePort: ''
+      }), undefined, false)
+      expect(primaryOnlyRule.dns?.primaryDns).assertEqual('8.8.4.4')
+      expect(primaryOnlyRule.dns?.standbyDns === undefined).assertTrue()
     })
 
     it('should build outbound IP rules with normalized user scope', 0, () => {
@@ -170,6 +207,26 @@ export default function firewallRuleFormModelTest() {
       expect(updatedRule.id).assertEqual(9001)
       expect(updatedRule.localRuleId).assertEqual('local-rule-1')
       expect(updatedRule.name).assertEqual('Updated')
+    })
+
+    it('should build initial state for DNS rules with standby DNS', 0, () => {
+      let initialRule = attachFirewallRuleUserIds({
+        userId: 100,
+        name: 'DNS Rule',
+        type: netFirewall.NetFirewallRuleType.RULE_DNS,
+        direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+        action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+        isEnabled: true,
+        dns: {
+          primaryDns: '8.8.8.8',
+          standbyDns: '1.1.1.1'
+        }
+      }, [100]) as FirewallScopedRule
+
+      let state = FirewallRuleFormModel.buildInitialState(initialRule, [{ userId: 100, label: '用户 100' }])
+
+      expect(state.remoteAddress).assertEqual('8.8.8.8')
+      expect(state.standbyDns).assertEqual('1.1.1.1')
     })
   })
 }

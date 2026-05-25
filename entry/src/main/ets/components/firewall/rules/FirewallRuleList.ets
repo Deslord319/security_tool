@@ -299,6 +299,9 @@ struct FirewallRuleCard {
             if (this.rule.type === netFirewall.NetFirewallRuleType.RULE_IP) {
               this.detailRow(this.getIpAddressLabel(), this.getRuleAddress())
               this.detailRow(this.getPrimaryPortLabel(), this.getPrimaryPortValue())
+            } else if (this.rule.type === netFirewall.NetFirewallRuleType.RULE_DNS) {
+              this.detailRow(FirewallDialogStrings.PRIMARY_DNS, this.rule.dns?.primaryDns ?? '-')
+              this.detailRow(FirewallDialogStrings.STANDBY_DNS, this.rule.dns?.standbyDns ?? '-')
             } else {
               this.detailRow(FirewallDialogStrings.REMOTE_ADDRESS, this.getRuleAddress())
               this.detailRow(FirewallDialogStrings.LOCAL_PORT, this.getRuleLocalPort())
