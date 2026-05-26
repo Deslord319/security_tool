@@ -13,8 +13,8 @@
 
 ## 总览
 
-- 基线用例总数：`119`
-- `已有UT覆盖`：`94`
+- 基线用例总数：`126`
+- `已有UT覆盖`：`101`
 - `UT部分覆盖`：`4`
 - `待补UT`：`0`
 - `不补UT`：`21`
@@ -63,6 +63,13 @@
 | FW-030 | 规则新增 | 验证删除用户后重新打开新增规则弹窗，用户范围列表不再包含已删除用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户删除事件分发到 SystemUserProvider.trackRemovedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
 | FW-031 | 用户级策略下发 | 验证新增用户后重新打开全局策略弹窗，目标用户列表包含新用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户新增事件分发到 SystemUserProvider.trackAddedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
 | FW-032 | 用户级策略下发 | 验证删除用户后重新打开全局策略弹窗，目标用户列表不再包含已删除用户 | UT部分覆盖 | entry/src/test/entryability/entryability.test.ets；entry/src/test/firewall/system-user-provider.test.ets：覆盖账户删除事件分发到 SystemUserProvider.trackRemovedUser、用户维护方法入口、用户列表结果结构和用户策略结果。Local UT 不覆盖 application.getApplicationContext() 后的 Preferences 真实落盘，不覆盖弹窗重新打开 UI 刷新。 |
+| FW-033 | 规则新增失败回滚 | 验证多用户新增规则时任一用户下发失败会回滚已成功下发的系统规则且不保存本地规则 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-034 | 规则编辑差量更新 | 验证编辑规则变更目标用户时按用户差量执行 update/add/remove 并保存新的 deployment 集合 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-035 | 规则编辑失败回滚 | 验证编辑规则时移除旧 deployment 失败会回滚已 update 和已 add 的系统动作并恢复本地 deployment | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-036 | 规则删除失败恢复 | 验证删除规则时部分系统规则删除失败会恢复已删除系统规则并保留本地 intent | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-037 | DNS规则编辑替换 | 验证目标类型为 DNS 的编辑不调用系统 update 而是 remove 旧规则后 add 新规则并保存新的 systemRuleId | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-038 | DNS规则替换失败恢复 | 验证 DNS 编辑 remove 旧规则后 add 新规则失败时会恢复旧 DNS deployment 且不保存新 intent | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
+| FW-039 | DNS转IP编辑 | 验证已有 DNS 规则编辑为 IP 规则时保留用户可原地 update 且 deployment 的 systemRuleId 保持不变 | 已有UT覆盖 | entry/src/test/firewall/service.test.ets |
 
 ## 日志管理
 
