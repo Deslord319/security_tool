@@ -66,6 +66,18 @@ class FakeAddRuleRawResult {
   }
 }
 
+class FakeSystemRuleMutationResult {
+  success: boolean
+  errorCode?: number
+  errorMessage?: string
+
+  constructor(success: boolean, errorCode?: number, errorMessage?: string) {
+    this.success = success
+    this.errorCode = errorCode
+    this.errorMessage = errorMessage
+  }
+}
+
 function findPolicy(records: AppliedPolicyRecord[], userId: number): AppliedPolicyRecord | undefined {
   return records.find((item: AppliedPolicyRecord): boolean => item.userId === userId)
 }
@@ -121,6 +133,24 @@ function buildStoredIntent(localRuleId: string, name: string, targetUserIds: num
       mask: 32
     }],
     remotePorts: [{ startPort: 443, endPort: 443 }],
+    createdAt: 1,
+    updatedAt: 2
+  }
+}
+
+function buildStoredDnsIntent(localRuleId: string, name: string, targetUserIds: number[] = [100]): FirewallRuleIntent {
+  return {
+    localRuleId: localRuleId,
+    name: name,
+    type: netFirewall.NetFirewallRuleType.RULE_DNS,
+    direction: netFirewall.NetFirewallRuleDirection.RULE_OUT,
+    action: netFirewall.FirewallRuleAction.RULE_ALLOW,
+    isEnabled: true,
+    targetUserIds: targetUserIds,
+    dns: {
+      primaryDns: '8.8.8.8',
+      standbyDns: '1.1.1.1'
+    },
     createdAt: 1,
     updatedAt: 2
   }
@@ -796,10 +826,13 @@ export default function firewallServiceTest() {
         done()
       })
 
-      it('should keep successful deployments when multi-user create partially fails', 0, async (done: Function) => {
+      it('should rollback successful deployments when multi-user create partially fails', 0, async (done: Function) => {
         let addedRules: netFirewall.NetFirewallRule[] = []
-        let savedDeployments: FirewallRuleDeployment[] = []
+        let rolledBackSystemRuleIds: number[] = []
+        let savedIntentCount = 0
+        let savedDeploymentCount = 0
         let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
         let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
         let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
 
@@ -810,24 +843,28 @@ export default function firewallServiceTest() {
           }
           return new FakeAddRuleRawResult(7300 + addedRules.length)
         })
-        when(saveIntentMock)(ArgumentMatchers.any).afterReturn(true)
-        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
-          _context: common.Context,
-          _localRuleId: string,
-          deployments: FirewallRuleDeployment[]
-        ): boolean => {
-          savedDeployments.push(...deployments)
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          rolledBackSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((): boolean => {
+          savedIntentCount++
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((): boolean => {
+          savedDeploymentCount++
           return true
         })
 
         let result = await FirewallService.createRule(context, buildIpRuleInput('Allow HTTPS', [100, 101]))
 
         expect(result.success).assertFalse()
-        expect(result.successDeployments?.length).assertEqual(1)
-        expect(result.successDeployments?.[0].userId).assertEqual(100)
         expect(result.failedItems?.length).assertEqual(1)
         expect(result.failedItems?.[0].userId).assertEqual(101)
-        expect(savedDeployments.length).assertEqual(1)
+        expect(rolledBackSystemRuleIds.length).assertEqual(1)
+        expect(rolledBackSystemRuleIds[0]).assertEqual(7301)
+        expect(savedIntentCount).assertEqual(0)
+        expect(savedDeploymentCount).assertEqual(0)
         done()
       })
 
@@ -887,8 +924,9 @@ export default function firewallServiceTest() {
         done()
       })
 
-      it('should update an existing rule by replacing deployments for the same local rule id', 0, async (done: Function) => {
+      it('should update an existing rule in place for the same target users', 0, async (done: Function) => {
         let removedSystemRuleIds: number[] = []
+        let updatedRules: netFirewall.NetFirewallRule[] = []
         let savedIntents: FirewallRuleIntent[] = []
         let savedDeployments: FirewallRuleDeployment[] = []
         let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
@@ -896,6 +934,7 @@ export default function firewallServiceTest() {
         let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
         let removeDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleDeployments)
         let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
         let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
         let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
 
@@ -907,6 +946,10 @@ export default function firewallServiceTest() {
         })
         when(removeDeploymentsMock)(ArgumentMatchers.any).afterReturn(true)
         when(addRuleMock)(ArgumentMatchers.any).afterReturn(new FakeAddRuleRawResult(8101))
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(true)
+        })
         when(saveIntentMock)(ArgumentMatchers.any).afterAction((
           _context: common.Context,
           intent: FirewallRuleIntent
@@ -927,31 +970,399 @@ export default function firewallServiceTest() {
 
         expect(result.success).assertTrue()
         expect(result.localRuleId).assertEqual('rule-1')
-        expect(removedSystemRuleIds.length).assertEqual(1)
-        expect(removedSystemRuleIds[0]).assertEqual(8001)
+        expect(updatedRules.length).assertEqual(1)
+        expect((updatedRules[0] as FirewallScopedRule).id).assertEqual(8001)
+        expect(updatedRules[0].name).assertEqual('Updated Rule')
+        expect(removedSystemRuleIds.length).assertEqual(0)
         expect(savedIntents[0].localRuleId).assertEqual('rule-1')
         expect(savedIntents[0].name).assertEqual('Updated Rule')
         expect(savedDeployments[0].localRuleId).assertEqual('rule-1')
+        expect(savedDeployments[0].systemRuleId).assertEqual(8001)
+        done()
+      })
+
+      it('should update add and remove deployments by user delta when editing a rule', 0, async (done: Function) => {
+        let updatedRules: netFirewall.NetFirewallRule[] = []
+        let addedRules: netFirewall.NetFirewallRule[] = []
+        let removedSystemRuleIds: number[] = []
+        let savedIntents: FirewallRuleIntent[] = []
+        let savedDeployments: FirewallRuleDeployment[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100, 101]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
+          buildDeployment('rule-1', 100, 8001),
+          buildDeployment('rule-1', 101, 8002)
+        ])
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(true)
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          addedRules.push(rule)
+          return new FakeAddRuleRawResult(8102)
+        })
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          intent: FirewallRuleIntent
+        ): boolean => {
+          savedIntents.push(intent)
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          savedDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildIpRuleInput('Updated Rule', [101, 102]))
+
+        expect(result.success).assertTrue()
+        expect(updatedRules.length).assertEqual(1)
+        expect(updatedRules[0].userId).assertEqual(101)
+        expect((updatedRules[0] as FirewallScopedRule).id).assertEqual(8002)
+        expect(addedRules.length).assertEqual(1)
+        expect(addedRules[0].userId).assertEqual(102)
+        expect(removedSystemRuleIds.length).assertEqual(1)
+        expect(removedSystemRuleIds[0]).assertEqual(8001)
+        expect(savedIntents[0].targetUserIds.length).assertEqual(2)
+        expect(savedDeployments.length).assertEqual(2)
+        expect(savedDeployments[0].userId).assertEqual(101)
+        expect(savedDeployments[0].systemRuleId).assertEqual(8002)
+        expect(savedDeployments[1].userId).assertEqual(102)
+        expect(savedDeployments[1].systemRuleId).assertEqual(8102)
+        done()
+      })
+
+      it('should replace retained deployments when editing target type to DNS', 0, async (done: Function) => {
+        let updatedRules: netFirewall.NetFirewallRule[] = []
+        let addedRules: netFirewall.NetFirewallRule[] = []
+        let removedSystemRuleIds: number[] = []
+        let savedIntents: FirewallRuleIntent[] = []
+        let savedDeployments: FirewallRuleDeployment[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old IP Rule', [100]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([buildDeployment('rule-1', 100, 8001)])
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(true)
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          addedRules.push(rule)
+          return new FakeAddRuleRawResult(8101)
+        })
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          intent: FirewallRuleIntent
+        ): boolean => {
+          savedIntents.push(intent)
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          savedDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildDnsRuleInput('DNS Rule', [100]))
+
+        expect(result.success).assertTrue()
+        expect(updatedRules.length).assertEqual(0)
+        expect(removedSystemRuleIds.length).assertEqual(1)
+        expect(removedSystemRuleIds[0]).assertEqual(8001)
+        expect(addedRules.length).assertEqual(1)
+        expect(addedRules[0].type).assertEqual(netFirewall.NetFirewallRuleType.RULE_DNS)
+        expect(addedRules[0].dns?.primaryDns).assertEqual('8.8.8.8')
+        expect(addedRules[0].dns?.standbyDns).assertEqual('1.1.1.1')
+        expect(savedIntents[0].type).assertEqual(netFirewall.NetFirewallRuleType.RULE_DNS)
         expect(savedDeployments[0].systemRuleId).assertEqual(8101)
         done()
       })
 
-      it('should keep old deployments when updated rule cannot be deployed', 0, async (done: Function) => {
+      it('should replace DNS retained deployments and save new system rule ids', 0, async (done: Function) => {
+        let updatedRules: netFirewall.NetFirewallRule[] = []
+        let addedRules: netFirewall.NetFirewallRule[] = []
         let removedSystemRuleIds: number[] = []
+        let savedDeployments: FirewallRuleDeployment[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredDnsIntent('rule-1', 'Old DNS Rule', [100, 101]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
+          buildDeployment('rule-1', 100, 8001),
+          buildDeployment('rule-1', 101, 8002)
+        ])
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(true)
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          addedRules.push(rule)
+          return new FakeAddRuleRawResult(8100 + addedRules.length)
+        })
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterReturn(true)
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          savedDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildDnsRuleInput('DNS Rule', [100, 101]))
+
+        expect(result.success).assertTrue()
+        expect(updatedRules.length).assertEqual(0)
+        expect(removedSystemRuleIds.length).assertEqual(2)
+        expect(removedSystemRuleIds[0]).assertEqual(8001)
+        expect(removedSystemRuleIds[1]).assertEqual(8002)
+        expect(addedRules.length).assertEqual(2)
+        expect(addedRules[0].userId).assertEqual(100)
+        expect(addedRules[1].userId).assertEqual(101)
+        expect(savedDeployments.length).assertEqual(2)
+        expect(savedDeployments[0].systemRuleId).assertEqual(8101)
+        expect(savedDeployments[1].systemRuleId).assertEqual(8102)
+        done()
+      })
+
+      it('should restore old DNS deployment when replace add fails', 0, async (done: Function) => {
+        let updatedRules: netFirewall.NetFirewallRule[] = []
+        let removedSystemRuleIds: number[] = []
+        let savedDeployments: FirewallRuleDeployment[] = []
+        let savedIntentCount = 0
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredDnsIntent('rule-1', 'Old DNS Rule', [100, 101]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
+          buildDeployment('rule-1', 100, 8001),
+          buildDeployment('rule-1', 101, 8002)
+        ])
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(true)
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          if (rule.name === 'DNS Rule') {
+            return new FakeAddRuleRawResult(undefined, 29400007, 'duplicate dns rule')
+          }
+          return new FakeAddRuleRawResult(9100)
+        })
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((): boolean => {
+          savedIntentCount++
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          savedDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildDnsRuleInput('DNS Rule', [100, 101]))
+
+        expect(result.success).assertFalse()
+        expect(result.errorCode).assertEqual(29400007)
+        expect(updatedRules.length).assertEqual(0)
+        expect(removedSystemRuleIds.length).assertEqual(1)
+        expect(removedSystemRuleIds[0]).assertEqual(8001)
+        expect(savedIntentCount).assertEqual(0)
+        expect(savedDeployments.length).assertEqual(2)
+        expect(savedDeployments[0].userId).assertEqual(101)
+        expect(savedDeployments[0].systemRuleId).assertEqual(8002)
+        expect(savedDeployments[1].userId).assertEqual(100)
+        expect(savedDeployments[1].systemRuleId).assertEqual(9100)
+        done()
+      })
+
+      it('should update retained deployments in place when editing DNS to IP', 0, async (done: Function) => {
+        let updatedRules: netFirewall.NetFirewallRule[] = []
+        let addedRules: netFirewall.NetFirewallRule[] = []
+        let removedSystemRuleIds: number[] = []
+        let savedDeployments: FirewallRuleDeployment[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredDnsIntent('rule-1', 'Old DNS Rule', [100]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([buildDeployment('rule-1', 100, 8001)])
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(true)
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          addedRules.push(rule)
+          return new FakeAddRuleRawResult(8101)
+        })
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return true
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterReturn(true)
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          savedDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildIpRuleInput('IP Rule', [100]))
+
+        expect(result.success).assertTrue()
+        expect(updatedRules.length).assertEqual(1)
+        expect(updatedRules[0].type).assertEqual(netFirewall.NetFirewallRuleType.RULE_IP)
+        expect((updatedRules[0] as FirewallScopedRule).id).assertEqual(8001)
+        expect(addedRules.length).assertEqual(0)
+        expect(removedSystemRuleIds.length).assertEqual(0)
+        expect(savedDeployments[0].systemRuleId).assertEqual(8001)
+        done()
+      })
+
+      it('should rollback updated and added deployments when edit removal fails', 0, async (done: Function) => {
+        let updatePayloadNames: string[] = []
+        let addedSystemRuleIds: number[] = []
+        let removedSystemRuleIds: number[] = []
+        let restoredDeployments: FirewallRuleDeployment[] = []
+        let savedIntentCount = 0
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
+        let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
+        let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
+
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100, 101, 102]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
+          buildDeployment('rule-1', 100, 8001),
+          buildDeployment('rule-1', 101, 8002),
+          buildDeployment('rule-1', 102, 8003)
+        ])
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatePayloadNames.push(rule.name ?? '')
+          return new FakeSystemRuleMutationResult(true)
+        })
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          if (rule.userId === 103) {
+            addedSystemRuleIds.push(8103)
+            return new FakeAddRuleRawResult(8103)
+          }
+          return new FakeAddRuleRawResult(9100 + rule.userId)
+        })
+        when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
+          removedSystemRuleIds.push(systemRuleId)
+          return systemRuleId !== 8003
+        })
+        when(saveIntentMock)(ArgumentMatchers.any).afterAction((): boolean => {
+          savedIntentCount++
+          return true
+        })
+        when(replaceDeploymentsMock)(ArgumentMatchers.any).afterAction((
+          _context: common.Context,
+          _localRuleId: string,
+          deployments: FirewallRuleDeployment[]
+        ): boolean => {
+          restoredDeployments = deployments
+          return true
+        })
+
+        let result = await FirewallService.updateRule(context, 'rule-1', buildIpRuleInput('Updated Rule', [101, 103]))
+
+        expect(result.success).assertFalse()
+        expect(updatePayloadNames.length).assertEqual(2)
+        expect(updatePayloadNames[0]).assertEqual('Updated Rule')
+        expect(updatePayloadNames[1]).assertEqual('Old Rule')
+        expect(addedSystemRuleIds.length).assertEqual(1)
+        expect(removedSystemRuleIds.length).assertEqual(3)
+        expect(removedSystemRuleIds[0]).assertEqual(8001)
+        expect(removedSystemRuleIds[1]).assertEqual(8003)
+        expect(removedSystemRuleIds[2]).assertEqual(8103)
+        expect(savedIntentCount).assertEqual(0)
+        expect(restoredDeployments.length).assertEqual(3)
+        expect(restoredDeployments[0].systemRuleId).assertEqual(8002)
+        expect(restoredDeployments[1].systemRuleId).assertEqual(8003)
+        expect(restoredDeployments[2].systemRuleId).assertEqual(9200)
+        done()
+      })
+
+      it('should keep old deployments when in-place update fails', 0, async (done: Function) => {
+        let removedSystemRuleIds: number[] = []
+        let updatedRules: netFirewall.NetFirewallRule[] = []
         let savedIntents: FirewallRuleIntent[] = []
         let savedDeploymentCount = 0
         let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
+        let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
         let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
         let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
+        let updateRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.updateRule)
         let saveIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntent)
         let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
 
         when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100]))
+        when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([buildDeployment('rule-1', 100, 8001)])
         when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
           removedSystemRuleIds.push(systemRuleId)
           return true
         })
         when(addRuleMock)(ArgumentMatchers.any).afterReturn(new FakeAddRuleRawResult(undefined, 401, 'invalid'))
+        when(updateRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          updatedRules.push(rule)
+          return new FakeSystemRuleMutationResult(false, 401, 'invalid')
+        })
         when(saveIntentMock)(ArgumentMatchers.any).afterAction((
           _context: common.Context,
           intent: FirewallRuleIntent
@@ -970,6 +1381,7 @@ export default function firewallServiceTest() {
         expect(result.localRuleId).assertEqual('rule-1')
         expect(result.errorCode).assertEqual(401)
         expect(result.failedItems?.length).assertEqual(1)
+        expect(updatedRules.length).assertEqual(1)
         expect(removedSystemRuleIds.length).assertEqual(0)
         expect(savedIntents.length).assertEqual(0)
         expect(savedDeploymentCount).assertEqual(0)
@@ -1045,18 +1457,26 @@ export default function firewallServiceTest() {
         done()
       })
 
-      it('should keep local intent and failed deployments when delete partially fails', 0, async (done: Function) => {
+      it('should restore removed deployments when delete partially fails', 0, async (done: Function) => {
         let removedIntentIds: string[] = []
-        let preservedDeployments: FirewallRuleDeployment[] = []
+        let restoredDeployments: FirewallRuleDeployment[] = []
+        let addRuleUsers: number[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
         let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
         let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
         let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
         let removeIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleIntent)
 
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100, 101]))
         when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
           buildDeployment('rule-1', 100, 8001),
           buildDeployment('rule-1', 101, 8002)
         ])
+        when(addRuleMock)(ArgumentMatchers.any).afterAction((rule: netFirewall.NetFirewallRule): Object => {
+          addRuleUsers.push(rule.userId ?? -1)
+          return new FakeAddRuleRawResult(9101)
+        })
         when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
           return systemRuleId !== 8002
         })
@@ -1065,7 +1485,7 @@ export default function firewallServiceTest() {
           _localRuleId: string,
           deployments: FirewallRuleDeployment[]
         ): boolean => {
-          preservedDeployments = deployments
+          restoredDeployments = deployments
           return true
         })
         when(removeIntentMock)(ArgumentMatchers.any).afterAction((_context: common.Context, localRuleId: string): boolean => {
@@ -1077,23 +1497,30 @@ export default function firewallServiceTest() {
 
         expect(result.success).assertFalse()
         expect(result.failedItems?.length).assertEqual(1)
-        expect(preservedDeployments.length).assertEqual(1)
-        expect(preservedDeployments[0].systemRuleId).assertEqual(8002)
+        expect(addRuleUsers.length).assertEqual(1)
+        expect(addRuleUsers[0]).assertEqual(100)
+        expect(restoredDeployments.length).assertEqual(2)
+        expect(restoredDeployments[0].systemRuleId).assertEqual(8002)
+        expect(restoredDeployments[1].systemRuleId).assertEqual(9101)
         expect(removedIntentIds.length).assertEqual(0)
         done()
       })
 
-      it('should report preserve failure and keep local intent when failed deployments cannot be saved', 0, async (done: Function) => {
+      it('should report restore failure and keep local intent when restored deployments cannot be saved', 0, async (done: Function) => {
         let removedIntentIds: string[] = []
+        let getIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getRuleIntent)
         let listDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listRuleDeployments)
+        let addRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.addRule)
         let removeRuleMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.removeRule)
         let replaceDeploymentsMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.replaceRuleDeployments)
         let removeIntentMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.removeRuleIntent)
 
+        when(getIntentMock)(ArgumentMatchers.any).afterReturn(buildStoredIntent('rule-1', 'Old Rule', [100, 101]))
         when(listDeploymentsMock)(ArgumentMatchers.any).afterReturn([
           buildDeployment('rule-1', 100, 8001),
           buildDeployment('rule-1', 101, 8002)
         ])
+        when(addRuleMock)(ArgumentMatchers.any).afterReturn(new FakeAddRuleRawResult(9101))
         when(removeRuleMock)(ArgumentMatchers.any).afterAction((_userId: number, systemRuleId: number): boolean => {
           return systemRuleId !== 8002
         })
@@ -1110,7 +1537,7 @@ export default function firewallServiceTest() {
         expect(result.failedItems?.length).assertEqual(2)
         expect(result.failedItems?.[0].systemRuleId).assertEqual(8002)
         expect(result.failedItems?.[0].errorMessage).assertEqual('remove system rule failed')
-        expect(result.failedItems?.[1].errorMessage).assertEqual('preserve failed deployments failed')
+        expect(result.failedItems?.[1].errorMessage).assertEqual('restore old deployments failed')
         expect(removedIntentIds.length).assertEqual(0)
         done()
       })

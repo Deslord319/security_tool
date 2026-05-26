@@ -79,6 +79,24 @@ export class FirewallSystemRepository {
     }
   }
 
+  static async updateRule(rule: netFirewall.NetFirewallRule): Promise<FirewallSystemRuleMutationResult> {
+    try {
+      await netFirewall.updateNetFirewallRule(rule)
+      return {
+        success: true
+      }
+    } catch (err) {
+      let errorCode = CommonErrorUtils.extractErrorCode(err)
+      let errorMessage = CommonErrorUtils.extractErrorMessage(err)
+      LogUtils.error(TAG, `updateRule failed: userId=${rule.userId}, payload=${JSON.stringify(rule)}, err=${JSON.stringify(err)}`)
+      return {
+        success: false,
+        errorCode: errorCode,
+        errorMessage: errorMessage
+      }
+    }
+  }
+
   static async clearRules(userId: number): Promise<FirewallBatchOperationResult> {
     let rules = await FirewallSystemRepository.listRules(userId)
     let failedItems: FirewallFailedItem[] = []
@@ -107,6 +125,12 @@ export class FirewallSystemRepository {
 
 export interface FirewallAddRuleRawResult {
   systemRuleId?: number
+  errorCode?: number
+  errorMessage?: string
+}
+
+export interface FirewallSystemRuleMutationResult {
+  success: boolean
   errorCode?: number
   errorMessage?: string
 }

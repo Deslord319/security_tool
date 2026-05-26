@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit'
+import { netFirewall } from '@kit.NetworkKit'
 import { FirewallRuleMutationErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { buildFirewallAddRuleFailedMessage } from '../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../utils/LogUtils'
@@ -12,6 +13,7 @@ import {
   FirewallRuleMutationResult
 } from './FirewallModels'
 import { FirewallRuleDeploymentService } from './FirewallRuleDeploymentService'
+import { FirewallSystemRepository } from './FirewallSystemRepository'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 
 const TAG = 'FirewallRuleMutationService'
@@ -50,76 +52,69 @@ export class FirewallRuleMutationService {
 
     let now = Date.now()
     let nextIntent = FirewallRuleUtils.buildIntentFromInput(localRuleId, input, now, existingIntent.createdAt)
-    let nextApplyResult = await FirewallRuleDeploymentService.applyRuleIntentDeployments(nextIntent)
-    if (nextApplyResult.deployments.length === 0) {
-      let firstFailedItem = nextApplyResult.failedItems[0]
+    let oldDeployments = await FirewallLocalRepository.listRuleDeployments(context, localRuleId)
+    let transactionResult = nextIntent.type === netFirewall.NetFirewallRuleType.RULE_DNS
+      ? await FirewallRuleMutationService.applyDnsReplaceUpdateTransaction(
+        context,
+        existingIntent,
+        oldDeployments,
+        nextIntent
+      )
+      : await FirewallRuleMutationService.applyUpdateTransaction(
+        context,
+        existingIntent,
+        oldDeployments,
+        nextIntent
+      )
+    if (transactionResult.failedItems.length > 0) {
+      let firstFailedItem = transactionResult.failedItems[0]
       return {
         success: false,
         localRuleId: localRuleId,
-        failedItems: nextApplyResult.failedItems,
+        failedItems: transactionResult.failedItems,
         errorCode: firstFailedItem?.errorCode,
         errorMessage: buildFirewallAddRuleFailedMessage(firstFailedItem?.errorCode)
       }
     }
 
-    let oldDeployments = await FirewallLocalRepository.listRuleDeployments(context, localRuleId)
-    let removeResult = await FirewallRuleDeploymentService.removeDeploymentSystemRules(localRuleId, oldDeployments)
-    if (removeResult.failedItems.length > 0) {
-      let rollbackNewFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
-        localRuleId,
-        nextApplyResult.deployments,
-        FirewallRuleMutationErrorStrings.ROLLBACK_NEW_SYSTEM_RULE_FAILED
-      )
-      let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(context, existingIntent, oldDeployments, removeResult.removedDeployments)
-      return {
-        success: false,
-        localRuleId: localRuleId,
-        successDeployments: nextApplyResult.deployments,
-        failedItems: [
-          ...nextApplyResult.failedItems,
-          ...removeResult.failedItems,
-          ...rollbackNewFailedItems,
-          ...restoreResult.failedItems
-        ],
-        errorMessage: FirewallRuleMutationErrorStrings.UPDATE_FAILED_WHILE_REMOVING_OLD_DEPLOYMENTS
-      }
-    }
-
     let intentSaved = await FirewallLocalRepository.saveRuleIntent(context, nextIntent)
-    let deploymentsSaved = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, nextApplyResult.deployments)
+    let deploymentsSaved = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, transactionResult.deployments)
     if (!intentSaved || !deploymentsSaved) {
       LogUtils.error(TAG, `updateRule local save failed: localRuleId=${localRuleId}`)
-      let rollbackNewFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
-        localRuleId,
-        nextApplyResult.deployments,
-        FirewallRuleMutationErrorStrings.ROLLBACK_NEW_SYSTEM_RULE_FAILED
+      let rollbackFailedItems = await FirewallRuleMutationService.rollbackUpdateTransaction(
+        context,
+        existingIntent,
+        oldDeployments,
+        transactionResult.updatedDeployments,
+        transactionResult.addedDeployments,
+        transactionResult.removedDeployments
       )
-      let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(context, existingIntent, oldDeployments, oldDeployments)
       if (intentSaved) {
         let restoredIntent = await FirewallLocalRepository.saveRuleIntent(context, existingIntent)
         if (!restoredIntent) {
-          restoreResult.failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.RESTORE_OLD_INTENT_FAILED })
+          rollbackFailedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.RESTORE_OLD_INTENT_FAILED })
+        }
+      }
+      if (transactionResult.removedDeployments.length === 0) {
+        let restoredDeployments = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, oldDeployments)
+        if (!restoredDeployments) {
+          rollbackFailedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.ROLLBACK_LOCAL_DEPLOYMENTS_FAILED })
         }
       }
       return {
         success: false,
         localRuleId: localRuleId,
-        successDeployments: nextApplyResult.deployments,
-        failedItems: [
-          ...nextApplyResult.failedItems,
-          ...rollbackNewFailedItems,
-          ...restoreResult.failedItems
-        ],
+        successDeployments: transactionResult.deployments,
+        failedItems: rollbackFailedItems,
         errorMessage: FirewallRuleMutationErrorStrings.LOCAL_SAVE_FAILED
       }
     }
 
     return {
-      success: nextApplyResult.failedItems.length === 0,
+      success: true,
       localRuleId: localRuleId,
-      successDeployments: nextApplyResult.deployments,
-      failedItems: nextApplyResult.failedItems,
-      errorMessage: nextApplyResult.failedItems.length === 0 ? undefined : FirewallRuleMutationErrorStrings.RULE_UPDATED_WITH_FAILED_ITEMS
+      successDeployments: transactionResult.deployments,
+      failedItems: []
     }
   }
 
@@ -127,8 +122,53 @@ export class FirewallRuleMutationService {
     context: common.UIAbilityContext,
     localRuleId: string
   ): Promise<FirewallRuleMutationResult> {
-    let failedItems = await FirewallRuleDeploymentService.deleteDeploymentsOnly(context, localRuleId)
-    if (failedItems.length > 0) {
+    let existingIntent = await FirewallLocalRepository.getRuleIntent(context, localRuleId)
+    if (existingIntent === null) {
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        errorMessage: FirewallRuleMutationErrorStrings.RULE_INTENT_NOT_FOUND
+      }
+    }
+    let oldDeployments = await FirewallLocalRepository.listRuleDeployments(context, localRuleId)
+    let removeResult = await FirewallRuleDeploymentService.removeDeploymentSystemRules(localRuleId, oldDeployments)
+    if (removeResult.failedItems.length > 0) {
+      let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(
+        context,
+        existingIntent,
+        oldDeployments,
+        removeResult.removedDeployments
+      )
+      return {
+        success: false,
+        localRuleId: localRuleId,
+        failedItems: [...removeResult.failedItems, ...restoreResult.failedItems],
+        errorMessage: FirewallRuleMutationErrorStrings.DELETE_RULE_COMPLETED_WITH_FAILED_ITEMS
+      }
+    }
+
+    let deploymentsRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
+    let intentRemoved = await FirewallLocalRepository.removeRuleIntent(context, localRuleId)
+    if (!deploymentsRemoved || !intentRemoved) {
+      let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(
+        context,
+        existingIntent,
+        oldDeployments,
+        oldDeployments
+      )
+      let failedItems: FirewallFailedItem[] = [...restoreResult.failedItems]
+      if (!deploymentsRemoved) {
+        failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.ROLLBACK_LOCAL_DEPLOYMENTS_FAILED })
+      }
+      if (!intentRemoved) {
+        failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.REMOVE_RULE_INTENT_FAILED })
+      }
+      if (intentRemoved) {
+        let restoredIntent = await FirewallLocalRepository.saveRuleIntent(context, existingIntent)
+        if (!restoredIntent) {
+          failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.RESTORE_OLD_INTENT_FAILED })
+        }
+      }
       return {
         success: false,
         localRuleId: localRuleId,
@@ -136,16 +176,10 @@ export class FirewallRuleMutationService {
         errorMessage: FirewallRuleMutationErrorStrings.DELETE_RULE_COMPLETED_WITH_FAILED_ITEMS
       }
     }
-
-    let intentRemoved = await FirewallLocalRepository.removeRuleIntent(context, localRuleId)
-    if (!intentRemoved) {
-      failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleMutationErrorStrings.REMOVE_RULE_INTENT_FAILED })
-    }
     return {
-      success: failedItems.length === 0,
+      success: true,
       localRuleId: localRuleId,
-      failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : FirewallRuleMutationErrorStrings.DELETE_RULE_COMPLETED_WITH_FAILED_ITEMS
+      failedItems: []
     }
   }
 
@@ -263,12 +297,17 @@ export class FirewallRuleMutationService {
     let deployments = applyResult.deployments
     let failedItems = applyResult.failedItems
 
-    if (deployments.length === 0) {
+    if (failedItems.length > 0) {
+      let rollbackFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
+        localRuleId,
+        deployments,
+        FirewallRuleMutationErrorStrings.ROLLBACK_SYSTEM_RULE_FAILED
+      )
       let firstFailedItem = failedItems[0]
       return {
         success: false,
         localRuleId: localRuleId,
-        failedItems: failedItems,
+        failedItems: [...failedItems, ...rollbackFailedItems],
         errorCode: firstFailedItem?.errorCode,
         errorMessage: buildFirewallAddRuleFailedMessage(firstFailedItem?.errorCode)
       }
@@ -289,11 +328,10 @@ export class FirewallRuleMutationService {
     }
 
     return {
-      success: failedItems.length === 0,
+      success: true,
       localRuleId: localRuleId,
       successDeployments: deployments,
-      failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : FirewallRuleMutationErrorStrings.RULE_CREATED_WITH_FAILED_ITEMS
+      failedItems: []
     }
   }
 
@@ -315,6 +353,273 @@ export class FirewallRuleMutationService {
     )
     failedItems.push(...restoreResult.failedItems)
     return failedItems
+  }
+
+  private static async applyUpdateTransaction(
+    context: common.UIAbilityContext,
+    existingIntent: FirewallRuleIntent,
+    oldDeployments: FirewallRuleDeployment[],
+    nextIntent: FirewallRuleIntent
+  ): Promise<FirewallRuleUpdateTransactionResult> {
+    let oldByUser = FirewallRuleMutationService.buildDeploymentByUser(oldDeployments)
+    let nextUserSet = new Set<number>(nextIntent.targetUserIds)
+    let keptDeployments = oldDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+      nextUserSet.has(deployment.userId)
+    )
+    let addedUserIds = nextIntent.targetUserIds.filter((userId: number): boolean => !oldByUser.has(userId))
+    let removedDeployments = oldDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+      !nextUserSet.has(deployment.userId)
+    )
+
+    let nextDeployments: FirewallRuleDeployment[] = []
+    let updatedDeployments: FirewallRuleDeployment[] = []
+    let addedDeployments: FirewallRuleDeployment[] = []
+    let actuallyRemovedDeployments: FirewallRuleDeployment[] = []
+    let failedItems: FirewallFailedItem[] = []
+
+    for (let i = 0; i < keptDeployments.length; i++) {
+      let deployment = keptDeployments[i]
+      let failedItem = await FirewallRuleDeploymentService.updateDeploymentSystemRule(nextIntent, deployment)
+      if (failedItem !== null) {
+        failedItems.push(failedItem)
+        break
+      }
+      updatedDeployments.push(deployment)
+      nextDeployments.push(deployment)
+    }
+
+    if (failedItems.length === 0) {
+      for (let i = 0; i < addedUserIds.length; i++) {
+        let addResult = await FirewallRuleMutationService.addDeploymentForUser(nextIntent, addedUserIds[i])
+        if (addResult.failedItem !== undefined) {
+          failedItems.push(addResult.failedItem)
+          break
+        }
+        if (addResult.deployment !== undefined) {
+          addedDeployments.push(addResult.deployment)
+          nextDeployments.push(addResult.deployment)
+        }
+      }
+    }
+
+    if (failedItems.length === 0) {
+      for (let i = 0; i < removedDeployments.length; i++) {
+        let deployment = removedDeployments[i]
+        let removed = await FirewallSystemRepository.removeRule(deployment.userId, deployment.systemRuleId)
+        if (!removed) {
+          failedItems.push({
+            localRuleId: nextIntent.localRuleId,
+            userId: deployment.userId,
+            systemRuleId: deployment.systemRuleId,
+            errorMessage: 'remove system rule failed'
+          })
+          break
+        }
+        actuallyRemovedDeployments.push(deployment)
+      }
+    }
+
+    if (failedItems.length > 0) {
+      let rollbackFailedItems = await FirewallRuleMutationService.rollbackUpdateTransaction(
+        context,
+        existingIntent,
+        oldDeployments,
+        updatedDeployments,
+        addedDeployments,
+        actuallyRemovedDeployments
+      )
+      return {
+        deployments: [],
+        updatedDeployments: updatedDeployments,
+        addedDeployments: addedDeployments,
+        removedDeployments: actuallyRemovedDeployments,
+        failedItems: [...failedItems, ...rollbackFailedItems]
+      }
+    }
+
+    return {
+      deployments: nextDeployments,
+      updatedDeployments: updatedDeployments,
+      addedDeployments: addedDeployments,
+      removedDeployments: actuallyRemovedDeployments,
+      failedItems: []
+    }
+  }
+
+  private static async applyDnsReplaceUpdateTransaction(
+    context: common.UIAbilityContext,
+    existingIntent: FirewallRuleIntent,
+    oldDeployments: FirewallRuleDeployment[],
+    nextIntent: FirewallRuleIntent
+  ): Promise<FirewallRuleUpdateTransactionResult> {
+    let oldByUser = FirewallRuleMutationService.buildDeploymentByUser(oldDeployments)
+    let nextUserSet = new Set<number>(nextIntent.targetUserIds)
+    let keptDeployments = oldDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+      nextUserSet.has(deployment.userId)
+    )
+    let addedUserIds = nextIntent.targetUserIds.filter((userId: number): boolean => !oldByUser.has(userId))
+    let removedDeployments = oldDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+      !nextUserSet.has(deployment.userId)
+    )
+
+    let nextDeployments: FirewallRuleDeployment[] = []
+    let addedDeployments: FirewallRuleDeployment[] = []
+    let replacedOldDeployments: FirewallRuleDeployment[] = []
+    let actuallyRemovedDeployments: FirewallRuleDeployment[] = []
+    let failedItems: FirewallFailedItem[] = []
+
+    for (let i = 0; i < keptDeployments.length; i++) {
+      let deployment = keptDeployments[i]
+      let removed = await FirewallSystemRepository.removeRule(deployment.userId, deployment.systemRuleId)
+      if (!removed) {
+        failedItems.push({
+          localRuleId: nextIntent.localRuleId,
+          userId: deployment.userId,
+          systemRuleId: deployment.systemRuleId,
+          errorMessage: 'remove system rule failed'
+        })
+        break
+      }
+      replacedOldDeployments.push(deployment)
+
+      let addResult = await FirewallRuleMutationService.addDeploymentForUser(nextIntent, deployment.userId)
+      if (addResult.failedItem !== undefined) {
+        failedItems.push(addResult.failedItem)
+        break
+      }
+      if (addResult.deployment !== undefined) {
+        addedDeployments.push(addResult.deployment)
+        nextDeployments.push(addResult.deployment)
+      }
+    }
+
+    if (failedItems.length === 0) {
+      for (let i = 0; i < addedUserIds.length; i++) {
+        let addResult = await FirewallRuleMutationService.addDeploymentForUser(nextIntent, addedUserIds[i])
+        if (addResult.failedItem !== undefined) {
+          failedItems.push(addResult.failedItem)
+          break
+        }
+        if (addResult.deployment !== undefined) {
+          addedDeployments.push(addResult.deployment)
+          nextDeployments.push(addResult.deployment)
+        }
+      }
+    }
+
+    if (failedItems.length === 0) {
+      for (let i = 0; i < removedDeployments.length; i++) {
+        let deployment = removedDeployments[i]
+        let removed = await FirewallSystemRepository.removeRule(deployment.userId, deployment.systemRuleId)
+        if (!removed) {
+          failedItems.push({
+            localRuleId: nextIntent.localRuleId,
+            userId: deployment.userId,
+            systemRuleId: deployment.systemRuleId,
+            errorMessage: 'remove system rule failed'
+          })
+          break
+        }
+        actuallyRemovedDeployments.push(deployment)
+      }
+    }
+
+    if (failedItems.length > 0) {
+      let rollbackAddedFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
+        nextIntent.localRuleId,
+        addedDeployments,
+        FirewallRuleMutationErrorStrings.ROLLBACK_SYSTEM_RULE_FAILED
+      )
+      let removedForRestore = [...replacedOldDeployments, ...actuallyRemovedDeployments]
+      let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(
+        context,
+        existingIntent,
+        oldDeployments,
+        removedForRestore
+      )
+      return {
+        deployments: [],
+        updatedDeployments: [],
+        addedDeployments: addedDeployments,
+        removedDeployments: removedForRestore,
+        failedItems: [...failedItems, ...rollbackAddedFailedItems, ...restoreResult.failedItems]
+      }
+    }
+
+    return {
+      deployments: nextDeployments,
+      updatedDeployments: [],
+      addedDeployments: addedDeployments,
+      removedDeployments: [...replacedOldDeployments, ...actuallyRemovedDeployments],
+      failedItems: []
+    }
+  }
+
+  private static async rollbackUpdateTransaction(
+    context: common.UIAbilityContext,
+    existingIntent: FirewallRuleIntent,
+    oldDeployments: FirewallRuleDeployment[],
+    updatedDeployments: FirewallRuleDeployment[],
+    addedDeployments: FirewallRuleDeployment[],
+    removedDeployments: FirewallRuleDeployment[]
+  ): Promise<FirewallFailedItem[]> {
+    let failedItems: FirewallFailedItem[] = []
+    for (let i = 0; i < updatedDeployments.length; i++) {
+      let failedItem = await FirewallRuleDeploymentService.updateDeploymentSystemRule(existingIntent, updatedDeployments[i])
+      if (failedItem !== null) {
+        failedItems.push(failedItem)
+      }
+    }
+    let rollbackAddedFailedItems = await FirewallRuleDeploymentService.rollbackSystemDeployments(
+      existingIntent.localRuleId,
+      addedDeployments,
+      FirewallRuleMutationErrorStrings.ROLLBACK_SYSTEM_RULE_FAILED
+    )
+    failedItems.push(...rollbackAddedFailedItems)
+    if (removedDeployments.length > 0) {
+      let restoreResult = await FirewallRuleDeploymentService.restoreRemovedDeployments(
+        context,
+        existingIntent,
+        oldDeployments,
+        removedDeployments
+      )
+      failedItems.push(...restoreResult.failedItems)
+    }
+    return failedItems
+  }
+
+  private static async addDeploymentForUser(
+    intent: FirewallRuleIntent,
+    userId: number
+  ): Promise<FirewallRuleSingleDeploymentResult> {
+    let rule = FirewallRuleUtils.buildSystemRuleFromIntent(intent, userId)
+    let normalizedRule = FirewallRuleUtils.normalizeRuleForCreate(rule)
+    let addRuleResult = await FirewallSystemRepository.addRule(normalizedRule)
+    if ((addRuleResult.systemRuleId ?? -1) > 0) {
+      return {
+        deployment: {
+          localRuleId: intent.localRuleId,
+          userId: userId,
+          systemRuleId: addRuleResult.systemRuleId as number
+        }
+      }
+    }
+    return {
+      failedItem: {
+        localRuleId: intent.localRuleId,
+        userId: userId,
+        errorCode: addRuleResult.errorCode,
+        errorMessage: addRuleResult.errorMessage ?? 'add rule failed'
+      }
+    }
+  }
+
+  private static buildDeploymentByUser(deployments: FirewallRuleDeployment[]): Map<number, FirewallRuleDeployment> {
+    let result = new Map<number, FirewallRuleDeployment>()
+    deployments.forEach((deployment: FirewallRuleDeployment) => {
+      result.set(deployment.userId, deployment)
+    })
+    return result
   }
 
   private static async restoreUpdatedRule(
@@ -369,4 +674,17 @@ export class FirewallRuleMutationService {
   static generateLocalRuleId(): string {
     return `fw_rule_${Date.now()}_${generateRandomSuffix(10)}`
   }
+}
+
+interface FirewallRuleUpdateTransactionResult {
+  deployments: FirewallRuleDeployment[]
+  updatedDeployments: FirewallRuleDeployment[]
+  addedDeployments: FirewallRuleDeployment[]
+  removedDeployments: FirewallRuleDeployment[]
+  failedItems: FirewallFailedItem[]
+}
+
+interface FirewallRuleSingleDeploymentResult {
+  deployment?: FirewallRuleDeployment
+  failedItem?: FirewallFailedItem
 }
