@@ -51,7 +51,7 @@ python scripts/check_docs_consistency.py
 - 状态模型和状态流转
 - ViewModel / Service / Repository 职责边界
 - 非目标范围
-- `4.1 实施步骤与测试验收`
+- `5.1 实施步骤与测试验收`
 
 涉及路由时同步检查：
 
@@ -67,7 +67,7 @@ python scripts/check_docs_consistency.py
 
 ### 3.3 新增 E2E 用例
 
-先判断新增用例是否改变模块级验收口径。如果改变，先更新对应模块设计文档的 `4.1 实施步骤与测试验收`。
+先判断新增用例是否改变模块级验收口径。如果改变，先更新对应模块设计文档的 `5.1 实施步骤与测试验收`。
 
 实施顺序：
 
