@@ -53,6 +53,63 @@ function createFirewallOverview(enabled: boolean = false, currentMode: FirewallP
   }
 }
 
+interface DashboardInitializationOptions {
+  adminActivated?: boolean
+  initResult?: MockInitResult
+  firewallOverview?: FirewallOverviewState
+  logStatistics?: LogStatistics
+  peripheralStats?: PeripheralTraceStats
+  logListenerId?: number
+  peripheralListenerId?: number
+  onFirewallLoad?: () => FirewallOverviewState
+  onLogStatistics?: () => LogStatistics
+  onPeripheralStatistics?: () => PeripheralTraceStats
+  withRemoveListeners?: boolean
+}
+
+function mockDashboardInitialization(mockKit: MockKit, options: DashboardInitializationOptions = {}): void {
+  let adminMock: Object = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+  let initMock: Object = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
+  let firewallMock: Object = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
+  let logStatsMock: Object = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
+  let peripheralStatsMock: Object = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
+  let logListenerMock: Object = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
+  let peripheralListenerMock: Object = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
+
+  let adminState = new MockAdminState()
+  adminState.activated = options.adminActivated ?? true
+  when(adminMock)().afterReturn(adminState)
+  when(initMock)(ArgumentMatchers.any).afterReturn(options.initResult ?? new MockInitResult())
+
+  if (options.onFirewallLoad) {
+    when(firewallMock)(ArgumentMatchers.any).afterAction(options.onFirewallLoad)
+  } else {
+    when(firewallMock)(ArgumentMatchers.any).afterReturn(options.firewallOverview ?? createFirewallOverview())
+  }
+
+  if (options.onLogStatistics) {
+    when(logStatsMock)().afterAction(options.onLogStatistics)
+  } else {
+    when(logStatsMock)().afterReturn(options.logStatistics ?? createLogStatistics())
+  }
+
+  if (options.onPeripheralStatistics) {
+    when(peripheralStatsMock)().afterAction(options.onPeripheralStatistics)
+  } else {
+    when(peripheralStatsMock)().afterReturn(options.peripheralStats ?? createPeripheralStats())
+  }
+
+  when(logListenerMock)(ArgumentMatchers.any).afterReturn(options.logListenerId ?? 1)
+  when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(options.peripheralListenerId ?? 2)
+
+  if (options.withRemoveListeners) {
+    let logRemoveMock: Object = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.removeChangeListener)
+    let peripheralRemoveMock: Object = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.removeChangeListener)
+    when(logRemoveMock)(ArgumentMatchers.any).afterReturn(undefined)
+    when(peripheralRemoveMock)(ArgumentMatchers.any).afterReturn(undefined)
+  }
+}
+
 interface DashboardViewModelInternal {
   context: common.UIAbilityContext | null
   buildAdminCard(): Object
@@ -104,23 +161,11 @@ export default function dashboardViewModelTest() {
     })
 
     it('should initialize with all module cards when admin is activated', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(true, 'custom'))
-      when(logStatsMock)().afterReturn(createLogStatistics(5, 120))
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats(10, 7, 3))
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        firewallOverview: createFirewallOverview(true, 'custom'),
+        logStatistics: createLogStatistics(5, 120),
+        peripheralStats: createPeripheralStats(10, 7, 3)
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -136,23 +181,10 @@ export default function dashboardViewModelTest() {
     })
 
     it('should show pending status when admin is not activated', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = false
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(false, 'custom'))
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        adminActivated: false,
+        firewallOverview: createFirewallOverview(false, 'custom')
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -163,23 +195,9 @@ export default function dashboardViewModelTest() {
     })
 
     it('should show disabled when firewall is off', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(false, 'custom'))
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        firewallOverview: createFirewallOverview(false, 'custom')
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -198,25 +216,11 @@ export default function dashboardViewModelTest() {
     })
 
     it('should handle firewall load failure gracefully', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterAction((): FirewallOverviewState => {
-        throw new Error('firewall load failed')
+      mockDashboardInitialization(mockKit, {
+        onFirewallLoad: (): FirewallOverviewState => {
+          throw new Error('firewall load failed')
+        }
       })
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -226,26 +230,12 @@ export default function dashboardViewModelTest() {
     })
 
     it('should handle peripheral trace init failure gracefully', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
       let failedResult = new MockInitResult()
       failedResult.success = false
       failedResult.code = 'storage_init_failed'
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(failedResult)
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        initResult: failedResult
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -255,27 +245,14 @@ export default function dashboardViewModelTest() {
     })
 
     it('should keep visible dashboard state when statistics are unavailable', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterAction((): LogStatistics => {
-        throw new Error('log statistics unavailable')
+      mockDashboardInitialization(mockKit, {
+        onLogStatistics: (): LogStatistics => {
+          throw new Error('log statistics unavailable')
+        },
+        onPeripheralStatistics: (): PeripheralTraceStats => {
+          throw new Error('peripheral statistics unavailable')
+        }
       })
-      when(peripheralStatsMock)().afterAction((): PeripheralTraceStats => {
-        throw new Error('peripheral statistics unavailable')
-      })
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -288,27 +265,11 @@ export default function dashboardViewModelTest() {
     })
 
     it('should remove listeners on destroy', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-      let logRemoveMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.removeChangeListener)
-      let peripheralRemoveMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.removeChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(100)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(200)
-      when(logRemoveMock)(ArgumentMatchers.any).afterReturn(undefined)
-      when(peripheralRemoveMock)(ArgumentMatchers.any).afterReturn(undefined)
+      mockDashboardInitialization(mockKit, {
+        logListenerId: 100,
+        peripheralListenerId: 200,
+        withRemoveListeners: true
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -319,23 +280,11 @@ export default function dashboardViewModelTest() {
     })
 
     it('should refresh all module cards', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(true, 'custom'))
-      when(logStatsMock)().afterReturn(createLogStatistics(3, 50))
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats(5, 3, 2))
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        firewallOverview: createFirewallOverview(true, 'custom'),
+        logStatistics: createLogStatistics(3, 50),
+        peripheralStats: createPeripheralStats(5, 3, 2)
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -348,23 +297,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should refresh static statuses same as refreshAll', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit)
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -375,7 +308,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should build log card with correct statistics', 0, async (done: Function) => {
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
+      let logStatsMock: Object = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
       when(logStatsMock)().afterReturn(createLogStatistics(12, 300))
 
       let viewModel = new DashboardViewModel()
@@ -389,7 +322,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should build peripheral card with correct statistics', 0, async (done: Function) => {
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
+      let peripheralStatsMock: Object = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
       when(peripheralStatsMock)().afterReturn(createPeripheralStats(25, 18, 7))
 
       let viewModel = new DashboardViewModel()
@@ -403,7 +336,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should build admin card with activated status', 0, () => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let adminMock: Object = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let adminState = new MockAdminState()
       adminState.activated = true
       when(adminMock)().afterReturn(adminState)
@@ -417,7 +350,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should build admin card with pending status when not activated', 0, () => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
+      let adminMock: Object = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
       let adminState = new MockAdminState()
       adminState.activated = false
       when(adminMock)().afterReturn(adminState)
@@ -431,23 +364,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should register listeners only when not already registered', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit)
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -473,7 +390,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should handle loadOverviewState returning disabled state', 0, async (done: Function) => {
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
+      let firewallMock: Object = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
       when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(false, 'custom'))
 
       let viewModel = new DashboardViewModel()
@@ -486,7 +403,7 @@ export default function dashboardViewModelTest() {
     })
 
     it('should handle loadOverviewState returning enabled state', 0, async (done: Function) => {
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
+      let firewallMock: Object = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
       when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview(true, 'custom'))
 
       let viewModel = new DashboardViewModel()
@@ -499,23 +416,9 @@ export default function dashboardViewModelTest() {
     })
 
     it('should refresh log card via refreshLiveCards', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterReturn(createLogStatistics(99, 500))
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats())
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        logStatistics: createLogStatistics(99, 500)
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
@@ -529,23 +432,9 @@ export default function dashboardViewModelTest() {
     })
 
     it('should refresh peripheral card via refreshLiveCards', 0, async (done: Function) => {
-      let adminMock = mockKit.mockFunc(EnterpriseAdminService, EnterpriseAdminService.probeActivation)
-      let initMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.initialize)
-      let firewallMock = mockKit.mockFunc(FirewallService, FirewallService.loadOverviewState)
-      let logStatsMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.getStatistics)
-      let peripheralStatsMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      let logListenerMock = mockKit.mockFunc(LogEntryRepository, LogEntryRepository.addChangeListener)
-      let peripheralListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.addChangeListener)
-
-      let adminState = new MockAdminState()
-      adminState.activated = true
-      when(adminMock)().afterReturn(adminState)
-      when(initMock)(ArgumentMatchers.any).afterReturn(new MockInitResult())
-      when(firewallMock)(ArgumentMatchers.any).afterReturn(createFirewallOverview())
-      when(logStatsMock)().afterReturn(createLogStatistics())
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats(42, 30, 12))
-      when(logListenerMock)(ArgumentMatchers.any).afterReturn(1)
-      when(peripheralListenerMock)(ArgumentMatchers.any).afterReturn(2)
+      mockDashboardInitialization(mockKit, {
+        peripheralStats: createPeripheralStats(42, 30, 12)
+      })
 
       let viewModel = new DashboardViewModel()
       await viewModel.initialize(context)
