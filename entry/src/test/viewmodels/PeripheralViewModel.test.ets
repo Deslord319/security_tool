@@ -26,8 +26,6 @@ import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
 import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/peripheral_connection_record_clear_usecase'
 
-const TEST_CONTEXT = {} as common.UIAbilityContext
-
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0
 

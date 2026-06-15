@@ -160,11 +160,7 @@ export default function secureStorageServiceTest() {
       it('should verify correct password', 0, () => {
         let storedPassword: string = 'CorrectPassword123'
         let inputPassword: string = 'CorrectPassword123'
-        
-        const encoder = new MockTextEncoder()
-        const storedData = encoder.encodeInto(storedPassword)
-        const inputData = encoder.encodeInto(inputPassword)
-        
+
         // 模拟比较
         const isMatch = storedPassword === inputPassword
         

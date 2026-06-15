@@ -103,7 +103,6 @@ export class ThemeManager {
 
     try {
       const config = this.context.config
-      const colorMode = config?.colorMode
       if (config && config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK) {
         return ThemeMode.DARK
       }
