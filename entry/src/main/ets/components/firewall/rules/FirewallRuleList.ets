@@ -238,7 +238,7 @@ struct FirewallRuleCard {
             }
             .width(AppStyles.BUTTON_HEIGHT)
             .height(AppStyles.BUTTON_HEIGHT)
-            .borderRadius(12)
+            .borderRadius(AppStyles.RADIUS_LG)
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
             .backgroundColor(this.getRuleTypeTextColor(this.rule.type))

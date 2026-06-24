@@ -41,7 +41,7 @@ export struct LogEntriesPanel {
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
         .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, false))
-        .borderRadius(4)
+        .borderRadius(AppStyles.RADIUS_SM)
         .padding({ left: 6, right: 6, top: 2, bottom: 2 })
         .width(96)
         .textAlign(TextAlign.Center)

@@ -101,19 +101,19 @@ export struct AboutDialogContent {
         .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
 
       Text(`${AppText.VERSION} ${this.resolveAppVersion()}`)
-        .fontSize(14)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
 
       Text(AppText.COPYRIGHT)
-        .fontSize(12)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
 
       Button(ActionText.CONFIRM)
         .width(180)
         .height(AppStyles.BUTTON_HEIGHT)
-        .fontSize(16)
+        .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
         .fontColor(Color.White)
         .backgroundColor(AppColors.BRAND_PRIMARY)
         .borderRadius(AppStyles.RADIUS_MD)
@@ -206,7 +206,7 @@ export struct ThemeMenuPopup {
       offsetX: 0,
       offsetY: 4
     })
-    .padding(8)
+    .padding(AppStyles.PADDING_SM)
     .onAppear(() => {
       this.hoveredThemeKey = ''
       this.hoveredActionKey = ''

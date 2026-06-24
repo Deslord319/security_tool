@@ -54,7 +54,7 @@ export struct SideBar {
           .draggable(false)
 
         Text(AppText.NAME)
-          .fontSize(16)
+          .fontSize(AppStyles.FONT_SIZE_SUBTITLE)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
