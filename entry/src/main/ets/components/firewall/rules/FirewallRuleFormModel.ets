@@ -367,22 +367,7 @@ export class FirewallRuleFormModel {
   }
 
   private static normalizePorts(ports: netFirewall.NetFirewallPortParams[]): netFirewall.NetFirewallPortParams[] {
-    return ports.sort((left: netFirewall.NetFirewallPortParams, right: netFirewall.NetFirewallPortParams): number => {
-      let startDiff = (left.startPort ?? 0) - (right.startPort ?? 0)
-      if (startDiff !== 0) {
-        return startDiff
-      }
-      return (left.endPort ?? left.startPort ?? 0) - (right.endPort ?? right.startPort ?? 0)
-    }).reduce((items: netFirewall.NetFirewallPortParams[], current: netFirewall.NetFirewallPortParams) => {
-      let previous = items[items.length - 1]
-      if (previous &&
-        previous.startPort === current.startPort &&
-        previous.endPort === current.endPort) {
-        return items
-      }
-      items.push(current)
-      return items
-    }, [])
+    return FirewallRuleUtils.sortAndDedupPortParams(ports)
   }
 
   private static isValidPort(port: number): boolean {

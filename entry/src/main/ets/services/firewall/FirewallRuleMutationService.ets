@@ -411,7 +411,7 @@ export class FirewallRuleMutationService {
             localRuleId: nextIntent.localRuleId,
             userId: deployment.userId,
             systemRuleId: deployment.systemRuleId,
-            errorMessage: 'remove system rule failed'
+            errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_SYSTEM_RULE_FAILED
           })
           break
         }
@@ -476,7 +476,7 @@ export class FirewallRuleMutationService {
           localRuleId: nextIntent.localRuleId,
           userId: deployment.userId,
           systemRuleId: deployment.systemRuleId,
-          errorMessage: 'remove system rule failed'
+          errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_SYSTEM_RULE_FAILED
         })
         break
       }
@@ -516,7 +516,7 @@ export class FirewallRuleMutationService {
             localRuleId: nextIntent.localRuleId,
             userId: deployment.userId,
             systemRuleId: deployment.systemRuleId,
-            errorMessage: 'remove system rule failed'
+            errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_SYSTEM_RULE_FAILED
           })
           break
         }

@@ -12,22 +12,16 @@ export class HoverUtils {
   }
 
   static getShadow(theme: ThemeMode, isHovered: boolean, strong: boolean = false): ShadowOptions {
-    if (theme === ThemeMode.DARK) {
-      return {
-        radius: isHovered ? (strong ? 34 : 28) : 10,
-        color: isHovered
-          ? (strong ? AppColors.HOVER_SHADOW_STRONG_DARK : AppColors.HOVER_SHADOW_DARK)
-          : AppColors.HOVER_SHADOW_REST_DARK,
-        offsetX: 0,
-        offsetY: isHovered ? (strong ? 16 : 12) : 3
-      }
-    }
-
+    let color: ResourceColor = theme === ThemeMode.DARK
+      ? (isHovered
+        ? (strong ? AppColors.HOVER_SHADOW_STRONG_DARK : AppColors.HOVER_SHADOW_DARK)
+        : AppColors.HOVER_SHADOW_REST_DARK)
+      : (isHovered
+        ? (strong ? AppColors.HOVER_SHADOW_STRONG_LIGHT : AppColors.HOVER_SHADOW_LIGHT)
+        : AppColors.HOVER_SHADOW_REST_LIGHT)
     return {
       radius: isHovered ? (strong ? 34 : 28) : 10,
-      color: isHovered
-        ? (strong ? AppColors.HOVER_SHADOW_STRONG_LIGHT : AppColors.HOVER_SHADOW_LIGHT)
-        : AppColors.HOVER_SHADOW_REST_LIGHT,
+      color: color,
       offsetX: 0,
       offsetY: isHovered ? (strong ? 16 : 12) : 3
     }

@@ -560,7 +560,11 @@ export class FirewallRuleUtils {
     if (result.length === 0) {
       return undefined
     }
-    result.sort((left: netFirewall.NetFirewallPortParams, right: netFirewall.NetFirewallPortParams): number => {
+    return FirewallRuleUtils.sortAndDedupPortParams(result)
+  }
+
+  static sortAndDedupPortParams(ports: netFirewall.NetFirewallPortParams[]): netFirewall.NetFirewallPortParams[] {
+    let sorted = ports.slice().sort((left: netFirewall.NetFirewallPortParams, right: netFirewall.NetFirewallPortParams): number => {
       let startDiff = (left.startPort ?? 0) - (right.startPort ?? 0)
       if (startDiff !== 0) {
         return startDiff
@@ -568,7 +572,7 @@ export class FirewallRuleUtils {
       return (left.endPort ?? left.startPort ?? 0) - (right.endPort ?? right.startPort ?? 0)
     })
     let deduped: netFirewall.NetFirewallPortParams[] = []
-    result.forEach((item: netFirewall.NetFirewallPortParams) => {
+    sorted.forEach((item: netFirewall.NetFirewallPortParams) => {
       let previous = deduped[deduped.length - 1]
       if (previous &&
         previous.startPort === item.startPort &&

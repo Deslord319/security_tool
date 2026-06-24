@@ -65,7 +65,7 @@ export class PeripheralDevicePolicyRepository {
 
   static getAll(): PeripheralDevicePolicyRecord[] {
     return PeripheralDevicePolicyRepository.records.map((item: PeripheralDevicePolicyRecord) => {
-      return PeripheralDevicePolicyRepository.cloneRecord(item)
+      return PeripheralDevicePolicyRepository.normalizeRecord(item)
     })
   }
 
@@ -74,7 +74,7 @@ export class PeripheralDevicePolicyRepository {
     const found = PeripheralDevicePolicyRepository.records.find((item: PeripheralDevicePolicyRecord) => {
       return normalizeDeviceId(item.deviceId) === normalized
     })
-    return found ? PeripheralDevicePolicyRepository.cloneRecord(found) : null
+    return found ? PeripheralDevicePolicyRepository.normalizeRecord(found) : null
   }
 
   static getUsbDefaultPolicy(): PeripheralDevicePolicy {
@@ -210,16 +210,6 @@ export class PeripheralDevicePolicyRepository {
 
   private static normalizeUsbDefaultPolicy(policy: string | PeripheralDevicePolicy): PeripheralDevicePolicy {
     return policy === 'deny' ? 'deny' : 'allow'
-  }
-
-  private static cloneRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
-    return {
-      deviceId: record.deviceId,
-      policy: record.policy,
-      updatedAt: record.updatedAt,
-      deviceName: record.deviceName,
-      deviceType: record.deviceType
-    }
   }
 
   private static notifyChanged(): void {

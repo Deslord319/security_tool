@@ -211,50 +211,54 @@ export class PeripheralEmptyStateStrings {
 
 export const PERIPHERAL_ADMIN_REQUIRED_ACTION_SUFFIX: string = '未完成，请先激活企业管理员权限'
 
+function buildPeripheralRetryMessage(prefix: string): string {
+  return `${prefix}，${MessageText.RETRY_LATER}`
+}
+
 export function resolvePeripheralReason(reason?: string | null): string {
   switch (reason) {
     case PeripheralReasonCodes.ADMIN_REQUIRED:
       return '请先激活企业管理员权限'
     case PeripheralReasonCodes.INIT_FAILED:
-      return '外设管理初始化失败，请稍后重试'
+      return buildPeripheralRetryMessage('外设管理初始化失败')
     case PeripheralReasonCodes.INVALID_DEVICE_ID:
       return '无法识别当前设备标识'
     case PeripheralReasonCodes.EXPORT_ENV_NOT_READY:
-      return '导出环境尚未初始化，请稍后重试'
+      return buildPeripheralRetryMessage('导出环境尚未初始化')
     case PeripheralReasonCodes.EMPTY_CONNECTION_HISTORY:
       return '没有可导出的设备连接记录'
     case PeripheralReasonCodes.EMPTY_POLICY_RECORDS:
       return '暂无可导出的黑白名单配置'
     case PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED:
-      return '接口管控设置失败，请稍后重试'
+      return buildPeripheralRetryMessage('接口管控设置失败')
     case PeripheralReasonCodes.USB_STORAGE_POLICY_FAILED:
-      return '设置 USB 存储策略失败，请稍后重试'
+      return buildPeripheralRetryMessage('设置 USB 存储策略失败')
     case PeripheralReasonCodes.POLICY_CHANGE_FAILED:
-      return '修改黑白名单失败，请稍后重试'
+      return buildPeripheralRetryMessage('修改黑白名单失败')
     case PeripheralReasonCodes.UNSUPPORTED_POLICY_DISPATCH:
-      return '当前策略类型暂不支持下发，请稍后重试'
+      return buildPeripheralRetryMessage('当前策略类型暂不支持下发')
     case PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH:
-      return '当前设备类型暂不支持下发，请稍后重试'
+      return buildPeripheralRetryMessage('当前设备类型暂不支持下发')
     case PeripheralReasonCodes.DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED:
-      return '当前设备策略下发能力尚未接入，请稍后重试'
+      return buildPeripheralRetryMessage('当前设备策略下发能力尚未接入')
     case PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE:
       return '系统检测到 USB 存储账户级冲突策略，暂时无法修改单设备策略'
     case PeripheralReasonCodes.USB_DISPATCH_FAILED:
-      return 'USB 单设备策略下发失败，请稍后重试'
+      return buildPeripheralRetryMessage('USB 单设备策略下发失败')
     case PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED:
       return '系统检测到 USB 冲突规则未完成消解，暂时无法修改单设备策略'
     case PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED:
-      return '导出记录失败，请稍后重试'
+      return buildPeripheralRetryMessage('导出记录失败')
     case PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED:
-      return '导出策略失败，请稍后重试'
+      return buildPeripheralRetryMessage('导出策略失败')
     case PeripheralReasonCodes.READ_USB_STATUS_FAILED:
-      return '读取 USB 状态失败，请稍后重试'
+      return buildPeripheralRetryMessage('读取 USB 状态失败')
     case PeripheralReasonCodes.READ_USB_STORAGE_POLICY_FAILED:
-      return '读取 USB 存储策略失败，请稍后重试'
+      return buildPeripheralRetryMessage('读取 USB 存储策略失败')
     case PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT:
-      return '系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置，请稍后重试'
+      return buildPeripheralRetryMessage('系统检测到仍存在 USB 冲突规则，暂时无法完成 USB 接口设置')
     case PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT:
-      return '系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置，请稍后重试'
+      return buildPeripheralRetryMessage('系统检测到仍存在 USB 冲突规则，暂时无法完成存储策略设置')
     default:
       return reason && reason.trim().length > 0 ? reason : MessageText.RETRY_LATER
   }
