@@ -44,7 +44,7 @@ export class PeripheralService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('set interface disabled policy', err as ErrorLike)
+      return OperationResultUtils.buildFailureResult<void>('set interface disabled policy', err as ErrorLike)
     }
   }
 
@@ -67,7 +67,7 @@ export class PeripheralService {
       } as OperationResult<boolean>
     } catch (err) {
       LogUtils.error(TAG, `getInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<boolean>('get interface disabled status', err as ErrorLike, false)
+      return OperationResultUtils.buildFailureResult<boolean>('get interface disabled status', err as ErrorLike, false)
     }
   }
 
@@ -80,7 +80,7 @@ export class PeripheralService {
       } as OperationResult<usbManager.UsbPolicy>
     } catch (err) {
       LogUtils.error(TAG, `getUsbStoragePolicy failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<usbManager.UsbPolicy>(
+      return OperationResultUtils.buildFailureResult<usbManager.UsbPolicy>(
         'get usb storage policy',
         err as ErrorLike,
         usbManager.UsbPolicy.READ_WRITE
@@ -109,7 +109,7 @@ export class PeripheralService {
           PeripheralServiceErrorStrings.USB_POLICY_CONFLICT
         )
       }
-      return PeripheralService.buildFailureResult<void>('set usb storage policy', err as ErrorLike)
+      return OperationResultUtils.buildFailureResult<void>('set usb storage policy', err as ErrorLike)
     }
   }
 
@@ -122,7 +122,7 @@ export class PeripheralService {
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<void>('set network interface status', err as ErrorLike)
+      return OperationResultUtils.buildFailureResult<void>('set network interface status', err as ErrorLike)
     }
   }
 
@@ -142,7 +142,7 @@ export class PeripheralService {
       return { success: true, data: allDisabled } as OperationResult<boolean>
     } catch (err) {
       LogUtils.error(TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return PeripheralService.buildFailureResult<boolean>('get network interface status', err as ErrorLike, false)
+      return OperationResultUtils.buildFailureResult<boolean>('get network interface status', err as ErrorLike, false)
     }
   }
 
@@ -166,10 +166,6 @@ export class PeripheralService {
         storagePolicy: storagePolicyResult.data ?? usbManager.UsbPolicy.READ_WRITE
       }
     } as OperationResult<UsbConflictSnapshot>
-  }
-
-  static buildFailureResult<T>(action: string, err: ErrorLike, fallbackData?: T): OperationResult<T> {
-    return OperationResultUtils.buildFailureResult(action, err, fallbackData)
   }
 
   private static buildUserFailureResult<T>(stage: string, userMessage: string, fallbackData?: T): OperationResult<T> {

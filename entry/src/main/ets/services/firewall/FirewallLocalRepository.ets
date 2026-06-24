@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { LogUtils } from '../../utils/LogUtils'
+import { SafeRunner } from '../../utils/SafeRunner'
 import { PreferencesAccessor } from '../../storage/preferences/PreferencesAccessor'
 import {
   FIREWALL_RULE_MAPPING_VERSION,
@@ -21,30 +22,34 @@ const TAG = 'FirewallLocalRepository'
 
 export class FirewallLocalRepository {
   static async loadRuleIntentMappingData(context: common.Context): Promise<FirewallRuleIntentMappingData> {
-    try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_RULE_MAPPING)
-      let data = await pref.getJsonObject<FirewallRuleIntentMappingData>(
-        PREF_KEY_FIREWALL_RULE_MAPPING,
-        FirewallLocalRepository.emptyRuleIntentMappingData()
-      )
-      return FirewallLocalRepository.normalizeRuleIntentMappingData(data)
-    } catch (err) {
-      LogUtils.error(TAG, `loadRuleIntentMappingData failed: ${JSON.stringify(err)}`)
-      return FirewallLocalRepository.emptyRuleIntentMappingData()
-    }
+    return SafeRunner.runAsync(
+      TAG,
+      'loadRuleIntentMappingData',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_RULE_MAPPING)
+        let data = await pref.getJsonObject<FirewallRuleIntentMappingData>(
+          PREF_KEY_FIREWALL_RULE_MAPPING,
+          FirewallLocalRepository.emptyRuleIntentMappingData()
+        )
+        return FirewallLocalRepository.normalizeRuleIntentMappingData(data)
+      },
+      () => FirewallLocalRepository.emptyRuleIntentMappingData()
+    )
   }
 
   static async saveRuleIntentMappingData(
     context: common.Context,
     data: FirewallRuleIntentMappingData
   ): Promise<boolean> {
-    try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_RULE_MAPPING)
-      return await pref.setJson(PREF_KEY_FIREWALL_RULE_MAPPING, FirewallLocalRepository.normalizeRuleIntentMappingData(data))
-    } catch (err) {
-      LogUtils.error(TAG, `saveRuleIntentMappingData failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    return SafeRunner.runAsync(
+      TAG,
+      'saveRuleIntentMappingData',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_RULE_MAPPING)
+        return await pref.setJson(PREF_KEY_FIREWALL_RULE_MAPPING, FirewallLocalRepository.normalizeRuleIntentMappingData(data))
+      },
+      () => false
+    )
   }
 
   static async listRuleIntents(context: common.Context): Promise<FirewallRuleIntent[]> {
@@ -102,26 +107,31 @@ export class FirewallLocalRepository {
   }
 
   static async getCurrentMode(context: common.Context): Promise<FirewallPresetMode> {
-    try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
-      let storedModeValue = await pref.getString(PREF_KEY_FIREWALL_ACTIVE_MODE, '')
-      if (storedModeValue === 'public' || storedModeValue === 'private' || storedModeValue === 'custom') {
-        return storedModeValue
-      }
-    } catch (err) {
-      LogUtils.error(TAG, `getCurrentMode failed: ${JSON.stringify(err)}`)
-    }
-    return 'custom'
+    return SafeRunner.runAsync(
+      TAG,
+      'getCurrentMode',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        let storedModeValue = await pref.getString(PREF_KEY_FIREWALL_ACTIVE_MODE, '')
+        if (storedModeValue === 'public' || storedModeValue === 'private' || storedModeValue === 'custom') {
+          return storedModeValue
+        }
+        return 'custom'
+      },
+      () => 'custom' as FirewallPresetMode
+    )
   }
 
   static async saveCurrentMode(context: common.Context, mode: FirewallPresetMode): Promise<boolean> {
-    try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
-      return await pref.setValue(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
-    } catch (err) {
-      LogUtils.error(TAG, `saveCurrentMode failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    return SafeRunner.runAsync(
+      TAG,
+      'saveCurrentMode',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        return await pref.setValue(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
+      },
+      () => false
+    )
   }
 
   static async getUserPolicyMode(
@@ -140,26 +150,30 @@ export class FirewallLocalRepository {
     let records = await FirewallLocalRepository.listUserPolicyModes(context)
     let nextRecords = records.filter((item: FirewallUserPolicyModeRecord): boolean => item.userId !== userId)
     nextRecords.push({ userId: userId, mode: mode })
-    try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
-      return await pref.setJson(PREF_KEY_FIREWALL_USER_POLICY, nextRecords)
-    } catch (err) {
-      LogUtils.error(TAG, `saveUserPolicyMode failed: ${JSON.stringify(err)}`)
-      return false
-    }
+    return SafeRunner.runAsync(
+      TAG,
+      'saveUserPolicyMode',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
+        return await pref.setJson(PREF_KEY_FIREWALL_USER_POLICY, nextRecords)
+      },
+      () => false
+    )
   }
 
   static async listUserPolicyModes(context: common.Context): Promise<FirewallUserPolicyModeRecord[]> {
-    try {
-      let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
-      let records = await pref.getJsonArray<FirewallUserPolicyModeRecord>(PREF_KEY_FIREWALL_USER_POLICY, [])
-      return records.filter((item: FirewallUserPolicyModeRecord): boolean =>
-        typeof item.userId === 'number' && (item.mode === 'allowlist' || item.mode === 'denylist')
-      )
-    } catch (err) {
-      LogUtils.error(TAG, `listUserPolicyModes failed: ${JSON.stringify(err)}`)
-      return []
-    }
+    return SafeRunner.runAsync(
+      TAG,
+      'listUserPolicyModes',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
+        let records = await pref.getJsonArray<FirewallUserPolicyModeRecord>(PREF_KEY_FIREWALL_USER_POLICY, [])
+        return records.filter((item: FirewallUserPolicyModeRecord): boolean =>
+          typeof item.userId === 'number' && (item.mode === 'allowlist' || item.mode === 'denylist')
+        )
+      },
+      () => [] as FirewallUserPolicyModeRecord[]
+    )
   }
 
   private static emptyRuleIntentMappingData(): FirewallRuleIntentMappingData {

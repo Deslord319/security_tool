@@ -1,4 +1,6 @@
-export const ACCOUNT_EVENT_COMMON_EVENT: string = 'com.huawei.securitytool.ACCOUNT_EVENT_CHANGED'
+import { AppInfo } from '../constants/AppConstants'
+
+export const ACCOUNT_EVENT_COMMON_EVENT: string = `${AppInfo.BUNDLE_NAME}.ACCOUNT_EVENT_CHANGED`
 
 export const ACCOUNT_EVENT_PARAM_TYPE: string = 'accountEventType'
 export const ACCOUNT_EVENT_PARAM_USER_ID: string = 'accountEventUserId'

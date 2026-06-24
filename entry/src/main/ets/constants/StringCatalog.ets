@@ -52,7 +52,6 @@ export class MessageText {
 }
 
 export class LabelText {
-  static readonly ALL: string = '全部'
   static readonly UNKNOWN: string = '未知'
   static readonly TIME: string = '时间'
   static readonly DETAIL: string = '详情'

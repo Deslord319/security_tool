@@ -373,10 +373,6 @@ export class KernelLogImportRule implements LogImportRule {
   }
 
   private static parseTimestamp(line: string): number {
-    let value = KernelLogImportRule.firstMatch(line, /^(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})/)
-    if (!value) {
-      return Date.now()
-    }
     let parts = line.match(/^(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})/)
     if (!parts) {
       return Date.now()

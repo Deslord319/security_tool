@@ -325,7 +325,7 @@ export struct FirewallPage {
         if (mode === 'custom') {
           Row({ space: 4 }) {
             Text(FirewallPageStrings.RULES_PAGE)
-              .fontSize(11)
+              .fontSize(AppStyles.FONT_SIZE_MICRO)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.getThemeColors().TEXT_PRIMARY)
               .opacity(this.isModeSelected(mode) ? this.getThemeColors().TEXT_SECONDARY_OPACITY : this.getThemeColors().TEXT_TERTIARY_OPACITY)

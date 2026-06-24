@@ -14,13 +14,15 @@ import { PeripheralService } from '../interface-control/PeripheralService'
 import {
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
-  PeripheralConnectionRecordProducerEvent
+  PeripheralConnectionRecordProducerEvent,
+  PeripheralConnectionAction
 } from './peripheral_connection_record_producer_contract'
 import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchReason
 } from '../device-policy/peripheral_device_policy_dispatch_service'
 import {
+  EventPayloadRecord,
   collectPayloadSources,
   pickNumber,
   pickString,
@@ -33,7 +35,6 @@ import {
   PeripheralMatchedPolicyStrings,
   PeripheralConnectionRecordStrings
 } from '../../../constants/modules/PeripheralStrings'
-import { LooseRecord } from '../../../types/LooseValueTypes'
 
 const TAG = 'ConnectionRecordUsbConsumer'
 
@@ -65,8 +66,6 @@ interface UsbEventPolicyEvaluation {
   matchedPolicyKind: PeripheralMatchedPolicyKind
 }
 
-type UsbEventAction = 'connect' | 'disconnect' | 'unknown'
-type EventPayloadRecord = LooseRecord
 type FirstConnectAutoDenyStatus =
   'not_applicable' |
   'skipped_invalid_device_id' |
@@ -143,7 +142,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
   }
 
-  private static resolveAction(eventName: string): UsbEventAction {
+  private static resolveAction(eventName: string): PeripheralConnectionAction {
     switch (eventName) {
       case commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED:
         return 'connect'
@@ -160,7 +159,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static evaluateUsbEventPolicy(
     info: ResolvedUsbEventInfo,
-    action: UsbEventAction
+    action: PeripheralConnectionAction
   ): UsbEventPolicyEvaluation {
     const snapshot = PeripheralConnectionRecordUsbConsumer.readCurrentUsbPolicySnapshot()
     const effectivePolicyLabel = PeripheralConnectionRecordUsbConsumer.resolveEffectivePolicyLabel(
@@ -232,7 +231,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static async applyFirstConnectAutoDeny(
     info: ResolvedUsbEventInfo,
-    action: UsbEventAction
+    action: PeripheralConnectionAction
   ): Promise<FirstConnectAutoDenyResult> {
     if (action !== 'connect') {
       return { status: 'not_applicable' }

@@ -74,7 +74,7 @@ export struct ConnectionDetailDialog {
       .width('100%')
     }
     .width('100%')
-    .padding(12)
+    .padding(AppStyles.PADDING_12)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     .borderRadius(AppStyles.RADIUS_LG)
   }
@@ -151,7 +151,7 @@ export struct ConnectionDetailDialog {
       }
     }
     .width('100%')
-    .padding(12)
+    .padding(AppStyles.PADDING_12)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
     .borderRadius(AppStyles.RADIUS_LG)
   }

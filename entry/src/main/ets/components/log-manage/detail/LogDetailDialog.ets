@@ -31,7 +31,7 @@ export struct LogDetailDialog {
   }
 
   @Builder
-  private summaryMetric(label: string, value: string, valueColor: ResourceColor) {
+  private summaryMetric(label: string, value: string) {
     Column({ space: 4 }) {
       Text(label)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
@@ -41,7 +41,7 @@ export struct LogDetailDialog {
       Text(value)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Medium)
-        .fontColor(valueColor)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
@@ -61,19 +61,17 @@ export struct LogDetailDialog {
         Row({ space: 10 }) {
           this.summaryMetric(
             LogManageDetailStrings.TIME_LABEL,
-            formatLogTimestamp(this.entry.timestamp),
-            AppColors.getColors(this.currentTheme).TEXT_PRIMARY
+            formatLogTimestamp(this.entry.timestamp)
           )
           this.summaryMetric(
             LogManageDetailStrings.EVENT_TYPE_LABEL,
-            getLogEventTypeLabel(this.entry.eventType),
-            AppColors.getColors(this.currentTheme).TEXT_PRIMARY
+            getLogEventTypeLabel(this.entry.eventType)
           )
         }
         .width('100%')
       }
       .width('100%')
-      .padding(12)
+      .padding(AppStyles.PADDING_12)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
       .borderRadius(AppStyles.RADIUS_MD)
 
@@ -89,7 +87,7 @@ export struct LogDetailDialog {
         })
       }
       .width('100%')
-      .padding(12)
+      .padding(AppStyles.PADDING_12)
       .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
       .borderRadius(AppStyles.RADIUS_MD)
     }

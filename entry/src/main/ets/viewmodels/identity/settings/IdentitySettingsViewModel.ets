@@ -16,7 +16,7 @@ import {
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
 import { IdentityPasswordPolicyMapper } from '../../../services/identity/settings/IdentityPasswordPolicyMapper'
 import { IdentityService } from '../../../services/identity/settings/IdentityService'
-import { ActionDialogStatus, DialogService } from '../../../utils/DialogService'
+import { ActionDialogStatus, DialogActionKind, DialogService } from '../../../utils/DialogService'
 import { LogUtils } from '../../../utils/LogUtils'
 
 export const HALF_YEAR_VALIDITY_OPTION_INDEX: number = 0
@@ -28,10 +28,8 @@ const DEFAULT_VALIDITY_OPTION_INDEX: number = PERMANENT_VALIDITY_OPTION_INDEX
 const TAG = 'IdentitySettings.ViewModel'
 type PasswordRequirementKey = 'requireUppercase' | 'requireLowercase' | 'requireDigit' | 'requireSpecialChar'
 
-type IdentitySettingsActionKind = 'none' | 'result' | 'confirm'
-
 export interface IdentitySettingsActionRequest {
-  kind: IdentitySettingsActionKind
+  kind: DialogActionKind
   status?: ActionDialogStatus
   title?: string
   message: string

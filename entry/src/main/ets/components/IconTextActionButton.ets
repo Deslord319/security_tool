@@ -2,7 +2,7 @@ import { ActionButtonStyles, AppStyles } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 
-export type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
+type IconTextActionButtonKind = 'primary' | 'info' | 'danger'
 
 @ComponentV2
 export struct IconTextActionButton {

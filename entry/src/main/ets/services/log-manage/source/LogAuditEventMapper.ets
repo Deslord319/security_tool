@@ -267,27 +267,27 @@ function findNestedJson(sources: Array<LooseRecord | undefined>, key: string): L
   return undefined
 }
 
-function resolveRawOutcome(sources: LooseRecord[]): string | undefined {
-  const direct = pickString(sources, [
-    'outcome', 'result', 'status', 'decision', 'actionResult', 'action_result',
-    'AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE'
-  ])
+const OUTCOME_NUMBER_KEYS: string[] = [
+  'AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE', 'RESULT_CODE_LIST'
+]
+
+function resolveOutcome(sources: LooseRecord[], stringKeys: string[]): string | undefined {
+  const direct = pickString(sources, stringKeys)
   if (direct) {
     return direct
   }
-  return pickNumberOrFirstArrayNumber(sources, [
-    'AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE', 'RESULT_CODE_LIST'
+  return pickNumberOrFirstArrayNumber(sources, OUTCOME_NUMBER_KEYS)
+}
+
+function resolveRawOutcome(sources: LooseRecord[]): string | undefined {
+  return resolveOutcome(sources, [
+    'outcome', 'result', 'status', 'decision', 'actionResult', 'action_result',
+    'AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE'
   ])
 }
 
 function resolveAuthRawOutcome(sources: LooseRecord[]): string | undefined {
-  const direct = pickString(sources, ['AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE'])
-  if (direct) {
-    return direct
-  }
-  return pickNumberOrFirstArrayNumber(sources, [
-    'AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE', 'RESULT_CODE_LIST'
-  ])
+  return resolveOutcome(sources, ['AUTH_RESULT', 'RESULT', 'RESULT_CODE', 'AUTH_RESULT_CODE'])
 }
 
 function pickNumberOrFirstArrayNumber(sources: LooseRecord[], keys: string[]): string | undefined {

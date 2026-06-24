@@ -33,6 +33,8 @@ export interface PeripheralConnectionRecordProducer {
 
 export type PeripheralConnectionRecordConsumeResult = PeripheralTraceRecord | null
 
+export type PeripheralConnectionAction = 'connect' | 'disconnect' | 'unknown'
+
 export interface PeripheralConnectionRecordConsumer {
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean
   consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralConnectionRecordConsumeResult>

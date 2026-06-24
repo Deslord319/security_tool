@@ -6,6 +6,8 @@ import { ThemeMode } from '../theme/ThemeColors'
 
 export type ActionDialogStatus = 'success' | 'failure'
 
+export type DialogActionKind = 'none' | 'result' | 'confirm'
+
 const TAG = 'DialogService'
 
 export interface ConfirmDialogOptions {

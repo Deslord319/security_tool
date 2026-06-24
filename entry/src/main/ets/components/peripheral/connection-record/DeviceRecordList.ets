@@ -169,7 +169,7 @@ export struct DeviceRecordList {
         right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
       })
       .justifyContent(FlexAlign.Center)
-      .borderRadius(8)
+      .borderRadius(AppStyles.RADIUS_MD)
       .backgroundColor(this.getDetailButtonBackground(record.id))
       .layoutWeight(1.0)
       .onHover((isHover: boolean) => {

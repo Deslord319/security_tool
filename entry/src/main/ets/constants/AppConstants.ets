@@ -94,6 +94,7 @@ export class AppStyles {
 
   static readonly PADDING_XS: number = 4
   static readonly PADDING_SM: number = 8
+  static readonly PADDING_12: number = 12
   static readonly PADDING_MD: number = 16
   static readonly PADDING_LG: number = 24
   static readonly PADDING_XL: number = 32

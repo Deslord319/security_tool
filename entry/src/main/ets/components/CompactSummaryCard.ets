@@ -3,7 +3,7 @@ import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 import { MetricSummaryCard } from './MetricSummaryCard'
 
-export type CompactSummaryCardPreset = 'default' | 'log'
+type CompactSummaryCardPreset = 'default' | 'log'
 
 @ComponentV2
 export struct CompactSummaryCard {
@@ -32,52 +32,8 @@ export struct CompactSummaryCard {
   @Param iconHoverScale: number = 1.04
   @Event onPress: () => void = () => {}
 
-  private resolveCardHeight(): number {
-    return this.preset === 'log' ? 108 : this.cardHeight
-  }
-
-  private resolveHorizontalSpace(): number {
-    return this.preset === 'log' ? 16 : this.horizontalSpace
-  }
-
-  private resolveTextSpace(): number {
-    return this.preset === 'log' ? 6 : this.textSpace
-  }
-
-  private resolvePaddingHorizontal(): number {
-    return this.preset === 'log' ? 18 : this.paddingHorizontal
-  }
-
-  private resolvePaddingVertical(): number {
-    return this.preset === 'log' ? 18 : this.paddingVertical
-  }
-
-  private resolveTitleFontSize(): number {
-    return this.preset === 'log' ? AppStyles.FONT_SIZE_BODY : this.titleFontSize
-  }
-
-  private resolvePrimaryFontSize(): number {
-    return this.preset === 'log' ? 24 : this.primaryFontSize
-  }
-
-  private resolveSecondaryMaxLines(): number {
-    return this.preset === 'log' ? 2 : this.secondaryMaxLines
-  }
-
-  private resolveIconTileSize(): number {
-    return this.preset === 'log' ? 54 : this.iconTileSize
-  }
-
-  private resolveIconTileRadius(): number {
-    return this.preset === 'log' ? 18 : this.iconTileRadius
-  }
-
-  private resolveIconSize(): number {
-    return this.preset === 'log' ? 28 : this.iconSize
-  }
-
-  private resolveIconHoverScale(): number {
-    return this.preset === 'log' ? 1.06 : this.iconHoverScale
+  private resolveNumberForPreset(logValue: number, defaultValue: number): number {
+    return this.preset === 'log' ? logValue : defaultValue
   }
 
   build() {
@@ -88,18 +44,18 @@ export struct CompactSummaryCard {
       icon: this.icon,
       accentStart: this.accentStart,
       accentEnd: this.accentEnd,
-      cardHeight: this.resolveCardHeight(),
-      horizontalSpace: this.resolveHorizontalSpace(),
-      textSpace: this.resolveTextSpace(),
-      paddingHorizontal: this.resolvePaddingHorizontal(),
-      paddingVertical: this.resolvePaddingVertical(),
-      titleFontSize: this.resolveTitleFontSize(),
-      primaryFontSize: this.resolvePrimaryFontSize(),
-      secondaryMaxLines: this.resolveSecondaryMaxLines(),
-      iconTileSize: this.resolveIconTileSize(),
-      iconTileRadius: this.resolveIconTileRadius(),
-      iconSize: this.resolveIconSize(),
-      iconHoverScale: this.resolveIconHoverScale(),
+      cardHeight: this.resolveNumberForPreset(108, this.cardHeight),
+      horizontalSpace: this.resolveNumberForPreset(16, this.horizontalSpace),
+      textSpace: this.resolveNumberForPreset(6, this.textSpace),
+      paddingHorizontal: this.resolveNumberForPreset(18, this.paddingHorizontal),
+      paddingVertical: this.resolveNumberForPreset(18, this.paddingVertical),
+      titleFontSize: this.resolveNumberForPreset(AppStyles.FONT_SIZE_BODY, this.titleFontSize),
+      primaryFontSize: this.resolveNumberForPreset(24, this.primaryFontSize),
+      secondaryMaxLines: this.resolveNumberForPreset(2, this.secondaryMaxLines),
+      iconTileSize: this.resolveNumberForPreset(54, this.iconTileSize),
+      iconTileRadius: this.resolveNumberForPreset(18, this.iconTileRadius),
+      iconSize: this.resolveNumberForPreset(28, this.iconSize),
+      iconHoverScale: this.resolveNumberForPreset(1.06, this.iconHoverScale),
       clickable: this.clickable,
       hoverable: this.hoverable,
       disabled: this.disabled,

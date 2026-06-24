@@ -8,6 +8,7 @@ import {
 import { LogUtils } from '../../../utils/LogUtils'
 import { PLACEHOLDER_TEXT } from '../../../constants/StringCatalog'
 import {
+  EventPayloadRecord,
   collectPayloadSources,
   pickNumber,
   pickString
@@ -15,11 +16,11 @@ import {
 import {
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
-  PeripheralConnectionRecordProducerEvent
+  PeripheralConnectionRecordProducerEvent,
+  PeripheralConnectionAction
 } from './peripheral_connection_record_producer_contract'
 import { StatusText } from '../../../constants/StringCatalog'
 import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
-import { LooseRecord } from '../../../types/LooseValueTypes'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 
 const TAG = 'ConnectionRecordBtConsumer'
@@ -28,15 +29,12 @@ const BLUETOOTH_ACL_STATE_CONNECTED = 1
 const BLUETOOTH_ACL_STATE_CONNECTING = 2
 const BLUETOOTH_ACL_STATE_DISCONNECTING = 3
 
-type BluetoothAclAction = 'connect' | 'disconnect' | 'unknown'
-type EventPayloadRecord = LooseRecord
-
 interface BluetoothAclEventInfo {
   occurAt: number
   deviceId: string
   rawDeviceId: string
   deviceName: string
-  action: BluetoothAclAction
+  action: PeripheralConnectionAction
   stateLabel: string
   reasonLabel: string
   rawPayload: string
@@ -132,7 +130,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     )
   }
 
-  private static resolveBluetoothAclAction(sources: EventPayloadRecord[]): BluetoothAclAction {
+  private static resolveBluetoothAclAction(sources: EventPayloadRecord[]): PeripheralConnectionAction {
     const stateLabel = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothAclStateLabel(sources).toUpperCase()
     if (stateLabel.includes('DISCONNECT')) {
       return 'disconnect'

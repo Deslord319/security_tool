@@ -2,17 +2,15 @@ import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
-import { CrashSubscribeResult, SourceStatus } from '../common/LogManagePorts'
+import { CrashSubscribeResult, LogEntryCallback, SourceStatus } from '../common/LogManagePorts'
 import { mapCrashInfoToLogEntry } from './LogCrashEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogCrashSource'
 const WATCHER_NAME = 'securityCrashWatcher1'
 
-type CrashEntryCallback = (entry: LogEntry) => void
-
 export class LogCrashSource {
-  private static callback: CrashEntryCallback | null = null
+  private static callback: LogEntryCallback | null = null
   private static subscribed: boolean = false
   private static lastErrorCode: number | undefined = undefined
   private static readonly watcher: hiAppEvent.Watcher = {

@@ -1,15 +1,18 @@
+const ADD_RULE_FAILED: string = 'add rule failed'
+const ROLLBACK_LOCAL_DEPLOYMENTS_FAILED: string = 'rollback local deployments failed'
+
 export class FirewallModeSwitchErrorStrings {
   static readonly SNAPSHOT_FAILED: string = 'mode switch snapshot failed'
   static readonly READ_PREVIOUS_POLICY_FAILED: string = 'read previous policy failed'
   static readonly CLEAR_LOCAL_DEPLOYMENTS_FAILED: string = 'clear local deployments failed'
-  static readonly ADD_RULE_FAILED: string = 'add rule failed'
+  static readonly ADD_RULE_FAILED: string = ADD_RULE_FAILED
   static readonly SAVE_DEPLOYMENTS_FAILED: string = 'save deployments failed'
   static readonly SAVE_TARGET_MODE_FAILED: string = 'save target mode failed'
   static readonly COMPLETED_WITH_FAILED_ITEMS: string = 'mode switch completed with failed items'
   static readonly ROLLBACK_CLEAR_CURRENT_RULES_FAILED: string = 'rollback clear current rules failed'
   static readonly ROLLBACK_POLICY_FAILED: string = 'rollback policy failed'
   static readonly ROLLBACK_RESTORE_RULE_FAILED: string = 'rollback restore rule failed'
-  static readonly ROLLBACK_LOCAL_DEPLOYMENTS_FAILED: string = 'rollback local deployments failed'
+  static readonly ROLLBACK_LOCAL_DEPLOYMENTS_FAILED: string = ROLLBACK_LOCAL_DEPLOYMENTS_FAILED
   static readonly ROLLBACK_CURRENT_MODE_FAILED: string = 'rollback current mode failed'
 }
 
@@ -39,12 +42,12 @@ export class FirewallRuleMutationErrorStrings {
   static readonly ROLLBACK_NEW_SYSTEM_RULE_FAILED: string = 'rollback new system rule failed'
   static readonly ROLLBACK_UPDATED_SYSTEM_RULE_FAILED: string = 'rollback updated system rule failed'
   static readonly ROLLBACK_SYSTEM_RULE_FAILED: string = 'rollback system rule failed'
-  static readonly ROLLBACK_LOCAL_DEPLOYMENTS_FAILED: string = 'rollback local deployments failed'
+  static readonly ROLLBACK_LOCAL_DEPLOYMENTS_FAILED: string = ROLLBACK_LOCAL_DEPLOYMENTS_FAILED
   static readonly ROLLBACK_LOCAL_INTENT_FAILED: string = 'rollback local intent failed'
 }
 
 export class FirewallRuleDeploymentErrorStrings {
-  static readonly ADD_RULE_FAILED: string = 'add rule failed'
+  static readonly ADD_RULE_FAILED: string = ADD_RULE_FAILED
   static readonly REMOVE_SYSTEM_RULE_FAILED: string = 'remove system rule failed'
   static readonly RESTORE_OLD_SYSTEM_RULE_FAILED: string = 'restore old system rule failed'
   static readonly RESTORE_OLD_DEPLOYMENTS_FAILED: string = 'restore old deployments failed'

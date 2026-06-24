@@ -160,7 +160,7 @@ export struct MultiCheckSelect {
                   Row({ space: 10 }) {
                     Row() {
                       Text(this.isAllSelected() ? '✓' : '')
-                        .fontSize(12)
+                        .fontSize(AppStyles.FONT_SIZE_CAPTION)
                         .fontWeight(FontWeight.Bold)
                         .fontColor(this.getCheckboxTextColor(this.isAllSelected()))
                     }
@@ -168,7 +168,7 @@ export struct MultiCheckSelect {
                     .height(16)
                     .alignItems(VerticalAlign.Center)
                     .justifyContent(FlexAlign.Center)
-                    .borderRadius(4)
+                    .borderRadius(AppStyles.RADIUS_SM)
                     .border({
                       width: AppStyles.DIVIDER_HEIGHT,
                       color: this.isAllSelected() ? AppColors.BRAND_PRIMARY : FormControlUtils.border(this.currentTheme),
@@ -197,7 +197,7 @@ export struct MultiCheckSelect {
                     Row({ space: 10 }) {
                       Row() {
                         Text(this.isOptionSelected(option.userId) ? '✓' : '')
-                          .fontSize(12)
+                          .fontSize(AppStyles.FONT_SIZE_CAPTION)
                           .fontWeight(FontWeight.Bold)
                           .fontColor(this.getCheckboxTextColor(this.isOptionSelected(option.userId)))
                       }
@@ -205,7 +205,7 @@ export struct MultiCheckSelect {
                       .height(16)
                       .alignItems(VerticalAlign.Center)
                       .justifyContent(FlexAlign.Center)
-                      .borderRadius(4)
+                      .borderRadius(AppStyles.RADIUS_SM)
                       .border({
                         width: AppStyles.DIVIDER_HEIGHT,
                         color: this.isOptionSelected(option.userId) ? AppColors.BRAND_PRIMARY : FormControlUtils.border(this.currentTheme),
