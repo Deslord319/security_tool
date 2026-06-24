@@ -49,7 +49,7 @@ export struct LogDetailTable {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .width('100%')
-    .padding(12)
+    .padding(AppStyles.PADDING_12)
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .borderRadius(AppStyles.RADIUS_MD)
   }

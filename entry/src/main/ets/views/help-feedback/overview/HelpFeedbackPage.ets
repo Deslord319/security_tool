@@ -43,7 +43,7 @@ struct ExpandableInfoList {
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           }
           .width('100%')
-          .padding(12)
+          .padding(AppStyles.PADDING_12)
           .onClick(() => {
             this.onToggle(index)
           })
