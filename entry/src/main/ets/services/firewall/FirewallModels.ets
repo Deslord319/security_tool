@@ -1,4 +1,5 @@
 import { netFirewall } from '@kit.NetworkKit'
+import { OperationResult } from '../../models/CommonModels'
 
 export type FirewallPresetMode = 'public' | 'private' | 'custom'
 export type FirewallUserPolicyMode = 'allowlist' | 'denylist'
@@ -114,11 +115,8 @@ export interface FirewallFailedItem {
   errorMessage?: string
 }
 
-export interface FirewallOperationResult {
-  success: boolean
+export interface FirewallOperationResult extends OperationResult<void> {
   failedItems?: FirewallFailedItem[]
-  errorCode?: number
-  errorMessage?: string
 }
 
 export interface FirewallBatchOperationResult extends FirewallOperationResult {

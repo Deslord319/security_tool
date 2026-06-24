@@ -31,7 +31,7 @@ export default function dialogStringsTest() {
       expect(DeviceDetailStrings.TITLE.length > 0).assertTrue()
       expect(DeviceDetailStrings.HISTORY_COUNT_SUFFIX.length > 0).assertTrue()
       expect(DeviceTypeLabels.BLUETOOTH.length > 0).assertTrue()
-      expect(LabelText.ALL.length > 0).assertTrue()
+      expect(LabelText.UNKNOWN.length > 0).assertTrue()
       expect(FirewallRuleLabelStrings.DOMAIN_RULE.length > 0).assertTrue()
     })
 

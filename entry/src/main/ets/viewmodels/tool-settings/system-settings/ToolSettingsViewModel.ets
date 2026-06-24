@@ -1,6 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { ActionDialogStatus } from '../../../utils/DialogService'
+import { ActionDialogStatus, DialogActionKind } from '../../../utils/DialogService'
 import { MessageText } from '../../../constants/StringCatalog'
 import { AuthMethod } from '../../../models/AuthModels'
 import {
@@ -21,10 +21,8 @@ import { SystemSettingsService } from '../../../services/tool-settings/system-se
 
 const TAG = 'ToolSettings.ViewModel'
 
-type ToolSettingsActionKind = 'none' | 'result' | 'confirm'
-
 export interface ToolSettingsActionRequest {
-  kind: ToolSettingsActionKind
+  kind: DialogActionKind
   status?: ActionDialogStatus
   title?: string
   message?: string

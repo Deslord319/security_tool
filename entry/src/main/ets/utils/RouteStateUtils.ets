@@ -1,6 +1,6 @@
 import { RouteIds } from '../constants/RouteIds'
 
-export function isFirewallRoute(route: string): boolean {
+function isFirewallRoute(route: string): boolean {
   return route === RouteIds.FIREWALL || route === RouteIds.FIREWALL_RULES
 }
 

@@ -1,6 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
-import { FirewallRuleMutationErrorStrings } from '../../constants/modules/FirewallErrorStrings'
+import { FirewallRuleDeploymentErrorStrings, FirewallRuleMutationErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import { buildFirewallAddRuleFailedMessage } from '../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../utils/LogUtils'
 import { generateRandomSuffix } from '../../utils/ValuePicker'
@@ -609,7 +609,7 @@ export class FirewallRuleMutationService {
         localRuleId: intent.localRuleId,
         userId: userId,
         errorCode: addRuleResult.errorCode,
-        errorMessage: addRuleResult.errorMessage ?? 'add rule failed'
+        errorMessage: addRuleResult.errorMessage ?? FirewallRuleDeploymentErrorStrings.ADD_RULE_FAILED
       }
     }
   }

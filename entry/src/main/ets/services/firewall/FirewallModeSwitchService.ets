@@ -1,4 +1,4 @@
-import { common } from '@kit.AbilityKit'
+﻿import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallModeSwitchErrorStrings } from '../../constants/modules/FirewallErrorStrings'
 import {
@@ -184,7 +184,7 @@ export class FirewallModeSwitchService {
       let previousRules = snapshot.rules.get(userId) ?? []
       for (let ruleIndex = 0; ruleIndex < previousRules.length; ruleIndex++) {
         let previousRule = previousRules[ruleIndex]
-        let previousRuleId = FirewallModeSwitchService.readSystemRuleId(previousRule)
+        let previousRuleId = FirewallRuleUtils.readSystemRuleId(previousRule)
         let addRuleResult = await FirewallSystemRepository.addRule(FirewallRuleUtils.normalizeRuleForCreate(previousRule))
         if ((addRuleResult.systemRuleId ?? -1) > 0) {
           if (previousRuleId !== undefined) {
@@ -235,11 +235,6 @@ export class FirewallModeSwitchService {
     return `${userId}:${systemRuleId}`
   }
 
-  private static readSystemRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
-    let source = rule as FirewallScopedRule
-    return typeof source.id === 'number' ? source.id : undefined
-  }
-
   private static clonePolicy(policy: netFirewall.NetFirewallPolicy): netFirewall.NetFirewallPolicy {
     return {
       isOpen: policy.isOpen,
@@ -250,7 +245,7 @@ export class FirewallModeSwitchService {
 
   private static cloneRuleForSnapshot(rule: netFirewall.NetFirewallRule): netFirewall.NetFirewallRule {
     let clonedRule = FirewallRuleUtils.cloneSystemRule(rule) as FirewallScopedRule
-    let ruleId = FirewallModeSwitchService.readSystemRuleId(rule)
+    let ruleId = FirewallRuleUtils.readSystemRuleId(rule)
     if (ruleId !== undefined) {
       clonedRule.id = ruleId
     }

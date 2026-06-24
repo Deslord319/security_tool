@@ -201,6 +201,11 @@ export class FirewallRuleUtils {
     return clonedRule
   }
 
+  static readSystemRuleId(rule: netFirewall.NetFirewallRule): number | undefined {
+    let source = rule as FirewallScopedRule
+    return typeof source.id === 'number' ? source.id : undefined
+  }
+
   static cloneDisplayRuleFromIntent(
     intent: FirewallRuleIntent,
     deployments: FirewallRuleDeployment[] = []

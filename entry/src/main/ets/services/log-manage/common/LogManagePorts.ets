@@ -49,6 +49,8 @@ export interface SourceStatus {
   errorCode?: number
 }
 
+export type LogEntryCallback = (entry: LogEntry) => void
+
 export interface AuditSubscribeResult extends ServiceResult<'ok' | 'unsupported' | 'permission_denied' | 'partial'> {
   subscribedEventIds: number[]
   failedEventIds: number[]

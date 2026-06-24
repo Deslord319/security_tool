@@ -3,7 +3,7 @@ import { AppResources } from '../constants/AppResources'
 import { ThemeMode } from '../theme/ThemeColors'
 import { MetricSummaryCard } from './MetricSummaryCard'
 
-export type CompactSummaryCardPreset = 'default' | 'log'
+type CompactSummaryCardPreset = 'default' | 'log'
 
 @ComponentV2
 export struct CompactSummaryCard {

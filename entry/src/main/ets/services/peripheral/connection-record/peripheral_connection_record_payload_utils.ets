@@ -2,7 +2,7 @@ import type { commonEventManager } from '@kit.BasicServicesKit'
 import { LooseRecord, LooseValue } from '../../../types/LooseValueTypes'
 import { pickNumberFromRecords, pickStringFromRecords } from '../../../utils/ValuePicker'
 
-type EventPayloadRecord = LooseRecord
+export type EventPayloadRecord = LooseRecord
 type EventPayloadInput = commonEventManager.CommonEventData | LooseValue | null
 
 export function collectPayloadSources(data: EventPayloadInput): EventPayloadRecord[] {

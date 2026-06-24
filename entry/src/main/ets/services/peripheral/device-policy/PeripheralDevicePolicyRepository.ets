@@ -2,6 +2,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import {
   normalizeDeviceId,
+  PeripheralDevicePolicy,
   PeripheralDevicePolicyRecord
 } from '../../../models/PeripheralModels'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
@@ -10,8 +11,6 @@ const TAG = 'PeripheralDevicePolicyRepo'
 const PREF_STORE_NAME = 'peripheral_device_policy'
 const PREF_KEY_DEVICE_POLICIES = 'device_policies'
 const PREF_KEY_USB_DEFAULT_POLICY = 'usb_default_policy'
-
-export type PeripheralUsbDefaultPolicy = 'allow' | 'deny'
 
 interface DevicePolicyChangeEvent {
   totalCount: number
@@ -25,7 +24,7 @@ export class PeripheralDevicePolicyRepository {
   private static initPromise: Promise<boolean> | null = null
   private static initialized: boolean = false
   private static records: PeripheralDevicePolicyRecord[] = []
-  private static usbDefaultPolicy: PeripheralUsbDefaultPolicy = 'allow'
+  private static usbDefaultPolicy: PeripheralDevicePolicy = 'allow'
   private static nextListenerId: number = 1
   private static listeners: Map<number, DevicePolicyChangeListener> = new Map()
   private static nowProvider: () => number = () => Date.now()
@@ -78,7 +77,7 @@ export class PeripheralDevicePolicyRepository {
     return found ? PeripheralDevicePolicyRepository.cloneRecord(found) : null
   }
 
-  static getUsbDefaultPolicy(): PeripheralUsbDefaultPolicy {
+  static getUsbDefaultPolicy(): PeripheralDevicePolicy {
     return PeripheralDevicePolicyRepository.usbDefaultPolicy
   }
 
@@ -86,7 +85,7 @@ export class PeripheralDevicePolicyRepository {
     return PeripheralDevicePolicyRepository.usbDefaultPolicy === 'deny'
   }
 
-  static async setUsbDefaultPolicy(policy: PeripheralUsbDefaultPolicy): Promise<boolean> {
+  static async setUsbDefaultPolicy(policy: PeripheralDevicePolicy): Promise<boolean> {
     try {
       const normalized = PeripheralDevicePolicyRepository.normalizeUsbDefaultPolicy(policy)
       const saved = await PeripheralDevicePolicyRepository.saveUsbDefaultPolicy(normalized)
@@ -184,7 +183,7 @@ export class PeripheralDevicePolicyRepository {
     }
   }
 
-  private static async saveUsbDefaultPolicy(policy: PeripheralUsbDefaultPolicy): Promise<boolean> {
+  private static async saveUsbDefaultPolicy(policy: PeripheralDevicePolicy): Promise<boolean> {
     if (!PeripheralDevicePolicyRepository.context) {
       return false
     }
@@ -209,7 +208,7 @@ export class PeripheralDevicePolicyRepository {
     }
   }
 
-  private static normalizeUsbDefaultPolicy(policy: string | PeripheralUsbDefaultPolicy): PeripheralUsbDefaultPolicy {
+  private static normalizeUsbDefaultPolicy(policy: string | PeripheralDevicePolicy): PeripheralDevicePolicy {
     return policy === 'deny' ? 'deny' : 'allow'
   }
 
