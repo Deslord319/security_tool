@@ -60,6 +60,7 @@ import peripheralPayloadUtilsTest from './peripheral/payload-utils.test'
 import peripheralTraceMaintenanceServiceTest from './peripheral/trace-maintenance-service.test'
 import peripheralDevicePolicyRepositoryTest from './peripheral/device-policy-repository.test'
 import runtimeProducerAdapterTest from './peripheral/runtime-producer-adapter.test'
+import permissionViewModelTest from './permission-manage/viewmodel.test'
 import themeManagerTest from './theme/theme-manager.test'
 import toolSettingsRepositoryTest from './tool-settings/repository.test'
 import systemSettingsServiceTest from './tool-settings/system-settings-service.test'
@@ -144,6 +145,7 @@ export default function testsuite() {
   peripheralTraceMaintenanceServiceTest()
   peripheralDevicePolicyRepositoryTest()
   runtimeProducerAdapterTest()
+  permissionViewModelTest()
   themeManagerTest()
   toolSettingsRepositoryTest()
   systemSettingsServiceTest()

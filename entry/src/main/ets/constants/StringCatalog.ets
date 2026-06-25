@@ -12,6 +12,7 @@ export class ModuleText {
   static readonly FIREWALL: string = '防火墙管理'
   static readonly LOG_MANAGE: string = '日志管理'
   static readonly PERIPHERAL_MANAGE: string = '外设管理'
+  static readonly PERMISSION_MANAGE: string = '权限管理'
   static readonly IDENTITY: string = '身份鉴别'
   static readonly TOOL_SETTINGS: string = '工具设置'
   static readonly HELP_FEEDBACK: string = '帮助与反馈'

@@ -9,6 +9,7 @@ export class AppResources {
   static readonly FIREWALL_ICON = $r('app.media.firewall')
   static readonly LOG_ICON = $r('app.media.log')
   static readonly PERIPHERAL_ICON = $r('app.media.peripheral')
+  static readonly PERMISSION_ICON = $r('app.media.shield')
   static readonly IDENTITY_ICON = $r('app.media.identity')
   static readonly SETTINGS_ICON = $r('app.media.settings')
   static readonly HELP_MENU_ICON = $r('app.media.help_menu')

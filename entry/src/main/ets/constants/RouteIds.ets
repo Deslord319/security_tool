@@ -8,6 +8,7 @@ export class RouteIds {
   static readonly FIREWALL_RULES = 'firewall-rules'
   static readonly LOG_MANAGE = 'log-manage'
   static readonly PERIPHERAL_MANAGE = 'peripheral-manage'
+  static readonly PERMISSION_MANAGE = 'permission-manage'
   static readonly IDENTITY = 'identity'
   static readonly TOOL_SETTINGS = 'tool-settings'
   static readonly HELP_FEEDBACK = 'help-feedback'

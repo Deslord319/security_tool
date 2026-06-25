@@ -8,6 +8,7 @@
 > - `docs/03-模块设计/安全总览组件设计说明.md`
 > - `docs/03-模块设计/防火墙管理组件设计说明.md`
 > - `docs/03-模块设计/外设管理组件设计说明.md`
+> - `docs/03-模块设计/权限管理组件设计说明.md`
 > - `docs/03-模块设计/身份鉴别组件设计说明.md`
 > - `docs/03-模块设计/日志管理组件设计说明.md`
 > - `docs/03-模块设计/工具设置组件设计说明.md`
@@ -31,14 +32,15 @@ SecurityTool 是面向 HarmonyOS 2in1 设备的企业安全管理工具，交付
 
 ### 2.2 当前版本卖点
 
-当前版本对外可讲的核心卖点只有六个：
+当前版本对外可讲的核心卖点有七个：
 
 1. 统一安全入口
 2. 防火墙策略控制
 3. 外设接口与设备管控
-4. 身份与账户策略配置
-5. 安全日志采集与审计导出
-6. 工具自身的启动认证保护
+4. 应用权限与运行策略入口
+5. 身份与账户策略配置
+6. 安全日志采集与审计导出
+7. 工具自身的启动认证保护
 
 ### 2.3 目标客户的直接价值
 
@@ -58,6 +60,7 @@ SecurityTool 是面向 HarmonyOS 2in1 设备的企业安全管理工具，交付
 | 防火墙管理 | `firewall` / `firewall-rules` | 是 |
 | 日志管理 | `log-manage` | 是 |
 | 外设管理 | `peripheral-manage` | 是 |
+| 权限管理 | `permission-manage` | 首版只读骨架 |
 | 身份鉴别 | `identity` | 是 |
 | 工具设置 | `tool-settings` | 是 |
 | 帮助与反馈 | `help-feedback` | 辅助页，不是核心卖点 |
@@ -88,9 +91,9 @@ MainPage
   -> 防火墙管理
   -> 日志管理
   -> 外设管理
+  -> 权限管理
   -> 身份鉴别
   -> 工具设置
-  -> 帮助与反馈
 ```
 
 ### 4.3 商业演示顺序建议
@@ -100,9 +103,10 @@ MainPage
 1. 先打开安全总览，讲“统一入口 + 当前状态”
 2. 进入防火墙，讲“网络控制能力”
 3. 进入外设管理，讲“接口和设备安全”
-4. 进入身份鉴别，讲“账户策略”
-5. 进入日志管理，讲“审计留痕”
-6. 进入工具设置，讲“工具本身受保护”
+4. 进入权限管理，讲“应用级管控入口”
+5. 进入身份鉴别，讲“账户策略”
+6. 进入日志管理，讲“审计留痕”
+7. 进入工具设置，讲“工具本身受保护”
 
 ## 5. 总体技术收口
 
@@ -180,6 +184,7 @@ EntryAbility
 - 工具设置负责工具自身启动认证；防火墙敏感操作认证直接复用身份认证能力，不消费工具设置配置。
 - 日志管理作为审计留痕模块，运行时采集由 `ApplicationRuntimeManager` 拉起，页面只展示和操作日志查询/导出。
 - 外设运行时采集由 `ApplicationRuntimeManager` 拉起，外设页面不直接启动后台采集管线。
+- 权限管理首版只提供路由、只读骨架和状态模型，不新增签名权限，不触发应用安装、卸载、运行、网络或保活写操作。
 - 帮助与反馈是静态辅助页，不进入核心安全闭环，不引入 Service、Repository 或权限依赖。
 
 #### 5.4.1 文档与实现对齐矩阵
@@ -190,6 +195,7 @@ EntryAbility
 | 防火墙管理 | `firewall`、`firewall-rules` | `FirewallPage.ets`、`FirewallRulesPage.ets`、`FirewallOverviewViewModel.ets`、`FirewallRulesViewModel.ets` | `services/firewall/**`、Preferences 本地意图与系统防火墙 Provider | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/subroute-state.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/firewall/*` |
 | 日志管理 | `log-manage` | `LogManagePage.ets`、`LogManageViewModel.ets`、`LogStorageSettingsViewModel.ets` | `services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/logs/*` |
 | 外设管理 | `peripheral-manage` | `PeripheralPage.ets`、`PeripheralViewModel.ets`、`InterfaceControlViewModel.ets`、`PeripheralRecordViewModel.ets`、`PeripheralPolicyViewModel.ets` | `services/peripheral/**`、运行时 Producer / Pipeline、RDB trace、设备策略 Preferences | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/connection-record-contract.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/peripheral/*` |
+| 权限管理 | `permission-manage` | `PermissionPage.ets`、`PermissionViewModel.ets` | `PermissionService.ets` 首版只读初始态；后续真实能力再拆 Repository / Provider | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
 | 身份鉴别 | `identity` | `IdentityPage.ets`、`IdentitySettingsViewModel.ets` | `IdentityService.ets`、`IdentityPasswordPolicyMapper.ets`、`AuthService.ets` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
 | 工具设置 | `tool-settings` | `ToolSettingsPage.ets`、`ToolSettingsViewModel.ets` | `ToolSettingsRepository.ets`、`SystemSettingsService.ets`、`EntryAbility.ets` 启动消费链路 | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
 | 帮助与反馈 | `help-feedback` | `HelpFeedbackPage.ets` | 无 Service / Repository / Storage；静态内容来自 `HelpFeedbackStrings.ets` | `entry/src/test/help/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
@@ -209,12 +215,12 @@ EntryAbility
 
 #### 5.5.1 RFC 分层与实现走样检查
 
-当前检查结论：总体 RFC 的主分层与现有实现基本一致，未发现页面绕过 ViewModel 直接下发系统能力、`MainPage` 承担模块核心业务、或模块专项设计散落到独立过程目录的走样。需要记录的实现差异是：共享 ViewModel 并非全部由 `ApplicationRuntimeManager` 持有，防火墙总览和规则页 ViewModel 目前由 `MainPage` 持有，用于保持防火墙子路由和规则页状态；该差异仍在“路由壳层装配页面、不承载模块业务”的边界内。
+当前检查结论：总体 RFC 的主分层与现有实现基本一致，未发现页面绕过 ViewModel 直接下发系统能力、`MainPage` 承担模块核心业务、或模块专项设计散落到独立过程目录的走样。需要记录的实现差异是：共享 ViewModel 并非全部由 `ApplicationRuntimeManager` 持有，防火墙总览、规则页和权限管理首版 ViewModel 目前由 `MainPage` 持有，用于保持路由状态；该差异仍在“路由壳层装配页面、不承载模块业务”的边界内。
 
 | RFC 分层 | RFC 预期职责 | 当前实现落点 | 走样检查结论 |
 |---|---|---|---|
 | 应用启动层 | 负责主题初始化、启动认证、加载 `pages/MainPage`、拉起应用级运行时 | `entry/src/main/ets/entryability/EntryAbility.ets`、`ToolSettingsRepository.ets`、`AuthService.ets`、`ApplicationRuntimeManager.ets` | 一致。启动认证由工具设置配置驱动，认证失败/不可用分支有降级或终止处理。 |
-| 运行时服务层 | 管理跨页面运行态和后台采集，不让页面直接启动采集管线 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` 管理日志采集、外设运行时、共享身份/日志/外设/工具设置 ViewModel | 基本一致。防火墙 ViewModel 由 `MainPage` 持有是子路由状态需要，不涉及系统能力直接下发。 |
+| 运行时服务层 | 管理跨页面运行态和后台采集，不让页面直接启动采集管线 | `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets` 管理日志采集、外设运行时、共享身份/日志/外设/工具设置 ViewModel | 基本一致。防火墙和权限管理 ViewModel 由 `MainPage` 持有是路由状态需要，不涉及系统能力直接下发。 |
 | 路由壳层 | 持有当前路由、装配侧边栏/顶部菜单/模块页面，不承载模块业务 | `entry/src/main/ets/pages/MainPage.ets`、`RouteStateUtils.ets`、`RouteIds.ets` | 一致。`MainPage` 只做路由、主题、弹窗入口和 ViewModel 注入；防火墙子路由恢复通过 `lastFirewallRoute` 收口。 |
 | 页面层 | 负责展示、交互转发、弹窗和局部 UI 状态 | `entry/src/main/ets/views/**`、`entry/src/main/ets/components/**` | 一致。页面消费 ViewModel state 和回调；`FirewallRulesPage` 引入 `netFirewall` 仅用于规则类型/枚举展示和弹窗参数，新增/编辑/删除仍经 `FirewallRulesViewModel`，不是页面直接下发系统能力。 |
 | 状态层 | 收口初始化、刷新、保存、提交、结果映射和页面状态 | `entry/src/main/ets/viewmodels/**` | 一致。业务状态集中在各模块 ViewModel，页面没有成为持久业务真相源。 |
@@ -278,9 +284,9 @@ EntryAbility
 - 防火墙
 - 日志管理
 - 外设管理
+- 权限管理
 - 身份鉴别
 - 工具设置
-- 帮助与反馈
 
 ### 6.1.3 用户在本模块具体做什么
 
@@ -559,13 +565,66 @@ EntryAbility
 - 不做所有蓝牙协议层的深度控制
 - 不做复杂审批流
 
-## 6.5 身份鉴别
+## 6.5 权限管理
 
 ### 6.5.1 模块定位
 
-身份鉴别模块是账户安全策略页面，用于向客户展示本工具不仅能控网络和外设，也能控账户安全基线。
+权限管理模块是应用级安全管控入口，用于把非系统预装应用的安装、运行、目录权限、网络和保活策略收敛到同一账号上下文内。当前首版只交付入口和只读骨架，不开放系统写操作。
 
 ### 6.5.2 当前版本具体功能
+
+当前交付三类内容：
+
+1. 侧边栏和首页快捷入口
+2. 策略摘要只读骨架
+3. 应用管控对象空态
+
+具体动作包括：
+
+- 从侧边栏进入权限管理页
+- 从安全总览快捷入口进入权限管理页
+- 查看首版范围说明
+- 查看后续应用清单接入空态
+
+### 6.5.3 用户在本模块具体做什么
+
+- 打开权限管理入口
+- 确认该模块后续承载应用级管控能力
+- 在首版看到清晰的只读范围和管理员依赖说明
+
+### 6.5.4 关键动作链路
+
+页面进入
+-> 初始化 `PermissionViewModel`
+-> `PermissionService` 返回首版只读初始态
+-> 页面展示策略摘要、首版范围和应用清单空态
+-> 不触发任何安装、卸载、运行、网络或保活写操作
+
+### 6.5.5 商业价值
+
+- 为应用级安全治理留出清晰入口
+- 让安全中心能力从设备、网络、账户扩展到应用维度
+- 便于后续按阶段接入真实企业管理 API
+
+### 6.5.6 成功标准
+
+- 权限管理在侧边栏和首页快捷入口中可达
+- 页面可渲染且无白屏
+- 首版不新增签名权限，不触发 MDM 写操作
+
+### 6.5.7 当前不做
+
+- 不读取真实应用清单
+- 不设置安装、卸载或运行策略
+- 不设置 6D 权限、网络策略、保活或自启动策略
+
+## 6.6 身份鉴别
+
+### 6.6.1 模块定位
+
+身份鉴别模块是账户安全策略页面，用于向客户展示本工具不仅能控网络和外设，也能控账户安全基线。
+
+### 6.6.2 当前版本具体功能
 
 当前交付两类配置：
 
@@ -580,7 +639,7 @@ EntryAbility
 - 配置自定义有效期
 - 感知管理员是否激活
 
-### 6.5.3 用户在本模块具体做什么
+### 6.6.3 用户在本模块具体做什么
 
 - 打开当前密码策略页面
 - 查看系统当前策略
@@ -588,7 +647,7 @@ EntryAbility
 - 保存策略
 - 在未激活管理员时看到受限提示
 
-### 6.5.4 关键动作链路
+### 6.6.4 关键动作链路
 
 页面进入
 -> 读取当前系统策略和管理员状态
@@ -598,32 +657,32 @@ EntryAbility
 -> 调用系统策略写入
 -> 页面回显成功/失败结果
 
-### 6.5.5 商业价值
+### 6.6.5 商业价值
 
 - 体现“安全基线配置能力”
 - 补足终端侧账户安全治理场景
 - 对项目交付和方案完整性有帮助
 
-### 6.5.6 成功标准
+### 6.6.6 成功标准
 
 - 当前策略可读取
 - 修改后可保存
 - 保存失败时不丢编辑内容
 - 管理员未激活时提示明确
 
-### 6.5.7 当前不做
+### 6.6.7 当前不做
 
 - 不做统一身份认证平台
 - 不做企业账号体系
 - 不做生物特征策略全量编排
 
-## 6.6 工具设置
+## 6.7 工具设置
 
-### 6.6.1 模块定位
+### 6.7.1 模块定位
 
 工具设置不是“杂项设置页”，而是本工具自身的安全设置页，用于保证应用本身受保护。
 
-### 6.6.2 当前版本具体功能
+### 6.7.2 当前版本具体功能
 
 当前交付两类能力：
 
@@ -637,7 +696,7 @@ EntryAbility
 - 检查认证方式当前是否可用
 - 跳转系统密码设置页
 
-### 6.6.3 用户在本模块具体做什么
+### 6.7.3 用户在本模块具体做什么
 
 - 进入工具设置页
 - 决定启动时是否需要校验
@@ -645,7 +704,7 @@ EntryAbility
 - 保存配置
 - 需要时进入系统密码页修改密码
 
-### 6.6.4 关键动作链路
+### 6.7.4 关键动作链路
 
 #### 动作 A：保存启动认证设置
 
@@ -663,29 +722,29 @@ EntryAbility
 -> 拉起系统设置页面
 -> 返回成功/失败
 
-### 6.6.5 商业价值
+### 6.7.5 商业价值
 
 - 让客户看到“工具自身也受保护”
 - 与防火墙、外设、身份策略形成闭环，而不是裸奔工具
 
-### 6.6.6 成功标准
+### 6.7.6 成功标准
 
 - 配置可保存、可恢复
 - 不可用认证方式不会被错误保存
 - 系统密码入口可达
 
-### 6.6.7 当前不做
+### 6.7.7 当前不做
 
 - 不把所有系统设置项塞进来
 - 不承载其它模块的业务认证逻辑
 
-## 6.7 帮助与反馈
+## 6.8 帮助与反馈
 
-### 6.7.1 模块定位
+### 6.8.1 模块定位
 
 帮助与反馈是辅助信息页，不属于核心安全控制闭环。它用于在演示、验收和日常排障时提供产品使用指南、常见问题和反馈邮箱。
 
-### 6.7.2 当前版本具体功能
+### 6.8.2 当前版本具体功能
 
 当前交付三类静态内容：
 
@@ -696,12 +755,11 @@ EntryAbility
 具体动作包括：
 
 - 从顶部菜单进入帮助与反馈页
-- 从安全总览快捷入口进入帮助与反馈页
 - 展开或收起使用指南条目
 - 展开或收起常见问题条目
 - 查看反馈邮箱
 
-### 6.7.3 关键动作链路
+### 6.8.3 关键动作链路
 
 ```text
 open help-feedback:
@@ -716,14 +774,14 @@ back:
   MainPage.setCurrentPage(RouteIds.DASHBOARD)
 ```
 
-### 6.7.4 成功标准
+### 6.8.4 成功标准
 
-- 顶部菜单和首页快捷入口均可进入页面
+- 顶部菜单可进入页面
 - 使用指南、FAQ 和反馈邮箱完整可见
 - 展开/收起只影响当前页面局部状态
 - 不申请系统权限，不写本地存储，不依赖企业管理员激活
 
-### 6.7.5 当前不做
+### 6.8.5 当前不做
 
 - 不提交在线工单
 - 不拉起邮件客户端
@@ -738,10 +796,11 @@ back:
 1. 首页可进入且状态可读
 2. 防火墙可切换并能编辑规则
 3. 外设可控制并可看到设备连接记录
-4. 身份策略可读取和保存
-5. 日志可查询和导出
-6. 工具设置可启用启动认证
-7. 帮助与反馈可进入并展示使用说明、FAQ 和反馈邮箱
+4. 权限管理可进入并展示首版只读骨架
+5. 身份策略可读取和保存
+6. 日志可查询和导出
+7. 工具设置可启用启动认证
+8. 帮助与反馈可进入并展示使用说明、FAQ 和反馈邮箱
 
 ### 7.2 演示验收
 
@@ -750,10 +809,11 @@ back:
 1. 从首页进入
 2. 演示防火墙总开关与模式切换
 3. 演示外设控制与连接记录
-4. 演示身份鉴别策略编辑
-5. 演示日志筛选与导出
-6. 演示启动认证设置
-7. 演示帮助与反馈辅助入口
+4. 演示权限管理入口和首版范围
+5. 演示身份鉴别策略编辑
+6. 演示日志筛选与导出
+7. 演示启动认证设置
+8. 演示帮助与反馈辅助入口
 
 ### 7.3 工程验收
 
@@ -797,7 +857,7 @@ back:
 
 ## 10. 结论
 
-当前版本不是概念验证，而是一个面向商业项目交付的本地安全管理工具。总体设计的重点不是描述抽象架构，而是确保六个核心模块和一个辅助页各自有明确交付内容、可演示动作、可验收标准和清晰边界。后续所有模块变更，都应回到这四个问题：
+当前版本不是概念验证，而是一个面向商业项目交付的本地安全管理工具。总体设计的重点不是描述抽象架构，而是确保七个核心模块和一个辅助页各自有明确交付内容、可演示动作、可验收标准和清晰边界。后续所有模块变更，都应回到这四个问题：
 
 1. 客户能看到什么
 2. 用户能操作什么

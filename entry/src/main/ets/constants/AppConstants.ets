@@ -67,6 +67,8 @@ export class AppColors {
   static readonly GRADIENT_LOG_END: string = '#30D158'
   static readonly GRADIENT_PERIPHERAL_START: string = '#5856D6'
   static readonly GRADIENT_PERIPHERAL_END: string = '#AF52DE'
+  static readonly GRADIENT_PERMISSION_START: string = '#00A870'
+  static readonly GRADIENT_PERMISSION_END: string = '#4CD4B0'
   static readonly GRADIENT_IDENTITY_END: string = '#FFCC00'
   static readonly GRADIENT_TOOL_START: string = '#9095A1'
   static readonly GRADIENT_TOOL_END: string = '#D8DCE3'
@@ -321,6 +323,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: RouteIds.FIREWALL, label: ModuleText.FIREWALL, icon: AppResources.FIREWALL_ICON },
   { id: RouteIds.LOG_MANAGE, label: ModuleText.LOG_MANAGE, icon: AppResources.LOG_ICON },
   { id: RouteIds.PERIPHERAL_MANAGE, label: ModuleText.PERIPHERAL_MANAGE, icon: AppResources.PERIPHERAL_ICON },
+  { id: RouteIds.PERMISSION_MANAGE, label: ModuleText.PERMISSION_MANAGE, icon: AppResources.PERMISSION_ICON },
   { id: RouteIds.IDENTITY, label: ModuleText.IDENTITY, icon: AppResources.IDENTITY_ICON },
   // Help feedback is exposed from the top menu so the sidebar remains task-focused.
   { id: RouteIds.TOOL_SETTINGS, label: ModuleText.TOOL_SETTINGS, icon: AppResources.SETTINGS_ICON }

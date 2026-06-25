@@ -8,6 +8,7 @@
 > - `docs/03-模块设计/安全总览组件设计说明.md`
 > - `docs/03-模块设计/防火墙管理组件设计说明.md`
 > - `docs/03-模块设计/外设管理组件设计说明.md`
+> - `docs/03-模块设计/权限管理组件设计说明.md`
 > - `docs/03-模块设计/身份鉴别组件设计说明.md`
 > - `docs/03-模块设计/日志管理组件设计说明.md`
 > - `docs/03-模块设计/工具设置组件设计说明.md`
@@ -28,12 +29,13 @@
 
 SecurityTool 是一个面向 HarmonyOS 2in1 设备的企业安全管理中心，服务对象是企业 IT 管理员、安全管理员和设备运营人员。产品目标不是提供零散安全开关，而是提供一套围绕“策略配置、系统执行、审计留痕、风险收敛”的本地安全治理入口。
 
-当前产品以单应用统一入口承载六个能力模块：
+当前产品以单应用统一入口承载七个能力模块：
 
 - 安全总览
 - 防火墙管理
 - 日志管理
 - 外设管理
+- 权限管理
 - 身份鉴别
 - 工具设置
 
@@ -108,6 +110,7 @@ SecurityTool 是一个面向 HarmonyOS 2in1 设备的企业安全管理中心，
 | `firewall-rules` | 防火墙规则详情 | 自定义规则与用户模式下发 |
 | `log-manage` | 日志管理 | 安全事件采集、查询、导出 |
 | `peripheral-manage` | 外设管理 | USB/蓝牙与设备连接记录管控 |
+| `permission-manage` | 权限管理 | 应用级安装、运行、目录、网络和保活管控入口 |
 | `identity` | 身份鉴别 | 口令复杂度与有效期策略 |
 | `tool-settings` | 工具设置 | 启动认证与工具级安全设置 |
 | `help-feedback` | 帮助与反馈 | 辅助信息入口，不属于核心安全闭环 |
@@ -120,15 +123,17 @@ flowchart TB
   A --> C["防火墙管理"]
   A --> D["日志管理"]
   A --> E["外设管理"]
-  A --> F["身份鉴别"]
-  A --> G["工具设置"]
+  A --> F["权限管理"]
+  A --> G["身份鉴别"]
+  A --> H["工具设置"]
 
   B --> H["摘要与导航"]
   C --> I["网络策略"]
   D --> J["审计留痕"]
   E --> K["终端外设控制"]
-  F --> L["口令与身份策略"]
-  G --> M["认证与本地设置"]
+  F --> L["应用权限与运行策略"]
+  G --> M["口令与身份策略"]
+  H --> N["认证与本地设置"]
 ```
 
 ## 7. 模块需求
@@ -139,7 +144,7 @@ flowchart TB
 
 核心需求：
 
-1. 展示防火墙、日志、外设、身份、工具设置等模块摘要卡。
+1. 展示防火墙、日志、外设等模块摘要卡，并提供权限、身份、工具设置等快捷入口。
 2. 提供快捷入口，减少二级页面跳转成本。
 3. 页面显示时能基于当前状态进行静态校准和必要刷新。
 4. 允许基于日志和外设运行时事件更新首页摘要。
@@ -204,7 +209,23 @@ flowchart TB
 - 连接记录列表、详情、清理动作语义一致。
 - 单设备策略在刷新后可恢复。
 
-### 7.5 身份鉴别
+### 7.5 权限管理
+
+模块目标：提供应用级安装、运行、目录权限、网络和保活策略的统一入口，首版先完成可导航只读骨架。
+
+核心需求：
+
+1. 在侧边栏和安全总览快捷入口中提供权限管理入口。
+2. 首版页面展示策略摘要、首版范围和应用清单空态，不执行系统写操作。
+3. 后续真实能力接入前，必须完成管理员激活态、权限声明和签名模板闭环。
+
+核心验收信号：
+
+- 入口可达，页面不白屏。
+- 首版不新增企业权限声明，也不触发安装、卸载、运行、网络或保活写操作。
+- 后续能力拆分能回到模块设计文档中找到阶段边界。
+
+### 7.6 身份鉴别
 
 模块目标：提供口令复杂度、有效期等账户策略配置能力，并感知企业管理员状态。
 
@@ -221,7 +242,7 @@ flowchart TB
 - 修改后保存结果明确，失败时不丢失编辑上下文。
 - 管理员状态变化会影响可编辑性与提示信息。
 
-### 7.6 工具设置
+### 7.7 工具设置
 
 模块目标：围绕本工具自身的启动认证和系统密码入口提供安全设置能力。
 
@@ -289,6 +310,7 @@ flowchart TB
 | 防火墙管理 | 已完成并持续增强 | 已具备总开关、模式切换、自定义规则和用户级模式下发设计说明 |
 | 日志管理 | 已完成并持续增强 | 已具备采集、查询、分页、详情、导出和存储配置设计说明 |
 | 外设管理 | 已完成并持续增强 | 已具备接口管控、连接记录、设备策略和运行时采集设计说明 |
+| 权限管理 | 首版接入中 | 已具备设计说明、路由、首页快捷入口和只读骨架页；真实 MDM 写操作后续分阶段开放 |
 | 身份鉴别 | 已完成 | 已具备密码复杂度、有效期、管理员激活态和保存流程设计说明 |
 | 工具设置 | 已完成 | 已具备启动认证、认证方式、系统密码入口和启动阶段消费链路设计说明 |
 | 帮助与反馈 | 已完成 | 辅助页，已具备使用指南、FAQ、反馈邮箱和静态页面边界设计说明 |
@@ -303,9 +325,10 @@ flowchart TB
 | 防火墙管理 | 总开关、模式切换、自定义规则、规则页 | 总体 RFC 6.2；`docs/03-模块设计/防火墙管理组件设计说明.md` | `views/firewall/**`、`viewmodels/firewall/**`、`services/firewall/**` | `entry/src/test/firewall/*`、`entry/src/ohosTest/ets/test/firewall/subroute-state.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/firewall/*` |
 | 日志管理 | 采集、查询、筛选、分页、详情、导出、留存配置 | 总体 RFC 6.3；`docs/03-模块设计/日志管理组件设计说明.md` | `views/log-manage/**`、`viewmodels/log-manage/**`、`services/log-manage/**`、`storage/rdb/**` | `entry/src/test/log-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/logs/*` |
 | 外设管理 | 接口管控、USB/蓝牙策略、连接记录、运行时采集 | 总体 RFC 6.4；`docs/03-模块设计/外设管理组件设计说明.md` | `views/peripheral/**`、`viewmodels/peripheral/**`、`services/peripheral/**`、`runtime/ApplicationRuntimeManager.ets` | `entry/src/test/peripheral/*`、`entry/src/test/viewmodels/Peripheral*.test.ets`、`entry/src/ohosTest/ets/test/peripheral/connection-record-contract.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/peripheral/*` |
-| 身份鉴别 | 口令复杂度、有效期、企业管理员状态、认证能力 | 总体 RFC 6.5；`docs/03-模块设计/身份鉴别组件设计说明.md` | `views/identity/**`、`viewmodels/identity/**`、`services/identity/**` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
-| 工具设置 | 启动认证、认证方式、系统密码入口 | 总体 RFC 6.6；`docs/03-模块设计/工具设置组件设计说明.md` | `views/tool-settings/**`、`viewmodels/tool-settings/**`、`services/tool-settings/**`、`entryability/EntryAbility.ets` | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/entryability.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
-| 帮助与反馈 | 使用指南、FAQ、反馈邮箱、辅助入口 | 总体 RFC 6.7；`docs/03-模块设计/帮助与反馈组件设计说明.md` | `views/help-feedback/overview/HelpFeedbackPage.ets`、`constants/modules/HelpFeedbackStrings.ets` | `entry/src/test/help/strings.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
+| 权限管理 | 应用级管控入口、首版只读骨架 | 总体 RFC 6.5；`docs/03-模块设计/权限管理组件设计说明.md` | `views/permission-manage/**`、`viewmodels/permission-manage/**`、`services/permission-manage/**` | `entry/src/test/permission-manage/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets` |
+| 身份鉴别 | 口令复杂度、有效期、企业管理员状态、认证能力 | 总体 RFC 6.6；`docs/03-模块设计/身份鉴别组件设计说明.md` | `views/identity/**`、`viewmodels/identity/**`、`services/identity/**` | `entry/src/test/identity/*`、`entry/src/test/auth/*`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/identity/*` |
+| 工具设置 | 启动认证、认证方式、系统密码入口 | 总体 RFC 6.7；`docs/03-模块设计/工具设置组件设计说明.md` | `views/tool-settings/**`、`viewmodels/tool-settings/**`、`services/tool-settings/**`、`entryability/EntryAbility.ets` | `entry/src/test/tool-settings/*`、`entry/src/test/entryability/entryability.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/tool_settings/*` |
+| 帮助与反馈 | 使用指南、FAQ、反馈邮箱、辅助入口 | 总体 RFC 6.8；`docs/03-模块设计/帮助与反馈组件设计说明.md` | `views/help-feedback/overview/HelpFeedbackPage.ets`、`constants/modules/HelpFeedbackStrings.ets` | `entry/src/test/help/strings.test.ets`、`entry/src/ohosTest/ets/test/simple/RouteAction.test.ets`、`scripts/e2e/cases/navigation/help_feedback*.json` |
 
 ## 11. 后续文档约束
 
@@ -321,8 +344,9 @@ flowchart TB
 
 ### M1：当前可用基线
 
-- 六大核心模块均已可进入和使用
-- 帮助与反馈辅助页可从顶部菜单和首页快捷入口进入
+- 七个核心模块均已可进入，其中权限管理为首版只读骨架
+- 权限管理首版可从侧边栏和首页快捷入口进入
+- 帮助与反馈辅助页可从顶部菜单进入
 - 构建、签名、安装链路稳定
 - 基础文档已与代码结构对齐
 

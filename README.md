@@ -2,12 +2,12 @@
 
 > HarmonyOS 安全管理中心 / Enterprise Security Center for HarmonyOS
 
-[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2-blue)](https://developer.huawei.com/consumer/cn/)
+[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.1.1-blue)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-orange)](https://developer.huawei.com/consumer/cn/doc/)
 [![Target](https://img.shields.io/badge/Device-2in1-0A84FF)](https://developer.huawei.com/consumer/cn/)
 [![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)](#项目基线)
 
-`SecurityTool` 是一个基于 ArkTS 的 HarmonyOS 企业安全管理工具，面向 `2in1` 设备，聚合安全总览、防火墙、日志管理、外设管控、身份鉴别和工具设置能力。应用主入口为 `pages/MainPage`，包名为 `com.huawei.securitytool`，当前应用版本为 `1.0.0`。
+`SecurityTool` 是一个基于 ArkTS 的 HarmonyOS 企业安全管理工具，面向 `2in1` 设备，聚合安全总览、防火墙、日志管理、外设管控、权限管理、身份鉴别和工具设置能力。应用主入口为 `pages/MainPage`，包名为 `com.huawei.securitytool`，当前应用版本为 `1.0.0`。
 
 ## 当前能力
 
@@ -17,6 +17,7 @@
 | 防火墙管理 | 模式切换、规则详情、规则新增删除、用户分发控制 | `firewall` / `firewall-rules` |
 | 日志管理 | 审计与崩溃日志采集、分页展示、详情查看、导出、存储设置 | `log-manage` |
 | 外设管理 | USB/蓝牙接口控制、设备策略、连接记录 | `peripheral-manage` |
+| 权限管理 | 应用级安装、运行、目录、网络和保活管控入口 | `permission-manage` |
 | 身份鉴别 | 口令复杂度、密码有效期策略、PIN / 指纹认证基础能力 | `identity` |
 | 工具设置 | 启动认证、认证方式、系统设置相关项 | `tool-settings` |
 | 帮助与反馈 | 帮助入口、关于信息 | 顶部菜单 `help-feedback` |
@@ -31,7 +32,7 @@
 | 版本 | `1.0.0` (`versionCode: 1000000`) |
 | 目标设备 | `2in1` |
 | 语言 | ArkTS (ETS) |
-| SDK 基线 | HarmonyOS `6.0.2` |
+| SDK 基线 | HarmonyOS `6.1.1` (`API 24`) |
 | 主入口页面 | `pages/MainPage` |
 | unsigned HAP | `entry/build/default/outputs/default/entry-default-unsigned.hap` |
 | signed HAP | `hapsigner/signApp.hap` |
@@ -42,14 +43,15 @@
 
 项目定位不是系统设置页集合，而是一个可构建、可签名、可安装、可演示、可验收的本地安全管理中心，服务于 HarmonyOS `2in1` 设备上的企业安全管理场景。
 
-当前对外交付的核心能力集中在六个方向：
+当前对外交付的核心能力集中在七个方向：
 
 1. 统一安全入口
 2. 防火墙策略控制
 3. 外设接口与设备管控
-4. 身份与账户策略配置
-5. 安全日志采集与审计导出
-6. 工具自身的启动认证保护
+4. 应用权限与运行策略入口
+5. 身份与账户策略配置
+6. 安全日志采集与审计导出
+7. 工具自身的启动认证保护
 
 ### 页面与导航设计
 
@@ -61,9 +63,9 @@ MainPage
   -> firewall
   -> log-manage
   -> peripheral-manage
+  -> permission-manage
   -> identity
   -> tool-settings
-  -> help-feedback
 ```
 
 其中：
@@ -105,6 +107,7 @@ Page -> ViewModel -> Service -> Repository / Store / Provider -> HarmonyOS API
 | 防火墙管理 | 体现网络访问控制能力 | 总开关、模式切换、自定义规则、用户级模式下发 |
 | 日志管理 | 提供可审计与可导出闭环 | 采集状态、筛选、分页、详情、导出、存储设置 |
 | 外设管理 | 体现终端设备侧控制能力 | 接口开关、连接记录、单设备策略 |
+| 权限管理 | 提供应用级管控入口 | 首版只读骨架，后续承载安装、运行、目录、网络和保活策略 |
 | 身份鉴别 | 提供账户安全基线设置 | 密码复杂度、有效期、管理员激活态感知 |
 | 工具设置 | 保护工具自身访问入口 | 启动认证、认证方式选择、系统密码入口 |
 | 帮助与反馈 | 提供辅助说明与支持入口 | 使用指南、FAQ、反馈邮箱 |
@@ -162,6 +165,7 @@ entry/src/main/ets/
 | Firewall | `views/firewall/overview`、`views/firewall/rules` | `viewmodels/firewall/overview`、`viewmodels/firewall/rules`、`viewmodels/firewall/user-dispatch` |
 | Log Manage | `views/log-manage/overview` | `viewmodels/log-manage/overview`、`viewmodels/log-manage/storage-settings` |
 | Peripheral | `views/peripheral/overview` | `viewmodels/peripheral/overview`、`viewmodels/peripheral/interface-control`、`viewmodels/peripheral/connection-record`、`viewmodels/peripheral/device-policy` |
+| Permission Manage | `views/permission-manage/overview` | `viewmodels/permission-manage` |
 | Identity | `views/identity/settings` | `viewmodels/identity/settings` |
 | Tool Settings | `views/tool-settings/system-settings` | `viewmodels/tool-settings/system-settings` |
 | Help & Feedback | `views/help-feedback/overview` | 由页面直接承载，未单独拆分 ViewModel |
@@ -179,6 +183,7 @@ services/
 ├── identity/                      # 认证服务与身份设置服务
 ├── log-manage/                    # 日志采集、导出、归一化、仓储、数据源
 ├── peripheral/                    # 外设接口、连接记录、设备策略
+├── permission-manage/             # 权限管理首版只读状态服务
 └── tool-settings/                 # 系统设置与工具设置持久化
 ```
 
@@ -200,7 +205,7 @@ docs/05-AI开发/                    # AI 继续开发任务手册
 
 ### 环境要求
 
-- DevEco Studio / HarmonyOS SDK `6.0.2`
+- DevEco Studio / HarmonyOS SDK `6.1.1` (`API 24`)
 - DevEco Studio 自带 JBR 或 Java `11+`，需能被 `hvigorw` 所在 shell 访问
 - `hdc`
 - Windows 本地开发推荐直接使用仓库脚本 `build_hap.bat`
@@ -351,6 +356,7 @@ security_tool/
 - [docs/03-模块设计/安全总览组件设计说明.md](docs/03-模块设计/安全总览组件设计说明.md)：安全总览模块设计
 - [docs/03-模块设计/防火墙管理组件设计说明.md](docs/03-模块设计/防火墙管理组件设计说明.md)：防火墙模块设计
 - [docs/03-模块设计/外设管理组件设计说明.md](docs/03-模块设计/外设管理组件设计说明.md)：外设模块设计
+- [docs/03-模块设计/权限管理组件设计说明.md](docs/03-模块设计/权限管理组件设计说明.md)：权限管理模块设计
 - [docs/03-模块设计/身份鉴别组件设计说明.md](docs/03-模块设计/身份鉴别组件设计说明.md)：身份鉴别模块设计
 - [docs/03-模块设计/日志管理组件设计说明.md](docs/03-模块设计/日志管理组件设计说明.md)：日志管理模块设计
 - [docs/03-模块设计/工具设置组件设计说明.md](docs/03-模块设计/工具设置组件设计说明.md)：工具设置模块设计

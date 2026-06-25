@@ -12,6 +12,7 @@ type SingleRouteId =
   | 'firewall'
   | 'log-manage'
   | 'peripheral-manage'
+  | 'permission-manage'
   | 'identity'
   | 'tool-settings'
   | 'help-feedback'
@@ -24,6 +25,7 @@ const ROUTE_ORDER: SingleRouteId[] = [
   'firewall',
   'log-manage',
   'peripheral-manage',
+  'permission-manage',
   'identity',
   'tool-settings',
   'help-feedback'
@@ -39,6 +41,8 @@ function routeNavText(route: SingleRouteId): string {
       return '日志管理'
     case 'peripheral-manage':
       return '外设管理'
+    case 'permission-manage':
+      return '权限管理'
     case 'identity':
       return '身份鉴别'
     case 'tool-settings':
@@ -60,6 +64,8 @@ function routeMarkerTexts(route: SingleRouteId): string[] {
       return ['导出日志', '打开存储设置']
     case 'peripheral-manage':
       return ['接口管控', '设备连接记录', '黑白名单']
+    case 'permission-manage':
+      return ['策略摘要', '应用管控对象']
     case 'identity':
       return ['口令复杂度策略', '密码有效期']
     case 'tool-settings':
@@ -96,6 +102,7 @@ function parseRoute(raw: string): RouteId {
     case 'firewall':
     case 'log-manage':
     case 'peripheral-manage':
+    case 'permission-manage':
     case 'identity':
     case 'tool-settings':
     case 'help-feedback':
