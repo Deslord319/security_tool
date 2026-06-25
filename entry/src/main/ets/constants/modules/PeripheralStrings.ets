@@ -23,6 +23,8 @@ export class PeripheralReasonCodes {
   static readonly READ_USB_STORAGE_POLICY_FAILED: string = 'read_usb_storage_policy'
   static readonly SET_USB_INTERFACE_CONFLICT: string = 'set_usb_interface'
   static readonly SET_USB_STORAGE_POLICY_CONFLICT: string = 'set_usb_storage_policy'
+  static readonly TURN_ON_WIFI_FAILED: string = 'turn_on_wifi'
+  static readonly TURN_ON_BLUETOOTH_FAILED: string = 'turn_on_bluetooth'
 }
 
 export class PeripheralOptionStrings {

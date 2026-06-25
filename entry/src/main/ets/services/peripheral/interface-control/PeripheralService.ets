@@ -1,9 +1,10 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
-import { networkManager, usbManager } from '@kit.MDMKit'
+import { bluetoothManager, networkManager, usbManager, wifiManager } from '@kit.MDMKit'
 
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralServiceErrorStrings } from '../../../constants/modules/PeripheralErrorStrings'
+import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
 import { OperationResult } from '../../../models/CommonModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
@@ -12,6 +13,8 @@ import { ErrorLike } from '../../../types/LooseValueTypes'
 import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 
 const TAG = 'PeripheralService'
+const ACTION_TURN_ON_WIFI = 'turn on wifi'
+const ACTION_TURN_ON_BLUETOOTH = 'turn on bluetooth'
 
 interface UsbConflictSnapshot {
   storagePolicy: usbManager.UsbPolicy
@@ -41,11 +44,24 @@ export class PeripheralService {
 
     try {
       restrictions.setDisallowedPolicy(ADMIN_WANT, feature, disallow)
+      if (!disallow) {
+        return PeripheralService.restoreEnabledInterfacePowerWithResult(feature)
+      }
       return { success: true } as OperationResult<void>
     } catch (err) {
       LogUtils.error(TAG, `setInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return OperationResultUtils.buildFailureResult<void>('set interface disabled policy', err as ErrorLike)
     }
+  }
+
+  static restoreEnabledInterfacePowerWithResult(feature: string): OperationResult<void> {
+    if (feature === PeripheralService.FEATURE_WIFI) {
+      return PeripheralService.turnOnWifiWithResult()
+    }
+    if (feature === PeripheralService.FEATURE_BLUETOOTH) {
+      return PeripheralService.turnOnBluetoothWithResult()
+    }
+    return { success: true } as OperationResult<void>
   }
 
   static getInterfaceDisabledWithResult(feature: string): OperationResult<boolean> {
@@ -143,6 +159,30 @@ export class PeripheralService {
     } catch (err) {
       LogUtils.error(TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
       return OperationResultUtils.buildFailureResult<boolean>('get network interface status', err as ErrorLike, false)
+    }
+  }
+
+  private static turnOnWifiWithResult(): OperationResult<void> {
+    try {
+      wifiManager.turnOnWifi(ADMIN_WANT, false)
+      return { success: true } as OperationResult<void>
+    } catch (err) {
+      LogUtils.error(TAG, `turnOnWifi failed: ${JSON.stringify(err)}`)
+      const result = OperationResultUtils.buildFailureResult<void>(ACTION_TURN_ON_WIFI, err as ErrorLike)
+      result.stage = PeripheralReasonCodes.TURN_ON_WIFI_FAILED
+      return result
+    }
+  }
+
+  private static turnOnBluetoothWithResult(): OperationResult<void> {
+    try {
+      bluetoothManager.turnOnBluetooth(ADMIN_WANT)
+      return { success: true } as OperationResult<void>
+    } catch (err) {
+      LogUtils.error(TAG, `turnOnBluetooth failed: ${JSON.stringify(err)}`)
+      const result = OperationResultUtils.buildFailureResult<void>(ACTION_TURN_ON_BLUETOOTH, err as ErrorLike)
+      result.stage = PeripheralReasonCodes.TURN_ON_BLUETOOTH_FAILED
+      return result
     }
   }
 
