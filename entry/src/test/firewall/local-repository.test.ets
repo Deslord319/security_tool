@@ -161,6 +161,18 @@ export default function firewallLocalRepositoryTest() {
       done()
     })
 
+    it('should remove user policy mode by user id', 0, async (done: Function) => {
+      await FirewallLocalRepository.saveUserPolicyMode(context, 100, 'allowlist')
+      await FirewallLocalRepository.saveUserPolicyMode(context, 101, 'denylist')
+
+      let removed = await FirewallLocalRepository.removeUserPolicyMode(context, 100)
+      expect(removed).assertTrue()
+
+      expect((await FirewallLocalRepository.getUserPolicyMode(context, 100)) === undefined).assertTrue()
+      expect(await FirewallLocalRepository.getUserPolicyMode(context, 101)).assertEqual('denylist')
+      done()
+    })
+
     it('should persist, replace and remove rule intents and deployments', 0, async (done: Function) => {
       let emptyData = await FirewallLocalRepository.loadRuleIntentMappingData(context)
       expect(emptyData.version).assertEqual(FIREWALL_RULE_MAPPING_VERSION)
@@ -202,6 +214,57 @@ export default function firewallLocalRepositoryTest() {
 
       await FirewallLocalRepository.removeRuleIntent(context, 'rule-2')
       expect((await FirewallLocalRepository.listRuleIntents(context)).length).assertEqual(1)
+      done()
+    })
+
+    it('should support account removal cleanup through mapping read and write', 0, async (done: Function) => {
+      await FirewallLocalRepository.saveRuleIntentMappingData(context, {
+        version: FIREWALL_RULE_MAPPING_VERSION,
+        ruleIntents: [
+          buildIntent('rule-kept', 'Rule Kept', [100, 101, 102]),
+          buildIntent('rule-removed', 'Rule Removed', [102])
+        ],
+        ruleDeployments: [
+          buildDeployment('rule-kept', 100, 9001),
+          buildDeployment('rule-kept', 102, 9002),
+          buildDeployment('rule-removed', 102, 9003),
+          buildDeployment('orphan-rule', 100, 9004)
+        ]
+      })
+
+      let removedUserId = 102
+      let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
+      let nextRuleIntents: FirewallRuleIntent[] = []
+      data.ruleIntents.forEach((intent: FirewallRuleIntent) => {
+        let targetUserIds = intent.targetUserIds.filter((userId: number): boolean => userId !== removedUserId)
+        if (targetUserIds.length === 0) {
+          return
+        }
+        intent.targetUserIds = targetUserIds
+        nextRuleIntents.push(intent)
+      })
+      let validRuleIds = new Set<string>()
+      nextRuleIntents.forEach((intent: FirewallRuleIntent) => {
+        validRuleIds.add(intent.localRuleId)
+      })
+      let nextRuleDeployments = data.ruleDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+        deployment.userId !== removedUserId && validRuleIds.has(deployment.localRuleId)
+      )
+      await FirewallLocalRepository.saveRuleIntentMappingData(context, {
+        version: data.version,
+        ruleIntents: nextRuleIntents,
+        ruleDeployments: nextRuleDeployments
+      })
+
+      let cleanedData = await FirewallLocalRepository.loadRuleIntentMappingData(context)
+      expect(cleanedData.ruleIntents.length).assertEqual(1)
+      expect(cleanedData.ruleIntents[0].localRuleId).assertEqual('rule-kept')
+      expect(cleanedData.ruleIntents[0].targetUserIds.length).assertEqual(2)
+      expect(cleanedData.ruleIntents[0].targetUserIds[0]).assertEqual(100)
+      expect(cleanedData.ruleIntents[0].targetUserIds[1]).assertEqual(101)
+      expect(cleanedData.ruleDeployments.length).assertEqual(1)
+      expect(cleanedData.ruleDeployments[0].localRuleId).assertEqual('rule-kept')
+      expect(cleanedData.ruleDeployments[0].userId).assertEqual(100)
       done()
     })
 

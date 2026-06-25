@@ -161,6 +161,23 @@ export class FirewallLocalRepository {
     )
   }
 
+  static async removeUserPolicyMode(
+    context: common.Context,
+    userId: number
+  ): Promise<boolean> {
+    let records = await FirewallLocalRepository.listUserPolicyModes(context)
+    let nextRecords = records.filter((item: FirewallUserPolicyModeRecord): boolean => item.userId !== userId)
+    return SafeRunner.runAsync(
+      TAG,
+      'removeUserPolicyMode',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
+        return await pref.setJson(PREF_KEY_FIREWALL_USER_POLICY, nextRecords)
+      },
+      () => false
+    )
+  }
+
   static async listUserPolicyModes(context: common.Context): Promise<FirewallUserPolicyModeRecord[]> {
     return SafeRunner.runAsync(
       TAG,
