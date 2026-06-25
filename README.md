@@ -2,7 +2,7 @@
 
 > HarmonyOS 安全管理中心 / Enterprise Security Center for HarmonyOS
 
-[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2-blue)](https://developer.huawei.com/consumer/cn/)
+[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.1.1-blue)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-orange)](https://developer.huawei.com/consumer/cn/doc/)
 [![Target](https://img.shields.io/badge/Device-2in1-0A84FF)](https://developer.huawei.com/consumer/cn/)
 [![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)](#项目基线)
@@ -31,7 +31,7 @@
 | 版本 | `1.0.0` (`versionCode: 1000000`) |
 | 目标设备 | `2in1` |
 | 语言 | ArkTS (ETS) |
-| SDK 基线 | HarmonyOS `6.0.2` |
+| SDK 基线 | HarmonyOS `6.1.1` (`API 24`) |
 | 主入口页面 | `pages/MainPage` |
 | unsigned HAP | `entry/build/default/outputs/default/entry-default-unsigned.hap` |
 | signed HAP | `hapsigner/signApp.hap` |
@@ -200,7 +200,7 @@ docs/05-AI开发/                    # AI 继续开发任务手册
 
 ### 环境要求
 
-- DevEco Studio / HarmonyOS SDK `6.0.2`
+- DevEco Studio / HarmonyOS SDK `6.1.1` (`API 24`)
 - DevEco Studio 自带 JBR 或 Java `11+`，需能被 `hvigorw` 所在 shell 访问
 - `hdc`
 - Windows 本地开发推荐直接使用仓库脚本 `build_hap.bat`
