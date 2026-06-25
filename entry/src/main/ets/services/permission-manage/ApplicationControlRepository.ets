@@ -51,6 +51,7 @@ export class ApplicationControlRepository {
       removable: app.removable,
       installSource: app.installSource,
       appDistributionType: app.appDistributionType,
+      mainAbilityName: app.mainAbilityName,
       installPolicy: ApplicationControlRepository.resolvePolicy(
         app,
         controlLists.allowedInstallIds,
@@ -66,6 +67,65 @@ export class ApplicationControlRepository {
       keepAliveEnabled: controlLists.keepAliveBundleNames.includes(app.bundleName),
       autoStartEnabled: controlLists.autoStartBundleNames.includes(app.bundleName)
     } as ManagedApplicationInfo
+  }
+
+  static async setInstallPolicy(app: ManagedApplicationInfo, policy: PermissionPolicyState): Promise<void> {
+    let policyIds = ApplicationControlRepository.getPolicyIds(app)
+    await enterpriseBundleManager.removeAllowedInstallBundlesSync(ADMIN_WANT, policyIds, app.accountId)
+    await enterpriseBundleManager.removeDisallowedInstallBundlesSync(ADMIN_WANT, policyIds, app.accountId)
+    if (policy === 'allowed') {
+      await enterpriseBundleManager.addAllowedInstallBundlesSync(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+      return
+    }
+    if (policy === 'denied') {
+      await enterpriseBundleManager.addDisallowedInstallBundlesSync(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+    }
+  }
+
+  static async setUninstallProtected(app: ManagedApplicationInfo, enabled: boolean): Promise<void> {
+    let policyId = ApplicationControlRepository.getPrimaryPolicyId(app)
+    if (enabled) {
+      await enterpriseBundleManager.addDisallowedUninstallBundlesSync(ADMIN_WANT, [policyId], app.accountId)
+      return
+    }
+    await enterpriseBundleManager.removeDisallowedUninstallBundlesSync(ADMIN_WANT, ApplicationControlRepository.getPolicyIds(app), app.accountId)
+  }
+
+  static async setRunningPolicy(app: ManagedApplicationInfo, policy: PermissionPolicyState): Promise<void> {
+    let policyIds = ApplicationControlRepository.getPolicyIds(app)
+    await applicationManager.removeDisallowedRunningBundlesSync(ADMIN_WANT, policyIds, app.accountId)
+    await applicationManager.removeAllowedRunningBundles(ADMIN_WANT, policyIds, app.accountId)
+    if (policy === 'allowed') {
+      await applicationManager.addAllowedRunningBundles(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+      return
+    }
+    if (policy === 'denied') {
+      await applicationManager.addDisallowedRunningBundlesSync(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+    }
+  }
+
+  static async setKeepAlive(app: ManagedApplicationInfo, enabled: boolean): Promise<void> {
+    if (enabled) {
+      await applicationManager.addKeepAliveApps(ADMIN_WANT, [app.bundleName], app.accountId, true)
+      return
+    }
+    await applicationManager.removeKeepAliveApps(ADMIN_WANT, [app.bundleName], app.accountId)
+  }
+
+  static async setAutoStart(app: ManagedApplicationInfo, enabled: boolean, abilityName: string): Promise<void> {
+    let normalizedAbilityName = abilityName.trim()
+    if (normalizedAbilityName.length === 0) {
+      throw new Error('missing main ability')
+    }
+    let want: Want = {
+      bundleName: app.bundleName,
+      abilityName: normalizedAbilityName
+    }
+    if (enabled) {
+      await applicationManager.addAutoStartApps(ADMIN_WANT, [want], app.accountId, true)
+      return
+    }
+    await applicationManager.removeAutoStartApps(ADMIN_WANT, [want], app.accountId)
   }
 
   static createEmptyControlLists(): ApplicationControlLists {
@@ -119,5 +179,17 @@ export class ApplicationControlRepository {
 
   private static containsApp(policyIds: string[], app: ManagedApplicationInfo): boolean {
     return policyIds.includes(app.bundleName) || policyIds.includes(app.appIdentifier)
+  }
+
+  private static getPrimaryPolicyId(app: ManagedApplicationInfo): string {
+    return app.appIdentifier.length > 0 ? app.appIdentifier : app.bundleName
+  }
+
+  private static getPolicyIds(app: ManagedApplicationInfo): string[] {
+    let ids: string[] = [app.bundleName]
+    if (app.appIdentifier.length > 0 && app.appIdentifier !== app.bundleName) {
+      ids.push(app.appIdentifier)
+    }
+    return ids
   }
 }

@@ -7,6 +7,7 @@ import {
 import { ApplicationControlRepository } from '../../main/ets/services/permission-manage/ApplicationControlRepository'
 import { PermissionService } from '../../main/ets/services/permission-manage/PermissionService'
 import { PermissionViewModel } from '../../main/ets/viewmodels/permission-manage/PermissionViewModel'
+import { ApplicationNetworkPolicyRepository } from '../../main/ets/services/permission-manage/ApplicationNetworkPolicyRepository'
 
 export default function permissionViewModelTest() {
   describe('PermissionViewModel', () => {
@@ -150,6 +151,30 @@ export default function permissionViewModelTest() {
       expect(browser?.installPolicy).assertEqual('denied')
       expect(browser?.runningPolicy).assertEqual('allowed')
       expect(browser?.autoStartEnabled).assertTrue()
+    })
+
+    it('should merge network restriction state by application uid', 0, () => {
+      let applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.mail',
+          label: 'Mail',
+          uid: 10001,
+          systemApp: false
+        } as ApplicationInventoryRawRecord,
+        {
+          bundleName: 'com.example.browser',
+          label: 'Browser',
+          uid: 10002,
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+
+      let merged = ApplicationNetworkPolicyRepository.mergeNetworkStates(applications, ['10002'])
+      let mail = merged.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.mail')
+      let browser = merged.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.browser')
+
+      expect(mail?.networkPolicy).assertEqual('default')
+      expect(browser?.networkPolicy).assertEqual('denied')
     })
 
     it('should update filtered applications and selected app by search keyword', 0, () => {

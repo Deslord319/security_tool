@@ -1,4 +1,10 @@
 export type PermissionPolicyState = 'default' | 'allowed' | 'denied'
+export type SixDManagedState = 'default' | 'granted' | 'denied' | 'undeclared' | 'unsupported'
+
+export interface PermissionActionResult {
+  success: boolean
+  message: string
+}
 
 export interface PermissionSummary {
   appCount: number
@@ -29,12 +35,33 @@ export interface ManagedApplicationInfo {
   removable: boolean
   installSource: string
   appDistributionType: string
+  mainAbilityName: string
   installPolicy: PermissionPolicyState
   uninstallProtected: boolean
   runningPolicy: PermissionPolicyState
   networkPolicy: PermissionPolicyState
   keepAliveEnabled: boolean
   autoStartEnabled: boolean
+}
+
+export interface SixDPermissionItem {
+  groupKey: string
+  title: string
+  permissionNames: string[]
+  declaredPermissions: string[]
+  managedState: SixDManagedState
+  canManage: boolean
+  disabledReason: string
+}
+
+export interface ApplicationPermissionProfile {
+  appKey: string
+  bundleName: string
+  requestedPermissions: string[]
+  mainAbilityName: string
+  sensitivePermissionCount: number
+  message: string
+  sixDGroups: SixDPermissionItem[]
 }
 
 @ObservedV2
@@ -47,6 +74,8 @@ export class PermissionPageState {
   @Trace selectedAppKey: string = ''
   @Trace searchKeyword: string = ''
   @Trace inventoryMessage: string = ''
+  @Trace processingAction: boolean = false
+  @Trace selectedPermissionProfile: ApplicationPermissionProfile | null = null
   @Trace summary: PermissionSummary = {
     appCount: 0,
     managedCount: 0,

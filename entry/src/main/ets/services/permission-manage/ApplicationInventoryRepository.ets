@@ -18,6 +18,7 @@ export interface ApplicationInventoryRawRecord {
   removable?: boolean
   installSource?: string
   appDistributionType?: string
+  mainAbilityName?: string
 }
 
 export class ApplicationInventoryRepository {
@@ -131,6 +132,7 @@ export class ApplicationInventoryRepository {
       removable: record.removable ?? true,
       installSource: ApplicationInventoryRepository.normalizeString(record.installSource, ''),
       appDistributionType: ApplicationInventoryRepository.normalizeString(record.appDistributionType, ''),
+      mainAbilityName: ApplicationInventoryRepository.normalizeString(record.mainAbilityName, ''),
       installPolicy: 'default',
       uninstallProtected: false,
       runningPolicy: 'default',
