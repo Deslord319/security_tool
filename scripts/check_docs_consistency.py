@@ -13,6 +13,7 @@ ROUTE_DOCS = {
     "firewall-rules": "docs/03-模块设计/防火墙管理组件设计说明.md",
     "log-manage": "docs/03-模块设计/日志管理组件设计说明.md",
     "peripheral-manage": "docs/03-模块设计/外设管理组件设计说明.md",
+    "permission-manage": "docs/03-模块设计/权限管理组件设计说明.md",
     "identity": "docs/03-模块设计/身份鉴别组件设计说明.md",
     "tool-settings": "docs/03-模块设计/工具设置组件设计说明.md",
     "help-feedback": "docs/03-模块设计/帮助与反馈组件设计说明.md",
@@ -46,6 +47,10 @@ TEST_PATHS = {
             "entry/src/ohosTest/ets/test/simple/RouteAction.test.ets",
         ],
         "e2e": ["scripts/e2e/cases/peripheral"],
+    },
+    "permission-manage": {
+        "unit": ["entry/src/test/permission-manage"],
+        "ohosTest": ["entry/src/ohosTest/ets/test/simple/RouteAction.test.ets"],
     },
     "identity": {
         "unit": ["entry/src/test/identity"],
@@ -81,7 +86,7 @@ REQUIRED_MODULE_HEADING_PATTERNS = [
     r"^## 3\. 核心功能场景",
     r"^## 4\. 模块结构",
     r"^## 5\. 异常处理",
-    r"^### 5\.1 实施步骤与测试验收",
+    r"^### 5\.\d+ 实施步骤与测试验收",
     r"^## 6\. 变更日志",
 ]
 

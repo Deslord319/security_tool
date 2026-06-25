@@ -145,6 +145,7 @@ hdc shell edm enable-admin -n com.huawei.securitytool -a EnterpriseAdminAbility 
 | `firewall` / `firewall-rules` | 防火墙管理 | `docs/03-模块设计/防火墙管理组件设计说明.md` |
 | `log-manage` | 日志管理 | `docs/03-模块设计/日志管理组件设计说明.md` |
 | `peripheral-manage` | 外设管理 | `docs/03-模块设计/外设管理组件设计说明.md` |
+| `permission-manage` | 权限管理 | `docs/03-模块设计/权限管理组件设计说明.md` |
 | `identity` | 身份鉴别 | `docs/03-模块设计/身份鉴别组件设计说明.md` |
 | `tool-settings` | 工具设置 | `docs/03-模块设计/工具设置组件设计说明.md` |
 | `help-feedback` | 帮助与反馈 | `docs/03-模块设计/帮助与反馈组件设计说明.md` |
@@ -263,6 +264,7 @@ ohos.permission.PRIVACY_WINDOW
 | `firewall-rules` | FirewallRulesPage | 防火墙规则详情 |
 | `log-manage` | LogManagePage | 日志管理（已完成） |
 | `peripheral-manage` | PeripheralPage | 外设管理（已完成） |
+| `permission-manage` | PermissionPage | 权限管理（首版只读骨架） |
 | `identity` | IdentityPage | 身份鉴别（已完成） |
 | `tool-settings` | ToolSettingsPage | 工具设置（已完成） |
 | `help-feedback` | HelpFeedbackPage | 帮助与反馈 |

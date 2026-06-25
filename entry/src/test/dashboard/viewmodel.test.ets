@@ -3,7 +3,7 @@ import { common } from '@kit.AbilityKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { RouteIds } from '../../main/ets/constants/RouteIds'
 import { AppResources } from '../../main/ets/constants/AppResources'
-import { StatusText } from '../../main/ets/constants/StringCatalog'
+import { ModuleText, StatusText } from '../../main/ets/constants/StringCatalog'
 import { DashboardAdminStrings, DashboardLogCardStrings, DashboardPeripheralCardStrings } from '../../main/ets/constants/modules/DashboardStrings'
 import { DashboardModuleCardState } from '../../main/ets/models/DashboardModels'
 import { LogStatistics } from '../../main/ets/models/LogModels'
@@ -144,12 +144,16 @@ export default function dashboardViewModelTest() {
       expect(viewModel.quickEntries.length).assertEqual(0)
     })
 
-    it('should expose six quick entries including help feedback contract', 0, () => {
+    it('should expose six quick entries including permission management contract', 0, () => {
       let viewModel = new DashboardViewModel()
       let internal = viewModel as Object as DashboardViewModelInternal
-      let quickEntries = internal.buildQuickEntries()
+      let quickEntries = internal.buildQuickEntries() as Record<string, string>[]
 
       expect(quickEntries.length).assertEqual(6)
+      expect(quickEntries[3].id).assertEqual(RouteIds.PERMISSION_MANAGE)
+      expect(quickEntries[3].title).assertEqual(ModuleText.PERMISSION_MANAGE)
+      expect(quickEntries[4].id).assertEqual(RouteIds.IDENTITY)
+      expect(quickEntries.find((entry: Record<string, string>) => entry.id === RouteIds.HELP_FEEDBACK) === undefined).assertTrue()
     })
 
     it('should allow destroy before initialization', 0, () => {

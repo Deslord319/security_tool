@@ -9,6 +9,7 @@ import { IdentityPage } from '../views/identity/settings/IdentityPage'
 import { ToolSettingsPage } from '../views/tool-settings/system-settings/ToolSettingsPage'
 import { HelpFeedbackPage } from '../views/help-feedback/overview/HelpFeedbackPage'
 import { LogManagePage } from '../views/log-manage/overview/LogManagePage'
+import { PermissionPage } from '../views/permission-manage/overview/PermissionPage'
 import { AppColors, AppStyles, InteractiveItemStyles } from '../constants/AppConstants'
 import { AppResources } from '../constants/AppResources'
 import { RouteIds } from '../constants/RouteIds'
@@ -23,6 +24,7 @@ import { FirewallRulesViewModel } from '../viewmodels/firewall/rules/FirewallRul
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
+import { PermissionViewModel } from '../viewmodels/permission-manage/PermissionViewModel'
 import { ToolSettingsViewModel } from '../viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 import { ErrorLike } from '../types/LooseValueTypes'
 import {
@@ -45,6 +47,7 @@ struct MainPage {
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
   @Local peripheralViewModel: PeripheralViewModel = this.applicationRuntime.getPeripheralViewModel()
+  @Local permissionViewModel: PermissionViewModel = new PermissionViewModel()
   @Local toolSettingsViewModel: ToolSettingsViewModel = this.applicationRuntime.getToolSettingsViewModel()
   @Local pageEnterOpacity: number = 1
   @Local pageEnterOffset: number = 0
@@ -266,6 +269,22 @@ struct MainPage {
   }
 
   @Builder
+  private buildPermissionManageRoute() {
+    Column() {
+      PermissionPage({
+        currentTheme: this.currentTheme,
+        viewModel: this.permissionViewModel,
+        onBack: () => {
+          this.setCurrentPage(RouteIds.DASHBOARD)
+        }
+      })
+    }
+    .id('route-page-permission-manage')
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
   private buildToolSettingsRoute() {
     Column() {
       ToolSettingsPage({
@@ -334,6 +353,8 @@ struct MainPage {
       this.buildLogManageRoute()
     } else if (this.currentPage === RouteIds.PERIPHERAL_MANAGE) {
       this.buildPeripheralRoute()
+    } else if (this.currentPage === RouteIds.PERMISSION_MANAGE) {
+      this.buildPermissionManageRoute()
     } else if (this.currentPage === RouteIds.IDENTITY) {
       this.buildIdentityRoute()
     } else if (this.currentPage === RouteIds.TOOL_SETTINGS) {

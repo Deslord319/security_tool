@@ -20,7 +20,7 @@ import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'DashboardViewModel'
-type DashboardQuickEntryId = 'firewall' | 'log-manage' | 'peripheral-manage' | 'identity' | 'tool-settings' | 'help-feedback'
+type DashboardQuickEntryId = 'firewall' | 'log-manage' | 'peripheral-manage' | 'permission-manage' | 'identity' | 'tool-settings'
 
 @ObservedV2
 export class DashboardViewModel {
@@ -255,6 +255,14 @@ export class DashboardViewModel {
         RouteIds.PERIPHERAL_MANAGE
       ),
       this.createQuickEntry(
+        RouteIds.PERMISSION_MANAGE,
+        ModuleText.PERMISSION_MANAGE,
+        AppResources.PERMISSION_ICON,
+        DashboardGradientPalette.permissionGradient.start,
+        DashboardGradientPalette.permissionGradient.end,
+        RouteIds.PERMISSION_MANAGE
+      ),
+      this.createQuickEntry(
         RouteIds.IDENTITY,
         ModuleText.IDENTITY,
         AppResources.IDENTITY_ICON,
@@ -269,14 +277,6 @@ export class DashboardViewModel {
         DashboardGradientPalette.toolSettingsGradient.start,
         DashboardGradientPalette.toolSettingsGradient.end,
         RouteIds.TOOL_SETTINGS
-      ),
-      this.createQuickEntry(
-        RouteIds.HELP_FEEDBACK,
-        ModuleText.HELP_FEEDBACK,
-        AppResources.HELP_MENU_ICON,
-        DashboardGradientPalette.helpFeedbackGradient.start,
-        DashboardGradientPalette.helpFeedbackGradient.end,
-        RouteIds.HELP_FEEDBACK
       )
     ]
   }

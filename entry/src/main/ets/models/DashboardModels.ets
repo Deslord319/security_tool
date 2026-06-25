@@ -9,7 +9,7 @@ export interface DashboardModuleCardState {
 }
 
 export interface DashboardQuickEntryState {
-  id: 'firewall' | 'log-manage' | 'peripheral-manage' | 'identity' | 'tool-settings' | 'help-feedback'
+  id: 'firewall' | 'log-manage' | 'peripheral-manage' | 'permission-manage' | 'identity' | 'tool-settings'
   title: string
   icon: Resource
   accentStart: string
