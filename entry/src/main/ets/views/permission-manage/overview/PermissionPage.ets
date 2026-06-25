@@ -7,7 +7,6 @@ import {
   PermissionApplicationStrings,
   PermissionPageStrings,
   PermissionSearchStrings,
-  PermissionScopeStrings,
   PermissionSectionStrings,
   PermissionSummaryStrings
 } from '../../../constants/modules/PermissionStrings'
@@ -98,14 +97,6 @@ export struct PermissionPage {
             currentTheme: this.currentTheme,
             content: () => {
               this.summaryContent()
-            }
-          })
-
-          SectionCard({
-            title: PermissionSectionStrings.SCOPE,
-            currentTheme: this.currentTheme,
-            content: () => {
-              this.scopeContent()
             }
           })
 
@@ -211,39 +202,6 @@ export struct PermissionPage {
   }
 
   @Builder
-  private scopeContent() {
-    Column({ space: 14 }) {
-      this.scopeLine(PermissionScopeStrings.READONLY_TITLE, PermissionScopeStrings.READONLY_DESC)
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-      this.scopeLine(PermissionScopeStrings.ADMIN_TITLE, PermissionScopeStrings.ADMIN_DESC)
-    }
-    .width('100%')
-    .padding(16)
-  }
-
-  @Builder
-  private scopeLine(title: string, description: string) {
-    Column({ space: 6 }) {
-      Text(title)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
-
-      Text(description)
-        .fontSize(AppStyles.FONT_SIZE_SMALL)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
   private applicationContent() {
     Column({ space: 14 }) {
       StyledTextInput({
@@ -294,22 +252,21 @@ export struct PermissionPage {
     return app.key === this.viewModel.state.selectedAppKey
   }
 
+  private hasApplicationIcon(app: ManagedApplicationInfo): boolean {
+    return app.iconData.trim().length > 0
+  }
+
   @Builder
   private applicationListItem(app: ManagedApplicationInfo) {
     Row({ space: 10 }) {
-      Column() {
-        Image(AppResources.PERMISSION_ICON)
-          .width(18)
-          .height(18)
-          .fillColor(this.isApplicationSelected(app) ? Color.White : AppColors.BRAND_PRIMARY)
+      if (this.hasApplicationIcon(app)) {
+        Image(app.iconData)
+          .width(36)
+          .height(36)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .objectFit(ImageFit.Contain)
           .draggable(false)
       }
-      .width(36)
-      .height(36)
-      .borderRadius(AppStyles.RADIUS_SM)
-      .backgroundColor(this.isApplicationSelected(app) ? AppColors.BRAND_PRIMARY : AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
 
       Column({ space: 3 }) {
         Text(app.label)

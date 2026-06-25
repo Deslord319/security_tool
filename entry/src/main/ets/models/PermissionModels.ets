@@ -24,6 +24,7 @@ export interface ManagedApplicationInfo {
   uid: number
   label: string
   versionName: string
+  iconData: string
   systemApp: boolean
   removable: boolean
   installSource: string

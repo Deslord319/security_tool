@@ -46,6 +46,7 @@ export class ApplicationControlRepository {
       uid: app.uid,
       label: app.label,
       versionName: app.versionName,
+      iconData: app.iconData,
       systemApp: app.systemApp,
       removable: app.removable,
       installSource: app.installSource,

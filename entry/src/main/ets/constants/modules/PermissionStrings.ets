@@ -8,7 +8,6 @@ export class PermissionSectionStrings {
   static readonly SUMMARY: string = '策略摘要'
   static readonly APPLICATIONS: string = '应用管控对象'
   static readonly APPLICATION_DETAIL: string = '应用详情'
-  static readonly SCOPE: string = '首版范围'
 }
 
 export class PermissionAccountStrings {
@@ -24,13 +23,6 @@ export class PermissionSummaryStrings {
   static readonly APPLICATIONS_DESC: string = '非系统预装应用'
   static readonly POLICIES_TITLE: string = '策略'
   static readonly POLICIES_DESC: string = '已托管策略'
-}
-
-export class PermissionScopeStrings {
-  static readonly READONLY_TITLE: string = '只读清单已接入'
-  static readonly READONLY_DESC: string = '当前版本已接入账号和应用清单读取，不执行安装、卸载、运行、6D 权限、网络或保活写操作。'
-  static readonly ADMIN_TITLE: string = '依赖企业管理员'
-  static readonly ADMIN_DESC: string = '后续开放写操作前，将统一校验企业管理员激活态、权限声明和签名模板。'
 }
 
 export class PermissionEmptyStrings {

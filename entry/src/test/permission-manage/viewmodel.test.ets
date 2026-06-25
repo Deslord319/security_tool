@@ -43,6 +43,7 @@ export default function permissionViewModelTest() {
           uid: 10001,
           label: 'Demo',
           versionName: '1.0.0',
+          iconData: '',
           systemApp: false,
           removable: true,
           installSource: '',

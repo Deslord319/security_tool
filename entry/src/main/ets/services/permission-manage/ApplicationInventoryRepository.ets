@@ -13,6 +13,7 @@ export interface ApplicationInventoryRawRecord {
   appIndex?: number
   uid?: number
   versionName?: string
+  iconData?: string
   systemApp?: boolean
   removable?: boolean
   installSource?: string
@@ -26,7 +27,8 @@ export class ApplicationInventoryRepository {
         ADMIN_WANT,
         accountId,
         enterpriseBundleManager.BundleInfoGetFlag.WITH_APPLICATION_INFO |
-          enterpriseBundleManager.BundleInfoGetFlag.WITH_SIGNATURE_INFO
+          enterpriseBundleManager.BundleInfoGetFlag.WITH_SIGNATURE_INFO |
+          enterpriseBundleManager.BundleInfoGetFlag.WITH_APPLICATION_ICON_INFO
       )
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {
@@ -61,6 +63,7 @@ export class ApplicationInventoryRepository {
       appIndex: bundleInfo.appIndex ?? bundleInfo.appInfo?.appIndex,
       uid: bundleInfo.appInfo?.uid,
       versionName: bundleInfo.versionName,
+      iconData: bundleInfo.appInfo?.iconData,
       systemApp: bundleInfo.appInfo?.systemApp,
       removable: bundleInfo.appInfo?.removable,
       installSource: bundleInfo.appInfo?.installSource,
@@ -123,6 +126,7 @@ export class ApplicationInventoryRepository {
       uid: uid,
       label: ApplicationInventoryRepository.normalizeString(record.label, bundleName),
       versionName: ApplicationInventoryRepository.normalizeString(record.versionName, ''),
+      iconData: ApplicationInventoryRepository.normalizeString(record.iconData, ''),
       systemApp: false,
       removable: record.removable ?? true,
       installSource: ApplicationInventoryRepository.normalizeString(record.installSource, ''),
