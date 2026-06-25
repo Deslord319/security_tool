@@ -50,6 +50,12 @@ export class InterfaceControlViewModel {
       const microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_MICROPHONE)
       const cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
       const storagePolicy = PeripheralService.getUsbStoragePolicyWithResult()
+      if (btState.success && btState.data === false) {
+        this.restoreEnabledInterfacePower(PeripheralService.FEATURE_BLUETOOTH)
+      }
+      if (wifiState.success && wifiState.data === false) {
+        this.restoreEnabledInterfacePower(PeripheralService.FEATURE_WIFI)
+      }
 
       this.commitState({
         usbDisabled: PeripheralDevicePolicyRepository.isUsbDefaultDeny(),
@@ -137,6 +143,16 @@ export class InterfaceControlViewModel {
     })
   }
 
+  private restoreEnabledInterfacePower(feature: string): void {
+    const result = PeripheralService.restoreEnabledInterfacePowerWithResult(feature)
+    if (!result.success) {
+      LogUtils.warn(
+        TAG,
+        `restoreEnabledInterfacePower failed: feature=${feature}, stage=${result.stage ?? ''}, code=${result.errorCode ?? -1}, message=${result.errorMessage ?? ''}`
+      )
+    }
+  }
+
   private commitState(nextState: InterfaceControlStateModel): void {
     this.state.usbDisabled = nextState.usbDisabled
     this.state.btDisabled = nextState.btDisabled
@@ -172,6 +188,9 @@ export class InterfaceControlViewModel {
         return PeripheralReasonCodes.SET_USB_INTERFACE_CONFLICT
       case PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT:
         return PeripheralReasonCodes.SET_USB_STORAGE_POLICY_CONFLICT
+      case PeripheralReasonCodes.TURN_ON_WIFI_FAILED:
+      case PeripheralReasonCodes.TURN_ON_BLUETOOTH_FAILED:
+        return fallbackReason
       default:
         return stage || fallbackReason
     }

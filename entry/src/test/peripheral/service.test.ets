@@ -31,5 +31,11 @@ export default function peripheralServiceTest() {
       expect(result.success).assertTrue()
       expect(result.data).assertTrue()
     })
+
+    it('should no-op enabled power restore for non wireless interfaces', 0, () => {
+      const result = PeripheralService.restoreEnabledInterfacePowerWithResult(PeripheralService.FEATURE_HDC)
+
+      expect(result.success).assertTrue()
+    })
   })
 }

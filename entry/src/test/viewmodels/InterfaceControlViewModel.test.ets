@@ -73,15 +73,19 @@ export default function interfaceControlViewModelTest() {
     )
     let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
     let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+    let restorePowerMock = mockKit.mockFunc(PeripheralService, PeripheralService.restoreEnabledInterfacePowerWithResult)
     let getInterfaceResult = new BooleanOperationResult()
     getInterfaceResult.success = true
     getInterfaceResult.data = false
     let usbResult = new UsbPolicyOperationResult()
     usbResult.success = true
     usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
+    let restoreResult = new VoidOperationResult()
+    restoreResult.success = true
     when(isUsbDefaultDenyMock)().afterReturn(true)
     when(getInterfaceMock)(ArgumentMatchers.any).afterReturn(getInterfaceResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
+    when(restorePowerMock)(ArgumentMatchers.any).afterReturn(restoreResult)
 
     viewModel.reloadState()
 
@@ -160,6 +164,21 @@ export default function interfaceControlViewModelTest() {
     const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_WIFI, true)
 
     expect(reason).assertNull()
+    expect(viewModel.state.wifiDisabled).assertTrue()
+    done()
+  })
+
+  it('should surface wifi power restore failure when enabling interface', 0, async (done: Function) => {
+    viewModel.state.wifiDisabled = true
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = false
+    setResult.stage = PeripheralReasonCodes.TURN_ON_WIFI_FAILED
+    when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
+
+    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_WIFI, false)
+
+    expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
     expect(viewModel.state.wifiDisabled).assertTrue()
     done()
   })
