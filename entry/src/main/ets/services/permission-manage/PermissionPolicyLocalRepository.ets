@@ -66,14 +66,6 @@ export class PermissionPolicyLocalRepository {
     return await PermissionPolicyLocalRepository.saveRecords()
   }
 
-  static async removeByAppPolicy(appKey: string, actionKind: string): Promise<boolean> {
-    PermissionPolicyLocalRepository.records = PermissionPolicyLocalRepository.records
-      .filter((item: PermissionLocalPolicyRecord): boolean =>
-        !(item.appKey === appKey && item.actionKind === actionKind)
-      )
-    return await PermissionPolicyLocalRepository.saveRecords()
-  }
-
   private static async doInit(): Promise<boolean> {
     if (!PermissionPolicyLocalRepository.context) {
       return false

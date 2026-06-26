@@ -39,6 +39,13 @@ export class PermissionEmptyStrings {
   static readonly POLICIES: string = '当前账号暂无已生效策略。'
 }
 
+export class PermissionLoadingStrings {
+  static readonly ACCOUNT_SWITCH: string = '账号策略读取中'
+  static readonly TARGET_APPLICATION: string = '应用策略读取中'
+  static readonly POLICY_ACTION: string = '策略下发中'
+  static readonly POLICY_DELETE: string = '策略删除中'
+}
+
 export class PermissionApplicationStrings {
   static readonly BUNDLE_NAME: string = '包名'
   static readonly VERSION_NAME: string = '版本'

@@ -128,10 +128,6 @@ export class PermissionService {
     return PermissionService.mapActionError(err)
   }
 
-  static formatPolicyForDisplay(policy: PermissionPolicyState): string {
-    return PermissionService.formatPolicy(policy)
-  }
-
   static async deletePolicyRecord(
     accountId: number,
     record: PermissionPolicyRecord,
@@ -278,30 +274,10 @@ export class PermissionService {
   ): PermissionPolicyRecord[] {
     let records: PermissionPolicyRecord[] = []
     controlLists.disallowedInstallIds.forEach((policyId: string): void => {
-      records.push(PermissionService.createPolicyRecord(
-        `install-deny:${accountId}:${policyId}`,
-        PermissionApplicationStrings.POLICY_TYPE_INSTALL_DENY,
-        PermissionApplicationStrings.POLICY_TARGET_NOT_INSTALLED,
-        policyId,
-        PermissionApplicationStrings.POLICY_DENIED,
-        PermissionService.formatAccountScope(accountId),
-        'install-deny',
-        '',
-        policyId
-      ))
+      records.push(PermissionService.buildInstallPolicyRecord(accountId, policyId, 'denied'))
     })
     controlLists.allowedInstallIds.forEach((policyId: string): void => {
-      records.push(PermissionService.createPolicyRecord(
-        `install-allow:${accountId}:${policyId}`,
-        PermissionApplicationStrings.POLICY_TYPE_INSTALL_ALLOW,
-        PermissionApplicationStrings.POLICY_TARGET_NOT_INSTALLED,
-        policyId,
-        PermissionApplicationStrings.POLICY_ALLOWED,
-        PermissionService.formatAccountScope(accountId),
-        'install-allow',
-        '',
-        policyId
-      ))
+      records.push(PermissionService.buildInstallPolicyRecord(accountId, policyId, 'allowed'))
     })
     applications.forEach((app: ManagedApplicationInfo): void => {
       PermissionService.appendApplicationPolicyRecords(records, app)
@@ -346,6 +322,47 @@ export class PermissionService {
     localRecords: PermissionLocalPolicyRecord[]
   ): PermissionPolicyRecord[] {
     return PermissionService.mergeLocalPolicyRecords(systemRecords, localRecords)
+  }
+
+  static buildApplicationPolicyRecords(applications: ManagedApplicationInfo[]): PermissionPolicyRecord[] {
+    let records: PermissionPolicyRecord[] = []
+    applications.forEach((app: ManagedApplicationInfo): void => {
+      PermissionService.appendApplicationPolicyRecords(records, app)
+    })
+    return records
+  }
+
+  static buildInstallPolicyRecord(
+    accountId: number,
+    policyId: string,
+    policy: PermissionPolicyState
+  ): PermissionPolicyRecord {
+    let isAllowed = policy === 'allowed'
+    return PermissionService.createPolicyRecord(
+      `${isAllowed ? 'install-allow' : 'install-deny'}:${accountId}:${policyId}`,
+      isAllowed ? PermissionApplicationStrings.POLICY_TYPE_INSTALL_ALLOW : PermissionApplicationStrings.POLICY_TYPE_INSTALL_DENY,
+      PermissionApplicationStrings.POLICY_TARGET_NOT_INSTALLED,
+      policyId,
+      isAllowed ? PermissionApplicationStrings.POLICY_ALLOWED : PermissionApplicationStrings.POLICY_DENIED,
+      PermissionService.formatAccountScope(accountId),
+      isAllowed ? 'install-allow' : 'install-deny',
+      '',
+      policyId
+    )
+  }
+
+  static buildPolicyRecordFromLocal(record: PermissionLocalPolicyRecord): PermissionPolicyRecord {
+    return PermissionService.createPolicyRecord(
+      record.recordId,
+      record.policyType,
+      record.targetName,
+      record.targetDetail,
+      record.statusLabel,
+      record.scopeLabel,
+      record.actionKind,
+      record.appKey,
+      record.policyId
+    )
   }
 
   private static shouldMergeLocalPolicyRecord(record: PermissionLocalPolicyRecord): boolean {

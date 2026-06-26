@@ -217,11 +217,8 @@ export class ApplicationControlRepository {
   }
 
   private static containsApp(policyIds: string[], app: ManagedApplicationInfo): boolean {
-    return policyIds.includes(app.bundleName) || policyIds.includes(app.appIdentifier)
-  }
-
-  private static getPrimaryPolicyId(app: ManagedApplicationInfo): string {
-    return app.appIdentifier.length > 0 ? app.appIdentifier : app.bundleName
+    return policyIds.includes(app.bundleName) ||
+      (app.appIdentifier.length > 0 && policyIds.includes(app.appIdentifier))
   }
 
   private static getPolicyIds(app: ManagedApplicationInfo): string[] {

@@ -5,6 +5,7 @@ import {
   PermissionEmptyStrings,
   PermissionAccountStrings,
   PermissionApplicationStrings,
+  PermissionLoadingStrings,
   PermissionPageStrings,
   PermissionSectionStrings,
   PermissionSixDStrings,
@@ -14,7 +15,7 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { EmptyStatePanel } from '../../../components/EmptyStatePanel'
 import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
-import { SectionLabel, SectionSelectRow } from '../../../components/SectionRows'
+import { SectionLabel } from '../../../components/SectionRows'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import { StyledTextInput } from '../../../components/StyledTextInput'
@@ -33,8 +34,11 @@ import {
 import { PermissionViewModel } from '../../../viewmodels/permission-manage/PermissionViewModel'
 import { DialogService } from '../../../utils/DialogService'
 import { LogUtils } from '../../../utils/LogUtils'
+import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunner'
 
 const TAG = 'PermissionPage'
+const PERMISSION_LOADING_MIN_DURATION_MS = 500
+const PERMISSION_LOADING_RENDER_READY_DELAY_MS = 32
 
 @ComponentV2
 export struct PermissionPage {
@@ -43,6 +47,7 @@ export struct PermissionPage {
   @Event onBack: () => void = () => {}
   @Local private hoveredPolicyActionKey: string = ''
   @Local private activePolicyActionKey: string = ''
+  private readonly loadingRunner: TimedLoadingDialogRunner = new TimedLoadingDialogRunner(TAG)
 
   aboutToAppear() {
     if (this.viewModel.state.loading) {
@@ -59,10 +64,8 @@ export struct PermissionPage {
     })
   }
 
-  private getAccountOptions(): SelectOption[] {
-    return this.viewModel.state.accounts.map((account: PermissionManagedAccount): SelectOption => ({
-      value: account.displayName
-    } as SelectOption))
+  private getAccountOptions(): string[] {
+    return this.viewModel.state.accounts.map((account: PermissionManagedAccount): string => account.displayName)
   }
 
   private getSelectedAccountIndex(): number {
@@ -72,19 +75,24 @@ export struct PermissionPage {
     return index >= 0 ? index : 0
   }
 
-  private getSelectedAccountLabel(): string {
-    let account = this.viewModel.state.accounts[this.getSelectedAccountIndex()]
-    return account?.displayName ?? PermissionAccountStrings.NO_ACCOUNTS
-  }
-
-  private switchAccountByIndex(index: number): void {
+  private async switchAccountByIndex(index: number): Promise<boolean> {
     let account = this.viewModel.state.accounts[index]
     if (!account) {
-      return
+      return false
     }
-    this.viewModel.switchAccount(account.accountId).catch((err: Error) => {
+    if (account.accountId === this.viewModel.state.selectedAccountId) {
+      return true
+    }
+    try {
+      return await this.runWithLoading(
+        'permission-account-switch',
+        PermissionLoadingStrings.ACCOUNT_SWITCH,
+        async (): Promise<boolean> => await this.viewModel.switchAccount(account.accountId)
+      )
+    } catch (err) {
       LogUtils.warn(TAG, `switchAccount failed: ${JSON.stringify(err)}`)
-    })
+      return false
+    }
   }
 
   private getSelectedApplication(): ManagedApplicationInfo | undefined {
@@ -96,9 +104,16 @@ export struct PermissionPage {
   private getApplicationOptions(): string[] {
     let options: string[] = [PermissionSectionStrings.TARGET_APPLICATION_PLACEHOLDER]
     this.viewModel.state.filteredApplications.forEach((app: ManagedApplicationInfo): void => {
-      options.push(app.label)
+      options.push(this.formatApplicationOption(app))
     })
     return options
+  }
+
+  private formatApplicationOption(app: ManagedApplicationInfo): string {
+    if (app.label === app.bundleName) {
+      return app.bundleName
+    }
+    return `${app.label} (${app.bundleName})`
   }
 
   private getSelectedApplicationIndex(): number {
@@ -121,9 +136,18 @@ export struct PermissionPage {
     if (!app) {
       return false
     }
-    try {
-      await this.viewModel.selectApplicationAndLoadDetails(app.key)
+    if (app.key === this.viewModel.state.selectedAppKey) {
       return true
+    }
+    try {
+      return await this.runWithLoading(
+        'permission-target-application',
+        PermissionLoadingStrings.TARGET_APPLICATION,
+        async (): Promise<boolean> => {
+          await this.viewModel.selectApplicationAndLoadDetails(app.key)
+          return true
+        }
+      )
     } catch (err) {
       LogUtils.warn(TAG, `selectApplicationByIndex failed: ${JSON.stringify(err)}`)
       return false
@@ -254,18 +278,34 @@ export struct PermissionPage {
     return `delete-policy:${recordKey}`
   }
 
-  private executePolicyAction(action: () => Promise<PermissionActionResult>): void {
-    this.executePolicyActionAsync(action).catch((err: Error) => {
+  private executePolicyAction(
+    action: () => Promise<PermissionActionResult>,
+    sceneTag: string = 'permission-policy-action',
+    loadingMessage: string = PermissionLoadingStrings.POLICY_ACTION
+  ): void {
+    this.executePolicyActionAsync(action, sceneTag, loadingMessage).catch((err: Error) => {
       LogUtils.warn(TAG, `executePolicyAction failed: ${JSON.stringify(err)}`)
     })
   }
 
-  private async executePolicyActionAsync(action: () => Promise<PermissionActionResult>): Promise<void> {
-    await this.executePolicyActionWithResult(action)
+  private async executePolicyActionAsync(
+    action: () => Promise<PermissionActionResult>,
+    sceneTag: string,
+    loadingMessage: string
+  ): Promise<void> {
+    await this.executePolicyActionWithResult(action, sceneTag, loadingMessage)
   }
 
-  private async executePolicyActionWithResult(action: () => Promise<PermissionActionResult>): Promise<boolean> {
-    let result = await action()
+  private async executePolicyActionWithResult(
+    action: () => Promise<PermissionActionResult>,
+    sceneTag: string = 'permission-policy-action',
+    loadingMessage: string = PermissionLoadingStrings.POLICY_ACTION
+  ): Promise<boolean> {
+    let result = await this.runWithLoading(
+      sceneTag,
+      loadingMessage,
+      async (): Promise<PermissionActionResult> => await action()
+    )
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.message)
       return false
@@ -298,8 +338,26 @@ export struct PermissionPage {
   }
 
   private deletePolicyRecord(recordKey: string): void {
-    this.executePolicyAction((): Promise<PermissionActionResult> =>
-      this.viewModel.deletePolicyRecord(recordKey)
+    this.executePolicyAction(
+      (): Promise<PermissionActionResult> => this.viewModel.deletePolicyRecord(recordKey),
+      'permission-policy-delete',
+      PermissionLoadingStrings.POLICY_DELETE
+    )
+  }
+
+  private async runWithLoading<T>(
+    sceneTag: string,
+    message: string,
+    task: () => Promise<T>
+  ): Promise<T> {
+    return await this.loadingRunner.run(
+      sceneTag,
+      message,
+      task,
+      (dialogMessage: string): CustomDialogController =>
+        DialogService.createLoadingController(dialogMessage, this.currentTheme),
+      PERMISSION_LOADING_MIN_DURATION_MS,
+      PERMISSION_LOADING_RENDER_READY_DELAY_MS
     )
   }
 
@@ -417,18 +475,17 @@ export struct PermissionPage {
       })
         .height(128)
     } else {
-      SectionSelectRow({
-        title: PermissionAccountStrings.SELECT_TITLE,
+      AsyncSelectRow({
+        label: PermissionAccountStrings.SELECT_TITLE,
         description: PermissionAccountStrings.SELECT_DESC,
         options: this.getAccountOptions(),
         selectedIndex: this.getSelectedAccountIndex(),
-        value: this.getSelectedAccountLabel(),
         selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
-        processing: this.viewModel.state.accounts.length === 0,
-        enabledValue: !this.hasProcessingAction(),
+        processing: this.viewModel.state.loading || this.viewModel.state.accounts.length === 0,
+        enabledValue: !this.hasProcessingAction() && !this.viewModel.state.selectedAppRefreshing,
         currentTheme: this.currentTheme,
-        onSelect: (index: number) => {
-          this.switchAccountByIndex(index)
+        onSelectAsync: async (index: number): Promise<boolean> => {
+          return await this.switchAccountByIndex(index)
         }
       })
 
@@ -465,7 +522,6 @@ export struct PermissionPage {
       processing: this.viewModel.state.selectedAppRefreshing,
       enabledValue: !this.hasProcessingAction(),
       currentTheme: this.currentTheme,
-      optimistic: true,
       onSelectAsync: async (index: number): Promise<boolean> => {
         return await this.selectApplicationByIndex(index)
       }
@@ -767,7 +823,6 @@ export struct PermissionPage {
       processing: this.isActionProcessing(this.getRunningActionKey(app)),
       enabledValue: this.canOperateAction(this.getRunningActionKey(app)),
       currentTheme: this.currentTheme,
-      optimistic: true,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextPolicy = this.runningPolicyByIndex(index)
         if (nextPolicy !== app.runningPolicy) {
@@ -794,7 +849,6 @@ export struct PermissionPage {
       processing: this.isActionProcessing(this.getNetworkActionKey(app)),
       enabledValue: this.canOperateAction(this.getNetworkActionKey(app)) && app.uid > 0,
       currentTheme: this.currentTheme,
-      optimistic: true,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextPolicy = this.networkPolicyByIndex(index)
         if (nextPolicy !== app.networkPolicy) {
@@ -822,7 +876,6 @@ export struct PermissionPage {
       processing: this.isActionProcessing(this.getUninstallActionKey(app)),
       enabledValue: this.canOperateAction(this.getUninstallActionKey(app)),
       currentTheme: this.currentTheme,
-      optimistic: true,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextEnabled = this.uninstallProtectedByIndex(index)
         if (nextEnabled !== app.uninstallProtected) {
@@ -856,7 +909,6 @@ export struct PermissionPage {
           processing: this.isActionProcessing(this.getSixDActionKey(app, item)),
           enabledValue: this.canOperateAction(this.getSixDActionKey(app, item)) && item.canManage,
           currentTheme: this.currentTheme,
-          optimistic: true,
           onSelectAsync: async (index: number): Promise<boolean> => {
             let nextState = this.sixDStateByIndex(index)
             if (item.canManage && nextState !== item.managedState) {

@@ -101,13 +101,41 @@ export default function permissionViewModelTest() {
       let applications = ApplicationInventoryRepository.normalizeApplications(100, rawRecords, 'com.huawei.securitytool')
 
       let demo = applications.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.demo')
+      let nonRemovable = applications.find((app: ManagedApplicationInfo): boolean =>
+        app.bundleName === 'com.example.nonremovable'
+      )
       expect(applications.length).assertEqual(2)
       expect(demo?.key).assertEqual('100:com.example.demo:demo-id:1')
       expect(demo?.label).assertEqual('Demo')
       expect(demo?.installPolicy).assertEqual('default')
+      expect(nonRemovable?.key).assertEqual('100:com.example.nonremovable:com.example.nonremovable:0')
+      expect(nonRemovable?.appIdentifier).assertEqual('')
       expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.system')).assertFalse()
       expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.ohos.formrenderservice')).assertFalse()
       expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.nonremovable')).assertTrue()
+    })
+
+    it('should keep duplicate labels mapped by bundle identity', 0, () => {
+      let applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.first',
+          label: 'Label',
+          systemApp: false
+        } as ApplicationInventoryRawRecord,
+        {
+          bundleName: 'com.example.second',
+          label: 'Label',
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+
+      let first = applications.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.first')
+      let second = applications.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.second')
+
+      expect(applications.length).assertEqual(2)
+      expect(first?.key).assertEqual('100:com.example.first:com.example.first:0')
+      expect(second?.key).assertEqual('100:com.example.second:com.example.second:0')
+      expect(first?.label).assertEqual(second?.label)
     })
 
     it('should filter applications by label or bundle name', 0, () => {
@@ -213,43 +241,43 @@ export default function permissionViewModelTest() {
       expect(failed).assertTrue()
     })
 
-    it('should keep local policy records scoped by account and removable by app policy', 0, async (done: Function) => {
+    it('should keep local policy records scoped by account and removable by record id', 0, async (done: Function) => {
       PermissionPolicyLocalRepository.resetForTest()
       await PermissionPolicyLocalRepository.upsertActive({
-        recordId: 'running:100:mail',
+        recordId: 'sixd:100:mail:downloads',
         accountId: 100,
         appKey: '100:mail:mail:0',
         bundleName: 'mail',
         appIdentifier: 'mail',
         appIndex: 0,
-        policyType: 'running',
+        policyType: 'Downloads',
         policyValue: 'denied',
         targetName: 'Mail',
-        targetDetail: 'mail',
+        targetDetail: 'mail / Downloads',
         statusLabel: 'denied',
         scopeLabel: 'account 100',
-        actionKind: 'running',
-        policyId: '',
+        actionKind: 'sixd',
+        policyId: 'downloads',
         status: 'active',
         createdAt: 1,
         updatedAt: 1,
         lastError: ''
       } as PermissionLocalPolicyRecord)
       await PermissionPolicyLocalRepository.upsertActive({
-        recordId: 'running:101:mail',
+        recordId: 'sixd:101:mail:downloads',
         accountId: 101,
         appKey: '101:mail:mail:0',
         bundleName: 'mail',
         appIdentifier: 'mail',
         appIndex: 0,
-        policyType: 'running',
+        policyType: 'Downloads',
         policyValue: 'denied',
         targetName: 'Mail',
-        targetDetail: 'mail',
+        targetDetail: 'mail / Downloads',
         statusLabel: 'denied',
         scopeLabel: 'account 101',
-        actionKind: 'running',
-        policyId: '',
+        actionKind: 'sixd',
+        policyId: 'downloads',
         status: 'active',
         createdAt: 1,
         updatedAt: 1,
@@ -257,7 +285,7 @@ export default function permissionViewModelTest() {
       } as PermissionLocalPolicyRecord)
 
       expect(PermissionPolicyLocalRepository.listActiveByAccount(100).length).assertEqual(1)
-      await PermissionPolicyLocalRepository.removeByAppPolicy('100:mail:mail:0', 'running')
+      await PermissionPolicyLocalRepository.remove('sixd:100:mail:downloads')
       expect(PermissionPolicyLocalRepository.listActiveByAccount(100).length).assertEqual(0)
       expect(PermissionPolicyLocalRepository.listActiveByAccount(101).length).assertEqual(1)
       PermissionPolicyLocalRepository.resetForTest()
