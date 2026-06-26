@@ -12,7 +12,9 @@ export struct AsyncSelectRow {
   @Param description: string = ''
   @Param options: string[] = []
   @Param selectedIndex: number = 0
+  @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT
   @Param processing: boolean = false
+  @Param enabledValue: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param optimistic: boolean = true
   @Event onSelectAsync: (nextIndex: number) => Promise<boolean> = async () => false
@@ -55,6 +57,18 @@ export struct AsyncSelectRow {
     return this.processing || this.isAsyncPending
   }
 
+  private canSelect(): boolean {
+    return !this.isBusy() && this.enabledValue
+  }
+
+  private async waitForLoadingPaint(): Promise<void> {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout((): void => {
+        resolve()
+      }, 0)
+    })
+  }
+
   private async handleSelectChange(nextIndex: number): Promise<void> {
     const previousIndex = this.getEffectiveSelectedIndex()
     if (nextIndex === previousIndex) {
@@ -70,6 +84,7 @@ export struct AsyncSelectRow {
 
     let success = false
     try {
+      await this.waitForLoadingPaint()
       success = await this.onSelectAsync(nextIndex)
     } catch (err) {
       const errorText = err instanceof Error ? err.message : String(err)
@@ -111,9 +126,9 @@ export struct AsyncSelectRow {
           options: this.options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
           selectedIndex: this.getEffectiveSelectedIndex(),
           value: this.getDisplayValue(),
-          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
-          enabledValue: !this.isBusy(),
-          opacityValue: this.isBusy() ? 0.72 : 1,
+          controlWidth: this.selectWidth,
+          enabledValue: this.canSelect(),
+          opacityValue: this.canSelect() ? 1 : 0.72,
           currentTheme: this.currentTheme,
           onSelect: (index: number) => {
             this.handleSelectChange(index)

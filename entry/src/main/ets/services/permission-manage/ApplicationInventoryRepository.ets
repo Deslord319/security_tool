@@ -5,6 +5,19 @@ import { PermissionEmptyStrings } from '../../constants/modules/PermissionString
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'ApplicationInventoryRepository'
+const NON_MANAGEABLE_BUNDLE_BLOCKLIST: string[] = [
+  'com.ohos.formrenderservice',
+  'com.huawei.hmos.arkwebcore',
+  'com.huawei.hmos.arkwebcorelegacy',
+  'com.ohos.backgroundtaskmgr.resources'
+]
+const NON_MANAGEABLE_LABEL_KEYWORDS: string[] = [
+  'formrenderservice',
+  'fromrenderservice',
+  'arkweb',
+  '方舟web',
+  '长时任务通知资源'
+]
 
 export interface ApplicationInventoryRawRecord {
   bundleName: string
@@ -107,11 +120,22 @@ export class ApplicationInventoryRepository {
 
   private static isManageableApplication(record: ApplicationInventoryRawRecord, selfBundleName: string): boolean {
     let bundleName = record.bundleName?.trim()
-    return bundleName !== undefined &&
-      bundleName.length > 0 &&
-      bundleName !== selfBundleName &&
-      record.systemApp !== true &&
-      record.removable !== false
+    if (bundleName === undefined || bundleName.length === 0 || bundleName === selfBundleName) {
+      return false
+    }
+    if (ApplicationInventoryRepository.isBlockedApplication(bundleName, record.label)) {
+      return false
+    }
+    return record.systemApp !== true
+  }
+
+  private static isBlockedApplication(bundleName: string, label: string | undefined): boolean {
+    if (NON_MANAGEABLE_BUNDLE_BLOCKLIST.includes(bundleName)) {
+      return true
+    }
+    let normalizedLabel = label?.trim().toLowerCase() ?? ''
+    return normalizedLabel.length > 0 &&
+      NON_MANAGEABLE_LABEL_KEYWORDS.some((keyword: string): boolean => normalizedLabel.includes(keyword))
   }
 
   private static toManagedApplication(accountId: number, record: ApplicationInventoryRawRecord): ManagedApplicationInfo {
@@ -129,7 +153,7 @@ export class ApplicationInventoryRepository {
       label: ApplicationInventoryRepository.normalizeString(record.label, bundleName),
       versionName: ApplicationInventoryRepository.normalizeString(record.versionName, ''),
       iconData: ApplicationInventoryRepository.normalizeString(record.iconData, ''),
-      systemApp: false,
+      systemApp: record.systemApp ?? false,
       removable: record.removable ?? true,
       installSource: ApplicationInventoryRepository.normalizeString(record.installSource, ''),
       appDistributionType: ApplicationInventoryRepository.normalizeString(record.appDistributionType, ''),

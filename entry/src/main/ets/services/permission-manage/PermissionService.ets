@@ -49,15 +49,11 @@ export class PermissionService {
     } as ApplicationInventoryResult
   }
 
-  static async loadApplicationPolicySnapshot(app: ManagedApplicationInfo): Promise<ApplicationInventoryResult> {
-    let snapshot = await PermissionService.loadPolicySnapshot(app.accountId, [app])
-    return {
-      applications: snapshot.applications,
-      policyRecords: snapshot.policyRecords.filter((record: PermissionPolicyRecord): boolean =>
-        record.appKey === app.key || record.actionKind === 'install-deny' || record.actionKind === 'install-allow'
-      ),
-      message: snapshot.message
-    } as ApplicationInventoryResult
+  static async loadAccountPolicySnapshot(
+    accountId: number,
+    applications: ManagedApplicationInfo[]
+  ): Promise<ApplicationInventoryResult> {
+    return await PermissionService.loadPolicySnapshot(accountId, applications)
   }
 
   static filterApplications(applications: ManagedApplicationInfo[], keyword: string): ManagedApplicationInfo[] {
@@ -68,12 +64,6 @@ export class PermissionService {
     accountId: number,
     applications: ManagedApplicationInfo[]
   ): Promise<ApplicationInventoryResult> {
-    if (applications.length === 0) {
-      return {
-        applications: applications,
-        policyRecords: []
-      } as ApplicationInventoryResult
-    }
     let controlLists = ApplicationControlRepository.loadControlLists(accountId)
     let applicationsWithControl = ApplicationControlRepository.mergeControlStates(applications, controlLists)
     let restrictedAppUids = ApplicationNetworkPolicyRepository.loadRestrictedAppUids()
@@ -329,6 +319,9 @@ export class PermissionService {
       existingKeys.add(record.key)
     })
     localRecords.forEach((record: PermissionLocalPolicyRecord): void => {
+      if (!PermissionService.shouldMergeLocalPolicyRecord(record)) {
+        return
+      }
       if (existingKeys.has(record.recordId)) {
         return
       }
@@ -346,6 +339,17 @@ export class PermissionService {
       existingKeys.add(record.recordId)
     })
     return merged
+  }
+
+  static mergePolicyRecordsForTest(
+    systemRecords: PermissionPolicyRecord[],
+    localRecords: PermissionLocalPolicyRecord[]
+  ): PermissionPolicyRecord[] {
+    return PermissionService.mergeLocalPolicyRecords(systemRecords, localRecords)
+  }
+
+  private static shouldMergeLocalPolicyRecord(record: PermissionLocalPolicyRecord): boolean {
+    return record.actionKind === 'sixd'
   }
 
   private static appendApplicationPolicyRecords(records: PermissionPolicyRecord[], app: ManagedApplicationInfo): void {

@@ -58,6 +58,23 @@ export class PermissionViewModel {
     }
   }
 
+  async refreshApplicationList(): Promise<void> {
+    if (this.state.loading) {
+      return
+    }
+    this.state.loading = true
+    this.state.errorMessage = ''
+    try {
+      let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
+      this.applyApplicationList(inventory)
+    } catch (err) {
+      LogUtils.warn(TAG, `refreshApplicationList failed: ${JSON.stringify(err)}`)
+      this.state.errorMessage = MessageText.RETRY_LATER
+    } finally {
+      this.state.loading = false
+    }
+  }
+
   setSearchKeyword(keyword: string): void {
     this.state.searchKeyword = keyword
     this.updateFilteredApplications()
@@ -71,7 +88,6 @@ export class PermissionViewModel {
     let exists = this.state.filteredApplications.some((app: ManagedApplicationInfo): boolean => app.key === appKey)
     this.state.selectedAppKey = exists ? appKey : ''
     this.state.selectedPermissionProfile = null
-    this.state.policyRecords = []
     this.state.selectedAppRefreshing = false
     this.state.policyLoading = false
     this.permissionProfileRequestSeq++
@@ -84,9 +100,12 @@ export class PermissionViewModel {
       return
     }
     let requestSeq = this.permissionProfileRequestSeq
-    this.loadSelectedApplicationDetailsForKey(selectedAppKey, requestSeq).catch((err: Error) => {
-      LogUtils.warn(TAG, `load selected application details background load failed: ${JSON.stringify(err)}`)
-    })
+    this.state.selectedAppRefreshing = true
+    try {
+      await this.loadSelectedApplicationDetailsForKey(selectedAppKey, requestSeq)
+    } catch (err) {
+      LogUtils.warn(TAG, `load selected application details failed: ${JSON.stringify(err)}`)
+    }
   }
 
   async switchAccount(accountId: number): Promise<void> {
@@ -127,20 +146,21 @@ export class PermissionViewModel {
   private async loadSelectedApplicationDetailsForKey(appKey: string, requestSeq: number): Promise<void> {
     let selectedApp = this.getApplicationByKey(appKey)
     if (selectedApp === undefined) {
+      if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
+        this.state.selectedAppRefreshing = false
+      }
       return
     }
-    this.state.selectedAppRefreshing = true
-    this.state.policyLoading = true
     try {
-      let snapshot = await PermissionService.loadApplicationPolicySnapshot(selectedApp)
       if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
-        this.applySelectedApplicationPolicySnapshot(appKey, snapshot)
+        await this.loadSelectedPermissionProfileForKey(appKey, requestSeq)
       }
-      await this.loadSelectedPermissionProfileForKey(appKey, requestSeq)
+      if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
+        await this.refreshAccountPolicyState()
+      }
     } finally {
       if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
         this.state.selectedAppRefreshing = false
-        this.state.policyLoading = false
       }
     }
   }
@@ -160,7 +180,8 @@ export class PermissionViewModel {
         } else {
           await PermissionPolicyLocalRepository.removeByAppPolicy(app.key, 'uninstall-protect')
         }
-      }
+      },
+      'uninstall-protect'
     )
   }
 
@@ -179,7 +200,8 @@ export class PermissionViewModel {
           await this.upsertLocalAppPolicy(app, PermissionApplicationStrings.POLICY_TYPE_RUNNING,
             PermissionService.formatPolicyForDisplay(policy), 'running')
         }
-      }
+      },
+      'running'
     )
   }
 
@@ -198,7 +220,8 @@ export class PermissionViewModel {
           await this.upsertLocalAppPolicy(app, PermissionApplicationStrings.POLICY_TYPE_NETWORK,
             PermissionService.formatPolicyForDisplay(policy), 'network')
         }
-      }
+      },
+      'network'
     )
   }
 
@@ -238,7 +261,7 @@ export class PermissionViewModel {
         }
       }
       await this.loadSelectedPermissionProfileForKey(selectedApp.key, this.permissionProfileRequestSeq)
-      await this.refreshSelectedApplicationPolicyState()
+      await this.refreshAccountPolicyState()
       return result
     } finally {
       this.clearProcessingAction()
@@ -257,7 +280,7 @@ export class PermissionViewModel {
         this.updateInstalledApplicationInstallPolicy(packageName)
         await this.upsertInstallDenyRecord(packageName)
         this.state.installBlockKeyword = ''
-        await this.refreshSelectedApplicationPolicyState()
+        await this.refreshAccountPolicyState()
       }
       return result
     } catch (err) {
@@ -288,7 +311,8 @@ export class PermissionViewModel {
       )
       if (result.success) {
         await PermissionPolicyLocalRepository.remove(recordKey)
-        await this.refreshSelectedApplicationPolicyState()
+        await this.refreshAccountPolicyState()
+        this.syncDeletedPolicyRecord(record)
       }
       return result
     } finally {
@@ -328,18 +352,30 @@ export class PermissionViewModel {
     this.updateFilteredApplications()
   }
 
-  private applySelectedApplicationPolicySnapshot(appKey: string, inventory: ApplicationInventoryResult): void {
-    let refreshedApp = inventory.applications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
-    if (refreshedApp !== undefined) {
-      let refreshedAppValue: ManagedApplicationInfo = refreshedApp
-      this.state.applications = this.state.applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo =>
-        app.key === appKey ? refreshedAppValue : app
-      )
-    }
+  private applyApplicationList(inventory: ApplicationInventoryResult): void {
+    this.state.applications = inventory.applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo => {
+      let previous = this.state.applications.find((item: ManagedApplicationInfo): boolean => item.key === app.key)
+      if (previous !== undefined) {
+        app.installPolicy = previous.installPolicy
+        app.uninstallProtected = previous.uninstallProtected
+        app.runningPolicy = previous.runningPolicy
+        app.networkPolicy = previous.networkPolicy
+      }
+      return app
+    })
+    this.state.inventoryMessage = inventory.message ?? ''
     let summary = PermissionService.buildSummary(this.state.applications)
-    summary.managedCount = inventory.policyRecords.length
+    summary.managedCount = this.state.policyRecords.length
     this.state.summary = summary
+    this.updateFilteredApplications()
+  }
+
+  private applyAccountPolicySnapshot(inventory: ApplicationInventoryResult): void {
+    this.state.applications = inventory.applications
     this.state.policyRecords = inventory.policyRecords
+    let summary = PermissionService.buildSummary(this.state.applications)
+    summary.managedCount = this.state.policyRecords.length
+    this.state.summary = summary
     this.updateFilteredApplications()
   }
 
@@ -349,7 +385,6 @@ export class PermissionViewModel {
       if (this.state.selectedAppKey.length > 0 || this.state.selectedPermissionProfile !== null) {
         this.state.selectedAppKey = ''
         this.state.selectedPermissionProfile = null
-        this.state.policyRecords = []
         this.state.selectedAppRefreshing = false
         this.state.policyLoading = false
         this.permissionProfileRequestSeq++
@@ -362,7 +397,6 @@ export class PermissionViewModel {
     if (!selectedExists && this.state.selectedAppKey.length > 0) {
       this.state.selectedAppKey = ''
       this.state.selectedPermissionProfile = null
-      this.state.policyRecords = []
       this.state.selectedAppRefreshing = false
       this.state.policyLoading = false
       this.permissionProfileRequestSeq++
@@ -377,28 +411,13 @@ export class PermissionViewModel {
     return this.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
   }
 
-  private async refreshSelectedApplicationPolicyState(): Promise<void> {
-    let selectedApp = this.getSelectedApplication()
-    if (selectedApp === undefined) {
-      this.state.policyRecords = []
-      this.state.summary = {
-        appCount: this.state.summary.appCount,
-        managedCount: 0,
-        sixDSensitiveCount: this.state.summary.sixDSensitiveCount,
-        networkRestrictedCount: this.state.summary.networkRestrictedCount
-      }
-      return
-    }
+  private async refreshAccountPolicyState(): Promise<void> {
     this.state.policyLoading = true
     try {
-      let snapshot = await PermissionService.loadApplicationPolicySnapshot(selectedApp)
-      if (this.state.selectedAppKey === selectedApp.key) {
-        this.applySelectedApplicationPolicySnapshot(selectedApp.key, snapshot)
-      }
+      let snapshot = await PermissionService.loadAccountPolicySnapshot(this.state.selectedAccountId, this.state.applications)
+      this.applyAccountPolicySnapshot(snapshot)
     } finally {
-      if (this.state.selectedAppKey === selectedApp.key) {
-        this.state.policyLoading = false
-      }
+      this.state.policyLoading = false
     }
   }
 
@@ -406,7 +425,8 @@ export class PermissionViewModel {
     actionKey: string,
     action: (app: ManagedApplicationInfo) => Promise<PermissionActionResult>,
     applySuccess: (app: ManagedApplicationInfo) => void,
-    persistSuccess?: (app: ManagedApplicationInfo) => Promise<void>
+    persistSuccess?: (app: ManagedApplicationInfo) => Promise<void>,
+    policyActionKind: string = ''
   ): Promise<PermissionActionResult> {
     let selectedApp = this.getSelectedApplication()
     if (selectedApp === undefined) {
@@ -422,8 +442,9 @@ export class PermissionViewModel {
         if (persistSuccess !== undefined) {
           await persistSuccess(selectedApp)
         }
-        this.updateSelectedApplication(applySuccess)
-        await this.refreshSelectedApplicationPolicyState()
+        this.updateApplicationByKey(selectedApp.key, applySuccess)
+        await this.refreshAccountPolicyState()
+        this.syncSuccessfulAppPolicy(selectedApp.key, policyActionKind, applySuccess)
       }
       return result
     } finally {
@@ -456,6 +477,119 @@ export class PermissionViewModel {
       return app
     })
     this.state.summary = PermissionService.buildSummary(this.state.applications)
+    this.updateFilteredApplications()
+  }
+
+  private syncSuccessfulAppPolicy(
+    appKey: string,
+    actionKind: string,
+    applySuccess: (app: ManagedApplicationInfo) => void
+  ): void {
+    let syncedApp: ManagedApplicationInfo | undefined = undefined
+    this.state.applications = this.state.applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo => {
+      if (app.key === appKey) {
+        applySuccess(app)
+        syncedApp = app
+      }
+      return app
+    })
+    if (syncedApp !== undefined && actionKind.length > 0) {
+      this.syncAppPolicyRecord(syncedApp, actionKind)
+    }
+    this.refreshSummaryAndFilters()
+  }
+
+  private syncDeletedPolicyRecord(record: PermissionPolicyRecord): void {
+    this.state.policyRecords = this.state.policyRecords.filter((item: PermissionPolicyRecord): boolean =>
+      item.key !== record.key
+    )
+    if (record.actionKind === 'install-deny' || record.actionKind === 'install-allow') {
+      this.syncInstallPolicyRecordDeletion(record)
+      this.refreshSummaryAndFilters()
+      return
+    }
+    if (record.appKey.length === 0) {
+      this.refreshSummaryAndFilters()
+      return
+    }
+    this.state.applications = this.state.applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo => {
+      if (app.key !== record.appKey) {
+        return app
+      }
+      if (record.actionKind === 'uninstall-protect') {
+        app.uninstallProtected = false
+      } else if (record.actionKind === 'running') {
+        app.runningPolicy = 'default'
+      } else if (record.actionKind === 'network') {
+        app.networkPolicy = 'default'
+      }
+      return app
+    })
+    this.refreshSummaryAndFilters()
+  }
+
+  private syncInstallPolicyRecordDeletion(record: PermissionPolicyRecord): void {
+    this.state.applications = this.state.applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo => {
+      if (app.bundleName === record.policyId || app.appIdentifier === record.policyId) {
+        app.installPolicy = 'default'
+      }
+      return app
+    })
+  }
+
+  private syncAppPolicyRecord(app: ManagedApplicationInfo, actionKind: string): void {
+    let recordKey = `${actionKind}:${app.key}`
+    this.state.policyRecords = this.state.policyRecords.filter((record: PermissionPolicyRecord): boolean =>
+      record.key !== recordKey
+    )
+    let record = this.createCurrentAppPolicyRecord(app, actionKind)
+    if (record !== undefined) {
+      this.state.policyRecords.push(record)
+    }
+  }
+
+  private createCurrentAppPolicyRecord(
+    app: ManagedApplicationInfo,
+    actionKind: string
+  ): PermissionPolicyRecord | undefined {
+    if (actionKind === 'uninstall-protect' && app.uninstallProtected) {
+      return this.createAppPolicyRecord(app, PermissionApplicationStrings.POLICY_TYPE_UNINSTALL,
+        PermissionApplicationStrings.ENABLED, actionKind)
+    }
+    if (actionKind === 'running' && app.runningPolicy !== 'default') {
+      return this.createAppPolicyRecord(app, PermissionApplicationStrings.POLICY_TYPE_RUNNING,
+        PermissionService.formatPolicyForDisplay(app.runningPolicy), actionKind)
+    }
+    if (actionKind === 'network' && app.networkPolicy !== 'default') {
+      return this.createAppPolicyRecord(app, PermissionApplicationStrings.POLICY_TYPE_NETWORK,
+        PermissionService.formatPolicyForDisplay(app.networkPolicy), actionKind)
+    }
+    return undefined
+  }
+
+  private createAppPolicyRecord(
+    app: ManagedApplicationInfo,
+    policyType: string,
+    statusLabel: string,
+    actionKind: string
+  ): PermissionPolicyRecord {
+    return {
+      key: `${actionKind}:${app.key}`,
+      policyType: policyType,
+      targetName: app.label,
+      targetDetail: app.bundleName,
+      statusLabel: statusLabel,
+      scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${app.accountId}`,
+      actionKind: actionKind,
+      appKey: app.key,
+      policyId: ''
+    } as PermissionPolicyRecord
+  }
+
+  private refreshSummaryAndFilters(): void {
+    let summary = PermissionService.buildSummary(this.state.applications)
+    summary.managedCount = this.state.policyRecords.length
+    this.state.summary = summary
     this.updateFilteredApplications()
   }
 

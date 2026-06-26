@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { ManagedApplicationInfo, PermissionLocalPolicyRecord } from '../../main/ets/models/PermissionModels'
+import { ManagedApplicationInfo, PermissionLocalPolicyRecord, PermissionPolicyRecord } from '../../main/ets/models/PermissionModels'
 import {
   ApplicationInventoryRawRecord,
   ApplicationInventoryRepository
@@ -64,7 +64,7 @@ export default function permissionViewModelTest() {
       expect(summary.networkRestrictedCount).assertEqual(1)
     })
 
-    it('should normalize manageable applications and skip system or self bundle', 0, () => {
+    it('should normalize manageable applications and skip system or self bundle only', 0, () => {
       let rawRecords: ApplicationInventoryRawRecord[] = [
         {
           bundleName: 'com.example.demo',
@@ -81,6 +81,11 @@ export default function permissionViewModelTest() {
           systemApp: true
         } as ApplicationInventoryRawRecord,
         {
+          bundleName: 'com.ohos.formrenderservice',
+          label: 'FormRenderService',
+          systemApp: false
+        } as ApplicationInventoryRawRecord,
+        {
           bundleName: 'com.example.nonremovable',
           label: 'NonRemovable',
           systemApp: false,
@@ -95,10 +100,14 @@ export default function permissionViewModelTest() {
 
       let applications = ApplicationInventoryRepository.normalizeApplications(100, rawRecords, 'com.huawei.securitytool')
 
-      expect(applications.length).assertEqual(1)
-      expect(applications[0].key).assertEqual('100:com.example.demo:demo-id:1')
-      expect(applications[0].label).assertEqual('Demo')
-      expect(applications[0].installPolicy).assertEqual('default')
+      let demo = applications.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.demo')
+      expect(applications.length).assertEqual(2)
+      expect(demo?.key).assertEqual('100:com.example.demo:demo-id:1')
+      expect(demo?.label).assertEqual('Demo')
+      expect(demo?.installPolicy).assertEqual('default')
+      expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.system')).assertFalse()
+      expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.ohos.formrenderservice')).assertFalse()
+      expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.nonremovable')).assertTrue()
     })
 
     it('should filter applications by label or bundle name', 0, () => {
@@ -144,6 +153,23 @@ export default function permissionViewModelTest() {
       expect(mail?.runningPolicy).assertEqual('denied')
       expect(browser?.installPolicy).assertEqual('denied')
       expect(browser?.runningPolicy).assertEqual('allowed')
+    })
+
+    it('should clean both bundle name and app identifier when resetting running policy', 0, () => {
+      let app = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.mail',
+          label: 'Mail',
+          appIdentifier: 'mail-id',
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')[0]
+
+      let cleanupIds = ApplicationControlRepository.buildRunningPolicyCleanupIdsForTest(app)
+
+      expect(cleanupIds.length).assertEqual(2)
+      expect(cleanupIds.includes('com.example.mail')).assertTrue()
+      expect(cleanupIds.includes('mail-id')).assertTrue()
     })
 
     it('should merge network restriction state by application uid', 0, () => {
@@ -236,6 +262,57 @@ export default function permissionViewModelTest() {
       expect(PermissionPolicyLocalRepository.listActiveByAccount(101).length).assertEqual(1)
       PermissionPolicyLocalRepository.resetForTest()
       done()
+    })
+
+    it('should only merge local 6D records into current policy records', 0, () => {
+      let systemRecords: PermissionPolicyRecord[] = []
+      let localRecords: PermissionLocalPolicyRecord[] = [
+        {
+          recordId: 'running:100:mail',
+          accountId: 100,
+          appKey: '100:mail:mail:0',
+          bundleName: 'mail',
+          appIdentifier: 'mail',
+          appIndex: 0,
+          policyType: 'running',
+          policyValue: 'denied',
+          targetName: 'Mail',
+          targetDetail: 'mail',
+          statusLabel: 'denied',
+          scopeLabel: 'account 100',
+          actionKind: 'running',
+          policyId: '',
+          status: 'active',
+          createdAt: 1,
+          updatedAt: 1,
+          lastError: ''
+        } as PermissionLocalPolicyRecord,
+        {
+          recordId: 'sixd:100:mail:downloads',
+          accountId: 100,
+          appKey: '100:mail:mail:0',
+          bundleName: 'mail',
+          appIdentifier: 'mail',
+          appIndex: 0,
+          policyType: 'Downloads',
+          policyValue: 'denied',
+          targetName: 'Mail',
+          targetDetail: 'mail / Downloads',
+          statusLabel: 'denied',
+          scopeLabel: 'account 100',
+          actionKind: 'sixd',
+          policyId: 'downloads',
+          status: 'active',
+          createdAt: 1,
+          updatedAt: 1,
+          lastError: ''
+        } as PermissionLocalPolicyRecord
+      ]
+
+      let merged = PermissionService.mergePolicyRecordsForTest(systemRecords, localRecords)
+
+      expect(merged.length).assertEqual(1)
+      expect(merged[0].key).assertEqual('sixd:100:mail:downloads')
     })
 
     it('should update filtered applications without selecting an app by default', 0, () => {

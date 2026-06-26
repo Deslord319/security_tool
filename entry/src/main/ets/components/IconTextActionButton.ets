@@ -11,7 +11,6 @@ export struct IconTextActionButton {
   @Param showIcon: boolean = true
   @Param kind: IconTextActionButtonKind = 'primary'
   @Param isEnabled: boolean = true
-  @Param isLoading: boolean = false
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onTap: () => void = () => {}
   @Local private isHovered: boolean = false
@@ -47,12 +46,7 @@ export struct IconTextActionButton {
   build() {
     Button() {
       Row({ space: 8 }) {
-        if (this.isLoading) {
-          LoadingProgress()
-            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-            .color(this.getForegroundColor())
-        } else if (this.showIcon) {
+        if (this.showIcon) {
           Image(this.icon)
             .width(ActionButtonStyles.ICON_SIZE)
             .height(ActionButtonStyles.ICON_SIZE)
@@ -68,7 +62,7 @@ export struct IconTextActionButton {
       .alignItems(VerticalAlign.Center)
     }
     .type(ButtonType.Normal)
-    .opacity(this.isEnabled || this.isLoading ? 1 : 0.5)
+    .opacity(this.isEnabled ? 1 : 0.5)
     .backgroundColor(this.getBackgroundColor())
     .borderRadius(AppStyles.RADIUS_SM)
     .height(ActionButtonStyles.HEIGHT)
@@ -78,10 +72,10 @@ export struct IconTextActionButton {
     })
     .stateEffect(false)
     .onHover((isHover: boolean) => {
-      this.isHovered = this.isEnabled && !this.isLoading && isHover
+      this.isHovered = this.isEnabled && isHover
     })
     .onTouch((event: TouchEvent) => {
-      if (!this.isEnabled || this.isLoading) {
+      if (!this.isEnabled) {
         return
       }
       if (event.type === TouchType.Down) {
@@ -94,7 +88,7 @@ export struct IconTextActionButton {
     })
     .onClick(() => {
       this.isPressed = false
-      if (this.isEnabled && !this.isLoading) {
+      if (this.isEnabled) {
         this.onTap()
       }
     })

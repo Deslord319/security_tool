@@ -18,8 +18,8 @@ import { SectionLabel, SectionSelectRow } from '../../../components/SectionRows'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import { StyledTextInput } from '../../../components/StyledTextInput'
-import { StyledSelect } from '../../../components/StyledSelect'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
+import { AsyncSelectRow } from '../../../components/AsyncSelectRow'
 import {
   ApplicationPermissionProfile,
   ManagedApplicationInfo,
@@ -45,11 +45,17 @@ export struct PermissionPage {
   @Local private activePolicyActionKey: string = ''
 
   aboutToAppear() {
-    if (this.viewModel.state.initialized || this.viewModel.state.loading) {
+    if (this.viewModel.state.loading) {
       return
     }
-    this.viewModel.loadInitialState().catch((err: Error) => {
-      LogUtils.warn(TAG, `loadInitialState failed: ${JSON.stringify(err)}`)
+    if (!this.viewModel.state.initialized) {
+      this.viewModel.loadInitialState().catch((err: Error) => {
+        LogUtils.warn(TAG, `loadInitialState failed: ${JSON.stringify(err)}`)
+      })
+      return
+    }
+    this.viewModel.refreshApplicationList().catch((err: Error) => {
+      LogUtils.warn(TAG, `refreshApplicationList on appear failed: ${JSON.stringify(err)}`)
     })
   }
 
@@ -87,72 +93,81 @@ export struct PermissionPage {
     )
   }
 
-  private getApplicationOptions(): SelectOption[] {
-    return this.viewModel.state.filteredApplications.map((app: ManagedApplicationInfo): SelectOption => ({
-      value: app.label
-    } as SelectOption))
+  private getApplicationOptions(): string[] {
+    let options: string[] = [PermissionSectionStrings.TARGET_APPLICATION_PLACEHOLDER]
+    this.viewModel.state.filteredApplications.forEach((app: ManagedApplicationInfo): void => {
+      options.push(app.label)
+    })
+    return options
   }
 
   private getSelectedApplicationIndex(): number {
     let index = this.viewModel.state.filteredApplications.findIndex((app: ManagedApplicationInfo): boolean =>
       app.key === this.viewModel.state.selectedAppKey
     )
-    return index >= 0 ? index : 0
+    if (index < 0) {
+      return 0
+    }
+    return index + 1
   }
 
-  private getSelectedApplicationLabel(): string {
-    let app = this.getSelectedApplication()
-    return app?.label ?? PermissionSectionStrings.TARGET_APPLICATION_PLACEHOLDER
-  }
-
-  private selectApplicationByIndex(index: number): void {
-    let app = this.viewModel.state.filteredApplications[index]
+  private async selectApplicationByIndex(index: number): Promise<boolean> {
+    if (index <= 0) {
+      this.viewModel.selectApplication('')
+      return true
+    }
+    let appIndex = index - 1
+    let app = this.viewModel.state.filteredApplications[appIndex]
     if (!app) {
-      return
+      return false
     }
-    this.viewModel.selectApplicationAndLoadDetails(app.key).catch((err: Error) => {
+    try {
+      await this.viewModel.selectApplicationAndLoadDetails(app.key)
+      return true
+    } catch (err) {
       LogUtils.warn(TAG, `selectApplicationByIndex failed: ${JSON.stringify(err)}`)
-    })
-  }
-
-  private getPolicyOptions(): SelectOption[] {
-    return [
-      { value: PermissionApplicationStrings.POLICY_DEFAULT } as SelectOption,
-      { value: PermissionApplicationStrings.POLICY_ALLOWED } as SelectOption,
-      { value: PermissionApplicationStrings.POLICY_DENIED } as SelectOption
-    ]
-  }
-
-  private getNetworkPolicyOptions(): SelectOption[] {
-    return [
-      { value: PermissionApplicationStrings.POLICY_DEFAULT } as SelectOption,
-      { value: PermissionApplicationStrings.POLICY_DENIED } as SelectOption
-    ]
-  }
-
-  private getUninstallProtectedOptions(): SelectOption[] {
-    return [
-      { value: PermissionApplicationStrings.DISABLED } as SelectOption,
-      { value: PermissionApplicationStrings.ENABLED } as SelectOption
-    ]
-  }
-
-  private getSixDOptions(): SelectOption[] {
-    return [
-      { value: PermissionApplicationStrings.POLICY_DEFAULT } as SelectOption,
-      { value: PermissionApplicationStrings.POLICY_ALLOWED } as SelectOption,
-      { value: PermissionApplicationStrings.POLICY_DENIED } as SelectOption
-    ]
-  }
-
-  private policyByIndex(index: number): PermissionPolicyState {
-    if (index === 1) {
-      return 'allowed'
+      return false
     }
-    if (index === 2) {
-      return 'denied'
+  }
+
+  private getRunningPolicyOptions(): string[] {
+    return [
+      PermissionApplicationStrings.POLICY_ALLOWED,
+      PermissionApplicationStrings.POLICY_DENIED
+    ]
+  }
+
+  private getNetworkPolicyOptions(): string[] {
+    return [
+      PermissionApplicationStrings.POLICY_ALLOWED,
+      PermissionApplicationStrings.POLICY_DENIED
+    ]
+  }
+
+  private getUninstallProtectedOptions(): string[] {
+    return [
+      PermissionApplicationStrings.DISABLED,
+      PermissionApplicationStrings.ENABLED
+    ]
+  }
+
+  private getSixDOptions(): string[] {
+    return [
+      PermissionApplicationStrings.POLICY_DEFAULT,
+      PermissionApplicationStrings.POLICY_ALLOWED,
+      PermissionApplicationStrings.POLICY_DENIED
+    ]
+  }
+
+  private getSixDOptionsForItem(item: SixDPermissionItem): string[] {
+    if (item.canManage) {
+      return this.getSixDOptions()
     }
-    return 'default'
+    return [this.formatSixDState(item.managedState)]
+  }
+
+  private runningPolicyByIndex(index: number): PermissionPolicyState {
+    return index === 1 ? 'denied' : 'default'
   }
 
   private networkPolicyByIndex(index: number): PermissionPolicyState {
@@ -173,14 +188,8 @@ export struct PermissionPage {
     return 'default'
   }
 
-  private getPolicyIndex(policy: PermissionPolicyState): number {
-    if (policy === 'allowed') {
-      return 1
-    }
-    if (policy === 'denied') {
-      return 2
-    }
-    return 0
+  private getRunningPolicyIndex(policy: PermissionPolicyState): number {
+    return policy === 'denied' ? 1 : 0
   }
 
   private getNetworkPolicyIndex(policy: PermissionPolicyState): number {
@@ -199,6 +208,10 @@ export struct PermissionPage {
       return 2
     }
     return 0
+  }
+
+  private getSixDStateIndexForItem(item: SixDPermissionItem): number {
+    return item.canManage ? this.getSixDStateIndex(item.managedState) : 0
   }
 
   private canSubmitInstallBlock(): boolean {
@@ -248,10 +261,16 @@ export struct PermissionPage {
   }
 
   private async executePolicyActionAsync(action: () => Promise<PermissionActionResult>): Promise<void> {
+    await this.executePolicyActionWithResult(action)
+  }
+
+  private async executePolicyActionWithResult(action: () => Promise<PermissionActionResult>): Promise<boolean> {
     let result = await action()
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.message)
+      return false
     }
+    return true
   }
 
   private getPolicyDeleteButtonBackground(recordKey: string): ResourceColor {
@@ -282,24 +301,6 @@ export struct PermissionPage {
     this.executePolicyAction((): Promise<PermissionActionResult> =>
       this.viewModel.deletePolicyRecord(recordKey)
     )
-  }
-
-  private showUninstallProtectedConfirm(app: ManagedApplicationInfo, nextEnabled: boolean): void {
-    DialogService.openConfirm(this.getUIContext(), {
-      title: nextEnabled
-        ? PermissionApplicationStrings.UNINSTALL_PROTECTED_ENABLE_CONFIRM_TITLE
-        : PermissionApplicationStrings.UNINSTALL_PROTECTED_DISABLE_CONFIRM_TITLE,
-      message: nextEnabled
-        ? PermissionApplicationStrings.UNINSTALL_PROTECTED_ENABLE_CONFIRM_MESSAGE
-        : PermissionApplicationStrings.UNINSTALL_PROTECTED_DISABLE_CONFIRM_MESSAGE,
-      confirmText: ActionText.CONFIRM,
-      cancelText: ActionText.CANCEL,
-      onConfirm: () => {
-        this.executePolicyAction((): Promise<PermissionActionResult> =>
-          this.viewModel.setSelectedUninstallProtected(nextEnabled)
-        )
-      }
-    })
   }
 
   build() {
@@ -455,45 +456,19 @@ export struct PermissionPage {
 
   @Builder
   private targetApplicationSelectRow() {
-    Row() {
-      Row({ space: 8 }) {
-        if (this.viewModel.state.selectedAppRefreshing) {
-          LoadingProgress()
-            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-            .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        }
-
-        SectionLabel({
-          title: PermissionSectionStrings.TARGET_APPLICATION,
-          description: PermissionSectionStrings.TARGET_APPLICATION_DESC,
-          currentTheme: this.currentTheme
-        })
+    AsyncSelectRow({
+      label: PermissionSectionStrings.TARGET_APPLICATION,
+      description: PermissionSectionStrings.TARGET_APPLICATION_DESC,
+      options: this.getApplicationOptions(),
+      selectedIndex: this.getSelectedApplicationIndex(),
+      selectWidth: 280,
+      processing: this.viewModel.state.selectedAppRefreshing,
+      enabledValue: !this.hasProcessingAction(),
+      currentTheme: this.currentTheme,
+      optimistic: true,
+      onSelectAsync: async (index: number): Promise<boolean> => {
+        return await this.selectApplicationByIndex(index)
       }
-      .layoutWeight(1)
-      .alignItems(VerticalAlign.Center)
-
-      StyledSelect({
-        options: this.getApplicationOptions(),
-        selectedIndex: this.getSelectedApplicationIndex(),
-        value: this.getSelectedApplicationLabel(),
-        controlWidth: 260,
-        controlHeight: 36,
-        radius: AppStyles.RADIUS_SM,
-        enabledValue: !this.hasProcessingAction(),
-        opacityValue: this.hasProcessingAction() ? 0.72 : 1,
-        currentTheme: this.currentTheme,
-        onSelect: (index: number) => {
-          this.selectApplicationByIndex(index)
-        }
-      })
-    }
-    .width('100%')
-    .padding({
-      left: 16,
-      right: 16,
-      top: 14,
-      bottom: 14
     })
   }
 
@@ -563,12 +538,18 @@ export struct PermissionPage {
           }
         })
 
+        if (this.isActionProcessing(this.getInstallActionKey())) {
+          LoadingProgress()
+            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        }
+
         IconTextActionButton({
           label: PermissionApplicationStrings.INSTALL_BLOCK_ACTION,
           icon: AppResources.ALERT_ICON,
           kind: 'danger',
           isEnabled: this.canSubmitInstallBlock(),
-          isLoading: this.isActionProcessing(this.getInstallActionKey()),
           currentTheme: this.currentTheme,
           onTap: () => {
             this.executePolicyAction((): Promise<PermissionActionResult> =>
@@ -594,20 +575,7 @@ export struct PermissionPage {
 
   @Builder
   private currentPolicyContent() {
-    if (this.getSelectedApplication() === undefined) {
-      Text(PermissionEmptyStrings.SELECT_APPLICATION_FIRST)
-        .width('100%')
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
-        .textAlign(TextAlign.Center)
-        .padding({
-          left: AppStyles.TABLE_HORIZONTAL_PADDING,
-          right: AppStyles.TABLE_HORIZONTAL_PADDING,
-          top: 28,
-          bottom: 28
-        })
-    } else if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
+    if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
       LoadingStatePanel({
         indicatorSize: 22,
         currentTheme: this.currentTheme
@@ -732,18 +700,18 @@ export struct PermissionPage {
 
   @Builder
   private policyDeleteActionCell(record: PermissionPolicyRecord, weight: number) {
-    Row() {
+    Row({ space: 6 }) {
       if (this.isActionProcessing(this.getDeletePolicyActionKey(record.key))) {
         LoadingProgress()
           .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
           .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
           .color(this.getPolicyDeleteButtonForeground())
-      } else {
-        Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
-          .fontSize(AppStyles.FONT_SIZE_BODY)
-          .fontWeight(FontWeight.Regular)
-          .fontColor(this.getPolicyDeleteButtonForeground())
       }
+
+      Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Regular)
+        .fontColor(this.getPolicyDeleteButtonForeground())
     }
     .height(ActionButtonStyles.CHIP_HEIGHT)
     .padding({
@@ -790,21 +758,24 @@ export struct PermissionPage {
       .color(AppColors.getColors(this.currentTheme).BORDER)
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-    SectionSelectRow({
-      title: PermissionApplicationStrings.RUNNING_POLICY,
-      description: this.formatDescriptionWithState(PermissionApplicationStrings.RUNNING_POLICY_DESC, this.formatPolicy(app.runningPolicy)),
-      options: this.getPolicyOptions(),
-      selectedIndex: this.getPolicyIndex(app.runningPolicy),
-      value: this.formatPolicy(app.runningPolicy),
+    AsyncSelectRow({
+      label: PermissionApplicationStrings.RUNNING_POLICY,
+      description: this.formatDescriptionWithState(PermissionApplicationStrings.RUNNING_POLICY_DESC, this.formatRuntimePolicy(app.runningPolicy)),
+      options: this.getRunningPolicyOptions(),
+      selectedIndex: this.getRunningPolicyIndex(app.runningPolicy),
       selectWidth: 116,
       processing: this.isActionProcessing(this.getRunningActionKey(app)),
       enabledValue: this.canOperateAction(this.getRunningActionKey(app)),
       currentTheme: this.currentTheme,
-      onSelect: (index: number) => {
-        let nextPolicy = this.policyByIndex(index)
+      optimistic: true,
+      onSelectAsync: async (index: number): Promise<boolean> => {
+        let nextPolicy = this.runningPolicyByIndex(index)
         if (nextPolicy !== app.runningPolicy) {
-          this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.setSelectedRunningPolicy(nextPolicy))
+          return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+            this.viewModel.setSelectedRunningPolicy(nextPolicy)
+          )
         }
+        return true
       }
     })
 
@@ -812,23 +783,26 @@ export struct PermissionPage {
       .color(AppColors.getColors(this.currentTheme).BORDER)
       .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-    SectionSelectRow({
-      title: PermissionApplicationStrings.NETWORK_POLICY,
+    AsyncSelectRow({
+      label: PermissionApplicationStrings.NETWORK_POLICY,
       description: app.uid > 0
-        ? this.formatDescriptionWithState(PermissionApplicationStrings.NETWORK_POLICY_DESC, this.formatPolicy(app.networkPolicy))
+        ? this.formatDescriptionWithState(PermissionApplicationStrings.NETWORK_POLICY_DESC, this.formatRuntimePolicy(app.networkPolicy))
         : PermissionApplicationStrings.MISSING_UID,
       options: this.getNetworkPolicyOptions(),
       selectedIndex: this.getNetworkPolicyIndex(app.networkPolicy),
-      value: this.formatPolicy(app.networkPolicy),
       selectWidth: 116,
       processing: this.isActionProcessing(this.getNetworkActionKey(app)),
       enabledValue: this.canOperateAction(this.getNetworkActionKey(app)) && app.uid > 0,
       currentTheme: this.currentTheme,
-      onSelect: (index: number) => {
+      optimistic: true,
+      onSelectAsync: async (index: number): Promise<boolean> => {
         let nextPolicy = this.networkPolicyByIndex(index)
         if (nextPolicy !== app.networkPolicy) {
-          this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.setSelectedNetworkPolicy(nextPolicy))
+          return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+            this.viewModel.setSelectedNetworkPolicy(nextPolicy)
+          )
         }
+        return true
       }
     })
 
@@ -836,24 +810,27 @@ export struct PermissionPage {
 
   @Builder
   private uninstallProtectedActionRow(app: ManagedApplicationInfo) {
-    SectionSelectRow({
-      title: PermissionApplicationStrings.UNINSTALL_PROTECTED,
+    AsyncSelectRow({
+      label: PermissionApplicationStrings.UNINSTALL_PROTECTED,
       description: this.formatDescriptionWithState(
         PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
         app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
       ),
       options: this.getUninstallProtectedOptions(),
       selectedIndex: this.getUninstallProtectedIndex(app.uninstallProtected),
-      value: app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED,
       selectWidth: 116,
       processing: this.isActionProcessing(this.getUninstallActionKey(app)),
       enabledValue: this.canOperateAction(this.getUninstallActionKey(app)),
       currentTheme: this.currentTheme,
-      onSelect: (index: number) => {
+      optimistic: true,
+      onSelectAsync: async (index: number): Promise<boolean> => {
         let nextEnabled = this.uninstallProtectedByIndex(index)
         if (nextEnabled !== app.uninstallProtected) {
-          this.showUninstallProtectedConfirm(app, nextEnabled)
+          return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+            this.viewModel.setSelectedUninstallProtected(nextEnabled)
+          )
         }
+        return true
       }
     })
   }
@@ -870,23 +847,24 @@ export struct PermissionPage {
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
     } else {
       ForEach(this.getSixDItems(profile), (item: SixDPermissionItem) => {
-        SectionSelectRow({
-          title: item.title,
+        AsyncSelectRow({
+          label: item.title,
           description: this.getSixDDescription(item),
-          options: this.getSixDOptions(),
-          selectedIndex: this.getSixDStateIndex(item.managedState),
-          value: this.formatSixDState(item.managedState),
+          options: this.getSixDOptionsForItem(item),
+          selectedIndex: this.getSixDStateIndexForItem(item),
           selectWidth: 116,
           processing: this.isActionProcessing(this.getSixDActionKey(app, item)),
           enabledValue: this.canOperateAction(this.getSixDActionKey(app, item)) && item.canManage,
           currentTheme: this.currentTheme,
-          onSelect: (index: number) => {
+          optimistic: true,
+          onSelectAsync: async (index: number): Promise<boolean> => {
             let nextState = this.sixDStateByIndex(index)
             if (item.canManage && nextState !== item.managedState) {
-              this.executePolicyAction((): Promise<PermissionActionResult> =>
+              return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
                 this.viewModel.setSelectedSixDPermissionState(item.groupKey, nextState)
               )
             }
+            return item.canManage
           }
         })
 
@@ -923,14 +901,8 @@ export struct PermissionPage {
     } as SixDPermissionItem
   }
 
-  private formatPolicy(policy: PermissionPolicyState): string {
-    if (policy === 'allowed') {
-      return PermissionApplicationStrings.POLICY_ALLOWED
-    }
-    if (policy === 'denied') {
-      return PermissionApplicationStrings.POLICY_DENIED
-    }
-    return PermissionApplicationStrings.POLICY_DEFAULT
+  private formatRuntimePolicy(policy: PermissionPolicyState): string {
+    return policy === 'denied' ? PermissionApplicationStrings.POLICY_DENIED : PermissionApplicationStrings.POLICY_ALLOWED
   }
 
   private formatDescriptionWithState(description: string, state: string): string {
@@ -938,10 +910,33 @@ export struct PermissionPage {
   }
 
   private getSixDDescription(item: SixDPermissionItem): string {
-    if (!item.canManage) {
-      return item.disabledReason
+    let baseDescription = this.getSixDBaseDescription(item.groupKey)
+    if (item.canManage && item.disabledReason.length > 0) {
+      return `${baseDescription} · ${item.disabledReason}`
     }
-    return item.disabledReason.length > 0 ? item.disabledReason : PermissionApplicationStrings.SIX_D_GROUP_DESC
+    return baseDescription
+  }
+
+  private getSixDBaseDescription(groupKey: string): string {
+    if (groupKey === 'downloads') {
+      return PermissionSixDStrings.DOWNLOADS_DESC
+    }
+    if (groupKey === 'desktop') {
+      return PermissionSixDStrings.DESKTOP_DESC
+    }
+    if (groupKey === 'documents') {
+      return PermissionSixDStrings.DOCUMENTS_DESC
+    }
+    if (groupKey === 'gallery') {
+      return PermissionSixDStrings.GALLERY_DESC
+    }
+    if (groupKey === 'music') {
+      return PermissionSixDStrings.MUSIC_DESC
+    }
+    if (groupKey === 'document_file') {
+      return PermissionSixDStrings.DOCUMENT_FILE_DESC
+    }
+    return PermissionApplicationStrings.SIX_D_GROUP_DESC
   }
 
   private formatSixDState(state: SixDManagedState): string {
