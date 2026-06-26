@@ -12,7 +12,7 @@ export class PermissionSectionStrings {
   static readonly TARGET_APPLICATION_PLACEHOLDER: string = '请选择应用'
   static readonly CURRENT_POLICIES: string = '当前策略'
   static readonly APPLICATION_CONTROL: string = '应用策略'
-  static readonly SIX_D_PERMISSION: string = '6D 权限托管'
+  static readonly SIX_D_PERMISSION: string = '3D 权限托管'
 }
 
 export class PermissionAccountStrings {
@@ -96,12 +96,6 @@ export class PermissionSixDStrings {
   static readonly DESKTOP_DESC: string = '托管应用对桌面目录文件的访问授权'
   static readonly DOCUMENTS: string = '文档目录'
   static readonly DOCUMENTS_DESC: string = '托管应用对文档目录文件的访问授权'
-  static readonly GALLERY: string = '图库'
-  static readonly GALLERY_DESC: string = '托管应用读取或写入图片视频资源的授权'
-  static readonly MUSIC: string = '音乐'
-  static readonly MUSIC_DESC: string = '托管应用读取或写入音频资源的授权'
-  static readonly DOCUMENT_FILE: string = '文档文件'
-  static readonly DOCUMENT_FILE_DESC: string = '托管应用读取或写入文档文件的授权'
   static readonly NO_DECLARED: string = '未声明'
   static readonly DETAIL_LOADING: string = '权限详情读取中'
   static readonly DETAIL_FAILED: string = '权限详情读取失败'

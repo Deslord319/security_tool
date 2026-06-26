@@ -882,10 +882,7 @@ export struct PermissionPage {
     return [
       this.createPendingSixDItem('downloads', PermissionSixDStrings.DOWNLOADS),
       this.createPendingSixDItem('desktop', PermissionSixDStrings.DESKTOP),
-      this.createPendingSixDItem('documents', PermissionSixDStrings.DOCUMENTS),
-      this.createPendingSixDItem('gallery', PermissionSixDStrings.GALLERY),
-      this.createPendingSixDItem('music', PermissionSixDStrings.MUSIC),
-      this.createPendingSixDItem('document_file', PermissionSixDStrings.DOCUMENT_FILE)
+      this.createPendingSixDItem('documents', PermissionSixDStrings.DOCUMENTS)
     ]
   }
 
@@ -926,15 +923,6 @@ export struct PermissionPage {
     }
     if (groupKey === 'documents') {
       return PermissionSixDStrings.DOCUMENTS_DESC
-    }
-    if (groupKey === 'gallery') {
-      return PermissionSixDStrings.GALLERY_DESC
-    }
-    if (groupKey === 'music') {
-      return PermissionSixDStrings.MUSIC_DESC
-    }
-    if (groupKey === 'document_file') {
-      return PermissionSixDStrings.DOCUMENT_FILE_DESC
     }
     return PermissionApplicationStrings.SIX_D_GROUP_DESC
   }
