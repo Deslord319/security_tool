@@ -28,8 +28,7 @@ export class ApplicationInventoryRepository {
         ADMIN_WANT,
         accountId,
         enterpriseBundleManager.BundleInfoGetFlag.WITH_APPLICATION_INFO |
-          enterpriseBundleManager.BundleInfoGetFlag.WITH_SIGNATURE_INFO |
-          enterpriseBundleManager.BundleInfoGetFlag.WITH_APPLICATION_ICON_INFO
+          enterpriseBundleManager.BundleInfoGetFlag.WITH_SIGNATURE_INFO
       )
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {

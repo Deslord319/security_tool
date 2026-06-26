@@ -146,10 +146,6 @@ export default class EntryAbility extends UIAbility {
       // 需要在此重新应用正确的主题
       ThemeManager.getInstance().reapplyTheme();
 
-      ApplicationRuntimeManager.getInstance().ensureRuntimeServices().catch((runtimeErr: Error) => {
-        LogUtils.warn(ENTRYABILITY_TAG, 'Application runtime init failed: %{public}s', JSON.stringify(runtimeErr))
-      })
-
       // 页面加载完成后显示启动提示（如认证方式不可用的降级提示）
       if (toastMessage) {
         windowStage.getMainWindow().then((mainWindow: window.Window) => {

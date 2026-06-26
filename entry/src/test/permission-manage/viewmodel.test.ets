@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { ManagedApplicationInfo } from '../../main/ets/models/PermissionModels'
+import { ManagedApplicationInfo, PermissionLocalPolicyRecord } from '../../main/ets/models/PermissionModels'
 import {
   ApplicationInventoryRawRecord,
   ApplicationInventoryRepository
@@ -8,6 +8,7 @@ import { ApplicationControlRepository } from '../../main/ets/services/permission
 import { PermissionService } from '../../main/ets/services/permission-manage/PermissionService'
 import { PermissionViewModel } from '../../main/ets/viewmodels/permission-manage/PermissionViewModel'
 import { ApplicationNetworkPolicyRepository } from '../../main/ets/services/permission-manage/ApplicationNetworkPolicyRepository'
+import { PermissionPolicyLocalRepository } from '../../main/ets/services/permission-manage/PermissionPolicyLocalRepository'
 
 export default function permissionViewModelTest() {
   describe('PermissionViewModel', () => {
@@ -186,7 +187,58 @@ export default function permissionViewModelTest() {
       expect(failed).assertTrue()
     })
 
-    it('should update filtered applications and selected app by search keyword', 0, () => {
+    it('should keep local policy records scoped by account and removable by app policy', 0, async (done: Function) => {
+      PermissionPolicyLocalRepository.resetForTest()
+      await PermissionPolicyLocalRepository.upsertActive({
+        recordId: 'running:100:mail',
+        accountId: 100,
+        appKey: '100:mail:mail:0',
+        bundleName: 'mail',
+        appIdentifier: 'mail',
+        appIndex: 0,
+        policyType: 'running',
+        policyValue: 'denied',
+        targetName: 'Mail',
+        targetDetail: 'mail',
+        statusLabel: 'denied',
+        scopeLabel: 'account 100',
+        actionKind: 'running',
+        policyId: '',
+        status: 'active',
+        createdAt: 1,
+        updatedAt: 1,
+        lastError: ''
+      } as PermissionLocalPolicyRecord)
+      await PermissionPolicyLocalRepository.upsertActive({
+        recordId: 'running:101:mail',
+        accountId: 101,
+        appKey: '101:mail:mail:0',
+        bundleName: 'mail',
+        appIdentifier: 'mail',
+        appIndex: 0,
+        policyType: 'running',
+        policyValue: 'denied',
+        targetName: 'Mail',
+        targetDetail: 'mail',
+        statusLabel: 'denied',
+        scopeLabel: 'account 101',
+        actionKind: 'running',
+        policyId: '',
+        status: 'active',
+        createdAt: 1,
+        updatedAt: 1,
+        lastError: ''
+      } as PermissionLocalPolicyRecord)
+
+      expect(PermissionPolicyLocalRepository.listActiveByAccount(100).length).assertEqual(1)
+      await PermissionPolicyLocalRepository.removeByAppPolicy('100:mail:mail:0', 'running')
+      expect(PermissionPolicyLocalRepository.listActiveByAccount(100).length).assertEqual(0)
+      expect(PermissionPolicyLocalRepository.listActiveByAccount(101).length).assertEqual(1)
+      PermissionPolicyLocalRepository.resetForTest()
+      done()
+    })
+
+    it('should update filtered applications without selecting an app by default', 0, () => {
       let viewModel = new PermissionViewModel()
       viewModel.state.applications = ApplicationInventoryRepository.normalizeApplications(100, [
         { bundleName: 'com.example.mail', label: 'Mail' } as ApplicationInventoryRawRecord,
@@ -196,7 +248,7 @@ export default function permissionViewModelTest() {
       viewModel.setSearchKeyword('browser')
 
       expect(viewModel.state.filteredApplications.length).assertEqual(1)
-      expect(viewModel.state.selectedAppKey).assertEqual('100:com.example.browser:com.example.browser:0')
+      expect(viewModel.state.selectedAppKey).assertEqual('')
     })
   })
 }

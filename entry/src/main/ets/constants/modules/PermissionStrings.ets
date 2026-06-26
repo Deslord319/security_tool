@@ -9,6 +9,7 @@ export class PermissionSectionStrings {
   static readonly APPLICATION_DETAIL: string = '应用详情'
   static readonly TARGET_APPLICATION: string = '目标应用'
   static readonly TARGET_APPLICATION_DESC: string = '选择后下方策略作用于该应用'
+  static readonly TARGET_APPLICATION_PLACEHOLDER: string = '请选择应用'
   static readonly CURRENT_POLICIES: string = '当前策略'
   static readonly APPLICATION_CONTROL: string = '应用策略'
   static readonly SIX_D_PERMISSION: string = '6D 权限托管'
@@ -34,6 +35,7 @@ export class PermissionEmptyStrings {
   static readonly INVENTORY_LOAD_FAILED: string = '应用清单读取失败，请确认企业管理员激活态和应用清单权限。'
   static readonly SEARCH_RESULT: string = '没有匹配的应用。'
   static readonly DETAIL: string = '选择应用后展示基础信息和策略详情。'
+  static readonly SELECT_APPLICATION_FIRST: string = '请选择应用。'
   static readonly POLICIES: string = '当前账号暂无已生效策略。'
 }
 
@@ -61,6 +63,10 @@ export class PermissionApplicationStrings {
   static readonly DELETE_POLICY_ACTION: string = '删除'
   static readonly DELETE_POLICY_CONFIRM_TITLE: string = '删除当前策略'
   static readonly DELETE_POLICY_CONFIRM_MESSAGE: string = '删除后将清理系统策略，确认继续？'
+  static readonly UNINSTALL_PROTECTED_ENABLE_CONFIRM_TITLE: string = '开启卸载保护'
+  static readonly UNINSTALL_PROTECTED_DISABLE_CONFIRM_TITLE: string = '关闭卸载保护'
+  static readonly UNINSTALL_PROTECTED_ENABLE_CONFIRM_MESSAGE: string = '开启后将阻止当前账号卸载该应用，确认继续？'
+  static readonly UNINSTALL_PROTECTED_DISABLE_CONFIRM_MESSAGE: string = '关闭后当前账号可卸载该应用，确认继续？'
   static readonly POLICY_TARGET_NOT_INSTALLED: string = '未安装应用'
   static readonly POLICY_SCOPE_ACCOUNT_PREFIX: string = '账号'
   static readonly UNINSTALL_PROTECTED_DESC: string = '阻止当前账号卸载该应用'

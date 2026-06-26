@@ -55,6 +55,7 @@ struct MainPage {
   @Local currentTheme: ThemeMode = ThemeManager.getInstance().getCurrentTheme()
   @Local currentThemeOption: ThemeOption = ThemeManager.getInstance().getCurrentOption()
   private aboutDialogController?: CustomDialogController
+  private initialRuntimeWarmupStarted: boolean = false
   private readonly themeListener: () => void = () => {
     this.syncThemeState()
     this.syncDecorButtonStyle()
@@ -113,12 +114,8 @@ struct MainPage {
 
   private handlePageActivated(source: 'onPageShow'): void {
     this.syncThemeState()
-    this.loadFirewallState().catch((err: ErrorLike) => {
-      LogUtils.error(TAG, `loadFirewallState in ${source} failed: ${JSON.stringify(err)}`)
-    })
-    this.applicationRuntime.ensureRuntimeServices().catch((err: ErrorLike) => {
-      LogUtils.error(TAG, `ensureRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
-    })
+    this.requestFirewallStateIfNeeded(source)
+    this.ensureRuntimeServicesForActiveRoute(source)
     this.syncDecorButtonStyle()
   }
 
@@ -139,6 +136,8 @@ struct MainPage {
         LogUtils.warn(TAG, `requestLogManageRefresh failed: ${JSON.stringify(err)}`)
       })
     }
+    this.requestFirewallStateIfNeeded('onPageShow')
+    this.ensureRuntimeServicesForActiveRoute('onPageShow')
     this.pageEnterOpacity = 0.76
     this.pageEnterOffset = this.currentPage === RouteIds.DASHBOARD ? 18 : 10
     this.getUIContext().animateTo({
@@ -147,6 +146,16 @@ struct MainPage {
     }, () => {
       this.pageEnterOpacity = 1
       this.pageEnterOffset = 0
+    })
+  }
+
+  private handleInitialDashboardAnimationComplete(): void {
+    if (this.initialRuntimeWarmupStarted || this.currentPage !== RouteIds.DASHBOARD) {
+      return
+    }
+    this.initialRuntimeWarmupStarted = true
+    this.applicationRuntime.ensureRuntimeServices().catch((err: ErrorLike) => {
+      LogUtils.error(TAG, `initial runtime warmup after dashboard animation failed: ${JSON.stringify(err)}`)
     })
   }
 
@@ -212,6 +221,9 @@ struct MainPage {
         currentTheme: this.currentTheme,
         onNavigate: (route: string) => {
           this.navigateToRoute(route)
+        },
+        onInitialEnterAnimationComplete: () => {
+          this.handleInitialDashboardAnimationComplete()
         }
       })
     }
@@ -266,6 +278,35 @@ struct MainPage {
     .id('route-page-identity')
     .width('100%')
     .height('100%')
+  }
+
+  private requestFirewallStateIfNeeded(source: 'onPageShow'): void {
+    if (this.currentPage !== RouteIds.FIREWALL && this.currentPage !== RouteIds.FIREWALL_RULES) {
+      return
+    }
+    this.loadFirewallState().catch((err: ErrorLike) => {
+      LogUtils.error(TAG, `loadFirewallState in ${source} failed: ${JSON.stringify(err)}`)
+    })
+  }
+
+  private ensureRuntimeServicesForActiveRoute(source: 'onPageShow'): void {
+    if (this.currentPage === RouteIds.LOG_MANAGE) {
+      this.applicationRuntime.ensureLogRuntimeServices().catch((err: ErrorLike) => {
+        LogUtils.error(TAG, `ensureLogRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
+      })
+      return
+    }
+    if (this.currentPage === RouteIds.PERIPHERAL_MANAGE) {
+      this.applicationRuntime.ensurePeripheralRuntimeServices().catch((err: ErrorLike) => {
+        LogUtils.error(TAG, `ensurePeripheralRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
+      })
+      return
+    }
+    if (this.currentPage === RouteIds.PERMISSION_MANAGE) {
+      this.applicationRuntime.ensurePermissionRuntimeServices().catch((err: ErrorLike) => {
+        LogUtils.error(TAG, `ensurePermissionRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
+      })
+    }
   }
 
   @Builder

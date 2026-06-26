@@ -14,10 +14,11 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { EmptyStatePanel } from '../../../components/EmptyStatePanel'
 import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
-import { SectionLabel, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
+import { SectionLabel, SectionSelectRow } from '../../../components/SectionRows'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import { StyledTextInput } from '../../../components/StyledTextInput'
+import { StyledSelect } from '../../../components/StyledSelect'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import {
   ApplicationPermissionProfile,
@@ -100,8 +101,8 @@ export struct PermissionPage {
   }
 
   private getSelectedApplicationLabel(): string {
-    let app = this.viewModel.state.filteredApplications[this.getSelectedApplicationIndex()]
-    return app?.label ?? PermissionEmptyStrings.APPLICATIONS
+    let app = this.getSelectedApplication()
+    return app?.label ?? PermissionSectionStrings.TARGET_APPLICATION_PLACEHOLDER
   }
 
   private selectApplicationByIndex(index: number): void {
@@ -109,7 +110,7 @@ export struct PermissionPage {
     if (!app) {
       return
     }
-    this.viewModel.selectApplicationAndLoadProfile(app.key).catch((err: Error) => {
+    this.viewModel.selectApplicationAndLoadDetails(app.key).catch((err: Error) => {
       LogUtils.warn(TAG, `selectApplicationByIndex failed: ${JSON.stringify(err)}`)
     })
   }
@@ -126,6 +127,13 @@ export struct PermissionPage {
     return [
       { value: PermissionApplicationStrings.POLICY_DEFAULT } as SelectOption,
       { value: PermissionApplicationStrings.POLICY_DENIED } as SelectOption
+    ]
+  }
+
+  private getUninstallProtectedOptions(): SelectOption[] {
+    return [
+      { value: PermissionApplicationStrings.DISABLED } as SelectOption,
+      { value: PermissionApplicationStrings.ENABLED } as SelectOption
     ]
   }
 
@@ -149,6 +157,10 @@ export struct PermissionPage {
 
   private networkPolicyByIndex(index: number): PermissionPolicyState {
     return index === 1 ? 'denied' : 'default'
+  }
+
+  private uninstallProtectedByIndex(index: number): boolean {
+    return index === 1
   }
 
   private sixDStateByIndex(index: number): SixDManagedState {
@@ -175,6 +187,10 @@ export struct PermissionPage {
     return policy === 'denied' ? 1 : 0
   }
 
+  private getUninstallProtectedIndex(enabled: boolean): number {
+    return enabled ? 1 : 0
+  }
+
   private getSixDStateIndex(state: SixDManagedState): number {
     if (state === 'granted') {
       return 1
@@ -187,6 +203,42 @@ export struct PermissionPage {
 
   private canSubmitInstallBlock(): boolean {
     return !this.viewModel.state.processingAction && this.viewModel.state.installBlockKeyword.trim().length > 0
+  }
+
+  private hasProcessingAction(): boolean {
+    return this.viewModel.state.processingAction
+  }
+
+  private isActionProcessing(actionKey: string): boolean {
+    return this.viewModel.state.processingActionKey === actionKey
+  }
+
+  private canOperateAction(actionKey: string): boolean {
+    return !this.hasProcessingAction() || this.isActionProcessing(actionKey)
+  }
+
+  private getInstallActionKey(): string {
+    return 'install-deny'
+  }
+
+  private getUninstallActionKey(app: ManagedApplicationInfo): string {
+    return `uninstall:${app.key}`
+  }
+
+  private getRunningActionKey(app: ManagedApplicationInfo): string {
+    return `running:${app.key}`
+  }
+
+  private getNetworkActionKey(app: ManagedApplicationInfo): string {
+    return `network:${app.key}`
+  }
+
+  private getSixDActionKey(app: ManagedApplicationInfo, item: SixDPermissionItem): string {
+    return `sixd:${app.key}:${item.groupKey}`
+  }
+
+  private getDeletePolicyActionKey(recordKey: string): string {
+    return `delete-policy:${recordKey}`
   }
 
   private executePolicyAction(action: () => Promise<PermissionActionResult>): void {
@@ -205,8 +257,8 @@ export struct PermissionPage {
   private getPolicyDeleteButtonBackground(recordKey: string): ResourceColor {
     return ActionButtonStyles.getDangerBackground(
       this.currentTheme,
-      this.hoveredPolicyActionKey === recordKey,
-      this.activePolicyActionKey === recordKey
+      this.hoveredPolicyActionKey === recordKey && !this.hasProcessingAction(),
+      this.activePolicyActionKey === recordKey && !this.hasProcessingAction()
     )
   }
 
@@ -232,6 +284,24 @@ export struct PermissionPage {
     )
   }
 
+  private showUninstallProtectedConfirm(app: ManagedApplicationInfo, nextEnabled: boolean): void {
+    DialogService.openConfirm(this.getUIContext(), {
+      title: nextEnabled
+        ? PermissionApplicationStrings.UNINSTALL_PROTECTED_ENABLE_CONFIRM_TITLE
+        : PermissionApplicationStrings.UNINSTALL_PROTECTED_DISABLE_CONFIRM_TITLE,
+      message: nextEnabled
+        ? PermissionApplicationStrings.UNINSTALL_PROTECTED_ENABLE_CONFIRM_MESSAGE
+        : PermissionApplicationStrings.UNINSTALL_PROTECTED_DISABLE_CONFIRM_MESSAGE,
+      confirmText: ActionText.CONFIRM,
+      cancelText: ActionText.CANCEL,
+      onConfirm: () => {
+        this.executePolicyAction((): Promise<PermissionActionResult> =>
+          this.viewModel.setSelectedUninstallProtected(nextEnabled)
+        )
+      }
+    })
+  }
+
   build() {
     Column() {
       SubPageHeader({
@@ -253,15 +323,13 @@ export struct PermissionPage {
             }
           })
 
-          if (this.getSelectedApplication() !== undefined) {
-            SectionCard({
-              title: PermissionSectionStrings.APPLICATION_CONTROL,
-              currentTheme: this.currentTheme,
-              content: () => {
-                this.applicationPolicyContent()
-              }
-            })
-          }
+          SectionCard({
+            title: PermissionSectionStrings.APPLICATION_CONTROL,
+            currentTheme: this.currentTheme,
+            content: () => {
+              this.applicationPolicyContent()
+            }
+          })
 
           if (this.viewModel.state.initialized) {
             SectionCard({
@@ -356,6 +424,7 @@ export struct PermissionPage {
         value: this.getSelectedAccountLabel(),
         selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
         processing: this.viewModel.state.accounts.length === 0,
+        enabledValue: !this.hasProcessingAction(),
         currentTheme: this.currentTheme,
         onSelect: (index: number) => {
           this.switchAccountByIndex(index)
@@ -379,42 +448,95 @@ export struct PermissionPage {
           verticalPadding: 28
         })
       } else {
-        SectionSelectRow({
-          title: PermissionSectionStrings.TARGET_APPLICATION,
-          description: PermissionSectionStrings.TARGET_APPLICATION_DESC,
-          options: this.getApplicationOptions(),
-          selectedIndex: this.getSelectedApplicationIndex(),
-          value: this.getSelectedApplicationLabel(),
-          selectWidth: 260,
-          processing: false,
-          currentTheme: this.currentTheme,
-          onSelect: (index: number) => {
-            this.selectApplicationByIndex(index)
-          }
-        })
+        this.targetApplicationSelectRow()
       }
     }
+  }
+
+  @Builder
+  private targetApplicationSelectRow() {
+    Row() {
+      Row({ space: 8 }) {
+        if (this.viewModel.state.selectedAppRefreshing) {
+          LoadingProgress()
+            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        }
+
+        SectionLabel({
+          title: PermissionSectionStrings.TARGET_APPLICATION,
+          description: PermissionSectionStrings.TARGET_APPLICATION_DESC,
+          currentTheme: this.currentTheme
+        })
+      }
+      .layoutWeight(1)
+      .alignItems(VerticalAlign.Center)
+
+      StyledSelect({
+        options: this.getApplicationOptions(),
+        selectedIndex: this.getSelectedApplicationIndex(),
+        value: this.getSelectedApplicationLabel(),
+        controlWidth: 260,
+        controlHeight: 36,
+        radius: AppStyles.RADIUS_SM,
+        enabledValue: !this.hasProcessingAction(),
+        opacityValue: this.hasProcessingAction() ? 0.72 : 1,
+        currentTheme: this.currentTheme,
+        onSelect: (index: number) => {
+          this.selectApplicationByIndex(index)
+        }
+      })
+    }
+    .width('100%')
+    .padding({
+      left: 16,
+      right: 16,
+      top: 14,
+      bottom: 14
+    })
   }
 
   @Builder
   private applicationPolicyContent() {
     if (this.getSelectedApplication() === undefined) {
       EmptyStatePanel({
-        title: PermissionEmptyStrings.DETAIL,
+        title: PermissionEmptyStrings.SELECT_APPLICATION_FIRST,
         currentTheme: this.currentTheme,
         verticalPadding: 28
       })
     } else {
-      this.applicationControlRows(this.getSelectedApplication() as ManagedApplicationInfo)
+      Column({ space: 0 }) {
+        if (this.viewModel.state.selectedAppRefreshing) {
+          Row({ space: 8 }) {
+            LoadingProgress()
+              .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+              .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+              .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-      Divider()
-        .color(AppColors.getColors(this.currentTheme).BORDER)
-        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+            Text(PermissionSixDStrings.DETAIL_LOADING)
+              .fontSize(AppStyles.FONT_SIZE_CAPTION)
+              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+          .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+        }
 
-      this.sixDPermissionRows(
-        this.getSelectedApplication() as ManagedApplicationInfo,
-        this.viewModel.state.selectedPermissionProfile
-      )
+        this.applicationControlRows(this.getSelectedApplication() as ManagedApplicationInfo)
+
+        Divider()
+          .color(AppColors.getColors(this.currentTheme).BORDER)
+          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+        this.sixDPermissionRows(
+          this.getSelectedApplication() as ManagedApplicationInfo,
+          this.viewModel.state.selectedPermissionProfile
+        )
+      }
+      .width('100%')
+      .id(`permission-policy-content-${this.viewModel.state.selectedAppKey}`)
     }
   }
 
@@ -434,6 +556,7 @@ export struct PermissionPage {
           controlWidth: 280,
           controlHeight: 36,
           radius: AppStyles.RADIUS_SM,
+          enabledValue: !this.hasProcessingAction(),
           currentTheme: this.currentTheme,
           onChange: (value: string) => {
             this.viewModel.setInstallBlockKeyword(value)
@@ -445,6 +568,7 @@ export struct PermissionPage {
           icon: AppResources.ALERT_ICON,
           kind: 'danger',
           isEnabled: this.canSubmitInstallBlock(),
+          isLoading: this.isActionProcessing(this.getInstallActionKey()),
           currentTheme: this.currentTheme,
           onTap: () => {
             this.executePolicyAction((): Promise<PermissionActionResult> =>
@@ -470,7 +594,20 @@ export struct PermissionPage {
 
   @Builder
   private currentPolicyContent() {
-    if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
+    if (this.getSelectedApplication() === undefined) {
+      Text(PermissionEmptyStrings.SELECT_APPLICATION_FIRST)
+        .width('100%')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+        .padding({
+          left: AppStyles.TABLE_HORIZONTAL_PADDING,
+          right: AppStyles.TABLE_HORIZONTAL_PADDING,
+          top: 28,
+          bottom: 28
+        })
+    } else if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
       LoadingStatePanel({
         indicatorSize: 22,
         currentTheme: this.currentTheme
@@ -596,10 +733,17 @@ export struct PermissionPage {
   @Builder
   private policyDeleteActionCell(record: PermissionPolicyRecord, weight: number) {
     Row() {
-      Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Regular)
-        .fontColor(this.getPolicyDeleteButtonForeground())
+      if (this.isActionProcessing(this.getDeletePolicyActionKey(record.key))) {
+        LoadingProgress()
+          .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .color(this.getPolicyDeleteButtonForeground())
+      } else {
+        Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Regular)
+          .fontColor(this.getPolicyDeleteButtonForeground())
+      }
     }
     .height(ActionButtonStyles.CHIP_HEIGHT)
     .padding({
@@ -609,16 +753,16 @@ export struct PermissionPage {
     .justifyContent(FlexAlign.Center)
     .borderRadius(AppStyles.RADIUS_MD)
     .backgroundColor(this.getPolicyDeleteButtonBackground(record.key))
-    .opacity(this.viewModel.state.processingAction ? 0.56 : 1)
+    .opacity(this.canOperateAction(this.getDeletePolicyActionKey(record.key)) ? 1 : 0.56)
     .layoutWeight(weight)
     .onHover((isHover: boolean) => {
-      if (this.viewModel.state.processingAction) {
+      if (this.hasProcessingAction()) {
         return
       }
       this.hoveredPolicyActionKey = isHover ? record.key : ''
     })
     .onTouch((event: TouchEvent) => {
-      if (this.viewModel.state.processingAction) {
+      if (this.hasProcessingAction()) {
         return
       }
       if (event.type === TouchType.Down) {
@@ -630,7 +774,7 @@ export struct PermissionPage {
       }
     })
     .onClick(() => {
-      if (this.viewModel.state.processingAction) {
+      if (this.hasProcessingAction()) {
         return
       }
       this.activePolicyActionKey = ''
@@ -640,22 +784,7 @@ export struct PermissionPage {
 
   @Builder
   private applicationControlRows(app: ManagedApplicationInfo) {
-    SectionToggleRow({
-      title: PermissionApplicationStrings.UNINSTALL_PROTECTED,
-      description: this.formatDescriptionWithState(
-        PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
-        app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
-      ),
-      isOn: app.uninstallProtected,
-      enabledValue: !this.viewModel.state.processingAction,
-      opacityValue: this.viewModel.state.processingAction ? 0.72 : 1,
-      currentTheme: this.currentTheme,
-      onChange: (enabled: boolean) => {
-        if (enabled !== app.uninstallProtected) {
-          this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.setSelectedUninstallProtected(enabled))
-        }
-      }
-    })
+    this.uninstallProtectedActionRow(app)
 
     Divider()
       .color(AppColors.getColors(this.currentTheme).BORDER)
@@ -668,7 +797,8 @@ export struct PermissionPage {
       selectedIndex: this.getPolicyIndex(app.runningPolicy),
       value: this.formatPolicy(app.runningPolicy),
       selectWidth: 116,
-      processing: this.viewModel.state.processingAction,
+      processing: this.isActionProcessing(this.getRunningActionKey(app)),
+      enabledValue: this.canOperateAction(this.getRunningActionKey(app)),
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         let nextPolicy = this.policyByIndex(index)
@@ -691,7 +821,8 @@ export struct PermissionPage {
       selectedIndex: this.getNetworkPolicyIndex(app.networkPolicy),
       value: this.formatPolicy(app.networkPolicy),
       selectWidth: 116,
-      processing: this.viewModel.state.processingAction || app.uid <= 0,
+      processing: this.isActionProcessing(this.getNetworkActionKey(app)),
+      enabledValue: this.canOperateAction(this.getNetworkActionKey(app)) && app.uid > 0,
       currentTheme: this.currentTheme,
       onSelect: (index: number) => {
         let nextPolicy = this.networkPolicyByIndex(index)
@@ -701,6 +832,30 @@ export struct PermissionPage {
       }
     })
 
+  }
+
+  @Builder
+  private uninstallProtectedActionRow(app: ManagedApplicationInfo) {
+    SectionSelectRow({
+      title: PermissionApplicationStrings.UNINSTALL_PROTECTED,
+      description: this.formatDescriptionWithState(
+        PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
+        app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
+      ),
+      options: this.getUninstallProtectedOptions(),
+      selectedIndex: this.getUninstallProtectedIndex(app.uninstallProtected),
+      value: app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED,
+      selectWidth: 116,
+      processing: this.isActionProcessing(this.getUninstallActionKey(app)),
+      enabledValue: this.canOperateAction(this.getUninstallActionKey(app)),
+      currentTheme: this.currentTheme,
+      onSelect: (index: number) => {
+        let nextEnabled = this.uninstallProtectedByIndex(index)
+        if (nextEnabled !== app.uninstallProtected) {
+          this.showUninstallProtectedConfirm(app, nextEnabled)
+        }
+      }
+    })
   }
 
   @Builder
@@ -722,8 +877,8 @@ export struct PermissionPage {
           selectedIndex: this.getSixDStateIndex(item.managedState),
           value: this.formatSixDState(item.managedState),
           selectWidth: 116,
-          processing: this.viewModel.state.processingAction,
-          enabledValue: item.canManage,
+          processing: this.isActionProcessing(this.getSixDActionKey(app, item)),
+          enabledValue: this.canOperateAction(this.getSixDActionKey(app, item)) && item.canManage,
           currentTheme: this.currentTheme,
           onSelect: (index: number) => {
             let nextState = this.sixDStateByIndex(index)

@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit'
 import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
 import { PeripheralDevicePolicyRepository } from '../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralTraceMaintenanceService } from '../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
+import { PermissionPolicyLocalRepository } from '../services/permission-manage/PermissionPolicyLocalRepository'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
 import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
@@ -80,6 +81,20 @@ export class ApplicationRuntimeManager {
     await this.ensureCollectorsRunning()
   }
 
+  async ensureLogRuntimeServices(): Promise<void> {
+    await this.ensureLogRuntimeInitialized()
+    await this.ensureCollectorsRunning()
+  }
+
+  async ensurePeripheralRuntimeServices(): Promise<void> {
+    await this.ensurePeripheralRuntimeInitialized()
+    await this.ensureCollectorsRunning()
+  }
+
+  async ensurePermissionRuntimeServices(): Promise<void> {
+    await this.ensurePermissionRuntimeInitialized()
+  }
+
   async refreshLogManageData(): Promise<void> {
     let context = this.requireContext()
     let viewModel = this.logManageViewModel
@@ -105,9 +120,7 @@ export class ApplicationRuntimeManager {
     let viewModel = this.permissionViewModel
     if (!viewModel.state.initialized) {
       await viewModel.loadInitialState()
-      return
     }
-    await viewModel.refreshPolicyStates()
   }
 
   private async ensureLogRuntimeInitialized(): Promise<void> {
@@ -193,6 +206,11 @@ export class ApplicationRuntimeManager {
   private async initializePermissionRuntime(): Promise<void> {
     if (this.permissionRuntimeInitialized) {
       return
+    }
+    let context = this.requireContext()
+    let localRepoInited = await PermissionPolicyLocalRepository.init(context)
+    if (!localRepoInited) {
+      LogUtils.warn(TAG, 'PermissionPolicyLocalRepository init failed')
     }
     await this.permissionViewModel.loadInitialState()
     this.permissionRuntimeInitialized = this.permissionViewModel.state.initialized

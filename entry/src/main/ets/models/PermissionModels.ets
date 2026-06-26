@@ -25,6 +25,27 @@ export interface PermissionPolicyRecord {
   policyId: string
 }
 
+export interface PermissionLocalPolicyRecord {
+  recordId: string
+  accountId: number
+  appKey: string
+  bundleName: string
+  appIdentifier: string
+  appIndex: number
+  policyType: string
+  policyValue: string
+  targetName: string
+  targetDetail: string
+  statusLabel: string
+  scopeLabel: string
+  actionKind: string
+  policyId: string
+  status: string
+  createdAt: number
+  updatedAt: number
+  lastError: string
+}
+
 export interface PermissionManagedAccount {
   accountId: number
   displayName: string
@@ -85,7 +106,9 @@ export class PermissionPageState {
   @Trace installBlockKeyword: string = ''
   @Trace inventoryMessage: string = ''
   @Trace policyLoading: boolean = false
+  @Trace selectedAppRefreshing: boolean = false
   @Trace processingAction: boolean = false
+  @Trace processingActionKey: string = ''
   @Trace selectedPermissionProfile: ApplicationPermissionProfile | null = null
   @Trace summary: PermissionSummary = {
     appCount: 0,

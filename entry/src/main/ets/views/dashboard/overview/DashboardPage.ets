@@ -10,11 +10,19 @@ import { DashboardViewModel } from '../../../viewmodels/dashboard/overview/Dashb
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'DashboardPage'
+const ENTER_ANIMATION_DURATION_MS = 300
+const TITLE_ENTER_DELAY_MS = 40
+const MODULE_ENTER_BASE_DELAY_MS = 140
+const MODULE_ENTER_STAGGER_MS = 70
+const SECTION_TITLE_ENTER_DELAY_MS = 450
+const QUICK_ENTER_BASE_DELAY_MS = 520
+const QUICK_ENTER_STAGGER_MS = 55
 
 @ComponentV2
 export struct DashboardPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onNavigate: (route: string) => void = () => {}
+  @Event onInitialEnterAnimationComplete: () => void = () => {}
   @Local viewModel: DashboardViewModel = new DashboardViewModel()
   @Local titleEnterOpacity: number = 0
   @Local titleEnterOffset: number = 20
@@ -28,7 +36,13 @@ export struct DashboardPage {
   private initialized: boolean = false
 
   aboutToAppear(): void {
-    this.initializePage()
+    if (!this.initialized) {
+      this.viewModel.prepareInitialContent()
+      this.playEnterAnimation(true)
+      this.initializePage(false)
+      return
+    }
+    this.initializePage(true)
   }
 
   onPageShow(): void {
@@ -43,7 +57,7 @@ export struct DashboardPage {
     this.clearEnterTimers()
   }
 
-  private async initializePage(): Promise<void> {
+  private async initializePage(playAnimationOnComplete: boolean): Promise<void> {
     try {
       if (!this.initialized) {
         let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
@@ -56,7 +70,9 @@ export struct DashboardPage {
       LogUtils.warn(TAG, `initializePage failed: ${JSON.stringify(err)}`)
       this.initialized = true
     } finally {
-      this.playEnterAnimation()
+      if (playAnimationOnComplete) {
+        this.playEnterAnimation(false)
+      }
     }
   }
 
@@ -87,24 +103,35 @@ export struct DashboardPage {
   private scheduleEnter(delayMs: number, update: () => void): void {
     let timerId = setTimeout(() => {
       this.getUIContext().animateTo({
-        duration: 300,
+        duration: ENTER_ANIMATION_DURATION_MS,
         curve: Curve.Friction
       }, update)
     }, delayMs)
     this.enterTimerIds = [...this.enterTimerIds, timerId]
   }
 
-  private playEnterAnimation(): void {
+  private scheduleEnterComplete(delayMs: number): void {
+    let timerId = setTimeout(() => {
+      this.onInitialEnterAnimationComplete()
+    }, delayMs)
+    this.enterTimerIds = [...this.enterTimerIds, timerId]
+  }
+
+  private playEnterAnimation(notifyComplete: boolean): void {
     this.clearEnterTimers()
     this.resetEnterState()
 
-    this.scheduleEnter(40, () => {
+    let latestDelay = TITLE_ENTER_DELAY_MS
+
+    this.scheduleEnter(TITLE_ENTER_DELAY_MS, () => {
       this.titleEnterOpacity = 1
       this.titleEnterOffset = 0
     })
 
     for (let index = 0; index < this.viewModel.moduleCards.length; index++) {
-      this.scheduleEnter(140 + index * 70, () => {
+      let delayMs = MODULE_ENTER_BASE_DELAY_MS + index * MODULE_ENTER_STAGGER_MS
+      latestDelay = Math.max(latestDelay, delayMs)
+      this.scheduleEnter(delayMs, () => {
         let nextOpacity = [...this.moduleEnterOpacity]
         let nextOffset = [...this.moduleEnterOffset]
         nextOpacity[index] = 1
@@ -114,13 +141,16 @@ export struct DashboardPage {
       })
     }
 
-    this.scheduleEnter(450, () => {
+    latestDelay = Math.max(latestDelay, SECTION_TITLE_ENTER_DELAY_MS)
+    this.scheduleEnter(SECTION_TITLE_ENTER_DELAY_MS, () => {
       this.sectionTitleEnterOpacity = 1
       this.sectionTitleEnterOffset = 0
     })
 
     for (let index = 0; index < this.viewModel.quickEntries.length; index++) {
-      this.scheduleEnter(520 + index * 55, () => {
+      let delayMs = QUICK_ENTER_BASE_DELAY_MS + index * QUICK_ENTER_STAGGER_MS
+      latestDelay = Math.max(latestDelay, delayMs)
+      this.scheduleEnter(delayMs, () => {
         let nextOpacity = [...this.quickEnterOpacity]
         let nextOffset = [...this.quickEnterOffset]
         nextOpacity[index] = 1
@@ -128,6 +158,10 @@ export struct DashboardPage {
         this.quickEnterOpacity = nextOpacity
         this.quickEnterOffset = nextOffset
       })
+    }
+
+    if (notifyComplete) {
+      this.scheduleEnterComplete(latestDelay + ENTER_ANIMATION_DURATION_MS)
     }
   }
 

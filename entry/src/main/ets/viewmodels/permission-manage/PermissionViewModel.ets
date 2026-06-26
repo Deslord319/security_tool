@@ -4,6 +4,7 @@ import {
   ManagedApplicationInfo,
   PermissionActionResult,
   PermissionInitialData,
+  PermissionLocalPolicyRecord,
   PermissionPageState,
   PermissionPolicyRecord,
   PermissionPolicyState,
@@ -11,6 +12,8 @@ import {
 } from '../../models/PermissionModels'
 import { PermissionService } from '../../services/permission-manage/PermissionService'
 import { MessageText } from '../../constants/StringCatalog'
+import { PermissionApplicationStrings } from '../../constants/modules/PermissionStrings'
+import { PermissionPolicyLocalRepository } from '../../services/permission-manage/PermissionPolicyLocalRepository'
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'PermissionViewModel'
@@ -18,8 +21,7 @@ const TAG = 'PermissionViewModel'
 @ObservedV2
 export class PermissionViewModel {
   @Trace state: PermissionPageState = new PermissionPageState()
-  private policyRefreshPromise: Promise<void> | null = null
-  private policyRefreshRerunRequested: boolean = false
+  private permissionProfileRequestSeq: number = 0
 
   async loadInitialState(): Promise<void> {
     if (this.state.loading) {
@@ -36,14 +38,6 @@ export class PermissionViewModel {
       this.state.errorMessage = MessageText.RETRY_LATER
     } finally {
       this.state.loading = false
-    }
-    if (this.state.initialized) {
-      this.refreshPolicyStates().catch((err: Error) => {
-        LogUtils.warn(TAG, `load initial policy snapshot failed: ${JSON.stringify(err)}`)
-      })
-      this.loadSelectedPermissionProfile().catch((err: Error) => {
-        LogUtils.warn(TAG, `load initial permission profile failed: ${JSON.stringify(err)}`)
-      })
     }
   }
 
@@ -62,14 +56,6 @@ export class PermissionViewModel {
     } finally {
       this.state.loading = false
     }
-    if (this.state.initialized) {
-      this.refreshPolicyStates().catch((err: Error) => {
-        LogUtils.warn(TAG, `load refreshed policy snapshot failed: ${JSON.stringify(err)}`)
-      })
-      this.loadSelectedPermissionProfile().catch((err: Error) => {
-        LogUtils.warn(TAG, `load refreshed permission profile failed: ${JSON.stringify(err)}`)
-      })
-    }
   }
 
   setSearchKeyword(keyword: string): void {
@@ -85,11 +71,22 @@ export class PermissionViewModel {
     let exists = this.state.filteredApplications.some((app: ManagedApplicationInfo): boolean => app.key === appKey)
     this.state.selectedAppKey = exists ? appKey : ''
     this.state.selectedPermissionProfile = null
+    this.state.policyRecords = []
+    this.state.selectedAppRefreshing = false
+    this.state.policyLoading = false
+    this.permissionProfileRequestSeq++
   }
 
-  async selectApplicationAndLoadProfile(appKey: string): Promise<void> {
+  async selectApplicationAndLoadDetails(appKey: string): Promise<void> {
     this.selectApplication(appKey)
-    await this.loadSelectedPermissionProfile()
+    let selectedAppKey = this.state.selectedAppKey
+    if (selectedAppKey.length === 0) {
+      return
+    }
+    let requestSeq = this.permissionProfileRequestSeq
+    this.loadSelectedApplicationDetailsForKey(selectedAppKey, requestSeq).catch((err: Error) => {
+      LogUtils.warn(TAG, `load selected application details background load failed: ${JSON.stringify(err)}`)
+    })
   }
 
   async switchAccount(accountId: number): Promise<void> {
@@ -99,67 +96,50 @@ export class PermissionViewModel {
     this.state.selectedAccountId = accountId
     this.state.selectedAppKey = ''
     this.state.selectedPermissionProfile = null
+    this.state.policyRecords = []
+    this.state.selectedAppRefreshing = false
+    this.state.policyLoading = false
+    this.permissionProfileRequestSeq++
     await this.refreshApplications()
   }
 
-  async loadSelectedPermissionProfile(): Promise<void> {
-    let selectedApp = this.getSelectedApplication()
+  private async loadSelectedPermissionProfileForKey(appKey: string, requestSeq: number): Promise<void> {
+    let selectedApp = this.getApplicationByKey(appKey)
     if (selectedApp === undefined) {
-      this.state.selectedPermissionProfile = null
+      if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
+        this.state.selectedPermissionProfile = null
+      }
       return
     }
     try {
       let profile = await PermissionService.loadPermissionProfile(selectedApp)
-      if (this.state.selectedAppKey === profile.appKey) {
+      if (this.state.selectedAppKey === profile.appKey && this.permissionProfileRequestSeq === requestSeq) {
         this.state.selectedPermissionProfile = profile
       }
     } catch (err) {
       LogUtils.warn(TAG, `loadSelectedPermissionProfile failed: ${JSON.stringify(err)}`)
-      this.state.selectedPermissionProfile = null
+      if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
+        this.state.selectedPermissionProfile = null
+      }
     }
   }
 
-  async refreshPolicyStates(): Promise<void> {
-    if (!this.state.initialized) {
+  private async loadSelectedApplicationDetailsForKey(appKey: string, requestSeq: number): Promise<void> {
+    let selectedApp = this.getApplicationByKey(appKey)
+    if (selectedApp === undefined) {
       return
     }
-    if (this.policyRefreshPromise) {
-      this.policyRefreshRerunRequested = true
-      await this.policyRefreshPromise
-      return
-    }
-    this.policyRefreshPromise = this.runPolicyRefreshLoop()
-    await this.policyRefreshPromise
-  }
-
-  private async runPolicyRefreshLoop(): Promise<void> {
-    try {
-      do {
-        this.policyRefreshRerunRequested = false
-        await this.refreshPolicyStatesOnce()
-      } while (this.policyRefreshRerunRequested && this.state.initialized)
-    } finally {
-      this.policyRefreshPromise = null
-      this.policyRefreshRerunRequested = false
-    }
-  }
-
-  private async refreshPolicyStatesOnce(): Promise<void> {
-    let accountId = this.state.selectedAccountId
-    let applications = this.state.applications
+    this.state.selectedAppRefreshing = true
     this.state.policyLoading = true
     try {
-      let snapshot = await PermissionService.loadPolicySnapshot(accountId, applications)
-      if (this.state.selectedAccountId === accountId) {
-        this.applyPolicySnapshot(snapshot)
+      let snapshot = await PermissionService.loadApplicationPolicySnapshot(selectedApp)
+      if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
+        this.applySelectedApplicationPolicySnapshot(appKey, snapshot)
       }
-    } catch (err) {
-      LogUtils.warn(TAG, `refreshPolicyStates failed: ${JSON.stringify(err)}`)
-      if (this.state.selectedAccountId === accountId) {
-        this.state.policyRecords = []
-      }
+      await this.loadSelectedPermissionProfileForKey(appKey, requestSeq)
     } finally {
-      if (this.state.selectedAccountId === accountId) {
+      if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
+        this.state.selectedAppRefreshing = false
         this.state.policyLoading = false
       }
     }
@@ -167,30 +147,57 @@ export class PermissionViewModel {
 
   async setSelectedUninstallProtected(enabled: boolean): Promise<PermissionActionResult> {
     return this.runSelectedAppAction(
+      `uninstall:${this.state.selectedAppKey}`,
       async (app: ManagedApplicationInfo): Promise<PermissionActionResult> =>
         await PermissionService.setUninstallProtected(app, enabled),
       (app: ManagedApplicationInfo): void => {
         app.uninstallProtected = enabled
+      },
+      async (app: ManagedApplicationInfo): Promise<void> => {
+        if (enabled) {
+          await this.upsertLocalAppPolicy(app, PermissionApplicationStrings.POLICY_TYPE_UNINSTALL,
+            PermissionApplicationStrings.ENABLED, 'uninstall-protect')
+        } else {
+          await PermissionPolicyLocalRepository.removeByAppPolicy(app.key, 'uninstall-protect')
+        }
       }
     )
   }
 
   async setSelectedRunningPolicy(policy: PermissionPolicyState): Promise<PermissionActionResult> {
     return this.runSelectedAppAction(
+      `running:${this.state.selectedAppKey}`,
       async (app: ManagedApplicationInfo): Promise<PermissionActionResult> =>
         await PermissionService.setRunningPolicy(app, policy),
       (app: ManagedApplicationInfo): void => {
         app.runningPolicy = policy
+      },
+      async (app: ManagedApplicationInfo): Promise<void> => {
+        if (policy === 'default') {
+          await PermissionPolicyLocalRepository.removeByAppPolicy(app.key, 'running')
+        } else {
+          await this.upsertLocalAppPolicy(app, PermissionApplicationStrings.POLICY_TYPE_RUNNING,
+            PermissionService.formatPolicyForDisplay(policy), 'running')
+        }
       }
     )
   }
 
   async setSelectedNetworkPolicy(policy: PermissionPolicyState): Promise<PermissionActionResult> {
     return this.runSelectedAppAction(
+      `network:${this.state.selectedAppKey}`,
       async (app: ManagedApplicationInfo): Promise<PermissionActionResult> =>
         await PermissionService.setNetworkPolicy(app, policy),
       (app: ManagedApplicationInfo): void => {
         app.networkPolicy = policy
+      },
+      async (app: ManagedApplicationInfo): Promise<void> => {
+        if (policy === 'default') {
+          await PermissionPolicyLocalRepository.removeByAppPolicy(app.key, 'network')
+        } else {
+          await this.upsertLocalAppPolicy(app, PermissionApplicationStrings.POLICY_TYPE_NETWORK,
+            PermissionService.formatPolicyForDisplay(policy), 'network')
+        }
       }
     )
   }
@@ -203,18 +210,38 @@ export class PermissionViewModel {
     if (this.state.processingAction) {
       return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
     }
-    this.state.processingAction = true
+    let actionKey = `sixd:${selectedApp.key}:${groupKey}`
+    this.setProcessingAction(actionKey)
     try {
+      let item = this.state.selectedPermissionProfile?.sixDGroups.find((value): boolean => value.groupKey === groupKey)
       let result = await PermissionService.setSixDPermissionState(
         selectedApp,
         this.state.selectedPermissionProfile,
         groupKey,
         state
       )
-      await this.loadSelectedPermissionProfile()
+      if (result.success && item !== undefined) {
+        if (state === 'default') {
+          await PermissionPolicyLocalRepository.remove(actionKey)
+        } else {
+          await this.upsertLocalPolicyRecord({
+            recordId: actionKey,
+            app: selectedApp,
+            policyType: item.title,
+            policyValue: state,
+            statusLabel: this.formatSixDState(state),
+            actionKind: 'sixd',
+            policyId: groupKey,
+            targetName: selectedApp.label,
+            targetDetail: `${selectedApp.bundleName} / ${item.title}`
+          })
+        }
+      }
+      await this.loadSelectedPermissionProfileForKey(selectedApp.key, this.permissionProfileRequestSeq)
+      await this.refreshSelectedApplicationPolicyState()
       return result
     } finally {
-      this.state.processingAction = false
+      this.clearProcessingAction()
     }
   }
 
@@ -222,14 +249,15 @@ export class PermissionViewModel {
     if (this.state.processingAction) {
       return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
     }
-    this.state.processingAction = true
+    this.setProcessingAction('install-deny')
     try {
       let packageName = PermissionService.normalizeInstallBlockPackageName(this.state.installBlockKeyword)
       let result = await PermissionService.setDisallowedInstallPolicyId(this.state.selectedAccountId, packageName)
       if (result.success) {
         this.updateInstalledApplicationInstallPolicy(packageName)
+        await this.upsertInstallDenyRecord(packageName)
         this.state.installBlockKeyword = ''
-        await this.refreshPolicyStates()
+        await this.refreshSelectedApplicationPolicyState()
       }
       return result
     } catch (err) {
@@ -239,7 +267,7 @@ export class PermissionViewModel {
         message: PermissionService.mapInstallPolicyTargetError(err)
       } as PermissionActionResult
     } finally {
-      this.state.processingAction = false
+      this.clearProcessingAction()
     }
   }
 
@@ -251,7 +279,7 @@ export class PermissionViewModel {
     if (record === undefined) {
       return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
     }
-    this.state.processingAction = true
+    this.setProcessingAction(`delete-policy:${recordKey}`)
     try {
       let result = await PermissionService.deletePolicyRecord(
         this.state.selectedAccountId,
@@ -259,11 +287,12 @@ export class PermissionViewModel {
         this.state.applications
       )
       if (result.success) {
-        await this.refreshPolicyStates()
+        await PermissionPolicyLocalRepository.remove(recordKey)
+        await this.refreshSelectedApplicationPolicyState()
       }
       return result
     } finally {
-      this.state.processingAction = false
+      this.clearProcessingAction()
     }
   }
 
@@ -299,9 +328,15 @@ export class PermissionViewModel {
     this.updateFilteredApplications()
   }
 
-  private applyPolicySnapshot(inventory: ApplicationInventoryResult): void {
-    this.state.applications = inventory.applications
-    let summary = PermissionService.buildSummary(inventory.applications)
+  private applySelectedApplicationPolicySnapshot(appKey: string, inventory: ApplicationInventoryResult): void {
+    let refreshedApp = inventory.applications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
+    if (refreshedApp !== undefined) {
+      let refreshedAppValue: ManagedApplicationInfo = refreshedApp
+      this.state.applications = this.state.applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo =>
+        app.key === appKey ? refreshedAppValue : app
+      )
+    }
+    let summary = PermissionService.buildSummary(this.state.applications)
     summary.managedCount = inventory.policyRecords.length
     this.state.summary = summary
     this.state.policyRecords = inventory.policyRecords
@@ -311,26 +346,67 @@ export class PermissionViewModel {
   private updateFilteredApplications(): void {
     this.state.filteredApplications = PermissionService.filterApplications(this.state.applications, this.state.searchKeyword)
     if (this.state.filteredApplications.length === 0) {
-      this.state.selectedAppKey = ''
-      this.state.selectedPermissionProfile = null
+      if (this.state.selectedAppKey.length > 0 || this.state.selectedPermissionProfile !== null) {
+        this.state.selectedAppKey = ''
+        this.state.selectedPermissionProfile = null
+        this.state.policyRecords = []
+        this.state.selectedAppRefreshing = false
+        this.state.policyLoading = false
+        this.permissionProfileRequestSeq++
+      }
       return
     }
     let selectedExists = this.state.filteredApplications.some((app: ManagedApplicationInfo): boolean =>
       app.key === this.state.selectedAppKey
     )
-    if (!selectedExists) {
-      this.state.selectedAppKey = this.state.filteredApplications[0].key
+    if (!selectedExists && this.state.selectedAppKey.length > 0) {
+      this.state.selectedAppKey = ''
       this.state.selectedPermissionProfile = null
+      this.state.policyRecords = []
+      this.state.selectedAppRefreshing = false
+      this.state.policyLoading = false
+      this.permissionProfileRequestSeq++
     }
   }
 
   private getSelectedApplication(): ManagedApplicationInfo | undefined {
-    return this.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === this.state.selectedAppKey)
+    return this.getApplicationByKey(this.state.selectedAppKey)
+  }
+
+  private getApplicationByKey(appKey: string): ManagedApplicationInfo | undefined {
+    return this.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
+  }
+
+  private async refreshSelectedApplicationPolicyState(): Promise<void> {
+    let selectedApp = this.getSelectedApplication()
+    if (selectedApp === undefined) {
+      this.state.policyRecords = []
+      this.state.summary = {
+        appCount: this.state.summary.appCount,
+        managedCount: 0,
+        sixDSensitiveCount: this.state.summary.sixDSensitiveCount,
+        networkRestrictedCount: this.state.summary.networkRestrictedCount
+      }
+      return
+    }
+    this.state.policyLoading = true
+    try {
+      let snapshot = await PermissionService.loadApplicationPolicySnapshot(selectedApp)
+      if (this.state.selectedAppKey === selectedApp.key) {
+        this.applySelectedApplicationPolicySnapshot(selectedApp.key, snapshot)
+      }
+    } finally {
+      if (this.state.selectedAppKey === selectedApp.key) {
+        this.state.policyLoading = false
+      }
+    }
   }
 
   private async runSelectedAppAction(
+    actionKey: string,
     action: (app: ManagedApplicationInfo) => Promise<PermissionActionResult>,
-    applySuccess: (app: ManagedApplicationInfo) => void
+    applySuccess: (app: ManagedApplicationInfo) => void,
+    persistSuccess?: (app: ManagedApplicationInfo) => Promise<void>
   ): Promise<PermissionActionResult> {
     let selectedApp = this.getSelectedApplication()
     if (selectedApp === undefined) {
@@ -339,17 +415,30 @@ export class PermissionViewModel {
     if (this.state.processingAction) {
       return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
     }
-    this.state.processingAction = true
+    this.setProcessingAction(actionKey)
     try {
       let result = await action(selectedApp)
       if (result.success) {
+        if (persistSuccess !== undefined) {
+          await persistSuccess(selectedApp)
+        }
         this.updateSelectedApplication(applySuccess)
-        await this.refreshPolicyStates()
+        await this.refreshSelectedApplicationPolicyState()
       }
       return result
     } finally {
-      this.state.processingAction = false
+      this.clearProcessingAction()
     }
+  }
+
+  private setProcessingAction(actionKey: string): void {
+    this.state.processingAction = true
+    this.state.processingActionKey = actionKey
+  }
+
+  private clearProcessingAction(): void {
+    this.state.processingAction = false
+    this.state.processingActionKey = ''
   }
 
   private updateSelectedApplication(applySuccess: (app: ManagedApplicationInfo) => void): void {
@@ -369,4 +458,97 @@ export class PermissionViewModel {
     this.state.summary = PermissionService.buildSummary(this.state.applications)
     this.updateFilteredApplications()
   }
+
+  private async upsertInstallDenyRecord(packageName: string): Promise<void> {
+    let now = Date.now()
+    let installedApp = this.state.applications.find((app: ManagedApplicationInfo): boolean =>
+      app.bundleName === packageName
+    )
+    let record: PermissionLocalPolicyRecord = {
+      recordId: `install-deny:${this.state.selectedAccountId}:${packageName}`,
+      accountId: this.state.selectedAccountId,
+      appKey: installedApp?.key ?? '',
+      bundleName: packageName,
+      appIdentifier: installedApp?.appIdentifier ?? packageName,
+      appIndex: installedApp?.appIndex ?? 0,
+      policyType: PermissionApplicationStrings.POLICY_TYPE_INSTALL_DENY,
+      policyValue: 'denied',
+      targetName: installedApp?.label ?? PermissionApplicationStrings.POLICY_TARGET_NOT_INSTALLED,
+      targetDetail: packageName,
+      statusLabel: PermissionApplicationStrings.POLICY_DENIED,
+      scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${this.state.selectedAccountId}`,
+      actionKind: 'install-deny',
+      policyId: packageName,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      lastError: ''
+    } as PermissionLocalPolicyRecord
+    await PermissionPolicyLocalRepository.upsertActive(record)
+  }
+
+  private async upsertLocalAppPolicy(
+    app: ManagedApplicationInfo,
+    policyType: string,
+    statusLabel: string,
+    actionKind: string
+  ): Promise<void> {
+    await this.upsertLocalPolicyRecord({
+      recordId: `${actionKind}:${app.key}`,
+      app: app,
+      policyType: policyType,
+      policyValue: statusLabel,
+      statusLabel: statusLabel,
+      actionKind: actionKind,
+      policyId: '',
+      targetName: app.label,
+      targetDetail: app.bundleName
+    })
+  }
+
+  private async upsertLocalPolicyRecord(params: LocalPolicyRecordParams): Promise<void> {
+    let now = Date.now()
+    await PermissionPolicyLocalRepository.upsertActive({
+      recordId: params.recordId,
+      accountId: params.app.accountId,
+      appKey: params.app.key,
+      bundleName: params.app.bundleName,
+      appIdentifier: params.app.appIdentifier,
+      appIndex: params.app.appIndex,
+      policyType: params.policyType,
+      policyValue: params.policyValue,
+      targetName: params.targetName,
+      targetDetail: params.targetDetail,
+      statusLabel: params.statusLabel,
+      scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${params.app.accountId}`,
+      actionKind: params.actionKind,
+      policyId: params.policyId,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      lastError: ''
+    } as PermissionLocalPolicyRecord)
+  }
+
+  private formatSixDState(state: SixDManagedState): string {
+    if (state === 'granted') {
+      return PermissionApplicationStrings.POLICY_ALLOWED
+    }
+    if (state === 'denied') {
+      return PermissionApplicationStrings.POLICY_DENIED
+    }
+    return PermissionApplicationStrings.POLICY_DEFAULT
+  }
+}
+
+interface LocalPolicyRecordParams {
+  recordId: string
+  app: ManagedApplicationInfo
+  policyType: string
+  policyValue: string
+  statusLabel: string
+  actionKind: string
+  policyId: string
+  targetName: string
+  targetDetail: string
 }

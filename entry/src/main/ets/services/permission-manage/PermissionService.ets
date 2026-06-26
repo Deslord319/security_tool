@@ -4,6 +4,7 @@ import {
   ManagedApplicationInfo,
   PermissionActionResult,
   PermissionInitialData,
+  PermissionLocalPolicyRecord,
   PermissionPolicyState,
   PermissionPolicyRecord,
   PermissionSummary,
@@ -14,6 +15,7 @@ import { ApplicationInventoryRepository } from './ApplicationInventoryRepository
 import { ApplicationControlLists, ApplicationControlRepository } from './ApplicationControlRepository'
 import { ApplicationNetworkPolicyRepository } from './ApplicationNetworkPolicyRepository'
 import { PermissionAccountProvider } from './PermissionAccountProvider'
+import { PermissionPolicyLocalRepository } from './PermissionPolicyLocalRepository'
 import { SixDPermissionRepository } from './SixDPermissionRepository'
 import { LogUtils } from '../../utils/LogUtils'
 
@@ -47,7 +49,22 @@ export class PermissionService {
     } as ApplicationInventoryResult
   }
 
-  static async loadPolicySnapshot(
+  static async loadApplicationPolicySnapshot(app: ManagedApplicationInfo): Promise<ApplicationInventoryResult> {
+    let snapshot = await PermissionService.loadPolicySnapshot(app.accountId, [app])
+    return {
+      applications: snapshot.applications,
+      policyRecords: snapshot.policyRecords.filter((record: PermissionPolicyRecord): boolean =>
+        record.appKey === app.key || record.actionKind === 'install-deny' || record.actionKind === 'install-allow'
+      ),
+      message: snapshot.message
+    } as ApplicationInventoryResult
+  }
+
+  static filterApplications(applications: ManagedApplicationInfo[], keyword: string): ManagedApplicationInfo[] {
+    return ApplicationInventoryRepository.filterApplications(applications, keyword)
+  }
+
+  private static async loadPolicySnapshot(
     accountId: number,
     applications: ManagedApplicationInfo[]
   ): Promise<ApplicationInventoryResult> {
@@ -64,14 +81,14 @@ export class PermissionService {
       applicationsWithControl,
       restrictedAppUids
     )
+    let policyRecords = PermissionService.mergeLocalPolicyRecords(
+      PermissionService.buildPolicyRecords(accountId, applicationsWithNetwork, controlLists),
+      PermissionPolicyLocalRepository.listActiveByAccount(accountId)
+    )
     return {
       applications: applicationsWithNetwork,
-      policyRecords: PermissionService.buildPolicyRecords(accountId, applicationsWithNetwork, controlLists)
+      policyRecords: policyRecords
     } as ApplicationInventoryResult
-  }
-
-  static filterApplications(applications: ManagedApplicationInfo[], keyword: string): ManagedApplicationInfo[] {
-    return ApplicationInventoryRepository.filterApplications(applications, keyword)
   }
 
   static buildSummary(applications: ManagedApplicationInfo[]): PermissionSummary {
@@ -119,6 +136,10 @@ export class PermissionService {
 
   static mapInstallPolicyTargetError(err: Object): string {
     return PermissionService.mapActionError(err)
+  }
+
+  static formatPolicyForDisplay(policy: PermissionPolicyState): string {
+    return PermissionService.formatPolicy(policy)
   }
 
   static async deletePolicyRecord(
@@ -238,6 +259,14 @@ export class PermissionService {
       await ApplicationNetworkPolicyRepository.setNetworkPolicy(app, 'default')
       return
     }
+    if (record.actionKind === 'sixd') {
+      let profile = await PermissionService.loadPermissionProfile(app)
+      let result = await PermissionService.setSixDPermissionState(app, profile, record.policyId, 'default')
+      if (!result.success) {
+        throw new Error(result.message)
+      }
+      return
+    }
     throw new Error('unsupported policy action')
   }
 
@@ -288,6 +317,35 @@ export class PermissionService {
       PermissionService.appendApplicationPolicyRecords(records, app)
     })
     return records
+  }
+
+  private static mergeLocalPolicyRecords(
+    systemRecords: PermissionPolicyRecord[],
+    localRecords: PermissionLocalPolicyRecord[]
+  ): PermissionPolicyRecord[] {
+    let merged = systemRecords.slice()
+    let existingKeys = new Set<string>()
+    systemRecords.forEach((record: PermissionPolicyRecord): void => {
+      existingKeys.add(record.key)
+    })
+    localRecords.forEach((record: PermissionLocalPolicyRecord): void => {
+      if (existingKeys.has(record.recordId)) {
+        return
+      }
+      merged.push(PermissionService.createPolicyRecord(
+        record.recordId,
+        record.policyType,
+        record.targetName,
+        record.targetDetail,
+        record.statusLabel,
+        record.scopeLabel,
+        record.actionKind,
+        record.appKey,
+        record.policyId
+      ))
+      existingKeys.add(record.recordId)
+    })
+    return merged
   }
 
   private static appendApplicationPolicyRecords(records: PermissionPolicyRecord[], app: ManagedApplicationInfo): void {
