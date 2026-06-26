@@ -76,6 +76,8 @@ export struct SectionToggleRow {
   @Param title: string = ''
   @Param description: string = ''
   @Param isOn: boolean = false
+  @Param enabledValue: boolean = true
+  @Param opacityValue: number = 1
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onChange: (value: boolean) => void = () => {}
 
@@ -89,6 +91,8 @@ export struct SectionToggleRow {
 
       Toggle({ type: ToggleType.Switch, isOn: this.isOn })
         .selectedColor(AppColors.BRAND_PRIMARY)
+        .enabled(this.enabledValue)
+        .opacity(this.opacityValue)
         .onChange((value: boolean) => {
           this.onChange(value)
         })
@@ -107,6 +111,7 @@ export struct SectionSelectRow {
   @Param value: string = ''
   @Param selectWidth: number = 140
   @Param processing: boolean = false
+  @Param enabledValue: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelect: (index: number) => void = () => {}
 
@@ -124,8 +129,8 @@ export struct SectionSelectRow {
         value: this.value,
         selectWidth: this.selectWidth,
         currentTheme: this.currentTheme,
-        enabled: !this.processing,
-        opacity: this.processing ? 0.72 : 1,
+        enabled: !this.processing && this.enabledValue,
+        opacity: this.processing || !this.enabledValue ? 0.72 : 1,
         onSelect: this.onSelect
       } as SectionSelectParams)
     }
@@ -139,6 +144,7 @@ export struct SectionActionRow {
   @Param title: string = ''
   @Param description: string = ''
   @Param actionLabel: string = ''
+  @Param isEnabled: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onTap: () => void = () => {}
   @Local private isHovered: boolean = false
@@ -173,10 +179,18 @@ export struct SectionActionRow {
           right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
         })
         .stateEffect(false)
+        .enabled(this.isEnabled)
+        .opacity(this.isEnabled ? 1 : 0.56)
         .onHover((isHover: boolean) => {
+          if (!this.isEnabled) {
+            return
+          }
           this.isHovered = isHover
         })
         .onTouch((event: TouchEvent) => {
+          if (!this.isEnabled) {
+            return
+          }
           if (event.type === TouchType.Down) {
             this.isPressed = true
             return
@@ -186,6 +200,9 @@ export struct SectionActionRow {
           }
         })
         .onClick(() => {
+          if (!this.isEnabled) {
+            return
+          }
           this.isPressed = false
           this.onTap()
         })

@@ -47,7 +47,7 @@ struct MainPage {
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
   @Local peripheralViewModel: PeripheralViewModel = this.applicationRuntime.getPeripheralViewModel()
-  @Local permissionViewModel: PermissionViewModel = new PermissionViewModel()
+  @Local permissionViewModel: PermissionViewModel = this.applicationRuntime.getPermissionViewModel()
   @Local toolSettingsViewModel: ToolSettingsViewModel = this.applicationRuntime.getToolSettingsViewModel()
   @Local pageEnterOpacity: number = 1
   @Local pageEnterOffset: number = 0

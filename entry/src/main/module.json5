@@ -81,6 +81,18 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_APPLICATION"
       },
       {
+        "name": "ohos.permission.ENTERPRISE_GET_ALL_BUNDLE_INFO"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_SET_BUNDLE_INSTALL_POLICY"
+      },
+      {
+        "name": "ohos.permission.GET_BUNDLE_INFO"
+      },
+      {
+        "name": "ohos.permission.ENTERPRISE_MANAGE_USER_GRANT_PERMISSION"
+      },
+      {
         "name": "ohos.permission.ACCESS_BIOMETRIC"
       },
       {
