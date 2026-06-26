@@ -65,8 +65,8 @@ export struct AsyncSelectRow {
       this.isAsyncPending = false
     }
     if (success) {
-      this.displayIndex = this.selectedIndex
-      this.rollbackIndex = this.selectedIndex
+      this.displayIndex = nextIndex
+      this.rollbackIndex = nextIndex
       return
     }
     this.displayIndex = this.rollbackIndex
