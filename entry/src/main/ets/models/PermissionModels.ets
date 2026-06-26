@@ -11,7 +11,18 @@ export interface PermissionSummary {
   managedCount: number
   sixDSensitiveCount: number
   networkRestrictedCount: number
-  keepAliveCount: number
+}
+
+export interface PermissionPolicyRecord {
+  key: string
+  policyType: string
+  targetName: string
+  targetDetail: string
+  statusLabel: string
+  scopeLabel: string
+  actionKind: string
+  appKey: string
+  policyId: string
 }
 
 export interface PermissionManagedAccount {
@@ -40,8 +51,6 @@ export interface ManagedApplicationInfo {
   uninstallProtected: boolean
   runningPolicy: PermissionPolicyState
   networkPolicy: PermissionPolicyState
-  keepAliveEnabled: boolean
-  autoStartEnabled: boolean
 }
 
 export interface SixDPermissionItem {
@@ -73,19 +82,21 @@ export class PermissionPageState {
   @Trace selectedAccountId: number = 0
   @Trace selectedAppKey: string = ''
   @Trace searchKeyword: string = ''
+  @Trace installBlockKeyword: string = ''
   @Trace inventoryMessage: string = ''
+  @Trace policyLoading: boolean = false
   @Trace processingAction: boolean = false
   @Trace selectedPermissionProfile: ApplicationPermissionProfile | null = null
   @Trace summary: PermissionSummary = {
     appCount: 0,
     managedCount: 0,
     sixDSensitiveCount: 0,
-    networkRestrictedCount: 0,
-    keepAliveCount: 0
+    networkRestrictedCount: 0
   }
   @Trace accounts: PermissionManagedAccount[] = []
   @Trace applications: ManagedApplicationInfo[] = []
   @Trace filteredApplications: ManagedApplicationInfo[] = []
+  @Trace policyRecords: PermissionPolicyRecord[] = []
 }
 
 export interface PermissionInitialData {
@@ -96,6 +107,7 @@ export interface PermissionInitialData {
   summary: PermissionSummary
   accounts: PermissionManagedAccount[]
   applications: ManagedApplicationInfo[]
+  policyRecords: PermissionPolicyRecord[]
 }
 
 export interface PermissionAccountListResult {
@@ -106,5 +118,6 @@ export interface PermissionAccountListResult {
 
 export interface ApplicationInventoryResult {
   applications: ManagedApplicationInfo[]
+  policyRecords: PermissionPolicyRecord[]
   message?: string
 }

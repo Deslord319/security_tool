@@ -46,9 +46,7 @@ export class ApplicationNetworkPolicyRepository {
       installPolicy: app.installPolicy,
       uninstallProtected: app.uninstallProtected,
       runningPolicy: app.runningPolicy,
-      networkPolicy: restrictedAppUids.includes(`${app.uid}`) ? 'denied' : 'default',
-      keepAliveEnabled: app.keepAliveEnabled,
-      autoStartEnabled: app.autoStartEnabled
+      networkPolicy: restrictedAppUids.includes(`${app.uid}`) ? 'denied' : 'default'
     } as ManagedApplicationInfo))
   }
 

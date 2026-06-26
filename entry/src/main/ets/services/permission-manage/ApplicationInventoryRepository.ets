@@ -34,12 +34,14 @@ export class ApplicationInventoryRepository {
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {
         applications: applications,
+        policyRecords: [],
         message: applications.length === 0 ? PermissionEmptyStrings.APPLICATIONS : ''
       } as ApplicationInventoryResult
     } catch (err) {
       LogUtils.warn(TAG, `loadApplications failed: ${JSON.stringify(err)}`)
       return {
         applications: [],
+        policyRecords: [],
         message: PermissionEmptyStrings.INVENTORY_LOAD_FAILED
       } as ApplicationInventoryResult
     }
@@ -136,9 +138,7 @@ export class ApplicationInventoryRepository {
       installPolicy: 'default',
       uninstallProtected: false,
       runningPolicy: 'default',
-      networkPolicy: 'default',
-      keepAliveEnabled: false,
-      autoStartEnabled: false
+      networkPolicy: 'default'
     } as ManagedApplicationInfo
   }
 

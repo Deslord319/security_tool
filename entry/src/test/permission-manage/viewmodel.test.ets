@@ -52,9 +52,7 @@ export default function permissionViewModelTest() {
           installPolicy: 'default',
           uninstallProtected: false,
           runningPolicy: 'default',
-          networkPolicy: 'denied',
-          keepAliveEnabled: true,
-          autoStartEnabled: false
+          networkPolicy: 'denied'
         } as ManagedApplicationInfo
       ]
 
@@ -63,7 +61,6 @@ export default function permissionViewModelTest() {
       expect(summary.appCount).assertEqual(1)
       expect(summary.managedCount).assertEqual(1)
       expect(summary.networkRestrictedCount).assertEqual(1)
-      expect(summary.keepAliveCount).assertEqual(1)
     })
 
     it('should normalize manageable applications and skip system or self bundle', 0, () => {
@@ -135,9 +132,7 @@ export default function permissionViewModelTest() {
         disallowedInstallIds: ['com.example.browser'],
         disallowedUninstallIds: ['mail-id'],
         allowedRunningIds: ['browser-id'],
-        disallowedRunningIds: ['com.example.mail'],
-        keepAliveBundleNames: ['com.example.mail'],
-        autoStartBundleNames: ['com.example.browser']
+        disallowedRunningIds: ['com.example.mail']
       })
 
       let mail = merged.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.mail')
@@ -146,11 +141,8 @@ export default function permissionViewModelTest() {
       expect(mail?.installPolicy).assertEqual('allowed')
       expect(mail?.uninstallProtected).assertTrue()
       expect(mail?.runningPolicy).assertEqual('denied')
-      expect(mail?.keepAliveEnabled).assertTrue()
-      expect(mail?.autoStartEnabled).assertFalse()
       expect(browser?.installPolicy).assertEqual('denied')
       expect(browser?.runningPolicy).assertEqual('allowed')
-      expect(browser?.autoStartEnabled).assertTrue()
     })
 
     it('should merge network restriction state by application uid', 0, () => {
@@ -175,6 +167,23 @@ export default function permissionViewModelTest() {
 
       expect(mail?.networkPolicy).assertEqual('default')
       expect(browser?.networkPolicy).assertEqual('denied')
+    })
+
+    it('should accept full package name as install block target', 0, () => {
+      let packageName = PermissionService.normalizeInstallBlockPackageName(' com.example.future ')
+
+      expect(packageName).assertEqual('com.example.future')
+    })
+
+    it('should reject non-package install block target', 0, () => {
+      let failed = false
+      try {
+        PermissionService.normalizeInstallBlockPackageName('Mail')
+      } catch (err) {
+        failed = true
+      }
+
+      expect(failed).assertTrue()
     })
 
     it('should update filtered applications and selected app by search keyword', 0, () => {

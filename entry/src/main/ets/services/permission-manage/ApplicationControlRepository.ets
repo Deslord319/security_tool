@@ -1,5 +1,4 @@
 import { applicationManager, bundleManager as enterpriseBundleManager } from '@kit.MDMKit'
-import { Want } from '@kit.AbilityKit'
 import { ADMIN_WANT } from '../../constants/AppConstants'
 import { ManagedApplicationInfo, PermissionPolicyState } from '../../models/PermissionModels'
 import { LogUtils } from '../../utils/LogUtils'
@@ -12,8 +11,6 @@ export interface ApplicationControlLists {
   disallowedUninstallIds: string[]
   allowedRunningIds: string[]
   disallowedRunningIds: string[]
-  keepAliveBundleNames: string[]
-  autoStartBundleNames: string[]
 }
 
 export class ApplicationControlRepository {
@@ -63,69 +60,105 @@ export class ApplicationControlRepository {
         controlLists.allowedRunningIds,
         controlLists.disallowedRunningIds
       ),
-      networkPolicy: app.networkPolicy,
-      keepAliveEnabled: controlLists.keepAliveBundleNames.includes(app.bundleName),
-      autoStartEnabled: controlLists.autoStartBundleNames.includes(app.bundleName)
+      networkPolicy: app.networkPolicy
     } as ManagedApplicationInfo
   }
 
-  static async setInstallPolicy(app: ManagedApplicationInfo, policy: PermissionPolicyState): Promise<void> {
-    let policyIds = ApplicationControlRepository.getPolicyIds(app)
-    await enterpriseBundleManager.removeAllowedInstallBundlesSync(ADMIN_WANT, policyIds, app.accountId)
-    await enterpriseBundleManager.removeDisallowedInstallBundlesSync(ADMIN_WANT, policyIds, app.accountId)
+  static async setDisallowedInstallPolicyId(accountId: number, policyId: string): Promise<void> {
+    let normalizedPolicyId = policyId.trim()
+    if (normalizedPolicyId.length === 0) {
+      throw new Error('missing install policy target')
+    }
+    let allowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+      enterpriseBundleManager.getAllowedInstallBundlesSync(ADMIN_WANT, accountId),
+      [normalizedPolicyId]
+    )
+    let disallowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+      enterpriseBundleManager.getDisallowedInstallBundlesSync(ADMIN_WANT, accountId),
+      [normalizedPolicyId]
+    )
+    if (allowedPolicyIds.length > 0) {
+      await enterpriseBundleManager.removeAllowedInstallBundlesSync(ADMIN_WANT, allowedPolicyIds, accountId)
+    }
+    if (disallowedPolicyIds.length === 0) {
+      await enterpriseBundleManager.addDisallowedInstallBundlesSync(ADMIN_WANT, [normalizedPolicyId], accountId)
+    }
+  }
+
+  static async removeInstallPolicyId(
+    accountId: number,
+    policyId: string,
+    policy: PermissionPolicyState
+  ): Promise<void> {
+    let normalizedPolicyId = policyId.trim()
+    if (normalizedPolicyId.length === 0) {
+      throw new Error('missing install policy target')
+    }
     if (policy === 'allowed') {
-      await enterpriseBundleManager.addAllowedInstallBundlesSync(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+      let allowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+        enterpriseBundleManager.getAllowedInstallBundlesSync(ADMIN_WANT, accountId),
+        [normalizedPolicyId]
+      )
+      if (allowedPolicyIds.length > 0) {
+        await enterpriseBundleManager.removeAllowedInstallBundlesSync(ADMIN_WANT, allowedPolicyIds, accountId)
+      }
       return
     }
     if (policy === 'denied') {
-      await enterpriseBundleManager.addDisallowedInstallBundlesSync(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+      let disallowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+        enterpriseBundleManager.getDisallowedInstallBundlesSync(ADMIN_WANT, accountId),
+        [normalizedPolicyId]
+      )
+      if (disallowedPolicyIds.length > 0) {
+        await enterpriseBundleManager.removeDisallowedInstallBundlesSync(ADMIN_WANT, disallowedPolicyIds, accountId)
+      }
     }
   }
 
   static async setUninstallProtected(app: ManagedApplicationInfo, enabled: boolean): Promise<void> {
-    let policyId = ApplicationControlRepository.getPrimaryPolicyId(app)
+    let policyIds = ApplicationControlRepository.getPolicyIds(app)
+    let existingPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+      enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, app.accountId),
+      policyIds
+    )
     if (enabled) {
-      await enterpriseBundleManager.addDisallowedUninstallBundlesSync(ADMIN_WANT, [policyId], app.accountId)
+      if (existingPolicyIds.length === policyIds.length) {
+        return
+      }
+      let missingPolicyIds = policyIds.filter((policyId: string): boolean => !existingPolicyIds.includes(policyId))
+      await enterpriseBundleManager.addDisallowedUninstallBundlesSync(ADMIN_WANT, missingPolicyIds, app.accountId)
+      ApplicationControlRepository.assertUninstallProtected(app, policyIds)
       return
     }
-    await enterpriseBundleManager.removeDisallowedUninstallBundlesSync(ADMIN_WANT, ApplicationControlRepository.getPolicyIds(app), app.accountId)
+    if (existingPolicyIds.length > 0) {
+      await enterpriseBundleManager.removeDisallowedUninstallBundlesSync(ADMIN_WANT, existingPolicyIds, app.accountId)
+    }
+    ApplicationControlRepository.assertUninstallUnprotected(app, policyIds)
   }
 
   static async setRunningPolicy(app: ManagedApplicationInfo, policy: PermissionPolicyState): Promise<void> {
-    let policyIds = ApplicationControlRepository.getPolicyIds(app)
-    await applicationManager.removeDisallowedRunningBundlesSync(ADMIN_WANT, policyIds, app.accountId)
-    await applicationManager.removeAllowedRunningBundles(ADMIN_WANT, policyIds, app.accountId)
+    let policyIds = ApplicationControlRepository.getRunningPolicyIds(app)
+    let disallowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+      applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, app.accountId),
+      policyIds
+    )
+    let allowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
+      applicationManager.getAllowedRunningBundles(ADMIN_WANT, app.accountId),
+      policyIds
+    )
+    if (disallowedPolicyIds.length > 0) {
+      await applicationManager.removeDisallowedRunningBundlesSync(ADMIN_WANT, disallowedPolicyIds, app.accountId)
+    }
+    if (allowedPolicyIds.length > 0) {
+      await applicationManager.removeAllowedRunningBundles(ADMIN_WANT, allowedPolicyIds, app.accountId)
+    }
     if (policy === 'allowed') {
-      await applicationManager.addAllowedRunningBundles(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+      await applicationManager.addAllowedRunningBundles(ADMIN_WANT, policyIds, app.accountId)
       return
     }
     if (policy === 'denied') {
-      await applicationManager.addDisallowedRunningBundlesSync(ADMIN_WANT, [ApplicationControlRepository.getPrimaryPolicyId(app)], app.accountId)
+      await applicationManager.addDisallowedRunningBundlesSync(ADMIN_WANT, policyIds, app.accountId)
     }
-  }
-
-  static async setKeepAlive(app: ManagedApplicationInfo, enabled: boolean): Promise<void> {
-    if (enabled) {
-      await applicationManager.addKeepAliveApps(ADMIN_WANT, [app.bundleName], app.accountId, true)
-      return
-    }
-    await applicationManager.removeKeepAliveApps(ADMIN_WANT, [app.bundleName], app.accountId)
-  }
-
-  static async setAutoStart(app: ManagedApplicationInfo, enabled: boolean, abilityName: string): Promise<void> {
-    let normalizedAbilityName = abilityName.trim()
-    if (normalizedAbilityName.length === 0) {
-      throw new Error('missing main ability')
-    }
-    let want: Want = {
-      bundleName: app.bundleName,
-      abilityName: normalizedAbilityName
-    }
-    if (enabled) {
-      await applicationManager.addAutoStartApps(ADMIN_WANT, [want], app.accountId, true)
-      return
-    }
-    await applicationManager.removeAutoStartApps(ADMIN_WANT, [want], app.accountId)
   }
 
   static createEmptyControlLists(): ApplicationControlLists {
@@ -134,9 +167,7 @@ export class ApplicationControlRepository {
       disallowedInstallIds: [],
       disallowedUninstallIds: [],
       allowedRunningIds: [],
-      disallowedRunningIds: [],
-      keepAliveBundleNames: [],
-      autoStartBundleNames: []
+      disallowedRunningIds: []
     } as ApplicationControlLists
   }
 
@@ -154,10 +185,6 @@ export class ApplicationControlRepository {
     try {
       controlLists.disallowedRunningIds = applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, accountId)
       controlLists.allowedRunningIds = applicationManager.getAllowedRunningBundles(ADMIN_WANT, accountId)
-      controlLists.keepAliveBundleNames = applicationManager.getKeepAliveApps(ADMIN_WANT, accountId)
-      controlLists.autoStartBundleNames = applicationManager.getAutoStartApps(ADMIN_WANT, accountId)
-        .map((want: Want): string => want.bundleName ?? '')
-        .filter((bundleName: string): boolean => bundleName.length > 0)
     } catch (err) {
       LogUtils.warn(TAG, `load application policies failed: ${JSON.stringify(err)}`)
     }
@@ -191,5 +218,32 @@ export class ApplicationControlRepository {
       ids.push(app.appIdentifier)
     }
     return ids
+  }
+
+  private static getRunningPolicyIds(app: ManagedApplicationInfo): string[] {
+    if (app.appIdentifier.length === 0) {
+      throw new Error('missing appIdentifier')
+    }
+    return [app.appIdentifier]
+  }
+
+  private static getExistingPolicyIds(existingIds: string[], candidateIds: string[]): string[] {
+    return candidateIds.filter((id: string): boolean => existingIds.includes(id))
+  }
+
+  private static assertUninstallProtected(app: ManagedApplicationInfo, policyIds: string[]): void {
+    let currentPolicyIds = enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, app.accountId)
+    let missingPolicyIds = policyIds.filter((policyId: string): boolean => !currentPolicyIds.includes(policyId))
+    if (missingPolicyIds.length > 0) {
+      throw new Error('uninstall protection verify failed')
+    }
+  }
+
+  private static assertUninstallUnprotected(app: ManagedApplicationInfo, policyIds: string[]): void {
+    let currentPolicyIds = enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, app.accountId)
+    let remainingPolicyIds = policyIds.filter((policyId: string): boolean => currentPolicyIds.includes(policyId))
+    if (remainingPolicyIds.length > 0) {
+      throw new Error('uninstall protection remove verify failed')
+    }
   }
 }

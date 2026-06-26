@@ -9,6 +9,7 @@ import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/co
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
+import { PermissionViewModel } from '../viewmodels/permission-manage/PermissionViewModel'
 import { ToolSettingsViewModel } from '../viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 import { LogUtils } from '../utils/LogUtils'
 
@@ -22,11 +23,14 @@ export class ApplicationRuntimeManager {
   private context: common.UIAbilityContext | null = null
   private logRuntimeInitialized: boolean = false
   private peripheralRuntimeInitialized: boolean = false
+  private permissionRuntimeInitialized: boolean = false
   private logRuntimeInitPromise: Promise<void> | null = null
   private peripheralRuntimeInitPromise: Promise<void> | null = null
+  private permissionRuntimeInitPromise: Promise<void> | null = null
   private readonly identitySettingsViewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
   private readonly logManageViewModel: LogManageViewModel = new LogManageViewModel()
   private readonly peripheralViewModel: PeripheralViewModel = new PeripheralViewModel()
+  private readonly permissionViewModel: PermissionViewModel = new PermissionViewModel()
   private readonly toolSettingsViewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
@@ -59,13 +63,20 @@ export class ApplicationRuntimeManager {
     return this.peripheralViewModel
   }
 
+  getPermissionViewModel(): PermissionViewModel {
+    return this.permissionViewModel
+  }
+
   getToolSettingsViewModel(): ToolSettingsViewModel {
     return this.toolSettingsViewModel
   }
 
   async ensureRuntimeServices(): Promise<void> {
-    await this.ensureLogRuntimeInitialized()
-    await this.ensurePeripheralRuntimeInitialized()
+    await Promise.all([
+      this.ensureLogRuntimeInitialized(),
+      this.ensurePeripheralRuntimeInitialized(),
+      this.ensurePermissionRuntimeInitialized()
+    ])
     await this.ensureCollectorsRunning()
   }
 
@@ -90,6 +101,15 @@ export class ApplicationRuntimeManager {
     }
   }
 
+  async refreshPermissionManageData(): Promise<void> {
+    let viewModel = this.permissionViewModel
+    if (!viewModel.state.initialized) {
+      await viewModel.loadInitialState()
+      return
+    }
+    await viewModel.refreshPolicyStates()
+  }
+
   private async ensureLogRuntimeInitialized(): Promise<void> {
     if (!this.logRuntimeInitPromise) {
       this.logRuntimeInitPromise = this.initializeLogRuntime().finally(() => {
@@ -110,6 +130,17 @@ export class ApplicationRuntimeManager {
       })
     }
     await this.peripheralRuntimeInitPromise
+  }
+
+  private async ensurePermissionRuntimeInitialized(): Promise<void> {
+    if (!this.permissionRuntimeInitPromise) {
+      this.permissionRuntimeInitPromise = this.initializePermissionRuntime().finally(() => {
+        if (!this.permissionRuntimeInitialized) {
+          this.permissionRuntimeInitPromise = null
+        }
+      })
+    }
+    await this.permissionRuntimeInitPromise
   }
 
   private async initializeLogRuntime(): Promise<void> {
@@ -157,6 +188,19 @@ export class ApplicationRuntimeManager {
 
     this.peripheralRuntimeInitialized = true
     LogUtils.info(TAG, 'initializePeripheralRuntime success')
+  }
+
+  private async initializePermissionRuntime(): Promise<void> {
+    if (this.permissionRuntimeInitialized) {
+      return
+    }
+    await this.permissionViewModel.loadInitialState()
+    this.permissionRuntimeInitialized = this.permissionViewModel.state.initialized
+    if (this.permissionRuntimeInitialized) {
+      LogUtils.info(TAG, 'initializePermissionRuntime success')
+    } else {
+      LogUtils.warn(TAG, 'initializePermissionRuntime skipped: permission page state not initialized')
+    }
   }
 
   private async ensureCollectorsRunning(): Promise<void> {

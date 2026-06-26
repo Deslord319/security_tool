@@ -1,6 +1,6 @@
-import { AppColors, AppStyles } from '../../../constants/AppConstants'
+import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
-import { ModuleText } from '../../../constants/StringCatalog'
+import { ActionText, ModuleText } from '../../../constants/StringCatalog'
 import {
   PermissionEmptyStrings,
   PermissionAccountStrings,
@@ -14,14 +14,17 @@ import { ThemeMode } from '../../../theme/ThemeColors'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
 import { EmptyStatePanel } from '../../../components/EmptyStatePanel'
 import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
-import { SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
+import { SectionLabel, SectionSelectRow, SectionToggleRow } from '../../../components/SectionRows'
 import { SectionCard } from '../../../components/SettingsSectionCard'
 import { SubPageHeader } from '../../../components/SubPageHeader'
+import { StyledTextInput } from '../../../components/StyledTextInput'
+import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import {
   ApplicationPermissionProfile,
   ManagedApplicationInfo,
   PermissionActionResult,
   PermissionManagedAccount,
+  PermissionPolicyRecord,
   PermissionPolicyState,
   SixDManagedState,
   SixDPermissionItem
@@ -37,6 +40,8 @@ export struct PermissionPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param viewModel: PermissionViewModel = new PermissionViewModel()
   @Event onBack: () => void = () => {}
+  @Local private hoveredPolicyActionKey: string = ''
+  @Local private activePolicyActionKey: string = ''
 
   aboutToAppear() {
     if (this.viewModel.state.initialized || this.viewModel.state.loading) {
@@ -180,8 +185,8 @@ export struct PermissionPage {
     return 0
   }
 
-  private getAutoStartAbilityName(app: ManagedApplicationInfo): string {
-    return this.viewModel.state.selectedPermissionProfile?.mainAbilityName ?? app.mainAbilityName
+  private canSubmitInstallBlock(): boolean {
+    return !this.viewModel.state.processingAction && this.viewModel.state.installBlockKeyword.trim().length > 0
   }
 
   private executePolicyAction(action: () => Promise<PermissionActionResult>): void {
@@ -195,6 +200,36 @@ export struct PermissionPage {
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.message)
     }
+  }
+
+  private getPolicyDeleteButtonBackground(recordKey: string): ResourceColor {
+    return ActionButtonStyles.getDangerBackground(
+      this.currentTheme,
+      this.hoveredPolicyActionKey === recordKey,
+      this.activePolicyActionKey === recordKey
+    )
+  }
+
+  private getPolicyDeleteButtonForeground(): ResourceColor {
+    return ActionButtonStyles.getDangerForeground(this.currentTheme)
+  }
+
+  private showDeletePolicyConfirm(recordKey: string): void {
+    DialogService.openConfirm(this.getUIContext(), {
+      title: PermissionApplicationStrings.DELETE_POLICY_CONFIRM_TITLE,
+      message: PermissionApplicationStrings.DELETE_POLICY_CONFIRM_MESSAGE,
+      confirmText: ActionText.DELETE,
+      cancelText: ActionText.CANCEL,
+      onConfirm: () => {
+        this.deletePolicyRecord(recordKey)
+      }
+    })
+  }
+
+  private deletePolicyRecord(recordKey: string): void {
+    this.executePolicyAction((): Promise<PermissionActionResult> =>
+      this.viewModel.deletePolicyRecord(recordKey)
+    )
   }
 
   build() {
@@ -227,6 +262,16 @@ export struct PermissionPage {
               }
             })
           }
+
+          if (this.viewModel.state.initialized) {
+            SectionCard({
+              title: PermissionSectionStrings.CURRENT_POLICIES,
+              currentTheme: this.currentTheme,
+              content: () => {
+                this.currentPolicyContent()
+              }
+            })
+          }
         }
         .width('100%')
         .padding({
@@ -248,9 +293,8 @@ export struct PermissionPage {
 
   @Builder
   private summaryContent() {
-    if (!this.viewModel.state.initialized || this.viewModel.state.loading) {
+    if (!this.viewModel.state.initialized) {
       LoadingStatePanel({
-        message: PermissionPageStrings.LOADING,
         indicatorSize: 24,
         currentTheme: this.currentTheme
       })
@@ -297,9 +341,8 @@ export struct PermissionPage {
 
   @Builder
   private targetContent() {
-    if (!this.viewModel.state.initialized || this.viewModel.state.loading) {
+    if (!this.viewModel.state.initialized) {
       LoadingStatePanel({
-        message: PermissionPageStrings.LOADING,
         indicatorSize: 24,
         currentTheme: this.currentTheme
       })
@@ -318,6 +361,12 @@ export struct PermissionPage {
           this.switchAccountByIndex(index)
         }
       })
+
+      Divider()
+        .color(AppColors.getColors(this.currentTheme).BORDER)
+        .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+
+      this.installBlockInputRow()
 
       Divider()
         .color(AppColors.getColors(this.currentTheme).BORDER)
@@ -369,36 +418,234 @@ export struct PermissionPage {
     }
   }
 
+  @Builder
+  private installBlockInputRow() {
+    Row() {
+      SectionLabel({
+        title: PermissionApplicationStrings.INSTALL_BLOCK_TARGET,
+        description: PermissionApplicationStrings.INSTALL_BLOCK_TARGET_DESC,
+        currentTheme: this.currentTheme
+      })
+
+      Row({ space: 10 }) {
+        StyledTextInput({
+          text: this.viewModel.state.installBlockKeyword,
+          placeholder: PermissionApplicationStrings.INSTALL_BLOCK_PLACEHOLDER,
+          controlWidth: 280,
+          controlHeight: 36,
+          radius: AppStyles.RADIUS_SM,
+          currentTheme: this.currentTheme,
+          onChange: (value: string) => {
+            this.viewModel.setInstallBlockKeyword(value)
+          }
+        })
+
+        IconTextActionButton({
+          label: PermissionApplicationStrings.INSTALL_BLOCK_ACTION,
+          icon: AppResources.ALERT_ICON,
+          kind: 'danger',
+          isEnabled: this.canSubmitInstallBlock(),
+          currentTheme: this.currentTheme,
+          onTap: () => {
+            this.executePolicyAction((): Promise<PermissionActionResult> =>
+              this.viewModel.setDisallowedInstallByKeyword()
+            )
+          }
+        })
+      }
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+    .padding({
+      left: 16,
+      right: 16,
+      top: 14,
+      bottom: 14
+    })
+  }
+
   private getApplicationEmptyText(): string {
     return this.viewModel.state.inventoryMessage.length > 0 ? this.viewModel.state.inventoryMessage : PermissionEmptyStrings.APPLICATIONS
   }
 
   @Builder
-  private applicationControlRows(app: ManagedApplicationInfo) {
-    SectionSelectRow({
-      title: PermissionApplicationStrings.INSTALL_POLICY,
-      description: PermissionApplicationStrings.INSTALL_POLICY_DESC,
-      options: this.getPolicyOptions(),
-      selectedIndex: this.getPolicyIndex(app.installPolicy),
-      value: this.formatPolicy(app.installPolicy),
-      selectWidth: 116,
-      processing: this.viewModel.state.processingAction,
-      currentTheme: this.currentTheme,
-      onSelect: (index: number) => {
-        let nextPolicy = this.policyByIndex(index)
-        if (nextPolicy !== app.installPolicy) {
-          this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.setSelectedInstallPolicy(nextPolicy))
-        }
+  private currentPolicyContent() {
+    if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
+      LoadingStatePanel({
+        indicatorSize: 22,
+        currentTheme: this.currentTheme
+      })
+        .height(92)
+    } else if (this.viewModel.state.policyRecords.length === 0) {
+      Text(PermissionEmptyStrings.POLICIES)
+        .width('100%')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+        .padding({
+          left: AppStyles.TABLE_HORIZONTAL_PADDING,
+          right: AppStyles.TABLE_HORIZONTAL_PADDING,
+          top: 28,
+          bottom: 28
+        })
+    } else {
+      Column({ space: 0 }) {
+        this.policyTableHeader()
+        ForEach(this.viewModel.state.policyRecords, (record: PermissionPolicyRecord, index: number) => {
+          Column({ space: 0 }) {
+            this.policyTableRow(record)
+            if (index < this.viewModel.state.policyRecords.length - 1) {
+              Divider()
+                .color(AppColors.getColors(this.currentTheme).BORDER)
+                .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+                .margin({
+                  left: AppStyles.TABLE_DIVIDER_MARGIN,
+                  right: AppStyles.TABLE_DIVIDER_MARGIN
+                })
+            }
+          }
+        }, (record: PermissionPolicyRecord): string => record.key)
+      }
+      .width('100%')
+    }
+  }
+
+  @Builder
+  private policyTableHeader() {
+    Row() {
+      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_TYPE, 1.15)
+      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_TARGET, 2.2)
+      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_STATUS, 0.9)
+      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_SCOPE, 1.1)
+      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_ACTION, 0.8)
+    }
+    .width('100%')
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.TABLE_HEADER_VERTICAL_PADDING,
+      bottom: AppStyles.TABLE_HEADER_VERTICAL_PADDING
+    })
+    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+  }
+
+  @Builder
+  private policyHeaderCell(label: string, weight: number) {
+    Text(label)
+      .fontSize(AppStyles.FONT_SIZE_CAPTION)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .layoutWeight(weight)
+  }
+
+  @Builder
+  private policyTableRow(record: PermissionPolicyRecord) {
+    Row() {
+      this.policyTextCell(record.policyType, 1.15)
+      this.policyTargetCell(record, 2.2)
+      this.policyTextCell(record.statusLabel, 0.9)
+      this.policyTextCell(record.scopeLabel, 1.1)
+      this.policyDeleteActionCell(record, 0.8)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
+    .padding({
+      left: AppStyles.TABLE_HORIZONTAL_PADDING,
+      right: AppStyles.TABLE_HORIZONTAL_PADDING,
+      top: AppStyles.TABLE_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.TABLE_ROW_VERTICAL_PADDING
+    })
+  }
+
+  @Builder
+  private policyTextCell(value: string, weight: number) {
+    Text(value)
+      .fontSize(AppStyles.FONT_SIZE_BODY)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .layoutWeight(weight)
+  }
+
+  @Builder
+  private policyTargetCell(record: PermissionPolicyRecord, weight: number) {
+    Column({ space: 2 }) {
+      Text(record.targetName)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Text(record.targetDetail)
+        .fontSize(AppStyles.FONT_SIZE_CAPTION)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .alignItems(HorizontalAlign.Start)
+    .layoutWeight(weight)
+  }
+
+  @Builder
+  private policyDeleteActionCell(record: PermissionPolicyRecord, weight: number) {
+    Row() {
+      Text(PermissionApplicationStrings.DELETE_POLICY_ACTION)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Regular)
+        .fontColor(this.getPolicyDeleteButtonForeground())
+    }
+    .height(ActionButtonStyles.CHIP_HEIGHT)
+    .padding({
+      left: ActionButtonStyles.CHIP_HORIZONTAL_PADDING,
+      right: ActionButtonStyles.CHIP_HORIZONTAL_PADDING
+    })
+    .justifyContent(FlexAlign.Center)
+    .borderRadius(AppStyles.RADIUS_MD)
+    .backgroundColor(this.getPolicyDeleteButtonBackground(record.key))
+    .opacity(this.viewModel.state.processingAction ? 0.56 : 1)
+    .layoutWeight(weight)
+    .onHover((isHover: boolean) => {
+      if (this.viewModel.state.processingAction) {
+        return
+      }
+      this.hoveredPolicyActionKey = isHover ? record.key : ''
+    })
+    .onTouch((event: TouchEvent) => {
+      if (this.viewModel.state.processingAction) {
+        return
+      }
+      if (event.type === TouchType.Down) {
+        this.activePolicyActionKey = record.key
+        return
+      }
+      if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.activePolicyActionKey = ''
       }
     })
+    .onClick(() => {
+      if (this.viewModel.state.processingAction) {
+        return
+      }
+      this.activePolicyActionKey = ''
+      this.showDeletePolicyConfirm(record.key)
+    })
+  }
 
-    Divider()
-      .color(AppColors.getColors(this.currentTheme).BORDER)
-      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
+  @Builder
+  private applicationControlRows(app: ManagedApplicationInfo) {
     SectionToggleRow({
       title: PermissionApplicationStrings.UNINSTALL_PROTECTED,
-      description: PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
+      description: this.formatDescriptionWithState(
+        PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
+        app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
+      ),
       isOn: app.uninstallProtected,
       enabledValue: !this.viewModel.state.processingAction,
       opacityValue: this.viewModel.state.processingAction ? 0.72 : 1,
@@ -416,7 +663,7 @@ export struct PermissionPage {
 
     SectionSelectRow({
       title: PermissionApplicationStrings.RUNNING_POLICY,
-      description: PermissionApplicationStrings.RUNNING_POLICY_DESC,
+      description: this.formatDescriptionWithState(PermissionApplicationStrings.RUNNING_POLICY_DESC, this.formatPolicy(app.runningPolicy)),
       options: this.getPolicyOptions(),
       selectedIndex: this.getPolicyIndex(app.runningPolicy),
       value: this.formatPolicy(app.runningPolicy),
@@ -437,7 +684,9 @@ export struct PermissionPage {
 
     SectionSelectRow({
       title: PermissionApplicationStrings.NETWORK_POLICY,
-      description: app.uid > 0 ? PermissionApplicationStrings.NETWORK_POLICY_DESC : PermissionApplicationStrings.MISSING_UID,
+      description: app.uid > 0
+        ? this.formatDescriptionWithState(PermissionApplicationStrings.NETWORK_POLICY_DESC, this.formatPolicy(app.networkPolicy))
+        : PermissionApplicationStrings.MISSING_UID,
       options: this.getNetworkPolicyOptions(),
       selectedIndex: this.getNetworkPolicyIndex(app.networkPolicy),
       value: this.formatPolicy(app.networkPolicy),
@@ -452,44 +701,6 @@ export struct PermissionPage {
       }
     })
 
-    Divider()
-      .color(AppColors.getColors(this.currentTheme).BORDER)
-      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-    SectionToggleRow({
-      title: PermissionApplicationStrings.KEEP_ALIVE,
-      description: PermissionApplicationStrings.KEEP_ALIVE_DESC,
-      isOn: app.keepAliveEnabled,
-      enabledValue: !this.viewModel.state.processingAction,
-      opacityValue: this.viewModel.state.processingAction ? 0.72 : 1,
-      currentTheme: this.currentTheme,
-      onChange: (enabled: boolean) => {
-        if (enabled !== app.keepAliveEnabled) {
-          this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.setSelectedKeepAlive(enabled))
-        }
-      }
-    })
-
-    Divider()
-      .color(AppColors.getColors(this.currentTheme).BORDER)
-      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-    SectionToggleRow({
-      title: PermissionApplicationStrings.AUTO_START,
-      description: this.getAutoStartAbilityName(app).length > 0
-        ? PermissionApplicationStrings.AUTO_START_DESC
-        : PermissionApplicationStrings.MISSING_ABILITY,
-      isOn: app.autoStartEnabled,
-      enabledValue: !this.viewModel.state.processingAction && this.getAutoStartAbilityName(app).length > 0,
-      opacityValue: this.viewModel.state.processingAction || this.getAutoStartAbilityName(app).length === 0 ? 0.72 : 1,
-      currentTheme: this.currentTheme,
-      onChange: (enabled: boolean) => {
-        if (enabled !== app.autoStartEnabled) {
-          this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.setSelectedAutoStart(enabled))
-        }
-      }
-    })
-
   }
 
   @Builder
@@ -497,28 +708,26 @@ export struct PermissionPage {
     app: ManagedApplicationInfo,
     profile: ApplicationPermissionProfile | null
   ) {
-    if (profile === null) {
-      Blank()
-        .height(0)
-    } else if (profile.message.length > 0 && profile.sixDGroups.length === 0) {
+    if (profile !== null && profile.message.length > 0 && profile.sixDGroups.length === 0) {
       Text(profile.message)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
     } else {
-      ForEach(profile.sixDGroups, (item: SixDPermissionItem) => {
+      ForEach(this.getSixDItems(profile), (item: SixDPermissionItem) => {
         SectionSelectRow({
           title: item.title,
-          description: item.canManage ? PermissionApplicationStrings.SIX_D_GROUP_DESC : item.disabledReason,
+          description: this.getSixDDescription(item),
           options: this.getSixDOptions(),
           selectedIndex: this.getSixDStateIndex(item.managedState),
           value: this.formatSixDState(item.managedState),
           selectWidth: 116,
           processing: this.viewModel.state.processingAction,
+          enabledValue: item.canManage,
           currentTheme: this.currentTheme,
           onSelect: (index: number) => {
             let nextState = this.sixDStateByIndex(index)
-            if (nextState !== item.managedState) {
+            if (item.canManage && nextState !== item.managedState) {
               this.executePolicyAction((): Promise<PermissionActionResult> =>
                 this.viewModel.setSelectedSixDPermissionState(item.groupKey, nextState)
               )
@@ -533,6 +742,32 @@ export struct PermissionPage {
     }
   }
 
+  private getSixDItems(profile: ApplicationPermissionProfile | null): SixDPermissionItem[] {
+    if (profile !== null) {
+      return profile.sixDGroups
+    }
+    return [
+      this.createPendingSixDItem('downloads', PermissionSixDStrings.DOWNLOADS),
+      this.createPendingSixDItem('desktop', PermissionSixDStrings.DESKTOP),
+      this.createPendingSixDItem('documents', PermissionSixDStrings.DOCUMENTS),
+      this.createPendingSixDItem('gallery', PermissionSixDStrings.GALLERY),
+      this.createPendingSixDItem('music', PermissionSixDStrings.MUSIC),
+      this.createPendingSixDItem('document_file', PermissionSixDStrings.DOCUMENT_FILE)
+    ]
+  }
+
+  private createPendingSixDItem(groupKey: string, title: string): SixDPermissionItem {
+    return {
+      groupKey: groupKey,
+      title: title,
+      permissionNames: [],
+      declaredPermissions: [],
+      managedState: 'unsupported',
+      canManage: false,
+      disabledReason: PermissionSixDStrings.DETAIL_LOADING
+    } as SixDPermissionItem
+  }
+
   private formatPolicy(policy: PermissionPolicyState): string {
     if (policy === 'allowed') {
       return PermissionApplicationStrings.POLICY_ALLOWED
@@ -541,6 +776,17 @@ export struct PermissionPage {
       return PermissionApplicationStrings.POLICY_DENIED
     }
     return PermissionApplicationStrings.POLICY_DEFAULT
+  }
+
+  private formatDescriptionWithState(description: string, state: string): string {
+    return `${description} · ${PermissionApplicationStrings.CURRENT_STATE_PREFIX}：${state}`
+  }
+
+  private getSixDDescription(item: SixDPermissionItem): string {
+    if (!item.canManage) {
+      return item.disabledReason
+    }
+    return item.disabledReason.length > 0 ? item.disabledReason : PermissionApplicationStrings.SIX_D_GROUP_DESC
   }
 
   private formatSixDState(state: SixDManagedState): string {

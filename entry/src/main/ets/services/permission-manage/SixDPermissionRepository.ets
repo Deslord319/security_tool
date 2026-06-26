@@ -11,6 +11,7 @@ import {
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'SixDPermissionRepository'
+const FULL_FILE_PERMISSION = 'ohos.permission.READ_WRITE_USER_FILE'
 
 interface SixDPermissionDefinition {
   groupKey: string
@@ -111,6 +112,9 @@ export class SixDPermissionRepository {
     let declaredPermissions = definition.permissionNames.filter((permissionName: string): boolean =>
       requestedPermissions.includes(permissionName)
     )
+    if (declaredPermissions.length === 0 && requestedPermissions.includes(FULL_FILE_PERMISSION)) {
+      declaredPermissions = [FULL_FILE_PERMISSION]
+    }
     if (declaredPermissions.length === 0) {
       return SixDPermissionRepository.createItem(
         definition,
@@ -126,7 +130,7 @@ export class SixDPermissionRepository {
         declaredPermissions,
         SixDPermissionRepository.resolveManagedState(app, declaredPermissions),
         true,
-        ''
+        declaredPermissions.includes(FULL_FILE_PERMISSION) ? PermissionApplicationStrings.SIX_D_FULL_FILE_DESC : ''
       )
     } catch (err) {
       LogUtils.warn(TAG, `resolveManagedState failed: ${JSON.stringify(err)}`)

@@ -111,6 +111,7 @@ export struct SectionSelectRow {
   @Param value: string = ''
   @Param selectWidth: number = 140
   @Param processing: boolean = false
+  @Param enabledValue: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelect: (index: number) => void = () => {}
 
@@ -128,8 +129,8 @@ export struct SectionSelectRow {
         value: this.value,
         selectWidth: this.selectWidth,
         currentTheme: this.currentTheme,
-        enabled: !this.processing,
-        opacity: this.processing ? 0.72 : 1,
+        enabled: !this.processing && this.enabledValue,
+        opacity: this.processing || !this.enabledValue ? 0.72 : 1,
         onSelect: this.onSelect
       } as SectionSelectParams)
     }
