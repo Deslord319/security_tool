@@ -137,14 +137,14 @@ export class ApplicationControlRepository {
   }
 
   static async setRunningPolicy(app: ManagedApplicationInfo, policy: PermissionPolicyState): Promise<void> {
-    let policyIds = ApplicationControlRepository.getRunningPolicyIds(app)
+    let cleanupPolicyIds = ApplicationControlRepository.getRunningPolicyCleanupIds(app)
     let disallowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
       applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, app.accountId),
-      policyIds
+      cleanupPolicyIds
     )
     let allowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
       applicationManager.getAllowedRunningBundles(ADMIN_WANT, app.accountId),
-      policyIds
+      cleanupPolicyIds
     )
     if (disallowedPolicyIds.length > 0) {
       await applicationManager.removeDisallowedRunningBundlesSync(ADMIN_WANT, disallowedPolicyIds, app.accountId)
@@ -153,12 +153,24 @@ export class ApplicationControlRepository {
       await applicationManager.removeAllowedRunningBundles(ADMIN_WANT, allowedPolicyIds, app.accountId)
     }
     if (policy === 'allowed') {
-      await applicationManager.addAllowedRunningBundles(ADMIN_WANT, policyIds, app.accountId)
+      await applicationManager.addAllowedRunningBundles(
+        ADMIN_WANT,
+        ApplicationControlRepository.getRunningPolicyIds(app),
+        app.accountId
+      )
       return
     }
     if (policy === 'denied') {
-      await applicationManager.addDisallowedRunningBundlesSync(ADMIN_WANT, policyIds, app.accountId)
+      await applicationManager.addDisallowedRunningBundlesSync(
+        ADMIN_WANT,
+        ApplicationControlRepository.getRunningPolicyIds(app),
+        app.accountId
+      )
     }
+  }
+
+  static buildRunningPolicyCleanupIdsForTest(app: ManagedApplicationInfo): string[] {
+    return ApplicationControlRepository.getRunningPolicyCleanupIds(app)
   }
 
   static createEmptyControlLists(): ApplicationControlLists {
@@ -205,11 +217,8 @@ export class ApplicationControlRepository {
   }
 
   private static containsApp(policyIds: string[], app: ManagedApplicationInfo): boolean {
-    return policyIds.includes(app.bundleName) || policyIds.includes(app.appIdentifier)
-  }
-
-  private static getPrimaryPolicyId(app: ManagedApplicationInfo): string {
-    return app.appIdentifier.length > 0 ? app.appIdentifier : app.bundleName
+    return policyIds.includes(app.bundleName) ||
+      (app.appIdentifier.length > 0 && policyIds.includes(app.appIdentifier))
   }
 
   private static getPolicyIds(app: ManagedApplicationInfo): string[] {
@@ -225,6 +234,10 @@ export class ApplicationControlRepository {
       throw new Error('missing appIdentifier')
     }
     return [app.appIdentifier]
+  }
+
+  private static getRunningPolicyCleanupIds(app: ManagedApplicationInfo): string[] {
+    return ApplicationControlRepository.getPolicyIds(app)
   }
 
   private static getExistingPolicyIds(existingIds: string[], candidateIds: string[]): string[] {

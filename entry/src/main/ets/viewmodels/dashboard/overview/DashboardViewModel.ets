@@ -31,9 +31,18 @@ export class DashboardViewModel {
   private logListenerId: number = -1
   private peripheralTraceListenerId: number = -1
 
+  prepareInitialContent(): void {
+    if (this.quickEntries.length === 0) {
+      this.quickEntries = this.buildQuickEntries()
+    }
+    if (this.moduleCards.length === 0) {
+      this.moduleCards = this.buildFallbackModuleCards()
+    }
+  }
+
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
-    this.quickEntries = this.buildQuickEntries()
+    this.prepareInitialContent()
     try {
       let initialized = await PeripheralTraceMaintenanceService.initialize(context)
       if (!initialized.success) {

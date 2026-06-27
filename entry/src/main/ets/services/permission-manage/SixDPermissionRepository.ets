@@ -11,7 +11,7 @@ import {
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'SixDPermissionRepository'
-const FULL_FILE_PERMISSION = 'ohos.permission.READ_WRITE_USER_FILE'
+const FULL_DISK_PERMISSION = 'ohos.permission.ACCESS_USER_FULL_DISK'
 
 interface SixDPermissionDefinition {
   groupKey: string
@@ -34,21 +34,6 @@ const SIX_D_PERMISSION_DEFINITIONS: SixDPermissionDefinition[] = [
     groupKey: 'documents',
     title: PermissionSixDStrings.DOCUMENTS,
     permissionNames: ['ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY']
-  },
-  {
-    groupKey: 'gallery',
-    title: PermissionSixDStrings.GALLERY,
-    permissionNames: ['ohos.permission.READ_IMAGEVIDEO', 'ohos.permission.WRITE_IMAGEVIDEO']
-  },
-  {
-    groupKey: 'music',
-    title: PermissionSixDStrings.MUSIC,
-    permissionNames: ['ohos.permission.READ_AUDIO', 'ohos.permission.WRITE_AUDIO']
-  },
-  {
-    groupKey: 'document_file',
-    title: PermissionSixDStrings.DOCUMENT_FILE,
-    permissionNames: ['ohos.permission.READ_DOCUMENT', 'ohos.permission.WRITE_DOCUMENT']
   }
 ]
 
@@ -112,8 +97,8 @@ export class SixDPermissionRepository {
     let declaredPermissions = definition.permissionNames.filter((permissionName: string): boolean =>
       requestedPermissions.includes(permissionName)
     )
-    if (declaredPermissions.length === 0 && requestedPermissions.includes(FULL_FILE_PERMISSION)) {
-      declaredPermissions = [FULL_FILE_PERMISSION]
+    if (declaredPermissions.length === 0 && requestedPermissions.includes(FULL_DISK_PERMISSION)) {
+      declaredPermissions = [FULL_DISK_PERMISSION]
     }
     if (declaredPermissions.length === 0) {
       return SixDPermissionRepository.createItem(
@@ -130,16 +115,16 @@ export class SixDPermissionRepository {
         declaredPermissions,
         SixDPermissionRepository.resolveManagedState(app, declaredPermissions),
         true,
-        declaredPermissions.includes(FULL_FILE_PERMISSION) ? PermissionApplicationStrings.SIX_D_FULL_FILE_DESC : ''
+        declaredPermissions.includes(FULL_DISK_PERMISSION) ? PermissionApplicationStrings.SIX_D_FULL_FILE_DESC : ''
       )
     } catch (err) {
       LogUtils.warn(TAG, `resolveManagedState failed: ${JSON.stringify(err)}`)
       return SixDPermissionRepository.createItem(
         definition,
         declaredPermissions,
-        'unsupported',
-        false,
-        PermissionApplicationStrings.SIX_D_UNSUPPORTED
+        'default',
+        true,
+        declaredPermissions.includes(FULL_DISK_PERMISSION) ? PermissionApplicationStrings.SIX_D_FULL_FILE_DESC : ''
       )
     }
   }
@@ -217,6 +202,9 @@ export class SixDPermissionRepository {
   }
 
   private static buildApplicationInstance(app: ManagedApplicationInfo): securityManager.ApplicationInstance {
+    if (app.appIdentifier.length === 0) {
+      throw new Error('missing appIdentifier')
+    }
     return {
       appIdentifier: app.appIdentifier,
       accountId: app.accountId,

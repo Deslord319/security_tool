@@ -76,6 +76,7 @@ export struct SectionToggleRow {
   @Param title: string = ''
   @Param description: string = ''
   @Param isOn: boolean = false
+  @Param processing: boolean = false
   @Param enabledValue: boolean = true
   @Param opacityValue: number = 1
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -89,13 +90,20 @@ export struct SectionToggleRow {
         currentTheme: this.currentTheme
       })
 
-      Toggle({ type: ToggleType.Switch, isOn: this.isOn })
-        .selectedColor(AppColors.BRAND_PRIMARY)
-        .enabled(this.enabledValue)
-        .opacity(this.opacityValue)
-        .onChange((value: boolean) => {
-          this.onChange(value)
-        })
+      if (this.processing) {
+        LoadingProgress()
+          .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      } else {
+        Toggle({ type: ToggleType.Switch, isOn: this.isOn })
+          .selectedColor(AppColors.BRAND_PRIMARY)
+          .enabled(this.enabledValue)
+          .opacity(this.opacityValue)
+          .onChange((value: boolean) => {
+            this.onChange(value)
+          })
+      }
     }
     .width('100%')
     .padding(SECTION_ROW_PADDING)
@@ -123,16 +131,26 @@ export struct SectionSelectRow {
         currentTheme: this.currentTheme
       })
 
-      SectionSelectBuilder({
-        options: this.options,
-        selectedIndex: this.selectedIndex,
-        value: this.value,
-        selectWidth: this.selectWidth,
-        currentTheme: this.currentTheme,
-        enabled: !this.processing && this.enabledValue,
-        opacity: this.processing || !this.enabledValue ? 0.72 : 1,
-        onSelect: this.onSelect
-      } as SectionSelectParams)
+      Row({ space: AppStyles.CONTROL_ROW_ACTION_GAP }) {
+        if (this.processing) {
+          LoadingProgress()
+            .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+            .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        }
+
+        SectionSelectBuilder({
+          options: this.options,
+          selectedIndex: this.selectedIndex,
+          value: this.value,
+          selectWidth: this.selectWidth,
+          currentTheme: this.currentTheme,
+          enabled: !this.processing && this.enabledValue,
+          opacity: this.processing || !this.enabledValue ? 0.72 : 1,
+          onSelect: this.onSelect
+        } as SectionSelectParams)
+      }
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding(SECTION_ROW_PADDING)

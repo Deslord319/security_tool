@@ -12,38 +12,25 @@ export struct AsyncSelectRow {
   @Param description: string = ''
   @Param options: string[] = []
   @Param selectedIndex: number = 0
+  @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT
   @Param processing: boolean = false
+  @Param enabledValue: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
-  @Param optimistic: boolean = true
   @Event onSelectAsync: (nextIndex: number) => Promise<boolean> = async () => false
   @Local private displayIndex: number = 0
   @Local private isAsyncPending: boolean = false
-  @Local private successAwaitingParent: boolean = false
-  @Local private successDisplayIndex: number = 0
   @Local private rollbackIndex: number = 0
 
   aboutToAppear(): void {
     this.displayIndex = this.selectedIndex
-    this.successDisplayIndex = this.selectedIndex
     this.rollbackIndex = this.selectedIndex
   }
 
   private getEffectiveSelectedIndex(): number {
-    if (this.isAsyncPending) {
-      return this.displayIndex
+    if (!this.isAsyncPending && this.displayIndex !== this.selectedIndex) {
+      this.displayIndex = this.selectedIndex
     }
-    if (this.successAwaitingParent) {
-      if (this.selectedIndex === this.successDisplayIndex) {
-        this.successAwaitingParent = false
-        this.rollbackIndex = this.selectedIndex
-        return this.selectedIndex
-      }
-      if (this.selectedIndex === this.rollbackIndex) {
-        return this.successDisplayIndex
-      }
-      this.successAwaitingParent = false
-    }
-    return this.selectedIndex
+    return this.displayIndex
   }
 
   private getDisplayValue(): string {
@@ -55,40 +42,35 @@ export struct AsyncSelectRow {
     return this.processing || this.isAsyncPending
   }
 
+  private canSelect(): boolean {
+    return !this.isBusy() && this.enabledValue
+  }
+
   private async handleSelectChange(nextIndex: number): Promise<void> {
     const previousIndex = this.getEffectiveSelectedIndex()
-    if (nextIndex === previousIndex) {
+    if (nextIndex === previousIndex || !this.canSelect()) {
       return
     }
 
     this.rollbackIndex = previousIndex
-    this.successAwaitingParent = false
-    this.isAsyncPending = true
-    if (this.optimistic) {
-      this.displayIndex = nextIndex
-    }
-
+    this.displayIndex = previousIndex
     let success = false
     try {
+      this.isAsyncPending = true
       success = await this.onSelectAsync(nextIndex)
     } catch (err) {
       const errorText = err instanceof Error ? err.message : String(err)
       LogUtils.error(TAG, `async select exception: label=${this.label}, error=${errorText}`)
     } finally {
       this.isAsyncPending = false
-      if (success) {
-        this.successDisplayIndex = nextIndex
-        this.successAwaitingParent = true
-        if (!this.optimistic) {
-          this.displayIndex = previousIndex
-        }
-        return
-      }
-      this.displayIndex = previousIndex
-      this.successDisplayIndex = previousIndex
-      this.successAwaitingParent = false
-      LogUtils.warn(TAG, `async select rollback: label=${this.label}, rollbackIndex=${previousIndex}, failedIndex=${nextIndex}`)
     }
+    if (success) {
+      this.displayIndex = nextIndex
+      this.rollbackIndex = nextIndex
+      return
+    }
+    this.displayIndex = this.rollbackIndex
+    LogUtils.warn(TAG, `async select rollback: label=${this.label}, rollbackIndex=${this.rollbackIndex}, failedIndex=${nextIndex}`)
   }
 
   build() {
@@ -111,9 +93,9 @@ export struct AsyncSelectRow {
           options: this.options.map((value: string): SelectOption => ({ value: value } as SelectOption)),
           selectedIndex: this.getEffectiveSelectedIndex(),
           value: this.getDisplayValue(),
-          controlWidth: AppStyles.SELECT_WIDTH_DEFAULT,
-          enabledValue: !this.isBusy(),
-          opacityValue: this.isBusy() ? 0.72 : 1,
+          controlWidth: this.selectWidth,
+          enabledValue: this.canSelect(),
+          opacityValue: this.canSelect() ? 1 : 0.72,
           currentTheme: this.currentTheme,
           onSelect: (index: number) => {
             this.handleSelectChange(index)

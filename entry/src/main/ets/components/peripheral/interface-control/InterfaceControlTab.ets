@@ -90,7 +90,6 @@ export struct InterfaceControlTab {
         PeripheralInterfaceToggleOptionIndexes.ENABLED,
       processing: this.interfaceControlProcessingKey === PeripheralService.FEATURE_USB,
       currentTheme: this.currentTheme,
-      optimistic: true,
       onSelectAsync: async (nextIndex: number): Promise<boolean> => {
         if (!this.onUsbInterfaceToggleAsync) {
           return false
@@ -127,7 +126,6 @@ export struct InterfaceControlTab {
       selectedIndex: this.usbStoragePolicyIndex,
       processing: this.interfaceControlProcessingKey === this.usbStorageControlKey,
       currentTheme: this.currentTheme,
-      optimistic: true,
       onSelectAsync: async (nextIndex: number): Promise<boolean> => {
         if (!this.onUsbStoragePolicyChange) {
           return false
