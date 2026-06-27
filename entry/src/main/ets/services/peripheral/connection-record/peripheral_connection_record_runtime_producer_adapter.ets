@@ -289,10 +289,16 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
   }
 
   private getSelfAccessTokenId(): number {
-    const bundleInfo = bundleManager.getBundleInfoForSelfSync(
-      bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
-    )
-    return bundleInfo.appInfo.accessTokenId
+    try {
+      const bundleInfo = bundleManager.getBundleInfoForSelfSync(
+        bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
+      )
+      return bundleInfo.appInfo.accessTokenId
+    } catch (err) {
+      const error = err as BusinessError
+      LogUtils.warn(TAG, `getSelfAccessTokenId failed: code=${error?.code ?? 'unknown'}, message=${error?.message ?? 'unknown'}`)
+      return 0
+    }
   }
 
   private hasBluetoothRuntimePermission(): boolean {

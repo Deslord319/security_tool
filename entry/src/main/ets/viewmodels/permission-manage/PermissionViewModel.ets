@@ -25,6 +25,7 @@ import { PermissionPolicyLocalRepository } from '../../services/permission-manag
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'PermissionViewModel'
+const PERMISSION_RENDER_READY_DELAY_MS = 32
 
 @ObservedV2
 export class PermissionViewModel {
@@ -215,7 +216,7 @@ export class PermissionViewModel {
           if (s.appKey !== permissionProfile.appKey) return s
           return {
             appKey: s.appKey, accountId: s.accountId, bundleName: s.bundleName,
-            appId: s.appId, label: s.label,
+            appId: s.appId, appIdentifier: s.appIdentifier, label: s.label,
             uid: s.uid, appIndex: s.appIndex,
             uninstallProtected: s.uninstallProtected, runningBlocked: s.runningBlocked, networkBlocked: s.networkBlocked,
             threeDGroups: permissionProfile.threeDGroups,
@@ -477,6 +478,7 @@ export class PermissionViewModel {
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
         appId: snapshot.appId,
+        appIdentifier: snapshot.appIdentifier,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,
@@ -506,6 +508,7 @@ export class PermissionViewModel {
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
         appId: snapshot.appId,
+        appIdentifier: snapshot.appIdentifier,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,
@@ -591,7 +594,7 @@ export class PermissionViewModel {
     await new Promise<void>((resolve: () => void): void => {
       setTimeout((): void => {
         resolve()
-      }, 0)
+      }, PERMISSION_RENDER_READY_DELAY_MS)
     })
   }
 
@@ -638,6 +641,7 @@ export class PermissionViewModel {
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
         appId: snapshot.appId,
+        appIdentifier: snapshot.appIdentifier,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,
@@ -732,6 +736,7 @@ export class PermissionViewModel {
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
         appId: snapshot.appId,
+        appIdentifier: snapshot.appIdentifier,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,
@@ -776,7 +781,7 @@ export class PermissionViewModel {
       accountId: params.app.accountId,
       appKey: params.app.appKey,
       bundleName: params.app.bundleName,
-      appIdentifier: '',
+      appIdentifier: params.app.appIdentifier,
       appIndex: params.app.appIndex,
       policyType: params.policyType,
       policyValue: params.policyValue,

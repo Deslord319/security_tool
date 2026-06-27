@@ -39,6 +39,7 @@ function buildManagedApplication(accountId: number, bundleName: string, label: s
       bundleName: bundleName,
       label: label,
       appId: `${bundleName}_app_id`,
+      appIdentifier: `${bundleName}_app_identifier`,
       systemApp: false
     } as ApplicationInventoryRawRecord
   ], 'com.huawei.securitytool')[0]
@@ -55,6 +56,7 @@ function buildAppSnapshot(
     accountId: app.accountId,
     bundleName: app.bundleName,
     appId: app.appId,
+    appIdentifier: app.appIdentifier,
     label: app.label,
     uid: app.uid,
     appIndex: app.appIndex,
@@ -231,6 +233,7 @@ export default function permissionViewModelTest() {
           accountId: 100,
           bundleName: 'demo',
           appId: 'demo-app-id',
+          appIdentifier: 'demo-app-identifier',
           appIndex: 0,
           uid: 10001,
           label: 'Demo',
@@ -259,6 +262,7 @@ export default function permissionViewModelTest() {
           bundleName: 'com.example.demo',
           label: 'Demo',
           appId: 'demo-app-id',
+          appIdentifier: 'demo-app-identifier',
           appIndex: 1,
           uid: 10001,
           versionName: '1.0.0',
@@ -296,6 +300,7 @@ export default function permissionViewModelTest() {
       expect(applications.length).assertEqual(2)
       expect(demo?.appKey).assertEqual('100:com.example.demo')
       expect(demo?.label).assertEqual('Demo')
+      expect(demo?.appIdentifier).assertEqual('demo-app-identifier')
       expect(nonRemovable?.appKey).assertEqual('100:com.example.nonremovable')
       expect(applications.some((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.example.system')).assertFalse()
       expect(applications.some((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.ohos.formrenderservice')).assertFalse()
@@ -524,6 +529,7 @@ export default function permissionViewModelTest() {
         accountId: 100,
         bundleName: 'com.example.mail',
         appId: 'account-100-mail-app-id',
+        appIdentifier: 'account-100-mail-app-identifier',
         appIndex: 0,
         uid: 10001,
         label: 'Mail',
@@ -540,6 +546,7 @@ export default function permissionViewModelTest() {
         accountId: 101,
         bundleName: 'com.example.mail',
         appId: 'account-101-mail-app-id',
+        appIdentifier: 'account-101-mail-app-identifier',
         appIndex: 0,
         uid: 110001,
         label: 'Mail',
@@ -863,6 +870,7 @@ export default function permissionViewModelTest() {
           accountId: app.accountId,
           bundleName: app.bundleName,
           appId: app.appId,
+          appIdentifier: app.appIdentifier,
           appIndex: app.appIndex,
           uid: app.uid,
           label: app.label,

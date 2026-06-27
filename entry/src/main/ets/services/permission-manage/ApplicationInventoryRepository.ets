@@ -22,6 +22,7 @@ export interface ApplicationInventoryRawRecord {
   bundleName: string
   label?: string
   appId?: string
+  appIdentifier?: string
   appIndex?: number
   uid?: number
   versionName?: string
@@ -74,6 +75,7 @@ export class ApplicationInventoryRepository {
       bundleName: bundleInfo.name,
       label: bundleInfo.appInfo?.label,
       appId: bundleInfo.signatureInfo?.appId,
+      appIdentifier: bundleInfo.signatureInfo?.appIdentifier,
       appIndex: bundleInfo.appIndex ?? bundleInfo.appInfo?.appIndex,
       uid: bundleInfo.appInfo?.uid,
       versionName: bundleInfo.versionName,
@@ -146,6 +148,7 @@ export class ApplicationInventoryRepository {
       accountId: accountId,
       bundleName: bundleName,
       appId: ApplicationInventoryRepository.normalizeString(record.appId, ''),
+      appIdentifier: ApplicationInventoryRepository.normalizeString(record.appIdentifier, ''),
       appIndex: appIndex,
       uid: uid,
       label: ApplicationInventoryRepository.normalizeString(record.label, bundleName),
