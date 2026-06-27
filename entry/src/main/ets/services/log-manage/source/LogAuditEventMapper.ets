@@ -15,7 +15,11 @@ import {
   pickStringFromRecords as pickString
 } from '../../../utils/ValuePicker'
 import { resolveAuditSourceTimestamp } from './LogTimestampResolver'
-import { AUDIT_EVENT_DESCRIPTIONS_BY_ID, AUDIT_EVENT_TYPES_BY_ID } from './LogAuditEventIds'
+import {
+  AUDIT_EVENT_DESCRIPTIONS_BY_ID,
+  AUDIT_EVENT_TYPES_BY_ID,
+  FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID
+} from './LogAuditEventIds'
 
 const TAG = 'LogAuditEventMapper'
 
@@ -141,10 +145,19 @@ function buildDetailRows(
       break
     }
     case LogEventType.FILE: {
+      appendTextRow(rows, 'file.description', '事件说明', resolveFileAuditEventDescription(event.eventId))
       appendTextRow(rows, 'file.operation', '操作类型', pickString(sources, ['event_name', 'eventName', 'name']) || pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state']))
       appendTextRow(rows, 'file.filePath', '文件路径', fileAuditPathInfo.primaryPath)
       appendTextRow(rows, 'file.oldPath', '原文件路径', fileAuditPathInfo.oldPath)
       appendTextRow(rows, 'file.newPath', '新文件路径', fileAuditPathInfo.newPath)
+      appendNumberRow(rows, 'file.mode', '文件权限', pickNumber(sources, ['file_mode']))
+      appendNumberRow(rows, 'file.newMode', '新文件权限', pickNumber(sources, ['file_newmode']))
+      appendNumberRow(rows, 'file.ownerUid', '原属主 UID', pickNumber(sources, ['file_owneruid']))
+      appendNumberRow(rows, 'file.ownerGid', '原属组 GID', pickNumber(sources, ['file_ownergid']))
+      appendNumberRow(rows, 'file.newUid', '新属主 UID', pickNumber(sources, ['file_newuid']))
+      appendNumberRow(rows, 'file.newGid', '新属组 GID', pickNumber(sources, ['file_newgid']))
+      appendTextRow(rows, 'file.xattrName', '扩展属性名', pickString(sources, ['file_xattrname']))
+      appendNumberRow(rows, 'file.size', '文件大小', pickNumber(sources, ['file_size']))
       appendTextRow(rows, 'file.processName', '进程名', pickString(sources, ['processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name']))
       appendNumberRow(rows, 'file.pid', 'PID', pickNumber(sources, ['pid', 'processId', 'process_id']))
       appendNumberRow(rows, 'file.uid', 'UID', pickNumber(sources, ['uid', 'userId', 'user_id']))
@@ -177,6 +190,10 @@ function buildDetailRows(
 
 function resolveAuditEventDescription(eventId: number): string {
   return AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId) || `事件 ID: ${eventId}`
+}
+
+function resolveFileAuditEventDescription(eventId: number): string | undefined {
+  return FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId)
 }
 
 function buildRawAuditJson(event: securityAudit.AuditEvent): string {
