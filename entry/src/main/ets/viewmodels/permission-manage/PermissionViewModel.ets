@@ -3,8 +3,10 @@ import {
   ApplicationInventoryResult,
   ManagedApplicationInfo,
   PermissionActionResult,
+  PermissionAccountListResult,
   PermissionInitialData,
   PermissionLocalPolicyRecord,
+  PermissionManagedAccount,
   PermissionPageState,
   PermissionPolicyRecord,
   PermissionPolicyState,
@@ -121,6 +123,38 @@ export class PermissionViewModel {
         this.restoreTargetSelectionSnapshot(previousState)
       }
       return false
+    }
+  }
+
+  async refreshAccountsAndApplicationList(): Promise<boolean> {
+    if (this.state.loading) {
+      return false
+    }
+    this.state.loading = true
+    this.state.errorMessage = ''
+    try {
+      let accountResult = await PermissionService.loadAccounts()
+      let selectedAccountId = this.resolveRefreshedAccountId(accountResult)
+      let inventory = await PermissionService.loadApplications(selectedAccountId)
+      let accountChanged = this.state.selectedAccountId !== selectedAccountId
+      this.state.accounts = accountResult.accounts
+      this.state.selectedAccountId = selectedAccountId
+      if (accountChanged) {
+        this.clearSelectedApplication()
+        this.state.policyRecords = []
+      }
+      this.applyApplicationList({
+        applications: inventory.applications,
+        policyRecords: inventory.policyRecords,
+        message: inventory.message ?? accountResult.message
+      } as ApplicationInventoryResult)
+      return true
+    } catch (err) {
+      LogUtils.warn(TAG, `refreshAccountsAndApplicationList failed: ${JSON.stringify(err)}`)
+      this.state.errorMessage = MessageText.RETRY_LATER
+      return false
+    } finally {
+      this.state.loading = false
     }
   }
 
@@ -376,6 +410,22 @@ export class PermissionViewModel {
     this.state.selectedAppRefreshing = snapshot.selectedAppRefreshing
     this.state.policyLoading = snapshot.policyLoading
     this.permissionProfileRequestSeq = snapshot.permissionProfileRequestSeq
+  }
+
+  private resolveRefreshedAccountId(accountResult: PermissionAccountListResult): number {
+    let currentExists = accountResult.accounts.some((account: PermissionManagedAccount): boolean =>
+      account.accountId === this.state.selectedAccountId
+    )
+    if (currentExists) {
+      return this.state.selectedAccountId
+    }
+    let fallbackExists = accountResult.accounts.some((account: PermissionManagedAccount): boolean =>
+      account.accountId === accountResult.selectedAccountId
+    )
+    if (fallbackExists || accountResult.accounts.length === 0) {
+      return accountResult.selectedAccountId
+    }
+    return accountResult.accounts[0].accountId
   }
 
   private applyInventory(inventory: ApplicationInventoryResult): void {

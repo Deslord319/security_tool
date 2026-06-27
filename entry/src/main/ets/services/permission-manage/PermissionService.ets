@@ -3,6 +3,7 @@ import {
   ApplicationInventoryResult,
   ManagedApplicationInfo,
   PermissionActionResult,
+  PermissionAccountListResult,
   PermissionInitialData,
   PermissionLocalPolicyRecord,
   PermissionPolicyState,
@@ -47,6 +48,10 @@ export class PermissionService {
       policyRecords: [],
       message: inventory.message
     } as ApplicationInventoryResult
+  }
+
+  static async loadAccounts(): Promise<PermissionAccountListResult> {
+    return await PermissionAccountProvider.loadAccounts()
   }
 
   static async loadAccountPolicySnapshot(

@@ -59,8 +59,8 @@ export struct PermissionPage {
       })
       return
     }
-    this.viewModel.refreshApplicationList().catch((err: Error) => {
-      LogUtils.warn(TAG, `refreshApplicationList on appear failed: ${JSON.stringify(err)}`)
+    this.viewModel.refreshAccountsAndApplicationList().catch((err: Error) => {
+      LogUtils.warn(TAG, `refreshAccountsAndApplicationList on appear failed: ${JSON.stringify(err)}`)
     })
   }
 

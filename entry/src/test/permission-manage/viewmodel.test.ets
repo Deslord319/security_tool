@@ -1,5 +1,13 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { ManagedApplicationInfo, PermissionLocalPolicyRecord, PermissionPolicyRecord } from '../../main/ets/models/PermissionModels'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import {
+  ApplicationInventoryResult,
+  ManagedApplicationInfo,
+  PermissionAccountListResult,
+  PermissionLocalPolicyRecord,
+  PermissionManagedAccount,
+  PermissionPolicyRecord
+} from '../../main/ets/models/PermissionModels'
 import {
   ApplicationInventoryRawRecord,
   ApplicationInventoryRepository
@@ -9,6 +17,25 @@ import { PermissionService } from '../../main/ets/services/permission-manage/Per
 import { PermissionViewModel } from '../../main/ets/viewmodels/permission-manage/PermissionViewModel'
 import { ApplicationNetworkPolicyRepository } from '../../main/ets/services/permission-manage/ApplicationNetworkPolicyRepository'
 import { PermissionPolicyLocalRepository } from '../../main/ets/services/permission-manage/PermissionPolicyLocalRepository'
+
+function buildPermissionAccount(accountId: number, isForeground: boolean = false): PermissionManagedAccount {
+  return {
+    accountId: accountId,
+    displayName: `用户 ${accountId}`,
+    isForeground: isForeground,
+    isAvailable: true
+  } as PermissionManagedAccount
+}
+
+function buildManagedApplication(accountId: number, bundleName: string, label: string): ManagedApplicationInfo {
+  return ApplicationInventoryRepository.normalizeApplications(accountId, [
+    {
+      bundleName: bundleName,
+      label: label,
+      systemApp: false
+    } as ApplicationInventoryRawRecord
+  ], 'com.huawei.securitytool')[0]
+}
 
 export default function permissionViewModelTest() {
   describe('PermissionViewModel', () => {
@@ -33,6 +60,90 @@ export default function permissionViewModelTest() {
       expect(viewModel.state.summary.appCount).assertEqual(0)
       expect(viewModel.state.summary.managedCount).assertEqual(0)
       done()
+    })
+
+    it('should refresh account options before refreshing application list', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        let loadedAccountId = -1
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve({
+          accounts: [buildPermissionAccount(100), buildPermissionAccount(101, true)],
+          selectedAccountId: 101
+        } as PermissionAccountListResult))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((accountId: number): Promise<ApplicationInventoryResult> => {
+          loadedAccountId = accountId
+          return Promise.resolve({
+            applications: [buildManagedApplication(accountId, 'com.example.mail', 'Mail')],
+            policyRecords: []
+          } as ApplicationInventoryResult)
+        })
+
+        let success = await viewModel.refreshAccountsAndApplicationList()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.accounts.length).assertEqual(2)
+        expect(viewModel.state.selectedAccountId).assertEqual(100)
+        expect(loadedAccountId).assertEqual(100)
+        expect(viewModel.state.applications[0].accountId).assertEqual(100)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should fallback to refreshed selected account when current account is gone', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.applications = [buildManagedApplication(100, 'com.example.mail', 'Mail')]
+        viewModel.state.selectedAppKey = viewModel.state.applications[0].key
+        viewModel.state.policyRecords = [{
+          key: 'running:100:com.example.mail',
+          policyType: '运行控制',
+          targetName: 'Mail',
+          targetDetail: 'com.example.mail',
+          statusLabel: '禁止',
+          scopeLabel: '用户 100',
+          actionKind: 'running',
+          appKey: viewModel.state.selectedAppKey,
+          policyId: 'com.example.mail'
+        } as PermissionPolicyRecord]
+        let loadedAccountId = -1
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve({
+          accounts: [buildPermissionAccount(101, true)],
+          selectedAccountId: 101
+        } as PermissionAccountListResult))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((accountId: number): Promise<ApplicationInventoryResult> => {
+          loadedAccountId = accountId
+          return Promise.resolve({
+            applications: [buildManagedApplication(accountId, 'com.example.browser', 'Browser')],
+            policyRecords: []
+          } as ApplicationInventoryResult)
+        })
+
+        let success = await viewModel.refreshAccountsAndApplicationList()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAccountId).assertEqual(101)
+        expect(loadedAccountId).assertEqual(101)
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+        expect(viewModel.state.applications[0].accountId).assertEqual(101)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
     })
 
     it('should summarize managed application states', 0, () => {
