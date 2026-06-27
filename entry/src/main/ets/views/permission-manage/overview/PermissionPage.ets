@@ -38,6 +38,7 @@ import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunne
 const TAG = 'PermissionPage'
 const PERMISSION_LOADING_MIN_DURATION_MS = 500
 const PERMISSION_LOADING_RENDER_READY_DELAY_MS = 32
+const POLICY_ACTION_COLUMN_WIDTH = 88
 
 @ComponentV2
 export struct PermissionPage {
@@ -144,20 +145,20 @@ export struct PermissionPage {
       return true
     }
     try {
-      let success = await this.runWithLoading(
-        'permission-target-application',
-        PermissionLoadingStrings.TARGET_APPLICATION,
-        async (): Promise<boolean> => {
-          return await this.viewModel.selectApplicationAndLoadDetails(appKey)
-        }
-      )
-      if (!success) {
-        DialogService.openFailure(
-          this.getUIContext(),
-          this.viewModel.state.errorMessage || PermissionApplicationStrings.POLICY_READ_FAILED
-        )
-      }
-      return success
+      this.viewModel.selectApplicationAndLoadDetails(appKey)
+        .then((success: boolean): void => {
+          if (!success) {
+            DialogService.openFailure(
+              this.getUIContext(),
+              this.viewModel.state.errorMessage || PermissionApplicationStrings.POLICY_READ_FAILED
+            )
+          }
+        })
+        .catch((err: Error): void => {
+          LogUtils.warn(TAG, `select application details failed: ${JSON.stringify(err)}`)
+          DialogService.openFailure(this.getUIContext(), PermissionApplicationStrings.POLICY_READ_FAILED)
+        })
+      return true
     } catch (err) {
       LogUtils.warn(TAG, `selectApplicationByIndex failed: ${JSON.stringify(err)}`)
       return false
@@ -188,34 +189,18 @@ export struct PermissionPage {
     return `delete-policy:${recordKey}`
   }
 
-  private executePolicyAction(
-    action: () => Promise<PermissionActionResult>,
-    sceneTag: string = 'permission-policy-action',
-    loadingMessage: string = PermissionLoadingStrings.POLICY_ACTION
-  ): void {
-    this.executePolicyActionAsync(action, sceneTag, loadingMessage).catch((err: Error) => {
+  private executePolicyAction(action: () => Promise<PermissionActionResult>): void {
+    this.executePolicyActionAsync(action).catch((err: Error) => {
       LogUtils.warn(TAG, `executePolicyAction failed: ${JSON.stringify(err)}`)
     })
   }
 
-  private async executePolicyActionAsync(
-    action: () => Promise<PermissionActionResult>,
-    sceneTag: string,
-    loadingMessage: string
-  ): Promise<void> {
-    await this.executePolicyActionWithResult(action, sceneTag, loadingMessage)
+  private async executePolicyActionAsync(action: () => Promise<PermissionActionResult>): Promise<void> {
+    await this.executePolicyActionWithResult(action)
   }
 
-  private async executePolicyActionWithResult(
-    action: () => Promise<PermissionActionResult>,
-    sceneTag: string = 'permission-policy-action',
-    loadingMessage: string = PermissionLoadingStrings.POLICY_ACTION
-  ): Promise<boolean> {
-    let result = await this.runWithLoading(
-      sceneTag,
-      loadingMessage,
-      async (): Promise<PermissionActionResult> => await action()
-    )
+  private async executePolicyActionWithResult(action: () => Promise<PermissionActionResult>): Promise<boolean> {
+    let result = await action()
     if (!result.success) {
       DialogService.openFailure(this.getUIContext(), result.message)
       return false
@@ -248,11 +233,7 @@ export struct PermissionPage {
   }
 
   private deletePolicyRecord(recordKey: string): void {
-    this.executePolicyAction(
-      (): Promise<PermissionActionResult> => this.viewModel.deletePolicyRecord(recordKey),
-      'permission-policy-delete',
-      PermissionLoadingStrings.POLICY_DELETE
-    )
+    this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.deletePolicyRecord(recordKey))
   }
 
   private async runWithLoading<T>(
@@ -608,7 +589,7 @@ export struct PermissionPage {
       this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_TARGET, 2.2)
       this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_STATUS, 0.9)
       this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_SCOPE, 1.1)
-      this.policyHeaderCell(PermissionApplicationStrings.POLICY_TABLE_ACTION, 0.8)
+      this.policyActionHeaderCell(PermissionApplicationStrings.POLICY_TABLE_ACTION)
     }
     .width('100%')
     .padding({
@@ -633,13 +614,26 @@ export struct PermissionPage {
   }
 
   @Builder
+  private policyActionHeaderCell(label: string) {
+    Text(label)
+      .fontSize(AppStyles.FONT_SIZE_CAPTION)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .textAlign(TextAlign.Center)
+      .width(POLICY_ACTION_COLUMN_WIDTH)
+  }
+
+  @Builder
   private policyTableRow(record: PermissionPolicyRecord) {
     Row() {
       this.policyTextCell(record.policyType, 1.15)
       this.policyTargetCell(record, 2.2)
       this.policyTextCell(record.statusLabel, 0.9)
       this.policyTextCell(record.scopeLabel, 1.1)
-      this.policyDeleteActionCell(record, 0.8)
+      this.policyDeleteActionCell(record)
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
@@ -684,7 +678,7 @@ export struct PermissionPage {
   }
 
   @Builder
-  private policyDeleteActionCell(record: PermissionPolicyRecord, weight: number) {
+  private policyDeleteActionCell(record: PermissionPolicyRecord) {
     Row({ space: 6 }) {
       if (this.isActionProcessing(this.getDeletePolicyActionKey(record.key))) {
         LoadingProgress()
@@ -707,7 +701,7 @@ export struct PermissionPage {
     .borderRadius(AppStyles.RADIUS_MD)
     .backgroundColor(this.getPolicyDeleteButtonBackground(record.key))
     .opacity(this.canOperateAction(this.getDeletePolicyActionKey(record.key)) ? 1 : 0.56)
-    .layoutWeight(weight)
+    .width(POLICY_ACTION_COLUMN_WIDTH)
     .onHover((isHover: boolean) => {
       if (this.hasProcessingAction()) {
         return

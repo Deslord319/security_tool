@@ -74,12 +74,17 @@ export class ThreeDPermissionRepository {
     if (!item.canManage || item.declaredPermissions.length === 0) {
       throw new Error('permission undeclared')
     }
-    await securityManager.setPermissionManagedState(
-      ADMIN_WANT,
-      ThreeDPermissionRepository.buildApplicationInstance(app),
-      item.declaredPermissions,
-      ThreeDPermissionRepository.toSystemState(state)
-    )
+    try {
+      await securityManager.setPermissionManagedState(
+        ADMIN_WANT,
+        ThreeDPermissionRepository.buildApplicationInstance(app),
+        item.declaredPermissions,
+        ThreeDPermissionRepository.toSystemState(state)
+      )
+    } catch (err) {
+      LogUtils.warn(TAG, `setPermissionManagedState failed: ${JSON.stringify(err)}`)
+      throw new Error(`setPermissionManagedState failed: ${JSON.stringify(err)}`)
+    }
   }
 
   static findPermissionItem(
@@ -203,7 +208,7 @@ export class ThreeDPermissionRepository {
 
   private static buildApplicationInstance(app: PermissionAppSnapshot): securityManager.ApplicationInstance {
     return {
-      appIdentifier: app.bundleName,
+      appIdentifier: app.appIdentifier,
       accountId: app.accountId,
       appIndex: app.appIndex
     } as securityManager.ApplicationInstance

@@ -85,6 +85,7 @@ export interface PermissionAppSnapshot {
   accountId: number
   bundleName: string
   appId: string
+  appIdentifier: string
   label: string
   uid: number
   appIndex: number
