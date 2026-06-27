@@ -32,7 +32,7 @@ export class PermissionViewModel {
   private permissionProfileRequestSeq: number = 0
 
   async loadInitialState(): Promise<void> {
-    if (this.state.loading) {
+    if (this.state.loading || this.state.initialized) {
       return
     }
     this.state.loading = true
@@ -100,7 +100,6 @@ export class PermissionViewModel {
     let exists = this.findAppSnapshot(appKey) !== undefined
     this.commitPermissionState({ selectedAppKey: exists ? appKey : '' })
     this.state.loadingSelectedApp = false
-    this.state.loadingSelectedApp = false
     this.permissionProfileRequestSeq++
   }
 
@@ -113,7 +112,6 @@ export class PermissionViewModel {
       return true
     }
     let requestSeq = this.permissionProfileRequestSeq
-    this.state.loadingSelectedApp = true
     this.state.loadingSelectedApp = true
     try {
       await this.waitForCommittedState()
@@ -172,7 +170,6 @@ export class PermissionViewModel {
       installPolicies: []
     })
     this.state.loadingSelectedApp = false
-    this.state.loadingSelectedApp = false
     this.permissionProfileRequestSeq++
     let success = await this.refreshApplications()
     if (!success) {
@@ -217,7 +214,8 @@ export class PermissionViewModel {
         let finalSnapshots = mergedSnapshots.map((s: PermissionAppSnapshot): PermissionAppSnapshot => {
           if (s.appKey !== permissionProfile.appKey) return s
           return {
-            appKey: s.appKey, accountId: s.accountId, bundleName: s.bundleName, label: s.label,
+            appKey: s.appKey, accountId: s.accountId, bundleName: s.bundleName,
+            appId: s.appId, label: s.label,
             uid: s.uid, appIndex: s.appIndex,
             uninstallProtected: s.uninstallProtected, runningBlocked: s.runningBlocked, networkBlocked: s.networkBlocked,
             threeDGroups: permissionProfile.threeDGroups,
@@ -325,11 +323,15 @@ export class PermissionViewModel {
       let result = await PermissionService.setDisallowedInstallPolicyId(this.state.selectedAccountId, packageName)
       if (result.success) {
         this.state.installBlockKeyword = ''
-        let nextPolicies = this.state.installPolicies.concat([{
+        let nextPolicies = [{
           accountId: this.state.selectedAccountId,
           policyId: packageName,
           policy: 'denied'
-        } as AccountInstallPolicySnapshot])
+        } as AccountInstallPolicySnapshot].concat(
+          this.state.installPolicies.filter((policy: AccountInstallPolicySnapshot): boolean =>
+            !(policy.accountId === this.state.selectedAccountId && policy.policyId === packageName)
+          )
+        )
         this.commitPermissionState({ installPolicies: nextPolicies })
       }
       return result
@@ -415,13 +417,11 @@ export class PermissionViewModel {
   private restoreTargetSelectionSnapshot(snapshot: TargetSelectionSnapshot): void {
     this.state.selectedAppKey = snapshot.selectedAppKey
     this.state.loadingSelectedApp = snapshot.loadingSelectedApp
-    this.state.loadingSelectedApp = snapshot.loadingSelectedApp
     this.permissionProfileRequestSeq = snapshot.permissionProfileRequestSeq
   }
 
   private restoreAccountSwitchSnapshot(snapshot: AccountSwitchSnapshot): void {
     this.state.selectedAccountId = snapshot.selectedAccountId
-    this.state.loadingSelectedApp = snapshot.loadingSelectedApp
     this.state.loadingSelectedApp = snapshot.loadingSelectedApp
     this.permissionProfileRequestSeq = snapshot.permissionProfileRequestSeq
     this.commitPermissionState({
@@ -461,8 +461,33 @@ export class PermissionViewModel {
 
   private applyApplicationList(inventory: ApplicationInventoryResult): void {
     this.commitPermissionState({
-      appSnapshots: inventory.appSnapshots,
+      appSnapshots: this.mergeApplicationListSnapshots(inventory.appSnapshots),
       inventoryMessage: inventory.message ?? ''
+    })
+  }
+
+  private mergeApplicationListSnapshots(nextSnapshots: PermissionAppSnapshot[]): PermissionAppSnapshot[] {
+    return nextSnapshots.map((snapshot: PermissionAppSnapshot): PermissionAppSnapshot => {
+      let previous = this.findAppSnapshot(snapshot.appKey)
+      if (previous === undefined) {
+        return snapshot
+      }
+      return {
+        appKey: snapshot.appKey,
+        accountId: snapshot.accountId,
+        bundleName: snapshot.bundleName,
+        appId: snapshot.appId,
+        label: snapshot.label,
+        uid: snapshot.uid,
+        appIndex: snapshot.appIndex,
+        uninstallProtected: previous.uninstallProtected,
+        runningBlocked: previous.runningBlocked,
+        networkBlocked: previous.networkBlocked,
+        threeDGroups: previous.threeDGroups,
+        threeDPolicies: previous.threeDPolicies,
+        threeDLoadState: previous.threeDLoadState,
+        threeDMessage: previous.threeDMessage
+      } as PermissionAppSnapshot
     })
   }
 
@@ -480,6 +505,7 @@ export class PermissionViewModel {
         appKey: snapshot.appKey,
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
+        appId: snapshot.appId,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,
@@ -611,6 +637,7 @@ export class PermissionViewModel {
         appKey: snapshot.appKey,
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
+        appId: snapshot.appId,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,
@@ -661,15 +688,18 @@ export class PermissionViewModel {
       let existing = snapshot.threeDPolicies.find(
         (p: PermissionThreeDPolicySnapshot): boolean => p.groupKey === groupKey
       )
+      let policyType = existing?.policyType ?? nextGroups.find((i: ThreeDPermissionItem): boolean =>
+        i.groupKey === groupKey
+      )?.title ?? ''
       let updated: PermissionThreeDPolicySnapshot = {
         recordId: this.getThreeDRecordKey(appKey, groupKey),
         appKey: appKey,
         groupKey: groupKey,
         actionKind: 'three-d',
         policyValue: state,
-        policyType: existing?.policyType ?? nextGroups.find((i: ThreeDPermissionItem): boolean => i.groupKey === groupKey)?.title ?? '',
+        policyType: policyType,
         targetName: snapshot.label,
-        targetDetail: `${snapshot.bundleName} / ${existing?.policyType ?? ''}`,
+        targetDetail: `${snapshot.bundleName} / ${policyType}`,
         statusLabel: this.formatThreeDState(state),
         scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${snapshot.accountId}`
       } as PermissionThreeDPolicySnapshot
@@ -701,6 +731,7 @@ export class PermissionViewModel {
         appKey: snapshot.appKey,
         accountId: snapshot.accountId,
         bundleName: snapshot.bundleName,
+        appId: snapshot.appId,
         label: snapshot.label,
         uid: snapshot.uid,
         appIndex: snapshot.appIndex,

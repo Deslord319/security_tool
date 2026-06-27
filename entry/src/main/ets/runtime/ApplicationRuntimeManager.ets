@@ -212,6 +212,11 @@ export class ApplicationRuntimeManager {
     if (!localRepoInited) {
       LogUtils.warn(TAG, 'PermissionPolicyLocalRepository init failed')
     }
+    if (this.permissionViewModel.state.initialized) {
+      this.permissionRuntimeInitialized = true
+      LogUtils.info(TAG, 'initializePermissionRuntime reuse initialized permission state')
+      return
+    }
     await this.permissionViewModel.loadInitialState()
     this.permissionRuntimeInitialized = this.permissionViewModel.state.initialized
     if (this.permissionRuntimeInitialized) {

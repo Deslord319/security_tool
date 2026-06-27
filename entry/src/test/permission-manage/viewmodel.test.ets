@@ -1,11 +1,13 @@
 import { describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
+  AccountInstallPolicySnapshot,
   ApplicationInventoryResult,
   ApplicationPermissionProfile,
   PermissionAppSnapshot,
   PermissionActionResult,
   PermissionAccountListResult,
+  PermissionInitialData,
   PermissionLocalPolicyRecord,
   PermissionManagedAccount,
   PermissionPolicyRecord,
@@ -36,6 +38,7 @@ function buildManagedApplication(accountId: number, bundleName: string, label: s
     {
       bundleName: bundleName,
       label: label,
+      appId: `${bundleName}_app_id`,
       systemApp: false
     } as ApplicationInventoryRawRecord
   ], 'com.huawei.securitytool')[0]
@@ -51,6 +54,7 @@ function buildAppSnapshot(
     appKey: app.appKey,
     accountId: app.accountId,
     bundleName: app.bundleName,
+    appId: app.appId,
     label: app.label,
     uid: app.uid,
     appIndex: app.appIndex,
@@ -98,6 +102,41 @@ export default function permissionViewModelTest() {
       expect(viewModel.state.summary.appCount).assertEqual(0)
       expect(viewModel.state.summary.managedCount).assertEqual(0)
       done()
+    })
+
+    it('should not overwrite policy state when initial state is requested after initialization', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadInitialStateMock = mockKit.mockFunc(PermissionService, PermissionService.loadInitialState)
+        when(loadInitialStateMock)().afterReturn(Promise.resolve({
+          selectedAccountId: 100,
+          selectedAppKey: '',
+          inventoryMessage: '',
+          accounts: [buildPermissionAccount(100, true)],
+          appSnapshots: [buildAppSnapshot(app)],
+          installPolicies: []
+        } as PermissionInitialData))
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.appSnapshots = [buildAppSnapshot(app, true, true, true)]
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(viewModel.state.appSnapshots, [])
+
+        await viewModel.loadInitialState()
+
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
+        expect(viewModel.state.selectedAppKey).assertEqual(app.appKey)
+        expect(selectedApp?.uninstallProtected).assertTrue()
+        expect(selectedApp?.runningBlocked).assertTrue()
+        expect(selectedApp?.networkBlocked).assertTrue()
+        expect(viewModel.state.policyRecords.length).assertEqual(3)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
     })
 
     it('should refresh account options before refreshing application list', 0, async (done: Function) => {
@@ -191,6 +230,7 @@ export default function permissionViewModelTest() {
           appKey: '100:demo:demo:0',
           accountId: 100,
           bundleName: 'demo',
+          appId: 'demo-app-id',
           appIndex: 0,
           uid: 10001,
           label: 'Demo',
@@ -218,7 +258,7 @@ export default function permissionViewModelTest() {
         {
           bundleName: 'com.example.demo',
           label: 'Demo',
-          appIdentifier: 'demo-id',
+          appId: 'demo-app-id',
           appIndex: 1,
           uid: 10001,
           versionName: '1.0.0',
@@ -301,13 +341,13 @@ export default function permissionViewModelTest() {
         {
           bundleName: 'com.example.mail',
           label: 'Mail',
-          appIdentifier: 'mail-id',
+          appId: 'mail-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord,
         {
           bundleName: 'com.example.browser',
           label: 'Browser',
-          appIdentifier: 'browser-id',
+          appId: 'browser-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')
@@ -315,9 +355,9 @@ export default function permissionViewModelTest() {
       let merged = ApplicationControlRepository.mergeControlStates(100, applications, {
         allowedInstallIds: ['com.example.mail'],
         disallowedInstallIds: ['com.example.browser'],
-        disallowedUninstallIds: ['com.example.mail'],
+        disallowedUninstallIds: ['mail-app-id'],
         allowedRunningIds: ['com.example.browser'],
-        disallowedRunningIds: ['com.example.mail']
+        disallowedRunningIds: ['mail-app-id']
       })
 
       let mail = merged.find((app: PermissionAppSnapshot): boolean => app.bundleName === 'com.example.mail')
@@ -328,12 +368,12 @@ export default function permissionViewModelTest() {
       expect(browser?.runningBlocked).assertFalse()
     })
 
-    it('should use bundle name as running policy id', 0, () => {
+    it('should use only app id as running policy id', 0, () => {
       let app = ApplicationInventoryRepository.normalizeApplications(100, [
         {
           bundleName: 'com.example.mail',
           label: 'Mail',
-          appIdentifier: 'mail-id',
+          appId: 'mail-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')[0]
@@ -341,53 +381,53 @@ export default function permissionViewModelTest() {
       let cleanupIds = ApplicationControlRepository.buildRunningPolicyCleanupIdsForTest(app)
 
       expect(cleanupIds.length).assertEqual(1)
-      expect(cleanupIds.includes('com.example.mail')).assertTrue()
-      expect(cleanupIds.includes('mail-id')).assertFalse()
+      expect(cleanupIds.includes('mail-app-id')).assertTrue()
+      expect(cleanupIds.includes('com.example.mail')).assertFalse()
     })
 
-    it('should not match uninstall protection by shared app identifier', 0, () => {
+    it('should not match uninstall protection by bundle name', 0, () => {
       let applications = ApplicationInventoryRepository.normalizeApplications(100, [
         {
           bundleName: 'com.example.first',
           label: 'First',
-          appIdentifier: 'shared-debug-id',
+          appId: 'first-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord,
         {
           bundleName: 'com.example.second',
           label: 'Second',
-          appIdentifier: 'shared-debug-id',
+          appId: 'second-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')
 
-      let sharedIdMerged = ApplicationControlRepository.mergeControlStates(100, applications, {
-        allowedInstallIds: [],
-        disallowedInstallIds: [],
-        disallowedUninstallIds: ['shared-debug-id'],
-        allowedRunningIds: [],
-        disallowedRunningIds: []
-      })
-      let bundleMerged = ApplicationControlRepository.mergeControlStates(100, applications, {
+      let bundleNameMerged = ApplicationControlRepository.mergeControlStates(100, applications, {
         allowedInstallIds: [],
         disallowedInstallIds: [],
         disallowedUninstallIds: ['com.example.second'],
         allowedRunningIds: [],
         disallowedRunningIds: []
       })
-      let firstBySharedId = sharedIdMerged.find((app: PermissionAppSnapshot): boolean =>
+      let appIdMerged = ApplicationControlRepository.mergeControlStates(100, applications, {
+        allowedInstallIds: [],
+        disallowedInstallIds: [],
+        disallowedUninstallIds: ['second-app-id'],
+        allowedRunningIds: [],
+        disallowedRunningIds: []
+      })
+      let firstByBundleName = bundleNameMerged.find((app: PermissionAppSnapshot): boolean =>
         app.bundleName === 'com.example.first'
       )
-      let secondBySharedId = sharedIdMerged.find((app: PermissionAppSnapshot): boolean =>
+      let secondByBundleName = bundleNameMerged.find((app: PermissionAppSnapshot): boolean =>
         app.bundleName === 'com.example.second'
       )
-      let secondByBundle = bundleMerged.find((app: PermissionAppSnapshot): boolean =>
+      let secondByAppId = appIdMerged.find((app: PermissionAppSnapshot): boolean =>
         app.bundleName === 'com.example.second'
       )
 
-      expect(firstBySharedId?.uninstallProtected).assertFalse()
-      expect(secondBySharedId?.uninstallProtected).assertFalse()
-      expect(secondByBundle?.uninstallProtected).assertTrue()
+      expect(firstByBundleName?.uninstallProtected).assertFalse()
+      expect(secondByBundleName?.uninstallProtected).assertFalse()
+      expect(secondByAppId?.uninstallProtected).assertTrue()
     })
 
     it('should scope control policies by account and bundle key', 0, () => {
@@ -395,6 +435,7 @@ export default function permissionViewModelTest() {
         {
           bundleName: 'com.example.mail',
           label: 'Mail',
+          appId: 'account-100-mail-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')[0]
@@ -402,6 +443,7 @@ export default function permissionViewModelTest() {
         {
           bundleName: 'com.example.mail',
           label: 'Mail',
+          appId: 'account-101-mail-app-id',
           systemApp: false
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')[0]
@@ -409,9 +451,9 @@ export default function permissionViewModelTest() {
       let merged = ApplicationControlRepository.mergeControlStates(100, [account100App, account101App], {
         allowedInstallIds: [],
         disallowedInstallIds: [],
-        disallowedUninstallIds: ['com.example.mail'],
+        disallowedUninstallIds: ['account-100-mail-app-id'],
         allowedRunningIds: [],
-        disallowedRunningIds: ['com.example.mail']
+        disallowedRunningIds: ['account-100-mail-app-id']
       })
       let account100State = merged.find((app: PermissionAppSnapshot): boolean => app.appKey === account100App.appKey)
       let account101State = merged.find((app: PermissionAppSnapshot): boolean => app.appKey === account101App.appKey)
@@ -481,6 +523,7 @@ export default function permissionViewModelTest() {
         appKey: '100:com.example.mail',
         accountId: 100,
         bundleName: 'com.example.mail',
+        appId: 'account-100-mail-app-id',
         appIndex: 0,
         uid: 10001,
         label: 'Mail',
@@ -496,6 +539,7 @@ export default function permissionViewModelTest() {
         appKey: '101:com.example.mail',
         accountId: 101,
         bundleName: 'com.example.mail',
+        appId: 'account-101-mail-app-id',
         appIndex: 0,
         uid: 110001,
         label: 'Mail',
@@ -682,6 +726,131 @@ export default function permissionViewModelTest() {
       }
     })
 
+    it('should refresh selected application state after successful uninstall and network policy writes', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        let setUninstallPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setUninstallProtected)
+        let setNetworkPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setNetworkBlocked)
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(app)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+        when(setUninstallPolicyMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'ok'
+        } as PermissionActionResult))
+        when(setNetworkPolicyMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'ok'
+        } as PermissionActionResult))
+
+        viewModel.state.selectedAccountId = 100
+        await viewModel.refreshApplicationList()
+        viewModel.selectApplication(app.appKey)
+        let uninstallResult = await viewModel.setSelectedUninstallProtected(true)
+        let networkResult = await viewModel.setSelectedNetworkPolicy('denied')
+
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
+        let uninstallRecords = viewModel.state.policyRecords.filter((record: PermissionPolicyRecord): boolean =>
+          record.actionKind === 'uninstall-protect'
+        )
+        let networkRecords = viewModel.state.policyRecords.filter((record: PermissionPolicyRecord): boolean =>
+          record.actionKind === 'network'
+        )
+        expect(uninstallResult.success).assertTrue()
+        expect(networkResult.success).assertTrue()
+        expect(selectedApp?.uninstallProtected).assertTrue()
+        expect(selectedApp?.networkBlocked).assertTrue()
+        expect(uninstallRecords.length).assertEqual(1)
+        expect(networkRecords.length).assertEqual(1)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should keep policy state while refreshing application list', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(app)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(app, true, true, true)]
+        viewModel.state.installPolicies = [{
+          accountId: 100,
+          policyId: 'com.example.future',
+          policy: 'denied'
+        } as AccountInstallPolicySnapshot]
+
+        let success = await viewModel.refreshApplicationList()
+
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
+        expect(success).assertTrue()
+        expect(selectedApp?.uninstallProtected).assertTrue()
+        expect(selectedApp?.runningBlocked).assertTrue()
+        expect(selectedApp?.networkBlocked).assertTrue()
+        expect(viewModel.state.policyRecords.length).assertEqual(4)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should de-duplicate install deny policy by account and package', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let setInstallPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setDisallowedInstallPolicyId)
+        when(setInstallPolicyMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          success: true,
+          message: 'ok'
+        } as PermissionActionResult))
+
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.installBlockKeyword = 'com.example.future'
+        viewModel.state.installPolicies = [
+          {
+            accountId: 100,
+            policyId: 'com.example.future',
+            policy: 'denied'
+          } as AccountInstallPolicySnapshot,
+          {
+            accountId: 100,
+            policyId: 'com.example.other',
+            policy: 'denied'
+          } as AccountInstallPolicySnapshot,
+          {
+            accountId: 101,
+            policyId: 'com.example.future',
+            policy: 'denied'
+          } as AccountInstallPolicySnapshot
+        ]
+
+        let result = await viewModel.setDisallowedInstallByKeyword()
+        let currentAccountMatches = viewModel.state.installPolicies.filter((policy: AccountInstallPolicySnapshot): boolean =>
+          policy.accountId === 100 && policy.policyId === 'com.example.future'
+        )
+
+        expect(result.success).assertTrue()
+        expect(currentAccountMatches.length).assertEqual(1)
+        expect(viewModel.state.installPolicies.length).assertEqual(3)
+        expect(viewModel.state.installBlockKeyword).assertEqual('')
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should restore selected application state after current policy deletion', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
@@ -693,6 +862,7 @@ export default function permissionViewModelTest() {
           appKey: app.appKey,
           accountId: app.accountId,
           bundleName: app.bundleName,
+          appId: app.appId,
           appIndex: app.appIndex,
           uid: app.uid,
           label: app.label,
@@ -725,6 +895,39 @@ export default function permissionViewModelTest() {
         expect(result.success).assertTrue()
         expect(selectedApp?.runningBlocked).assertFalse()
         expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should restore uninstall protection after current policy deletion', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.selectedAppKey = app.appKey
+        let applications: PermissionAppSnapshot[] = [buildAppSnapshot(app, false, false, true)]
+        viewModel.state.appSnapshots = applications
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(applications, [])
+        let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
+        when(deletePolicyRecordMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'ok'
+        } as PermissionActionResult))
+
+        let uninstallRecord = viewModel.state.policyRecords.find((record: PermissionPolicyRecord): boolean =>
+          record.actionKind === 'uninstall-protect'
+        )
+        let result = await viewModel.deletePolicyRecord(uninstallRecord!.key)
+
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
+        expect(result.success).assertTrue()
+        expect(selectedApp?.uninstallProtected).assertFalse()
+        expect(viewModel.state.policyRecords.filter((record: PermissionPolicyRecord): boolean =>
+          record.actionKind === 'uninstall-protect'
+        ).length).assertEqual(0)
       } finally {
         mockKit.clearAll()
         done()
@@ -856,6 +1059,7 @@ export default function permissionViewModelTest() {
         expect(result.success).assertTrue()
         expect(downloadsGroup?.managedState).assertEqual('denied')
         expect(viewModel.state.policyRecords.filter((r: PermissionPolicyRecord): boolean => r.actionKind === 'three-d').length).assertEqual(1)
+        expect(viewModel.state.policyRecords[0].targetDetail).assertEqual(`${app.bundleName} / Downloads`)
       } finally {
         mockKit.clearAll()
         PermissionPolicyLocalRepository.resetForTest()

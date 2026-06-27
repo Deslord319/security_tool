@@ -71,6 +71,7 @@ export class PermissionService {
       appKey: app.appKey,
       accountId: app.accountId,
       bundleName: app.bundleName,
+      appId: app.appId,
       label: app.label,
       uid: app.uid,
       appIndex: app.appIndex,

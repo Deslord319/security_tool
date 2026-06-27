@@ -21,7 +21,7 @@ const NON_MANAGEABLE_LABEL_KEYWORDS: string[] = [
 export interface ApplicationInventoryRawRecord {
   bundleName: string
   label?: string
-  appIdentifier?: string
+  appId?: string
   appIndex?: number
   uid?: number
   versionName?: string
@@ -73,7 +73,7 @@ export class ApplicationInventoryRepository {
     return {
       bundleName: bundleInfo.name,
       label: bundleInfo.appInfo?.label,
-      appIdentifier: bundleInfo.signatureInfo?.appIdentifier,
+      appId: bundleInfo.signatureInfo?.appId,
       appIndex: bundleInfo.appIndex ?? bundleInfo.appInfo?.appIndex,
       uid: bundleInfo.appInfo?.uid,
       versionName: bundleInfo.versionName,
@@ -145,6 +145,7 @@ export class ApplicationInventoryRepository {
       appKey: ApplicationInventoryRepository.buildAppKey(accountId, bundleName),
       accountId: accountId,
       bundleName: bundleName,
+      appId: ApplicationInventoryRepository.normalizeString(record.appId, ''),
       appIndex: appIndex,
       uid: uid,
       label: ApplicationInventoryRepository.normalizeString(record.label, bundleName),

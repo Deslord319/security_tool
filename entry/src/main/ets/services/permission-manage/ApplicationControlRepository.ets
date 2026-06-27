@@ -40,6 +40,7 @@ export class ApplicationControlRepository {
       appKey: app.appKey,
       accountId: app.accountId,
       bundleName: app.bundleName,
+      appId: app.appId,
       appIndex: app.appIndex,
       uid: app.uid,
       label: app.label,
@@ -114,10 +115,11 @@ export class ApplicationControlRepository {
       policyIds
     )
     if (enabled) {
-      if (existingPolicyIds.length === policyIds.length) {
+      let missingPolicyIds = policyIds.filter((policyId: string): boolean => !existingPolicyIds.includes(policyId))
+      if (missingPolicyIds.length === 0) {
+        ApplicationControlRepository.assertUninstallProtected(app, policyIds)
         return
       }
-      let missingPolicyIds = policyIds.filter((policyId: string): boolean => !existingPolicyIds.includes(policyId))
       await enterpriseBundleManager.addDisallowedUninstallBundlesSync(ADMIN_WANT, missingPolicyIds, app.accountId)
       ApplicationControlRepository.assertUninstallProtected(app, policyIds)
       return
@@ -129,14 +131,14 @@ export class ApplicationControlRepository {
   }
 
   static async setRunningPolicy(app: PermissionAppSnapshot, policy: PermissionPolicyState): Promise<void> {
-    let cleanupPolicyIds = ApplicationControlRepository.getRunningPolicyCleanupIds(app)
+    let policyIds = ApplicationControlRepository.getPolicyIds(app)
     let disallowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
       applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, app.accountId),
-      cleanupPolicyIds
+      policyIds
     )
     let allowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
       applicationManager.getAllowedRunningBundles(ADMIN_WANT, app.accountId),
-      cleanupPolicyIds
+      policyIds
     )
     if (disallowedPolicyIds.length > 0) {
       await applicationManager.removeDisallowedRunningBundlesSync(ADMIN_WANT, disallowedPolicyIds, app.accountId)
@@ -147,14 +149,17 @@ export class ApplicationControlRepository {
     if (policy === 'denied') {
       await applicationManager.addDisallowedRunningBundlesSync(
         ADMIN_WANT,
-        ApplicationControlRepository.getRunningPolicyIds(app),
+        policyIds,
         app.accountId
       )
+      ApplicationControlRepository.assertRunningBlocked(app, policyIds)
+      return
     }
+    ApplicationControlRepository.assertRunningUnblocked(app, policyIds)
   }
 
   static buildRunningPolicyCleanupIdsForTest(app: PermissionAppSnapshot): string[] {
-    return ApplicationControlRepository.getRunningPolicyCleanupIds(app)
+    return ApplicationControlRepository.getPolicyIds(app)
   }
 
   static createEmptyControlLists(): ApplicationControlLists {
@@ -168,19 +173,20 @@ export class ApplicationControlRepository {
   }
 
   private static containsApp(policyIds: string[], app: PermissionAppSnapshot): boolean {
-    return policyIds.includes(app.bundleName)
+    let appId = ApplicationControlRepository.getAppPolicyId(app)
+    return appId.length > 0 && policyIds.includes(appId)
   }
 
   private static getPolicyIds(app: PermissionAppSnapshot): string[] {
-    return [app.bundleName]
+    let appId = ApplicationControlRepository.getAppPolicyId(app)
+    if (appId.length === 0) {
+      throw new Error('missing app policy id')
+    }
+    return [appId]
   }
 
-  private static getRunningPolicyIds(app: PermissionAppSnapshot): string[] {
-    return [app.bundleName]
-  }
-
-  private static getRunningPolicyCleanupIds(app: PermissionAppSnapshot): string[] {
-    return ApplicationControlRepository.getPolicyIds(app)
+  private static getAppPolicyId(app: PermissionAppSnapshot): string {
+    return app.appId.trim()
   }
 
   private static getExistingPolicyIds(existingIds: string[], candidateIds: string[]): string[] {
@@ -200,6 +206,22 @@ export class ApplicationControlRepository {
     let remainingPolicyIds = policyIds.filter((policyId: string): boolean => currentPolicyIds.includes(policyId))
     if (remainingPolicyIds.length > 0) {
       throw new Error('uninstall protection remove verify failed')
+    }
+  }
+
+  private static assertRunningBlocked(app: PermissionAppSnapshot, policyIds: string[]): void {
+    let currentPolicyIds = applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, app.accountId)
+    let missingPolicyIds = policyIds.filter((policyId: string): boolean => !currentPolicyIds.includes(policyId))
+    if (missingPolicyIds.length > 0) {
+      throw new Error('running policy verify failed')
+    }
+  }
+
+  private static assertRunningUnblocked(app: PermissionAppSnapshot, policyIds: string[]): void {
+    let currentPolicyIds = applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, app.accountId)
+    let remainingPolicyIds = policyIds.filter((policyId: string): boolean => currentPolicyIds.includes(policyId))
+    if (remainingPolicyIds.length > 0) {
+      throw new Error('running policy remove verify failed')
     }
   }
 }

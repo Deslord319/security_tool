@@ -2,6 +2,7 @@ import { networkManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../constants/AppConstants'
 import { PermissionAppSnapshot, PermissionPolicyState } from '../../models/PermissionModels'
 const IPV4_FAMILY = 1
+const IPV6_FAMILY = 2
 
 export class ApplicationNetworkPolicyRepository {
   static loadRestrictedAppUidsStrict(): string[] {
@@ -22,6 +23,7 @@ export class ApplicationNetworkPolicyRepository {
       appKey: app.appKey,
       accountId: app.accountId,
       bundleName: app.bundleName,
+      appId: app.appId,
       appIndex: app.appIndex,
       uid: app.uid,
       label: app.label,
@@ -41,8 +43,17 @@ export class ApplicationNetworkPolicyRepository {
     }
     await ApplicationNetworkPolicyRepository.removeRestrictedRules(app)
     if (policy === 'denied') {
-      await networkManager.addFirewallRule(ADMIN_WANT, ApplicationNetworkPolicyRepository.buildBlockRule(app))
+      try {
+        await networkManager.addFirewallRule(ADMIN_WANT, ApplicationNetworkPolicyRepository.buildBlockRule(app, IPV4_FAMILY))
+        await networkManager.addFirewallRule(ADMIN_WANT, ApplicationNetworkPolicyRepository.buildBlockRule(app, IPV6_FAMILY))
+      } catch (err) {
+        await ApplicationNetworkPolicyRepository.removeRestrictedRules(app)
+        throw new Error(`${err}`)
+      }
+      ApplicationNetworkPolicyRepository.assertNetworkBlocked(app)
+      return
     }
+    ApplicationNetworkPolicyRepository.assertNetworkUnblocked(app)
   }
 
   private static async removeRestrictedRules(app: PermissionAppSnapshot): Promise<void> {
@@ -60,13 +71,39 @@ export class ApplicationNetworkPolicyRepository {
       (rule.action === networkManager.Action.DENY || rule.action === networkManager.Action.REJECT)
   }
 
-  private static buildBlockRule(app: PermissionAppSnapshot): networkManager.FirewallRule {
+  private static buildBlockRule(app: PermissionAppSnapshot, family: number): networkManager.FirewallRule {
     return {
       appUid: `${app.uid}`,
       direction: networkManager.Direction.OUTPUT,
       action: networkManager.Action.DENY,
       protocol: networkManager.Protocol.ALL,
-      family: IPV4_FAMILY
+      family: family
     } as networkManager.FirewallRule
+  }
+
+  private static assertNetworkBlocked(app: PermissionAppSnapshot): void {
+    let restrictedRules = ApplicationNetworkPolicyRepository.getRestrictedRulesByUid(app)
+    let hasIpv4Rule = restrictedRules.some((rule: networkManager.FirewallRule): boolean =>
+      rule.family === undefined || rule.family === IPV4_FAMILY
+    )
+    let hasIpv6Rule = restrictedRules.some((rule: networkManager.FirewallRule): boolean =>
+      rule.family === IPV6_FAMILY
+    ) || restrictedRules.length >= 2
+    if (!hasIpv4Rule || !hasIpv6Rule) {
+      throw new Error('network policy verify failed')
+    }
+  }
+
+  private static assertNetworkUnblocked(app: PermissionAppSnapshot): void {
+    if (ApplicationNetworkPolicyRepository.getRestrictedRulesByUid(app).length > 0) {
+      throw new Error('network policy remove verify failed')
+    }
+  }
+
+  private static getRestrictedRulesByUid(app: PermissionAppSnapshot): networkManager.FirewallRule[] {
+    return networkManager.getFirewallRules(ADMIN_WANT)
+      .filter((rule: networkManager.FirewallRule): boolean =>
+        rule.appUid === `${app.uid}` && ApplicationNetworkPolicyRepository.isRestrictedRule(rule)
+      )
   }
 }
