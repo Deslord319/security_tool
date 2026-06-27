@@ -18,6 +18,7 @@ import { PermissionApplicationStrings, PermissionThreeDStrings } from '../../con
 import { ApplicationInventoryRepository } from './ApplicationInventoryRepository'
 import { ApplicationControlLists, ApplicationControlRepository } from './ApplicationControlRepository'
 import { ApplicationNetworkPolicyRepository } from './ApplicationNetworkPolicyRepository'
+import { PermissionAccountPolicyTaskRunner } from './PermissionAccountPolicyTasks'
 import { PermissionAccountProvider } from './PermissionAccountProvider'
 import { PermissionPolicyLocalRepository } from './PermissionPolicyLocalRepository'
 import { ThreeDPermissionRepository } from './ThreeDPermissionRepository'
@@ -59,12 +60,13 @@ export class PermissionService {
     accountId: number,
     appSnapshots: PermissionAppSnapshot[]
   ): Promise<ApplicationInventoryResult> {
-    let controlLists = ApplicationControlRepository.loadControlListsStrict(accountId)
+    let snapshotData = await PermissionAccountPolicyTaskRunner.loadSnapshot(accountId)
+    let controlLists = snapshotData.controlLists
     let merged = ApplicationControlRepository.mergeControlStates(accountId, appSnapshots, controlLists)
     let mergedWithNetwork = ApplicationNetworkPolicyRepository.mergeNetworkStates(
       accountId,
       merged,
-      ApplicationNetworkPolicyRepository.loadRestrictedAppUidsStrict()
+      snapshotData.restrictedAppUids
     )
     let localRecords = PermissionPolicyLocalRepository.listActiveByAccount(accountId)
     let nextSnapshots = mergedWithNetwork.map((app: PermissionAppSnapshot): PermissionAppSnapshot => ({
