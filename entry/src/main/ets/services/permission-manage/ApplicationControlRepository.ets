@@ -1,9 +1,6 @@
 import { applicationManager, bundleManager as enterpriseBundleManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../constants/AppConstants'
 import { ManagedApplicationInfo, PermissionPolicyState } from '../../models/PermissionModels'
-import { LogUtils } from '../../utils/LogUtils'
-
-const TAG = 'ApplicationControlRepository'
 
 export interface ApplicationControlLists {
   allowedInstallIds: string[]
@@ -14,23 +11,28 @@ export interface ApplicationControlLists {
 }
 
 export class ApplicationControlRepository {
-  static loadControlLists(accountId: number): ApplicationControlLists {
-    let controlLists = ApplicationControlRepository.createEmptyControlLists()
-    ApplicationControlRepository.tryLoadBundlePolicies(accountId, controlLists)
-    ApplicationControlRepository.tryLoadApplicationPolicies(accountId, controlLists)
-    return controlLists
+  static loadControlListsStrict(accountId: number): ApplicationControlLists {
+    return {
+      allowedInstallIds: enterpriseBundleManager.getAllowedInstallBundlesSync(ADMIN_WANT, accountId),
+      disallowedInstallIds: enterpriseBundleManager.getDisallowedInstallBundlesSync(ADMIN_WANT, accountId),
+      disallowedUninstallIds: enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, accountId),
+      allowedRunningIds: applicationManager.getAllowedRunningBundles(ADMIN_WANT, accountId),
+      disallowedRunningIds: applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, accountId)
+    } as ApplicationControlLists
   }
 
   static mergeControlStates(
+    accountId: number,
     applications: ManagedApplicationInfo[],
     controlLists: ApplicationControlLists
   ): ManagedApplicationInfo[] {
     return applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo =>
-      ApplicationControlRepository.mergeControlState(app, controlLists)
+      ApplicationControlRepository.mergeControlState(accountId, app, controlLists)
     )
   }
 
   private static mergeControlState(
+    accountId: number,
     app: ManagedApplicationInfo,
     controlLists: ApplicationControlLists
   ): ManagedApplicationInfo {
@@ -49,17 +51,16 @@ export class ApplicationControlRepository {
       installSource: app.installSource,
       appDistributionType: app.appDistributionType,
       mainAbilityName: app.mainAbilityName,
-      installPolicy: ApplicationControlRepository.resolvePolicy(
+      installPolicy: app.accountId === accountId ? ApplicationControlRepository.resolvePolicy(
         app,
         controlLists.allowedInstallIds,
         controlLists.disallowedInstallIds
-      ),
-      uninstallProtected: ApplicationControlRepository.containsApp(controlLists.disallowedUninstallIds, app),
-      runningPolicy: ApplicationControlRepository.resolvePolicy(
-        app,
-        controlLists.allowedRunningIds,
-        controlLists.disallowedRunningIds
-      ),
+      ) : 'default',
+      uninstallProtected: app.accountId === accountId && ApplicationControlRepository.containsApp(controlLists.disallowedUninstallIds, app),
+      runningPolicy: app.accountId === accountId && ApplicationControlRepository.containsApp(
+        controlLists.disallowedRunningIds,
+        app
+      ) ? 'denied' : 'default',
       networkPolicy: app.networkPolicy
     } as ManagedApplicationInfo
   }
@@ -152,14 +153,6 @@ export class ApplicationControlRepository {
     if (allowedPolicyIds.length > 0) {
       await applicationManager.removeAllowedRunningBundles(ADMIN_WANT, allowedPolicyIds, app.accountId)
     }
-    if (policy === 'allowed') {
-      await applicationManager.addAllowedRunningBundles(
-        ADMIN_WANT,
-        ApplicationControlRepository.getRunningPolicyIds(app),
-        app.accountId
-      )
-      return
-    }
     if (policy === 'denied') {
       await applicationManager.addDisallowedRunningBundlesSync(
         ADMIN_WANT,
@@ -183,25 +176,6 @@ export class ApplicationControlRepository {
     } as ApplicationControlLists
   }
 
-  private static tryLoadBundlePolicies(accountId: number, controlLists: ApplicationControlLists): void {
-    try {
-      controlLists.allowedInstallIds = enterpriseBundleManager.getAllowedInstallBundlesSync(ADMIN_WANT, accountId)
-      controlLists.disallowedInstallIds = enterpriseBundleManager.getDisallowedInstallBundlesSync(ADMIN_WANT, accountId)
-      controlLists.disallowedUninstallIds = enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, accountId)
-    } catch (err) {
-      LogUtils.warn(TAG, `load bundle policies failed: ${JSON.stringify(err)}`)
-    }
-  }
-
-  private static tryLoadApplicationPolicies(accountId: number, controlLists: ApplicationControlLists): void {
-    try {
-      controlLists.disallowedRunningIds = applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, accountId)
-      controlLists.allowedRunningIds = applicationManager.getAllowedRunningBundles(ADMIN_WANT, accountId)
-    } catch (err) {
-      LogUtils.warn(TAG, `load application policies failed: ${JSON.stringify(err)}`)
-    }
-  }
-
   private static resolvePolicy(
     app: ManagedApplicationInfo,
     allowedIds: string[],
@@ -217,23 +191,15 @@ export class ApplicationControlRepository {
   }
 
   private static containsApp(policyIds: string[], app: ManagedApplicationInfo): boolean {
-    return policyIds.includes(app.bundleName) ||
-      (app.appIdentifier.length > 0 && policyIds.includes(app.appIdentifier))
+    return policyIds.includes(app.bundleName)
   }
 
   private static getPolicyIds(app: ManagedApplicationInfo): string[] {
-    let ids: string[] = [app.bundleName]
-    if (app.appIdentifier.length > 0 && app.appIdentifier !== app.bundleName) {
-      ids.push(app.appIdentifier)
-    }
-    return ids
+    return [app.bundleName]
   }
 
   private static getRunningPolicyIds(app: ManagedApplicationInfo): string[] {
-    if (app.appIdentifier.length === 0) {
-      throw new Error('missing appIdentifier')
-    }
-    return [app.appIdentifier]
+    return [app.bundleName]
   }
 
   private static getRunningPolicyCleanupIds(app: ManagedApplicationInfo): string[] {

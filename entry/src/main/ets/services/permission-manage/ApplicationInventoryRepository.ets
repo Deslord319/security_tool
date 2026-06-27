@@ -46,6 +46,8 @@ export class ApplicationInventoryRepository {
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {
         applications: applications,
+        appSnapshots: [],
+        installPolicies: [],
         policyRecords: [],
         message: applications.length === 0 ? PermissionEmptyStrings.APPLICATIONS : ''
       } as ApplicationInventoryResult
@@ -53,6 +55,8 @@ export class ApplicationInventoryRepository {
       LogUtils.warn(TAG, `loadApplications failed: ${JSON.stringify(err)}`)
       return {
         applications: [],
+        appSnapshots: [],
+        installPolicies: [],
         policyRecords: [],
         message: PermissionEmptyStrings.INVENTORY_LOAD_FAILED
       } as ApplicationInventoryResult
@@ -114,8 +118,8 @@ export class ApplicationInventoryRepository {
     )
   }
 
-  static buildAppKey(accountId: number, bundleName: string, appIdentifier: string, appIndex: number): string {
-    return `${accountId}:${bundleName}:${appIdentifier}:${appIndex}`
+  static buildAppKey(accountId: number, bundleName: string): string {
+    return `${accountId}:${bundleName}`
   }
 
   private static isManageableApplication(record: ApplicationInventoryRawRecord, selfBundleName: string): boolean {
@@ -141,11 +145,10 @@ export class ApplicationInventoryRepository {
   private static toManagedApplication(accountId: number, record: ApplicationInventoryRawRecord): ManagedApplicationInfo {
     let bundleName = record.bundleName.trim()
     let appIdentifier = ApplicationInventoryRepository.normalizeString(record.appIdentifier, '')
-    let keyIdentifier = appIdentifier.length > 0 ? appIdentifier : bundleName
     let appIndex = record.appIndex !== undefined && Number.isFinite(record.appIndex) ? record.appIndex : 0
     let uid = record.uid !== undefined && Number.isFinite(record.uid) ? record.uid : 0
     return {
-      key: ApplicationInventoryRepository.buildAppKey(accountId, bundleName, keyIdentifier, appIndex),
+      key: ApplicationInventoryRepository.buildAppKey(accountId, bundleName),
       accountId: accountId,
       bundleName: bundleName,
       appIdentifier: appIdentifier,

@@ -1,22 +1,27 @@
 import {
+  AccountInstallPolicySnapshot,
   ApplicationPermissionProfile,
   ApplicationInventoryResult,
   ManagedApplicationInfo,
   PermissionActionResult,
+  PermissionAccountListResult,
+  PermissionAppSnapshot,
   PermissionInitialData,
   PermissionLocalPolicyRecord,
+  PermissionPolicyActionKind,
   PermissionPolicyState,
   PermissionPolicyRecord,
   PermissionSummary,
-  SixDManagedState
+  PermissionThreeDPolicySnapshot,
+  ThreeDManagedState
 } from '../../models/PermissionModels'
-import { PermissionApplicationStrings, PermissionSixDStrings } from '../../constants/modules/PermissionStrings'
+import { PermissionApplicationStrings, PermissionThreeDStrings } from '../../constants/modules/PermissionStrings'
 import { ApplicationInventoryRepository } from './ApplicationInventoryRepository'
 import { ApplicationControlLists, ApplicationControlRepository } from './ApplicationControlRepository'
 import { ApplicationNetworkPolicyRepository } from './ApplicationNetworkPolicyRepository'
 import { PermissionAccountProvider } from './PermissionAccountProvider'
 import { PermissionPolicyLocalRepository } from './PermissionPolicyLocalRepository'
-import { SixDPermissionRepository } from './SixDPermissionRepository'
+import { ThreeDPermissionRepository } from './ThreeDPermissionRepository'
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'PermissionService'
@@ -36,6 +41,8 @@ export class PermissionService {
       summary: PermissionService.buildSummary(inventory.applications),
       accounts: accountResult.accounts,
       applications: inventory.applications,
+      appSnapshots: PermissionService.buildDefaultAppSnapshots(inventory.applications),
+      installPolicies: [],
       policyRecords: []
     }
   }
@@ -44,9 +51,15 @@ export class PermissionService {
     let inventory = await ApplicationInventoryRepository.loadApplications(accountId)
     return {
       applications: inventory.applications,
+      appSnapshots: [],
+      installPolicies: [],
       policyRecords: [],
       message: inventory.message
     } as ApplicationInventoryResult
+  }
+
+  static async loadAccounts(): Promise<PermissionAccountListResult> {
+    return await PermissionAccountProvider.loadAccounts()
   }
 
   static async loadAccountPolicySnapshot(
@@ -64,19 +77,23 @@ export class PermissionService {
     accountId: number,
     applications: ManagedApplicationInfo[]
   ): Promise<ApplicationInventoryResult> {
-    let controlLists = ApplicationControlRepository.loadControlLists(accountId)
-    let applicationsWithControl = ApplicationControlRepository.mergeControlStates(applications, controlLists)
-    let restrictedAppUids = ApplicationNetworkPolicyRepository.loadRestrictedAppUids()
+    let controlLists = ApplicationControlRepository.loadControlListsStrict(accountId)
+    let applicationsWithControl = ApplicationControlRepository.mergeControlStates(accountId, applications, controlLists)
     let applicationsWithNetwork = ApplicationNetworkPolicyRepository.mergeNetworkStates(
+      accountId,
       applicationsWithControl,
-      restrictedAppUids
+      ApplicationNetworkPolicyRepository.loadRestrictedAppUidsStrict()
     )
-    let policyRecords = PermissionService.mergeLocalPolicyRecords(
-      PermissionService.buildPolicyRecords(accountId, applicationsWithNetwork, controlLists),
+    let appSnapshots = PermissionService.buildAppSnapshots(
+      applicationsWithNetwork,
       PermissionPolicyLocalRepository.listActiveByAccount(accountId)
     )
+    let installPolicies = PermissionService.buildInstallPolicySnapshots(accountId, controlLists)
+    let policyRecords = PermissionService.buildPolicyRecordsFromSnapshots(appSnapshots, installPolicies)
     return {
       applications: applicationsWithNetwork,
+      appSnapshots: appSnapshots,
+      installPolicies: installPolicies,
       policyRecords: policyRecords
     } as ApplicationInventoryResult
   }
@@ -85,21 +102,110 @@ export class PermissionService {
     let managedCount = applications.filter((app: ManagedApplicationInfo): boolean =>
       app.installPolicy !== 'default' ||
         app.uninstallProtected ||
-        app.runningPolicy !== 'default' ||
-        app.networkPolicy !== 'default'
+        app.runningPolicy === 'denied' ||
+        app.networkPolicy === 'denied'
     ).length
     let networkRestrictedCount = applications.filter((app: ManagedApplicationInfo): boolean => app.networkPolicy === 'denied').length
     return {
       appCount: applications.length,
       managedCount: managedCount,
-      sixDSensitiveCount: 0,
+      threeDSensitiveCount: 0,
       networkRestrictedCount: networkRestrictedCount
     } as PermissionSummary
   }
 
+  static buildSummaryFromSnapshots(
+    appSnapshots: PermissionAppSnapshot[],
+    policyRecords: PermissionPolicyRecord[]
+  ): PermissionSummary {
+    return {
+      appCount: appSnapshots.length,
+      managedCount: policyRecords.length,
+      threeDSensitiveCount: appSnapshots
+        .map((snapshot: PermissionAppSnapshot): number =>
+          snapshot.threeDGroups.filter((item): boolean => item.canManage).length
+        )
+        .reduce((total: number, count: number): number => total + count, 0),
+      networkRestrictedCount: appSnapshots.filter((snapshot: PermissionAppSnapshot): boolean =>
+        snapshot.networkBlocked
+      ).length
+    } as PermissionSummary
+  }
+
+  static buildDefaultAppSnapshots(applications: ManagedApplicationInfo[]): PermissionAppSnapshot[] {
+    return applications.map((app: ManagedApplicationInfo): PermissionAppSnapshot =>
+      PermissionService.buildAppSnapshot(app, [])
+    )
+  }
+
+  static buildPolicyRecordsFromSnapshots(
+    appSnapshots: PermissionAppSnapshot[],
+    installPolicies: AccountInstallPolicySnapshot[]
+  ): PermissionPolicyRecord[] {
+    let records: PermissionPolicyRecord[] = []
+    installPolicies.forEach((policy: AccountInstallPolicySnapshot): void => {
+      records.push(PermissionService.buildInstallPolicyRecord(policy.accountId, policy.policyId, policy.policy))
+    })
+    appSnapshots.forEach((snapshot: PermissionAppSnapshot): void => {
+      if (snapshot.uninstallProtected) {
+        records.push(PermissionService.createPolicyRecord(
+          `uninstall-protect:${snapshot.appKey}`,
+          PermissionApplicationStrings.POLICY_TYPE_UNINSTALL,
+          snapshot.label,
+          snapshot.bundleName,
+          PermissionApplicationStrings.ENABLED,
+          PermissionService.formatAccountScope(snapshot.accountId),
+          'uninstall-protect',
+          snapshot.appKey,
+          ''
+        ))
+      }
+      if (snapshot.runningBlocked) {
+        records.push(PermissionService.createPolicyRecord(
+          `running:${snapshot.appKey}`,
+          PermissionApplicationStrings.POLICY_TYPE_RUNNING,
+          snapshot.label,
+          snapshot.bundleName,
+          PermissionApplicationStrings.POLICY_DENIED,
+          PermissionService.formatAccountScope(snapshot.accountId),
+          'running',
+          snapshot.appKey,
+          ''
+        ))
+      }
+      if (snapshot.networkBlocked) {
+        records.push(PermissionService.createPolicyRecord(
+          `network:${snapshot.appKey}`,
+          PermissionApplicationStrings.POLICY_TYPE_NETWORK,
+          snapshot.label,
+          snapshot.bundleName,
+          PermissionApplicationStrings.POLICY_DENIED,
+          PermissionService.formatAccountScope(snapshot.accountId),
+          'network',
+          snapshot.appKey,
+          ''
+        ))
+      }
+      snapshot.threeDPolicies.forEach((policy: PermissionThreeDPolicySnapshot): void => {
+        records.push(PermissionService.createPolicyRecord(
+          policy.recordId,
+          policy.policyType,
+          policy.targetName,
+          policy.targetDetail,
+          policy.statusLabel,
+          policy.scopeLabel,
+          policy.actionKind,
+          policy.appKey,
+          policy.groupKey
+        ))
+      })
+    })
+    return records
+  }
+
   static async loadPermissionProfile(app: ManagedApplicationInfo): Promise<ApplicationPermissionProfile> {
     return await Promise.race([
-      SixDPermissionRepository.loadPermissionProfile(app),
+      ThreeDPermissionRepository.loadPermissionProfile(app),
       PermissionService.buildPermissionProfileTimeout(app)
     ]) as ApplicationPermissionProfile
   }
@@ -156,18 +262,18 @@ export class PermissionService {
     })
   }
 
-  static async setSixDPermissionState(
+  static async setThreeDPermissionState(
     app: ManagedApplicationInfo,
     permissionProfile: ApplicationPermissionProfile | null,
     groupKey: string,
-    state: SixDManagedState
+    state: ThreeDManagedState
   ): Promise<PermissionActionResult> {
     return await PermissionService.runAction(async (): Promise<void> => {
-      let item = SixDPermissionRepository.findPermissionItem(permissionProfile, groupKey)
+      let item = ThreeDPermissionRepository.findPermissionItem(permissionProfile, groupKey)
       if (item === undefined) {
         throw new Error('permission undeclared')
       }
-      await SixDPermissionRepository.setPermissionState(app, item, state)
+      await ThreeDPermissionRepository.setPermissionState(app, item, state)
     })
   }
 
@@ -190,7 +296,7 @@ export class PermissionService {
   private static async buildPermissionProfileTimeout(app: ManagedApplicationInfo): Promise<ApplicationPermissionProfile> {
     return await new Promise<ApplicationPermissionProfile>((resolve: (value: ApplicationPermissionProfile) => void): void => {
       setTimeout((): void => {
-        resolve(SixDPermissionRepository.buildUnsupportedProfile(app, PermissionSixDStrings.DETAIL_FAILED))
+        resolve(ThreeDPermissionRepository.buildUnsupportedProfile(app, PermissionThreeDStrings.DETAIL_FAILED))
       }, PermissionService.PERMISSION_PROFILE_TIMEOUT_MS)
     })
   }
@@ -200,9 +306,6 @@ export class PermissionService {
     if (message.includes('missing uid')) {
       return PermissionApplicationStrings.MISSING_UID
     }
-    if (message.includes('missing appIdentifier')) {
-      return PermissionApplicationStrings.SET_FAILED
-    }
     if (message.includes('missing install policy target')) {
       return PermissionApplicationStrings.INSTALL_BLOCK_EMPTY
     }
@@ -210,7 +313,7 @@ export class PermissionService {
       return PermissionApplicationStrings.INSTALL_BLOCK_INVALID
     }
     if (message.includes('permission undeclared')) {
-      return PermissionApplicationStrings.SIX_D_UNDECLARED
+      return PermissionApplicationStrings.THREE_D_UNDECLARED
     }
     return PermissionApplicationStrings.SET_FAILED
   }
@@ -245,9 +348,9 @@ export class PermissionService {
       await ApplicationNetworkPolicyRepository.setNetworkPolicy(app, 'default')
       return
     }
-    if (record.actionKind === 'sixd') {
+    if (record.actionKind === 'three-d') {
       let profile = await PermissionService.loadPermissionProfile(app)
-      let result = await PermissionService.setSixDPermissionState(app, profile, record.policyId, 'default')
+      let result = await PermissionService.setThreeDPermissionState(app, profile, record.policyId, 'default')
       if (!result.success) {
         throw new Error(result.message)
       }
@@ -267,69 +370,98 @@ export class PermissionService {
     return app
   }
 
-  private static buildPolicyRecords(
-    accountId: number,
+  private static buildAppSnapshots(
     applications: ManagedApplicationInfo[],
+    localRecords: PermissionLocalPolicyRecord[]
+  ): PermissionAppSnapshot[] {
+    return applications.map((app: ManagedApplicationInfo): PermissionAppSnapshot =>
+      PermissionService.buildAppSnapshot(app, localRecords)
+    )
+  }
+
+  private static buildAppSnapshot(
+    app: ManagedApplicationInfo,
+    localRecords: PermissionLocalPolicyRecord[]
+  ): PermissionAppSnapshot {
+    return {
+      appKey: app.key,
+      accountId: app.accountId,
+      bundleName: app.bundleName,
+      label: app.label,
+      uid: app.uid,
+      appIndex: app.appIndex,
+      uninstallProtected: app.uninstallProtected,
+      runningBlocked: app.runningPolicy === 'denied',
+      networkBlocked: app.networkPolicy === 'denied',
+      threeDGroups: [],
+      threeDPolicies: PermissionService.buildThreeDPolicySnapshots(app, localRecords),
+      threeDLoadState: 'idle',
+      threeDMessage: ''
+    } as PermissionAppSnapshot
+  }
+
+  private static buildThreeDPolicySnapshots(
+    app: ManagedApplicationInfo,
+    localRecords: PermissionLocalPolicyRecord[]
+  ): PermissionThreeDPolicySnapshot[] {
+    return localRecords
+      .filter((record: PermissionLocalPolicyRecord): boolean =>
+        record.accountId === app.accountId &&
+          record.appKey === app.key &&
+          (record.actionKind === 'three-d') &&
+          record.status === 'active' &&
+          record.policyValue !== 'default'
+      )
+      .map((record: PermissionLocalPolicyRecord): PermissionThreeDPolicySnapshot => ({
+        recordId: record.recordId,
+        appKey: record.appKey,
+        groupKey: record.policyId,
+        actionKind: record.actionKind,
+        policyValue: record.policyValue as ThreeDManagedState,
+        policyType: record.policyType,
+        targetName: record.targetName,
+        targetDetail: record.targetDetail,
+        statusLabel: record.statusLabel,
+        scopeLabel: record.scopeLabel
+      } as PermissionThreeDPolicySnapshot))
+  }
+
+  private static buildInstallPolicySnapshots(
+    accountId: number,
     controlLists: ApplicationControlLists
-  ): PermissionPolicyRecord[] {
-    let records: PermissionPolicyRecord[] = []
+  ): AccountInstallPolicySnapshot[] {
+    let policies: AccountInstallPolicySnapshot[] = []
     controlLists.disallowedInstallIds.forEach((policyId: string): void => {
-      records.push(PermissionService.buildInstallPolicyRecord(accountId, policyId, 'denied'))
+      policies.push({
+        accountId: accountId,
+        policyId: policyId,
+        policy: 'denied'
+      } as AccountInstallPolicySnapshot)
     })
     controlLists.allowedInstallIds.forEach((policyId: string): void => {
-      records.push(PermissionService.buildInstallPolicyRecord(accountId, policyId, 'allowed'))
+      policies.push({
+        accountId: accountId,
+        policyId: policyId,
+        policy: 'allowed'
+      } as AccountInstallPolicySnapshot)
     })
-    applications.forEach((app: ManagedApplicationInfo): void => {
-      PermissionService.appendApplicationPolicyRecords(records, app)
-    })
-    return records
-  }
-
-  private static mergeLocalPolicyRecords(
-    systemRecords: PermissionPolicyRecord[],
-    localRecords: PermissionLocalPolicyRecord[]
-  ): PermissionPolicyRecord[] {
-    let merged = systemRecords.slice()
-    let existingKeys = new Set<string>()
-    systemRecords.forEach((record: PermissionPolicyRecord): void => {
-      existingKeys.add(record.key)
-    })
-    localRecords.forEach((record: PermissionLocalPolicyRecord): void => {
-      if (!PermissionService.shouldMergeLocalPolicyRecord(record)) {
-        return
-      }
-      if (existingKeys.has(record.recordId)) {
-        return
-      }
-      merged.push(PermissionService.createPolicyRecord(
-        record.recordId,
-        record.policyType,
-        record.targetName,
-        record.targetDetail,
-        record.statusLabel,
-        record.scopeLabel,
-        record.actionKind,
-        record.appKey,
-        record.policyId
-      ))
-      existingKeys.add(record.recordId)
-    })
-    return merged
-  }
-
-  static mergePolicyRecordsForTest(
-    systemRecords: PermissionPolicyRecord[],
-    localRecords: PermissionLocalPolicyRecord[]
-  ): PermissionPolicyRecord[] {
-    return PermissionService.mergeLocalPolicyRecords(systemRecords, localRecords)
+    return policies
   }
 
   static buildApplicationPolicyRecords(applications: ManagedApplicationInfo[]): PermissionPolicyRecord[] {
-    let records: PermissionPolicyRecord[] = []
-    applications.forEach((app: ManagedApplicationInfo): void => {
-      PermissionService.appendApplicationPolicyRecords(records, app)
-    })
-    return records
+    return PermissionService.buildPolicyRecordsFromSnapshots(
+      PermissionService.buildDefaultAppSnapshots(applications),
+      []
+    )
+  }
+
+  static buildApplicationPolicyRecordsForAccount(
+    accountId: number,
+    applications: ManagedApplicationInfo[]
+  ): PermissionPolicyRecord[] {
+    return PermissionService.buildApplicationPolicyRecords(
+      applications.filter((app: ManagedApplicationInfo): boolean => app.accountId === accountId)
+    )
   }
 
   static buildInstallPolicyRecord(
@@ -351,70 +483,6 @@ export class PermissionService {
     )
   }
 
-  static buildPolicyRecordFromLocal(record: PermissionLocalPolicyRecord): PermissionPolicyRecord {
-    return PermissionService.createPolicyRecord(
-      record.recordId,
-      record.policyType,
-      record.targetName,
-      record.targetDetail,
-      record.statusLabel,
-      record.scopeLabel,
-      record.actionKind,
-      record.appKey,
-      record.policyId
-    )
-  }
-
-  private static shouldMergeLocalPolicyRecord(record: PermissionLocalPolicyRecord): boolean {
-    return record.actionKind === 'sixd'
-  }
-
-  private static appendApplicationPolicyRecords(records: PermissionPolicyRecord[], app: ManagedApplicationInfo): void {
-    if (app.uninstallProtected) {
-      records.push(PermissionService.createAppPolicyRecord(
-        app,
-        PermissionApplicationStrings.POLICY_TYPE_UNINSTALL,
-        PermissionApplicationStrings.ENABLED,
-        'uninstall-protect'
-      ))
-    }
-    if (app.runningPolicy !== 'default') {
-      records.push(PermissionService.createAppPolicyRecord(
-        app,
-        PermissionApplicationStrings.POLICY_TYPE_RUNNING,
-        PermissionService.formatPolicy(app.runningPolicy),
-        'running'
-      ))
-    }
-    if (app.networkPolicy !== 'default') {
-      records.push(PermissionService.createAppPolicyRecord(
-        app,
-        PermissionApplicationStrings.POLICY_TYPE_NETWORK,
-        PermissionService.formatPolicy(app.networkPolicy),
-        'network'
-      ))
-    }
-  }
-
-  private static createAppPolicyRecord(
-    app: ManagedApplicationInfo,
-    policyType: string,
-    statusLabel: string,
-    actionKind: string
-  ): PermissionPolicyRecord {
-    return PermissionService.createPolicyRecord(
-      `${actionKind}:${app.key}`,
-      policyType,
-      app.label,
-      app.bundleName,
-      statusLabel,
-      PermissionService.formatAccountScope(app.accountId),
-      actionKind,
-      app.key,
-      ''
-    )
-  }
-
   private static createPolicyRecord(
     key: string,
     policyType: string,
@@ -422,7 +490,7 @@ export class PermissionService {
     targetDetail: string,
     statusLabel: string,
     scopeLabel: string,
-    actionKind: string,
+    actionKind: PermissionPolicyActionKind,
     appKey: string,
     policyId: string
   ): PermissionPolicyRecord {
@@ -437,16 +505,6 @@ export class PermissionService {
       appKey: appKey,
       policyId: policyId
     } as PermissionPolicyRecord
-  }
-
-  private static formatPolicy(policy: PermissionPolicyState): string {
-    if (policy === 'allowed') {
-      return PermissionApplicationStrings.POLICY_ALLOWED
-    }
-    if (policy === 'denied') {
-      return PermissionApplicationStrings.POLICY_DENIED
-    }
-    return PermissionApplicationStrings.POLICY_DEFAULT
   }
 
   private static formatAccountScope(accountId: number): string {

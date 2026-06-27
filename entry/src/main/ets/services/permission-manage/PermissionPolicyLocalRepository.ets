@@ -1,5 +1,5 @@
 import { common } from '@kit.AbilityKit'
-import { PermissionLocalPolicyRecord } from '../../models/PermissionModels'
+import { PermissionLocalPolicyRecord, PermissionPolicyActionKind } from '../../models/PermissionModels'
 import { PreferencesAccessor } from '../../storage/preferences/PreferencesAccessor'
 import { LogUtils } from '../../utils/LogUtils'
 
@@ -118,7 +118,7 @@ export class PermissionPolicyLocalRepository {
       targetDetail: PermissionPolicyLocalRepository.normalizeString(record.targetDetail),
       statusLabel: PermissionPolicyLocalRepository.normalizeString(record.statusLabel),
       scopeLabel: PermissionPolicyLocalRepository.normalizeString(record.scopeLabel),
-      actionKind: PermissionPolicyLocalRepository.normalizeString(record.actionKind),
+      actionKind: PermissionPolicyLocalRepository.normalizeActionKind(record.actionKind),
       policyId: PermissionPolicyLocalRepository.normalizeString(record.policyId),
       status: record.status === 'stale' ? 'stale' : 'active',
       createdAt: createdAt,
@@ -129,5 +129,20 @@ export class PermissionPolicyLocalRepository {
 
   private static normalizeString(value: string | undefined): string {
     return value?.trim() ?? ''
+  }
+
+  private static normalizeActionKind(value: string | undefined): PermissionPolicyActionKind {
+    let actionKind = PermissionPolicyLocalRepository.normalizeString(value)
+    if (
+      actionKind === 'install-deny' ||
+      actionKind === 'install-allow' ||
+      actionKind === 'uninstall-protect' ||
+      actionKind === 'running' ||
+      actionKind === 'network' ||
+      actionKind === 'three-d'
+    ) {
+      return actionKind
+    }
+    return 'three-d'
   }
 }

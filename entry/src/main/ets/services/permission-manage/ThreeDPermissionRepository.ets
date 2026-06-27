@@ -1,43 +1,43 @@
 import { bundleManager } from '@kit.AbilityKit'
 import { securityManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../constants/AppConstants'
-import { PermissionApplicationStrings, PermissionSixDStrings } from '../../constants/modules/PermissionStrings'
+import { PermissionApplicationStrings, PermissionThreeDStrings } from '../../constants/modules/PermissionStrings'
 import {
   ApplicationPermissionProfile,
   ManagedApplicationInfo,
-  SixDManagedState,
-  SixDPermissionItem
+  ThreeDManagedState,
+  ThreeDPermissionItem
 } from '../../models/PermissionModels'
 import { LogUtils } from '../../utils/LogUtils'
 
-const TAG = 'SixDPermissionRepository'
+const TAG = 'ThreeDPermissionRepository'
 const FULL_DISK_PERMISSION = 'ohos.permission.ACCESS_USER_FULL_DISK'
 
-interface SixDPermissionDefinition {
+interface ThreeDPermissionDefinition {
   groupKey: string
   title: string
   permissionNames: string[]
 }
 
-const SIX_D_PERMISSION_DEFINITIONS: SixDPermissionDefinition[] = [
+const THREE_D_PERMISSION_DEFINITIONS: ThreeDPermissionDefinition[] = [
   {
     groupKey: 'downloads',
-    title: PermissionSixDStrings.DOWNLOADS,
+    title: PermissionThreeDStrings.DOWNLOADS,
     permissionNames: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY']
   },
   {
     groupKey: 'desktop',
-    title: PermissionSixDStrings.DESKTOP,
+    title: PermissionThreeDStrings.DESKTOP,
     permissionNames: ['ohos.permission.READ_WRITE_DESKTOP_DIRECTORY']
   },
   {
     groupKey: 'documents',
-    title: PermissionSixDStrings.DOCUMENTS,
+    title: PermissionThreeDStrings.DOCUMENTS,
     permissionNames: ['ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY']
   }
 ]
 
-export class SixDPermissionRepository {
+export class ThreeDPermissionRepository {
   static async loadPermissionProfile(app: ManagedApplicationInfo): Promise<ApplicationPermissionProfile> {
     try {
       let bundleInfo = await bundleManager.getBundleInfo(
@@ -47,13 +47,13 @@ export class SixDPermissionRepository {
           bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_ABILITY,
         app.accountId
       )
-      let requestedPermissions = SixDPermissionRepository.extractRequestedPermissions(bundleInfo)
-      let mainAbilityName = SixDPermissionRepository.extractMainAbilityName(bundleInfo)
-      let groups = SIX_D_PERMISSION_DEFINITIONS.map((definition: SixDPermissionDefinition): SixDPermissionItem =>
-        SixDPermissionRepository.buildPermissionItem(app, definition, requestedPermissions)
+      let requestedPermissions = ThreeDPermissionRepository.extractRequestedPermissions(bundleInfo)
+      let mainAbilityName = ThreeDPermissionRepository.extractMainAbilityName(bundleInfo)
+      let groups = THREE_D_PERMISSION_DEFINITIONS.map((definition: ThreeDPermissionDefinition): ThreeDPermissionItem =>
+        ThreeDPermissionRepository.buildPermissionItem(app, definition, requestedPermissions)
       )
       let sensitivePermissionCount = groups
-        .filter((item: SixDPermissionItem): boolean => item.declaredPermissions.length > 0)
+        .filter((item: ThreeDPermissionItem): boolean => item.declaredPermissions.length > 0)
         .length
       return {
         appKey: app.key,
@@ -61,39 +61,39 @@ export class SixDPermissionRepository {
         requestedPermissions: requestedPermissions,
         mainAbilityName: mainAbilityName,
         sensitivePermissionCount: sensitivePermissionCount,
-        message: sensitivePermissionCount === 0 ? PermissionSixDStrings.NO_DECLARED : '',
-        sixDGroups: groups
+        message: sensitivePermissionCount === 0 ? PermissionThreeDStrings.NO_DECLARED : '',
+        threeDGroups: groups
       } as ApplicationPermissionProfile
     } catch (err) {
       LogUtils.warn(TAG, `loadPermissionProfile failed: ${JSON.stringify(err)}`)
-      return SixDPermissionRepository.buildUnsupportedProfile(app, PermissionSixDStrings.DETAIL_FAILED)
+      return ThreeDPermissionRepository.buildUnsupportedProfile(app, PermissionThreeDStrings.DETAIL_FAILED)
     }
   }
 
-  static async setPermissionState(app: ManagedApplicationInfo, item: SixDPermissionItem, state: SixDManagedState): Promise<void> {
+  static async setPermissionState(app: ManagedApplicationInfo, item: ThreeDPermissionItem, state: ThreeDManagedState): Promise<void> {
     if (!item.canManage || item.declaredPermissions.length === 0) {
       throw new Error('permission undeclared')
     }
     await securityManager.setPermissionManagedState(
       ADMIN_WANT,
-      SixDPermissionRepository.buildApplicationInstance(app),
+      ThreeDPermissionRepository.buildApplicationInstance(app),
       item.declaredPermissions,
-      SixDPermissionRepository.toSystemState(state)
+      ThreeDPermissionRepository.toSystemState(state)
     )
   }
 
   static findPermissionItem(
     profile: ApplicationPermissionProfile | null,
     groupKey: string
-  ): SixDPermissionItem | undefined {
-    return profile?.sixDGroups.find((item: SixDPermissionItem): boolean => item.groupKey === groupKey)
+  ): ThreeDPermissionItem | undefined {
+    return profile?.threeDGroups.find((item: ThreeDPermissionItem): boolean => item.groupKey === groupKey)
   }
 
   private static buildPermissionItem(
     app: ManagedApplicationInfo,
-    definition: SixDPermissionDefinition,
+    definition: ThreeDPermissionDefinition,
     requestedPermissions: string[]
-  ): SixDPermissionItem {
+  ): ThreeDPermissionItem {
     let declaredPermissions = definition.permissionNames.filter((permissionName: string): boolean =>
       requestedPermissions.includes(permissionName)
     )
@@ -101,41 +101,41 @@ export class SixDPermissionRepository {
       declaredPermissions = [FULL_DISK_PERMISSION]
     }
     if (declaredPermissions.length === 0) {
-      return SixDPermissionRepository.createItem(
+      return ThreeDPermissionRepository.createItem(
         definition,
         [],
         'undeclared',
         false,
-        PermissionApplicationStrings.SIX_D_UNDECLARED
+        PermissionApplicationStrings.THREE_D_UNDECLARED
       )
     }
     try {
-      return SixDPermissionRepository.createItem(
+      return ThreeDPermissionRepository.createItem(
         definition,
         declaredPermissions,
-        SixDPermissionRepository.resolveManagedState(app, declaredPermissions),
+        ThreeDPermissionRepository.resolveManagedState(app, declaredPermissions),
         true,
-        declaredPermissions.includes(FULL_DISK_PERMISSION) ? PermissionApplicationStrings.SIX_D_FULL_FILE_DESC : ''
+        declaredPermissions.includes(FULL_DISK_PERMISSION) ? PermissionApplicationStrings.THREE_D_FULL_FILE_DESC : ''
       )
     } catch (err) {
       LogUtils.warn(TAG, `resolveManagedState failed: ${JSON.stringify(err)}`)
-      return SixDPermissionRepository.createItem(
+      return ThreeDPermissionRepository.createItem(
         definition,
         declaredPermissions,
         'default',
         true,
-        declaredPermissions.includes(FULL_DISK_PERMISSION) ? PermissionApplicationStrings.SIX_D_FULL_FILE_DESC : ''
+        declaredPermissions.includes(FULL_DISK_PERMISSION) ? PermissionApplicationStrings.THREE_D_FULL_FILE_DESC : ''
       )
     }
   }
 
   private static createItem(
-    definition: SixDPermissionDefinition,
+    definition: ThreeDPermissionDefinition,
     declaredPermissions: string[],
-    managedState: SixDManagedState,
+    managedState: ThreeDManagedState,
     canManage: boolean,
     disabledReason: string
-  ): SixDPermissionItem {
+  ): ThreeDPermissionItem {
     return {
       groupKey: definition.groupKey,
       title: definition.title,
@@ -144,7 +144,7 @@ export class SixDPermissionRepository {
       managedState: managedState,
       canManage: canManage,
       disabledReason: disabledReason
-    } as SixDPermissionItem
+    } as ThreeDPermissionItem
   }
 
   static buildUnsupportedProfile(app: ManagedApplicationInfo, message: string): ApplicationPermissionProfile {
@@ -155,8 +155,8 @@ export class SixDPermissionRepository {
       mainAbilityName: '',
       sensitivePermissionCount: 0,
       message: message,
-      sixDGroups: SIX_D_PERMISSION_DEFINITIONS.map((definition: SixDPermissionDefinition): SixDPermissionItem =>
-        SixDPermissionRepository.createItem(definition, [], 'unsupported', false, message)
+      threeDGroups: THREE_D_PERMISSION_DEFINITIONS.map((definition: ThreeDPermissionDefinition): ThreeDPermissionItem =>
+        ThreeDPermissionRepository.createItem(definition, [], 'unsupported', false, message)
       )
     } as ApplicationPermissionProfile
   }
@@ -184,11 +184,11 @@ export class SixDPermissionRepository {
     return ''
   }
 
-  private static resolveManagedState(app: ManagedApplicationInfo, permissions: string[]): SixDManagedState {
+  private static resolveManagedState(app: ManagedApplicationInfo, permissions: string[]): ThreeDManagedState {
     let states = permissions.map((permissionName: string): securityManager.PermissionManagedState =>
       securityManager.getPermissionManagedState(
         ADMIN_WANT,
-        SixDPermissionRepository.buildApplicationInstance(app),
+        ThreeDPermissionRepository.buildApplicationInstance(app),
         permissionName
       )
     )
@@ -202,17 +202,14 @@ export class SixDPermissionRepository {
   }
 
   private static buildApplicationInstance(app: ManagedApplicationInfo): securityManager.ApplicationInstance {
-    if (app.appIdentifier.length === 0) {
-      throw new Error('missing appIdentifier')
-    }
     return {
-      appIdentifier: app.appIdentifier,
+      appIdentifier: app.bundleName,
       accountId: app.accountId,
       appIndex: app.appIndex
     } as securityManager.ApplicationInstance
   }
 
-  private static toSystemState(state: SixDManagedState): securityManager.PermissionManagedState {
+  private static toSystemState(state: ThreeDManagedState): securityManager.PermissionManagedState {
     if (state === 'granted') {
       return securityManager.PermissionManagedState.GRANTED
     }
