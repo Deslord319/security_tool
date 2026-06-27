@@ -96,27 +96,6 @@ export interface PermissionAppSnapshot {
   threeDMessage: string
 }
 
-export interface ManagedApplicationInfo {
-  key: string
-  accountId: number
-  bundleName: string
-  appIdentifier: string
-  appIndex: number
-  uid: number
-  label: string
-  versionName: string
-  iconData: string
-  systemApp: boolean
-  removable: boolean
-  installSource: string
-  appDistributionType: string
-  mainAbilityName: string
-  installPolicy: PermissionPolicyState
-  uninstallProtected: boolean
-  runningPolicy: PermissionPolicyState
-  networkPolicy: PermissionPolicyState
-}
-
 export interface ThreeDPermissionItem {
   groupKey: string
   title: string
@@ -142,15 +121,12 @@ export class PermissionPageState {
   @Trace initialized: boolean = false
   @Trace loading: boolean = false
   @Trace errorMessage: string = ''
-  @Trace adminActivated: boolean = false
   @Trace selectedAccountId: number = 0
   @Trace selectedAppKey: string = ''
   @Trace searchKeyword: string = ''
   @Trace installBlockKeyword: string = ''
   @Trace inventoryMessage: string = ''
-  @Trace policyLoading: boolean = false
-  @Trace selectedAppRefreshing: boolean = false
-  @Trace processingAction: boolean = false
+  @Trace loadingSelectedApp: boolean = false
   @Trace processingActionKey: string = ''
   @Trace summary: PermissionSummary = {
     appCount: 0,
@@ -159,8 +135,6 @@ export class PermissionPageState {
     networkRestrictedCount: 0
   }
   @Trace accounts: PermissionManagedAccount[] = []
-  @Trace applications: ManagedApplicationInfo[] = []
-  @Trace filteredApplications: ManagedApplicationInfo[] = []
   @Trace appSnapshots: PermissionAppSnapshot[] = []
   @Trace installPolicies: AccountInstallPolicySnapshot[] = []
   @Trace filteredAppKeys: string[] = []
@@ -168,16 +142,12 @@ export class PermissionPageState {
 }
 
 export interface PermissionInitialData {
-  adminActivated: boolean
   selectedAccountId: number
   selectedAppKey: string
   inventoryMessage: string
-  summary: PermissionSummary
   accounts: PermissionManagedAccount[]
-  applications: ManagedApplicationInfo[]
   appSnapshots: PermissionAppSnapshot[]
   installPolicies: AccountInstallPolicySnapshot[]
-  policyRecords: PermissionPolicyRecord[]
 }
 
 export interface PermissionAccountListResult {
@@ -187,9 +157,7 @@ export interface PermissionAccountListResult {
 }
 
 export interface ApplicationInventoryResult {
-  applications: ManagedApplicationInfo[]
   appSnapshots: PermissionAppSnapshot[]
   installPolicies: AccountInstallPolicySnapshot[]
-  policyRecords: PermissionPolicyRecord[]
   message?: string
 }

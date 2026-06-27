@@ -4,7 +4,7 @@ import { ADMIN_WANT } from '../../constants/AppConstants'
 import { PermissionApplicationStrings, PermissionThreeDStrings } from '../../constants/modules/PermissionStrings'
 import {
   ApplicationPermissionProfile,
-  ManagedApplicationInfo,
+  PermissionAppSnapshot,
   ThreeDManagedState,
   ThreeDPermissionItem
 } from '../../models/PermissionModels'
@@ -38,7 +38,7 @@ const THREE_D_PERMISSION_DEFINITIONS: ThreeDPermissionDefinition[] = [
 ]
 
 export class ThreeDPermissionRepository {
-  static async loadPermissionProfile(app: ManagedApplicationInfo): Promise<ApplicationPermissionProfile> {
+  static async loadPermissionProfile(app: PermissionAppSnapshot): Promise<ApplicationPermissionProfile> {
     try {
       let bundleInfo = await bundleManager.getBundleInfo(
         app.bundleName,
@@ -56,7 +56,7 @@ export class ThreeDPermissionRepository {
         .filter((item: ThreeDPermissionItem): boolean => item.declaredPermissions.length > 0)
         .length
       return {
-        appKey: app.key,
+        appKey: app.appKey,
         bundleName: app.bundleName,
         requestedPermissions: requestedPermissions,
         mainAbilityName: mainAbilityName,
@@ -70,7 +70,7 @@ export class ThreeDPermissionRepository {
     }
   }
 
-  static async setPermissionState(app: ManagedApplicationInfo, item: ThreeDPermissionItem, state: ThreeDManagedState): Promise<void> {
+  static async setPermissionState(app: PermissionAppSnapshot, item: ThreeDPermissionItem, state: ThreeDManagedState): Promise<void> {
     if (!item.canManage || item.declaredPermissions.length === 0) {
       throw new Error('permission undeclared')
     }
@@ -90,7 +90,7 @@ export class ThreeDPermissionRepository {
   }
 
   private static buildPermissionItem(
-    app: ManagedApplicationInfo,
+    app: PermissionAppSnapshot,
     definition: ThreeDPermissionDefinition,
     requestedPermissions: string[]
   ): ThreeDPermissionItem {
@@ -147,9 +147,9 @@ export class ThreeDPermissionRepository {
     } as ThreeDPermissionItem
   }
 
-  static buildUnsupportedProfile(app: ManagedApplicationInfo, message: string): ApplicationPermissionProfile {
+  static buildUnsupportedProfile(app: PermissionAppSnapshot, message: string): ApplicationPermissionProfile {
     return {
-      appKey: app.key,
+      appKey: app.appKey,
       bundleName: app.bundleName,
       requestedPermissions: [],
       mainAbilityName: '',
@@ -184,7 +184,7 @@ export class ThreeDPermissionRepository {
     return ''
   }
 
-  private static resolveManagedState(app: ManagedApplicationInfo, permissions: string[]): ThreeDManagedState {
+  private static resolveManagedState(app: PermissionAppSnapshot, permissions: string[]): ThreeDManagedState {
     let states = permissions.map((permissionName: string): securityManager.PermissionManagedState =>
       securityManager.getPermissionManagedState(
         ADMIN_WANT,
@@ -201,7 +201,7 @@ export class ThreeDPermissionRepository {
     return 'default'
   }
 
-  private static buildApplicationInstance(app: ManagedApplicationInfo): securityManager.ApplicationInstance {
+  private static buildApplicationInstance(app: PermissionAppSnapshot): securityManager.ApplicationInstance {
     return {
       appIdentifier: app.bundleName,
       accountId: app.accountId,

@@ -23,7 +23,6 @@ import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { AsyncSelectRow } from '../../../components/AsyncSelectRow'
 import {
   ApplicationPermissionProfile,
-  ManagedApplicationInfo,
   PermissionActionResult,
   PermissionAppSnapshot,
   PermissionManagedAccount,
@@ -96,33 +95,36 @@ export struct PermissionPage {
     }
   }
 
-  private getSelectedApplication(): ManagedApplicationInfo | undefined {
+  private getSelectedAppSnapshot(): PermissionAppSnapshot | undefined {
     let selectedAppKey = this.viewModel.state.selectedAppKey
     if (selectedAppKey.length === 0) {
       return undefined
     }
-    return this.viewModel.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === selectedAppKey)
+    return this.viewModel.state.appSnapshots.find((snapshot: PermissionAppSnapshot): boolean =>
+      snapshot.appKey === selectedAppKey
+    )
   }
 
   private getApplicationOptions(): string[] {
     let options: string[] = [PermissionSectionStrings.TARGET_APPLICATION_PLACEHOLDER]
-    this.viewModel.state.filteredApplications.forEach((app: ManagedApplicationInfo): void => {
-      options.push(this.formatApplicationOption(app))
+    this.viewModel.state.filteredAppKeys.forEach((appKey: string): void => {
+      let snapshot = this.viewModel.state.appSnapshots.find((s: PermissionAppSnapshot): boolean => s.appKey === appKey)
+      if (snapshot !== undefined) {
+        options.push(this.formatApplicationOption(snapshot))
+      }
     })
     return options
   }
 
-  private formatApplicationOption(app: ManagedApplicationInfo): string {
-    if (app.label === app.bundleName) {
-      return app.bundleName
+  private formatApplicationOption(snapshot: PermissionAppSnapshot): string {
+    if (snapshot.label === snapshot.bundleName) {
+      return snapshot.bundleName
     }
-    return `${app.label} (${app.bundleName})`
+    return `${snapshot.label} (${snapshot.bundleName})`
   }
 
   private getSelectedApplicationIndex(): number {
-    let index = this.viewModel.state.filteredApplications.findIndex((app: ManagedApplicationInfo): boolean =>
-      app.key === this.viewModel.state.selectedAppKey
-    )
+    let index = this.viewModel.state.filteredAppKeys.indexOf(this.viewModel.state.selectedAppKey)
     if (index < 0) {
       return 0
     }
@@ -135,11 +137,11 @@ export struct PermissionPage {
       return true
     }
     let appIndex = index - 1
-    let app = this.viewModel.state.filteredApplications[appIndex]
-    if (!app) {
+    let appKey = this.viewModel.state.filteredAppKeys[appIndex]
+    if (!appKey) {
       return false
     }
-    if (app.key === this.viewModel.state.selectedAppKey) {
+    if (appKey === this.viewModel.state.selectedAppKey) {
       return true
     }
     try {
@@ -147,7 +149,7 @@ export struct PermissionPage {
         'permission-target-application',
         PermissionLoadingStrings.TARGET_APPLICATION,
         async (): Promise<boolean> => {
-          return await this.viewModel.selectApplicationAndLoadDetails(app.key)
+          return await this.viewModel.selectApplicationAndLoadDetails(appKey)
         }
       )
       if (!success) {
@@ -199,12 +201,12 @@ export struct PermissionPage {
     return [this.formatThreeDState(item.managedState)]
   }
 
-  private runningPolicyByIndex(index: number): PermissionPolicyState {
-    return index === 1 ? 'denied' : 'default'
+  private runningBlockedByIndex(index: number): boolean {
+    return index === 1
   }
 
-  private networkPolicyByIndex(index: number): PermissionPolicyState {
-    return index === 1 ? 'denied' : 'default'
+  private networkBlockedByIndex(index: number): boolean {
+    return index === 1
   }
 
   private uninstallProtectedByIndex(index: number): boolean {
@@ -221,12 +223,12 @@ export struct PermissionPage {
     return 'default'
   }
 
-  private getRunningPolicyIndex(policy: PermissionPolicyState): number {
-    return policy === 'denied' ? 1 : 0
+  private getRunningBlockedIndex(blocked: boolean): number {
+    return blocked ? 1 : 0
   }
 
-  private getNetworkPolicyIndex(policy: PermissionPolicyState): number {
-    return policy === 'denied' ? 1 : 0
+  private getNetworkBlockedIndex(blocked: boolean): number {
+    return blocked ? 1 : 0
   }
 
   private getUninstallProtectedIndex(enabled: boolean): number {
@@ -248,11 +250,11 @@ export struct PermissionPage {
   }
 
   private canSubmitInstallBlock(): boolean {
-    return !this.viewModel.state.processingAction && this.viewModel.state.installBlockKeyword.trim().length > 0
+    return this.viewModel.state.processingActionKey.length === 0 && this.viewModel.state.installBlockKeyword.trim().length > 0
   }
 
   private hasProcessingAction(): boolean {
-    return this.viewModel.state.processingAction
+    return this.viewModel.state.processingActionKey.length > 0
   }
 
   private isActionProcessing(actionKey: string): boolean {
@@ -265,28 +267,27 @@ export struct PermissionPage {
 
   private canOperateApplicationPolicy(actionKey: string): boolean {
     return this.canOperateAction(actionKey) &&
-      !this.viewModel.state.selectedAppRefreshing &&
-      !this.viewModel.state.policyLoading
+      !this.viewModel.state.loadingSelectedApp
   }
 
   private getInstallActionKey(): string {
     return 'install-deny'
   }
 
-  private getUninstallActionKey(app: ManagedApplicationInfo): string {
-    return `uninstall:${app.key}`
+  private getUninstallActionKey(snapshot: PermissionAppSnapshot): string {
+    return `uninstall:${snapshot.appKey}`
   }
 
-  private getRunningActionKey(app: ManagedApplicationInfo): string {
-    return `running:${app.key}`
+  private getRunningActionKey(snapshot: PermissionAppSnapshot): string {
+    return `running:${snapshot.appKey}`
   }
 
-  private getNetworkActionKey(app: ManagedApplicationInfo): string {
-    return `network:${app.key}`
+  private getNetworkActionKey(snapshot: PermissionAppSnapshot): string {
+    return `network:${snapshot.appKey}`
   }
 
-  private getThreeDActionKey(app: ManagedApplicationInfo, item: ThreeDPermissionItem): string {
-    return `three-d:${app.key}:${item.groupKey}`
+  private getThreeDActionKey(snapshot: PermissionAppSnapshot, item: ThreeDPermissionItem): string {
+    return `three-d:${snapshot.appKey}:${item.groupKey}`
   }
 
   private getDeletePolicyActionKey(recordKey: string): string {
@@ -497,7 +498,7 @@ export struct PermissionPage {
         selectedIndex: this.getSelectedAccountIndex(),
         selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
         processing: this.viewModel.state.loading || this.viewModel.state.accounts.length === 0,
-        enabledValue: !this.hasProcessingAction() && !this.viewModel.state.selectedAppRefreshing,
+        enabledValue: !this.hasProcessingAction() && !this.viewModel.state.loadingSelectedApp,
         currentTheme: this.currentTheme,
         onSelectAsync: async (index: number): Promise<boolean> => {
           return await this.switchAccountByIndex(index)
@@ -514,7 +515,7 @@ export struct PermissionPage {
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      if (this.viewModel.state.filteredApplications.length === 0) {
+      if (this.viewModel.state.filteredAppKeys.length === 0) {
         EmptyStatePanel({
           title: this.getApplicationEmptyText(),
           currentTheme: this.currentTheme,
@@ -534,7 +535,7 @@ export struct PermissionPage {
       options: this.getApplicationOptions(),
       selectedIndex: this.getSelectedApplicationIndex(),
       selectWidth: 280,
-      processing: this.viewModel.state.selectedAppRefreshing,
+        processing: this.viewModel.state.loadingSelectedApp,
       enabledValue: !this.hasProcessingAction(),
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
@@ -545,7 +546,7 @@ export struct PermissionPage {
 
   @Builder
   private applicationPolicyContent() {
-    if (this.getSelectedApplication() === undefined) {
+    if (this.getSelectedAppSnapshot() === undefined) {
       EmptyStatePanel({
         title: PermissionEmptyStrings.SELECT_APPLICATION_FIRST,
         currentTheme: this.currentTheme,
@@ -553,7 +554,7 @@ export struct PermissionPage {
       })
     } else {
       Column({ space: 0 }) {
-        if (this.viewModel.state.selectedAppRefreshing) {
+        if (this.viewModel.state.loadingSelectedApp) {
           Row({ space: 8 }) {
             LoadingProgress()
               .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
@@ -570,14 +571,14 @@ export struct PermissionPage {
           .padding({ left: 16, right: 16, top: 12, bottom: 8 })
         }
 
-        this.applicationControlRows(this.getSelectedApplication() as ManagedApplicationInfo)
+        this.applicationControlRows(this.getSelectedAppSnapshot() as PermissionAppSnapshot)
 
         Divider()
           .color(AppColors.getColors(this.currentTheme).BORDER)
           .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
         this.threeDPermissionRows(
-          this.getSelectedApplication() as ManagedApplicationInfo,
+          this.getSelectedAppSnapshot() as PermissionAppSnapshot,
           this.getSelectedPermissionProfile()
         )
       }
@@ -645,7 +646,7 @@ export struct PermissionPage {
 
   @Builder
   private currentPolicyContent() {
-    if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
+    if (this.viewModel.state.loadingSelectedApp && this.viewModel.state.policyRecords.length === 0) {
       LoadingStatePanel({
         indicatorSize: 22,
         currentTheme: this.currentTheme
@@ -821,8 +822,8 @@ export struct PermissionPage {
   }
 
   @Builder
-  private applicationControlRows(app: ManagedApplicationInfo) {
-    this.uninstallProtectedActionRow(app)
+  private applicationControlRows(snapshot: PermissionAppSnapshot) {
+    this.uninstallProtectedActionRow(snapshot)
 
     Divider()
       .color(AppColors.getColors(this.currentTheme).BORDER)
@@ -830,18 +831,18 @@ export struct PermissionPage {
 
     AsyncSelectRow({
       label: PermissionApplicationStrings.RUNNING_POLICY,
-      description: this.formatDescriptionWithState(PermissionApplicationStrings.RUNNING_POLICY_DESC, this.formatRuntimePolicy(app.runningPolicy)),
+      description: this.formatDescriptionWithState(PermissionApplicationStrings.RUNNING_POLICY_DESC, this.formatBlockedState(snapshot.runningBlocked)),
       options: this.getRunningPolicyOptions(),
-      selectedIndex: this.getRunningPolicyIndex(app.runningPolicy),
+      selectedIndex: this.getRunningBlockedIndex(snapshot.runningBlocked),
       selectWidth: 116,
-      processing: this.isActionProcessing(this.getRunningActionKey(app)),
-      enabledValue: this.canOperateApplicationPolicy(this.getRunningActionKey(app)),
+      processing: this.isActionProcessing(this.getRunningActionKey(snapshot)),
+      enabledValue: this.canOperateApplicationPolicy(this.getRunningActionKey(snapshot)),
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
-        let nextPolicy = this.runningPolicyByIndex(index)
-        if (nextPolicy !== app.runningPolicy) {
+        let nextBlocked = this.runningBlockedByIndex(index)
+        if (nextBlocked !== snapshot.runningBlocked) {
           return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-            this.viewModel.setSelectedRunningPolicy(nextPolicy)
+            this.viewModel.setSelectedRunningPolicy(nextBlocked ? 'denied' : 'default')
           )
         }
         return true
@@ -854,20 +855,20 @@ export struct PermissionPage {
 
     AsyncSelectRow({
       label: PermissionApplicationStrings.NETWORK_POLICY,
-      description: app.uid > 0
-        ? this.formatDescriptionWithState(PermissionApplicationStrings.NETWORK_POLICY_DESC, this.formatRuntimePolicy(app.networkPolicy))
+      description: snapshot.uid > 0
+        ? this.formatDescriptionWithState(PermissionApplicationStrings.NETWORK_POLICY_DESC, this.formatBlockedState(snapshot.networkBlocked))
         : PermissionApplicationStrings.MISSING_UID,
       options: this.getNetworkPolicyOptions(),
-      selectedIndex: this.getNetworkPolicyIndex(app.networkPolicy),
+      selectedIndex: this.getNetworkBlockedIndex(snapshot.networkBlocked),
       selectWidth: 116,
-      processing: this.isActionProcessing(this.getNetworkActionKey(app)),
-      enabledValue: this.canOperateApplicationPolicy(this.getNetworkActionKey(app)) && app.uid > 0,
+      processing: this.isActionProcessing(this.getNetworkActionKey(snapshot)),
+      enabledValue: this.canOperateApplicationPolicy(this.getNetworkActionKey(snapshot)) && snapshot.uid > 0,
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
-        let nextPolicy = this.networkPolicyByIndex(index)
-        if (nextPolicy !== app.networkPolicy) {
+        let nextBlocked = this.networkBlockedByIndex(index)
+        if (nextBlocked !== snapshot.networkBlocked) {
           return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-            this.viewModel.setSelectedNetworkPolicy(nextPolicy)
+            this.viewModel.setSelectedNetworkPolicy(nextBlocked ? 'denied' : 'default')
           )
         }
         return true
@@ -877,22 +878,22 @@ export struct PermissionPage {
   }
 
   @Builder
-  private uninstallProtectedActionRow(app: ManagedApplicationInfo) {
+  private uninstallProtectedActionRow(snapshot: PermissionAppSnapshot) {
     AsyncSelectRow({
       label: PermissionApplicationStrings.UNINSTALL_PROTECTED,
       description: this.formatDescriptionWithState(
         PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
-        app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
+        snapshot.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
       ),
       options: this.getUninstallProtectedOptions(),
-      selectedIndex: this.getUninstallProtectedIndex(app.uninstallProtected),
+      selectedIndex: this.getUninstallProtectedIndex(snapshot.uninstallProtected),
       selectWidth: 116,
-      processing: this.isActionProcessing(this.getUninstallActionKey(app)),
-      enabledValue: this.canOperateApplicationPolicy(this.getUninstallActionKey(app)),
+      processing: this.isActionProcessing(this.getUninstallActionKey(snapshot)),
+      enabledValue: this.canOperateApplicationPolicy(this.getUninstallActionKey(snapshot)),
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextEnabled = this.uninstallProtectedByIndex(index)
-        if (nextEnabled !== app.uninstallProtected) {
+        if (nextEnabled !== snapshot.uninstallProtected) {
           return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
             this.viewModel.setSelectedUninstallProtected(nextEnabled)
           )
@@ -904,7 +905,7 @@ export struct PermissionPage {
 
   @Builder
   private threeDPermissionRows(
-    app: ManagedApplicationInfo,
+    snapshot: PermissionAppSnapshot,
     profile: ApplicationPermissionProfile | null
   ) {
     if (profile !== null && profile.message.length > 0 && profile.threeDGroups.length === 0) {
@@ -920,8 +921,8 @@ export struct PermissionPage {
           options: this.getThreeDOptionsForItem(item),
           selectedIndex: this.getThreeDStateIndexForItem(item),
           selectWidth: 116,
-          processing: this.isActionProcessing(this.getThreeDActionKey(app, item)),
-          enabledValue: this.canOperateApplicationPolicy(this.getThreeDActionKey(app, item)) && item.canManage,
+          processing: this.isActionProcessing(this.getThreeDActionKey(snapshot, item)),
+          enabledValue: this.canOperateApplicationPolicy(this.getThreeDActionKey(snapshot, item)) && item.canManage,
           currentTheme: this.currentTheme,
           onSelectAsync: async (index: number): Promise<boolean> => {
             let nextState = this.threeDStateByIndex(index)
@@ -954,25 +955,18 @@ export struct PermissionPage {
 
   private getSelectedPermissionProfile(): ApplicationPermissionProfile | null {
     let snapshot = this.getSelectedAppSnapshot()
-    let app = this.getSelectedApplication()
-    if (snapshot === undefined || app === undefined || snapshot.threeDLoadState !== 'loaded') {
+    if (snapshot === undefined || snapshot.threeDLoadState !== 'loaded') {
       return null
     }
     return {
       appKey: snapshot.appKey,
       bundleName: snapshot.bundleName,
       requestedPermissions: [],
-      mainAbilityName: app.mainAbilityName,
+      mainAbilityName: '',
       sensitivePermissionCount: snapshot.threeDGroups.filter((item: ThreeDPermissionItem): boolean => item.canManage).length,
       message: snapshot.threeDMessage,
       threeDGroups: snapshot.threeDGroups
     } as ApplicationPermissionProfile
-  }
-
-  private getSelectedAppSnapshot(): PermissionAppSnapshot | undefined {
-    return this.viewModel.state.appSnapshots.find((snapshot: PermissionAppSnapshot): boolean =>
-      snapshot.appKey === this.viewModel.state.selectedAppKey
-    )
   }
 
   private createPendingThreeDItem(groupKey: string, title: string): ThreeDPermissionItem {
@@ -987,8 +981,8 @@ export struct PermissionPage {
     } as ThreeDPermissionItem
   }
 
-  private formatRuntimePolicy(policy: PermissionPolicyState): string {
-    return policy === 'denied' ? PermissionApplicationStrings.POLICY_DENIED : PermissionApplicationStrings.POLICY_ALLOWED
+  private formatBlockedState(blocked: boolean): string {
+    return blocked ? PermissionApplicationStrings.POLICY_DENIED : PermissionApplicationStrings.POLICY_ALLOWED
   }
 
   private formatDescriptionWithState(description: string, state: string): string {

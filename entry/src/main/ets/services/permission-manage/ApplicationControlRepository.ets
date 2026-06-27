@@ -1,6 +1,6 @@
 import { applicationManager, bundleManager as enterpriseBundleManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../constants/AppConstants'
-import { ManagedApplicationInfo, PermissionPolicyState } from '../../models/PermissionModels'
+import { PermissionAppSnapshot, PermissionPolicyState } from '../../models/PermissionModels'
 
 export interface ApplicationControlLists {
   allowedInstallIds: string[]
@@ -23,46 +23,37 @@ export class ApplicationControlRepository {
 
   static mergeControlStates(
     accountId: number,
-    applications: ManagedApplicationInfo[],
+    applications: PermissionAppSnapshot[],
     controlLists: ApplicationControlLists
-  ): ManagedApplicationInfo[] {
-    return applications.map((app: ManagedApplicationInfo): ManagedApplicationInfo =>
+  ): PermissionAppSnapshot[] {
+    return applications.map((app: PermissionAppSnapshot): PermissionAppSnapshot =>
       ApplicationControlRepository.mergeControlState(accountId, app, controlLists)
     )
   }
 
   private static mergeControlState(
     accountId: number,
-    app: ManagedApplicationInfo,
+    app: PermissionAppSnapshot,
     controlLists: ApplicationControlLists
-  ): ManagedApplicationInfo {
+  ): PermissionAppSnapshot {
     return {
-      key: app.key,
+      appKey: app.appKey,
       accountId: app.accountId,
       bundleName: app.bundleName,
-      appIdentifier: app.appIdentifier,
       appIndex: app.appIndex,
       uid: app.uid,
       label: app.label,
-      versionName: app.versionName,
-      iconData: app.iconData,
-      systemApp: app.systemApp,
-      removable: app.removable,
-      installSource: app.installSource,
-      appDistributionType: app.appDistributionType,
-      mainAbilityName: app.mainAbilityName,
-      installPolicy: app.accountId === accountId ? ApplicationControlRepository.resolvePolicy(
-        app,
-        controlLists.allowedInstallIds,
-        controlLists.disallowedInstallIds
-      ) : 'default',
       uninstallProtected: app.accountId === accountId && ApplicationControlRepository.containsApp(controlLists.disallowedUninstallIds, app),
-      runningPolicy: app.accountId === accountId && ApplicationControlRepository.containsApp(
+      runningBlocked: app.accountId === accountId && ApplicationControlRepository.containsApp(
         controlLists.disallowedRunningIds,
         app
-      ) ? 'denied' : 'default',
-      networkPolicy: app.networkPolicy
-    } as ManagedApplicationInfo
+      ) ? true : false,
+      networkBlocked: app.networkBlocked,
+      threeDGroups: app.threeDGroups,
+      threeDPolicies: app.threeDPolicies,
+      threeDLoadState: app.threeDLoadState,
+      threeDMessage: app.threeDMessage
+    } as PermissionAppSnapshot
   }
 
   static async setDisallowedInstallPolicyId(accountId: number, policyId: string): Promise<void> {
@@ -116,7 +107,7 @@ export class ApplicationControlRepository {
     }
   }
 
-  static async setUninstallProtected(app: ManagedApplicationInfo, enabled: boolean): Promise<void> {
+  static async setUninstallProtected(app: PermissionAppSnapshot, enabled: boolean): Promise<void> {
     let policyIds = ApplicationControlRepository.getPolicyIds(app)
     let existingPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
       enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, app.accountId),
@@ -137,7 +128,7 @@ export class ApplicationControlRepository {
     ApplicationControlRepository.assertUninstallUnprotected(app, policyIds)
   }
 
-  static async setRunningPolicy(app: ManagedApplicationInfo, policy: PermissionPolicyState): Promise<void> {
+  static async setRunningPolicy(app: PermissionAppSnapshot, policy: PermissionPolicyState): Promise<void> {
     let cleanupPolicyIds = ApplicationControlRepository.getRunningPolicyCleanupIds(app)
     let disallowedPolicyIds = ApplicationControlRepository.getExistingPolicyIds(
       applicationManager.getDisallowedRunningBundlesSync(ADMIN_WANT, app.accountId),
@@ -162,7 +153,7 @@ export class ApplicationControlRepository {
     }
   }
 
-  static buildRunningPolicyCleanupIdsForTest(app: ManagedApplicationInfo): string[] {
+  static buildRunningPolicyCleanupIdsForTest(app: PermissionAppSnapshot): string[] {
     return ApplicationControlRepository.getRunningPolicyCleanupIds(app)
   }
 
@@ -176,33 +167,19 @@ export class ApplicationControlRepository {
     } as ApplicationControlLists
   }
 
-  private static resolvePolicy(
-    app: ManagedApplicationInfo,
-    allowedIds: string[],
-    disallowedIds: string[]
-  ): PermissionPolicyState {
-    if (ApplicationControlRepository.containsApp(disallowedIds, app)) {
-      return 'denied'
-    }
-    if (ApplicationControlRepository.containsApp(allowedIds, app)) {
-      return 'allowed'
-    }
-    return 'default'
-  }
-
-  private static containsApp(policyIds: string[], app: ManagedApplicationInfo): boolean {
+  private static containsApp(policyIds: string[], app: PermissionAppSnapshot): boolean {
     return policyIds.includes(app.bundleName)
   }
 
-  private static getPolicyIds(app: ManagedApplicationInfo): string[] {
+  private static getPolicyIds(app: PermissionAppSnapshot): string[] {
     return [app.bundleName]
   }
 
-  private static getRunningPolicyIds(app: ManagedApplicationInfo): string[] {
+  private static getRunningPolicyIds(app: PermissionAppSnapshot): string[] {
     return [app.bundleName]
   }
 
-  private static getRunningPolicyCleanupIds(app: ManagedApplicationInfo): string[] {
+  private static getRunningPolicyCleanupIds(app: PermissionAppSnapshot): string[] {
     return ApplicationControlRepository.getPolicyIds(app)
   }
 
@@ -210,7 +187,7 @@ export class ApplicationControlRepository {
     return candidateIds.filter((id: string): boolean => existingIds.includes(id))
   }
 
-  private static assertUninstallProtected(app: ManagedApplicationInfo, policyIds: string[]): void {
+  private static assertUninstallProtected(app: PermissionAppSnapshot, policyIds: string[]): void {
     let currentPolicyIds = enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, app.accountId)
     let missingPolicyIds = policyIds.filter((policyId: string): boolean => !currentPolicyIds.includes(policyId))
     if (missingPolicyIds.length > 0) {
@@ -218,7 +195,7 @@ export class ApplicationControlRepository {
     }
   }
 
-  private static assertUninstallUnprotected(app: ManagedApplicationInfo, policyIds: string[]): void {
+  private static assertUninstallUnprotected(app: PermissionAppSnapshot, policyIds: string[]): void {
     let currentPolicyIds = enterpriseBundleManager.getDisallowedUninstallBundlesSync(ADMIN_WANT, app.accountId)
     let remainingPolicyIds = policyIds.filter((policyId: string): boolean => currentPolicyIds.includes(policyId))
     if (remainingPolicyIds.length > 0) {

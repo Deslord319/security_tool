@@ -1,6 +1,6 @@
 import { bundleManager as enterpriseBundleManager } from '@kit.MDMKit'
 import { ADMIN_WANT, AppInfo } from '../../constants/AppConstants'
-import { ApplicationInventoryResult, ManagedApplicationInfo } from '../../models/PermissionModels'
+import { ApplicationInventoryResult, PermissionAppSnapshot } from '../../models/PermissionModels'
 import { PermissionEmptyStrings } from '../../constants/modules/PermissionStrings'
 import { LogUtils } from '../../utils/LogUtils'
 
@@ -12,7 +12,6 @@ const NON_MANAGEABLE_BUNDLE_BLOCKLIST: string[] = [
   'com.ohos.backgroundtaskmgr.resources'
 ]
 const NON_MANAGEABLE_LABEL_KEYWORDS: string[] = [
-  'formrenderservice',
   'fromrenderservice',
   'arkweb',
   '方舟web',
@@ -45,19 +44,15 @@ export class ApplicationInventoryRepository {
       )
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {
-        applications: applications,
-        appSnapshots: [],
+        appSnapshots: applications,
         installPolicies: [],
-        policyRecords: [],
         message: applications.length === 0 ? PermissionEmptyStrings.APPLICATIONS : ''
       } as ApplicationInventoryResult
     } catch (err) {
       LogUtils.warn(TAG, `loadApplications failed: ${JSON.stringify(err)}`)
       return {
-        applications: [],
         appSnapshots: [],
         installPolicies: [],
-        policyRecords: [],
         message: PermissionEmptyStrings.INVENTORY_LOAD_FAILED
       } as ApplicationInventoryResult
     }
@@ -67,7 +62,7 @@ export class ApplicationInventoryRepository {
     accountId: number,
     bundleInfos: enterpriseBundleManager.BundleInfo[],
     selfBundleName: string = AppInfo.BUNDLE_NAME
-  ): ManagedApplicationInfo[] {
+  ): PermissionAppSnapshot[] {
     let records = bundleInfos.map((bundleInfo: enterpriseBundleManager.BundleInfo): ApplicationInventoryRawRecord =>
       ApplicationInventoryRepository.toRawRecord(bundleInfo)
     )
@@ -94,25 +89,25 @@ export class ApplicationInventoryRepository {
     accountId: number,
     records: ApplicationInventoryRawRecord[],
     selfBundleName: string = AppInfo.BUNDLE_NAME
-  ): ManagedApplicationInfo[] {
+  ): PermissionAppSnapshot[] {
     return records
       .filter((record: ApplicationInventoryRawRecord): boolean =>
         ApplicationInventoryRepository.isManageableApplication(record, selfBundleName)
       )
-      .map((record: ApplicationInventoryRawRecord): ManagedApplicationInfo =>
-        ApplicationInventoryRepository.toManagedApplication(accountId, record)
+      .map((record: ApplicationInventoryRawRecord): PermissionAppSnapshot =>
+        ApplicationInventoryRepository.toAppSnapshot(accountId, record)
       )
-      .sort((left: ManagedApplicationInfo, right: ManagedApplicationInfo): number =>
+      .sort((left: PermissionAppSnapshot, right: PermissionAppSnapshot): number =>
         ApplicationInventoryRepository.compareApplications(left, right)
       )
   }
 
-  static filterApplications(applications: ManagedApplicationInfo[], keyword: string): ManagedApplicationInfo[] {
+  static filterApplications(applications: PermissionAppSnapshot[], keyword: string): PermissionAppSnapshot[] {
     let normalizedKeyword = keyword.trim().toLowerCase()
     if (normalizedKeyword.length === 0) {
       return applications
     }
-    return applications.filter((app: ManagedApplicationInfo): boolean =>
+    return applications.filter((app: PermissionAppSnapshot): boolean =>
       app.label.toLowerCase().includes(normalizedKeyword) ||
         app.bundleName.toLowerCase().includes(normalizedKeyword)
     )
@@ -142,31 +137,25 @@ export class ApplicationInventoryRepository {
       NON_MANAGEABLE_LABEL_KEYWORDS.some((keyword: string): boolean => normalizedLabel.includes(keyword))
   }
 
-  private static toManagedApplication(accountId: number, record: ApplicationInventoryRawRecord): ManagedApplicationInfo {
+  private static toAppSnapshot(accountId: number, record: ApplicationInventoryRawRecord): PermissionAppSnapshot {
     let bundleName = record.bundleName.trim()
-    let appIdentifier = ApplicationInventoryRepository.normalizeString(record.appIdentifier, '')
     let appIndex = record.appIndex !== undefined && Number.isFinite(record.appIndex) ? record.appIndex : 0
     let uid = record.uid !== undefined && Number.isFinite(record.uid) ? record.uid : 0
     return {
-      key: ApplicationInventoryRepository.buildAppKey(accountId, bundleName),
+      appKey: ApplicationInventoryRepository.buildAppKey(accountId, bundleName),
       accountId: accountId,
       bundleName: bundleName,
-      appIdentifier: appIdentifier,
       appIndex: appIndex,
       uid: uid,
       label: ApplicationInventoryRepository.normalizeString(record.label, bundleName),
-      versionName: ApplicationInventoryRepository.normalizeString(record.versionName, ''),
-      iconData: ApplicationInventoryRepository.normalizeString(record.iconData, ''),
-      systemApp: record.systemApp ?? false,
-      removable: record.removable ?? true,
-      installSource: ApplicationInventoryRepository.normalizeString(record.installSource, ''),
-      appDistributionType: ApplicationInventoryRepository.normalizeString(record.appDistributionType, ''),
-      mainAbilityName: ApplicationInventoryRepository.normalizeString(record.mainAbilityName, ''),
-      installPolicy: 'default',
       uninstallProtected: false,
-      runningPolicy: 'default',
-      networkPolicy: 'default'
-    } as ManagedApplicationInfo
+      runningBlocked: false,
+      networkBlocked: false,
+      threeDGroups: [],
+      threeDPolicies: [],
+      threeDLoadState: 'idle',
+      threeDMessage: ''
+    } as PermissionAppSnapshot
   }
 
   private static normalizeString(value: string | undefined, fallback: string): string {
@@ -174,7 +163,7 @@ export class ApplicationInventoryRepository {
     return normalized && normalized.length > 0 ? normalized : fallback
   }
 
-  private static compareApplications(left: ManagedApplicationInfo, right: ManagedApplicationInfo): number {
+  private static compareApplications(left: PermissionAppSnapshot, right: PermissionAppSnapshot): number {
     let labelCompare = left.label.localeCompare(right.label)
     if (labelCompare !== 0) {
       return labelCompare
