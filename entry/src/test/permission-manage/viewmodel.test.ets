@@ -19,7 +19,7 @@ export default function permissionViewModelTest() {
       expect(viewModel.state.loading).assertFalse()
       expect(viewModel.state.summary.appCount).assertEqual(0)
       expect(viewModel.state.applications.length).assertEqual(0)
-      expect(viewModel.state.selectedApplication).assertNull()
+      expect(viewModel.state.selectedAppKey).assertEqual('')
     })
 
     it('should load initial skeleton state without system side effects', 0, async (done: Function) => {
@@ -106,10 +106,10 @@ export default function permissionViewModelTest() {
         app.bundleName === 'com.example.nonremovable'
       )
       expect(applications.length).assertEqual(2)
-      expect(demo?.key).assertEqual('100:com.example.demo:demo-id:1')
+      expect(demo?.key).assertEqual('100:com.example.demo')
       expect(demo?.label).assertEqual('Demo')
       expect(demo?.installPolicy).assertEqual('default')
-      expect(nonRemovable?.key).assertEqual('100:com.example.nonremovable:com.example.nonremovable:0')
+      expect(nonRemovable?.key).assertEqual('100:com.example.nonremovable')
       expect(nonRemovable?.appIdentifier).assertEqual('')
       expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.system')).assertFalse()
       expect(applications.some((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.ohos.formrenderservice')).assertFalse()
@@ -134,8 +134,8 @@ export default function permissionViewModelTest() {
       let second = applications.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.second')
 
       expect(applications.length).assertEqual(2)
-      expect(first?.key).assertEqual('100:com.example.first:com.example.first:0')
-      expect(second?.key).assertEqual('100:com.example.second:com.example.second:0')
+      expect(first?.key).assertEqual('100:com.example.first')
+      expect(second?.key).assertEqual('100:com.example.second')
       expect(first?.label).assertEqual(second?.label)
     })
 
@@ -166,11 +166,11 @@ export default function permissionViewModelTest() {
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')
 
-      let merged = ApplicationControlRepository.mergeControlStates(applications, {
-        allowedInstallIds: ['mail-id'],
+      let merged = ApplicationControlRepository.mergeControlStates(100, applications, {
+        allowedInstallIds: ['com.example.mail'],
         disallowedInstallIds: ['com.example.browser'],
-        disallowedUninstallIds: ['mail-id'],
-        allowedRunningIds: ['browser-id'],
+        disallowedUninstallIds: ['com.example.mail'],
+        allowedRunningIds: ['com.example.browser'],
         disallowedRunningIds: ['com.example.mail']
       })
 
@@ -184,7 +184,7 @@ export default function permissionViewModelTest() {
       expect(browser?.runningPolicy).assertEqual('allowed')
     })
 
-    it('should clean both bundle name and app identifier when resetting running policy', 0, () => {
+    it('should use bundle name as running policy id', 0, () => {
       let app = ApplicationInventoryRepository.normalizeApplications(100, [
         {
           bundleName: 'com.example.mail',
@@ -196,9 +196,86 @@ export default function permissionViewModelTest() {
 
       let cleanupIds = ApplicationControlRepository.buildRunningPolicyCleanupIdsForTest(app)
 
-      expect(cleanupIds.length).assertEqual(2)
+      expect(cleanupIds.length).assertEqual(1)
       expect(cleanupIds.includes('com.example.mail')).assertTrue()
-      expect(cleanupIds.includes('mail-id')).assertTrue()
+      expect(cleanupIds.includes('mail-id')).assertFalse()
+    })
+
+    it('should not match uninstall protection by shared app identifier', 0, () => {
+      let applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.first',
+          label: 'First',
+          appIdentifier: 'shared-debug-id',
+          systemApp: false
+        } as ApplicationInventoryRawRecord,
+        {
+          bundleName: 'com.example.second',
+          label: 'Second',
+          appIdentifier: 'shared-debug-id',
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+
+      let sharedIdMerged = ApplicationControlRepository.mergeControlStates(100, applications, {
+        allowedInstallIds: [],
+        disallowedInstallIds: [],
+        disallowedUninstallIds: ['shared-debug-id'],
+        allowedRunningIds: [],
+        disallowedRunningIds: []
+      })
+      let bundleMerged = ApplicationControlRepository.mergeControlStates(100, applications, {
+        allowedInstallIds: [],
+        disallowedInstallIds: [],
+        disallowedUninstallIds: ['com.example.second'],
+        allowedRunningIds: [],
+        disallowedRunningIds: []
+      })
+      let firstBySharedId = sharedIdMerged.find((app: ManagedApplicationInfo): boolean =>
+        app.bundleName === 'com.example.first'
+      )
+      let secondBySharedId = sharedIdMerged.find((app: ManagedApplicationInfo): boolean =>
+        app.bundleName === 'com.example.second'
+      )
+      let secondByBundle = bundleMerged.find((app: ManagedApplicationInfo): boolean =>
+        app.bundleName === 'com.example.second'
+      )
+
+      expect(firstBySharedId?.uninstallProtected).assertFalse()
+      expect(secondBySharedId?.uninstallProtected).assertFalse()
+      expect(secondByBundle?.uninstallProtected).assertTrue()
+    })
+
+    it('should scope control policies by account and bundle key', 0, () => {
+      let account100App = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.mail',
+          label: 'Mail',
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')[0]
+      let account101App = ApplicationInventoryRepository.normalizeApplications(101, [
+        {
+          bundleName: 'com.example.mail',
+          label: 'Mail',
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')[0]
+
+      let merged = ApplicationControlRepository.mergeControlStates(100, [account100App, account101App], {
+        allowedInstallIds: [],
+        disallowedInstallIds: [],
+        disallowedUninstallIds: ['com.example.mail'],
+        allowedRunningIds: [],
+        disallowedRunningIds: ['com.example.mail']
+      })
+      let account100State = merged.find((app: ManagedApplicationInfo): boolean => app.key === account100App.key)
+      let account101State = merged.find((app: ManagedApplicationInfo): boolean => app.key === account101App.key)
+
+      expect(account100State?.uninstallProtected).assertTrue()
+      expect(account100State?.runningPolicy).assertEqual('denied')
+      expect(account101State?.uninstallProtected).assertFalse()
+      expect(account101State?.runningPolicy).assertEqual('default')
     })
 
     it('should merge network restriction state by application uid', 0, () => {
@@ -217,12 +294,90 @@ export default function permissionViewModelTest() {
         } as ApplicationInventoryRawRecord
       ], 'com.huawei.securitytool')
 
-      let merged = ApplicationNetworkPolicyRepository.mergeNetworkStates(applications, ['10002'])
+      let merged = ApplicationNetworkPolicyRepository.mergeNetworkStates(100, applications, ['10002'])
       let mail = merged.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.mail')
       let browser = merged.find((app: ManagedApplicationInfo): boolean => app.bundleName === 'com.example.browser')
 
       expect(mail?.networkPolicy).assertEqual('default')
       expect(browser?.networkPolicy).assertEqual('denied')
+    })
+
+    it('should scope network restriction state by account and bundle key', 0, () => {
+      let account100App = ApplicationInventoryRepository.normalizeApplications(100, [
+        {
+          bundleName: 'com.example.browser',
+          label: 'Browser',
+          uid: 10002,
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')[0]
+      let account101App = ApplicationInventoryRepository.normalizeApplications(101, [
+        {
+          bundleName: 'com.example.browser',
+          label: 'Browser',
+          uid: 10002,
+          systemApp: false
+        } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')[0]
+
+      let merged = ApplicationNetworkPolicyRepository.mergeNetworkStates(
+        100,
+        [account100App, account101App],
+        ['10002']
+      )
+      let account100State = merged.find((app: ManagedApplicationInfo): boolean => app.key === account100App.key)
+      let account101State = merged.find((app: ManagedApplicationInfo): boolean => app.key === account101App.key)
+
+      expect(account100State?.networkPolicy).assertEqual('denied')
+      expect(account101State?.networkPolicy).assertEqual('default')
+    })
+
+    it('should build application policy records for the selected account only', 0, () => {
+      let account100App = {
+        key: '100:com.example.mail',
+        accountId: 100,
+        bundleName: 'com.example.mail',
+        appIdentifier: 'mail-id',
+        appIndex: 0,
+        uid: 10001,
+        label: 'Mail',
+        versionName: '',
+        iconData: '',
+        systemApp: false,
+        removable: true,
+        installSource: '',
+        appDistributionType: '',
+        mainAbilityName: '',
+        installPolicy: 'default',
+        uninstallProtected: true,
+        runningPolicy: 'default',
+        networkPolicy: 'default'
+      } as ManagedApplicationInfo
+      let account101App = {
+        key: '101:com.example.mail',
+        accountId: 101,
+        bundleName: 'com.example.mail',
+        appIdentifier: 'mail-id',
+        appIndex: 0,
+        uid: 110001,
+        label: 'Mail',
+        versionName: '',
+        iconData: '',
+        systemApp: false,
+        removable: true,
+        installSource: '',
+        appDistributionType: '',
+        mainAbilityName: '',
+        installPolicy: 'default',
+        uninstallProtected: true,
+        runningPolicy: 'default',
+        networkPolicy: 'default'
+      } as ManagedApplicationInfo
+
+      let records = PermissionService.buildApplicationPolicyRecordsForAccount(100, [account100App, account101App])
+
+      expect(records.length).assertEqual(1)
+      expect(records[0].appKey).assertEqual(account100App.key)
     })
 
     it('should accept full package name as install block target', 0, () => {
@@ -247,7 +402,7 @@ export default function permissionViewModelTest() {
       await PermissionPolicyLocalRepository.upsertActive({
         recordId: 'sixd:100:mail:downloads',
         accountId: 100,
-        appKey: '100:mail:mail:0',
+        appKey: '100:mail',
         bundleName: 'mail',
         appIdentifier: 'mail',
         appIndex: 0,
@@ -267,7 +422,7 @@ export default function permissionViewModelTest() {
       await PermissionPolicyLocalRepository.upsertActive({
         recordId: 'sixd:101:mail:downloads',
         accountId: 101,
-        appKey: '101:mail:mail:0',
+        appKey: '101:mail',
         bundleName: 'mail',
         appIdentifier: 'mail',
         appIndex: 0,
@@ -299,7 +454,7 @@ export default function permissionViewModelTest() {
         {
           recordId: 'running:100:mail',
           accountId: 100,
-          appKey: '100:mail:mail:0',
+          appKey: '100:mail',
           bundleName: 'mail',
           appIdentifier: 'mail',
           appIndex: 0,
@@ -319,7 +474,7 @@ export default function permissionViewModelTest() {
         {
           recordId: 'sixd:100:mail:downloads',
           accountId: 100,
-          appKey: '100:mail:mail:0',
+          appKey: '100:mail',
           bundleName: 'mail',
           appIdentifier: 'mail',
           appIndex: 0,
@@ -338,10 +493,45 @@ export default function permissionViewModelTest() {
         } as PermissionLocalPolicyRecord
       ]
 
-      let merged = PermissionService.mergePolicyRecordsForTest(systemRecords, localRecords)
+      let applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        { bundleName: 'mail', label: 'Mail' } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+      let merged = PermissionService.mergePolicyRecordsForTest(systemRecords, localRecords, applications)
 
       expect(merged.length).assertEqual(1)
       expect(merged[0].key).assertEqual('sixd:100:mail:downloads')
+    })
+
+    it('should skip local 3D records when the app key is not in current applications', 0, () => {
+      let localRecords: PermissionLocalPolicyRecord[] = [
+        {
+          recordId: 'sixd:100:label:downloads',
+          accountId: 100,
+          appKey: '100:label',
+          bundleName: 'label',
+          appIdentifier: 'label',
+          appIndex: 0,
+          policyType: 'Downloads',
+          policyValue: 'denied',
+          targetName: 'Label',
+          targetDetail: 'label / Downloads',
+          statusLabel: 'denied',
+          scopeLabel: 'account 100',
+          actionKind: 'sixd',
+          policyId: 'downloads',
+          status: 'active',
+          createdAt: 1,
+          updatedAt: 1,
+          lastError: ''
+        } as PermissionLocalPolicyRecord
+      ]
+      let applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        { bundleName: 'browser', label: 'Browser' } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+
+      let merged = PermissionService.mergePolicyRecordsForTest([], localRecords, applications)
+
+      expect(merged.length).assertEqual(0)
     })
 
     it('should update filtered applications without selecting an app by default', 0, () => {
@@ -370,8 +560,7 @@ export default function permissionViewModelTest() {
       )
       viewModel.selectApplication(second?.key ?? '')
 
-      expect(viewModel.state.selectedApplication?.bundleName).assertEqual('com.example.second')
-      expect(viewModel.state.selectedApplication?.label).assertEqual('Label')
+      expect(viewModel.state.selectedAppKey).assertEqual(second?.key ?? '')
     })
   })
 }

@@ -1,27 +1,20 @@
 import { networkManager } from '@kit.MDMKit'
 import { ADMIN_WANT } from '../../constants/AppConstants'
 import { ManagedApplicationInfo, PermissionPolicyState } from '../../models/PermissionModels'
-import { LogUtils } from '../../utils/LogUtils'
-
-const TAG = 'ApplicationNetworkPolicyRepository'
 const IPV4_FAMILY = 1
 
 export class ApplicationNetworkPolicyRepository {
-  static loadRestrictedAppUids(): string[] {
-    try {
-      return networkManager.getFirewallRules(ADMIN_WANT)
-        .filter((rule: networkManager.FirewallRule): boolean => ApplicationNetworkPolicyRepository.isRestrictedRule(rule))
-        .map((rule: networkManager.FirewallRule): string => rule.appUid ?? '')
-        .filter((appUid: string, index: number, all: string[]): boolean =>
-          appUid.length > 0 && all.indexOf(appUid) === index
-        )
-    } catch (err) {
-      LogUtils.warn(TAG, `loadRestrictedAppUids failed: ${JSON.stringify(err)}`)
-      return []
-    }
+  static loadRestrictedAppUidsStrict(): string[] {
+    return networkManager.getFirewallRules(ADMIN_WANT)
+      .filter((rule: networkManager.FirewallRule): boolean => ApplicationNetworkPolicyRepository.isRestrictedRule(rule))
+      .map((rule: networkManager.FirewallRule): string => rule.appUid ?? '')
+      .filter((appUid: string, index: number, all: string[]): boolean =>
+        appUid.length > 0 && all.indexOf(appUid) === index
+      )
   }
 
   static mergeNetworkStates(
+    accountId: number,
     applications: ManagedApplicationInfo[],
     restrictedAppUids: string[]
   ): ManagedApplicationInfo[] {
@@ -43,7 +36,7 @@ export class ApplicationNetworkPolicyRepository {
       installPolicy: app.installPolicy,
       uninstallProtected: app.uninstallProtected,
       runningPolicy: app.runningPolicy,
-      networkPolicy: restrictedAppUids.includes(`${app.uid}`) ? 'denied' : 'default'
+      networkPolicy: app.accountId === accountId && restrictedAppUids.includes(`${app.uid}`) ? 'denied' : 'default'
     } as ManagedApplicationInfo))
   }
 

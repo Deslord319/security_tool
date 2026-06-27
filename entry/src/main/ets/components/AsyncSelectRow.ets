@@ -20,17 +20,28 @@ export struct AsyncSelectRow {
   @Local private displayIndex: number = 0
   @Local private isAsyncPending: boolean = false
   @Local private rollbackIndex: number = 0
+  @Local private lastParentSelectedIndex: number = 0
 
   aboutToAppear(): void {
     this.displayIndex = this.selectedIndex
     this.rollbackIndex = this.selectedIndex
+    this.lastParentSelectedIndex = this.selectedIndex
   }
 
   private getEffectiveSelectedIndex(): number {
-    if (!this.isAsyncPending && this.displayIndex !== this.selectedIndex) {
-      this.displayIndex = this.selectedIndex
-    }
+    this.syncParentSelectedIndex()
     return this.displayIndex
+  }
+
+  private syncParentSelectedIndex(): void {
+    if (this.isAsyncPending) {
+      return
+    }
+    if (this.selectedIndex !== this.lastParentSelectedIndex) {
+      this.displayIndex = this.selectedIndex
+      this.rollbackIndex = this.selectedIndex
+      this.lastParentSelectedIndex = this.selectedIndex
+    }
   }
 
   private getDisplayValue(): string {
@@ -67,6 +78,7 @@ export struct AsyncSelectRow {
     if (success) {
       this.displayIndex = nextIndex
       this.rollbackIndex = nextIndex
+      this.lastParentSelectedIndex = nextIndex
       return
     }
     this.displayIndex = this.rollbackIndex

@@ -202,11 +202,8 @@ export class SixDPermissionRepository {
   }
 
   private static buildApplicationInstance(app: ManagedApplicationInfo): securityManager.ApplicationInstance {
-    if (app.appIdentifier.length === 0) {
-      throw new Error('missing appIdentifier')
-    }
     return {
-      appIdentifier: app.appIdentifier,
+      appIdentifier: app.bundleName,
       accountId: app.accountId,
       appIndex: app.appIndex
     } as securityManager.ApplicationInstance

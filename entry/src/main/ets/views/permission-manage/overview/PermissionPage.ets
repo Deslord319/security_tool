@@ -96,7 +96,11 @@ export struct PermissionPage {
   }
 
   private getSelectedApplication(): ManagedApplicationInfo | undefined {
-    return this.viewModel.state.selectedApplication ?? undefined
+    let selectedAppKey = this.viewModel.state.selectedAppKey
+    if (selectedAppKey.length === 0) {
+      return undefined
+    }
+    return this.viewModel.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === selectedAppKey)
   }
 
   private getApplicationOptions(): string[] {
@@ -138,14 +142,20 @@ export struct PermissionPage {
       return true
     }
     try {
-      return await this.runWithLoading(
+      let success = await this.runWithLoading(
         'permission-target-application',
         PermissionLoadingStrings.TARGET_APPLICATION,
         async (): Promise<boolean> => {
-          await this.viewModel.selectApplicationAndLoadDetails(app.key)
-          return true
+          return await this.viewModel.selectApplicationAndLoadDetails(app.key)
         }
       )
+      if (!success) {
+        DialogService.openFailure(
+          this.getUIContext(),
+          this.viewModel.state.errorMessage || PermissionApplicationStrings.POLICY_READ_FAILED
+        )
+      }
+      return success
     } catch (err) {
       LogUtils.warn(TAG, `selectApplicationByIndex failed: ${JSON.stringify(err)}`)
       return false
@@ -571,7 +581,6 @@ export struct PermissionPage {
         )
       }
       .width('100%')
-      .id(`permission-policy-content-${this.viewModel.state.selectedAppKey}`)
     }
   }
 

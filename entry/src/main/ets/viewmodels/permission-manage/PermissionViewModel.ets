@@ -9,7 +9,8 @@ import {
   PermissionPolicyRecord,
   PermissionPolicyState,
   PermissionSummary,
-  SixDManagedState
+  SixDManagedState,
+  SixDPermissionItem
 } from '../../models/PermissionModels'
 import { PermissionService } from '../../services/permission-manage/PermissionService'
 import { MessageText } from '../../constants/StringCatalog'
@@ -92,18 +93,19 @@ export class PermissionViewModel {
   selectApplication(appKey: string): void {
     let selectedApp = this.state.filteredApplications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
     this.state.selectedAppKey = selectedApp?.key ?? ''
-    this.state.selectedApplication = selectedApp ?? null
     this.state.selectedPermissionProfile = null
     this.state.selectedAppRefreshing = false
     this.state.policyLoading = false
     this.permissionProfileRequestSeq++
   }
 
-  async selectApplicationAndLoadDetails(appKey: string): Promise<void> {
+  async selectApplicationAndLoadDetails(appKey: string): Promise<boolean> {
+    let previousState = this.createTargetSelectionSnapshot()
+    this.state.errorMessage = ''
     this.selectApplication(appKey)
     let selectedAppKey = this.state.selectedAppKey
     if (selectedAppKey.length === 0) {
-      return
+      return true
     }
     let requestSeq = this.permissionProfileRequestSeq
     this.state.selectedAppRefreshing = true
@@ -111,11 +113,14 @@ export class PermissionViewModel {
     try {
       await this.waitForCommittedState()
       await this.loadSelectedApplicationDetailsForKey(selectedAppKey, requestSeq)
+      return true
     } catch (err) {
       LogUtils.warn(TAG, `load selected application details failed: ${JSON.stringify(err)}`)
       if (this.state.selectedAppKey === selectedAppKey && this.permissionProfileRequestSeq === requestSeq) {
-        this.state.policyLoading = false
+        this.state.errorMessage = PermissionApplicationStrings.POLICY_READ_FAILED
+        this.restoreTargetSelectionSnapshot(previousState)
       }
+      return false
     }
   }
 
@@ -126,7 +131,6 @@ export class PermissionViewModel {
     let previousState = this.createAccountSwitchSnapshot()
     this.state.selectedAccountId = accountId
     this.state.selectedAppKey = ''
-    this.state.selectedApplication = null
     this.state.selectedPermissionProfile = null
     this.state.policyRecords = []
     this.state.selectedAppRefreshing = false
@@ -230,6 +234,7 @@ export class PermissionViewModel {
         state
       )
       if (result.success && item !== undefined) {
+        this.applySelectedSixDProfileState(selectedApp.key, groupKey, state)
         if (state === 'default') {
           await PermissionPolicyLocalRepository.remove(actionKey)
           this.removePolicyRecord(actionKey)
@@ -329,7 +334,6 @@ export class PermissionViewModel {
     return {
       selectedAccountId: this.state.selectedAccountId,
       selectedAppKey: this.state.selectedAppKey,
-      selectedApplication: this.state.selectedApplication,
       selectedPermissionProfile: this.state.selectedPermissionProfile,
       inventoryMessage: this.state.inventoryMessage,
       policyRecords: this.state.policyRecords,
@@ -342,10 +346,27 @@ export class PermissionViewModel {
     } as AccountSwitchSnapshot
   }
 
+  private createTargetSelectionSnapshot(): TargetSelectionSnapshot {
+    return {
+      selectedAppKey: this.state.selectedAppKey,
+      selectedPermissionProfile: this.state.selectedPermissionProfile,
+      selectedAppRefreshing: this.state.selectedAppRefreshing,
+      policyLoading: this.state.policyLoading,
+      permissionProfileRequestSeq: this.permissionProfileRequestSeq
+    } as TargetSelectionSnapshot
+  }
+
+  private restoreTargetSelectionSnapshot(snapshot: TargetSelectionSnapshot): void {
+    this.state.selectedAppKey = snapshot.selectedAppKey
+    this.state.selectedPermissionProfile = snapshot.selectedPermissionProfile
+    this.state.selectedAppRefreshing = snapshot.selectedAppRefreshing
+    this.state.policyLoading = snapshot.policyLoading
+    this.permissionProfileRequestSeq = snapshot.permissionProfileRequestSeq
+  }
+
   private restoreAccountSwitchSnapshot(snapshot: AccountSwitchSnapshot): void {
     this.state.selectedAccountId = snapshot.selectedAccountId
     this.state.selectedAppKey = snapshot.selectedAppKey
-    this.state.selectedApplication = snapshot.selectedApplication
     this.state.selectedPermissionProfile = snapshot.selectedPermissionProfile
     this.state.inventoryMessage = snapshot.inventoryMessage
     this.state.policyRecords = snapshot.policyRecords
@@ -407,11 +428,13 @@ export class PermissionViewModel {
       this.clearSelectedApplication()
       return
     }
-    this.syncSelectedApplicationFromApplications()
   }
 
   private getSelectedApplication(): ManagedApplicationInfo | undefined {
-    return this.state.selectedApplication ?? undefined
+    if (this.state.selectedAppKey.length === 0) {
+      return undefined
+    }
+    return this.getApplicationByKey(this.state.selectedAppKey)
   }
 
   private getApplicationByKey(appKey: string): ManagedApplicationInfo | undefined {
@@ -420,25 +443,15 @@ export class PermissionViewModel {
 
   private hasSelectedApplicationState(): boolean {
     return this.state.selectedAppKey.length > 0 ||
-      this.state.selectedApplication !== null ||
       this.state.selectedPermissionProfile !== null
   }
 
   private clearSelectedApplication(): void {
     this.state.selectedAppKey = ''
-    this.state.selectedApplication = null
     this.state.selectedPermissionProfile = null
     this.state.selectedAppRefreshing = false
     this.state.policyLoading = false
     this.permissionProfileRequestSeq++
-  }
-
-  private syncSelectedApplicationFromApplications(): void {
-    if (this.state.selectedAppKey.length === 0) {
-      this.state.selectedApplication = null
-      return
-    }
-    this.state.selectedApplication = this.getApplicationByKey(this.state.selectedAppKey) ?? null
   }
 
   private async refreshAccountPolicyState(appKey: string = '', requestSeq: number = -1): Promise<void> {
@@ -546,8 +559,13 @@ export class PermissionViewModel {
   }
 
   private applyDeletedPolicyRecord(record: PermissionPolicyRecord): void {
-    if (record.actionKind === 'install-deny' || record.actionKind === 'install-allow' || record.actionKind === 'sixd') {
+    if (record.actionKind === 'install-deny' || record.actionKind === 'install-allow') {
       this.removePolicyRecord(record.key)
+      return
+    }
+    if (record.actionKind === 'sixd') {
+      this.removePolicyRecord(record.key)
+      this.applySelectedSixDProfileState(record.appKey, record.policyId, 'default')
       return
     }
     if (record.actionKind === 'uninstall-protect') {
@@ -574,7 +592,10 @@ export class PermissionViewModel {
       !this.isInstallPolicyActionKind(record.actionKind)
     )
     this.state.policyRecords = installRecords
-      .concat(PermissionService.buildApplicationPolicyRecords(this.state.applications))
+      .concat(PermissionService.buildApplicationPolicyRecordsForAccount(
+        this.state.selectedAccountId,
+        this.state.applications
+      ))
       .concat(otherRecords)
     this.refreshSummaryFromCurrentState()
     this.updateFilteredApplications()
@@ -604,6 +625,45 @@ export class PermissionViewModel {
       runningPolicy: update.runningPolicy === undefined ? app.runningPolicy : update.runningPolicy,
       networkPolicy: update.networkPolicy === undefined ? app.networkPolicy : update.networkPolicy
     } as ManagedApplicationInfo
+  }
+
+  private applySelectedSixDProfileState(
+    appKey: string,
+    groupKey: string,
+    state: SixDManagedState
+  ): void {
+    let profile = this.state.selectedPermissionProfile
+    if (profile === null || profile.appKey !== appKey || this.state.selectedAppKey !== appKey) {
+      return
+    }
+    let changed = false
+    let nextGroups = profile.sixDGroups.map((item: SixDPermissionItem): SixDPermissionItem => {
+      if (item.groupKey !== groupKey) {
+        return item
+      }
+      changed = true
+      return {
+        groupKey: item.groupKey,
+        title: item.title,
+        permissionNames: item.permissionNames,
+        declaredPermissions: item.declaredPermissions,
+        managedState: state,
+        canManage: item.canManage,
+        disabledReason: item.disabledReason
+      } as SixDPermissionItem
+    })
+    if (!changed) {
+      return
+    }
+    this.state.selectedPermissionProfile = {
+      appKey: profile.appKey,
+      bundleName: profile.bundleName,
+      requestedPermissions: profile.requestedPermissions,
+      mainAbilityName: profile.mainAbilityName,
+      sensitivePermissionCount: profile.sensitivePermissionCount,
+      message: profile.message,
+      sixDGroups: nextGroups
+    } as ApplicationPermissionProfile
   }
 
   private refreshSummaryFromCurrentState(): void {
@@ -678,13 +738,20 @@ interface ApplicationPolicyUpdate {
 interface AccountSwitchSnapshot {
   selectedAccountId: number
   selectedAppKey: string
-  selectedApplication: ManagedApplicationInfo | null
   selectedPermissionProfile: ApplicationPermissionProfile | null
   inventoryMessage: string
   policyRecords: PermissionPolicyRecord[]
   applications: ManagedApplicationInfo[]
   filteredApplications: ManagedApplicationInfo[]
   summary: PermissionSummary
+  selectedAppRefreshing: boolean
+  policyLoading: boolean
+  permissionProfileRequestSeq: number
+}
+
+interface TargetSelectionSnapshot {
+  selectedAppKey: string
+  selectedPermissionProfile: ApplicationPermissionProfile | null
   selectedAppRefreshing: boolean
   policyLoading: boolean
   permissionProfileRequestSeq: number

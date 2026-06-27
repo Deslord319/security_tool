@@ -102,7 +102,6 @@ export class PermissionPageState {
   @Trace adminActivated: boolean = false
   @Trace selectedAccountId: number = 0
   @Trace selectedAppKey: string = ''
-  @Trace selectedApplication: ManagedApplicationInfo | null = null
   @Trace searchKeyword: string = ''
   @Trace installBlockKeyword: string = ''
   @Trace inventoryMessage: string = ''
