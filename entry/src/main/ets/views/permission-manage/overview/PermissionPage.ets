@@ -8,7 +8,6 @@ import {
   PermissionLoadingStrings,
   PermissionPageStrings,
   PermissionSectionStrings,
-  PermissionThreeDStrings,
   PermissionSummaryStrings
 } from '../../../constants/modules/PermissionStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -21,9 +20,8 @@ import { SubPageHeader } from '../../../components/SubPageHeader'
 import { StyledTextInput } from '../../../components/StyledTextInput'
 import { IconTextActionButton } from '../../../components/IconTextActionButton'
 import { AsyncSelectRow } from '../../../components/AsyncSelectRow'
+import { PermissionApplicationPolicyPanel } from '../../../components/permission-manage/ApplicationPolicyPanel'
 import {
-  ApplicationPermissionProfile,
-  ManagedApplicationInfo,
   PermissionActionResult,
   PermissionAppSnapshot,
   PermissionManagedAccount,
@@ -96,33 +94,36 @@ export struct PermissionPage {
     }
   }
 
-  private getSelectedApplication(): ManagedApplicationInfo | undefined {
+  private getSelectedAppSnapshot(): PermissionAppSnapshot | undefined {
     let selectedAppKey = this.viewModel.state.selectedAppKey
     if (selectedAppKey.length === 0) {
       return undefined
     }
-    return this.viewModel.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === selectedAppKey)
+    return this.viewModel.state.appSnapshots.find((snapshot: PermissionAppSnapshot): boolean =>
+      snapshot.appKey === selectedAppKey
+    )
   }
 
   private getApplicationOptions(): string[] {
     let options: string[] = [PermissionSectionStrings.TARGET_APPLICATION_PLACEHOLDER]
-    this.viewModel.state.filteredApplications.forEach((app: ManagedApplicationInfo): void => {
-      options.push(this.formatApplicationOption(app))
+    this.viewModel.state.filteredAppKeys.forEach((appKey: string): void => {
+      let snapshot = this.viewModel.state.appSnapshots.find((s: PermissionAppSnapshot): boolean => s.appKey === appKey)
+      if (snapshot !== undefined) {
+        options.push(this.formatApplicationOption(snapshot))
+      }
     })
     return options
   }
 
-  private formatApplicationOption(app: ManagedApplicationInfo): string {
-    if (app.label === app.bundleName) {
-      return app.bundleName
+  private formatApplicationOption(snapshot: PermissionAppSnapshot): string {
+    if (snapshot.label === snapshot.bundleName) {
+      return snapshot.bundleName
     }
-    return `${app.label} (${app.bundleName})`
+    return `${snapshot.label} (${snapshot.bundleName})`
   }
 
   private getSelectedApplicationIndex(): number {
-    let index = this.viewModel.state.filteredApplications.findIndex((app: ManagedApplicationInfo): boolean =>
-      app.key === this.viewModel.state.selectedAppKey
-    )
+    let index = this.viewModel.state.filteredAppKeys.indexOf(this.viewModel.state.selectedAppKey)
     if (index < 0) {
       return 0
     }
@@ -135,11 +136,11 @@ export struct PermissionPage {
       return true
     }
     let appIndex = index - 1
-    let app = this.viewModel.state.filteredApplications[appIndex]
-    if (!app) {
+    let appKey = this.viewModel.state.filteredAppKeys[appIndex]
+    if (!appKey) {
       return false
     }
-    if (app.key === this.viewModel.state.selectedAppKey) {
+    if (appKey === this.viewModel.state.selectedAppKey) {
       return true
     }
     try {
@@ -147,7 +148,7 @@ export struct PermissionPage {
         'permission-target-application',
         PermissionLoadingStrings.TARGET_APPLICATION,
         async (): Promise<boolean> => {
-          return await this.viewModel.selectApplicationAndLoadDetails(app.key)
+          return await this.viewModel.selectApplicationAndLoadDetails(appKey)
         }
       )
       if (!success) {
@@ -163,96 +164,12 @@ export struct PermissionPage {
     }
   }
 
-  private getRunningPolicyOptions(): string[] {
-    return [
-      PermissionApplicationStrings.POLICY_ALLOWED,
-      PermissionApplicationStrings.POLICY_DENIED
-    ]
-  }
-
-  private getNetworkPolicyOptions(): string[] {
-    return [
-      PermissionApplicationStrings.POLICY_ALLOWED,
-      PermissionApplicationStrings.POLICY_DENIED
-    ]
-  }
-
-  private getUninstallProtectedOptions(): string[] {
-    return [
-      PermissionApplicationStrings.DISABLED,
-      PermissionApplicationStrings.ENABLED
-    ]
-  }
-
-  private getThreeDOptions(): string[] {
-    return [
-      PermissionApplicationStrings.POLICY_DEFAULT,
-      PermissionApplicationStrings.POLICY_ALLOWED,
-      PermissionApplicationStrings.POLICY_DENIED
-    ]
-  }
-
-  private getThreeDOptionsForItem(item: ThreeDPermissionItem): string[] {
-    if (item.canManage) {
-      return this.getThreeDOptions()
-    }
-    return [this.formatThreeDState(item.managedState)]
-  }
-
-  private runningPolicyByIndex(index: number): PermissionPolicyState {
-    return index === 1 ? 'denied' : 'default'
-  }
-
-  private networkPolicyByIndex(index: number): PermissionPolicyState {
-    return index === 1 ? 'denied' : 'default'
-  }
-
-  private uninstallProtectedByIndex(index: number): boolean {
-    return index === 1
-  }
-
-  private threeDStateByIndex(index: number): ThreeDManagedState {
-    if (index === 1) {
-      return 'granted'
-    }
-    if (index === 2) {
-      return 'denied'
-    }
-    return 'default'
-  }
-
-  private getRunningPolicyIndex(policy: PermissionPolicyState): number {
-    return policy === 'denied' ? 1 : 0
-  }
-
-  private getNetworkPolicyIndex(policy: PermissionPolicyState): number {
-    return policy === 'denied' ? 1 : 0
-  }
-
-  private getUninstallProtectedIndex(enabled: boolean): number {
-    return enabled ? 1 : 0
-  }
-
-  private getThreeDStateIndex(state: ThreeDManagedState): number {
-    if (state === 'granted') {
-      return 1
-    }
-    if (state === 'denied') {
-      return 2
-    }
-    return 0
-  }
-
-  private getThreeDStateIndexForItem(item: ThreeDPermissionItem): number {
-    return item.canManage ? this.getThreeDStateIndex(item.managedState) : 0
-  }
-
   private canSubmitInstallBlock(): boolean {
-    return !this.viewModel.state.processingAction && this.viewModel.state.installBlockKeyword.trim().length > 0
+    return this.viewModel.state.processingActionKey.length === 0 && this.viewModel.state.installBlockKeyword.trim().length > 0
   }
 
   private hasProcessingAction(): boolean {
-    return this.viewModel.state.processingAction
+    return this.viewModel.state.processingActionKey.length > 0
   }
 
   private isActionProcessing(actionKey: string): boolean {
@@ -263,30 +180,8 @@ export struct PermissionPage {
     return !this.hasProcessingAction() || this.isActionProcessing(actionKey)
   }
 
-  private canOperateApplicationPolicy(actionKey: string): boolean {
-    return this.canOperateAction(actionKey) &&
-      !this.viewModel.state.selectedAppRefreshing &&
-      !this.viewModel.state.policyLoading
-  }
-
   private getInstallActionKey(): string {
     return 'install-deny'
-  }
-
-  private getUninstallActionKey(app: ManagedApplicationInfo): string {
-    return `uninstall:${app.key}`
-  }
-
-  private getRunningActionKey(app: ManagedApplicationInfo): string {
-    return `running:${app.key}`
-  }
-
-  private getNetworkActionKey(app: ManagedApplicationInfo): string {
-    return `network:${app.key}`
-  }
-
-  private getThreeDActionKey(app: ManagedApplicationInfo, item: ThreeDPermissionItem): string {
-    return `three-d:${app.key}:${item.groupKey}`
   }
 
   private getDeletePolicyActionKey(recordKey: string): string {
@@ -497,7 +392,7 @@ export struct PermissionPage {
         selectedIndex: this.getSelectedAccountIndex(),
         selectWidth: AppStyles.SELECT_WIDTH_DEFAULT,
         processing: this.viewModel.state.loading || this.viewModel.state.accounts.length === 0,
-        enabledValue: !this.hasProcessingAction() && !this.viewModel.state.selectedAppRefreshing,
+        enabledValue: !this.hasProcessingAction() && !this.viewModel.state.loadingSelectedApp,
         currentTheme: this.currentTheme,
         onSelectAsync: async (index: number): Promise<boolean> => {
           return await this.switchAccountByIndex(index)
@@ -514,7 +409,7 @@ export struct PermissionPage {
         .color(AppColors.getColors(this.currentTheme).BORDER)
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-      if (this.viewModel.state.filteredApplications.length === 0) {
+      if (this.viewModel.state.filteredAppKeys.length === 0) {
         EmptyStatePanel({
           title: this.getApplicationEmptyText(),
           currentTheme: this.currentTheme,
@@ -534,7 +429,7 @@ export struct PermissionPage {
       options: this.getApplicationOptions(),
       selectedIndex: this.getSelectedApplicationIndex(),
       selectWidth: 280,
-      processing: this.viewModel.state.selectedAppRefreshing,
+      processing: this.viewModel.state.loadingSelectedApp,
       enabledValue: !this.hasProcessingAction(),
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
@@ -545,44 +440,64 @@ export struct PermissionPage {
 
   @Builder
   private applicationPolicyContent() {
-    if (this.getSelectedApplication() === undefined) {
+    if (this.getSelectedAppSnapshot() === undefined) {
       EmptyStatePanel({
         title: PermissionEmptyStrings.SELECT_APPLICATION_FIRST,
         currentTheme: this.currentTheme,
         verticalPadding: 28
       })
     } else {
-      Column({ space: 0 }) {
-        if (this.viewModel.state.selectedAppRefreshing) {
-          Row({ space: 8 }) {
-            LoadingProgress()
-              .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-              .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-              .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-
-            Text(PermissionThreeDStrings.DETAIL_LOADING)
-              .fontSize(AppStyles.FONT_SIZE_CAPTION)
-              .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-              .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+      ForEach([this.getApplicationPolicyRenderKey()], (renderKey: string) => {
+        PermissionApplicationPolicyPanel({
+          appKey: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).appKey,
+          uid: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).uid,
+          uninstallProtected: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).uninstallProtected,
+          runningBlocked: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).runningBlocked,
+          networkBlocked: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).networkBlocked,
+          threeDGroups: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).threeDGroups,
+          threeDLoadState: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).threeDLoadState,
+          threeDMessage: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).threeDMessage,
+          loadingSelectedApp: this.viewModel.state.loadingSelectedApp,
+          processingActionKey: this.viewModel.state.processingActionKey,
+          currentTheme: this.currentTheme,
+          onSetUninstallProtected: async (enabled: boolean): Promise<boolean> => {
+            return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+              this.viewModel.setSelectedUninstallProtected(enabled)
+            )
+          },
+          onSetRunningPolicy: async (policy: PermissionPolicyState): Promise<boolean> => {
+            return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+              this.viewModel.setSelectedRunningPolicy(policy)
+            )
+          },
+          onSetNetworkPolicy: async (policy: PermissionPolicyState): Promise<boolean> => {
+            return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+              this.viewModel.setSelectedNetworkPolicy(policy)
+            )
+          },
+          onSetThreeDPermissionState: async (groupKey: string, state: ThreeDManagedState): Promise<boolean> => {
+            return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
+              this.viewModel.setSelectedThreeDPermissionState(groupKey, state)
+            )
           }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
-          .padding({ left: 16, right: 16, top: 12, bottom: 8 })
-        }
-
-        this.applicationControlRows(this.getSelectedApplication() as ManagedApplicationInfo)
-
-        Divider()
-          .color(AppColors.getColors(this.currentTheme).BORDER)
-          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-        this.threeDPermissionRows(
-          this.getSelectedApplication() as ManagedApplicationInfo,
-          this.getSelectedPermissionProfile()
-        )
-      }
-      .width('100%')
+        })
+          .id(renderKey)
+      }, (renderKey: string): string => renderKey)
     }
+  }
+
+  private getApplicationPolicyRenderKey(): string {
+    let snapshot = this.getSelectedAppSnapshot()
+    if (snapshot === undefined) {
+      return 'empty'
+    }
+    let threeDStateKey = snapshot.threeDGroups
+      .map((item: ThreeDPermissionItem): string =>
+        `${item.groupKey}:${item.managedState}:${item.canManage}:${item.disabledReason}`
+      )
+      .join('|')
+    return `${snapshot.appKey}:${snapshot.uid}:${snapshot.uninstallProtected}:${snapshot.runningBlocked}:` +
+      `${snapshot.networkBlocked}:${snapshot.threeDLoadState}:${snapshot.threeDMessage}:${threeDStateKey}`
   }
 
   @Builder
@@ -645,7 +560,7 @@ export struct PermissionPage {
 
   @Builder
   private currentPolicyContent() {
-    if (this.viewModel.state.policyLoading && this.viewModel.state.policyRecords.length === 0) {
+    if (this.viewModel.state.loadingSelectedApp && this.viewModel.state.policyRecords.length === 0) {
       LoadingStatePanel({
         indicatorSize: 22,
         currentTheme: this.currentTheme
@@ -818,218 +733,6 @@ export struct PermissionPage {
       this.activePolicyActionKey = ''
       this.showDeletePolicyConfirm(record.key)
     })
-  }
-
-  @Builder
-  private applicationControlRows(app: ManagedApplicationInfo) {
-    this.uninstallProtectedActionRow(app)
-
-    Divider()
-      .color(AppColors.getColors(this.currentTheme).BORDER)
-      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-    AsyncSelectRow({
-      label: PermissionApplicationStrings.RUNNING_POLICY,
-      description: this.formatDescriptionWithState(PermissionApplicationStrings.RUNNING_POLICY_DESC, this.formatRuntimePolicy(app.runningPolicy)),
-      options: this.getRunningPolicyOptions(),
-      selectedIndex: this.getRunningPolicyIndex(app.runningPolicy),
-      selectWidth: 116,
-      processing: this.isActionProcessing(this.getRunningActionKey(app)),
-      enabledValue: this.canOperateApplicationPolicy(this.getRunningActionKey(app)),
-      currentTheme: this.currentTheme,
-      onSelectAsync: async (index: number): Promise<boolean> => {
-        let nextPolicy = this.runningPolicyByIndex(index)
-        if (nextPolicy !== app.runningPolicy) {
-          return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-            this.viewModel.setSelectedRunningPolicy(nextPolicy)
-          )
-        }
-        return true
-      }
-    })
-
-    Divider()
-      .color(AppColors.getColors(this.currentTheme).BORDER)
-      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-
-    AsyncSelectRow({
-      label: PermissionApplicationStrings.NETWORK_POLICY,
-      description: app.uid > 0
-        ? this.formatDescriptionWithState(PermissionApplicationStrings.NETWORK_POLICY_DESC, this.formatRuntimePolicy(app.networkPolicy))
-        : PermissionApplicationStrings.MISSING_UID,
-      options: this.getNetworkPolicyOptions(),
-      selectedIndex: this.getNetworkPolicyIndex(app.networkPolicy),
-      selectWidth: 116,
-      processing: this.isActionProcessing(this.getNetworkActionKey(app)),
-      enabledValue: this.canOperateApplicationPolicy(this.getNetworkActionKey(app)) && app.uid > 0,
-      currentTheme: this.currentTheme,
-      onSelectAsync: async (index: number): Promise<boolean> => {
-        let nextPolicy = this.networkPolicyByIndex(index)
-        if (nextPolicy !== app.networkPolicy) {
-          return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-            this.viewModel.setSelectedNetworkPolicy(nextPolicy)
-          )
-        }
-        return true
-      }
-    })
-
-  }
-
-  @Builder
-  private uninstallProtectedActionRow(app: ManagedApplicationInfo) {
-    AsyncSelectRow({
-      label: PermissionApplicationStrings.UNINSTALL_PROTECTED,
-      description: this.formatDescriptionWithState(
-        PermissionApplicationStrings.UNINSTALL_PROTECTED_DESC,
-        app.uninstallProtected ? PermissionApplicationStrings.ENABLED : PermissionApplicationStrings.DISABLED
-      ),
-      options: this.getUninstallProtectedOptions(),
-      selectedIndex: this.getUninstallProtectedIndex(app.uninstallProtected),
-      selectWidth: 116,
-      processing: this.isActionProcessing(this.getUninstallActionKey(app)),
-      enabledValue: this.canOperateApplicationPolicy(this.getUninstallActionKey(app)),
-      currentTheme: this.currentTheme,
-      onSelectAsync: async (index: number): Promise<boolean> => {
-        let nextEnabled = this.uninstallProtectedByIndex(index)
-        if (nextEnabled !== app.uninstallProtected) {
-          return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-            this.viewModel.setSelectedUninstallProtected(nextEnabled)
-          )
-        }
-        return true
-      }
-    })
-  }
-
-  @Builder
-  private threeDPermissionRows(
-    app: ManagedApplicationInfo,
-    profile: ApplicationPermissionProfile | null
-  ) {
-    if (profile !== null && profile.message.length > 0 && profile.threeDGroups.length === 0) {
-      Text(profile.message)
-        .fontSize(AppStyles.FONT_SIZE_CAPTION)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-    } else {
-      ForEach(this.getThreeDItems(profile), (item: ThreeDPermissionItem) => {
-        AsyncSelectRow({
-          label: item.title,
-          description: this.getThreeDDescription(item),
-          options: this.getThreeDOptionsForItem(item),
-          selectedIndex: this.getThreeDStateIndexForItem(item),
-          selectWidth: 116,
-          processing: this.isActionProcessing(this.getThreeDActionKey(app, item)),
-          enabledValue: this.canOperateApplicationPolicy(this.getThreeDActionKey(app, item)) && item.canManage,
-          currentTheme: this.currentTheme,
-          onSelectAsync: async (index: number): Promise<boolean> => {
-            let nextState = this.threeDStateByIndex(index)
-            if (item.canManage && nextState !== item.managedState) {
-              return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-                this.viewModel.setSelectedThreeDPermissionState(item.groupKey, nextState)
-              )
-            }
-            return item.canManage
-          }
-        })
-
-        Divider()
-          .color(AppColors.getColors(this.currentTheme).BORDER)
-          .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-      }, (item: ThreeDPermissionItem): string => item.groupKey)
-    }
-  }
-
-  private getThreeDItems(profile: ApplicationPermissionProfile | null): ThreeDPermissionItem[] {
-    if (profile !== null) {
-      return profile.threeDGroups
-    }
-    return [
-      this.createPendingThreeDItem('downloads', PermissionThreeDStrings.DOWNLOADS),
-      this.createPendingThreeDItem('desktop', PermissionThreeDStrings.DESKTOP),
-      this.createPendingThreeDItem('documents', PermissionThreeDStrings.DOCUMENTS)
-    ]
-  }
-
-  private getSelectedPermissionProfile(): ApplicationPermissionProfile | null {
-    let snapshot = this.getSelectedAppSnapshot()
-    let app = this.getSelectedApplication()
-    if (snapshot === undefined || app === undefined || snapshot.threeDLoadState !== 'loaded') {
-      return null
-    }
-    return {
-      appKey: snapshot.appKey,
-      bundleName: snapshot.bundleName,
-      requestedPermissions: [],
-      mainAbilityName: app.mainAbilityName,
-      sensitivePermissionCount: snapshot.threeDGroups.filter((item: ThreeDPermissionItem): boolean => item.canManage).length,
-      message: snapshot.threeDMessage,
-      threeDGroups: snapshot.threeDGroups
-    } as ApplicationPermissionProfile
-  }
-
-  private getSelectedAppSnapshot(): PermissionAppSnapshot | undefined {
-    return this.viewModel.state.appSnapshots.find((snapshot: PermissionAppSnapshot): boolean =>
-      snapshot.appKey === this.viewModel.state.selectedAppKey
-    )
-  }
-
-  private createPendingThreeDItem(groupKey: string, title: string): ThreeDPermissionItem {
-    return {
-      groupKey: groupKey,
-      title: title,
-      permissionNames: [],
-      declaredPermissions: [],
-      managedState: 'unsupported',
-      canManage: false,
-      disabledReason: PermissionThreeDStrings.DETAIL_LOADING
-    } as ThreeDPermissionItem
-  }
-
-  private formatRuntimePolicy(policy: PermissionPolicyState): string {
-    return policy === 'denied' ? PermissionApplicationStrings.POLICY_DENIED : PermissionApplicationStrings.POLICY_ALLOWED
-  }
-
-  private formatDescriptionWithState(description: string, state: string): string {
-    return `${description} · ${PermissionApplicationStrings.CURRENT_STATE_PREFIX}：${state}`
-  }
-
-  private getThreeDDescription(item: ThreeDPermissionItem): string {
-    let baseDescription = this.getThreeDBaseDescription(item.groupKey)
-    if (item.canManage && item.disabledReason.length > 0) {
-      return `${baseDescription} · ${item.disabledReason}`
-    }
-    return baseDescription
-  }
-
-  private getThreeDBaseDescription(groupKey: string): string {
-    if (groupKey === 'downloads') {
-      return PermissionThreeDStrings.DOWNLOADS_DESC
-    }
-    if (groupKey === 'desktop') {
-      return PermissionThreeDStrings.DESKTOP_DESC
-    }
-    if (groupKey === 'documents') {
-      return PermissionThreeDStrings.DOCUMENTS_DESC
-    }
-    return PermissionApplicationStrings.THREE_D_GROUP_DESC
-  }
-
-  private formatThreeDState(state: ThreeDManagedState): string {
-    if (state === 'granted') {
-      return PermissionApplicationStrings.POLICY_ALLOWED
-    }
-    if (state === 'denied') {
-      return PermissionApplicationStrings.POLICY_DENIED
-    }
-    if (state === 'undeclared') {
-      return PermissionThreeDStrings.NO_DECLARED
-    }
-    if (state === 'unsupported') {
-      return PermissionApplicationStrings.THREE_D_UNSUPPORTED
-    }
-    return PermissionApplicationStrings.POLICY_DEFAULT
   }
 
 }

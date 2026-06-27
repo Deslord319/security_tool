@@ -17,31 +17,15 @@ export struct AsyncSelectRow {
   @Param enabledValue: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelectAsync: (nextIndex: number) => Promise<boolean> = async () => false
-  @Local private displayIndex: number = 0
   @Local private isAsyncPending: boolean = false
   @Local private rollbackIndex: number = 0
-  @Local private lastParentSelectedIndex: number = 0
 
   aboutToAppear(): void {
-    this.displayIndex = this.selectedIndex
     this.rollbackIndex = this.selectedIndex
-    this.lastParentSelectedIndex = this.selectedIndex
   }
 
   private getEffectiveSelectedIndex(): number {
-    this.syncParentSelectedIndex()
-    return this.displayIndex
-  }
-
-  private syncParentSelectedIndex(): void {
-    if (this.isAsyncPending) {
-      return
-    }
-    if (this.selectedIndex !== this.lastParentSelectedIndex) {
-      this.displayIndex = this.selectedIndex
-      this.rollbackIndex = this.selectedIndex
-      this.lastParentSelectedIndex = this.selectedIndex
-    }
+    return this.selectedIndex
   }
 
   private getDisplayValue(): string {
@@ -64,10 +48,10 @@ export struct AsyncSelectRow {
     }
 
     this.rollbackIndex = previousIndex
-    this.displayIndex = previousIndex
     let success = false
     try {
       this.isAsyncPending = true
+      await this.waitForPendingRendered()
       success = await this.onSelectAsync(nextIndex)
     } catch (err) {
       const errorText = err instanceof Error ? err.message : String(err)
@@ -76,13 +60,18 @@ export struct AsyncSelectRow {
       this.isAsyncPending = false
     }
     if (success) {
-      this.displayIndex = nextIndex
-      this.rollbackIndex = nextIndex
-      this.lastParentSelectedIndex = nextIndex
+      this.rollbackIndex = this.selectedIndex
       return
     }
-    this.displayIndex = this.rollbackIndex
     LogUtils.warn(TAG, `async select rollback: label=${this.label}, rollbackIndex=${this.rollbackIndex}, failedIndex=${nextIndex}`)
+  }
+
+  private async waitForPendingRendered(): Promise<void> {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout((): void => {
+        resolve()
+      }, 0)
+    })
   }
 
   build() {
