@@ -46,6 +46,8 @@ export class ApplicationInventoryRepository {
       let applications = ApplicationInventoryRepository.normalizeBundleInfos(accountId, bundleInfos)
       return {
         applications: applications,
+        appSnapshots: [],
+        installPolicies: [],
         policyRecords: [],
         message: applications.length === 0 ? PermissionEmptyStrings.APPLICATIONS : ''
       } as ApplicationInventoryResult
@@ -53,6 +55,8 @@ export class ApplicationInventoryRepository {
       LogUtils.warn(TAG, `loadApplications failed: ${JSON.stringify(err)}`)
       return {
         applications: [],
+        appSnapshots: [],
+        installPolicies: [],
         policyRecords: [],
         message: PermissionEmptyStrings.INVENTORY_LOAD_FAILED
       } as ApplicationInventoryResult

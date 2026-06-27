@@ -57,11 +57,10 @@ export class ApplicationControlRepository {
         controlLists.disallowedInstallIds
       ) : 'default',
       uninstallProtected: app.accountId === accountId && ApplicationControlRepository.containsApp(controlLists.disallowedUninstallIds, app),
-      runningPolicy: app.accountId === accountId ? ApplicationControlRepository.resolvePolicy(
-        app,
-        controlLists.allowedRunningIds,
-        controlLists.disallowedRunningIds
-      ) : 'default',
+      runningPolicy: app.accountId === accountId && ApplicationControlRepository.containsApp(
+        controlLists.disallowedRunningIds,
+        app
+      ) ? 'denied' : 'default',
       networkPolicy: app.networkPolicy
     } as ManagedApplicationInfo
   }
@@ -153,14 +152,6 @@ export class ApplicationControlRepository {
     }
     if (allowedPolicyIds.length > 0) {
       await applicationManager.removeAllowedRunningBundles(ADMIN_WANT, allowedPolicyIds, app.accountId)
-    }
-    if (policy === 'allowed') {
-      await applicationManager.addAllowedRunningBundles(
-        ADMIN_WANT,
-        ApplicationControlRepository.getRunningPolicyIds(app),
-        app.accountId
-      )
-      return
     }
     if (policy === 'denied') {
       await applicationManager.addDisallowedRunningBundlesSync(

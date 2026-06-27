@@ -1,5 +1,13 @@
 export type PermissionPolicyState = 'default' | 'allowed' | 'denied'
-export type SixDManagedState = 'default' | 'granted' | 'denied' | 'undeclared' | 'unsupported'
+export type ThreeDManagedState = 'default' | 'granted' | 'denied' | 'undeclared' | 'unsupported'
+export type ThreeDLoadState = 'idle' | 'loading' | 'loaded' | 'failed'
+export type PermissionPolicyActionKind =
+  'install-deny' |
+  'install-allow' |
+  'uninstall-protect' |
+  'running' |
+  'network' |
+  'three-d'
 
 export interface PermissionActionResult {
   success: boolean
@@ -9,7 +17,7 @@ export interface PermissionActionResult {
 export interface PermissionSummary {
   appCount: number
   managedCount: number
-  sixDSensitiveCount: number
+  threeDSensitiveCount: number
   networkRestrictedCount: number
 }
 
@@ -20,7 +28,7 @@ export interface PermissionPolicyRecord {
   targetDetail: string
   statusLabel: string
   scopeLabel: string
-  actionKind: string
+  actionKind: PermissionPolicyActionKind
   appKey: string
   policyId: string
 }
@@ -38,7 +46,7 @@ export interface PermissionLocalPolicyRecord {
   targetDetail: string
   statusLabel: string
   scopeLabel: string
-  actionKind: string
+  actionKind: PermissionPolicyActionKind
   policyId: string
   status: string
   createdAt: number
@@ -51,6 +59,41 @@ export interface PermissionManagedAccount {
   displayName: string
   isForeground: boolean
   isAvailable: boolean
+}
+
+export interface PermissionThreeDPolicySnapshot {
+  recordId: string
+  appKey: string
+  groupKey: string
+  actionKind: PermissionPolicyActionKind
+  policyValue: ThreeDManagedState
+  policyType: string
+  targetName: string
+  targetDetail: string
+  statusLabel: string
+  scopeLabel: string
+}
+
+export interface AccountInstallPolicySnapshot {
+  accountId: number
+  policyId: string
+  policy: 'denied' | 'allowed'
+}
+
+export interface PermissionAppSnapshot {
+  appKey: string
+  accountId: number
+  bundleName: string
+  label: string
+  uid: number
+  appIndex: number
+  uninstallProtected: boolean
+  runningBlocked: boolean
+  networkBlocked: boolean
+  threeDGroups: ThreeDPermissionItem[]
+  threeDPolicies: PermissionThreeDPolicySnapshot[]
+  threeDLoadState: ThreeDLoadState
+  threeDMessage: string
 }
 
 export interface ManagedApplicationInfo {
@@ -74,12 +117,12 @@ export interface ManagedApplicationInfo {
   networkPolicy: PermissionPolicyState
 }
 
-export interface SixDPermissionItem {
+export interface ThreeDPermissionItem {
   groupKey: string
   title: string
   permissionNames: string[]
   declaredPermissions: string[]
-  managedState: SixDManagedState
+  managedState: ThreeDManagedState
   canManage: boolean
   disabledReason: string
 }
@@ -91,7 +134,7 @@ export interface ApplicationPermissionProfile {
   mainAbilityName: string
   sensitivePermissionCount: number
   message: string
-  sixDGroups: SixDPermissionItem[]
+  threeDGroups: ThreeDPermissionItem[]
 }
 
 @ObservedV2
@@ -109,16 +152,18 @@ export class PermissionPageState {
   @Trace selectedAppRefreshing: boolean = false
   @Trace processingAction: boolean = false
   @Trace processingActionKey: string = ''
-  @Trace selectedPermissionProfile: ApplicationPermissionProfile | null = null
   @Trace summary: PermissionSummary = {
     appCount: 0,
     managedCount: 0,
-    sixDSensitiveCount: 0,
+    threeDSensitiveCount: 0,
     networkRestrictedCount: 0
   }
   @Trace accounts: PermissionManagedAccount[] = []
   @Trace applications: ManagedApplicationInfo[] = []
   @Trace filteredApplications: ManagedApplicationInfo[] = []
+  @Trace appSnapshots: PermissionAppSnapshot[] = []
+  @Trace installPolicies: AccountInstallPolicySnapshot[] = []
+  @Trace filteredAppKeys: string[] = []
   @Trace policyRecords: PermissionPolicyRecord[] = []
 }
 
@@ -130,6 +175,8 @@ export interface PermissionInitialData {
   summary: PermissionSummary
   accounts: PermissionManagedAccount[]
   applications: ManagedApplicationInfo[]
+  appSnapshots: PermissionAppSnapshot[]
+  installPolicies: AccountInstallPolicySnapshot[]
   policyRecords: PermissionPolicyRecord[]
 }
 
@@ -141,6 +188,8 @@ export interface PermissionAccountListResult {
 
 export interface ApplicationInventoryResult {
   applications: ManagedApplicationInfo[]
+  appSnapshots: PermissionAppSnapshot[]
+  installPolicies: AccountInstallPolicySnapshot[]
   policyRecords: PermissionPolicyRecord[]
   message?: string
 }

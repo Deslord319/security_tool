@@ -8,7 +8,7 @@ import {
   PermissionLoadingStrings,
   PermissionPageStrings,
   PermissionSectionStrings,
-  PermissionSixDStrings,
+  PermissionThreeDStrings,
   PermissionSummaryStrings
 } from '../../../constants/modules/PermissionStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
@@ -25,11 +25,12 @@ import {
   ApplicationPermissionProfile,
   ManagedApplicationInfo,
   PermissionActionResult,
+  PermissionAppSnapshot,
   PermissionManagedAccount,
   PermissionPolicyRecord,
   PermissionPolicyState,
-  SixDManagedState,
-  SixDPermissionItem
+  ThreeDManagedState,
+  ThreeDPermissionItem
 } from '../../../models/PermissionModels'
 import { PermissionViewModel } from '../../../viewmodels/permission-manage/PermissionViewModel'
 import { DialogService } from '../../../utils/DialogService'
@@ -183,7 +184,7 @@ export struct PermissionPage {
     ]
   }
 
-  private getSixDOptions(): string[] {
+  private getThreeDOptions(): string[] {
     return [
       PermissionApplicationStrings.POLICY_DEFAULT,
       PermissionApplicationStrings.POLICY_ALLOWED,
@@ -191,11 +192,11 @@ export struct PermissionPage {
     ]
   }
 
-  private getSixDOptionsForItem(item: SixDPermissionItem): string[] {
+  private getThreeDOptionsForItem(item: ThreeDPermissionItem): string[] {
     if (item.canManage) {
-      return this.getSixDOptions()
+      return this.getThreeDOptions()
     }
-    return [this.formatSixDState(item.managedState)]
+    return [this.formatThreeDState(item.managedState)]
   }
 
   private runningPolicyByIndex(index: number): PermissionPolicyState {
@@ -210,7 +211,7 @@ export struct PermissionPage {
     return index === 1
   }
 
-  private sixDStateByIndex(index: number): SixDManagedState {
+  private threeDStateByIndex(index: number): ThreeDManagedState {
     if (index === 1) {
       return 'granted'
     }
@@ -232,7 +233,7 @@ export struct PermissionPage {
     return enabled ? 1 : 0
   }
 
-  private getSixDStateIndex(state: SixDManagedState): number {
+  private getThreeDStateIndex(state: ThreeDManagedState): number {
     if (state === 'granted') {
       return 1
     }
@@ -242,8 +243,8 @@ export struct PermissionPage {
     return 0
   }
 
-  private getSixDStateIndexForItem(item: SixDPermissionItem): number {
-    return item.canManage ? this.getSixDStateIndex(item.managedState) : 0
+  private getThreeDStateIndexForItem(item: ThreeDPermissionItem): number {
+    return item.canManage ? this.getThreeDStateIndex(item.managedState) : 0
   }
 
   private canSubmitInstallBlock(): boolean {
@@ -284,8 +285,8 @@ export struct PermissionPage {
     return `network:${app.key}`
   }
 
-  private getSixDActionKey(app: ManagedApplicationInfo, item: SixDPermissionItem): string {
-    return `sixd:${app.key}:${item.groupKey}`
+  private getThreeDActionKey(app: ManagedApplicationInfo, item: ThreeDPermissionItem): string {
+    return `three-d:${app.key}:${item.groupKey}`
   }
 
   private getDeletePolicyActionKey(recordKey: string): string {
@@ -559,7 +560,7 @@ export struct PermissionPage {
               .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
               .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
 
-            Text(PermissionSixDStrings.DETAIL_LOADING)
+            Text(PermissionThreeDStrings.DETAIL_LOADING)
               .fontSize(AppStyles.FONT_SIZE_CAPTION)
               .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
               .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -575,9 +576,9 @@ export struct PermissionPage {
           .color(AppColors.getColors(this.currentTheme).BORDER)
           .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
-        this.sixDPermissionRows(
+        this.threeDPermissionRows(
           this.getSelectedApplication() as ManagedApplicationInfo,
-          this.viewModel.state.selectedPermissionProfile
+          this.getSelectedPermissionProfile()
         )
       }
       .width('100%')
@@ -902,31 +903,31 @@ export struct PermissionPage {
   }
 
   @Builder
-  private sixDPermissionRows(
+  private threeDPermissionRows(
     app: ManagedApplicationInfo,
     profile: ApplicationPermissionProfile | null
   ) {
-    if (profile !== null && profile.message.length > 0 && profile.sixDGroups.length === 0) {
+    if (profile !== null && profile.message.length > 0 && profile.threeDGroups.length === 0) {
       Text(profile.message)
         .fontSize(AppStyles.FONT_SIZE_CAPTION)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
     } else {
-      ForEach(this.getSixDItems(profile), (item: SixDPermissionItem) => {
+      ForEach(this.getThreeDItems(profile), (item: ThreeDPermissionItem) => {
         AsyncSelectRow({
           label: item.title,
-          description: this.getSixDDescription(item),
-          options: this.getSixDOptionsForItem(item),
-          selectedIndex: this.getSixDStateIndexForItem(item),
+          description: this.getThreeDDescription(item),
+          options: this.getThreeDOptionsForItem(item),
+          selectedIndex: this.getThreeDStateIndexForItem(item),
           selectWidth: 116,
-          processing: this.isActionProcessing(this.getSixDActionKey(app, item)),
-          enabledValue: this.canOperateApplicationPolicy(this.getSixDActionKey(app, item)) && item.canManage,
+          processing: this.isActionProcessing(this.getThreeDActionKey(app, item)),
+          enabledValue: this.canOperateApplicationPolicy(this.getThreeDActionKey(app, item)) && item.canManage,
           currentTheme: this.currentTheme,
           onSelectAsync: async (index: number): Promise<boolean> => {
-            let nextState = this.sixDStateByIndex(index)
+            let nextState = this.threeDStateByIndex(index)
             if (item.canManage && nextState !== item.managedState) {
               return await this.executePolicyActionWithResult((): Promise<PermissionActionResult> =>
-                this.viewModel.setSelectedSixDPermissionState(item.groupKey, nextState)
+                this.viewModel.setSelectedThreeDPermissionState(item.groupKey, nextState)
               )
             }
             return item.canManage
@@ -936,22 +937,45 @@ export struct PermissionPage {
         Divider()
           .color(AppColors.getColors(this.currentTheme).BORDER)
           .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-      }, (item: SixDPermissionItem): string => item.groupKey)
+      }, (item: ThreeDPermissionItem): string => item.groupKey)
     }
   }
 
-  private getSixDItems(profile: ApplicationPermissionProfile | null): SixDPermissionItem[] {
+  private getThreeDItems(profile: ApplicationPermissionProfile | null): ThreeDPermissionItem[] {
     if (profile !== null) {
-      return profile.sixDGroups
+      return profile.threeDGroups
     }
     return [
-      this.createPendingSixDItem('downloads', PermissionSixDStrings.DOWNLOADS),
-      this.createPendingSixDItem('desktop', PermissionSixDStrings.DESKTOP),
-      this.createPendingSixDItem('documents', PermissionSixDStrings.DOCUMENTS)
+      this.createPendingThreeDItem('downloads', PermissionThreeDStrings.DOWNLOADS),
+      this.createPendingThreeDItem('desktop', PermissionThreeDStrings.DESKTOP),
+      this.createPendingThreeDItem('documents', PermissionThreeDStrings.DOCUMENTS)
     ]
   }
 
-  private createPendingSixDItem(groupKey: string, title: string): SixDPermissionItem {
+  private getSelectedPermissionProfile(): ApplicationPermissionProfile | null {
+    let snapshot = this.getSelectedAppSnapshot()
+    let app = this.getSelectedApplication()
+    if (snapshot === undefined || app === undefined || snapshot.threeDLoadState !== 'loaded') {
+      return null
+    }
+    return {
+      appKey: snapshot.appKey,
+      bundleName: snapshot.bundleName,
+      requestedPermissions: [],
+      mainAbilityName: app.mainAbilityName,
+      sensitivePermissionCount: snapshot.threeDGroups.filter((item: ThreeDPermissionItem): boolean => item.canManage).length,
+      message: snapshot.threeDMessage,
+      threeDGroups: snapshot.threeDGroups
+    } as ApplicationPermissionProfile
+  }
+
+  private getSelectedAppSnapshot(): PermissionAppSnapshot | undefined {
+    return this.viewModel.state.appSnapshots.find((snapshot: PermissionAppSnapshot): boolean =>
+      snapshot.appKey === this.viewModel.state.selectedAppKey
+    )
+  }
+
+  private createPendingThreeDItem(groupKey: string, title: string): ThreeDPermissionItem {
     return {
       groupKey: groupKey,
       title: title,
@@ -959,8 +983,8 @@ export struct PermissionPage {
       declaredPermissions: [],
       managedState: 'unsupported',
       canManage: false,
-      disabledReason: PermissionSixDStrings.DETAIL_LOADING
-    } as SixDPermissionItem
+      disabledReason: PermissionThreeDStrings.DETAIL_LOADING
+    } as ThreeDPermissionItem
   }
 
   private formatRuntimePolicy(policy: PermissionPolicyState): string {
@@ -971,28 +995,28 @@ export struct PermissionPage {
     return `${description} · ${PermissionApplicationStrings.CURRENT_STATE_PREFIX}：${state}`
   }
 
-  private getSixDDescription(item: SixDPermissionItem): string {
-    let baseDescription = this.getSixDBaseDescription(item.groupKey)
+  private getThreeDDescription(item: ThreeDPermissionItem): string {
+    let baseDescription = this.getThreeDBaseDescription(item.groupKey)
     if (item.canManage && item.disabledReason.length > 0) {
       return `${baseDescription} · ${item.disabledReason}`
     }
     return baseDescription
   }
 
-  private getSixDBaseDescription(groupKey: string): string {
+  private getThreeDBaseDescription(groupKey: string): string {
     if (groupKey === 'downloads') {
-      return PermissionSixDStrings.DOWNLOADS_DESC
+      return PermissionThreeDStrings.DOWNLOADS_DESC
     }
     if (groupKey === 'desktop') {
-      return PermissionSixDStrings.DESKTOP_DESC
+      return PermissionThreeDStrings.DESKTOP_DESC
     }
     if (groupKey === 'documents') {
-      return PermissionSixDStrings.DOCUMENTS_DESC
+      return PermissionThreeDStrings.DOCUMENTS_DESC
     }
-    return PermissionApplicationStrings.SIX_D_GROUP_DESC
+    return PermissionApplicationStrings.THREE_D_GROUP_DESC
   }
 
-  private formatSixDState(state: SixDManagedState): string {
+  private formatThreeDState(state: ThreeDManagedState): string {
     if (state === 'granted') {
       return PermissionApplicationStrings.POLICY_ALLOWED
     }
@@ -1000,10 +1024,10 @@ export struct PermissionPage {
       return PermissionApplicationStrings.POLICY_DENIED
     }
     if (state === 'undeclared') {
-      return PermissionSixDStrings.NO_DECLARED
+      return PermissionThreeDStrings.NO_DECLARED
     }
     if (state === 'unsupported') {
-      return PermissionApplicationStrings.SIX_D_UNSUPPORTED
+      return PermissionApplicationStrings.THREE_D_UNSUPPORTED
     }
     return PermissionApplicationStrings.POLICY_DEFAULT
   }
