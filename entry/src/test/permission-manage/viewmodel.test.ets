@@ -19,6 +19,7 @@ export default function permissionViewModelTest() {
       expect(viewModel.state.loading).assertFalse()
       expect(viewModel.state.summary.appCount).assertEqual(0)
       expect(viewModel.state.applications.length).assertEqual(0)
+      expect(viewModel.state.selectedApplication).assertNull()
     })
 
     it('should load initial skeleton state without system side effects', 0, async (done: Function) => {
@@ -354,6 +355,23 @@ export default function permissionViewModelTest() {
 
       expect(viewModel.state.filteredApplications.length).assertEqual(1)
       expect(viewModel.state.selectedAppKey).assertEqual('')
+    })
+
+    it('should bind selected application by app key instead of label', 0, () => {
+      let viewModel = new PermissionViewModel()
+      viewModel.state.applications = ApplicationInventoryRepository.normalizeApplications(100, [
+        { bundleName: 'com.example.first', label: 'Label' } as ApplicationInventoryRawRecord,
+        { bundleName: 'com.example.second', label: 'Label' } as ApplicationInventoryRawRecord
+      ], 'com.huawei.securitytool')
+      viewModel.setSearchKeyword('')
+
+      let second = viewModel.state.filteredApplications.find((app: ManagedApplicationInfo): boolean =>
+        app.bundleName === 'com.example.second'
+      )
+      viewModel.selectApplication(second?.key ?? '')
+
+      expect(viewModel.state.selectedApplication?.bundleName).assertEqual('com.example.second')
+      expect(viewModel.state.selectedApplication?.label).assertEqual('Label')
     })
   })
 }

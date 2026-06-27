@@ -90,8 +90,9 @@ export class PermissionViewModel {
   }
 
   selectApplication(appKey: string): void {
-    let exists = this.state.filteredApplications.some((app: ManagedApplicationInfo): boolean => app.key === appKey)
-    this.state.selectedAppKey = exists ? appKey : ''
+    let selectedApp = this.state.filteredApplications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
+    this.state.selectedAppKey = selectedApp?.key ?? ''
+    this.state.selectedApplication = selectedApp ?? null
     this.state.selectedPermissionProfile = null
     this.state.selectedAppRefreshing = false
     this.state.policyLoading = false
@@ -125,6 +126,7 @@ export class PermissionViewModel {
     let previousState = this.createAccountSwitchSnapshot()
     this.state.selectedAccountId = accountId
     this.state.selectedAppKey = ''
+    this.state.selectedApplication = null
     this.state.selectedPermissionProfile = null
     this.state.policyRecords = []
     this.state.selectedAppRefreshing = false
@@ -327,6 +329,7 @@ export class PermissionViewModel {
     return {
       selectedAccountId: this.state.selectedAccountId,
       selectedAppKey: this.state.selectedAppKey,
+      selectedApplication: this.state.selectedApplication,
       selectedPermissionProfile: this.state.selectedPermissionProfile,
       inventoryMessage: this.state.inventoryMessage,
       policyRecords: this.state.policyRecords,
@@ -342,6 +345,7 @@ export class PermissionViewModel {
   private restoreAccountSwitchSnapshot(snapshot: AccountSwitchSnapshot): void {
     this.state.selectedAccountId = snapshot.selectedAccountId
     this.state.selectedAppKey = snapshot.selectedAppKey
+    this.state.selectedApplication = snapshot.selectedApplication
     this.state.selectedPermissionProfile = snapshot.selectedPermissionProfile
     this.state.inventoryMessage = snapshot.inventoryMessage
     this.state.policyRecords = snapshot.policyRecords
@@ -391,12 +395,8 @@ export class PermissionViewModel {
   private updateFilteredApplications(): void {
     this.state.filteredApplications = PermissionService.filterApplications(this.state.applications, this.state.searchKeyword)
     if (this.state.filteredApplications.length === 0) {
-      if (this.state.selectedAppKey.length > 0 || this.state.selectedPermissionProfile !== null) {
-        this.state.selectedAppKey = ''
-        this.state.selectedPermissionProfile = null
-        this.state.selectedAppRefreshing = false
-        this.state.policyLoading = false
-        this.permissionProfileRequestSeq++
+      if (this.hasSelectedApplicationState()) {
+        this.clearSelectedApplication()
       }
       return
     }
@@ -404,20 +404,41 @@ export class PermissionViewModel {
       app.key === this.state.selectedAppKey
     )
     if (!selectedExists && this.state.selectedAppKey.length > 0) {
-      this.state.selectedAppKey = ''
-      this.state.selectedPermissionProfile = null
-      this.state.selectedAppRefreshing = false
-      this.state.policyLoading = false
-      this.permissionProfileRequestSeq++
+      this.clearSelectedApplication()
+      return
     }
+    this.syncSelectedApplicationFromApplications()
   }
 
   private getSelectedApplication(): ManagedApplicationInfo | undefined {
-    return this.getApplicationByKey(this.state.selectedAppKey)
+    return this.state.selectedApplication ?? undefined
   }
 
   private getApplicationByKey(appKey: string): ManagedApplicationInfo | undefined {
     return this.state.applications.find((app: ManagedApplicationInfo): boolean => app.key === appKey)
+  }
+
+  private hasSelectedApplicationState(): boolean {
+    return this.state.selectedAppKey.length > 0 ||
+      this.state.selectedApplication !== null ||
+      this.state.selectedPermissionProfile !== null
+  }
+
+  private clearSelectedApplication(): void {
+    this.state.selectedAppKey = ''
+    this.state.selectedApplication = null
+    this.state.selectedPermissionProfile = null
+    this.state.selectedAppRefreshing = false
+    this.state.policyLoading = false
+    this.permissionProfileRequestSeq++
+  }
+
+  private syncSelectedApplicationFromApplications(): void {
+    if (this.state.selectedAppKey.length === 0) {
+      this.state.selectedApplication = null
+      return
+    }
+    this.state.selectedApplication = this.getApplicationByKey(this.state.selectedAppKey) ?? null
   }
 
   private async refreshAccountPolicyState(appKey: string = '', requestSeq: number = -1): Promise<void> {
@@ -657,6 +678,7 @@ interface ApplicationPolicyUpdate {
 interface AccountSwitchSnapshot {
   selectedAccountId: number
   selectedAppKey: string
+  selectedApplication: ManagedApplicationInfo | null
   selectedPermissionProfile: ApplicationPermissionProfile | null
   inventoryMessage: string
   policyRecords: PermissionPolicyRecord[]

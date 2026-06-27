@@ -96,9 +96,7 @@ export struct PermissionPage {
   }
 
   private getSelectedApplication(): ManagedApplicationInfo | undefined {
-    return this.viewModel.state.filteredApplications.find((app: ManagedApplicationInfo): boolean =>
-      app.key === this.viewModel.state.selectedAppKey
-    )
+    return this.viewModel.state.selectedApplication ?? undefined
   }
 
   private getApplicationOptions(): string[] {
@@ -252,6 +250,12 @@ export struct PermissionPage {
 
   private canOperateAction(actionKey: string): boolean {
     return !this.hasProcessingAction() || this.isActionProcessing(actionKey)
+  }
+
+  private canOperateApplicationPolicy(actionKey: string): boolean {
+    return this.canOperateAction(actionKey) &&
+      !this.viewModel.state.selectedAppRefreshing &&
+      !this.viewModel.state.policyLoading
   }
 
   private getInstallActionKey(): string {
@@ -821,7 +825,7 @@ export struct PermissionPage {
       selectedIndex: this.getRunningPolicyIndex(app.runningPolicy),
       selectWidth: 116,
       processing: this.isActionProcessing(this.getRunningActionKey(app)),
-      enabledValue: this.canOperateAction(this.getRunningActionKey(app)),
+      enabledValue: this.canOperateApplicationPolicy(this.getRunningActionKey(app)),
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextPolicy = this.runningPolicyByIndex(index)
@@ -847,7 +851,7 @@ export struct PermissionPage {
       selectedIndex: this.getNetworkPolicyIndex(app.networkPolicy),
       selectWidth: 116,
       processing: this.isActionProcessing(this.getNetworkActionKey(app)),
-      enabledValue: this.canOperateAction(this.getNetworkActionKey(app)) && app.uid > 0,
+      enabledValue: this.canOperateApplicationPolicy(this.getNetworkActionKey(app)) && app.uid > 0,
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextPolicy = this.networkPolicyByIndex(index)
@@ -874,7 +878,7 @@ export struct PermissionPage {
       selectedIndex: this.getUninstallProtectedIndex(app.uninstallProtected),
       selectWidth: 116,
       processing: this.isActionProcessing(this.getUninstallActionKey(app)),
-      enabledValue: this.canOperateAction(this.getUninstallActionKey(app)),
+      enabledValue: this.canOperateApplicationPolicy(this.getUninstallActionKey(app)),
       currentTheme: this.currentTheme,
       onSelectAsync: async (index: number): Promise<boolean> => {
         let nextEnabled = this.uninstallProtectedByIndex(index)
@@ -907,7 +911,7 @@ export struct PermissionPage {
           selectedIndex: this.getSixDStateIndexForItem(item),
           selectWidth: 116,
           processing: this.isActionProcessing(this.getSixDActionKey(app, item)),
-          enabledValue: this.canOperateAction(this.getSixDActionKey(app, item)) && item.canManage,
+          enabledValue: this.canOperateApplicationPolicy(this.getSixDActionKey(app, item)) && item.canManage,
           currentTheme: this.currentTheme,
           onSelectAsync: async (index: number): Promise<boolean> => {
             let nextState = this.sixDStateByIndex(index)

@@ -10,6 +10,7 @@ import {
   PermissionSummary,
   SixDManagedState
 } from '../../models/PermissionModels'
+import { taskpool } from '@kit.ArkTS'
 import { PermissionApplicationStrings, PermissionSixDStrings } from '../../constants/modules/PermissionStrings'
 import { ApplicationInventoryRepository } from './ApplicationInventoryRepository'
 import { ApplicationControlLists, ApplicationControlRepository } from './ApplicationControlRepository'
@@ -17,6 +18,10 @@ import { ApplicationNetworkPolicyRepository } from './ApplicationNetworkPolicyRe
 import { PermissionAccountProvider } from './PermissionAccountProvider'
 import { PermissionPolicyLocalRepository } from './PermissionPolicyLocalRepository'
 import { SixDPermissionRepository } from './SixDPermissionRepository'
+import {
+  PermissionSystemPolicyReadResult,
+  readPermissionSystemPolicyTask
+} from './PermissionSystemPolicyReadTask'
 import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'PermissionService'
@@ -64,12 +69,12 @@ export class PermissionService {
     accountId: number,
     applications: ManagedApplicationInfo[]
   ): Promise<ApplicationInventoryResult> {
-    let controlLists = ApplicationControlRepository.loadControlLists(accountId)
+    let systemPolicyRead = await PermissionService.loadSystemPolicyRead(accountId)
+    let controlLists = systemPolicyRead.controlLists
     let applicationsWithControl = ApplicationControlRepository.mergeControlStates(applications, controlLists)
-    let restrictedAppUids = ApplicationNetworkPolicyRepository.loadRestrictedAppUids()
     let applicationsWithNetwork = ApplicationNetworkPolicyRepository.mergeNetworkStates(
       applicationsWithControl,
-      restrictedAppUids
+      systemPolicyRead.restrictedAppUids
     )
     let policyRecords = PermissionService.mergeLocalPolicyRecords(
       PermissionService.buildPolicyRecords(accountId, applicationsWithNetwork, controlLists),
@@ -79,6 +84,21 @@ export class PermissionService {
       applications: applicationsWithNetwork,
       policyRecords: policyRecords
     } as ApplicationInventoryResult
+  }
+
+  private static async loadSystemPolicyRead(accountId: number): Promise<PermissionSystemPolicyReadResult> {
+    try {
+      let result = await taskpool.execute(
+        readPermissionSystemPolicyTask,
+        accountId
+      ) as PermissionSystemPolicyReadResult | undefined
+      if (result !== undefined && result.controlLists !== undefined && Array.isArray(result.restrictedAppUids)) {
+        return result
+      }
+    } catch (err) {
+      LogUtils.warn(TAG, `loadSystemPolicyRead taskpool failed: ${JSON.stringify(err)}`)
+    }
+    return readPermissionSystemPolicyTask(accountId)
   }
 
   static buildSummary(applications: ManagedApplicationInfo[]): PermissionSummary {
