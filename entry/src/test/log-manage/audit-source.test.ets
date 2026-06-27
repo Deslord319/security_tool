@@ -10,11 +10,14 @@ import {
 } from '../../main/ets/viewmodels/log-manage/presentation/LogPresentationMapper'
 import { parseAuditEventToLogEntry } from '../../main/ets/services/log-manage/source/LogAuditEventMapper'
 import {
+  API26_VERIFIED_FILE_AUDIT_EVENT_IDS,
   AUDIT_EVENT_DESCRIPTIONS_BY_ID,
   AUDIT_EVENT_TYPES_BY_ID,
   AUDIT_LOG_EVENT_IDS,
   AUTH_AUDIT_EVENT_IDS,
-  CRASH_AUDIT_EVENT_IDS
+  CRASH_AUDIT_EVENT_IDS,
+  FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID,
+  FILE_AUDIT_EVENT_IDS
 } from '../../main/ets/services/log-manage/source/LogAuditEventIds'
 
 interface AuditLogEntryWithDetailRows extends LogEntry {
@@ -366,6 +369,138 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'file.filePath')).assertEqual('/storage/Users/currentUser/Download/333.txt')
       expect(getRowValue(rows, 'file.oldPath')).assertEqual('/storage/Users/currentUser/Download/新建 文本文档.txt')
       expect(getRowValue(rows, 'file.newPath')).assertEqual('/storage/Users/currentUser/Download/333.txt')
+    })
+
+    it('should include verified API26 file audit events in file subscription scope', 0, () => {
+      const verifiedIds: number[] = [
+        0x1C001104,
+        0x1C001106,
+        0x1C001109,
+        0x1C00110A,
+        0x1C00110B,
+        0x1C00110C,
+        0x1C00110D
+      ]
+
+      expect(API26_VERIFIED_FILE_AUDIT_EVENT_IDS.length).assertEqual(verifiedIds.length)
+      for (const eventId of verifiedIds) {
+        expect(API26_VERIFIED_FILE_AUDIT_EVENT_IDS.includes(eventId)).assertTrue()
+        expect(FILE_AUDIT_EVENT_IDS.includes(eventId)).assertTrue()
+        expect(AUDIT_EVENT_TYPES_BY_ID.get(eventId)).assertEqual(LogEventType.FILE)
+      }
+    })
+
+    it('should expose verified API26 file audit event descriptions', 0, () => {
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C001104)).assertEqual('FILE_CREATE：文件创建事件')
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C001106)).assertEqual('FILE_CLOSE：文件关闭事件')
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C001109)).assertEqual('FILE_COPY：文件复制事件')
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C00110A)).assertEqual('FILE_SETOWNER：文件属主或属组变更事件')
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C00110B)).assertEqual('FILE_SETMODE：文件权限模式变更事件')
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C00110C)).assertEqual('FILE_SETEXTATTR：设置文件扩展属性事件')
+      expect(FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(0x1C00110D)).assertEqual('FILE_DELETEEXTATTR：删除文件扩展属性事件')
+    })
+
+    it('should map FILE_SETMODE description and new mode detail rows', 0, () => {
+      let event = {
+        eventId: 0x1C00110B,
+        timestamp: '20260626103000',
+        userId: 100,
+        content: JSON.stringify({
+          event_name: 'file_chmod',
+          file_path: '/data/service/el2/100/hmdfs/account/files/Docs/Download/security_audit_probe_20260626/03_renamed.txt',
+          file_newmode: '600'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event)
+      let rows = getDetailRows(entry)
+
+      expect(!!entry).assertTrue()
+      expect(entry!.eventType).assertEqual(LogEventType.FILE)
+      expect(getRowValue(rows, 'file.description')).assertEqual('FILE_SETMODE：文件权限模式变更事件')
+      expect(getRowValue(rows, 'file.operation')).assertEqual('file_chmod')
+      expect(getRowValue(rows, 'file.filePath')).assertEqual('/storage/Users/currentUser/Download/security_audit_probe_20260626/03_renamed.txt')
+      expect(getRowValue(rows, 'file.newMode')).assertEqual('600')
+    })
+
+    it('should map FILE_SETOWNER new owner detail rows when fields exist', 0, () => {
+      let event = {
+        eventId: 0x1C00110A,
+        timestamp: '20260626103100',
+        userId: 100,
+        content: JSON.stringify({
+          event_name: 'file_chown',
+          file_path: '/data/service/el2/100/hmdfs/account/files/Docs/Download/security_audit_probe_20260626/03_renamed.txt',
+          file_newuid: 20001006,
+          file_newgid: 1006
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event)
+      let rows = getDetailRows(entry)
+
+      expect(!!entry).assertTrue()
+      expect(getRowValue(rows, 'file.description')).assertEqual('FILE_SETOWNER：文件属主或属组变更事件')
+      expect(getRowValue(rows, 'file.newUid')).assertEqual('20001006')
+      expect(getRowValue(rows, 'file.newGid')).assertEqual('1006')
+    })
+
+    it('should map xattr name detail rows for verified API26 xattr file events', 0, () => {
+      let setEvent = {
+        eventId: 0x1C00110C,
+        timestamp: '20260626103200',
+        userId: 100,
+        content: JSON.stringify({
+          event_name: 'file_setxattr',
+          file_path: '/data/service/el2/100/hmdfs/account/files/Docs/Download/security_audit_probe_20260626/03_renamed.txt',
+          file_xattrname: 'user.security_audit_probe'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+      let deleteEvent = {
+        eventId: 0x1C00110D,
+        timestamp: '20260626103300',
+        userId: 100,
+        content: JSON.stringify({
+          event_name: 'file_removexattr',
+          file_path: '/data/service/el2/100/hmdfs/account/files/Docs/Download/security_audit_probe_20260626/03_renamed.txt',
+          file_xattrname: 'user.security_audit_probe'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let setRows = getDetailRows(parseAuditEventToLogEntry(setEvent))
+      let deleteRows = getDetailRows(parseAuditEventToLogEntry(deleteEvent))
+
+      expect(getRowValue(setRows, 'file.description')).assertEqual('FILE_SETEXTATTR：设置文件扩展属性事件')
+      expect(getRowValue(setRows, 'file.xattrName')).assertEqual('user.security_audit_probe')
+      expect(getRowValue(deleteRows, 'file.description')).assertEqual('FILE_DELETEEXTATTR：删除文件扩展属性事件')
+      expect(getRowValue(deleteRows, 'file.xattrName')).assertEqual('user.security_audit_probe')
+    })
+
+    it('should map FILE_COPY description and keep target path as primary path', 0, () => {
+      let event = {
+        eventId: 0x1C001109,
+        timestamp: '20260626103400',
+        userId: 100,
+        content: JSON.stringify({
+          event_name: 'file_copyfile',
+          file_oldpath: '/data/service/el2/100/hmdfs/account/files/Docs/Download/security_audit_probe_20260626/01_create.txt',
+          file_newpath: '/data/service/el2/100/hmdfs/account/files/Docs/Download/security_audit_probe_20260626/02_copy.txt'
+        }),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event)
+      let rows = getDetailRows(entry)
+
+      expect(!!entry).assertTrue()
+      expect(entry!.filePath).assertEqual('/storage/Users/currentUser/Download/security_audit_probe_20260626/02_copy.txt')
+      expect(getRowValue(rows, 'file.description')).assertEqual('FILE_COPY：文件复制事件')
+      expect(getRowValue(rows, 'file.oldPath')).assertEqual('/storage/Users/currentUser/Download/security_audit_probe_20260626/01_create.txt')
+      expect(getRowValue(rows, 'file.newPath')).assertEqual('/storage/Users/currentUser/Download/security_audit_probe_20260626/02_copy.txt')
     })
 
     it('should map general notify events into audit log entries with raw json', 0, () => {
