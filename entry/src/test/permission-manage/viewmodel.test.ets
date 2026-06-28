@@ -106,6 +106,35 @@ export default function permissionViewModelTest() {
       done()
     })
 
+    it('should apply account install policies from initial state', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let loadInitialStateMock = mockKit.mockFunc(PermissionService, PermissionService.loadInitialState)
+        when(loadInitialStateMock)().afterReturn(Promise.resolve({
+          selectedAccountId: 100,
+          selectedAppKey: '',
+          inventoryMessage: '',
+          accounts: [buildPermissionAccount(100, true)],
+          appSnapshots: [],
+          installPolicies: [{
+            accountId: 100,
+            policyId: 'com.example.future',
+            policy: 'denied'
+          } as AccountInstallPolicySnapshot]
+        } as PermissionInitialData))
+
+        await viewModel.loadInitialState()
+
+        expect(viewModel.state.installPolicies.length).assertEqual(1)
+        expect(viewModel.state.policyRecords.length).assertEqual(1)
+        expect(viewModel.state.policyRecords[0].actionKind).assertEqual('install-deny')
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should not overwrite policy state when initial state is requested after initialization', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
@@ -696,6 +725,72 @@ export default function permissionViewModelTest() {
       expect(viewModel.state.selectedAppKey).assertEqual(secondKey)
     })
 
+    it('should only load selected app 3D details when target application changes', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let profileCalls = 0
+        let accountSnapshotCalls = 0
+        let loadPermissionProfileMock = mockKit.mockFunc(PermissionService, PermissionService.loadPermissionProfile)
+        let loadAccountPolicySnapshotMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccountPolicySnapshot)
+        when(loadPermissionProfileMock)(ArgumentMatchers.any).afterAction((
+          snapshot: PermissionAppSnapshot
+        ): Promise<ApplicationPermissionProfile> => {
+          profileCalls++
+          let profile = buildEmptyPermissionProfile(snapshot)
+          profile.threeDGroups = [{
+            groupKey: 'downloads',
+            title: 'Downloads',
+            permissionNames: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY'],
+            declaredPermissions: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY'],
+            managedState: 'denied',
+            canManage: true,
+            disabledReason: ''
+          } as ThreeDPermissionItem]
+          return Promise.resolve(profile)
+        })
+        when(loadAccountPolicySnapshotMock)(ArgumentMatchers.any).afterAction((
+          _accountId: number,
+          snapshots: PermissionAppSnapshot[]
+        ): Promise<ApplicationInventoryResult> => {
+          accountSnapshotCalls++
+          return Promise.resolve({
+            appSnapshots: snapshots,
+            installPolicies: []
+          } as ApplicationInventoryResult)
+        })
+
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.appSnapshots = [buildAppSnapshot(app, true, true, true)]
+        viewModel.state.installPolicies = [{
+          accountId: 100,
+          policyId: 'com.example.future',
+          policy: 'denied'
+        } as AccountInstallPolicySnapshot]
+
+        let result = await viewModel.selectApplicationAndLoadDetails(app.appKey)
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean =>
+          item.appKey === app.appKey
+        )
+        let downloadsGroup = selectedApp?.threeDGroups.find((item: ThreeDPermissionItem): boolean =>
+          item.groupKey === 'downloads'
+        )
+
+        expect(result).assertTrue()
+        expect(profileCalls).assertEqual(1)
+        expect(accountSnapshotCalls).assertEqual(0)
+        expect(selectedApp?.uninstallProtected).assertTrue()
+        expect(selectedApp?.runningBlocked).assertTrue()
+        expect(selectedApp?.networkBlocked).assertTrue()
+        expect(viewModel.state.installPolicies.length).assertEqual(1)
+        expect(downloadsGroup?.managedState).assertEqual('denied')
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should refresh selected application state after a successful running policy write', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
@@ -779,34 +874,59 @@ export default function permissionViewModelTest() {
       }
     })
 
-    it('should keep policy state while refreshing application list', 0, async (done: Function) => {
+    it('should apply account policy snapshot while keeping loaded 3D detail', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
         let viewModel = new PermissionViewModel()
         let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let previousSnapshot = buildAppSnapshot(app, true, true, true)
+        previousSnapshot.threeDLoadState = 'loaded'
+        previousSnapshot.threeDGroups = [{
+          groupKey: 'downloads',
+          title: 'Downloads',
+          permissionNames: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY'],
+          declaredPermissions: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY'],
+          managedState: 'denied',
+          canManage: true,
+          disabledReason: ''
+        } as ThreeDPermissionItem]
+        previousSnapshot.threeDPolicies = [{
+          recordId: `three-d:${app.appKey}:downloads`,
+          appKey: app.appKey,
+          groupKey: 'downloads',
+          actionKind: 'three-d',
+          policyValue: 'denied',
+          policyType: 'Downloads',
+          targetName: 'Label',
+          targetDetail: 'com.example.label / Downloads',
+          statusLabel: 'denied',
+          scopeLabel: 'account 100'
+        } as PermissionThreeDPolicySnapshot]
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
-          appSnapshots: [buildAppSnapshot(app)],
-          installPolicies: []
+          appSnapshots: [buildAppSnapshot(app, false, false, false)],
+          installPolicies: [{
+            accountId: 100,
+            policyId: 'com.example.future',
+            policy: 'denied'
+          } as AccountInstallPolicySnapshot]
         } as ApplicationInventoryResult))
 
         viewModel.state.selectedAccountId = 100
         viewModel.state.selectedAppKey = app.appKey
-        viewModel.state.appSnapshots = [buildAppSnapshot(app, true, true, true)]
-        viewModel.state.installPolicies = [{
-          accountId: 100,
-          policyId: 'com.example.future',
-          policy: 'denied'
-        } as AccountInstallPolicySnapshot]
+        viewModel.state.appSnapshots = [previousSnapshot]
+        viewModel.state.installPolicies = []
 
         let success = await viewModel.refreshApplicationList()
 
         let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
         expect(success).assertTrue()
-        expect(selectedApp?.uninstallProtected).assertTrue()
-        expect(selectedApp?.runningBlocked).assertTrue()
-        expect(selectedApp?.networkBlocked).assertTrue()
-        expect(viewModel.state.policyRecords.length).assertEqual(4)
+        expect(selectedApp?.uninstallProtected).assertFalse()
+        expect(selectedApp?.runningBlocked).assertFalse()
+        expect(selectedApp?.networkBlocked).assertFalse()
+        expect(selectedApp?.threeDLoadState).assertEqual('loaded')
+        expect(viewModel.state.installPolicies.length).assertEqual(1)
+        expect(viewModel.state.policyRecords.length).assertEqual(2)
       } finally {
         mockKit.clearAll()
         done()

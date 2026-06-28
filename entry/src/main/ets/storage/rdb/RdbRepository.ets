@@ -385,7 +385,7 @@ export abstract class RdbRepository<TRecord, TQuery> {
     return store
   }
 
-  private async executeSql(
+  protected async executeSql(
     sql: string,
     args: Array<relationalStore.ValueType>,
     operationName: string

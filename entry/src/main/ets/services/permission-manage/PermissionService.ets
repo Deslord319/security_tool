@@ -31,23 +31,24 @@ export class PermissionService {
   static async loadInitialState(): Promise<PermissionInitialData> {
     let accountResult = await PermissionAccountProvider.loadAccounts()
     let selectedAccountId = accountResult.selectedAccountId
-    let inventory = await ApplicationInventoryRepository.loadApplications(selectedAccountId)
+    let inventory = await PermissionService.loadApplications(selectedAccountId)
     return {
       selectedAccountId: selectedAccountId,
       selectedAppKey: '',
       inventoryMessage: inventory.message ?? accountResult.message ?? '',
       accounts: accountResult.accounts,
       appSnapshots: inventory.appSnapshots,
-      installPolicies: []
+      installPolicies: inventory.installPolicies
     }
   }
 
   static async loadApplications(accountId: number): Promise<ApplicationInventoryResult> {
     let inventory = await ApplicationInventoryRepository.loadApplications(accountId)
+    let policySnapshot = await PermissionService.loadAccountPolicySnapshot(accountId, inventory.appSnapshots)
     return {
-      appSnapshots: inventory.appSnapshots,
-      installPolicies: [],
-      message: inventory.message
+      appSnapshots: policySnapshot.appSnapshots,
+      installPolicies: policySnapshot.installPolicies,
+      message: inventory.message ?? policySnapshot.message
     } as ApplicationInventoryResult
   }
 
