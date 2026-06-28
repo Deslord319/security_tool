@@ -23,6 +23,10 @@ import { PermissionService } from '../../main/ets/services/permission-manage/Per
 import { PermissionViewModel } from '../../main/ets/viewmodels/permission-manage/PermissionViewModel'
 import { ApplicationNetworkPolicyRepository } from '../../main/ets/services/permission-manage/ApplicationNetworkPolicyRepository'
 import { PermissionPolicyLocalRepository } from '../../main/ets/services/permission-manage/PermissionPolicyLocalRepository'
+import {
+  PermissionAccountPolicySnapshotTaskData,
+  PermissionAccountPolicyTaskRunner
+} from '../../main/ets/services/permission-manage/PermissionAccountPolicyTasks'
 
 function buildPermissionAccount(accountId: number, isForeground: boolean = false): PermissionManagedAccount {
   return {
@@ -1275,10 +1279,11 @@ export default function permissionViewModelTest() {
           lastError: ''
         } as PermissionLocalPolicyRecord)
 
-        let loadControlListsMock = mockKit.mockFunc(ApplicationControlRepository, ApplicationControlRepository.loadControlListsStrict)
-        let loadRestrictedUidsMock = mockKit.mockFunc(ApplicationNetworkPolicyRepository, ApplicationNetworkPolicyRepository.loadRestrictedAppUidsStrict)
-        when(loadControlListsMock)().afterReturn(ApplicationControlRepository.createEmptyControlLists())
-        when(loadRestrictedUidsMock)().afterReturn([])
+        let loadSnapshotMock = mockKit.mockFunc(PermissionAccountPolicyTaskRunner, PermissionAccountPolicyTaskRunner.loadSnapshot)
+        when(loadSnapshotMock)().afterReturn(Promise.resolve({
+          controlLists: ApplicationControlRepository.createEmptyControlLists(),
+          restrictedAppUids: []
+        } as PermissionAccountPolicySnapshotTaskData))
 
         let result = await PermissionService.loadAccountPolicySnapshot(100, [snapshot])
         let records = PermissionService.buildPolicyRecordsFromState(result.appSnapshots, result.installPolicies)

@@ -219,7 +219,7 @@ export class ApplicationControlRepository {
 
   private static getAllowedInstallBundles(accountId: number): string[] {
     return ApplicationControlRepository.safeGetList(
-      () => ApplicationControlRepository.getAllowedInstallBundles(accountId),
+      () => enterpriseBundleManager.getAllowedInstallBundlesSync(ADMIN_WANT, accountId),
       [],
       'getAllowedInstallBundlesSync'
     )
@@ -227,7 +227,7 @@ export class ApplicationControlRepository {
 
   private static getDisallowedInstallBundles(accountId: number): string[] {
     return ApplicationControlRepository.safeGetList(
-      () => ApplicationControlRepository.getDisallowedInstallBundles(accountId),
+      () => enterpriseBundleManager.getDisallowedInstallBundlesSync(ADMIN_WANT, accountId),
       [],
       'getDisallowedInstallBundlesSync'
     )

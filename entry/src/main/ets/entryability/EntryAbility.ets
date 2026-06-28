@@ -21,6 +21,8 @@ import {
   AccountEventType
 } from '../contracts/AccountEventContract';
 import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider';
+import { FirewallLocalRepository } from '../services/firewall/FirewallLocalRepository';
+import { FirewallRuleDeployment, FirewallRuleIntent } from '../services/firewall/FirewallModels';
 import { LooseRecord } from '../types/LooseValueTypes';
 
 const ENTRYABILITY_TAG = 'entryAbility'
@@ -274,10 +276,45 @@ export default class EntryAbility extends UIAbility {
       }
       if (payload.type === AccountEventType.REMOVED) {
         await SystemUserProvider.trackRemovedUser(payload.userId)
+        await this.cleanupFirewallLocalDataForRemovedUser(payload.userId)
         LogUtils.info(ENTRYABILITY_TAG, 'account removed tracked in UIAbility: userId=%{public}d', payload.userId)
       }
     } catch (err) {
       LogUtils.warn(ENTRYABILITY_TAG, 'handleAccountEvent failed: %{public}s', JSON.stringify(err))
+    }
+  }
+
+  private async cleanupFirewallLocalDataForRemovedUser(userId: number): Promise<void> {
+    let data = await FirewallLocalRepository.loadRuleIntentMappingData(this.context)
+    let nextRuleIntents: FirewallRuleIntent[] = []
+    data.ruleIntents.forEach((intent: FirewallRuleIntent) => {
+      let targetUserIds = intent.targetUserIds.filter((targetUserId: number): boolean => targetUserId !== userId)
+      if (targetUserIds.length === 0) {
+        return
+      }
+      intent.targetUserIds = targetUserIds
+      nextRuleIntents.push(intent)
+    })
+
+    let validRuleIds = new Set<string>()
+    nextRuleIntents.forEach((intent: FirewallRuleIntent) => {
+      validRuleIds.add(intent.localRuleId)
+    })
+    let nextRuleDeployments = data.ruleDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+      deployment.userId !== userId && validRuleIds.has(deployment.localRuleId)
+    )
+    let mappingSaved = await FirewallLocalRepository.saveRuleIntentMappingData(this.context, {
+      version: data.version,
+      ruleIntents: nextRuleIntents,
+      ruleDeployments: nextRuleDeployments
+    })
+    if (!mappingSaved) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'cleanup firewall rule mapping failed for removed user: userId=%{public}d', userId)
+    }
+
+    let policyModeRemoved = await FirewallLocalRepository.removeUserPolicyMode(this.context, userId)
+    if (!policyModeRemoved) {
+      LogUtils.warn(ENTRYABILITY_TAG, 'cleanup firewall user policy mode failed for removed user: userId=%{public}d', userId)
     }
   }
 

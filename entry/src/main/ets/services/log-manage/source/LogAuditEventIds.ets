@@ -1,13 +1,34 @@
 import { securityAudit } from '@kit.DeviceSecurityKit'
 import { LogEventType } from '../../../models/LogModels'
 
+export const API26_VERIFIED_FILE_AUDIT_EVENT_IDS: number[] = [
+  0x1C001104, // FILE_CREATE
+  0x1C001106, // FILE_CLOSE
+  0x1C001109, // FILE_COPY
+  0x1C00110A, // FILE_SETOWNER
+  0x1C00110B, // FILE_SETMODE
+  0x1C00110C, // FILE_SETEXTATTR
+  0x1C00110D // FILE_DELETEEXTATTR
+]
+
+export const FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID: Map<number, string> = new Map<number, string>([
+  [0x1C001104, 'FILE_CREATE：文件创建事件'],
+  [0x1C001106, 'FILE_CLOSE：文件关闭事件'],
+  [0x1C001109, 'FILE_COPY：文件复制事件'],
+  [0x1C00110A, 'FILE_SETOWNER：文件属主或属组变更事件'],
+  [0x1C00110B, 'FILE_SETMODE：文件权限模式变更事件'],
+  [0x1C00110C, 'FILE_SETEXTATTR：设置文件扩展属性事件'],
+  [0x1C00110D, 'FILE_DELETEEXTATTR：删除文件扩展属性事件']
+])
+
 export const FILE_AUDIT_EVENT_IDS: number[] = [
   securityAudit.NotifyEvent.FILE,
   securityAudit.NotifyEvent.FILE_INTERCEPTED,
   securityAudit.NotifyEvent.KIA_CREATE,
   securityAudit.NotifyEvent.KIA_READ,
   securityAudit.NotifyEvent.KIA_VARIANT,
-  securityAudit.NotifyEvent.KIA_INTERCEPT
+  securityAudit.NotifyEvent.KIA_INTERCEPT,
+  ...API26_VERIFIED_FILE_AUDIT_EVENT_IDS
 ]
 
 export const AUTH_AUDIT_EVENT_IDS: number[] = [
@@ -66,6 +87,13 @@ export const AUDIT_EVENT_TYPES_BY_ID: Map<number, LogEventType> = new Map<number
   [securityAudit.NotifyEvent.KIA_READ, LogEventType.FILE],
   [securityAudit.NotifyEvent.KIA_VARIANT, LogEventType.FILE],
   [securityAudit.NotifyEvent.KIA_INTERCEPT, LogEventType.FILE],
+  [0x1C001104, LogEventType.FILE],
+  [0x1C001106, LogEventType.FILE],
+  [0x1C001109, LogEventType.FILE],
+  [0x1C00110A, LogEventType.FILE],
+  [0x1C00110B, LogEventType.FILE],
+  [0x1C00110C, LogEventType.FILE],
+  [0x1C00110D, LogEventType.FILE],
   [securityAudit.NotifyEvent.ACCOUNT, LogEventType.ACCOUNT],
   [0x27000004, LogEventType.ACCOUNT],
   [0x27000005, LogEventType.ACCOUNT],
