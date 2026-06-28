@@ -203,16 +203,9 @@ export class PermissionViewModel {
       return
     }
     try {
-      let policySnapshotPromise = PermissionService.loadAccountPolicySnapshot(
-        this.state.selectedAccountId,
-        this.state.appSnapshots
-      )
-      let permissionProfilePromise = PermissionService.loadPermissionProfile(snapshot)
-      let policySnapshot = await policySnapshotPromise
-      let permissionProfile = await permissionProfilePromise
+      let permissionProfile = await PermissionService.loadPermissionProfile(snapshot)
       if (this.state.selectedAppKey === appKey && this.permissionProfileRequestSeq === requestSeq) {
-        let mergedSnapshots = this.mergePolicySnapshots(policySnapshot.appSnapshots)
-        let finalSnapshots = mergedSnapshots.map((s: PermissionAppSnapshot): PermissionAppSnapshot => {
+        let finalSnapshots = this.state.appSnapshots.map((s: PermissionAppSnapshot): PermissionAppSnapshot => {
           if (s.appKey !== permissionProfile.appKey) return s
           return {
             appKey: s.appKey, accountId: s.accountId, bundleName: s.bundleName,
@@ -225,9 +218,7 @@ export class PermissionViewModel {
           } as PermissionAppSnapshot
         })
         this.commitPermissionState({
-          appSnapshots: finalSnapshots,
-          installPolicies: policySnapshot.installPolicies,
-          inventoryMessage: policySnapshot.message ?? this.state.inventoryMessage
+          appSnapshots: finalSnapshots
         })
       }
     } finally {
@@ -462,34 +453,9 @@ export class PermissionViewModel {
 
   private applyApplicationList(inventory: ApplicationInventoryResult): void {
     this.commitPermissionState({
-      appSnapshots: this.mergeApplicationListSnapshots(inventory.appSnapshots),
+      appSnapshots: this.mergePolicySnapshots(inventory.appSnapshots),
+      installPolicies: inventory.installPolicies,
       inventoryMessage: inventory.message ?? ''
-    })
-  }
-
-  private mergeApplicationListSnapshots(nextSnapshots: PermissionAppSnapshot[]): PermissionAppSnapshot[] {
-    return nextSnapshots.map((snapshot: PermissionAppSnapshot): PermissionAppSnapshot => {
-      let previous = this.findAppSnapshot(snapshot.appKey)
-      if (previous === undefined) {
-        return snapshot
-      }
-      return {
-        appKey: snapshot.appKey,
-        accountId: snapshot.accountId,
-        bundleName: snapshot.bundleName,
-        appId: snapshot.appId,
-        appIdentifier: snapshot.appIdentifier,
-        label: snapshot.label,
-        uid: snapshot.uid,
-        appIndex: snapshot.appIndex,
-        uninstallProtected: previous.uninstallProtected,
-        runningBlocked: previous.runningBlocked,
-        networkBlocked: previous.networkBlocked,
-        threeDGroups: previous.threeDGroups,
-        threeDPolicies: previous.threeDPolicies,
-        threeDLoadState: previous.threeDLoadState,
-        threeDMessage: previous.threeDMessage
-      } as PermissionAppSnapshot
     })
   }
 
