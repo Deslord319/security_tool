@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "DDK Backend + CustomAuth Core + MDM Credential Orchestration"
 status: "draft"
 last_updated: "2026-06-29"
-version: "1.0.12"
+version: "1.0.13"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -44,7 +44,7 @@ version: "1.0.12"
 - UKey 管理指纹生成规则固定为：优先使用 `VID/PID + serial` 作为稳定标识；当设备不暴露 `serial` 时，兜底使用 `VID/PID + DDK description + deviceName + DDK deviceId` 生成弱标识，并将 `stableIdentifier=false`。弱标识中的 `deviceName` 仅作为辅助区分信息，不改变其弱稳定性判断。
 - `CustomAuthCredentialManager` 当前由 `MdmCustomAuthCredentialManager` 实现，封装 `loadNativeModule('mdm') -> openSession -> addUserCustomCredential/deleteUserCustomCredential -> closeSession`；本地 `mdmCustomCredential.d.ts` 的最小声明来源于 `C:\Users\mu\Desktop\CustomAuth\design\interface\mdm_js\@mdm.d.ts`，不再扩展 `@ohos.account.osAccount`。
 - `ManagedUKeyCredentialService` 当前由 `LockScreenCustomAuthEnrollmentService` 承担：`onUKeyAttached()` 处理第一把绑定和活动凭据注入，`onUKeyDetached()` 处理首把不在场后的活动凭据删除，`reconcileOnStartup()` 在应用运行时初始化后对账当前 UKey 在场状态、可信绑定和活动凭据。
-- `LockScreenUKeyRuntimeEnrollmentConsumer` 已接入 USB attach / detach 事件；启动对账由 `ApplicationRuntimeManager` 的身份鉴别运行时触发，不依赖外设运行时初始化。该 Consumer 作为 side-effect Consumer 返回 `null`，不写外设 trace，不改变黑白名单判定。
+- `LockScreenUKeyRuntimeEnrollmentConsumer` 已接入 USB attach / detach 事件；启动对账由 `ApplicationRuntimeManager` 的身份鉴别运行时触发，不依赖外设运行时初始化。该 Consumer 作为 side-effect Consumer 返回 `null`，不写外设 trace，不改变黑白名单判定；即使外设 trace 仓库未就绪，USB 事件仍应分发到该 Consumer。
 - `SecurityToolCustomAuthExtension` 当前落地为本应用 `ICustomAuthenticatorV1` appService：只迁移 CustomAuth 执行端最小 IPC、协议、密码学和 SecurityAsset 骨架，不迁移测试认证器页面、EntryAbility 或 AppStorage fake UKey 调试状态。`pluginInfo` 指向 `com.huawei.securitytool`，系统后续应拉起 SecurityTool 自身认证器执行端。
 - CustomAuth 执行端当前走“UKey 在场即直接认证”路径，不启用口令提示模式；RSA-4096 仅作为后续 `submitPasscode` 提示模式预留能力按需初始化，不在 appService 构造或直通 UKey 认证路径预热。
 - `AuthenticatorUKeyProvider` 当前已接入 SecurityTool 自己的首把 UKey 状态：录入完成时保存 `templateId -> UKey fingerprint`，认证时必须同时满足当前在场设备匹配首把可信绑定、且模板绑定匹配该 fingerprint；无匹配直接认证失败，不再使用参考测试包的 AppStorage fake UKey、顺序 fallback 或自动轮换。
@@ -406,9 +406,10 @@ sequenceDiagram
   7. 已完成 S6：启动时对账 UKey 在场状态、本地仓库和系统凭据；首把在场且活动凭据缺失时补注入，首把不在场且活动凭据存在时删除 stale 凭据，后端失败或多把不误注册。
   8. 已完成 S7 基础骨架：声明 `ICustomAuthenticatorV1` appService，迁移最小 CustomAuth IPC/协议/密码学/SecurityAsset 执行端，`pluginInfo` 指向 `com.huawei.securitytool`，不迁移测试 UI 和调试 EntryAbility。
   9. 已完成 S8：改造 `UKeyProvider` 严格接入 SecurityTool 自己的首把 UKey 状态，去掉生产路径 AppStorage，认证严格匹配；第二把 UKey 不匹配模板时直接失败。
-  10. 后续 S9-S10：完成运行时和真机闭环；native 读写前先用 DDK/USB/HDC 记录真实 UKey 的 VID/PID/class/interface，再决定 HID、USB、SCSI 或 USB Serial DDK 路线。
+  10. 已完成 S9：`ApplicationRuntimeManager` 挂载 `LockScreenUKeyRuntimeEnrollmentConsumer`，USB attach/detach 触发注册或删除活动凭据；外设 trace 未就绪时仍分发 side-effect Consumer，不阻断 UKey 管理。
+  11. 后续 S10：完成真机闭环；native 读写前先用 DDK/USB/HDC 记录真实 UKey 的 VID/PID/class/interface，再决定 HID、USB、SCSI 或 USB Serial DDK 路线。
 - **测试覆盖**:
-  - UT: 当前 S1-S6 由 `entry/src/test/identity/lockscreen-auth.test.ets` 覆盖 DDK USB 设备发现、DDK 失败、首把绑定、活动凭据保存、第二把拒绝、同一首把补注入、拔出删除活动凭据、首把仍在场时不删除、USB attach / detach 运行时事件、启动对账和开关关闭跳过。
+  - UT: 当前 S1-S9 由 `entry/src/test/identity/lockscreen-auth.test.ets` 覆盖 DDK USB 设备发现、DDK 失败、首把绑定、活动凭据保存、第二把拒绝、同一首把补注入、拔出删除活动凭据、首把仍在场时不删除、USB attach / detach 运行时事件、启动对账和开关关闭跳过。
   - UT: 后续可新增 `entry/src/test/identity/ukey-auth.test.ets` 覆盖更完整的 UKey 状态仓库。
   - UT: `entry/src/test/identity/lockscreen-auth.test.ets` 覆盖 `getPresentTemplateId` 严格匹配、无匹配失败、第二把 UKey 不匹配、不依赖顺序 fallback。
   - UT: 继续保留现有 `entry/src/test/identity/lockscreen-auth.test.ets` 中页面单开关和配置默认值覆盖。
@@ -446,7 +447,7 @@ sequenceDiagram
 
 1. 第一阶段: S1 -> S2 -> S3 -> S4 -> S5。目标是先跑通“插入注入、拔出删除、第二把不行”。
 2. 第二阶段: S6 -> S7 -> S8。目标是完成重启对账、CustomAuth 核心裁剪接入和认证器 UKey 严格匹配。
-3. 第三阶段: S9 -> S10。目标是运行时事件和真机闭环。
+3. 第三阶段: S9 -> S10。S9 运行时事件接入已完成；S10 继续做真机闭环。
 
 **每个 story 的完成定义**:
 
@@ -462,6 +463,7 @@ sequenceDiagram
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 (重构/新增表/用例增删) |
 |---|---|---|---|
+| 1.0.13 | 2026-06-29 | Codex | 落地 S9 运行时接入收尾：USB attach/detach side-effect Consumer 不写外设 trace，且不依赖外设 trace 仓库就绪；后续仅剩 S10 真机闭环验收。 |
 | 1.0.12 | 2026-06-29 | Codex | 收敛认证器执行端运行时初始化：当前直通 UKey 认证路径不预热 RSA-4096，RSA 仅在后续提示模式需要时按需初始化；删除测试包迁移遗留的 RSA 自测噪音。 |
 | 1.0.11 | 2026-06-29 | Codex | 收敛 CustomAuth 新增文件命名和常量边界：删除临时日志 wrapper，统一使用 `LogUtils`；`UKeyProvider.ets` 改为 `AuthenticatorUKeyProvider.ets`；泛名文件加 `CustomAuth` 前缀；AAD 常量并入认证服务，IPC code/descriptor 并入 `CustomAuthTypes.ets`。 |
 | 1.0.10 | 2026-06-29 | Codex | 落地 S8 认证器 UKeyProvider 改造：录入时保存模板到首把 UKey fingerprint 的绑定，认证时严格匹配当前首把 UKey，删除 AppStorage fake UKey、顺序 fallback 和自动轮换生产口径。 |
