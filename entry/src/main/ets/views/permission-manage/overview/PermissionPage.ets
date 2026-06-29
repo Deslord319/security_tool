@@ -38,6 +38,17 @@ import { TimedLoadingDialogRunner } from '../../../utils/TimedLoadingDialogRunne
 const TAG = 'PermissionPage'
 const PERMISSION_LOADING_MIN_DURATION_MS = 500
 const PERMISSION_LOADING_RENDER_READY_DELAY_MS = 32
+const INSTALL_BLOCK_INPUT_WIDTH = 280
+const TARGET_APPLICATION_SELECT_WIDTH =
+  INSTALL_BLOCK_INPUT_WIDTH +
+    ActionButtonStyles.HORIZONTAL_PADDING_START +
+    ActionButtonStyles.ICON_SIZE +
+    AppStyles.PADDING_SM +
+    PermissionApplicationStrings.INSTALL_BLOCK_ACTION.length * ActionButtonStyles.FONT_SIZE +
+    ActionButtonStyles.HORIZONTAL_PADDING_END +
+    AppStyles.CONTROL_ROW_ACTION_GAP -
+    (AppStyles.CONTROL_ROW_HORIZONTAL_PADDING - AppStyles.PADDING_MD)
+const POLICY_EMPTY_VERTICAL_PADDING = 28
 const POLICY_ACTION_COLUMN_WIDTH = 88
 
 @ComponentV2
@@ -394,7 +405,7 @@ export struct PermissionPage {
         EmptyStatePanel({
           title: this.getApplicationEmptyText(),
           currentTheme: this.currentTheme,
-          verticalPadding: 28
+          verticalPadding: POLICY_EMPTY_VERTICAL_PADDING
         })
       } else {
         this.targetApplicationSelectRow()
@@ -409,7 +420,7 @@ export struct PermissionPage {
       description: PermissionSectionStrings.TARGET_APPLICATION_DESC,
       options: this.getApplicationOptions(),
       selectedIndex: this.getSelectedApplicationIndex(),
-      selectWidth: 280,
+      selectWidth: TARGET_APPLICATION_SELECT_WIDTH,
       processing: this.viewModel.state.loadingSelectedApp,
       enabledValue: !this.hasProcessingAction(),
       currentTheme: this.currentTheme,
@@ -422,11 +433,18 @@ export struct PermissionPage {
   @Builder
   private applicationPolicyContent() {
     if (this.getSelectedAppSnapshot() === undefined) {
-      EmptyStatePanel({
-        title: PermissionEmptyStrings.SELECT_APPLICATION_FIRST,
-        currentTheme: this.currentTheme,
-        verticalPadding: 28
-      })
+      Text(PermissionEmptyStrings.SELECT_APPLICATION_FIRST)
+        .width('100%')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+        .textAlign(TextAlign.Center)
+        .padding({
+          left: AppStyles.TABLE_HORIZONTAL_PADDING,
+          right: AppStyles.TABLE_HORIZONTAL_PADDING,
+          top: POLICY_EMPTY_VERTICAL_PADDING,
+          bottom: POLICY_EMPTY_VERTICAL_PADDING
+        })
     } else {
       ForEach([this.getApplicationPolicyRenderKey()], (renderKey: string) => {
         PermissionApplicationPolicyPanel({
@@ -494,7 +512,7 @@ export struct PermissionPage {
         StyledTextInput({
           text: this.viewModel.state.installBlockKeyword,
           placeholder: PermissionApplicationStrings.INSTALL_BLOCK_PLACEHOLDER,
-          controlWidth: 280,
+          controlWidth: INSTALL_BLOCK_INPUT_WIDTH,
           controlHeight: 36,
           radius: AppStyles.RADIUS_SM,
           enabledValue: !this.hasProcessingAction(),
@@ -557,8 +575,8 @@ export struct PermissionPage {
         .padding({
           left: AppStyles.TABLE_HORIZONTAL_PADDING,
           right: AppStyles.TABLE_HORIZONTAL_PADDING,
-          top: 28,
-          bottom: 28
+          top: POLICY_EMPTY_VERTICAL_PADDING,
+          bottom: POLICY_EMPTY_VERTICAL_PADDING
         })
     } else {
       Column({ space: 0 }) {
