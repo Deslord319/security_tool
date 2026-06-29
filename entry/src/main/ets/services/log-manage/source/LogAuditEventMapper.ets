@@ -41,6 +41,13 @@ interface FileAuditPathInfo {
   newPath?: string
 }
 
+const EDM_OBJECT_INFO_REMARKS: Map<string, string> = new Map<string, string>([
+  ['disabled_bluetooth', '禁用蓝牙'],
+  ['disable_wifi', '禁用 Wi-Fi'],
+  ['disabled_printer', '禁用打印机'],
+  ['disable_microphone', '禁用麦克风']
+])
+
 export function parseAuditEventToLogEntry(
   event: securityAudit.AuditEvent,
   nowProvider: () => number = () => Date.now()
@@ -179,6 +186,7 @@ function buildDetailRows(
     }
     case LogEventType.AUDIT: {
       appendTextRow(rows, 'audit.description', LogManageAuditStrings.DESCRIPTION_LABEL, resolveAuditEventDescription(event.eventId))
+      appendEdmDetailRows(rows, event, sources)
       appendTextRow(rows, 'audit.rawJson', LogManageAuditStrings.RAW_JSON_LABEL, buildRawAuditJson(event))
       break
     }
@@ -194,6 +202,27 @@ function resolveAuditEventDescription(eventId: number): string {
 
 function resolveFileAuditEventDescription(eventId: number): string | undefined {
   return FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId)
+}
+
+function appendEdmDetailRows(rows: LogDetailTableRow[], event: securityAudit.AuditEvent, sources: LooseRecord[]): void {
+  if (event.eventId !== securityAudit.NotifyEvent.EDM) {
+    return
+  }
+  const objectInfo = pickString(sources, ['objectInfo'])
+  appendTextRow(rows, 'audit.edm.objectInfo', LogManageAuditStrings.EDM_OBJECT_INFO_LABEL, objectInfo)
+  appendTextRow(
+    rows,
+    'audit.edm.objectRemark',
+    LogManageAuditStrings.EDM_OBJECT_REMARK_LABEL,
+    resolveEdmObjectInfoRemark(objectInfo)
+  )
+}
+
+function resolveEdmObjectInfoRemark(objectInfo?: string): string | undefined {
+  if (!objectInfo) {
+    return undefined
+  }
+  return EDM_OBJECT_INFO_REMARKS.get(objectInfo)
 }
 
 function buildRawAuditJson(event: securityAudit.AuditEvent): string {
