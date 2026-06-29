@@ -254,6 +254,9 @@ ohos.permission.ACCESS_BIOMETRIC
 ohos.permission.QUERY_AUDIT_EVENT
 ohos.permission.GET_LOCAL_ACCOUNTS
 ohos.permission.MANAGE_LOCAL_ACCOUNTS
+ohos.permission.MANAGE_USER_IDM
+ohos.permission.USE_USER_IDM
+ohos.permission.ACCESS_USER_AUTH_INTERNAL
 ohos.permission.PRIVACY_WINDOW
 ```
 
