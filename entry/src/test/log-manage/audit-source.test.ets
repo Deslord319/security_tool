@@ -107,6 +107,11 @@ interface EdmObjectInfoRemarkCase {
   remark: string
 }
 
+interface EdmOperationTypeRemarkCase {
+  operationType: number
+  remark: string
+}
+
 export default function logAuditSourceTest() {
   describe('LogAuditSource', () => {
     it('should map blocked audit payload into normalized log entry', 0, () => {
@@ -556,10 +561,10 @@ export default function logAuditSourceTest() {
 
     it('should append confirmed EDM object info remark rows for known device management events', 0, () => {
       const cases: EdmObjectInfoRemarkCase[] = [
-        { objectInfo: 'disabled_bluetooth', remark: '禁用蓝牙' },
-        { objectInfo: 'disable_wifi', remark: '禁用 Wi-Fi' },
-        { objectInfo: 'disabled_printer', remark: '禁用打印机' },
-        { objectInfo: 'disable_microphone', remark: '禁用麦克风' }
+        { objectInfo: 'disabled_bluetooth', remark: '蓝牙管理' },
+        { objectInfo: 'disable_wifi', remark: 'Wi-Fi 管理' },
+        { objectInfo: 'disabled_printer', remark: '打印机管理' },
+        { objectInfo: 'disable_microphone', remark: '麦克风管理' }
       ]
 
       cases.forEach((item: EdmObjectInfoRemarkCase, index: number) => {
@@ -599,7 +604,45 @@ export default function logAuditSourceTest() {
         expect(getRowValue(rows, 'audit.description')).assertEqual('企业设备管理事件')
         expect(getRowValue(rows, 'audit.edm.objectInfo')).assertEqual(item.objectInfo)
         expect(getRowValue(rows, 'audit.edm.objectRemark')).assertEqual(item.remark)
+        expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=1')
+        expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('设置/变更策略状态')
         expect(getRowValue(rows, 'audit.rawJson').indexOf(item.objectInfo) >= 0).assertTrue()
+      })
+    })
+
+    it('should append EDM operation type remark rows for confirmed type values', 0, () => {
+      const cases: EdmOperationTypeRemarkCase[] = [
+        { operationType: 0, remark: '读取/查询策略状态' },
+        { operationType: 1, remark: '设置/变更策略状态' }
+      ]
+
+      cases.forEach((item: EdmOperationTypeRemarkCase, index: number) => {
+        const timestamp = `2026062917210${index}`
+        const content: EdmAuditContent = {
+          caller: {
+            abilityName: 'EnterpriseAdminAbility',
+            bundleName: 'com.huawei.securitytool'
+          },
+          objectInfo: 'disable_wifi',
+          outcome: '0',
+          subType: 0,
+          type: item.operationType
+        }
+        let event = {
+          eventId: securityAudit.NotifyEvent.EDM,
+          timestamp,
+          userId: 100,
+          content: JSON.stringify(content),
+          metadata: ''
+        } as securityAudit.AuditEvent
+
+        let entry = parseAuditEventToLogEntry(event)
+        let rows = getDetailRows(entry)
+
+        expect(!!entry).assertTrue()
+        expect(getRowValue(rows, 'audit.description')).assertEqual('企业设备管理事件')
+        expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual(`type=${item.operationType}`)
+        expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual(item.remark)
       })
     })
 
@@ -630,7 +673,37 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'audit.description')).assertEqual('企业设备管理事件')
       expect(getRowValue(rows, 'audit.edm.objectInfo')).assertEqual('disable_usb')
       expect(getRowValue(rows, 'audit.edm.objectRemark')).assertEqual('')
+      expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=0')
+      expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('读取/查询策略状态')
       expect(getRowValue(rows, 'audit.rawJson').indexOf('disable_usb') >= 0).assertTrue()
+    })
+
+    it('should not append EDM operation type remark row for unknown type values', 0, () => {
+      const timestamp = '20260629172200'
+      const content: EdmAuditContent = {
+        caller: {
+          abilityName: 'EnterpriseAdminAbility',
+          bundleName: 'com.huawei.securitytool'
+        },
+        objectInfo: 'disable_wifi',
+        outcome: '0',
+        subType: 0,
+        type: 9
+      }
+      let event = {
+        eventId: securityAudit.NotifyEvent.EDM,
+        timestamp,
+        userId: 100,
+        content: JSON.stringify(content),
+        metadata: ''
+      } as securityAudit.AuditEvent
+
+      let entry = parseAuditEventToLogEntry(event)
+      let rows = getDetailRows(entry)
+
+      expect(!!entry).assertTrue()
+      expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=9')
+      expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('')
     })
 
     it('should exclude high frequency network events from audit log subscription', 0, () => {
