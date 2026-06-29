@@ -31,6 +31,9 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_USB"
       },
       {
+        "name": "ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER"
+      },
+      {
         "name": "ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS"
       },
       {

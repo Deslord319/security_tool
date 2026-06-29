@@ -37,7 +37,8 @@ export class LockScreenUKeyRuntimeEnrollmentConsumer implements PeripheralConnec
 
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean {
     return event.channel === 'usb' &&
-      event.eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED
+      (event.eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED ||
+        event.eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED)
   }
 
   async consume(event: PeripheralConnectionRecordProducerEvent): Promise<PeripheralConnectionRecordConsumeResult> {
@@ -60,7 +61,9 @@ export class LockScreenUKeyRuntimeEnrollmentConsumer implements PeripheralConnec
         LogUtils.info(TAG, '[ENROLL_SKIP] reason=disabled')
         return null
       }
-      let result = await this.enrollmentService.ensureFirstUKeyRegistered(this.context)
+      let result = event.eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED ?
+        await this.enrollmentService.onUKeyDetached(this.context) :
+        await this.enrollmentService.onUKeyAttached(this.context)
       if (result.success) {
         LogUtils.info(TAG, `[ENROLL_DONE] stage=${result.stage ?? 'unknown'}, registered=${!!result.data}`)
       } else {
