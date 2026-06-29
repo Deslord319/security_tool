@@ -3,7 +3,6 @@ import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   AccountInstallPolicySnapshot,
   ApplicationInventoryResult,
-  ApplicationPermissionProfile,
   PermissionAppSnapshot,
   PermissionActionResult,
   PermissionAccountListResult,
@@ -72,18 +71,6 @@ function buildAppSnapshot(
     threeDLoadState: 'idle',
     threeDMessage: ''
   } as PermissionAppSnapshot
-}
-
-function buildEmptyPermissionProfile(app: PermissionAppSnapshot): ApplicationPermissionProfile {
-  return {
-    appKey: app.appKey,
-    bundleName: app.bundleName,
-    requestedPermissions: [],
-    mainAbilityName: '',
-    sensitivePermissionCount: 0,
-    message: '',
-    threeDGroups: []
-  } as ApplicationPermissionProfile
 }
 
 export default function permissionViewModelTest() {

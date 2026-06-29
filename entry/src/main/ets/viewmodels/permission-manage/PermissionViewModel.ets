@@ -12,7 +12,6 @@ import {
   PermissionPolicyActionKind,
   PermissionPolicyRecord,
   PermissionPolicyState,
-  PermissionSummary,
   PermissionThreeDPolicySnapshot,
   ThreeDManagedState,
   ThreeDPermissionItem,
