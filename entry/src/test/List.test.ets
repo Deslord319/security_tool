@@ -22,6 +22,7 @@ import firewallStringsTest from './firewall/strings.test'
 import helpFeedbackStringsTest from './help/strings.test'
 import identityServiceBehaviorTest from './identity/service-behavior.test'
 import identityServiceTest from './identity/service.test'
+import lockScreenAuthTest from './identity/lockscreen-auth.test'
 import identitySettingsViewModelTest from './identity/settings-viewmodel.test'
 import userAuthAdapterTest from './identity/user-auth-adapter.test'
 import logAuditSourceTest from './log-manage/audit-source.test'
@@ -107,6 +108,7 @@ export default function testsuite() {
   helpFeedbackStringsTest()
   identityServiceBehaviorTest()
   identityServiceTest()
+  lockScreenAuthTest()
   identitySettingsViewModelTest()
   userAuthAdapterTest()
   logAuditSourceTest()
