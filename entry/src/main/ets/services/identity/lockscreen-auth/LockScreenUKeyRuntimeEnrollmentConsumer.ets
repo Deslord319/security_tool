@@ -74,4 +74,32 @@ export class LockScreenUKeyRuntimeEnrollmentConsumer implements PeripheralConnec
     }
     return null
   }
+
+  async reconcileOnStartup(): Promise<void> {
+    if (!this.context) {
+      LogUtils.warn(TAG, '[RECONCILE_SKIP] reason=context_missing')
+      return
+    }
+    if (this.enrollmentInFlight) {
+      LogUtils.info(TAG, '[RECONCILE_SKIP] reason=in_flight')
+      return
+    }
+
+    this.enrollmentInFlight = true
+    try {
+      let config = await this.repository.loadConfig(this.context)
+      if (!config.ukeyUnlockEnabled) {
+        LogUtils.info(TAG, '[RECONCILE_SKIP] reason=disabled')
+        return
+      }
+      let result = await this.enrollmentService.reconcileOnStartup(this.context)
+      if (result.success) {
+        LogUtils.info(TAG, `[RECONCILE_DONE] stage=${result.stage ?? 'unknown'}, registered=${!!result.data}`)
+      } else {
+        LogUtils.warn(TAG, `[RECONCILE_FAIL] stage=${result.stage ?? 'unknown'}, message=${result.errorMessage ?? '-'}`)
+      }
+    } finally {
+      this.enrollmentInFlight = false
+    }
+  }
 }

@@ -39,6 +39,7 @@ export type LockScreenUKeyEnrollmentStage =
   'save_binding' |
   'save_active_credential' |
   'clear_active_credential' |
+  'startup_reconcile' |
   'query_user_id' |
   'completed'
 
@@ -70,6 +71,7 @@ export interface LockScreenUKeyEnrollmentService {
   ensureFirstUKeyRegistered(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>>
   onUKeyAttached(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>>
   onUKeyDetached(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>>
+  reconcileOnStartup(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>>
 }
 
 export class MdmCustomAuthCredentialManager implements CustomAuthCredentialManager {
@@ -206,7 +208,7 @@ export class MdmCustomAuthCredentialManager implements CustomAuthCredentialManag
 }
 
 export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnrollmentService {
-  private static pendingEnrollment: Promise<OperationResult<LockScreenUKeyBinding | null>> | null = null
+  private static pendingOperation: Promise<OperationResult<LockScreenUKeyBinding | null>> | null = null
   private readonly bindingRepository: LockScreenUKeyBindingRepository
   private readonly activeCredentialRepository: LockScreenUKeyActiveCredentialRepository
   private readonly deviceProvider: LockScreenUKeyDeviceProvider
@@ -230,21 +232,26 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
   }
 
   async onUKeyAttached(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>> {
-    if (LockScreenCustomAuthEnrollmentService.pendingEnrollment) {
-      return await LockScreenCustomAuthEnrollmentService.pendingEnrollment
-    }
-    let task = this.doHandleUKeyAttached(context)
-    LockScreenCustomAuthEnrollmentService.pendingEnrollment = task
-    try {
-      return await task
-    } finally {
-      if (LockScreenCustomAuthEnrollmentService.pendingEnrollment === task) {
-        LockScreenCustomAuthEnrollmentService.pendingEnrollment = null
-      }
-    }
+    return await LockScreenCustomAuthEnrollmentService.runSerialized(
+      (): Promise<OperationResult<LockScreenUKeyBinding | null>> => this.doHandleUKeyAttached(context)
+    )
   }
 
   async onUKeyDetached(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    return await LockScreenCustomAuthEnrollmentService.runSerialized(
+      (): Promise<OperationResult<LockScreenUKeyBinding | null>> => this.doHandleUKeyDetached(context)
+    )
+  }
+
+  async reconcileOnStartup(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    return await LockScreenCustomAuthEnrollmentService.runSerialized(
+      (): Promise<OperationResult<LockScreenUKeyBinding | null>> => this.doReconcileOnStartup(context)
+    )
+  }
+
+  private async doHandleUKeyDetached(
+    context: common.Context
+  ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
     let existing = await this.bindingRepository.loadBinding(context)
     if (!existing) {
       return LockScreenCustomAuthEnrollmentService.success(null, 'already_bound')
@@ -262,6 +269,37 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     if (!active) {
       return LockScreenCustomAuthEnrollmentService.success(existing, 'active_credential_missing')
     }
+    return await this.deleteActiveCredential(context, existing, active)
+  }
+
+  private async doReconcileOnStartup(
+    context: common.Context
+  ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    let existing = await this.bindingRepository.loadBinding(context)
+    if (!existing) {
+      return await this.doHandleUKeyAttached(context)
+    }
+    let deviceResult = this.deviceProvider.getCandidateDevices()
+    if (!deviceResult.success) {
+      return LockScreenCustomAuthEnrollmentService.failure(deviceResult.stage ?? 'query_usb_devices',
+        deviceResult.errorMessage ?? '读取 UKey 失败')
+    }
+    let candidates = deviceResult.data ?? []
+    if (LockScreenCustomAuthEnrollmentService.containsBoundDevice(existing, candidates)) {
+      return await this.resolveExistingBinding(context, existing, candidates)
+    }
+    let active = await this.loadActiveCredentialOrLegacy(context, existing)
+    if (!active) {
+      return LockScreenCustomAuthEnrollmentService.success(existing, 'active_credential_missing')
+    }
+    return await this.deleteActiveCredential(context, existing, active)
+  }
+
+  private async deleteActiveCredential(
+    context: common.Context,
+    existing: LockScreenUKeyBinding,
+    active: LockScreenUKeyActiveCredential
+  ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
     let deletion = await this.registrar.deleteCredential(active.userId, active.credentialIdHex)
     if (!deletion.success) {
       await this.activeCredentialRepository.saveActiveCredential(context, {
@@ -284,6 +322,23 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     }
     LogUtils.info(TAG, `[DELETE_SUCCESS] userId=${active.userId}, deviceId=${active.deviceId}`)
     return LockScreenCustomAuthEnrollmentService.success(existing, 'credential_deleted')
+  }
+
+  private static async runSerialized(
+    taskFactory: () => Promise<OperationResult<LockScreenUKeyBinding | null>>
+  ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    if (LockScreenCustomAuthEnrollmentService.pendingOperation) {
+      return await LockScreenCustomAuthEnrollmentService.pendingOperation
+    }
+    let task = taskFactory()
+    LockScreenCustomAuthEnrollmentService.pendingOperation = task
+    try {
+      return await task
+    } finally {
+      if (LockScreenCustomAuthEnrollmentService.pendingOperation === task) {
+        LockScreenCustomAuthEnrollmentService.pendingOperation = null
+      }
+    }
   }
 
   private async doHandleUKeyAttached(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>> {

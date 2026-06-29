@@ -106,6 +106,7 @@ class FakeLockScreenAuthRepository implements LockScreenAuthRepository {
 
 class FakeEnrollmentService implements LockScreenUKeyEnrollmentService {
   callCount: number = 0
+  reconcileCallCount: number = 0
   result: OperationResult<LockScreenUKeyBinding | null> = {
     success: true,
     data: null,
@@ -123,6 +124,11 @@ class FakeEnrollmentService implements LockScreenUKeyEnrollmentService {
 
   async onUKeyDetached(_context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>> {
     this.callCount++
+    return this.result
+  }
+
+  async reconcileOnStartup(_context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    this.reconcileCallCount++
     return this.result
   }
 }
@@ -166,8 +172,12 @@ class FakeActiveCredentialRepository implements LockScreenUKeyActiveCredentialRe
 
 class FakeDeviceProvider implements LockScreenUKeyDeviceProvider {
   devices: LockScreenUKeyDevice[] = []
+  result: OperationResult<LockScreenUKeyDevice[]> | null = null
 
   getCandidateDevices(): OperationResult<LockScreenUKeyDevice[]> {
+    if (this.result) {
+      return this.result
+    }
     return {
       success: true,
       data: this.devices
@@ -639,6 +649,90 @@ export default function lockScreenAuthTest() {
       done()
     })
 
+    it('should reconcile startup by re-adding credential when trusted UKey is present and inactive', 0, async (done: Function) => {
+      let bindingRepository = new FakeBindingRepository()
+      bindingRepository.binding = createBinding('VID:1111 PID:2222|SN:FIRST')
+      bindingRepository.binding.credentialIdHex = ''
+      let activeRepository = new FakeActiveCredentialRepository()
+      let deviceProvider = new FakeDeviceProvider()
+      deviceProvider.devices = [createDevice('VID:1111 PID:2222|SN:FIRST')]
+      let registrar = new FakeRegistrar()
+      let service = new LockScreenCustomAuthEnrollmentService(bindingRepository, deviceProvider, registrar, activeRepository)
+
+      let result = await service.reconcileOnStartup(context)
+
+      expect(result.success).assertTrue()
+      expect(registrar.callCount).assertEqual(1)
+      expect(registrar.deleteCallCount).assertEqual(0)
+      expect(activeRepository.saveCount).assertEqual(1)
+      expect(activeRepository.activeCredential?.credentialIdHex).assertEqual('010203')
+      done()
+    })
+
+    it('should reconcile startup by deleting stale active credential when trusted UKey is absent', 0, async (done: Function) => {
+      let bindingRepository = new FakeBindingRepository()
+      bindingRepository.binding = createBinding('VID:1111 PID:2222|SN:FIRST')
+      let activeRepository = new FakeActiveCredentialRepository()
+      activeRepository.activeCredential = {
+        credentialIdHex: '010203',
+        userId: 100,
+        pluginInfo: '{}',
+        fingerprint: 'VID:1111 PID:2222|SN:FIRST',
+        deviceId: 'VID:1111 PID:2222',
+        deviceName: 'First UKey',
+        createdAt: 1,
+        lifecycle: 'active'
+      }
+      let deviceProvider = new FakeDeviceProvider()
+      deviceProvider.devices = []
+      let registrar = new FakeRegistrar()
+      let service = new LockScreenCustomAuthEnrollmentService(bindingRepository, deviceProvider, registrar, activeRepository)
+
+      let result = await service.reconcileOnStartup(context)
+
+      expect(result.success).assertTrue()
+      expect(result.stage).assertEqual('credential_deleted')
+      expect(registrar.callCount).assertEqual(0)
+      expect(registrar.deleteCallCount).assertEqual(1)
+      expect(activeRepository.clearCount).assertEqual(1)
+      expect(bindingRepository.binding?.fingerprint).assertEqual('VID:1111 PID:2222|SN:FIRST')
+      done()
+    })
+
+    it('should not change binding or credential when startup DDK reconciliation fails', 0, async (done: Function) => {
+      let bindingRepository = new FakeBindingRepository()
+      bindingRepository.binding = createBinding('VID:1111 PID:2222|SN:FIRST')
+      let activeRepository = new FakeActiveCredentialRepository()
+      activeRepository.activeCredential = {
+        credentialIdHex: '010203',
+        userId: 100,
+        pluginInfo: '{}',
+        fingerprint: 'VID:1111 PID:2222|SN:FIRST',
+        deviceId: 'VID:1111 PID:2222',
+        deviceName: 'First UKey',
+        createdAt: 1,
+        lifecycle: 'active'
+      }
+      let deviceProvider = new FakeDeviceProvider()
+      deviceProvider.result = {
+        success: false,
+        errorMessage: 'ddk unavailable',
+        stage: 'query_ddk_devices'
+      } as OperationResult<LockScreenUKeyDevice[]>
+      let registrar = new FakeRegistrar()
+      let service = new LockScreenCustomAuthEnrollmentService(bindingRepository, deviceProvider, registrar, activeRepository)
+
+      let result = await service.reconcileOnStartup(context)
+
+      expect(result.success).assertFalse()
+      expect(result.stage).assertEqual('query_ddk_devices')
+      expect(registrar.callCount).assertEqual(0)
+      expect(registrar.deleteCallCount).assertEqual(0)
+      expect(activeRepository.clearCount).assertEqual(0)
+      expect(bindingRepository.saveCount).assertEqual(0)
+      done()
+    })
+
     it('should reject enrollment when zero or multiple UKeys are present', 0, async (done: Function) => {
       let bindingRepository = new FakeBindingRepository()
       let deviceProvider = new FakeDeviceProvider()
@@ -702,6 +796,37 @@ export default function lockScreenAuthTest() {
 
       expect(record === null).assertTrue()
       expect(enrollment.callCount).assertEqual(1)
+      done()
+    })
+
+    it('should reconcile startup from runtime consumer when switch is enabled', 0, async (done: Function) => {
+      let repository = new FakeLockScreenAuthRepository()
+      let enrollment = new FakeEnrollmentService()
+      enrollment.result = {
+        success: true,
+        data: createBinding(),
+        stage: 'completed'
+      } as OperationResult<LockScreenUKeyBinding | null>
+      let consumer = new LockScreenUKeyRuntimeEnrollmentConsumer(repository, enrollment)
+      consumer.bindContext(context)
+
+      await consumer.reconcileOnStartup()
+
+      expect(enrollment.reconcileCallCount).assertEqual(1)
+      expect(enrollment.callCount).assertEqual(0)
+      done()
+    })
+
+    it('should skip startup reconciliation when switch is disabled', 0, async (done: Function) => {
+      let repository = new FakeLockScreenAuthRepository()
+      repository.config.ukeyUnlockEnabled = false
+      let enrollment = new FakeEnrollmentService()
+      let consumer = new LockScreenUKeyRuntimeEnrollmentConsumer(repository, enrollment)
+      consumer.bindContext(context)
+
+      await consumer.reconcileOnStartup()
+
+      expect(enrollment.reconcileCallCount).assertEqual(0)
       done()
     })
   })

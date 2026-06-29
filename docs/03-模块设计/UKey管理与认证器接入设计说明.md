@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "DDK Backend + CustomAuth Core + MDM Credential Orchestration"
 status: "draft"
 last_updated: "2026-06-29"
-version: "1.0.7"
+version: "1.0.8"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -43,8 +43,8 @@ version: "1.0.7"
 - `UKeyDeviceBackend` 当前由 `DdkLockScreenUKeyDeviceService` 实现，主路径基于 `@kit.DriverDevelopmentKit.deviceManager.queryDevices(BusType.USB)` 读取 USB 设备；`UsbLockScreenUKeyDeviceService` 作为详情增强和测试/降级实现保留。本阶段接入 ArkTS DDK 设备发现并新增 `ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER`，native HID/USB/SCSI 读写仍留到认证器核心阶段。
 - UKey 管理指纹生成规则固定为：优先使用 `VID/PID + serial` 作为稳定标识；当设备不暴露 `serial` 时，兜底使用 `VID/PID + DDK description + deviceName + DDK deviceId` 生成弱标识，并将 `stableIdentifier=false`。弱标识中的 `deviceName` 仅作为辅助区分信息，不改变其弱稳定性判断。
 - `CustomAuthCredentialManager` 当前由 `MdmCustomAuthCredentialManager` 实现，封装 `loadNativeModule('mdm') -> openSession -> addUserCustomCredential/deleteUserCustomCredential -> closeSession`；本地 `mdmCustomCredential.d.ts` 的最小声明来源于 `C:\Users\mu\Desktop\CustomAuth\design\interface\mdm_js\@mdm.d.ts`，不再扩展 `@ohos.account.osAccount`。
-- `ManagedUKeyCredentialService` 当前由 `LockScreenCustomAuthEnrollmentService` 承担：`onUKeyAttached()` 处理第一把绑定和活动凭据注入，`onUKeyDetached()` 处理首把不在场后的活动凭据删除。
-- `LockScreenUKeyRuntimeEnrollmentConsumer` 已接入 USB attach / detach 事件，作为外设 pipeline 的 side-effect Consumer 返回 `null`，不写外设 trace，不改变黑白名单判定。
+- `ManagedUKeyCredentialService` 当前由 `LockScreenCustomAuthEnrollmentService` 承担：`onUKeyAttached()` 处理第一把绑定和活动凭据注入，`onUKeyDetached()` 处理首把不在场后的活动凭据删除，`reconcileOnStartup()` 在应用运行时初始化后对账当前 UKey 在场状态、可信绑定和活动凭据。
+- `LockScreenUKeyRuntimeEnrollmentConsumer` 已接入 USB attach / detach 事件；启动对账由 `ApplicationRuntimeManager` 的身份鉴别运行时触发，不依赖外设运行时初始化。该 Consumer 作为 side-effect Consumer 返回 `null`，不写外设 trace，不改变黑白名单判定。
 
 本阶段主链路不是“锁屏页面怎么解锁”，而是把 UKey 硬件状态和 CustomAuth 凭据生命周期打通：
 
@@ -399,12 +399,12 @@ sequenceDiagram
   4. 已完成 S3：按设计包 MDM 包装接口封装 `addUserCustomCredential` 和 `deleteUserCustomCredential`，页面不直接调用系统 API。
   5. 已完成 S4：插入时无绑定且唯一 key 建立首把绑定并注入活动凭据；同一首把重插且活动凭据缺失时补注入；第二把不注入、不替换。
   6. 已完成 S5：拔出时判断首把是否仍在场；首把不在场且存在活动凭据时删除系统凭据并清空活动凭据，保留可信绑定。
-  7. 后续 S6：启动时对账 UKey 在场状态、本地仓库和系统凭据。
+  7. 已完成 S6：启动时对账 UKey 在场状态、本地仓库和系统凭据；首把在场且活动凭据缺失时补注入，首把不在场且活动凭据存在时删除 stale 凭据，后端失败或多把不误注册。
   8. 后续 S7-S8：裁剪 CustomAuth 核心并改造 UKeyProvider，去掉生产路径 AppStorage，接入 SecurityTool 自己的 UKey backend，认证严格匹配。
   9. 后续 S9-S10：完成运行时和真机闭环；native 读写前先用 DDK/USB/HDC 记录真实 UKey 的 VID/PID/class/interface，再决定 HID、USB、SCSI 或 USB Serial DDK 路线。
 - **测试覆盖**:
-  - UT: 当前 S1-S5 由 `entry/src/test/identity/lockscreen-auth.test.ets` 覆盖 DDK USB 设备发现、DDK 失败、首把绑定、活动凭据保存、第二把拒绝、同一首把补注入、拔出删除活动凭据、首把仍在场时不删除、USB attach / detach 运行时事件和开关关闭跳过。
-  - UT: 后续可新增 `entry/src/test/identity/ukey-auth.test.ets` 覆盖启动对账、DDK backend 失败和更完整的 UKey 状态仓库。
+  - UT: 当前 S1-S6 由 `entry/src/test/identity/lockscreen-auth.test.ets` 覆盖 DDK USB 设备发现、DDK 失败、首把绑定、活动凭据保存、第二把拒绝、同一首把补注入、拔出删除活动凭据、首把仍在场时不删除、USB attach / detach 运行时事件、启动对账和开关关闭跳过。
+  - UT: 后续可新增 `entry/src/test/identity/ukey-auth.test.ets` 覆盖更完整的 UKey 状态仓库。
   - UT: `entry/src/test/identity/custom-auth-core.test.ets` 覆盖 `getPresentTemplateId` 严格匹配、无匹配失败、remove 清理模板绑定。
   - UT: 继续保留现有 `entry/src/test/identity/lockscreen-auth.test.ets` 中页面单开关和配置默认值覆盖。
   - ohosTest: 覆盖身份鉴别页可达和单开关状态，不要求展示 UKey 调试 UI。
@@ -431,7 +431,7 @@ sequenceDiagram
 | S3: CustomAuth 凭据管理器 | 把 CustomAuth 凭据注入/删除流程封装到 MDM 侧 | 新增 `CustomAuthCredentialManager`；实现 `openSession -> addUserCustomCredential -> closeSession`；实现 `openSession -> deleteUserCustomCredential -> closeSession`；统一 `credentialIdHex` 转换和失败结果 | add 成功返回非空 `credentialIdHex`；add 失败不保存活动凭据；delete 成功清空活动凭据；`closeSession` 失败只记日志；mock UT 覆盖成功/失败/异常 | S1 |
 | S4: 插入 UKey 后自动注入凭据 | 打通“第一把插入 -> 绑定 -> 注入凭据”主链路 | 新增 `ManagedUKeyCredentialService.onUKeyAttached()`；开关关闭跳过；无绑定且唯一 key 时建立 `trustedBinding` 并注入；已有绑定且同一 key、无活动凭据时补注入；第二把不注入 | 第一把插入生成 `trustedBinding + activeCredential`；第二把插入不调用 `addCredential`；首把重新插入可补注册；并发 attach 只注册一次；UT 覆盖全部分支 | S1-S3 |
 | S5: 拔出 UKey 后删除活动凭据 | 打通“第一把拔出 -> 删除活动凭据 -> 保留绑定”主链路 | 新增 `ManagedUKeyCredentialService.onUKeyDetached()`；判断拔出是否影响首把；存在对应 `activeCredential` 时调用删除；删除成功清空活动凭据；保留 `trustedBinding` | 拔出首把后系统凭据删除；`activeCredential = null`；`trustedBinding` 保留；拔出第二把不删除首把凭据；删除失败标记 failed 并可重试；UT 覆盖 stale/不存在 | S1-S4 |
-| S6: 启动对账 | 解决应用重启、设备重启、进程被杀后的状态一致性 | 新增 `reconcileOnStartup()`；读取绑定和活动凭据；枚举当前 UKey；首把在场但无活动凭据时补注入；首把不在场但有活动凭据时删除 stale；多把或后端异常不误注册 | 重启后首把在场可恢复活动凭据；首把不在场可清理活动凭据；第二把在场不注册；后端失败不改绑定、不伪造成功 | S1-S5 |
+| S6: 启动对账 | 解决应用重启、设备重启、进程被杀后的状态一致性 | 新增 `reconcileOnStartup()`；读取绑定和活动凭据；枚举当前 UKey；首把在场但无活动凭据时补注入；首把不在场但有活动凭据时删除 stale；多把或后端异常不误注册；由 `ApplicationRuntimeManager` 的身份鉴别运行时后台触发一次 | 重启后首把在场可恢复活动凭据；首把不在场可清理活动凭据；第二把在场不注册；后端失败不改绑定、不伪造成功；开关关闭时启动对账跳过 | S1-S5 |
 | S7: 裁剪 CustomAuth 核心逻辑 | 只拿认证器核心，不整体迁移测试应用 | 迁移 appService 入口所需最小代码；迁移 IPC stub/proxy/types/codec；迁移 crypto/AAD/SecurityAsset `KeyStore`；按 `custom-auth-core` 目录重命名；删除页面、EntryAbility、AppStorage fake UKey、模拟换新、调试开关和无关资源 | HAP 声明 `ICustomAuthenticatorV1` appService；没有测试页面和调试入口；构建通过；系统可按 pluginInfo 拉起 appService；生产路径不依赖 AppStorage fake UKey | S1-S3 |
 | S8: 认证器 UKeyProvider 改造 | 认证器核心严格按 SecurityTool 管理的 UKey 状态判断 | `AuthenticatorUKeyProvider` 接入自研 UKey backend/状态仓库；`onEnrolled(templateId)` 绑定当前首把；`getPresentTemplateId(candidates)` 只匹配首把；删除顺序 fallback 和自动轮换 | 首把在场匹配 templateId；第二把在场返回 null；无 key 返回 null；认证失败时 `templateId = 0`；UT 覆盖“第二把不能认证” | S2, S7 |
 | S9: 运行时接入插拔事件 | 把 UKey 管理服务挂到应用运行时且不影响外设模块 | 在现有外设运行时管线挂 side-effect consumer；USB attach 调 `onUKeyAttached()`；USB detach 调 `onUKeyDetached()`；consumer 返回 `null`，不写 trace、不改黑白名单 | 插入事件触发注册；拔出事件触发删除；外设连接记录数量和黑白名单逻辑不变；外设现有测试通过 | S4-S5 |
@@ -457,6 +457,7 @@ sequenceDiagram
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 (重构/新增表/用例增删) |
 |---|---|---|---|
+| 1.0.8 | 2026-06-29 | Codex | 落地 S6 启动对账：新增 `reconcileOnStartup()`，由身份鉴别运行时后台对账首把 UKey 在场状态、活动凭据和 stale 凭据，后端失败或多把设备不误注册。 |
 | 1.0.7 | 2026-06-29 | Codex | 明确 UKey 指纹生成规则：优先使用 `VID/PID + serial` 作为稳定标识；缺失 serial 时使用 `VID/PID + DDK description + deviceName + DDK deviceId` 生成弱标识，其中 `deviceName` 仅作为辅助区分信息。 |
 | 1.0.5 | 2026-06-29 | Codex | 将 UKey 默认设备发现从纯 `usbManager.getDevices()` 调整为 DDK `deviceManager.queryDevices(BusType.USB)`，`usbManager` 仅补充设备详情；新增 `ACCESS_EXTENSIONAL_DEVICE_DRIVER` 权限口径，native HID/USB/SCSI 读写保留到认证器核心阶段。 |
 | 1.0.4 | 2026-06-29 | Codex | 对齐 `CustomAuth/design/interface/mdm_js/@mdm.d.ts`：SecurityTool 生产侧 CustomAuth 凭据管理改为通过 `loadNativeModule('mdm')` 调用 `openSession/addUserCustomCredential/deleteUserCustomCredential/closeSession`，删除 `osAccount.UserIdentityManager` 本地扩展口径。 |
