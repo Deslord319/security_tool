@@ -36,6 +36,10 @@ import {
   UsbDeviceDetailProbe
 } from '../../main/ets/services/identity/lockscreen-auth/LockScreenUKeyDeviceService'
 import { LockScreenUKeyRuntimeEnrollmentConsumer } from '../../main/ets/services/identity/lockscreen-auth/LockScreenUKeyRuntimeEnrollmentConsumer'
+import {
+  AuthenticatorUKeyTemplateBindingRepository,
+  SecurityToolAuthenticatorUKeyProvider
+} from '../../main/ets/services/identity/custom-auth-core/ukey/AuthenticatorUKeyProvider'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
 import { LockScreenAuthViewModel } from '../../main/ets/viewmodels/identity/lockscreen-auth/LockScreenAuthViewModel'
 
@@ -166,6 +170,21 @@ class FakeActiveCredentialRepository implements LockScreenUKeyActiveCredentialRe
   async clearActiveCredential(_context: common.Context): Promise<boolean> {
     this.clearCount++
     this.activeCredential = null
+    return true
+  }
+}
+
+class FakeTemplateBindingRepository implements AuthenticatorUKeyTemplateBindingRepository {
+  bindings: Record<string, string> = {}
+  saveCount: number = 0
+
+  async loadTemplateBindings(_context: common.Context): Promise<Record<string, string>> {
+    return this.bindings
+  }
+
+  async saveTemplateBindings(_context: common.Context, bindings: Record<string, string>): Promise<boolean> {
+    this.saveCount++
+    this.bindings = bindings
     return true
   }
 }
@@ -747,6 +766,58 @@ export default function lockScreenAuthTest() {
       expect(multiDeviceResult.success).assertFalse()
       expect(registrar.callCount).assertEqual(0)
       expect(bindingRepository.saveCount).assertEqual(0)
+      done()
+    })
+
+    it('should bind CustomAuth template to the enrolled first UKey', 0, async (done: Function) => {
+      let bindingRepository = new FakeBindingRepository()
+      let deviceProvider = new FakeDeviceProvider()
+      let templateRepository = new FakeTemplateBindingRepository()
+      deviceProvider.devices = [createDevice('VID:1111 PID:2222|SN:FIRST')]
+      let provider = new SecurityToolAuthenticatorUKeyProvider(deviceProvider, bindingRepository, templateRepository)
+      provider.bindContext(context)
+
+      await provider.onEnrolled('1001')
+
+      expect(templateRepository.bindings['1001']).assertEqual('VID:1111 PID:2222|SN:FIRST')
+      expect(templateRepository.saveCount).assertEqual(1)
+      done()
+    })
+
+    it('should return template id only when the trusted first UKey is present', 0, async (done: Function) => {
+      let bindingRepository = new FakeBindingRepository()
+      bindingRepository.binding = createBinding('VID:1111 PID:2222|SN:FIRST')
+      let deviceProvider = new FakeDeviceProvider()
+      deviceProvider.devices = [createDevice('VID:1111 PID:2222|SN:FIRST')]
+      let templateRepository = new FakeTemplateBindingRepository()
+      templateRepository.bindings = {
+        '1001': 'VID:1111 PID:2222|SN:FIRST'
+      }
+      let provider = new SecurityToolAuthenticatorUKeyProvider(deviceProvider, bindingRepository, templateRepository)
+      provider.bindContext(context)
+
+      let matched = await provider.getPresentTemplateId(['1001', '1002'])
+
+      expect(matched).assertEqual('1001')
+      done()
+    })
+
+    it('should not fallback to another template when a second UKey is present', 0, async (done: Function) => {
+      let bindingRepository = new FakeBindingRepository()
+      bindingRepository.binding = createBinding('VID:1111 PID:2222|SN:FIRST')
+      let deviceProvider = new FakeDeviceProvider()
+      deviceProvider.devices = [createDevice('VID:3333 PID:4444|SN:SECOND')]
+      let templateRepository = new FakeTemplateBindingRepository()
+      templateRepository.bindings = {
+        '1001': 'VID:1111 PID:2222|SN:FIRST',
+        '1002': 'VID:3333 PID:4444|SN:SECOND'
+      }
+      let provider = new SecurityToolAuthenticatorUKeyProvider(deviceProvider, bindingRepository, templateRepository)
+      provider.bindContext(context)
+
+      let matched = await provider.getPresentTemplateId(['1001', '1002'])
+
+      expect(matched === null).assertTrue()
       done()
     })
 

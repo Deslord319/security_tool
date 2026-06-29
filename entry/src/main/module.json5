@@ -120,6 +120,17 @@
          "name": "ohos.permission.PRIVACY_WINDOW"
       }
     ],
+    "definePermissions": [
+      {
+        "name": "ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR",
+        "grantMode": "system_grant",
+        "availableLevel": "system_core",
+        "provisionEnable": true,
+        "distributedSceneEnable": false,
+        "label": "$string:permission_access_custom_auth_label",
+        "description": "$string:permission_access_custom_auth_desc"
+      }
+    ],
     "abilities": [
       {
         "name": "EntryAbility",
@@ -156,6 +167,15 @@
       }
     ],
     "extensionAbilities": [
+      {
+        "name": "ICustomAuthenticatorV1",
+        "srcEntry": "./ets/extensionability/CustomAuthExtAbility.ets",
+        "type": "appService",
+        "exported": true,
+        "permissions": [
+          "ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR"
+        ]
+      },
       {
         "name": "EntryBackupAbility",
         "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",

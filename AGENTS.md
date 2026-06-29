@@ -258,6 +258,7 @@ ohos.permission.MANAGE_LOCAL_ACCOUNTS
 ohos.permission.MANAGE_USER_IDM
 ohos.permission.USE_USER_IDM
 ohos.permission.ACCESS_USER_AUTH_INTERNAL
+ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR
 ohos.permission.PRIVACY_WINDOW
 ```
 
