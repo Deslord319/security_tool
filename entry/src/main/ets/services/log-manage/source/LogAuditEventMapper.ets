@@ -41,6 +41,18 @@ interface FileAuditPathInfo {
   newPath?: string
 }
 
+const EDM_OBJECT_INFO_REMARKS: Map<string, string> = new Map<string, string>([
+  ['disabled_bluetooth', '蓝牙管理'],
+  ['disable_wifi', 'Wi-Fi 管理'],
+  ['disabled_printer', '打印机管理'],
+  ['disable_microphone', '麦克风管理']
+])
+
+const EDM_OPERATION_TYPE_REMARKS: Map<number, string> = new Map<number, string>([
+  [0, '读取/查询策略状态'],
+  [1, '设置/变更策略状态']
+])
+
 export function parseAuditEventToLogEntry(
   event: securityAudit.AuditEvent,
   nowProvider: () => number = () => Date.now()
@@ -179,6 +191,7 @@ function buildDetailRows(
     }
     case LogEventType.AUDIT: {
       appendTextRow(rows, 'audit.description', LogManageAuditStrings.DESCRIPTION_LABEL, resolveAuditEventDescription(event.eventId))
+      appendEdmDetailRows(rows, event, sources)
       appendTextRow(rows, 'audit.rawJson', LogManageAuditStrings.RAW_JSON_LABEL, buildRawAuditJson(event))
       break
     }
@@ -194,6 +207,54 @@ function resolveAuditEventDescription(eventId: number): string {
 
 function resolveFileAuditEventDescription(eventId: number): string | undefined {
   return FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId)
+}
+
+function appendEdmDetailRows(rows: LogDetailTableRow[], event: securityAudit.AuditEvent, sources: LooseRecord[]): void {
+  if (event.eventId !== securityAudit.NotifyEvent.EDM) {
+    return
+  }
+  const objectInfo = pickString(sources, ['objectInfo'])
+  appendTextRow(rows, 'audit.edm.objectInfo', LogManageAuditStrings.EDM_OBJECT_INFO_LABEL, objectInfo)
+  appendTextRow(
+    rows,
+    'audit.edm.objectRemark',
+    LogManageAuditStrings.EDM_OBJECT_REMARK_LABEL,
+    resolveEdmObjectInfoRemark(objectInfo)
+  )
+  const operationType = pickNumber(sources, ['type'])
+  appendTextRow(
+    rows,
+    'audit.edm.operationType',
+    LogManageAuditStrings.EDM_OPERATION_TYPE_LABEL,
+    formatEdmOperationType(operationType)
+  )
+  appendTextRow(
+    rows,
+    'audit.edm.operationTypeRemark',
+    LogManageAuditStrings.EDM_OPERATION_TYPE_REMARK_LABEL,
+    resolveEdmOperationTypeRemark(operationType)
+  )
+}
+
+function resolveEdmObjectInfoRemark(objectInfo?: string): string | undefined {
+  if (!objectInfo) {
+    return undefined
+  }
+  return EDM_OBJECT_INFO_REMARKS.get(objectInfo)
+}
+
+function formatEdmOperationType(operationType?: number): string | undefined {
+  if (operationType === undefined) {
+    return undefined
+  }
+  return `type=${operationType}`
+}
+
+function resolveEdmOperationTypeRemark(operationType?: number): string | undefined {
+  if (operationType === undefined) {
+    return undefined
+  }
+  return EDM_OPERATION_TYPE_REMARKS.get(operationType)
 }
 
 function buildRawAuditJson(event: securityAudit.AuditEvent): string {

@@ -127,6 +127,10 @@ export class LogManageAuditStrings {
   static readonly FALLBACK_DETAIL: string = '安全审计事件'
   static readonly DESCRIPTION_LABEL: string = '事件说明'
   static readonly RAW_JSON_LABEL: string = '事件原始JSON'
+  static readonly EDM_OBJECT_INFO_LABEL: string = '操作对象'
+  static readonly EDM_OBJECT_REMARK_LABEL: string = '操作备注'
+  static readonly EDM_OPERATION_TYPE_LABEL: string = '操作类型'
+  static readonly EDM_OPERATION_TYPE_REMARK_LABEL: string = '操作类型备注'
 }
 
 export class LogEventPresentationStrings {
