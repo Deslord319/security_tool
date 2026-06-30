@@ -41,6 +41,18 @@ interface FileAuditPathInfo {
   newPath?: string
 }
 
+const EDM_OBJECT_INFO_REMARKS: Map<string, string> = new Map<string, string>([
+  ['disabled_bluetooth', '蓝牙管理'],
+  ['disable_wifi', 'Wi-Fi 管理'],
+  ['disabled_printer', '打印机管理'],
+  ['disable_microphone', '麦克风管理']
+])
+
+const EDM_OPERATION_TYPE_REMARKS: Map<number, string> = new Map<number, string>([
+  [0, '读取/查询策略状态'],
+  [1, '设置/变更策略状态']
+])
+
 export function parseAuditEventToLogEntry(
   event: securityAudit.AuditEvent,
   nowProvider: () => number = () => Date.now()
@@ -86,11 +98,12 @@ function parseAuditPayload(
   const sources = collectJsonSources(contentJson, metadataJson)
   const rawOutcome = resolveRawOutcome(sources)
   const fileAuditPathInfo = resolveFileAuditPathInfo(content, metadata, sources)
+  const detailRows = buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources, fileAuditPathInfo)
+  const fallbackDetail = buildFallbackAuditDetail(sources, content, metadata)
 
   return {
-    detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-      content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
-    detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources, fileAuditPathInfo),
+    detail: buildAuditEntryDetail(event, eventType, detailRows, fallbackDetail),
+    detailRows: detailRows,
     processName: pickString(sources, [
       'processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name',
       'CALLER_NAME', 'CALLER_PNAMEID', 'PNAMEID'
@@ -102,6 +115,40 @@ function parseAuditPayload(
     rawOutcome: rawOutcome,
     rawAction: pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state', 'OPERATION_TYPE', 'AUTH_TYPE']) ||
       pickNumberOrFirstArrayNumber(sources, ['OPERATION_TYPE', 'AUTH_TYPE'])
+  }
+}
+
+function buildFallbackAuditDetail(sources: LooseRecord[], content: string, metadata: string | undefined): string {
+  return pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
+    content || metadata || LogManageAuditStrings.FALLBACK_DETAIL
+}
+
+function buildAuditEntryDetail(
+  event: securityAudit.AuditEvent,
+  eventType: LogEventType,
+  rows: LogDetailTableRow[],
+  fallbackDetail: string
+): string {
+  if (eventType !== LogEventType.AUDIT || event.eventId !== securityAudit.NotifyEvent.EDM) {
+    return fallbackDetail
+  }
+  let parts: string[] = []
+  appendNonEmpty(parts, getDetailRowValue(rows, 'audit.edm.objectRemark') ||
+    getDetailRowValue(rows, 'audit.edm.objectInfo'))
+  appendNonEmpty(parts, getDetailRowValue(rows, 'audit.edm.operationTypeRemark') ||
+    getDetailRowValue(rows, 'audit.edm.operationType'))
+  return parts.length > 0 ? parts.join(' | ') : fallbackDetail
+}
+
+function getDetailRowValue(rows: LogDetailTableRow[], key: string): string {
+  const row = rows.find((item: LogDetailTableRow) => item.key === key)
+  return row ? row.value : ''
+}
+
+function appendNonEmpty(parts: string[], value: string): void {
+  const normalized = value.trim()
+  if (normalized.length > 0) {
+    parts.push(normalized)
   }
 }
 
@@ -179,6 +226,7 @@ function buildDetailRows(
     }
     case LogEventType.AUDIT: {
       appendTextRow(rows, 'audit.description', LogManageAuditStrings.DESCRIPTION_LABEL, resolveAuditEventDescription(event.eventId))
+      appendEdmDetailRows(rows, event, sources)
       appendTextRow(rows, 'audit.rawJson', LogManageAuditStrings.RAW_JSON_LABEL, buildRawAuditJson(event))
       break
     }
@@ -194,6 +242,54 @@ function resolveAuditEventDescription(eventId: number): string {
 
 function resolveFileAuditEventDescription(eventId: number): string | undefined {
   return FILE_AUDIT_EVENT_DESCRIPTIONS_BY_ID.get(eventId)
+}
+
+function appendEdmDetailRows(rows: LogDetailTableRow[], event: securityAudit.AuditEvent, sources: LooseRecord[]): void {
+  if (event.eventId !== securityAudit.NotifyEvent.EDM) {
+    return
+  }
+  const objectInfo = pickString(sources, ['objectInfo'])
+  appendTextRow(rows, 'audit.edm.objectInfo', LogManageAuditStrings.EDM_OBJECT_INFO_LABEL, objectInfo)
+  appendTextRow(
+    rows,
+    'audit.edm.objectRemark',
+    LogManageAuditStrings.EDM_OBJECT_REMARK_LABEL,
+    resolveEdmObjectInfoRemark(objectInfo)
+  )
+  const operationType = pickNumber(sources, ['type'])
+  appendTextRow(
+    rows,
+    'audit.edm.operationType',
+    LogManageAuditStrings.EDM_OPERATION_TYPE_LABEL,
+    formatEdmOperationType(operationType)
+  )
+  appendTextRow(
+    rows,
+    'audit.edm.operationTypeRemark',
+    LogManageAuditStrings.EDM_OPERATION_TYPE_REMARK_LABEL,
+    resolveEdmOperationTypeRemark(operationType)
+  )
+}
+
+function resolveEdmObjectInfoRemark(objectInfo?: string): string | undefined {
+  if (!objectInfo) {
+    return undefined
+  }
+  return EDM_OBJECT_INFO_REMARKS.get(objectInfo)
+}
+
+function formatEdmOperationType(operationType?: number): string | undefined {
+  if (operationType === undefined) {
+    return undefined
+  }
+  return `type=${operationType}`
+}
+
+function resolveEdmOperationTypeRemark(operationType?: number): string | undefined {
+  if (operationType === undefined) {
+    return undefined
+  }
+  return EDM_OPERATION_TYPE_REMARKS.get(operationType)
 }
 
 function buildRawAuditJson(event: securityAudit.AuditEvent): string {
