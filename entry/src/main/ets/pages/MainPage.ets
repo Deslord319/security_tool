@@ -21,7 +21,6 @@ import { common, ConfigurationConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
 import { FirewallRulesViewModel } from '../viewmodels/firewall/rules/FirewallRulesViewModel'
-import { LockScreenAuthViewModel } from '../viewmodels/identity/lockscreen-auth/LockScreenAuthViewModel'
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
@@ -45,7 +44,6 @@ struct MainPage {
   @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
   @Local firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   @Local identitySettingsViewModel: IdentitySettingsViewModel = this.applicationRuntime.getIdentitySettingsViewModel()
-  @Local lockScreenAuthViewModel: LockScreenAuthViewModel = this.applicationRuntime.getLockScreenAuthViewModel()
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
   @Local peripheralViewModel: PeripheralViewModel = this.applicationRuntime.getPeripheralViewModel()
@@ -272,7 +270,6 @@ struct MainPage {
       IdentityPage({
         currentTheme: this.currentTheme,
         viewModel: this.identitySettingsViewModel,
-        lockScreenAuthViewModel: this.lockScreenAuthViewModel,
         onBack: () => {
           this.setCurrentPage(RouteIds.DASHBOARD)
         }

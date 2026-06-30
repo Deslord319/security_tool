@@ -1,7 +1,6 @@
-/// <reference path="../../../mdmCustomCredential.d.ts" />
-
 import { common } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
+import osAccount from '@ohos.account.osAccount'
 import { OperationResult } from '../../../models/CommonModels'
 import {
   LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO,
@@ -23,7 +22,9 @@ import {
 
 const TAG = 'LockScreenCustomAuth.Enroll'
 const DEFAULT_OS_ACCOUNT_ID = 100
-const MDM_CUSTOM_CREDENTIAL_MODULE = 'mdm'
+const LOCKSCREEN_CUSTOM_AUTH_TYPE = 128
+const LOCKSCREEN_CUSTOM_AUTH_SUB_TYPE = 0
+const DEFAULT_TEST_PIN = '111111'
 
 export type LockScreenUKeyEnrollmentStage =
   'already_bound' |
@@ -74,101 +75,255 @@ export interface LockScreenUKeyEnrollmentService {
   reconcileOnStartup(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>>
 }
 
-export class MdmCustomAuthCredentialManager implements CustomAuthCredentialManager {
+interface PinAuthTokenResult {
+  success: boolean
+  token?: Uint8Array
+  resultCode?: number
+  errorCode?: number
+  errorMessage?: string
+}
+
+interface IdmOperationResult {
+  resultCode: number
+  credentialId?: Uint8Array
+}
+
+export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentialManager {
   async addCredential(userId: number, pluginInfo: string): Promise<CustomAuthCredentialRegistrationResult> {
+    let idm: osAccount.UserIdentityManager | null = null
     let sessionOpened = false
-    let mdm: MdmCustomCredentialModule | null = null
     try {
-      mdm = MdmCustomAuthCredentialManager.loadMdmModule()
-      if (!mdm) {
+      idm = new osAccount.UserIdentityManager()
+      let challenge = await idm.openSession(userId)
+      sessionOpened = true
+      let tokenResult = await OsAccountCustomAuthCredentialManager.getPinAuthToken(userId, challenge)
+      if (!tokenResult.success || !tokenResult.token || tokenResult.token.length === 0) {
         return {
           success: false,
-          errorCode: -1,
-          errorMessage: 'mdm custom credential module unavailable'
+          resultCode: tokenResult.resultCode,
+          errorCode: tokenResult.errorCode ?? -1,
+          errorMessage: tokenResult.errorMessage ?? 'PIN authentication failed'
         }
       }
-      await mdm.openSession(userId)
-      sessionOpened = true
-      let result = await mdm.addUserCustomCredential({
-        userId: userId,
-        pluginInfo: pluginInfo
-      })
-      let credentialIdHex = MdmCustomAuthCredentialManager.toHex(result.credentialId)
+      let credentialInfo: osAccount.CredentialInfo = {
+        credType: LOCKSCREEN_CUSTOM_AUTH_TYPE as osAccount.AuthType,
+        credSubType: LOCKSCREEN_CUSTOM_AUTH_SUB_TYPE as number as osAccount.AuthSubType,
+        token: tokenResult.token,
+        accountId: userId,
+        additionalInfo: pluginInfo
+      }
+      let result = await OsAccountCustomAuthCredentialManager.addCredentialByCallback(idm, credentialInfo)
+      let credentialIdHex = OsAccountCustomAuthCredentialManager.toHex(result.credentialId)
       return {
         success: result.resultCode === 0 && credentialIdHex.length > 0,
         resultCode: result.resultCode,
         credentialIdHex: credentialIdHex
       }
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[REGISTER_FAIL] addCredential | code=${errorCode}, message=${errorMessage}`)
+      let errorCode = OsAccountCustomAuthCredentialManager.getErrorCode(err)
+      let errorMessage = OsAccountCustomAuthCredentialManager.getErrorMessage(err)
+      LogUtils.error(TAG, `[REGISTER_FAIL] osAccount addCredential | code=${errorCode}, message=${errorMessage}`)
       return {
         success: false,
         errorCode: errorCode,
         errorMessage: errorMessage
       }
     } finally {
-      if (sessionOpened && mdm) {
+      OsAccountCustomAuthCredentialManager.closeSessionBestEffort(idm, userId, sessionOpened)
+    }
+  }
+
+  async deleteCredential(userId: number, credentialIdHex: string): Promise<CustomAuthCredentialDeletionResult> {
+    if (credentialIdHex.length === 0) {
+      return {
+        success: false,
+        errorCode: -1,
+        errorMessage: 'invalid credentialId'
+      }
+    }
+    let credentialId = OsAccountCustomAuthCredentialManager.hexToBytes(credentialIdHex)
+    if (credentialId.length === 0) {
+      return {
+        success: false,
+        errorCode: -1,
+        errorMessage: 'invalid credentialId'
+      }
+    }
+    let idm: osAccount.UserIdentityManager | null = null
+    let sessionOpened = false
+    try {
+      idm = new osAccount.UserIdentityManager()
+      let challenge = await idm.openSession(userId)
+      sessionOpened = true
+      let tokenResult = await OsAccountCustomAuthCredentialManager.getPinAuthToken(userId, challenge)
+      if (!tokenResult.success || !tokenResult.token || tokenResult.token.length === 0) {
+        return {
+          success: false,
+          resultCode: tokenResult.resultCode,
+          errorCode: tokenResult.errorCode ?? -1,
+          errorMessage: tokenResult.errorMessage ?? 'PIN authentication failed',
+          credentialIdHex: credentialIdHex
+        }
+      }
+      let result = await OsAccountCustomAuthCredentialManager.deleteCredentialByCallback(
+        idm,
+        credentialId,
+        tokenResult.token
+      )
+      return {
+        success: result.resultCode === 0,
+        resultCode: result.resultCode,
+        credentialIdHex: credentialIdHex
+      }
+    } catch (err) {
+      let errorCode = OsAccountCustomAuthCredentialManager.getErrorCode(err)
+      let errorMessage = OsAccountCustomAuthCredentialManager.getErrorMessage(err)
+      LogUtils.error(TAG, `[DELETE_FAIL] osAccount delCred | code=${errorCode}, message=${errorMessage}`)
+      return {
+        success: false,
+        errorCode: errorCode,
+        errorMessage: errorMessage,
+        credentialIdHex: credentialIdHex
+      }
+    } finally {
+      OsAccountCustomAuthCredentialManager.closeSessionBestEffort(idm, userId, sessionOpened)
+    }
+  }
+
+  private static async getPinAuthToken(userId: number, challenge: Uint8Array): Promise<PinAuthTokenResult> {
+    let pinAuth = new osAccount.PINAuth()
+    let inputerRegistered = false
+    try {
+      let pinData = OsAccountCustomAuthCredentialManager.stringToBytes(DEFAULT_TEST_PIN)
+      let inputer: osAccount.IInputer = {
+        onGetData: (authSubType: osAccount.AuthSubType, callback: osAccount.IInputData,
+          _options: osAccount.GetInputDataOptions): void => {
+          callback.onSetData(authSubType, pinData)
+        }
+      }
+      pinAuth.registerInputer(inputer)
+      inputerRegistered = true
+      let userAuth = new osAccount.UserAuth()
+      return await new Promise<PinAuthTokenResult>((resolve: (value: PinAuthTokenResult) => void): void => {
+        let callback: osAccount.IUserAuthCallback = {
+          onResult: (result: number, extraInfo: osAccount.AuthResult): void => {
+            if (result === 0 && extraInfo.token && extraInfo.token.length > 0) {
+              resolve({
+                success: true,
+                token: extraInfo.token,
+                resultCode: result
+              })
+              return
+            }
+            resolve({
+              success: false,
+              resultCode: result,
+              errorCode: result,
+              errorMessage: `PIN authentication failed, result=${result}`
+            })
+          },
+          onAcquireInfo: (_module: number, _acquire: number, _extraInfo: Uint8Array): void => {
+          }
+        }
         try {
-          mdm.closeSession(userId)
+          userAuth.authUser(userId, challenge, osAccount.AuthType.PIN, osAccount.AuthTrustLevel.ATL2, callback)
         } catch (err) {
-          LogUtils.warn(TAG, `[CLOSE_SESSION_FAIL] userId=${userId}, err=${JSON.stringify(err)}`)
+          resolve({
+            success: false,
+            errorCode: OsAccountCustomAuthCredentialManager.getErrorCode(err),
+            errorMessage: OsAccountCustomAuthCredentialManager.getErrorMessage(err)
+          })
+        }
+      })
+    } catch (err) {
+      return {
+        success: false,
+        errorCode: OsAccountCustomAuthCredentialManager.getErrorCode(err),
+        errorMessage: OsAccountCustomAuthCredentialManager.getErrorMessage(err)
+      }
+    } finally {
+      if (inputerRegistered) {
+        try {
+          pinAuth.unregisterInputer()
+        } catch (err) {
+          LogUtils.warn(TAG, `[PIN_INPUTER_UNREGISTER_FAIL] err=${JSON.stringify(err)}`)
         }
       }
     }
   }
 
-  async deleteCredential(userId: number, credentialIdHex: string): Promise<CustomAuthCredentialDeletionResult> {
-    let sessionOpened = false
-    let mdm: MdmCustomCredentialModule | null = null
-    try {
-      mdm = MdmCustomAuthCredentialManager.loadMdmModule()
-      if (!mdm) {
-        return {
-          success: false,
-          errorCode: -1,
-          errorMessage: 'mdm custom credential module unavailable'
+  private static async addCredentialByCallback(
+    idm: osAccount.UserIdentityManager,
+    credentialInfo: osAccount.CredentialInfo
+  ): Promise<IdmOperationResult> {
+    return await new Promise<IdmOperationResult>((resolve: (value: IdmOperationResult) => void): void => {
+      let callback: osAccount.IIdmCallback = {
+        onResult: (result: number, extraInfo: osAccount.RequestResult): void => {
+          resolve({
+            resultCode: result,
+            credentialId: extraInfo.credentialId
+          })
+        },
+        onAcquireInfo: (_module: number, _acquire: number, _extraInfo: Uint8Array): void => {
         }
       }
-      let credentialId = MdmCustomAuthCredentialManager.hexToBytes(credentialIdHex)
-      if (credentialId.length === 0) {
-        return {
-          success: false,
-          errorCode: -1,
-          errorMessage: 'invalid credentialId'
+      try {
+        idm.addCredential(credentialInfo, callback)
+      } catch (err) {
+        resolve({
+          resultCode: OsAccountCustomAuthCredentialManager.getErrorCode(err)
+        })
+      }
+    })
+  }
+
+  private static async deleteCredentialByCallback(
+    idm: osAccount.UserIdentityManager,
+    credentialId: Uint8Array,
+    token: Uint8Array
+  ): Promise<IdmOperationResult> {
+    return await new Promise<IdmOperationResult>((resolve: (value: IdmOperationResult) => void): void => {
+      let callback: osAccount.IIdmCallback = {
+        onResult: (result: number, extraInfo: osAccount.RequestResult): void => {
+          resolve({
+            resultCode: result,
+            credentialId: extraInfo.credentialId
+          })
+        },
+        onAcquireInfo: (_module: number, _acquire: number, _extraInfo: Uint8Array): void => {
         }
       }
-      await mdm.openSession(userId)
-      sessionOpened = true
-      await mdm.deleteUserCustomCredential({
-        credentialId: credentialId
-      })
-      return {
-        success: true,
-        resultCode: 0,
-        credentialIdHex: credentialIdHex
+      try {
+        idm.delCred(credentialId, token, callback)
+      } catch (err) {
+        resolve({
+          resultCode: OsAccountCustomAuthCredentialManager.getErrorCode(err)
+        })
       }
-    } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[DELETE_FAIL] deleteCredential | code=${errorCode}, message=${errorMessage}`)
-      return {
-        success: false,
-        errorCode: errorCode,
-        errorMessage: errorMessage
-      }
-    } finally {
-      if (sessionOpened && mdm) {
-        try {
-          mdm.closeSession(userId)
-        } catch (err) {
-          LogUtils.warn(TAG, `[CLOSE_SESSION_FAIL] userId=${userId}, err=${JSON.stringify(err)}`)
-        }
-      }
+    })
+  }
+
+  private static closeSessionBestEffort(
+    idm: osAccount.UserIdentityManager | null,
+    userId: number,
+    sessionOpened: boolean
+  ): void {
+    if (!sessionOpened || !idm) {
+      return
     }
+    try {
+      idm.closeSession(userId)
+    } catch (err) {
+      LogUtils.warn(TAG, `[CLOSE_SESSION_FAIL] userId=${userId}, err=${JSON.stringify(err)}`)
+    }
+  }
+
+  private static stringToBytes(value: string): Uint8Array {
+    let bytes = new Uint8Array(value.length)
+    for (let i = 0; i < value.length; i++) {
+      bytes[i] = value.charCodeAt(i) & 0xFF
+    }
+    return bytes
   }
 
   private static toHex(data?: Uint8Array): string {
@@ -197,13 +352,16 @@ export class MdmCustomAuthCredentialManager implements CustomAuthCredentialManag
     return bytes
   }
 
-  private static loadMdmModule(): MdmCustomCredentialModule | null {
-    try {
-      return loadNativeModule(MDM_CUSTOM_CREDENTIAL_MODULE) as MdmCustomCredentialModule
-    } catch (err) {
-      LogUtils.error(TAG, `[LOAD_MDM_FAIL] module=${MDM_CUSTOM_CREDENTIAL_MODULE}, err=${JSON.stringify(err)}`)
-      return null
+  private static getErrorCode(err: Error | BusinessError | Object): number {
+    return typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
+  }
+
+  private static getErrorMessage(err: Error | BusinessError | Object): string {
+    let error = err as Error
+    if (typeof error?.message === 'string' && error.message.length > 0) {
+      return error.message
     }
+    return 'unknown'
   }
 }
 
@@ -217,7 +375,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
   constructor(
     bindingRepository: LockScreenUKeyBindingRepository = new PreferencesLockScreenUKeyBindingRepository(),
     deviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService(),
-    registrar: CustomAuthCredentialManager = new MdmCustomAuthCredentialManager(),
+    registrar: CustomAuthCredentialManager = new OsAccountCustomAuthCredentialManager(),
     activeCredentialRepository: LockScreenUKeyActiveCredentialRepository =
       new PreferencesLockScreenUKeyActiveCredentialRepository()
   ) {
@@ -247,6 +405,28 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     return await LockScreenCustomAuthEnrollmentService.runSerialized(
       (): Promise<OperationResult<LockScreenUKeyBinding | null>> => this.doReconcileOnStartup(context)
     )
+  }
+
+  async disableAndDeleteActiveCredential(
+    context: common.Context
+  ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    return await LockScreenCustomAuthEnrollmentService.runSerialized(
+      (): Promise<OperationResult<LockScreenUKeyBinding | null>> => this.doDisableAndDeleteActiveCredential(context)
+    )
+  }
+
+  private async doDisableAndDeleteActiveCredential(
+    context: common.Context
+  ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
+    let existing = await this.bindingRepository.loadBinding(context)
+    if (!existing) {
+      return LockScreenCustomAuthEnrollmentService.success(null, 'already_bound')
+    }
+    let active = await this.loadActiveCredentialOrLegacy(context, existing)
+    if (!active) {
+      return LockScreenCustomAuthEnrollmentService.success(existing, 'active_credential_missing')
+    }
+    return await this.deleteActiveCredential(context, existing, active)
   }
 
   private async doHandleUKeyDetached(

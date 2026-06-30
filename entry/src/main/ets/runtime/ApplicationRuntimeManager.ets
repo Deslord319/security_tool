@@ -7,8 +7,6 @@ import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peri
 import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
 import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
-import { LockScreenUKeyRuntimeEnrollmentConsumer } from '../services/identity/lockscreen-auth/LockScreenUKeyRuntimeEnrollmentConsumer'
-import { LockScreenAuthViewModel } from '../viewmodels/identity/lockscreen-auth/LockScreenAuthViewModel'
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
@@ -33,20 +31,16 @@ export class ApplicationRuntimeManager {
   private peripheralRuntimeInitPromise: Promise<void> | null = null
   private permissionRuntimeInitPromise: Promise<void> | null = null
   private readonly identitySettingsViewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
-  private readonly lockScreenAuthViewModel: LockScreenAuthViewModel = new LockScreenAuthViewModel()
   private readonly logManageViewModel: LogManageViewModel = new LogManageViewModel()
   private readonly peripheralViewModel: PeripheralViewModel = new PeripheralViewModel()
   private readonly permissionViewModel: PermissionViewModel = new PermissionViewModel()
   private readonly toolSettingsViewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
-  private readonly lockScreenUKeyRuntimeEnrollmentConsumer: LockScreenUKeyRuntimeEnrollmentConsumer =
-    new LockScreenUKeyRuntimeEnrollmentConsumer()
   private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
     new PeripheralConnectionRecordPipelineImpl(this.connectionRecordProducer, [
       new PeripheralConnectionRecordUsbConsumer(),
-      new PeripheralConnectionRecordBluetoothAclConsumer(),
-      this.lockScreenUKeyRuntimeEnrollmentConsumer
+      new PeripheralConnectionRecordBluetoothAclConsumer()
     ])
 
   static getInstance(): ApplicationRuntimeManager {
@@ -66,10 +60,6 @@ export class ApplicationRuntimeManager {
 
   getIdentitySettingsViewModel(): IdentitySettingsViewModel {
     return this.identitySettingsViewModel
-  }
-
-  getLockScreenAuthViewModel(): LockScreenAuthViewModel {
-    return this.lockScreenAuthViewModel
   }
 
   getPeripheralViewModel(): PeripheralViewModel {
@@ -202,9 +192,6 @@ export class ApplicationRuntimeManager {
     if (this.identityRuntimeInitialized) {
       return
     }
-    let context = this.requireContext()
-    this.lockScreenUKeyRuntimeEnrollmentConsumer.bindContext(context)
-    await this.lockScreenUKeyRuntimeEnrollmentConsumer.reconcileOnStartup()
     this.identityRuntimeInitialized = true
     LogUtils.info(TAG, 'initializeIdentityRuntime success')
   }
@@ -214,7 +201,6 @@ export class ApplicationRuntimeManager {
       return
     }
     let context = this.requireContext()
-    this.lockScreenUKeyRuntimeEnrollmentConsumer.bindContext(context)
     let traceRepoInited = await this.connectionRecordPipeline.bindContext(context)
     if (!traceRepoInited) {
       LogUtils.error(TAG, 'connection record pipeline bindContext failed')

@@ -58,7 +58,7 @@ export const DEFAULT_LOCKSCREEN_AUTH_CONFIG: LockScreenAuthConfig = {
   ukeyUnlockEnabled: true
 }
 
-export const LOCKSCREEN_CUSTOM_AUTH_BUNDLE_NAME: string = 'com.huawei.securitytool'
+export const LOCKSCREEN_CUSTOM_AUTH_BUNDLE_NAME: string = 'com.ukey.pin'
 export const LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO: string = JSON.stringify({
   customAuthenticatorType: 'HAP',
   customAuthenticatorBundleName: LOCKSCREEN_CUSTOM_AUTH_BUNDLE_NAME,

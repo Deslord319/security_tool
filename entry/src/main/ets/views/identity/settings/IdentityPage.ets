@@ -3,11 +3,9 @@ import { AppResources } from '../../../constants/AppResources'
 import { ActionText, ModuleText } from '../../../constants/StringCatalog'
 import {
   IdentityFormStrings,
-  IdentityLockScreenAuthStrings,
   IdentityPageStrings,
   IdentitySectionStrings
 } from '../../../constants/modules/IdentityStrings'
-import { common } from '@kit.AbilityKit'
 import { PASSWORD_LENGTH_OPTIONS } from '../../../models/IdentityModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { SectionCard } from '../../../components/SettingsSectionCard'
@@ -22,10 +20,6 @@ import { DialogService } from '../../../utils/DialogService'
 import { LogUtils } from '../../../utils/LogUtils'
 import { SubPageHeader } from '../../../components/SubPageHeader'
 import {
-  LockScreenAuthActionRequest,
-  LockScreenAuthViewModel
-} from '../../../viewmodels/identity/lockscreen-auth/LockScreenAuthViewModel'
-import {
   CUSTOM_VALIDITY_OPTION_INDEX,
   IdentitySettingsActionRequest,
   IdentitySettingsViewModel
@@ -37,7 +31,6 @@ const TAG = 'IdentityPage'
 export struct IdentityPage {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param viewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
-  @Param lockScreenAuthViewModel: LockScreenAuthViewModel = new LockScreenAuthViewModel()
   @Event onBack: () => void = () => {}
 
   private lengthOptions: SelectOption[] = PASSWORD_LENGTH_OPTIONS.map((value: number): SelectOption => ({
@@ -53,7 +46,6 @@ export struct IdentityPage {
 
   aboutToAppear() {
     this.initializeViewModel()
-    this.initializeLockScreenAuthViewModel()
   }
 
   private initializeViewModel(): void {
@@ -63,19 +55,6 @@ export struct IdentityPage {
     this.viewModel.initialize().catch((err: Error) => {
       LogUtils.warn(TAG, `initialize failed: ${JSON.stringify(err)}`)
     })
-  }
-
-  private initializeLockScreenAuthViewModel(): void {
-    if (this.lockScreenAuthViewModel.state.initialized || this.lockScreenAuthViewModel.state.loading) {
-      return
-    }
-    this.lockScreenAuthViewModel.initialize(this.getPageContext()).catch((err: Error) => {
-      LogUtils.warn(TAG, `initialize lock screen auth failed: ${JSON.stringify(err)}`)
-    })
-  }
-
-  private getPageContext(): common.UIAbilityContext {
-    return this.getUIContext().getHostContext() as common.UIAbilityContext
   }
 
   private async saveConfig(skipImmediateExpiryConfirm: boolean = false): Promise<void> {
@@ -115,26 +94,6 @@ export struct IdentityPage {
     })
   }
 
-  private showLockScreenAuthResult(request: LockScreenAuthActionRequest): void {
-    if (request.kind !== 'result' || !request.status || !request.message) {
-      return
-    }
-    DialogService.openResult(this.getUIContext(), {
-      status: request.status,
-      message: request.message
-    })
-  }
-
-  private handleUKeyUnlockChange(value: boolean): void {
-    this.lockScreenAuthViewModel.setUKeyUnlockEnabled(this.getPageContext(), value)
-      .then((request: LockScreenAuthActionRequest) => {
-        this.showLockScreenAuthResult(request)
-      })
-      .catch((err: Error) => {
-        LogUtils.warn(TAG, `setUKeyUnlockEnabled failed: ${JSON.stringify(err)}`)
-      })
-  }
-
   private getSaveButtonLabel(): string {
     return ActionText.SAVE_CONFIG
   }
@@ -158,14 +117,6 @@ export struct IdentityPage {
             currentTheme: this.currentTheme,
             content: () => {
               this.passwordComplexityContent()
-            }
-          })
-
-          SectionCard({
-            title: IdentityLockScreenAuthStrings.SECTION_TITLE,
-            currentTheme: this.currentTheme,
-            content: () => {
-              this.lockScreenAuthContent()
             }
           })
         }
@@ -304,29 +255,6 @@ export struct IdentityPage {
         this.viewModel.setCustomValidityPeriodText(value)
       }
     })
-    }
-  }
-
-  @Builder
-  private lockScreenAuthContent() {
-    if (!this.lockScreenAuthViewModel.state.initialized) {
-      LoadingStatePanel({
-        indicatorSize: 24,
-        currentTheme: this.currentTheme
-      })
-        .height(72)
-    } else {
-      SectionToggleRow({
-        title: IdentityLockScreenAuthStrings.UKEY_UNLOCK_TITLE,
-        description: IdentityLockScreenAuthStrings.UKEY_UNLOCK_DESCRIPTION,
-        isOn: this.lockScreenAuthViewModel.state.ukeyUnlockEnabled,
-        processing: this.lockScreenAuthViewModel.state.saving || this.lockScreenAuthViewModel.state.enrolling,
-        enabledValue: !this.lockScreenAuthViewModel.state.saving && !this.lockScreenAuthViewModel.state.enrolling,
-        currentTheme: this.currentTheme,
-        onChange: (value: boolean) => {
-          this.handleUKeyUnlockChange(value)
-        }
-      })
     }
   }
 

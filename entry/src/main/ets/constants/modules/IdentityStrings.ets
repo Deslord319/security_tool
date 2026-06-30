@@ -33,14 +33,6 @@ export class IdentitySectionStrings {
   static readonly PASSWORD_VALIDITY_PERIOD_DESC: string = '设置密码需要变更的周期'
 }
 
-export class IdentityLockScreenAuthStrings {
-  static readonly SECTION_TITLE: string = '锁屏认证'
-  static readonly UKEY_UNLOCK_TITLE: string = 'UKey 锁屏认证'
-  static readonly UKEY_UNLOCK_DESCRIPTION: string = '开启后允许锁屏页通过认证器验证 UKey'
-  static readonly SAVE_FAILED: string = 'UKey 锁屏认证设置保存失败，请稍后重试'
-  static readonly UKEY_REGISTER_FAILED: string = 'UKey 锁屏认证凭据注册失败，请插入首把 UKey 后重试'
-}
-
 export class IdentityFormStrings {
   static readonly CUSTOM_DAYS_PLACEHOLDER: string = '输入天数'
   static readonly DAY_UNIT: string = '天'

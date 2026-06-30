@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "UKey 认证服务"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "UKey 认证服务入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "UKey 认证"
+    },
+    {
+      "name": "permission_access_custom_auth_label",
+      "value": "访问自定义认证器"
+    },
+    {
+      "name": "permission_access_custom_auth_desc",
+      "value": "允许系统身份认证服务连接本应用的自定义认证器扩展"
+    }
+  ]
+}

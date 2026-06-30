@@ -2,7 +2,6 @@ import { describe, expect, it } from '@ohos/hypium'
 import { AuthMethod } from '../../main/ets/models/AuthModels'
 import { ApplicationRuntimeManager } from '../../main/ets/runtime/ApplicationRuntimeManager'
 import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
-import { LockScreenAuthViewModel } from '../../main/ets/viewmodels/identity/lockscreen-auth/LockScreenAuthViewModel'
 import { IdentitySettingsViewModel } from '../../main/ets/viewmodels/identity/settings/IdentitySettingsViewModel'
 import { ToolSettingsViewModel } from '../../main/ets/viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 
@@ -16,10 +15,6 @@ interface IdentityPageBoundaryHost {
 
 interface ToolSettingsPageBoundaryHost {
   viewModel: ToolSettingsViewModel
-}
-
-interface LockScreenAuthPageBoundaryHost {
-  viewModel: LockScreenAuthViewModel
 }
 
 export default function settingsPagesStateTest() {
@@ -79,27 +74,10 @@ export default function settingsPagesStateTest() {
       expect(remountedPage.viewModel.state.hasChanges).assertTrue()
     })
 
-    it('should keep lock screen auth state when page remounts with shared viewModel', 0, () => {
-      const sharedViewModel = new LockScreenAuthViewModel()
-      sharedViewModel.state.initialized = true
-      sharedViewModel.state.ukeyUnlockEnabled = false
-
-      const firstPage: LockScreenAuthPageBoundaryHost = {
-        viewModel: sharedViewModel
-      }
-      const remountedPage: LockScreenAuthPageBoundaryHost = {
-        viewModel: sharedViewModel
-      }
-
-      expect(firstPage.viewModel === remountedPage.viewModel).assertTrue()
-      expect(remountedPage.viewModel.state.ukeyUnlockEnabled).assertFalse()
-    })
-
     it('should expose shared identity and tool settings viewModels from runtime manager', 0, () => {
       const manager = ApplicationRuntimeManager.getInstance()
 
       expect(manager.getIdentitySettingsViewModel() === manager.getIdentitySettingsViewModel()).assertTrue()
-      expect(manager.getLockScreenAuthViewModel() === manager.getLockScreenAuthViewModel()).assertTrue()
       expect(manager.getToolSettingsViewModel() === manager.getToolSettingsViewModel()).assertTrue()
     })
   })
