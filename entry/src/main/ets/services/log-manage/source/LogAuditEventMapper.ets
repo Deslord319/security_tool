@@ -98,11 +98,12 @@ function parseAuditPayload(
   const sources = collectJsonSources(contentJson, metadataJson)
   const rawOutcome = resolveRawOutcome(sources)
   const fileAuditPathInfo = resolveFileAuditPathInfo(content, metadata, sources)
+  const detailRows = buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources, fileAuditPathInfo)
+  const fallbackDetail = buildFallbackAuditDetail(sources, content, metadata)
 
   return {
-    detail: pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
-      content || metadata || LogManageAuditStrings.FALLBACK_DETAIL,
-    detailRows: buildDetailRows(eventType, event, timestamp, contentJson, metadataJson, sources, fileAuditPathInfo),
+    detail: buildAuditEntryDetail(event, eventType, detailRows, fallbackDetail),
+    detailRows: detailRows,
     processName: pickString(sources, [
       'processName', 'procName', 'proc_name', 'cmdline', 'process', 'process_name', 'bundleName', 'bundle_name',
       'CALLER_NAME', 'CALLER_PNAMEID', 'PNAMEID'
@@ -114,6 +115,40 @@ function parseAuditPayload(
     rawOutcome: rawOutcome,
     rawAction: pickString(sources, ['action', 'eventAction', 'event_action', 'operation', 'op', 'state', 'OPERATION_TYPE', 'AUTH_TYPE']) ||
       pickNumberOrFirstArrayNumber(sources, ['OPERATION_TYPE', 'AUTH_TYPE'])
+  }
+}
+
+function buildFallbackAuditDetail(sources: LooseRecord[], content: string, metadata: string | undefined): string {
+  return pickString(sources, ['description', 'message', 'detail', 'msg', 'event_desc', 'summary']) ||
+    content || metadata || LogManageAuditStrings.FALLBACK_DETAIL
+}
+
+function buildAuditEntryDetail(
+  event: securityAudit.AuditEvent,
+  eventType: LogEventType,
+  rows: LogDetailTableRow[],
+  fallbackDetail: string
+): string {
+  if (eventType !== LogEventType.AUDIT || event.eventId !== securityAudit.NotifyEvent.EDM) {
+    return fallbackDetail
+  }
+  let parts: string[] = []
+  appendNonEmpty(parts, getDetailRowValue(rows, 'audit.edm.objectRemark') ||
+    getDetailRowValue(rows, 'audit.edm.objectInfo'))
+  appendNonEmpty(parts, getDetailRowValue(rows, 'audit.edm.operationTypeRemark') ||
+    getDetailRowValue(rows, 'audit.edm.operationType'))
+  return parts.length > 0 ? parts.join(' | ') : fallbackDetail
+}
+
+function getDetailRowValue(rows: LogDetailTableRow[], key: string): string {
+  const row = rows.find((item: LogDetailTableRow) => item.key === key)
+  return row ? row.value : ''
+}
+
+function appendNonEmpty(parts: string[], value: string): void {
+  const normalized = value.trim()
+  if (normalized.length > 0) {
+    parts.push(normalized)
   }
 }
 
