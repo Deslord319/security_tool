@@ -606,6 +606,7 @@ export default function logAuditSourceTest() {
         expect(getRowValue(rows, 'audit.edm.objectRemark')).assertEqual(item.remark)
         expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=1')
         expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('设置/变更策略状态')
+        expect(entry!.detail).assertEqual(`${item.remark} | 设置/变更策略状态`)
         expect(getRowValue(rows, 'audit.rawJson').indexOf(item.objectInfo) >= 0).assertTrue()
       })
     })
@@ -643,6 +644,7 @@ export default function logAuditSourceTest() {
         expect(getRowValue(rows, 'audit.description')).assertEqual('企业设备管理事件')
         expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual(`type=${item.operationType}`)
         expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual(item.remark)
+        expect(entry!.detail).assertEqual(`Wi-Fi 管理 | ${item.remark}`)
       })
     })
 
@@ -675,6 +677,7 @@ export default function logAuditSourceTest() {
       expect(getRowValue(rows, 'audit.edm.objectRemark')).assertEqual('')
       expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=0')
       expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('读取/查询策略状态')
+      expect(entry!.detail).assertEqual('disable_usb | 读取/查询策略状态')
       expect(getRowValue(rows, 'audit.rawJson').indexOf('disable_usb') >= 0).assertTrue()
     })
 
@@ -704,6 +707,7 @@ export default function logAuditSourceTest() {
       expect(!!entry).assertTrue()
       expect(getRowValue(rows, 'audit.edm.operationType')).assertEqual('type=9')
       expect(getRowValue(rows, 'audit.edm.operationTypeRemark')).assertEqual('')
+      expect(entry!.detail).assertEqual('Wi-Fi 管理 | type=9')
     })
 
     it('should exclude high frequency network events from audit log subscription', 0, () => {
