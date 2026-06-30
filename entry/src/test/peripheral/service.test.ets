@@ -19,6 +19,10 @@ export default function peripheralServiceTest() {
       expect(PeripheralService.FEATURE_HDC).assertEqual('hdc')
     })
 
+    it('should map network sharing to the tethering restriction feature', 0, () => {
+      expect(PeripheralService.FEATURE_NETWORK).assertEqual('tethering')
+    })
+
     it('should read usb interface state from local default policy', 0, () => {
       let isUsbDefaultDenyMock = mockKit.mockFunc(
         PeripheralDevicePolicyRepository,
