@@ -1,7 +1,4 @@
-/// <reference path="../../../mdmCustomCredential.d.ts" />
-
 import { common } from '@kit.AbilityKit'
-import { BusinessError } from '@kit.BasicServicesKit'
 import { OperationResult } from '../../../models/CommonModels'
 import {
   LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO,
@@ -23,7 +20,6 @@ import {
 
 const TAG = 'LockScreenCustomAuth.Enroll'
 const DEFAULT_OS_ACCOUNT_ID = 100
-const MDM_CUSTOM_CREDENTIAL_MODULE = 'mdm'
 
 export type LockScreenUKeyEnrollmentStage =
   'already_bound' |
@@ -74,135 +70,30 @@ export interface LockScreenUKeyEnrollmentService {
   reconcileOnStartup(context: common.Context): Promise<OperationResult<LockScreenUKeyBinding | null>>
 }
 
-export class MdmCustomAuthCredentialManager implements CustomAuthCredentialManager {
+export class PendingOsAccountCustomAuthCredentialManager implements CustomAuthCredentialManager {
   async addCredential(userId: number, pluginInfo: string): Promise<CustomAuthCredentialRegistrationResult> {
-    let sessionOpened = false
-    let mdm: MdmCustomCredentialModule | null = null
-    try {
-      mdm = MdmCustomAuthCredentialManager.loadMdmModule()
-      if (!mdm) {
-        return {
-          success: false,
-          errorCode: -1,
-          errorMessage: 'mdm custom credential module unavailable'
-        }
-      }
-      await mdm.openSession(userId)
-      sessionOpened = true
-      let result = await mdm.addUserCustomCredential({
-        userId: userId,
-        pluginInfo: pluginInfo
-      })
-      let credentialIdHex = MdmCustomAuthCredentialManager.toHex(result.credentialId)
-      return {
-        success: result.resultCode === 0 && credentialIdHex.length > 0,
-        resultCode: result.resultCode,
-        credentialIdHex: credentialIdHex
-      }
-    } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[REGISTER_FAIL] addCredential | code=${errorCode}, message=${errorMessage}`)
-      return {
-        success: false,
-        errorCode: errorCode,
-        errorMessage: errorMessage
-      }
-    } finally {
-      if (sessionOpened && mdm) {
-        try {
-          mdm.closeSession(userId)
-        } catch (err) {
-          LogUtils.warn(TAG, `[CLOSE_SESSION_FAIL] userId=${userId}, err=${JSON.stringify(err)}`)
-        }
-      }
+    LogUtils.warn(TAG, `[REGISTER_SKIPPED] osAccount PIN token credential path pending | userId=${userId}, pluginInfo=${pluginInfo}`)
+    return {
+      success: false,
+      errorCode: -1,
+      errorMessage: 'osAccount custom credential path requires PIN token and is not connected'
     }
   }
 
   async deleteCredential(userId: number, credentialIdHex: string): Promise<CustomAuthCredentialDeletionResult> {
-    let sessionOpened = false
-    let mdm: MdmCustomCredentialModule | null = null
-    try {
-      mdm = MdmCustomAuthCredentialManager.loadMdmModule()
-      if (!mdm) {
-        return {
-          success: false,
-          errorCode: -1,
-          errorMessage: 'mdm custom credential module unavailable'
-        }
-      }
-      let credentialId = MdmCustomAuthCredentialManager.hexToBytes(credentialIdHex)
-      if (credentialId.length === 0) {
-        return {
-          success: false,
-          errorCode: -1,
-          errorMessage: 'invalid credentialId'
-        }
-      }
-      await mdm.openSession(userId)
-      sessionOpened = true
-      await mdm.deleteUserCustomCredential({
-        credentialId: credentialId
-      })
-      return {
-        success: true,
-        resultCode: 0,
-        credentialIdHex: credentialIdHex
-      }
-    } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[DELETE_FAIL] deleteCredential | code=${errorCode}, message=${errorMessage}`)
+    if (credentialIdHex.length === 0) {
       return {
         success: false,
-        errorCode: errorCode,
-        errorMessage: errorMessage
-      }
-    } finally {
-      if (sessionOpened && mdm) {
-        try {
-          mdm.closeSession(userId)
-        } catch (err) {
-          LogUtils.warn(TAG, `[CLOSE_SESSION_FAIL] userId=${userId}, err=${JSON.stringify(err)}`)
-        }
+        errorCode: -1,
+        errorMessage: 'invalid credentialId'
       }
     }
-  }
-
-  private static toHex(data?: Uint8Array): string {
-    if (!data || data.length === 0) {
-      return ''
-    }
-    let parts: string[] = []
-    for (let i = 0; i < data.length; i++) {
-      parts.push(data[i].toString(16).padStart(2, '0'))
-    }
-    return parts.join('')
-  }
-
-  private static hexToBytes(hex: string): Uint8Array {
-    if (!hex || hex.length === 0) {
-      return new Uint8Array(0)
-    }
-    let clean = hex.replace(/[^0-9a-fA-F]/g, '')
-    if (clean.length === 0 || clean.length % 2 !== 0) {
-      return new Uint8Array(0)
-    }
-    let bytes = new Uint8Array(clean.length / 2)
-    for (let i = 0; i < bytes.length; i++) {
-      bytes[i] = parseInt(clean.substring(i * 2, i * 2 + 2), 16)
-    }
-    return bytes
-  }
-
-  private static loadMdmModule(): MdmCustomCredentialModule | null {
-    try {
-      return loadNativeModule(MDM_CUSTOM_CREDENTIAL_MODULE) as MdmCustomCredentialModule
-    } catch (err) {
-      LogUtils.error(TAG, `[LOAD_MDM_FAIL] module=${MDM_CUSTOM_CREDENTIAL_MODULE}, err=${JSON.stringify(err)}`)
-      return null
+    LogUtils.warn(TAG, `[DELETE_SKIPPED] osAccount PIN token credential path pending | userId=${userId}, credentialId=${credentialIdHex}`)
+    return {
+      success: false,
+      errorCode: -1,
+      errorMessage: 'osAccount custom credential path requires PIN token and is not connected',
+      credentialIdHex: credentialIdHex
     }
   }
 }
@@ -217,7 +108,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
   constructor(
     bindingRepository: LockScreenUKeyBindingRepository = new PreferencesLockScreenUKeyBindingRepository(),
     deviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService(),
-    registrar: CustomAuthCredentialManager = new MdmCustomAuthCredentialManager(),
+    registrar: CustomAuthCredentialManager = new PendingOsAccountCustomAuthCredentialManager(),
     activeCredentialRepository: LockScreenUKeyActiveCredentialRepository =
       new PreferencesLockScreenUKeyActiveCredentialRepository()
   ) {
