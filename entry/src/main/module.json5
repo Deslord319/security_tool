@@ -31,9 +31,6 @@
         "name": "ohos.permission.ENTERPRISE_MANAGE_USB"
       },
       {
-        "name": "ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER"
-      },
-      {
         "name": "ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS"
       },
       {
@@ -105,30 +102,7 @@
         "name": "ohos.permission.GET_LOCAL_ACCOUNTS"
       },
       {
-        "name": "ohos.permission.MANAGE_LOCAL_ACCOUNTS"
-      },
-      {
-        "name": "ohos.permission.MANAGE_USER_IDM"
-      },
-      {
-        "name": "ohos.permission.USE_USER_IDM"
-      },
-      {
-        "name": "ohos.permission.ACCESS_USER_AUTH_INTERNAL"
-      },
-      {
          "name": "ohos.permission.PRIVACY_WINDOW"
-      }
-    ],
-    "definePermissions": [
-      {
-        "name": "ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR",
-        "grantMode": "system_grant",
-        "availableLevel": "system_core",
-        "provisionEnable": true,
-        "distributedSceneEnable": false,
-        "label": "$string:permission_access_custom_auth_label",
-        "description": "$string:permission_access_custom_auth_desc"
       }
     ],
     "abilities": [
@@ -167,15 +141,6 @@
       }
     ],
     "extensionAbilities": [
-      {
-        "name": "ICustomAuthenticatorV1",
-        "srcEntry": "./ets/extensionability/CustomAuthExtAbility.ets",
-        "type": "appService",
-        "exported": true,
-        "permissions": [
-          "ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR"
-        ]
-      },
       {
         "name": "EntryBackupAbility",
         "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",
