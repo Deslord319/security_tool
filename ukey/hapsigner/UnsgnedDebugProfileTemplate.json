@@ -2,7 +2,7 @@
     "version-name":  "2.0.0",
     "version-code":  2,
     "uuid":  "fe686e1b-3770-4824-a938-961b140a7c98",
-    "app-distribution-type":  "enterprise_mdm",
+    "app-distribution-type":  "os_integration",
     "validity":  {
                      "not-before":  1577836800,
                      "not-after":  1893456000
