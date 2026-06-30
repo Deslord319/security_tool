@@ -130,6 +130,7 @@ SystemUI / UserAuth
   - `ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR`
 - **签名要求**:
   - `ukey/` 应单独生成系统应用签名 HAP。
+  - `app-distribution-type` 使用 `os_integration`，对齐系统应用定位；UKey 不是企业管理员/MDM 应用。系统能力由 `bundle-info.apl=system_core`、`app-feature=hos_system_app` 和系统集成分发类型共同承载。
   - 安装后 `bm dump -n com.ukey.pin` 应能看到系统应用权限/等级，至少要达到测试 HAP 调用 PIN token 和 User IDM 所需级别。
   - SecurityTool 主应用不再因为 UKey 能力额外申请 User IDM、PINAuth、CustomAuthenticator 或 DDK 权限。
 - **异常兜底策略**:
@@ -164,6 +165,7 @@ SystemUI / UserAuth
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.1.1 | 2026-06-30 | Codex | 调整 `ukey/` 签名 profile 分发类型为 `os_integration`；UKey 作为系统认证器应用，系统等级由 `system_core`、`hos_system_app` 和系统集成分发类型共同保证。 |
 | 2.1.0 | 2026-06-30 | Codex | 为 `ukey/` 独立系统应用增加本地管理页：提供 UKey 锁屏认证开关、当前绑定 Key 查询和活动凭据状态展示；开关只保存在 `ukey/` 本应用内，不回流 SecurityTool。 |
 | 2.0.1 | 2026-06-30 | Codex | `ukey/` 运行时独立订阅 USB attach / detach：启动时对账，插入触发首把注册/补注入，拔出触发活动凭据删除，不再依赖 SecurityTool 外设事件管线。 |
 | 2.0.0 | 2026-06-30 | Codex | UKey 能力从 SecurityTool 主应用迁出到 `ukey/` 独立系统应用；SecurityTool 不再承载 UKey 开关、DDK、凭据注入、CustomAuth appService 或 UKey 持久化状态。 |
