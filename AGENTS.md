@@ -234,6 +234,7 @@ ohos.permission.GET_NET_FIREWALL
 ohos.permission.PREPARE_APP_TERMINATE
 ohos.permission.ENTERPRISE_MANAGE_NETWORK
 ohos.permission.ENTERPRISE_MANAGE_USB
+ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER
 ohos.permission.ENTERPRISE_MANAGE_RESTRICTIONS
 ohos.permission.ENTERPRISE_MANAGE_BLUETOOTH
 ohos.permission.ACCESS_BLUETOOTH
@@ -257,6 +258,7 @@ ohos.permission.MANAGE_LOCAL_ACCOUNTS
 ohos.permission.MANAGE_USER_IDM
 ohos.permission.USE_USER_IDM
 ohos.permission.ACCESS_USER_AUTH_INTERNAL
+ohos.permission.ACCESS_CUSTOM_AUTHENTICATOR
 ohos.permission.PRIVACY_WINDOW
 ```
 

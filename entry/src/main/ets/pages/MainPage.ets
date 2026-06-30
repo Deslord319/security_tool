@@ -309,6 +309,12 @@ struct MainPage {
       this.applicationRuntime.ensurePermissionRuntimeServices().catch((err: ErrorLike) => {
         LogUtils.error(TAG, `ensurePermissionRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
       })
+      return
+    }
+    if (this.currentPage === RouteIds.IDENTITY) {
+      this.applicationRuntime.ensureIdentityRuntimeServices().catch((err: ErrorLike) => {
+        LogUtils.error(TAG, `ensureIdentityRuntimeServices in ${source} failed: ${JSON.stringify(err)}`)
+      })
     }
   }
 

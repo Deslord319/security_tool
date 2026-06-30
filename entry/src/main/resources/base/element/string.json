@@ -19,6 +19,14 @@
     {
       "name": "bluetooth_persistent_mac_reason",
       "value": "用于持久化保存蓝牙设备虚拟地址，确保连接记录可追踪"
+    },
+    {
+      "name": "permission_access_custom_auth_label",
+      "value": "访问自定义认证器"
+    },
+    {
+      "name": "permission_access_custom_auth_desc",
+      "value": "允许系统身份认证服务连接本应用的自定义认证器扩展"
     }
   ]
 }

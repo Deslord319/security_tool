@@ -25,9 +25,11 @@ export class ApplicationRuntimeManager {
 
   private context: common.UIAbilityContext | null = null
   private logRuntimeInitialized: boolean = false
+  private identityRuntimeInitialized: boolean = false
   private peripheralRuntimeInitialized: boolean = false
   private permissionRuntimeInitialized: boolean = false
   private logRuntimeInitPromise: Promise<void> | null = null
+  private identityRuntimeInitPromise: Promise<void> | null = null
   private peripheralRuntimeInitPromise: Promise<void> | null = null
   private permissionRuntimeInitPromise: Promise<void> | null = null
   private readonly identitySettingsViewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
@@ -85,6 +87,7 @@ export class ApplicationRuntimeManager {
   async ensureRuntimeServices(): Promise<void> {
     await Promise.all([
       this.ensureLogRuntimeInitialized(),
+      this.ensureIdentityRuntimeInitialized(),
       this.ensurePeripheralRuntimeInitialized(),
       this.ensurePermissionRuntimeInitialized()
     ])
@@ -94,6 +97,10 @@ export class ApplicationRuntimeManager {
   async ensureLogRuntimeServices(): Promise<void> {
     await this.ensureLogRuntimeInitialized()
     await this.ensureCollectorsRunning()
+  }
+
+  async ensureIdentityRuntimeServices(): Promise<void> {
+    await this.ensureIdentityRuntimeInitialized()
   }
 
   async ensurePeripheralRuntimeServices(): Promise<void> {
@@ -144,6 +151,17 @@ export class ApplicationRuntimeManager {
     await this.logRuntimeInitPromise
   }
 
+  private async ensureIdentityRuntimeInitialized(): Promise<void> {
+    if (!this.identityRuntimeInitPromise) {
+      this.identityRuntimeInitPromise = this.initializeIdentityRuntime().finally(() => {
+        if (!this.identityRuntimeInitialized) {
+          this.identityRuntimeInitPromise = null
+        }
+      })
+    }
+    await this.identityRuntimeInitPromise
+  }
+
   private async ensurePeripheralRuntimeInitialized(): Promise<void> {
     if (!this.peripheralRuntimeInitPromise) {
       this.peripheralRuntimeInitPromise = this.initializePeripheralRuntime().finally(() => {
@@ -178,6 +196,17 @@ export class ApplicationRuntimeManager {
     }
     this.logRuntimeInitialized = true
     LogUtils.info(TAG, 'initializeLogRuntime success')
+  }
+
+  private async initializeIdentityRuntime(): Promise<void> {
+    if (this.identityRuntimeInitialized) {
+      return
+    }
+    let context = this.requireContext()
+    this.lockScreenUKeyRuntimeEnrollmentConsumer.bindContext(context)
+    await this.lockScreenUKeyRuntimeEnrollmentConsumer.reconcileOnStartup()
+    this.identityRuntimeInitialized = true
+    LogUtils.info(TAG, 'initializeIdentityRuntime success')
   }
 
   private async initializePeripheralRuntime(): Promise<void> {

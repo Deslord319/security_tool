@@ -27,10 +27,10 @@ export class PermissionSummaryStrings {
 }
 
 export class PermissionEmptyStrings {
-  static readonly APPLICATIONS: string = '当前账号没有可管控的非系统应用。'
-  static readonly INVENTORY_LOAD_FAILED: string = '应用清单读取失败，请确认企业管理员激活态和应用清单权限。'
+  static readonly APPLICATIONS: string = '当前账号没有可管控的非系统应用'
+  static readonly INVENTORY_LOAD_FAILED: string = '应用清单读取失败，请确认企业管理员激活态和应用清单权限'
   static readonly SELECT_APPLICATION_FIRST: string = '请先选择应用再下发策略'
-  static readonly POLICIES: string = '当前账号暂无已生效策略。'
+  static readonly POLICIES: string = '当前账号暂无已生效策略'
 }
 
 export class PermissionLoadingStrings {

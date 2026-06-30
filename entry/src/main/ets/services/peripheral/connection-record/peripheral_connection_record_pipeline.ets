@@ -102,10 +102,6 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
 
   async push(event: PeripheralConnectionRecordProducerEvent): Promise<boolean> {
     const traceReady = await this.ensureTraceRepositoryReady()
-    if (!traceReady) {
-      LogUtils.warn(TAG, `skip push: trace storage not ready, channel=${event.channel}`)
-      return false
-    }
     let persisted: boolean = false
     for (let index = 0; index < this.consumers.length; index++) {
       const consumer = this.consumers[index]
@@ -114,6 +110,10 @@ export class PeripheralConnectionRecordPipelineImpl implements PeripheralConnect
       }
       const record = await consumer.consume(event)
       if (!record) {
+        continue
+      }
+      if (!traceReady) {
+        LogUtils.warn(TAG, `skip trace append: storage not ready, channel=${event.channel}, deviceId=${record.deviceId}`)
         continue
       }
       if (this.shouldSkipByDedupe(event, record)) {
