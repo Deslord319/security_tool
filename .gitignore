@@ -11,9 +11,7 @@
 **/.test
 /.appanalyzer
 oh-package-lock.json5
-/.qoder
 *.bat
-/ukey/
 
 # Temporary files
 .bin/
@@ -21,6 +19,8 @@ nul
 temp_*.txt
 *.png
 !security-app/*.png
+!ukey/**/*.png
+!ukey/**/oh-package-lock.json5
 
 # Signing files (sensitive)
 hapsigner/*.hap
