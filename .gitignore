@@ -13,6 +13,7 @@
 oh-package-lock.json5
 /.qoder
 *.bat
+/ukey/
 
 # Temporary files
 .bin/
