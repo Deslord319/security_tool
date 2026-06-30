@@ -93,6 +93,42 @@ export default function interfaceControlViewModelTest() {
     done()
   })
 
+  it('should reload network sharing state from interface service result', 0, async (done: Function) => {
+    let isUsbDefaultDenyMock = mockKit.mockFunc(
+      PeripheralDevicePolicyRepository,
+      PeripheralDevicePolicyRepository.isUsbDefaultDeny
+    )
+    let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)
+    let getUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.getUsbStoragePolicyWithResult)
+    let restorePowerMock = mockKit.mockFunc(PeripheralService, PeripheralService.restoreEnabledInterfacePowerWithResult)
+    let enabledResult = new BooleanOperationResult()
+    enabledResult.success = true
+    enabledResult.data = false
+    let disabledResult = new BooleanOperationResult()
+    disabledResult.success = true
+    disabledResult.data = true
+    let usbResult = new UsbPolicyOperationResult()
+    usbResult.success = true
+    usbResult.data = edmUsbManager.UsbPolicy.READ_WRITE
+    let restoreResult = new VoidOperationResult()
+    restoreResult.success = true
+    when(isUsbDefaultDenyMock)().afterReturn(false)
+    when(getInterfaceMock)(PeripheralService.FEATURE_BLUETOOTH).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_WIFI).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_HDC).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_NETWORK).afterReturn(disabledResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_PRINTER).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_MICROPHONE).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralService.FEATURE_CAMERA).afterReturn(enabledResult)
+    when(getUsbStorageMock)().afterReturn(usbResult)
+    when(restorePowerMock)(ArgumentMatchers.any).afterReturn(restoreResult)
+
+    viewModel.reloadState()
+
+    expect(viewModel.state.networkDisabled).assertTrue()
+    done()
+  })
+
   it('should update usb storage policy successfully', 0, async (done: Function) => {
     let setUsbStorageMock = mockKit.mockFunc(PeripheralService, PeripheralService.setUsbStoragePolicyWithCleanupResult)
     let getInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.getInterfaceDisabledWithResult)

@@ -1,6 +1,6 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import restrictions from '@ohos.enterprise.restrictions'
-import { bluetoothManager, networkManager, usbManager, wifiManager } from '@kit.MDMKit'
+import { bluetoothManager, usbManager, wifiManager } from '@kit.MDMKit'
 
 import { ADMIN_WANT } from '../../../constants/AppConstants'
 import { PeripheralServiceErrorStrings } from '../../../constants/modules/PeripheralErrorStrings'
@@ -25,15 +25,12 @@ export class PeripheralService {
   static readonly FEATURE_BLUETOOTH: string = 'bluetooth'
   static readonly FEATURE_WIFI: string = 'wifi'
   static readonly FEATURE_HDC: string = 'hdc'
-  static readonly FEATURE_NETWORK: string = 'network'
+  static readonly FEATURE_NETWORK: string = 'tethering'
   static readonly FEATURE_PRINTER: string = 'printer'
   static readonly FEATURE_MICROPHONE: string = 'microphone'
   static readonly FEATURE_CAMERA: string = 'camera'
 
   static setInterfaceDisabledWithResult(feature: string, disallow: boolean): OperationResult<void> {
-    if (feature === PeripheralService.FEATURE_NETWORK) {
-      return PeripheralService.setNetworkInterfaceDisabledWithResult(disallow)
-    }
     if (feature === PeripheralService.FEATURE_USB) {
       return {
         success: false,
@@ -65,9 +62,6 @@ export class PeripheralService {
   }
 
   static getInterfaceDisabledWithResult(feature: string): OperationResult<boolean> {
-    if (feature === PeripheralService.FEATURE_NETWORK) {
-      return PeripheralService.getNetworkInterfaceDisabledWithResult()
-    }
     if (feature === PeripheralService.FEATURE_USB) {
       return {
         success: true,
@@ -126,39 +120,6 @@ export class PeripheralService {
         )
       }
       return OperationResultUtils.buildFailureResult<void>('set usb storage policy', err as ErrorLike)
-    }
-  }
-
-  private static setNetworkInterfaceDisabledWithResult(disallow: boolean): OperationResult<void> {
-    try {
-      const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
-      for (let i = 0; i < interfaces.length; i++) {
-        networkManager.setNetworkInterfaceDisabledSync(ADMIN_WANT, interfaces[i], disallow)
-      }
-      return { success: true } as OperationResult<void>
-    } catch (err) {
-      LogUtils.error(TAG, `setNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return OperationResultUtils.buildFailureResult<void>('set network interface status', err as ErrorLike)
-    }
-  }
-
-  private static getNetworkInterfaceDisabledWithResult(): OperationResult<boolean> {
-    try {
-      const interfaces: string[] = networkManager.getAllNetworkInterfacesSync(ADMIN_WANT)
-      if (interfaces.length === 0) {
-        return { success: true, data: false } as OperationResult<boolean>
-      }
-      let allDisabled = true
-      for (let i = 0; i < interfaces.length; i++) {
-        if (!networkManager.isNetworkInterfaceDisabledSync(ADMIN_WANT, interfaces[i])) {
-          allDisabled = false
-          break
-        }
-      }
-      return { success: true, data: allDisabled } as OperationResult<boolean>
-    } catch (err) {
-      LogUtils.error(TAG, `getNetworkInterfaceDisabled failed: ${JSON.stringify(err)}`)
-      return OperationResultUtils.buildFailureResult<boolean>('get network interface status', err as ErrorLike, false)
     }
   }
 
