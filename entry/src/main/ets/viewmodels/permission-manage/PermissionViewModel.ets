@@ -310,17 +310,17 @@ export class PermissionViewModel {
     this.setProcessingAction('install-deny')
     try {
       await this.waitForCommittedState()
-      let packageName = PermissionService.normalizeInstallBlockPackageName(this.state.installBlockKeyword)
-      let result = await PermissionService.setDisallowedInstallPolicyId(this.state.selectedAccountId, packageName)
+      let policyId = PermissionService.normalizeInstallBlockPolicyId(this.state.installBlockKeyword)
+      let result = await PermissionService.setDisallowedInstallPolicyId(this.state.selectedAccountId, policyId)
       if (result.success) {
         this.state.installBlockKeyword = ''
         let nextPolicies = [{
           accountId: this.state.selectedAccountId,
-          policyId: packageName,
+          policyId: policyId,
           policy: 'denied'
         } as AccountInstallPolicySnapshot].concat(
           this.state.installPolicies.filter((policy: AccountInstallPolicySnapshot): boolean =>
-            !(policy.accountId === this.state.selectedAccountId && policy.policyId === packageName)
+            !(policy.accountId === this.state.selectedAccountId && policy.policyId === policyId)
           )
         )
         this.commitPermissionState({ installPolicies: nextPolicies })

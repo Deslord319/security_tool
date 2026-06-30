@@ -198,15 +198,15 @@ export class PermissionService {
     ]) as ApplicationPermissionProfile
   }
 
-  static normalizeInstallBlockPackageName(keyword: string): string {
-    let packageName = keyword.trim()
-    if (packageName.length === 0) {
+  static normalizeInstallBlockPolicyId(keyword: string): string {
+    let policyId = keyword.trim()
+    if (policyId.length === 0) {
       throw new Error('missing install policy target')
     }
-    if (!PermissionService.isValidPackageName(packageName)) {
-      throw new Error('invalid install package name')
+    if (!PermissionService.isValidInstallPolicyIdentity(policyId)) {
+      throw new Error('invalid install policy identity')
     }
-    return packageName
+    return policyId
   }
 
   static async setDisallowedInstallPolicyId(
@@ -297,7 +297,7 @@ export class PermissionService {
     if (message.includes('missing install policy target')) {
       return PermissionApplicationStrings.INSTALL_BLOCK_EMPTY
     }
-    if (message.includes('invalid install package name')) {
+    if (message.includes('invalid install policy identity')) {
       return PermissionApplicationStrings.INSTALL_BLOCK_INVALID
     }
     if (message.includes('permission undeclared')) {
@@ -306,8 +306,8 @@ export class PermissionService {
     return PermissionApplicationStrings.SET_FAILED
   }
 
-  private static isValidPackageName(value: string): boolean {
-    return /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/.test(value)
+  private static isValidInstallPolicyIdentity(value: string): boolean {
+    return /^\d+$/.test(value) || /^[A-Za-z][A-Za-z0-9_.-]*_[^\s]+$/.test(value)
   }
 
   private static async deletePolicyRecordInternal(

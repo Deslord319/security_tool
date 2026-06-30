@@ -123,7 +123,7 @@ export default function permissionViewModelTest() {
           appSnapshots: [],
           installPolicies: [{
             accountId: 100,
-            policyId: 'com.example.future',
+            policyId: 'com.example.future_app_id',
             policy: 'denied'
           } as AccountInstallPolicySnapshot]
         } as PermissionInitialData))
@@ -600,16 +600,33 @@ export default function permissionViewModelTest() {
       expect(records[0].appKey).assertEqual(account100App.appKey)
     })
 
-    it('should accept full package name as install block target', 0, () => {
-      let packageName = PermissionService.normalizeInstallBlockPackageName(' com.example.future ')
+    it('should accept explicit app id as install block target', 0, () => {
+      let policyId = PermissionService.normalizeInstallBlockPolicyId(' com.example.future_app_id_signature ')
 
-      expect(packageName).assertEqual('com.example.future')
+      expect(policyId).assertEqual('com.example.future_app_id_signature')
     })
 
-    it('should reject non-package install block target', 0, () => {
+    it('should accept explicit app identifier as install block target', 0, () => {
+      let policyId = PermissionService.normalizeInstallBlockPolicyId(' 6917606289429086981 ')
+
+      expect(policyId).assertEqual('6917606289429086981')
+    })
+
+    it('should reject bundle name install block target', 0, () => {
       let failed = false
       try {
-        PermissionService.normalizeInstallBlockPackageName('Mail')
+        PermissionService.normalizeInstallBlockPolicyId('com.example.future')
+      } catch (err) {
+        failed = true
+      }
+
+      expect(failed).assertTrue()
+    })
+
+    it('should reject display name install block target', 0, () => {
+      let failed = false
+      try {
+        PermissionService.normalizeInstallBlockPolicyId('Mail')
       } catch (err) {
         failed = true
       }
@@ -769,7 +786,7 @@ export default function permissionViewModelTest() {
         viewModel.state.appSnapshots = [buildAppSnapshot(app, true, true, true)]
         viewModel.state.installPolicies = [{
           accountId: 100,
-          policyId: 'com.example.future',
+          policyId: 'com.example.future_app_id',
           policy: 'denied'
         } as AccountInstallPolicySnapshot]
 
@@ -911,7 +928,7 @@ export default function permissionViewModelTest() {
           appSnapshots: [buildAppSnapshot(app, false, false, false)],
           installPolicies: [{
             accountId: 100,
-            policyId: 'com.example.future',
+            policyId: 'com.example.future_app_id',
             policy: 'denied'
           } as AccountInstallPolicySnapshot]
         } as ApplicationInventoryResult))
@@ -937,10 +954,11 @@ export default function permissionViewModelTest() {
       }
     })
 
-    it('should de-duplicate install deny policy by account and package', 0, async (done: Function) => {
+    it('should de-duplicate install deny policy by account and app identity', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
         let viewModel = new PermissionViewModel()
+        let policyId = 'com.example.future_app_id'
         let setInstallPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setDisallowedInstallPolicyId)
         when(setInstallPolicyMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           success: true,
@@ -948,11 +966,12 @@ export default function permissionViewModelTest() {
         } as PermissionActionResult))
 
         viewModel.state.selectedAccountId = 100
-        viewModel.state.installBlockKeyword = 'com.example.future'
+        viewModel.state.appSnapshots = []
+        viewModel.state.installBlockKeyword = policyId
         viewModel.state.installPolicies = [
           {
             accountId: 100,
-            policyId: 'com.example.future',
+            policyId: policyId,
             policy: 'denied'
           } as AccountInstallPolicySnapshot,
           {
@@ -962,14 +981,14 @@ export default function permissionViewModelTest() {
           } as AccountInstallPolicySnapshot,
           {
             accountId: 101,
-            policyId: 'com.example.future',
+            policyId: policyId,
             policy: 'denied'
           } as AccountInstallPolicySnapshot
         ]
 
         let result = await viewModel.setDisallowedInstallByKeyword()
         let currentAccountMatches = viewModel.state.installPolicies.filter((policy: AccountInstallPolicySnapshot): boolean =>
-          policy.accountId === 100 && policy.policyId === 'com.example.future'
+          policy.accountId === 100 && policy.policyId === policyId
         )
 
         expect(result.success).assertTrue()
