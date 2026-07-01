@@ -105,6 +105,24 @@ export async function ecdhSharedSecret(localKeyPair: cryptoFramework.KeyPair, pe
 }
 
 export async function hkdfDerive(salt: Uint8Array, info: Uint8Array, inputKey: Uint8Array, outLen: number): Promise<Uint8Array | null> {
+  if (!inputKey || inputKey.length === 0) {
+    LogUtils.error(TAG, 'hkdfDerive: inputKey must be non-empty')
+    return null
+  }
+  if (outLen <= 0 || outLen > 8160) {
+    LogUtils.error(TAG, `hkdfDerive: outLen ${outLen} out of range`)
+    return null
+  }
+  const maxParamSize = 256
+  if (salt && salt.length > maxParamSize) {
+    LogUtils.error(TAG, `hkdfDerive: salt length ${salt.length} exceeds ${maxParamSize}`)
+    return null
+  }
+  if (info && info.length > maxParamSize) {
+    LogUtils.error(TAG, `hkdfDerive: info length ${info.length} exceeds ${maxParamSize}`)
+    return null
+  }
+
   try {
     const spec: cryptoFramework.HKDFSpec = {
       algName: 'HKDF',
@@ -126,6 +144,10 @@ export async function hkdfDerive(salt: Uint8Array, info: Uint8Array, inputKey: U
 export async function aesGcmEncrypt(key: Uint8Array, plaintext: Uint8Array, aad: Uint8Array): Promise<AeadResult | null> {
   try {
     const nonce = await generateRandom(12)
+    if (!nonce) {
+      LogUtils.error(TAG, 'aesGcmEncrypt: nonce generation failed')
+      return null
+    }
     const symGenerator = cryptoFramework.createSymKeyGenerator('AES256')
     const symKey = await symGenerator.convertKey({ data: key })
 
@@ -178,8 +200,17 @@ export async function generateRsaKeyPair(): Promise<RsaKeyPair | null> {
     const keyPair = await generator.generateKeyPair()
     const pubEncoded = await keyPair.pubKey.getEncoded()
     const priEncoded = await keyPair.priKey.getEncoded()
+    const pubKeyData = pubEncoded.data
+    if (pubKeyData.length === 0 || pubKeyData[0] !== 0x30) {
+      LogUtils.error(TAG, `generateRsaKeyPair: public key not DER/SPKI, len=${pubKeyData.length}`)
+      return null
+    }
+    if (pubKeyData.length < 400 || pubKeyData.length > 800) {
+      LogUtils.error(TAG, `generateRsaKeyPair: RSA-4096 SPKI size ${pubKeyData.length}B out of expected range`)
+      return null
+    }
     return {
-      pubKey: pubEncoded.data,
+      pubKey: pubKeyData,
       privKey: priEncoded.data,
       keyPair,
     }
@@ -201,13 +232,13 @@ export async function rsaOaepDecrypt(privKey: cryptoFramework.PriKey, ciphertext
   }
 }
 
-export async function generateRandom(len: number): Promise<Uint8Array> {
+export async function generateRandom(len: number): Promise<Uint8Array | null> {
   try {
     const random = cryptoFramework.createRandom()
     const result = await random.generateRandom(len)
     return result.data
   } catch (e) {
     LogUtils.error(TAG, `generateRandom failed: ${e}`)
-    return new Uint8Array(0)
+    return null
   }
 }

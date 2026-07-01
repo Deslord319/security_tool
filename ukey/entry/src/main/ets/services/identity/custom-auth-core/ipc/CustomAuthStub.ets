@@ -26,6 +26,11 @@ export class CustomAuthStub extends rpc.RemoteObject {
     this.service = new CustomAuthenticatorService()
   }
 
+  dispose(): void {
+    this.service.cleanupAllSessions()
+    this.authCallbacks.clear()
+  }
+
   onRemoteMessageRequest(code: number, data: rpc.MessageSequence, reply: rpc.MessageSequence,
     options: rpc.MessageOption): boolean | Promise<boolean> {
     try {

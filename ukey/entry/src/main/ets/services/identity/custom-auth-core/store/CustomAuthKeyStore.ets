@@ -1,20 +1,21 @@
 import { asset } from '@kit.AssetStoreKit'
 import { LogUtils } from '../../../../utils/LogUtils'
-import { encodeUint64Be, decodeUint64Be } from '../codec/CustomAuthUint64Codec'
 
 const TAG = 'CustomAuth.KeyStore'
 
 const SHARED_KEY_LENGTH = 32
 const AUTHENTICATOR_SECRET_LENGTH = 32
-const AUTHENTICATOR_SECRET_SEQ_LENGTH = 8
-const KEY_MATERIAL_SECRET_LENGTH = SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH + AUTHENTICATOR_SECRET_SEQ_LENGTH // 72
+const AUTHENTICATOR_SECRET_SEQ_LENGTH = 4
+const KEY_MATERIAL_SECRET_LENGTH = SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH + AUTHENTICATOR_SECRET_SEQ_LENGTH // 68
+const LEGACY_AUTHENTICATOR_SECRET_SEQ_LENGTH = 8
+const LEGACY_KEY_MATERIAL_SECRET_LENGTH = SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH + LEGACY_AUTHENTICATOR_SECRET_SEQ_LENGTH // 72
 const CUSTOM_AUTH_KEY_ALIAS_PREFIX = 'custom_auth_'
 
-// Per-template key material. uint64 fields are carried as decimal strings.
+// Per-template key material. authenticatorSecretSeq is a u32.
 export interface KeyMaterial {
   sharedKey: Uint8Array
   authenticatorSecret: Uint8Array
-  authenticatorSecretSeq: string
+  authenticatorSecretSeq: number
 }
 
 function stringToBytes(str: string): Uint8Array {
@@ -39,17 +40,57 @@ function buildAlias(templateId: string): Uint8Array {
 
 const KEY_GROUP_LABEL = stringToBytes('ca_keys')
 
-// SECRET = sharedKey(32) || authenticatorSecret(32) || seqBE(8).
-function buildSecret(sharedKey: Uint8Array, authenticatorSecret: Uint8Array, seq: string): Uint8Array {
-  const seqBe = encodeUint64Be(seq)
+function encodeUint32Le(value: number): Uint8Array {
+  if (Math.floor(value) !== value || value < 0 || value > 0xFFFFFFFF) {
+    throw new Error(`encodeUint32Le: value out of u32 range: ${value}`)
+  }
+  let v = value
+  const bytes = new Uint8Array(AUTHENTICATOR_SECRET_SEQ_LENGTH)
+  for (let i = 0; i < AUTHENTICATOR_SECRET_SEQ_LENGTH; i++) {
+    bytes[i] = v & 0xFF
+    v = Math.floor(v / 256)
+  }
+  return bytes
+}
+
+function decodeUint32Le(bytes: Uint8Array): number {
+  if (bytes.length !== AUTHENTICATOR_SECRET_SEQ_LENGTH) {
+    throw new Error(`decodeUint32Le: expected ${AUTHENTICATOR_SECRET_SEQ_LENGTH} bytes, got ${bytes.length}`)
+  }
+  let value = 0
+  for (let i = 0; i < bytes.length; i++) {
+    value |= (bytes[i] << (i * 8))
+  }
+  return value >>> 0
+}
+
+function decodeLegacyUint64BeAsUint32(bytes: Uint8Array): number | null {
+  if (bytes.length !== LEGACY_AUTHENTICATOR_SECRET_SEQ_LENGTH) {
+    return null
+  }
+  for (let i = 0; i < 4; i++) {
+    if (bytes[i] !== 0) {
+      return null
+    }
+  }
+  let value = 0
+  for (let i = 4; i < LEGACY_AUTHENTICATOR_SECRET_SEQ_LENGTH; i++) {
+    value = (value * 256) + bytes[i]
+  }
+  return value >>> 0
+}
+
+// SECRET = sharedKey(32) || authenticatorSecret(32) || seqLE(4).
+function buildSecret(sharedKey: Uint8Array, authenticatorSecret: Uint8Array, seq: number): Uint8Array {
+  const seqLe = encodeUint32Le(seq)
   const secret = new Uint8Array(KEY_MATERIAL_SECRET_LENGTH)
   secret.set(sharedKey, 0)
   secret.set(authenticatorSecret, SHARED_KEY_LENGTH)
-  secret.set(seqBe, SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH)
+  secret.set(seqLe, SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH)
   return secret
 }
 
-function parseSecret(secret: Uint8Array): KeyMaterial | null {
+function parseCurrentSecret(secret: Uint8Array): KeyMaterial | null {
   if (secret.length !== KEY_MATERIAL_SECRET_LENGTH) {
     LogUtils.error(TAG, `parseSecret: bad length ${secret.length}, expect ${KEY_MATERIAL_SECRET_LENGTH}`)
     return null
@@ -57,15 +98,58 @@ function parseSecret(secret: Uint8Array): KeyMaterial | null {
   return {
     sharedKey: secret.slice(0, SHARED_KEY_LENGTH),
     authenticatorSecret: secret.slice(SHARED_KEY_LENGTH, SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH),
-    authenticatorSecretSeq: decodeUint64Be(secret.slice(SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH, KEY_MATERIAL_SECRET_LENGTH)),
+    authenticatorSecretSeq: decodeUint32Le(secret.slice(SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH, KEY_MATERIAL_SECRET_LENGTH)),
+  }
+}
+
+function parseLegacySecret(secret: Uint8Array): KeyMaterial | null {
+  if (secret.length !== LEGACY_KEY_MATERIAL_SECRET_LENGTH) {
+    LogUtils.error(TAG, `parseLegacySecret: bad length ${secret.length}, expect ${LEGACY_KEY_MATERIAL_SECRET_LENGTH}`)
+    return null
+  }
+  const seq = decodeLegacyUint64BeAsUint32(secret.slice(
+    SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH,
+    LEGACY_KEY_MATERIAL_SECRET_LENGTH,
+  ))
+  if (seq === null) {
+    LogUtils.error(TAG, 'parseLegacySecret: seq exceeds u32 range')
+    return null
+  }
+  return {
+    sharedKey: secret.slice(0, SHARED_KEY_LENGTH),
+    authenticatorSecret: secret.slice(SHARED_KEY_LENGTH, SHARED_KEY_LENGTH + AUTHENTICATOR_SECRET_LENGTH),
+    authenticatorSecretSeq: seq,
+  }
+}
+
+function migrateLegacySecret(templateId: string, alias: Uint8Array, secret: Uint8Array): KeyMaterial | null {
+  const material = parseLegacySecret(secret)
+  if (!material) {
+    return null
+  }
+  const migratedSecret = buildSecret(material.sharedKey, material.authenticatorSecret, material.authenticatorSecretSeq)
+  try {
+    const query: Map<asset.Tag, asset.Value> = new Map()
+    query.set(asset.Tag.ALIAS, alias)
+    const attrsToUpdate: Map<asset.Tag, asset.Value> = new Map()
+    attrsToUpdate.set(asset.Tag.SECRET, migratedSecret)
+    asset.updateSync(query, attrsToUpdate)
+    LogUtils.info(TAG, `migrateLegacySecret: templateId=${templateId} migrated 72B->68B seq=${material.authenticatorSecretSeq}`)
+    return material
+  } catch (e) {
+    material.sharedKey.fill(0)
+    material.authenticatorSecret.fill(0)
+    LogUtils.error(TAG, `migrateLegacySecret: templateId=${templateId} updateSync failed: ${e}`)
+    return null
+  } finally {
+    migratedSecret.fill(0)
   }
 }
 
 // Store or overwrite one template record atomically. Never use remove-then-add here.
-export function storeKeys(templateId: string, sharedKey: Uint8Array, authenticatorSecret: Uint8Array,
-  seq: string): boolean {
+export function storeKeys(templateId: string, sharedKey: Uint8Array, authenticatorSecret: Uint8Array): boolean {
   const alias = buildAlias(templateId)
-  const secret = buildSecret(sharedKey, authenticatorSecret, seq)
+  const secret = buildSecret(sharedKey, authenticatorSecret, 1)
   const labelBytes = stringToBytes(templateId) // DATA_LABEL_NORMAL_1 = templateId
   let created = false
 
@@ -100,7 +184,7 @@ export function storeKeys(templateId: string, sharedKey: Uint8Array, authenticat
       asset.addSync(attrs)
       created = true
     }
-    LogUtils.info(TAG, `storeKeys: templateId=${templateId} seq=${seq} success (${created ? 'add' : 'update'})`)
+    LogUtils.info(TAG, `storeKeys: templateId=${templateId} success (${created ? 'add' : 'update'})`)
     return true
   } catch (e) {
     LogUtils.error(TAG, `storeKeys: templateId=${templateId} failed: ${e}`)
@@ -129,7 +213,14 @@ export function loadKeys(templateId: string): KeyMaterial | null {
       LogUtils.error(TAG, `loadKeys: templateId=${templateId} no SECRET`)
       return null
     }
-    const material = parseSecret(secret)
+    let material: KeyMaterial | null = null
+    if (secret.length === KEY_MATERIAL_SECRET_LENGTH) {
+      material = parseCurrentSecret(secret)
+    } else if (secret.length === LEGACY_KEY_MATERIAL_SECRET_LENGTH) {
+      material = migrateLegacySecret(templateId, alias, secret)
+    } else {
+      LogUtils.error(TAG, `loadKeys: templateId=${templateId} bad SECRET length ${secret.length}`)
+    }
     // parseSecret copied the fields; clear the raw SECRET buffer.
     secret.fill(0)
     return material
@@ -168,12 +259,18 @@ export function aliasExists(templateId: string): boolean {
 }
 
 // Rotate authenticatorSecret and seq in one SecurityAsset update.
-export function updateAuthSecretAndSeq(templateId: string, newAuthenticatorSecret: Uint8Array,
-  newSeq: string): boolean {
+export function updateAuthSecretAndSeq(templateId: string, newAuthenticatorSecret: Uint8Array): number | null {
   const material = loadKeys(templateId)
   if (!material) {
     LogUtils.error(TAG, `updateAuthSecretAndSeq: templateId=${templateId} not found`)
-    return false
+    return null
+  }
+  const newSeq = material.authenticatorSecretSeq + 1
+  if (newSeq > 0xFFFFFFFF) {
+    material.sharedKey.fill(0)
+    material.authenticatorSecret.fill(0)
+    LogUtils.error(TAG, `updateAuthSecretAndSeq: templateId=${templateId} seq cap reached`)
+    return null
   }
   const alias = buildAlias(templateId)
   const newSecret = buildSecret(material.sharedKey, newAuthenticatorSecret, newSeq)
@@ -188,11 +285,11 @@ export function updateAuthSecretAndSeq(templateId: string, newAuthenticatorSecre
     attrsToUpdate.set(asset.Tag.SECRET, newSecret)
     asset.updateSync(query, attrsToUpdate)
     LogUtils.info(TAG, `updateAuthSecretAndSeq: templateId=${templateId} seq=${newSeq} success`)
-    return true
+    return newSeq
   } catch (e) {
     // Keep the old record intact and let the caller fail this authentication attempt.
     LogUtils.error(TAG, `updateAuthSecretAndSeq: templateId=${templateId} updateSync failed: ${e}`)
-    return false
+    return null
   } finally {
     // Clear the temporary packed replacement SECRET.
     newSecret.fill(0)

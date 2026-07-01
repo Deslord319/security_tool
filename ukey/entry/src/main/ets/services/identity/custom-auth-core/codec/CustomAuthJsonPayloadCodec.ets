@@ -50,6 +50,13 @@ export function decodeIntField(value: Object | null): number | null {
   return value as number
 }
 
+export function decodeStringField(value: Object | null): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+  return value as string
+}
+
 // Encrypted JSON payloads are strict: missing or unknown fields are protocol errors.
 export function requireField(payload: Record<string, Object | null>, key: string): Object {
   const v = payload[key]

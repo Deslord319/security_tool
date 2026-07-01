@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
 last_updated: "2026-07-01"
-version: "2.1.9"
+version: "2.2.0"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -67,6 +67,8 @@ SystemUI / UserAuth
   - `currentDevices: LockScreenUKeyDevice[]`: 页面实时识别到的候选 UKey，只用于管理页展示和诊断，不代表已经绑定成功。优先使用 DDK 查询结果；若 DDK 服务异常，页面允许使用 `usbManager.getDevices()` 兜底展示。用户可见文案统一为 `UKey设备`，不展示 DDK/USB 来源、fingerprint、deviceId 或弱标识类型。页面前台运行时周期刷新，避免 UKey 拔出后保留旧显示。
   - `templateBinding[templateId]: fingerprint`: CustomAuth 模板到首把 UKey fingerprint 的绑定。
   - `presenceState: absent / present / multiple / backend_error`: 最近一次 UKey 后端判断结果。
+  - `customAuthKeyMaterial`: 每个 CustomAuth 模板在 SecurityAsset 中保存 `sharedKey(32B) || authenticatorSecret(32B) || authenticatorSecretSeq(4B LE)`，总长 68B。`authenticatorSecretSeq` 为 u32，录入初值为 `1`，每次轮换从磁盘最新值自增后与新 `authenticatorSecret` 在同一次 `asset.updateSync` 中提交。
+  - `legacyCustomAuthKeyMaterial`: 兼容旧版本 72B 记录 `sharedKey(32B) || authenticatorSecret(32B) || seq(8B BE)`。首次读取旧记录且 seq 不超过 u32 上限时，原子改写为 68B 新格式；seq 超出 u32 或记录长度异常时按损坏记录处理，不参与认证成功路径。
 - **关键流转路径**:
   - 应用启动 -> `UKeyRuntimeManager.start()` -> 订阅 USB attach / detach common event -> 读取开关、首把绑定和 UKEY解锁凭据 -> 枚举当前 UKey -> 首把在场且无 UKEY解锁凭据时补注入；首把不在场且有 UKEY解锁凭据时删除 stale 凭据。
   - 应用启动 -> `EntryAbility.initStatusBar()` -> 注册状态栏图标 -> 启动隐藏的 `BackGroundAbility` 绑定托盘；窗口 X 关闭触发 `onPrepareToTerminate()`，调用 `hideAbility()` 并保持 UKey 运行时继续工作。
@@ -81,8 +83,9 @@ SystemUI / UserAuth
   - 已有首把绑定且同一把在场 -> 若 UKEY解锁凭据缺失则补注入；若已存在 UKEY解锁凭据则不重复注册。
   - 已有首把绑定后发现第二把 -> 不调用 `addCredential`，不覆盖首把绑定。
   - 首把拔出 -> 若存在对应 UKEY解锁凭据，调用 `delCred` 删除系统凭据，成功后清空 `activeCredential`，保留 `trustedBinding`。
-  - CustomAuth `endEnroll` -> 保存模板密钥并记录 `templateId -> fingerprint`。
+  - CustomAuth `endEnroll` -> 内层 AEAD JSON 使用十进制字符串 `template_id` 与明文参数对账；保存 68B 模板密钥并记录 `templateId -> fingerprint`。
   - CustomAuth `beginAuthenticate` -> 只选择当前首把 UKey 匹配的 templateId；无匹配直接失败。
+  - CustomAuth `finishAuth` -> `onAuthResult` 内层 AEAD JSON 以原始 JSON number 返回 u32 `auth_secret_seq`，不再使用 base64(8B BE) 编码；认证过程中若连接断开或 Ability 销毁，清理所有未完成会话和内存 key buffer。
 
 ## 3. 核心功能场景 (Core Functional Scenarios)
 
@@ -93,6 +96,7 @@ SystemUI / UserAuth
 - **系统应用权限闭环**: `ukey/` 必须按系统应用签名并获得 PIN token、User IDM、CustomAuth 和 DDK 权限；若安装后 `bm dump` 未显示系统应用级别，不视为验收通过。
 - **本地管理页**: 页面只提供一个 `UKey 锁屏认证` 开关、`UKey设备` 查询，并以 `UKEY解锁凭据` 展示系统凭据注入状态。UKey设备来自实时设备枚举，识别到设备只显示设备名称和 Serial；不向用户展示 DDK/USB 来源、fingerprint、deviceId 或弱标识类型；未识别到设备时展示未识别状态。首把绑定仍由服务层维护，但不作为独立卡片展示。
 - **托盘化运行**: `ukey解锁工具` 启动后进入系统状态栏；用户点击窗口 X 时只隐藏窗口，UKey 插拔监听和 CustomAuth appService 不因普通关闭动作退出。用户执行应用级关闭时允许真实退出。
+- **CustomAuth 协议兼容**: 当前 CustomAuth 核心对齐新系统侧协议：`template_id` 为十进制字符串，`auth_secret_seq` 为 u32 JSON number，SecurityAsset 新记录为 68B；历史 72B 记录仅在读取时做一次性迁移，不新增用户可见迁移入口。
 
 ## 4. 模块结构与组件设计 (Module Components)
 
@@ -109,8 +113,11 @@ SystemUI / UserAuth
   - 负责编排添加/删除系统 CustomAuth 凭据。
 - `ukey/entry/src/main/ets/services/identity/custom-auth-core/**`
   - 裁剪后的认证器核心协议、IPC、密码学和 SecurityAsset 存储。
+  - `CustomAuthJsonPayloadCodec` 负责 AEAD 内层 JSON 编解码和严格字段校验，支持 `template_id` 十进制字符串字段。
+  - `CustomAuthKeyStore` 负责 68B 密钥材料读写、旧 72B 记录迁移、孤立模板对账和删除。
+  - `CustomAuthCryptoEngine` 负责 ECDH / HKDF / AES-GCM / RSA-OAEP，随机数失败必须返回失败结果，不得用空数组继续执行密码学流程。
 - `ukey/entry/src/main/ets/extensionability/CustomAuthExtAbility.ets`
-  - `ICustomAuthenticatorV1` appService 入口。
+  - `ICustomAuthenticatorV1` appService 入口。连接断开或 Ability 销毁时调用 stub 清理未完成会话。
 - `ukey/entry/src/main/ets/runtime/UKeyRuntimeManager.ets`
   - 独立运行时入口，应用启动后订阅 USB attach / detach common event，启动时执行一次对账，插入事件触发注册/补注入，拔出事件触发 UKEY解锁凭据删除。
 - `ukey/entry/src/main/ets/entryability/EntryAbilityStage.ets`
@@ -154,6 +161,7 @@ SystemUI / UserAuth
   - 删除凭据失败时保留失败状态，后续对账重试。
   - 第二把 UKey 不替换首把绑定。
   - CustomAuth 无匹配 UKey 时直接失败，不顺序 fallback。
+  - CustomAuth 旧 72B 密钥记录迁移失败、记录长度异常、随机数生成失败、HKDF 参数非法或 RSA 公钥编码异常时返回 `GENERAL_ERROR` 或对应失败结果，不伪装认证成功。
 
 ### 5.1 实施步骤与测试验收 (Implementation & Acceptance)
 
@@ -162,10 +170,12 @@ SystemUI / UserAuth
   2. 修改 `pluginInfo` 和 appService 包名为 `com.ukey.pin`。
   3. 给 `ukey/` 增加系统权限、`ICustomAuthenticatorV1` appService 和系统签名模板。
   4. 从 SecurityTool 移除 UKey 页面入口、运行时 consumer、CustomAuth appService、UKey 服务/模型/权限。
-  5. 分别构建 SecurityTool 和 `ukey/`，确认 SecurityTool 不再出现 UKey systemapi warning，`ukey/` 作为系统应用承接相关 warning/权限。
+  5. CustomAuth 核心协议随系统侧升级时，先更新本文档，再同步 `custom-auth-core` 的 JSON 字段、SecurityAsset 格式、旧记录迁移和生命周期清理逻辑；不得迁入测试 HAP 的 fake UKey、模拟换新或调试页面。
+  6. 分别构建 SecurityTool 和 `ukey/`，确认 SecurityTool 不再出现 UKey systemapi warning，`ukey/` 作为系统应用承接相关 warning/权限。
 - **测试覆盖**:
   - SecurityTool UT/构建: 身份鉴别页仍可配置口令策略，且不再引用 UKey 模块。
   - `ukey/` 构建: 编译通过，`UserAuth is system api` warning 只出现在 `ukey/`。
+  - `ukey/` CustomAuth 验证: 覆盖 `template_id` 十进制字符串、`auth_secret_seq` u32 JSON number、68B 新记录读写和 72B 旧记录迁移。
   - 设备手工: 安装 `ukey/` 系统签名 HAP 后，第一把 UKey 可注册，第二把不注册，拔出首把删除 UKEY解锁凭据。
 - **验收口径**:
   - `security_tool/entry/src/main/ets` 下不再存在 `lockscreen-auth`、`custom-auth-core` 或 `CustomAuthExtAbility`。
@@ -177,12 +187,15 @@ SystemUI / UserAuth
   - `ukey/` 安装后显示名为 `ukey解锁工具`；状态栏出现托盘入口，左键点击可恢复窗口。
   - `ukey/` 声明并签入 `ohos.permission.PREPARE_APP_TERMINATE`；主窗口点击 X 后应用不退出，窗口隐藏，UKey 运行时仍保持订阅和对账能力。
   - `ukey/` 实现 `EntryAbilityStage.onPrepareTermination()`；应用级关闭能真实退出，不被窗口 X 关闭隐藏逻辑拦截。
+  - `ukey/` CustomAuth 不引入 `UKeySimulator`、模拟换新按钮或无匹配模板 fallback；第二把 UKey 仍不能认证成功。
+  - `ukey/` CustomAuth 新录入模板以 68B SecurityAsset 记录保存；旧 72B 记录首次读取后迁移为 68B，迁移失败时不认证成功。
   - SecurityTool 构建、文档一致性检查通过。
 
 ## 6. 变更日志 (Changelog)
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.0 | 2026-07-01 | Codex | CustomAuth 核心协议对齐新系统侧格式：`template_id` 改为十进制字符串，`auth_secret_seq` 改为 u32 JSON number，SecurityAsset 新记录改为 68B，并对旧 72B 记录做读取时迁移；连接断开时清理未完成会话。 |
 | 2.1.9 | 2026-07-01 | Codex | 管理页移除“当前绑定 Key”卡片；“当前识别 UKey”统一改为 `UKey设备`，用户可见文案不再展示 DDK/USB 来源。 |
 | 2.1.8 | 2026-07-01 | Codex | 收敛管理页展示字段：不再展示 fingerprint、deviceId 和弱标识类型；页面前台周期刷新当前识别 UKey，避免拔出后保留旧数据。 |
 | 2.1.7 | 2026-07-01 | Codex | 管理页新增“当前识别 UKey”展示：实时枚举候选 UKey，DDK 异常时允许 USB 兜底展示，避免未绑定或凭据注入失败时页面看不到已插入设备。 |
