@@ -229,7 +229,7 @@ struct Index {
   build() {
     Column() {
       Row() {
-        Text('UKey 认证')
+        Text('ukey解锁工具')
           .fontSize(AppStyles.FONT_SIZE_TITLE)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)

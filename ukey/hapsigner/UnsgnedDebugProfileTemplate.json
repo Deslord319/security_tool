@@ -17,6 +17,7 @@
                     },
     "acls":  {
                  "allowed-acls":  [
+                                      "ohos.permission.PREPARE_APP_TERMINATE",
                                       "ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER",
                                       "ohos.permission.MANAGE_LOCAL_ACCOUNTS",
                                       "ohos.permission.MANAGE_USER_IDM",
@@ -28,6 +29,7 @@
              },
     "permissions":  {
                         "restricted-permissions":  [
+                                                       "ohos.permission.PREPARE_APP_TERMINATE",
                                                        "ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER",
                                                        "ohos.permission.MANAGE_LOCAL_ACCOUNTS",
                                                        "ohos.permission.MANAGE_USER_IDM",

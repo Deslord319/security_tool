@@ -2,6 +2,7 @@
   "module": {
     "name": "entry",
     "type": "entry",
+    "srcEntry": "./ets/entryability/EntryAbilityStage.ets",
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
@@ -11,6 +12,9 @@
     "installationFree": false,
     "pages": "$profile:main_pages",
     "requestPermissions": [
+      {
+        "name": "ohos.permission.PREPARE_APP_TERMINATE"
+      },
       {
         "name": "ohos.permission.ACCESS_EXTENSIONAL_DEVICE_DRIVER"
       },
@@ -61,6 +65,16 @@
             ]
           }
         ]
+      },
+      {
+        "name": "BackGroundAbility",
+        "srcEntry": "./ets/backgroundability/BackGroundAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": false
       }
     ],
     "extensionAbilities": [
