@@ -12,7 +12,6 @@ import {
 } from '../../../constants/modules/PermissionStrings'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { CompactSummaryCard } from '../../../components/CompactSummaryCard'
-import { EmptyStatePanel } from '../../../components/EmptyStatePanel'
 import { LoadingStatePanel } from '../../../components/LoadingStatePanel'
 import { SectionLabel } from '../../../components/SectionRows'
 import { SectionCard } from '../../../components/SettingsSectionCard'
@@ -402,11 +401,7 @@ export struct PermissionPage {
         .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
 
       if (this.viewModel.state.filteredAppKeys.length === 0) {
-        EmptyStatePanel({
-          title: this.getApplicationEmptyText(),
-          currentTheme: this.currentTheme,
-          verticalPadding: POLICY_EMPTY_VERTICAL_PADDING
-        })
+        this.applicationInventoryEmptyText()
       } else {
         this.targetApplicationSelectRow()
       }
@@ -555,6 +550,22 @@ export struct PermissionPage {
 
   private getApplicationEmptyText(): string {
     return this.viewModel.state.inventoryMessage.length > 0 ? this.viewModel.state.inventoryMessage : PermissionEmptyStrings.APPLICATIONS
+  }
+
+  @Builder
+  private applicationInventoryEmptyText() {
+    Text(this.getApplicationEmptyText())
+      .width('100%')
+      .fontSize(AppStyles.FONT_SIZE_BODY)
+      .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
+      .textAlign(TextAlign.Center)
+      .padding({
+        left: AppStyles.TABLE_HORIZONTAL_PADDING,
+        right: AppStyles.TABLE_HORIZONTAL_PADDING,
+        top: POLICY_EMPTY_VERTICAL_PADDING,
+        bottom: POLICY_EMPTY_VERTICAL_PADDING
+      })
   }
 
   @Builder

@@ -178,21 +178,6 @@ export class PermissionViewModel {
     return success
   }
 
-  private async loadSelectedPermissionProfileForKey(appKey: string, requestSeq: number): Promise<void> {
-    let snapshot = this.findAppSnapshot(appKey)
-    if (snapshot === undefined) {
-      return
-    }
-    try {
-      let profile = await PermissionService.loadPermissionProfile(snapshot)
-      if (this.state.selectedAppKey === profile.appKey && this.permissionProfileRequestSeq === requestSeq) {
-        this.applySelectedPermissionProfile(profile)
-      }
-    } catch (err) {
-      LogUtils.warn(TAG, `loadSelectedPermissionProfile failed: ${JSON.stringify(err)}`)
-    }
-  }
-
   private async loadSelectedApplicationDetailsForKey(appKey: string, requestSeq: number): Promise<void> {
     let snapshot = this.findAppSnapshot(appKey)
     if (snapshot === undefined) {
@@ -689,32 +674,6 @@ export class PermissionViewModel {
 
   private getThreeDRecordKey(appKey: string, groupKey: string): string {
     return `three-d:${appKey}:${groupKey}`
-  }
-
-  private applySelectedPermissionProfile(profile: ApplicationPermissionProfile): void {
-    let nextSnapshots = this.state.appSnapshots.map((snapshot: PermissionAppSnapshot): PermissionAppSnapshot => {
-      if (snapshot.appKey !== profile.appKey) {
-        return snapshot
-      }
-      return {
-        appKey: snapshot.appKey,
-        accountId: snapshot.accountId,
-        bundleName: snapshot.bundleName,
-        appId: snapshot.appId,
-        appIdentifier: snapshot.appIdentifier,
-        label: snapshot.label,
-        uid: snapshot.uid,
-        appIndex: snapshot.appIndex,
-        uninstallProtected: snapshot.uninstallProtected,
-        runningBlocked: snapshot.runningBlocked,
-        networkBlocked: snapshot.networkBlocked,
-        threeDGroups: profile.threeDGroups,
-        threeDPolicies: this.buildThreeDPolicySnapshotsFromGroups(snapshot, profile.threeDGroups),
-        threeDLoadState: 'loaded',
-        threeDMessage: profile.message
-      } as PermissionAppSnapshot
-    })
-    this.commitPermissionState({ appSnapshots: nextSnapshots })
   }
 
   private buildThreeDPolicySnapshotsFromGroups(
