@@ -19,6 +19,7 @@ export class FirewallRuleStrings {
   static readonly APPLY_FAILED_PERMISSION: string = '规则添加失败，请检查权限和企业管理员状态'
   static readonly APPLY_FAILED_INVALID_PARAM: string = '规则参数不合法，请检查输入'
   static readonly APPLY_FAILED_DNS_DUPLICATE: string = 'DNS 规则重复：同一用户下主 DNS 或备用 DNS 与已有规则重复，请调整 DNS 地址后重试'
+  static readonly USER_SCOPE_CHANGED: string = '账号列表已变化，请重新选择用户'
   static readonly DUPLICATE: string = '已存在完全相同的规则'
   static readonly CONFLICT_TITLE: string = '规则冲突'
   static readonly CONFLICT_REPLACE_MESSAGE: string = '发现与现有规则冲突的记录，是否使用新规则覆盖？'

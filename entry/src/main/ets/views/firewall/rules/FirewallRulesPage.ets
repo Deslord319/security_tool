@@ -59,6 +59,11 @@ export struct FirewallRulesPage {
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
+    let userScopeResult = await this.rulesViewModel.validateRuleUserScopeForSubmit(rule)
+    if (!userScopeResult.success) {
+      DialogService.openFailure(this.getUIContext(), userScopeResult.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+      return false
+    }
     let conflict = this.rulesViewModel.findConflict(rule)
     if (conflict) {
       if (conflict.kind === 'duplicate') {
@@ -108,8 +113,14 @@ export struct FirewallRulesPage {
     return result.success || (result.successDeployments?.length ?? 0) > 0
   }
 
-  private openAddRuleDialog(): void {
+  private async openAddRuleDialog(): Promise<void> {
     this.closeAddRuleDialog()
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result = await this.rulesViewModel.prepareRuleEditor(context)
+    if (!result.success) {
+      DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+      return
+    }
     this.addRuleDialogController = new CustomDialogController({
       builder: AddRuleDialog({
         currentTheme: this.currentTheme,
@@ -138,7 +149,13 @@ export struct FirewallRulesPage {
     }
   }
 
-  private openEditRuleDialog(rule: netFirewall.NetFirewallRule): void {
+  private async openEditRuleDialog(rule: netFirewall.NetFirewallRule): Promise<void> {
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let result = await this.rulesViewModel.prepareRuleEditor(context)
+    if (!result.success) {
+      DialogService.openFailure(this.getUIContext(), result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+      return
+    }
     let dialogController = new CustomDialogController({
       builder: AddRuleDialog({
         currentTheme: this.currentTheme,
@@ -161,6 +178,11 @@ export struct FirewallRulesPage {
   }
 
   async handleEditRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
+    let userScopeResult = await this.rulesViewModel.validateRuleUserScopeForSubmit(rule)
+    if (!userScopeResult.success) {
+      DialogService.openFailure(this.getUIContext(), userScopeResult.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
+      return false
+    }
     let currentRuleId = this.rulesViewModel.getLocalRuleId(rule)
     let comparableRules = this.rulesViewModel.rules.filter((item: netFirewall.NetFirewallRule) => this.rulesViewModel.getLocalRuleId(item) !== currentRuleId)
     let conflict = this.rulesViewModel.findConflict(rule, comparableRules)

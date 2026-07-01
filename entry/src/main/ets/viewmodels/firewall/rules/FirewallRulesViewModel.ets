@@ -4,6 +4,7 @@ import { netFirewall } from '@kit.NetworkKit'
 import {
   FirewallDialogStrings,
   FirewallRuleStrings,
+  FirewallUserStrings,
   buildFirewallConflictNotice,
   buildFirewallUserLabel
 } from '../../../constants/modules/FirewallStrings'
@@ -104,9 +105,7 @@ export class FirewallRulesViewModel {
   async loadRules(context: common.UIAbilityContext): Promise<FirewallOperationResult> {
     this.isLoading = true
     try {
-      await this.reloadUserOptions()
-      await this.reloadDefaultPolicies(context)
-      await this.reloadRules(context)
+      await this.refreshPageData(context)
       this.lastOperationMessage = ''
       return { success: true }
     } catch (err) {
@@ -177,7 +176,7 @@ export class FirewallRulesViewModel {
       )
       this.lastSaveResult = result
       if (result.success || (result.successDeployments?.length ?? 0) > 0) {
-        await this.reloadRules(context)
+        await this.refreshPageData(context)
         this.lastOperationMessage = FirewallRuleStrings.ADD_SUCCESS
       } else {
         this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
@@ -202,7 +201,7 @@ export class FirewallRulesViewModel {
       )
       this.lastSaveResult = result
       if (result.success || (result.successDeployments?.length ?? 0) > 0) {
-        await this.reloadRules(context)
+        await this.refreshPageData(context)
         this.lastOperationMessage = FirewallRuleStrings.UPDATE_SUCCESS
       } else {
         this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
@@ -223,7 +222,7 @@ export class FirewallRulesViewModel {
       const result = await FirewallService.deleteRule(context, localRuleId)
       this.lastSaveResult = result
       if (result.success) {
-        await this.reloadRules(context)
+        await this.refreshPageData(context)
         this.lastOperationMessage = FirewallRuleStrings.DELETE_SUCCESS
       } else {
         this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
@@ -256,7 +255,7 @@ export class FirewallRulesViewModel {
       )
       this.lastSaveResult = result
       if (result.success) {
-        await this.reloadRules(context)
+        await this.refreshPageData(context)
         this.lastOperationMessage = isEditMode ? FirewallRuleStrings.UPDATE_SUCCESS : FirewallRuleStrings.ADD_SUCCESS
       } else {
         await this.reloadRules(context)
@@ -275,6 +274,55 @@ export class FirewallRulesViewModel {
 
   getRuleUserScopeLabel(rule: netFirewall.NetFirewallRule): string {
     return buildFirewallRuleUserScopeLabel(rule, this.userOptions)
+  }
+
+  async prepareRuleEditor(context: common.UIAbilityContext): Promise<FirewallOperationResult> {
+    this.isLoading = true
+    try {
+      await this.reloadUserOptions()
+      if (this.userOptions.length === 0) {
+        return { success: false, errorMessage: FirewallUserStrings.NO_ACTIVATED_USERS }
+      }
+      await this.reloadRules(context)
+      return { success: true }
+    } catch (err) {
+      LogUtils.error(TAG, `prepareRuleEditor failed: ${JSON.stringify(err)}`)
+      return { success: false, errorMessage: FirewallRuleStrings.APPLY_FAILED }
+    } finally {
+      this.isLoading = false
+    }
+  }
+
+  async validateRuleUserScopeForSubmit(rule: netFirewall.NetFirewallRule): Promise<FirewallOperationResult> {
+    let targetUserIds = getFirewallRuleUserIds(rule)
+    if (targetUserIds.length === 0) {
+      return { success: false, errorMessage: FirewallDialogStrings.ERROR_USER_SCOPE_REQUIRED }
+    }
+    try {
+      let result = await SystemUserProvider.loadAvailableUserIds()
+      let availableUserIds = new Set<number>()
+      normalizeFirewallRuleUserIds(result.users.map((item: UserFirewallOption): number => item.userId))
+        .forEach((userId: number) => {
+          availableUserIds.add(userId)
+        })
+      if (availableUserIds.size === 0) {
+        return { success: false, errorMessage: FirewallUserStrings.NO_ACTIVATED_USERS }
+      }
+      let hasMissingUser = targetUserIds.some((userId: number): boolean => !availableUserIds.has(userId))
+      if (hasMissingUser) {
+        return { success: false, errorMessage: FirewallRuleStrings.USER_SCOPE_CHANGED }
+      }
+      return { success: true }
+    } catch (err) {
+      LogUtils.error(TAG, `validateRuleUserScopeForSubmit failed: ${JSON.stringify(err)}`)
+      return { success: false, errorMessage: FirewallRuleStrings.USER_SCOPE_CHANGED }
+    }
+  }
+
+  async refreshPageData(context: common.UIAbilityContext): Promise<void> {
+    await this.reloadUserOptions()
+    await this.reloadDefaultPolicies(context)
+    await this.reloadRules(context)
   }
 
   private async reloadDefaultPolicies(context: common.UIAbilityContext): Promise<void> {
