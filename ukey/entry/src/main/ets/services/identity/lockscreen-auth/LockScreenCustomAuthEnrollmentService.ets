@@ -498,7 +498,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     }
     let cleared = await this.activeCredentialRepository.clearActiveCredential(context)
     if (!cleared) {
-      return LockScreenCustomAuthEnrollmentService.failure('clear_active_credential', 'UKey 活动凭据状态清理失败')
+      return LockScreenCustomAuthEnrollmentService.failure('clear_active_credential', 'UKEY解锁凭据状态清理失败')
     }
     LogUtils.info(TAG, `[DELETE_SUCCESS] userId=${active.userId}, deviceId=${active.deviceId}`)
     return LockScreenCustomAuthEnrollmentService.success(existing, 'credential_deleted')
@@ -581,7 +581,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       LockScreenCustomAuthEnrollmentService.toActiveCredential(binding)
     )
     if (!activeSaved) {
-      return LockScreenCustomAuthEnrollmentService.failure('save_active_credential', 'UKey 活动凭据状态保存失败')
+      return LockScreenCustomAuthEnrollmentService.failure('save_active_credential', 'UKEY解锁凭据状态保存失败')
     }
     LogUtils.info(TAG, `[REGISTER_SUCCESS] userId=${binding.userId}, deviceId=${binding.deviceId}`)
     return LockScreenCustomAuthEnrollmentService.success(binding, 'completed')

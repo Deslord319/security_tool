@@ -8,12 +8,16 @@ import {
 } from '../services/identity/lockscreen-auth/LockScreenCustomAuthEnrollmentService'
 import {
   LockScreenUKeyActiveCredential,
-  LockScreenUKeyBinding
+  LockScreenUKeyDevice
 } from '../models/identity/lockscreen-auth/LockScreenAuthModels'
 import {
-  PreferencesLockScreenUKeyActiveCredentialRepository,
-  PreferencesLockScreenUKeyBindingRepository
+  PreferencesLockScreenUKeyActiveCredentialRepository
 } from '../services/identity/lockscreen-auth/LockScreenUKeyBindingRepository'
+import {
+  DdkLockScreenUKeyDeviceService,
+  LockScreenUKeyDeviceProvider,
+  UsbLockScreenUKeyDeviceService
+} from '../services/identity/lockscreen-auth/LockScreenUKeyDeviceService'
 import { UKeyRuntimeManager } from '../runtime/UKeyRuntimeManager'
 import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
@@ -22,6 +26,7 @@ import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionToggleRow } from '../components/SectionRows'
 
 const TAG = 'UKeyIndex'
+const CURRENT_DEVICE_REFRESH_INTERVAL_MS = 1000
 
 @Entry
 @Component
@@ -31,18 +36,25 @@ struct Index {
   @State private loading: boolean = false
   @State private saving: boolean = false
   @State private statusMessage: string = ''
-  @State private binding: LockScreenUKeyBinding | null = null
+  @State private currentDevices: LockScreenUKeyDevice[] = []
+  @State private currentDeviceMessage: string = ''
   @State private activeCredential: LockScreenUKeyActiveCredential | null = null
+  private currentDeviceRefreshTimer: number = -1
 
   private readonly configRepository: LockScreenAuthRepository = new PreferencesLockScreenAuthRepository()
-  private readonly bindingRepository: PreferencesLockScreenUKeyBindingRepository =
-    new PreferencesLockScreenUKeyBindingRepository()
   private readonly activeCredentialRepository: PreferencesLockScreenUKeyActiveCredentialRepository =
     new PreferencesLockScreenUKeyActiveCredentialRepository()
   private readonly enrollmentService: LockScreenCustomAuthEnrollmentService = new LockScreenCustomAuthEnrollmentService()
+  private readonly ddkDeviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService()
+  private readonly usbFallbackDeviceProvider: LockScreenUKeyDeviceProvider = new UsbLockScreenUKeyDeviceService()
 
   aboutToAppear(): void {
     this.refreshState()
+    this.startCurrentDeviceRefresh()
+  }
+
+  aboutToDisappear(): void {
+    this.stopCurrentDeviceRefresh()
   }
 
   private getPageContext(): common.UIAbilityContext {
@@ -57,10 +69,9 @@ struct Index {
     try {
       let context = this.getPageContext()
       let config = await this.configRepository.loadConfig(context)
-      let binding = await this.bindingRepository.loadBinding(context)
       let activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
       this.ukeyUnlockEnabled = config.ukeyUnlockEnabled
-      this.binding = binding
+      this.refreshCurrentDevices()
       this.activeCredential = activeCredential
       this.statusMessage = '状态已刷新'
     } catch (err) {
@@ -69,6 +80,52 @@ struct Index {
     } finally {
       this.loading = false
     }
+  }
+
+  private refreshCurrentDevices(): void {
+    let ddkResult = this.ddkDeviceProvider.getCandidateDevices()
+    if (ddkResult.success) {
+      this.currentDevices = ddkResult.data ?? []
+      this.currentDeviceMessage = this.buildCurrentDeviceMessage(this.currentDevices)
+      return
+    }
+
+    let fallbackResult = this.usbFallbackDeviceProvider.getCandidateDevices()
+    if (fallbackResult.success) {
+      this.currentDevices = fallbackResult.data ?? []
+      this.currentDeviceMessage = this.buildCurrentDeviceMessage(this.currentDevices)
+      return
+    }
+
+    this.currentDevices = []
+    this.currentDeviceMessage = ddkResult.errorMessage ?? fallbackResult.errorMessage ?? 'UKey 读取失败'
+  }
+
+  private startCurrentDeviceRefresh(): void {
+    if (this.currentDeviceRefreshTimer >= 0) {
+      return
+    }
+    this.currentDeviceRefreshTimer = setInterval(() => {
+      this.refreshCurrentDevices()
+    }, CURRENT_DEVICE_REFRESH_INTERVAL_MS)
+  }
+
+  private stopCurrentDeviceRefresh(): void {
+    if (this.currentDeviceRefreshTimer < 0) {
+      return
+    }
+    clearInterval(this.currentDeviceRefreshTimer)
+    this.currentDeviceRefreshTimer = -1
+  }
+
+  private buildCurrentDeviceMessage(devices: LockScreenUKeyDevice[]): string {
+    if (devices.length === 0) {
+      return '未识别到 UKey'
+    }
+    if (devices.length === 1) {
+      return '已识别 1 把 UKey'
+    }
+    return `已识别 ${devices.length} 把 UKey`
   }
 
   private async handleEnabledChange(value: boolean): Promise<void> {
@@ -93,8 +150,8 @@ struct Index {
         this.statusMessage = '已启用，已触发一次 UKey 对账'
       } else {
         let result = await this.enrollmentService.disableAndDeleteActiveCredential(context)
-        this.statusMessage = result.success ? '已停用，活动凭据已清理' :
-          (result.userMessage ?? result.errorMessage ?? '已停用，活动凭据清理失败')
+        this.statusMessage = result.success ? '已停用，UKEY解锁凭据已清理' :
+          (result.userMessage ?? result.errorMessage ?? '已停用，UKEY解锁凭据清理失败')
       }
       await this.refreshState()
     } catch (err) {
@@ -137,7 +194,7 @@ struct Index {
 
     SectionActionRow({
       title: '当前状态',
-      description: this.statusMessage.length > 0 ? this.statusMessage : '读取本应用保存的 UKey 绑定和活动凭据',
+      description: this.statusMessage.length > 0 ? this.statusMessage : '读取本应用保存的 UKEY解锁凭据和当前 UKey 设备',
       actionLabel: '刷新',
       isEnabled: !this.loading && !this.saving,
       currentTheme: this.currentTheme,
@@ -148,18 +205,18 @@ struct Index {
   }
 
   @Builder
-  private bindingCardContent() {
+  private activeCredentialCardContent() {
     Column({ space: 14 }) {
-      this.bindingContent()
+      this.activeCredentialContent()
     }
     .width('100%')
     .padding(16)
   }
 
   @Builder
-  private activeCredentialCardContent() {
+  private currentDeviceCardContent() {
     Column({ space: 14 }) {
-      this.activeCredentialContent()
+      this.currentDeviceContent()
     }
     .width('100%')
     .padding(16)
@@ -186,9 +243,9 @@ struct Index {
   }
 
   @Builder
-  private bindingContent() {
-    if (!this.binding) {
-      Text('未绑定 UKey')
+  private currentDeviceContent() {
+    if (this.currentDevices.length === 0) {
+      Text(this.currentDeviceMessage.length > 0 ? this.currentDeviceMessage : '未识别到 UKey')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -197,12 +254,22 @@ struct Index {
         .textAlign(TextAlign.Center)
     } else {
       Column({ space: 12 }) {
-        this.infoRow('设备名称', this.binding.deviceName)
-        this.infoRow('设备 ID', this.binding.deviceId)
-        this.infoRow('指纹', this.binding.fingerprint)
-        this.infoRow('用户 ID', `${this.binding.userId}`)
-        this.infoRow('绑定时间', this.formatTime(this.binding.boundAt))
-        this.infoRow('标识类型', this.binding.stableIdentifier ? 'serial' : '弱标识')
+        Text(this.currentDeviceMessage)
+          .fontSize(AppStyles.FONT_SIZE_CAPTION)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .width('100%')
+
+        ForEach(this.currentDevices, (device: LockScreenUKeyDevice, index: number) => {
+          Column({ space: 10 }) {
+            if (this.currentDevices.length > 1) {
+              this.infoRow('序号', `${index + 1}`)
+            }
+            this.infoRow('设备名称', device.deviceName)
+            this.infoRow('Serial', device.serial)
+          }
+          .width('100%')
+        }, (device: LockScreenUKeyDevice, index: number): string => `${index}-${device.fingerprint}`)
       }
       .width('100%')
     }
@@ -211,7 +278,7 @@ struct Index {
   @Builder
   private activeCredentialContent() {
     if (!this.activeCredential) {
-      Text('当前无活动凭据')
+      Text('当前无 UKEY解锁凭据')
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
@@ -255,15 +322,15 @@ struct Index {
           })
 
           SectionCard({
-            title: '当前绑定 Key',
+            title: 'UKey设备',
             currentTheme: this.currentTheme,
             content: () => {
-              this.bindingCardContent()
+              this.currentDeviceCardContent()
             }
           })
 
           SectionCard({
-            title: '活动凭据',
+            title: 'UKEY解锁凭据',
             currentTheme: this.currentTheme,
             content: () => {
               this.activeCredentialCardContent()
