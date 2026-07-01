@@ -1,5 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import { LogUtils } from '../../utils/LogUtils'
 import { SafeRunner } from '../../utils/SafeRunner'
 import { PreferencesAccessor } from '../../storage/preferences/PreferencesAccessor'
 import {

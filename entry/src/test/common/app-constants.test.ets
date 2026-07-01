@@ -53,7 +53,6 @@ export default function appConstantsTest() {
     it('should expose expected palette constants and theme colors', 0, () => {
       expect(AppColors.BRAND_PRIMARY).assertEqual('#0A84FF')
       expect(AppColors.GRADIENT_PERMISSION_END).assertEqual('#4CD4B0')
-      expect(AppColors.GRADIENT_HELP_END).assertEqual('#FFB4A8')
       expect(AppColors.FIREWALL_CONFLICT_BORDER).assertEqual('#FFD591')
       expect(AppColors.MODAL_SHADOW_DARK).assertEqual('rgba(0,0,0,0.32)')
       expect(AppColors.INTERACTIVE_SECONDARY_BG_DARK).assertEqual('rgba(255,255,255,0.08)')

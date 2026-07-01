@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { MockKit, when } from '@ohos/hamock'
+import { MockKit } from '@ohos/hamock'
 import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
 
 export default function runtimeProducerAdapterTest() {

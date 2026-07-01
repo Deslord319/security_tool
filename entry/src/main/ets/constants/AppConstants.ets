@@ -72,8 +72,6 @@ export class AppColors {
   static readonly GRADIENT_IDENTITY_END: string = '#FFCC00'
   static readonly GRADIENT_TOOL_START: string = '#9095A1'
   static readonly GRADIENT_TOOL_END: string = '#D8DCE3'
-  static readonly GRADIENT_HELP_START: string = '#FF8A80'
-  static readonly GRADIENT_HELP_END: string = '#FFB4A8'
   
   // Firewall 主题颜色
   static readonly FIREWALL_SELECTED_CARD_BG_DARK: string = '#243140'
@@ -139,8 +137,6 @@ export class AppStyles {
   static readonly DIALOG_BODY_MAX_HEIGHT_MEDIUM: number = 460
   static readonly DIALOG_BODY_MAX_HEIGHT_LARGE: number = 760
   static readonly ICON_SIZE_SM: number = 18
-  static readonly ICON_SIZE_MD: number = 20
-  static readonly ICON_SIZE_LG: number = 28
   static readonly ICON_TILE_SIZE_LG: number = 48
   static readonly RADIUS_PILL: number = 999
   static readonly CONTROL_ROW_ACTION_GAP: number = 10

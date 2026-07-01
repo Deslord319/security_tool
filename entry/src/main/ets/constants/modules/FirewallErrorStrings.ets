@@ -27,19 +27,15 @@ export class FirewallPolicyErrorStrings {
 
 export class FirewallRuleMutationErrorStrings {
   static readonly RULE_INTENT_NOT_FOUND: string = 'rule intent not found'
-  static readonly UPDATE_FAILED_WHILE_REMOVING_OLD_DEPLOYMENTS: string = 'update rule failed while removing old deployments'
   static readonly LOCAL_SAVE_FAILED: string = 'local save failed'
-  static readonly RULE_UPDATED_WITH_FAILED_ITEMS: string = 'rule updated with failed items'
   static readonly DELETE_RULE_COMPLETED_WITH_FAILED_ITEMS: string = 'delete rule completed with failed items'
   static readonly REMOVE_RULE_INTENT_FAILED: string = 'remove rule intent failed'
   static readonly CONFLICT_RULE_INTENT_NOT_FOUND: string = 'conflict rule intent not found'
   static readonly TARGET_RULE_INTENT_NOT_FOUND: string = 'target rule intent not found'
   static readonly REPLACE_FAILED_AND_RESTORE_OLD_FAILED: string = 'replace conflict rule failed and restore old rule failed'
   static readonly REPLACE_FAILED_AND_RESTORED_OLD: string = 'replace conflict rule failed and restored old rule'
-  static readonly RULE_CREATED_WITH_FAILED_ITEMS: string = 'rule created with failed items'
   static readonly RESTORE_OLD_INTENT_FAILED: string = 'restore old intent failed'
   static readonly RESTORE_TARGET_INTENT_FAILED: string = 'restore target intent failed'
-  static readonly ROLLBACK_NEW_SYSTEM_RULE_FAILED: string = 'rollback new system rule failed'
   static readonly ROLLBACK_UPDATED_SYSTEM_RULE_FAILED: string = 'rollback updated system rule failed'
   static readonly ROLLBACK_SYSTEM_RULE_FAILED: string = 'rollback system rule failed'
   static readonly ROLLBACK_LOCAL_DEPLOYMENTS_FAILED: string = ROLLBACK_LOCAL_DEPLOYMENTS_FAILED
