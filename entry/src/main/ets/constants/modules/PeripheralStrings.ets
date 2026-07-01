@@ -40,7 +40,6 @@ export class PeripheralOptionStrings {
 export class PeripheralInterfaceToggleOptionIndexes {
   static readonly ENABLED: number = 0
   static readonly DISABLED: number = 1
-  static readonly DEFAULT: number = PeripheralInterfaceToggleOptionIndexes.ENABLED
 }
 
 export class PeripheralTabIndexes {
@@ -132,7 +131,6 @@ export class PeripheralConnectionRecordStrings {
   static readonly BLUETOOTH_CONNECTED: string = '蓝牙设备已连接'
   static readonly BLUETOOTH_DISCONNECTED: string = '蓝牙设备已断开'
   static readonly USB_DISCONNECTED: string = '设备已断开'
-  static readonly USB_INTERFACE_DISABLED_DETAIL: string = 'USB 接口已被总控禁用，设备接入被阻止。'
   static readonly USB_STORAGE_DISABLED_DETAIL: string = 'USB 存储策略为禁止访问，设备接入被阻止。'
   static readonly USB_STORAGE_READ_ONLY_DETAIL: string = 'USB 存储策略为只读模式。'
   static readonly DEFAULT_ALLOW: string = '按当前策略允许接入'

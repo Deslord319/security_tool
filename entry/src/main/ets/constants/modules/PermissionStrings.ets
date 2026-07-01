@@ -35,9 +35,6 @@ export class PermissionEmptyStrings {
 
 export class PermissionLoadingStrings {
   static readonly ACCOUNT_SWITCH: string = '账号策略读取中'
-  static readonly TARGET_APPLICATION: string = '应用策略读取中'
-  static readonly POLICY_ACTION: string = '策略下发中'
-  static readonly POLICY_DELETE: string = '策略删除中'
 }
 
 export class PermissionApplicationStrings {
@@ -75,11 +72,11 @@ export class PermissionApplicationStrings {
   static readonly ENABLED: string = '已启用'
   static readonly DISABLED: string = '未启用'
   static readonly SET_SUCCESS: string = '策略已下发。'
-  static readonly SET_FAILED: string = '策略下发失败，请确认企业管理员激活态、签名权限和设备能力。'
+  static readonly SET_FAILED: string = '策略下发失败，请确认激活企业管理员权限。'
   static readonly POLICY_READ_FAILED: string = '应用策略读取失败，请确认企业管理员激活态、签名权限和设备能力。'
   static readonly INSTALL_BLOCK_EMPTY: string = '请输入要禁止安装的 appId 或 appIdentifier。'
   static readonly INSTALL_BLOCK_INVALID: string = '请输入有效的 appId 或 appIdentifier。'
-  static readonly MISSING_UID: string = '未读取到有效 UID，不能设置网络策略。'
+  static readonly MISSING_UID: string = '未读取到有效 UID，无法设置网络策略。'
   static readonly THREE_D_UNDECLARED: string = '未声明此权限'
   static readonly THREE_D_UNSUPPORTED: string = '不可用'
 }

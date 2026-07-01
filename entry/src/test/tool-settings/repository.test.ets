@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { common } from '@kit.AbilityKit'
-import { BusinessError } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { AuthMethod } from '../../main/ets/models/AuthModels'
 import { DEFAULT_TOOL_SETTINGS } from '../../main/ets/models/ToolSettingsModels'
