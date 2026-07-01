@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "UKey 认证服务"
+      "value": "ukey解锁工具"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "UKey 认证服务入口"
+      "value": "ukey解锁工具入口"
     },
     {
       "name": "EntryAbility_label",
-      "value": "UKey 认证"
+      "value": "ukey解锁工具"
     },
     {
       "name": "permission_access_custom_auth_label",

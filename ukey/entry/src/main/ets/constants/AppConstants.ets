@@ -54,3 +54,11 @@ export class ActionButtonStyles {
     return theme === ThemeMode.DARK ? Color.White : AppColors.getColors(theme).TEXT_PRIMARY
   }
 }
+
+export class AppInfo {
+  static readonly BUNDLE_NAME: string = 'com.ukey.pin'
+  static readonly ENTRY_MODULE_NAME: string = 'entry'
+  static readonly BACKGROUND_ABILITY_NAME: string = 'BackGroundAbility'
+  static readonly STATUS_BAR_TITLE: string = 'ukey解锁工具'
+  static readonly BACKGROUND_ABILITY_TERMINATE_EVENT: string = 'ukey_pin_onPrepareToTerminate_event'
+}

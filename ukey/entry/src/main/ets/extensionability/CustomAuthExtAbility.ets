@@ -31,10 +31,12 @@ export default class CustomAuthExtAbility extends AppServiceExtensionAbility {
 
   onDisconnect(want: Want): void {
     LogUtils.info(TAG, 'onDisconnect')
+    this.stub?.dispose()
   }
 
   onDestroy(): void {
     LogUtils.info(TAG, 'onDestroy')
+    this.stub?.dispose()
     this.stub = null
   }
 }

@@ -26,10 +26,10 @@ import {
   encodePayloadField,
   decodePayloadField,
   decodeIntField,
+  decodeStringField,
   requireField,
   rejectExtraFields,
 } from '../codec/CustomAuthJsonPayloadCodec'
-import { decodeUint64Be, encodeUint64Be } from '../codec/CustomAuthUint64Codec'
 import { authenticatorUKeyProvider } from '../ukey/AuthenticatorUKeyProvider'
 import type {
   BeginEnrollInput,
@@ -48,7 +48,6 @@ import { ResultCode, AsymmetricKeyExchangeAlgorithm, KeyDerivationAlgorithm, Asy
 const TAG = 'CustomAuth.Service'
 const SESSION_KEY_LENGTH = 32
 const AUTHENTICATOR_SECRET_LENGTH = 32
-const INITIAL_AUTHENTICATOR_SECRET_SEQ = '1'
 const FAILURE_TEMPLATE_ID = '0'
 const PASSCODE_PROMPT_ENABLED = false
 const AAD_END_ENROLL_INPUT = 'custom_auth.end_enroll_input'
@@ -70,7 +69,7 @@ interface AuthSession {
   templateId: string
   sharedKey: Uint8Array
   authenticatorSecret: Uint8Array
-  authenticatorSecretSeq: string
+  authenticatorSecretSeq: number
   active: boolean
 }
 
@@ -105,6 +104,23 @@ function toEncryptedData(nonce: Uint8Array, tag: Uint8Array, ciphertext: Uint8Ar
     tag: Array.from(tag),
     ciphertext: Array.from(ciphertext),
   }
+}
+
+function cleanupEnrollSession(session: EnrollSession | undefined): void {
+  if (!session || !session.ecdhKeyPair) {
+    return
+  }
+  session.ecdhKeyPair.pubKey.fill(0)
+  session.ecdhKeyPair.privKey.fill(0)
+}
+
+function cleanupAuthSession(session: AuthSession | undefined): void {
+  if (!session) {
+    return
+  }
+  if (session.sessionKey) session.sessionKey.fill(0)
+  if (session.sharedKey) session.sharedKey.fill(0)
+  if (session.authenticatorSecret) session.authenticatorSecret.fill(0)
 }
 
 export class CustomAuthenticatorService {
@@ -148,6 +164,7 @@ export class CustomAuthenticatorService {
   async beginEnroll(input: BeginEnrollInput): Promise<EnrollCallbackResult> {
     if (this.enrollSessions.has(input.requestId)) {
       LogUtils.warn(TAG, `beginEnroll: overwriting existing session for requestId=${input.requestId}`)
+      cleanupEnrollSession(this.enrollSessions.get(input.requestId))
       this.enrollSessions.delete(input.requestId)
     }
     LogUtils.info(TAG, `beginEnroll: requestId=${input.requestId} (algorithmParam reserved)`)
@@ -159,6 +176,12 @@ export class CustomAuthenticatorService {
     }
 
     const challengeRaw = await generateRandom(8)
+    if (!challengeRaw) {
+      keyPair.pubKey.fill(0)
+      keyPair.privKey.fill(0)
+      LogUtils.error(TAG, 'beginEnroll: challenge generation failed')
+      return { resultCode: ResultCode.GENERAL_ERROR, challenge: [], publicKey: [] }
+    }
     const challenge = Array.from(challengeRaw)
 
     this.enrollSessions.set(input.requestId, { ecdhKeyPair: keyPair, challenge, active: true })
@@ -223,14 +246,9 @@ export class CustomAuthenticatorService {
         return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
 
-      const payloadTemplateIdBytes = decodePayloadField(payload['template_id'])
-      if (payloadTemplateIdBytes === null) {
-        LogUtils.error(TAG, 'endEnroll: template_id decode failed')
-        return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
-      }
-      const payloadTemplateId = decodeUint64Be(payloadTemplateIdBytes)
-      if (payloadTemplateId !== input.templateId) {
-        LogUtils.error(TAG, 'endEnroll: template_id mismatch')
+      const payloadTemplateId = decodeStringField(payload['template_id'])
+      if (payloadTemplateId === null || payloadTemplateId !== input.templateId) {
+        LogUtils.error(TAG, 'endEnroll: template_id missing or mismatch')
         return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
 
@@ -241,6 +259,10 @@ export class CustomAuthenticatorService {
       }
 
       const authenticatorSecret = await generateRandom(AUTHENTICATOR_SECRET_LENGTH)
+      if (!authenticatorSecret) {
+        LogUtils.error(TAG, 'endEnroll: authenticatorSecret generation failed')
+        return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+      }
       const cdaChallenge = new Uint8Array(input.challenge)
 
       const responsePayload = encodePayload({
@@ -255,7 +277,7 @@ export class CustomAuthenticatorService {
         return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
 
-      const stored = storeKeys(input.templateId, sharedKey, authenticatorSecret, INITIAL_AUTHENTICATOR_SECRET_SEQ)
+      const stored = storeKeys(input.templateId, sharedKey, authenticatorSecret)
       if (!stored) {
         LogUtils.error(TAG, `endEnroll: storeKeys failed, templateId=${input.templateId}`)
         return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
@@ -268,6 +290,7 @@ export class CustomAuthenticatorService {
       authenticatorSecret.fill(0)
       return { resultCode: ResultCode.SUCCESS, encryptedData: toEncryptedData(aeadResult.nonce, aeadResult.tag, aeadResult.ciphertext) }
     } finally {
+      cleanupEnrollSession(session)
       this.enrollSessions.delete(input.requestId)
     }
   }
@@ -275,6 +298,7 @@ export class CustomAuthenticatorService {
   async beginAuthenticate(input: BeginAuthenticateInput): Promise<BeginAuthResult> {
     if (this.authSessions.has(input.requestId)) {
       LogUtils.warn(TAG, `beginAuthenticate: cleaning up existing session for requestId=${input.requestId}`)
+      cleanupAuthSession(this.authSessions.get(input.requestId))
       this.authSessions.delete(input.requestId)
     }
 
@@ -301,6 +325,8 @@ export class CustomAuthenticatorService {
     const salt = new Uint8Array(input.salt)
     const sessionKey = await hkdfDerive(salt, new Uint8Array(0), material.sharedKey, SESSION_KEY_LENGTH)
     if (!sessionKey) {
+      material.sharedKey.fill(0)
+      material.authenticatorSecret.fill(0)
       return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
 
@@ -343,6 +369,8 @@ export class CustomAuthenticatorService {
     if (!rsaKeyPair) {
       LogUtils.error(TAG, 'beginAuthenticate: RSA keygen failed')
       sessionKey.fill(0)
+      material.sharedKey.fill(0)
+      material.authenticatorSecret.fill(0)
       return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
 
@@ -355,6 +383,8 @@ export class CustomAuthenticatorService {
     const aeadResult = await aesGcmEncrypt(sessionKey, payload, asciiToBytes(AAD_ON_PROMPT))
     if (!aeadResult) {
       sessionKey.fill(0)
+      material.sharedKey.fill(0)
+      material.authenticatorSecret.fill(0)
       return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
 
@@ -415,9 +445,7 @@ export class CustomAuthenticatorService {
 
       return await this.finishAuth(session)
     } finally {
-      if (session.sessionKey) session.sessionKey.fill(0)
-      if (session.sharedKey) session.sharedKey.fill(0)
-      if (session.authenticatorSecret) session.authenticatorSecret.fill(0)
+      cleanupAuthSession(session)
       this.authSessions.delete(requestId)
     }
   }
@@ -431,28 +459,31 @@ export class CustomAuthenticatorService {
 
     const rotate = await authenticatorUKeyProvider.shouldRotate(session.templateId)
     let finalSecret: Uint8Array = session.authenticatorSecret
-    let finalSeq: string = session.authenticatorSecretSeq
+    let finalSeq: number = session.authenticatorSecretSeq
     let newSecret: Uint8Array | null = null
     if (rotate) {
       newSecret = await generateRandom(AUTHENTICATOR_SECRET_LENGTH)
-      const newSeq = (BigInt(session.authenticatorSecretSeq) + 1n).toString()
-      const updated = updateAuthSecretAndSeq(session.templateId, newSecret, newSeq)
-      if (!updated) {
+      if (!newSecret) {
+        LogUtils.error(TAG, `finishAuth: rotation secret generation failed, templateId=${session.templateId}`)
+        return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+      }
+      const committedSeq = updateAuthSecretAndSeq(session.templateId, newSecret)
+      if (committedSeq === null) {
         LogUtils.error(TAG, `finishAuth: rotation store failed, templateId=${session.templateId}`)
         newSecret.fill(0)
         return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
       await authenticatorUKeyProvider.onRotated(session.templateId)
       finalSecret = newSecret
-      finalSeq = newSeq
-      LogUtils.info(TAG, `finishAuth: rotated, templateId=${session.templateId}, seq=${newSeq}`)
+      finalSeq = committedSeq
+      LogUtils.info(TAG, `finishAuth: rotated, templateId=${session.templateId}, seq=${committedSeq}`)
     }
 
     const cdaChallenge = new Uint8Array(session.cdaChallenge)
     const resultPayload = encodePayload({
       'cda_challenge': encodePayloadField(cdaChallenge),
       'authenticator_secret': encodePayloadField(finalSecret),
-      'auth_secret_seq': encodePayloadField(encodeUint64Be(finalSeq)),
+      'auth_secret_seq': finalSeq,
     })
     if (newSecret) {
       newSecret.fill(0)
@@ -483,14 +514,29 @@ export class CustomAuthenticatorService {
 
   async cancel(requestId: number): Promise<number> {
     const authSession = this.authSessions.get(requestId)
-    if (authSession) {
-      if (authSession.sessionKey) authSession.sessionKey.fill(0)
-      if (authSession.sharedKey) authSession.sharedKey.fill(0)
-      if (authSession.authenticatorSecret) authSession.authenticatorSecret.fill(0)
-    }
+    cleanupAuthSession(authSession)
+    cleanupEnrollSession(this.enrollSessions.get(requestId))
     this.enrollSessions.delete(requestId)
     this.authSessions.delete(requestId)
     LogUtils.info(TAG, `cancel: requestId=${requestId}`)
     return ResultCode.SUCCESS
+  }
+
+  cleanupAllSessions(): void {
+    let authCount = 0
+    for (const session of this.authSessions.values()) {
+      cleanupAuthSession(session)
+      authCount++
+    }
+    let enrollCount = 0
+    for (const session of this.enrollSessions.values()) {
+      cleanupEnrollSession(session)
+      enrollCount++
+    }
+    this.authSessions.clear()
+    this.enrollSessions.clear()
+    if (authCount > 0 || enrollCount > 0) {
+      LogUtils.info(TAG, `cleanupAllSessions: cleared auth=${authCount} enroll=${enrollCount}`)
+    }
   }
 }
