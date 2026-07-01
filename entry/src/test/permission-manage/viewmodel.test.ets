@@ -27,6 +27,7 @@ import {
   PermissionAccountPolicySnapshotTaskData,
   PermissionAccountPolicyTaskRunner
 } from '../../main/ets/services/permission-manage/PermissionAccountPolicyTasks'
+import { PermissionApplicationStrings } from '../../main/ets/constants/modules/PermissionStrings'
 
 function buildPermissionAccount(accountId: number, isForeground: boolean = false): PermissionManagedAccount {
   return {
@@ -35,6 +36,13 @@ function buildPermissionAccount(accountId: number, isForeground: boolean = false
     isForeground: isForeground,
     isAvailable: true
   } as PermissionManagedAccount
+}
+
+function buildPermissionAccountListResult(accountId: number = 100): PermissionAccountListResult {
+  return {
+    accounts: [buildPermissionAccount(accountId, true)],
+    selectedAccountId: accountId
+  } as PermissionAccountListResult
 }
 
 function buildManagedApplication(accountId: number, bundleName: string, label: string): PermissionAppSnapshot {
@@ -203,6 +211,72 @@ export default function permissionViewModelTest() {
         expect(viewModel.state.selectedAccountId).assertEqual(100)
         expect(loadedAccountId).assertEqual(100)
         expect(viewModel.state.appSnapshots[0].accountId).assertEqual(100)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should add newly installed application after manual inventory refresh', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let currentApp = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let newApp = buildManagedApplication(100, 'com.example.browser', 'Browser')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = currentApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(currentApp)]
+        viewModel.state.filteredAppKeys = [currentApp.appKey]
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(currentApp), buildAppSnapshot(newApp)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+
+        let success = await viewModel.refreshAccountsAndApplicationList()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAccountId).assertEqual(100)
+        expect(viewModel.state.selectedAppKey).assertEqual(currentApp.appKey)
+        expect(viewModel.state.appSnapshots.length).assertEqual(2)
+        expect(viewModel.state.filteredAppKeys.includes(newApp.appKey)).assertTrue()
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should clear selected application after manual refresh when target is uninstalled', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let currentApp = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let otherApp = buildManagedApplication(100, 'com.example.browser', 'Browser')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = currentApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(currentApp, true)]
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(viewModel.state.appSnapshots, [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(otherApp)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+
+        let success = await viewModel.refreshAccountsAndApplicationList()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.appSnapshots.length).assertEqual(1)
+        expect(viewModel.state.appSnapshots[0].appKey).assertEqual(otherApp.appKey)
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
       } finally {
         mockKit.clearAll()
         done()
@@ -817,9 +891,11 @@ export default function permissionViewModelTest() {
       try {
         let viewModel = new PermissionViewModel()
         let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setRunningPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setRunningBlocked)
         let loadAccountPolicySnapshotMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccountPolicySnapshot)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: [buildAppSnapshot(app)],
           installPolicies: []
@@ -854,9 +930,11 @@ export default function permissionViewModelTest() {
       try {
         let viewModel = new PermissionViewModel()
         let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setUninstallPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setUninstallProtected)
         let setNetworkPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setNetworkBlocked)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: [buildAppSnapshot(app)],
           installPolicies: []
@@ -954,12 +1032,70 @@ export default function permissionViewModelTest() {
       }
     })
 
+    it('should drop loaded 3D detail when app identity changes on refresh', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let previousSnapshot = buildAppSnapshot(app, false, false, false)
+        previousSnapshot.threeDLoadState = 'loaded'
+        previousSnapshot.threeDGroups = [{
+          groupKey: 'downloads',
+          title: 'Downloads',
+          permissionNames: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY'],
+          declaredPermissions: ['ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY'],
+          managedState: 'denied',
+          canManage: true,
+          disabledReason: ''
+        } as ThreeDPermissionItem]
+        previousSnapshot.threeDPolicies = [{
+          recordId: `three-d:${app.appKey}:downloads`,
+          appKey: app.appKey,
+          groupKey: 'downloads',
+          actionKind: 'three-d',
+          policyValue: 'denied',
+          policyType: 'Downloads',
+          targetName: 'Label',
+          targetDetail: 'com.example.label / Downloads',
+          statusLabel: 'denied',
+          scopeLabel: 'account 100'
+        } as PermissionThreeDPolicySnapshot]
+        let refreshedSnapshot = buildAppSnapshot(app, false, false, false)
+        refreshedSnapshot.appIdentifier = `${app.appIdentifier}.new`
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [refreshedSnapshot],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.appSnapshots = [previousSnapshot]
+        viewModel.state.installPolicies = []
+
+        let success = await viewModel.refreshApplicationList()
+
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(selectedApp?.appIdentifier).assertEqual(refreshedSnapshot.appIdentifier)
+        expect(selectedApp?.threeDLoadState).assertEqual('idle')
+        expect(selectedApp?.threeDGroups.length).assertEqual(0)
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should de-duplicate install deny policy by account and app identity', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
         let viewModel = new PermissionViewModel()
         let policyId = 'com.example.future_app_id'
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let setInstallPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setDisallowedInstallPolicyId)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(setInstallPolicyMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           success: true,
           message: 'ok'
@@ -1029,8 +1165,15 @@ export default function permissionViewModelTest() {
         viewModel.state.policyRecords = [PermissionService.buildPolicyRecordsFromState(
           applications, []
         )[0]]
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
         let loadAccountPolicySnapshotMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccountPolicySnapshot)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: applications,
+          installPolicies: []
+        } as ApplicationInventoryResult))
         when(deletePolicyRecordMock)().afterReturn(Promise.resolve({
           success: true,
           message: 'ok'
@@ -1062,7 +1205,14 @@ export default function permissionViewModelTest() {
         let applications: PermissionAppSnapshot[] = [buildAppSnapshot(app, false, false, true)]
         viewModel.state.appSnapshots = applications
         viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(applications, [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: applications,
+          installPolicies: []
+        } as ApplicationInventoryResult))
         when(deletePolicyRecordMock)().afterReturn(Promise.resolve({
           success: true,
           message: 'ok'
@@ -1090,8 +1240,10 @@ export default function permissionViewModelTest() {
       try {
         let viewModel = new PermissionViewModel()
         let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setRunningPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setRunningBlocked)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: [buildAppSnapshot(app, true)],
           installPolicies: []
@@ -1121,8 +1273,10 @@ export default function permissionViewModelTest() {
       try {
         let viewModel = new PermissionViewModel()
         let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setNetworkPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setNetworkBlocked)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: [buildAppSnapshot(app, false, true)],
           installPolicies: []
@@ -1147,6 +1301,206 @@ export default function permissionViewModelTest() {
       }
     })
 
+    it('should reject app policy write when selected application disappears before action', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(app)]
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(viewModel.state.appSnapshots, [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        let setRunningPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setRunningBlocked)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+        when(setRunningPolicyMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'unexpected'
+        } as PermissionActionResult))
+
+        let result = await viewModel.setSelectedRunningPolicy('denied')
+
+        expect(result.success).assertFalse()
+        expect(result.message).assertEqual(PermissionApplicationStrings.APPLICATION_CONTEXT_CHANGED)
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.appSnapshots.length).assertEqual(0)
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should reject app policy write when selected application identity changes before action', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let refreshedSnapshot = buildAppSnapshot(app)
+        refreshedSnapshot.appIdentifier = `${app.appIdentifier}.new`
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(app)]
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        let setRunningPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setRunningBlocked)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [refreshedSnapshot],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+        when(setRunningPolicyMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'unexpected'
+        } as PermissionActionResult))
+
+        let result = await viewModel.setSelectedRunningPolicy('denied')
+
+        expect(result.success).assertFalse()
+        expect(result.message).assertEqual(PermissionApplicationStrings.APPLICATION_CONTEXT_CHANGED)
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.appSnapshots[0].appIdentifier).assertEqual(refreshedSnapshot.appIdentifier)
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should reject account policy write when current account disappears before action', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let fallbackApp = buildManagedApplication(101, 'com.example.browser', 'Browser')
+        let policyId = 'com.example.future_app_id'
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = app.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(app)]
+        viewModel.state.installBlockKeyword = policyId
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        let setInstallPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setDisallowedInstallPolicyId)
+        when(loadAccountsMock)().afterReturn(Promise.resolve({
+          accounts: [buildPermissionAccount(101, true)],
+          selectedAccountId: 101
+        } as PermissionAccountListResult))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(fallbackApp)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+        when(setInstallPolicyMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          success: true,
+          message: 'unexpected'
+        } as PermissionActionResult))
+
+        let result = await viewModel.setDisallowedInstallByKeyword()
+
+        expect(result.success).assertFalse()
+        expect(result.message).assertEqual(PermissionApplicationStrings.ACCOUNT_CONTEXT_CHANGED)
+        expect(viewModel.state.selectedAccountId).assertEqual(101)
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.appSnapshots[0].accountId).assertEqual(101)
+        expect(viewModel.state.installPolicies.length).assertEqual(0)
+        expect(viewModel.state.installBlockKeyword).assertEqual(policyId)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should reject policy deletion when refreshed policy record disappears', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = app.appKey
+        let applications: PermissionAppSnapshot[] = [buildAppSnapshot(app, false, true)]
+        viewModel.state.appSnapshots = applications
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(applications, [])
+        let networkRecord = viewModel.state.policyRecords.find((r: PermissionPolicyRecord): boolean =>
+          r.actionKind === 'network'
+        )
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(app, false, false)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+        when(deletePolicyRecordMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'unexpected'
+        } as PermissionActionResult))
+
+        let result = await viewModel.deletePolicyRecord(networkRecord!.key)
+
+        let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean =>
+          item.appKey === app.appKey
+        )
+        expect(result.success).assertFalse()
+        expect(result.message).assertEqual(PermissionApplicationStrings.POLICY_CONTEXT_CHANGED)
+        expect(selectedApp?.networkBlocked).assertFalse()
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should reject policy deletion when target application identity changes before action', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let refreshedSnapshot = buildAppSnapshot(app, true, false)
+        refreshedSnapshot.appIdentifier = `${app.appIdentifier}.new`
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = app.appKey
+        let applications: PermissionAppSnapshot[] = [buildAppSnapshot(app, true, false)]
+        viewModel.state.appSnapshots = applications
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(applications, [])
+        let runningRecord = viewModel.state.policyRecords.find((r: PermissionPolicyRecord): boolean =>
+          r.actionKind === 'running'
+        )
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [refreshedSnapshot],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+        when(deletePolicyRecordMock)().afterReturn(Promise.resolve({
+          success: true,
+          message: 'unexpected'
+        } as PermissionActionResult))
+
+        let result = await viewModel.deletePolicyRecord(runningRecord!.key)
+
+        expect(result.success).assertFalse()
+        expect(result.message).assertEqual(PermissionApplicationStrings.POLICY_CONTEXT_CHANGED)
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.appSnapshots[0].appIdentifier).assertEqual(refreshedSnapshot.appIdentifier)
+        expect(viewModel.state.policyRecords.length).assertEqual(1)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should delete network policy record and restore default', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
@@ -1157,7 +1511,14 @@ export default function permissionViewModelTest() {
         let applications: PermissionAppSnapshot[] = [buildAppSnapshot(app, false, true)]
         viewModel.state.appSnapshots = applications
         viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(applications, [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: applications,
+          installPolicies: []
+        } as ApplicationInventoryResult))
         when(deletePolicyRecordMock)().afterReturn(Promise.resolve({
           success: true,
           message: 'ok'
@@ -1197,7 +1558,14 @@ export default function permissionViewModelTest() {
         viewModel.state.selectedAppKey = app.appKey
         viewModel.state.appSnapshots = [snapshot]
         viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState([snapshot], [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setThreeDStateMock = mockKit.mockFunc(PermissionService, PermissionService.setThreeDState)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [snapshot],
+          installPolicies: []
+        } as ApplicationInventoryResult))
         when(setThreeDStateMock)().afterReturn(Promise.resolve({
           success: true,
           message: 'ok'
@@ -1251,7 +1619,14 @@ export default function permissionViewModelTest() {
         viewModel.state.selectedAppKey = app.appKey
         viewModel.state.appSnapshots = [snapshot]
         viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState([snapshot], [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setThreeDStateMock = mockKit.mockFunc(PermissionService, PermissionService.setThreeDState)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [snapshot],
+          installPolicies: []
+        } as ApplicationInventoryResult))
         when(setThreeDStateMock)().afterReturn(Promise.resolve({
           success: true,
           message: 'ok'
@@ -1309,6 +1684,52 @@ export default function permissionViewModelTest() {
 
         expect(records.filter((r: PermissionPolicyRecord): boolean => r.actionKind === 'three-d').length).assertEqual(0)
         expect(records.some((r: PermissionPolicyRecord): boolean => r.appKey === '100:com.example.missing')).assertFalse()
+        expect(PermissionPolicyLocalRepository.listActiveByAccount(100).length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        PermissionPolicyLocalRepository.resetForTest()
+        done()
+      }
+    })
+
+    it('should remove stale local 3D records when app identity changes', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      PermissionPolicyLocalRepository.resetForTest()
+      try {
+        let app = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let snapshot = buildAppSnapshot(app)
+        await PermissionPolicyLocalRepository.upsertActive({
+          recordId: `three-d:${app.appKey}:downloads`,
+          accountId: 100,
+          appKey: app.appKey,
+          bundleName: app.bundleName,
+          appIdentifier: `${app.appIdentifier}.old`,
+          appIndex: app.appIndex,
+          policyType: 'Downloads',
+          policyValue: 'denied',
+          targetName: app.label,
+          targetDetail: `${app.bundleName} / Downloads`,
+          statusLabel: 'denied',
+          scopeLabel: 'account 100',
+          actionKind: 'three-d',
+          policyId: 'downloads',
+          status: 'active',
+          createdAt: 1,
+          updatedAt: 1,
+          lastError: ''
+        } as PermissionLocalPolicyRecord)
+
+        let loadSnapshotMock = mockKit.mockFunc(PermissionAccountPolicyTaskRunner, PermissionAccountPolicyTaskRunner.loadSnapshot)
+        when(loadSnapshotMock)().afterReturn(Promise.resolve({
+          controlLists: ApplicationControlRepository.createEmptyControlLists(),
+          restrictedAppUids: []
+        } as PermissionAccountPolicySnapshotTaskData))
+
+        let result = await PermissionService.loadAccountPolicySnapshot(100, [snapshot])
+        let records = PermissionService.buildPolicyRecordsFromState(result.appSnapshots, result.installPolicies)
+
+        expect(records.filter((r: PermissionPolicyRecord): boolean => r.actionKind === 'three-d').length).assertEqual(0)
+        expect(PermissionPolicyLocalRepository.listActiveByAccount(100).length).assertEqual(0)
       } finally {
         mockKit.clearAll()
         PermissionPolicyLocalRepository.resetForTest()
@@ -1321,8 +1742,10 @@ export default function permissionViewModelTest() {
       try {
         let viewModel = new PermissionViewModel()
         let app = buildManagedApplication(100, 'com.example.label', 'Label')
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setRunningPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setRunningBlocked)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: [buildAppSnapshot(app, false)],
           installPolicies: []

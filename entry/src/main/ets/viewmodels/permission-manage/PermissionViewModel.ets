@@ -19,7 +19,11 @@ import {
 } from '../../models/PermissionModels'
 import { PermissionService } from '../../services/permission-manage/PermissionService'
 import { MessageText } from '../../constants/StringCatalog'
-import { PermissionApplicationStrings } from '../../constants/modules/PermissionStrings'
+import {
+  PermissionAccountStrings,
+  PermissionApplicationStrings,
+  PermissionEmptyStrings
+} from '../../constants/modules/PermissionStrings'
 import { PermissionPolicyLocalRepository } from '../../services/permission-manage/PermissionPolicyLocalRepository'
 import { LogUtils } from '../../utils/LogUtils'
 
@@ -56,8 +60,10 @@ export class PermissionViewModel {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
+      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
       this.applyInventory(inventory)
+      this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
       return true
     } catch (err) {
       LogUtils.warn(TAG, `refreshApplications failed: ${JSON.stringify(err)}`)
@@ -75,8 +81,10 @@ export class PermissionViewModel {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
+      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
       this.applyApplicationList(inventory)
+      this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
       return true
     } catch (err) {
       LogUtils.warn(TAG, `refreshApplicationList failed: ${JSON.stringify(err)}`)
@@ -134,6 +142,7 @@ export class PermissionViewModel {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
+      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let accountResult = await PermissionService.loadAccounts()
       let selectedAccountId = this.resolveRefreshedAccountId(accountResult)
       let inventory = await PermissionService.loadApplications(selectedAccountId)
@@ -148,6 +157,9 @@ export class PermissionViewModel {
         })
       }
       this.applyApplicationList(inventory)
+      if (!accountChanged) {
+        this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
+      }
       return true
     } catch (err) {
       LogUtils.warn(TAG, `refreshAccountsAndApplicationList failed: ${JSON.stringify(err)}`)
@@ -257,7 +269,15 @@ export class PermissionViewModel {
     this.setProcessingAction(actionKey)
     try {
       await this.waitForCommittedState()
-      let item = this.getSelectedThreeDItem(groupKey)
+      let prepared = await this.prepareSelectedAppContextForAction()
+      if (!prepared.success || prepared.snapshot === undefined) {
+        return {
+          success: false,
+          message: prepared.message
+        } as PermissionActionResult
+      }
+      snapshot = prepared.snapshot
+      let item = snapshot.threeDGroups.find((group: ThreeDPermissionItem): boolean => group.groupKey === groupKey)
       let result = await PermissionService.setThreeDState(
         snapshot,
         this.buildSelectedPermissionProfile(snapshot),
@@ -296,6 +316,10 @@ export class PermissionViewModel {
     try {
       await this.waitForCommittedState()
       let policyId = PermissionService.normalizeInstallBlockPolicyId(this.state.installBlockKeyword)
+      let accountPrepared = await this.prepareAccountContextForAction()
+      if (!accountPrepared.success) {
+        return accountPrepared
+      }
       let result = await PermissionService.setDisallowedInstallPolicyId(this.state.selectedAccountId, policyId)
       if (result.success) {
         this.state.installBlockKeyword = ''
@@ -333,6 +357,14 @@ export class PermissionViewModel {
     this.setProcessingAction(`delete-policy:${recordKey}`)
     try {
       await this.waitForCommittedState()
+      let prepared = await this.preparePolicyRecordForDelete(record)
+      if (!prepared.success || prepared.record === undefined) {
+        return {
+          success: false,
+          message: prepared.message
+        } as PermissionActionResult
+      }
+      record = prepared.record
       let result = await PermissionService.deletePolicyRecord(
         record,
         this.state.appSnapshots,
@@ -446,7 +478,9 @@ export class PermissionViewModel {
   private mergePolicySnapshots(nextSnapshots: PermissionAppSnapshot[]): PermissionAppSnapshot[] {
     return nextSnapshots.map((snapshot: PermissionAppSnapshot): PermissionAppSnapshot => {
       let previous = this.findAppSnapshot(snapshot.appKey)
-      if (previous === undefined || previous.threeDLoadState !== 'loaded') {
+      if (previous === undefined ||
+        previous.threeDLoadState !== 'loaded' ||
+        !this.canReuseThreeDDetail(previous, snapshot)) {
         return snapshot
       }
       let nextGroups = snapshot.threeDGroups.length > 0 ? snapshot.threeDGroups : previous.threeDGroups
@@ -471,6 +505,33 @@ export class PermissionViewModel {
         threeDMessage: previous.threeDMessage
       } as PermissionAppSnapshot
     })
+  }
+
+  private canReuseThreeDDetail(previous: PermissionAppSnapshot, next: PermissionAppSnapshot): boolean {
+    return this.isSameApplicationIdentity(previous, next)
+  }
+
+  private reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot: PermissionAppSnapshot | undefined): void {
+    if (previousSelectedSnapshot === undefined) {
+      return
+    }
+    let refreshedSnapshot = this.findAppSnapshot(previousSelectedSnapshot.appKey)
+    if (refreshedSnapshot === undefined || !this.isSameApplicationIdentity(previousSelectedSnapshot, refreshedSnapshot)) {
+      this.clearSelectedApplication()
+    }
+  }
+
+  private isSameApplicationIdentity(previous: PermissionAppSnapshot, next: PermissionAppSnapshot): boolean {
+    return previous.accountId === next.accountId &&
+      previous.appKey === next.appKey &&
+      previous.bundleName === next.bundleName &&
+      previous.appId === next.appId &&
+      previous.appIdentifier === next.appIdentifier &&
+      previous.appIndex === next.appIndex
+  }
+
+  private isApplicationPolicyRecord(record: PermissionPolicyRecord): boolean {
+    return record.actionKind !== 'install-deny' && record.actionKind !== 'install-allow'
   }
 
   private commitPermissionState(update: PermissionStateUpdate): void {
@@ -513,11 +574,6 @@ export class PermissionViewModel {
     return this.findAppSnapshot(this.state.selectedAppKey)
   }
 
-  private getSelectedThreeDItem(groupKey: string): ThreeDPermissionItem | undefined {
-    let snapshot = this.findAppSnapshot(this.state.selectedAppKey)
-    return snapshot?.threeDGroups.find((item: ThreeDPermissionItem): boolean => item.groupKey === groupKey)
-  }
-
   private buildSelectedPermissionProfile(snapshot: PermissionAppSnapshot): ApplicationPermissionProfile | null {
     return {
       appKey: snapshot.appKey,
@@ -548,6 +604,137 @@ export class PermissionViewModel {
     })
   }
 
+  private async prepareAccountContextForAction(): Promise<PermissionActionResult> {
+    try {
+      let accountResult = await PermissionService.loadAccounts()
+      let currentExists = accountResult.accounts.some((account: PermissionManagedAccount): boolean =>
+        account.accountId === this.state.selectedAccountId
+      )
+      this.state.accounts = accountResult.accounts
+      if (currentExists) {
+        return { success: true, message: '' } as PermissionActionResult
+      }
+
+      let nextAccountId = this.resolveRefreshedAccountId(accountResult)
+      this.state.selectedAccountId = nextAccountId
+      this.clearSelectedApplication()
+      if (accountResult.accounts.length === 0) {
+        this.commitPermissionState({
+          appSnapshots: [],
+          installPolicies: [],
+          inventoryMessage: accountResult.message ?? PermissionAccountStrings.NO_ACCOUNTS
+        })
+        return {
+          success: false,
+          message: PermissionApplicationStrings.ACCOUNT_CONTEXT_CHANGED
+        } as PermissionActionResult
+      }
+
+      let inventory = await PermissionService.loadApplications(nextAccountId)
+      this.applyApplicationList(inventory)
+      return {
+        success: false,
+        message: PermissionApplicationStrings.ACCOUNT_CONTEXT_CHANGED
+      } as PermissionActionResult
+    } catch (err) {
+      LogUtils.warn(TAG, `prepareAccountContextForAction failed: ${JSON.stringify(err)}`)
+      return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
+    }
+  }
+
+  private async prepareSelectedAppContextForAction(): Promise<PreparedSelectedAppContext> {
+    let selectedAppKey = this.state.selectedAppKey
+    if (selectedAppKey.length === 0) {
+      return {
+        success: false,
+        message: PermissionEmptyStrings.SELECT_APPLICATION_FIRST
+      } as PreparedSelectedAppContext
+    }
+    let previousSnapshot = this.findAppSnapshot(selectedAppKey)
+    let accountPrepared = await this.prepareAccountContextForAction()
+    if (!accountPrepared.success) {
+      return {
+        success: false,
+        message: accountPrepared.message
+      } as PreparedSelectedAppContext
+    }
+
+    try {
+      let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
+      if (this.isInventoryLoadFailed(inventory)) {
+        return { success: false, message: MessageText.RETRY_LATER } as PreparedSelectedAppContext
+      }
+      this.applyApplicationList(inventory)
+      let refreshedSnapshot = this.findAppSnapshot(selectedAppKey)
+      if (refreshedSnapshot === undefined) {
+        this.clearSelectedApplication()
+        return {
+          success: false,
+          message: PermissionApplicationStrings.APPLICATION_CONTEXT_CHANGED
+        } as PreparedSelectedAppContext
+      }
+      if (previousSnapshot === undefined || !this.isSameApplicationIdentity(previousSnapshot, refreshedSnapshot)) {
+        this.clearSelectedApplication()
+        return {
+          success: false,
+          message: PermissionApplicationStrings.APPLICATION_CONTEXT_CHANGED
+        } as PreparedSelectedAppContext
+      }
+      return {
+        success: true,
+        message: '',
+        snapshot: refreshedSnapshot
+      } as PreparedSelectedAppContext
+    } catch (err) {
+      LogUtils.warn(TAG, `prepareSelectedAppContextForAction failed: ${JSON.stringify(err)}`)
+      return { success: false, message: MessageText.RETRY_LATER } as PreparedSelectedAppContext
+    }
+  }
+
+  private async preparePolicyRecordForDelete(record: PermissionPolicyRecord): Promise<PreparedPolicyRecordContext> {
+    let previousApp = this.isApplicationPolicyRecord(record) ? this.findAppSnapshot(record.appKey) : undefined
+    let accountPrepared = await this.prepareAccountContextForAction()
+    if (!accountPrepared.success) {
+      return {
+        success: false,
+        message: accountPrepared.message
+      } as PreparedPolicyRecordContext
+    }
+    try {
+      let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
+      if (this.isInventoryLoadFailed(inventory)) {
+        return { success: false, message: MessageText.RETRY_LATER } as PreparedPolicyRecordContext
+      }
+      this.applyApplicationList(inventory)
+      let refreshedRecord = this.state.policyRecords.find((item: PermissionPolicyRecord): boolean => item.key === record.key)
+      if (refreshedRecord === undefined) {
+        return {
+          success: false,
+          message: PermissionApplicationStrings.POLICY_CONTEXT_CHANGED
+        } as PreparedPolicyRecordContext
+      }
+      let refreshedApp = previousApp === undefined ? undefined : this.findAppSnapshot(record.appKey)
+      if (previousApp !== undefined &&
+        (refreshedApp === undefined || !this.isSameApplicationIdentity(previousApp, refreshedApp))) {
+        if (this.state.selectedAppKey === record.appKey) {
+          this.clearSelectedApplication()
+        }
+        return {
+          success: false,
+          message: PermissionApplicationStrings.POLICY_CONTEXT_CHANGED
+        } as PreparedPolicyRecordContext
+      }
+      return {
+        success: true,
+        message: '',
+        record: refreshedRecord
+      } as PreparedPolicyRecordContext
+    } catch (err) {
+      LogUtils.warn(TAG, `preparePolicyRecordForDelete failed: ${JSON.stringify(err)}`)
+      return { success: false, message: MessageText.RETRY_LATER } as PreparedPolicyRecordContext
+    }
+  }
+
   private async runSelectedAppPolicyAction(
     actionKey: string,
     action: (snapshot: PermissionAppSnapshot) => Promise<PermissionActionResult>,
@@ -563,6 +750,14 @@ export class PermissionViewModel {
     this.setProcessingAction(actionKey)
     try {
       await this.waitForCommittedState()
+      let prepared = await this.prepareSelectedAppContextForAction()
+      if (!prepared.success || prepared.snapshot === undefined) {
+        return {
+          success: false,
+          message: prepared.message
+        } as PermissionActionResult
+      }
+      snapshot = prepared.snapshot
       let result = await action(snapshot)
       if (result.success) {
         onSuccess(snapshot)
@@ -571,6 +766,10 @@ export class PermissionViewModel {
     } finally {
       this.clearProcessingAction()
     }
+  }
+
+  private isInventoryLoadFailed(inventory: ApplicationInventoryResult): boolean {
+    return inventory.message === PermissionEmptyStrings.INVENTORY_LOAD_FAILED
   }
 
   private setProcessingAction(actionKey: string): void {
@@ -750,6 +949,14 @@ interface PermissionStateUpdate {
   installPolicies?: AccountInstallPolicySnapshot[]
   selectedAppKey?: string
   inventoryMessage?: string
+}
+
+interface PreparedSelectedAppContext extends PermissionActionResult {
+  snapshot?: PermissionAppSnapshot
+}
+
+interface PreparedPolicyRecordContext extends PermissionActionResult {
+  record?: PermissionPolicyRecord
 }
 
 interface LocalPolicyRecordParams {

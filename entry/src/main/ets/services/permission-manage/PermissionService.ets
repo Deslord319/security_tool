@@ -69,6 +69,13 @@ export class PermissionService {
       merged,
       snapshotData.restrictedAppUids
     )
+    let staleRecordsRemoved = await PermissionPolicyLocalRepository.removeStaleActiveThreeDRecords(
+      accountId,
+      mergedWithNetwork
+    )
+    if (!staleRecordsRemoved) {
+      LogUtils.warn(TAG, `remove stale 3D records failed: accountId=${accountId}`)
+    }
     let localRecords = PermissionPolicyLocalRepository.listActiveByAccount(accountId)
     let nextSnapshots = mergedWithNetwork.map((app: PermissionAppSnapshot): PermissionAppSnapshot => ({
       appKey: app.appKey,
@@ -376,6 +383,9 @@ export class PermissionService {
       .filter((record: PermissionLocalPolicyRecord): boolean =>
         record.accountId === app.accountId &&
           record.appKey === app.appKey &&
+          record.bundleName === app.bundleName &&
+          record.appIdentifier === app.appIdentifier &&
+          record.appIndex === app.appIndex &&
           (record.actionKind === 'three-d') &&
           record.status === 'active' &&
           record.policyValue !== 'default'

@@ -1,7 +1,7 @@
 import relationalStore from '@ohos.data.relationalStore'
 import { common } from '@kit.AbilityKit'
 import { AppInfo } from '../../constants/AppConstants'
-import { PermissionLocalPolicyRecord, PermissionPolicyActionKind } from '../../models/PermissionModels'
+import { PermissionAppSnapshot, PermissionLocalPolicyRecord, PermissionPolicyActionKind } from '../../models/PermissionModels'
 import { RdbRepository, SqlBundle } from '../../storage/rdb/RdbRepository'
 import { RdbResultSetReader } from '../../storage/rdb/RdbResultSetReader'
 import { LogUtils } from '../../utils/LogUtils'
@@ -218,6 +218,50 @@ export class PermissionPolicyLocalRepository {
     PermissionPolicyLocalRepository.records = PermissionPolicyLocalRepository.records
       .filter((item: PermissionLocalPolicyRecord): boolean => item.recordId !== recordId)
     return await PermissionPolicyLocalRepository.rdbRepository.deleteByRecordId(recordId)
+  }
+
+  static async removeStaleActiveThreeDRecords(
+    accountId: number,
+    activeApps: PermissionAppSnapshot[]
+  ): Promise<boolean> {
+    let activeAppMap = new Map<string, PermissionAppSnapshot>()
+    activeApps.forEach((app: PermissionAppSnapshot): void => {
+      activeAppMap.set(app.appKey, app)
+    })
+    let staleRecords = PermissionPolicyLocalRepository.records.filter((record: PermissionLocalPolicyRecord): boolean =>
+      record.accountId === accountId &&
+        record.status === 'active' &&
+        record.actionKind === 'three-d' &&
+        PermissionPolicyLocalRepository.isStaleThreeDRecord(record, activeAppMap)
+    )
+    if (staleRecords.length === 0) {
+      return true
+    }
+
+    let staleRecordIds = new Set<string>(staleRecords.map((record: PermissionLocalPolicyRecord): string => record.recordId))
+    PermissionPolicyLocalRepository.records = PermissionPolicyLocalRepository.records
+      .filter((record: PermissionLocalPolicyRecord): boolean => !staleRecordIds.has(record.recordId))
+
+    let removed = true
+    for (let i = 0; i < staleRecords.length; i++) {
+      let ok = await PermissionPolicyLocalRepository.rdbRepository.deleteByRecordId(staleRecords[i].recordId)
+      removed = removed && ok
+    }
+    return removed
+  }
+
+  private static isStaleThreeDRecord(
+    record: PermissionLocalPolicyRecord,
+    activeAppMap: Map<string, PermissionAppSnapshot>
+  ): boolean {
+    let app = activeAppMap.get(record.appKey)
+    if (app === undefined) {
+      return true
+    }
+    return app.accountId !== record.accountId ||
+      app.bundleName !== record.bundleName ||
+      app.appIdentifier !== record.appIdentifier ||
+      app.appIndex !== record.appIndex
   }
 
   private static async doInit(context: common.UIAbilityContext): Promise<boolean> {
