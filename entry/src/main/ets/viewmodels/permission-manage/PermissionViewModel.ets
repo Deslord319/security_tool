@@ -60,8 +60,10 @@ export class PermissionViewModel {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
+      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
       this.applyInventory(inventory)
+      this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
       return true
     } catch (err) {
       LogUtils.warn(TAG, `refreshApplications failed: ${JSON.stringify(err)}`)
@@ -79,8 +81,10 @@ export class PermissionViewModel {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
+      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
       this.applyApplicationList(inventory)
+      this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
       return true
     } catch (err) {
       LogUtils.warn(TAG, `refreshApplicationList failed: ${JSON.stringify(err)}`)
@@ -138,6 +142,7 @@ export class PermissionViewModel {
     this.state.loading = true
     this.state.errorMessage = ''
     try {
+      let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let accountResult = await PermissionService.loadAccounts()
       let selectedAccountId = this.resolveRefreshedAccountId(accountResult)
       let inventory = await PermissionService.loadApplications(selectedAccountId)
@@ -152,6 +157,9 @@ export class PermissionViewModel {
         })
       }
       this.applyApplicationList(inventory)
+      if (!accountChanged) {
+        this.reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot)
+      }
       return true
     } catch (err) {
       LogUtils.warn(TAG, `refreshAccountsAndApplicationList failed: ${JSON.stringify(err)}`)
@@ -501,6 +509,16 @@ export class PermissionViewModel {
 
   private canReuseThreeDDetail(previous: PermissionAppSnapshot, next: PermissionAppSnapshot): boolean {
     return this.isSameApplicationIdentity(previous, next)
+  }
+
+  private reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot: PermissionAppSnapshot | undefined): void {
+    if (previousSelectedSnapshot === undefined) {
+      return
+    }
+    let refreshedSnapshot = this.findAppSnapshot(previousSelectedSnapshot.appKey)
+    if (refreshedSnapshot === undefined || !this.isSameApplicationIdentity(previousSelectedSnapshot, refreshedSnapshot)) {
+      this.clearSelectedApplication()
+    }
   }
 
   private isSameApplicationIdentity(previous: PermissionAppSnapshot, next: PermissionAppSnapshot): boolean {

@@ -63,6 +63,7 @@ export class PermissionApplicationStrings {
   static readonly UNINSTALL_PROTECTED_DESC: string = '阻止当前账号卸载该应用'
   static readonly RUNNING_POLICY_DESC: string = '控制应用是否允许启动'
   static readonly NETWORK_POLICY_DESC: string = '控制应用全部网络访问'
+  static readonly REFRESH_APPLICATIONS: string = '刷新'
   static readonly CURRENT_STATE_PREFIX: string = '当前'
   static readonly THREE_D_GROUP_DESC: string = '可托管'
   static readonly THREE_D_FULL_FILE_DESC: string = '全盘权限覆盖'

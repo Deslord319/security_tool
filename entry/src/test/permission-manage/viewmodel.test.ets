@@ -217,6 +217,72 @@ export default function permissionViewModelTest() {
       }
     })
 
+    it('should add newly installed application after manual inventory refresh', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let currentApp = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let newApp = buildManagedApplication(100, 'com.example.browser', 'Browser')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = currentApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(currentApp)]
+        viewModel.state.filteredAppKeys = [currentApp.appKey]
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(currentApp), buildAppSnapshot(newApp)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+
+        let success = await viewModel.refreshAccountsAndApplicationList()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAccountId).assertEqual(100)
+        expect(viewModel.state.selectedAppKey).assertEqual(currentApp.appKey)
+        expect(viewModel.state.appSnapshots.length).assertEqual(2)
+        expect(viewModel.state.filteredAppKeys.includes(newApp.appKey)).assertTrue()
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should clear selected application after manual refresh when target is uninstalled', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let currentApp = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let otherApp = buildManagedApplication(100, 'com.example.browser', 'Browser')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = currentApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(currentApp, true)]
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(viewModel.state.appSnapshots, [])
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
+          appSnapshots: [buildAppSnapshot(otherApp)],
+          installPolicies: []
+        } as ApplicationInventoryResult))
+
+        let success = await viewModel.refreshAccountsAndApplicationList()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.appSnapshots.length).assertEqual(1)
+        expect(viewModel.state.appSnapshots[0].appKey).assertEqual(otherApp.appKey)
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should fallback to refreshed selected account when current account is gone', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
@@ -1011,6 +1077,7 @@ export default function permissionViewModelTest() {
 
         let selectedApp = viewModel.state.appSnapshots.find((item: PermissionAppSnapshot): boolean => item.appKey === app.appKey)
         expect(success).assertTrue()
+        expect(viewModel.state.selectedAppKey).assertEqual('')
         expect(selectedApp?.appIdentifier).assertEqual(refreshedSnapshot.appIdentifier)
         expect(selectedApp?.threeDLoadState).assertEqual('idle')
         expect(selectedApp?.threeDGroups.length).assertEqual(0)

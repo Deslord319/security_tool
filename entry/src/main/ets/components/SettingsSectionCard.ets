@@ -6,6 +6,7 @@ import { HoverUtils } from '../utils/HoverUtils'
 export struct SectionCard {
   @Param title: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
+  @BuilderParam headerAction?: () => void
   @BuilderParam content?: () => void
   @Local hovered: boolean = false
 
@@ -18,6 +19,9 @@ export struct SectionCard {
           .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
           .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
         Blank()
+        if (this.headerAction) {
+          this.headerAction()
+        }
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 16, bottom: 12 })

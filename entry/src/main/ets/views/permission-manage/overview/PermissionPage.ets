@@ -1,6 +1,6 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../../../constants/AppConstants'
 import { AppResources } from '../../../constants/AppResources'
-import { ActionText, ModuleText } from '../../../constants/StringCatalog'
+import { ActionText, MessageText, ModuleText } from '../../../constants/StringCatalog'
 import {
   PermissionEmptyStrings,
   PermissionAccountStrings,
@@ -246,6 +246,27 @@ export struct PermissionPage {
     this.executePolicyAction((): Promise<PermissionActionResult> => this.viewModel.deletePolicyRecord(recordKey))
   }
 
+  private canRefreshApplicationInventory(): boolean {
+    return this.viewModel.state.initialized &&
+      !this.viewModel.state.loading &&
+      !this.viewModel.state.loadingSelectedApp &&
+      !this.hasProcessingAction()
+  }
+
+  private refreshApplicationInventory(): void {
+    this.refreshApplicationInventoryAsync().catch((err: Error) => {
+      LogUtils.warn(TAG, `refreshApplicationInventory failed: ${JSON.stringify(err)}`)
+      DialogService.openFailure(this.getUIContext(), MessageText.RETRY_LATER)
+    })
+  }
+
+  private async refreshApplicationInventoryAsync(): Promise<void> {
+    let success = await this.viewModel.refreshAccountsAndApplicationList()
+    if (!success) {
+      DialogService.openFailure(this.getUIContext(), this.viewModel.state.errorMessage || MessageText.RETRY_LATER)
+    }
+  }
+
   private async runWithLoading<T>(
     sceneTag: string,
     message: string,
@@ -278,6 +299,9 @@ export struct PermissionPage {
           SectionCard({
             title: PermissionSectionStrings.APPLICATIONS,
             currentTheme: this.currentTheme,
+            headerAction: () => {
+              this.applicationRefreshAction()
+            },
             content: () => {
               this.targetContent()
             }
@@ -317,6 +341,27 @@ export struct PermissionPage {
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+  }
+
+  @Builder
+  private applicationRefreshAction() {
+    Row({ space: AppStyles.PADDING_SM }) {
+      if (this.viewModel.state.loading && this.viewModel.state.initialized) {
+        LoadingProgress()
+          .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+      }
+
+      IconTextActionButton({
+        label: PermissionApplicationStrings.REFRESH_APPLICATIONS,
+        showIcon: false,
+        isEnabled: this.canRefreshApplicationInventory(),
+        currentTheme: this.currentTheme,
+        onTap: () => this.refreshApplicationInventory()
+      })
+    }
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
