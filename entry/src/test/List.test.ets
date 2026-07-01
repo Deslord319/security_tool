@@ -15,6 +15,7 @@ import firewallLocalRepositoryTest from './firewall/local-repository.test'
 import firewallModeStrategyTest from './firewall/mode-strategy.test'
 import firewallOverviewViewModelTest from './firewall/overview-viewmodel.test'
 import firewallRuleFormModelTest from './firewall/rule-form-model.test'
+import firewallRulesViewModelTest from './firewall/rules-viewmodel.test'
 import firewallRuleUtilsTest from './firewall/rule-utils.test'
 import firewallServiceTest from './firewall/service.test'
 import systemUserProviderTest from './firewall/system-user-provider.test'
@@ -168,4 +169,5 @@ export default function testsuite() {
   peripheralPageTest()
   settingsPagesStateTest()
   firewallOverviewViewModelTest()
+  firewallRulesViewModelTest()
 }
