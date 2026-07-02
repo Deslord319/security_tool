@@ -5,6 +5,7 @@ import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 
 import { AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { FirewallLocalRepository } from '../../main/ets/services/firewall/FirewallLocalRepository'
+import { FirewallPolicyService } from '../../main/ets/services/firewall/FirewallPolicyService'
 import {
   FirewallBatchOperationResult,
   FirewallPreparedRule,
@@ -33,10 +34,10 @@ function buildUsers(): UserFirewallOption[] {
   ]
 }
 
-function buildUserResult(users: UserFirewallOption[]): UserFirewallListResult {
+function buildUserResult(users: UserFirewallOption[], selectedUserId?: number): UserFirewallListResult {
   return {
     users: users,
-    selectedUserId: users[0]?.userId
+    selectedUserId: selectedUserId ?? users[0]?.userId
   }
 }
 
@@ -343,6 +344,30 @@ export default function firewallServiceTest() {
 
     afterEach(() => {
       mockKit.clearAll()
+    })
+
+    describe('overview state', () => {
+      it('should read only admin current user policy for overview enabled state', 0, async (done: Function) => {
+        let users = buildUsers()
+        let requestedUserIds: number[] = []
+        let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+        let getPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.getPolicy)
+        let getModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getCurrentMode)
+
+        when(userMock)().afterReturn(buildUserResult(users, 101))
+        when(getPolicyMock)(ArgumentMatchers.any).afterAction((userId: number): netFirewall.NetFirewallPolicy | null => {
+          requestedUserIds.push(userId)
+          return buildPolicy(true, netFirewall.FirewallRuleAction.RULE_ALLOW, netFirewall.FirewallRuleAction.RULE_ALLOW)
+        })
+        when(getModeMock)(ArgumentMatchers.any).afterReturn('public')
+
+        let overview = await FirewallPolicyService.loadOverviewState(context)
+
+        expect(overview.enabled).assertTrue()
+        expect(overview.currentMode).assertEqual('public')
+        expect(requestedUserIds.join(',')).assertEqual('101')
+        done()
+      })
     })
 
     describe('global toggle', () => {
