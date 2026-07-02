@@ -218,20 +218,15 @@ export class FirewallRulesViewModel {
     if (localRuleId === undefined) {
       return { success: false, errorMessage: FirewallRuleStrings.APPLY_FAILED }
     }
-    this.isLoading = true
-    try {
-      const result = await FirewallService.deleteRule(context, localRuleId)
-      this.lastSaveResult = result
-      if (result.success) {
-        await this.refreshPageData(context)
-        this.lastOperationMessage = FirewallRuleStrings.DELETE_SUCCESS
-      } else {
-        this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
-      }
-      return result
-    } finally {
-      this.isLoading = false
+    const result = await FirewallService.deleteRule(context, localRuleId)
+    this.lastSaveResult = result
+    if (result.success) {
+      await this.refreshPageData(context)
+      this.lastOperationMessage = FirewallRuleStrings.DELETE_SUCCESS
+    } else {
+      this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
     }
+    return result
   }
 
   async replaceConflictRule(

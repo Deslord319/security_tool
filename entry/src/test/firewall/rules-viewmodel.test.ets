@@ -181,5 +181,35 @@ export default function firewallRulesViewModelTest() {
       expect(viewModel.lastOperationMessage).assertEqual(FirewallRuleStrings.ADD_SUCCESS)
       done()
     })
+
+    it('should delete rule without switching rule list to loading state', 0, async (done: Function) => {
+      let deleteRuleMock = mockKit.mockFunc(FirewallService, FirewallService.deleteRule)
+      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let policyMock = mockKit.mockFunc(FirewallService, FirewallService.loadUserPolicyState)
+      let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
+      when(deleteRuleMock)(ArgumentMatchers.any).afterReturn({
+        success: true,
+        localRuleId: 'rule-1',
+        successDeployments: []
+      } as FirewallRuleMutationResult)
+      when(userMock)().afterReturn(buildUserResult([100]))
+      when(policyMock)(ArgumentMatchers.any).afterAction((
+        _context: common.UIAbilityContext,
+        userId: number
+      ): FirewallUserPolicyStateResult => buildPolicyState(userId))
+      when(listRulesMock)(ArgumentMatchers.any).afterReturn([])
+      let viewModel = new FirewallRulesViewModel()
+      let rule = buildDisplayRule('rule-1', [100])
+
+      let deletePromise = viewModel.deleteRule(context, rule)
+
+      expect(viewModel.isLoading).assertFalse()
+      let result = await deletePromise
+      expect(result.success).assertTrue()
+      expect(viewModel.isLoading).assertFalse()
+      expect(viewModel.rules.length).assertEqual(0)
+      expect(viewModel.lastOperationMessage).assertEqual(FirewallRuleStrings.DELETE_SUCCESS)
+      done()
+    })
   })
 }
