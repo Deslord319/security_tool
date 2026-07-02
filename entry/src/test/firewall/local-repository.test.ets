@@ -9,6 +9,9 @@ import {
   FirewallRuleIntent,
   FirewallUserPolicyModeRecord,
   PREF_KEY_FIREWALL_ACTIVE_MODE,
+  PREF_KEY_FIREWALL_DESIRED_ENABLED,
+  PREF_KEY_FIREWALL_LAST_APPLIED_MODE,
+  PREF_KEY_FIREWALL_LAST_APPLIED_USER_IDS_SIGNATURE,
   PREF_KEY_FIREWALL_RULE_MAPPING,
   PREF_KEY_FIREWALL_USER_POLICY,
   PREF_STORE_NAME_FIREWALL_MODE,
@@ -140,6 +143,33 @@ export default function firewallLocalRepositoryTest() {
 
       fakeProvider.accessorFor(PREF_STORE_NAME_FIREWALL_MODE).setRaw(PREF_KEY_FIREWALL_ACTIVE_MODE, 'invalid-mode')
       expect(await FirewallLocalRepository.getCurrentMode(context)).assertEqual('custom')
+      done()
+    })
+
+    it('should persist desired enabled state and last applied account signature', 0, async (done: Function) => {
+      expect(await FirewallLocalRepository.getDesiredEnabled(context)).assertTrue()
+      expect((await FirewallLocalRepository.getLastAppliedMode(context)) === undefined).assertTrue()
+      expect(await FirewallLocalRepository.getLastAppliedUserIdsSignature(context)).assertEqual('')
+
+      expect(await FirewallLocalRepository.saveDesiredEnabled(context, false)).assertTrue()
+      expect(await FirewallLocalRepository.getDesiredEnabled(context)).assertFalse()
+
+      expect(await FirewallLocalRepository.saveDesiredEnabled(context, true)).assertTrue()
+      expect(await FirewallLocalRepository.getDesiredEnabled(context)).assertTrue()
+
+      expect(await FirewallLocalRepository.saveModeApplyState(context, 'public', '100,101')).assertTrue()
+      expect(await FirewallLocalRepository.getLastAppliedMode(context)).assertEqual('public')
+      expect(await FirewallLocalRepository.getLastAppliedUserIdsSignature(context)).assertEqual('100,101')
+
+      fakeProvider.accessorFor(PREF_STORE_NAME_FIREWALL_MODE)
+        .setRaw(PREF_KEY_FIREWALL_LAST_APPLIED_MODE, 'bad-mode')
+      fakeProvider.accessorFor(PREF_STORE_NAME_FIREWALL_MODE)
+        .setRaw(PREF_KEY_FIREWALL_LAST_APPLIED_USER_IDS_SIGNATURE, '100')
+      fakeProvider.accessorFor(PREF_STORE_NAME_FIREWALL_MODE)
+        .setRaw(PREF_KEY_FIREWALL_DESIRED_ENABLED, 'bad-value')
+      expect((await FirewallLocalRepository.getLastAppliedMode(context)) === undefined).assertTrue()
+      expect(await FirewallLocalRepository.getLastAppliedUserIdsSignature(context)).assertEqual('100')
+      expect(await FirewallLocalRepository.getDesiredEnabled(context)).assertTrue()
       done()
     })
 

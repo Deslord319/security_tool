@@ -9,6 +9,7 @@ export class FirewallModeSwitchErrorStrings {
   static readonly ADD_RULE_FAILED: string = ADD_RULE_FAILED
   static readonly SAVE_DEPLOYMENTS_FAILED: string = 'save deployments failed'
   static readonly SAVE_TARGET_MODE_FAILED: string = 'save target mode failed'
+  static readonly SAVE_MODE_APPLY_STATE_FAILED: string = 'save mode apply state failed'
   static readonly COMPLETED_WITH_FAILED_ITEMS: string = 'mode switch completed with failed items'
   static readonly ROLLBACK_CLEAR_CURRENT_RULES_FAILED: string = 'rollback clear current rules failed'
   static readonly ROLLBACK_POLICY_FAILED: string = 'rollback policy failed'

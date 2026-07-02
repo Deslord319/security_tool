@@ -229,8 +229,10 @@ function stubGlobalToggleDependencies(
   let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
   let getPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.getPolicy)
   let setPolicyMock = mockKit.mockFunc(FirewallSystemRepository, FirewallSystemRepository.setPolicy)
+  let saveDesiredEnabledMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveDesiredEnabled)
 
   when(userMock)().afterReturn(buildUserResult(users))
+  when(saveDesiredEnabledMock)(ArgumentMatchers.any).afterReturn(true)
   when(getPolicyMock)(ArgumentMatchers.any).afterAction((userId: number): netFirewall.NetFirewallPolicy | null => {
     return policies.get(userId) ?? null
   })
@@ -271,6 +273,7 @@ function stubSwitchModeDependencies(
   let pruneUsersMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
   let buildRulesMock = mockKit.mockFunc(FirewallModeStrategy, FirewallModeStrategy.buildRulesForMode)
   let saveModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveCurrentMode)
+  let saveModeApplyStateMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveModeApplyState)
 
   when(userMock)().afterReturn(buildUserResult(users))
   when(clearRulesMock)(ArgumentMatchers.any).afterReturn(buildClearResult())
@@ -286,6 +289,7 @@ function stubSwitchModeDependencies(
   when(pruneUsersMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
   when(buildRulesMock)(ArgumentMatchers.any).afterReturn([])
   when(saveModeMock)(ArgumentMatchers.any).afterReturn(true)
+  when(saveModeApplyStateMock)(ArgumentMatchers.any).afterReturn(true)
   when(setPolicyMock)(ArgumentMatchers.any).afterAction((
     userId: number,
     policy: netFirewall.NetFirewallPolicy

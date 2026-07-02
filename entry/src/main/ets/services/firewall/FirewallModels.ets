@@ -266,6 +266,9 @@ export function resolveFirewallUserPolicyModeFromActions(
 export const FIREWALL_RULE_MAPPING_VERSION = 1
 export const PREF_STORE_NAME_FIREWALL_MODE = 'firewall_mode'
 export const PREF_KEY_FIREWALL_ACTIVE_MODE = 'firewall_active_mode'
+export const PREF_KEY_FIREWALL_DESIRED_ENABLED = 'firewall_desired_enabled'
+export const PREF_KEY_FIREWALL_LAST_APPLIED_MODE = 'firewall_last_applied_mode'
+export const PREF_KEY_FIREWALL_LAST_APPLIED_USER_IDS_SIGNATURE = 'firewall_last_applied_user_ids_signature'
 export const PREF_STORE_NAME_FIREWALL_RULE_MAPPING = 'firewall_rule_mapping'
 export const PREF_KEY_FIREWALL_RULE_MAPPING = 'firewall_rule_intent_mapping_payload'
 export const PREF_STORE_NAME_FIREWALL_USER_POLICY = 'firewall_user_policy'

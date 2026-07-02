@@ -10,6 +10,7 @@ import dashboardViewModelTest from './dashboard/viewmodel.test'
 import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
 import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
+import firewallAccountChangeHandlerTest from './firewall/account-change-handler.test'
 import firewallModelsTest from './firewall/models.test'
 import firewallLocalRepositoryTest from './firewall/local-repository.test'
 import firewallModeStrategyTest from './firewall/mode-strategy.test'
@@ -170,4 +171,5 @@ export default function testsuite() {
   settingsPagesStateTest()
   firewallOverviewViewModelTest()
   firewallRulesViewModelTest()
+  firewallAccountChangeHandlerTest()
 }
