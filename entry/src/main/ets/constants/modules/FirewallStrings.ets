@@ -144,7 +144,7 @@ export function buildFirewallUserCountText(count: number): string {
   return `${count} 个`
 }
 
-export class FirewallUserLabelStrings {
+class FirewallUserLabelStrings {
   static readonly FALLBACK_USER_LABEL_PREFIX: string = '用户'
   static readonly CURRENT_USER_SUFFIX: string = '（当前）'
 

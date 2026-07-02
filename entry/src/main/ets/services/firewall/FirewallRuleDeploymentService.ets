@@ -12,12 +12,12 @@ import { FirewallSystemRepository } from './FirewallSystemRepository'
 
 const UPDATE_SYSTEM_RULE_FAILED = 'update system rule failed'
 
-export interface FirewallRuleDeploymentApplyResult {
+interface FirewallRuleDeploymentApplyResult {
   deployments: FirewallRuleDeployment[]
   failedItems: FirewallFailedItem[]
 }
 
-export interface FirewallDeploymentRemoveResult {
+interface FirewallDeploymentRemoveResult {
   removedDeployments: FirewallRuleDeployment[]
   failedItems: FirewallFailedItem[]
 }
@@ -161,40 +161,6 @@ export class FirewallRuleDeploymentService {
       deployments: restoredDeployments,
       failedItems: failedItems
     }
-  }
-
-  static async deleteDeploymentsOnly(
-    context: common.UIAbilityContext,
-    localRuleId: string
-  ): Promise<FirewallFailedItem[]> {
-    let deployments = await FirewallLocalRepository.listRuleDeployments(context, localRuleId)
-    let failedItems: FirewallFailedItem[] = []
-    let remainingDeployments: FirewallRuleDeployment[] = []
-    for (let i = 0; i < deployments.length; i++) {
-      let deployment = deployments[i]
-      let failedItem = await FirewallRuleDeploymentService.removeDeploymentSilently(
-        localRuleId,
-        deployment,
-        FirewallRuleDeploymentErrorStrings.REMOVE_SYSTEM_RULE_FAILED
-      )
-      if (failedItem !== null) {
-        remainingDeployments.push(deployment)
-        failedItems.push(failedItem)
-      }
-    }
-    if (failedItems.length > 0) {
-      let localSaved = await FirewallLocalRepository.replaceRuleDeployments(context, localRuleId, remainingDeployments)
-      if (!localSaved) {
-        failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleDeploymentErrorStrings.PRESERVE_FAILED_DEPLOYMENTS_FAILED })
-      }
-      return failedItems
-    }
-
-    let localRemoved = await FirewallLocalRepository.removeRuleDeployments(context, localRuleId)
-    if (!localRemoved) {
-      failedItems.push({ localRuleId: localRuleId, errorMessage: FirewallRuleDeploymentErrorStrings.REMOVE_DEPLOYMENTS_FAILED })
-    }
-    return failedItems
   }
 
   private static async deploySingleRule(

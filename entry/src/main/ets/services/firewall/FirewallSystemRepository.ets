@@ -123,13 +123,13 @@ export class FirewallSystemRepository {
   }
 }
 
-export interface FirewallAddRuleRawResult {
+interface FirewallAddRuleRawResult {
   systemRuleId?: number
   errorCode?: number
   errorMessage?: string
 }
 
-export interface FirewallSystemRuleMutationResult {
+interface FirewallSystemRuleMutationResult {
   success: boolean
   errorCode?: number
   errorMessage?: string

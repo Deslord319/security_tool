@@ -240,6 +240,7 @@ export class FirewallLocalRepository {
     )
   }
 
+  // Reserved for testing and future per-user policy cleanup.
   static async removeUserPolicyMode(
     context: common.Context,
     userId: number
