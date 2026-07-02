@@ -317,7 +317,7 @@ ohos.permission.PRIVACY_WINDOW
 - 仅 Push 事件执行，且要求 `HARMONYOS_CI_ENABLED == 'true'`
 - 使用自托管 runner 上的 DevEco Studio / SDK / ohpm / Java
 - 构建 `entry-default-unsigned.hap`
-- 将 unsigned HAP 同步到 `hapsigner/`，使用仓库内 `hapsigner` 工具链生成 `signApp.hap`
+- 将 unsigned HAP 同步到 `hapsigner/`，先按 `UnsgnedDebugProfileTemplate.json` 重新生成 `ohos_provision_debug.p7b`，再使用仓库内 `hapsigner` 工具链生成 `signApp.hap`
 - 上传 Artifact `entry-default-hap`（保留 7 天）
 
 当前 `.github/workflows/ci.yml` 没有启用 GitHub Release job，也没有从 GitHub Secrets 动态解码签名密钥；若后续改为 Secrets 签名或标签发布，必须同步更新本文档和 `.github/` 下相关说明。

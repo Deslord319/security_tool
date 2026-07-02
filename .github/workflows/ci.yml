@@ -1023,6 +1023,25 @@ jobs:
         run: |
           Copy-Item -LiteralPath 'entry/build/default/outputs/default/entry-default-unsigned.hap' -Destination 'hapsigner/entry-default-unsigned.hap' -Force
 
+      - name: Generate signing profile
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
+        run: |
+          Push-Location 'hapsigner'
+          try {
+            & "$env:JAVA_HOME\bin\java.exe" -jar 'hap-sign-tool.jar' sign-profile `
+              -mode 'localSign' `
+              -keyAlias 'OpenHarmony Application Profile Debug' `
+              -keyPwd '123456' `
+              -inFile 'UnsgnedDebugProfileTemplate.json' `
+              -outFile 'ohos_provision_debug.p7b' `
+              -keystoreFile 'OpenHarmony.p12' `
+              -keystorePwd '123456' `
+              -signAlg 'SHA256withECDSA' `
+              -profileCertFile 'OpenHarmonyProfileDebug.pem'
+          } finally {
+            Pop-Location
+          }
+
       - name: Sign HAP
         shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
