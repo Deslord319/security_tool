@@ -49,8 +49,6 @@ export class FirewallRuleDeploymentErrorStrings {
   static readonly REMOVE_SYSTEM_RULE_FAILED: string = 'remove system rule failed'
   static readonly RESTORE_OLD_SYSTEM_RULE_FAILED: string = 'restore old system rule failed'
   static readonly RESTORE_OLD_DEPLOYMENTS_FAILED: string = 'restore old deployments failed'
-  static readonly PRESERVE_FAILED_DEPLOYMENTS_FAILED: string = 'preserve failed deployments failed'
-  static readonly REMOVE_DEPLOYMENTS_FAILED: string = 'remove deployments failed'
 }
 
 export class FirewallRuleValidationErrorStrings {
