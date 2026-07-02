@@ -316,6 +316,7 @@ ohos.permission.PRIVACY_WINDOW
 **Job 4: Build entry@default HAP** - 自托管构建与签名
 - 仅 Push 事件执行，且要求 `HARMONYOS_CI_ENABLED == 'true'`
 - 使用自托管 runner 上的 DevEco Studio / SDK / ohpm / Java
+- 准备 `DEVECO_SDK_HOME` overlay，并对自托管 SDK 尚未内置的新权限定义做 CI 侧兼容补丁
 - 构建 `entry-default-unsigned.hap`
 - 将 unsigned HAP 同步到 `hapsigner/`，先按 `UnsgnedDebugProfileTemplate.json` 重新生成 `ohos_provision_debug.p7b`，再使用仓库内 `hapsigner` 工具链生成 `signApp.hap`
 - 上传 Artifact `entry-default-hap`（保留 7 天）
