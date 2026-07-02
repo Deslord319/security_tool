@@ -81,6 +81,7 @@ export class FirewallRulesViewModel {
   @Trace lastSaveResult: FirewallRuleMutationResult | null = null
   @Trace lastOperationMessage: string = ''
   @Trace userOptions: UserFirewallOption[] = []
+  @Trace deletingLocalRuleId: string = ''
 
   async initialize(
     context: common.UIAbilityContext,
@@ -218,15 +219,22 @@ export class FirewallRulesViewModel {
     if (localRuleId === undefined) {
       return { success: false, errorMessage: FirewallRuleStrings.APPLY_FAILED }
     }
-    const result = await FirewallService.deleteRule(context, localRuleId)
-    this.lastSaveResult = result
-    if (result.success) {
-      await this.refreshPageData(context)
-      this.lastOperationMessage = FirewallRuleStrings.DELETE_SUCCESS
-    } else {
-      this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
+    this.deletingLocalRuleId = localRuleId
+    try {
+      const result = await FirewallService.deleteRule(context, localRuleId)
+      this.lastSaveResult = result
+      if (result.success) {
+        await this.refreshPageData(context)
+        this.lastOperationMessage = FirewallRuleStrings.DELETE_SUCCESS
+      } else {
+        this.lastOperationMessage = result.errorMessage ?? FirewallRuleStrings.APPLY_FAILED
+      }
+      return result
+    } finally {
+      if (this.deletingLocalRuleId === localRuleId) {
+        this.deletingLocalRuleId = ''
+      }
     }
-    return result
   }
 
   async replaceConflictRule(

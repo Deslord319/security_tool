@@ -187,11 +187,15 @@ export default function firewallRulesViewModelTest() {
       let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
       let policyMock = mockKit.mockFunc(FirewallService, FirewallService.loadUserPolicyState)
       let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
-      when(deleteRuleMock)(ArgumentMatchers.any).afterReturn({
+      let resolveDelete: (value: FirewallRuleMutationResult) => void = (_value: FirewallRuleMutationResult): void => {}
+      when(deleteRuleMock)(ArgumentMatchers.any).afterReturn(new Promise<FirewallRuleMutationResult>((resolve) => {
+        resolveDelete = resolve
+      }))
+      const deleteResult: FirewallRuleMutationResult = {
         success: true,
         localRuleId: 'rule-1',
         successDeployments: []
-      } as FirewallRuleMutationResult)
+      }
       when(userMock)().afterReturn(buildUserResult([100]))
       when(policyMock)(ArgumentMatchers.any).afterAction((
         _context: common.UIAbilityContext,
@@ -204,9 +208,12 @@ export default function firewallRulesViewModelTest() {
       let deletePromise = viewModel.deleteRule(context, rule)
 
       expect(viewModel.isLoading).assertFalse()
+      expect(viewModel.deletingLocalRuleId).assertEqual('rule-1')
+      resolveDelete(deleteResult)
       let result = await deletePromise
       expect(result.success).assertTrue()
       expect(viewModel.isLoading).assertFalse()
+      expect(viewModel.deletingLocalRuleId).assertEqual('')
       expect(viewModel.rules.length).assertEqual(0)
       expect(viewModel.lastOperationMessage).assertEqual(FirewallRuleStrings.DELETE_SUCCESS)
       done()

@@ -379,6 +379,7 @@ export struct FirewallRulesPage {
     FirewallRuleList({
       rules: this.getRulesByTab(tabIndex),
       isLoading: this.rulesViewModel.isLoading,
+      deletingRuleId: this.rulesViewModel.deletingLocalRuleId,
       currentTheme: this.currentTheme,
       getUserScopeLabel: (rule: netFirewall.NetFirewallRule): string => this.rulesViewModel.getRuleUserScopeLabel(rule),
       onEditRule: (rule: netFirewall.NetFirewallRule) => {

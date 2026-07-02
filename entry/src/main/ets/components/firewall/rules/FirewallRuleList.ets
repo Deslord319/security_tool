@@ -26,6 +26,7 @@ import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 export struct FirewallRuleList {
   @Param rules: netFirewall.NetFirewallRule[] = []
   @Param isLoading: boolean = false
+  @Param deletingRuleId: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event getUserScopeLabel: (rule: netFirewall.NetFirewallRule) => string = (_rule: netFirewall.NetFirewallRule): string => FirewallDialogStrings.ALL_VALUE
   @Event onEditRule: (rule: netFirewall.NetFirewallRule) => void = (_rule: netFirewall.NetFirewallRule): void => {}
@@ -63,6 +64,7 @@ export struct FirewallRuleList {
               FirewallRuleCard({
                 rule: rule,
                 userScopeLabel: this.getUserScopeLabel(rule),
+                isDeleting: this.getRuleKey(rule) === this.deletingRuleId,
                 currentTheme: this.currentTheme,
                 onEditRule: this.onEditRule,
                 onDeleteRule: this.onDeleteRule
@@ -98,6 +100,7 @@ struct FirewallRuleCard {
     isEnabled: true
   }
   @Param userScopeLabel: string = ''
+  @Param isDeleting: boolean = false
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onEditRule: (rule: netFirewall.NetFirewallRule) => void = (_rule: netFirewall.NetFirewallRule): void => {}
   @Event onDeleteRule: (rule: netFirewall.NetFirewallRule) => void = (_rule: netFirewall.NetFirewallRule): void => {}
@@ -219,6 +222,7 @@ struct FirewallRuleCard {
       BaseCard({
         useAutoHeight: true,
         clickable: true,
+        disabled: this.isDeleting,
         currentTheme: this.currentTheme,
         onPress: () => {
           this.onEditRule(this.rule)
@@ -281,15 +285,7 @@ struct FirewallRuleCard {
             .alignItems(HorizontalAlign.Start)
 
             Row({ space: 8 }) {
-              IconTextActionButton({
-                label: FirewallRuleStrings.DELETE_TITLE,
-                icon: AppResources.TRASH_ICON,
-                kind: 'danger',
-                currentTheme: this.currentTheme,
-                onTap: () => {
-                  this.onDeleteRule(this.rule)
-                }
-              })
+              this.deleteActionButton()
             }
           }
           .width('100%')
@@ -318,6 +314,41 @@ struct FirewallRuleCard {
     .width('100%')
     .padding({ left: AppStyles.PADDING_LG, right: AppStyles.PADDING_LG })
     .clip(false)
+  }
+
+  @Builder
+  private deleteActionButton() {
+    if (this.isDeleting) {
+      Row({ space: 8 }) {
+        LoadingProgress()
+          .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+          .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
+
+        Text(FirewallRuleStrings.DELETE_TITLE)
+          .fontSize(ActionButtonStyles.FONT_SIZE)
+          .fontColor(ActionButtonStyles.getDangerForeground(this.currentTheme))
+          .fontWeight(FontWeight.Regular)
+      }
+      .height(ActionButtonStyles.HEIGHT)
+      .padding({
+        left: ActionButtonStyles.HORIZONTAL_PADDING_START,
+        right: ActionButtonStyles.HORIZONTAL_PADDING_END
+      })
+      .borderRadius(AppStyles.RADIUS_SM)
+      .backgroundColor(ActionButtonStyles.getDangerBackground(this.currentTheme, false, false))
+      .opacity(0.72)
+      .alignItems(VerticalAlign.Center)
+    } else {
+      IconTextActionButton({
+        label: FirewallRuleStrings.DELETE_TITLE,
+        icon: AppResources.TRASH_ICON,
+        kind: 'danger',
+        currentTheme: this.currentTheme,
+        onTap: () => {
+          this.onDeleteRule(this.rule)
+        }
+      })
+    }
   }
 
   @Builder
