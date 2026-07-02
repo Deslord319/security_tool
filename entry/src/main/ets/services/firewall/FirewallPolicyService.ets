@@ -32,14 +32,9 @@ export class FirewallPolicyService {
       }
     }
 
-    let enabled = true
-    for (let i = 0; i < availableUsers.users.length; i++) {
-      let policy = await FirewallSystemRepository.getPolicy(availableUsers.users[i].userId)
-      if (policy === null || !policy.isOpen) {
-        enabled = false
-        break
-      }
-    }
+    let currentUserId = availableUsers.selectedUserId ?? availableUsers.users[0].userId
+    let currentPolicy = await FirewallSystemRepository.getPolicy(currentUserId)
+    let enabled = currentPolicy !== null && currentPolicy.isOpen
 
     return {
       enabled: enabled,
