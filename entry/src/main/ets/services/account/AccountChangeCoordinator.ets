@@ -8,11 +8,19 @@ import { LogUtils } from '../../utils/LogUtils'
 
 const TAG = 'AccountChangeCoordinator'
 const ACCOUNT_CHANGE_DEBOUNCE_MS = 400
+const ACCOUNT_ADDED_STABLE_RETRY_INTERVAL_MS = 200
+const ACCOUNT_ADDED_STABLE_MAX_RETRIES = 5
 
 interface AccountChangeRequest {
   context: common.Context
   source: AccountChangeSource
   triggerAccountId?: number
+}
+
+interface AccountSnapshotLoadResult {
+  snapshot: AccountSnapshotChange
+  stable: boolean
+  attemptCount: number
 }
 
 export class AccountChangeCoordinator {
@@ -88,6 +96,59 @@ export class AccountChangeCoordinator {
   }
 
   private static async runOnce(request: AccountChangeRequest): Promise<boolean> {
+    let result = await AccountChangeCoordinator.loadStableSnapshot(request)
+    if (!result.stable) {
+      LogUtils.warn(
+        TAG,
+        'skip account snapshot because added account is not visible | triggerAccountId=%{public}d, signature=%{public}s, attemptCount=%{public}d',
+        request.triggerAccountId ?? -1,
+        result.snapshot.signature,
+        result.attemptCount
+      )
+      return false
+    }
+    let snapshot = result.snapshot
+    AccountChangeCoordinator.previousUserIds = snapshot.currentUserIds
+    let success = await AccountChangeCoordinator.dispatchHandlers(request.context, snapshot)
+    if (success) {
+      AccountChangeEventBus.publishSnapshot(snapshot)
+    }
+    return success
+  }
+
+  private static async loadStableSnapshot(request: AccountChangeRequest): Promise<AccountSnapshotLoadResult> {
+    let result = await AccountChangeCoordinator.loadSnapshot(request)
+    if (!AccountChangeCoordinator.shouldWaitForAddedAccount(request, result.snapshot)) {
+      return {
+        snapshot: result.snapshot,
+        stable: true,
+        attemptCount: result.attemptCount
+      } as AccountSnapshotLoadResult
+    }
+
+    for (let i = 0; i < AccountChangeCoordinator.resolveAccountAddedStableMaxRetries(); i++) {
+      await AccountChangeCoordinator.wait(AccountChangeCoordinator.resolveAccountAddedStableRetryIntervalMs())
+      result = await AccountChangeCoordinator.loadSnapshot(request, result.attemptCount + 1)
+      if (!AccountChangeCoordinator.shouldWaitForAddedAccount(request, result.snapshot)) {
+        return {
+          snapshot: result.snapshot,
+          stable: true,
+          attemptCount: result.attemptCount
+        } as AccountSnapshotLoadResult
+      }
+    }
+
+    return {
+      snapshot: result.snapshot,
+      stable: false,
+      attemptCount: result.attemptCount
+    } as AccountSnapshotLoadResult
+  }
+
+  private static async loadSnapshot(
+    request: AccountChangeRequest,
+    attemptCount: number = 1
+  ): Promise<AccountSnapshotLoadResult> {
     let result = await SystemUserProvider.loadAvailableUserIds()
     let currentUserIds = normalizeAccountUserIds(result.users.map((user: UserFirewallOption): number => user.userId))
     let snapshot = AccountChangeCoordinator.buildSnapshot(
@@ -96,16 +157,35 @@ export class AccountChangeCoordinator {
       currentUserIds,
       result.message
     )
-    AccountChangeCoordinator.previousUserIds = currentUserIds
-    let success = await AccountChangeCoordinator.dispatchHandlers(request.context, snapshot)
-    if (success) {
-      AccountChangeEventBus.publishSnapshot(snapshot)
-    }
-    return success
+    return {
+      snapshot: snapshot,
+      stable: true,
+      attemptCount: attemptCount
+    } as AccountSnapshotLoadResult
+  }
+
+  private static shouldWaitForAddedAccount(request: AccountChangeRequest, snapshot: AccountSnapshotChange): boolean {
+    return request.source === 'account-added' &&
+      request.triggerAccountId !== undefined &&
+      !snapshot.currentUserIds.includes(request.triggerAccountId)
   }
 
   static resolveDebounceMs(): number {
     return ACCOUNT_CHANGE_DEBOUNCE_MS
+  }
+
+  static resolveAccountAddedStableRetryIntervalMs(): number {
+    return ACCOUNT_ADDED_STABLE_RETRY_INTERVAL_MS
+  }
+
+  static resolveAccountAddedStableMaxRetries(): number {
+    return ACCOUNT_ADDED_STABLE_MAX_RETRIES
+  }
+
+  private static async wait(ms: number): Promise<void> {
+    return new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, ms)
+    })
   }
 
   private static async dispatchHandlers(context: common.Context, snapshot: AccountSnapshotChange): Promise<boolean> {
