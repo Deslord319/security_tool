@@ -20,7 +20,6 @@ import {
   AccountEventPayload,
   AccountEventType
 } from '../contracts/AccountEventContract';
-import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider';
 import { FirewallLocalRepository } from '../services/firewall/FirewallLocalRepository';
 import { FirewallRuleDeployment, FirewallRuleIntent } from '../services/firewall/FirewallModels';
 import { LooseRecord } from '../types/LooseValueTypes';
@@ -226,7 +225,7 @@ export default class EntryAbility extends UIAbility {
           LogUtils.warn(ENTRYABILITY_TAG, 'account event callback failed: %{public}s', JSON.stringify(callbackErr))
           return
         }
-        void this.handleAccountEvent(data)
+        this.handleAccountEvent(data)
       })
       LogUtils.info(ENTRYABILITY_TAG, 'createAccountEventSubscriber success')
     })
@@ -270,14 +269,12 @@ export default class EntryAbility extends UIAbility {
     }
     try {
       if (payload.type === AccountEventType.ADDED) {
-        await SystemUserProvider.trackAddedUser(payload.userId)
-        LogUtils.info(ENTRYABILITY_TAG, 'account added tracked in UIAbility: userId=%{public}d', payload.userId)
+        LogUtils.info(ENTRYABILITY_TAG, 'account added observed in UIAbility: userId=%{public}d', payload.userId)
         return
       }
       if (payload.type === AccountEventType.REMOVED) {
-        await SystemUserProvider.trackRemovedUser(payload.userId)
         await this.cleanupFirewallLocalDataForRemovedUser(payload.userId)
-        LogUtils.info(ENTRYABILITY_TAG, 'account removed tracked in UIAbility: userId=%{public}d', payload.userId)
+        LogUtils.info(ENTRYABILITY_TAG, 'account removed cleaned in UIAbility: userId=%{public}d', payload.userId)
       }
     } catch (err) {
       LogUtils.warn(ENTRYABILITY_TAG, 'handleAccountEvent failed: %{public}s', JSON.stringify(err))

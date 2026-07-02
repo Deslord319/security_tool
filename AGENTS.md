@@ -253,6 +253,7 @@ ohos.permission.ENTERPRISE_MANAGE_USER_GRANT_PERMISSION
 ohos.permission.ACCESS_BIOMETRIC
 ohos.permission.QUERY_AUDIT_EVENT
 ohos.permission.GET_LOCAL_ACCOUNTS
+ohos.permission.GET_LOCAL_ACCOUNT_IDENTIFIERS
 ohos.permission.PRIVACY_WINDOW
 ```
 
