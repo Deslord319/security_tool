@@ -21,7 +21,6 @@ import {
   resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
-import { FirewallLocalRepository } from '../../../services/firewall/FirewallLocalRepository'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { FirewallRuleUtils } from '../../../services/firewall/FirewallRuleUtils'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
@@ -320,7 +319,7 @@ export class FirewallRulesViewModel {
   async refreshPageData(context: common.UIAbilityContext): Promise<void> {
     await this.reloadUserOptions(context)
     await this.reloadDefaultPolicies(context)
-    await this.reloadRules(context)
+    await this.reloadRules(context, this.userOptions)
   }
 
   async refreshForAccountChange(context: common.UIAbilityContext, users: UserFirewallOption[]): Promise<void> {
@@ -328,7 +327,7 @@ export class FirewallRulesViewModel {
     try {
       this.userOptions = users
       await this.reloadDefaultPolicies(context)
-      await this.reloadRules(context)
+      await this.reloadRules(context, users)
       this.lastOperationMessage = ''
     } catch (err) {
       LogUtils.error(TAG, `refreshForAccountChange failed: ${JSON.stringify(err)}`)
@@ -373,7 +372,11 @@ export class FirewallRulesViewModel {
     this.defaultPolicyItems = items
   }
 
-  private async reloadRules(context: common.UIAbilityContext): Promise<void> {
+  private async reloadRules(
+    context: common.UIAbilityContext,
+    users: UserFirewallOption[] = this.userOptions
+  ): Promise<void> {
+    await FirewallService.reconcileRulesForUsers(context, users)
     const rules = await FirewallService.listRulesForDisplay(context)
     this.rules = rules.map((rule: netFirewall.NetFirewallRule) => cloneScopedRule(rule))
     this.refreshConflictNotice()
@@ -383,26 +386,9 @@ export class FirewallRulesViewModel {
     try {
       let result = await SystemUserProvider.loadAvailableUserIds()
       this.userOptions = result.users
-      await this.pruneUnavailableLocalUsers(context, this.userOptions)
     } catch (err) {
       LogUtils.error(TAG, `reloadUserOptions failed: ${JSON.stringify(err)}`)
       this.userOptions = []
-    }
-  }
-
-  private async pruneUnavailableLocalUsers(
-    context: common.UIAbilityContext,
-    users: UserFirewallOption[]
-  ): Promise<void> {
-    if (users.length === 0) {
-      return
-    }
-    let pruned = await FirewallLocalRepository.pruneUnavailableUsers(
-      context,
-      users.map((user: UserFirewallOption): number => user.userId)
-    )
-    if (!pruned) {
-      LogUtils.warn(TAG, 'pruneUnavailableUsers failed')
     }
   }
 }

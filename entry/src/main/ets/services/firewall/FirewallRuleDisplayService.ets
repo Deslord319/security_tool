@@ -6,13 +6,31 @@ import {
   FirewallRuleDeployment,
   FirewallRuleDisplayItem,
   FirewallRuleIntent,
-  FirewallScopedRule
+  FirewallScopedRule,
+  UserFirewallOption
 } from './FirewallModels'
 import { FirewallRuleMutationService } from './FirewallRuleMutationService'
 import { FirewallRuleUtils } from './FirewallRuleUtils'
 import { common } from '@kit.AbilityKit'
+import { LogUtils } from '../../utils/LogUtils'
+
+const TAG = 'FirewallRuleDisplayService'
 
 export class FirewallRuleDisplayService {
+  static async reconcileRulesForUsers(context: common.UIAbilityContext, users: UserFirewallOption[]): Promise<boolean> {
+    if (users.length === 0) {
+      return true
+    }
+    let pruned = await FirewallLocalRepository.pruneUnavailableUsers(
+      context,
+      users.map((user: UserFirewallOption): number => user.userId)
+    )
+    if (!pruned) {
+      LogUtils.warn(TAG, 'reconcileRulesForUsers failed')
+    }
+    return pruned
+  }
+
   static async listRulesForDisplay(context: common.UIAbilityContext): Promise<FirewallRuleDisplayItem[]> {
     let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
     return data.ruleIntents.map((intent: FirewallRuleIntent): FirewallRuleDisplayItem => {

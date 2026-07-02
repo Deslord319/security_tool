@@ -12,7 +12,6 @@ import {
   UserFirewallListResult,
   UserFirewallOption
 } from '../../main/ets/services/firewall/FirewallModels'
-import { FirewallLocalRepository } from '../../main/ets/services/firewall/FirewallLocalRepository'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
@@ -76,12 +75,20 @@ export default function firewallRulesViewModelTest() {
   describe('FirewallRulesViewModel', () => {
     let mockKit: MockKit
     let context: common.UIAbilityContext
+    let reconciledUserIds: number[]
 
     beforeEach(() => {
       mockKit = new MockKit()
       context = {} as common.UIAbilityContext
-      let pruneMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
-      when(pruneMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
+      reconciledUserIds = []
+      let reconcileMock = mockKit.mockFunc(FirewallService, FirewallService.reconcileRulesForUsers)
+      when(reconcileMock)(ArgumentMatchers.any).afterAction((
+        _context: common.UIAbilityContext,
+        users: UserFirewallOption[]
+      ): Promise<boolean> => {
+        reconciledUserIds = users.map((user: UserFirewallOption): number => user.userId)
+        return Promise.resolve(true)
+      })
     })
 
     afterEach(() => {
@@ -139,6 +146,8 @@ export default function firewallRulesViewModelTest() {
 
       await viewModel.refreshForAccountChange(context, buildUsers([100, 101, 102]))
 
+      expect(reconciledUserIds.length).assertEqual(3)
+      expect(reconciledUserIds[2]).assertEqual(102)
       expect(viewModel.userOptions.length).assertEqual(3)
       expect(viewModel.defaultPolicyItems.length).assertEqual(3)
       expect(viewModel.rules.length).assertEqual(1)

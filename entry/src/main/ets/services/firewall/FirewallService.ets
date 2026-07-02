@@ -12,7 +12,8 @@ import {
   FirewallToggleOperationResult,
   FirewallUserPolicyApplyResult,
   FirewallUserPolicyMode,
-  FirewallUserPolicyStateResult
+  FirewallUserPolicyStateResult,
+  UserFirewallOption
 } from './FirewallModels'
 import { FirewallModeSwitchService } from './FirewallModeSwitchService'
 import { FirewallPolicyService } from './FirewallPolicyService'
@@ -40,6 +41,13 @@ export class FirewallService {
 
   static async listRulesForDisplay(context: common.UIAbilityContext): Promise<FirewallRuleDisplayItem[]> {
     return FirewallRuleDisplayService.listRulesForDisplay(context)
+  }
+
+  static async reconcileRulesForUsers(
+    context: common.UIAbilityContext,
+    users: UserFirewallOption[]
+  ): Promise<boolean> {
+    return FirewallRuleDisplayService.reconcileRulesForUsers(context, users)
   }
 
   static async createRule(
