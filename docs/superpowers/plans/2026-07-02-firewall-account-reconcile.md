@@ -42,14 +42,15 @@ EnterpriseAdminAbility 账号事件
 -> AccountChangeCoordinator
 -> SystemUserProvider.loadAvailableUserIds()
 -> 计算账号集合签名 / added / removed
--> FirewallAccountChangeHandler
+-> AccountChangeHandler registry
+   -> FirewallAccountChangeHandler
    -> prune 已删除账号本地数据
    -> public/private 模式补下发当前模式
    -> custom 模式同步默认 policy，不扩规则
--> ViewModel 下次正常读取时联动展示最新数据
+-> 当前规则页打开时，FirewallRulesViewModel 使用账号快照刷新展示数据
 ```
 
-后续权限管理需要接入时，在 `AccountChangeCoordinator` 下新增 `PermissionAccountChangeHandler`，不要再改账号事件源，也不要把权限逻辑写进 `SystemUserProvider`。
+后续权限管理需要接入时，新增 `PermissionAccountChangeHandler` 并注册到 `AccountChangeCoordinator`，不要再改账号事件源，也不要把权限逻辑写进 `SystemUserProvider`。
 
 ## 具体修改点
 
@@ -63,12 +64,13 @@ EnterpriseAdminAbility 账号事件
 职责：
 
 - 接收账号新增 / 删除事件触发。
-- 做 300-500ms 防抖，合并连续账号事件。
+- 做 400ms 防抖，合并连续账号事件。
 - 串行执行，避免和手动模式切换、本地清理并发互相覆盖。
 - 调用 `SystemUserProvider.loadAvailableUserIds()` 全量读取最新账号。
+- 不根据删除事件 ID 人工过滤账号列表，不伪造账号快照。
 - 基于排序后的账号 ID 生成签名，例如 `100,101,102`。
 - 计算 `currentUserIds`、`addedUserIds`、`removedUserIds`。
-- 将账号变化快照分发给模块 Handler。
+- 将账号变化快照分发给已注册模块 Handler；防火墙只是默认 Handler，后续权限管理、目标应用可继续注册。
 
 ### 2. EnterpriseAdminAbility 接入协调层
 
@@ -91,6 +93,20 @@ EnterpriseAdminAbility 账号事件
 - 当前模式为 `public/private` 时，如果账号集合签名变化，补下发当前模式到最新账号集合。
 - 当前模式为 `custom` 时，同步账号级默认 policy，但不自动扩展旧自定义规则到新增账号。
 - 同步成功后保存最新账号签名。
+
+### 3.1 Handler 注册扩展
+
+新增：
+
+- `entry/src/main/ets/services/account/AccountChangeHandler.ets`
+- `entry/src/main/ets/services/account/AccountChangeHandlers.ets`
+
+设计：
+
+- `AccountChangeCoordinator` 只维护 Handler 列表和账号快照分发，不直接依赖防火墙实现。
+- 防火墙通过 `FIREWALL_ACCOUNT_CHANGE_HANDLER` 注册为默认 Handler。
+- 后续权限管理、目标应用接入时只新增自己的 Handler 并注册，不修改协调器主流程。
+- UI 页面不作为策略 Handler；页面只在当前防火墙规则页打开时让 `FirewallRulesViewModel` 使用账号快照重读展示数据。
 
 ### 4. 防火墙期望状态持久化
 
@@ -132,13 +148,15 @@ custom 模式下：
 - 不把新增账号自动加入旧 rule intent。
 - 不自动对新增账号下发旧自定义规则。
 
-### 6. 用户策略弹窗提交前校验
+### 6. 规则页账号列表与弹窗数据源
 
-修改 `FirewallUserDispatchViewModel`：
+修改 `FirewallRulesViewModel`、`FirewallRulesPage`、`UserFirewallControlDialog` 和 `FirewallUserDispatchViewModel`：
 
-- 打开弹窗时调用 `SystemUserProvider.loadAvailableUserIds()` 获取最新账号。
-- 点击确定前再次读取完整账号列表。
-- 如果当前选中账号不存在：
+- `FirewallRulesViewModel.userOptions` 作为规则页、新增/编辑规则弹窗、用户默认策略弹窗的单一账号列表来源。
+- 账号变化协调完成且当前停留在规则页时，`FirewallRulesViewModel.refreshForAccountChange(context, users)` 使用账号快照刷新 `userOptions/defaultPolicyItems/rules`。
+- 新增/编辑规则弹窗只消费 `rulesViewModel.userOptions`，不直接调用 `SystemUserProvider`。
+- 用户默认策略弹窗通过参数接收 `rulesViewModel.userOptions` 初始化，不直接调用 `SystemUserProvider`。
+- 提交前只校验当前选中账号是否仍在 ViewModel 的账号列表中：
   - 不调用 `FirewallService.applyUserPolicyMode`。
   - 不下发 MDM。
   - 返回“账号列表已变化，请重新选择用户”。
@@ -146,12 +164,13 @@ custom 模式下：
 
 ### 7. UI 联动边界
 
-不新增“MainPage 强制刷新四卡”的补丁逻辑。
+不新增“MainPage 强制刷新四卡”的补丁逻辑；账号变化后只触发当前活跃防火墙 ViewModel 重读模型数据。
 
 正确边界是：
 
 - 账号变化先完成防火墙业务 reconcile。
-- ViewModel 后续通过现有加载链路读取最新 `FirewallLocalRepository`、系统 policy 和系统规则。
+- 规则页打开时，`FirewallRulesViewModel.userOptions` 使用账号快照作为单一账号列表来源，并重读系统 policy、本地规则和系统规则。
+- 新增/编辑规则弹窗、用户默认策略弹窗都消费 `FirewallRulesViewModel.userOptions`，不各自重复读取系统账号。
 - `defaultPolicyItems`、`rules`、`userOptions` 变化后，ArkUI 根据 `@Trace` 联动刷新。
 
 四卡是验收结果，不是修复手段。不能用单纯刷新四卡来掩盖 public/private 策略未下发或删除账号本地数据未清理的问题。

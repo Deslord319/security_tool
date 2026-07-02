@@ -36,7 +36,6 @@ export class SystemUserProvider {
       })
 
       let selectedUserId = foregroundId !== undefined && userIds.includes(foregroundId) ? foregroundId : userIds[0]
-      LogUtils.info(TAG, 'loadAvailableUserIds success: count=%{public}d, selectedUserId=%{public}d', users.length, selectedUserId)
 
       return {
         users: users,
@@ -53,7 +52,8 @@ export class SystemUserProvider {
 
   private static async loadAccountLocalIds(accountManager: osAccount.AccountManager): Promise<number[]> {
     try {
-      return SystemUserProvider.normalizeUserIds(await accountManager.getOsAccountLocalIds())
+      let rawUserIds = await accountManager.getOsAccountLocalIds()
+      return SystemUserProvider.normalizeUserIds(rawUserIds)
     } catch (err) {
       LogUtils.warn(TAG, 'getOsAccountLocalIds failed: %{public}s', JSON.stringify(err))
       return []

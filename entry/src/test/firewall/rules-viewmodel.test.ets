@@ -12,7 +12,6 @@ import {
   UserFirewallListResult,
   UserFirewallOption
 } from '../../main/ets/services/firewall/FirewallModels'
-import { FirewallLocalRepository } from '../../main/ets/services/firewall/FirewallLocalRepository'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
@@ -76,12 +75,20 @@ export default function firewallRulesViewModelTest() {
   describe('FirewallRulesViewModel', () => {
     let mockKit: MockKit
     let context: common.UIAbilityContext
+    let reconciledUserIds: number[]
 
     beforeEach(() => {
       mockKit = new MockKit()
       context = {} as common.UIAbilityContext
-      let pruneMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
-      when(pruneMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
+      reconciledUserIds = []
+      let reconcileMock = mockKit.mockFunc(FirewallService, FirewallService.reconcileRulesForUsers)
+      when(reconcileMock)(ArgumentMatchers.any).afterAction((
+        _context: common.UIAbilityContext,
+        users: UserFirewallOption[]
+      ): Promise<boolean> => {
+        reconciledUserIds = users.map((user: UserFirewallOption): number => user.userId)
+        return Promise.resolve(true)
+      })
     })
 
     afterEach(() => {
@@ -89,12 +96,10 @@ export default function firewallRulesViewModelTest() {
     })
 
     it('should refresh user options and rules before opening rule editor', 0, async (done: Function) => {
-      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
       let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
-      when(userMock)().afterReturn(buildUserResult([100, 101]))
       when(listRulesMock)(ArgumentMatchers.any).afterReturn([buildDisplayRule('rule-1', [100])])
       let viewModel = new FirewallRulesViewModel()
-      viewModel.userOptions = buildUsers([100])
+      viewModel.userOptions = buildUsers([100, 101])
 
       let result = await viewModel.prepareRuleEditor(context)
 
@@ -106,9 +111,7 @@ export default function firewallRulesViewModelTest() {
     })
 
     it('should reject opening rule editor when no user is available', 0, async (done: Function) => {
-      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
       let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
-      when(userMock)().afterReturn(buildUserResult([]))
       when(listRulesMock)(ArgumentMatchers.any).afterReturn([buildDisplayRule('rule-1', [100])])
       let viewModel = new FirewallRulesViewModel()
 
@@ -121,14 +124,33 @@ export default function firewallRulesViewModelTest() {
     })
 
     it('should reject submit when selected user no longer exists', 0, async (done: Function) => {
-      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
-      when(userMock)().afterReturn(buildUserResult([100]))
       let viewModel = new FirewallRulesViewModel()
+      viewModel.userOptions = buildUsers([100])
 
       let result = await viewModel.validateRuleUserScopeForSubmit(context, buildRule('Allow DNS', [100, 101]))
 
       expect(result.success).assertFalse()
       expect(result.errorMessage).assertEqual(FirewallRuleStrings.USER_SCOPE_CHANGED)
+      done()
+    })
+
+    it('should refresh rule page from account snapshot users', 0, async (done: Function) => {
+      let policyMock = mockKit.mockFunc(FirewallService, FirewallService.loadUserPolicyState)
+      let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
+      when(policyMock)(ArgumentMatchers.any).afterAction((
+        _context: common.UIAbilityContext,
+        userId: number
+      ): FirewallUserPolicyStateResult => buildPolicyState(userId))
+      when(listRulesMock)(ArgumentMatchers.any).afterReturn([buildDisplayRule('rule-1', [100])])
+      let viewModel = new FirewallRulesViewModel()
+
+      await viewModel.refreshForAccountChange(context, buildUsers([100, 101, 102]))
+
+      expect(reconciledUserIds.length).assertEqual(3)
+      expect(reconciledUserIds[2]).assertEqual(102)
+      expect(viewModel.userOptions.length).assertEqual(3)
+      expect(viewModel.defaultPolicyItems.length).assertEqual(3)
+      expect(viewModel.rules.length).assertEqual(1)
       done()
     })
 
@@ -157,6 +179,43 @@ export default function firewallRulesViewModelTest() {
       expect(viewModel.defaultPolicyItems.length).assertEqual(2)
       expect(viewModel.rules.length).assertEqual(1)
       expect(viewModel.lastOperationMessage).assertEqual(FirewallRuleStrings.ADD_SUCCESS)
+      done()
+    })
+
+    it('should delete rule without switching rule list to loading state', 0, async (done: Function) => {
+      let deleteRuleMock = mockKit.mockFunc(FirewallService, FirewallService.deleteRule)
+      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let policyMock = mockKit.mockFunc(FirewallService, FirewallService.loadUserPolicyState)
+      let listRulesMock = mockKit.mockFunc(FirewallService, FirewallService.listRulesForDisplay)
+      let resolveDelete: (value: FirewallRuleMutationResult) => void = (_value: FirewallRuleMutationResult): void => {}
+      when(deleteRuleMock)(ArgumentMatchers.any).afterReturn(new Promise<FirewallRuleMutationResult>((resolve) => {
+        resolveDelete = resolve
+      }))
+      const deleteResult: FirewallRuleMutationResult = {
+        success: true,
+        localRuleId: 'rule-1',
+        successDeployments: []
+      }
+      when(userMock)().afterReturn(buildUserResult([100]))
+      when(policyMock)(ArgumentMatchers.any).afterAction((
+        _context: common.UIAbilityContext,
+        userId: number
+      ): FirewallUserPolicyStateResult => buildPolicyState(userId))
+      when(listRulesMock)(ArgumentMatchers.any).afterReturn([])
+      let viewModel = new FirewallRulesViewModel()
+      let rule = buildDisplayRule('rule-1', [100])
+
+      let deletePromise = viewModel.deleteRule(context, rule)
+
+      expect(viewModel.isLoading).assertFalse()
+      expect(viewModel.deletingLocalRuleId).assertEqual('rule-1')
+      resolveDelete(deleteResult)
+      let result = await deletePromise
+      expect(result.success).assertTrue()
+      expect(viewModel.isLoading).assertFalse()
+      expect(viewModel.deletingLocalRuleId).assertEqual('')
+      expect(viewModel.rules.length).assertEqual(0)
+      expect(viewModel.lastOperationMessage).assertEqual(FirewallRuleStrings.DELETE_SUCCESS)
       done()
     })
   })

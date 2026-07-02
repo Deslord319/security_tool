@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { AccountChangeSource, AccountSnapshotChange, buildAccountUserIdsSignature, normalizeAccountUserIds } from './AccountSnapshotModels'
-import { FirewallAccountChangeHandler } from '../firewall/FirewallAccountChangeHandler'
+import { AccountChangeHandler } from './AccountChangeHandler'
+import { AccountChangeEventBus } from './AccountChangeEventBus'
 import { UserFirewallOption } from '../firewall/FirewallModels'
 import { SystemUserProvider } from '../firewall/providers/SystemUserProvider'
 import { LogUtils } from '../../utils/LogUtils'
@@ -19,6 +20,18 @@ export class AccountChangeCoordinator {
   private static running: boolean = false
   private static pendingRequest: AccountChangeRequest | null = null
   private static previousUserIds: number[] = []
+  private static handlers: AccountChangeHandler[] = []
+
+  static registerHandler(handler: AccountChangeHandler): void {
+    AccountChangeCoordinator.handlers = AccountChangeCoordinator.handlers
+      .filter((item: AccountChangeHandler): boolean => item.name !== handler.name)
+    AccountChangeCoordinator.handlers.push(handler)
+  }
+
+  static unregisterHandler(name: string): void {
+    AccountChangeCoordinator.handlers = AccountChangeCoordinator.handlers
+      .filter((item: AccountChangeHandler): boolean => item.name !== name)
+  }
 
   static schedule(
     context: common.Context,
@@ -38,7 +51,7 @@ export class AccountChangeCoordinator {
       AccountChangeCoordinator.runPending().catch((err: Error) => {
         LogUtils.error(TAG, `runPending failed: ${JSON.stringify(err)}`)
       })
-    }, ACCOUNT_CHANGE_DEBOUNCE_MS)
+    }, AccountChangeCoordinator.resolveDebounceMs())
   }
 
   static async reconcileNow(
@@ -84,14 +97,37 @@ export class AccountChangeCoordinator {
       result.message
     )
     AccountChangeCoordinator.previousUserIds = currentUserIds
-    LogUtils.info(
-      TAG,
-      'account snapshot reconciled | source=%{public}s, count=%{public}d, signature=%{public}s',
-      request.source,
-      currentUserIds.length,
-      snapshot.signature
-    )
-    return await FirewallAccountChangeHandler.handle(request.context, snapshot)
+    let success = await AccountChangeCoordinator.dispatchHandlers(request.context, snapshot)
+    if (success) {
+      AccountChangeEventBus.publishSnapshot(snapshot)
+    }
+    return success
+  }
+
+  static resolveDebounceMs(): number {
+    return ACCOUNT_CHANGE_DEBOUNCE_MS
+  }
+
+  private static async dispatchHandlers(context: common.Context, snapshot: AccountSnapshotChange): Promise<boolean> {
+    if (AccountChangeCoordinator.handlers.length === 0) {
+      LogUtils.warn(TAG, 'skip account snapshot because no account change handler is registered')
+      return true
+    }
+    let allSuccess = true
+    for (let i = 0; i < AccountChangeCoordinator.handlers.length; i++) {
+      let handler = AccountChangeCoordinator.handlers[i]
+      try {
+        let success = await handler.handle(context, snapshot)
+        allSuccess = allSuccess && success
+        if (!success) {
+          LogUtils.warn(TAG, 'account change handler failed | name=%{public}s', handler.name)
+        }
+      } catch (err) {
+        allSuccess = false
+        LogUtils.error(TAG, `account change handler threw: name=${handler.name}, err=${JSON.stringify(err)}`)
+      }
+    }
+    return allSuccess
   }
 
   private static buildSnapshot(

@@ -10,6 +10,7 @@ import dashboardViewModelTest from './dashboard/viewmodel.test'
 import enterpriseAdminAbilityTest from './enterprise/admin-ability.test'
 import entryAbilityTest from './entryability/entryability.test'
 import adminServiceTest from './enterprise/admin-service.test'
+import firewallAccountChangeCoordinatorTest from './firewall/account-change-coordinator.test'
 import firewallAccountChangeHandlerTest from './firewall/account-change-handler.test'
 import firewallModelsTest from './firewall/models.test'
 import firewallLocalRepositoryTest from './firewall/local-repository.test'
@@ -21,6 +22,7 @@ import firewallRuleUtilsTest from './firewall/rule-utils.test'
 import firewallServiceTest from './firewall/service.test'
 import systemUserProviderTest from './firewall/system-user-provider.test'
 import firewallStringsTest from './firewall/strings.test'
+import firewallUserDispatchViewModelTest from './firewall/user-dispatch-viewmodel.test'
 import helpFeedbackStringsTest from './help/strings.test'
 import identityServiceBehaviorTest from './identity/service-behavior.test'
 import identityServiceTest from './identity/service.test'
@@ -98,6 +100,7 @@ export default function testsuite() {
   dashboardViewModelTest()
   enterpriseAdminAbilityTest()
   adminServiceTest()
+  firewallAccountChangeCoordinatorTest()
   firewallModelsTest()
   firewallLocalRepositoryTest()
   firewallModeStrategyTest()
@@ -106,6 +109,7 @@ export default function testsuite() {
   firewallServiceTest()
   systemUserProviderTest()
   firewallStringsTest()
+  firewallUserDispatchViewModelTest()
   helpFeedbackStringsTest()
   identityServiceBehaviorTest()
   identityServiceTest()

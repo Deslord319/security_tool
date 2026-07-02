@@ -379,6 +379,7 @@ export struct FirewallRulesPage {
     FirewallRuleList({
       rules: this.getRulesByTab(tabIndex),
       isLoading: this.rulesViewModel.isLoading,
+      deletingRuleId: this.rulesViewModel.deletingLocalRuleId,
       currentTheme: this.currentTheme,
       getUserScopeLabel: (rule: netFirewall.NetFirewallRule): string => this.rulesViewModel.getRuleUserScopeLabel(rule),
       onEditRule: (rule: netFirewall.NetFirewallRule) => {
@@ -422,6 +423,7 @@ export struct FirewallRulesPage {
       builder: UserFirewallControlDialog({
         controller: this.userFirewallDialogController,
         currentTheme: this.currentTheme,
+        users: this.rulesViewModel.userOptions,
         onActionCompleted: async (_userId: number, _mode: FirewallUserPolicyMode): Promise<void> => {
           await this.loadRules()
         }

@@ -9,9 +9,7 @@ import {
   resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
-import { FirewallLocalRepository } from '../../../services/firewall/FirewallLocalRepository'
 import { FirewallService } from '../../../services/firewall/FirewallService'
-import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
 
 const TAG = 'FirewallUserDispatchViewModel'
 
@@ -29,16 +27,15 @@ export class FirewallUserDispatchViewModel {
 
   private readonly modeOptions: FirewallUserPolicyMode[] = FIREWALL_USER_POLICY_MODE_OPTIONS
 
-  async initialize(context: common.UIAbilityContext): Promise<void> {
-    await this.loadUsers(context)
+  async initialize(context: common.UIAbilityContext, users: UserFirewallOption[]): Promise<void> {
+    await this.updateUsers(context, users)
   }
 
-  async loadUsers(context: common.UIAbilityContext): Promise<void> {
+  async updateUsers(context: common.UIAbilityContext, users: UserFirewallOption[]): Promise<void> {
     this.isLoadingUsers = true
     this.statusHintText = ''
     try {
-      const result = await SystemUserProvider.loadAvailableUserIds()
-      if (result.users.length === 0) {
+      if (users.length === 0) {
         this.users = []
         this.selectedIndex = 0
         this.selectedUserId = -1
@@ -47,10 +44,9 @@ export class FirewallUserDispatchViewModel {
         return
       }
 
-      this.users = result.users
-      await this.pruneUnavailableLocalUsers(context, this.users)
+      this.users = users
       this.selectedIndex = 0
-      this.selectedUserId = result.users[0].userId
+      this.selectedUserId = users[0].userId
       this.selectedModeIndex = 0
       await this.loadStateForSelectedUser(context)
     } catch (err) {
@@ -59,7 +55,7 @@ export class FirewallUserDispatchViewModel {
       this.selectedUserId = -1
       this.selectedModeIndex = 0
       this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
-      LogUtils.error(TAG, `loadUsers failed: ${JSON.stringify(err)}`)
+      LogUtils.error(TAG, `updateUsers failed: ${JSON.stringify(err)}`)
     } finally {
       this.isLoadingUsers = false
     }
@@ -106,7 +102,7 @@ export class FirewallUserDispatchViewModel {
 
     this.isSubmitting = true
     try {
-      let accountReady = await this.refreshUsersForSubmit(context)
+      let accountReady = this.validateSelectedUserForSubmit()
       if (!accountReady) {
         return false
       }
@@ -138,21 +134,13 @@ export class FirewallUserDispatchViewModel {
     return this.users[this.selectedIndex]
   }
 
-  private async refreshUsersForSubmit(context: common.UIAbilityContext): Promise<boolean> {
-    let result = await SystemUserProvider.loadAvailableUserIds()
-    if (result.users.length === 0) {
-      this.users = []
+  private validateSelectedUserForSubmit(): boolean {
+    if (this.users.length === 0) {
       this.selectedIndex = 0
       this.selectedUserId = -1
       this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
       return false
     }
-    let pruned = await this.pruneUnavailableLocalUsers(context, result.users)
-    if (!pruned) {
-      this.statusHintText = FirewallDialogStrings.APPLY_MODE_FAILED
-      return false
-    }
-    this.users = result.users
     let refreshedIndex = this.users.findIndex((user: UserFirewallOption): boolean => user.userId === this.selectedUserId)
     if (refreshedIndex < 0) {
       this.selectedIndex = 0
@@ -162,23 +150,6 @@ export class FirewallUserDispatchViewModel {
     }
     this.selectedIndex = refreshedIndex
     return true
-  }
-
-  private async pruneUnavailableLocalUsers(
-    context: common.UIAbilityContext,
-    users: UserFirewallOption[]
-  ): Promise<boolean> {
-    if (users.length === 0) {
-      return true
-    }
-    let pruned = await FirewallLocalRepository.pruneUnavailableUsers(
-      context,
-      users.map((user: UserFirewallOption): number => user.userId)
-    )
-    if (!pruned) {
-      LogUtils.warn(TAG, 'pruneUnavailableUsers failed')
-    }
-    return pruned
   }
 
   private applyLoadedMode(result: FirewallUserPolicyStateResult): void {
