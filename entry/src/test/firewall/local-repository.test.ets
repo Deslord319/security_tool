@@ -7,6 +7,7 @@ import {
   FIREWALL_RULE_MAPPING_VERSION,
   FirewallRuleDeployment,
   FirewallRuleIntent,
+  FirewallUserPolicyModeRecord,
   PREF_KEY_FIREWALL_ACTIVE_MODE,
   PREF_KEY_FIREWALL_RULE_MAPPING,
   PREF_KEY_FIREWALL_USER_POLICY,
@@ -217,7 +218,7 @@ export default function firewallLocalRepositoryTest() {
       done()
     })
 
-    it('should support account removal cleanup through mapping read and write', 0, async (done: Function) => {
+    it('should prune unavailable users from local firewall data', 0, async (done: Function) => {
       await FirewallLocalRepository.saveRuleIntentMappingData(context, {
         version: FIREWALL_RULE_MAPPING_VERSION,
         ruleIntents: [
@@ -231,32 +232,14 @@ export default function firewallLocalRepositoryTest() {
           buildDeployment('orphan-rule', 100, 9004)
         ]
       })
+      await FirewallLocalRepository.saveUserPolicyMode(context, 100, 'denylist')
+      await FirewallLocalRepository.saveUserPolicyMode(context, 102, 'allowlist')
 
-      let removedUserId = 102
-      let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
-      let nextRuleIntents: FirewallRuleIntent[] = []
-      data.ruleIntents.forEach((intent: FirewallRuleIntent) => {
-        let targetUserIds = intent.targetUserIds.filter((userId: number): boolean => userId !== removedUserId)
-        if (targetUserIds.length === 0) {
-          return
-        }
-        intent.targetUserIds = targetUserIds
-        nextRuleIntents.push(intent)
-      })
-      let validRuleIds = new Set<string>()
-      nextRuleIntents.forEach((intent: FirewallRuleIntent) => {
-        validRuleIds.add(intent.localRuleId)
-      })
-      let nextRuleDeployments = data.ruleDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
-        deployment.userId !== removedUserId && validRuleIds.has(deployment.localRuleId)
-      )
-      await FirewallLocalRepository.saveRuleIntentMappingData(context, {
-        version: data.version,
-        ruleIntents: nextRuleIntents,
-        ruleDeployments: nextRuleDeployments
-      })
+      let pruned = await FirewallLocalRepository.pruneUnavailableUsers(context, [100, 101])
 
+      expect(pruned).assertTrue()
       let cleanedData = await FirewallLocalRepository.loadRuleIntentMappingData(context)
+      let policyModes = await FirewallLocalRepository.listUserPolicyModes(context)
       expect(cleanedData.ruleIntents.length).assertEqual(1)
       expect(cleanedData.ruleIntents[0].localRuleId).assertEqual('rule-kept')
       expect(cleanedData.ruleIntents[0].targetUserIds.length).assertEqual(2)
@@ -265,6 +248,32 @@ export default function firewallLocalRepositoryTest() {
       expect(cleanedData.ruleDeployments.length).assertEqual(1)
       expect(cleanedData.ruleDeployments[0].localRuleId).assertEqual('rule-kept')
       expect(cleanedData.ruleDeployments[0].userId).assertEqual(100)
+      expect(policyModes.length).assertEqual(1)
+      expect(policyModes[0].userId).assertEqual(100)
+      done()
+    })
+
+    it('should skip prune when valid user list is empty', 0, async (done: Function) => {
+      await FirewallLocalRepository.saveRuleIntentMappingData(context, {
+        version: FIREWALL_RULE_MAPPING_VERSION,
+        ruleIntents: [
+          buildIntent('rule-kept', 'Rule Kept', [100])
+        ],
+        ruleDeployments: [
+          buildDeployment('rule-kept', 100, 9001)
+        ]
+      })
+      await FirewallLocalRepository.saveUserPolicyMode(context, 100, 'denylist')
+
+      let pruned = await FirewallLocalRepository.pruneUnavailableUsers(context, [])
+
+      let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
+      let policyModes: FirewallUserPolicyModeRecord[] = await FirewallLocalRepository.listUserPolicyModes(context)
+      expect(pruned).assertTrue()
+      expect(data.ruleIntents.length).assertEqual(1)
+      expect(data.ruleDeployments.length).assertEqual(1)
+      expect(policyModes.length).assertEqual(1)
+      expect(policyModes[0].userId).assertEqual(100)
       done()
     })
 

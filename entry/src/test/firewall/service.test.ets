@@ -268,6 +268,7 @@ function stubSwitchModeDependencies(
   let loadMappingMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.loadRuleIntentMappingData)
   let saveMappingMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntentMappingData)
   let listModesMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.listUserPolicyModes)
+  let pruneUsersMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
   let buildRulesMock = mockKit.mockFunc(FirewallModeStrategy, FirewallModeStrategy.buildRulesForMode)
   let saveModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveCurrentMode)
 
@@ -282,6 +283,7 @@ function stubSwitchModeDependencies(
   when(loadMappingMock)(ArgumentMatchers.any).afterReturn(emptyRuleMappingData())
   when(saveMappingMock)(ArgumentMatchers.any).afterReturn(true)
   when(listModesMock)(ArgumentMatchers.any).afterReturn(modeRecords)
+  when(pruneUsersMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
   when(buildRulesMock)(ArgumentMatchers.any).afterReturn([])
   when(saveModeMock)(ArgumentMatchers.any).afterReturn(true)
   when(setPolicyMock)(ArgumentMatchers.any).afterAction((
@@ -547,6 +549,7 @@ export default function firewallServiceTest() {
       let getModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getCurrentMode)
       let loadMappingMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.loadRuleIntentMappingData)
       let saveMappingMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntentMappingData)
+      let pruneUsersMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
       let buildRulesMock = mockKit.mockFunc(FirewallModeStrategy, FirewallModeStrategy.buildRulesForMode)
       let saveModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveCurrentMode)
 
@@ -562,6 +565,7 @@ export default function firewallServiceTest() {
       when(getModeMock)(ArgumentMatchers.any).afterReturn('custom')
       when(loadMappingMock)(ArgumentMatchers.any).afterReturn(emptyRuleMappingData())
       when(saveMappingMock)(ArgumentMatchers.any).afterReturn(true)
+      when(pruneUsersMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
       when(buildRulesMock)(ArgumentMatchers.any).afterReturn([])
       when(saveModeMock)(ArgumentMatchers.any).afterAction((_context: common.Context, mode: FirewallPresetMode): boolean => {
         expect(mode).assertEqual('custom')
@@ -604,6 +608,7 @@ export default function firewallServiceTest() {
       let getModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getCurrentMode)
       let loadMappingMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.loadRuleIntentMappingData)
       let saveMappingMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveRuleIntentMappingData)
+      let pruneUsersMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
       let buildRulesMock = mockKit.mockFunc(FirewallModeStrategy, FirewallModeStrategy.buildRulesForMode)
       let saveModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveCurrentMode)
 
@@ -611,6 +616,7 @@ export default function firewallServiceTest() {
       when(listRulesMock)(ArgumentMatchers.any).afterReturn([buildExistingSystemRule(100, 9001)])
       when(clearRulesMock)(ArgumentMatchers.any).afterReturn(buildClearResult())
       when(getPolicyMock)(ArgumentMatchers.any).afterReturn(previousPolicy)
+      when(pruneUsersMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
       when(setPolicyMock)(ArgumentMatchers.any).afterAction((userId: number, policy: netFirewall.NetFirewallPolicy): boolean => {
         appliedPolicies.push({
           userId: userId,

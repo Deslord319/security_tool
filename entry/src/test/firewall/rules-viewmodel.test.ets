@@ -12,6 +12,7 @@ import {
   UserFirewallListResult,
   UserFirewallOption
 } from '../../main/ets/services/firewall/FirewallModels'
+import { FirewallLocalRepository } from '../../main/ets/services/firewall/FirewallLocalRepository'
 import { FirewallService } from '../../main/ets/services/firewall/FirewallService'
 import { SystemUserProvider } from '../../main/ets/services/firewall/providers/SystemUserProvider'
 import { FirewallRulesViewModel } from '../../main/ets/viewmodels/firewall/rules/FirewallRulesViewModel'
@@ -79,6 +80,8 @@ export default function firewallRulesViewModelTest() {
     beforeEach(() => {
       mockKit = new MockKit()
       context = {} as common.UIAbilityContext
+      let pruneMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
+      when(pruneMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(true))
     })
 
     afterEach(() => {
@@ -122,7 +125,7 @@ export default function firewallRulesViewModelTest() {
       when(userMock)().afterReturn(buildUserResult([100]))
       let viewModel = new FirewallRulesViewModel()
 
-      let result = await viewModel.validateRuleUserScopeForSubmit(buildRule('Allow DNS', [100, 101]))
+      let result = await viewModel.validateRuleUserScopeForSubmit(context, buildRule('Allow DNS', [100, 101]))
 
       expect(result.success).assertFalse()
       expect(result.errorMessage).assertEqual(FirewallRuleStrings.USER_SCOPE_CHANGED)

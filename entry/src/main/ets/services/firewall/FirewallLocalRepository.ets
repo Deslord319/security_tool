@@ -166,15 +166,43 @@ export class FirewallLocalRepository {
   ): Promise<boolean> {
     let records = await FirewallLocalRepository.listUserPolicyModes(context)
     let nextRecords = records.filter((item: FirewallUserPolicyModeRecord): boolean => item.userId !== userId)
-    return SafeRunner.runAsync(
-      TAG,
-      'removeUserPolicyMode',
-      async () => {
-        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
-        return await pref.setJson(PREF_KEY_FIREWALL_USER_POLICY, nextRecords)
-      },
-      () => false
+    return FirewallLocalRepository.saveUserPolicyModes(context, nextRecords)
+  }
+
+  static async pruneUnavailableUsers(context: common.Context, validUserIds: number[]): Promise<boolean> {
+    let validUserSet = FirewallLocalRepository.buildValidUserSet(validUserIds)
+    if (validUserSet.size === 0) {
+      return true
+    }
+
+    let data = await FirewallLocalRepository.loadRuleIntentMappingData(context)
+    let nextRuleIntents: FirewallRuleIntent[] = []
+    let validLocalRuleIds = new Set<string>()
+    data.ruleIntents.forEach((intent: FirewallRuleIntent) => {
+      let targetUserIds = intent.targetUserIds.filter((userId: number): boolean => validUserSet.has(userId))
+      if (targetUserIds.length === 0) {
+        return
+      }
+      intent.targetUserIds = targetUserIds
+      nextRuleIntents.push(intent)
+      validLocalRuleIds.add(intent.localRuleId)
+    })
+
+    let nextRuleDeployments = data.ruleDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
+      validUserSet.has(deployment.userId) && validLocalRuleIds.has(deployment.localRuleId)
     )
+    let mappingSaved = await FirewallLocalRepository.saveRuleIntentMappingData(context, {
+      version: data.version,
+      ruleIntents: nextRuleIntents,
+      ruleDeployments: nextRuleDeployments
+    } as FirewallRuleIntentMappingData)
+
+    let policyModes = await FirewallLocalRepository.listUserPolicyModes(context)
+    let nextPolicyModes = policyModes.filter((item: FirewallUserPolicyModeRecord): boolean =>
+      validUserSet.has(item.userId)
+    )
+    let policyModesSaved = await FirewallLocalRepository.saveUserPolicyModes(context, nextPolicyModes)
+    return mappingSaved && policyModesSaved
   }
 
   static async listUserPolicyModes(context: common.Context): Promise<FirewallUserPolicyModeRecord[]> {
@@ -190,6 +218,31 @@ export class FirewallLocalRepository {
       },
       () => [] as FirewallUserPolicyModeRecord[]
     )
+  }
+
+  private static async saveUserPolicyModes(
+    context: common.Context,
+    records: FirewallUserPolicyModeRecord[]
+  ): Promise<boolean> {
+    return SafeRunner.runAsync(
+      TAG,
+      'saveUserPolicyModes',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_USER_POLICY)
+        return await pref.setJson(PREF_KEY_FIREWALL_USER_POLICY, records)
+      },
+      () => false
+    )
+  }
+
+  private static buildValidUserSet(userIds: number[]): Set<number> {
+    let validUserSet = new Set<number>()
+    userIds.forEach((userId: number) => {
+      if (Number.isFinite(userId) && userId >= 0) {
+        validUserSet.add(userId)
+      }
+    })
+    return validUserSet
   }
 
   private static emptyRuleIntentMappingData(): FirewallRuleIntentMappingData {

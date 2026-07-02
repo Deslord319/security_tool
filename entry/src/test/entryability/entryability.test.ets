@@ -1,21 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import EntryAbility from '../../main/ets/entryability/EntryAbility'
-import { AccountEventType } from '../../main/ets/contracts/AccountEventContract'
 import { AuthMethod } from '../../main/ets/models/AuthModels'
-import {
-  FIREWALL_RULE_MAPPING_VERSION,
-  FirewallRuleDeployment,
-  FirewallRuleIntent,
-  FirewallRuleIntentMappingData,
-  PREF_KEY_FIREWALL_RULE_MAPPING,
-  PREF_KEY_FIREWALL_USER_POLICY,
-  PREF_STORE_NAME_FIREWALL_RULE_MAPPING,
-  PREF_STORE_NAME_FIREWALL_USER_POLICY
-} from '../../main/ets/services/firewall/FirewallModels'
 import { AuthAvailabilityResult, AuthExecutionResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
 import { PreferencesToolSettingsRepository } from '../../main/ets/services/tool-settings/system-settings/ToolSettingsRepository'
-import { PreferencesAccessor } from '../../main/ets/storage/preferences/PreferencesAccessor'
 import { ThemeManager } from '../../main/ets/theme/ThemeManager'
 
 interface ToolSettingsConfigLike {
@@ -156,103 +144,10 @@ interface EntryAbilityRepositoryHolder {
   toolSettingsRepository: PreferencesToolSettingsRepository
 }
 
-interface AccountEventHandlerHolder {
-  handleAccountEvent(data: FakeAccountEventData): Promise<void>
-}
-
 class FakeWant {
 }
 
 class FakeLaunchParam {
-}
-
-class FakeAccountEventParameters {
-  accountEventType: string = ''
-  accountEventUserId: number = 0
-  accountEventTimestamp: number = 0
-}
-
-class FakeAccountEventData {
-  parameters?: FakeAccountEventParameters
-  data?: string
-}
-
-interface EntryAbilityUserPolicyModeRecord {
-  userId: number
-  mode: string
-}
-
-class FakeEntryPreferencesAccessor {
-  private values: Map<string, Object> = new Map<string, Object>()
-
-  async getString(key: string, defaultValue: string): Promise<string> {
-    let value = this.values.get(key)
-    return typeof value === 'string' ? value : defaultValue
-  }
-
-  async getJsonObject<T>(key: string, defaultValue: T): Promise<T> {
-    let raw = await this.getString(key, '')
-    if (raw.length === 0) {
-      return defaultValue
-    }
-    try {
-      let parsed = JSON.parse(raw) as Object
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as T : defaultValue
-    } catch (_err) {
-      return defaultValue
-    }
-  }
-
-  async getJsonArray<T>(key: string, defaultValue: T[]): Promise<T[]> {
-    let raw = await this.getString(key, '[]')
-    try {
-      let parsed = JSON.parse(raw) as Object
-      return Array.isArray(parsed) ? parsed as T[] : defaultValue
-    } catch (_err) {
-      return defaultValue
-    }
-  }
-
-  async setValue(key: string, value: Object, _flush: boolean = true): Promise<boolean> {
-    this.values.set(key, value)
-    return true
-  }
-
-  async setJson(key: string, value: object, flush: boolean = true): Promise<boolean> {
-    return this.setValue(key, JSON.stringify(value), flush)
-  }
-
-  setRaw(key: string, value: Object): void {
-    this.values.set(key, value)
-  }
-}
-
-class FakeEntryPreferencesProvider {
-  private stores: Map<string, FakeEntryPreferencesAccessor> = new Map<string, FakeEntryPreferencesAccessor>()
-
-  accessorFor(storeName: string): FakeEntryPreferencesAccessor {
-    let existing = this.stores.get(storeName)
-    if (existing) {
-      return existing
-    }
-    let accessor = new FakeEntryPreferencesAccessor()
-    this.stores.set(storeName, accessor)
-    return accessor
-  }
-}
-
-function buildEntryAbilityRuleIntent(localRuleId: string, targetUserIds: number[]): FirewallRuleIntent {
-  return {
-    localRuleId: localRuleId,
-    name: localRuleId,
-    type: 0,
-    direction: 0,
-    action: 0,
-    isEnabled: true,
-    targetUserIds: targetUserIds,
-    createdAt: 1,
-    updatedAt: 1
-  } as FirewallRuleIntent
 }
 
 export default function entryAbilityTest() {
@@ -346,72 +241,5 @@ export default function entryAbilityTest() {
       done()
     })
 
-    it('should accept account added event without local tracked-user persistence', 0, async (done: Function) => {
-      let parameters = new FakeAccountEventParameters()
-      parameters.accountEventType = AccountEventType.ADDED
-      parameters.accountEventUserId = 101
-      parameters.accountEventTimestamp = 1
-      let eventData = new FakeAccountEventData()
-      eventData.parameters = parameters
-
-      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent(eventData)
-
-      expect(true).assertTrue()
-      done()
-    })
-
-    it('should clean firewall local data for account removed event', 0, async (done: Function) => {
-      let fakePrefs = new FakeEntryPreferencesProvider()
-      let prefMock = mockKit.mockFunc(PreferencesAccessor, PreferencesAccessor.of)
-      when(prefMock)(ArgumentMatchers.any).afterAction((
-        _context: Object,
-        storeName: string
-      ): PreferencesAccessor => fakePrefs.accessorFor(storeName) as never as PreferencesAccessor)
-      let mappingPref = fakePrefs.accessorFor(PREF_STORE_NAME_FIREWALL_RULE_MAPPING)
-      let userPolicyPref = fakePrefs.accessorFor(PREF_STORE_NAME_FIREWALL_USER_POLICY)
-      mappingPref.setRaw(PREF_KEY_FIREWALL_RULE_MAPPING, JSON.stringify({
-        version: FIREWALL_RULE_MAPPING_VERSION,
-        ruleIntents: [
-          buildEntryAbilityRuleIntent('rule-keep', [100, 101]),
-          buildEntryAbilityRuleIntent('rule-drop', [101])
-        ],
-        ruleDeployments: [
-          { localRuleId: 'rule-keep', userId: 100, systemRuleId: 1 } as FirewallRuleDeployment,
-          { localRuleId: 'rule-keep', userId: 101, systemRuleId: 2 } as FirewallRuleDeployment,
-          { localRuleId: 'rule-drop', userId: 101, systemRuleId: 3 } as FirewallRuleDeployment
-        ]
-      } as FirewallRuleIntentMappingData))
-      userPolicyPref.setRaw(PREF_KEY_FIREWALL_USER_POLICY, JSON.stringify([
-        { userId: 100, mode: 'denylist' },
-        { userId: 101, mode: 'allowlist' }
-      ]))
-
-      let parameters = new FakeAccountEventParameters()
-      parameters.accountEventType = AccountEventType.REMOVED
-      parameters.accountEventUserId = 101
-      parameters.accountEventTimestamp = 1
-      let eventData = new FakeAccountEventData()
-      eventData.data = JSON.stringify(parameters)
-
-      await (ability as Object as AccountEventHandlerHolder).handleAccountEvent(eventData)
-
-      let savedData = await mappingPref.getJsonObject<FirewallRuleIntentMappingData>(
-        PREF_KEY_FIREWALL_RULE_MAPPING,
-        { version: FIREWALL_RULE_MAPPING_VERSION, ruleIntents: [], ruleDeployments: [] } as FirewallRuleIntentMappingData
-      )
-      let savedPolicies = await userPolicyPref.getJsonArray<EntryAbilityUserPolicyModeRecord>(
-        PREF_KEY_FIREWALL_USER_POLICY,
-        []
-      )
-      expect(savedData.ruleIntents.length).assertEqual(1)
-      expect(savedData.ruleIntents[0].localRuleId).assertEqual('rule-keep')
-      expect(savedData.ruleIntents[0].targetUserIds.length).assertEqual(1)
-      expect(savedData.ruleIntents[0].targetUserIds[0]).assertEqual(100)
-      expect(savedData.ruleDeployments.length).assertEqual(1)
-      expect(savedData.ruleDeployments[0].userId).assertEqual(100)
-      expect(savedPolicies.length).assertEqual(1)
-      expect(savedPolicies[0].userId).assertEqual(100)
-      done()
-    })
   })
 }

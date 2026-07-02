@@ -36,6 +36,24 @@ export class FirewallModeSwitchService {
   ): Promise<FirewallOperationResult> {
     let usersResult = await SystemUserProvider.loadAvailableUserIds()
     let failedItems: FirewallFailedItem[] = []
+    if (usersResult.users.length === 0) {
+      return {
+        success: false,
+        failedItems: failedItems,
+        errorMessage: usersResult.message ?? FirewallModeSwitchErrorStrings.SNAPSHOT_FAILED
+      }
+    }
+    let pruned = await FirewallLocalRepository.pruneUnavailableUsers(
+      context,
+      usersResult.users.map((user: UserFirewallOption): number => user.userId)
+    )
+    if (!pruned) {
+      return {
+        success: false,
+        failedItems: [{ errorMessage: FirewallModeSwitchErrorStrings.PRUNE_UNAVAILABLE_USERS_FAILED }],
+        errorMessage: FirewallModeSwitchErrorStrings.PRUNE_UNAVAILABLE_USERS_FAILED
+      }
+    }
     let snapshotResult = await FirewallModeSwitchService.createSnapshot(context, usersResult.users)
     failedItems.push(...snapshotResult.failedItems)
     if (failedItems.length > 0) {
