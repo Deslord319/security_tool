@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit'
+import { AccountChangeHandler } from '../account/AccountChangeHandler'
 import { AccountSnapshotChange } from '../account/AccountSnapshotModels'
 import { FirewallLocalRepository } from './FirewallLocalRepository'
 import { FirewallModeSwitchService } from './FirewallModeSwitchService'
@@ -39,7 +40,6 @@ export class FirewallAccountChangeHandler {
     let lastAppliedMode = await FirewallLocalRepository.getLastAppliedMode(context)
     let lastAppliedSignature = await FirewallLocalRepository.getLastAppliedUserIdsSignature(context)
     if (lastAppliedMode === currentMode && lastAppliedSignature === snapshot.signature) {
-      LogUtils.info(TAG, 'skip mode replay because account signature is unchanged | mode=%{public}s', currentMode)
       return true
     }
 
@@ -56,3 +56,13 @@ export class FirewallAccountChangeHandler {
     return true
   }
 }
+
+class FirewallAccountChangeHandlerAdapter implements AccountChangeHandler {
+  name: string = 'firewall'
+
+  async handle(context: common.Context, snapshot: AccountSnapshotChange): Promise<boolean> {
+    return await FirewallAccountChangeHandler.handle(context, snapshot)
+  }
+}
+
+export const FIREWALL_ACCOUNT_CHANGE_HANDLER: AccountChangeHandler = new FirewallAccountChangeHandlerAdapter()

@@ -422,6 +422,7 @@ export struct FirewallRulesPage {
       builder: UserFirewallControlDialog({
         controller: this.userFirewallDialogController,
         currentTheme: this.currentTheme,
+        users: this.rulesViewModel.userOptions,
         onActionCompleted: async (_userId: number, _mode: FirewallUserPolicyMode): Promise<void> => {
           await this.loadRules()
         }

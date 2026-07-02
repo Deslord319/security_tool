@@ -4,6 +4,7 @@ import type { Want } from '@kit.AbilityKit'
 import osAccount from '@ohos.account.osAccount'
 import { ADMIN_WANT, ENTRY_WANT } from '../constants/AppConstants'
 import { AccountChangeCoordinator } from '../services/account/AccountChangeCoordinator'
+import { registerDefaultAccountChangeHandlers } from '../services/account/AccountChangeHandlers'
 import { CommonErrorUtils } from '../utils/CommonErrorUtils'
 import { LogUtils } from '../utils/LogUtils'
 import { ErrorLike } from '../types/LooseValueTypes'
@@ -13,11 +14,13 @@ const TAG = 'EnterpriseAdminAbility'
 
 export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbility {
   onStart(): void {
+    registerDefaultAccountChangeHandlers()
     this.ensureAutoStartAppRegistered('onStart')
   }
 
   onAdminEnabled(): void {
     LogUtils.info(TAG, 'Enterprise admin enabled')
+    registerDefaultAccountChangeHandlers()
     this.ensureAutoStartAppRegistered('onAdminEnabled')
     this.ensureKeepAliveAppsForCurrentAccounts('onAdminEnabled')
     this.subscribeAccountManagedEvents()
@@ -50,6 +53,7 @@ export default class EnterpriseAdminAbility extends EnterpriseAdminExtensionAbil
 
   private scheduleAccountReconcile(source: 'account-added' | 'account-removed', accountId: number): void {
     try {
+      registerDefaultAccountChangeHandlers()
       AccountChangeCoordinator.schedule(this.context as common.Context, source, accountId)
     } catch (err) {
       LogUtils.warn(TAG, `scheduleAccountReconcile failed: ${JSON.stringify(err)}`)

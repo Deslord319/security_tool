@@ -2,7 +2,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
 import { AppColors, AppStyles } from '../../../constants/AppConstants'
 import { ActionText } from '../../../constants/StringCatalog'
-import { FirewallUserPolicyMode } from '../../../services/firewall/FirewallModels'
+import { FirewallUserPolicyMode, UserFirewallOption } from '../../../services/firewall/FirewallModels'
 import { FirewallUserDispatchViewModel } from '../../../viewmodels/firewall/user-dispatch/FirewallUserDispatchViewModel'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { DialogService } from '../../../utils/DialogService'
@@ -25,6 +25,7 @@ export struct UserFirewallControlDialog {
   onActionCompleted: (userId: number, mode: FirewallUserPolicyMode) => Promise<void> =
     async (_userId: number, _mode: FirewallUserPolicyMode) => {}
   currentTheme: ThemeMode = ThemeMode.LIGHT
+  users: UserFirewallOption[] = []
 
   viewModel: FirewallUserDispatchViewModel = new FirewallUserDispatchViewModel()
   private modeOptions: ModeOption[] = [
@@ -33,16 +34,14 @@ export struct UserFirewallControlDialog {
   ]
 
   async aboutToAppear(): Promise<void> {
-    LogUtils.info(TAG, 'aboutToAppear')
     let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    await this.viewModel.initialize(context)
+    await this.viewModel.initialize(context, this.users)
     if (this.viewModel.users.length === 0 && this.viewModel.statusHintText.length > 0) {
       DialogService.openFailure(this.getUIContext(), this.viewModel.statusHintText)
     }
   }
 
   aboutToDisappear(): void {
-    LogUtils.info(TAG, 'aboutToDisappear')
   }
 
   @Builder
