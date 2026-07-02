@@ -59,7 +59,8 @@ export struct FirewallRulesPage {
   }
 
   async handleAddRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
-    let userScopeResult = await this.rulesViewModel.validateRuleUserScopeForSubmit(rule)
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let userScopeResult = await this.rulesViewModel.validateRuleUserScopeForSubmit(context, rule)
     if (!userScopeResult.success) {
       DialogService.openFailure(this.getUIContext(), userScopeResult.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
       return false
@@ -178,7 +179,8 @@ export struct FirewallRulesPage {
   }
 
   async handleEditRule(rule: netFirewall.NetFirewallRule): Promise<boolean> {
-    let userScopeResult = await this.rulesViewModel.validateRuleUserScopeForSubmit(rule)
+    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    let userScopeResult = await this.rulesViewModel.validateRuleUserScopeForSubmit(context, rule)
     if (!userScopeResult.success) {
       DialogService.openFailure(this.getUIContext(), userScopeResult.errorMessage ?? FirewallRuleStrings.APPLY_FAILED)
       return false

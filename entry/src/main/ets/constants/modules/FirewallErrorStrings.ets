@@ -5,6 +5,7 @@ export class FirewallModeSwitchErrorStrings {
   static readonly SNAPSHOT_FAILED: string = 'mode switch snapshot failed'
   static readonly READ_PREVIOUS_POLICY_FAILED: string = 'read previous policy failed'
   static readonly CLEAR_LOCAL_DEPLOYMENTS_FAILED: string = 'clear local deployments failed'
+  static readonly PRUNE_UNAVAILABLE_USERS_FAILED: string = 'prune unavailable users failed'
   static readonly ADD_RULE_FAILED: string = ADD_RULE_FAILED
   static readonly SAVE_DEPLOYMENTS_FAILED: string = 'save deployments failed'
   static readonly SAVE_TARGET_MODE_FAILED: string = 'save target mode failed'

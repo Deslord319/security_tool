@@ -12,17 +12,6 @@ import { statusBarManager } from '@kit.DeskTopExtensionKit';
 import { loadStatusBar, holdStatusBar } from '../utils/StatusBarUtil';
 import { LogPowerLifecycleSource } from '../services/log-manage/source/LogPowerLifecycleSource';
 import { ApplicationRuntimeManager } from '../runtime/ApplicationRuntimeManager';
-import {
-  ACCOUNT_EVENT_COMMON_EVENT,
-  ACCOUNT_EVENT_PARAM_TIMESTAMP,
-  ACCOUNT_EVENT_PARAM_TYPE,
-  ACCOUNT_EVENT_PARAM_USER_ID,
-  AccountEventPayload,
-  AccountEventType
-} from '../contracts/AccountEventContract';
-import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider';
-import { FirewallLocalRepository } from '../services/firewall/FirewallLocalRepository';
-import { FirewallRuleDeployment, FirewallRuleIntent } from '../services/firewall/FirewallModels';
 import { LooseRecord } from '../types/LooseValueTypes';
 
 const ENTRYABILITY_TAG = 'entryAbility'
@@ -35,7 +24,6 @@ interface EntryLoggableError {
 export default class EntryAbility extends UIAbility {
   private toolSettingsRepository: PreferencesToolSettingsRepository = new PreferencesToolSettingsRepository()
   private terminateSubscriber: commonEventManager.CommonEventSubscriber | null = null
-  private accountEventSubscriber: commonEventManager.CommonEventSubscriber | null = null
   private readonly statusBarIconClickHandler: (eventData: emitter.EventData) => void =
     (eventData: emitter.EventData) => {
       this.handleStatusBarIconClick(eventData)
@@ -51,7 +39,6 @@ export default class EntryAbility extends UIAbility {
       LogUtils.error(ENTRYABILITY_TAG, 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
     this.createTerminateSubscriber()
-    this.createAccountEventSubscriber()
     LogPowerLifecycleSource.init(this.context).catch((err: Error) => {
       LogUtils.warn(ENTRYABILITY_TAG, 'LogPowerLifecycleSource init failed: %{public}s', JSON.stringify(err))
     })
@@ -69,7 +56,6 @@ export default class EntryAbility extends UIAbility {
       })
       this.terminateSubscriber = null
     }
-    this.destroyAccountEventSubscriber()
   }
 
   onNewWant(_want: Want): void {
@@ -208,42 +194,6 @@ export default class EntryAbility extends UIAbility {
     })
   }
 
-  private createAccountEventSubscriber(): void {
-    if (this.accountEventSubscriber) {
-      return
-    }
-    let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
-      events: [ACCOUNT_EVENT_COMMON_EVENT]
-    }
-    commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
-      if (err) {
-        LogUtils.warn(ENTRYABILITY_TAG, 'createAccountEventSubscriber failed: %{public}s', JSON.stringify(err))
-        return
-      }
-      this.accountEventSubscriber = subscriber
-      commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
-        if (callbackErr) {
-          LogUtils.warn(ENTRYABILITY_TAG, 'account event callback failed: %{public}s', JSON.stringify(callbackErr))
-          return
-        }
-        void this.handleAccountEvent(data)
-      })
-      LogUtils.info(ENTRYABILITY_TAG, 'createAccountEventSubscriber success')
-    })
-  }
-
-  private destroyAccountEventSubscriber(): void {
-    if (!this.accountEventSubscriber) {
-      return
-    }
-    commonEventManager.unsubscribe(this.accountEventSubscriber, (err?: BusinessError) => {
-      if (err) {
-        LogUtils.warn(ENTRYABILITY_TAG, 'unsubscribe account event failed: %{public}s', JSON.stringify(err))
-      }
-      this.accountEventSubscriber = null
-    })
-  }
-
   private showEntryAbilityFromStatusBar(): void {
     this.context.showAbility().then(() => {
       LogUtils.info(ENTRYABILITY_TAG, 'showAbility success | source=statusBarIconClick')
@@ -259,102 +209,6 @@ export default class EntryAbility extends UIAbility {
     }
     if (data['iconClickType'] === 'leftClick') {
       this.showEntryAbilityFromStatusBar()
-    }
-  }
-
-  private async handleAccountEvent(data: commonEventManager.CommonEventData): Promise<void> {
-    let payload = this.parseAccountEventPayload(data)
-    if (!payload) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'handleAccountEvent skipped invalid payload')
-      return
-    }
-    try {
-      if (payload.type === AccountEventType.ADDED) {
-        await SystemUserProvider.trackAddedUser(payload.userId)
-        LogUtils.info(ENTRYABILITY_TAG, 'account added tracked in UIAbility: userId=%{public}d', payload.userId)
-        return
-      }
-      if (payload.type === AccountEventType.REMOVED) {
-        await SystemUserProvider.trackRemovedUser(payload.userId)
-        await this.cleanupFirewallLocalDataForRemovedUser(payload.userId)
-        LogUtils.info(ENTRYABILITY_TAG, 'account removed tracked in UIAbility: userId=%{public}d', payload.userId)
-      }
-    } catch (err) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'handleAccountEvent failed: %{public}s', JSON.stringify(err))
-    }
-  }
-
-  private async cleanupFirewallLocalDataForRemovedUser(userId: number): Promise<void> {
-    let data = await FirewallLocalRepository.loadRuleIntentMappingData(this.context)
-    let nextRuleIntents: FirewallRuleIntent[] = []
-    data.ruleIntents.forEach((intent: FirewallRuleIntent) => {
-      let targetUserIds = intent.targetUserIds.filter((targetUserId: number): boolean => targetUserId !== userId)
-      if (targetUserIds.length === 0) {
-        return
-      }
-      intent.targetUserIds = targetUserIds
-      nextRuleIntents.push(intent)
-    })
-
-    let validRuleIds = new Set<string>()
-    nextRuleIntents.forEach((intent: FirewallRuleIntent) => {
-      validRuleIds.add(intent.localRuleId)
-    })
-    let nextRuleDeployments = data.ruleDeployments.filter((deployment: FirewallRuleDeployment): boolean =>
-      deployment.userId !== userId && validRuleIds.has(deployment.localRuleId)
-    )
-    let mappingSaved = await FirewallLocalRepository.saveRuleIntentMappingData(this.context, {
-      version: data.version,
-      ruleIntents: nextRuleIntents,
-      ruleDeployments: nextRuleDeployments
-    })
-    if (!mappingSaved) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'cleanup firewall rule mapping failed for removed user: userId=%{public}d', userId)
-    }
-
-    let policyModeRemoved = await FirewallLocalRepository.removeUserPolicyMode(this.context, userId)
-    if (!policyModeRemoved) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'cleanup firewall user policy mode failed for removed user: userId=%{public}d', userId)
-    }
-  }
-
-  private parseAccountEventPayload(data: commonEventManager.CommonEventData): AccountEventPayload | null {
-    let parameters = data.parameters as LooseRecord | undefined
-    let payload = this.parseAccountEventRecord(parameters)
-    if (payload) {
-      return payload
-    }
-    if (typeof data.data !== 'string' || data.data.length === 0) {
-      return null
-    }
-    try {
-      let parsed = JSON.parse(data.data) as LooseRecord
-      return this.parseAccountEventRecord(parsed)
-    } catch (err) {
-      LogUtils.warn(ENTRYABILITY_TAG, 'parse account event data failed: %{public}s', JSON.stringify(err))
-      return null
-    }
-  }
-
-  private parseAccountEventRecord(source: LooseRecord | undefined): AccountEventPayload | null {
-    if (!source) {
-      return null
-    }
-    let rawType = source[ACCOUNT_EVENT_PARAM_TYPE]
-    let rawUserId = source[ACCOUNT_EVENT_PARAM_USER_ID]
-    let rawTimestamp = source[ACCOUNT_EVENT_PARAM_TIMESTAMP]
-    if (rawType !== AccountEventType.ADDED && rawType !== AccountEventType.REMOVED) {
-      return null
-    }
-    if (typeof rawUserId !== 'number' || !Number.isFinite(rawUserId) || rawUserId < 0) {
-      return null
-    }
-    let eventType = rawType as AccountEventType
-    let timestamp = typeof rawTimestamp === 'number' && Number.isFinite(rawTimestamp) ? rawTimestamp : Date.now()
-    return {
-      type: eventType,
-      userId: rawUserId,
-      timestamp: timestamp
     }
   }
 
