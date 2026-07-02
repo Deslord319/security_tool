@@ -25,10 +25,10 @@ export class FirewallService {
   }
 
   static async setFirewallEnabledForAllUsers(
-    _context: common.UIAbilityContext,
+    context: common.UIAbilityContext,
     enabled: boolean
   ): Promise<FirewallToggleOperationResult> {
-    return FirewallPolicyService.setFirewallEnabledForAllUsers(enabled)
+    return FirewallPolicyService.setFirewallEnabledForAllUsers(context, enabled)
   }
 
   static async switchMode(

@@ -52,29 +52,36 @@ const DEFAULT_CONFIG: FirewallPresetConfig = {
 export class FirewallModeStrategy {
   static async buildRulesForMode(
     context: common.UIAbilityContext,
-    mode: FirewallPresetMode
+    mode: FirewallPresetMode,
+    users?: UserFirewallOption[]
   ): Promise<FirewallPreparedRule[]> {
     if (mode === 'public') {
-      return FirewallModeStrategy.buildPublicRules(context)
+      return FirewallModeStrategy.buildPublicRules(context, users)
     }
     if (mode === 'private') {
-      return FirewallModeStrategy.buildPrivateRules(context)
+      return FirewallModeStrategy.buildPrivateRules(context, users)
     }
     return FirewallModeStrategy.buildCustomRules(context)
   }
 
-  static async buildPublicRules(context: common.UIAbilityContext): Promise<FirewallPreparedRule[]> {
+  static async buildPublicRules(
+    context: common.UIAbilityContext,
+    users?: UserFirewallOption[]
+  ): Promise<FirewallPreparedRule[]> {
     let config = await FirewallModeStrategy.loadPresetConfig(context)
-    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let usersResult = users === undefined ? await SystemUserProvider.loadAvailableUserIds() : undefined
     let templates = FirewallModeStrategy.buildPublicRuleTemplates(config.fixedPublicIp)
-    return FirewallModeStrategy.expandTemplatesForUsers(templates, usersResult.users)
+    return FirewallModeStrategy.expandTemplatesForUsers(templates, users ?? usersResult?.users ?? [])
   }
 
-  static async buildPrivateRules(context: common.UIAbilityContext): Promise<FirewallPreparedRule[]> {
+  static async buildPrivateRules(
+    context: common.UIAbilityContext,
+    users?: UserFirewallOption[]
+  ): Promise<FirewallPreparedRule[]> {
     let config = await FirewallModeStrategy.loadPresetConfig(context)
-    let usersResult = await SystemUserProvider.loadAvailableUserIds()
+    let usersResult = users === undefined ? await SystemUserProvider.loadAvailableUserIds() : undefined
     let templates = FirewallModeStrategy.buildPrivateRuleTemplates(config.privateCidrs, config.privateTcpPorts, config.privateUdpPorts)
-    return FirewallModeStrategy.expandTemplatesForUsers(templates, usersResult.users)
+    return FirewallModeStrategy.expandTemplatesForUsers(templates, users ?? usersResult?.users ?? [])
   }
 
   static async buildCustomRules(context: common.UIAbilityContext): Promise<FirewallPreparedRule[]> {

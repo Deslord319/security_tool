@@ -1,5 +1,5 @@
 import { common } from '@kit.AbilityKit'
-import { FirewallDialogStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
+import { FirewallDialogStrings, FirewallRuleStrings, FirewallUserStrings } from '../../../constants/modules/FirewallStrings'
 import { LogUtils } from '../../../utils/LogUtils'
 import {
   FIREWALL_USER_POLICY_MODE_OPTIONS,
@@ -9,6 +9,7 @@ import {
   resolveFirewallUserPolicyModeFromActions,
   UserFirewallOption
 } from '../../../services/firewall/FirewallModels'
+import { FirewallLocalRepository } from '../../../services/firewall/FirewallLocalRepository'
 import { FirewallService } from '../../../services/firewall/FirewallService'
 import { SystemUserProvider } from '../../../services/firewall/providers/SystemUserProvider'
 
@@ -47,6 +48,7 @@ export class FirewallUserDispatchViewModel {
       }
 
       this.users = result.users
+      await this.pruneUnavailableLocalUsers(context, this.users)
       this.selectedIndex = 0
       this.selectedUserId = result.users[0].userId
       this.selectedModeIndex = 0
@@ -104,6 +106,10 @@ export class FirewallUserDispatchViewModel {
 
     this.isSubmitting = true
     try {
+      let accountReady = await this.refreshUsersForSubmit(context)
+      if (!accountReady) {
+        return false
+      }
       const targetMode = this.modeOptions[this.selectedModeIndex]
       const result = await FirewallService.applyUserPolicyMode(context, this.selectedUserId, targetMode)
       this.lastApplyResult = result
@@ -130,6 +136,49 @@ export class FirewallUserDispatchViewModel {
 
   getSelectedUser(): UserFirewallOption | undefined {
     return this.users[this.selectedIndex]
+  }
+
+  private async refreshUsersForSubmit(context: common.UIAbilityContext): Promise<boolean> {
+    let result = await SystemUserProvider.loadAvailableUserIds()
+    if (result.users.length === 0) {
+      this.users = []
+      this.selectedIndex = 0
+      this.selectedUserId = -1
+      this.statusHintText = FirewallUserStrings.NO_ACTIVATED_USERS
+      return false
+    }
+    let pruned = await this.pruneUnavailableLocalUsers(context, result.users)
+    if (!pruned) {
+      this.statusHintText = FirewallDialogStrings.APPLY_MODE_FAILED
+      return false
+    }
+    this.users = result.users
+    let refreshedIndex = this.users.findIndex((user: UserFirewallOption): boolean => user.userId === this.selectedUserId)
+    if (refreshedIndex < 0) {
+      this.selectedIndex = 0
+      this.selectedUserId = this.users[0].userId
+      this.statusHintText = FirewallRuleStrings.USER_SCOPE_CHANGED
+      return false
+    }
+    this.selectedIndex = refreshedIndex
+    return true
+  }
+
+  private async pruneUnavailableLocalUsers(
+    context: common.UIAbilityContext,
+    users: UserFirewallOption[]
+  ): Promise<boolean> {
+    if (users.length === 0) {
+      return true
+    }
+    let pruned = await FirewallLocalRepository.pruneUnavailableUsers(
+      context,
+      users.map((user: UserFirewallOption): number => user.userId)
+    )
+    if (!pruned) {
+      LogUtils.warn(TAG, 'pruneUnavailableUsers failed')
+    }
+    return pruned
   }
 
   private applyLoadedMode(result: FirewallUserPolicyStateResult): void {

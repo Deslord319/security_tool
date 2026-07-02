@@ -48,6 +48,7 @@ export class FirewallPolicyService {
   }
 
   static async setFirewallEnabledForAllUsers(
+    context: common.Context,
     enabled: boolean
   ): Promise<FirewallToggleOperationResult> {
     let authResult = await AuthService.authenticate(AuthMethod.PIN)
@@ -91,19 +92,29 @@ export class FirewallPolicyService {
       }
     }
 
+    let success = failedItems.length === 0
+    if (success) {
+      let desiredSaved = await FirewallLocalRepository.saveDesiredEnabled(context, enabled)
+      if (!desiredSaved) {
+        failedItems.push({ errorMessage: FirewallPolicyErrorStrings.POLICY_APPLY_FAILED })
+        success = false
+      }
+    }
+
     return {
-      success: failedItems.length === 0,
+      success: success,
       targetEnabled: enabled,
-      reason: failedItems.length === 0 ? undefined : 'policy_apply_failed',
+      reason: success ? undefined : 'policy_apply_failed',
       failedItems: failedItems,
-      errorMessage: failedItems.length === 0 ? undefined : FirewallPolicyErrorStrings.POLICY_APPLY_FAILED
+      errorMessage: success ? undefined : FirewallPolicyErrorStrings.POLICY_APPLY_FAILED
     }
   }
 
   static async applyPolicyForMode(
     context: common.UIAbilityContext,
     targetMode: FirewallPresetMode,
-    users: UserFirewallOption[]
+    users: UserFirewallOption[],
+    desiredEnabled?: boolean
   ): Promise<FirewallFailedItem[]> {
     let failedItems: FirewallFailedItem[] = []
     let modeRecords = targetMode === 'custom'
@@ -118,7 +129,10 @@ export class FirewallPolicyService {
         continue
       }
       let userMode = FirewallPolicyService.resolveUserPolicyModeForSwitch(targetMode, userId, modeRecords)
-      let policy = FirewallPolicyService.buildPolicyForUserMode(userMode, existingPolicy.isOpen)
+      let policy = FirewallPolicyService.buildPolicyForUserMode(
+        userMode,
+        desiredEnabled === undefined ? existingPolicy.isOpen : desiredEnabled
+      )
       let applied = await FirewallSystemRepository.setPolicy(userId, policy)
       if (!applied) {
         failedItems.push({ userId: userId, errorMessage: FirewallPolicyErrorStrings.SET_MODE_POLICY_FAILED })

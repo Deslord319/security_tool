@@ -10,6 +10,9 @@ import {
   FirewallUserPolicyMode,
   FirewallUserPolicyModeRecord,
   PREF_KEY_FIREWALL_ACTIVE_MODE,
+  PREF_KEY_FIREWALL_DESIRED_ENABLED,
+  PREF_KEY_FIREWALL_LAST_APPLIED_MODE,
+  PREF_KEY_FIREWALL_LAST_APPLIED_USER_IDS_SIGNATURE,
   PREF_KEY_FIREWALL_RULE_MAPPING,
   PREF_KEY_FIREWALL_USER_POLICY,
   PREF_STORE_NAME_FIREWALL_MODE,
@@ -128,6 +131,83 @@ export class FirewallLocalRepository {
       async () => {
         let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
         return await pref.setValue(PREF_KEY_FIREWALL_ACTIVE_MODE, mode)
+      },
+      () => false
+    )
+  }
+
+  static async getDesiredEnabled(context: common.Context): Promise<boolean> {
+    return SafeRunner.runAsync(
+      TAG,
+      'getDesiredEnabled',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        let storedValue = await pref.getString(PREF_KEY_FIREWALL_DESIRED_ENABLED, '')
+        if (storedValue === 'true') {
+          return true
+        }
+        if (storedValue === 'false') {
+          return false
+        }
+        return true
+      },
+      () => true
+    )
+  }
+
+  static async saveDesiredEnabled(context: common.Context, enabled: boolean): Promise<boolean> {
+    return SafeRunner.runAsync(
+      TAG,
+      'saveDesiredEnabled',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        return await pref.setValue(PREF_KEY_FIREWALL_DESIRED_ENABLED, String(enabled))
+      },
+      () => false
+    )
+  }
+
+  static async getLastAppliedMode(context: common.Context): Promise<FirewallPresetMode | undefined> {
+    return SafeRunner.runAsync(
+      TAG,
+      'getLastAppliedMode',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        let storedModeValue = await pref.getString(PREF_KEY_FIREWALL_LAST_APPLIED_MODE, '')
+        if (storedModeValue === 'public' || storedModeValue === 'private' || storedModeValue === 'custom') {
+          return storedModeValue
+        }
+        return undefined
+      },
+      () => undefined as FirewallPresetMode | undefined
+    )
+  }
+
+  static async getLastAppliedUserIdsSignature(context: common.Context): Promise<string> {
+    return SafeRunner.runAsync(
+      TAG,
+      'getLastAppliedUserIdsSignature',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        return await pref.getString(PREF_KEY_FIREWALL_LAST_APPLIED_USER_IDS_SIGNATURE, '')
+      },
+      () => ''
+    )
+  }
+
+  static async saveModeApplyState(
+    context: common.Context,
+    mode: FirewallPresetMode,
+    userIdsSignature: string
+  ): Promise<boolean> {
+    return SafeRunner.runAsync(
+      TAG,
+      'saveModeApplyState',
+      async () => {
+        let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_FIREWALL_MODE)
+        let modeSaved = await pref.setValue(PREF_KEY_FIREWALL_LAST_APPLIED_MODE, mode)
+        let signatureSaved = await pref.setValue(PREF_KEY_FIREWALL_LAST_APPLIED_USER_IDS_SIGNATURE, userIdsSignature)
+        return modeSaved && signatureSaved
       },
       () => false
     )

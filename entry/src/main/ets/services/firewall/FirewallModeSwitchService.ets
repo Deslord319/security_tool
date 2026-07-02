@@ -1,6 +1,7 @@
 ﻿import { common } from '@kit.AbilityKit'
 import { netFirewall } from '@kit.NetworkKit'
 import { FirewallModeSwitchErrorStrings } from '../../constants/modules/FirewallErrorStrings'
+import { buildAccountUserIdsSignature } from '../account/AccountSnapshotModels'
 import {
   FirewallFailedItem,
   FirewallOperationResult,
@@ -54,7 +55,25 @@ export class FirewallModeSwitchService {
         errorMessage: FirewallModeSwitchErrorStrings.PRUNE_UNAVAILABLE_USERS_FAILED
       }
     }
-    let snapshotResult = await FirewallModeSwitchService.createSnapshot(context, usersResult.users)
+    return await FirewallModeSwitchService.applyModeToUsers(context, targetMode, usersResult.users)
+  }
+
+  static async applyModeToUsers(
+    context: common.UIAbilityContext,
+    targetMode: FirewallPresetMode,
+    users: UserFirewallOption[],
+    desiredEnabled?: boolean
+  ): Promise<FirewallOperationResult> {
+    let failedItems: FirewallFailedItem[] = []
+    if (users.length === 0) {
+      return {
+        success: false,
+        failedItems: failedItems,
+        errorMessage: FirewallModeSwitchErrorStrings.SNAPSHOT_FAILED
+      }
+    }
+
+    let snapshotResult = await FirewallModeSwitchService.createSnapshot(context, users)
     failedItems.push(...snapshotResult.failedItems)
     if (failedItems.length > 0) {
       return {
@@ -65,13 +84,13 @@ export class FirewallModeSwitchService {
     }
     let snapshot = snapshotResult.snapshot as FirewallModeSwitchSnapshot
 
-    for (let i = 0; i < usersResult.users.length; i++) {
-      let userId = usersResult.users[i].userId
+    for (let i = 0; i < users.length; i++) {
+      let userId = users[i].userId
       let clearResult = await FirewallSystemRepository.clearRules(userId)
       failedItems.push(...clearResult.failedItems)
     }
 
-    let policyFailedItems = await FirewallPolicyService.applyPolicyForMode(context, targetMode, usersResult.users)
+    let policyFailedItems = await FirewallPolicyService.applyPolicyForMode(context, targetMode, users, desiredEnabled)
     failedItems.push(...policyFailedItems)
 
     let deploymentsCleared = await FirewallLocalRepository.clearAllRuleDeployments(context)
@@ -79,7 +98,7 @@ export class FirewallModeSwitchService {
         failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.CLEAR_LOCAL_DEPLOYMENTS_FAILED })
     }
 
-    let preparedRules = await FirewallModeStrategy.buildRulesForMode(context, targetMode)
+    let preparedRules = await FirewallModeStrategy.buildRulesForMode(context, targetMode, users)
     let deploymentsByLocalRuleId = new Map<string, FirewallRuleDeployment[]>()
     for (let i = 0; i < preparedRules.length; i++) {
       let prepared = preparedRules[i]
@@ -120,9 +139,17 @@ export class FirewallModeSwitchService {
       if (!modeSaved) {
         failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.SAVE_TARGET_MODE_FAILED })
       }
+      let modeApplyStateSaved = await FirewallLocalRepository.saveModeApplyState(
+        context,
+        targetMode,
+        buildAccountUserIdsSignature(users.map((user: UserFirewallOption): number => user.userId))
+      )
+      if (!modeApplyStateSaved) {
+        failedItems.push({ errorMessage: FirewallModeSwitchErrorStrings.SAVE_MODE_APPLY_STATE_FAILED })
+      }
     }
     if (failedItems.length > 0) {
-      failedItems.push(...await FirewallModeSwitchService.rollbackToSnapshot(context, usersResult.users, snapshot))
+      failedItems.push(...await FirewallModeSwitchService.rollbackToSnapshot(context, users, snapshot))
     }
 
     return {
