@@ -82,6 +82,7 @@ export class FirewallRulesViewModel {
   @Trace lastOperationMessage: string = ''
   @Trace userOptions: UserFirewallOption[] = []
   @Trace deletingLocalRuleId: string = ''
+  private dataLoaded: boolean = false
 
   async initialize(
     context: common.UIAbilityContext,
@@ -95,6 +96,7 @@ export class FirewallRulesViewModel {
       this.lastSaveResult = null
       this.lastOperationMessage = FirewallRuleStrings.ONLY_CUSTOM_MODE
       this.userOptions = []
+      this.dataLoaded = false
       return {
         success: false,
         errorMessage: FirewallRuleStrings.ONLY_CUSTOM_MODE
@@ -107,6 +109,7 @@ export class FirewallRulesViewModel {
     this.isLoading = true
     try {
       await this.refreshPageData(context)
+      this.dataLoaded = true
       this.lastOperationMessage = ''
       return { success: true }
     } catch (err) {
@@ -116,6 +119,7 @@ export class FirewallRulesViewModel {
       this.conflictNotice = ''
       this.lastSaveResult = null
       this.lastOperationMessage = FirewallRuleStrings.APPLY_FAILED
+      this.dataLoaded = false
       return { success: false, errorMessage: FirewallRuleStrings.APPLY_FAILED }
     } finally {
       this.isLoading = false
@@ -331,6 +335,7 @@ export class FirewallRulesViewModel {
       this.userOptions = users
       await this.reloadDefaultPolicies(context)
       await this.reloadRules(context, users)
+      this.dataLoaded = true
       this.lastOperationMessage = ''
     } catch (err) {
       LogUtils.error(TAG, `refreshForAccountChange failed: ${JSON.stringify(err)}`)
@@ -338,9 +343,14 @@ export class FirewallRulesViewModel {
       this.rules = []
       this.conflictNotice = ''
       this.lastOperationMessage = FirewallRuleStrings.APPLY_FAILED
+      this.dataLoaded = false
     } finally {
       this.isLoading = false
     }
+  }
+
+  hasLoadedData(): boolean {
+    return this.dataLoaded
   }
 
   private async reloadDefaultPolicies(context: common.UIAbilityContext): Promise<void> {

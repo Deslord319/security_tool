@@ -46,6 +46,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
+    ApplicationRuntimeManager.getInstance().release()
     LogPowerLifecycleSource.destroy()
     statusBarManager.off('statusBarIconClick', this.statusBarIconClickHandler)
     if (this.terminateSubscriber) {

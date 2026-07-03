@@ -19,6 +19,16 @@ class CaptureAccountChangeHandler implements AccountChangeHandler {
   }
 }
 
+class FailingAccountChangeHandler implements AccountChangeHandler {
+  name: string = 'test-account-change-failure'
+  snapshots: AccountSnapshotChange[] = []
+
+  async handle(_context: common.Context, snapshot: AccountSnapshotChange): Promise<boolean> {
+    this.snapshots.push(snapshot)
+    return false
+  }
+}
+
 function buildUsers(userIds: number[]): UserFirewallOption[] {
   return userIds.map((userId: number): UserFirewallOption => {
     return {
@@ -47,6 +57,7 @@ export default function firewallAccountChangeCoordinatorTest() {
 
     afterEach(() => {
       AccountChangeCoordinator.unregisterHandler('test-account-change-coordinator')
+      AccountChangeCoordinator.unregisterHandler('test-account-change-failure')
       mockKit.clearAll()
     })
 
@@ -133,6 +144,28 @@ export default function firewallAccountChangeCoordinatorTest() {
       expect(queryCount).assertEqual(1)
       expect(handler.snapshots.length).assertEqual(1)
       expect(publishCount).assertEqual(1)
+      done()
+    })
+
+    it('should publish stable account event even when handler fails', 0, async (done: Function) => {
+      let publishCount = 0
+      let publishedSignature = ''
+      let handler = new FailingAccountChangeHandler()
+      let userMock = mockKit.mockFunc(SystemUserProvider, SystemUserProvider.loadAvailableUserIds)
+      let publishMock = mockKit.mockFunc(AccountChangeEventBus, AccountChangeEventBus.publishSnapshot)
+      when(userMock)().afterReturn(Promise.resolve(buildUserResult([100, 122])))
+      when(publishMock)(ArgumentMatchers.any).afterAction((snapshot: AccountSnapshotChange): void => {
+        publishCount++
+        publishedSignature = snapshot.signature
+      })
+      AccountChangeCoordinator.registerHandler(handler)
+
+      let success = await AccountChangeCoordinator.reconcileNow(context, 'account-removed', 123)
+
+      expect(success).assertFalse()
+      expect(handler.snapshots.length).assertEqual(1)
+      expect(publishCount).assertEqual(1)
+      expect(publishedSignature).assertEqual('100,122')
       done()
     })
   })
