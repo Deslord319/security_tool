@@ -295,7 +295,13 @@ struct Index {
 
   build() {
     Column() {
-      Row() {
+      Row({ space: 10 }) {
+        Image($r('app.media.startIcon'))
+          .width(28)
+          .height(28)
+          .objectFit(ImageFit.Contain)
+          .draggable(false)
+
         Text('ukey解锁工具')
           .fontSize(AppStyles.FONT_SIZE_TITLE)
           .fontWeight(FontWeight.Bold)
@@ -304,6 +310,7 @@ struct Index {
           .layoutWeight(1)
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
       .padding({
         left: AppStyles.PADDING_LG,
         right: AppStyles.PADDING_LG,

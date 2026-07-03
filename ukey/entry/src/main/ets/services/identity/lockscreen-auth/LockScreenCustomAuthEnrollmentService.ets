@@ -24,6 +24,8 @@ const TAG = 'LockScreenCustomAuth.Enroll'
 const DEFAULT_OS_ACCOUNT_ID = 100
 const LOCKSCREEN_CUSTOM_AUTH_TYPE = 128
 const LOCKSCREEN_CUSTOM_AUTH_SUB_TYPE = 0
+const TEE_RESULT_CREDENTIAL_LIMIT_REACHED = 10018
+const ACCOUNT_RESULT_CREDENTIAL_LIMIT_REACHED = 12300115
 const DEFAULT_TEST_PIN = '111111'
 
 export type LockScreenUKeyEnrollmentStage =
@@ -114,6 +116,14 @@ export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentia
       }
       let result = await OsAccountCustomAuthCredentialManager.addCredentialByCallback(idm, credentialInfo)
       let credentialIdHex = OsAccountCustomAuthCredentialManager.toHex(result.credentialId)
+      if (OsAccountCustomAuthCredentialManager.isCredentialLimitReached(result.resultCode)) {
+        return await OsAccountCustomAuthCredentialManager.deleteStaleCredentialAndRetryAdd(
+          idm,
+          userId,
+          tokenResult.token,
+          credentialInfo
+        )
+      }
       return {
         success: result.resultCode === 0 && credentialIdHex.length > 0,
         resultCode: result.resultCode,
@@ -275,6 +285,91 @@ export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentia
         })
       }
     })
+  }
+
+  private static async deleteStaleCredentialAndRetryAdd(
+    idm: osAccount.UserIdentityManager,
+    userId: number,
+    token: Uint8Array,
+    credentialInfo: osAccount.CredentialInfo
+  ): Promise<CustomAuthCredentialRegistrationResult> {
+    let existing = await OsAccountCustomAuthCredentialManager.queryCustomAuthCredentials(idm, userId)
+    if (!existing.success) {
+      return {
+        success: false,
+        resultCode: ACCOUNT_RESULT_CREDENTIAL_LIMIT_REACHED,
+        errorCode: existing.errorCode ?? ACCOUNT_RESULT_CREDENTIAL_LIMIT_REACHED,
+        errorMessage: existing.errorMessage ?? 'CustomAuth credential limit reached, query stale credential failed'
+      }
+    }
+    let credentials = existing.data ?? []
+    if (credentials.length === 0) {
+      return {
+        success: false,
+        resultCode: ACCOUNT_RESULT_CREDENTIAL_LIMIT_REACHED,
+        errorCode: ACCOUNT_RESULT_CREDENTIAL_LIMIT_REACHED,
+        errorMessage: 'CustomAuth credential limit reached, no stale credential found'
+      }
+    }
+    LogUtils.warn(TAG, `[STALE_CREDENTIAL_CLEAN_START] count=${credentials.length}`)
+    for (let credential of credentials) {
+      let credentialIdHex = OsAccountCustomAuthCredentialManager.toHex(credential.credentialId)
+      let deletion = await OsAccountCustomAuthCredentialManager.deleteCredentialByCallback(
+        idm,
+        credential.credentialId,
+        token
+      )
+      if (deletion.resultCode !== 0) {
+        return {
+          success: false,
+          resultCode: deletion.resultCode,
+          credentialIdHex: credentialIdHex,
+          errorCode: deletion.resultCode,
+          errorMessage: `Delete stale CustomAuth credential failed, result=${deletion.resultCode}`
+        }
+      }
+      LogUtils.warn(TAG, `[STALE_CREDENTIAL_DELETE_SUCCESS] credentialId=${credentialIdHex}`)
+    }
+    let retry = await OsAccountCustomAuthCredentialManager.addCredentialByCallback(idm, credentialInfo)
+    let retryCredentialIdHex = OsAccountCustomAuthCredentialManager.toHex(retry.credentialId)
+    return {
+      success: retry.resultCode === 0 && retryCredentialIdHex.length > 0,
+      resultCode: retry.resultCode,
+      credentialIdHex: retryCredentialIdHex,
+      errorCode: retry.resultCode === 0 ? undefined : retry.resultCode,
+      errorMessage: retry.resultCode === 0 ? undefined : `Retry add CustomAuth credential failed, result=${retry.resultCode}`
+    }
+  }
+
+  private static isCredentialLimitReached(resultCode: number): boolean {
+    return resultCode === TEE_RESULT_CREDENTIAL_LIMIT_REACHED ||
+      resultCode === ACCOUNT_RESULT_CREDENTIAL_LIMIT_REACHED
+  }
+
+  private static async queryCustomAuthCredentials(
+    idm: osAccount.UserIdentityManager,
+    userId: number
+  ): Promise<OperationResult<osAccount.EnrolledCredInfo[]>> {
+    try {
+      let credentials = await idm.getAuthInfo({
+        authType: LOCKSCREEN_CUSTOM_AUTH_TYPE as osAccount.AuthType,
+        accountId: userId
+      })
+      let activeCredentials = (credentials ?? []).filter((item: osAccount.EnrolledCredInfo): boolean => {
+        return !!item.credentialId && item.credentialId.length > 0 && item.isAbandoned !== true
+      })
+      return {
+        success: true,
+        data: activeCredentials
+      } as OperationResult<osAccount.EnrolledCredInfo[]>
+    } catch (err) {
+      return {
+        success: false,
+        errorCode: OsAccountCustomAuthCredentialManager.getErrorCode(err),
+        errorMessage: OsAccountCustomAuthCredentialManager.getErrorMessage(err),
+        stage: 'query_custom_auth_credentials'
+      } as OperationResult<osAccount.EnrolledCredInfo[]>
+    }
   }
 
   private static async deleteCredentialByCallback(

@@ -3,8 +3,8 @@ module: "ukey-custom-auth"
 title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
-last_updated: "2026-07-01"
-version: "2.2.0"
+last_updated: "2026-07-03"
+version: "2.2.3"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -22,12 +22,12 @@ version: "2.2.0"
 ## 1. 业务概述与对外接口 (Overview & Public Interfaces)
 
 - **核心目标**: `ukey/` 作为独立系统应用管理 UKey 插拔、首把绑定、系统 CustomAuth 凭据注入/删除和认证器执行端。该应用按系统应用签名，获得身份凭据管理、PIN token、CustomAuth appService 和 DDK 访问权限。
-- **入口路由 (Route Entry)**: `ukey/entry/src/main/ets/pages/Index.ets`。页面只提供本应用内的 UKey 锁屏认证开关、UKey设备和 UKEY解锁凭据查询，不承载测试 HAP 的调试按钮、模拟换新或 fake UKey 切换。应用中文显示名统一为 `ukey解锁工具`。
+- **入口路由 (Route Entry)**: `ukey/entry/src/main/ets/pages/Index.ets`。页面只提供本应用内的 UKey 锁屏认证开关、UKey设备和 UKEY解锁凭据查询，不承载测试 HAP 的调试按钮、模拟换新或 fake UKey 切换。应用中文显示名统一为 `ukey解锁工具`，首页标题左侧展示应用启动图标作为视觉识别。
 - **对外暴露能力 (Public APIs)**:
   - `ICustomAuthenticatorV1` appService: 系统身份认证服务回调入口，`pluginInfo` 指向 `com.ukey.pin`。
   - `LockScreenCustomAuthEnrollmentService`: 当前承接 UKey 插入、首把绑定、UKEY解锁凭据注入、拔出删除和启动对账编排。
-  - `DdkLockScreenUKeyDeviceService`: 当前默认 UKey 设备发现后端，基于 `@kit.DriverDevelopmentKit.deviceManager.queryDevices(BusType.USB)` 枚举 USB 设备，并用 `usbManager.getDevices()` 补充详情。
-  - `OsAccountCustomAuthCredentialManager`: 对齐测试 HAP，按 `openSession -> PINAuth.registerInputer -> UserAuth.authUser(PIN, ATL2) -> addCredential/delCred -> closeSession` 添加或删除 CustomAuth 凭据。
+  - `DdkLockScreenUKeyDeviceService`: 当前默认 UKey 设备发现后端，基于 `@kit.DriverDevelopmentKit.deviceManager.queryDevices(BusType.USB)` 枚举 USB 设备，并用 `usbManager.getDevices()` 补充详情。候选过滤必须排除 USB Hub、HID Boot 键盘/鼠标以及名称明确为键盘/鼠标/触控板的普通输入外设，避免键鼠被当作 UKey 阻塞凭据注入。
+  - `OsAccountCustomAuthCredentialManager`: 对齐测试 HAP，按 `openSession -> PINAuth.registerInputer -> UserAuth.authUser(PIN, ATL2) -> addCredential/delCred -> closeSession` 添加或删除 CustomAuth 凭据。若 `addCredential` 返回 CustomAuth 类型上限已满，先通过 `getAuthInfo(authType=128)` 查询残留凭据，使用同一 PIN token 删除后重试添加，恢复本地状态丢失或旧版本残留导致的凭据不一致。
   - `CustomAuthenticatorService`: 裁剪后的 CustomAuth IPC、密码学、SecurityAsset 和认证状态机核心。
   - `AuthenticatorUKeyProvider`: CustomAuth 执行端 UKey 判断入口，认证时只匹配首把绑定，第二把 UKey 不能 fallback 成功。
   - `StatusBarUtil` + `BackGroundAbility`: 将 `ukey解锁工具` 注册到状态栏托盘；点击托盘图标恢复主窗口，点击窗口 X 时隐藏窗口而不是退出后台运行时。应用整体关闭由 `EntryAbilityStage.onPrepareTermination()` 放行，不新增托盘菜单。
@@ -64,7 +64,7 @@ SystemUI / UserAuth
   - `ukeyUnlockEnabled: boolean`: UKey 认证管理是否启用，默认 `true`。该开关只在 `ukey/` 独立应用页面展示和持久化，不在 SecurityTool 展示。
   - `trustedBinding: LockScreenUKeyBinding | null`: 首把可信 UKey 绑定。绑定建立后保留，不因拔出而删除。
   - `activeCredential: LockScreenUKeyActiveCredential | null`: 当前系统侧已注入的 UKEY解锁凭据。UKey 拔出时删除该凭据，但保留首把绑定；代码内部沿用 `activeCredential` 命名，页面展示名统一为 `UKEY解锁凭据`。
-  - `currentDevices: LockScreenUKeyDevice[]`: 页面实时识别到的候选 UKey，只用于管理页展示和诊断，不代表已经绑定成功。优先使用 DDK 查询结果；若 DDK 服务异常，页面允许使用 `usbManager.getDevices()` 兜底展示。用户可见文案统一为 `UKey设备`，不展示 DDK/USB 来源、fingerprint、deviceId 或弱标识类型。页面前台运行时周期刷新，避免 UKey 拔出后保留旧显示。
+  - `currentDevices: LockScreenUKeyDevice[]`: 页面实时识别到的候选 UKey，只用于管理页展示和诊断，不代表已经绑定成功。优先使用 DDK 查询结果；若 DDK 服务异常，页面允许使用 `usbManager.getDevices()` 兜底展示。候选集合不包含键盘、鼠标、触控板和 USB Hub 等普通外设。用户可见文案统一为 `UKey设备`，不展示 DDK/USB 来源、fingerprint、deviceId 或弱标识类型。页面前台运行时周期刷新，避免 UKey 拔出后保留旧显示。
   - `templateBinding[templateId]: fingerprint`: CustomAuth 模板到首把 UKey fingerprint 的绑定。
   - `presenceState: absent / present / multiple / backend_error`: 最近一次 UKey 后端判断结果。
   - `customAuthKeyMaterial`: 每个 CustomAuth 模板在 SecurityAsset 中保存 `sharedKey(32B) || authenticatorSecret(32B) || authenticatorSecretSeq(4B LE)`，总长 68B。`authenticatorSecretSeq` 为 u32，录入初值为 `1`，每次轮换从磁盘最新值自增后与新 `authenticatorSecret` 在同一次 `asset.updateSync` 中提交。
@@ -80,6 +80,7 @@ SystemUI / UserAuth
   - USB attach -> `UKeyRuntimeManager` -> 读取开关 -> `LockScreenCustomAuthEnrollmentService.onUKeyAttached()` -> 无绑定时只接受唯一 UKey 并注册；已有绑定时只允许首把补注入。
   - USB detach -> `UKeyRuntimeManager` -> 读取开关 -> `LockScreenCustomAuthEnrollmentService.onUKeyDetached()` -> 首把不在场且存在 UKEY解锁凭据时删除系统凭据。
   - 首次发现唯一 UKey -> 生成 fingerprint -> 调用 `addCredential` -> 保存 `trustedBinding` 与 `activeCredential`。
+  - `addCredential` 返回 CustomAuth 类型上限已满 -> 查询现有 type 128 凭据 -> 使用 PIN token 删除残留凭据 -> 重试 `addCredential` -> 成功后保存新的 `trustedBinding` 与 `activeCredential`。
   - 已有首把绑定且同一把在场 -> 若 UKEY解锁凭据缺失则补注入；若已存在 UKEY解锁凭据则不重复注册。
   - 已有首把绑定后发现第二把 -> 不调用 `addCredential`，不覆盖首把绑定。
   - 首把拔出 -> 若存在对应 UKEY解锁凭据，调用 `delCred` 删除系统凭据，成功后清空 `activeCredential`，保留 `trustedBinding`。
@@ -89,7 +90,7 @@ SystemUI / UserAuth
 
 ## 3. 核心功能场景 (Core Functional Scenarios)
 
-- **首把绑定**: 无绑定且当前只有一把候选 UKey 时建立首把绑定并注入 CustomAuth 凭据。
+- **首把绑定**: 无绑定且当前只有一把候选 UKey 时建立首把绑定并注入 CustomAuth 凭据。键盘、鼠标、触控板和 USB Hub 不进入候选集合，不能导致“多把 UKey”拒绝注册。
 - **第二把拒绝**: 已有首把绑定后，后续其它 UKey 不注册、不替换、不参与认证成功路径。
 - **拔出删除 UKEY解锁凭据**: 首把不在场时删除当前 UKEY解锁凭据，避免 UKey 不在场但系统仍保留可认证凭据。
 - **启动对账**: 应用或设备重启后根据当前 UKey 在场状态收敛 UKEY解锁凭据。
@@ -106,7 +107,7 @@ SystemUI / UserAuth
   - 保存 UKey 开关、设备、首把绑定、UKEY解锁凭据和 `pluginInfo` 模型；内部模型名仍为 `activeCredential`。
   - `pluginInfo` 的 `customAuthenticatorBundleName` 必须指向 `com.ukey.pin`。
 - `ukey/entry/src/main/ets/services/identity/lockscreen-auth/LockScreenUKeyDeviceService.ets`
-  - 负责 DDK USB 设备发现和 USB 详情增强。
+  - 负责 DDK USB 设备发现、USB 详情增强和候选 UKey 过滤；过滤规则排除 Hub、HID Boot 键盘/鼠标和名称明确匹配普通键鼠输入外设的设备。
 - `ukey/entry/src/main/ets/services/identity/lockscreen-auth/LockScreenUKeyBindingRepository.ets`
   - 保存首把绑定、UKEY解锁凭据和模板绑定，不依赖 SecurityTool 数据。
 - `ukey/entry/src/main/ets/services/identity/lockscreen-auth/LockScreenCustomAuthEnrollmentService.ets`
@@ -128,6 +129,7 @@ SystemUI / UserAuth
   - 状态栏生命周期辅助 Ability；当后台托盘能力被终止时发布内部事件，EntryAbility 收到后移除状态栏条目并退出。
 - `ukey/entry/src/main/ets/pages/Index.ets`
   - UKey 本地管理页。页面读取 `PreferencesLockScreenAuthRepository`、`PreferencesLockScreenUKeyActiveCredentialRepository` 和实时 UKey 设备提供器，提供启用开关、刷新按钮、UKey设备和 UKEY解锁凭据状态。
+  - 首页标题区展示 `startIcon` 图标和 `ukey解锁工具` 标题，图标仅作应用识别，不增加新的交互入口。
   - 页面前台运行时定时刷新 UKey设备，`aboutToDisappear()` 停止刷新；UKey 拔出后 UKey设备区域应自动回到未识别状态。
   - 实时 UKey 展示优先使用 `DdkLockScreenUKeyDeviceService`；DDK 服务异常时使用 `UsbLockScreenUKeyDeviceService` 兜底展示，但页面不展示 DDK/USB 来源文案。
   - UI 结构沿用 SecurityTool 设置页规范，使用 `SectionCard`、`SectionToggleRow`、`SectionActionRow`、`AppColors` 和 `AppStyles`，不单独设计一套视觉语言。
@@ -138,7 +140,7 @@ SystemUI / UserAuth
   - `@kit.DriverDevelopmentKit.deviceManager.queryDevices`
   - `@kit.BasicServicesKit.commonEventManager`
   - `@kit.BasicServicesKit.usbManager.getDevices`
-  - `@ohos.account.osAccount.UserIdentityManager.openSession/addCredential/delCred/closeSession`
+  - `@ohos.account.osAccount.UserIdentityManager.openSession/getAuthInfo/addCredential/delCred/closeSession`
   - `@ohos.account.osAccount.UserAuth.authUser`
   - `@ohos.account.osAccount.PINAuth.registerInputer/unregisterInputer`
   - `@ohos.security.asset`
@@ -156,8 +158,10 @@ SystemUI / UserAuth
   - 安装后 `bm dump -n com.ukey.pin` 应能看到系统应用权限/等级，至少要达到测试 HAP 调用 PIN token 和 User IDM 所需级别。
   - SecurityTool 主应用不再因为 UKey 能力额外申请 User IDM、PINAuth、CustomAuthenticator 或 DDK 权限。
 - **异常兜底策略**:
-  - DDK 枚举失败、无 UKey、多 UKey 时不注入凭据。
-  - PIN token 获取失败或 `addCredential` 返回非 0 时不保存 UKEY解锁凭据。
+  - DDK 枚举失败、无候选 UKey、多候选 UKey 时不注入凭据；键盘、鼠标、触控板和 USB Hub 不计入候选数量。
+  - PIN token 获取失败时不保存 UKEY解锁凭据。
+  - `addCredential` 返回 CustomAuth 类型上限已满时，最多执行一次残留凭据清理和重试；清理失败或重试仍失败时不保存 UKEY解锁凭据。
+  - 其它 `addCredential` 非 0 返回不保存 UKEY解锁凭据。
   - 删除凭据失败时保留失败状态，后续对账重试。
   - 第二把 UKey 不替换首把绑定。
   - CustomAuth 无匹配 UKey 时直接失败，不顺序 fallback。
@@ -177,6 +181,7 @@ SystemUI / UserAuth
   - `ukey/` 构建: 编译通过，`UserAuth is system api` warning 只出现在 `ukey/`。
   - `ukey/` CustomAuth 验证: 覆盖 `template_id` 十进制字符串、`auth_secret_seq` u32 JSON number、68B 新记录读写和 72B 旧记录迁移。
   - 设备手工: 安装 `ukey/` 系统签名 HAP 后，第一把 UKey 可注册，第二把不注册，拔出首把删除 UKEY解锁凭据。
+  - UT: 覆盖 UKey 设备候选过滤，确保键盘、鼠标、触控板和 USB Hub 不进入候选集合，不会把唯一真实 UKey 误判为“多把 UKey”。
 - **验收口径**:
   - `security_tool/entry/src/main/ets` 下不再存在 `lockscreen-auth`、`custom-auth-core` 或 `CustomAuthExtAbility`。
   - SecurityTool `module.json5` 不再定义 `ACCESS_CUSTOM_AUTHENTICATOR`，不再声明 UKey 凭据链路权限。
@@ -184,6 +189,7 @@ SystemUI / UserAuth
   - `ukey/` `pluginInfo` 指向 `com.ukey.pin`。
   - `ukey/` 自己订阅 USB attach / detach，不依赖 SecurityTool 外设运行时事件管线。
   - `ukey/` 页面只有一个 UKey 锁屏认证开关、`UKey设备` 和 `UKEY解锁凭据` 状态；打开开关会触发一次对账，刷新按钮能展示当前 UKey设备与 UKEY解锁凭据。
+  - `ukey/` 页面和注册链路不得把键盘、鼠标、触控板、USB Hub 展示或统计为 UKey；插入一把 UKey 且同时连接键盘/鼠标时，应按单把 UKey 注入 UKEY解锁凭据。
   - `ukey/` 安装后显示名为 `ukey解锁工具`；状态栏出现托盘入口，左键点击可恢复窗口。
   - `ukey/` 声明并签入 `ohos.permission.PREPARE_APP_TERMINATE`；主窗口点击 X 后应用不退出，窗口隐藏，UKey 运行时仍保持订阅和对账能力。
   - `ukey/` 实现 `EntryAbilityStage.onPrepareTermination()`；应用级关闭能真实退出，不被窗口 X 关闭隐藏逻辑拦截。
@@ -195,6 +201,9 @@ SystemUI / UserAuth
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.3 | 2026-07-03 | Codex | 首页标题左侧增加应用启动图标展示，作为 `ukey解锁工具` 管理页的视觉识别，不新增交互或系统能力。 |
+| 2.2.2 | 2026-07-03 | Codex | 补充系统侧残留 CustomAuth 凭据恢复策略：当 `addCredential` 因 type 128 上限已满失败时，通过 `getAuthInfo` 查询并删除残留凭据后重试添加，避免本地 activeCredential 丢失后无法重新注入。 |
+| 2.2.1 | 2026-07-03 | Codex | 收紧 UKey 设备候选过滤：排除 USB Hub、HID Boot 键盘/鼠标和名称明确为普通键鼠输入外设的设备，避免键鼠被误识别为 UKey 并阻塞凭据注入。 |
 | 2.2.0 | 2026-07-01 | Codex | CustomAuth 核心协议对齐新系统侧格式：`template_id` 改为十进制字符串，`auth_secret_seq` 改为 u32 JSON number，SecurityAsset 新记录改为 68B，并对旧 72B 记录做读取时迁移；连接断开时清理未完成会话。 |
 | 2.1.9 | 2026-07-01 | Codex | 管理页移除“当前绑定 Key”卡片；“当前识别 UKey”统一改为 `UKey设备`，用户可见文案不再展示 DDK/USB 来源。 |
 | 2.1.8 | 2026-07-01 | Codex | 收敛管理页展示字段：不再展示 fingerprint、deviceId 和弱标识类型；页面前台周期刷新当前识别 UKey，避免拔出后保留旧数据。 |

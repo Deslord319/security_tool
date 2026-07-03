@@ -7,6 +7,20 @@ import { LogUtils } from '../../../utils/LogUtils'
 const TAG = 'LockScreenUKey.DeviceService'
 const USB_CLASS_HUB = 0x09
 const USB_CLASS_MASS_STORAGE = 0x08
+const USB_CLASS_HID = 0x03
+const USB_HID_SUBCLASS_BOOT = 0x01
+const USB_HID_PROTOCOL_KEYBOARD = 0x01
+const USB_HID_PROTOCOL_MOUSE = 0x02
+const KEYBOARD_MOUSE_NAME_KEYWORDS: string[] = [
+  'KEYBOARD',
+  'MOUSE',
+  'TOUCHPAD',
+  'TRACKPAD',
+  '键盘',
+  '鼠标',
+  '触控板',
+  '触摸板'
+]
 
 export interface LockScreenUKeyDeviceProvider {
   getCandidateDevices(): OperationResult<LockScreenUKeyDevice[]>
@@ -112,7 +126,7 @@ export class DdkLockScreenUKeyDeviceService implements UKeyDeviceBackend {
     for (let raw of ddkDevices) {
       let detail = DdkLockScreenUKeyDeviceService.findUsbDetail(raw, detailDevices)
       let device = DdkLockScreenUKeyDeviceService.toUKeyDevice(raw, detail)
-      if (device.clazz === USB_CLASS_HUB) {
+      if (!DdkLockScreenUKeyDeviceService.isCandidateUKeyDevice(device)) {
         continue
       }
       devices.push(device)
@@ -146,6 +160,30 @@ export class DdkLockScreenUKeyDeviceService implements UKeyDeviceBackend {
       }
     }
     return null
+  }
+
+  private static isCandidateUKeyDevice(device: LockScreenUKeyDevice): boolean {
+    if (device.clazz === USB_CLASS_HUB) {
+      return false
+    }
+    if (DdkLockScreenUKeyDeviceService.isKeyboardOrMouse(device)) {
+      return false
+    }
+    return true
+  }
+
+  private static isKeyboardOrMouse(device: LockScreenUKeyDevice): boolean {
+    if (device.clazz === USB_CLASS_HID &&
+      device.subClass === USB_HID_SUBCLASS_BOOT &&
+      (device.protocol === USB_HID_PROTOCOL_KEYBOARD || device.protocol === USB_HID_PROTOCOL_MOUSE)) {
+      return true
+    }
+    let label = [
+      device.manufacturerName,
+      device.productName,
+      device.deviceName
+    ].join('|').toUpperCase()
+    return KEYBOARD_MOUSE_NAME_KEYWORDS.some((keyword: string): boolean => label.includes(keyword))
   }
 
   private static toUKeyDevice(
@@ -230,7 +268,7 @@ export class UsbLockScreenUKeyDeviceService implements UKeyDeviceBackend {
       let devices: LockScreenUKeyDevice[] = []
       for (let raw of rawDevices) {
         let device = UsbLockScreenUKeyDeviceService.toUKeyDevice(raw as usbManager.USBDevice)
-        if (device.clazz === USB_CLASS_HUB) {
+        if (!UsbLockScreenUKeyDeviceService.isCandidateUKeyDevice(device)) {
           continue
         }
         devices.push(device)
@@ -253,6 +291,30 @@ export class UsbLockScreenUKeyDeviceService implements UKeyDeviceBackend {
         stage: 'query_usb_devices'
       } as OperationResult<LockScreenUKeyDevice[]>
     }
+  }
+
+  private static isCandidateUKeyDevice(device: LockScreenUKeyDevice): boolean {
+    if (device.clazz === USB_CLASS_HUB) {
+      return false
+    }
+    if (UsbLockScreenUKeyDeviceService.isKeyboardOrMouse(device)) {
+      return false
+    }
+    return true
+  }
+
+  private static isKeyboardOrMouse(device: LockScreenUKeyDevice): boolean {
+    if (device.clazz === USB_CLASS_HID &&
+      device.subClass === USB_HID_SUBCLASS_BOOT &&
+      (device.protocol === USB_HID_PROTOCOL_KEYBOARD || device.protocol === USB_HID_PROTOCOL_MOUSE)) {
+      return true
+    }
+    let label = [
+      device.manufacturerName,
+      device.productName,
+      device.deviceName
+    ].join('|').toUpperCase()
+    return KEYBOARD_MOUSE_NAME_KEYWORDS.some((keyword: string): boolean => label.includes(keyword))
   }
 
   private static toUKeyDevice(device: usbManager.USBDevice): LockScreenUKeyDevice {
