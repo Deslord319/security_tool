@@ -7,6 +7,7 @@ import { PeripheralServiceErrorStrings } from '../../../constants/modules/Periph
 import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
 import { PeripheralErrorCodes } from '../../../constants/SystemErrorCodes'
 import { OperationResult } from '../../../models/CommonModels'
+import { PeripheralInterfaceFeature, PeripheralInterfaceFeatures } from '../../../models/PeripheralModels'
 import { OperationResultUtils } from '../../common/OperationResultUtils'
 import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
 import { ErrorLike } from '../../../types/LooseValueTypes'
@@ -21,17 +22,8 @@ interface UsbConflictSnapshot {
 }
 
 export class PeripheralService {
-  static readonly FEATURE_USB: string = 'usb'
-  static readonly FEATURE_BLUETOOTH: string = 'bluetooth'
-  static readonly FEATURE_WIFI: string = 'wifi'
-  static readonly FEATURE_HDC: string = 'hdc'
-  static readonly FEATURE_NETWORK: string = 'tethering'
-  static readonly FEATURE_PRINTER: string = 'printer'
-  static readonly FEATURE_MICROPHONE: string = 'microphone'
-  static readonly FEATURE_CAMERA: string = 'camera'
-
-  static setInterfaceDisabledWithResult(feature: string, disallow: boolean): OperationResult<void> {
-    if (feature === PeripheralService.FEATURE_USB) {
+  static setInterfaceDisabledWithResult(feature: PeripheralInterfaceFeature, disallow: boolean): OperationResult<void> {
+    if (feature === PeripheralInterfaceFeatures.USB) {
       return {
         success: false,
         errorMessage: 'USB default policy requires async repository write',
@@ -51,18 +43,18 @@ export class PeripheralService {
     }
   }
 
-  static restoreEnabledInterfacePowerWithResult(feature: string): OperationResult<void> {
-    if (feature === PeripheralService.FEATURE_WIFI) {
+  static restoreEnabledInterfacePowerWithResult(feature: PeripheralInterfaceFeature): OperationResult<void> {
+    if (feature === PeripheralInterfaceFeatures.WIFI) {
       return PeripheralService.turnOnWifiWithResult()
     }
-    if (feature === PeripheralService.FEATURE_BLUETOOTH) {
+    if (feature === PeripheralInterfaceFeatures.BLUETOOTH) {
       return PeripheralService.turnOnBluetoothWithResult()
     }
     return { success: true } as OperationResult<void>
   }
 
-  static getInterfaceDisabledWithResult(feature: string): OperationResult<boolean> {
-    if (feature === PeripheralService.FEATURE_USB) {
+  static getInterfaceDisabledWithResult(feature: PeripheralInterfaceFeature): OperationResult<boolean> {
+    if (feature === PeripheralInterfaceFeatures.USB) {
       return {
         success: true,
         data: PeripheralDevicePolicyRepository.isUsbDefaultDeny()

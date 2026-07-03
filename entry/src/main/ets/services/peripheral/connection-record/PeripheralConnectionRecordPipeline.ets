@@ -7,7 +7,7 @@ import {
   PeripheralConnectionRecordPipeline,
   PeripheralConnectionRecordProducer,
   PeripheralConnectionRecordProducerEvent
-} from './peripheral_connection_record_producer_contract'
+} from './PeripheralConnectionRecordProducerContract'
 
 const TAG = 'ConnectionRecordPipeline'
 const USB_DEDUPE_WINDOW_MS = 1500

@@ -7,6 +7,7 @@ import {
 } from '../../../models/CommonModels'
 import {
   PeripheralConnectionRecord,
+  PeripheralInterfaceFeature,
   PeripheralType
 } from '../../../models/PeripheralModels'
 import { EnterpriseAdminService } from '../../../services/admin/activation/EnterpriseAdminService'
@@ -14,7 +15,7 @@ import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/d
 import { PeripheralTraceEntryRepository } from '../../../services/peripheral/connection-record/PeripheralTraceEntryRepository'
 import { PeripheralTraceMaintenanceService } from '../../../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { InterfaceControlViewModel } from '../interface-control/InterfaceControlViewModel'
-import { PeripheralConnectionRecordClearUsecase } from '../connection-record/peripheral_connection_record_clear_usecase'
+import { PeripheralConnectionRecordClearUsecase } from '../connection-record/PeripheralConnectionRecordClearUsecase'
 import { PeripheralPolicyViewModel } from '../device-policy/PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from '../connection-record/PeripheralRecordViewModel'
 
@@ -122,7 +123,7 @@ export class PeripheralViewModel {
     LogUtils.info(TAG, `source=${source}, records=${this.records.state.records.length}, policyRecords=${this.policy.state.records.length}`)
   }
 
-  async toggleInterface(feature: string, disallow: boolean): Promise<boolean> {
+  async toggleInterface(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<boolean> {
     if (!this.ensureAdminReady()) {
       return false
     }

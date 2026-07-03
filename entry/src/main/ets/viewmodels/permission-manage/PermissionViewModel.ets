@@ -1,31 +1,32 @@
 import {
   AccountInstallPolicySnapshot,
-  ApplicationPermissionProfile,
   ApplicationInventoryResult,
   PermissionActionResult,
-  PermissionAccountListResult,
   PermissionAppSnapshot,
   PermissionInitialData,
-  PermissionLocalPolicyRecord,
-  PermissionManagedAccount,
   PermissionPageState,
-  PermissionPolicyActionKind,
   PermissionPolicyRecord,
   PermissionPolicyState,
-  PermissionThreeDPolicySnapshot,
-  ThreeDManagedState,
   ThreeDPermissionItem,
-  ThreeDLoadState
+  ThreeDManagedState
 } from '../../models/PermissionModels'
 import { PermissionService } from '../../services/permission-manage/PermissionService'
 import { MessageText } from '../../constants/StringCatalog'
-import {
-  PermissionAccountStrings,
-  PermissionApplicationStrings,
-  PermissionEmptyStrings
-} from '../../constants/modules/PermissionStrings'
+import { PermissionApplicationStrings } from '../../constants/modules/PermissionStrings'
 import { PermissionPolicyLocalRepository } from '../../services/permission-manage/PermissionPolicyLocalRepository'
 import { LogUtils } from '../../utils/LogUtils'
+import { PermissionAccountRefreshUseCase } from './PermissionAccountRefreshUseCase'
+import {
+  PermissionPolicyActionUseCase,
+  PreparedPolicyRecordContext,
+  PreparedSelectedAppContext
+} from './PermissionPolicyActionUseCase'
+import { PermissionPolicyRecordMapper } from './PermissionPolicyRecordMapper'
+import {
+  PermissionAppSnapshotPatch,
+  PermissionStateReducer,
+  PermissionStateUpdate
+} from './PermissionStateReducer'
 
 const TAG = 'PermissionViewModel'
 const PERMISSION_RENDER_READY_DELAY_MS = 32
@@ -155,7 +156,7 @@ export class PermissionViewModel {
     try {
       let previousSelectedSnapshot = this.getSelectedAppSnapshot()
       let accountResult = await PermissionService.loadAccounts()
-      let selectedAccountId = this.resolveRefreshedAccountId(accountResult)
+      let selectedAccountId = PermissionAccountRefreshUseCase.resolveRefreshedAccountId(this.state, accountResult)
       let inventory = await PermissionService.loadApplications(selectedAccountId)
       let accountChanged = this.state.selectedAccountId !== selectedAccountId
       this.state.accounts = accountResult.accounts
@@ -220,7 +221,7 @@ export class PermissionViewModel {
             uid: s.uid, appIndex: s.appIndex,
             uninstallProtected: s.uninstallProtected, runningBlocked: s.runningBlocked, networkBlocked: s.networkBlocked,
             threeDGroups: permissionProfile.threeDGroups,
-            threeDPolicies: this.buildThreeDPolicySnapshotsFromGroups(s, permissionProfile.threeDGroups),
+            threeDPolicies: PermissionPolicyRecordMapper.buildThreeDPolicySnapshotsFromGroups(s, permissionProfile.threeDGroups),
             threeDLoadState: 'loaded', threeDMessage: permissionProfile.message
           } as PermissionAppSnapshot
         })
@@ -276,7 +277,7 @@ export class PermissionViewModel {
     if (this.state.processingActionKey.length > 0) {
       return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
     }
-    let actionKey = this.getThreeDRecordKey(snapshot.appKey, groupKey)
+    let actionKey = PermissionPolicyRecordMapper.getThreeDRecordKey(snapshot.appKey, groupKey)
     this.setProcessingAction(actionKey)
     try {
       await this.waitForCommittedState()
@@ -291,7 +292,7 @@ export class PermissionViewModel {
       let item = snapshot.threeDGroups.find((group: ThreeDPermissionItem): boolean => group.groupKey === groupKey)
       let result = await PermissionService.setThreeDState(
         snapshot,
-        this.buildSelectedPermissionProfile(snapshot),
+        PermissionStateReducer.buildSelectedPermissionProfile(snapshot),
         groupKey,
         state
       )
@@ -299,17 +300,17 @@ export class PermissionViewModel {
         if (state === 'default') {
           await PermissionPolicyLocalRepository.remove(actionKey)
         } else {
-          await this.upsertLocalPolicyRecord({
+          await PermissionPolicyLocalRepository.upsertActive(PermissionPolicyRecordMapper.buildLocalPolicyRecord({
             recordId: actionKey,
             app: snapshot,
             policyType: item.title,
             policyValue: state,
-            statusLabel: this.formatThreeDState(state),
+            statusLabel: PermissionPolicyRecordMapper.formatThreeDState(state),
             actionKind: 'three-d',
             policyId: groupKey,
             targetName: snapshot.label,
             targetDetail: `${snapshot.bundleName} / ${item.title}`
-          })
+          }))
         }
         this.patchThreeDState(snapshot.appKey, groupKey, state)
       }
@@ -402,15 +403,9 @@ export class PermissionViewModel {
   }
 
   private applyInitialData(initialData: PermissionInitialData): void {
-    this.state.selectedAccountId = initialData.selectedAccountId
-    this.state.accounts = initialData.accounts
-    let appSnapshots = initialData.appSnapshots
-    this.commitPermissionState({
-      appSnapshots: appSnapshots,
-      installPolicies: initialData.installPolicies,
-      selectedAppKey: initialData.selectedAppKey,
-      inventoryMessage: initialData.inventoryMessage
-    })
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionAccountRefreshUseCase.applyInitialData(this.state, initialData)
+    )
   }
 
   private createAccountSwitchSnapshot(): AccountSwitchSnapshot {
@@ -451,160 +446,49 @@ export class PermissionViewModel {
     })
   }
 
-  private resolveRefreshedAccountId(accountResult: PermissionAccountListResult): number {
-    let currentExists = accountResult.accounts.some((account: PermissionManagedAccount): boolean =>
-      account.accountId === this.state.selectedAccountId
-    )
-    if (currentExists) {
-      return this.state.selectedAccountId
-    }
-    let fallbackExists = accountResult.accounts.some((account: PermissionManagedAccount): boolean =>
-      account.accountId === accountResult.selectedAccountId
-    )
-    if (fallbackExists || accountResult.accounts.length === 0) {
-      return accountResult.selectedAccountId
-    }
-    return accountResult.accounts[0].accountId
-  }
-
   private applyInventory(inventory: ApplicationInventoryResult): void {
-    let appSnapshots = inventory.appSnapshots.length > 0
-      ? this.mergePolicySnapshots(inventory.appSnapshots)
-      : []
-    this.commitPermissionState({
-      appSnapshots: appSnapshots,
-      installPolicies: inventory.installPolicies,
-      inventoryMessage: inventory.message ?? ''
-    })
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionAccountRefreshUseCase.applyInventory(this.state, inventory)
+    )
   }
 
   private applyApplicationList(inventory: ApplicationInventoryResult): void {
-    this.commitPermissionState({
-      appSnapshots: this.mergePolicySnapshots(inventory.appSnapshots),
-      installPolicies: inventory.installPolicies,
-      inventoryMessage: inventory.message ?? ''
-    })
-  }
-
-  private mergePolicySnapshots(nextSnapshots: PermissionAppSnapshot[]): PermissionAppSnapshot[] {
-    return nextSnapshots.map((snapshot: PermissionAppSnapshot): PermissionAppSnapshot => {
-      let previous = this.findAppSnapshot(snapshot.appKey)
-      if (previous === undefined ||
-        previous.threeDLoadState !== 'loaded' ||
-        !this.canReuseThreeDDetail(previous, snapshot)) {
-        return snapshot
-      }
-      let nextGroups = snapshot.threeDGroups.length > 0 ? snapshot.threeDGroups : previous.threeDGroups
-      let nextPolicies = snapshot.threeDPolicies.length > 0
-        ? snapshot.threeDPolicies
-        : this.buildThreeDPolicySnapshotsFromGroups(snapshot, nextGroups)
-      return {
-        appKey: snapshot.appKey,
-        accountId: snapshot.accountId,
-        bundleName: snapshot.bundleName,
-        appId: snapshot.appId,
-        appIdentifier: snapshot.appIdentifier,
-        label: snapshot.label,
-        uid: snapshot.uid,
-        appIndex: snapshot.appIndex,
-        uninstallProtected: snapshot.uninstallProtected,
-        runningBlocked: snapshot.runningBlocked,
-        networkBlocked: snapshot.networkBlocked,
-        threeDGroups: nextGroups,
-        threeDPolicies: nextPolicies,
-        threeDLoadState: previous.threeDLoadState,
-        threeDMessage: previous.threeDMessage
-      } as PermissionAppSnapshot
-    })
-  }
-
-  private canReuseThreeDDetail(previous: PermissionAppSnapshot, next: PermissionAppSnapshot): boolean {
-    return this.isSameApplicationIdentity(previous, next)
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionAccountRefreshUseCase.applyApplicationList(this.state, inventory)
+    )
   }
 
   private reconcileSelectedApplicationAfterRefresh(previousSelectedSnapshot: PermissionAppSnapshot | undefined): void {
-    if (previousSelectedSnapshot === undefined) {
-      return
-    }
-    let refreshedSnapshot = this.findAppSnapshot(previousSelectedSnapshot.appKey)
-    if (refreshedSnapshot === undefined || !this.isSameApplicationIdentity(previousSelectedSnapshot, refreshedSnapshot)) {
-      this.clearSelectedApplication()
-    }
-  }
-
-  private isSameApplicationIdentity(previous: PermissionAppSnapshot, next: PermissionAppSnapshot): boolean {
-    return previous.accountId === next.accountId &&
-      previous.appKey === next.appKey &&
-      previous.bundleName === next.bundleName &&
-      previous.appId === next.appId &&
-      previous.appIdentifier === next.appIdentifier &&
-      previous.appIndex === next.appIndex
-  }
-
-  private isApplicationPolicyRecord(record: PermissionPolicyRecord): boolean {
-    return record.actionKind !== 'install-deny' && record.actionKind !== 'install-allow'
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionAccountRefreshUseCase.reconcileSelectedApplicationAfterRefresh(this.state, previousSelectedSnapshot)
+    )
   }
 
   private commitPermissionState(update: PermissionStateUpdate): void {
-    if (update.appSnapshots !== undefined) {
-      this.state.appSnapshots = update.appSnapshots
-    }
-    if (update.installPolicies !== undefined) {
-      this.state.installPolicies = update.installPolicies
-    }
-    if (update.selectedAppKey !== undefined) {
-      this.state.selectedAppKey = update.selectedAppKey
-    }
-    if (update.inventoryMessage !== undefined) {
-      this.state.inventoryMessage = update.inventoryMessage
-    }
-    this.rebuildDerivedState()
+    this.bumpPermissionProfileRequestSeqIfNeeded(PermissionStateReducer.commit(this.state, update))
   }
 
   private rebuildDerivedState(): void {
-    this.state.filteredAppKeys = PermissionService.filterAppKeys(this.state.appSnapshots, this.state.searchKeyword)
-    if (this.state.filteredAppKeys.length === 0) {
-      if (this.hasSelectedApplicationState()) {
-        this.clearSelectedApplication()
-      }
-    } else if (!this.state.filteredAppKeys.includes(this.state.selectedAppKey) && this.state.selectedAppKey.length > 0) {
-      this.clearSelectedApplication()
-    }
-    this.state.policyRecords = PermissionService.buildPolicyRecordsFromState(this.state.appSnapshots, this.state.installPolicies)
-    this.state.summary = PermissionService.buildSummaryFromState(this.state.appSnapshots, this.state.policyRecords)
+    this.bumpPermissionProfileRequestSeqIfNeeded(PermissionStateReducer.rebuildDerivedState(this.state))
   }
 
   private findAppSnapshot(appKey: string): PermissionAppSnapshot | undefined {
-    return this.state.appSnapshots.find((snapshot: PermissionAppSnapshot): boolean => snapshot.appKey === appKey)
+    return PermissionStateReducer.findAppSnapshot(this.state, appKey)
   }
 
   private getSelectedAppSnapshot(): PermissionAppSnapshot | undefined {
-    if (this.state.selectedAppKey.length === 0) {
-      return undefined
-    }
-    return this.findAppSnapshot(this.state.selectedAppKey)
-  }
-
-  private buildSelectedPermissionProfile(snapshot: PermissionAppSnapshot): ApplicationPermissionProfile | null {
-    return {
-      appKey: snapshot.appKey,
-      bundleName: snapshot.bundleName,
-      requestedPermissions: [],
-      mainAbilityName: '',
-      sensitivePermissionCount: snapshot.threeDGroups.filter((item: ThreeDPermissionItem): boolean => item.canManage).length,
-      message: snapshot.threeDMessage,
-      threeDGroups: snapshot.threeDGroups
-    } as ApplicationPermissionProfile
-  }
-
-  private hasSelectedApplicationState(): boolean {
-    return this.state.selectedAppKey.length > 0
+    return PermissionStateReducer.getSelectedAppSnapshot(this.state)
   }
 
   private clearSelectedApplication(): void {
-    this.state.selectedAppKey = ''
-    this.state.loadingSelectedApp = false
+    PermissionStateReducer.clearSelectedApplicationState(this.state)
     this.permissionProfileRequestSeq++
+  }
+
+  private bumpPermissionProfileRequestSeqIfNeeded(selectedCleared: boolean): void {
+    if (selectedCleared) {
+      this.permissionProfileRequestSeq++
+    }
   }
 
   private async waitForCommittedState(): Promise<void> {
@@ -616,134 +500,31 @@ export class PermissionViewModel {
   }
 
   private async prepareAccountContextForAction(): Promise<PermissionActionResult> {
-    try {
-      let accountResult = await PermissionService.loadAccounts()
-      let currentExists = accountResult.accounts.some((account: PermissionManagedAccount): boolean =>
-        account.accountId === this.state.selectedAccountId
-      )
-      this.state.accounts = accountResult.accounts
-      if (currentExists) {
-        return { success: true, message: '' } as PermissionActionResult
-      }
-
-      let nextAccountId = this.resolveRefreshedAccountId(accountResult)
-      this.state.selectedAccountId = nextAccountId
-      this.clearSelectedApplication()
-      if (accountResult.accounts.length === 0) {
-        this.commitPermissionState({
-          appSnapshots: [],
-          installPolicies: [],
-          inventoryMessage: accountResult.message ?? PermissionAccountStrings.NO_ACCOUNTS
-        })
-        return {
-          success: false,
-          message: PermissionApplicationStrings.ACCOUNT_CONTEXT_CHANGED
-        } as PermissionActionResult
-      }
-
-      let inventory = await PermissionService.loadApplications(nextAccountId)
-      this.applyApplicationList(inventory)
-      return {
-        success: false,
-        message: PermissionApplicationStrings.ACCOUNT_CONTEXT_CHANGED
-      } as PermissionActionResult
-    } catch (err) {
-      LogUtils.warn(TAG, `prepareAccountContextForAction failed: ${JSON.stringify(err)}`)
-      return { success: false, message: MessageText.RETRY_LATER } as PermissionActionResult
-    }
+    return await PermissionPolicyActionUseCase.prepareAccountContextForAction(
+      this.state,
+      (): void => this.clearSelectedApplication(),
+      (inventory: ApplicationInventoryResult): void => this.applyApplicationList(inventory),
+      (update: PermissionStateUpdate): void => this.commitPermissionState(update)
+    )
   }
 
   private async prepareSelectedAppContextForAction(): Promise<PreparedSelectedAppContext> {
-    let selectedAppKey = this.state.selectedAppKey
-    if (selectedAppKey.length === 0) {
-      return {
-        success: false,
-        message: PermissionEmptyStrings.SELECT_APPLICATION_FIRST
-      } as PreparedSelectedAppContext
-    }
-    let previousSnapshot = this.findAppSnapshot(selectedAppKey)
-    let accountPrepared = await this.prepareAccountContextForAction()
-    if (!accountPrepared.success) {
-      return {
-        success: false,
-        message: accountPrepared.message
-      } as PreparedSelectedAppContext
-    }
-
-    try {
-      let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
-      if (this.isInventoryLoadFailed(inventory)) {
-        return { success: false, message: MessageText.RETRY_LATER } as PreparedSelectedAppContext
-      }
-      this.applyApplicationList(inventory)
-      let refreshedSnapshot = this.findAppSnapshot(selectedAppKey)
-      if (refreshedSnapshot === undefined) {
-        this.clearSelectedApplication()
-        return {
-          success: false,
-          message: PermissionApplicationStrings.APPLICATION_CONTEXT_CHANGED
-        } as PreparedSelectedAppContext
-      }
-      if (previousSnapshot === undefined || !this.isSameApplicationIdentity(previousSnapshot, refreshedSnapshot)) {
-        this.clearSelectedApplication()
-        return {
-          success: false,
-          message: PermissionApplicationStrings.APPLICATION_CONTEXT_CHANGED
-        } as PreparedSelectedAppContext
-      }
-      return {
-        success: true,
-        message: '',
-        snapshot: refreshedSnapshot
-      } as PreparedSelectedAppContext
-    } catch (err) {
-      LogUtils.warn(TAG, `prepareSelectedAppContextForAction failed: ${JSON.stringify(err)}`)
-      return { success: false, message: MessageText.RETRY_LATER } as PreparedSelectedAppContext
-    }
+    return await PermissionPolicyActionUseCase.prepareSelectedAppContextForAction(
+      this.state,
+      (): void => this.clearSelectedApplication(),
+      (inventory: ApplicationInventoryResult): void => this.applyApplicationList(inventory),
+      (update: PermissionStateUpdate): void => this.commitPermissionState(update)
+    )
   }
 
   private async preparePolicyRecordForDelete(record: PermissionPolicyRecord): Promise<PreparedPolicyRecordContext> {
-    let previousApp = this.isApplicationPolicyRecord(record) ? this.findAppSnapshot(record.appKey) : undefined
-    let accountPrepared = await this.prepareAccountContextForAction()
-    if (!accountPrepared.success) {
-      return {
-        success: false,
-        message: accountPrepared.message
-      } as PreparedPolicyRecordContext
-    }
-    try {
-      let inventory = await PermissionService.loadApplications(this.state.selectedAccountId)
-      if (this.isInventoryLoadFailed(inventory)) {
-        return { success: false, message: MessageText.RETRY_LATER } as PreparedPolicyRecordContext
-      }
-      this.applyApplicationList(inventory)
-      let refreshedRecord = this.state.policyRecords.find((item: PermissionPolicyRecord): boolean => item.key === record.key)
-      if (refreshedRecord === undefined) {
-        return {
-          success: false,
-          message: PermissionApplicationStrings.POLICY_CONTEXT_CHANGED
-        } as PreparedPolicyRecordContext
-      }
-      let refreshedApp = previousApp === undefined ? undefined : this.findAppSnapshot(record.appKey)
-      if (previousApp !== undefined &&
-        (refreshedApp === undefined || !this.isSameApplicationIdentity(previousApp, refreshedApp))) {
-        if (this.state.selectedAppKey === record.appKey) {
-          this.clearSelectedApplication()
-        }
-        return {
-          success: false,
-          message: PermissionApplicationStrings.POLICY_CONTEXT_CHANGED
-        } as PreparedPolicyRecordContext
-      }
-      return {
-        success: true,
-        message: '',
-        record: refreshedRecord
-      } as PreparedPolicyRecordContext
-    } catch (err) {
-      LogUtils.warn(TAG, `preparePolicyRecordForDelete failed: ${JSON.stringify(err)}`)
-      return { success: false, message: MessageText.RETRY_LATER } as PreparedPolicyRecordContext
-    }
+    return await PermissionPolicyActionUseCase.preparePolicyRecordForDelete(
+      this.state,
+      record,
+      (): void => this.clearSelectedApplication(),
+      (inventory: ApplicationInventoryResult): void => this.applyApplicationList(inventory),
+      (update: PermissionStateUpdate): void => this.commitPermissionState(update)
+    )
   }
 
   private async runSelectedAppPolicyAction(
@@ -779,10 +560,6 @@ export class PermissionViewModel {
     }
   }
 
-  private isInventoryLoadFailed(inventory: ApplicationInventoryResult): boolean {
-    return inventory.message === PermissionEmptyStrings.INVENTORY_LOAD_FAILED
-  }
-
   private setProcessingAction(actionKey: string): void {
     this.state.processingActionKey = actionKey
   }
@@ -792,194 +569,22 @@ export class PermissionViewModel {
   }
 
   private patchAppSnapshot(appKey: string, patch: PermissionAppSnapshotPatch): void {
-    let nextSnapshots = this.state.appSnapshots.map((snapshot: PermissionAppSnapshot): PermissionAppSnapshot => {
-      if (snapshot.appKey !== appKey) {
-        return snapshot
-      }
-      return {
-        appKey: snapshot.appKey,
-        accountId: snapshot.accountId,
-        bundleName: snapshot.bundleName,
-        appId: snapshot.appId,
-        appIdentifier: snapshot.appIdentifier,
-        label: snapshot.label,
-        uid: snapshot.uid,
-        appIndex: snapshot.appIndex,
-        uninstallProtected: patch.uninstallProtected !== undefined ? patch.uninstallProtected : snapshot.uninstallProtected,
-        runningBlocked: patch.runningBlocked !== undefined ? patch.runningBlocked : snapshot.runningBlocked,
-        networkBlocked: patch.networkBlocked !== undefined ? patch.networkBlocked : snapshot.networkBlocked,
-        threeDGroups: patch.threeDGroups !== undefined ? patch.threeDGroups : snapshot.threeDGroups,
-        threeDPolicies: patch.threeDPolicies !== undefined ? patch.threeDPolicies : snapshot.threeDPolicies,
-        threeDLoadState: patch.threeDLoadState !== undefined ? patch.threeDLoadState : snapshot.threeDLoadState,
-        threeDMessage: patch.threeDMessage !== undefined ? patch.threeDMessage : snapshot.threeDMessage
-      } as PermissionAppSnapshot
-    })
-    this.commitPermissionState({ appSnapshots: nextSnapshots })
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionStateReducer.patchAppSnapshot(this.state, appKey, patch)
+    )
   }
 
   private patchInstallPolicies(removePolicyId: string): void {
-    let nextPolicies = this.state.installPolicies.filter(
-      (p: AccountInstallPolicySnapshot): boolean => p.policyId !== removePolicyId
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionStateReducer.patchInstallPolicies(this.state, removePolicyId)
     )
-    this.commitPermissionState({ installPolicies: nextPolicies })
   }
 
   private patchThreeDState(appKey: string, groupKey: string, state: ThreeDManagedState): void {
-    let snapshot = this.findAppSnapshot(appKey)
-    if (snapshot === undefined) {
-      return
-    }
-    let nextGroups = snapshot.threeDGroups.map((item: ThreeDPermissionItem): ThreeDPermissionItem => {
-      if (item.groupKey !== groupKey) {
-        return item
-      }
-      return {
-        groupKey: item.groupKey,
-        title: item.title,
-        permissionNames: item.permissionNames,
-        declaredPermissions: item.declaredPermissions,
-        managedState: state,
-        canManage: item.canManage,
-        disabledReason: item.disabledReason
-      } as ThreeDPermissionItem
-    })
-    let nextPolicies: PermissionThreeDPolicySnapshot[]
-    if (state === 'default') {
-      nextPolicies = snapshot.threeDPolicies.filter(
-        (p: PermissionThreeDPolicySnapshot): boolean => p.groupKey !== groupKey
-      )
-    } else {
-      let existing = snapshot.threeDPolicies.find(
-        (p: PermissionThreeDPolicySnapshot): boolean => p.groupKey === groupKey
-      )
-      let policyType = existing?.policyType ?? nextGroups.find((i: ThreeDPermissionItem): boolean =>
-        i.groupKey === groupKey
-      )?.title ?? ''
-      let updated: PermissionThreeDPolicySnapshot = {
-        recordId: this.getThreeDRecordKey(appKey, groupKey),
-        appKey: appKey,
-        groupKey: groupKey,
-        actionKind: 'three-d',
-        policyValue: state,
-        policyType: policyType,
-        targetName: snapshot.label,
-        targetDetail: `${snapshot.bundleName} / ${policyType}`,
-        statusLabel: this.formatThreeDState(state),
-        scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${snapshot.accountId}`
-      } as PermissionThreeDPolicySnapshot
-      let found = false
-      nextPolicies = snapshot.threeDPolicies.map((p: PermissionThreeDPolicySnapshot): PermissionThreeDPolicySnapshot => {
-        if (p.groupKey === groupKey) {
-          found = true
-          return updated
-        }
-        return p
-      })
-      if (!found) {
-        nextPolicies.push(updated)
-      }
-    }
-    this.patchAppSnapshot(appKey, { threeDGroups: nextGroups, threeDPolicies: nextPolicies })
+    this.bumpPermissionProfileRequestSeqIfNeeded(
+      PermissionStateReducer.patchThreeDState(this.state, appKey, groupKey, state)
+    )
   }
-
-  private getThreeDRecordKey(appKey: string, groupKey: string): string {
-    return `three-d:${appKey}:${groupKey}`
-  }
-
-  private buildThreeDPolicySnapshotsFromGroups(
-    snapshot: PermissionAppSnapshot,
-    groups: ThreeDPermissionItem[]
-  ): PermissionThreeDPolicySnapshot[] {
-    return groups
-      .filter((item: ThreeDPermissionItem): boolean =>
-        item.canManage && (item.managedState === 'granted' || item.managedState === 'denied')
-      )
-      .map((item: ThreeDPermissionItem): PermissionThreeDPolicySnapshot => ({
-        recordId: this.getThreeDRecordKey(snapshot.appKey, item.groupKey),
-        appKey: snapshot.appKey,
-        groupKey: item.groupKey,
-        actionKind: 'three-d',
-        policyValue: item.managedState,
-        policyType: item.title,
-        targetName: snapshot.label,
-        targetDetail: `${snapshot.bundleName} / ${item.title}`,
-        statusLabel: this.formatThreeDState(item.managedState),
-        scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${snapshot.accountId}`
-      } as PermissionThreeDPolicySnapshot))
-  }
-
-  private async upsertLocalPolicyRecord(params: LocalPolicyRecordParams): Promise<PermissionLocalPolicyRecord> {
-    let now = Date.now()
-    let record = {
-      recordId: params.recordId,
-      accountId: params.app.accountId,
-      appKey: params.app.appKey,
-      bundleName: params.app.bundleName,
-      appIdentifier: params.app.appIdentifier,
-      appIndex: params.app.appIndex,
-      policyType: params.policyType,
-      policyValue: params.policyValue,
-      targetName: params.targetName,
-      targetDetail: params.targetDetail,
-      statusLabel: params.statusLabel,
-      scopeLabel: `${PermissionApplicationStrings.POLICY_SCOPE_ACCOUNT_PREFIX} ${params.app.accountId}`,
-      actionKind: params.actionKind,
-      policyId: params.policyId,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-      lastError: ''
-    } as PermissionLocalPolicyRecord
-    await PermissionPolicyLocalRepository.upsertActive(record)
-    return record
-  }
-
-  private formatThreeDState(state: ThreeDManagedState): string {
-    if (state === 'granted') {
-      return PermissionApplicationStrings.POLICY_ALLOWED
-    }
-    if (state === 'denied') {
-      return PermissionApplicationStrings.POLICY_DENIED
-    }
-    return PermissionApplicationStrings.POLICY_DEFAULT
-  }
-}
-
-interface PermissionAppSnapshotPatch {
-  uninstallProtected?: boolean
-  runningBlocked?: boolean
-  networkBlocked?: boolean
-  threeDGroups?: ThreeDPermissionItem[]
-  threeDPolicies?: PermissionThreeDPolicySnapshot[]
-  threeDLoadState?: ThreeDLoadState
-  threeDMessage?: string
-}
-
-interface PermissionStateUpdate {
-  appSnapshots?: PermissionAppSnapshot[]
-  installPolicies?: AccountInstallPolicySnapshot[]
-  selectedAppKey?: string
-  inventoryMessage?: string
-}
-
-interface PreparedSelectedAppContext extends PermissionActionResult {
-  snapshot?: PermissionAppSnapshot
-}
-
-interface PreparedPolicyRecordContext extends PermissionActionResult {
-  record?: PermissionPolicyRecord
-}
-
-interface LocalPolicyRecordParams {
-  recordId: string
-  app: PermissionAppSnapshot
-  policyType: string
-  policyValue: string
-  statusLabel: string
-  actionKind: PermissionPolicyActionKind
-  policyId: string
-  targetName: string
-  targetDetail: string
 }
 
 interface AccountSwitchSnapshot {

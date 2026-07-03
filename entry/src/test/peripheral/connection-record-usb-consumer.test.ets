@@ -9,12 +9,12 @@ import {
 } from '../../main/ets/models/PeripheralModels'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
-import { PeripheralConnectionRecordUsbConsumer } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
-import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
+import { PeripheralConnectionRecordUsbConsumer } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordUsbConsumer'
+import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordProducerContract'
 import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchResult
-} from '../../main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
+} from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
 
 interface UsbEventParameters {
   vendorId: number

@@ -11,7 +11,7 @@ import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchRequest,
   PeripheralPolicyDispatchResult
-} from '../../main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
+} from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
 import {
   CsvFileExportService
 } from '../../main/ets/services/common/export/CsvFileExportService'

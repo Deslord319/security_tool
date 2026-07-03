@@ -23,7 +23,7 @@ import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
 import { PeripheralRecordViewModel } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralRecordViewModel'
 import { PeripheralViewModel } from '../../main/ets/viewmodels/peripheral/overview/PeripheralViewModel'
-import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/peripheral_connection_record_clear_usecase'
+import { PeripheralConnectionRecordClearUsecase } from '../../main/ets/viewmodels/peripheral/connection-record/PeripheralConnectionRecordClearUsecase'
 
 class FakeInterfaceControlViewModel extends InterfaceControlViewModel {
   reloadCount: number = 0

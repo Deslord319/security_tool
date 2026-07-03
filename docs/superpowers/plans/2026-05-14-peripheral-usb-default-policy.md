@@ -54,8 +54,8 @@ Code:
 - Modify: `entry/src/main/ets/services/peripheral/interface-control/PeripheralService.ets`
 - Modify: `entry/src/main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel.ets`
 - Modify: `entry/src/main/ets/viewmodels/peripheral/overview/PeripheralViewModel.ets`
-- Modify: `entry/src/main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer.ets`
-- Modify: `entry/src/main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service.ets`
+- Modify: `entry/src/main/ets/services/peripheral/connection-record/PeripheralConnectionRecordUsbConsumer.ets`
+- Modify: `entry/src/main/ets/services/peripheral/device-policy/PeripheralDevicePolicyDispatchService.ets`
 - Modify: `entry/src/main/ets/runtime/ApplicationRuntimeManager.ets`
 
 Tests:
@@ -102,10 +102,10 @@ static async setUsbDefaultPolicy(policy: PeripheralUsbDefaultPolicy): Promise<bo
 Interface toggle:
 
 ```ts
-async toggleInterface(feature: string, disallow: boolean): Promise<string | null> {
+async toggleInterface(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<string | null> {
   processingKey = feature
   try {
-    if (feature === PeripheralService.FEATURE_USB) {
+    if (feature === PeripheralInterfaceFeatures.USB) {
       const ok = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(disallow ? 'deny' : 'allow')
       if (!ok) {
         return PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED
@@ -251,7 +251,7 @@ Expected: USB tests pass and non-USB behavior remains unchanged.
 ### Task 4: USB Consumer Auto-Deny Condition
 
 **Files:**
-- Modify: `entry/src/main/ets/services/peripheral/connection-record/peripheral_connection_record_usb_consumer.ets`
+- Modify: `entry/src/main/ets/services/peripheral/connection-record/PeripheralConnectionRecordUsbConsumer.ets`
 - Modify: `entry/src/test/peripheral/connection-record-usb-consumer.test.ets`
 
 - [ ] **Step 1: Add tests**
@@ -274,7 +274,7 @@ Expected: all USB consumer tests pass.
 ### Task 5: Dispatch Service Restrictions Cleanup
 
 **Files:**
-- Modify: `entry/src/main/ets/services/peripheral/device-policy/peripheral_device_policy_dispatch_service.ets`
+- Modify: `entry/src/main/ets/services/peripheral/device-policy/PeripheralDevicePolicyDispatchService.ets`
 - Modify: `entry/src/test/peripheral/device-policy-dispatch-service.test.ets`
 
 - [ ] **Step 1: Add tests**

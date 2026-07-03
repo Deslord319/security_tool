@@ -22,7 +22,7 @@ import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchReason,
   PeripheralPolicyDispatchResult
-} from '../../../services/peripheral/device-policy/peripheral_device_policy_dispatch_service'
+} from '../../../services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
 import { PeripheralPolicyService } from '../../../services/peripheral/device-policy/PeripheralPolicyService'
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
 

@@ -110,9 +110,7 @@ export class AccountChangeCoordinator {
     let snapshot = result.snapshot
     AccountChangeCoordinator.previousUserIds = snapshot.currentUserIds
     let success = await AccountChangeCoordinator.dispatchHandlers(request.context, snapshot)
-    if (success) {
-      AccountChangeEventBus.publishSnapshot(snapshot)
-    }
+    AccountChangeEventBus.publishSnapshot(snapshot)
     return success
   }
 

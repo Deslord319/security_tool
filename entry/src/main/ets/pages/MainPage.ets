@@ -27,9 +27,6 @@ import { PeripheralViewModel } from '../viewmodels/peripheral/overview/Periphera
 import { PermissionViewModel } from '../viewmodels/permission-manage/PermissionViewModel'
 import { ToolSettingsViewModel } from '../viewmodels/tool-settings/system-settings/ToolSettingsViewModel'
 import { ErrorLike } from '../types/LooseValueTypes'
-import { AccountChangeEventBus, AccountChangeSubscription } from '../services/account/AccountChangeEventBus'
-import { UserFirewallOption } from '../services/firewall/FirewallModels'
-import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
 import {
   rememberFirewallRoute,
   resolveNavigationRoute,
@@ -44,8 +41,8 @@ struct MainPage {
   private readonly applicationRuntime: ApplicationRuntimeManager = ApplicationRuntimeManager.getInstance()
   @Local currentPage: string = RouteIds.DASHBOARD
   private lastFirewallRoute: string = RouteIds.FIREWALL
-  @Local firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
-  @Local firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
+  @Local firewallOverviewViewModel: FirewallOverviewViewModel = this.applicationRuntime.getFirewallOverviewViewModel()
+  @Local firewallRulesViewModel: FirewallRulesViewModel = this.applicationRuntime.getFirewallRulesViewModel()
   @Local identitySettingsViewModel: IdentitySettingsViewModel = this.applicationRuntime.getIdentitySettingsViewModel()
   @Local showMenu: boolean = false
   @Local logManageViewModel: LogManageViewModel = this.applicationRuntime.getLogManageViewModel()
@@ -59,14 +56,12 @@ struct MainPage {
   @Local currentThemeOption: ThemeOption = ThemeManager.getInstance().getCurrentOption()
   private aboutDialogController?: CustomDialogController
   private initialRuntimeWarmupStarted: boolean = false
-  private accountChangeSubscription: AccountChangeSubscription | null = null
   private readonly themeListener: () => void = () => {
     this.syncThemeState()
     this.syncDecorButtonStyle()
   }
 
   aboutToAppear(): void {
-    this.createAccountChangeSubscriber()
     ThemeManager.getInstance().subscribe(this.themeListener)
     this.syncThemeState()
     this.syncDecorButtonStyle()
@@ -82,38 +77,7 @@ struct MainPage {
   }
 
   aboutToDisappear(): void {
-    AccountChangeEventBus.unsubscribe(this.accountChangeSubscription)
-    this.accountChangeSubscription = null
     ThemeManager.getInstance().unsubscribe(this.themeListener)
-  }
-
-  private createAccountChangeSubscriber(): void {
-    if (this.accountChangeSubscription) {
-      return
-    }
-    AccountChangeEventBus.subscribe(async (): Promise<void> => {
-      await this.handleAccountChangeEvent()
-    }).then((subscription: AccountChangeSubscription | null) => {
-      this.accountChangeSubscription = subscription
-    }).catch((err: Error) => {
-      LogUtils.warn(TAG, 'create account change subscriber failed: %{public}s', JSON.stringify(err))
-    })
-  }
-
-  private async handleAccountChangeEvent(): Promise<void> {
-    if (this.currentPage === RouteIds.PERMISSION_MANAGE) {
-      await this.permissionViewModel.refreshForAccountChange()
-      return
-    }
-    if (this.currentPage !== RouteIds.FIREWALL && this.currentPage !== RouteIds.FIREWALL_RULES) {
-      return
-    }
-    let context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    let users: UserFirewallOption[] = (await SystemUserProvider.loadAvailableUserIds()).users
-    await this.loadFirewallState()
-    if (this.currentPage === RouteIds.FIREWALL_RULES) {
-      await this.firewallRulesViewModel.refreshForAccountChange(context, users)
-    }
   }
 
   private syncDecorButtonStyle(): void {

@@ -5,7 +5,7 @@ import {
   PeripheralInterfaceToggleOptionIndexes,
   PeripheralOptionStrings
 } from '../../../constants/modules/PeripheralStrings'
-import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
+import { PeripheralInterfaceFeature, PeripheralInterfaceFeatures } from '../../../models/PeripheralModels'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
@@ -28,7 +28,7 @@ export struct InterfaceControlTab {
   @Param usbStorageControlKey: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param hoveredPanelIndex: number = -1
-  @Event onInterfaceToggle?: (feature: string, disallow: boolean) => void
+  @Event onInterfaceToggle?: (feature: PeripheralInterfaceFeature, disallow: boolean) => void
   @Event onUsbInterfaceToggleAsync?: (disallow: boolean) => Promise<boolean>
   @Event onUsbStoragePolicyChange?: (index: number) => Promise<boolean>
   @Event onPanelHover?: (isHover: boolean) => void
@@ -42,19 +42,19 @@ export struct InterfaceControlTab {
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
           this.storageItem()
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.BLUETOOTH_TITLE, PeripheralInterfaceStrings.BLUETOOTH_DESCRIPTION, PeripheralService.FEATURE_BLUETOOTH, this.btDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.BLUETOOTH_TITLE, PeripheralInterfaceStrings.BLUETOOTH_DESCRIPTION, PeripheralInterfaceFeatures.BLUETOOTH, this.btDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.WIFI_TITLE, PeripheralInterfaceStrings.WIFI_DESCRIPTION, PeripheralService.FEATURE_WIFI, this.wifiDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.WIFI_TITLE, PeripheralInterfaceStrings.WIFI_DESCRIPTION, PeripheralInterfaceFeatures.WIFI, this.wifiDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.HDC_TITLE, PeripheralInterfaceStrings.HDC_DESCRIPTION, PeripheralService.FEATURE_HDC, this.hdcDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.HDC_TITLE, PeripheralInterfaceStrings.HDC_DESCRIPTION, PeripheralInterfaceFeatures.HDC, this.hdcDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.NETWORK_SHARING_TITLE, PeripheralInterfaceStrings.NETWORK_SHARING_DESCRIPTION, PeripheralService.FEATURE_NETWORK, this.networkDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.NETWORK_SHARING_TITLE, PeripheralInterfaceStrings.NETWORK_SHARING_DESCRIPTION, PeripheralInterfaceFeatures.NETWORK, this.networkDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.PRINTER_TITLE, PeripheralInterfaceStrings.PRINTER_DESCRIPTION, PeripheralService.FEATURE_PRINTER, this.printerDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.PRINTER_TITLE, PeripheralInterfaceStrings.PRINTER_DESCRIPTION, PeripheralInterfaceFeatures.PRINTER, this.printerDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.MICROPHONE_TITLE, PeripheralInterfaceStrings.MICROPHONE_DESCRIPTION, PeripheralService.FEATURE_MICROPHONE, this.microphoneDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.MICROPHONE_TITLE, PeripheralInterfaceStrings.MICROPHONE_DESCRIPTION, PeripheralInterfaceFeatures.MICROPHONE, this.microphoneDisabled)
           Divider().color(AppColors.getColors(this.currentTheme).BORDER).opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
-          this.toggleItem(PeripheralInterfaceStrings.CAMERA_TITLE, PeripheralInterfaceStrings.CAMERA_DESCRIPTION, PeripheralService.FEATURE_CAMERA, this.cameraDisabled)
+          this.toggleItem(PeripheralInterfaceStrings.CAMERA_TITLE, PeripheralInterfaceStrings.CAMERA_DESCRIPTION, PeripheralInterfaceFeatures.CAMERA, this.cameraDisabled)
         }
         .borderRadius(AppStyles.RADIUS_LG)
         .clip(true)
@@ -88,7 +88,7 @@ export struct InterfaceControlTab {
       selectedIndex: this.usbDisabled ?
         PeripheralInterfaceToggleOptionIndexes.DISABLED :
         PeripheralInterfaceToggleOptionIndexes.ENABLED,
-      processing: this.interfaceControlProcessingKey === PeripheralService.FEATURE_USB,
+      processing: this.interfaceControlProcessingKey === PeripheralInterfaceFeatures.USB,
       currentTheme: this.currentTheme,
       onSelectAsync: async (nextIndex: number): Promise<boolean> => {
         if (!this.onUsbInterfaceToggleAsync) {
@@ -100,7 +100,7 @@ export struct InterfaceControlTab {
   }
 
   @Builder
-  private toggleItem(label: string, description: string, feature: string, disabled: boolean) {
+  private toggleItem(label: string, description: string, feature: PeripheralInterfaceFeature, disabled: boolean) {
     this.controlRow(
       label,
       description,

@@ -16,18 +16,18 @@ import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent,
   PeripheralConnectionAction
-} from './peripheral_connection_record_producer_contract'
+} from './PeripheralConnectionRecordProducerContract'
 import {
   PeripheralDevicePolicyDispatchService,
   PeripheralPolicyDispatchReason
-} from '../device-policy/peripheral_device_policy_dispatch_service'
+} from '../device-policy/PeripheralDevicePolicyDispatchService'
 import {
   EventPayloadRecord,
   collectPayloadSources,
   pickNumber,
   pickString,
   toRecordArray
-} from './peripheral_connection_record_payload_utils'
+} from './PeripheralConnectionRecordPayloadUtils'
 import { LogUtils } from '../../../utils/LogUtils'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
 import { StatusText } from '../../../constants/StringCatalog'

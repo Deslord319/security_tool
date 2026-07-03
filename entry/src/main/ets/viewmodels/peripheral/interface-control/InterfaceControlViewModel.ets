@@ -2,6 +2,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 
 import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
+import { PeripheralInterfaceFeature, PeripheralInterfaceFeatures } from '../../../models/PeripheralModels'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 
@@ -42,19 +43,19 @@ export class InterfaceControlViewModel {
 
   reloadState(): void {
     try {
-      const btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_BLUETOOTH)
-      const wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_WIFI)
-      const hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_HDC)
-      const networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_NETWORK)
-      const printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_PRINTER)
-      const microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_MICROPHONE)
-      const cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralService.FEATURE_CAMERA)
+      const btState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.BLUETOOTH)
+      const wifiState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.WIFI)
+      const hdcState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.HDC)
+      const networkState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.NETWORK)
+      const printerState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.PRINTER)
+      const microphoneState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.MICROPHONE)
+      const cameraState = PeripheralService.getInterfaceDisabledWithResult(PeripheralInterfaceFeatures.CAMERA)
       const storagePolicy = PeripheralService.getUsbStoragePolicyWithResult()
       if (btState.success && btState.data === false) {
-        this.restoreEnabledInterfacePower(PeripheralService.FEATURE_BLUETOOTH)
+        this.restoreEnabledInterfacePower(PeripheralInterfaceFeatures.BLUETOOTH)
       }
       if (wifiState.success && wifiState.data === false) {
-        this.restoreEnabledInterfacePower(PeripheralService.FEATURE_WIFI)
+        this.restoreEnabledInterfacePower(PeripheralInterfaceFeatures.WIFI)
       }
 
       this.commitState({
@@ -75,10 +76,10 @@ export class InterfaceControlViewModel {
     }
   }
 
-  async toggleInterface(feature: string, disallow: boolean): Promise<string | null> {
+  async toggleInterface(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<string | null> {
     this.processingKey = feature
     try {
-      if (feature === PeripheralService.FEATURE_USB) {
+      if (feature === PeripheralInterfaceFeatures.USB) {
         const saved = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(disallow ? 'deny' : 'allow')
         if (!saved) {
           return PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED
@@ -129,21 +130,21 @@ export class InterfaceControlViewModel {
     }
   }
 
-  private updateInterfaceState(feature: string, disallow: boolean): void {
+  private updateInterfaceState(feature: PeripheralInterfaceFeature, disallow: boolean): void {
     this.commitState({
-      usbDisabled: feature === PeripheralService.FEATURE_USB ? disallow : this.state.usbDisabled,
-      btDisabled: feature === PeripheralService.FEATURE_BLUETOOTH ? disallow : this.state.btDisabled,
-      wifiDisabled: feature === PeripheralService.FEATURE_WIFI ? disallow : this.state.wifiDisabled,
-      hdcDisabled: feature === PeripheralService.FEATURE_HDC ? disallow : this.state.hdcDisabled,
-      networkDisabled: feature === PeripheralService.FEATURE_NETWORK ? disallow : this.state.networkDisabled,
-      printerDisabled: feature === PeripheralService.FEATURE_PRINTER ? disallow : this.state.printerDisabled,
-      microphoneDisabled: feature === PeripheralService.FEATURE_MICROPHONE ? disallow : this.state.microphoneDisabled,
-      cameraDisabled: feature === PeripheralService.FEATURE_CAMERA ? disallow : this.state.cameraDisabled,
+      usbDisabled: feature === PeripheralInterfaceFeatures.USB ? disallow : this.state.usbDisabled,
+      btDisabled: feature === PeripheralInterfaceFeatures.BLUETOOTH ? disallow : this.state.btDisabled,
+      wifiDisabled: feature === PeripheralInterfaceFeatures.WIFI ? disallow : this.state.wifiDisabled,
+      hdcDisabled: feature === PeripheralInterfaceFeatures.HDC ? disallow : this.state.hdcDisabled,
+      networkDisabled: feature === PeripheralInterfaceFeatures.NETWORK ? disallow : this.state.networkDisabled,
+      printerDisabled: feature === PeripheralInterfaceFeatures.PRINTER ? disallow : this.state.printerDisabled,
+      microphoneDisabled: feature === PeripheralInterfaceFeatures.MICROPHONE ? disallow : this.state.microphoneDisabled,
+      cameraDisabled: feature === PeripheralInterfaceFeatures.CAMERA ? disallow : this.state.cameraDisabled,
       usbStoragePolicyIndex: this.state.usbStoragePolicyIndex
     })
   }
 
-  private restoreEnabledInterfacePower(feature: string): void {
+  private restoreEnabledInterfacePower(feature: PeripheralInterfaceFeature): void {
     const result = PeripheralService.restoreEnabledInterfacePowerWithResult(feature)
     if (!result.success) {
       LogUtils.warn(

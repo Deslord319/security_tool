@@ -10,14 +10,14 @@ import {
   PeripheralTraceMaintenanceService,
   PeripheralTraceMutationResult
 } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
-import { PeripheralConnectionRecordPipelineImpl } from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_pipeline'
+import { PeripheralConnectionRecordPipelineImpl } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordPipeline'
 import {
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducer,
   PeripheralConnectionRecordProducerEvent,
   PeripheralConnectionRecordProducerListener,
   PeripheralConnectionRecordProducerStatus
-} from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_producer_contract'
+} from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordProducerContract'
 
 interface PipelineProbe {
   traceRepositoryReady: boolean

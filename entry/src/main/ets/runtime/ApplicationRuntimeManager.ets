@@ -3,10 +3,16 @@ import { LogCollectorService } from '../services/log-manage/collector/LogCollect
 import { PeripheralDevicePolicyRepository } from '../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralTraceMaintenanceService } from '../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { PermissionPolicyLocalRepository } from '../services/permission-manage/PermissionPolicyLocalRepository'
-import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
-import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
-import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
-import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
+import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/PeripheralConnectionRecordBluetoothAclConsumer'
+import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/PeripheralConnectionRecordPipeline'
+import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/PeripheralConnectionRecordRuntimeProducerAdapter'
+import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/PeripheralConnectionRecordUsbConsumer'
+import { AccountChangeEventPayload } from '../services/account/AccountChangeEventBus'
+import { AccountRuntimeService } from '../services/account/AccountRuntimeService'
+import { UserFirewallOption } from '../services/firewall/FirewallModels'
+import { SystemUserProvider } from '../services/firewall/providers/SystemUserProvider'
+import { FirewallOverviewViewModel } from '../viewmodels/firewall/overview/FirewallOverviewViewModel'
+import { FirewallRulesViewModel } from '../viewmodels/firewall/rules/FirewallRulesViewModel'
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
@@ -30,11 +36,19 @@ export class ApplicationRuntimeManager {
   private identityRuntimeInitPromise: Promise<void> | null = null
   private peripheralRuntimeInitPromise: Promise<void> | null = null
   private permissionRuntimeInitPromise: Promise<void> | null = null
+  private lastPermissionAccountEventTimestamp: number = 0
+  private readonly firewallOverviewViewModel: FirewallOverviewViewModel = new FirewallOverviewViewModel()
+  private readonly firewallRulesViewModel: FirewallRulesViewModel = new FirewallRulesViewModel()
   private readonly identitySettingsViewModel: IdentitySettingsViewModel = new IdentitySettingsViewModel()
   private readonly logManageViewModel: LogManageViewModel = new LogManageViewModel()
   private readonly peripheralViewModel: PeripheralViewModel = new PeripheralViewModel()
   private readonly permissionViewModel: PermissionViewModel = new PermissionViewModel()
   private readonly toolSettingsViewModel: ToolSettingsViewModel = new ToolSettingsViewModel()
+  private readonly accountRuntimeService: AccountRuntimeService = new AccountRuntimeService(
+    async (payload: AccountChangeEventPayload): Promise<void> => {
+      await this.handleAccountChange(payload)
+    }
+  )
   private readonly connectionRecordProducer: PeripheralConnectionRecordRuntimeProducerAdapter =
     new PeripheralConnectionRecordRuntimeProducerAdapter()
   private readonly connectionRecordPipeline: PeripheralConnectionRecordPipelineImpl =
@@ -52,6 +66,19 @@ export class ApplicationRuntimeManager {
 
   bindContext(context: common.UIAbilityContext): void {
     this.context = context
+    this.accountRuntimeService.start()
+  }
+
+  release(): void {
+    this.accountRuntimeService.stop()
+  }
+
+  getFirewallOverviewViewModel(): FirewallOverviewViewModel {
+    return this.firewallOverviewViewModel
+  }
+
+  getFirewallRulesViewModel(): FirewallRulesViewModel {
+    return this.firewallRulesViewModel
   }
 
   getLogManageViewModel(): LogManageViewModel {
@@ -100,6 +127,7 @@ export class ApplicationRuntimeManager {
 
   async ensurePermissionRuntimeServices(): Promise<void> {
     await this.ensurePermissionRuntimeInitialized()
+    await this.refreshPermissionForLatestAccountState()
   }
 
   async refreshLogManageData(): Promise<void> {
@@ -120,13 +148,6 @@ export class ApplicationRuntimeManager {
     let refreshResult = await viewModel.refreshAll()
     if (!refreshResult.success) {
       LogUtils.warn(TAG, `LogManageViewModel refresh failed: ${refreshResult.code}`)
-    }
-  }
-
-  async refreshPermissionManageData(): Promise<void> {
-    let viewModel = this.permissionViewModel
-    if (!viewModel.state.initialized) {
-      await viewModel.loadInitialState()
     }
   }
 
@@ -280,5 +301,60 @@ export class ApplicationRuntimeManager {
       throw new Error('Application runtime context is not bound')
     }
     return this.context
+  }
+
+  private async handleAccountChange(payload: AccountChangeEventPayload): Promise<void> {
+    await Promise.all([
+      this.refreshPermissionForAccountChange(payload),
+      this.refreshFirewallOverviewForAccountChange(),
+      this.refreshFirewallRulesForAccountChange()
+    ])
+  }
+
+  private async refreshPermissionForLatestAccountState(): Promise<void> {
+    let payload = this.accountRuntimeService.getLatestPayload()
+    if (!payload || payload.timestamp <= this.lastPermissionAccountEventTimestamp) {
+      return
+    }
+    await this.refreshPermissionForAccountChange(payload)
+  }
+
+  private async refreshPermissionForAccountChange(payload: AccountChangeEventPayload): Promise<void> {
+    if (!this.permissionRuntimeInitialized && !this.permissionViewModel.state.initialized) {
+      return
+    }
+    try {
+      let success = await this.permissionViewModel.refreshForAccountChange()
+      if (success) {
+        this.lastPermissionAccountEventTimestamp = payload.timestamp
+      }
+    } catch (err) {
+      LogUtils.warn(TAG, `refresh permission for account change failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private async refreshFirewallOverviewForAccountChange(): Promise<void> {
+    let context = this.context
+    if (!context || !this.firewallOverviewViewModel.state.initialized) {
+      return
+    }
+    try {
+      await this.firewallOverviewViewModel.refresh(context)
+    } catch (err) {
+      LogUtils.warn(TAG, `refresh firewall overview for account change failed: ${JSON.stringify(err)}`)
+    }
+  }
+
+  private async refreshFirewallRulesForAccountChange(): Promise<void> {
+    let context = this.context
+    if (!context || !this.firewallRulesViewModel.hasLoadedData()) {
+      return
+    }
+    try {
+      let users: UserFirewallOption[] = (await SystemUserProvider.loadAvailableUserIds()).users
+      await this.firewallRulesViewModel.refreshForAccountChange(context, users)
+    } catch (err) {
+      LogUtils.warn(TAG, `refresh firewall rules for account change failed: ${JSON.stringify(err)}`)
+    }
   }
 }

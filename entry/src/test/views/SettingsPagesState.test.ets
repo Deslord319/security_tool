@@ -77,6 +77,8 @@ export default function settingsPagesStateTest() {
     it('should expose shared identity and tool settings viewModels from runtime manager', 0, () => {
       const manager = ApplicationRuntimeManager.getInstance()
 
+      expect(manager.getFirewallOverviewViewModel() === manager.getFirewallOverviewViewModel()).assertTrue()
+      expect(manager.getFirewallRulesViewModel() === manager.getFirewallRulesViewModel()).assertTrue()
       expect(manager.getIdentitySettingsViewModel() === manager.getIdentitySettingsViewModel()).assertTrue()
       expect(manager.getToolSettingsViewModel() === manager.getToolSettingsViewModel()).assertTrue()
     })
