@@ -127,12 +127,24 @@ export default function firewallAccountChangeHandlerTest() {
       let pruneMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
       let currentModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getCurrentMode)
       let desiredEnabledMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getDesiredEnabled)
+      let saveModeApplyStateMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveModeApplyState)
       let policyMock = mockKit.mockFunc(FirewallPolicyService, FirewallPolicyService.applyPolicyForMode)
       let applyModeMock = mockKit.mockFunc(FirewallModeSwitchService, FirewallModeSwitchService.applyModeToUsers)
+      let savedMode: FirewallPresetMode | undefined = undefined
+      let savedSignature = ''
 
       when(pruneMock)(ArgumentMatchers.any).afterReturn(true)
       when(currentModeMock)(ArgumentMatchers.any).afterReturn('custom')
       when(desiredEnabledMock)(ArgumentMatchers.any).afterReturn(true)
+      when(saveModeApplyStateMock)(ArgumentMatchers.any).afterAction((
+        _context: common.Context,
+        mode: FirewallPresetMode,
+        signature: string
+      ): boolean => {
+        savedMode = mode
+        savedSignature = signature
+        return true
+      })
       when(policyMock)(ArgumentMatchers.any).afterAction((
         _context: common.UIAbilityContext,
         mode: FirewallPresetMode,
@@ -156,6 +168,27 @@ export default function firewallAccountChangeHandlerTest() {
       expect(policyUserCount).assertEqual(2)
       expect(policyDesiredEnabled).assertTrue()
       expect(replayCount).assertEqual(0)
+      expect(savedMode).assertEqual('custom')
+      expect(savedSignature).assertEqual('100,101')
+      done()
+    })
+
+    it('should report failure when custom mode apply state save fails', 0, async (done: Function) => {
+      let pruneMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.pruneUnavailableUsers)
+      let currentModeMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getCurrentMode)
+      let desiredEnabledMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.getDesiredEnabled)
+      let saveModeApplyStateMock = mockKit.mockFunc(FirewallLocalRepository, FirewallLocalRepository.saveModeApplyState)
+      let policyMock = mockKit.mockFunc(FirewallPolicyService, FirewallPolicyService.applyPolicyForMode)
+
+      when(pruneMock)(ArgumentMatchers.any).afterReturn(true)
+      when(currentModeMock)(ArgumentMatchers.any).afterReturn('custom')
+      when(desiredEnabledMock)(ArgumentMatchers.any).afterReturn(true)
+      when(policyMock)(ArgumentMatchers.any).afterReturn([])
+      when(saveModeApplyStateMock)(ArgumentMatchers.any).afterReturn(false)
+
+      let handled = await FirewallAccountChangeHandler.handle(context, buildSnapshot())
+
+      expect(handled).assertFalse()
       done()
     })
 

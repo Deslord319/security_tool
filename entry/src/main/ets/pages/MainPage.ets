@@ -101,6 +101,10 @@ struct MainPage {
   }
 
   private async handleAccountChangeEvent(): Promise<void> {
+    if (this.currentPage === RouteIds.PERMISSION_MANAGE) {
+      await this.permissionViewModel.refreshForAccountChange()
+      return
+    }
     if (this.currentPage !== RouteIds.FIREWALL && this.currentPage !== RouteIds.FIREWALL_RULES) {
       return
     }

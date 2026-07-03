@@ -53,6 +53,17 @@ export class PermissionViewModel {
     }
   }
 
+  async refreshForAccountChange(): Promise<boolean> {
+    if (this.state.loading) {
+      return false
+    }
+    if (!this.state.initialized) {
+      await this.loadInitialState()
+      return this.state.initialized
+    }
+    return await this.refreshAccountsAndApplicationList()
+  }
+
   async refreshApplications(): Promise<boolean> {
     if (this.state.loading) {
       return false

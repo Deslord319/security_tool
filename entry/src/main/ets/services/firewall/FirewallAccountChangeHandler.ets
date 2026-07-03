@@ -34,6 +34,11 @@ export class FirewallAccountChangeHandler {
         LogUtils.warn(TAG, `apply custom policy failed: ${JSON.stringify(failedItems)}`)
         return false
       }
+      let modeApplyStateSaved = await FirewallLocalRepository.saveModeApplyState(context, currentMode, snapshot.signature)
+      if (!modeApplyStateSaved) {
+        LogUtils.warn(TAG, 'save custom mode apply state failed')
+        return false
+      }
       return true
     }
 

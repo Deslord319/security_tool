@@ -182,6 +182,111 @@ export default function permissionViewModelTest() {
       }
     })
 
+    it('should initialize permission state for account change before page initialization', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let app = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        let loadInitialStateMock = mockKit.mockFunc(PermissionService, PermissionService.loadInitialState)
+        when(loadInitialStateMock)().afterReturn(Promise.resolve({
+          selectedAccountId: 100,
+          selectedAppKey: '',
+          inventoryMessage: '',
+          accounts: [buildPermissionAccount(100, true)],
+          appSnapshots: [buildAppSnapshot(app)],
+          installPolicies: []
+        } as PermissionInitialData))
+
+        let success = await viewModel.refreshForAccountChange()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.initialized).assertTrue()
+        expect(viewModel.state.selectedAccountId).assertEqual(100)
+        expect(viewModel.state.appSnapshots.length).assertEqual(1)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should refresh account state for account change without switching when current account remains', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let currentApp = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = currentApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(currentApp)]
+        viewModel.state.filteredAppKeys = [currentApp.appKey]
+        let loadedAccountId = -1
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve({
+          accounts: [buildPermissionAccount(100), buildPermissionAccount(101, true)],
+          selectedAccountId: 101
+        } as PermissionAccountListResult))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((accountId: number): Promise<ApplicationInventoryResult> => {
+          loadedAccountId = accountId
+          return Promise.resolve({
+            appSnapshots: [buildAppSnapshot(currentApp)],
+            installPolicies: []
+          } as ApplicationInventoryResult)
+        })
+
+        let success = await viewModel.refreshForAccountChange()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAccountId).assertEqual(100)
+        expect(loadedAccountId).assertEqual(100)
+        expect(viewModel.state.accounts.length).assertEqual(2)
+        expect(viewModel.state.selectedAppKey).assertEqual(currentApp.appKey)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
+    it('should fallback and clear selected app when account change removes current account', 0, async (done: Function) => {
+      let mockKit = new MockKit()
+      try {
+        let viewModel = new PermissionViewModel()
+        let removedApp = buildManagedApplication(100, 'com.example.mail', 'Mail')
+        viewModel.state.initialized = true
+        viewModel.state.selectedAccountId = 100
+        viewModel.state.accounts = [buildPermissionAccount(100, true)]
+        viewModel.state.selectedAppKey = removedApp.appKey
+        viewModel.state.appSnapshots = [buildAppSnapshot(removedApp, true)]
+        viewModel.state.policyRecords = PermissionService.buildPolicyRecordsFromState(viewModel.state.appSnapshots, [])
+        let loadedAccountId = -1
+        let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
+        let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
+        when(loadAccountsMock)().afterReturn(Promise.resolve({
+          accounts: [buildPermissionAccount(101, true)],
+          selectedAccountId: 101
+        } as PermissionAccountListResult))
+        when(loadApplicationsMock)(ArgumentMatchers.any).afterAction((accountId: number): Promise<ApplicationInventoryResult> => {
+          loadedAccountId = accountId
+          return Promise.resolve({
+            appSnapshots: [buildManagedApplication(accountId, 'com.example.browser', 'Browser')],
+            installPolicies: []
+          } as ApplicationInventoryResult)
+        })
+
+        let success = await viewModel.refreshForAccountChange()
+
+        expect(success).assertTrue()
+        expect(viewModel.state.selectedAccountId).assertEqual(101)
+        expect(loadedAccountId).assertEqual(101)
+        expect(viewModel.state.selectedAppKey).assertEqual('')
+        expect(viewModel.state.policyRecords.length).assertEqual(0)
+      } finally {
+        mockKit.clearAll()
+        done()
+      }
+    })
+
     it('should refresh account options before refreshing application list', 0, async (done: Function) => {
       let mockKit = new MockKit()
       try {
