@@ -9,7 +9,7 @@ import {
   LogEntry,
   LogEventType
 } from '../../../models/LogModels'
-import { AuditSubscribeResult, LogEntryCallback, SourceStatus } from '../common/LogManagePorts'
+import { AuditSubscribeResult, LogEntryCallback } from '../common/LogManagePorts'
 import { parseAuditEventToLogEntry } from './LogAuditEventMapper'
 import { ErrorLike } from '../../../types/LooseValueTypes'
 import { AUDIT_LOG_EVENT_IDS, AUTH_AUDIT_EVENT_IDS, CRASH_AUDIT_EVENT_IDS, FILE_AUDIT_EVENT_IDS } from './LogAuditEventIds'
@@ -108,13 +108,6 @@ export class LogAuditSource {
     } catch (err) {
       LogUtils.error(TAG, `unsubscribe failed: ${JSON.stringify(err)}`)
       return false
-    }
-  }
-
-  static getStatus(): SourceStatus {
-    return {
-      subscribed: LogAuditSource.isSubscribed,
-      errorCode: LogAuditSource.lastSubscribeErrorCode
     }
   }
 

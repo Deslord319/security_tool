@@ -1,10 +1,8 @@
 import hiAppEvent from '@ohos.hiviewdfx.hiAppEvent'
 import { LogEntry } from '../../../models/LogModels'
 import { LogUtils } from '../../../utils/LogUtils'
-import { CommonErrorUtils } from '../../../utils/CommonErrorUtils'
-import { CrashSubscribeResult, LogEntryCallback, SourceStatus } from '../common/LogManagePorts'
+import { CrashSubscribeResult, LogEntryCallback } from '../common/LogManagePorts'
 import { mapCrashInfoToLogEntry } from './LogCrashEventMapper'
-import { ErrorLike } from '../../../types/LooseValueTypes'
 
 const TAG = 'LogCrashSource'
 const WATCHER_NAME = 'securityCrashWatcher1'
@@ -12,7 +10,6 @@ const WATCHER_NAME = 'securityCrashWatcher1'
 export class LogCrashSource {
   private static callback: LogEntryCallback | null = null
   private static subscribed: boolean = false
-  private static lastErrorCode: number | undefined = undefined
   private static readonly watcher: hiAppEvent.Watcher = {
     name: WATCHER_NAME,
     appEventFilters: [{
@@ -34,10 +31,8 @@ export class LogCrashSource {
       LogCrashSource.callback = onEntry
       hiAppEvent.addWatcher(LogCrashSource.watcher)
       LogCrashSource.subscribed = true
-      LogCrashSource.lastErrorCode = undefined
       return { success: true, code: 'ok' }
     } catch (err) {
-      LogCrashSource.lastErrorCode = CommonErrorUtils.extractErrorCode(err as ErrorLike)
       LogUtils.error(TAG, `addWatcher failed: ${JSON.stringify(err)}`)
       return { success: false, code: 'unsupported' }
     }
@@ -56,13 +51,6 @@ export class LogCrashSource {
     } catch (err) {
       LogUtils.warn(TAG, `removeWatcher failed: ${JSON.stringify(err)}`)
       return false
-    }
-  }
-
-  static getStatus(): SourceStatus {
-    return {
-      subscribed: LogCrashSource.subscribed,
-      errorCode: LogCrashSource.lastErrorCode
     }
   }
 
