@@ -12,13 +12,13 @@ import {
   collectPayloadSources,
   pickNumber,
   pickString
-} from './peripheral_connection_record_payload_utils'
+} from './PeripheralConnectionRecordPayloadUtils'
 import {
   PeripheralConnectionRecordConsumeResult,
   PeripheralConnectionRecordConsumer,
   PeripheralConnectionRecordProducerEvent,
   PeripheralConnectionAction
-} from './peripheral_connection_record_producer_contract'
+} from './PeripheralConnectionRecordProducerContract'
 import { StatusText } from '../../../constants/StringCatalog'
 import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { OperationResult } from '../../main/ets/models/CommonModels'
+import { PeripheralInterfaceFeatures } from '../../main/ets/models/PeripheralModels'
 import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
@@ -45,7 +46,7 @@ export default function interfaceControlViewModelTest() {
     )
     when(setUsbDefaultPolicyMock)('deny').afterReturn(Promise.resolve(true))
 
-    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.USB, true)
 
     expect(reason).assertNull()
     expect(viewModel.processingKey).assertEqual('')
@@ -60,7 +61,7 @@ export default function interfaceControlViewModelTest() {
     )
     when(setUsbDefaultPolicyMock)('deny').afterReturn(Promise.resolve(false))
 
-    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_USB, true)
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.USB, true)
 
     expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
     done()
@@ -113,13 +114,13 @@ export default function interfaceControlViewModelTest() {
     let restoreResult = new VoidOperationResult()
     restoreResult.success = true
     when(isUsbDefaultDenyMock)().afterReturn(false)
-    when(getInterfaceMock)(PeripheralService.FEATURE_BLUETOOTH).afterReturn(enabledResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_WIFI).afterReturn(enabledResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_HDC).afterReturn(enabledResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_NETWORK).afterReturn(disabledResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_PRINTER).afterReturn(enabledResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_MICROPHONE).afterReturn(enabledResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_CAMERA).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.BLUETOOTH).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.WIFI).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.HDC).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.NETWORK).afterReturn(disabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.PRINTER).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.MICROPHONE).afterReturn(enabledResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.CAMERA).afterReturn(enabledResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
     when(restorePowerMock)(ArgumentMatchers.any).afterReturn(restoreResult)
 
@@ -142,7 +143,7 @@ export default function interfaceControlViewModelTest() {
     usbResult.success = true
     usbResult.data = edmUsbManager.UsbPolicy.DISABLED
     when(setUsbStorageMock)(edmUsbManager.UsbPolicy.DISABLED).afterReturn(setResult)
-    when(getInterfaceMock)(PeripheralService.FEATURE_USB).afterReturn(getInterfaceResult)
+    when(getInterfaceMock)(PeripheralInterfaceFeatures.USB).afterReturn(getInterfaceResult)
     when(getUsbStorageMock)().afterReturn(usbResult)
 
     const reason = await viewModel.setUsbStoragePolicy(2)
@@ -184,7 +185,7 @@ export default function interfaceControlViewModelTest() {
     setResult.success = true
     when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
-    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_BLUETOOTH, true)
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.BLUETOOTH, true)
 
     expect(reason).assertNull()
     expect(viewModel.state.btDisabled).assertTrue()
@@ -197,7 +198,7 @@ export default function interfaceControlViewModelTest() {
     setResult.success = true
     when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
-    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_WIFI, true)
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.WIFI, true)
 
     expect(reason).assertNull()
     expect(viewModel.state.wifiDisabled).assertTrue()
@@ -212,7 +213,7 @@ export default function interfaceControlViewModelTest() {
     setResult.stage = PeripheralReasonCodes.TURN_ON_WIFI_FAILED
     when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
 
-    const reason = await viewModel.toggleInterface(PeripheralService.FEATURE_WIFI, false)
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.WIFI, false)
 
     expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
     expect(viewModel.state.wifiDisabled).assertTrue()

@@ -3,10 +3,10 @@ import { LogCollectorService } from '../services/log-manage/collector/LogCollect
 import { PeripheralDevicePolicyRepository } from '../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralTraceMaintenanceService } from '../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { PermissionPolicyLocalRepository } from '../services/permission-manage/PermissionPolicyLocalRepository'
-import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_bluetooth_acl_consumer'
-import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/peripheral_connection_record_pipeline'
-import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/peripheral_connection_record_runtime_producer_adapter'
-import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/peripheral_connection_record_usb_consumer'
+import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/PeripheralConnectionRecordBluetoothAclConsumer'
+import { PeripheralConnectionRecordPipelineImpl } from '../services/peripheral/connection-record/PeripheralConnectionRecordPipeline'
+import { PeripheralConnectionRecordRuntimeProducerAdapter } from '../services/peripheral/connection-record/PeripheralConnectionRecordRuntimeProducerAdapter'
+import { PeripheralConnectionRecordUsbConsumer } from '../services/peripheral/connection-record/PeripheralConnectionRecordUsbConsumer'
 import { IdentitySettingsViewModel } from '../viewmodels/identity/settings/IdentitySettingsViewModel'
 import { LogManageViewModel } from '../viewmodels/log-manage/overview/LogManageViewModel'
 import { PeripheralViewModel } from '../viewmodels/peripheral/overview/PeripheralViewModel'
@@ -120,13 +120,6 @@ export class ApplicationRuntimeManager {
     let refreshResult = await viewModel.refreshAll()
     if (!refreshResult.success) {
       LogUtils.warn(TAG, `LogManageViewModel refresh failed: ${refreshResult.code}`)
-    }
-  }
-
-  async refreshPermissionManageData(): Promise<void> {
-    let viewModel = this.permissionViewModel
-    if (!viewModel.state.initialized) {
-      await viewModel.loadInitialState()
     }
   }
 

@@ -8,7 +8,7 @@ import {
   PeripheralConnectionRecordProducerEvent,
   PeripheralConnectionRecordProducerListener,
   PeripheralConnectionRecordProducerStatus
-} from './peripheral_connection_record_producer_contract'
+} from './PeripheralConnectionRecordProducerContract'
 
 const TAG = 'ConnectionRecordProducer'
 const BLUETOOTH_RUNTIME_PERMISSION: Permissions = 'ohos.permission.ACCESS_BLUETOOTH'

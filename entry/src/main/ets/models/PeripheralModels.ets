@@ -28,6 +28,27 @@ export enum UsbStoragePolicy {
   DISABLED = 2
 }
 
+export type PeripheralInterfaceFeature =
+  'usb' |
+  'bluetooth' |
+  'wifi' |
+  'hdc' |
+  'tethering' |
+  'printer' |
+  'microphone' |
+  'camera'
+
+export class PeripheralInterfaceFeatures {
+  static readonly USB: PeripheralInterfaceFeature = 'usb'
+  static readonly BLUETOOTH: PeripheralInterfaceFeature = 'bluetooth'
+  static readonly WIFI: PeripheralInterfaceFeature = 'wifi'
+  static readonly HDC: PeripheralInterfaceFeature = 'hdc'
+  static readonly NETWORK: PeripheralInterfaceFeature = 'tethering'
+  static readonly PRINTER: PeripheralInterfaceFeature = 'printer'
+  static readonly MICROPHONE: PeripheralInterfaceFeature = 'microphone'
+  static readonly CAMERA: PeripheralInterfaceFeature = 'camera'
+}
+
 export type PeripheralRecordSource = 'runtime_event' | 'audit_event' | 'policy_snapshot'
 
 export type PeripheralRecordAction = 'connect' | 'disconnect' | 'discover' | 'intercept' | 'unknown'

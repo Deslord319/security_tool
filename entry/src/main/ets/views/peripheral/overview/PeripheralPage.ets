@@ -24,9 +24,10 @@ import {
 } from '../../../constants/modules/PeripheralStrings'
 import {
   PeripheralConnectionRecord,
+  PeripheralInterfaceFeature,
+  PeripheralInterfaceFeatures,
   PeripheralPolicyRecord
 } from '../../../models/PeripheralModels'
-import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { ThemeMode } from '../../../theme/ThemeColors'
 import { HoverUtils } from '../../../utils/HoverUtils'
 import { ExportMessageUtils } from '../../../utils/ExportMessageUtils'
@@ -232,7 +233,8 @@ export struct PeripheralPage {
           currentTheme: this.currentTheme,
           hoveredPanelIndex: this.hoveredPanelIndex,
           onUsbInterfaceToggleAsync: async (disallow: boolean): Promise<boolean> => this.handleUsbInterfaceToggle(disallow),
-          onInterfaceToggle: (feature: string, disallow: boolean) => void this.handleInterfaceToggle(feature, disallow),
+          onInterfaceToggle: (feature: PeripheralInterfaceFeature, disallow: boolean) =>
+            void this.handleInterfaceToggle(feature, disallow),
           onUsbStoragePolicyChange: async (index: number): Promise<boolean> => this.handleUsbStoragePolicyChange(index),
           onPanelHover: (isHover: boolean) => this.setPanelHover(0, isHover)
         })
@@ -296,7 +298,7 @@ export struct PeripheralPage {
       PeripheralLoadingStrings.USB_INTERFACE,
       async (): Promise<boolean> => {
         LogUtils.info(TAG, `usb interface switch start: disallow=${disallow}`)
-        return await this.viewModel.toggleInterface(PeripheralService.FEATURE_USB, disallow)
+        return await this.viewModel.toggleInterface(PeripheralInterfaceFeatures.USB, disallow)
       },
       (dialogMessage: string): CustomDialogController => DialogService.createLoadingController(dialogMessage, this.currentTheme)
     )
@@ -312,8 +314,8 @@ export struct PeripheralPage {
     return true
   }
 
-  private async handleInterfaceToggle(feature: string, disallow: boolean): Promise<void> {
-    if (feature === PeripheralService.FEATURE_USB) {
+  private async handleInterfaceToggle(feature: PeripheralInterfaceFeature, disallow: boolean): Promise<void> {
+    if (feature === PeripheralInterfaceFeatures.USB) {
       await this.handleUsbInterfaceToggle(disallow)
       return
     }

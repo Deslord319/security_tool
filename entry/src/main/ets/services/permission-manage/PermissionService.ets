@@ -45,7 +45,7 @@ export class PermissionService {
 
   static async loadApplications(accountId: number): Promise<ApplicationInventoryResult> {
     let inventory = await ApplicationInventoryRepository.loadApplications(accountId)
-    let policySnapshot = await PermissionService.loadAccountPolicySnapshot(accountId, inventory.appSnapshots)
+    let policySnapshot = await PermissionService.loadAndReconcileAccountPolicySnapshot(accountId, inventory.appSnapshots)
     return {
       appSnapshots: policySnapshot.appSnapshots,
       installPolicies: policySnapshot.installPolicies,
@@ -57,7 +57,7 @@ export class PermissionService {
     return await PermissionAccountProvider.loadAccounts()
   }
 
-  static async loadAccountPolicySnapshot(
+  static async loadAndReconcileAccountPolicySnapshot(
     accountId: number,
     appSnapshots: PermissionAppSnapshot[]
   ): Promise<ApplicationInventoryResult> {

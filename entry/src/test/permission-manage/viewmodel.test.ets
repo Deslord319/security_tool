@@ -933,7 +933,10 @@ export default function permissionViewModelTest() {
         let profileCalls = 0
         let accountSnapshotCalls = 0
         let loadPermissionProfileMock = mockKit.mockFunc(PermissionService, PermissionService.loadPermissionProfile)
-        let loadAccountPolicySnapshotMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccountPolicySnapshot)
+        let loadAccountPolicySnapshotMock = mockKit.mockFunc(
+          PermissionService,
+          PermissionService.loadAndReconcileAccountPolicySnapshot
+        )
         when(loadPermissionProfileMock)(ArgumentMatchers.any).afterAction((
           snapshot: PermissionAppSnapshot
         ): Promise<ApplicationPermissionProfile> => {
@@ -999,7 +1002,10 @@ export default function permissionViewModelTest() {
         let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let setRunningPolicyMock = mockKit.mockFunc(PermissionService, PermissionService.setRunningBlocked)
-        let loadAccountPolicySnapshotMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccountPolicySnapshot)
+        let loadAccountPolicySnapshotMock = mockKit.mockFunc(
+          PermissionService,
+          PermissionService.loadAndReconcileAccountPolicySnapshot
+        )
         when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: [buildAppSnapshot(app)],
@@ -1273,7 +1279,10 @@ export default function permissionViewModelTest() {
         let loadAccountsMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccounts)
         let loadApplicationsMock = mockKit.mockFunc(PermissionService, PermissionService.loadApplications)
         let deletePolicyRecordMock = mockKit.mockFunc(PermissionService, PermissionService.deletePolicyRecord)
-        let loadAccountPolicySnapshotMock = mockKit.mockFunc(PermissionService, PermissionService.loadAccountPolicySnapshot)
+        let loadAccountPolicySnapshotMock = mockKit.mockFunc(
+          PermissionService,
+          PermissionService.loadAndReconcileAccountPolicySnapshot
+        )
         when(loadAccountsMock)().afterReturn(Promise.resolve(buildPermissionAccountListResult(100)))
         when(loadApplicationsMock)(ArgumentMatchers.any).afterReturn(Promise.resolve({
           appSnapshots: applications,
@@ -1784,7 +1793,7 @@ export default function permissionViewModelTest() {
           restrictedAppUids: []
         } as PermissionAccountPolicySnapshotTaskData))
 
-        let result = await PermissionService.loadAccountPolicySnapshot(100, [snapshot])
+        let result = await PermissionService.loadAndReconcileAccountPolicySnapshot(100, [snapshot])
         let records = PermissionService.buildPolicyRecordsFromState(result.appSnapshots, result.installPolicies)
 
         expect(records.filter((r: PermissionPolicyRecord): boolean => r.actionKind === 'three-d').length).assertEqual(0)
@@ -1830,7 +1839,7 @@ export default function permissionViewModelTest() {
           restrictedAppUids: []
         } as PermissionAccountPolicySnapshotTaskData))
 
-        let result = await PermissionService.loadAccountPolicySnapshot(100, [snapshot])
+        let result = await PermissionService.loadAndReconcileAccountPolicySnapshot(100, [snapshot])
         let records = PermissionService.buildPolicyRecordsFromState(result.appSnapshots, result.installPolicies)
 
         expect(records.filter((r: PermissionPolicyRecord): boolean => r.actionKind === 'three-d').length).assertEqual(0)

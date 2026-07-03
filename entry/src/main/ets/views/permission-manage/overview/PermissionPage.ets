@@ -486,16 +486,16 @@ export struct PermissionPage {
           bottom: POLICY_EMPTY_VERTICAL_PADDING
         })
     } else {
-      ForEach([this.getApplicationPolicyRenderKey()], (renderKey: string) => {
+      ForEach([this.getSelectedAppSnapshot() as PermissionAppSnapshot], (snapshot: PermissionAppSnapshot) => {
         PermissionApplicationPolicyPanel({
-          appKey: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).appKey,
-          uid: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).uid,
-          uninstallProtected: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).uninstallProtected,
-          runningBlocked: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).runningBlocked,
-          networkBlocked: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).networkBlocked,
-          threeDGroups: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).threeDGroups,
-          threeDLoadState: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).threeDLoadState,
-          threeDMessage: (this.getSelectedAppSnapshot() as PermissionAppSnapshot).threeDMessage,
+          appKey: snapshot.appKey,
+          uid: snapshot.uid,
+          uninstallProtected: snapshot.uninstallProtected,
+          runningBlocked: snapshot.runningBlocked,
+          networkBlocked: snapshot.networkBlocked,
+          threeDGroups: snapshot.threeDGroups,
+          threeDLoadState: snapshot.threeDLoadState,
+          threeDMessage: snapshot.threeDMessage,
           loadingSelectedApp: this.viewModel.state.loadingSelectedApp,
           processingActionKey: this.viewModel.state.processingActionKey,
           currentTheme: this.currentTheme,
@@ -520,13 +520,11 @@ export struct PermissionPage {
             )
           }
         })
-          .id(renderKey)
-      }, (renderKey: string): string => renderKey)
+      }, (snapshot: PermissionAppSnapshot): string => this.getApplicationPolicyRenderKey(snapshot))
     }
   }
 
-  private getApplicationPolicyRenderKey(): string {
-    let snapshot = this.getSelectedAppSnapshot()
+  private getApplicationPolicyRenderKey(snapshot: PermissionAppSnapshot | undefined): string {
     if (snapshot === undefined) {
       return 'empty'
     }

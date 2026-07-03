@@ -10,7 +10,7 @@ import {
   parseJsonObjectField,
   readDeviceField,
   toRecordArray
-} from '../../main/ets/services/peripheral/connection-record/peripheral_connection_record_payload_utils'
+} from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordPayloadUtils'
 
 class TestRecord {
   name?: LooseValue
@@ -42,7 +42,7 @@ function asRecord(record: TestRecord): LooseRecord {
 }
 
 export default function peripheralPayloadUtilsTest() {
-  describe('peripheral_connection_record_payload_utils', () => {
+  describe('PeripheralConnectionRecordPayloadUtils', () => {
     it('should convert object to record', 0, () => {
       let obj = asRecord(new TestRecord())
       ;(obj as TestRecord).name = 'test'
