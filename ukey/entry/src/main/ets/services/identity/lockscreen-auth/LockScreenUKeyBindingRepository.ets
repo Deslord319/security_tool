@@ -3,6 +3,8 @@ import { BusinessError } from '@kit.BasicServicesKit'
 import {
   LockScreenUKeyActiveCredential,
   LockScreenUKeyBinding,
+  LockScreenUKeyCredentialLifecycle,
+  LockScreenUKeyUserCredential,
   PREF_KEY_LOCKSCREEN_UKEY_ACTIVE_CREDENTIAL,
   PREF_KEY_LOCKSCREEN_UKEY_BINDING,
   PREF_STORE_NAME_LOCKSCREEN_AUTH
@@ -11,6 +13,27 @@ import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAcc
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'LockScreenUKey.BindingRepo'
+
+function isValidCredentialLifecycle(lifecycle: LockScreenUKeyCredentialLifecycle): boolean {
+  return lifecycle === 'active' || lifecycle === 'failed'
+}
+
+function isValidUserCredential(credential: LockScreenUKeyUserCredential): boolean {
+  return typeof credential.credentialIdHex === 'string' && credential.credentialIdHex.length > 0 &&
+    typeof credential.pluginInfo === 'string' && credential.pluginInfo.length > 0 &&
+    typeof credential.userId === 'number' && Number.isFinite(credential.userId) &&
+    typeof credential.createdAt === 'number' && Number.isFinite(credential.createdAt) &&
+    isValidCredentialLifecycle(credential.lifecycle)
+}
+
+function isValidUserCredentialList(credentials: LockScreenUKeyUserCredential[]): boolean {
+  if (!Array.isArray(credentials) || credentials.length === 0) {
+    return false
+  }
+  return credentials.every((credential: LockScreenUKeyUserCredential): boolean => {
+    return isValidUserCredential(credential)
+  })
+}
 
 export interface LockScreenUKeyBindingRepository {
   loadBinding(context: common.Context): Promise<LockScreenUKeyBinding | null>
@@ -69,11 +92,12 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
     if (!binding) {
       return false
     }
-    return typeof binding.fingerprint === 'string' && binding.fingerprint.length > 0 &&
+    let validRoot = typeof binding.fingerprint === 'string' && binding.fingerprint.length > 0 &&
       typeof binding.deviceId === 'string' && binding.deviceId.length > 0 &&
       typeof binding.credentialIdHex === 'string' && binding.credentialIdHex.length > 0 &&
       typeof binding.pluginInfo === 'string' && binding.pluginInfo.length > 0 &&
       typeof binding.userId === 'number' && Number.isFinite(binding.userId)
+    return validRoot && isValidUserCredentialList(binding.userCredentials)
   }
 }
 
@@ -143,11 +167,12 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
     if (!credential) {
       return false
     }
-    return typeof credential.credentialIdHex === 'string' && credential.credentialIdHex.length > 0 &&
+    let validRoot = typeof credential.credentialIdHex === 'string' && credential.credentialIdHex.length > 0 &&
       typeof credential.pluginInfo === 'string' && credential.pluginInfo.length > 0 &&
       typeof credential.fingerprint === 'string' && credential.fingerprint.length > 0 &&
       typeof credential.deviceId === 'string' && credential.deviceId.length > 0 &&
       typeof credential.userId === 'number' && Number.isFinite(credential.userId) &&
-      (credential.lifecycle === 'active' || credential.lifecycle === 'failed')
+      isValidCredentialLifecycle(credential.lifecycle)
+    return validRoot && isValidUserCredentialList(credential.userCredentials)
   }
 }

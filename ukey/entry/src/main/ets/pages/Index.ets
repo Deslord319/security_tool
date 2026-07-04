@@ -1,9 +1,11 @@
 import { common } from '@kit.AbilityKit'
+import { BusinessError, commonEventManager } from '@kit.BasicServicesKit'
 import {
   LockScreenAuthRepository,
   PreferencesLockScreenAuthRepository
 } from '../services/identity/lockscreen-auth/LockScreenAuthRepository'
 import {
+  CustomAuthCredentialVerificationSummary,
   LockScreenCustomAuthEnrollmentService
 } from '../services/identity/lockscreen-auth/LockScreenCustomAuthEnrollmentService'
 import {
@@ -15,8 +17,7 @@ import {
 } from '../services/identity/lockscreen-auth/LockScreenUKeyBindingRepository'
 import {
   DdkLockScreenUKeyDeviceService,
-  LockScreenUKeyDeviceProvider,
-  UsbLockScreenUKeyDeviceService
+  LockScreenUKeyDeviceProvider
 } from '../services/identity/lockscreen-auth/LockScreenUKeyDeviceService'
 import { UKeyRuntimeManager } from '../runtime/UKeyRuntimeManager'
 import { LogUtils } from '../utils/LogUtils'
@@ -26,7 +27,7 @@ import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionToggleRow } from '../components/SectionRows'
 
 const TAG = 'UKeyIndex'
-const CURRENT_DEVICE_REFRESH_INTERVAL_MS = 1000
+const USB_DETACH_REFRESH_DELAY_MS = 600
 
 @Entry
 @Component
@@ -39,22 +40,26 @@ struct Index {
   @State private currentDevices: LockScreenUKeyDevice[] = []
   @State private currentDeviceMessage: string = ''
   @State private activeCredential: LockScreenUKeyActiveCredential | null = null
-  private currentDeviceRefreshTimer: number = -1
+  @State private verifyingCredential: boolean = false
+  @State private credentialSubmitting: boolean = false
+  @State private systemPinInput: string = ''
+  @State private ukeyPasswordInput: string = ''
+  private runtimeStateRefreshInFlight: boolean = false
+  private usbSubscriber: commonEventManager.CommonEventSubscriber | null = null
 
   private readonly configRepository: LockScreenAuthRepository = new PreferencesLockScreenAuthRepository()
   private readonly activeCredentialRepository: PreferencesLockScreenUKeyActiveCredentialRepository =
     new PreferencesLockScreenUKeyActiveCredentialRepository()
   private readonly enrollmentService: LockScreenCustomAuthEnrollmentService = new LockScreenCustomAuthEnrollmentService()
   private readonly ddkDeviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService()
-  private readonly usbFallbackDeviceProvider: LockScreenUKeyDeviceProvider = new UsbLockScreenUKeyDeviceService()
 
   aboutToAppear(): void {
     this.refreshState()
-    this.startCurrentDeviceRefresh()
+    this.registerUKeyDeviceEvents()
   }
 
   aboutToDisappear(): void {
-    this.stopCurrentDeviceRefresh()
+    this.unregisterUKeyDeviceEvents()
   }
 
   private getPageContext(): common.UIAbilityContext {
@@ -69,11 +74,11 @@ struct Index {
     try {
       let context = this.getPageContext()
       let config = await this.configRepository.loadConfig(context)
+      await this.enrollmentService.reconcileSystemCredentials(context)
       let activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
       this.ukeyUnlockEnabled = config.ukeyUnlockEnabled
       this.refreshCurrentDevices()
       this.activeCredential = activeCredential
-      this.statusMessage = '状态已刷新'
     } catch (err) {
       LogUtils.warn(TAG, `refreshState failed: ${JSON.stringify(err)}`)
       this.statusMessage = '状态刷新失败'
@@ -90,42 +95,102 @@ struct Index {
       return
     }
 
-    let fallbackResult = this.usbFallbackDeviceProvider.getCandidateDevices()
-    if (fallbackResult.success) {
-      this.currentDevices = fallbackResult.data ?? []
-      this.currentDeviceMessage = this.buildCurrentDeviceMessage(this.currentDevices)
-      return
-    }
-
     this.currentDevices = []
-    this.currentDeviceMessage = ddkResult.errorMessage ?? fallbackResult.errorMessage ?? 'UKey 读取失败'
+    this.currentDeviceMessage = ddkResult.errorMessage ?? 'UKey 读取失败'
   }
 
-  private startCurrentDeviceRefresh(): void {
-    if (this.currentDeviceRefreshTimer >= 0) {
+  private async refreshRuntimeState(): Promise<void> {
+    if (this.runtimeStateRefreshInFlight) {
       return
     }
-    this.currentDeviceRefreshTimer = setInterval(() => {
+    this.runtimeStateRefreshInFlight = true
+    try {
       this.refreshCurrentDevices()
-    }, CURRENT_DEVICE_REFRESH_INTERVAL_MS)
+      let context = this.getPageContext()
+      await this.enrollmentService.reconcileSystemCredentials(context)
+      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+    } catch (err) {
+      LogUtils.warn(TAG, `refreshRuntimeState failed: ${JSON.stringify(err)}`)
+    } finally {
+      this.runtimeStateRefreshInFlight = false
+    }
   }
 
-  private stopCurrentDeviceRefresh(): void {
-    if (this.currentDeviceRefreshTimer < 0) {
+  private registerUKeyDeviceEvents(): void {
+    if (this.usbSubscriber) {
       return
     }
-    clearInterval(this.currentDeviceRefreshTimer)
-    this.currentDeviceRefreshTimer = -1
+    let subscribeInfo: commonEventManager.CommonEventSubscribeInfo = {
+      events: [
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED
+      ]
+    }
+    commonEventManager.createSubscriber(subscribeInfo, (err: BusinessError, subscriber) => {
+      if (err) {
+        LogUtils.warn(TAG, `create USB subscriber failed: ${JSON.stringify(err)}`)
+        return
+      }
+      this.usbSubscriber = subscriber
+      commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
+        if (callbackErr) {
+          LogUtils.warn(TAG, `USB event callback failed: ${JSON.stringify(callbackErr)}`)
+          return
+        }
+        this.handleUKeyDeviceEvent(data)
+      })
+    })
+  }
+
+  private unregisterUKeyDeviceEvents(): void {
+    let subscriber = this.usbSubscriber
+    this.usbSubscriber = null
+    if (!subscriber) {
+      return
+    }
+    commonEventManager.unsubscribe(subscriber, (err?: BusinessError) => {
+      if (err) {
+        LogUtils.warn(TAG, `unsubscribe USB event failed: ${JSON.stringify(err)}`)
+      }
+    })
+  }
+
+  private handleUKeyDeviceEvent(data: commonEventManager.CommonEventData): void {
+    let eventName = data.event ?? ''
+    if (eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED) {
+      setTimeout(() => {
+        this.refreshRuntimeState()
+      }, USB_DETACH_REFRESH_DELAY_MS)
+      return
+    }
+    this.refreshRuntimeState()
   }
 
   private buildCurrentDeviceMessage(devices: LockScreenUKeyDevice[]): string {
     if (devices.length === 0) {
-      return '未识别到 UKey'
+      return ''
     }
     if (devices.length === 1) {
       return '已识别 1 把 UKey'
     }
     return `已识别 ${devices.length} 把 UKey`
+  }
+
+  private hasVisibleActiveCredential(): boolean {
+    return !!this.activeCredential && this.activeCredential.lifecycle === 'active' &&
+      this.activeCredential.credentialIdHex.length > 0
+  }
+
+  private getVisibleCredentialId(): string {
+    return this.hasVisibleActiveCredential() ? this.activeCredential!.credentialIdHex : ''
+  }
+
+  private getVisibleCredentialCreatedAt(): number {
+    return this.hasVisibleActiveCredential() ? this.activeCredential!.createdAt : 0
+  }
+
+  private getVisibleCredentialLifecycle(): string {
+    return this.hasVisibleActiveCredential() ? this.activeCredential!.lifecycle : ''
   }
 
   private async handleEnabledChange(value: boolean): Promise<void> {
@@ -147,12 +212,8 @@ struct Index {
       }
       if (value) {
         await UKeyRuntimeManager.getInstance().reconcileOnStartup()
-        this.statusMessage = '已启用，已触发一次 UKey 对账'
-      } else {
-        let result = await this.enrollmentService.disableAndDeleteActiveCredential(context)
-        this.statusMessage = result.success ? '已停用，UKEY解锁凭据已清理' :
-          (result.userMessage ?? result.errorMessage ?? '已停用，UKEY解锁凭据清理失败')
       }
+      this.statusMessage = ''
       await this.refreshState()
     } catch (err) {
       this.ukeyUnlockEnabled = previous
@@ -161,6 +222,98 @@ struct Index {
     } finally {
       this.saving = false
     }
+  }
+
+  private async handleCredentialAuthVerify(): Promise<void> {
+    if (this.verifyingCredential || this.loading || this.saving) {
+      return
+    }
+    if (!this.hasVisibleActiveCredential()) {
+      return
+    }
+    this.verifyingCredential = true
+    this.statusMessage = '正在验证 UKEY解锁凭据认证能力'
+    try {
+      let context = this.getPageContext()
+      let result = await this.enrollmentService.verifyActiveCredentials(context)
+      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.statusMessage = result.success ? this.buildVerificationSuccessMessage(result.data ?? null) :
+        (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据认证验证失败')
+    } catch (err) {
+      LogUtils.warn(TAG, `handleCredentialAuthVerify failed: ${JSON.stringify(err)}`)
+      this.statusMessage = 'UKEY解锁凭据认证验证失败'
+    } finally {
+      this.verifyingCredential = false
+    }
+  }
+
+  private async handleAddCredential(): Promise<void> {
+    if (this.credentialSubmitting || this.loading || this.saving) {
+      return
+    }
+    let systemPin = this.systemPinInput.trim()
+    let ukeyPassword = this.ukeyPasswordInput.trim()
+    if (systemPin.length === 0) {
+      this.statusMessage = '请输入系统 PIN'
+      return
+    }
+    if (ukeyPassword.length === 0) {
+      this.statusMessage = '请输入 UKey 密码'
+      return
+    }
+    this.credentialSubmitting = true
+    this.statusMessage = '正在添加 UKEY解锁凭据'
+    try {
+      let context = this.getPageContext()
+      let result = await this.enrollmentService.addCredentialWithUserInput(context, systemPin, ukeyPassword)
+      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.statusMessage = result.success ? 'UKEY解锁凭据已添加' :
+        (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据添加失败')
+    } catch (err) {
+      LogUtils.warn(TAG, `handleAddCredential failed: ${JSON.stringify(err)}`)
+      this.statusMessage = 'UKEY解锁凭据添加失败'
+    } finally {
+      this.systemPinInput = ''
+      this.ukeyPasswordInput = ''
+      this.credentialSubmitting = false
+    }
+  }
+
+  private async handleDeleteCredential(): Promise<void> {
+    if (this.credentialSubmitting || this.loading || this.saving) {
+      return
+    }
+    if (!this.hasVisibleActiveCredential()) {
+      return
+    }
+    let systemPin = this.systemPinInput.trim()
+    if (systemPin.length === 0) {
+      this.statusMessage = '请输入系统 PIN'
+      return
+    }
+    this.credentialSubmitting = true
+    this.statusMessage = '正在删除 UKEY解锁凭据'
+    try {
+      let context = this.getPageContext()
+      let result = await this.enrollmentService.deleteActiveCredentialByPin(context, systemPin)
+      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.statusMessage = result.success ? 'UKEY解锁凭据已删除' :
+        (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据删除失败')
+    } catch (err) {
+      LogUtils.warn(TAG, `handleDeleteCredential failed: ${JSON.stringify(err)}`)
+      this.statusMessage = 'UKEY解锁凭据删除失败'
+    } finally {
+      this.systemPinInput = ''
+      this.ukeyPasswordInput = ''
+      this.credentialSubmitting = false
+    }
+  }
+
+  private buildVerificationSuccessMessage(summary: CustomAuthCredentialVerificationSummary | null): string {
+    if (!summary) {
+      return 'UKEY解锁凭据认证验证完成'
+    }
+    return `认证成功 ${summary.successCount}/${summary.total}`
   }
 
   private formatTime(value: number): string {
@@ -178,7 +331,7 @@ struct Index {
   private switchContent() {
     SectionToggleRow({
       title: 'UKey 锁屏认证',
-      description: '开启后插入首把 UKey 会注入锁屏 CustomAuth 凭据',
+      description: '开启后认证器允许使用已添加的 UKEY解锁凭据',
       isOn: this.ukeyUnlockEnabled,
       processing: this.saving,
       enabledValue: !this.loading && !this.saving,
@@ -194,7 +347,7 @@ struct Index {
 
     SectionActionRow({
       title: '当前状态',
-      description: this.statusMessage.length > 0 ? this.statusMessage : '读取本应用保存的 UKEY解锁凭据和当前 UKey 设备',
+      description: this.statusMessage,
       actionLabel: '刷新',
       isEnabled: !this.loading && !this.saving,
       currentTheme: this.currentTheme,
@@ -223,6 +376,114 @@ struct Index {
   }
 
   @Builder
+  private credentialVerificationCardContent() {
+    Row() {
+      Button(this.verifyingCredential ? '验证中' : '验证凭据')
+        .type(ButtonType.Normal)
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontWeight(FontWeight.Regular)
+        .fontColor(Color.White)
+        .backgroundColor(AppColors.BRAND_PRIMARY)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .height(36)
+        .width(128)
+        .stateEffect(true)
+        .enabled(this.ukeyUnlockEnabled && this.hasVisibleActiveCredential() && !this.loading && !this.saving &&
+          !this.verifyingCredential)
+        .opacity(this.ukeyUnlockEnabled && this.hasVisibleActiveCredential() && !this.loading && !this.saving &&
+          !this.verifyingCredential ? 1 : 0.56)
+        .onClick(() => {
+          this.handleCredentialAuthVerify()
+        })
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Start)
+    .padding(16)
+  }
+
+  @Builder
+  private credentialOperationCardContent() {
+    Column({ space: 12 }) {
+      TextInput({ text: this.systemPinInput, placeholder: '系统 PIN' })
+        .type(InputType.Password)
+        .height(36)
+        .width('100%')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .placeholderColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({
+          width: AppStyles.DIVIDER_HEIGHT,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+        .enabled(!this.loading && !this.saving && !this.credentialSubmitting)
+        .onChange((value: string) => {
+          this.systemPinInput = value
+        })
+
+      TextInput({ text: this.ukeyPasswordInput, placeholder: 'UKey 密码' })
+        .type(InputType.Password)
+        .height(36)
+        .width('100%')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .placeholderColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({
+          width: AppStyles.DIVIDER_HEIGHT,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+        .enabled(!this.loading && !this.saving && !this.credentialSubmitting)
+        .onChange((value: string) => {
+          this.ukeyPasswordInput = value
+        })
+
+      Row({ space: 10 }) {
+        Button(this.credentialSubmitting ? '处理中' : '添加凭据')
+          .type(ButtonType.Normal)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Regular)
+          .fontColor(Color.White)
+          .backgroundColor(AppColors.BRAND_PRIMARY)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(36)
+          .width(112)
+          .stateEffect(true)
+          .enabled(this.ukeyUnlockEnabled && !this.loading && !this.saving && !this.credentialSubmitting)
+          .opacity(this.ukeyUnlockEnabled && !this.loading && !this.saving && !this.credentialSubmitting ? 1 : 0.56)
+          .onClick(() => {
+            this.handleAddCredential()
+          })
+
+        Button(this.credentialSubmitting ? '处理中' : '删除凭据')
+          .type(ButtonType.Normal)
+          .fontSize(AppStyles.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Regular)
+          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+          .borderRadius(AppStyles.RADIUS_SM)
+          .height(36)
+          .width(112)
+          .stateEffect(true)
+          .enabled(!this.loading && !this.saving && !this.credentialSubmitting && this.hasVisibleActiveCredential())
+          .opacity(!this.loading && !this.saving && !this.credentialSubmitting && this.hasVisibleActiveCredential() ?
+            1 : 0.56)
+          .onClick(() => {
+            this.handleDeleteCredential()
+          })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Start)
+    }
+    .width('100%')
+    .padding(16)
+  }
+
+  @Builder
   private infoRow(label: string, value: string) {
     Row() {
       Text(label)
@@ -245,13 +506,7 @@ struct Index {
   @Builder
   private currentDeviceContent() {
     if (this.currentDevices.length === 0) {
-      Text(this.currentDeviceMessage.length > 0 ? this.currentDeviceMessage : '未识别到 UKey')
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .width('100%')
-        .height(56)
-        .textAlign(TextAlign.Center)
+      Blank()
     } else {
       Column({ space: 12 }) {
         Text(this.currentDeviceMessage)
@@ -277,17 +532,13 @@ struct Index {
 
   @Builder
   private activeCredentialContent() {
-    if (!this.activeCredential) {
-      Text('当前无 UKEY解锁凭据')
-        .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
-        .width('100%')
+    if (!this.hasVisibleActiveCredential()) {
+      Blank()
     } else {
       Column({ space: 12 }) {
-        this.infoRow('生命周期', this.activeCredential.lifecycle)
-        this.infoRow('凭据 ID', this.activeCredential.credentialIdHex)
-        this.infoRow('创建时间', this.formatTime(this.activeCredential.createdAt))
+        this.infoRow('凭据 ID', this.getVisibleCredentialId())
+        this.infoRow('创建时间', this.formatTime(this.getVisibleCredentialCreatedAt()))
+        this.infoRow('状态', this.getVisibleCredentialLifecycle())
       }
       .width('100%')
     }
@@ -333,6 +584,22 @@ struct Index {
             currentTheme: this.currentTheme,
             content: () => {
               this.currentDeviceCardContent()
+            }
+          })
+
+          SectionCard({
+            title: '凭据操作',
+            currentTheme: this.currentTheme,
+            content: () => {
+              this.credentialOperationCardContent()
+            }
+          })
+
+          SectionCard({
+            title: '凭据认证验证',
+            currentTheme: this.currentTheme,
+            content: () => {
+              this.credentialVerificationCardContent()
             }
           })
 

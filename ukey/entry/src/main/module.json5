@@ -22,6 +22,9 @@
         "name": "ohos.permission.MANAGE_LOCAL_ACCOUNTS"
       },
       {
+        "name": "ohos.permission.GET_LOCAL_ACCOUNT_IDENTIFIERS"
+      },
+      {
         "name": "ohos.permission.MANAGE_USER_IDM"
       },
       {
