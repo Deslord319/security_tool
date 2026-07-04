@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit'
+import osAccount from '@ohos.account.osAccount'
 import {
   LockScreenUKeyDevice,
   PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES,
@@ -20,16 +21,17 @@ import {
   PreferencesLockScreenUKeyBindingRepository,
   type LockScreenUKeyActiveCredentialRepository
 } from '../../lockscreen-auth/LockScreenUKeyBindingRepository'
-import { decodeUint64Be } from '../codec/CustomAuthUint64Codec'
+import { decodeUint64Le } from '../codec/CustomAuthUint64Codec'
 
 const TAG = 'CustomAuth.UKeyProvider'
+const LOCKSCREEN_CUSTOM_AUTH_TYPE = 128
 const FIXED_UKEY_PASSWORD = '666666'
 const MAX_UKEY_PASSWORD_FAILURES = 5
 
 export interface AuthenticatorUKeyProvider {
-  getPresentTemplateId(candidates: string[]): Promise<string | null>
+  getPresentTemplateId(candidates: string[], userId: number): Promise<string | null>
   verifyPasscode(passcode: string): Promise<AuthenticatorUKeyPasscodeVerification>
-  isTemplatePresent(templateId: string): Promise<boolean>
+  isTemplatePresent(templateId: string, userId: number): Promise<boolean>
   isLocked(): Promise<boolean>
   shouldRotate(templateId: string): Promise<boolean>
 }
@@ -130,7 +132,7 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     this.context = context
   }
 
-  async getPresentTemplateId(candidates: string[]): Promise<string | null> {
+  async getPresentTemplateId(candidates: string[], userId: number): Promise<string | null> {
     if (candidates.length === 0) {
       return null
     }
@@ -143,13 +145,15 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
       LogUtils.warn(TAG, '[AUTH_MATCH_FAIL] reason=bound_ukey_absent')
       return null
     }
-    let credentialKeys = await this.loadPresentFingerprintCredentialKeys(presentFingerprint)
+    let templateIds = await this.loadPresentFingerprintCredentialTemplateIds(presentFingerprint, userId)
+    LogUtils.info(TAG, `[AUTH_MATCH_TRACE] userId=${userId}, candidates=${SecurityToolAuthenticatorUKeyProvider.joinValues(candidates)}, matchedTemplates=${SecurityToolAuthenticatorUKeyProvider.joinValues(Array.from(templateIds))}`)
     for (let candidate of candidates) {
-      if (SecurityToolAuthenticatorUKeyProvider.matchesCredentialKey(candidate, credentialKeys)) {
+      if (templateIds.has(candidate)) {
+        LogUtils.info(TAG, `[AUTH_MATCH_SUCCESS] userId=${userId}, templateId=${candidate}`)
         return candidate
       }
     }
-    LogUtils.warn(TAG, `[AUTH_MATCH_FAIL] reason=no_credential_binding, candidates=${candidates.length}, credentials=${credentialKeys.size}`)
+    LogUtils.warn(TAG, `[AUTH_MATCH_FAIL] reason=no_credential_template, userId=${userId}, candidates=${candidates.length}, templates=${templateIds.size}`)
     return null
   }
 
@@ -214,7 +218,7 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     )
   }
 
-  async isTemplatePresent(templateId: string): Promise<boolean> {
+  async isTemplatePresent(templateId: string, userId: number): Promise<boolean> {
     if (templateId.length === 0 || !await this.isUnlockEnabled()) {
       return false
     }
@@ -222,8 +226,10 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     if (presentFingerprint.length === 0) {
       return false
     }
-    let credentialKeys = await this.loadPresentFingerprintCredentialKeys(presentFingerprint)
-    return SecurityToolAuthenticatorUKeyProvider.matchesCredentialKey(templateId, credentialKeys)
+    let templateIds = await this.loadPresentFingerprintCredentialTemplateIds(presentFingerprint, userId)
+    let present = templateIds.has(templateId)
+    LogUtils.info(TAG, `[AUTH_PRESENT_TRACE] userId=${userId}, templateId=${templateId}, matchedTemplates=${SecurityToolAuthenticatorUKeyProvider.joinValues(Array.from(templateIds))}, present=${present}`)
+    return present
   }
 
   async isLocked(): Promise<boolean> {
@@ -291,28 +297,62 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     return result.data ?? []
   }
 
-  private async loadPresentFingerprintCredentialKeys(fingerprint: string): Promise<Set<string>> {
-    let keys = new Set<string>()
+  private async loadPresentFingerprintCredentialTemplateIds(fingerprint: string, userId: number): Promise<Set<string>> {
+    let templateIds = new Set<string>()
     let context = this.context
     if (!context || fingerprint.length === 0) {
-      return keys
+      return templateIds
     }
     let active = await this.activeCredentialRepository.loadActiveCredential(context)
     if (!active || active.fingerprint !== fingerprint || active.userCredentials.length === 0) {
-      return keys
+      return templateIds
     }
+    let credentialIds = new Set<string>()
+    let localPairs: string[] = []
     for (let credential of active.userCredentials) {
-      let normalized = SecurityToolAuthenticatorUKeyProvider.normalizeCredentialIdHex(credential.credentialIdHex)
-      if (normalized.length === 0) {
+      if (credential.userId !== userId) {
         continue
       }
-      keys.add(normalized)
-      let decimal = SecurityToolAuthenticatorUKeyProvider.credentialIdHexToUint64Decimal(normalized)
-      if (decimal.length > 0) {
-        keys.add(decimal)
+      let normalized = SecurityToolAuthenticatorUKeyProvider.normalizeCredentialIdHex(credential.credentialIdHex)
+      let templateId = SecurityToolAuthenticatorUKeyProvider.normalizeTemplateId(credential.templateId)
+      if (normalized.length === 0 || templateId.length === 0) {
+        continue
       }
+      credentialIds.add(normalized)
+      templateIds.add(templateId)
+      localPairs.push(`${normalized}->${templateId}`)
     }
-    return keys
+    if (templateIds.size === 0) {
+      LogUtils.warn(TAG, `[AUTH_MATCH_FAIL] reason=no_local_credential_template, userId=${userId}, fingerprint=${fingerprint}`)
+      return templateIds
+    }
+
+    try {
+      let idm = new osAccount.UserIdentityManager()
+      let infos = await idm.getAuthInfo({
+        authType: LOCKSCREEN_CUSTOM_AUTH_TYPE as osAccount.AuthType,
+        accountId: userId
+      })
+      let systemPairs: string[] = []
+      let matchedPairs: string[] = []
+      let mismatchedPairs: string[] = []
+      for (let i = 0; i < infos.length; i++) {
+        let credentialIdHex = SecurityToolAuthenticatorUKeyProvider.toHex(infos[i].credentialId)
+        let templateId = SecurityToolAuthenticatorUKeyProvider.decodeTemplateId(infos[i].templateId)
+        systemPairs.push(`${credentialIdHex}->${templateId}`)
+        if (!credentialIds.has(credentialIdHex)) {
+          continue
+        }
+        if (templateId.length > 0 && !templateIds.has(templateId)) {
+          mismatchedPairs.push(`${credentialIdHex}->${templateId}`)
+        }
+        matchedPairs.push(`${credentialIdHex}->${templateId}`)
+      }
+      LogUtils.info(TAG, `[AUTH_BINDING] userId=${userId}, fingerprint=${fingerprint}, localPairs=${SecurityToolAuthenticatorUKeyProvider.joinValues(localPairs)}, systemPairs=${SecurityToolAuthenticatorUKeyProvider.joinValues(systemPairs)}, matchedPairs=${SecurityToolAuthenticatorUKeyProvider.joinValues(matchedPairs)}, templateMismatches=${SecurityToolAuthenticatorUKeyProvider.joinValues(mismatchedPairs)}, matchedTemplates=${SecurityToolAuthenticatorUKeyProvider.joinValues(Array.from(templateIds))}`)
+    } catch (err) {
+      LogUtils.warn(TAG, `[AUTH_MATCH_FAIL] reason=get_auth_info_failed, userId=${userId}, err=${JSON.stringify(err)}`)
+    }
+    return templateIds
   }
 
   private static normalizeCredentialIdHex(value: string): string {
@@ -320,28 +360,35 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     return normalized.length > 0 && normalized.length % 2 === 0 ? normalized : ''
   }
 
-  private static credentialIdHexToUint64Decimal(value: string): string {
-    if (value.length !== 16) {
+  private static toHex(data?: Uint8Array): string {
+    if (!data || data.length === 0) {
+      return ''
+    }
+    let parts: string[] = []
+    for (let i = 0; i < data.length; i++) {
+      parts.push(data[i].toString(16).padStart(2, '0'))
+    }
+    return SecurityToolAuthenticatorUKeyProvider.normalizeCredentialIdHex(parts.join(''))
+  }
+
+  private static decodeTemplateId(data?: Uint8Array): string {
+    if (!data || data.length !== 8) {
       return ''
     }
     try {
-      let bytes = new Uint8Array(8)
-      for (let i = 0; i < bytes.length; i++) {
-        bytes[i] = parseInt(value.substring(i * 2, i * 2 + 2), 16)
-      }
-      return decodeUint64Be(bytes)
+      return decodeUint64Le(data)
     } catch (err) {
-      LogUtils.warn(TAG, `[CREDENTIAL_ID_DECODE_FAIL] err=${JSON.stringify(err)}`)
+      LogUtils.warn(TAG, `[TEMPLATE_ID_DECODE_FAIL] err=${JSON.stringify(err)}`)
       return ''
     }
   }
 
-  private static matchesCredentialKey(candidate: string, credentialKeys: Set<string>): boolean {
-    if (credentialKeys.has(candidate)) {
-      return true
-    }
-    let normalized = SecurityToolAuthenticatorUKeyProvider.normalizeCredentialIdHex(candidate)
-    return normalized.length > 0 && credentialKeys.has(normalized)
+  private static normalizeTemplateId(value: string): string {
+    return typeof value === 'string' ? value : ''
+  }
+
+  private static joinValues(values: string[]): string {
+    return values.length === 0 ? '-' : values.join(',')
   }
 
   private static buildPasscodeResult(

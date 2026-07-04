@@ -20,6 +20,7 @@ function isValidCredentialLifecycle(lifecycle: LockScreenUKeyCredentialLifecycle
 
 function isValidUserCredential(credential: LockScreenUKeyUserCredential): boolean {
   return typeof credential.credentialIdHex === 'string' && credential.credentialIdHex.length > 0 &&
+    typeof credential.templateId === 'string' && credential.templateId.length > 0 &&
     typeof credential.pluginInfo === 'string' && credential.pluginInfo.length > 0 &&
     typeof credential.userId === 'number' && Number.isFinite(credential.userId) &&
     typeof credential.createdAt === 'number' && Number.isFinite(credential.createdAt) &&

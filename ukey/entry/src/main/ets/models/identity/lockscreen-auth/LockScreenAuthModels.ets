@@ -25,6 +25,7 @@ export type LockScreenUKeyCredentialLifecycle =
 export interface LockScreenUKeyUserCredential {
   userId: number
   credentialIdHex: string
+  templateId: string
   pluginInfo: string
   lifecycle: LockScreenUKeyCredentialLifecycle
   createdAt: number

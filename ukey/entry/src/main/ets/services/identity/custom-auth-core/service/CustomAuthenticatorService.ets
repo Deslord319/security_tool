@@ -77,7 +77,6 @@ interface BeginAuthResult {
   resultCode: number
   templateId: string
   encryptedData: EncryptedData
-  completed?: boolean
 }
 
 const EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA: EncryptedData = { nonce: [], tag: [], ciphertext: [] }
@@ -306,8 +305,9 @@ export class CustomAuthenticatorService {
       LogUtils.error(TAG, `beginAuthenticate: no templates for userId=${input.userId}`)
       return { resultCode: ResultCode.NOT_ENROLLED, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
+    LogUtils.info(TAG, `beginAuthenticate: candidateTemplates=${all.join(',')}`)
 
-    let chosen = await authenticatorUKeyProvider.getPresentTemplateId(all)
+    let chosen = await authenticatorUKeyProvider.getPresentTemplateId(all, input.userId)
     if (chosen === null) {
       LogUtils.warn(TAG, 'beginAuthenticate: no bound UKey template matched')
       return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
@@ -391,7 +391,6 @@ export class CustomAuthenticatorService {
       resultCode: ResultCode.SUCCESS,
       templateId: chosen,
       encryptedData: toEncryptedData(aeadResult.nonce, aeadResult.tag, aeadResult.ciphertext),
-      completed: false,
     }
   }
 
@@ -408,7 +407,7 @@ export class CustomAuthenticatorService {
         return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
 
-      if (!await authenticatorUKeyProvider.isTemplatePresent(session.templateId)) {
+      if (!await authenticatorUKeyProvider.isTemplatePresent(session.templateId, session.userId)) {
         LogUtils.warn(TAG, `submitPasscode: target UKey absent before passcode, templateId=${session.templateId}`)
         return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
@@ -441,7 +440,7 @@ export class CustomAuthenticatorService {
           encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA
         }
       }
-      if (!await authenticatorUKeyProvider.isTemplatePresent(session.templateId)) {
+      if (!await authenticatorUKeyProvider.isTemplatePresent(session.templateId, session.userId)) {
         LogUtils.warn(TAG, `submitPasscode: target UKey absent after passcode, templateId=${session.templateId}`)
         return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }

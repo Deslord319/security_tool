@@ -14,7 +14,7 @@ import { LogUtils } from '../../../utils/LogUtils'
 import companionDeviceAuth, {
   PasscodePromptParams
 } from '../custom-auth-core/companion/CompanionDeviceAuthCompat'
-import { decodeUint64Be } from '../custom-auth-core/codec/CustomAuthUint64Codec'
+import { decodeUint64Le } from '../custom-auth-core/codec/CustomAuthUint64Codec'
 import { generateRandom } from '../custom-auth-core/crypto/CustomAuthCryptoEngine'
 import { authenticatorUKeyProvider } from '../custom-auth-core/ukey/AuthenticatorUKeyProvider'
 import {
@@ -670,7 +670,7 @@ export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentia
       return ''
     }
     try {
-      return decodeUint64Be(data)
+      return decodeUint64Le(data)
     } catch (err) {
       LogUtils.warn(TAG, `[DECODE_TEMPLATE_ID_FAIL] err=${JSON.stringify(err)}`)
       return ''
@@ -1092,6 +1092,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
         failedCredentials.push({
           userId: credential.userId,
           credentialIdHex: credential.credentialIdHex,
+          templateId: credential.templateId,
           pluginInfo: credential.pluginInfo,
           lifecycle: 'failed',
           createdAt: credential.createdAt
@@ -1393,9 +1394,21 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       }
       let registration = await this.registrar.addCredential(userId, LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO, systemPin)
       if (registration.success && registration.credentialIdHex && registration.credentialIdHex.length > 0) {
+        let templateId = await this.resolveTemplateIdForCredential(userId, registration.credentialIdHex)
+        if (templateId.length === 0) {
+          failures.push({
+            userId: userId,
+            resultCode: registration.resultCode,
+            errorCode: registration.errorCode,
+            errorMessage: 'templateId missing after addCredential'
+          })
+          LogUtils.warn(TAG, `[REGISTER_USER_FAIL] userId=${userId}, reason=template_id_missing`)
+          continue
+        }
         credentials.push({
           userId: userId,
           credentialIdHex: registration.credentialIdHex,
+          templateId: templateId,
           pluginInfo: LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO,
           lifecycle: 'active',
           createdAt: Date.now()
@@ -1414,6 +1427,24 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       credentials: credentials,
       failures: failures
     }
+  }
+
+  private async resolveTemplateIdForCredential(userId: number, credentialIdHex: string): Promise<string> {
+    if (credentialIdHex.length === 0) {
+      return ''
+    }
+    let listResult = await this.registrar.listCustomAuthCredentialIds(userId)
+    if (!listResult.success) {
+      LogUtils.warn(TAG, `[TEMPLATE_ID_RESOLVE_FAIL] userId=${userId}, reason=list_failed, message=${listResult.errorMessage ?? '-'}`)
+      return ''
+    }
+    for (let credential of listResult.credentials) {
+      if (credential.credentialIdHex === credentialIdHex) {
+        return credential.templateId
+      }
+    }
+    LogUtils.warn(TAG, `[TEMPLATE_ID_RESOLVE_FAIL] userId=${userId}, reason=credential_missing`)
+    return ''
   }
 
   private async loadActiveCredential(context: common.Context): Promise<LockScreenUKeyActiveCredential | null> {
@@ -1492,13 +1523,14 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     let localByKey = LockScreenCustomAuthEnrollmentService.toCredentialRecordMap(localCredentials)
     for (let credential of systemCredentials) {
       let local = localByKey.get(LockScreenCustomAuthEnrollmentService.toSystemCredentialKey(credential))
-      if (!local || keptUsers.has(credential.userId)) {
+      if (!local || keptUsers.has(credential.userId) || credential.templateId.length === 0) {
         continue
       }
       keptUsers.add(credential.userId)
       credentials.push({
         userId: credential.userId,
         credentialIdHex: credential.credentialIdHex,
+        templateId: credential.templateId,
         pluginInfo: LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO,
         lifecycle: 'active',
         createdAt: local.createdAt
@@ -1578,7 +1610,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     let normalized: LockScreenUKeyUserCredential[] = []
     for (let credential of credentials) {
       if (!Number.isFinite(credential.userId) || credential.credentialIdHex.length === 0 ||
-        credential.pluginInfo.length === 0) {
+        credential.templateId.length === 0 || credential.pluginInfo.length === 0) {
         continue
       }
       if (LockScreenCustomAuthEnrollmentService.containsCredentialForUser(normalized, credential.userId)) {
@@ -1587,6 +1619,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       normalized.push({
         userId: credential.userId,
         credentialIdHex: credential.credentialIdHex,
+        templateId: LockScreenCustomAuthEnrollmentService.normalizeTemplateId(credential.templateId),
         pluginInfo: credential.pluginInfo,
         lifecycle: LockScreenCustomAuthEnrollmentService.normalizeCredentialLifecycle(credential.lifecycle),
         createdAt: Number.isFinite(credential.createdAt) ? credential.createdAt : Date.now()
@@ -1604,6 +1637,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       return {
         userId: credential.userId,
         credentialIdHex: credential.credentialIdHex,
+        templateId: credential.templateId,
         pluginInfo: credential.pluginInfo,
         lifecycle: lifecycle,
         createdAt: credential.createdAt
@@ -1627,6 +1661,10 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       return 'inactive'
     }
     return 'active'
+  }
+
+  private static normalizeTemplateId(value: string): string {
+    return typeof value === 'string' ? value : ''
   }
 
   private static resolveCredentialLifecycleForPresence(
