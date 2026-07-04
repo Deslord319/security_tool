@@ -23,7 +23,7 @@ import { UKeyRuntimeManager } from '../runtime/UKeyRuntimeManager'
 import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
 import { SectionCard } from '../components/SettingsSectionCard'
-import { SectionActionRow, SectionToggleRow } from '../components/SectionRows'
+import { SectionLabel, SectionToggleRow } from '../components/SectionRows'
 
 const TAG = 'UKeyIndex'
 const USB_ATTACH_REFRESH_DELAYS_MS: number[] = [300, 1000, 2500]
@@ -58,7 +58,7 @@ struct Index {
   private readonly ddkDeviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService()
 
   aboutToAppear(): void {
-    this.refreshState()
+    this.syncPageState()
     this.registerUKeyDeviceEvents()
   }
 
@@ -70,7 +70,7 @@ struct Index {
     return this.getUIContext().getHostContext() as common.UIAbilityContext
   }
 
-  private async refreshState(): Promise<void> {
+  private async syncPageState(): Promise<void> {
     if (this.loading) {
       return
     }
@@ -84,8 +84,8 @@ struct Index {
       this.refreshCurrentDevices()
       this.updateActiveCredential(activeCredential)
     } catch (err) {
-      LogUtils.warn(TAG, `refreshState failed: ${JSON.stringify(err)}`)
-      this.statusMessage = '状态刷新失败'
+      LogUtils.warn(TAG, `syncPageState failed: ${JSON.stringify(err)}`)
+      this.statusMessage = '状态同步失败'
     } finally {
       this.loading = false
     }
@@ -256,7 +256,7 @@ struct Index {
         await UKeyRuntimeManager.getInstance().reconcileOnStartup()
       }
       this.statusMessage = ''
-      await this.refreshState()
+      await this.syncPageState()
     } catch (err) {
       this.ukeyUnlockEnabled = previous
       LogUtils.warn(TAG, `handleEnabledChange failed: ${JSON.stringify(err)}`)
@@ -388,19 +388,25 @@ struct Index {
       }
     })
 
-    Divider()
-      .color(AppColors.getColors().BORDER)
-      .opacity(AppColors.getColors().BORDER_OPACITY)
+    if (this.statusMessage.length > 0) {
+      Divider()
+        .color(AppColors.getColors().BORDER)
+        .opacity(AppColors.getColors().BORDER_OPACITY)
 
-    SectionActionRow({
-      title: '当前状态',
-      description: this.statusMessage,
-      actionLabel: '刷新',
-      isEnabled: !this.loading && !this.saving,
-      onTap: () => {
-        this.refreshState()
+      Row() {
+        SectionLabel({
+          title: '当前状态',
+          description: this.statusMessage
+        })
       }
-    })
+      .width('100%')
+      .padding({
+        left: 16,
+        right: 16,
+        top: 14,
+        bottom: 14
+      })
+    }
   }
 
   @Builder
