@@ -282,7 +282,6 @@ export class CustomAuthenticatorService {
         LogUtils.error(TAG, `endEnroll: storeKeys failed, templateId=${input.templateId}`)
         return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
-      await authenticatorUKeyProvider.onEnrolled(input.templateId)
 
       LogUtils.info(TAG, `endEnroll: success, userId=${input.userId}, templateId=${input.templateId}`)
       sessionKey.fill(0)
@@ -476,7 +475,6 @@ export class CustomAuthenticatorService {
         newSecret.fill(0)
         return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
-      await authenticatorUKeyProvider.onRotated(session.templateId)
       finalSecret = newSecret
       finalSeq = committedSeq
       LogUtils.info(TAG, `finishAuth: rotated, templateId=${session.templateId}, seq=${committedSeq}`)

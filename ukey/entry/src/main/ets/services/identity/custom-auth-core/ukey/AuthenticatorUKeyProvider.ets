@@ -2,7 +2,6 @@ import { common } from '@kit.AbilityKit'
 import {
   LockScreenUKeyDevice,
   PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES,
-  PREF_KEY_LOCKSCREEN_UKEY_TEMPLATE_BINDINGS,
   PREF_STORE_NAME_LOCKSCREEN_AUTH
 } from '../../../../models/identity/lockscreen-auth/LockScreenAuthModels'
 import { PreferencesAccessor } from '../../../../storage/preferences/PreferencesAccessor'
@@ -17,24 +16,24 @@ import {
 } from '../../lockscreen-auth/LockScreenUKeyDeviceService'
 import {
   LockScreenUKeyBindingRepository,
-  PreferencesLockScreenUKeyBindingRepository
+  PreferencesLockScreenUKeyActiveCredentialRepository,
+  PreferencesLockScreenUKeyBindingRepository,
+  type LockScreenUKeyActiveCredentialRepository
 } from '../../lockscreen-auth/LockScreenUKeyBindingRepository'
+import { decodeUint64Be } from '../codec/CustomAuthUint64Codec'
 
 const TAG = 'CustomAuth.UKeyProvider'
 const FIXED_UKEY_PASSWORD = '666666'
 const MAX_UKEY_PASSWORD_FAILURES = 5
 
 export interface AuthenticatorUKeyProvider {
-  onEnrolled(templateId: string): Promise<void>
   getPresentTemplateId(candidates: string[]): Promise<string | null>
   verifyPasscode(passcode: string): Promise<AuthenticatorUKeyPasscodeVerification>
   isTemplatePresent(templateId: string): Promise<boolean>
   isLocked(): Promise<boolean>
   shouldRotate(templateId: string): Promise<boolean>
-  onRotated(templateId: string): Promise<void>
 }
 
-export type AuthenticatorUKeyTemplateBindingMap = Record<string, string>
 export type AuthenticatorUKeyPasswordFailureReason =
   'none' |
   'context_missing' |
@@ -59,35 +58,9 @@ export interface AuthenticatorUKeyPasswordState {
 
 export type AuthenticatorUKeyPasswordStateMap = Record<string, AuthenticatorUKeyPasswordState>
 
-export interface AuthenticatorUKeyTemplateBindingRepository {
-  loadTemplateBindings(context: common.Context): Promise<AuthenticatorUKeyTemplateBindingMap>
-  saveTemplateBindings(context: common.Context, bindings: AuthenticatorUKeyTemplateBindingMap): Promise<boolean>
-}
-
 export interface AuthenticatorUKeyPasswordStateRepository {
   loadPasswordStates(context: common.Context): Promise<AuthenticatorUKeyPasswordStateMap>
   savePasswordStates(context: common.Context, states: AuthenticatorUKeyPasswordStateMap): Promise<boolean>
-}
-
-export class PreferencesAuthenticatorUKeyTemplateBindingRepository
-implements AuthenticatorUKeyTemplateBindingRepository {
-  async loadTemplateBindings(context: common.Context): Promise<AuthenticatorUKeyTemplateBindingMap> {
-    let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
-    let raw = await pref.getJsonObject<AuthenticatorUKeyTemplateBindingMap>(PREF_KEY_LOCKSCREEN_UKEY_TEMPLATE_BINDINGS, {})
-    let result: AuthenticatorUKeyTemplateBindingMap = {}
-    for (let key of Object.keys(raw)) {
-      let value = raw[key]
-      if (typeof value === 'string' && key.length > 0 && value.length > 0) {
-        result[key] = value
-      }
-    }
-    return result
-  }
-
-  async saveTemplateBindings(context: common.Context, bindings: AuthenticatorUKeyTemplateBindingMap): Promise<boolean> {
-    let pref = PreferencesAccessor.of(context, PREF_STORE_NAME_LOCKSCREEN_AUTH)
-    return await pref.setJson(PREF_KEY_LOCKSCREEN_UKEY_TEMPLATE_BINDINGS, bindings)
-  }
 }
 
 function normalizePasswordState(state: AuthenticatorUKeyPasswordState | undefined | null): AuthenticatorUKeyPasswordState {
@@ -133,47 +106,28 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
   private context: common.Context | null = null
   private readonly deviceProvider: LockScreenUKeyDeviceProvider
   private readonly bindingRepository: LockScreenUKeyBindingRepository
-  private readonly templateBindingRepository: AuthenticatorUKeyTemplateBindingRepository
+  private readonly activeCredentialRepository: LockScreenUKeyActiveCredentialRepository
   private readonly passwordStateRepository: AuthenticatorUKeyPasswordStateRepository
   private readonly authRepository: LockScreenAuthRepository
 
   constructor(
     deviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService(),
     bindingRepository: LockScreenUKeyBindingRepository = new PreferencesLockScreenUKeyBindingRepository(),
-    templateBindingRepository: AuthenticatorUKeyTemplateBindingRepository =
-      new PreferencesAuthenticatorUKeyTemplateBindingRepository(),
+    activeCredentialRepository: LockScreenUKeyActiveCredentialRepository =
+      new PreferencesLockScreenUKeyActiveCredentialRepository(),
     passwordStateRepository: AuthenticatorUKeyPasswordStateRepository =
       new PreferencesAuthenticatorUKeyPasswordStateRepository(),
     authRepository: LockScreenAuthRepository = new PreferencesLockScreenAuthRepository()
   ) {
     this.deviceProvider = deviceProvider
     this.bindingRepository = bindingRepository
-    this.templateBindingRepository = templateBindingRepository
+    this.activeCredentialRepository = activeCredentialRepository
     this.passwordStateRepository = passwordStateRepository
     this.authRepository = authRepository
   }
 
   bindContext(context: common.Context): void {
     this.context = context
-  }
-
-  async onEnrolled(templateId: string): Promise<void> {
-    if (templateId.length === 0) {
-      return
-    }
-    let fingerprint = await this.resolveEnrollmentFingerprint()
-    if (fingerprint.length === 0) {
-      LogUtils.warn(TAG, `[ENROLL_BIND_SKIP] templateId=${templateId}, reason=no_present_ukey`)
-      return
-    }
-    let bindings = await this.loadTemplateBindings()
-    bindings[templateId] = fingerprint
-    let saved = await this.saveTemplateBindings(bindings)
-    if (!saved) {
-      LogUtils.error(TAG, `[ENROLL_BIND_FAIL] templateId=${templateId}`)
-      return
-    }
-    LogUtils.info(TAG, `[ENROLL_BIND_SUCCESS] templateId=${templateId}`)
   }
 
   async getPresentTemplateId(candidates: string[]): Promise<string | null> {
@@ -189,13 +143,13 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
       LogUtils.warn(TAG, '[AUTH_MATCH_FAIL] reason=bound_ukey_absent')
       return null
     }
-    let bindings = await this.loadTemplateBindings()
-    for (let templateId of candidates) {
-      if (bindings[templateId] === presentFingerprint) {
-        return templateId
+    let credentialKeys = await this.loadPresentFingerprintCredentialKeys(presentFingerprint)
+    for (let candidate of candidates) {
+      if (SecurityToolAuthenticatorUKeyProvider.matchesCredentialKey(candidate, credentialKeys)) {
+        return candidate
       }
     }
-    LogUtils.warn(TAG, `[AUTH_MATCH_FAIL] reason=no_template_binding, candidates=${candidates.length}`)
+    LogUtils.warn(TAG, `[AUTH_MATCH_FAIL] reason=no_credential_binding, candidates=${candidates.length}, credentials=${credentialKeys.size}`)
     return null
   }
 
@@ -268,8 +222,8 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     if (presentFingerprint.length === 0) {
       return false
     }
-    let bindings = await this.loadTemplateBindings()
-    return bindings[templateId] === presentFingerprint
+    let credentialKeys = await this.loadPresentFingerprintCredentialKeys(presentFingerprint)
+    return SecurityToolAuthenticatorUKeyProvider.matchesCredentialKey(templateId, credentialKeys)
   }
 
   async isLocked(): Promise<boolean> {
@@ -294,20 +248,6 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
 
   async shouldRotate(_templateId: string): Promise<boolean> {
     return false
-  }
-
-  async onRotated(templateId: string): Promise<void> {
-    await this.onEnrolled(templateId)
-  }
-
-  private async resolveEnrollmentFingerprint(): Promise<string> {
-    let context = this.context
-    let binding = context ? await this.bindingRepository.loadBinding(context) : null
-    if (binding && binding.fingerprint.length > 0) {
-      return binding.fingerprint
-    }
-    let devices = this.queryCandidateDevices()
-    return devices.length === 1 ? devices[0].fingerprint : ''
   }
 
   private async resolvePresentBoundFingerprint(): Promise<string> {
@@ -351,20 +291,57 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     return result.data ?? []
   }
 
-  private async loadTemplateBindings(): Promise<AuthenticatorUKeyTemplateBindingMap> {
+  private async loadPresentFingerprintCredentialKeys(fingerprint: string): Promise<Set<string>> {
+    let keys = new Set<string>()
     let context = this.context
-    if (!context) {
-      return {}
+    if (!context || fingerprint.length === 0) {
+      return keys
     }
-    return await this.templateBindingRepository.loadTemplateBindings(context)
+    let active = await this.activeCredentialRepository.loadActiveCredential(context)
+    if (!active || active.fingerprint !== fingerprint || active.userCredentials.length === 0) {
+      return keys
+    }
+    for (let credential of active.userCredentials) {
+      let normalized = SecurityToolAuthenticatorUKeyProvider.normalizeCredentialIdHex(credential.credentialIdHex)
+      if (normalized.length === 0) {
+        continue
+      }
+      keys.add(normalized)
+      let decimal = SecurityToolAuthenticatorUKeyProvider.credentialIdHexToUint64Decimal(normalized)
+      if (decimal.length > 0) {
+        keys.add(decimal)
+      }
+    }
+    return keys
   }
 
-  private async saveTemplateBindings(bindings: AuthenticatorUKeyTemplateBindingMap): Promise<boolean> {
-    let context = this.context
-    if (!context) {
-      return false
+  private static normalizeCredentialIdHex(value: string): string {
+    let normalized = value.replace(/[^0-9a-fA-F]/g, '').toLowerCase()
+    return normalized.length > 0 && normalized.length % 2 === 0 ? normalized : ''
+  }
+
+  private static credentialIdHexToUint64Decimal(value: string): string {
+    if (value.length !== 16) {
+      return ''
     }
-    return await this.templateBindingRepository.saveTemplateBindings(context, bindings)
+    try {
+      let bytes = new Uint8Array(8)
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(value.substring(i * 2, i * 2 + 2), 16)
+      }
+      return decodeUint64Be(bytes)
+    } catch (err) {
+      LogUtils.warn(TAG, `[CREDENTIAL_ID_DECODE_FAIL] err=${JSON.stringify(err)}`)
+      return ''
+    }
+  }
+
+  private static matchesCredentialKey(candidate: string, credentialKeys: Set<string>): boolean {
+    if (credentialKeys.has(candidate)) {
+      return true
+    }
+    let normalized = SecurityToolAuthenticatorUKeyProvider.normalizeCredentialIdHex(candidate)
+    return normalized.length > 0 && credentialKeys.has(normalized)
   }
 
   private static buildPasscodeResult(

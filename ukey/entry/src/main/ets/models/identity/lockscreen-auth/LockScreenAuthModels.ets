@@ -64,5 +64,4 @@ export const PREF_STORE_NAME_LOCKSCREEN_AUTH: string = 'lockscreen_auth_settings
 export const PREF_KEY_LOCKSCREEN_UKEY_AUTH_ENABLED: string = 'lockscreen_ukey_auth_enabled'
 export const PREF_KEY_LOCKSCREEN_UKEY_BINDING: string = 'lockscreen_ukey_binding'
 export const PREF_KEY_LOCKSCREEN_UKEY_ACTIVE_CREDENTIAL: string = 'lockscreen_ukey_active_credential'
-export const PREF_KEY_LOCKSCREEN_UKEY_TEMPLATE_BINDINGS: string = 'lockscreen_ukey_template_bindings'
 export const PREF_KEY_LOCKSCREEN_UKEY_PASSWORD_STATES: string = 'lockscreen_ukey_password_states'

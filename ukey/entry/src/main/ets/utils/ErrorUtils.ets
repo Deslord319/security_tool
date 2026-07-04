@@ -1,5 +1,4 @@
 import { BusinessError } from '@kit.BasicServicesKit'
-import { LogUtils } from './LogUtils'
 
 export interface BusinessErrorInfo {
   code: number
@@ -12,10 +11,5 @@ export class ErrorUtils {
     let message = typeof (err as Error)?.message === 'string' && (err as Error).message.length > 0 ?
       (err as Error).message : 'unknown'
     return { code: code, message: message }
-  }
-
-  static logError(tag: string, stage: string, err: Error | BusinessError | Object): void {
-    let info = ErrorUtils.toBusinessErrorInfo(err)
-    LogUtils.error(tag, `[${stage}] code=${info.code}, message=${info.message}`)
   }
 }

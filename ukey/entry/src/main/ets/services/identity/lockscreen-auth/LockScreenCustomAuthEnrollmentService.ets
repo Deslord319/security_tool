@@ -16,12 +16,7 @@ import companionDeviceAuth, {
 } from '../custom-auth-core/companion/CompanionDeviceAuthCompat'
 import { decodeUint64Be } from '../custom-auth-core/codec/CustomAuthUint64Codec'
 import { generateRandom } from '../custom-auth-core/crypto/CustomAuthCryptoEngine'
-import {
-  AuthenticatorUKeyTemplateBindingMap,
-  AuthenticatorUKeyTemplateBindingRepository,
-  authenticatorUKeyProvider,
-  PreferencesAuthenticatorUKeyTemplateBindingRepository
-} from '../custom-auth-core/ukey/AuthenticatorUKeyProvider'
+import { authenticatorUKeyProvider } from '../custom-auth-core/ukey/AuthenticatorUKeyProvider'
 import {
   LockScreenUKeyActiveCredentialRepository,
   LockScreenUKeyBindingRepository,
@@ -38,7 +33,6 @@ const LOCKSCREEN_CUSTOM_AUTH_TYPE = 128
 const LOCKSCREEN_CUSTOM_AUTH_SUB_TYPE = 0
 const CUSTOM_AUTH_VERIFY_CHALLENGE_LENGTH = 16
 const CUSTOM_AUTH_VERIFY_TIMEOUT_MS = 15000
-export const LOCKSCREEN_CUSTOM_AUTH_TRUST_LEVEL_LABEL = 'ATL3'
 type StoredUKeyCredentialLifecycle = 'active' | 'inactive' | 'failed'
 
 export type LockScreenUKeyEnrollmentStage =
@@ -491,7 +485,7 @@ export class OsAccountCustomAuthCredentialManager implements CustomAuthCredentia
       for (let i = 0; i < infos.length; i++) {
         let credentialIdHex = OsAccountCustomAuthCredentialManager.toHex(infos[i].credentialId)
         let templateId = OsAccountCustomAuthCredentialManager.decodeTemplateId(infos[i].templateId)
-        if (credentialIdHex.length === 0 || templateId.length === 0 || seen.has(credentialIdHex)) {
+        if (credentialIdHex.length === 0 || seen.has(credentialIdHex)) {
           continue
         }
         seen.add(credentialIdHex)
@@ -719,7 +713,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
   private readonly registrar: CustomAuthCredentialManager
   private readonly userProvider: UKeyUserProvider
   private readonly verifier: CustomAuthCredentialVerifier
-  private readonly templateBindingRepository: AuthenticatorUKeyTemplateBindingRepository
 
   constructor(
     bindingRepository: LockScreenUKeyBindingRepository = new PreferencesLockScreenUKeyBindingRepository(),
@@ -728,9 +721,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     activeCredentialRepository: LockScreenUKeyActiveCredentialRepository =
       new PreferencesLockScreenUKeyActiveCredentialRepository(),
     userProvider: UKeyUserProvider = new OsAccountUKeyUserProvider(),
-    verifier: CustomAuthCredentialVerifier = new OsAccountCustomAuthCredentialVerifier(),
-    templateBindingRepository: AuthenticatorUKeyTemplateBindingRepository =
-      new PreferencesAuthenticatorUKeyTemplateBindingRepository()
+    verifier: CustomAuthCredentialVerifier = new OsAccountCustomAuthCredentialVerifier()
   ) {
     this.bindingRepository = bindingRepository
     this.deviceProvider = deviceProvider
@@ -738,7 +729,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     this.activeCredentialRepository = activeCredentialRepository
     this.userProvider = userProvider
     this.verifier = verifier
-    this.templateBindingRepository = templateBindingRepository
   }
 
   async addCredentialWithUserInput(
@@ -825,8 +815,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
         stage: 'verify_credential'
       } as OperationResult<CustomAuthCredentialVerificationSummary>
     }
-
-    await this.repairTemplateBindingsForLocalCredentials(context, active.fingerprint, credentials)
 
     let results: CustomAuthCredentialVerificationResult[] = []
     for (let credential of credentials) {
@@ -1014,7 +1002,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     if (!userIdsResult.success || !userIdsResult.data || userIdsResult.data.length === 0) {
       return LockScreenCustomAuthEnrollmentService.success(existing ?? null, 'active_credential_missing')
     }
-    let templateBindings = await this.templateBindingRepository.loadTemplateBindings(context)
     let systemCredentialsResult = await this.loadSystemCustomAuthCredentials(userIdsResult.data)
     if (!systemCredentialsResult.success || !systemCredentialsResult.data) {
       return LockScreenCustomAuthEnrollmentService.success(existing ?? null, 'active_credential_missing')
@@ -1025,17 +1012,9 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       active,
       targetDevice.fingerprint
     )
-    templateBindings = await this.repairTemplateBindingsFromSystemCredentials(
-      context,
-      targetDevice.fingerprint,
-      localCredentials,
-      systemCredentialsResult.data,
-      templateBindings
-    )
     let ownCredentials = LockScreenCustomAuthEnrollmentService.toOwnUserCredentials(
       systemCredentialsResult.data,
-      templateBindings,
-      targetDevice.fingerprint
+      localCredentials
     )
     if (ownCredentials.length === 0) {
       if (active) {
@@ -1275,7 +1254,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
         'UKey 锁屏认证凭据注册失败',
         existing)
     }
-    await this.repairTemplateBindingsForLocalCredentials(context, device.fingerprint, dispatch.credentials)
 
     let binding = LockScreenCustomAuthEnrollmentService.toBindingFromRecords(device, dispatch.credentials, existing)
     let saved = await this.bindingRepository.saveBinding(context, binding)
@@ -1308,7 +1286,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     active: LockScreenUKeyActiveCredential | null,
     systemPin: string
   ): Promise<OperationResult<SystemCustomAuthCredentialReconcileResult>> {
-    let templateBindings = await this.templateBindingRepository.loadTemplateBindings(context)
     let systemCredentialsResult = await this.loadSystemCustomAuthCredentials(targetUserIds)
     if (!systemCredentialsResult.success || !systemCredentialsResult.data) {
       return LockScreenCustomAuthEnrollmentService.failure<SystemCustomAuthCredentialReconcileResult>(
@@ -1318,17 +1295,9 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     }
 
     let localCredentials = LockScreenCustomAuthEnrollmentService.resolveLocalCredentialRecords(null, active, device.fingerprint)
-    templateBindings = await this.repairTemplateBindingsFromSystemCredentials(
-      context,
-      device.fingerprint,
-      localCredentials,
-      systemCredentialsResult.data,
-      templateBindings
-    )
     let ownCredentials = LockScreenCustomAuthEnrollmentService.toOwnUserCredentials(
       systemCredentialsResult.data,
-      templateBindings,
-      device.fingerprint
+      localCredentials
     )
     let ownKeys = new Set<string>()
     for (let own of ownCredentials) {
@@ -1376,68 +1345,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       },
       stage: 'cleanup_credential'
     } as OperationResult<SystemCustomAuthCredentialReconcileResult>
-  }
-
-  private async repairTemplateBindingsForLocalCredentials(
-    context: common.Context,
-    fingerprint: string,
-    localCredentials: LockScreenUKeyUserCredential[]
-  ): Promise<void> {
-    if (fingerprint.length === 0 || localCredentials.length === 0) {
-      return
-    }
-    let userIds = LockScreenCustomAuthEnrollmentService.collectCredentialUserIds(localCredentials)
-    if (userIds.length === 0) {
-      return
-    }
-    let systemCredentialsResult = await this.loadSystemCustomAuthCredentials(userIds)
-    if (!systemCredentialsResult.success || !systemCredentialsResult.data) {
-      LogUtils.warn(TAG, `[TEMPLATE_BIND_REPAIR_SKIP] reason=query_failed, message=${systemCredentialsResult.errorMessage ?? '-'}`)
-      return
-    }
-    let templateBindings = await this.templateBindingRepository.loadTemplateBindings(context)
-    await this.repairTemplateBindingsFromSystemCredentials(
-      context,
-      fingerprint,
-      localCredentials,
-      systemCredentialsResult.data,
-      templateBindings
-    )
-  }
-
-  private async repairTemplateBindingsFromSystemCredentials(
-    context: common.Context,
-    fingerprint: string,
-    localCredentials: LockScreenUKeyUserCredential[],
-    systemCredentials: SystemCustomAuthCredentialRecord[],
-    templateBindings: AuthenticatorUKeyTemplateBindingMap
-  ): Promise<AuthenticatorUKeyTemplateBindingMap> {
-    if (fingerprint.length === 0 || localCredentials.length === 0 || systemCredentials.length === 0) {
-      return templateBindings
-    }
-    let localKeys = LockScreenCustomAuthEnrollmentService.toCredentialKeySet(localCredentials)
-    let repaired = LockScreenCustomAuthEnrollmentService.cloneTemplateBindings(templateBindings)
-    let repairedCount = 0
-    for (let credential of systemCredentials) {
-      if (!localKeys.has(LockScreenCustomAuthEnrollmentService.toSystemCredentialKey(credential))) {
-        continue
-      }
-      if (credential.templateId.length === 0 || repaired[credential.templateId] === fingerprint) {
-        continue
-      }
-      repaired[credential.templateId] = fingerprint
-      repairedCount++
-    }
-    if (repairedCount === 0) {
-      return templateBindings
-    }
-    let saved = await this.templateBindingRepository.saveTemplateBindings(context, repaired)
-    if (!saved) {
-      LogUtils.warn(TAG, `[TEMPLATE_BIND_REPAIR_FAIL] repaired=${repairedCount}`)
-      return templateBindings
-    }
-    LogUtils.info(TAG, `[TEMPLATE_BIND_REPAIRED] repaired=${repairedCount}`)
-    return repaired
   }
 
   private async loadSystemCustomAuthCredentials(
@@ -1555,22 +1462,17 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     return []
   }
 
-  private static collectCredentialUserIds(credentials: LockScreenUKeyUserCredential[]): number[] {
-    let userIds = new Set<number>()
-    for (let credential of credentials) {
-      if (Number.isFinite(credential.userId)) {
-        userIds.add(credential.userId)
-      }
-    }
-    return Array.from(userIds).sort((left: number, right: number): number => left - right)
-  }
-
-  private static toCredentialKeySet(credentials: LockScreenUKeyUserCredential[]): Set<string> {
-    let keys = new Set<string>()
+  private static toCredentialRecordMap(
+    credentials: LockScreenUKeyUserCredential[]
+  ): Map<string, LockScreenUKeyUserCredential> {
+    let records = new Map<string, LockScreenUKeyUserCredential>()
     for (let credential of LockScreenCustomAuthEnrollmentService.normalizeUserCredentials(credentials)) {
-      keys.add(LockScreenCustomAuthEnrollmentService.toCredentialKey(credential.userId, credential.credentialIdHex))
+      records.set(LockScreenCustomAuthEnrollmentService.toCredentialKey(
+        credential.userId,
+        credential.credentialIdHex
+      ), credential)
     }
-    return keys
+    return records
   }
 
   private static toSystemCredentialKey(credential: SystemCustomAuthCredentialRecord): string {
@@ -1581,25 +1483,16 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     return `${userId}:${credentialIdHex}`
   }
 
-  private static cloneTemplateBindings(
-    templateBindings: AuthenticatorUKeyTemplateBindingMap
-  ): AuthenticatorUKeyTemplateBindingMap {
-    let cloned: AuthenticatorUKeyTemplateBindingMap = {}
-    for (let key of Object.keys(templateBindings)) {
-      cloned[key] = templateBindings[key]
-    }
-    return cloned
-  }
-
   private static toOwnUserCredentials(
     systemCredentials: SystemCustomAuthCredentialRecord[],
-    templateBindings: AuthenticatorUKeyTemplateBindingMap,
-    fingerprint: string
+    localCredentials: LockScreenUKeyUserCredential[]
   ): LockScreenUKeyUserCredential[] {
     let credentials: LockScreenUKeyUserCredential[] = []
     let keptUsers = new Set<number>()
+    let localByKey = LockScreenCustomAuthEnrollmentService.toCredentialRecordMap(localCredentials)
     for (let credential of systemCredentials) {
-      if (templateBindings[credential.templateId] !== fingerprint || keptUsers.has(credential.userId)) {
+      let local = localByKey.get(LockScreenCustomAuthEnrollmentService.toSystemCredentialKey(credential))
+      if (!local || keptUsers.has(credential.userId)) {
         continue
       }
       keptUsers.add(credential.userId)
@@ -1608,7 +1501,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
         credentialIdHex: credential.credentialIdHex,
         pluginInfo: LOCKSCREEN_CUSTOM_AUTH_PLUGIN_INFO,
         lifecycle: 'active',
-        createdAt: Date.now()
+        createdAt: local.createdAt
       })
     }
     return credentials
