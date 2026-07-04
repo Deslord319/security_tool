@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
 last_updated: "2026-07-04"
-version: "2.2.21"
+version: "2.2.22"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -156,7 +156,7 @@ SystemUI / UserAuth
   - 首页标题区展示 `startIcon` 图标和 `ukey解锁工具` 标题，图标仅作应用识别，不增加新的交互入口。
   - 凭据操作区提供系统 PIN 和 UKey 密码输入；添加凭据要求两者都非空，删除凭据只要求系统 PIN 非空。
   - `凭据认证验证` 卡片展示一个验证专用 UKey 密码输入框和一个验证按钮；点击后对当前已保存的 UKEY解锁凭据逐用户执行 `authUser(CUSTOM)`，并通过 `companionDeviceAuth` passcode prompt 回调提交该输入框里的 UKey 密码；认证状态和成功/失败结论只回写到“当前状态”行。
-  - `UKEY解锁凭据` 卡片有 active 或 inactive 凭据时只展示主凭据 ID、创建时间和状态；无凭据或只有 failed 残留时内容为空白。内部仍按所有 OS 账户保存用户凭据记录，供删除凭据和认证验证使用；凭据认证验证按钮仅在状态为 active 时可用。
+  - `UKEY解锁凭据` 卡片有 active 或 inactive 凭据时只展示主凭据 ID、创建时间和状态；无凭据或只有 failed 残留时内容为空白。内部仍按所有 OS 账户保存用户凭据记录，供删除凭据和认证验证使用；凭据认证验证按钮仅在状态为 active 时可用。页面刷新、USB 插拔刷新、添加、删除和认证验证后，页面必须把仓储读取到的 `activeCredential` 同步到独立的可见凭据状态字段，卡片直接绑定这些字段，避免对象状态已更新但卡片文本仍显示旧生命周期。
   - 页面前台运行时不轮询；`aboutToAppear()` 订阅 USB 插拔事件，事件触发后使用 DDK 重新读取 UKey设备和本地凭据状态，`aboutToDisappear()` 取消订阅。USB attach 后按短延迟窗口多次触发 DDK 读取，解决设备刚插入时 DDK 枚举尚未完成导致页面暂时拿不到设备的问题。
   - 实时 UKey 展示优先使用 `DdkLockScreenUKeyDeviceService`；DDK 服务异常时使用 `UsbLockScreenUKeyDeviceService` 兜底展示，但页面不展示 DDK/USB 来源文案；未识别到 UKey 时内容为空白，只在插入后展示识别到的设备信息。
   - UI 结构沿用 SecurityTool 设置页规范，使用 `SectionCard`、`SectionToggleRow`、`SectionActionRow`、`AppColors` 和 `AppStyles`，不单独设计一套视觉语言。
@@ -239,6 +239,7 @@ SystemUI / UserAuth
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.22 | 2026-07-04 | Codex | 修正 `UKEY解锁凭据` 卡片状态绑定：页面将 `activeCredential` 同步为独立可见状态字段，卡片直接绑定凭据 ID、创建时间和生命周期，避免 preferences 已恢复 active 但卡片仍显示旧 inactive。 |
 | 2.2.21 | 2026-07-04 | Codex | 简化 UKey 指纹方案：优先 SN（`SN:SERIAL`，只比较 SN 不带 VID/PID 前缀），无 SN 时生成弱指纹（`VID:xxxx PID:xxxx|WEAK:PRODUCTNAME|DESCRIPTION`）；绑定匹配只做精确指纹字符串比较，移除 sysfs 补读和同 VID/PID 放行兜底。 |
 | 2.2.20 | 2026-07-04 | Codex | 修复旧 templateBinding 导致输入验证失败的设计：基于本地当前凭据 ID 与系统 credentialId/templateId 对账，安全修复缺失或过期的 `templateId -> 当前绑定 UKey SN 指纹` 映射。 |
 | 2.2.18 | 2026-07-04 | Codex | 凭据认证验证卡片新增独立 UKey 密码输入框，验证流程只读取该输入框，不再复用凭据操作区的 UKey 密码输入。 |

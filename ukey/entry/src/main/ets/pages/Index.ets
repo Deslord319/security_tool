@@ -40,7 +40,11 @@ struct Index {
   @State private statusMessage: string = ''
   @State private currentDevices: LockScreenUKeyDevice[] = []
   @State private currentDeviceMessage: string = ''
-  @State private activeCredential: LockScreenUKeyActiveCredential | null = null
+  @State private visibleCredentialAvailable: boolean = false
+  @State private visibleCredentialId: string = ''
+  @State private visibleCredentialCreatedAt: number = 0
+  @State private visibleCredentialLifecycle: string = ''
+  @State private visibleCredentialActive: boolean = false
   @State private verifyingCredential: boolean = false
   @State private credentialSubmitting: boolean = false
   @State private systemPinInput: string = ''
@@ -80,7 +84,7 @@ struct Index {
       let activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
       this.ukeyUnlockEnabled = config.ukeyUnlockEnabled
       this.refreshCurrentDevices()
-      this.activeCredential = activeCredential
+      this.updateActiveCredential(activeCredential)
     } catch (err) {
       LogUtils.warn(TAG, `refreshState failed: ${JSON.stringify(err)}`)
       this.statusMessage = '状态刷新失败'
@@ -110,7 +114,7 @@ struct Index {
       this.refreshCurrentDevices()
       let context = this.getPageContext()
       await this.enrollmentService.reconcileSystemCredentials(context)
-      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.updateActiveCredential(await this.activeCredentialRepository.loadActiveCredential(context))
     } catch (err) {
       LogUtils.warn(TAG, `refreshRuntimeState failed: ${JSON.stringify(err)}`)
     } finally {
@@ -178,6 +182,25 @@ struct Index {
     }
   }
 
+  private updateActiveCredential(credential: LockScreenUKeyActiveCredential | null): void {
+    if (!credential ||
+      (credential.lifecycle !== 'active' && credential.lifecycle !== 'inactive') ||
+      credential.userCredentials.length === 0 ||
+      credential.userCredentials[0].credentialIdHex.length === 0) {
+      this.visibleCredentialAvailable = false
+      this.visibleCredentialId = ''
+      this.visibleCredentialCreatedAt = 0
+      this.visibleCredentialLifecycle = ''
+      this.visibleCredentialActive = false
+      return
+    }
+    this.visibleCredentialAvailable = true
+    this.visibleCredentialId = credential.userCredentials[0].credentialIdHex
+    this.visibleCredentialCreatedAt = credential.createdAt
+    this.visibleCredentialLifecycle = credential.lifecycle
+    this.visibleCredentialActive = credential.lifecycle === 'active'
+  }
+
   private buildCurrentDeviceMessage(devices: LockScreenUKeyDevice[]): string {
     if (devices.length === 0) {
       return ''
@@ -189,36 +212,21 @@ struct Index {
   }
 
   private hasVisibleCredential(): boolean {
-    return !!this.activeCredential &&
-      (this.activeCredential.lifecycle === 'active' || this.activeCredential.lifecycle === 'inactive') &&
-      this.activeCredential.userCredentials.length > 0 &&
-      this.activeCredential.userCredentials[0].credentialIdHex.length > 0
+    return this.visibleCredentialAvailable
   }
 
   private hasVerifiableActiveCredential(): boolean {
-    return this.hasVisibleCredential() && this.activeCredential!.lifecycle === 'active'
+    return this.visibleCredentialActive
   }
 
   private hasOperableUKey(): boolean {
     if (!this.ukeyUnlockEnabled) {
       return false
     }
-    if (this.activeCredential) {
-      return this.activeCredential.lifecycle === 'active'
+    if (this.visibleCredentialAvailable) {
+      return this.visibleCredentialActive
     }
     return this.currentDevices.length > 0
-  }
-
-  private getVisibleCredentialId(): string {
-    return this.hasVisibleCredential() ? this.activeCredential!.userCredentials[0].credentialIdHex : ''
-  }
-
-  private getVisibleCredentialCreatedAt(): number {
-    return this.hasVisibleCredential() ? this.activeCredential!.createdAt : 0
-  }
-
-  private getVisibleCredentialLifecycle(): string {
-    return this.hasVisibleCredential() ? this.activeCredential!.lifecycle : ''
   }
 
   private async handleEnabledChange(value: boolean): Promise<void> {
@@ -269,7 +277,7 @@ struct Index {
     try {
       let context = this.getPageContext()
       let result = await this.enrollmentService.verifyActiveCredentials(context, ukeyPassword)
-      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.updateActiveCredential(await this.activeCredentialRepository.loadActiveCredential(context))
       this.statusMessage = result.success ? this.buildVerificationSuccessMessage(result.data ?? null) :
         (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据认证验证失败')
     } catch (err) {
@@ -300,7 +308,7 @@ struct Index {
     try {
       let context = this.getPageContext()
       let result = await this.enrollmentService.addCredentialWithUserInput(context, systemPin, ukeyPassword)
-      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.updateActiveCredential(await this.activeCredentialRepository.loadActiveCredential(context))
       this.statusMessage = result.success ? 'UKEY解锁凭据已添加' :
         (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据添加失败')
     } catch (err) {
@@ -330,7 +338,7 @@ struct Index {
     try {
       let context = this.getPageContext()
       let result = await this.enrollmentService.deleteActiveCredentialByPin(context, systemPin)
-      this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      this.updateActiveCredential(await this.activeCredentialRepository.loadActiveCredential(context))
       this.statusMessage = result.success ? 'UKEY解锁凭据已删除' :
         (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据删除失败')
     } catch (err) {
@@ -590,9 +598,56 @@ struct Index {
       Blank()
     } else {
       Column({ space: 12 }) {
-        this.infoRow('凭据 ID', this.getVisibleCredentialId())
-        this.infoRow('创建时间', this.formatTime(this.getVisibleCredentialCreatedAt()))
-        this.infoRow('状态', this.getVisibleCredentialLifecycle())
+        Row() {
+          Text('凭据 ID')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .width(116)
+          Text(this.visibleCredentialId.length > 0 ? this.visibleCredentialId : '-')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .layoutWeight(1)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        Row() {
+          Text('创建时间')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .width(116)
+          Text(this.formatTime(this.visibleCredentialCreatedAt))
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .layoutWeight(1)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        Row() {
+          Text('状态')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .width(116)
+          Text(this.visibleCredentialLifecycle.length > 0 ? this.visibleCredentialLifecycle : '-')
+            .fontSize(AppStyles.FONT_SIZE_BODY)
+            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .layoutWeight(1)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
       }
       .width('100%')
     }
