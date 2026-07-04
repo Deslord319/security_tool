@@ -4,7 +4,7 @@ title: "UKey 管理与认证器核心接入"
 architecture: "Standalone System App + DDK Backend + CustomAuth Core"
 status: "active"
 last_updated: "2026-07-04"
-version: "2.2.26"
+version: "2.2.27"
 ---
 
 # UKey 管理与认证器核心接入设计说明
@@ -22,7 +22,7 @@ version: "2.2.26"
 ## 1. 业务概述与对外接口 (Overview & Public Interfaces)
 
 - **核心目标**: `ukey/` 作为独立系统应用管理 UKey 插拔、首把绑定、系统 CustomAuth 凭据注入/删除和认证器执行端。该应用按系统应用签名，获得身份凭据管理、PIN token、CustomAuth appService 和 DDK 访问权限；添加凭据必须由用户在管理页输入系统 PIN 和 UKey 密码后触发，不允许 USB attach 或启动对账在后台使用固定 PIN 自动改写系统凭据。
-- **入口路由 (Route Entry)**: `ukey/entry/src/main/ets/pages/Index.ets`。页面提供本应用内的 UKey 锁屏认证开关、UKey设备、UKEY解锁凭据查询、凭据添加/删除和凭据认证验证，不承载测试 HAP 的调试按钮、模拟换新或 fake UKey 切换。应用中文显示名统一为 `ukey解锁工具`，首页标题左侧展示应用启动图标作为视觉识别。
+- **入口路由 (Route Entry)**: `ukey/entry/src/main/ets/pages/Index.ets`。页面提供本应用内的 UKey 锁屏认证开关、UKey设备、UKEY解锁凭据查询、凭据添加/删除和凭据认证验证，不承载测试 HAP 的调试按钮、模拟换新或 fake UKey 切换。应用中文显示名统一为 `ukey解锁工具`，首页标题左侧展示应用启动图标作为视觉识别。页面固定使用应用内浅色调色板，不跟随系统深色模式动态切换。
 - **对外暴露能力 (Public APIs)**:
   - `ICustomAuthenticatorV1` appService: 系统身份认证服务回调入口，`pluginInfo` 指向 `com.ukey.pin`。
   - `LockScreenCustomAuthEnrollmentService`: 当前承接首把绑定、UKEY解锁凭据注入/删除和启动/插拔对账编排。凭据注入必须携带用户输入的系统 PIN 和 UKey 密码；凭据删除必须携带用户输入的系统 PIN。
@@ -87,9 +87,9 @@ SystemUI / UserAuth
   - 状态栏图标左键点击 -> `EntryAbility.showAbility()` -> 恢复 `ukey解锁工具` 管理窗口。
   - 用户从 dock / system tray 执行应用关闭 -> 系统调用 `EntryAbilityStage.onPrepareTermination()` -> 返回 `TERMINATE_IMMEDIATELY`，真实退出应用。
   - 页面进入 -> 加载 `ukeyUnlockEnabled`、实时 `currentDevices`、`activeCredential` -> 展示开关、UKey设备、凭据操作、当前 UKEY解锁凭据主 ID、创建时间、状态和刷新入口；没有 active UKEY解锁凭据、仅存在 failed 残留或未识别到 UKey 时对应卡片内容为空白，不额外展示提示文案。
-  - 页面刷新或进入 -> 服务读取系统侧 CUSTOM_AUTH 凭据及 `credentialId/templateId` -> 用本地当前 `trustedBinding.fingerprint + activeCredential.userCredentials[].credentialIdHex/templateId` 与系统 credentialId 对账；匹配本地当前凭据 ID 的系统凭据用系统侧 templateId 刷新本地 pair，并根据目标 UKey 在位状态保存为 active 或 inactive；若本地已有凭据但本次系统查询暂时无匹配，则保留本地凭据，并按目标 UKey 是否在位更新 active/inactive；没有本地凭据且没有匹配系统凭据时页面保持空白。
-  - 页面点击添加凭据 -> 用户输入系统 PIN 和 UKey 密码 -> 服务确认当前目标 UKey 在位且未锁定；若已存在首把绑定但该 UKey 不在位，直接失败，不用当前插入的其它 UKey 重新绑定 -> UKey 密码正确后枚举所有 OS 账户 -> 通过 `getAuthInfo(CUSTOM_AUTH=128)` 查询系统侧已有 CUSTOM_AUTH 凭据：credentialId 命中本地当前目标 UKey 凭据的记录用系统侧 templateId 刷新后恢复为 active 并复用，其它记录使用本次系统 PIN 静默 `delCred` 删除 -> 对缺失用户逐个获取 PIN token 并调用 `addCredential`，添加成功后必须解析到对应 templateId 才写入本地凭据 -> 保存 `trustedBinding` 与包含多用户凭据记录的 `activeCredential`。
-  - 页面点击删除凭据 -> 用户输入系统 PIN -> 按本地 `activeCredential.userCredentials` 对每个用户获取 PIN token 并调用 `delCred` -> 全部成功后清空 `activeCredential`，保留 `trustedBinding` 和 UKey 密码锁定状态。
+  - 页面刷新或进入 -> 若已有 `trustedBinding`，服务读取系统侧 CUSTOM_AUTH 凭据及 `credentialId/templateId` -> 用本地当前 `trustedBinding.fingerprint + activeCredential.userCredentials[].credentialIdHex/templateId` 与系统 credentialId 对账；匹配本地当前凭据 ID 的系统凭据用系统侧 templateId 刷新本地 pair，并根据目标 UKey 在位状态保存为 active 或 inactive；若本地已有凭据但本次系统查询暂时无匹配，则保留本地凭据，并按目标 UKey 是否在位更新 active/inactive；没有 `trustedBinding` 时不允许仅凭当前插入的一把 UKey 和系统残留 CUSTOM_AUTH 凭据建立绑定，若本地仍有 activeCredential 残留则压成 inactive，仅允许用户输入系统 PIN 删除。
+  - 页面点击添加凭据 -> 用户输入系统 PIN 和 UKey 密码 -> 服务确认当前目标 UKey 在位且未锁定；若已存在首把绑定但该 UKey 不在位，直接失败，不用当前插入的其它 UKey 重新绑定 -> UKey 密码正确后枚举所有 OS 账户 -> 通过 `getAuthInfo(CUSTOM_AUTH=128)` 查询系统侧已有 CUSTOM_AUTH 凭据：credentialId 命中本地当前目标 UKey 凭据的记录用系统侧 templateId 刷新后恢复为 active 并复用，归属判断同时读取 `trustedBinding.userCredentials` 与 `activeCredential.userCredentials`，其它记录使用本次系统 PIN 静默 `delCred` 删除 -> 对缺失用户逐个获取 PIN token 并调用 `addCredential`，添加成功后必须解析到对应 templateId 才写入本地凭据 -> 保存 `trustedBinding` 与包含多用户凭据记录的 `activeCredential`。
+  - 页面点击删除凭据 -> 用户输入系统 PIN -> 按本地 `activeCredential.userCredentials` 对每个用户获取 PIN token 并调用 `delCred` -> 全部成功后清空 `activeCredential`，保留 `trustedBinding` 和 UKey 密码锁定状态。删除按钮只要求存在可见 UKEY解锁凭据，不要求凭据 active、UKey 在位或认证开关打开。
   - 页面点击凭据认证验证按钮 -> 要求用户先在 `凭据认证验证` 卡片内的 UKey 密码输入框输入密码 -> 读取当前已保存的 `activeCredential.userCredentials` -> 为每个用户生成 challenge -> 验证器注册一次 passcode prompt 回调并调用 `UserAuth.authUser(userId, challenge, CUSTOM(128), ATL3)` -> 系统进入 `ICustomAuthenticatorV1.beginAuthenticate` -> `AuthenticatorUKeyProvider` 先匹配首把 UKey 指纹，再用该指纹下同一用户的 credentialId/templateId pair 约束候选 templateId -> 系统通过 prompt 要求 UKey 密码 -> 回调用验证卡片输入的 UKey 密码提交 -> 页面“当前状态”行展示认证成功/失败结论和成功用户数；失败时展示失败用户数或错误信息。
   - 页面关闭开关 -> 保存 `ukeyUnlockEnabled=false` -> CustomAuth 执行端后续认证直接失败；已存在的 UKEY解锁凭据不会在缺少系统 PIN 的情况下被后台删除，用户需要通过删除凭据按钮清理。
   - 页面打开开关 -> 保存 `ukeyUnlockEnabled=true` -> 触发一次启动对账，仅刷新 UKey 在位和凭据状态，不自动补注入。
@@ -131,7 +131,7 @@ SystemUI / UserAuth
 - `ukey/entry/src/main/ets/services/identity/lockscreen-auth/LockScreenCustomAuthEnrollmentService.ets`
   - 负责编排添加/删除系统 CustomAuth 凭据。
   - 添加凭据由管理页传入系统 PIN 和 UKey 密码；系统 PIN 由 `PINAuth.registerInputer` 注入以换取 PIN token，UKey 密码由 `AuthenticatorUKeyProvider` 校验并累计错误次数。
-  - 添加凭据前按当前 OS 账户集合读取系统侧已有 CUSTOM_AUTH 凭据，复用 credentialId 命中本地当前目标 UKey 凭据集合的记录，并用系统侧 templateId 刷新本地 pair；删除旧 failed 凭据、测试 HAP 凭据或非当前目标 UKey 凭据。
+  - 添加凭据前按当前 OS 账户集合读取系统侧已有 CUSTOM_AUTH 凭据，复用 credentialId 命中本地当前目标 UKey 凭据集合的记录，并用系统侧 templateId 刷新本地 pair；归属判断同时读取 `trustedBinding` 和 `activeCredential`，删除旧 failed 凭据、测试 HAP 凭据或非当前目标 UKey 凭据。
   - 删除凭据由管理页传入系统 PIN；不要求 UKey 密码或 UKey 在位。凭据删除按已保存的用户凭据记录逐个执行。
   - `OsAccountUKeyUserProvider` 自动枚举所有 OS 账户 ID；注册和补注入均以全量用户集合为目标，但只允许在用户点击添加凭据并输入必要凭据后执行。
   - `OsAccountCustomAuthCredentialVerifier` 专用于页面认证验证，按已保存用户凭据逐个执行 `authUser(CUSTOM, ATL3)`，不调用 `addCredential`。
@@ -154,7 +154,7 @@ SystemUI / UserAuth
 - `ukey/entry/src/main/ets/pages/Index.ets`
   - UKey 本地管理页。页面读取 `PreferencesLockScreenAuthRepository`、`PreferencesLockScreenUKeyActiveCredentialRepository` 和实时 UKey 设备提供器，提供启用开关、刷新按钮、凭据添加/删除按钮、UKey设备和 UKEY解锁凭据状态。
   - 首页标题区展示 `startIcon` 图标和 `ukey解锁工具` 标题，图标仅作应用识别，不增加新的交互入口。
-  - 凭据操作区提供系统 PIN 和 UKey 密码输入；添加凭据要求两者都非空，删除凭据只要求系统 PIN 非空。
+  - 凭据操作区提供系统 PIN 和 UKey 密码输入；添加凭据要求两者都非空且目标 UKey 在位，删除凭据只要求系统 PIN 非空和存在可见 UKEY解锁凭据，inactive 凭据也允许删除。
   - `凭据认证验证` 卡片展示一个验证专用 UKey 密码输入框和一个验证按钮；点击后对当前已保存的 UKEY解锁凭据逐用户执行 `authUser(CUSTOM)`，并通过 `companionDeviceAuth` passcode prompt 回调提交该输入框里的 UKey 密码；认证状态和成功/失败结论只回写到“当前状态”行。
   - `UKEY解锁凭据` 卡片有 active 或 inactive 凭据时只展示主凭据 ID、创建时间和状态；无凭据或只有 failed 残留时内容为空白。内部仍按所有 OS 账户保存用户凭据记录，供删除凭据和认证验证使用；凭据认证验证按钮仅在状态为 active 时可用。页面刷新、USB 插拔刷新、添加、删除和认证验证后，页面必须把仓储读取到的 `activeCredential` 同步到独立的可见凭据状态字段，卡片直接绑定这些字段，避免对象状态已更新但卡片文本仍显示旧生命周期。
   - 页面前台运行时不轮询；`aboutToAppear()` 订阅 USB 插拔事件，事件触发后使用 DDK 重新读取 UKey设备和本地凭据状态，`aboutToDisappear()` 取消订阅。USB attach 后按短延迟窗口多次触发 DDK 读取，解决设备刚插入时 DDK 枚举尚未完成导致页面暂时拿不到设备的问题。
@@ -239,6 +239,7 @@ SystemUI / UserAuth
 
 | 版本 | 日期 | 修改人 | 核心设计变更内容 |
 |---|---|---|---|
+| 2.2.27 | 2026-07-04 | Codex | 收紧系统残留恢复边界：没有 `trustedBinding` 时不得仅凭当前插入的一把 UKey 重建绑定；添加前清理系统凭据时同时使用 `trustedBinding.userCredentials` 和 `activeCredential.userCredentials` 判断自己的凭据。管理页固定使用应用内浅色调色板。 |
 | 2.2.26 | 2026-07-04 | Codex | 将 templateId 作为同一条用户凭据的执行字段随 credentialId 一起绑定，形成 `fingerprint -> [credentialId, templateId]`；修正 `getAuthInfo().templateId` 按 little-endian 解码，避免系统候选 templateId 与本地解析值字节序相反导致认证失败。 |
 | 2.2.25 | 2026-07-04 | Codex | 修正执行端候选含义：`beginAuthenticate` 的候选来自 SecurityAsset templateId，执行端需先按首把 fingerprint + 本地 credentialId 约束，再通过系统 `getAuthInfo` 临时解析 credentialId 对应 templateId 后返回，不恢复持久化模板绑定。 |
 | 2.2.24 | 2026-07-04 | Codex | 移除独立模板归属映射设计；UKey 解锁归属统一收敛为首把 UKey fingerprint 与本地 credentialId 的一对多关系，添加、刷新和认证均按该关系判断归属。 |

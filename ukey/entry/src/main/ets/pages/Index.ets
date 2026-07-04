@@ -22,7 +22,6 @@ import {
 import { UKeyRuntimeManager } from '../runtime/UKeyRuntimeManager'
 import { LogUtils } from '../utils/LogUtils'
 import { AppColors, AppStyles } from '../constants/AppConstants'
-import { ThemeMode } from '../theme/ThemeColors'
 import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionToggleRow } from '../components/SectionRows'
 
@@ -33,7 +32,6 @@ const USB_DETACH_REFRESH_DELAY_MS = 600
 @Entry
 @Component
 struct Index {
-  @State private currentTheme: ThemeMode = ThemeMode.LIGHT
   @State private ukeyUnlockEnabled: boolean = true
   @State private loading: boolean = false
   @State private saving: boolean = false
@@ -229,6 +227,14 @@ struct Index {
     return this.currentDevices.length > 0
   }
 
+  private hasCredentialOperationPinInput(): boolean {
+    return this.hasOperableUKey() || this.hasVisibleCredential()
+  }
+
+  private hasDeletableCredential(): boolean {
+    return this.hasVisibleCredential()
+  }
+
   private async handleEnabledChange(value: boolean): Promise<void> {
     if (this.saving) {
       return
@@ -377,22 +383,20 @@ struct Index {
       isOn: this.ukeyUnlockEnabled,
       processing: this.saving,
       enabledValue: !this.loading && !this.saving,
-      currentTheme: this.currentTheme,
       onChange: (value: boolean) => {
         this.handleEnabledChange(value)
       }
     })
 
     Divider()
-      .color(AppColors.getColors(this.currentTheme).BORDER)
-      .opacity(AppColors.getColors(this.currentTheme).BORDER_OPACITY)
+      .color(AppColors.getColors().BORDER)
+      .opacity(AppColors.getColors().BORDER_OPACITY)
 
     SectionActionRow({
       title: '当前状态',
       description: this.statusMessage,
       actionLabel: '刷新',
       isEnabled: !this.loading && !this.saving,
-      currentTheme: this.currentTheme,
       onTap: () => {
         this.refreshState()
       }
@@ -425,13 +429,13 @@ struct Index {
         .height(36)
         .width('100%')
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .placeholderColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .fontColor(AppColors.getColors().TEXT_PRIMARY)
+        .placeholderColor(AppColors.getColors().TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors().BG_PAGE)
         .borderRadius(AppStyles.RADIUS_SM)
         .border({
           width: AppStyles.DIVIDER_HEIGHT,
-          color: AppColors.getColors(this.currentTheme).BORDER,
+          color: AppColors.getColors().BORDER,
           style: BorderStyle.Solid
         })
         .enabled(this.ukeyUnlockEnabled && this.hasVerifiableActiveCredential() && !this.loading && !this.saving &&
@@ -471,16 +475,16 @@ struct Index {
         .height(36)
         .width('100%')
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .placeholderColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .fontColor(AppColors.getColors().TEXT_PRIMARY)
+        .placeholderColor(AppColors.getColors().TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors().BG_PAGE)
         .borderRadius(AppStyles.RADIUS_SM)
         .border({
           width: AppStyles.DIVIDER_HEIGHT,
-          color: AppColors.getColors(this.currentTheme).BORDER,
+          color: AppColors.getColors().BORDER,
           style: BorderStyle.Solid
         })
-        .enabled(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting)
+        .enabled(this.hasCredentialOperationPinInput() && !this.loading && !this.saving && !this.credentialSubmitting)
         .onChange((value: string) => {
           this.systemPinInput = value
         })
@@ -490,13 +494,13 @@ struct Index {
         .height(36)
         .width('100%')
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .placeholderColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .fontColor(AppColors.getColors().TEXT_PRIMARY)
+        .placeholderColor(AppColors.getColors().TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors().BG_PAGE)
         .borderRadius(AppStyles.RADIUS_SM)
         .border({
           width: AppStyles.DIVIDER_HEIGHT,
-          color: AppColors.getColors(this.currentTheme).BORDER,
+          color: AppColors.getColors().BORDER,
           style: BorderStyle.Solid
         })
         .enabled(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting)
@@ -525,15 +529,14 @@ struct Index {
           .type(ButtonType.Normal)
           .fontSize(AppStyles.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Regular)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .backgroundColor(AppColors.getColors(this.currentTheme).TAG_BLUE_BG)
+          .fontColor(AppColors.getColors().TEXT_PRIMARY)
+          .backgroundColor(AppColors.getColors().TAG_BLUE_BG)
           .borderRadius(AppStyles.RADIUS_SM)
           .height(36)
           .width(112)
           .stateEffect(true)
-          .enabled(this.hasVerifiableActiveCredential() && !this.loading && !this.saving && !this.credentialSubmitting)
-          .opacity(this.hasVerifiableActiveCredential() && !this.loading && !this.saving && !this.credentialSubmitting ?
-            1 : 0.56)
+          .enabled(this.hasDeletableCredential() && !this.loading && !this.saving && !this.credentialSubmitting)
+          .opacity(this.hasDeletableCredential() && !this.loading && !this.saving && !this.credentialSubmitting ? 1 : 0.56)
           .onClick(() => {
             this.handleDeleteCredential()
           })
@@ -550,13 +553,13 @@ struct Index {
     Row() {
       Text(label)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+        .fontColor(AppColors.getColors().TEXT_PRIMARY)
+        .opacity(AppColors.getColors().TEXT_TERTIARY_OPACITY)
         .width(116)
       Text(value.length > 0 ? value : '-')
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .fontColor(AppColors.getColors().TEXT_PRIMARY)
+        .opacity(AppColors.getColors().TEXT_PRIMARY_OPACITY)
         .layoutWeight(1)
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -573,8 +576,8 @@ struct Index {
       Column({ space: 12 }) {
         Text(this.currentDeviceMessage)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .fontColor(AppColors.getColors().TEXT_PRIMARY)
+          .opacity(AppColors.getColors().TEXT_TERTIARY_OPACITY)
           .width('100%')
 
         ForEach(this.currentDevices, (device: LockScreenUKeyDevice, index: number) => {
@@ -601,13 +604,13 @@ struct Index {
         Row() {
           Text('凭据 ID')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors().TEXT_PRIMARY)
+            .opacity(AppColors.getColors().TEXT_TERTIARY_OPACITY)
             .width(116)
           Text(this.visibleCredentialId.length > 0 ? this.visibleCredentialId : '-')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors().TEXT_PRIMARY)
+            .opacity(AppColors.getColors().TEXT_PRIMARY_OPACITY)
             .layoutWeight(1)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -618,13 +621,13 @@ struct Index {
         Row() {
           Text('创建时间')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors().TEXT_PRIMARY)
+            .opacity(AppColors.getColors().TEXT_TERTIARY_OPACITY)
             .width(116)
           Text(this.formatTime(this.visibleCredentialCreatedAt))
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors().TEXT_PRIMARY)
+            .opacity(AppColors.getColors().TEXT_PRIMARY_OPACITY)
             .layoutWeight(1)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -635,13 +638,13 @@ struct Index {
         Row() {
           Text('状态')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+            .fontColor(AppColors.getColors().TEXT_PRIMARY)
+            .opacity(AppColors.getColors().TEXT_TERTIARY_OPACITY)
             .width(116)
           Text(this.visibleCredentialLifecycle.length > 0 ? this.visibleCredentialLifecycle : '-')
             .fontSize(AppStyles.FONT_SIZE_BODY)
-            .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-            .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+            .fontColor(AppColors.getColors().TEXT_PRIMARY)
+            .opacity(AppColors.getColors().TEXT_PRIMARY_OPACITY)
             .layoutWeight(1)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -665,8 +668,8 @@ struct Index {
         Text('ukey解锁工具')
           .fontSize(AppStyles.FONT_SIZE_TITLE)
           .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+          .fontColor(AppColors.getColors().TEXT_PRIMARY)
+          .opacity(AppColors.getColors().TEXT_PRIMARY_OPACITY)
           .layoutWeight(1)
       }
       .width('100%')
@@ -682,7 +685,6 @@ struct Index {
         Column({ space: 16 }) {
           SectionCard({
             title: '认证开关',
-            currentTheme: this.currentTheme,
             content: () => {
               this.switchContent()
             }
@@ -690,7 +692,6 @@ struct Index {
 
           SectionCard({
             title: 'UKey设备',
-            currentTheme: this.currentTheme,
             content: () => {
               this.currentDeviceCardContent()
             }
@@ -698,7 +699,6 @@ struct Index {
 
           SectionCard({
             title: '凭据操作',
-            currentTheme: this.currentTheme,
             content: () => {
               this.credentialOperationCardContent()
             }
@@ -706,7 +706,6 @@ struct Index {
 
           SectionCard({
             title: '凭据认证验证',
-            currentTheme: this.currentTheme,
             content: () => {
               this.credentialVerificationCardContent()
             }
@@ -714,7 +713,6 @@ struct Index {
 
           SectionCard({
             title: 'UKEY解锁凭据',
-            currentTheme: this.currentTheme,
             content: () => {
               this.activeCredentialCardContent()
             }
@@ -733,6 +731,6 @@ struct Index {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+    .backgroundColor(AppColors.getColors().BG_PAGE)
   }
 }

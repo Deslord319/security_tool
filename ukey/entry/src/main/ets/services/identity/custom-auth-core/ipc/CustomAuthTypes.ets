@@ -122,8 +122,3 @@ export interface AuthCallbackResult {
   templateId: string
   encryptedData: EncryptedData
 }
-
-export interface AuthTipInfo {
-  tipCode: number // 50000-59999
-  tipInfo: string
-}

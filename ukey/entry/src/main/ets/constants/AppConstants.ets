@@ -1,21 +1,15 @@
-import { getThemeColors, ThemeColorSet, ThemeMode } from '../theme/ThemeColors'
+import { LIGHT_COLORS, ThemeColorSet } from '../theme/ThemeColors'
 
 export class AppColors {
   static readonly BRAND_PRIMARY: string = '#0A84FF'
   static readonly ACTION_PRIMARY_HOVER_LIGHT: string = 'rgba(10,132,255,0.14)'
   static readonly ACTION_PRIMARY_PRESSED_LIGHT: string = 'rgba(10,132,255,0.20)'
-  static readonly ACTION_PRIMARY_BG_DARK: string = 'rgba(94,161,255,0.24)'
-  static readonly ACTION_PRIMARY_HOVER_DARK: string = 'rgba(94,161,255,0.32)'
-  static readonly ACTION_PRIMARY_PRESSED_DARK: string = 'rgba(94,161,255,0.42)'
   static readonly HOVER_SHADOW_LIGHT: string = 'rgba(15,23,42,0.15)'
   static readonly HOVER_SHADOW_STRONG_LIGHT: string = 'rgba(15,23,42,0.20)'
   static readonly HOVER_SHADOW_REST_LIGHT: string = 'rgba(15,23,42,0.06)'
-  static readonly HOVER_SHADOW_DARK: string = 'rgba(148,163,184,0.12)'
-  static readonly HOVER_SHADOW_STRONG_DARK: string = 'rgba(148,163,184,0.16)'
-  static readonly HOVER_SHADOW_REST_DARK: string = 'rgba(148,163,184,0.04)'
 
-  static getColors(theme: ThemeMode): ThemeColorSet {
-    return getThemeColors(theme)
+  static getColors(): ThemeColorSet {
+    return LIGHT_COLORS
   }
 }
 
@@ -37,21 +31,15 @@ export class ActionButtonStyles {
   static readonly CHIP_HEIGHT: number = 32
   static readonly CHIP_HORIZONTAL_PADDING: number = 12
 
-  static getPrimaryBackground(theme: ThemeMode, isHovered: boolean, isPressed: boolean = false): ResourceColor {
-    if (theme === ThemeMode.DARK) {
-      if (isPressed) {
-        return AppColors.ACTION_PRIMARY_PRESSED_DARK
-      }
-      return isHovered ? AppColors.ACTION_PRIMARY_HOVER_DARK : AppColors.ACTION_PRIMARY_BG_DARK
-    }
+  static getPrimaryBackground(isHovered: boolean, isPressed: boolean = false): ResourceColor {
     if (isPressed) {
       return AppColors.ACTION_PRIMARY_PRESSED_LIGHT
     }
-    return isHovered ? AppColors.ACTION_PRIMARY_HOVER_LIGHT : AppColors.getColors(theme).TAG_BLUE_BG
+    return isHovered ? AppColors.ACTION_PRIMARY_HOVER_LIGHT : AppColors.getColors().TAG_BLUE_BG
   }
 
-  static getPrimaryForeground(theme: ThemeMode): ResourceColor {
-    return theme === ThemeMode.DARK ? Color.White : AppColors.getColors(theme).TEXT_PRIMARY
+  static getPrimaryForeground(): ResourceColor {
+    return AppColors.getColors().TEXT_PRIMARY
   }
 }
 

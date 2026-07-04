@@ -1,5 +1,4 @@
 import { ActionButtonStyles, AppColors, AppStyles } from '../constants/AppConstants'
-import { ThemeMode } from '../theme/ThemeColors'
 
 interface SectionRowPadding {
   left: number
@@ -19,20 +18,19 @@ const SECTION_ROW_PADDING: SectionRowPadding = {
 export struct SectionLabel {
   @Param title: string = ''
   @Param description: string = ''
-  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
     Column({ space: 2 }) {
       Text(this.title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
-        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .opacity(AppColors.getColors(this.currentTheme).TEXT_PRIMARY_OPACITY)
+        .fontColor(AppColors.getColors().TEXT_PRIMARY)
+        .opacity(AppColors.getColors().TEXT_PRIMARY_OPACITY)
 
       if (this.description.length > 0) {
         Text(this.description)
           .fontSize(AppStyles.FONT_SIZE_CAPTION)
-          .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-          .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
+          .fontColor(AppColors.getColors().TEXT_PRIMARY)
+          .opacity(AppColors.getColors().TEXT_TERTIARY_OPACITY)
       }
     }
     .alignItems(HorizontalAlign.Start)
@@ -47,22 +45,20 @@ export struct SectionToggleRow {
   @Param isOn: boolean = false
   @Param processing: boolean = false
   @Param enabledValue: boolean = true
-  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onChange: (value: boolean) => void = () => {}
 
   build() {
     Row() {
       SectionLabel({
         title: this.title,
-        description: this.description,
-        currentTheme: this.currentTheme
+        description: this.description
       })
 
       if (this.processing) {
         LoadingProgress()
           .width(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
           .height(AppStyles.INLINE_LOADING_INDICATOR_SIZE)
-          .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+          .color(AppColors.getColors().TEXT_PRIMARY)
       } else {
         Toggle({ type: ToggleType.Switch, isOn: this.isOn })
           .selectedColor(AppColors.BRAND_PRIMARY)
@@ -83,7 +79,6 @@ export struct SectionActionRow {
   @Param description: string = ''
   @Param actionLabel: string = ''
   @Param isEnabled: boolean = true
-  @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onTap: () => void = () => {}
   @Local private isHovered: boolean = false
   @Local private isPressed: boolean = false
@@ -92,16 +87,15 @@ export struct SectionActionRow {
     Row() {
       SectionLabel({
         title: this.title,
-        description: this.description,
-        currentTheme: this.currentTheme
+        description: this.description
       })
 
       Button(this.actionLabel)
         .type(ButtonType.Normal)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontWeight(FontWeight.Regular)
-        .fontColor(ActionButtonStyles.getPrimaryForeground(this.currentTheme))
-        .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.currentTheme, this.isHovered, this.isPressed))
+        .fontColor(ActionButtonStyles.getPrimaryForeground())
+        .backgroundColor(ActionButtonStyles.getPrimaryBackground(this.isHovered, this.isPressed))
         .borderRadius(AppStyles.RADIUS_SM)
         .height(ActionButtonStyles.CHIP_HEIGHT)
         .padding({

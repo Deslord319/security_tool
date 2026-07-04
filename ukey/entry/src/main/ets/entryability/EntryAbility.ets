@@ -1,7 +1,7 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit'
+import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { BusinessError, commonEventManager, emitter } from '@kit.BasicServicesKit'
-import { statusBarManager } from '@kit.DeskTopExtensionKit'
+import { statusBarManager } from '@kit.DesktopExtensionKit'
 import { AppInfo } from '../constants/AppConstants'
 import { UKeyRuntimeManager } from '../runtime/UKeyRuntimeManager'
 import { holdStatusBar, loadStatusBar } from '../utils/StatusBarUtil'
@@ -21,11 +21,6 @@ export default class EntryAbility extends UIAbility {
     }
 
   onCreate(_want: Want, _launchParam: AbilityConstant.LaunchParam): void {
-    try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
-    } catch (err) {
-      LogUtils.error(TAG, `setColorMode failed: ${JSON.stringify(err)}`)
-    }
     UKeyRuntimeManager.getInstance().bindContext(this.context)
     UKeyRuntimeManager.getInstance().start().catch((err: Error) => {
       LogUtils.warn(TAG, `UKey runtime start failed: ${JSON.stringify(err)}`)

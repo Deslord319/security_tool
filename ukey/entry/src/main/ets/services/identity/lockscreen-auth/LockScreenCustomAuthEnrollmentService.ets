@@ -968,6 +968,11 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
   ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
     let existing = await this.bindingRepository.loadBinding(context)
     if (!existing) {
+      let active = await this.loadActiveCredential(context)
+      if (active) {
+        await this.saveActiveCredentialLifecycle(context, active, 'inactive')
+        return LockScreenCustomAuthEnrollmentService.success(null, 'active_credential_inactive')
+      }
       return LockScreenCustomAuthEnrollmentService.success(null, 'active_credential_missing')
     }
     let deviceResult = this.deviceProvider.getCandidateDevices()
@@ -991,10 +996,10 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     context: common.Context
   ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
     let existing = await this.bindingRepository.loadBinding(context)
-    let targetDevice = this.resolveSystemCredentialRestoreDevice(existing)
-    if (!targetDevice) {
-      return LockScreenCustomAuthEnrollmentService.success(existing ?? null, 'active_credential_missing')
+    if (!existing) {
+      return LockScreenCustomAuthEnrollmentService.success(null, 'active_credential_missing')
     }
+    let targetDevice = LockScreenCustomAuthEnrollmentService.toDeviceFromBinding(existing)
     let targetPresent = this.resolveTargetDevicePresence(existing)
     let active = await this.loadActiveCredential(context)
 
@@ -1049,18 +1054,6 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       binding,
       lifecycle === 'inactive' ? 'active_credential_inactive' : 'active_credential_present'
     )
-  }
-
-  private resolveSystemCredentialRestoreDevice(existing: LockScreenUKeyBinding | null): LockScreenUKeyDevice | null {
-    if (existing) {
-      return LockScreenCustomAuthEnrollmentService.toDeviceFromBinding(existing)
-    }
-    let deviceResult = this.deviceProvider.getCandidateDevices()
-    if (!deviceResult.success) {
-      return null
-    }
-    let candidates = deviceResult.data ?? []
-    return candidates.length === 1 ? candidates[0] : null
   }
 
   private resolveTargetDevicePresence(existing: LockScreenUKeyBinding | null): boolean | null {
@@ -1237,6 +1230,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       context,
       userIdsResult.data,
       device,
+      existing,
       active,
       systemPin
     )
@@ -1284,6 +1278,7 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     context: common.Context,
     targetUserIds: number[],
     device: LockScreenUKeyDevice,
+    existing: LockScreenUKeyBinding | null,
     active: LockScreenUKeyActiveCredential | null,
     systemPin: string
   ): Promise<OperationResult<SystemCustomAuthCredentialReconcileResult>> {
@@ -1295,7 +1290,11 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       )
     }
 
-    let localCredentials = LockScreenCustomAuthEnrollmentService.resolveLocalCredentialRecords(null, active, device.fingerprint)
+    let localCredentials = LockScreenCustomAuthEnrollmentService.resolveLocalCredentialRecords(
+      existing,
+      active,
+      device.fingerprint
+    )
     let ownCredentials = LockScreenCustomAuthEnrollmentService.toOwnUserCredentials(
       systemCredentialsResult.data,
       localCredentials
