@@ -125,23 +125,14 @@ export class CustomAuthStub extends rpc.RemoteObject {
 
       reply.writeInt(result.resultCode)
 
-      if (callback !== null) {
-        if (result.completed) {
-          const authResult: AuthCallbackResult = {
-            resultCode: result.resultCode,
-            templateId: result.templateId,
-            encryptedData: result.encryptedData,
-          }
-          callOnAuthResult(callback, authResult)
-        } else if (result.resultCode === 0) {
-          // Prompt mode completes later through submitPasscode.
-          this.authCallbacks.set(input.requestId, callback)
-          const prompt: PromptInfo = { templateId: result.templateId, encryptedData: result.encryptedData }
-          callOnPrompt(callback, prompt)
-        }
+      if (callback !== null && result.resultCode === 0) {
+        // Prompt mode completes later through submitPasscode.
+        this.authCallbacks.set(input.requestId, callback)
+        const prompt: PromptInfo = { templateId: result.templateId, encryptedData: result.encryptedData }
+        callOnPrompt(callback, prompt)
       }
 
-      LogUtils.info(TAG, `handleBeginAuthenticate done: resultCode=${result.resultCode}, templateId=${result.templateId}, completed=${result.completed ?? false}`)
+      LogUtils.info(TAG, `handleBeginAuthenticate done: resultCode=${result.resultCode}, templateId=${result.templateId}`)
       return true
     } catch (e) {
       LogUtils.error(TAG, `handleBeginAuthenticate exception: ${e}`)

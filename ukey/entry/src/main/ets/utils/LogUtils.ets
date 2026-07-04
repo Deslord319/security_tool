@@ -14,8 +14,4 @@ export class LogUtils {
   static error(tag: string, format: string, ...args: Object[]): void {
     hilog.error(LOG_DOMAIN, tag, format, ...args)
   }
-
-  static debug(tag: string, format: string, ...args: Object[]): void {
-    hilog.debug(LOG_DOMAIN, tag, format, ...args)
-  }
 }

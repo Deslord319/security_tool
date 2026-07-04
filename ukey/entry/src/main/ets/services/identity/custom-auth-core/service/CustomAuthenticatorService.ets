@@ -49,7 +49,7 @@ const TAG = 'CustomAuth.Service'
 const SESSION_KEY_LENGTH = 32
 const AUTHENTICATOR_SECRET_LENGTH = 32
 const FAILURE_TEMPLATE_ID = '0'
-const PASSCODE_PROMPT_ENABLED = false
+const PASSCODE_PROMPT_ENABLED = true
 const AAD_END_ENROLL_INPUT = 'custom_auth.end_enroll_input'
 const AAD_END_ENROLL_OUTPUT = 'custom_auth.end_enroll_output'
 const AAD_ON_PROMPT = 'custom_auth.on_prompt'
@@ -77,7 +77,6 @@ interface BeginAuthResult {
   resultCode: number
   templateId: string
   encryptedData: EncryptedData
-  completed?: boolean
 }
 
 const EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA: EncryptedData = { nonce: [], tag: [], ciphertext: [] }
@@ -282,7 +281,6 @@ export class CustomAuthenticatorService {
         LogUtils.error(TAG, `endEnroll: storeKeys failed, templateId=${input.templateId}`)
         return { resultCode: ResultCode.GENERAL_ERROR, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
-      await authenticatorUKeyProvider.onEnrolled(input.templateId)
 
       LogUtils.info(TAG, `endEnroll: success, userId=${input.userId}, templateId=${input.templateId}`)
       sessionKey.fill(0)
@@ -307,11 +305,16 @@ export class CustomAuthenticatorService {
       LogUtils.error(TAG, `beginAuthenticate: no templates for userId=${input.userId}`)
       return { resultCode: ResultCode.NOT_ENROLLED, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
+    LogUtils.info(TAG, `beginAuthenticate: candidateTemplates=${all.join(',')}`)
 
-    let chosen = await authenticatorUKeyProvider.getPresentTemplateId(all)
+    let chosen = await authenticatorUKeyProvider.getPresentTemplateId(all, input.userId)
     if (chosen === null) {
       LogUtils.warn(TAG, 'beginAuthenticate: no bound UKey template matched')
       return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+    }
+    if (await authenticatorUKeyProvider.isLocked()) {
+      LogUtils.warn(TAG, 'beginAuthenticate: UKey is locked')
+      return { resultCode: ResultCode.LOCKED, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
 
     const material = loadKeys(chosen)
@@ -332,28 +335,11 @@ export class CustomAuthenticatorService {
 
     const promptPasscode = PASSCODE_PROMPT_ENABLED
     if (!promptPasscode) {
-      const directSession: AuthSession = {
-        sessionKey,
-        rsaKeyPair: null,
-        userId: input.userId,
-        cdaChallenge: input.challenge,
-        templateId: chosen,
-        sharedKey: material.sharedKey,
-        authenticatorSecret: material.authenticatorSecret,
-        authenticatorSecretSeq: material.authenticatorSecretSeq,
-        active: true,
-      }
-      const authResult = await this.finishAuth(directSession)
-      if (directSession.sessionKey) directSession.sessionKey.fill(0)
-      if (directSession.sharedKey) directSession.sharedKey.fill(0)
-      if (directSession.authenticatorSecret) directSession.authenticatorSecret.fill(0)
-      LogUtils.info(TAG, `beginAuthenticate: direct complete (no onPrompt), templateId=${chosen}`)
-      return {
-        resultCode: authResult.resultCode,
-        templateId: authResult.templateId,
-        encryptedData: authResult.encryptedData,
-        completed: true,
-      }
+      LogUtils.error(TAG, 'beginAuthenticate: passcode prompt disabled')
+      sessionKey.fill(0)
+      material.sharedKey.fill(0)
+      material.authenticatorSecret.fill(0)
+      return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
     }
 
     await this.ensureRsaKey()
@@ -405,7 +391,6 @@ export class CustomAuthenticatorService {
       resultCode: ResultCode.SUCCESS,
       templateId: chosen,
       encryptedData: toEncryptedData(aeadResult.nonce, aeadResult.tag, aeadResult.ciphertext),
-      completed: false,
     }
   }
 
@@ -422,27 +407,43 @@ export class CustomAuthenticatorService {
         return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
 
+      if (!await authenticatorUKeyProvider.isTemplatePresent(session.templateId, session.userId)) {
+        LogUtils.warn(TAG, `submitPasscode: target UKey absent before passcode, templateId=${session.templateId}`)
+        return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+      }
+      if (await authenticatorUKeyProvider.isLocked()) {
+        LogUtils.warn(TAG, 'submitPasscode: UKey is locked')
+        return { resultCode: ResultCode.LOCKED, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+      }
       if (passcodeCipherText.length === 0) {
-        LogUtils.info(TAG, 'submitPasscode: no passcode (needPinAuth=false)')
-      } else {
-        const ciphertext = new Uint8Array(passcodeCipherText)
-        const passcode = await rsaOaepDecrypt(session.rsaKeyPair.keyPair.priKey, ciphertext)
-        if (!passcode) {
-          LogUtils.error(TAG, 'submitPasscode: RSA decrypt failed')
-          return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
-        }
-        let passcodeStr = ''
-        for (let i = 0; i < passcode.length; i++) {
-          passcodeStr += String.fromCharCode(passcode[i])
-        }
-        const passcodeOk = await authenticatorUKeyProvider.verifyPasscode(passcodeStr)
-        passcode.fill(0)
-        if (!passcodeOk) {
-          LogUtils.warn(TAG, 'submitPasscode: passcode mismatch')
-          return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
-        }
+        LogUtils.warn(TAG, 'submitPasscode: empty passcode is rejected')
+        return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
 
+      const ciphertext = new Uint8Array(passcodeCipherText)
+      const passcode = await rsaOaepDecrypt(session.rsaKeyPair.keyPair.priKey, ciphertext)
+      if (!passcode) {
+        LogUtils.error(TAG, 'submitPasscode: RSA decrypt failed')
+        return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+      }
+      let passcodeStr = ''
+      for (let i = 0; i < passcode.length; i++) {
+        passcodeStr += String.fromCharCode(passcode[i])
+      }
+      const passcodeResult = await authenticatorUKeyProvider.verifyPasscode(passcodeStr)
+      passcode.fill(0)
+      if (!passcodeResult.success) {
+        LogUtils.warn(TAG, `submitPasscode: passcode rejected, reason=${passcodeResult.reason}, attempts=${passcodeResult.failedAttempts}`)
+        return {
+          resultCode: passcodeResult.locked ? ResultCode.LOCKED : ResultCode.FAIL,
+          templateId: FAILURE_TEMPLATE_ID,
+          encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA
+        }
+      }
+      if (!await authenticatorUKeyProvider.isTemplatePresent(session.templateId, session.userId)) {
+        LogUtils.warn(TAG, `submitPasscode: target UKey absent after passcode, templateId=${session.templateId}`)
+        return { resultCode: ResultCode.FAIL, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
+      }
       return await this.finishAuth(session)
     } finally {
       cleanupAuthSession(session)
@@ -473,7 +474,6 @@ export class CustomAuthenticatorService {
         newSecret.fill(0)
         return { resultCode: ResultCode.GENERAL_ERROR, templateId: FAILURE_TEMPLATE_ID, encryptedData: EMPTY_CUSTOM_AUTH_ENCRYPTED_DATA }
       }
-      await authenticatorUKeyProvider.onRotated(session.templateId)
       finalSecret = newSecret
       finalSeq = committedSeq
       LogUtils.info(TAG, `finishAuth: rotated, templateId=${session.templateId}, seq=${committedSeq}`)

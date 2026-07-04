@@ -1,6 +1,6 @@
 import { rpc } from '@kit.IPCKit'
 import { LogUtils } from '../../../../utils/LogUtils'
-import type { EnrollCallbackResult, PromptInfo, AuthCallbackResult, AuthTipInfo } from './CustomAuthTypes'
+import type { EnrollCallbackResult, PromptInfo, AuthCallbackResult } from './CustomAuthTypes'
 import { writeByteArray, writeEncryptedData, writeTemplateId } from './CustomAuthIpcCodec'
 import { CUSTOM_AUTH_CALLBACK_DESCRIPTOR, IpcCode } from './CustomAuthTypes'
 
@@ -43,13 +43,5 @@ export async function callOnPrompt(proxy: rpc.IRemoteObject, prompt: PromptInfo)
   await sendOneway(proxy, IpcCode.COMMAND_ON_PROMPT, (data) => {
     writeTemplateId(data, prompt.templateId)
     writeEncryptedData(data, prompt.encryptedData)
-  })
-}
-
-// Reserved for optional UKey guidance tips.
-export async function callOnAuthTip(proxy: rpc.IRemoteObject, tip: AuthTipInfo): Promise<void> {
-  await sendOneway(proxy, IpcCode.COMMAND_ON_AUTH_TIP, (data) => {
-    data.writeInt(tip.tipCode)
-    data.writeString(tip.tipInfo)
   })
 }

@@ -39,10 +39,6 @@ export function decodePayloadField(value: Object | null): Uint8Array | null {
   return base64Decode(value as string)
 }
 
-export function encodeIntField(value: number): number {
-  return value
-}
-
 export function decodeIntField(value: Object | null): number | null {
   if (value === null || value === undefined) {
     return null

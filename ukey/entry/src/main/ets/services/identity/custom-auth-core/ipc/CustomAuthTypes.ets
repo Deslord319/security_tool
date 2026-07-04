@@ -10,7 +10,6 @@ export enum IpcCode {
   COMMAND_ON_ENROLL_RESULT = 50010,
   COMMAND_ON_AUTH_RESULT = 50011,
   COMMAND_ON_PROMPT = 50012,
-  COMMAND_ON_AUTH_TIP = 50013,
 }
 
 export const CUSTOM_AUTH_INTERFACE_DESCRIPTOR =
@@ -122,9 +121,4 @@ export interface AuthCallbackResult {
   resultCode: number
   templateId: string
   encryptedData: EncryptedData
-}
-
-export interface AuthTipInfo {
-  tipCode: number // 50000-59999
-  tipInfo: string
 }

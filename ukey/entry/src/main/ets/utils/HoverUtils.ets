@@ -1,5 +1,4 @@
 import { AppColors } from '../constants/AppConstants'
-import { ThemeMode } from '../theme/ThemeColors'
 
 export class HoverUtils {
   static readonly DURATION_MS: number = 220
@@ -11,14 +10,10 @@ export class HoverUtils {
     }, update)
   }
 
-  static getShadow(theme: ThemeMode, isHovered: boolean, strong: boolean = false): ShadowOptions {
-    let color: ResourceColor = theme === ThemeMode.DARK
-      ? (isHovered
-        ? (strong ? AppColors.HOVER_SHADOW_STRONG_DARK : AppColors.HOVER_SHADOW_DARK)
-        : AppColors.HOVER_SHADOW_REST_DARK)
-      : (isHovered
-        ? (strong ? AppColors.HOVER_SHADOW_STRONG_LIGHT : AppColors.HOVER_SHADOW_LIGHT)
-        : AppColors.HOVER_SHADOW_REST_LIGHT)
+  static getShadow(isHovered: boolean, strong: boolean = false): ShadowOptions {
+    let color: ResourceColor = isHovered
+      ? (strong ? AppColors.HOVER_SHADOW_STRONG_LIGHT : AppColors.HOVER_SHADOW_LIGHT)
+      : AppColors.HOVER_SHADOW_REST_LIGHT
     return {
       radius: isHovered ? (strong ? 34 : 28) : 10,
       color: color,

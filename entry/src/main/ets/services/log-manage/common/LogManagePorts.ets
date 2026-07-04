@@ -44,11 +44,6 @@ export interface LogSnapshot {
   entries: LogEntry[]
 }
 
-export interface SourceStatus {
-  subscribed: boolean
-  errorCode?: number
-}
-
 export type LogEntryCallback = (entry: LogEntry) => void
 
 export interface AuditSubscribeResult extends ServiceResult<'ok' | 'unsupported' | 'permission_denied' | 'partial'> {
