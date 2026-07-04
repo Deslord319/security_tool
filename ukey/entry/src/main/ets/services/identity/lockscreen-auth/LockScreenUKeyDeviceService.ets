@@ -1,7 +1,8 @@
-import { BusinessError, usbManager } from '@kit.BasicServicesKit'
+import { usbManager } from '@kit.BasicServicesKit'
 import { deviceManager } from '@kit.DriverDevelopmentKit'
 import { OperationResult } from '../../../models/CommonModels'
 import { LockScreenUKeyDevice } from '../../../models/identity/lockscreen-auth/LockScreenAuthModels'
+import { ErrorUtils } from '../../../utils/ErrorUtils'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'LockScreenUKey.DeviceService'
@@ -24,9 +25,6 @@ const KEYBOARD_MOUSE_NAME_KEYWORDS: string[] = [
 
 export interface LockScreenUKeyDeviceProvider {
   getCandidateDevices(): OperationResult<LockScreenUKeyDevice[]>
-}
-
-export interface UKeyDeviceBackend extends LockScreenUKeyDeviceProvider {
 }
 
 export interface DdkUsbDeviceInfo {
@@ -63,13 +61,11 @@ export class DriverDevelopmentKitUsbDeviceQuery implements DdkUsbDeviceQuery {
         data: devices
       } as OperationResult<DdkUsbDeviceInfo[]>
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
+      let info = ErrorUtils.toBusinessErrorInfo(err)
       return {
         success: false,
-        errorCode: errorCode,
-        errorMessage: errorMessage,
+        errorCode: info.code,
+        errorMessage: info.message,
         stage: 'query_ddk_devices'
       } as OperationResult<DdkUsbDeviceInfo[]>
     }
@@ -84,20 +80,18 @@ export class BasicServicesUsbDeviceDetailProbe implements UsbDeviceDetailProbe {
         data: usbManager.getDevices() as usbManager.USBDevice[]
       } as OperationResult<usbManager.USBDevice[]>
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
+      let info = ErrorUtils.toBusinessErrorInfo(err)
       return {
         success: false,
-        errorCode: errorCode,
-        errorMessage: errorMessage,
+        errorCode: info.code,
+        errorMessage: info.message,
         stage: 'query_usb_devices'
       } as OperationResult<usbManager.USBDevice[]>
     }
   }
 }
 
-export class DdkLockScreenUKeyDeviceService implements UKeyDeviceBackend {
+export class DdkLockScreenUKeyDeviceService implements LockScreenUKeyDeviceProvider {
   private readonly ddkQuery: DdkUsbDeviceQuery
   private readonly detailProbe: UsbDeviceDetailProbe
 
@@ -204,15 +198,16 @@ export class DdkLockScreenUKeyDeviceService implements UKeyDeviceBackend {
     )
     let deviceId = DdkLockScreenUKeyDeviceService.formatVidPid(vendorId, productId)
     let stableIdentifier = serial.length > 0
-    let fallbackDescription = ddkDescription.length > 0 ? ddkDescription : 'UNKNOWN'
-    let weakParts: string[] = [fallbackDescription]
-    if (deviceName.length > 0) {
-      weakParts.push(deviceName)
+    let weakParts: string[] = []
+    if (productName.length > 0) {
+      weakParts.push(productName)
     }
-    weakParts.push(`DDK:${info.ddkDeviceId}`)
-    let weakLabel = weakParts.join('|').toUpperCase()
+    if (ddkDescription.length > 0) {
+      weakParts.push(ddkDescription)
+    }
+    let weakLabel = weakParts.length > 0 ? weakParts.join('|').toUpperCase() : 'UNKNOWN'
     let fingerprint = stableIdentifier
-      ? `${deviceId}|SN:${serial.toUpperCase()}`
+      ? `SN:${serial.toUpperCase()}`
       : `${deviceId}|WEAK:${weakLabel}`
     return {
       fingerprint: fingerprint,

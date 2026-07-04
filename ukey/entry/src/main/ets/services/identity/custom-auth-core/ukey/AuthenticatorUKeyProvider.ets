@@ -21,7 +21,7 @@ import {
 } from '../../lockscreen-auth/LockScreenUKeyBindingRepository'
 
 const TAG = 'CustomAuth.UKeyProvider'
-const FIXED_UKEY_PASSWORD = '123456'
+const FIXED_UKEY_PASSWORD = '666666'
 const MAX_UKEY_PASSWORD_FAILURES = 5
 
 export interface AuthenticatorUKeyProvider {
@@ -90,6 +90,23 @@ implements AuthenticatorUKeyTemplateBindingRepository {
   }
 }
 
+function normalizePasswordState(state: AuthenticatorUKeyPasswordState | undefined | null): AuthenticatorUKeyPasswordState {
+  if (!state) {
+    return {
+      failedAttempts: 0,
+      locked: false,
+      updatedAt: 0
+    }
+  }
+  let failedAttempts = Number.isFinite(state.failedAttempts) ? Math.floor(state.failedAttempts) : 0
+  failedAttempts = Math.min(MAX_UKEY_PASSWORD_FAILURES, Math.max(0, failedAttempts))
+  return {
+    failedAttempts: failedAttempts,
+    locked: state.locked === true || failedAttempts >= MAX_UKEY_PASSWORD_FAILURES,
+    updatedAt: Number.isFinite(state.updatedAt) && state.updatedAt > 0 ? state.updatedAt : 0
+  }
+}
+
 export class PreferencesAuthenticatorUKeyPasswordStateRepository
 implements AuthenticatorUKeyPasswordStateRepository {
   async loadPasswordStates(context: common.Context): Promise<AuthenticatorUKeyPasswordStateMap> {
@@ -101,13 +118,7 @@ implements AuthenticatorUKeyPasswordStateRepository {
       if (key.length === 0 || !value) {
         continue
       }
-      let failedAttempts = Number.isFinite(value.failedAttempts) ? Math.floor(value.failedAttempts) : 0
-      failedAttempts = Math.min(MAX_UKEY_PASSWORD_FAILURES, Math.max(0, failedAttempts))
-      result[key] = {
-        failedAttempts: failedAttempts,
-        locked: value.locked === true || failedAttempts >= MAX_UKEY_PASSWORD_FAILURES,
-        updatedAt: Number.isFinite(value.updatedAt) && value.updatedAt > 0 ? value.updatedAt : 0
-      }
+      result[key] = normalizePasswordState(value)
     }
     return result
   }
@@ -193,11 +204,11 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
     if (!context) {
       return SecurityToolAuthenticatorUKeyProvider.buildPasscodeResult(false, false, 0, '', 'context_missing')
     }
-    let fingerprint = await this.resolvePresentBoundFingerprint()
-    if (fingerprint.length === 0) {
+    let binding = await this.bindingRepository.loadBinding(context)
+    if (!binding || binding.fingerprint.length === 0) {
       return SecurityToolAuthenticatorUKeyProvider.buildPasscodeResult(false, false, 0, '', 'ukey_absent')
     }
-    return await this.verifyPasscodeForFingerprint(context, fingerprint, passcode)
+    return await this.verifyPasscodeForFingerprint(context, binding.fingerprint, passcode)
   }
 
   async verifyPasscodeForFingerprint(
@@ -212,7 +223,7 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
       return SecurityToolAuthenticatorUKeyProvider.buildPasscodeResult(false, false, 0, fingerprint, 'ukey_absent')
     }
     let states = await this.passwordStateRepository.loadPasswordStates(context)
-    let current = SecurityToolAuthenticatorUKeyProvider.normalizePasswordState(states[fingerprint])
+    let current = normalizePasswordState(states[fingerprint])
     if (current.locked) {
       return SecurityToolAuthenticatorUKeyProvider.buildPasscodeResult(
         false,
@@ -278,7 +289,7 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
       return false
     }
     let states = await this.passwordStateRepository.loadPasswordStates(context)
-    return SecurityToolAuthenticatorUKeyProvider.normalizePasswordState(states[fingerprint]).locked
+    return normalizePasswordState(states[fingerprint]).locked
   }
 
   async shouldRotate(_templateId: string): Promise<boolean> {
@@ -354,23 +365,6 @@ export class SecurityToolAuthenticatorUKeyProvider implements AuthenticatorUKeyP
       return false
     }
     return await this.templateBindingRepository.saveTemplateBindings(context, bindings)
-  }
-
-  private static normalizePasswordState(state?: AuthenticatorUKeyPasswordState): AuthenticatorUKeyPasswordState {
-    if (!state) {
-      return {
-        failedAttempts: 0,
-        locked: false,
-        updatedAt: 0
-      }
-    }
-    let failedAttempts = Number.isFinite(state.failedAttempts) ? Math.floor(state.failedAttempts) : 0
-    failedAttempts = Math.min(MAX_UKEY_PASSWORD_FAILURES, Math.max(0, failedAttempts))
-    return {
-      failedAttempts: failedAttempts,
-      locked: state.locked === true || failedAttempts >= MAX_UKEY_PASSWORD_FAILURES,
-      updatedAt: Number.isFinite(state.updatedAt) && state.updatedAt > 0 ? state.updatedAt : 0
-    }
   }
 
   private static buildPasscodeResult(

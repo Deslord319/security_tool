@@ -18,11 +18,8 @@ export interface LockScreenUKeyDevice {
 }
 
 export type LockScreenUKeyCredentialLifecycle =
-  'idle' |
-  'enrolling' |
   'active' |
-  'deleting' |
-  'deleted' |
+  'inactive' |
   'failed'
 
 export interface LockScreenUKeyUserCredential {
@@ -37,25 +34,12 @@ export interface LockScreenUKeyBinding {
   fingerprint: string
   deviceId: string
   deviceName: string
-  userId: number
-  credentialIdHex: string
-  pluginInfo: string
   boundAt: number
   stableIdentifier: boolean
   userCredentials: LockScreenUKeyUserCredential[]
 }
 
-export type LockScreenUKeyPresenceState =
-  'unknown' |
-  'absent' |
-  'present' |
-  'multiple' |
-  'backend_error'
-
 export interface LockScreenUKeyActiveCredential {
-  credentialIdHex: string
-  userId: number
-  pluginInfo: string
   fingerprint: string
   deviceId: string
   deviceName: string

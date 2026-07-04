@@ -1,5 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import { BusinessError } from '@kit.BasicServicesKit'
 import {
   LockScreenUKeyActiveCredential,
   LockScreenUKeyBinding,
@@ -10,12 +9,13 @@ import {
   PREF_STORE_NAME_LOCKSCREEN_AUTH
 } from '../../../models/identity/lockscreen-auth/LockScreenAuthModels'
 import { PreferencesAccessor } from '../../../storage/preferences/PreferencesAccessor'
+import { ErrorUtils } from '../../../utils/ErrorUtils'
 import { LogUtils } from '../../../utils/LogUtils'
 
 const TAG = 'LockScreenUKey.BindingRepo'
 
 function isValidCredentialLifecycle(lifecycle: LockScreenUKeyCredentialLifecycle): boolean {
-  return lifecycle === 'active' || lifecycle === 'failed'
+  return lifecycle === 'active' || lifecycle === 'inactive' || lifecycle === 'failed'
 }
 
 function isValidUserCredential(credential: LockScreenUKeyUserCredential): boolean {
@@ -59,10 +59,8 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
       }
       return binding
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.warn(TAG, `[LOAD_FAIL] loadBinding | code=${errorCode}, message=${errorMessage}`)
+      let info = ErrorUtils.toBusinessErrorInfo(err)
+      LogUtils.warn(TAG, `[LOAD_FAIL] loadBinding | code=${info.code}, message=${info.message}`)
       return null
     }
   }
@@ -80,10 +78,8 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
       }
       return saved
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[SAVE_FAIL] saveBinding | code=${errorCode}, message=${errorMessage}`)
+      let info = ErrorUtils.toBusinessErrorInfo(err)
+      LogUtils.error(TAG, `[SAVE_FAIL] saveBinding | code=${info.code}, message=${info.message}`)
       return false
     }
   }
@@ -93,10 +89,7 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
       return false
     }
     let validRoot = typeof binding.fingerprint === 'string' && binding.fingerprint.length > 0 &&
-      typeof binding.deviceId === 'string' && binding.deviceId.length > 0 &&
-      typeof binding.credentialIdHex === 'string' && binding.credentialIdHex.length > 0 &&
-      typeof binding.pluginInfo === 'string' && binding.pluginInfo.length > 0 &&
-      typeof binding.userId === 'number' && Number.isFinite(binding.userId)
+      typeof binding.deviceId === 'string' && binding.deviceId.length > 0
     return validRoot && isValidUserCredentialList(binding.userCredentials)
   }
 }
@@ -114,10 +107,8 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
       }
       return credential
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.warn(TAG, `[LOAD_ACTIVE_FAIL] loadActiveCredential | code=${errorCode}, message=${errorMessage}`)
+      let info = ErrorUtils.toBusinessErrorInfo(err)
+      LogUtils.warn(TAG, `[LOAD_ACTIVE_FAIL] loadActiveCredential | code=${info.code}, message=${info.message}`)
       return null
     }
   }
@@ -138,10 +129,8 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
       }
       return saved
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[SAVE_ACTIVE_FAIL] saveActiveCredential | code=${errorCode}, message=${errorMessage}`)
+      let info = ErrorUtils.toBusinessErrorInfo(err)
+      LogUtils.error(TAG, `[SAVE_ACTIVE_FAIL] saveActiveCredential | code=${info.code}, message=${info.message}`)
       return false
     }
   }
@@ -155,10 +144,8 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
       }
       return cleared
     } catch (err) {
-      let error = err as Error
-      let errorCode = typeof (err as BusinessError)?.code === 'number' ? (err as BusinessError).code : -1
-      let errorMessage = typeof error?.message === 'string' && error.message.length > 0 ? error.message : 'unknown'
-      LogUtils.error(TAG, `[CLEAR_ACTIVE_FAIL] clearActiveCredential | code=${errorCode}, message=${errorMessage}`)
+      let info = ErrorUtils.toBusinessErrorInfo(err)
+      LogUtils.error(TAG, `[CLEAR_ACTIVE_FAIL] clearActiveCredential | code=${info.code}, message=${info.message}`)
       return false
     }
   }
@@ -167,11 +154,8 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
     if (!credential) {
       return false
     }
-    let validRoot = typeof credential.credentialIdHex === 'string' && credential.credentialIdHex.length > 0 &&
-      typeof credential.pluginInfo === 'string' && credential.pluginInfo.length > 0 &&
-      typeof credential.fingerprint === 'string' && credential.fingerprint.length > 0 &&
+    let validRoot = typeof credential.fingerprint === 'string' && credential.fingerprint.length > 0 &&
       typeof credential.deviceId === 'string' && credential.deviceId.length > 0 &&
-      typeof credential.userId === 'number' && Number.isFinite(credential.userId) &&
       isValidCredentialLifecycle(credential.lifecycle)
     return validRoot && isValidUserCredentialList(credential.userCredentials)
   }

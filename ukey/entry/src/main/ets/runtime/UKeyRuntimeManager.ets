@@ -13,6 +13,7 @@ import {
 import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'UKeyRuntime'
+const USB_ATTACH_RECONCILE_DELAY_MS = 1000
 const USB_DETACH_RECONCILE_DELAY_MS = 600
 
 export class UKeyRuntimeManager {
@@ -112,6 +113,7 @@ export class UKeyRuntimeManager {
   private async handleUsbRuntimeEvent(data: commonEventManager.CommonEventData): Promise<void> {
     let eventName = data.event ?? ''
     if (eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED) {
+      await UKeyRuntimeManager.sleep(USB_ATTACH_RECONCILE_DELAY_MS)
       await this.runEnrollmentOperation('usb_attached', async (context: common.Context) => {
         return await this.enrollmentService.onUKeyAttached(context)
       })

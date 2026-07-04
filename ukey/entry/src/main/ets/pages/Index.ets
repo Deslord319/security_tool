@@ -27,6 +27,7 @@ import { SectionCard } from '../components/SettingsSectionCard'
 import { SectionActionRow, SectionToggleRow } from '../components/SectionRows'
 
 const TAG = 'UKeyIndex'
+const USB_ATTACH_REFRESH_DELAYS_MS: number[] = [300, 1000, 2500]
 const USB_DETACH_REFRESH_DELAY_MS = 600
 
 @Entry
@@ -44,6 +45,7 @@ struct Index {
   @State private credentialSubmitting: boolean = false
   @State private systemPinInput: string = ''
   @State private ukeyPasswordInput: string = ''
+  @State private verifyUKeyPasswordInput: string = ''
   private runtimeStateRefreshInFlight: boolean = false
   private usbSubscriber: commonEventManager.CommonEventSubscriber | null = null
 
@@ -157,13 +159,23 @@ struct Index {
 
   private handleUKeyDeviceEvent(data: commonEventManager.CommonEventData): void {
     let eventName = data.event ?? ''
+    if (eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED) {
+      this.scheduleRuntimeStateRefresh(USB_ATTACH_REFRESH_DELAYS_MS)
+      return
+    }
     if (eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_DETACHED) {
-      setTimeout(() => {
-        this.refreshRuntimeState()
-      }, USB_DETACH_REFRESH_DELAY_MS)
+      this.scheduleRuntimeStateRefresh([USB_DETACH_REFRESH_DELAY_MS])
       return
     }
     this.refreshRuntimeState()
+  }
+
+  private scheduleRuntimeStateRefresh(delaysMs: number[]): void {
+    for (let delayMs of delaysMs) {
+      setTimeout(() => {
+        this.refreshRuntimeState()
+      }, delayMs)
+    }
   }
 
   private buildCurrentDeviceMessage(devices: LockScreenUKeyDevice[]): string {
@@ -176,21 +188,37 @@ struct Index {
     return `已识别 ${devices.length} 把 UKey`
   }
 
-  private hasVisibleActiveCredential(): boolean {
-    return !!this.activeCredential && this.activeCredential.lifecycle === 'active' &&
-      this.activeCredential.credentialIdHex.length > 0
+  private hasVisibleCredential(): boolean {
+    return !!this.activeCredential &&
+      (this.activeCredential.lifecycle === 'active' || this.activeCredential.lifecycle === 'inactive') &&
+      this.activeCredential.userCredentials.length > 0 &&
+      this.activeCredential.userCredentials[0].credentialIdHex.length > 0
+  }
+
+  private hasVerifiableActiveCredential(): boolean {
+    return this.hasVisibleCredential() && this.activeCredential!.lifecycle === 'active'
+  }
+
+  private hasOperableUKey(): boolean {
+    if (!this.ukeyUnlockEnabled) {
+      return false
+    }
+    if (this.activeCredential) {
+      return this.activeCredential.lifecycle === 'active'
+    }
+    return this.currentDevices.length > 0
   }
 
   private getVisibleCredentialId(): string {
-    return this.hasVisibleActiveCredential() ? this.activeCredential!.credentialIdHex : ''
+    return this.hasVisibleCredential() ? this.activeCredential!.userCredentials[0].credentialIdHex : ''
   }
 
   private getVisibleCredentialCreatedAt(): number {
-    return this.hasVisibleActiveCredential() ? this.activeCredential!.createdAt : 0
+    return this.hasVisibleCredential() ? this.activeCredential!.createdAt : 0
   }
 
   private getVisibleCredentialLifecycle(): string {
-    return this.hasVisibleActiveCredential() ? this.activeCredential!.lifecycle : ''
+    return this.hasVisibleCredential() ? this.activeCredential!.lifecycle : ''
   }
 
   private async handleEnabledChange(value: boolean): Promise<void> {
@@ -228,14 +256,19 @@ struct Index {
     if (this.verifyingCredential || this.loading || this.saving) {
       return
     }
-    if (!this.hasVisibleActiveCredential()) {
+    if (!this.hasVerifiableActiveCredential()) {
+      return
+    }
+    let ukeyPassword = this.verifyUKeyPasswordInput.trim()
+    if (ukeyPassword.length === 0) {
+      this.statusMessage = '请输入 UKey 密码'
       return
     }
     this.verifyingCredential = true
     this.statusMessage = '正在验证 UKEY解锁凭据认证能力'
     try {
       let context = this.getPageContext()
-      let result = await this.enrollmentService.verifyActiveCredentials(context)
+      let result = await this.enrollmentService.verifyActiveCredentials(context, ukeyPassword)
       this.activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
       this.statusMessage = result.success ? this.buildVerificationSuccessMessage(result.data ?? null) :
         (result.userMessage ?? result.errorMessage ?? 'UKEY解锁凭据认证验证失败')
@@ -243,6 +276,7 @@ struct Index {
       LogUtils.warn(TAG, `handleCredentialAuthVerify failed: ${JSON.stringify(err)}`)
       this.statusMessage = 'UKEY解锁凭据认证验证失败'
     } finally {
+      this.verifyUKeyPasswordInput = ''
       this.verifyingCredential = false
     }
   }
@@ -283,7 +317,7 @@ struct Index {
     if (this.credentialSubmitting || this.loading || this.saving) {
       return
     }
-    if (!this.hasVisibleActiveCredential()) {
+    if (!this.hasVisibleCredential()) {
       return
     }
     let systemPin = this.systemPinInput.trim()
@@ -377,7 +411,27 @@ struct Index {
 
   @Builder
   private credentialVerificationCardContent() {
-    Row() {
+    Column({ space: 12 }) {
+      TextInput({ text: this.verifyUKeyPasswordInput, placeholder: '验证 UKey 密码' })
+        .type(InputType.Password)
+        .height(36)
+        .width('100%')
+        .fontSize(AppStyles.FONT_SIZE_BODY)
+        .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .placeholderColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
+        .backgroundColor(AppColors.getColors(this.currentTheme).BG_PAGE)
+        .borderRadius(AppStyles.RADIUS_SM)
+        .border({
+          width: AppStyles.DIVIDER_HEIGHT,
+          color: AppColors.getColors(this.currentTheme).BORDER,
+          style: BorderStyle.Solid
+        })
+        .enabled(this.ukeyUnlockEnabled && this.hasVerifiableActiveCredential() && !this.loading && !this.saving &&
+          !this.verifyingCredential)
+        .onChange((value: string) => {
+          this.verifyUKeyPasswordInput = value
+        })
+
       Button(this.verifyingCredential ? '验证中' : '验证凭据')
         .type(ButtonType.Normal)
         .fontSize(AppStyles.FONT_SIZE_BODY)
@@ -388,16 +442,16 @@ struct Index {
         .height(36)
         .width(128)
         .stateEffect(true)
-        .enabled(this.ukeyUnlockEnabled && this.hasVisibleActiveCredential() && !this.loading && !this.saving &&
+        .enabled(this.ukeyUnlockEnabled && this.hasVerifiableActiveCredential() && !this.loading && !this.saving &&
           !this.verifyingCredential)
-        .opacity(this.ukeyUnlockEnabled && this.hasVisibleActiveCredential() && !this.loading && !this.saving &&
+        .opacity(this.ukeyUnlockEnabled && this.hasVerifiableActiveCredential() && !this.loading && !this.saving &&
           !this.verifyingCredential ? 1 : 0.56)
         .onClick(() => {
           this.handleCredentialAuthVerify()
         })
     }
     .width('100%')
-    .justifyContent(FlexAlign.Start)
+    .alignItems(HorizontalAlign.Start)
     .padding(16)
   }
 
@@ -418,7 +472,7 @@ struct Index {
           color: AppColors.getColors(this.currentTheme).BORDER,
           style: BorderStyle.Solid
         })
-        .enabled(!this.loading && !this.saving && !this.credentialSubmitting)
+        .enabled(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting)
         .onChange((value: string) => {
           this.systemPinInput = value
         })
@@ -437,7 +491,7 @@ struct Index {
           color: AppColors.getColors(this.currentTheme).BORDER,
           style: BorderStyle.Solid
         })
-        .enabled(!this.loading && !this.saving && !this.credentialSubmitting)
+        .enabled(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting)
         .onChange((value: string) => {
           this.ukeyPasswordInput = value
         })
@@ -453,8 +507,8 @@ struct Index {
           .height(36)
           .width(112)
           .stateEffect(true)
-          .enabled(this.ukeyUnlockEnabled && !this.loading && !this.saving && !this.credentialSubmitting)
-          .opacity(this.ukeyUnlockEnabled && !this.loading && !this.saving && !this.credentialSubmitting ? 1 : 0.56)
+          .enabled(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting)
+          .opacity(this.hasOperableUKey() && !this.loading && !this.saving && !this.credentialSubmitting ? 1 : 0.56)
           .onClick(() => {
             this.handleAddCredential()
           })
@@ -469,8 +523,8 @@ struct Index {
           .height(36)
           .width(112)
           .stateEffect(true)
-          .enabled(!this.loading && !this.saving && !this.credentialSubmitting && this.hasVisibleActiveCredential())
-          .opacity(!this.loading && !this.saving && !this.credentialSubmitting && this.hasVisibleActiveCredential() ?
+          .enabled(this.hasVerifiableActiveCredential() && !this.loading && !this.saving && !this.credentialSubmitting)
+          .opacity(this.hasVerifiableActiveCredential() && !this.loading && !this.saving && !this.credentialSubmitting ?
             1 : 0.56)
           .onClick(() => {
             this.handleDeleteCredential()
@@ -532,7 +586,7 @@ struct Index {
 
   @Builder
   private activeCredentialContent() {
-    if (!this.hasVisibleActiveCredential()) {
+    if (!this.hasVisibleCredential()) {
       Blank()
     } else {
       Column({ space: 12 }) {
