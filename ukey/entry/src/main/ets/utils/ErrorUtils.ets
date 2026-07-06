@@ -1,6 +1,6 @@
 import { BusinessError } from '@kit.BasicServicesKit'
 
-export interface BusinessErrorInfo {
+interface BusinessErrorInfo {
   code: number
   message: string
 }

@@ -5,6 +5,7 @@ import { AppInfo } from '../constants/AppConstants'
 import { LogUtils } from './LogUtils'
 
 const TAG = 'StatusBarUtil'
+const STATUS_BAR_ITEM_HEIGHT: number = 30
 
 async function getPixelMap(context: common.UIAbilityContext): Promise<PixelMap | null> {
   try {
@@ -30,7 +31,7 @@ export async function loadStatusBar(context: common.UIAbilityContext): Promise<v
   let quickOperation: statusBarManager.QuickOperation = {
     abilityName: '',
     title: AppInfo.STATUS_BAR_TITLE,
-    height: 30,
+    height: STATUS_BAR_ITEM_HEIGHT,
     moduleName: AppInfo.ENTRY_MODULE_NAME
   }
   let statusBarItem: statusBarManager.StatusBarItem = {
