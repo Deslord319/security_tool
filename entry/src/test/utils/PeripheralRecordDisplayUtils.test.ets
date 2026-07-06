@@ -104,6 +104,24 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
     })
 
+    it('should render usb storage policy snapshots as policy changes', 0, () => {
+      const disabledRecord = createConnectionRecord()
+      disabledRecord.id = 'snapshot-storage-disabled'
+      disabledRecord.source = 'policy_snapshot'
+      disabledRecord.action = 'discover'
+      disabledRecord.policyHit = 'deny'
+      disabledRecord.result = SecurityEventResult.BLOCKED
+      const enabledRecord = createConnectionRecord()
+      enabledRecord.id = 'snapshot-storage-enabled'
+      enabledRecord.source = 'policy_snapshot'
+      enabledRecord.action = 'discover'
+
+      expect(getPeripheralConnectionActionLabel(disabledRecord)).assertEqual('策略变更')
+      expect(getPeripheralConnectionPolicyLabel(disabledRecord)).assertEqual('阻止')
+      expect(getPeripheralConnectionResultLabel(disabledRecord)).assertEqual('已阻止')
+      expect(getPeripheralConnectionActionLabel(enabledRecord)).assertEqual('策略变更')
+    })
+
     it('should render bluetooth discovery labels', 0, () => {
       const record = createConnectionRecord()
       record.id = 'runtime-bt-1'

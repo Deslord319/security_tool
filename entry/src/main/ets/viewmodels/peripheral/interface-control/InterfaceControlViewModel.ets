@@ -2,7 +2,11 @@ import { LogUtils } from '../../../utils/LogUtils'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 
 import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStrings'
-import { PeripheralInterfaceFeature, PeripheralInterfaceFeatures } from '../../../models/PeripheralModels'
+import {
+  PeripheralInterfaceFeature,
+  PeripheralInterfaceFeatures,
+  UsbStoragePolicy
+} from '../../../models/PeripheralModels'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
@@ -113,6 +117,7 @@ export class InterfaceControlViewModel {
       if (!result.success) {
         return this.normalizeReason(result.stage, PeripheralReasonCodes.USB_STORAGE_POLICY_FAILED)
       }
+      await PeripheralPolicySnapshotTraceService.appendUsbStoragePolicySnapshot(this.toUsbStoragePolicy(option.policy))
       this.commitState({
         usbDisabled: this.state.usbDisabled,
         btDisabled: this.state.btDisabled,
@@ -180,6 +185,18 @@ export class InterfaceControlViewModel {
       return option
     }
     return USB_STORAGE_POLICY_OPTIONS[USB_STORAGE_POLICY_INDEX_READ_WRITE]
+  }
+
+  private toUsbStoragePolicy(policy: edmUsbManager.UsbPolicy): UsbStoragePolicy {
+    switch (policy) {
+      case edmUsbManager.UsbPolicy.READ_ONLY:
+        return UsbStoragePolicy.READ_ONLY
+      case edmUsbManager.UsbPolicy.DISABLED:
+        return UsbStoragePolicy.DISABLED
+      case edmUsbManager.UsbPolicy.READ_WRITE:
+      default:
+        return UsbStoragePolicy.READ_WRITE
+    }
   }
 
   private normalizeReason(stage: string | undefined, fallbackReason: string): string {

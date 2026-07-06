@@ -4,7 +4,8 @@ import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
   PeripheralDevicePolicyRecord,
   PeripheralTraceRecord,
-  PeripheralType
+  PeripheralType,
+  UsbStoragePolicy
 } from '../../main/ets/models/PeripheralModels'
 import { PeripheralTraceMaintenanceService } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
@@ -201,6 +202,53 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
 
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(0)
+    })
+
+    it('should append policy change snapshot for disabled usb storage policy', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, 'Acme', 'Storage', 'usb-storage', 0x08),
+        usbDevice(0x9999, 0x0001, 'Other', 'HID', 'hid', 0x03)
+      ]))
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbStoragePolicySnapshot(UsbStoragePolicy.DISABLED)
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].deviceType).assertEqual(PeripheralType.USB_STORAGE)
+      expect(savedRecords[0].action).assertEqual('discover')
+      expect(savedRecords[0].decision).assertEqual('deny')
+      expect(savedRecords[0].matchedPolicyKind).assertEqual('usb_storage_disabled')
+      expect(savedRecords[0].usbPolicy).assertEqual(UsbStoragePolicy.DISABLED)
+    })
+
+    it('should append policy change snapshot for read-only usb storage policy', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, 'Acme', 'Storage', 'usb-storage', 0x08)
+      ]))
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbStoragePolicySnapshot(UsbStoragePolicy.READ_ONLY)
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].action).assertEqual('discover')
+      expect(savedRecords[0].decision).assertEqual('allow')
+      expect(savedRecords[0].matchedPolicyKind).assertEqual('usb_storage_read_only')
+      expect(savedRecords[0].usbPolicy).assertEqual(UsbStoragePolicy.READ_ONLY)
+    })
+
+    it('should append policy change snapshot for read-write usb storage policy', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, 'Acme', 'Storage', 'usb-storage', 0x08)
+      ]))
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbStoragePolicySnapshot(UsbStoragePolicy.READ_WRITE)
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].action).assertEqual('discover')
+      expect(savedRecords[0].decision).assertEqual('allow')
+      expect(savedRecords[0].matchedPolicyKind).assertEqual('default_allow')
+      expect(savedRecords[0].usbPolicy).assertEqual(UsbStoragePolicy.READ_WRITE)
     })
   })
 }

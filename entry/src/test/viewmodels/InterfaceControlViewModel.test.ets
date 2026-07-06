@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager as edmUsbManager } from '@kit.MDMKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { OperationResult } from '../../main/ets/models/CommonModels'
-import { PeripheralInterfaceFeatures } from '../../main/ets/models/PeripheralModels'
+import {
+  PeripheralInterfaceFeatures,
+  UsbStoragePolicy
+} from '../../main/ets/models/PeripheralModels'
 import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
@@ -35,15 +38,25 @@ export default function interfaceControlViewModelTest() {
   describe('InterfaceControlViewModel', () => {
     let viewModel: InterfaceControlViewModel
     let mockKit: MockKit
+    let capturedUsbStoragePolicy: UsbStoragePolicy | null
 
   beforeEach(() => {
     viewModel = new InterfaceControlViewModel()
     mockKit = new MockKit()
+    capturedUsbStoragePolicy = null
     let appendUsbSnapshotMock = mockKit.mockFunc(
       PeripheralPolicySnapshotTraceService,
       PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot
     )
+    let appendUsbStorageSnapshotMock = mockKit.mockFunc(
+      PeripheralPolicySnapshotTraceService,
+      PeripheralPolicySnapshotTraceService.appendUsbStoragePolicySnapshot
+    )
     when(appendUsbSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(successTraceMutationResult()))
+    when(appendUsbStorageSnapshotMock)(ArgumentMatchers.any).afterAction((policy: UsbStoragePolicy) => {
+      capturedUsbStoragePolicy = policy
+      return Promise.resolve(successTraceMutationResult())
+    })
   })
 
   afterEach(() => {
@@ -161,6 +174,7 @@ export default function interfaceControlViewModelTest() {
 
     expect(reason).assertNull()
     expect(viewModel.state.usbStoragePolicyIndex).assertEqual(2)
+    expect(capturedUsbStoragePolicy).assertEqual(UsbStoragePolicy.DISABLED)
     done()
   })
 
@@ -174,6 +188,7 @@ export default function interfaceControlViewModelTest() {
     const reason = await viewModel.setUsbStoragePolicy(0)
 
     expect(reason).assertEqual('set_usb_storage_policy')
+    expect(capturedUsbStoragePolicy === null).assertTrue()
     done()
   })
 
