@@ -117,5 +117,27 @@ export default function lockScreenUKeyDeviceServiceTest() {
       expect(devices.length).assertEqual(1)
       expect(devices[0].productName).assertEqual('Token UKey')
     })
+
+    it('does_not_reuse_first_serial_when_vid_pid_detail_is_ambiguous', 0, () => {
+      let service = new DdkLockScreenUKeyDeviceService(
+        new FakeDdkUsbDeviceQuery([
+          ddkDevice(10, 0x4000, 0x0001, 'Token A'),
+          ddkDevice(11, 0x4000, 0x0001, 'Token B')
+        ]),
+        new FakeUsbDeviceDetailProbe([
+          usbDevice(0x4000, 0x0001, 'SNA', 'Secure', 'Token A', 'token-a', 0xFF, 0, 0),
+          usbDevice(0x4000, 0x0001, 'SNB', 'Secure', 'Token B', 'token-b', 0xFF, 0, 0)
+        ])
+      )
+
+      let result = service.getCandidateDevices()
+      let devices = result.data ?? []
+      expect(result.success).assertEqual(true)
+      expect(devices.length).assertEqual(2)
+      expect(devices[0].stableIdentifier).assertEqual(false)
+      expect(devices[1].stableIdentifier).assertEqual(false)
+      expect(devices[0].fingerprint).assertContain('WEAK:TOKEN A')
+      expect(devices[1].fingerprint).assertContain('WEAK:TOKEN B')
+    })
   })
 }

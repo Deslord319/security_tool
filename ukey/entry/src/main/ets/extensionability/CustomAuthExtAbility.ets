@@ -18,7 +18,6 @@ export default class CustomAuthExtAbility extends AppServiceExtensionAbility {
     const callerUid = rpc.IPCSkeleton.getCallingUid()
     const callerPid = rpc.IPCSkeleton.getCallingPid()
     LogUtils.info(TAG, `onConnect, abilityName=${want.abilityName}, callerUid=${callerUid}, callerPid=${callerPid}`)
-    authenticatorUKeyProvider.bindContext(this.context)
 
     // Caller access is enforced by extensionAbilities.permissions in module.json5.
 

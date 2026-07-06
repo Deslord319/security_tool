@@ -49,6 +49,8 @@ struct Index {
   @State private ukeyPasswordInput: string = ''
   @State private verifyUKeyPasswordInput: string = ''
   private runtimeStateRefreshInFlight: boolean = false
+  private pageActive: boolean = false
+  private runtimeStateRefreshTimerIds: number[] = []
   private usbSubscriber: commonEventManager.CommonEventSubscriber | null = null
 
   private readonly configRepository: LockScreenAuthRepository = new PreferencesLockScreenAuthRepository()
@@ -58,11 +60,14 @@ struct Index {
   private readonly ddkDeviceProvider: LockScreenUKeyDeviceProvider = new DdkLockScreenUKeyDeviceService()
 
   aboutToAppear(): void {
+    this.pageActive = true
     this.syncPageState()
     this.registerUKeyDeviceEvents()
   }
 
   aboutToDisappear(): void {
+    this.pageActive = false
+    this.clearRuntimeStateRefreshTimers()
     this.unregisterUKeyDeviceEvents()
   }
 
@@ -71,7 +76,7 @@ struct Index {
   }
 
   private async syncPageState(): Promise<void> {
-    if (this.loading) {
+    if (!this.pageActive || this.loading) {
       return
     }
     this.loading = true
@@ -80,6 +85,9 @@ struct Index {
       let config = await this.configRepository.loadConfig(context)
       await this.enrollmentService.reconcileSystemCredentials(context)
       let activeCredential = await this.activeCredentialRepository.loadActiveCredential(context)
+      if (!this.pageActive) {
+        return
+      }
       this.ukeyUnlockEnabled = config.ukeyUnlockEnabled
       this.refreshCurrentDevices()
       this.updateActiveCredential(activeCredential)
@@ -104,7 +112,7 @@ struct Index {
   }
 
   private async refreshRuntimeState(): Promise<void> {
-    if (this.runtimeStateRefreshInFlight) {
+    if (!this.pageActive || this.runtimeStateRefreshInFlight || this.credentialSubmitting) {
       return
     }
     this.runtimeStateRefreshInFlight = true
@@ -135,14 +143,22 @@ struct Index {
         LogUtils.warn(TAG, `create USB subscriber failed: ${JSON.stringify(err)}`)
         return
       }
+      if (!this.pageActive) {
+        return
+      }
       this.usbSubscriber = subscriber
-      commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
-        if (callbackErr) {
-          LogUtils.warn(TAG, `USB event callback failed: ${JSON.stringify(callbackErr)}`)
-          return
-        }
-        this.handleUKeyDeviceEvent(data)
-      })
+      try {
+        commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
+          if (callbackErr) {
+            LogUtils.warn(TAG, `USB event callback failed: ${JSON.stringify(callbackErr)}`)
+            return
+          }
+          this.handleUKeyDeviceEvent(data)
+        })
+      } catch (subscribeErr) {
+        this.usbSubscriber = null
+        LogUtils.warn(TAG, `subscribe USB event failed: ${JSON.stringify(subscribeErr)}`)
+      }
     })
   }
 
@@ -160,6 +176,9 @@ struct Index {
   }
 
   private handleUKeyDeviceEvent(data: commonEventManager.CommonEventData): void {
+    if (!this.pageActive) {
+      return
+    }
     let eventName = data.event ?? ''
     if (eventName === commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED) {
       this.scheduleRuntimeStateRefresh(USB_ATTACH_REFRESH_DELAYS_MS)
@@ -173,11 +192,28 @@ struct Index {
   }
 
   private scheduleRuntimeStateRefresh(delaysMs: number[]): void {
+    if (!this.pageActive) {
+      return
+    }
     for (let delayMs of delaysMs) {
-      setTimeout(() => {
+      let timerId = setTimeout(() => {
+        this.runtimeStateRefreshTimerIds = this.runtimeStateRefreshTimerIds.filter((item: number): boolean => {
+          return item !== timerId
+        })
+        if (!this.pageActive || this.credentialSubmitting) {
+          return
+        }
         this.refreshRuntimeState()
       }, delayMs)
+      this.runtimeStateRefreshTimerIds.push(timerId)
     }
+  }
+
+  private clearRuntimeStateRefreshTimers(): void {
+    for (let timerId of this.runtimeStateRefreshTimerIds) {
+      clearTimeout(timerId)
+    }
+    this.runtimeStateRefreshTimerIds = []
   }
 
   private updateActiveCredential(credential: LockScreenUKeyActiveCredential | null): void {
@@ -352,7 +388,6 @@ struct Index {
       this.statusMessage = 'UKEY解锁凭据删除失败'
     } finally {
       this.systemPinInput = ''
-      this.ukeyPasswordInput = ''
       this.credentialSubmitting = false
     }
   }
@@ -595,7 +630,7 @@ struct Index {
             this.infoRow('Serial', device.serial)
           }
           .width('100%')
-        }, (device: LockScreenUKeyDevice, index: number): string => `${index}-${device.fingerprint}`)
+        }, (device: LockScreenUKeyDevice): string => device.fingerprint)
       }
       .width('100%')
     }

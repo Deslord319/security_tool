@@ -146,14 +146,72 @@ export class DdkLockScreenUKeyDeviceService implements LockScreenUKeyDeviceProvi
     info: DdkUsbDeviceInfo,
     devices: usbManager.USBDevice[]
   ): usbManager.USBDevice | null {
+    let matches: usbManager.USBDevice[] = []
     for (let item of devices) {
       let vendorId = DdkLockScreenUKeyDeviceService.normalizeNumber(item.vendorId)
       let productId = DdkLockScreenUKeyDeviceService.normalizeNumber(item.productId)
       if (vendorId === info.vendorId && productId === info.productId) {
-        return item
+        matches.push(item)
       }
     }
+    if (matches.length === 1) {
+      return matches[0]
+    }
+    if (matches.length > 1) {
+      LogUtils.warn(TAG, `[USB_DETAIL_AMBIGUOUS] ddkDeviceId=${info.ddkDeviceId}, vid=${info.vendorId}, pid=${info.productId}, matches=${matches.length}`)
+      return DdkLockScreenUKeyDeviceService.toAmbiguousUsbDetail(info, matches)
+    }
     return null
+  }
+
+  private static toAmbiguousUsbDetail(info: DdkUsbDeviceInfo, matches: usbManager.USBDevice[]): usbManager.USBDevice {
+    return {
+      vendorId: info.vendorId,
+      productId: info.productId,
+      serial: '',
+      manufacturerName: DdkLockScreenUKeyDeviceService.resolveCommonText(matches, (device: usbManager.USBDevice): string | undefined => device.manufacturerName),
+      productName: DdkLockScreenUKeyDeviceService.resolveCommonText(matches, (device: usbManager.USBDevice): string | undefined => device.productName),
+      name: DdkLockScreenUKeyDeviceService.resolveCommonText(matches, (device: usbManager.USBDevice): string | undefined => device.name),
+      clazz: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.clazz),
+      subClass: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.subClass),
+      protocol: DdkLockScreenUKeyDeviceService.resolveCommonNumber(matches, (device: usbManager.USBDevice): number | undefined => device.protocol)
+    } as usbManager.USBDevice
+  }
+
+  private static resolveCommonText(
+    devices: usbManager.USBDevice[],
+    picker: (device: usbManager.USBDevice) => string | undefined
+  ): string {
+    let commonValue = ''
+    for (let index = 0; index < devices.length; index++) {
+      let value = DdkLockScreenUKeyDeviceService.normalizeText(picker(devices[index]))
+      if (index === 0) {
+        commonValue = value
+        continue
+      }
+      if (value !== commonValue) {
+        return ''
+      }
+    }
+    return commonValue
+  }
+
+  private static resolveCommonNumber(
+    devices: usbManager.USBDevice[],
+    picker: (device: usbManager.USBDevice) => number | undefined
+  ): number {
+    let commonValue = 0
+    for (let index = 0; index < devices.length; index++) {
+      let value = DdkLockScreenUKeyDeviceService.normalizeNumber(picker(devices[index]))
+      if (index === 0) {
+        commonValue = value
+        continue
+      }
+      if (value !== commonValue) {
+        return 0
+      }
+    }
+    return commonValue
   }
 
   private static isCandidateUKeyDevice(device: LockScreenUKeyDevice): boolean {

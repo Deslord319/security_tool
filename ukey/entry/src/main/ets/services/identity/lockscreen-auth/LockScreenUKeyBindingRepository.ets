@@ -27,7 +27,19 @@ function isValidUserCredential(credential: LockScreenUKeyUserCredential): boolea
     isValidCredentialLifecycle(credential.lifecycle)
 }
 
-function isValidUserCredentialList(credentials: LockScreenUKeyUserCredential[]): boolean {
+function isValidUserCredentialList(credentials: LockScreenUKeyUserCredential[], allowEmpty: boolean = false): boolean {
+  if (!Array.isArray(credentials)) {
+    return false
+  }
+  if (credentials.length === 0) {
+    return allowEmpty
+  }
+  return credentials.every((credential: LockScreenUKeyUserCredential): boolean => {
+    return isValidUserCredential(credential)
+  })
+}
+
+function isValidActiveUserCredentialList(credentials: LockScreenUKeyUserCredential[]): boolean {
   if (!Array.isArray(credentials) || credentials.length === 0) {
     return false
   }
@@ -91,7 +103,7 @@ export class PreferencesLockScreenUKeyBindingRepository implements LockScreenUKe
     }
     let validRoot = typeof binding.fingerprint === 'string' && binding.fingerprint.length > 0 &&
       typeof binding.deviceId === 'string' && binding.deviceId.length > 0
-    return validRoot && isValidUserCredentialList(binding.userCredentials)
+    return validRoot && isValidUserCredentialList(binding.userCredentials, true)
   }
 }
 
@@ -158,6 +170,6 @@ export class PreferencesLockScreenUKeyActiveCredentialRepository implements Lock
     let validRoot = typeof credential.fingerprint === 'string' && credential.fingerprint.length > 0 &&
       typeof credential.deviceId === 'string' && credential.deviceId.length > 0 &&
       isValidCredentialLifecycle(credential.lifecycle)
-    return validRoot && isValidUserCredentialList(credential.userCredentials)
+    return validRoot && isValidActiveUserCredentialList(credential.userCredentials)
   }
 }

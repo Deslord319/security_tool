@@ -1111,17 +1111,27 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     if (!cleared) {
       return LockScreenCustomAuthEnrollmentService.failure('clear_active_credential', 'UKEY解锁凭据状态清理失败')
     }
+    let clearedBinding = LockScreenCustomAuthEnrollmentService.toBindingWithoutCredentials(existing)
+    let bindingSaved = await this.bindingRepository.saveBinding(context, clearedBinding)
+    if (!bindingSaved) {
+      return LockScreenCustomAuthEnrollmentService.failure('save_binding', 'UKey 绑定记录保存失败', existing)
+    }
     LogUtils.info(TAG, `[DELETE_SUCCESS] users=${credentials.length}, deviceId=${active.deviceId}`)
-    return LockScreenCustomAuthEnrollmentService.success(existing, 'credential_deleted')
+    return LockScreenCustomAuthEnrollmentService.success(clearedBinding, 'credential_deleted')
   }
 
   private static async runSerialized(
     taskFactory: () => Promise<OperationResult<LockScreenUKeyBinding | null>>
   ): Promise<OperationResult<LockScreenUKeyBinding | null>> {
-    if (LockScreenCustomAuthEnrollmentService.pendingOperation) {
-      return await LockScreenCustomAuthEnrollmentService.pendingOperation
-    }
-    let task = taskFactory()
+    let previous = LockScreenCustomAuthEnrollmentService.pendingOperation
+    let task = (async (): Promise<OperationResult<LockScreenUKeyBinding | null>> => {
+      if (previous) {
+        await previous.catch((err: Error): void => {
+          LogUtils.warn(TAG, `[SERIAL_PREVIOUS_FAIL] err=${JSON.stringify(err)}`)
+        })
+      }
+      return await taskFactory()
+    })()
     LockScreenCustomAuthEnrollmentService.pendingOperation = task
     try {
       return await task
@@ -1337,6 +1347,16 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
     }
     if (systemCredentialsResult.data.length > 0 || active) {
       LogUtils.info(TAG, `[RECONCILE_CUSTOM_CRED_DONE] own=${ownCredentials.length}, removed=${deleteTargets.length}, localActive=${!!active}`)
+    }
+    if (existing && existing.fingerprint === device.fingerprint && (systemCredentialsResult.data.length > 0 || active)) {
+      let reconciledBinding = LockScreenCustomAuthEnrollmentService.toBindingFromRecords(device, ownCredentials, existing)
+      let bindingSaved = await this.bindingRepository.saveBinding(context, reconciledBinding)
+      if (!bindingSaved) {
+        return LockScreenCustomAuthEnrollmentService.failure<SystemCustomAuthCredentialReconcileResult>(
+          'save_binding',
+          'UKey 绑定记录保存失败'
+        )
+      }
     }
     return {
       success: true,
@@ -1579,6 +1599,17 @@ export class LockScreenCustomAuthEnrollmentService implements LockScreenUKeyEnro
       boundAt: active.createdAt,
       stableIdentifier: false,
       userCredentials: credentials
+    }
+  }
+
+  private static toBindingWithoutCredentials(binding: LockScreenUKeyBinding): LockScreenUKeyBinding {
+    return {
+      fingerprint: binding.fingerprint,
+      deviceId: binding.deviceId,
+      deviceName: binding.deviceName,
+      boundAt: binding.boundAt,
+      stableIdentifier: binding.stableIdentifier,
+      userCredentials: []
     }
   }
 

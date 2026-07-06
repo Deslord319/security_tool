@@ -15,6 +15,7 @@ interface BluetoothAclParameters {
   address?: string
   remoteName?: string
   alias?: string
+  connectionState?: number
 }
 
 interface BluetoothAclParameterOverrides {
@@ -27,6 +28,7 @@ interface BluetoothAclParameterOverrides {
   address?: string
   remoteName?: string
   alias?: string
+  connectionState?: number
 }
 
 class BluetoothAclRawData {
@@ -75,6 +77,9 @@ function buildBluetoothAclParameters(overrides?: BluetoothAclParameterOverrides)
   }
   if (overrides.alias !== undefined) {
     parameters.alias = overrides.alias
+  }
+  if (overrides.connectionState !== undefined) {
+    parameters.connectionState = overrides.connectionState
   }
   return parameters
 }
@@ -137,6 +142,50 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       const record = await consumer.consume(buildBluetoothAclEvent(unknownStateOverrides))
 
       expect(record === null).assertTrue()
+    })
+
+    it('U-BT-003A should ignore bluetooth acl transition state labels', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+      const connectingRecord = await consumer.consume(buildBluetoothAclEvent({
+        stateName: 'STATE_CONNECTING'
+      }))
+      const disconnectingRecord = await consumer.consume(buildBluetoothAclEvent({
+        stateName: 'STATE_DISCONNECTING'
+      }))
+
+      expect(connectingRecord === null).assertTrue()
+      expect(disconnectingRecord === null).assertTrue()
+    })
+
+    it('U-BT-003B should only map numeric final acl states', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+      const connectedRecord = await consumer.consume(buildBluetoothAclEvent({
+        stateName: '',
+        connectionState: 1
+      }))
+      const disconnectedRecord = await consumer.consume(buildBluetoothAclEvent({
+        stateName: '',
+        connectionState: 0
+      }))
+      const connectingRecord = await consumer.consume(buildBluetoothAclEvent({
+        stateName: '',
+        connectionState: 2
+      }))
+      const disconnectingRecord = await consumer.consume(buildBluetoothAclEvent({
+        stateName: '',
+        connectionState: 3
+      }))
+
+      expect(connectedRecord !== null).assertTrue()
+      expect(connectedRecord?.action).assertEqual('connect')
+      expect(connectedRecord?.detail).assertEqual('aclState=STATE_CONNECTED, reason=SUCCESS')
+      expect(disconnectedRecord !== null).assertTrue()
+      expect(disconnectedRecord?.action).assertEqual('disconnect')
+      expect(disconnectedRecord?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=SUCCESS')
+      expect(connectingRecord === null).assertTrue()
+      expect(disconnectingRecord === null).assertTrue()
     })
 
     it('U-BT-004 should ignore bluetooth acl events without deviceId', 0, async () => {

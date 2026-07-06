@@ -48,7 +48,11 @@ export class UKeyRuntimeManager {
       LogUtils.warn(TAG, '[START_SKIP] reason=context_missing')
       return
     }
-    await this.registerUsbRuntimeEvents()
+    let subscribed = await this.registerUsbRuntimeEvents()
+    if (!subscribed) {
+      LogUtils.warn(TAG, '[START_SKIP] reason=usb_subscribe_failed')
+      return
+    }
     await this.reconcileOnStartup()
   }
 
@@ -89,18 +93,24 @@ export class UKeyRuntimeManager {
             resolve(false)
             return
           }
-          commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
-            if (callbackErr) {
-              LogUtils.error(TAG, `[USB_EVENT_CALLBACK_FAIL] code=${callbackErr.code}, message=${callbackErr.message}`)
-              return
-            }
-            this.handleUsbRuntimeEvent(data).catch((eventErr: Error) => {
-              LogUtils.warn(TAG, `[USB_EVENT_HANDLE_FAIL] err=${JSON.stringify(eventErr)}`)
+          try {
+            commonEventManager.subscribe(subscriber, (callbackErr: BusinessError, data: commonEventManager.CommonEventData) => {
+              if (callbackErr) {
+                LogUtils.error(TAG, `[USB_EVENT_CALLBACK_FAIL] code=${callbackErr.code}, message=${callbackErr.message}`)
+                return
+              }
+              this.handleUsbRuntimeEvent(data).catch((eventErr: Error) => {
+                LogUtils.warn(TAG, `[USB_EVENT_HANDLE_FAIL] err=${JSON.stringify(eventErr)}`)
+              })
             })
-          })
-          this.usbSubscriber = subscriber
-          LogUtils.info(TAG, '[USB_SUBSCRIBER_READY]')
-          resolve(true)
+            this.usbSubscriber = subscriber
+            LogUtils.info(TAG, '[USB_SUBSCRIBER_READY]')
+            resolve(true)
+          } catch (subscribeErr) {
+            let error = subscribeErr as BusinessError
+            LogUtils.error(TAG, `[USB_SUBSCRIBE_FAIL] code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(subscribeErr)}`)
+            resolve(false)
+          }
         })
       } catch (err) {
         let error = err as BusinessError

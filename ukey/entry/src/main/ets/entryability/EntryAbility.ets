@@ -8,6 +8,8 @@ import { holdStatusBar, loadStatusBar } from '../utils/StatusBarUtil'
 import { LogUtils } from '../utils/LogUtils'
 
 const TAG = 'EntryAbility'
+const WINDOW_DECOR_HEIGHT_VP: number = 56
+const TRAY_REMOVAL_TO_TERMINATE_DELAY_MS: number = 200
 
 interface StatusBarIconClickData {
   iconClickType?: string
@@ -54,7 +56,7 @@ export default class EntryAbility extends UIAbility {
       LogUtils.info(TAG, 'loadContent success')
       windowStage.getMainWindow().then((mainWindow: window.Window) => {
         mainWindow.setWindowDecorVisible(false)
-        mainWindow.setWindowDecorHeight(56)
+        mainWindow.setWindowDecorHeight(WINDOW_DECOR_HEIGHT_VP)
       }).catch((err: Error) => {
         LogUtils.warn(TAG, `configure window decor failed: ${JSON.stringify(err)}`)
       })
@@ -117,7 +119,7 @@ export default class EntryAbility extends UIAbility {
           this.context.terminateSelf().catch((terminateErr: Error) => {
             LogUtils.warn(TAG, `terminateSelf failed after tray removal: ${JSON.stringify(terminateErr)}`)
           })
-        }, 200)
+        }, TRAY_REMOVAL_TO_TERMINATE_DELAY_MS)
       })
     })
   }

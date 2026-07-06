@@ -132,10 +132,10 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
 
   private static resolveBluetoothAclAction(sources: EventPayloadRecord[]): PeripheralConnectionAction {
     const stateLabel = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothAclStateLabel(sources).toUpperCase()
-    if (stateLabel.includes('DISCONNECT')) {
+    if (PeripheralConnectionRecordBluetoothAclConsumer.isDisconnectedStateLabel(stateLabel)) {
       return 'disconnect'
     }
-    if (stateLabel.includes('CONNECT')) {
+    if (PeripheralConnectionRecordBluetoothAclConsumer.isConnectedStateLabel(stateLabel)) {
       return 'connect'
     }
 
@@ -146,10 +146,24 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (stateValue === BLUETOOTH_ACL_STATE_DISCONNECTED) {
       return 'disconnect'
     }
-    if (stateValue === BLUETOOTH_ACL_STATE_CONNECTED || stateValue === BLUETOOTH_ACL_STATE_CONNECTING) {
+    if (stateValue === BLUETOOTH_ACL_STATE_CONNECTED) {
       return 'connect'
     }
     return 'unknown'
+  }
+
+  private static isConnectedStateLabel(stateLabel: string): boolean {
+    return stateLabel === 'STATE_CONNECTED' ||
+      stateLabel === 'CONNECTED' ||
+      stateLabel === 'ACL_CONNECTED' ||
+      stateLabel === 'CONNECTION_STATE_CONNECTED'
+  }
+
+  private static isDisconnectedStateLabel(stateLabel: string): boolean {
+    return stateLabel === 'STATE_DISCONNECTED' ||
+      stateLabel === 'DISCONNECTED' ||
+      stateLabel === 'ACL_DISCONNECTED' ||
+      stateLabel === 'CONNECTION_STATE_DISCONNECTED'
   }
 
   private static resolveBluetoothAclStateLabel(sources: EventPayloadRecord[]): string {
@@ -171,6 +185,11 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       ]
     )
     if (rawLabel.length > 0) {
+      const numericLabel = Number(rawLabel)
+      const mappedLabel = PeripheralConnectionRecordBluetoothAclConsumer.formatBluetoothAclStateValue(numericLabel)
+      if (mappedLabel.length > 0) {
+        return mappedLabel
+      }
       return rawLabel
     }
 
@@ -178,20 +197,29 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       sources,
       ['connectionstate', 'connectionState', 'aclState', 'aclstate', 'state', 'linkState', 'linkstate', 'status']
     )
-    if (Number.isFinite(rawState)) {
-      switch (rawState) {
-        case BLUETOOTH_ACL_STATE_DISCONNECTED:
-          return 'STATE_DISCONNECTED'
-        case BLUETOOTH_ACL_STATE_CONNECTED:
-        case BLUETOOTH_ACL_STATE_CONNECTING:
-          return 'STATE_CONNECTED'
-        case BLUETOOTH_ACL_STATE_DISCONNECTING:
-          return 'STATE_DISCONNECTING'
-        default:
-          return `${rawState}`
-      }
+    const mappedState = PeripheralConnectionRecordBluetoothAclConsumer.formatBluetoothAclStateValue(rawState)
+    if (mappedState.length > 0) {
+      return mappedState
     }
     return 'UNKNOWN'
+  }
+
+  private static formatBluetoothAclStateValue(stateValue: number): string {
+    if (!Number.isFinite(stateValue)) {
+      return ''
+    }
+    switch (stateValue) {
+      case BLUETOOTH_ACL_STATE_DISCONNECTED:
+        return 'STATE_DISCONNECTED'
+      case BLUETOOTH_ACL_STATE_CONNECTED:
+        return 'STATE_CONNECTED'
+      case BLUETOOTH_ACL_STATE_CONNECTING:
+        return 'STATE_CONNECTING'
+      case BLUETOOTH_ACL_STATE_DISCONNECTING:
+        return 'STATE_DISCONNECTING'
+      default:
+        return `${stateValue}`
+    }
   }
 
   private static resolveBluetoothAclReasonLabel(sources: EventPayloadRecord[]): string {
@@ -226,20 +254,29 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       return payloadName
     }
 
+    const aliasName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId, true)
+    if (aliasName.length > 0) {
+      return aliasName
+    }
+    const remoteName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId, false)
+    if (remoteName.length > 0) {
+      return remoteName
+    }
+
+    return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
+  }
+
+  private static queryRemoteDeviceName(deviceId: string, alias: boolean): string {
     try {
-      const remoteName = connection.getRemoteDeviceName(deviceId, true)?.trim() ?? ''
-      if (remoteName.length > 0) {
-        return remoteName
-      }
+      return connection.getRemoteDeviceName(deviceId, alias)?.trim() ?? ''
     } catch (err) {
       const error = err as BusinessError
       LogUtils.warn(
         TAG,
-        `getRemoteDeviceName failed: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(deviceId)}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
+        `getRemoteDeviceName failed: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(deviceId)}, alias=${alias}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
+      return ''
     }
-
-    return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
   }
 
   private static maskBluetoothIdentifier(deviceId: string): string {
