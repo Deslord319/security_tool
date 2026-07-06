@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
-import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
+import { MockKit, when } from '@ohos/hamock'
 import EntryAbility from '../../main/ets/entryability/EntryAbility'
 import { AuthMethod } from '../../main/ets/models/AuthModels'
 import { AuthAvailabilityResult, AuthExecutionResult, AuthService } from '../../main/ets/services/identity/auth/AuthService'
