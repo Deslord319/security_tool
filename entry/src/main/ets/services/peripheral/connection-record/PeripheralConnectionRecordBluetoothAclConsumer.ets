@@ -22,6 +22,7 @@ import {
 import { StatusText } from '../../../constants/StringCatalog'
 import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
+import { BluetoothPolicySnapshotTraceService } from './BluetoothPolicySnapshotTraceService'
 
 const TAG = 'ConnectionRecordBtConsumer'
 const BLUETOOTH_ACL_STATE_DISCONNECTED = 0
@@ -57,6 +58,21 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     const eventInfo = await PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothAclEventInfo(rawData)
     if (!eventInfo || eventInfo.action === 'unknown') {
       return null
+    }
+    if (eventInfo.action === 'connect') {
+      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+        eventInfo.rawDeviceId,
+        eventInfo.deviceName,
+        eventInfo.rawPayload
+      )
+    }
+    if (eventInfo.action === 'disconnect' && BluetoothPolicySnapshotTraceService.shouldSuppressPolicyDisconnect(eventInfo.deviceId)) {
+      LogUtils.info(TAG, `suppress bluetooth acl disconnect after policy snapshot: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(eventInfo.rawDeviceId)}`)
+      BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
+      return null
+    }
+    if (eventInfo.action === 'disconnect') {
+      BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
     }
     const detail = PeripheralConnectionRecordBluetoothAclConsumer.buildDetail(eventInfo)
 

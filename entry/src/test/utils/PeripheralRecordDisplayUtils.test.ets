@@ -50,6 +50,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralMatchedPolicyKindLabel('usb_storage_disabled')).assertEqual('USB 存储已禁用')
       expect(getPeripheralMatchedPolicyKindLabel('usb_storage_read_only')).assertEqual('USB 存储只读')
       expect(getPeripheralMatchedPolicyKindLabel('device_deny')).assertEqual('命中单设备禁止接入')
+      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_disabled')).assertEqual('蓝牙已禁用')
       expect(getPeripheralMatchedPolicyKindLabel('bluetooth_connection_event')).assertEqual('蓝牙连接事件')
       expect(getPeripheralMatchedPolicyKindLabel('bluetooth_discovery')).assertEqual('蓝牙运行期发现')
       expect(getPeripheralMatchedPolicyKindLabel('default_allow')).assertEqual('默认允许接入')

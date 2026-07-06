@@ -88,6 +88,8 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
       return PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY
     case 'device_deny':
       return PeripheralMatchedPolicyStrings.DEVICE_DENY
+    case 'bluetooth_disabled':
+      return PeripheralMatchedPolicyStrings.BLUETOOTH_DISABLED
     case 'bluetooth_connection_event':
       return PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION
     case 'bluetooth_discovery':

@@ -1,9 +1,18 @@
-import { describe, expect, it } from '@ohos/hypium'
+import { afterEach, describe, expect, it } from '@ohos/hypium'
 import { commonEventManager } from '@kit.BasicServicesKit'
+import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import { SecurityEventResult } from '../../main/ets/models/CommonModels'
-import { PeripheralType } from '../../main/ets/models/PeripheralModels'
+import { PeripheralTraceRecord, PeripheralType } from '../../main/ets/models/PeripheralModels'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordBluetoothAclConsumer'
 import { PeripheralConnectionRecordProducerEvent } from '../../main/ets/services/peripheral/connection-record/PeripheralConnectionRecordProducerContract'
+import {
+  BluetoothConnectedDeviceSnapshot,
+  BluetoothPolicySnapshotTraceService
+} from '../../main/ets/services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
+import {
+  PeripheralTraceMaintenanceService,
+  PeripheralTraceMutationResult
+} from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
 interface BluetoothAclParameters {
   deviceId: string
@@ -99,6 +108,10 @@ function buildBluetoothAclEvent(
 
 export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
   describe('PeripheralConnectionRecordBluetoothAclConsumer', () => {
+    afterEach(() => {
+      BluetoothPolicySnapshotTraceService.resetForTest()
+    })
+
     it('U-BT-001 should map bluetooth acl connect event to allow record', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
 
@@ -113,6 +126,20 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.deviceType).assertEqual(PeripheralType.BLUETOOTH)
       expect(record?.detail).assertEqual('aclState=STATE_CONNECTED, reason=SUCCESS')
+    })
+
+    it('U-BT-001A should cache acl connected device for bluetooth policy snapshot diff', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+      await consumer.consume(buildBluetoothAclEvent({
+        deviceName: 'Cached Headset',
+        deviceId: 'AA:BB:CC:DD:EE:FF'
+      }))
+      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+
+      expect(snapshots.length).assertEqual(1)
+      expect(snapshots[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
+      expect(snapshots[0].deviceName).assertEqual('Cached Headset')
     })
 
     it('U-BT-002 should map bluetooth acl disconnect event to disconnect record', 0, async () => {
@@ -269,6 +296,34 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.effectivePolicyLabel).assertEqual('已启用')
       expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
       expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=REMOTE_DISCONNECT')
+    })
+
+    it('U-BT-010 should suppress policy-triggered bluetooth disconnect after snapshot', 0, async () => {
+      const mockKit = new MockKit()
+      try {
+        BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => 1700000000000)
+        let appendMock = mockKit.mockFunc(PeripheralTraceMaintenanceService, PeripheralTraceMaintenanceService.appendEntries)
+        when(appendMock)(ArgumentMatchers.any).afterAction((_records: PeripheralTraceRecord[]) => {
+          return Promise.resolve({ success: true, code: 'ok' } as PeripheralTraceMutationResult)
+        })
+        await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot([{
+          rawDeviceId: '11:22:33:44:55:66',
+          deviceId: 'MAC: 11:22:33:44:55:66',
+          deviceName: 'Bluetooth Keyboard',
+          rawPayload: '{}'
+        } as BluetoothConnectedDeviceSnapshot])
+        const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+        const record = await consumer.consume(buildBluetoothAclEvent({
+          stateName: 'STATE_DISCONNECTED',
+          reason: 'POLICY_DISABLED'
+        }))
+
+        expect(record === null).assertTrue()
+      } finally {
+        BluetoothPolicySnapshotTraceService.resetForTest()
+        mockKit.clearAll()
+      }
     })
   })
 }

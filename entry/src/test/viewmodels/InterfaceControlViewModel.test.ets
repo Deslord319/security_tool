@@ -11,6 +11,10 @@ import { PeripheralService } from '../../main/ets/services/peripheral/interface-
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
+import {
+  BluetoothConnectedDeviceSnapshot,
+  BluetoothPolicySnapshotTraceService
+} from '../../main/ets/services/peripheral/connection-record/BluetoothPolicySnapshotTraceService'
 import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
 class VoidOperationResult implements OperationResult<void> {
@@ -39,11 +43,13 @@ export default function interfaceControlViewModelTest() {
     let viewModel: InterfaceControlViewModel
     let mockKit: MockKit
     let capturedUsbStoragePolicy: UsbStoragePolicy | null
+    let capturedBluetoothSnapshots: BluetoothConnectedDeviceSnapshot[] | null
 
   beforeEach(() => {
     viewModel = new InterfaceControlViewModel()
     mockKit = new MockKit()
     capturedUsbStoragePolicy = null
+    capturedBluetoothSnapshots = null
     let appendUsbSnapshotMock = mockKit.mockFunc(
       PeripheralPolicySnapshotTraceService,
       PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot
@@ -55,6 +61,24 @@ export default function interfaceControlViewModelTest() {
     when(appendUsbSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(successTraceMutationResult()))
     when(appendUsbStorageSnapshotMock)(ArgumentMatchers.any).afterAction((policy: UsbStoragePolicy) => {
       capturedUsbStoragePolicy = policy
+      return Promise.resolve(successTraceMutationResult())
+    })
+    let captureBluetoothSnapshotMock = mockKit.mockFunc(
+      BluetoothPolicySnapshotTraceService,
+      BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices
+    )
+    let appendBluetoothSnapshotMock = mockKit.mockFunc(
+      BluetoothPolicySnapshotTraceService,
+      BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshotForCachedDevices
+    )
+    when(captureBluetoothSnapshotMock)().afterReturn([{
+      rawDeviceId: '11:22:33:44:55:66',
+      deviceId: 'MAC: 11:22:33:44:55:66',
+      deviceName: 'Bluetooth Keyboard',
+      rawPayload: '{}'
+    } as BluetoothConnectedDeviceSnapshot])
+    when(appendBluetoothSnapshotMock)(ArgumentMatchers.any).afterAction((snapshots: BluetoothConnectedDeviceSnapshot[]) => {
+      capturedBluetoothSnapshots = snapshots
       return Promise.resolve(successTraceMutationResult())
     })
   })
@@ -215,6 +239,21 @@ export default function interfaceControlViewModelTest() {
 
     expect(reason).assertNull()
     expect(viewModel.state.btDisabled).assertTrue()
+    expect(capturedBluetoothSnapshots?.length).assertEqual(1)
+    done()
+  })
+
+  it('should not append bluetooth snapshot when bluetooth disable policy fails', 0, async (done: Function) => {
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = false
+    setResult.stage = 'set_bluetooth_failed'
+    when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
+
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.BLUETOOTH, true)
+
+    expect(reason).assertEqual('set_bluetooth_failed')
+    expect(capturedBluetoothSnapshots === null).assertTrue()
     done()
   })
 
@@ -243,6 +282,22 @@ export default function interfaceControlViewModelTest() {
 
     expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
     expect(viewModel.state.wifiDisabled).assertTrue()
+    done()
+  })
+
+  it('should surface bluetooth power restore failure when enabling interface', 0, async (done: Function) => {
+    viewModel.state.btDisabled = true
+    let setInterfaceMock = mockKit.mockFunc(PeripheralService, PeripheralService.setInterfaceDisabledWithResult)
+    let setResult = new VoidOperationResult()
+    setResult.success = false
+    setResult.stage = PeripheralReasonCodes.TURN_ON_BLUETOOTH_FAILED
+    when(setInterfaceMock)(ArgumentMatchers.any).afterReturn(setResult)
+
+    const reason = await viewModel.toggleInterface(PeripheralInterfaceFeatures.BLUETOOTH, false)
+
+    expect(reason).assertEqual(PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED)
+    expect(viewModel.state.btDisabled).assertTrue()
+    expect(capturedBluetoothSnapshots === null).assertTrue()
     done()
   })
   })
