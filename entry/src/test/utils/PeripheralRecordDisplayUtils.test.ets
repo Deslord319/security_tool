@@ -5,6 +5,7 @@ import {
   PeripheralType
 } from '../../main/ets/models/PeripheralModels'
 import {
+  getPeripheralConnectionActionLabel,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel,
@@ -49,6 +50,7 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralMatchedPolicyKindLabel('usb_storage_disabled')).assertEqual('USB 存储已禁用')
       expect(getPeripheralMatchedPolicyKindLabel('usb_storage_read_only')).assertEqual('USB 存储只读')
       expect(getPeripheralMatchedPolicyKindLabel('device_deny')).assertEqual('命中单设备禁止接入')
+      expect(getPeripheralMatchedPolicyKindLabel('bluetooth_disabled')).assertEqual('蓝牙已禁用')
       expect(getPeripheralMatchedPolicyKindLabel('bluetooth_connection_event')).assertEqual('蓝牙连接事件')
       expect(getPeripheralMatchedPolicyKindLabel('bluetooth_discovery')).assertEqual('蓝牙运行期发现')
       expect(getPeripheralMatchedPolicyKindLabel('default_allow')).assertEqual('默认允许接入')
@@ -91,14 +93,34 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralConnectionPolicyLabel(unknownRecord)).assertEqual('未知')
     })
 
-    it('should render policy snapshot specific labels', 0, () => {
+    it('should render policy snapshot labels from actual policy and operation result', 0, () => {
       const record = createConnectionRecord()
       record.id = 'snapshot-1'
       record.source = 'policy_snapshot'
+      record.action = 'discover'
       record.summary = 'snapshot'
 
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('待判定')
-      expect(getPeripheralConnectionResultLabel(record)).assertEqual('策略快照')
+      expect(getPeripheralConnectionActionLabel(record)).assertEqual('策略变更')
+      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('允许')
+      expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
+    })
+
+    it('should render usb storage policy snapshots as policy changes', 0, () => {
+      const disabledRecord = createConnectionRecord()
+      disabledRecord.id = 'snapshot-storage-disabled'
+      disabledRecord.source = 'policy_snapshot'
+      disabledRecord.action = 'discover'
+      disabledRecord.policyHit = 'deny'
+      disabledRecord.result = SecurityEventResult.BLOCKED
+      const enabledRecord = createConnectionRecord()
+      enabledRecord.id = 'snapshot-storage-enabled'
+      enabledRecord.source = 'policy_snapshot'
+      enabledRecord.action = 'discover'
+
+      expect(getPeripheralConnectionActionLabel(disabledRecord)).assertEqual('策略变更')
+      expect(getPeripheralConnectionPolicyLabel(disabledRecord)).assertEqual('阻止')
+      expect(getPeripheralConnectionResultLabel(disabledRecord)).assertEqual('已阻止')
+      expect(getPeripheralConnectionActionLabel(enabledRecord)).assertEqual('策略变更')
     })
 
     it('should render bluetooth discovery labels', 0, () => {

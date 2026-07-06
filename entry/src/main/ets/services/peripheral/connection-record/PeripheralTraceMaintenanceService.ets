@@ -88,6 +88,10 @@ export class PeripheralTraceMaintenanceService {
       if (!saved) {
         return { success: false, code: 'save_failed' }
       }
+      let refreshedNames = await PeripheralTraceEntryRepository.refreshBluetoothUnnamedDeviceNames(normalized)
+      if (!refreshedNames) {
+        LogUtils.warn(TAG, 'refresh bluetooth unnamed device names failed')
+      }
       return PeripheralTraceMaintenanceService.reconcileStorageConfig()
     } catch (err) {
       LogUtils.error(TAG, `appendEntries failed: ${JSON.stringify(err)}`)

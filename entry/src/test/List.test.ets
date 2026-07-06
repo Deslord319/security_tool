@@ -63,6 +63,8 @@ import peripheralTraceRepositoryTest from './peripheral/trace-repository.test'
 import peripheralPayloadUtilsTest from './peripheral/payload-utils.test'
 import peripheralTraceMaintenanceServiceTest from './peripheral/trace-maintenance-service.test'
 import peripheralDevicePolicyRepositoryTest from './peripheral/device-policy-repository.test'
+import peripheralPolicySnapshotTraceServiceTest from './peripheral/policy-snapshot-trace-service.test'
+import bluetoothPolicySnapshotTraceServiceTest from './peripheral/bluetooth-policy-snapshot-trace-service.test'
 import runtimeProducerAdapterTest from './peripheral/runtime-producer-adapter.test'
 import permissionViewModelTest from './permission-manage/viewmodel.test'
 import themeManagerTest from './theme/theme-manager.test'
@@ -150,6 +152,8 @@ export default function testsuite() {
   peripheralPayloadUtilsTest()
   peripheralTraceMaintenanceServiceTest()
   peripheralDevicePolicyRepositoryTest()
+  peripheralPolicySnapshotTraceServiceTest()
+  bluetoothPolicySnapshotTraceServiceTest()
   runtimeProducerAdapterTest()
   permissionViewModelTest()
   themeManagerTest()

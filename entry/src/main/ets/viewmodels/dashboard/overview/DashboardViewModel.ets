@@ -168,11 +168,16 @@ export class DashboardViewModel {
     let total = 0
     let connects = 0
     let disconnects = 0
+    let policyChanges = 0
     try {
-      let stats = await PeripheralTraceEntryRepository.getStatistics()
+      let stats = await PeripheralTraceEntryRepository.getStatistics({
+        sources: ['runtime_event', 'policy_snapshot'],
+        actions: ['connect', 'disconnect', 'discover']
+      })
       total = stats.total
       connects = stats.connects
       disconnects = stats.disconnects
+      policyChanges = stats.policyChanges
     } catch (err) {
       LogUtils.warn(TAG, `buildPeripheralCard failed: ${JSON.stringify(err)}`)
     }
@@ -180,7 +185,7 @@ export class DashboardViewModel {
       RouteIds.PERIPHERAL_MANAGE,
       DashboardPeripheralCardStrings.TITLE,
       `${total}`,
-      `${DashboardPeripheralCardStrings.DETAIL_PREFIX}${connects}${DashboardPeripheralCardStrings.DETAIL_MIDDLE}${disconnects}${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+      `${DashboardPeripheralCardStrings.DETAIL_PREFIX}${connects}${DashboardPeripheralCardStrings.DETAIL_MIDDLE}${disconnects}${DashboardPeripheralCardStrings.DETAIL_POLICY_MIDDLE}${policyChanges}${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
       DashboardGradientPalette.peripheralGradient.start,
       DashboardGradientPalette.peripheralGradient.end,
       AppResources.PERIPHERAL_ICON
@@ -229,7 +234,7 @@ export class DashboardViewModel {
         RouteIds.PERIPHERAL_MANAGE,
         DashboardPeripheralCardStrings.TITLE,
         '0',
-        `${DashboardPeripheralCardStrings.DETAIL_PREFIX}0${DashboardPeripheralCardStrings.DETAIL_MIDDLE}0${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
+        `${DashboardPeripheralCardStrings.DETAIL_PREFIX}0${DashboardPeripheralCardStrings.DETAIL_MIDDLE}0${DashboardPeripheralCardStrings.DETAIL_POLICY_MIDDLE}0${DashboardPeripheralCardStrings.DETAIL_SUFFIX}`,
         DashboardGradientPalette.peripheralGradient.start,
         DashboardGradientPalette.peripheralGradient.end,
         AppResources.PERIPHERAL_ICON

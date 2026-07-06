@@ -118,6 +118,7 @@ export class PeripheralMatchedPolicyStrings {
   static readonly USB_STORAGE_DISABLED: string = 'USB 存储已禁用'
   static readonly USB_STORAGE_READ_ONLY: string = 'USB 存储只读'
   static readonly DEVICE_DENY: string = '命中单设备禁止接入'
+  static readonly BLUETOOTH_DISABLED: string = '蓝牙已禁用'
   static readonly BLUETOOTH_CONNECTION: string = '蓝牙连接事件'
   static readonly BLUETOOTH_DISCOVERY: string = '蓝牙运行期发现'
   static readonly DEFAULT_ALLOW: string = '默认允许接入'
@@ -130,6 +131,8 @@ export class PeripheralConnectionRecordStrings {
   static readonly UNNAMED_BLUETOOTH: string = '未命名蓝牙设备'
   static readonly BLUETOOTH_CONNECTED: string = '蓝牙设备已连接'
   static readonly BLUETOOTH_DISCONNECTED: string = '蓝牙设备已断开'
+  static readonly BLUETOOTH_POLICY_SNAPSHOT_SUMMARY: string = '蓝牙禁用策略变更时发现当前连接设备'
+  static readonly BLUETOOTH_POLICY_SNAPSHOT_DETAIL_TEMPLATE: string = '蓝牙禁用策略变更时通过 ACL 当前连接缓存发现设备 {deviceId}，当前策略为：{policyLabel}。'
   static readonly USB_DISCONNECTED: string = '设备已断开'
   static readonly USB_STORAGE_DISABLED_DETAIL: string = 'USB 存储策略为禁止访问，设备接入被阻止。'
   static readonly USB_STORAGE_READ_ONLY_DETAIL: string = 'USB 存储策略为只读模式。'
@@ -137,10 +140,24 @@ export class PeripheralConnectionRecordStrings {
   static readonly DEFAULT_ALLOW_DETAIL: string = '未命中更高优先级的阻断策略，按默认规则允许接入。'
   static readonly USB_DEVICE: string = 'USB 设备'
   static readonly UNRECOGNIZED_USB_DEVICE: string = '未识别 USB 设备'
+  static readonly POLICY_SNAPSHOT_SUMMARY: string = '策略变更时发现当前 USB 设备'
+  static readonly POLICY_SNAPSHOT_DETAIL_TEMPLATE: string = '策略变更时通过系统枚举发现当前在场设备 {deviceId}，当前策略为：{policyLabel}。'
   static readonly DEVICE_DENY_DETAIL_TEMPLATE: string = '设备 {deviceId} 命中禁止接入策略，已被阻止。'
   static readonly DISCONNECT_DETAIL_TEMPLATE: string = '{deviceName} 已断开连接，断开前生效策略为：{policyLabel}。'
   static readonly FIRST_CONNECT_AUTO_DENY_DETAIL: string = '首次接入已自动加入黑名单'
   static readonly FIRST_CONNECT_AUTO_DENY_FAILED_PREFIX: string = '自动加入黑名单失败：'
+
+  static buildPolicySnapshotDetail(deviceId: string, policyLabel: string): string {
+    return PeripheralConnectionRecordStrings.POLICY_SNAPSHOT_DETAIL_TEMPLATE
+      .replace('{deviceId}', deviceId)
+      .replace('{policyLabel}', policyLabel)
+  }
+
+  static buildBluetoothPolicySnapshotDetail(deviceId: string, policyLabel: string): string {
+    return PeripheralConnectionRecordStrings.BLUETOOTH_POLICY_SNAPSHOT_DETAIL_TEMPLATE
+      .replace('{deviceId}', deviceId)
+      .replace('{policyLabel}', policyLabel)
+  }
 
   static buildDeviceDenyDetail(deviceId: string): string {
     return PeripheralConnectionRecordStrings.DEVICE_DENY_DETAIL_TEMPLATE.replace('{deviceId}', deviceId)
@@ -301,6 +318,7 @@ export class PeripheralRecordActionPresentationStrings {
   static readonly CONNECT: string = '连接'
   static readonly DISCONNECT: string = '断开'
   static readonly DISCOVER: string = '发现'
+  static readonly POLICY_CHANGE: string = '策略变更'
   static readonly INTERCEPT: string = '拦截'
   static readonly UNKNOWN: string = '未知动作'
 }

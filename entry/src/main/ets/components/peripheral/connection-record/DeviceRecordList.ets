@@ -11,8 +11,8 @@ import { HoverUtils } from '../../../utils/HoverUtils'
 import { getScrollBarColor, SCROLL_BAR_WIDTH_DEFAULT, SCROLL_BAR_WIDTH_HOVER } from '../../../utils/ScrollBarStyleUtils'
 import {
   getPeripheralConnectionListPolicyLabel,
+  getPeripheralConnectionActionLabel,
   formatPeripheralTimestamp,
-  getPeripheralRecordActionLabel,
   getPeripheralTypeLabel
 } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
 import { EmptyStatePanel } from '../../EmptyStatePanel'
@@ -205,7 +205,7 @@ export struct DeviceRecordList {
   }
 
   private getActionLabel(record: PeripheralConnectionRecord): string {
-    return getPeripheralRecordActionLabel(record.action)
+    return getPeripheralConnectionActionLabel(record)
   }
 
   private formatConnectionTime(record: PeripheralConnectionRecord): string {

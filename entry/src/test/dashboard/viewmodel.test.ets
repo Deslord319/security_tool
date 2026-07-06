@@ -38,11 +38,17 @@ function createLogStatistics(todayCount: number = 5, totalCount: number = 120): 
   }
 }
 
-function createPeripheralStats(total: number = 10, connects: number = 7, disconnects: number = 3): PeripheralTraceStats {
+function createPeripheralStats(
+  total: number = 10,
+  connects: number = 7,
+  disconnects: number = 3,
+  policyChanges: number = 0
+): PeripheralTraceStats {
   return {
     total: total,
     connects: connects,
-    disconnects: disconnects
+    disconnects: disconnects,
+    policyChanges: policyChanges
   }
 }
 
@@ -94,9 +100,9 @@ function mockDashboardInitialization(mockKit: MockKit, options: DashboardInitial
   }
 
   if (options.onPeripheralStatistics) {
-    when(peripheralStatsMock)().afterAction(options.onPeripheralStatistics)
+    when(peripheralStatsMock)(ArgumentMatchers.any).afterAction(options.onPeripheralStatistics)
   } else {
-    when(peripheralStatsMock)().afterReturn(options.peripheralStats ?? createPeripheralStats())
+    when(peripheralStatsMock)(ArgumentMatchers.any).afterReturn(options.peripheralStats ?? createPeripheralStats())
   }
 
   when(logListenerMock)(ArgumentMatchers.any).afterReturn(options.logListenerId ?? 1)
@@ -327,7 +333,7 @@ export default function dashboardViewModelTest() {
 
     it('should build peripheral card with correct statistics', 0, async (done: Function) => {
       let peripheralStatsMock: Object = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
-      when(peripheralStatsMock)().afterReturn(createPeripheralStats(25, 18, 7))
+      when(peripheralStatsMock)(ArgumentMatchers.any).afterReturn(createPeripheralStats(25, 18, 7))
 
       let viewModel = new DashboardViewModel()
       let internal = viewModel as Object as DashboardViewModelInternal
@@ -336,6 +342,28 @@ export default function dashboardViewModelTest() {
       expect(peripheralCard.id).assertEqual(RouteIds.PERIPHERAL_MANAGE)
       expect(peripheralCard.primaryText).assertEqual('25')
       expect(peripheralCard.title).assertEqual(DashboardPeripheralCardStrings.TITLE)
+      done()
+    })
+
+    it('should build peripheral card from runtime connection records and policy snapshots', 0, async (done: Function) => {
+      let capturedQuery = ''
+      let peripheralStatsMock: Object = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.getStatistics)
+      when(peripheralStatsMock)(ArgumentMatchers.any).afterAction((query: Object) => {
+        capturedQuery = JSON.stringify(query)
+        return createPeripheralStats(10, 5, 3, 2)
+      })
+
+      let viewModel = new DashboardViewModel()
+      let internal = viewModel as Object as DashboardViewModelInternal
+      let peripheralCard = await internal.buildPeripheralCard() as Record<string, string>
+
+      expect(peripheralCard.primaryText).assertEqual('10')
+      expect(peripheralCard.secondaryText).assertEqual('连接 5 次，断开 3 次，策略变更 2 次')
+      expect(capturedQuery.indexOf('runtime_event') > -1).assertTrue()
+      expect(capturedQuery.indexOf('policy_snapshot') > -1).assertTrue()
+      expect(capturedQuery.indexOf('connect') > -1).assertTrue()
+      expect(capturedQuery.indexOf('disconnect') > -1).assertTrue()
+      expect(capturedQuery.indexOf('discover') > -1).assertTrue()
       done()
     })
 

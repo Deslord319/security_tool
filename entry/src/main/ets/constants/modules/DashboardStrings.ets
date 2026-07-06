@@ -31,6 +31,7 @@ export class DashboardPeripheralCardStrings {
   static readonly TITLE: string = '外设连接记录'
   static readonly DETAIL_PREFIX: string = '连接 '
   static readonly DETAIL_MIDDLE: string = ' 次，断开 '
+  static readonly DETAIL_POLICY_MIDDLE: string = ' 次，策略变更 '
   static readonly DETAIL_SUFFIX: string = ' 次'
 }
 

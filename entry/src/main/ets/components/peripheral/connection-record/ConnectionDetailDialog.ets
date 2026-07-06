@@ -9,8 +9,8 @@ import {
   formatPeripheralTimestamp,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
+  getPeripheralConnectionActionLabel,
   getPeripheralMatchedPolicyKindLabel,
-  getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
   PeripheralConnectionHistoryItem
 } from '../../../viewmodels/peripheral/connection-record/PeripheralRecordPresentationMapper'
@@ -56,7 +56,7 @@ export struct ConnectionDetailDialog {
       .width('100%')
 
       Row({ space: 10 }) {
-        this.metricField(DeviceDetailStrings.CONNECTION_EVENT, getPeripheralRecordActionLabel(record.action))
+        this.metricField(DeviceDetailStrings.CONNECTION_EVENT, getPeripheralConnectionActionLabel(record))
         this.metricField(DeviceDetailStrings.EVENT_SOURCE, getPeripheralRecordSourceLabel(record.source))
       }
       .width('100%')

@@ -8,9 +8,9 @@ import { PeripheralConnectionRecordService } from '../../../services/peripheral/
 import {
   buildConnectionHistoryItems,
   formatPeripheralTimestamp,
+  getPeripheralConnectionActionLabel,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
-  getPeripheralRecordActionLabel,
   getPeripheralRecordSourceLabel,
   getPeripheralTypeLabel,
   PeripheralConnectionHistoryItem
@@ -91,7 +91,7 @@ export class PeripheralRecordViewModel {
         record.deviceName,
         getPeripheralTypeLabel(record.deviceType),
         record.deviceId,
-        getPeripheralRecordActionLabel(record.action),
+        getPeripheralConnectionActionLabel(record),
         getPeripheralConnectionPolicyLabel(record),
         getPeripheralConnectionResultLabel(record),
         getPeripheralRecordSourceLabel(record.source)

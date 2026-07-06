@@ -22,6 +22,7 @@ import {
 import { StatusText } from '../../../constants/StringCatalog'
 import { PeripheralConnectionRecordStrings } from '../../../constants/modules/PeripheralStrings'
 import { generateRandomSuffix } from '../../../utils/ValuePicker'
+import { BluetoothPolicySnapshotTraceService } from './BluetoothPolicySnapshotTraceService'
 
 const TAG = 'ConnectionRecordBtConsumer'
 const BLUETOOTH_ACL_STATE_DISCONNECTED = 0
@@ -34,6 +35,7 @@ interface BluetoothAclEventInfo {
   deviceId: string
   rawDeviceId: string
   deviceName: string
+  linkType: number
   action: PeripheralConnectionAction
   stateLabel: string
   reasonLabel: string
@@ -41,6 +43,12 @@ interface BluetoothAclEventInfo {
 }
 
 export class PeripheralConnectionRecordBluetoothAclConsumer implements PeripheralConnectionRecordConsumer {
+  private static remoteDeviceNameProviderForTest: ((deviceId: string) => string) | null = null
+
+  static setRemoteDeviceNameProviderForTest(provider: ((deviceId: string) => string) | null): void {
+    PeripheralConnectionRecordBluetoothAclConsumer.remoteDeviceNameProviderForTest = provider
+  }
+
   canHandle(event: PeripheralConnectionRecordProducerEvent): boolean {
     return event.channel === 'bluetooth_acl'
   }
@@ -57,6 +65,30 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     const eventInfo = await PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothAclEventInfo(rawData)
     if (!eventInfo || eventInfo.action === 'unknown') {
       return null
+    }
+    if (eventInfo.action === 'disconnect' && BluetoothPolicySnapshotTraceService.shouldSuppressPolicyDisconnect(eventInfo.deviceId)) {
+      LogUtils.info(TAG, `suppress bluetooth acl disconnect after policy snapshot: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(eventInfo.rawDeviceId)}`)
+      BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
+      return null
+    }
+    if (PeripheralConnectionRecordBluetoothAclConsumer.shouldDropAnonymousLinkTypeOneEvent(eventInfo)) {
+      LogUtils.info(
+        TAG,
+        `drop anonymous bluetooth acl linktype=1 event: action=${eventInfo.action}, deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(eventInfo.rawDeviceId)}`
+      )
+      if (eventInfo.action === 'disconnect') {
+        BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
+      }
+      return null
+    }
+    if (eventInfo.action === 'connect') {
+      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
+        eventInfo.rawDeviceId,
+        eventInfo.rawPayload
+      )
+    }
+    if (eventInfo.action === 'disconnect') {
+      BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
     }
     const detail = PeripheralConnectionRecordBluetoothAclConsumer.buildDetail(eventInfo)
 
@@ -102,7 +134,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     const stateLabel = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothAclStateLabel(payloads)
     const reasonLabel = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothAclReasonLabel(payloads)
     const occurAt = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothOccurAt(payloads)
-    const nameResolution = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothDeviceName(rawDeviceId, payloads)
+    const linkType = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothLinkType(payloads)
+    const nameResolution = PeripheralConnectionRecordBluetoothAclConsumer.resolveBluetoothDeviceName(rawDeviceId)
 
     let rawPayload = ''
     try {
@@ -116,6 +149,7 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
       deviceId: formatBluetoothDeviceId(rawDeviceId),
       rawDeviceId: rawDeviceId,
       deviceName: nameResolution,
+      linkType: linkType,
       action: action,
       stateLabel: stateLabel,
       reasonLabel: reasonLabel,
@@ -245,20 +279,21 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     return pickNumber(sources, ['timestamp', 'time', 'occurAt'])
   }
 
-  private static resolveBluetoothDeviceName(deviceId: string, sources: EventPayloadRecord[]): string {
-    const payloadName = pickString(
-      sources,
-      ['deviceName', 'name', 'remoteName', 'remoteDeviceName', 'alias', 'deviceAlias', 'aliasName']
-    )
-    if (payloadName.length > 0) {
-      return payloadName
-    }
+  private static resolveBluetoothLinkType(sources: EventPayloadRecord[]): number {
+    return pickNumber(sources, ['linktype', 'linkType', 'link_type'])
+  }
 
-    const aliasName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId, true)
-    if (aliasName.length > 0) {
-      return aliasName
-    }
-    const remoteName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId, false)
+  private static shouldDropAnonymousLinkTypeOneEvent(eventInfo: BluetoothAclEventInfo): boolean {
+    return eventInfo.linkType === 1 &&
+      PeripheralConnectionRecordBluetoothAclConsumer.isUnnamedBluetoothDeviceName(eventInfo.deviceName)
+  }
+
+  private static isUnnamedBluetoothDeviceName(deviceName: string): boolean {
+    return (deviceName ?? '').trim() === PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
+  }
+
+  private static resolveBluetoothDeviceName(deviceId: string): string {
+    const remoteName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId)
     if (remoteName.length > 0) {
       return remoteName
     }
@@ -266,14 +301,18 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
   }
 
-  private static queryRemoteDeviceName(deviceId: string, alias: boolean): string {
+  private static queryRemoteDeviceName(deviceId: string): string {
     try {
-      return connection.getRemoteDeviceName(deviceId, alias)?.trim() ?? ''
+      const provider = PeripheralConnectionRecordBluetoothAclConsumer.remoteDeviceNameProviderForTest
+      if (provider) {
+        return provider(deviceId)?.trim() ?? ''
+      }
+      return connection.getRemoteDeviceName(deviceId, false)?.trim() ?? ''
     } catch (err) {
       const error = err as BusinessError
       LogUtils.warn(
         TAG,
-        `getRemoteDeviceName failed: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(deviceId)}, alias=${alias}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
+        `getRemoteDeviceName failed: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(deviceId)}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
       return ''
     }

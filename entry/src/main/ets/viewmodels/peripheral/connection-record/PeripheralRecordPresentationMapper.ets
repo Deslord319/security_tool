@@ -71,6 +71,13 @@ export function getPeripheralRecordActionLabel(action: PeripheralRecordAction): 
   }
 }
 
+export function getPeripheralConnectionActionLabel(record: PeripheralConnectionRecord): string {
+  if (record.source === 'policy_snapshot') {
+    return PeripheralRecordActionPresentationStrings.POLICY_CHANGE
+  }
+  return getPeripheralRecordActionLabel(record.action)
+}
+
 export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPolicyKind): string {
   switch (kind) {
     case 'usb_disabled':
@@ -81,6 +88,8 @@ export function getPeripheralMatchedPolicyKindLabel(kind?: PeripheralMatchedPoli
       return PeripheralMatchedPolicyStrings.USB_STORAGE_READ_ONLY
     case 'device_deny':
       return PeripheralMatchedPolicyStrings.DEVICE_DENY
+    case 'bluetooth_disabled':
+      return PeripheralMatchedPolicyStrings.BLUETOOTH_DISABLED
     case 'bluetooth_connection_event':
       return PeripheralMatchedPolicyStrings.BLUETOOTH_CONNECTION
     case 'bluetooth_discovery':
@@ -107,7 +116,7 @@ function getPolicyHitLabel(policyHit: PeripheralRecordPolicyHit): string {
 
 export function getPeripheralConnectionPolicyLabel(record: PeripheralConnectionRecord): string {
   if (record.source === 'policy_snapshot') {
-    return PeripheralMatchedPolicyStrings.PENDING
+    return getPolicyHitLabel(record.policyHit)
   }
   if (record.matchedPolicyKind && record.matchedPolicyKind !== 'unknown') {
     return getPeripheralMatchedPolicyKindLabel(record.matchedPolicyKind)
@@ -127,9 +136,6 @@ export function getPeripheralConnectionListPolicyLabel(record: PeripheralConnect
 }
 
 export function getPeripheralConnectionResultLabel(record: PeripheralConnectionRecord): string {
-  if (record.source === 'policy_snapshot') {
-    return PeripheralSourcePresentationStrings.POLICY_SNAPSHOT
-  }
   switch (record.result) {
     case SecurityEventResult.SUCCESS:
       return ResultText.SUCCESS

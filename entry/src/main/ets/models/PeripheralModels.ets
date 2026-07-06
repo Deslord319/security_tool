@@ -60,6 +60,7 @@ export type PeripheralMatchedPolicyKind =
   'usb_storage_disabled' |
   'usb_storage_read_only' |
   'device_deny' |
+  'bluetooth_disabled' |
   'bluetooth_connection_event' |
   'bluetooth_discovery' |
   'default_allow' |
@@ -153,6 +154,7 @@ export interface PeripheralTraceStats {
   total: number
   connects: number
   disconnects: number
+  policyChanges: number
 }
 
 export interface PeripheralPolicyRecord {
