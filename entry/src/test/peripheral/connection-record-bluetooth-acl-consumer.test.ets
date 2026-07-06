@@ -22,9 +22,8 @@ interface BluetoothAclParameters {
   timestamp: number
   deviceAddr?: string
   address?: string
-  remoteName?: string
-  alias?: string
   connectionState?: number
+  linktype?: number
 }
 
 interface BluetoothAclParameterOverrides {
@@ -35,9 +34,8 @@ interface BluetoothAclParameterOverrides {
   timestamp?: number
   deviceAddr?: string
   address?: string
-  remoteName?: string
-  alias?: string
   connectionState?: number
+  linktype?: number
 }
 
 class BluetoothAclRawData {
@@ -81,14 +79,11 @@ function buildBluetoothAclParameters(overrides?: BluetoothAclParameterOverrides)
   if (overrides.address !== undefined) {
     parameters.address = overrides.address
   }
-  if (overrides.remoteName !== undefined) {
-    parameters.remoteName = overrides.remoteName
-  }
-  if (overrides.alias !== undefined) {
-    parameters.alias = overrides.alias
-  }
   if (overrides.connectionState !== undefined) {
     parameters.connectionState = overrides.connectionState
+  }
+  if (overrides.linktype !== undefined) {
+    parameters.linktype = overrides.linktype
   }
   return parameters
 }
@@ -110,6 +105,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
   describe('PeripheralConnectionRecordBluetoothAclConsumer', () => {
     afterEach(() => {
       BluetoothPolicySnapshotTraceService.resetForTest()
+      PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(null)
     })
 
     it('U-BT-001 should map bluetooth acl connect event to allow record', 0, async () => {
@@ -139,7 +135,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
 
       expect(snapshots.length).assertEqual(1)
       expect(snapshots[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(snapshots[0].deviceName).assertEqual('Cached Headset')
+      expect(snapshots[0].deviceName).assertEqual('未命名蓝牙设备')
     })
 
     it('U-BT-002 should map bluetooth acl disconnect event to disconnect record', 0, async () => {
@@ -230,7 +226,7 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record === null).assertTrue()
     })
 
-    it('U-BT-005 should prefer payload device name over remote lookup result', 0, async () => {
+    it('U-BT-005 should ignore payload device name when remote name is unavailable', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
       let payloadNameOverrides: BluetoothAclParameterOverrides = {
         deviceName: 'Payload Device Name'
@@ -239,15 +235,13 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       const record = await consumer.consume(buildBluetoothAclEvent(payloadNameOverrides))
 
       expect(record !== null).assertTrue()
-      expect(record?.deviceName).assertEqual('Payload Device Name')
+      expect(record?.deviceName).assertEqual('未命名蓝牙设备')
     })
 
     it('U-BT-006 should use fallback bluetooth name when no name can be resolved', 0, async () => {
       const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
       let fallbackNameOverrides: BluetoothAclParameterOverrides = {
-        deviceName: '',
-        remoteName: '',
-        alias: ''
+        deviceName: ''
       }
 
       const record = await consumer.consume(buildBluetoothAclEvent(fallbackNameOverrides))
@@ -298,7 +292,64 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=REMOTE_DISCONNECT')
     })
 
-    it('U-BT-010 should suppress policy-triggered bluetooth disconnect after snapshot', 0, async () => {
+    it('U-BT-010 should keep unnamed linktype zero acl final events in connection records and snapshot cache', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+      const record = await consumer.consume(buildBluetoothAclEvent({
+        linktype: 0
+      }))
+      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+
+      expect(record !== null).assertTrue()
+      expect(record?.action).assertEqual('connect')
+      expect(record?.deviceName).assertEqual('未命名蓝牙设备')
+      expect(snapshots.length).assertEqual(1)
+      expect(snapshots[0].deviceId).assertEqual('MAC: 11:22:33:44:55:66')
+    })
+
+    it('U-BT-011 should drop unnamed linktype one acl connect events and skip snapshot cache', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+      const record = await consumer.consume(buildBluetoothAclEvent({
+        linktype: 1
+      }))
+      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+
+      expect(record === null).assertTrue()
+      expect(snapshots.length).assertEqual(0)
+    })
+
+    it('U-BT-012 should drop unnamed linktype one acl disconnect events', 0, async () => {
+      const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+      const record = await consumer.consume(buildBluetoothAclEvent({
+        stateName: 'STATE_DISCONNECTED',
+        reason: 'REMOTE_DISCONNECT',
+        linktype: 1
+      }))
+
+      expect(record === null).assertTrue()
+    })
+
+    it('U-BT-013 should keep named linktype one acl final events', 0, async () => {
+      try {
+        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => 'Named BLE Device')
+        const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+        const record = await consumer.consume(buildBluetoothAclEvent({
+          linktype: 1
+        }))
+        const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
+
+        expect(record !== null).assertTrue()
+        expect(record?.deviceName).assertEqual('Named BLE Device')
+        expect(snapshots.length).assertEqual(1)
+      } finally {
+        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(null)
+      }
+    })
+
+    it('U-BT-014 should suppress policy-triggered bluetooth disconnect after snapshot', 0, async () => {
       const mockKit = new MockKit()
       try {
         BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => 1700000000000)

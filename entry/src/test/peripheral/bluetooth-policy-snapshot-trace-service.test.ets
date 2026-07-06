@@ -41,7 +41,6 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     it('should append blocked bluetooth policy snapshot for cached connected devices', 0, async () => {
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         '11:22:33:44:55:66',
-        'Runtime Headset',
         '{"source":"acl"}'
       )
       const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
@@ -54,7 +53,7 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
       expect(savedRecords[0].action).assertEqual('discover')
       expect(savedRecords[0].deviceType).assertEqual(PeripheralType.BLUETOOTH)
       expect(savedRecords[0].deviceId).assertEqual('MAC: 11:22:33:44:55:66')
-      expect(savedRecords[0].deviceName).assertEqual('Runtime Headset')
+      expect(savedRecords[0].deviceName).assertEqual('未命名蓝牙设备')
       expect(savedRecords[0].decision).assertEqual('deny')
       expect(savedRecords[0].result).assertEqual(SecurityEventResult.BLOCKED)
       expect(savedRecords[0].rawEventName).assertEqual('bluetooth_global_policy')
@@ -64,12 +63,10 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     it('should deduplicate current bluetooth connection snapshots by normalized mac', 0, () => {
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         '11:22:33:44:55:66',
-        'First Name',
         '{"source":"first"}'
       )
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         '11-22-33-44-55-66',
-        'Second Name',
         '{"source":"second"}'
       )
 
@@ -91,7 +88,6 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
     it('should use runtime acl connected cache as the snapshot source', 0, async () => {
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
-        'Runtime Headset',
         '{"source":"acl"}'
       )
       const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
@@ -101,13 +97,12 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
       expect(result.success).assertTrue()
       expect(savedRecords.length).assertEqual(1)
       expect(savedRecords[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
-      expect(savedRecords[0].deviceName).assertEqual('Runtime Headset')
+      expect(savedRecords[0].deviceName).assertEqual('未命名蓝牙设备')
     })
 
     it('should suppress one matching disconnect after successful snapshot append', 0, async () => {
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
-        'Runtime Headset',
         '{}'
       )
       const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
@@ -123,7 +118,6 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
       BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => now)
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
-        'Runtime Headset',
         '{}'
       )
       const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()

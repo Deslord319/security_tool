@@ -64,19 +64,16 @@ export class BluetoothPolicySnapshotTraceService {
     return result
   }
 
-  static rememberRuntimeConnectedDevice(rawDeviceId: string, deviceName: string, rawPayload: string): void {
+  static rememberRuntimeConnectedDevice(rawDeviceId: string, rawPayload: string): void {
     const normalizedRawId = BluetoothPolicySnapshotTraceService.normalizeRawDeviceId(rawDeviceId)
     if (normalizedRawId.length === 0) {
       return
     }
     const deviceId = formatBluetoothDeviceId(normalizedRawId)
-    const resolvedDeviceName = (deviceName ?? '').trim().length > 0
-      ? deviceName.trim()
-      : BluetoothPolicySnapshotTraceService.resolveBluetoothDeviceName(normalizedRawId)
     BluetoothPolicySnapshotTraceService.runtimeConnectedSnapshots.set(deviceId, {
       rawDeviceId: normalizedRawId,
       deviceId: deviceId,
-      deviceName: resolvedDeviceName,
+      deviceName: BluetoothPolicySnapshotTraceService.resolveBluetoothDeviceName(normalizedRawId),
       rawPayload: rawPayload
     })
   }
@@ -184,25 +181,21 @@ export class BluetoothPolicySnapshotTraceService {
   }
 
   private static resolveBluetoothDeviceName(deviceId: string): string {
-    const aliasName = BluetoothPolicySnapshotTraceService.queryRemoteDeviceName(deviceId, true)
-    if (aliasName.length > 0) {
-      return aliasName
-    }
-    const remoteName = BluetoothPolicySnapshotTraceService.queryRemoteDeviceName(deviceId, false)
+    const remoteName = BluetoothPolicySnapshotTraceService.queryRemoteDeviceName(deviceId)
     if (remoteName.length > 0) {
       return remoteName
     }
     return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
   }
 
-  private static queryRemoteDeviceName(deviceId: string, alias: boolean): string {
+  private static queryRemoteDeviceName(deviceId: string): string {
     try {
-      return connection.getRemoteDeviceName(deviceId, alias)?.trim() ?? ''
+      return connection.getRemoteDeviceName(deviceId, false)?.trim() ?? ''
     } catch (err) {
       const error = err as BusinessError
       LogUtils.warn(
         TAG,
-        `getRemoteDeviceName failed: deviceId=${BluetoothPolicySnapshotTraceService.maskBluetoothIdentifier(deviceId)}, alias=${alias}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
+        `getRemoteDeviceName failed: deviceId=${BluetoothPolicySnapshotTraceService.maskBluetoothIdentifier(deviceId)}, code=${error.code ?? -1}, message=${error.message ?? JSON.stringify(err)}`
       )
       return ''
     }
