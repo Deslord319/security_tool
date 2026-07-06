@@ -25,6 +25,7 @@ import {
 } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyDispatchService'
 import { PeripheralPolicyService } from '../../../services/peripheral/device-policy/PeripheralPolicyService'
 import { CsvFileExportService } from '../../../services/common/export/CsvFileExportService'
+import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
 
 const TAG = 'PeripheralPolicyViewModel'
 
@@ -105,6 +106,9 @@ export class PeripheralPolicyViewModel {
         updatedAt: Date.now()
       }
       const success = await PeripheralDevicePolicyRepository.set(record)
+      if (success) {
+        await PeripheralPolicySnapshotTraceService.appendDevicePolicySnapshot(record)
+      }
       return success ? null : PeripheralReasonCodes.POLICY_CHANGE_FAILED
     } catch (err) {
       LogUtils.error(TAG, `setDevicePolicy failed: ${JSON.stringify(err)}`)

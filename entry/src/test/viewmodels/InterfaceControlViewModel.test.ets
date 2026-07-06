@@ -7,6 +7,8 @@ import { PeripheralReasonCodes } from '../../main/ets/constants/modules/Peripher
 import { PeripheralService } from '../../main/ets/services/peripheral/interface-control/PeripheralService'
 import { InterfaceControlViewModel } from '../../main/ets/viewmodels/peripheral/interface-control/InterfaceControlViewModel'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
+import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
 class VoidOperationResult implements OperationResult<void> {
   success: boolean = false
@@ -25,6 +27,10 @@ class UsbPolicyOperationResult implements OperationResult<edmUsbManager.UsbPolic
   data?: edmUsbManager.UsbPolicy
 }
 
+function successTraceMutationResult(): PeripheralTraceMutationResult {
+  return { success: true, code: 'ok' } as PeripheralTraceMutationResult
+}
+
 export default function interfaceControlViewModelTest() {
   describe('InterfaceControlViewModel', () => {
     let viewModel: InterfaceControlViewModel
@@ -33,6 +39,11 @@ export default function interfaceControlViewModelTest() {
   beforeEach(() => {
     viewModel = new InterfaceControlViewModel()
     mockKit = new MockKit()
+    let appendUsbSnapshotMock = mockKit.mockFunc(
+      PeripheralPolicySnapshotTraceService,
+      PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot
+    )
+    when(appendUsbSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(successTraceMutationResult()))
   })
 
   afterEach(() => {

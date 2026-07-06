@@ -17,6 +17,8 @@ import {
 } from '../../main/ets/services/common/export/CsvFileExportService'
 import { createSuccessfulCsvFileExportResult } from '../common/CsvExportResultFactory'
 import { PeripheralPolicyViewModel } from '../../main/ets/viewmodels/peripheral/device-policy/PeripheralPolicyViewModel'
+import { PeripheralPolicySnapshotTraceService } from '../../main/ets/services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
+import { PeripheralTraceMutationResult } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 
 function clonePolicyRecord(record: PeripheralDevicePolicyRecord): PeripheralDevicePolicyRecord {
   let cloned: PeripheralDevicePolicyRecord = {
@@ -43,6 +45,10 @@ function createDispatchResult(success: boolean, reason?: string): PeripheralPoli
   return result
 }
 
+function createTraceMutationResult(): PeripheralTraceMutationResult {
+  return { success: true, code: 'ok' } as PeripheralTraceMutationResult
+}
+
 export default function peripheralPolicyViewModelTest() {
   describe('PeripheralPolicyViewModel', () => {
     let viewModel: PeripheralPolicyViewModel
@@ -58,6 +64,10 @@ export default function peripheralPolicyViewModelTest() {
       let setMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.set)
       let clearAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.clearAll)
       let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
+      let appendSnapshotMock = mockKit.mockFunc(
+        PeripheralPolicySnapshotTraceService,
+        PeripheralPolicySnapshotTraceService.appendDevicePolicySnapshot
+      )
 
       when(getAllMock)().afterAction(() => {
         return records.map((item: PeripheralDevicePolicyRecord) => clonePolicyRecord(item))
@@ -80,6 +90,7 @@ export default function peripheralPolicyViewModelTest() {
         return Promise.resolve(true)
       })
       when(dispatchMock)(ArgumentMatchers.any).afterReturn(createDispatchResult(true))
+      when(appendSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createTraceMutationResult()))
     })
 
     afterEach(async () => {

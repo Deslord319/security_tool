@@ -148,7 +148,8 @@ class PeripheralTraceEntryRdbRepository extends RdbRepository<PeripheralTraceRec
     return {
       total: await this.countByQuery(query),
       connects: actionCounts.get('connect') ?? 0,
-      disconnects: actionCounts.get('disconnect') ?? 0
+      disconnects: actionCounts.get('disconnect') ?? 0,
+      policyChanges: actionCounts.get('discover') ?? 0
     }
   }
 

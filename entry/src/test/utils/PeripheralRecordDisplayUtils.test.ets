@@ -5,6 +5,7 @@ import {
   PeripheralType
 } from '../../main/ets/models/PeripheralModels'
 import {
+  getPeripheralConnectionActionLabel,
   getPeripheralConnectionPolicyLabel,
   getPeripheralConnectionResultLabel,
   getPeripheralMatchedPolicyKindLabel,
@@ -91,14 +92,16 @@ export default function peripheralRecordDisplayUtilsTest() {
       expect(getPeripheralConnectionPolicyLabel(unknownRecord)).assertEqual('未知')
     })
 
-    it('should render policy snapshot specific labels', 0, () => {
+    it('should render policy snapshot labels from actual policy and operation result', 0, () => {
       const record = createConnectionRecord()
       record.id = 'snapshot-1'
       record.source = 'policy_snapshot'
+      record.action = 'discover'
       record.summary = 'snapshot'
 
-      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('待判定')
-      expect(getPeripheralConnectionResultLabel(record)).assertEqual('策略快照')
+      expect(getPeripheralConnectionActionLabel(record)).assertEqual('策略变更')
+      expect(getPeripheralConnectionPolicyLabel(record)).assertEqual('允许')
+      expect(getPeripheralConnectionResultLabel(record)).assertEqual('成功')
     })
 
     it('should render bluetooth discovery labels', 0, () => {

@@ -153,6 +153,7 @@ export interface PeripheralTraceStats {
   total: number
   connects: number
   disconnects: number
+  policyChanges: number
 }
 
 export interface PeripheralPolicyRecord {

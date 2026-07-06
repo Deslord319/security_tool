@@ -153,6 +153,7 @@ export default function peripheralConnectionRecordServiceTest() {
       expect(records[1].source).assertEqual('audit_event')
       expect(JSON.stringify(capturedQuery).indexOf('runtime_event') > -1).assertTrue()
       expect(JSON.stringify(capturedQuery).indexOf('audit_event') > -1).assertTrue()
+      expect(JSON.stringify(capturedQuery).indexOf('policy_snapshot') > -1).assertTrue()
     })
 
     it('should return empty list when repository has no records', 0, async () => {

@@ -5,6 +5,7 @@ import { PeripheralReasonCodes } from '../../../constants/modules/PeripheralStri
 import { PeripheralInterfaceFeature, PeripheralInterfaceFeatures } from '../../../models/PeripheralModels'
 import { PeripheralService } from '../../../services/peripheral/interface-control/PeripheralService'
 import { PeripheralDevicePolicyRepository } from '../../../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { PeripheralPolicySnapshotTraceService } from '../../../services/peripheral/connection-record/PeripheralPolicySnapshotTraceService'
 
 const TAG = 'InterfaceControlViewModel'
 const USB_STORAGE_POLICY_INDEX_READ_ONLY = 0
@@ -80,10 +81,12 @@ export class InterfaceControlViewModel {
     this.processingKey = feature
     try {
       if (feature === PeripheralInterfaceFeatures.USB) {
-        const saved = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(disallow ? 'deny' : 'allow')
+        const policy = disallow ? 'deny' : 'allow'
+        const saved = await PeripheralDevicePolicyRepository.setUsbDefaultPolicy(policy)
         if (!saved) {
           return PeripheralReasonCodes.TOGGLE_INTERFACE_FAILED
         }
+        await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot(policy)
         this.updateInterfaceState(feature, disallow)
         return null
       }

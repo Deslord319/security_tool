@@ -137,10 +137,18 @@ export class PeripheralConnectionRecordStrings {
   static readonly DEFAULT_ALLOW_DETAIL: string = '未命中更高优先级的阻断策略，按默认规则允许接入。'
   static readonly USB_DEVICE: string = 'USB 设备'
   static readonly UNRECOGNIZED_USB_DEVICE: string = '未识别 USB 设备'
+  static readonly POLICY_SNAPSHOT_SUMMARY: string = '策略变更时发现当前 USB 设备'
+  static readonly POLICY_SNAPSHOT_DETAIL_TEMPLATE: string = '策略变更时通过系统枚举发现当前在场设备 {deviceId}，当前策略为：{policyLabel}。'
   static readonly DEVICE_DENY_DETAIL_TEMPLATE: string = '设备 {deviceId} 命中禁止接入策略，已被阻止。'
   static readonly DISCONNECT_DETAIL_TEMPLATE: string = '{deviceName} 已断开连接，断开前生效策略为：{policyLabel}。'
   static readonly FIRST_CONNECT_AUTO_DENY_DETAIL: string = '首次接入已自动加入黑名单'
   static readonly FIRST_CONNECT_AUTO_DENY_FAILED_PREFIX: string = '自动加入黑名单失败：'
+
+  static buildPolicySnapshotDetail(deviceId: string, policyLabel: string): string {
+    return PeripheralConnectionRecordStrings.POLICY_SNAPSHOT_DETAIL_TEMPLATE
+      .replace('{deviceId}', deviceId)
+      .replace('{policyLabel}', policyLabel)
+  }
 
   static buildDeviceDenyDetail(deviceId: string): string {
     return PeripheralConnectionRecordStrings.DEVICE_DENY_DETAIL_TEMPLATE.replace('{deviceId}', deviceId)
@@ -301,6 +309,7 @@ export class PeripheralRecordActionPresentationStrings {
   static readonly CONNECT: string = '连接'
   static readonly DISCONNECT: string = '断开'
   static readonly DISCOVER: string = '发现'
+  static readonly POLICY_CHANGE: string = '策略变更'
   static readonly INTERCEPT: string = '拦截'
   static readonly UNKNOWN: string = '未知动作'
 }

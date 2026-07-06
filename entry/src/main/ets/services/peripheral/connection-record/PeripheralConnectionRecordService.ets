@@ -20,7 +20,7 @@ export class PeripheralConnectionRecordService {
         endTime: filter?.endTime,
         deviceTypes: filter?.deviceTypes,
         results: filter?.results,
-        sources: ['runtime_event', 'audit_event'],
+        sources: ['runtime_event', 'audit_event', 'policy_snapshot'],
         keyword: filter?.keyword
       }
       let records = await PeripheralTraceEntryRepository.listByQuery(query)
@@ -39,7 +39,7 @@ export class PeripheralConnectionRecordService {
         endTime: filter?.endTime,
         deviceTypes: filter?.deviceTypes,
         results: filter?.results,
-        sources: ['runtime_event', 'audit_event'],
+        sources: ['runtime_event', 'audit_event', 'policy_snapshot'],
         keyword: filter?.keyword
       }
       return await PeripheralTraceEntryRepository.countByQuery(query)
