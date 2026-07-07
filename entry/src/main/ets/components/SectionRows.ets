@@ -3,19 +3,13 @@ import { ThemeMode } from '../theme/ThemeColors'
 import { StyledSelect } from './StyledSelect'
 import { StyledTextInput } from './StyledTextInput'
 
-interface SectionRowPadding {
-  left: number
-  right: number
-  top: number
-  bottom: number
-}
-
-const SECTION_ROW_PADDING: SectionRowPadding = {
-  left: 16,
-  right: 16,
-  top: 14,
-  bottom: 14
-}
+const SECTION_LABEL_SPACE: number = 2
+const SECTION_CONTROL_HEIGHT: number = 36
+const SECTION_CONTROL_DISABLED_OPACITY: number = 0.72
+const SECTION_ACTION_DISABLED_OPACITY: number = 0.56
+const SECTION_SELECT_INPUT_GAP: number = 8
+const SECTION_INPUT_SUFFIX_GAP: number = 6
+const SECTION_INPUT_WIDTH_DEFAULT: number = 112
 
 @ComponentV2
 export struct SectionLabel {
@@ -24,7 +18,7 @@ export struct SectionLabel {
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
 
   build() {
-    Column({ space: 2 }) {
+    Column({ space: SECTION_LABEL_SPACE }) {
       Text(this.title)
         .fontSize(AppStyles.FONT_SIZE_BODY)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
@@ -40,35 +34,6 @@ export struct SectionLabel {
     .alignItems(HorizontalAlign.Start)
     .layoutWeight(1)
   }
-}
-
-interface SectionSelectParams {
-  options: SelectOption[]
-  selectedIndex: number
-  value: string
-  selectWidth: number
-  currentTheme: ThemeMode
-  enabled: boolean
-  opacity: number
-  onSelect: (index: number) => void
-}
-
-@Builder
-function SectionSelectBuilder(params: SectionSelectParams) {
-  StyledSelect({
-    options: params.options,
-    selectedIndex: params.selectedIndex,
-    value: params.value,
-    controlWidth: params.selectWidth,
-    controlHeight: 36,
-    radius: AppStyles.RADIUS_SM,
-    enabledValue: params.enabled,
-    opacityValue: params.opacity,
-    currentTheme: params.currentTheme,
-    onSelect: (index: number) => {
-      params.onSelect(index)
-    }
-  })
 }
 
 @ComponentV2
@@ -106,7 +71,12 @@ export struct SectionToggleRow {
       }
     }
     .width('100%')
-    .padding(SECTION_ROW_PADDING)
+    .padding({
+      left: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      right: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
+    })
   }
 }
 
@@ -117,7 +87,7 @@ export struct SectionSelectRow {
   @Param options: SelectOption[] = []
   @Param selectedIndex: number = 0
   @Param value: string = ''
-  @Param selectWidth: number = 140
+  @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT
   @Param processing: boolean = false
   @Param enabledValue: boolean = true
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
@@ -139,21 +109,30 @@ export struct SectionSelectRow {
             .color(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
         }
 
-        SectionSelectBuilder({
+        StyledSelect({
           options: this.options,
           selectedIndex: this.selectedIndex,
           value: this.value,
-          selectWidth: this.selectWidth,
+          controlWidth: this.selectWidth,
+          controlHeight: SECTION_CONTROL_HEIGHT,
+          radius: AppStyles.RADIUS_SM,
+          enabledValue: !this.processing && this.enabledValue,
+          opacityValue: this.processing || !this.enabledValue ? SECTION_CONTROL_DISABLED_OPACITY : 1,
           currentTheme: this.currentTheme,
-          enabled: !this.processing && this.enabledValue,
-          opacity: this.processing || !this.enabledValue ? 0.72 : 1,
-          onSelect: this.onSelect
-        } as SectionSelectParams)
+          onSelect: (index: number) => {
+            this.onSelect(index)
+          }
+        })
       }
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding(SECTION_ROW_PADDING)
+    .padding({
+      left: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      right: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
+    })
   }
 }
 
@@ -198,7 +177,7 @@ export struct SectionActionRow {
         })
         .stateEffect(false)
         .enabled(this.isEnabled)
-        .opacity(this.isEnabled ? 1 : 0.56)
+        .opacity(this.isEnabled ? 1 : SECTION_ACTION_DISABLED_OPACITY)
         .onHover((isHover: boolean) => {
           if (!this.isEnabled) {
             return
@@ -226,7 +205,12 @@ export struct SectionActionRow {
         })
     }
     .width('100%')
-    .padding(SECTION_ROW_PADDING)
+    .padding({
+      left: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      right: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
+    })
   }
 }
 
@@ -237,11 +221,11 @@ export struct SectionSelectInputRow {
   @Param options: SelectOption[] = []
   @Param selectedIndex: number = 0
   @Param value: string = ''
-  @Param selectWidth: number = 140
+  @Param selectWidth: number = AppStyles.SELECT_WIDTH_DEFAULT
   @Param showInput: boolean = false
   @Param inputText: string = ''
   @Param inputPlaceholder: string = ''
-  @Param inputWidth: number = 112
+  @Param inputWidth: number = SECTION_INPUT_WIDTH_DEFAULT
   @Param inputSuffix: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Event onSelect: (index: number) => void = () => {}
@@ -255,26 +239,30 @@ export struct SectionSelectInputRow {
         currentTheme: this.currentTheme
       })
 
-      Row({ space: 8 }) {
-        SectionSelectBuilder({
+      Row({ space: SECTION_SELECT_INPUT_GAP }) {
+        StyledSelect({
           options: this.options,
           selectedIndex: this.selectedIndex,
           value: this.value,
-          selectWidth: this.selectWidth,
+          controlWidth: this.selectWidth,
+          controlHeight: SECTION_CONTROL_HEIGHT,
+          radius: AppStyles.RADIUS_SM,
+          enabledValue: true,
+          opacityValue: 1,
           currentTheme: this.currentTheme,
-          enabled: true,
-          opacity: 1,
-          onSelect: this.onSelect
-        } as SectionSelectParams)
+          onSelect: (index: number) => {
+            this.onSelect(index)
+          }
+        })
 
         if (this.showInput) {
-          Row({ space: 6 }) {
+          Row({ space: SECTION_INPUT_SUFFIX_GAP }) {
             StyledTextInput({
               text: this.inputText,
               placeholder: this.inputPlaceholder,
               inputType: InputType.Number,
               controlWidth: this.inputWidth,
-              controlHeight: 36,
+              controlHeight: SECTION_CONTROL_HEIGHT,
               radius: AppStyles.RADIUS_SM,
               currentTheme: this.currentTheme,
               onChange: (value: string) => {
@@ -294,6 +282,11 @@ export struct SectionSelectInputRow {
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding(SECTION_ROW_PADDING)
+    .padding({
+      left: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      right: AppStyles.CONTROL_ROW_HORIZONTAL_PADDING,
+      top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
+      bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
+    })
   }
 }

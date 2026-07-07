@@ -111,7 +111,6 @@ export struct AsyncSelectRow {
       top: AppStyles.CONTROL_ROW_VERTICAL_PADDING,
       bottom: AppStyles.CONTROL_ROW_VERTICAL_PADDING
     })
-    .backgroundColor(AppColors.getColors(this.currentTheme).BG_CARD)
     .opacity(this.isBusy() ? 0.8 : 1)
   }
 }
