@@ -21,6 +21,7 @@ import {
   PeripheralTraceMaintenanceService,
   PeripheralTraceMutationResult
 } from './PeripheralTraceMaintenanceService'
+import { UsbDeviceNameResolver } from './UsbDeviceNameResolver'
 
 const TAG = 'PeripheralPolicySnapshotTrace'
 const USB_CLASS_HUB = 0x09
@@ -134,7 +135,10 @@ export class PeripheralPolicySnapshotTraceService {
     const subClass = PeripheralPolicySnapshotTraceService.normalizeNumber(device.subClass)
     const protocol = PeripheralPolicySnapshotTraceService.normalizeNumber(device.protocol)
     const deviceId = formatUsbDeviceId(vendorId, productId)
-    const deviceName = PeripheralPolicySnapshotTraceService.buildUsbDisplayName(device)
+    const deviceName = UsbDeviceNameResolver.resolve({
+      manufacturerName: device.manufacturerName,
+      productName: device.productName
+    }, PeripheralConnectionRecordStrings.USB_DEVICE)
     return {
       vendorId: vendorId,
       productId: productId,
@@ -142,7 +146,7 @@ export class PeripheralPolicySnapshotTraceService {
       subClass: Number.isFinite(subClass) ? subClass : 0,
       protocol: Number.isFinite(protocol) ? protocol : 0,
       deviceId: deviceId,
-      deviceName: deviceName.length > 0 ? deviceName : PeripheralConnectionRecordStrings.USB_DEVICE,
+      deviceName: deviceName,
       deviceType: inferPeripheralTypeFromBaseClass(baseClass),
       rawPayload: PeripheralPolicySnapshotTraceService.buildRawPayload(device)
     }
@@ -247,22 +251,6 @@ export class PeripheralPolicySnapshotTraceService {
     }
   }
 
-  private static buildUsbDisplayName(device: usbManager.USBDevice): string {
-    const manufacturer = PeripheralPolicySnapshotTraceService.normalizeText(device.manufacturerName)
-    const product = PeripheralPolicySnapshotTraceService.normalizeText(device.productName)
-    const name = PeripheralPolicySnapshotTraceService.normalizeText(device.name)
-    if (manufacturer.length > 0 && product.length > 0) {
-      return `${manufacturer} ${product}`
-    }
-    if (product.length > 0) {
-      return product
-    }
-    if (manufacturer.length > 0) {
-      return manufacturer
-    }
-    return name
-  }
-
   private static buildRawPayload(device: usbManager.USBDevice): string {
     try {
       return JSON.stringify({
@@ -293,10 +281,6 @@ export class PeripheralPolicySnapshotTraceService {
       }
     }
     return Number.NaN
-  }
-
-  private static normalizeText(value: string | undefined): string {
-    return (value ?? '').trim()
   }
 
   private static normalizeNumber(value: number | undefined): number {

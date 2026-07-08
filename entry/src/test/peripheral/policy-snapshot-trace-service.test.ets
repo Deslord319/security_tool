@@ -118,9 +118,34 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
       expect(savedRecords[0].source).assertEqual('policy_snapshot')
       expect(savedRecords[0].action).assertEqual('discover')
       expect(savedRecords[0].deviceId).assertEqual('VID:1234 PID:5678')
+      expect(savedRecords[0].deviceName).assertEqual('Acme Camera')
       expect(savedRecords[0].deviceType).assertEqual(PeripheralType.USB_CAMERA)
       expect(savedRecords[0].decision).assertEqual('deny')
       expect((savedRecords[0].rawPayload ?? '').includes('"vendorId":4660')).assertTrue()
+    })
+
+    it('should not use usb manager name as snapshot display name', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, '', 'Camera', 'usb-camera', 0x0E)
+      ]))
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].deviceName).assertEqual('USB 设备')
+    })
+
+    it('should fallback snapshot name when only product is present', 0, async () => {
+      PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
+        usbDevice(0x1234, 0x5678, '', 'Camera', '', 0x0E)
+      ]))
+
+      const result = await PeripheralPolicySnapshotTraceService.appendUsbDefaultPolicySnapshot('deny')
+
+      expect(result.success).assertTrue()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].deviceName).assertEqual('USB 设备')
     })
 
     it('should skip hub devices and avoid appending empty snapshots', 0, async () => {

@@ -7,6 +7,7 @@ export struct PeripheralDeviceIdentityCell {
   @Param deviceId: string = ''
   @Param currentTheme: ThemeMode = ThemeMode.LIGHT
   @Param weight: number = 2.6
+  @Param deviceNameMaxLines: number = 1
 
   build() {
     Column({ space: 6 }) {
@@ -14,7 +15,7 @@ export struct PeripheralDeviceIdentityCell {
         .fontSize(15)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.getColors(this.currentTheme).TEXT_PRIMARY)
-        .maxLines(1)
+        .maxLines(this.deviceNameMaxLines)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
 
       if (this.deviceId.length > 0) {
@@ -64,7 +65,7 @@ export struct PeripheralTypeTag {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .padding({ left: 8, right: 8, top: 5, bottom: 5 })
       .borderRadius(6)
       .backgroundColor(AppColors.getColors(this.currentTheme).TAG_PURPLE_BG)
     }
