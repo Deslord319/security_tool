@@ -100,7 +100,7 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
       expect(savedRecords[0].deviceName).assertEqual('未命名蓝牙设备')
     })
 
-    it('should suppress one matching disconnect after successful snapshot append', 0, async () => {
+    it('should keep snapshot append independent from disconnect filtering', 0, async () => {
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         'AA:BB:CC:DD:EE:FF',
         '{}'
@@ -109,22 +109,9 @@ export default function bluetoothPolicySnapshotTraceServiceTest() {
 
       await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
 
-      expect(BluetoothPolicySnapshotTraceService.shouldSuppressPolicyDisconnect('MAC: AA:BB:CC:DD:EE:FF')).assertTrue()
-      expect(BluetoothPolicySnapshotTraceService.shouldSuppressPolicyDisconnect('MAC: AA:BB:CC:DD:EE:FF')).assertFalse()
-    })
-
-    it('should expire suppressed bluetooth disconnects after ttl', 0, async () => {
-      let now = 1700000000000
-      BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => now)
-      BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
-        'AA:BB:CC:DD:EE:FF',
-        '{}'
-      )
-      const snapshots = BluetoothPolicySnapshotTraceService.captureCurrentConnectedDevices()
-      await BluetoothPolicySnapshotTraceService.appendBluetoothDisabledPolicySnapshot(snapshots)
-      now += 31000
-
-      expect(BluetoothPolicySnapshotTraceService.shouldSuppressPolicyDisconnect('MAC: AA:BB:CC:DD:EE:FF')).assertFalse()
+      expect(savedRecords.length).assertEqual(1)
+      expect(savedRecords[0].deviceId).assertEqual('MAC: AA:BB:CC:DD:EE:FF')
+      expect(savedRecords[0].action).assertEqual('discover')
     })
   })
 }

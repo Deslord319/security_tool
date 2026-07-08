@@ -193,7 +193,7 @@ export class PeripheralConnectionRecordRuntimeProducerAdapter implements Periphe
     if (state === access.BluetoothState.STATE_ON || state === access.BluetoothState.STATE_BLE_ON) {
       return await this.resumeBluetoothAclSubscriptionIfNeeded(`state=${stateLabel}`)
     }
-    this.cleanupBluetoothAclSubscriber(`state=${stateLabel}`)
+    LogUtils.info(TAG, `keep bluetooth acl subscriber while bluetooth is inactive: state=${stateLabel}`)
     return !this.bluetoothPermissionBlocked
   }
 
