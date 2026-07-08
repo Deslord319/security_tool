@@ -66,11 +66,6 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (!eventInfo || eventInfo.action === 'unknown') {
       return null
     }
-    if (eventInfo.action === 'disconnect' && BluetoothPolicySnapshotTraceService.shouldSuppressPolicyDisconnect(eventInfo.deviceId)) {
-      LogUtils.info(TAG, `suppress bluetooth acl disconnect after policy snapshot: deviceId=${PeripheralConnectionRecordBluetoothAclConsumer.maskBluetoothIdentifier(eventInfo.rawDeviceId)}`)
-      BluetoothPolicySnapshotTraceService.forgetRuntimeConnectedDevice(eventInfo.deviceId)
-      return null
-    }
     if (PeripheralConnectionRecordBluetoothAclConsumer.shouldDropAnonymousLinkTypeOneEvent(eventInfo)) {
       LogUtils.info(
         TAG,
@@ -84,7 +79,8 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
     if (eventInfo.action === 'connect') {
       BluetoothPolicySnapshotTraceService.rememberRuntimeConnectedDevice(
         eventInfo.rawDeviceId,
-        eventInfo.rawPayload
+        eventInfo.rawPayload,
+        eventInfo.deviceName
       )
     }
     if (eventInfo.action === 'disconnect') {
@@ -295,9 +291,14 @@ export class PeripheralConnectionRecordBluetoothAclConsumer implements Periphera
   private static resolveBluetoothDeviceName(deviceId: string): string {
     const remoteName = PeripheralConnectionRecordBluetoothAclConsumer.queryRemoteDeviceName(deviceId)
     if (remoteName.length > 0) {
+      BluetoothPolicySnapshotTraceService.rememberBluetoothDeviceName(deviceId, remoteName)
       return remoteName
     }
 
+    const cachedName = BluetoothPolicySnapshotTraceService.resolveCachedBluetoothDeviceName(deviceId)
+    if (cachedName.length > 0) {
+      return cachedName
+    }
     return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
   }
 

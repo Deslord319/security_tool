@@ -349,7 +349,36 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
       }
     })
 
-    it('U-BT-014 should suppress policy-triggered bluetooth disconnect after snapshot', 0, async () => {
+    it('U-BT-013A should reuse cached bluetooth name when disconnect remote name is unavailable', 0, async () => {
+      try {
+        let queryCount = 0
+        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(() => {
+          queryCount++
+          return queryCount === 1 ? 'Cached Headset' : ''
+        })
+        const consumer = new PeripheralConnectionRecordBluetoothAclConsumer()
+
+        const connectRecord = await consumer.consume(buildBluetoothAclEvent({
+          deviceId: 'AA:BB:CC:DD:EE:FF',
+          stateName: 'STATE_CONNECTED'
+        }))
+        const disconnectRecord = await consumer.consume(buildBluetoothAclEvent({
+          deviceId: 'AA:BB:CC:DD:EE:FF',
+          stateName: 'STATE_DISCONNECTED',
+          reason: 'POLICY_DISABLED'
+        }))
+
+        expect(connectRecord !== null).assertTrue()
+        expect(connectRecord?.deviceName).assertEqual('Cached Headset')
+        expect(disconnectRecord !== null).assertTrue()
+        expect(disconnectRecord?.action).assertEqual('disconnect')
+        expect(disconnectRecord?.deviceName).assertEqual('Cached Headset')
+      } finally {
+        PeripheralConnectionRecordBluetoothAclConsumer.setRemoteDeviceNameProviderForTest(null)
+      }
+    })
+
+    it('U-BT-014 should keep bluetooth disconnect after policy snapshot', 0, async () => {
       const mockKit = new MockKit()
       try {
         BluetoothPolicySnapshotTraceService.setNowProviderForTest(() => 1700000000000)
@@ -370,7 +399,11 @@ export default function peripheralConnectionRecordBluetoothAclConsumerTest() {
           reason: 'POLICY_DISABLED'
         }))
 
-        expect(record === null).assertTrue()
+        expect(record !== null).assertTrue()
+        expect(record?.action).assertEqual('disconnect')
+        expect(record?.summary).assertEqual('蓝牙设备已断开')
+        expect(record?.matchedPolicyKind).assertEqual('bluetooth_connection_event')
+        expect(record?.detail).assertEqual('aclState=STATE_DISCONNECTED, reason=POLICY_DISABLED')
       } finally {
         BluetoothPolicySnapshotTraceService.resetForTest()
         mockKit.clearAll()

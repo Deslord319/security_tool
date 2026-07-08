@@ -16,7 +16,6 @@ import {
 } from './PeripheralTraceMaintenanceService'
 
 const TAG = 'BluetoothPolicySnapshot'
-const SUPPRESS_TTL_MS = 30000
 
 export interface BluetoothConnectedDeviceSnapshot {
   rawDeviceId: string
@@ -27,8 +26,8 @@ export interface BluetoothConnectedDeviceSnapshot {
 
 export class BluetoothPolicySnapshotTraceService {
   private static nowProvider: () => number = () => Date.now()
-  private static suppressedDisconnects: Map<string, number> = new Map<string, number>()
   private static runtimeConnectedSnapshots: Map<string, BluetoothConnectedDeviceSnapshot> = new Map<string, BluetoothConnectedDeviceSnapshot>()
+  private static deviceNameCache: Map<string, string> = new Map<string, string>()
 
   static setNowProviderForTest(nowProvider: (() => number) | null): void {
     BluetoothPolicySnapshotTraceService.nowProvider = nowProvider ?? (() => Date.now())
@@ -36,8 +35,8 @@ export class BluetoothPolicySnapshotTraceService {
 
   static resetForTest(): void {
     BluetoothPolicySnapshotTraceService.nowProvider = () => Date.now()
-    BluetoothPolicySnapshotTraceService.suppressedDisconnects.clear()
     BluetoothPolicySnapshotTraceService.runtimeConnectedSnapshots.clear()
+    BluetoothPolicySnapshotTraceService.deviceNameCache.clear()
   }
 
   static captureCurrentConnectedDevices(): BluetoothConnectedDeviceSnapshot[] {
@@ -64,18 +63,40 @@ export class BluetoothPolicySnapshotTraceService {
     return result
   }
 
-  static rememberRuntimeConnectedDevice(rawDeviceId: string, rawPayload: string): void {
+  static rememberRuntimeConnectedDevice(rawDeviceId: string, rawPayload: string, preferredDeviceName?: string): void {
     const normalizedRawId = BluetoothPolicySnapshotTraceService.normalizeRawDeviceId(rawDeviceId)
     if (normalizedRawId.length === 0) {
       return
     }
     const deviceId = formatBluetoothDeviceId(normalizedRawId)
+    const deviceName = BluetoothPolicySnapshotTraceService.isValidBluetoothDeviceName(preferredDeviceName ?? '')
+      ? (preferredDeviceName ?? '').trim()
+      : BluetoothPolicySnapshotTraceService.resolveBluetoothDeviceName(normalizedRawId)
+    BluetoothPolicySnapshotTraceService.rememberBluetoothDeviceName(deviceId, deviceName)
     BluetoothPolicySnapshotTraceService.runtimeConnectedSnapshots.set(deviceId, {
       rawDeviceId: normalizedRawId,
       deviceId: deviceId,
-      deviceName: BluetoothPolicySnapshotTraceService.resolveBluetoothDeviceName(normalizedRawId),
+      deviceName: deviceName,
       rawPayload: rawPayload
     })
+  }
+
+  static rememberBluetoothDeviceName(deviceId: string, deviceName: string): void {
+    if (!BluetoothPolicySnapshotTraceService.isValidBluetoothDeviceName(deviceName)) {
+      return
+    }
+    const normalized = BluetoothPolicySnapshotTraceService.normalizeTraceDeviceId(deviceId)
+    if (normalized.length > 0) {
+      BluetoothPolicySnapshotTraceService.deviceNameCache.set(normalized, deviceName.trim())
+    }
+  }
+
+  static resolveCachedBluetoothDeviceName(deviceId: string): string {
+    const normalized = BluetoothPolicySnapshotTraceService.normalizeTraceDeviceId(deviceId)
+    if (normalized.length === 0) {
+      return ''
+    }
+    return BluetoothPolicySnapshotTraceService.deviceNameCache.get(normalized) ?? ''
   }
 
   static forgetRuntimeConnectedDevice(deviceId: string): void {
@@ -98,25 +119,10 @@ export class BluetoothPolicySnapshotTraceService {
       return BluetoothPolicySnapshotTraceService.buildTraceRecord(snapshot, now)
     })
     const result = await PeripheralTraceMaintenanceService.appendEntries(records)
-    if (result.success) {
-      BluetoothPolicySnapshotTraceService.registerSuppressedDisconnects(snapshots, now)
-    } else {
+    if (!result.success) {
       LogUtils.warn(TAG, `append bluetooth policy snapshot failed: code=${result.code}, count=${records.length}`)
     }
     return result
-  }
-
-  static shouldSuppressPolicyDisconnect(deviceId: string): boolean {
-    BluetoothPolicySnapshotTraceService.pruneSuppressedDisconnects()
-    const normalized = BluetoothPolicySnapshotTraceService.normalizeTraceDeviceId(deviceId)
-    if (normalized.length === 0) {
-      return false
-    }
-    if (!BluetoothPolicySnapshotTraceService.suppressedDisconnects.has(normalized)) {
-      return false
-    }
-    BluetoothPolicySnapshotTraceService.suppressedDisconnects.delete(normalized)
-    return true
   }
 
   static normalizeRawDeviceId(deviceId: string): string {
@@ -148,29 +154,6 @@ export class BluetoothPolicySnapshotTraceService {
     }
   }
 
-  private static registerSuppressedDisconnects(snapshots: BluetoothConnectedDeviceSnapshot[], now: number): void {
-    const expiresAt = now + SUPPRESS_TTL_MS
-    for (const snapshot of snapshots) {
-      const normalized = BluetoothPolicySnapshotTraceService.normalizeTraceDeviceId(snapshot.deviceId)
-      if (normalized.length > 0) {
-        BluetoothPolicySnapshotTraceService.suppressedDisconnects.set(normalized, expiresAt)
-      }
-    }
-  }
-
-  private static pruneSuppressedDisconnects(): void {
-    const now = BluetoothPolicySnapshotTraceService.nowProvider()
-    const expired: string[] = []
-    BluetoothPolicySnapshotTraceService.suppressedDisconnects.forEach((expiresAt: number, deviceId: string) => {
-      if (expiresAt < now) {
-        expired.push(deviceId)
-      }
-    })
-    for (const deviceId of expired) {
-      BluetoothPolicySnapshotTraceService.suppressedDisconnects.delete(deviceId)
-    }
-  }
-
   private static normalizeTraceDeviceId(deviceId: string): string {
     const normalized = (deviceId ?? '').trim().toUpperCase()
     if (normalized.startsWith('MAC:')) {
@@ -182,10 +165,20 @@ export class BluetoothPolicySnapshotTraceService {
 
   private static resolveBluetoothDeviceName(deviceId: string): string {
     const remoteName = BluetoothPolicySnapshotTraceService.queryRemoteDeviceName(deviceId)
-    if (remoteName.length > 0) {
+    if (BluetoothPolicySnapshotTraceService.isValidBluetoothDeviceName(remoteName)) {
+      BluetoothPolicySnapshotTraceService.rememberBluetoothDeviceName(deviceId, remoteName)
       return remoteName
     }
+    const cachedName = BluetoothPolicySnapshotTraceService.resolveCachedBluetoothDeviceName(deviceId)
+    if (cachedName.length > 0) {
+      return cachedName
+    }
     return PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
+  }
+
+  private static isValidBluetoothDeviceName(deviceName: string): boolean {
+    const normalized = (deviceName ?? '').trim()
+    return normalized.length > 0 && normalized !== PeripheralConnectionRecordStrings.UNNAMED_BLUETOOTH
   }
 
   private static queryRemoteDeviceName(deviceId: string): string {
