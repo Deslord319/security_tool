@@ -97,12 +97,12 @@ export struct DeviceRecordList {
   @Builder
   private header() {
     Row() {
-      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_NAME_LABEL, weight: 3.5, currentTheme: this.currentTheme })
-      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_TYPE_LABEL, weight: 1.35, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_NAME_LABEL, weight: 2.8, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.DEVICE_TYPE_LABEL, weight: 1.4, currentTheme: this.currentTheme })
       PeripheralHeaderCell({ label: DeviceDetailStrings.CONNECTION_EVENT, weight: 0.9, currentTheme: this.currentTheme })
-      PeripheralHeaderCell({ label: PeripheralPageStrings.POLICY_LABEL, weight: 0.8, currentTheme: this.currentTheme })
-      PeripheralHeaderCell({ label: PeripheralPageStrings.CONNECTION_TIME_LABEL, weight: 1.25, currentTheme: this.currentTheme })
-      PeripheralHeaderCell({ label: PeripheralPageStrings.ACTION_LABEL, weight: 0.65, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.POLICY_LABEL, weight: 0.9, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.CONNECTION_TIME_LABEL, weight: 1.5, currentTheme: this.currentTheme })
+      PeripheralHeaderCell({ label: PeripheralPageStrings.ACTION_LABEL, weight: 0.9, currentTheme: this.currentTheme })
     }
     .width('100%')
     .padding({
@@ -121,11 +121,11 @@ export struct DeviceRecordList {
         deviceName: record.deviceName,
         deviceId: this.getDisplayDeviceId(record.deviceType, record.deviceId),
         currentTheme: this.currentTheme,
-        weight: 3.5,
+        weight: 2.8,
         deviceNameMaxLines: 2
       })
 
-      PeripheralTypeTag({ label: this.getDeviceTypeLabel(record), weight: 1.35, currentTheme: this.currentTheme })
+      PeripheralTypeTag({ label: this.getDeviceTypeLabel(record), weight: 1.4, currentTheme: this.currentTheme })
 
       Row() {
         Text(this.getActionLabel(record))
@@ -145,7 +145,7 @@ export struct DeviceRecordList {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_SECONDARY_OPACITY)
           .textAlign(TextAlign.Center)
       }
-      .layoutWeight(0.8)
+      .layoutWeight(0.9)
       .justifyContent(FlexAlign.Center)
 
       Row() {
@@ -155,7 +155,7 @@ export struct DeviceRecordList {
           .opacity(AppColors.getColors(this.currentTheme).TEXT_TERTIARY_OPACITY)
           .textAlign(TextAlign.Center)
       }
-      .layoutWeight(1.25)
+      .layoutWeight(1.5)
       .justifyContent(FlexAlign.Center)
 
       Row() {
@@ -172,7 +172,7 @@ export struct DeviceRecordList {
       .justifyContent(FlexAlign.Center)
       .borderRadius(AppStyles.RADIUS_MD)
       .backgroundColor(this.getDetailButtonBackground(record.id))
-      .layoutWeight(0.65)
+      .layoutWeight(0.9)
       .onHover((isHover: boolean) => {
         this.hoveredDetailId = isHover ? record.id : ''
       })
