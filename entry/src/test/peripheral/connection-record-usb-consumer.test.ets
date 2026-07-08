@@ -20,6 +20,7 @@ interface UsbEventParameters {
   vendorId: number
   productId: number
   deviceName: string
+  name?: string
   productName: string
   manufacturerName: string
   baseClass: number
@@ -31,6 +32,7 @@ interface UsbEventParameterOverrides {
   vendorId?: number
   productId?: number
   deviceName?: string
+  name?: string
   productName?: string
   manufacturerName?: string
   baseClass?: number
@@ -102,6 +104,9 @@ function buildUsbEventParameters(overrides?: UsbEventParameterOverrides): UsbEve
   }
   if (overrides.deviceName !== undefined) {
     parameters.deviceName = overrides.deviceName
+  }
+  if (overrides.name !== undefined) {
+    parameters.name = overrides.name
   }
   if (overrides.productName !== undefined) {
     parameters.productName = overrides.productName
@@ -526,6 +531,63 @@ export default function peripheralConnectionRecordUsbConsumerTest() {
       expect(detachedRecord === null).assertTrue()
       expect(dispatchCount).assertEqual(0)
       expect(PeripheralDevicePolicyRepository.getAll().length).assertEqual(0)
+    })
+
+    it('U-USB-016 should use unified usb device name priority', 0, async () => {
+      const consumer = new PeripheralConnectionRecordUsbConsumer()
+
+      const combinedRecord = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        {
+          manufacturerName: 'Acme',
+          productName: 'Camera',
+          deviceName: 'kernel-camera',
+          baseClass: 0x0E,
+          class: 0x0E
+        }
+      ))
+      const deviceNameRecord = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        {
+          manufacturerName: '',
+          productName: 'Camera',
+          deviceName: 'kernel-camera',
+          baseClass: 0x0E,
+          class: 0x0E
+        }
+      ))
+      const fallbackRecord = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        {
+          manufacturerName: '',
+          productName: 'Camera',
+          deviceName: '',
+          baseClass: 0x0E,
+          class: 0x0E
+        }
+      ))
+
+      expect(combinedRecord?.deviceName).assertEqual('Acme Camera')
+      expect(deviceNameRecord?.deviceName).assertEqual('kernel-camera')
+      expect(fallbackRecord?.deviceName).assertEqual('USB 设备')
+    })
+
+    it('U-USB-017 should not use generic name field as usb display name', 0, async () => {
+      const consumer = new PeripheralConnectionRecordUsbConsumer()
+
+      const record = await consumer.consume(buildUsbEvent(
+        commonEventManager.Support.COMMON_EVENT_USB_DEVICE_ATTACHED,
+        {
+          name: 'usb-camera',
+          productName: 'Camera',
+          manufacturerName: '',
+          deviceName: '',
+          baseClass: 0x0E,
+          class: 0x0E
+        }
+      ))
+
+      expect(record?.deviceName).assertEqual('USB 设备')
     })
   })
 }

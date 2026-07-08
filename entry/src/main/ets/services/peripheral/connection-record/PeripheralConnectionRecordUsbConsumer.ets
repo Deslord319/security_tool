@@ -35,6 +35,7 @@ import {
   PeripheralMatchedPolicyStrings,
   PeripheralConnectionRecordStrings
 } from '../../../constants/modules/PeripheralStrings'
+import { UsbDeviceNameResolver } from './UsbDeviceNameResolver'
 
 const TAG = 'ConnectionRecordUsbConsumer'
 
@@ -349,7 +350,7 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     const productId = PeripheralConnectionRecordUsbConsumer.resolveProductId(payloads)
     const resolvedOccurAt = PeripheralConnectionRecordUsbConsumer.resolveOccurAt(payloads)
     const occurAt = Number.isFinite(resolvedOccurAt) && resolvedOccurAt > 0 ? resolvedOccurAt : Date.now()
-    const deviceNameField = PeripheralConnectionRecordUsbConsumer.resolveRawDeviceName(payloads)
+    const deviceNameField = PeripheralConnectionRecordUsbConsumer.resolveDeviceName(payloads)
     const productName = PeripheralConnectionRecordUsbConsumer.resolveProductName(payloads)
     const manufacturerName = PeripheralConnectionRecordUsbConsumer.resolveManufacturerName(payloads)
     let baseClass = PeripheralConnectionRecordUsbConsumer.resolveBaseClass(payloads)
@@ -363,10 +364,11 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
     const hasVidPid = Number.isFinite(vendorId) && Number.isFinite(productId)
     const deviceId = hasVidPid ? formatUsbDeviceId(vendorId, productId) : `UNKNOWN-USB-${occurAt}`
-    let deviceName = PeripheralConnectionRecordUsbConsumer.buildUsbDisplayName(manufacturerName, productName)
-    if (deviceName.length === 0) {
-      deviceName = deviceNameField || (hasVidPid ? PeripheralConnectionRecordStrings.USB_DEVICE : PeripheralConnectionRecordStrings.UNRECOGNIZED_USB_DEVICE)
-    }
+    const deviceName = UsbDeviceNameResolver.resolve({
+      manufacturerName: manufacturerName,
+      productName: productName,
+      deviceName: deviceNameField
+    }, hasVidPid ? PeripheralConnectionRecordStrings.USB_DEVICE : PeripheralConnectionRecordStrings.UNRECOGNIZED_USB_DEVICE)
 
     return {
       vendorId: hasVidPid ? vendorId : Number.NaN,
@@ -400,15 +402,12 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     return pickNumber(sources, ['timestamp', 'time', 'occurAt'])
   }
 
-  private static resolveRawDeviceName(sources: EventPayloadRecord[]): string {
-    return pickString(
-      sources,
-      ['deviceName', 'name', 'productName', 'product', 'manufacturerName']
-    )
+  private static resolveDeviceName(sources: EventPayloadRecord[]): string {
+    return pickString(sources, ['deviceName'])
   }
 
   private static resolveProductName(sources: EventPayloadRecord[]): string {
-    return pickString(sources, ['productName', 'product', 'deviceName', 'name'])
+    return pickString(sources, ['productName', 'product'])
   }
 
   private static resolveManufacturerName(sources: EventPayloadRecord[]): string {
@@ -451,18 +450,4 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     return Number.NaN
   }
 
-  private static buildUsbDisplayName(manufacturerName: string, productName: string): string {
-    const manufacturer = manufacturerName.trim()
-    const product = productName.trim()
-    if (manufacturer.length > 0 && product.length > 0) {
-      return `${manufacturer} ${product}`
-    }
-    if (manufacturer.length > 0) {
-      return manufacturer
-    }
-    if (product.length > 0) {
-      return product
-    }
-    return ''
-  }
 }
