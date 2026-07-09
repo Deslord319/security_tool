@@ -53,16 +53,23 @@ class UsbDevicePolicyStateRdbRepository extends RdbRepository<UsbDevicePolicySta
   }
 
   async upsert(record: UsbDevicePolicyStateRecord): Promise<boolean> {
-    const normalized = this.normalizeRecord(record)
+    return this.upsertAll([record])
+  }
+
+  async upsertAll(records: UsbDevicePolicyStateRecord[]): Promise<boolean> {
+    if (records.length === 0) {
+      return true
+    }
+    const normalizedRecords = records.map((record: UsbDevicePolicyStateRecord) => this.normalizeRecord(record))
     const saved = await this.replaceBatch(
-      [normalized],
+      normalizedRecords,
       `INSERT OR REPLACE INTO ${TABLE_NAME} (
         fingerprint_key, fingerprint_type, serial_number, vendor_id, product_id,
         description, base_class, device_name, desired_policy, present, active_policy,
         last_seen_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       (item: UsbDevicePolicyStateRecord) => this.buildArgs(item),
-      'upsert'
+      'upsertAll'
     )
     if (saved) {
       this.notifyChanged()
@@ -99,14 +106,6 @@ class UsbDevicePolicyStateRdbRepository extends RdbRepository<UsbDevicePolicySta
       [Math.floor(baseClass), 'deny', fingerprintKey]
     )
     return count > 0
-  }
-
-  async clearAll(): Promise<boolean> {
-    const cleared = await this.clearAllRows()
-    if (cleared) {
-      this.notifyChanged()
-    }
-    return cleared
   }
 
   private buildArgs(record: UsbDevicePolicyStateRecord): Array<relationalStore.ValueType> {

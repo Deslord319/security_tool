@@ -165,21 +165,26 @@ export class UsbDevicePolicyStateService {
 
   static async clearAllPolicies(): Promise<boolean> {
     const records = await UsbDevicePolicyStateRepository.listAll()
+    const restoredRecords: UsbDevicePolicyStateRecord[] = []
     for (const record of records) {
-      if (record.activePolicy !== 'deny') {
-        continue
+      if (record.activePolicy === 'deny') {
+        const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
+          deviceId: record.fingerprintKey,
+          deviceType: UsbDevicePolicyStateService.resolveDeviceType(record.baseClass),
+          policy: 'allow'
+        })
+        if (!dispatchResult.success) {
+          LogUtils.error(TAG, `clearAllPolicies dispatch failed: key=${record.fingerprintKey}, reason=${dispatchResult.reason ?? 'unknown'}`)
+          return false
+        }
       }
-      const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
-        deviceId: record.fingerprintKey,
-        deviceType: UsbDevicePolicyStateService.resolveDeviceType(record.baseClass),
-        policy: 'allow'
-      })
-      if (!dispatchResult.success) {
-        LogUtils.error(TAG, `clearAllPolicies dispatch failed: key=${record.fingerprintKey}, reason=${dispatchResult.reason ?? 'unknown'}`)
-        return false
-      }
+      restoredRecords.push(UsbDevicePolicyStateService.copyStateWithPolicy(record, 'allow', 'none'))
     }
-    return UsbDevicePolicyStateRepository.clearAll()
+    const saved = await UsbDevicePolicyStateRepository.upsertAll(restoredRecords)
+    if (!saved) {
+      LogUtils.error(TAG, 'clearAllPolicies state save failed')
+    }
+    return saved
   }
 
   static resolveDeviceType(baseClass: number): PeripheralType {
@@ -218,7 +223,8 @@ export class UsbDevicePolicyStateService {
 
   private static copyStateWithPolicy(
     existing: UsbDevicePolicyStateRecord,
-    policy: PeripheralDevicePolicy
+    policy: PeripheralDevicePolicy,
+    activePolicy?: 'none' | 'deny'
   ): UsbDevicePolicyStateRecord {
     return {
       fingerprintKey: existing.fingerprintKey,
@@ -231,7 +237,7 @@ export class UsbDevicePolicyStateService {
       deviceName: existing.deviceName,
       desiredPolicy: policy,
       present: existing.present,
-      activePolicy: policy === 'deny' ? 'deny' : 'none',
+      activePolicy: activePolicy ?? (policy === 'deny' ? 'deny' : 'none'),
       lastSeenAt: existing.lastSeenAt,
       updatedAt: Date.now()
     }

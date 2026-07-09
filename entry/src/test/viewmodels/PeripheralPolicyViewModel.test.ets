@@ -66,7 +66,6 @@ export default function peripheralPolicyViewModelTest() {
       let getUsbStateMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.get)
       let setUsbStatePolicyMock = mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.setPolicy)
       let clearUsbStatePoliciesMock = mockKit.mockFunc(UsbDevicePolicyStateService, UsbDevicePolicyStateService.clearAllPolicies)
-      let clearUsbStateMock = mockKit.mockFunc(UsbDevicePolicyStateRepository, UsbDevicePolicyStateRepository.clearAll)
       let dispatchMock = mockKit.mockFunc(PeripheralDevicePolicyDispatchService, PeripheralDevicePolicyDispatchService.dispatch)
       let appendSnapshotMock = mockKit.mockFunc(
         PeripheralPolicySnapshotTraceService,
@@ -89,10 +88,14 @@ export default function peripheralPolicyViewModelTest() {
         return Promise.resolve(createDispatchResult(index >= 0, index >= 0 ? undefined : 'usb_dispatch_failed'))
       })
       when(clearUsbStatePoliciesMock)().afterAction(() => {
-        usbStates = []
+        usbStates = usbStates.map((item: UsbDevicePolicyStateRecord) => {
+          let next = cloneUsbState(item)
+          next.desiredPolicy = 'allow'
+          next.activePolicy = 'none'
+          return next
+        })
         return Promise.resolve(true)
       })
-      when(clearUsbStateMock)().afterReturn(Promise.resolve(true))
       when(dispatchMock)(ArgumentMatchers.any).afterReturn(createDispatchResult(true))
       when(appendSnapshotMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(createTraceMutationResult()))
     })
@@ -203,7 +206,7 @@ export default function peripheralPolicyViewModelTest() {
       expect(usbStates[0].desiredPolicy).assertEqual('deny')
     })
 
-    it('should clear all usb policy states', 0, async () => {
+    it('should restore all usb policy states to default allow', 0, async () => {
       usbStates = [{
         fingerprintKey: 'USB-WEAK:1234:5678:ABCDEF01',
         fingerprintType: 'weak',
@@ -221,7 +224,9 @@ export default function peripheralPolicyViewModelTest() {
 
       const success = await viewModel.clearAllPolicies()
       expect(success).assertTrue()
-      expect(usbStates.length).assertEqual(0)
+      expect(usbStates.length).assertEqual(1)
+      expect(usbStates[0].desiredPolicy).assertEqual('allow')
+      expect(usbStates[0].activePolicy).assertEqual('none')
     })
 
     it('should return false when clearing usb policy states fails', 0, async () => {
