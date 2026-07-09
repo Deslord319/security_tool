@@ -165,6 +165,25 @@ export default function toolSettingsRepositoryTest() {
       done()
     })
 
+    it('should throw when loadConfigStrict cannot read preferences', 0, async (done: Function) => {
+      fakeAccessor.failOnGet = true
+
+      let ofMock = mockKit.mockFunc(PreferencesAccessor, PreferencesAccessor.of)
+      when(ofMock)(ArgumentMatchers.any).afterReturn(fakeAccessor as never as PreferencesAccessor)
+
+      let repository = new PreferencesToolSettingsRepository()
+      let threw = false
+      try {
+        await repository.loadConfigStrict({} as common.UIAbilityContext)
+      } catch (err) {
+        threw = true
+        expect((err as Error).message).assertEqual('fake_get_failed')
+      }
+
+      expect(threw).assertTrue()
+      done()
+    })
+
     it('should save config successfully', 0, async (done: Function) => {
       let ofMock = mockKit.mockFunc(PreferencesAccessor, PreferencesAccessor.of)
       when(ofMock)(ArgumentMatchers.any).afterReturn(fakeAccessor as never as PreferencesAccessor)

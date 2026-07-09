@@ -159,17 +159,17 @@ export class PeripheralPolicyViewModel {
 
   private mapDispatchReason(reason?: PeripheralPolicyDispatchReason): string {
     switch (reason) {
-      case 'unsupported_policy':
+      case PeripheralReasonCodes.UNSUPPORTED_POLICY_DISPATCH:
         return PeripheralReasonCodes.UNSUPPORTED_POLICY_DISPATCH
-      case 'unsupported_device_type':
+      case PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH:
         return PeripheralReasonCodes.UNSUPPORTED_DEVICE_TYPE_DISPATCH
       case 'dispatch_not_implemented':
         return PeripheralReasonCodes.DEVICE_POLICY_DISPATCH_NOT_IMPLEMENTED
-      case 'usb_conflict_account_storage':
+      case PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE:
         return PeripheralReasonCodes.USB_CONFLICT_ACCOUNT_STORAGE
-      case 'usb_dispatch_failed':
+      case PeripheralReasonCodes.USB_DISPATCH_FAILED:
         return PeripheralReasonCodes.USB_DISPATCH_FAILED
-      case 'usb_dispatch_conflict_unresolved':
+      case PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED:
         return PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED
       case 'device_offline':
         return PeripheralReasonCodes.DEVICE_POLICY_OFFLINE
