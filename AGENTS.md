@@ -42,6 +42,8 @@ entry/build/default/outputs/default/entry-default-unsigned.hap
 
 签名工具位于项目根目录 `hapsigner/` 下。完整签名流程如下：
 
+AI 执行签名时若全局 `java` 不可用，不要修改签名脚本；优先用 DevEco Studio 自带 JBR 执行等价命令，`JAVA_HOME` 和全局 `java` 仅作为兜底。
+
 #### 步骤 1：拷贝 unsigned HAP
 
 将构建产物拷贝到签名目录：
