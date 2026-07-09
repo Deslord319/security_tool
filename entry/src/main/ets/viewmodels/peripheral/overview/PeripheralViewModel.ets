@@ -1,6 +1,9 @@
 import { LogUtils } from '../../../utils/LogUtils'
 import { common } from '@kit.AbilityKit'
-import { PeripheralReasonCodes, PeripheralTabIndexes } from '../../../constants/modules/PeripheralStrings'
+import {
+  PeripheralReasonCodes,
+  PeripheralTabIndexes
+} from '../../../constants/modules/PeripheralStrings'
 import {
   AdminActivationState,
   ExportActionResult
@@ -187,7 +190,14 @@ export class PeripheralViewModel {
     return result
   }
 
+  hasRestorablePolicyRecords(): boolean {
+    return this.policy.state.hasRestorableRecords
+  }
+
   async clearPeripheralPolicyRecords(): Promise<boolean> {
+    if (!this.hasRestorablePolicyRecords()) {
+      return true
+    }
     try {
       const success = await this.policy.clearAllPolicies()
       if (!success) {

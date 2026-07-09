@@ -18,6 +18,7 @@ export class AppResources {
   static readonly SHIELD_ICON = $r('app.media.shield')
   static readonly SAVE_ICON = $r('app.media.save')
   static readonly ARROW_LEFT_ICON = $r('app.media.arrow_left')
+  static readonly RESTORE_ICON = $r('app.media.restore')
   static readonly ARROW_UP_ICON = $r('app.media.arrow_up')
   static readonly ARROW_DOWN_ICON = $r('app.media.arrow_down')
   static readonly CHEVRON_RIGHT_ICON = $r('app.media.chevron_right')

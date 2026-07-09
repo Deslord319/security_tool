@@ -71,6 +71,8 @@ export struct IconTextActionButton {
       right: ActionButtonStyles.HORIZONTAL_PADDING_END
     })
     .stateEffect(false)
+    .enabled(this.isEnabled)
+    .hitTestBehavior(this.isEnabled ? HitTestMode.Default : HitTestMode.None)
     .onHover((isHover: boolean) => {
       this.isHovered = this.isEnabled && isHover
     })

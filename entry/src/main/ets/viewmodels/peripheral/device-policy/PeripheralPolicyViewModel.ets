@@ -33,6 +33,7 @@ const TAG = 'PeripheralPolicyViewModel'
 export class PeripheralPolicyState {
   @Trace records: PeripheralPolicyRecord[] = []
   @Trace updatingKeys: string[] = []
+  @Trace hasRestorableRecords: boolean = false
 }
 
 @ObservedV2
@@ -47,7 +48,9 @@ export class PeripheralPolicyViewModel {
 
   async reloadRecords(): Promise<void> {
     const usbPolicyStates = await UsbDevicePolicyStateRepository.listAll()
-    this.state.records = PeripheralPolicyService.buildPolicyRecords(usbPolicyStates)
+    const records = PeripheralPolicyService.buildPolicyRecords(usbPolicyStates)
+    this.state.hasRestorableRecords = this.hasRestorableRecords(records)
+    this.state.records = records
   }
 
   isUpdating(deviceId: string): boolean {
@@ -142,6 +145,12 @@ export class PeripheralPolicyViewModel {
 
   private normalizeDeviceKey(deviceId: string): string {
     return PeripheralPolicyService.normalizeDeviceIdForPolicy(deviceId)
+  }
+
+  private hasRestorableRecords(records: PeripheralPolicyRecord[]): boolean {
+    return records.some((record: PeripheralPolicyRecord) => {
+      return record.policyIndex === PeripheralPolicyOptionIndexes.DENY
+    })
   }
 
   private resolveDispatchFailure(result: PeripheralPolicyDispatchResult | null | undefined): string {
