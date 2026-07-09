@@ -269,7 +269,7 @@ export default function peripheralConnectionRecordPipelineTest() {
       expect(savedRecords[0].deviceType).assertEqual(PeripheralType.USB_STORAGE)
     })
 
-    it('should dispatch matching consumers and skip append when trace repository is not ready', 0, async () => {
+    it('should skip consumers when trace repository is not ready', 0, async () => {
       const sideEffectConsumer = new StaticRecordConsumer('all', null)
       const recordConsumer = new StaticRecordConsumer('all', buildUsbRecord())
       const pipeline = new PeripheralConnectionRecordPipelineImpl(null, [sideEffectConsumer, recordConsumer])
@@ -277,8 +277,8 @@ export default function peripheralConnectionRecordPipelineTest() {
       const processed = await pipeline.push(createUsbEvent())
 
       expect(processed).assertFalse()
-      expect(sideEffectConsumer.consumeCalls).assertEqual(1)
-      expect(recordConsumer.consumeCalls).assertEqual(1)
+      expect(sideEffectConsumer.consumeCalls).assertEqual(0)
+      expect(recordConsumer.consumeCalls).assertEqual(0)
       expect(savedRecords.length).assertEqual(0)
     })
 

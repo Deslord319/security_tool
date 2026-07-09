@@ -55,6 +55,8 @@ import peripheralBluetoothAclConsumerTest from './peripheral/connection-record-b
 import peripheralPipelineTest from './peripheral/connection-record-pipeline.test'
 import peripheralConnectionRecordServiceTest from './peripheral/connection-record-service.test'
 import peripheralDevicePolicyDispatchServiceTest from './peripheral/device-policy-dispatch-service.test'
+import usbDevicePolicyStateServiceTest from './peripheral/usb-device-policy-state-service.test'
+import usbDeviceIdentityResolverTest from './peripheral/usb-device-identity-resolver.test'
 import peripheralUsbConsumerTest from './peripheral/connection-record-usb-consumer.test'
 import peripheralModelsTest from './peripheral/models.test'
 import peripheralServiceTest from './peripheral/service.test'
@@ -144,6 +146,8 @@ export default function testsuite() {
   peripheralPipelineTest()
   peripheralConnectionRecordServiceTest()
   peripheralDevicePolicyDispatchServiceTest()
+  usbDevicePolicyStateServiceTest()
+  usbDeviceIdentityResolverTest()
   peripheralUsbConsumerTest()
   peripheralModelsTest()
   peripheralServiceTest()

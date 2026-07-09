@@ -193,12 +193,7 @@ export struct PeripheralPage {
         () => this.showClearHistoryConfirmDialog()
       )
     } else if (this.currentTabIndex === PeripheralTabIndexes.DEVICE_POLICY) {
-      this.headerActions(
-        PeripheralExportStrings.EXPORT_POLICY_LABEL,
-        PeripheralExportStrings.CLEAR_POLICY_LABEL,
-        () => void this.handleExportPeripheralPolicyRecords(),
-        () => this.showClearPolicyRecordsConfirmDialog()
-      )
+      this.policyHeaderActions()
     }
   }
 
@@ -358,7 +353,6 @@ export struct PeripheralPage {
     const success = await this.viewModel.handlePeripheralPolicyChange(
       record.deviceId,
       record.deviceType,
-      record.deviceName,
       policyIndex
     )
     if (!success) {
@@ -409,6 +403,28 @@ export struct PeripheralPage {
     }
   }
 
+  @Builder
+  private policyHeaderActions() {
+    Row({ space: 8 }) {
+      IconTextActionButton({
+        label: PeripheralExportStrings.EXPORT_POLICY_LABEL,
+        icon: AppResources.SAVE_ICON,
+        kind: 'primary',
+        currentTheme: this.currentTheme,
+        onTap: () => void this.handleExportPeripheralPolicyRecords()
+      })
+
+      IconTextActionButton({
+        label: PeripheralExportStrings.CLEAR_POLICY_LABEL,
+        icon: AppResources.RESTORE_ICON,
+        kind: 'danger',
+        isEnabled: this.viewModel.policy.state.hasRestorableRecords,
+        currentTheme: this.currentTheme,
+        onTap: () => this.showClearPolicyRecordsConfirmDialog()
+      })
+    }
+  }
+
   private async handleExportPeripheralPolicyRecords(): Promise<void> {
     const result = await this.viewModel.exportPeripheralPolicyRecords()
     if (result.success) {
@@ -436,14 +452,13 @@ export struct PeripheralPage {
   }
 
   private showClearPolicyRecordsConfirmDialog(): void {
-    if (this.viewModel.policy.state.records.length === 0) {
-      DialogService.openFailure(this.getUIContext(), PeripheralEmptyStateStrings.POLICY_TO_CLEAR)
+    if (!this.viewModel.policy.state.hasRestorableRecords) {
       return
     }
     DialogService.openConfirm(this.getUIContext(), {
       title: PeripheralExportStrings.CLEAR_POLICY_LABEL,
       message: PeripheralExportStrings.CLEAR_POLICY_MESSAGE,
-      confirmText: ActionText.DELETE,
+      confirmText: ActionText.RESTORE,
       cancelText: ActionText.CANCEL,
       onConfirm: () => void this.clearPolicyRecords()
     })

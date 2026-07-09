@@ -19,7 +19,8 @@ export type PeripheralPolicyDispatchReason =
   'dispatch_not_implemented' |
   'usb_conflict_account_storage' |
   'usb_dispatch_failed' |
-  'usb_dispatch_conflict_unresolved'
+  'usb_dispatch_conflict_unresolved' |
+  'device_offline'
 
 export interface PeripheralPolicyDispatchRequest {
   deviceId: string

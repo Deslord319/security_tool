@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@ohos/hypium'
 import { usbManager } from '@kit.BasicServicesKit'
 import { ArgumentMatchers, MockKit, when } from '@ohos/hamock'
 import {
-  PeripheralDevicePolicyRecord,
+  PeripheralDevicePolicySnapshotRequest,
   PeripheralTraceRecord,
   PeripheralType,
   UsbStoragePolicy
@@ -176,7 +176,7 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
         usbDevice(0x1234, 0x5678, 'Acme', 'Storage', 'usb-storage', 0x08),
         usbDevice(0x9999, 0x0001, 'Other', 'Device', 'other', 0x03)
       ]))
-      const record: PeripheralDevicePolicyRecord = {
+      const record: PeripheralDevicePolicySnapshotRequest = {
         deviceId: 'VID:1234 PID:5678',
         deviceName: 'USB Device',
         deviceType: PeripheralType.USB_STORAGE,
@@ -197,7 +197,7 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
       PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
         usbDevice(0x1234, 0x5678, 'Acme', 'Storage', 'usb-storage', 0)
       ]))
-      const record: PeripheralDevicePolicyRecord = {
+      const record: PeripheralDevicePolicySnapshotRequest = {
         deviceId: 'VID:1234 PID:5678',
         deviceName: 'USB Device',
         deviceType: PeripheralType.USB_STORAGE,
@@ -215,7 +215,7 @@ export default function peripheralPolicySnapshotTraceServiceTest() {
       PeripheralPolicySnapshotTraceService.setUsbDeviceSnapshotProviderForTest(new FakeUsbDeviceSnapshotProvider([
         usbDevice(0x9999, 0x0001, 'Other', 'Device', 'other', 0x03)
       ]))
-      const record: PeripheralDevicePolicyRecord = {
+      const record: PeripheralDevicePolicySnapshotRequest = {
         deviceId: 'VID:1234 PID:5678',
         deviceName: 'USB Device',
         deviceType: PeripheralType.USB_STORAGE,

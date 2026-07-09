@@ -34,6 +34,7 @@ export class ActionText {
   static readonly CONTINUE: string = '继续'
   static readonly DELETE: string = '删除'
   static readonly CLEAR: string = '清理'
+  static readonly RESTORE: string = '还原'
   static readonly OVERRIDE: string = '覆盖'
   static readonly ACKNOWLEDGE: string = '我知道了'
   static readonly CONFIRM: string = '确定'

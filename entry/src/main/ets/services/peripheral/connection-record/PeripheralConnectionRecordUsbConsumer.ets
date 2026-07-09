@@ -1,15 +1,14 @@
 import { commonEventManager } from '@kit.BasicServicesKit'
 import { SecurityEventResult } from '../../../models/CommonModels'
 import {
-  PeripheralDevicePolicy,
   PeripheralMatchedPolicyKind,
   PeripheralRecordPolicyHit,
   PeripheralType,
+  UsbDeviceIdentity,
   UsbStoragePolicy,
   formatUsbDeviceId,
   inferPeripheralTypeFromBaseClass
 } from '../../../models/PeripheralModels'
-import { PeripheralDevicePolicyRepository } from '../device-policy/PeripheralDevicePolicyRepository'
 import { PeripheralService } from '../interface-control/PeripheralService'
 import {
   PeripheralConnectionRecordConsumeResult,
@@ -17,10 +16,6 @@ import {
   PeripheralConnectionRecordProducerEvent,
   PeripheralConnectionAction
 } from './PeripheralConnectionRecordProducerContract'
-import {
-  PeripheralDevicePolicyDispatchService,
-  PeripheralPolicyDispatchReason
-} from '../device-policy/PeripheralDevicePolicyDispatchService'
 import {
   EventPayloadRecord,
   collectPayloadSources,
@@ -36,6 +31,11 @@ import {
   PeripheralConnectionRecordStrings
 } from '../../../constants/modules/PeripheralStrings'
 import { UsbDeviceNameResolver } from './UsbDeviceNameResolver'
+import { UsbDeviceIdentityResolver } from '../device-policy/UsbDeviceIdentityResolver'
+import {
+  UsbDevicePolicyStateService,
+  UsbPolicyStateProcessResult
+} from '../device-policy/UsbDevicePolicyStateService'
 
 const TAG = 'ConnectionRecordUsbConsumer'
 
@@ -50,11 +50,13 @@ interface ResolvedUsbEventInfo {
   detail: string
   deviceId: string
   deviceType: PeripheralType
+  serialNumber: string
+  description: string
+  identity?: UsbDeviceIdentity
 }
 
 interface UsbPolicySnapshot {
   usbStoragePolicy: UsbStoragePolicy
-  devicePolicies: Map<string, PeripheralDevicePolicy>
 }
 
 interface UsbEventPolicyEvaluation {
@@ -65,19 +67,6 @@ interface UsbEventPolicyEvaluation {
   usbPolicy?: UsbStoragePolicy
   effectivePolicyLabel: string
   matchedPolicyKind: PeripheralMatchedPolicyKind
-}
-
-type FirstConnectAutoDenyStatus =
-  'not_applicable' |
-  'skipped_invalid_device_id' |
-  'skipped_existing_policy' |
-  'saved' |
-  'dispatch_failed' |
-  'save_failed'
-
-interface FirstConnectAutoDenyResult {
-  status: FirstConnectAutoDenyStatus
-  reason?: PeripheralPolicyDispatchReason | string
 }
 
 export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnectionRecordConsumer {
@@ -105,14 +94,19 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       LogUtils.info(TAG, `ignored usb hub event: baseClass=${info.baseClass}, deviceId=${info.deviceId}`)
       return null
     }
-    const baseEvaluation = PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(info, action)
-    let autoDenyResult: FirstConnectAutoDenyResult = { status: 'not_applicable' }
-    if (baseEvaluation.matchedPolicyKind !== 'usb_storage_disabled') {
-      autoDenyResult = await PeripheralConnectionRecordUsbConsumer.applyFirstConnectAutoDeny(info, action)
-    }
-    const evaluation = PeripheralConnectionRecordUsbConsumer.decorateAutoDenyEvaluation(
-      baseEvaluation,
-      autoDenyResult
+    const snapshot = PeripheralConnectionRecordUsbConsumer.readCurrentUsbPolicySnapshot()
+    const skipDeviceDenyDispatch = info.deviceType === PeripheralType.USB_STORAGE &&
+      snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED
+    const stateResult = await PeripheralConnectionRecordUsbConsumer.updateUsbPolicyState(
+      info,
+      action,
+      skipDeviceDenyDispatch
+    )
+    const evaluation = PeripheralConnectionRecordUsbConsumer.evaluateUsbEventPolicy(
+      info,
+      action,
+      snapshot,
+      stateResult
     )
     let rawPayload = ''
     try {
@@ -160,13 +154,14 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static evaluateUsbEventPolicy(
     info: ResolvedUsbEventInfo,
-    action: PeripheralConnectionAction
+    action: PeripheralConnectionAction,
+    snapshot: UsbPolicySnapshot,
+    stateResult: UsbPolicyStateProcessResult | null
   ): UsbEventPolicyEvaluation {
-    const snapshot = PeripheralConnectionRecordUsbConsumer.readCurrentUsbPolicySnapshot()
     const effectivePolicyLabel = PeripheralConnectionRecordUsbConsumer.resolveEffectivePolicyLabel(
-      info.deviceId,
       info.deviceType,
-      snapshot
+      snapshot,
+      stateResult
     )
 
     if (action === 'disconnect') {
@@ -195,12 +190,30 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       }
     }
 
-    if (snapshot.devicePolicies.get(info.deviceId.toUpperCase()) === 'deny') {
+    if (stateResult?.desiredPolicy === 'deny') {
+      if (stateResult.dispatchResult && !stateResult.dispatchResult.success) {
+        return {
+          policyHit: 'allow',
+          result: SecurityEventResult.SUCCESS,
+          summary: PeripheralConnectionRecordStrings.DEFAULT_ALLOW,
+          detail: PeripheralConnectionRecordStrings.appendAutoDenyFailedDetail(
+            PeripheralConnectionRecordStrings.DEFAULT_ALLOW_DETAIL,
+            stateResult.dispatchResult.reason ?? stateResult.dispatchResult.errorMessage
+          ),
+          usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
+          effectivePolicyLabel: StatusText.ENABLED,
+          matchedPolicyKind: 'default_allow'
+        }
+      }
       return {
         policyHit: 'deny',
         result: SecurityEventResult.BLOCKED,
         summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
-        detail: PeripheralConnectionRecordStrings.buildDeviceDenyDetail(info.deviceId),
+        detail: stateResult.autoDenyApplied
+          ? PeripheralConnectionRecordStrings.appendAutoDenySavedDetail(
+            PeripheralConnectionRecordStrings.buildDeviceDenyDetail(info.deviceId)
+          )
+          : PeripheralConnectionRecordStrings.buildDeviceDenyDetail(info.deviceId),
         usbPolicy: info.deviceType === PeripheralType.USB_STORAGE ? snapshot.usbStoragePolicy : undefined,
         effectivePolicyLabel: StatusText.DISABLED,
         matchedPolicyKind: 'device_deny'
@@ -230,85 +243,26 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     }
   }
 
-  private static async applyFirstConnectAutoDeny(
+  private static async updateUsbPolicyState(
     info: ResolvedUsbEventInfo,
-    action: PeripheralConnectionAction
-  ): Promise<FirstConnectAutoDenyResult> {
-    if (action !== 'connect') {
-      return { status: 'not_applicable' }
+    action: PeripheralConnectionAction,
+    skipDeviceDenyDispatch: boolean
+  ): Promise<UsbPolicyStateProcessResult | null> {
+    if (!info.identity) {
+      return null
     }
-    if (!Number.isFinite(info.vendorId) || !Number.isFinite(info.productId)) {
-      return { status: 'skipped_invalid_device_id' }
+    if (action === 'connect') {
+      return UsbDevicePolicyStateService.handleConnect(info.identity, info.occurAt, skipDeviceDenyDispatch)
     }
-    if (PeripheralDevicePolicyRepository.get(info.deviceId)) {
-      return { status: 'skipped_existing_policy' }
+    if (action === 'disconnect') {
+      return UsbDevicePolicyStateService.handleDisconnect(info.identity, info.occurAt)
     }
-    if (!PeripheralDevicePolicyRepository.isUsbDefaultDeny()) {
-      return { status: 'not_applicable' }
-    }
-
-    const dispatchResult = await PeripheralDevicePolicyDispatchService.dispatch({
-      deviceId: info.deviceId,
-      deviceType: info.deviceType,
-      policy: 'deny'
-    })
-    if (!dispatchResult.success) {
-      return {
-        status: 'dispatch_failed',
-        reason: dispatchResult.reason ?? dispatchResult.errorMessage ?? 'unknown'
-      }
-    }
-
-    const saved = await PeripheralDevicePolicyRepository.set({
-      deviceId: info.deviceId,
-      deviceName: info.deviceName,
-      deviceType: info.deviceType,
-      policy: 'deny',
-      updatedAt: Date.now()
-    })
-    if (!saved) {
-      return { status: 'save_failed', reason: 'repository_set_failed' }
-    }
-    return { status: 'saved' }
-  }
-
-  private static decorateAutoDenyEvaluation(
-    evaluation: UsbEventPolicyEvaluation,
-    autoDenyResult: FirstConnectAutoDenyResult
-  ): UsbEventPolicyEvaluation {
-    if (autoDenyResult.status === 'saved') {
-      return {
-        policyHit: 'deny',
-        result: SecurityEventResult.BLOCKED,
-        summary: PeripheralMatchedPolicyStrings.DEVICE_DENY,
-        detail: PeripheralConnectionRecordStrings.appendAutoDenySavedDetail(evaluation.detail),
-        usbPolicy: evaluation.usbPolicy,
-        effectivePolicyLabel: StatusText.DISABLED,
-        matchedPolicyKind: 'device_deny'
-      }
-    }
-    if (autoDenyResult.status === 'dispatch_failed' || autoDenyResult.status === 'save_failed') {
-      return {
-        policyHit: evaluation.policyHit,
-        result: evaluation.result,
-        summary: evaluation.summary,
-        detail: PeripheralConnectionRecordStrings.appendAutoDenyFailedDetail(evaluation.detail, autoDenyResult.reason),
-        usbPolicy: evaluation.usbPolicy,
-        effectivePolicyLabel: evaluation.effectivePolicyLabel,
-        matchedPolicyKind: evaluation.matchedPolicyKind
-      }
-    }
-    return evaluation
+    return null
   }
 
   private static readCurrentUsbPolicySnapshot(): UsbPolicySnapshot {
-    const devicePolicies: Map<string, PeripheralDevicePolicy> = new Map()
-    PeripheralDevicePolicyRepository.getAll().forEach((item) => {
-      devicePolicies.set(item.deviceId.toUpperCase(), item.policy)
-    })
     return {
-      usbStoragePolicy: PeripheralConnectionRecordUsbConsumer.readCurrentUsbStoragePolicy(),
-      devicePolicies: devicePolicies
+      usbStoragePolicy: PeripheralConnectionRecordUsbConsumer.readCurrentUsbStoragePolicy()
     }
   }
 
@@ -327,11 +281,11 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
   }
 
   private static resolveEffectivePolicyLabel(
-    deviceId: string,
     deviceType: PeripheralType,
-    snapshot: UsbPolicySnapshot
+    snapshot: UsbPolicySnapshot,
+    stateResult: UsbPolicyStateProcessResult | null
   ): string {
-    if (snapshot.devicePolicies.get(deviceId.toUpperCase()) === 'deny') {
+    if (stateResult?.desiredPolicy === 'deny') {
       return StatusText.DISABLED
     }
     if (deviceType === PeripheralType.USB_STORAGE && snapshot.usbStoragePolicy === UsbStoragePolicy.DISABLED) {
@@ -353,6 +307,8 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
     const deviceNameField = PeripheralConnectionRecordUsbConsumer.resolveDeviceName(payloads)
     const productName = PeripheralConnectionRecordUsbConsumer.resolveProductName(payloads)
     const manufacturerName = PeripheralConnectionRecordUsbConsumer.resolveManufacturerName(payloads)
+    const serialNumber = PeripheralConnectionRecordUsbConsumer.resolveSerialNumber(payloads)
+    const description = PeripheralConnectionRecordUsbConsumer.resolveDescription(payloads)
     let baseClass = PeripheralConnectionRecordUsbConsumer.resolveBaseClass(payloads)
     if (!Number.isFinite(baseClass) || baseClass <= 0) {
       baseClass = PeripheralConnectionRecordUsbConsumer.pickInterfaceClass(payloads)
@@ -369,6 +325,14 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       productName: productName,
       deviceName: deviceNameField
     }, hasVidPid ? PeripheralConnectionRecordStrings.USB_DEVICE : PeripheralConnectionRecordStrings.UNRECOGNIZED_USB_DEVICE)
+    const identity = UsbDeviceIdentityResolver.resolve({
+      vendorId: hasVidPid ? vendorId : Number.NaN,
+      productId: hasVidPid ? productId : Number.NaN,
+      baseClass: Number.isFinite(baseClass) ? baseClass : Number.NaN,
+      deviceName: deviceName,
+      serialNumber: serialNumber,
+      description: description
+    }) ?? undefined
 
     return {
       vendorId: hasVidPid ? vendorId : Number.NaN,
@@ -382,7 +346,10 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
       deviceId: deviceId,
       deviceType: Number.isFinite(baseClass)
         ? inferPeripheralTypeFromBaseClass(baseClass)
-        : PeripheralType.USB_OTHER
+        : PeripheralType.USB_OTHER,
+      serialNumber: serialNumber,
+      description: description,
+      identity: identity
     }
   }
 
@@ -412,6 +379,14 @@ export class PeripheralConnectionRecordUsbConsumer implements PeripheralConnecti
 
   private static resolveManufacturerName(sources: EventPayloadRecord[]): string {
     return pickString(sources, ['manufacturerName', 'manufacturer', 'vendorName'])
+  }
+
+  private static resolveSerialNumber(sources: EventPayloadRecord[]): string {
+    return pickString(sources, ['serialNumber', 'serial', 'sn'])
+  }
+
+  private static resolveDescription(sources: EventPayloadRecord[]): string {
+    return pickString(sources, ['description'])
   }
 
   private static resolveBaseClass(sources: EventPayloadRecord[]): number {

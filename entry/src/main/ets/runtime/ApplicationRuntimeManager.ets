@@ -1,6 +1,7 @@
 import { common } from '@kit.AbilityKit'
 import { LogCollectorService } from '../services/log-manage/collector/LogCollectorService'
 import { PeripheralDevicePolicyRepository } from '../services/peripheral/device-policy/PeripheralDevicePolicyRepository'
+import { UsbDevicePolicyStateRepository } from '../services/peripheral/device-policy/UsbDevicePolicyStateRepository'
 import { PeripheralTraceMaintenanceService } from '../services/peripheral/connection-record/PeripheralTraceMaintenanceService'
 import { PermissionPolicyLocalRepository } from '../services/permission-manage/PermissionPolicyLocalRepository'
 import { PeripheralConnectionRecordBluetoothAclConsumer } from '../services/peripheral/connection-record/PeripheralConnectionRecordBluetoothAclConsumer'
@@ -237,6 +238,11 @@ export class ApplicationRuntimeManager {
     let devicePolicyInited = await PeripheralDevicePolicyRepository.init(context)
     if (!devicePolicyInited) {
       LogUtils.error(TAG, 'PeripheralDevicePolicyRepository init failed')
+      return
+    }
+    let usbPolicyStateInited = await UsbDevicePolicyStateRepository.init(context)
+    if (!usbPolicyStateInited) {
+      LogUtils.error(TAG, 'UsbDevicePolicyStateRepository init failed')
       return
     }
 

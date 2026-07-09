@@ -70,7 +70,7 @@ export struct PolicyList {
               })
           }
         }
-      }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}`)
+      }, (record: PeripheralPolicyRecord) => `${record.deviceId}-${record.policyIndex}-${record.present === false ? 'offline' : 'online'}`)
     }
     .width('100%')
     .borderRadius(AppStyles.RADIUS_LG)
@@ -166,15 +166,16 @@ export struct PolicyList {
         controlHeight: 32,
         radius: 8,
         fontSize: AppStyles.FONT_SIZE_CAPTION,
-        enabledValue: !(this.isUpdating ? this.isUpdating(record.deviceId) : false),
-        opacityValue: (this.isUpdating ? this.isUpdating(record.deviceId) : false) ? 0.6 : 1,
+        enabledValue: true,
+        opacityValue: this.isPolicyEditable(record) ? 1 : 0.6,
         currentTheme: this.currentTheme,
         onSelect: (selectIndex: number) => {
-          if (this.onPolicyChange) {
+          if (this.onPolicyChange && this.isPolicyEditable(record)) {
             this.onPolicyChange(index, selectIndex)
           }
         }
       })
+        .hitTestBehavior(this.isPolicyEditable(record) ? HitTestMode.Default : HitTestMode.None)
         .layoutWeight(1.4)
     }
     .width('100%')
@@ -199,5 +200,10 @@ export struct PolicyList {
 
   private getDisplayDeviceId(deviceType: PeripheralType, deviceId: string): string {
     return isUsbPeripheralType(deviceType) ? '' : deviceId
+  }
+
+  private isPolicyEditable(record: PeripheralPolicyRecord): boolean {
+    const updating = this.isUpdating ? this.isUpdating(record.deviceId) : false
+    return !updating && record.editable !== false
   }
 }

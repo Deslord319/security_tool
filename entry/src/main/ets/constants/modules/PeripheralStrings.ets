@@ -17,6 +17,7 @@ export class PeripheralReasonCodes {
   static readonly USB_CONFLICT_ACCOUNT_STORAGE: string = 'usb_conflict_account_storage'
   static readonly USB_DISPATCH_FAILED: string = 'usb_dispatch_failed'
   static readonly USB_DISPATCH_CONFLICT_UNRESOLVED: string = 'usb_dispatch_conflict_unresolved'
+  static readonly DEVICE_POLICY_OFFLINE: string = 'device_policy_offline'
   static readonly EXPORT_CONNECTION_HISTORY_FAILED: string = 'export_connection_history_failed'
   static readonly EXPORT_POLICY_RECORDS_FAILED: string = 'export_policy_records_failed'
   static readonly READ_USB_STATUS_FAILED: string = 'read_usb_status'
@@ -265,6 +266,8 @@ export function resolvePeripheralReason(reason?: string | null): string {
       return buildPeripheralRetryMessage('USB 单设备策略下发失败')
     case PeripheralReasonCodes.USB_DISPATCH_CONFLICT_UNRESOLVED:
       return '系统检测到 USB 冲突规则未完成消解，暂时无法修改单设备策略'
+    case PeripheralReasonCodes.DEVICE_POLICY_OFFLINE:
+      return '设备已拔出，暂时不能修改黑白名单策略'
     case PeripheralReasonCodes.EXPORT_CONNECTION_HISTORY_FAILED:
       return buildPeripheralRetryMessage('导出记录失败')
     case PeripheralReasonCodes.EXPORT_POLICY_RECORDS_FAILED:

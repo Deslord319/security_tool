@@ -8,9 +8,13 @@ import {
 } from '../../main/ets/models/CommonModels'
 import {
   PeripheralConnectionRecord,
+  PeripheralPolicyRecord,
   PeripheralType
 } from '../../main/ets/models/PeripheralModels'
-import { PeripheralReasonCodes } from '../../main/ets/constants/modules/PeripheralStrings'
+import {
+  PeripheralPolicyOptionIndexes,
+  PeripheralReasonCodes
+} from '../../main/ets/constants/modules/PeripheralStrings'
 import { PeripheralDevicePolicyRepository } from '../../main/ets/services/peripheral/device-policy/PeripheralDevicePolicyRepository'
 import { EnterpriseAdminService } from '../../main/ets/services/admin/activation/EnterpriseAdminService'
 import { PeripheralTraceEntryRepository } from '../../main/ets/services/peripheral/connection-record/PeripheralTraceEntryRepository'
@@ -63,8 +67,10 @@ class FakeRecordViewModel extends PeripheralRecordViewModel {
 class FakePolicyViewModel extends PeripheralPolicyViewModel {
   initializeCount: number = 0
   reloadCount: number = 0
+  clearCount: number = 0
   throwOnInitialize: boolean = false
-  lastRecords: PeripheralConnectionRecord[] = []
+  clearResult: boolean = true
+  nextHasRestorableRecords: boolean = false
   exportResult: ExportActionResult = new FakeExportResult(true, 'peripheral_policy_records.csv')
 
   async initialize(_context: common.UIAbilityContext): Promise<boolean> {
@@ -75,14 +81,19 @@ class FakePolicyViewModel extends PeripheralPolicyViewModel {
     return true
   }
 
-  reloadRecords(connectionRecords: PeripheralConnectionRecord[]): void {
+  async reloadRecords(): Promise<void> {
     this.reloadCount++
-    this.lastRecords = connectionRecords.slice()
     this.state.records = []
+    this.state.hasRestorableRecords = this.nextHasRestorableRecords
   }
 
   async exportRecords(_context: common.UIAbilityContext | null): Promise<ExportActionResult> {
     return this.exportResult
+  }
+
+  async clearAllPolicies(): Promise<boolean> {
+    this.clearCount++
+    return this.clearResult
   }
 }
 
@@ -103,6 +114,19 @@ function createConnectionRecord(
     policyHit: 'allow',
     summary: 'connected',
     matchedPolicyKind: 'default_allow'
+  }
+}
+
+function createPolicyRecord(policyIndex: number): PeripheralPolicyRecord {
+  return {
+    deviceName: 'USB Device',
+    deviceType: PeripheralType.USB_STORAGE,
+    deviceId: 'USB-WEAK:1234:5678:ABCDEF01',
+    lastSeenAt: 1700000000000,
+    lastSeenLabel: '2026-07-09 11:00:00',
+    policyIndex: policyIndex,
+    present: true,
+    editable: true
   }
 }
 
@@ -177,7 +201,6 @@ export default function peripheralViewModelTest() {
     let traceRemoveListenerMock = mockKit.mockFunc(PeripheralTraceEntryRepository, PeripheralTraceEntryRepository.removeChangeListener)
     let deviceAddListenerMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.addChangeListener)
     let deviceRemoveListenerMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.removeChangeListener)
-    let deviceClearAllMock = mockKit.mockFunc(PeripheralDevicePolicyRepository, PeripheralDevicePolicyRepository.clearAll)
     when(probeActivationMock)().afterReturn(inactiveAdminState)
     let traceInitResult: PeripheralTraceInitializeResult = { success: true, code: 'ok' }
     when(traceInitMock)(ArgumentMatchers.any).afterReturn(Promise.resolve(traceInitResult))
@@ -194,12 +217,6 @@ export default function peripheralViewModelTest() {
     })
     when(deviceRemoveListenerMock)(ArgumentMatchers.any).afterAction(() => {
       devicePolicyListener = null
-    })
-    when(deviceClearAllMock)().afterAction(() => {
-      if (devicePolicyListener) {
-        devicePolicyListener()
-      }
-      return Promise.resolve(true)
     })
   })
 
@@ -225,7 +242,7 @@ export default function peripheralViewModelTest() {
     }
     await flushAsyncWork()
     expect(fakeRecords.reloadCount).assertEqual(2)
-    expect(fakePolicy.reloadCount).assertEqual(2)
+    expect(fakePolicy.reloadCount).assertEqual(1)
 
     viewModel.destroy()
     if (traceListener) {
@@ -233,7 +250,7 @@ export default function peripheralViewModelTest() {
     }
     await flushAsyncWork()
     expect(fakeRecords.reloadCount).assertEqual(2)
-    expect(fakePolicy.reloadCount).assertEqual(2)
+    expect(fakePolicy.reloadCount).assertEqual(1)
     done()
   })
 
@@ -247,14 +264,13 @@ export default function peripheralViewModelTest() {
     done()
   })
 
-  it('U-PVM-003 should reload device records, sync policy records and notify refresh', 0, async () => {
+  it('U-PVM-003 should reload device records without rebuilding policy records', 0, async () => {
     fakeRecords.nextRecords = [createConnectionRecord('record-1', 1700000000000)]
 
     await viewModel.reloadDeviceRecords()
 
     expect(fakeRecords.reloadCount).assertEqual(1)
-    expect(fakePolicy.reloadCount).assertEqual(1)
-    expect(fakePolicy.lastRecords.length).assertEqual(1)
+    expect(fakePolicy.reloadCount).assertEqual(0)
   })
 
   it('U-PVM-004 should open detail dialog and notify refresh', 0, () => {
@@ -310,7 +326,7 @@ export default function peripheralViewModelTest() {
     expect(viewModel.currentTab).assertEqual(2)
   })
 
-  it('U-PVM-010 should refresh records and policy when trace listener fires', 0, async (done: Function) => {
+  it('U-PVM-010 should refresh records only when trace listener fires', 0, async (done: Function) => {
     fakeRecords.nextRecords = [createConnectionRecord('record-1', 1700000000000)]
 
     await viewModel.initialize({} as common.UIAbilityContext)
@@ -323,23 +339,27 @@ export default function peripheralViewModelTest() {
     await flushAsyncWork()
 
     expect(fakeRecords.reloadCount).assertEqual(1)
-    expect(fakePolicy.reloadCount).assertEqual(1)
+    expect(fakePolicy.reloadCount).assertEqual(0)
     done()
   })
 
   it('U-PVM-011 should refresh policy only when device policy listener fires', 0, async (done: Function) => {
     fakeRecords.nextRecords = [createConnectionRecord('record-1', 1700000000000)]
+    fakePolicy.nextHasRestorableRecords = true
 
     await viewModel.initialize({} as common.UIAbilityContext)
     fakeRecords.reloadCount = 0
     fakePolicy.reloadCount = 0
+    fakePolicy.nextHasRestorableRecords = false
 
     if (devicePolicyListener) {
       devicePolicyListener()
     }
+    await flushAsyncWork()
 
     expect(fakeRecords.reloadCount).assertEqual(0)
     expect(fakePolicy.reloadCount).assertEqual(1)
+    expect(viewModel.hasRestorablePolicyRecords()).assertFalse()
     done()
   })
 
@@ -372,6 +392,38 @@ export default function peripheralViewModelTest() {
     expect(result.fileName).assertEqual('peripheral_policy_records.csv')
     expect(viewModel.reasonCode).assertNull()
     done()
+  })
+
+  it('should disable policy restore when records are all allow', 0, async () => {
+    fakePolicy.state.records = [
+      createPolicyRecord(PeripheralPolicyOptionIndexes.ALLOW)
+    ]
+    fakePolicy.state.hasRestorableRecords = false
+
+    expect(viewModel.hasRestorablePolicyRecords()).assertFalse()
+
+    let result = await viewModel.clearPeripheralPolicyRecords()
+
+    expect(result).assertTrue()
+    expect(fakePolicy.clearCount).assertEqual(0)
+  })
+
+  it('should enable policy restore when any record is denied', 0, async () => {
+    fakePolicy.state.records = [
+      createPolicyRecord(PeripheralPolicyOptionIndexes.ALLOW),
+      createPolicyRecord(PeripheralPolicyOptionIndexes.DENY)
+    ]
+    fakePolicy.state.hasRestorableRecords = true
+    fakePolicy.nextHasRestorableRecords = false
+
+    expect(viewModel.hasRestorablePolicyRecords()).assertTrue()
+
+    let result = await viewModel.clearPeripheralPolicyRecords()
+
+    expect(result).assertTrue()
+    expect(fakePolicy.clearCount).assertEqual(1)
+    expect(fakePolicy.reloadCount).assertEqual(1)
+    expect(viewModel.hasRestorablePolicyRecords()).assertFalse()
   })
   })
 }
